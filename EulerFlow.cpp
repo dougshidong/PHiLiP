@@ -54,20 +54,23 @@
 namespace PHiLiP
 {
     using namespace dealii;
-    // @sect3{The AdvectionProblem class}
+    // @sect3{The EulerFlow class}
   
     // We start with the constructor. The 1 in the constructor call of
     // <code>fe</code> is the polynomial degree.
     template <int dim>
-    AdvectionProblem<dim>::AdvectionProblem()
+    EulerFlow<dim>::EulerFlow()
       : mapping()
       , fe(1)
       , dof_handler(triangulation)
     {}
+    template EulerFlow<1>::EulerFlow();
+    template EulerFlow<2>::EulerFlow();
+    template EulerFlow<3>::EulerFlow();
   
   
     template <int dim>
-    void AdvectionProblem<dim>::setup_system()
+    void EulerFlow<dim>::setup_system()
     {
         // In the function that sets up the usual finite element data structures, we
         // first need to distribute the DoFs.
@@ -99,7 +102,7 @@ namespace PHiLiP
     // use one of the classes in namespace MeshWorker::Assembler to build the
     // global system.
     template <int dim>
-    void AdvectionProblem<dim>::assemble_system()
+    void EulerFlow<dim>::assemble_system()
     {
         // This is the magic object, which knows everything about the data
         // structures and local integration.  This is the object doing the work in
@@ -162,9 +165,9 @@ namespace PHiLiP
           dof_handler.end(),
           dof_info,
           info_box,
-          &AdvectionProblem<dim>::integrate_cell_term,
-          &AdvectionProblem<dim>::integrate_boundary_term,
-          &AdvectionProblem<dim>::integrate_face_term,
+          &EulerFlow<dim>::integrate_cell_term,
+          &EulerFlow<dim>::integrate_boundary_term,
+          &EulerFlow<dim>::integrate_face_term,
           assembler);
     }
   
@@ -175,7 +178,7 @@ namespace PHiLiP
     // just above. They compute the local contributions to the system matrix and
     // right hand side on cells and faces.
     template <int dim>
-    void AdvectionProblem<dim>::integrate_cell_term(DoFInfo & dinfo,
+    void EulerFlow<dim>::integrate_cell_term(DoFInfo & dinfo,
                                                     CellInfo &info)
     {
         // First, let us retrieve some of the objects used here from @p info. Note
@@ -208,7 +211,7 @@ namespace PHiLiP
     // base class for both FEFaceValues and FESubfaceValues, in order to get
     // access to normal vectors.
     template <int dim>
-    void AdvectionProblem<dim>::integrate_boundary_term(DoFInfo & dinfo,
+    void EulerFlow<dim>::integrate_boundary_term(DoFInfo & dinfo,
                                                         CellInfo &info)
     {
         const FEValuesBase<dim> &fe_face_values = info.fe_values();
@@ -249,7 +252,7 @@ namespace PHiLiP
     // two info objects, one for each cell adjacent to the face and we assemble
     // four matrices, one for each cell and two for coupling back and forth.
     template <int dim>
-    void AdvectionProblem<dim>::integrate_face_term(DoFInfo & dinfo1,
+    void EulerFlow<dim>::integrate_face_term(DoFInfo & dinfo1,
                                                     DoFInfo & dinfo2,
                                                     CellInfo &info1,
                                                     CellInfo &info2)
@@ -346,7 +349,7 @@ namespace PHiLiP
     // then a block Gauss-Seidel preconditioner (see the PreconditionBlockSOR
     // class with relaxation=1) does a much better job.
     template <int dim>
-    void AdvectionProblem<dim>::solve(Vector<double> &solution)
+    void EulerFlow<dim>::solve(Vector<double> &solution)
     {
       SolverControl      solver_control(1000, 1e-12);
       SolverRichardson<> solver(solver_control);
@@ -382,7 +385,7 @@ namespace PHiLiP
     // (or, to be more precise: in $H^1_\beta$, i.e., the space of functions whose
     // derivatives in direction $\beta$ are square integrable).
     template <int dim>
-    void AdvectionProblem<dim>::refine_grid()
+    void EulerFlow<dim>::refine_grid()
     {
       // The <code>DerivativeApproximation</code> class computes the gradients to
       // float precision. This is sufficient as they are approximate and serve as
@@ -414,7 +417,7 @@ namespace PHiLiP
     // The output of this program consists of eps-files of the adaptively refined
     // grids and the numerical solutions given in gnuplot format.
     template <int dim>
-    void AdvectionProblem<dim>::output_results(const unsigned int cycle) const
+    void EulerFlow<dim>::output_results(const unsigned int cycle) const
     {
       // First write the grid in eps format.
       {
@@ -445,7 +448,7 @@ namespace PHiLiP
   
     // The following <code>run</code> function is similar to previous examples.
     template <int dim>
-    void AdvectionProblem<dim>::run()
+    void EulerFlow<dim>::run()
     {
       for (unsigned int cycle = 0; cycle < 6; ++cycle)
         {
@@ -475,4 +478,7 @@ namespace PHiLiP
           output_results(cycle);
         }
     }
+    template void EulerFlow<1>::run();
+    template void EulerFlow<2>::run();
+    template void EulerFlow<3>::run();
 }

@@ -18,15 +18,15 @@ SET(TARGET "step-12")
 # or switch altogether to the large project CMakeLists.txt file discussed
 # in the "CMake in user projects" page accessible from the "User info"
 # page of the documentation.
-SET(TARGET_SRC
-  ${TARGET}.cpp
-  )
+#SET(TARGET_SRC
+#  ${TARGET}.cpp
+#  )
 
 # Usually, you will not need to modify anything beyond this point...
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12)
 
-FIND_PACKAGE(deal.II 9.1.0 QUIET
+FIND_PACKAGE(deal.II 9.0.1 QUIET
   HINTS ${deal.II_DIR} ${DEAL_II_DIR} ../ ../../ $ENV{DEAL_II_DIR}
   )
 IF(NOT ${deal.II_FOUND})

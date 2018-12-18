@@ -31,7 +31,7 @@ int main()
 {
   try
     {
-      PHiLiP::AdvectionProblem<2> dgmethod;
+      PHiLiP::EulerFlow<2> dgmethod;
       dgmethod.run();
     }
   catch (std::exception &exc)

@@ -21,10 +21,10 @@
 namespace PHiLiP
 {
   using namespace dealii;
-  // @sect3{The AdvectionProblem class}
+  // @sect3{The EulerFlow class}
   //
   // After this preparations, we proceed with the main class of this program,
-  // called AdvectionProblem. It is basically the main class of step-6. We do
+  // called EulerFlow. It is basically the main class of step-6. We do
   // not have an AffineConstraints object, because there are no hanging node
   // constraints in DG discretizations.
 
@@ -33,10 +33,10 @@ namespace PHiLiP
   // faces, we also use the MeshWorker interface to simplify the loops
   // involved.
   template <int dim>
-  class AdvectionProblem
+  class EulerFlow
   {
   public:
-    AdvectionProblem();
+    EulerFlow();
     void run();
 
   private:

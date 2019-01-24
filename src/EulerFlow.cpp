@@ -60,9 +60,9 @@ namespace PHiLiP
     // <code>fe</code> is the polynomial degree.
     template <int dim>
     EulerFlow<dim>::EulerFlow()
-      : mapping()
-      , fe(1)
-      , dof_handler(triangulation)
+        : mapping()
+        , fe(1)
+        , dof_handler(triangulation)
     {}
     template EulerFlow<1>::EulerFlow();
     template EulerFlow<2>::EulerFlow();
@@ -129,7 +129,7 @@ namespace PHiLiP
         // values.
         info_box.initialize_update_flags();
         UpdateFlags update_flags =
-          update_quadrature_points | update_values | update_gradients;
+            update_quadrature_points | update_values | update_gradients;
         info_box.add_update_flags(update_flags, true, true, true, true);
   
         // After preparing all data in <tt>info_box</tt>, we initialize the FEValues
@@ -144,7 +144,7 @@ namespace PHiLiP
         // Now, we have to create the assembler object and tell it, where to put the
         // local data. These will be our system matrix and the right hand side.
         MeshWorker::Assembler::SystemSimple<SparseMatrix<double>, Vector<double>>
-          assembler;
+            assembler;
         assembler.initialize(system_matrix, right_hand_side);
   
         // Finally, the integration loop over all active cells (determined by the
@@ -161,14 +161,14 @@ namespace PHiLiP
                          dim,
                          MeshWorker::DoFInfo<dim>,
                          MeshWorker::IntegrationInfoBox<dim>>(
-          dof_handler.begin_active(),
-          dof_handler.end(),
-          dof_info,
-          info_box,
-          &EulerFlow<dim>::integrate_cell_term,
-          &EulerFlow<dim>::integrate_boundary_term,
-          &EulerFlow<dim>::integrate_face_term,
-          assembler);
+            dof_handler.begin_active(),
+            dof_handler.end(),
+            dof_info,
+            info_box,
+            &EulerFlow<dim>::integrate_cell_term,
+            &EulerFlow<dim>::integrate_boundary_term,
+            &EulerFlow<dim>::integrate_face_term,
+            assembler);
     }
   
   
@@ -179,7 +179,7 @@ namespace PHiLiP
     // right hand side on cells and faces.
     template <int dim>
     void EulerFlow<dim>::integrate_cell_term(DoFInfo & dinfo,
-                                                    CellInfo &info)
+                                                      CellInfo &info)
     {
         // First, let us retrieve some of the objects used here from @p info. Note
         // that these objects can handle much more complex structures, thus the
@@ -194,16 +194,18 @@ namespace PHiLiP
         for (unsigned int point = 0; point < fe_values.n_quadrature_points; ++point)
         {
             const Tensor<1, dim> beta_at_q_point =
-              beta(fe_values.quadrature_point(point));
+            beta(fe_values.quadrature_point(point));
   
             // We solve a homogeneous equation, thus no right hand side shows up in
             // the cell term.  What's left is integrating the matrix entries.
-            for (unsigned int i = 0; i < fe_values.dofs_per_cell; ++i)
-              for (unsigned int j = 0; j < fe_values.dofs_per_cell; ++j)
-                local_matrix(i, j) += -beta_at_q_point *                //
-                                      fe_values.shape_grad(i, point) *  //
-                                      fe_values.shape_value(j, point) * //
-                                      JxW[point];
+            for (unsigned int i = 0; i < fe_values.dofs_per_cell; ++i) {
+                for (unsigned int j = 0; j < fe_values.dofs_per_cell; ++j) {
+                    local_matrix(i, j) += -beta_at_q_point *                //
+                                          fe_values.shape_grad(i, point) *  //
+                                          fe_values.shape_value(j, point) * //
+                                          JxW[point];
+                }
+            }
         }
     }
   
@@ -212,7 +214,7 @@ namespace PHiLiP
     // access to normal vectors.
     template <int dim>
     void EulerFlow<dim>::integrate_boundary_term(DoFInfo & dinfo,
-                                                        CellInfo &info)
+                                                 CellInfo &info)
     {
         const FEValuesBase<dim> &fe_face_values = info.fe_values();
         FullMatrix<double> &     local_matrix   = dinfo.matrix(0).matrix;
@@ -220,7 +222,7 @@ namespace PHiLiP
   
         const std::vector<double> &        JxW = fe_face_values.get_JxW_values();
         const std::vector<Tensor<1, dim>> &normals =
-          fe_face_values.get_normal_vectors();
+            fe_face_values.get_normal_vectors();
   
         std::vector<double> g(fe_face_values.n_quadrature_points);
   
@@ -232,19 +234,24 @@ namespace PHiLiP
         {
             const double beta_dot_n =
                 beta(fe_face_values.quadrature_point(point)) * normals[point];
-            if (beta_dot_n > 0)
-                for (unsigned int i = 0; i < fe_face_values.dofs_per_cell; ++i)
-                    for (unsigned int j = 0; j < fe_face_values.dofs_per_cell; ++j)
+            if (beta_dot_n > 0) {
+                for (unsigned int i = 0; i < fe_face_values.dofs_per_cell; ++i) {
+                    for (unsigned int j = 0; j < fe_face_values.dofs_per_cell; ++j) {
                         local_matrix(i, j) += beta_dot_n *                           //
                                               fe_face_values.shape_value(j, point) * //
                                               fe_face_values.shape_value(i, point) * //
                                               JxW[point];
-            else
-                for (unsigned int i = 0; i < fe_face_values.dofs_per_cell; ++i)
+                    }
+                }
+            }
+            else {
+                for (unsigned int i = 0; i < fe_face_values.dofs_per_cell; ++i) {
                     local_vector(i) += -beta_dot_n *                          //
                                        g[point] *                             //
                                        fe_face_values.shape_value(i, point) * //
                                        JxW[point];
+                }
+            }
         }
     }
   
@@ -253,85 +260,81 @@ namespace PHiLiP
     // four matrices, one for each cell and two for coupling back and forth.
     template <int dim>
     void EulerFlow<dim>::integrate_face_term(DoFInfo & dinfo1,
-                                                    DoFInfo & dinfo2,
-                                                    CellInfo &info1,
-                                                    CellInfo &info2)
+                                             DoFInfo & dinfo2,
+                                             CellInfo &info1,
+                                             CellInfo &info2)
     {
-      // For quadrature points, weights, etc., we use the FEValuesBase object of
-      // the first argument.
-      const FEValuesBase<dim> &fe_face_values = info1.fe_values();
-      const unsigned int       dofs_per_cell  = fe_face_values.dofs_per_cell;
+        // For quadrature points, weights, etc., we use the FEValuesBase object of
+        // the first argument.
+        const FEValuesBase<dim> &fe_face_values = info1.fe_values();
+        const unsigned int       dofs_per_cell  = fe_face_values.dofs_per_cell;
   
-      // For additional shape functions, we have to ask the neighbors
-      // FEValuesBase.
-      const FEValuesBase<dim> &fe_face_values_neighbor = info2.fe_values();
-      const unsigned int       neighbor_dofs_per_cell =
-        fe_face_values_neighbor.dofs_per_cell;
+        // For additional shape functions, we have to ask the neighbors
+        // FEValuesBase.
+        const FEValuesBase<dim> &fe_face_values_neighbor = info2.fe_values();
+        const unsigned int       neighbor_dofs_per_cell =
+            fe_face_values_neighbor.dofs_per_cell;
   
-      // Then we get references to the four local matrices. The letters u and v
-      // refer to trial and test functions, respectively. The %numbers indicate
-      // the cells provided by info1 and info2. By convention, the two matrices
-      // in each info object refer to the test functions on the respective cell.
-      // The first matrix contains the interior couplings of that cell, while the
-      // second contains the couplings between cells.
-      FullMatrix<double> &u1_v1_matrix = dinfo1.matrix(0, false).matrix;
-      FullMatrix<double> &u2_v1_matrix = dinfo1.matrix(0, true).matrix;
-      FullMatrix<double> &u1_v2_matrix = dinfo2.matrix(0, true).matrix;
-      FullMatrix<double> &u2_v2_matrix = dinfo2.matrix(0, false).matrix;
+        // Then we get references to the four local matrices. The letters u and v
+        // refer to trial and test functions, respectively. The %numbers indicate
+        // the cells provided by info1 and info2. By convention, the two matrices
+        // in each info object refer to the test functions on the respective cell.
+        // The first matrix contains the interior couplings of that cell, while the
+        // second contains the couplings between cells.
+        FullMatrix<double> &u1_v1_matrix = dinfo1.matrix(0, false).matrix;
+        FullMatrix<double> &u2_v1_matrix = dinfo1.matrix(0, true).matrix;
+        FullMatrix<double> &u1_v2_matrix = dinfo2.matrix(0, true).matrix;
+        FullMatrix<double> &u2_v2_matrix = dinfo2.matrix(0, false).matrix;
   
-      // Here, following the previous functions, we would have the local right
-      // hand side vectors. Fortunately, the interface terms only involve the
-      // solution and the right hand side does not receive any contributions.
+        // Here, following the previous functions, we would have the local right
+        // hand side vectors. Fortunately, the interface terms only involve the
+        // solution and the right hand side does not receive any contributions.
   
-      const std::vector<double> &        JxW = fe_face_values.get_JxW_values();
-      const std::vector<Tensor<1, dim>> &normals =
-        fe_face_values.get_normal_vectors();
+        const std::vector<double> &        JxW = fe_face_values.get_JxW_values();
+        const std::vector<Tensor<1, dim>> &normals =
+            fe_face_values.get_normal_vectors();
   
-      for (unsigned int point = 0; point < fe_face_values.n_quadrature_points;
-           ++point)
-        {
-          const double beta_dot_n =
-            beta(fe_face_values.quadrature_point(point)) * normals[point];
-          if (beta_dot_n > 0)
-            {
-              // This term we've already seen:
-              for (unsigned int i = 0; i < dofs_per_cell; ++i)
-                for (unsigned int j = 0; j < dofs_per_cell; ++j)
-                  u1_v1_matrix(i, j) += beta_dot_n *                           //
-                                        fe_face_values.shape_value(j, point) * //
-                                        fe_face_values.shape_value(i, point) * //
-                                        JxW[point];
+        for (unsigned int point = 0; point < fe_face_values.n_quadrature_points; ++point) {
+              const double beta_dot_n =
+                  beta(fe_face_values.quadrature_point(point)) * normals[point];
+            if (beta_dot_n > 0) {
+                // This term we've already seen:
+                 for (unsigned int i = 0; i < dofs_per_cell; ++i)
+                   for (unsigned int j = 0; j < dofs_per_cell; ++j)
+                     u1_v1_matrix(i, j) += beta_dot_n *                           //
+                                           fe_face_values.shape_value(j, point) * //
+                                           fe_face_values.shape_value(i, point) * //
+                                           JxW[point];
   
-              // We additionally assemble the term $(\beta\cdot n u,\hat
-              // v)_{\partial \kappa_+}$,
-              for (unsigned int k = 0; k < neighbor_dofs_per_cell; ++k)
-                for (unsigned int j = 0; j < dofs_per_cell; ++j)
-                  u1_v2_matrix(k, j) +=
-                    -beta_dot_n *                                   //
-                    fe_face_values.shape_value(j, point) *          //
-                    fe_face_values_neighbor.shape_value(k, point) * //
-                    JxW[point];
-            }
-          else
-            {
-              // This one we've already seen, too:
-              for (unsigned int i = 0; i < dofs_per_cell; ++i)
-                for (unsigned int l = 0; l < neighbor_dofs_per_cell; ++l)
-                  u2_v1_matrix(i, l) +=
-                    beta_dot_n *                                    //
-                    fe_face_values_neighbor.shape_value(l, point) * //
-                    fe_face_values.shape_value(i, point) *          //
-                    JxW[point];
+                 // We additionally assemble the term $(\beta\cdot n u,\hat
+                 // v)_{\partial \kappa_+}$,
+                 for (unsigned int k = 0; k < neighbor_dofs_per_cell; ++k)
+                   for (unsigned int j = 0; j < dofs_per_cell; ++j)
+                     u1_v2_matrix(k, j) +=
+                       -beta_dot_n *                                   //
+                       fe_face_values.shape_value(j, point) *          //
+                       fe_face_values_neighbor.shape_value(k, point) * //
+                       JxW[point];
+              }
+              else {
+                  // This one we've already seen, too:
+                  for (unsigned int i = 0; i < dofs_per_cell; ++i)
+                    for (unsigned int l = 0; l < neighbor_dofs_per_cell; ++l)
+                      u2_v1_matrix(i, l) +=
+                        beta_dot_n *                                    //
+                        fe_face_values_neighbor.shape_value(l, point) * //
+                        fe_face_values.shape_value(i, point) *          //
+                        JxW[point];
   
-              // And this is another new one: $(\beta\cdot n \hat u,\hat
-              // v)_{\partial \kappa_-}$:
-              for (unsigned int k = 0; k < neighbor_dofs_per_cell; ++k)
-                for (unsigned int l = 0; l < neighbor_dofs_per_cell; ++l)
-                  u2_v2_matrix(k, l) +=
-                    -beta_dot_n *                                   //
-                    fe_face_values_neighbor.shape_value(l, point) * //
-                    fe_face_values_neighbor.shape_value(k, point) * //
-                    JxW[point];
+                  // And this is another new one: $(\beta\cdot n \hat u,\hat
+                  // v)_{\partial \kappa_-}$:
+                  for (unsigned int k = 0; k < neighbor_dofs_per_cell; ++k)
+                    for (unsigned int l = 0; l < neighbor_dofs_per_cell; ++l)
+                      u2_v2_matrix(k, l) +=
+                        -beta_dot_n *                                   //
+                        fe_face_values_neighbor.shape_value(l, point) * //
+                        fe_face_values_neighbor.shape_value(k, point) * //
+                        JxW[point];
             }
         }
     }
@@ -351,17 +354,17 @@ namespace PHiLiP
     template <int dim>
     void EulerFlow<dim>::solve(Vector<double> &solution)
     {
-      SolverControl      solver_control(1000, 1e-12);
-      SolverRichardson<> solver(solver_control);
+        SolverControl      solver_control(1000, 1e-12);
+        SolverRichardson<> solver(solver_control);
   
-      // Here we create the preconditioner,
-      PreconditionBlockSSOR<SparseMatrix<double>> preconditioner;
+        // Here we create the preconditioner,
+        PreconditionBlockSSOR<SparseMatrix<double>> preconditioner;
   
-      // then assign the matrix to it and set the right block size:
-      preconditioner.initialize(system_matrix, fe.dofs_per_cell);
+        // then assign the matrix to it and set the right block size:
+        preconditioner.initialize(system_matrix, fe.dofs_per_cell);
   
-      // After these preparations we are ready to start the linear solver.
-      solver.solve(system_matrix, solution, right_hand_side, preconditioner);
+        // After these preparations we are ready to start the linear solver.
+        solver.solve(system_matrix, solution, right_hand_side, preconditioner);
     }
   
   
@@ -387,30 +390,32 @@ namespace PHiLiP
     template <int dim>
     void EulerFlow<dim>::refine_grid()
     {
-      // The <code>DerivativeApproximation</code> class computes the gradients to
-      // float precision. This is sufficient as they are approximate and serve as
-      // refinement indicators only.
-      Vector<float> gradient_indicator(triangulation.n_active_cells());
+        // The <code>DerivativeApproximation</code> class computes the gradients to
+        // float precision. This is sufficient as they are approximate and serve as
+        // refinement indicators only.
+        Vector<float> gradient_indicator(triangulation.n_active_cells());
   
-      // Now the approximate gradients are computed
-      DerivativeApproximation::approximate_gradient(mapping,
-                                                    dof_handler,
-                                                    solution,
-                                                    gradient_indicator);
+        // Now the approximate gradients are computed
+        DerivativeApproximation::approximate_gradient(mapping,
+                                                      dof_handler,
+                                                      solution,
+                                                      gradient_indicator);
   
-      // and they are cell-wise scaled by the factor $h^{1+d/2}$
-      unsigned int cell_no = 0;
-      for (const auto &cell : dof_handler.active_cell_iterators())
-        gradient_indicator(cell_no++) *=
-          std::pow(cell->diameter(), 1 + 1.0 * dim / 2);
+        // and they are cell-wise scaled by the factor $h^{1+d/2}$
+        unsigned int cell_no = 0;
+        for (const auto &cell : dof_handler.active_cell_iterators()) {
+            gradient_indicator(cell_no++) *=
+                std::pow(cell->diameter(), 1 + 1.0 * dim / 2);
+        }
   
-      // Finally they serve as refinement indicator.
-      GridRefinement::refine_and_coarsen_fixed_number(triangulation,
-                                                      gradient_indicator,
-                                                      0.3,
-                                                      0.1);
+        // Finally they serve as refinement indicator.
+        GridRefinement::refine_and_coarsen_fixed_number(
+            triangulation,
+            gradient_indicator,
+            0.3,
+            0.1);
   
-      triangulation.execute_coarsening_and_refinement();
+        triangulation.execute_coarsening_and_refinement();
     }
   
   
@@ -419,30 +424,30 @@ namespace PHiLiP
     template <int dim>
     void EulerFlow<dim>::output_results(const unsigned int cycle) const
     {
-      // First write the grid in eps format.
-      {
-        const std::string filename = "grid-" + std::to_string(cycle) + ".eps";
-        std::cout << "Writing grid to <" << filename << ">" << std::endl;
-        std::ofstream eps_output(filename);
+        // First write the grid in eps format.
+        {
+            const std::string filename = "grid-" + std::to_string(cycle) + ".eps";
+            std::cout << "Writing grid to <" << filename << ">" << std::endl;
+            std::ofstream eps_output(filename);
   
-        GridOut grid_out;
-        grid_out.write_eps(triangulation, eps_output);
-      }
+            GridOut grid_out;
+            grid_out.write_eps(triangulation, eps_output);
+        }
   
-      // Then output the solution in gnuplot format.
-      {
-        const std::string filename = "sol-" + std::to_string(cycle) + ".gnuplot";
-        std::cout << "Writing solution to <" << filename << ">" << std::endl;
-        std::ofstream gnuplot_output(filename);
+        // Then output the solution in gnuplot format.
+        {
+            const std::string filename = "sol-" + std::to_string(cycle) + ".gnuplot";
+            std::cout << "Writing solution to <" << filename << ">" << std::endl;
+            std::ofstream gnuplot_output(filename);
   
-        DataOut<dim> data_out;
-        data_out.attach_dof_handler(dof_handler);
-        data_out.add_data_vector(solution, "u");
+            DataOut<dim> data_out;
+            data_out.attach_dof_handler(dof_handler);
+            data_out.add_data_vector(solution, "u");
   
-        data_out.build_patches();
+            data_out.build_patches();
   
-        data_out.write_gnuplot(gnuplot_output);
-      }
+            data_out.write_gnuplot(gnuplot_output);
+        }
     }
   
   
@@ -450,32 +455,30 @@ namespace PHiLiP
     template <int dim>
     void EulerFlow<dim>::run()
     {
-      for (unsigned int cycle = 0; cycle < 6; ++cycle)
-        {
-          std::cout << "Cycle " << cycle << std::endl;
+        for (unsigned int cycle = 0; cycle < 6; ++cycle) {
+            std::cout << "Cycle " << cycle << std::endl;
   
-          if (cycle == 0)
-            {
-              GridGenerator::hyper_cube(triangulation);
+            if (cycle == 0) {
+                GridGenerator::hyper_cube(triangulation);
   
-              triangulation.refine_global(3);
+                triangulation.refine_global(3);
             }
-          else
-            refine_grid();
+            else {
+                refine_grid();
+            }
   
+            std::cout << "Number of active cells:       "
+                    << triangulation.n_active_cells() << std::endl;
   
-          std::cout << "Number of active cells:       "
-                  << triangulation.n_active_cells() << std::endl;
+            setup_system();
   
-          setup_system();
+            std::cout << "Number of degrees of freedom: " << dof_handler.n_dofs()
+                    << std::endl;
   
-          std::cout << "Number of degrees of freedom: " << dof_handler.n_dofs()
-                  << std::endl;
+            assemble_system();
+            solve(solution);
   
-          assemble_system();
-          solve(solution);
-  
-          output_results(cycle);
+            output_results(cycle);
         }
     }
     template void EulerFlow<1>::run();

@@ -425,10 +425,12 @@ namespace PHiLiP
     void EulerFlow<dim>::output_results(const unsigned int cycle) const
     {
         // First write the grid in eps format.
+        const std::string output_dir = "./output";
         {
             const std::string filename = "grid-" + std::to_string(cycle) + ".eps";
-            std::cout << "Writing grid to <" << filename << ">" << std::endl;
-            std::ofstream eps_output(filename);
+            const std::string full_path = output_dir+"/"+filename;
+            std::cout << "Writing grid to <" << full_path << ">" << std::endl;
+            std::ofstream eps_output(full_path);
   
             GridOut grid_out;
             grid_out.write_eps(triangulation, eps_output);
@@ -437,8 +439,9 @@ namespace PHiLiP
         // Then output the solution in gnuplot format.
         {
             const std::string filename = "sol-" + std::to_string(cycle) + ".gnuplot";
-            std::cout << "Writing solution to <" << filename << ">" << std::endl;
-            std::ofstream gnuplot_output(filename);
+            const std::string full_path = output_dir+"/"+filename;
+            std::cout << "Writing solution to <" << full_path << ">" << std::endl;
+            std::ofstream gnuplot_output(full_path);
   
             DataOut<dim> data_out;
             data_out.attach_dof_handler(dof_handler);

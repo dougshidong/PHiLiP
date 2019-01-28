@@ -1,6 +1,7 @@
 #include <deal.II/grid/tria.h>
 #include <deal.II/fe/fe_dgq.h>
 #include <deal.II/fe/mapping_q1.h> // Might need mapping_q
+#include <deal.II/fe/mapping_q.h> // Might need mapping_q
 #include <deal.II/dofs/dof_handler.h>
 
 #include <deal.II/lac/vector.h>
@@ -32,7 +33,7 @@ namespace PHiLiP
         // For now, use linear mapping of domain boundaries
         // May need to use MappingQ or MappingQGeneric to represent curved 
         // boundaries iso/superparametrically
-        const MappingQ<dim> mapping;
+        const MappingQ<dim,dim> mapping;
 
         // Lagrange polynomial basis
         FE_DGQ<dim> fe;

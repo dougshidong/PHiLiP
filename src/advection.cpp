@@ -18,7 +18,7 @@ namespace PHiLiP
 
     template <int dim, typename real>
     PDE<dim, real>::PDE(const unsigned int polynomial_order)
-        : mapping1(polynomial_order+1)
+        : mapping(polynomial_order+1)
         , fe(polynomial_order)
         , dof_handler(triangulation)
     {}

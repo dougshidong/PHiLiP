@@ -1,11 +1,17 @@
+
+
+#include "advection.h"
+
+#include <deal.II/base/logstream.h>
 #include <iostream>
-#include "EulerFlow.h"
+#include <fstream>
 int main()
 {
     try
     {
-        PHiLiP::EulerFlow<2> dgmethod;
-        dgmethod.run();
+        std::cout << "Starting program..." << std::endl;
+        PHiLiP::PDE<2, double> adv;
+        adv.run();
     }
     catch (std::exception &exc)
     {
@@ -32,5 +38,6 @@ int main()
                   << std::endl;
         return 1;
     }
+    std::cout << "End of program." << std::endl;
     return 0;
 }

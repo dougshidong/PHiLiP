@@ -42,6 +42,10 @@ namespace PHiLiP
         // elements' degrees of freedom on the given triangulation
         DoFHandler<dim> dof_handler;
 
+        // Sparse matrix needed to hold the system
+        SparsityPattern      sparsity_pattern;
+        SparseMatrix<double> system_matrix;
+
         Vector<real> solution;
         Vector<real> right_hand_side;
 
@@ -57,11 +61,14 @@ namespace PHiLiP
         using DoFInfo = MeshWorker::DoFInfo<dim>;
         using CellInfo = MeshWorker::IntegrationInfo<dim>;
 
-        static void integrate_cell_term(DoFInfo &dinfo, CellInfo &info);
+        static void integrate_cell_terms(DoFInfo &dinfo, CellInfo &info);
         static void integrate_boundary_terms(DoFInfo &dinfo, CellInfo &info);
         static void integrate_face_terms(DoFInfo &dinfo1, 
                                          DoFInfo &dinfo2, 
                                          CellInfo &info1,
                                          CellInfo &info2);
     }; // end of PDE class
+    //template class PDE<1, double>;
+    //template class PDE<2, double>;
+    //template class PDE<3, double>;
 } // end of PHiLiP namespace

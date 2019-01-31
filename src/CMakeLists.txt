@@ -11,6 +11,7 @@ DEAL_II_SETUP_TARGET(eulerflow_lib)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 add_library(advection_lib
+    advection_boundary.h
     advection.cpp 
     advection.h)
 target_include_directories(advection_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
@@ -21,4 +22,4 @@ DEAL_II_SETUP_TARGET(advection_lib)
 add_executable(PHiLiP main.cpp)
 
 DEAL_II_SETUP_TARGET(PHiLiP)
-target_link_libraries(PHiLiP eulerflow_lib)
+target_link_libraries(PHiLiP advection_lib)

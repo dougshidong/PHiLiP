@@ -9,4 +9,6 @@ compile_commands.json
 CTestTestfile.cmake
 bin/**
 lib/**
+*.eps
+*.gnuplot
 *.swp

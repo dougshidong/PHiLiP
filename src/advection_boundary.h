@@ -1,3 +1,4 @@
+#include <deal.II/base/tensor.h>
 #include <deal.II/base/function.h>
 #include <deal.II/base/point.h>
 
@@ -25,7 +26,8 @@ namespace PHiLiP
         for (unsigned int i=0; i<values.size(); ++i) {
             values[i] = 1.;
             for (unsigned int idim=0; idim<dim; ++idim) {
-                  values[i] *= sin(points(i)[idim]);
+                const double loc = points[i](idim);
+                values[i] *= sin(loc);
             }
         }
     }

@@ -145,10 +145,10 @@ namespace PHiLiP
         const std::vector<real> &JxW = fe_face_values.get_JxW_values ();
         const std::vector<Tensor<1,dim> > &normals = fe_face_values.get_normal_vectors ();
 
-        std::vector<real> g(fe_face_values.n_quadrature_points);
+        std::vector<real> boundary_values(fe_face_values.n_quadrature_points);
 
         static AdvectionBoundary<dim> boundary_function;
-        boundary_function.value_list (fe_face_values.get_quadrature_points(), g);
+        boundary_function.value_list (fe_face_values.get_quadrature_points(), boundary_values);
 
         for (unsigned int point=0; point<fe_face_values.n_quadrature_points; ++point) {
             const real vel_dot_normal = 
@@ -158,7 +158,7 @@ namespace PHiLiP
             if (inflow) {
                 for (unsigned int itest=0; itest<fe_face_values.dofs_per_cell; ++itest) {
                     local_vector(itest) += -vel_dot_normal *
-                                       g[point] *
+                                       boundary_values[point] *
                                        fe_face_values.shape_value(itest,point) *
                                        JxW[point];
                 }

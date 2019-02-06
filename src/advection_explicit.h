@@ -23,6 +23,7 @@ namespace PHiLiP
 
     private:
         void compute_inv_mass_matrix();
+        void compute_stiffness_matrix();
         void setup_system();
         void compute_time_step();
         void assemble_system();

@@ -89,6 +89,7 @@ namespace PHiLiP
         }
 
     }
+
     template <int dim, typename real>
     void PDE<dim, real>::compute_inv_mass_matrix()
     {
@@ -439,9 +440,11 @@ namespace PHiLiP
         {
             std::cout << "Cycle " << igrid << std::endl;
 
+            triangulation.clear();
             GridGenerator::subdivided_hyper_cube(triangulation, ncell[igrid]);
             //if (igrid == 0) {
-            //    GridGenerator::hyper_cube (triangulation);
+            //    //GridGenerator::hyper_cube (triangulation);
+            //    GridGenerator::hyper_ball(triangulation);
             //    //triangulation.refine_global (1);
             //} else {
             //    triangulation.refine_global (1);
@@ -547,7 +550,6 @@ namespace PHiLiP
                       << std::endl;
 
             //output_results (igrid);
-            triangulation.clear();
         }
         for (unsigned int igrid=0; igrid<n_grids-1; ++igrid) {
             std::cout << "From grid " << igrid

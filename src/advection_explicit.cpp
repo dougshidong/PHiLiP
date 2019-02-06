@@ -166,16 +166,23 @@ namespace PHiLiP
   
     // For now hard-code advection speed
     template <int dim>
+    Tensor<1,dim> velocity_field ()
+    {
+        Tensor<1,dim> v_field;
+        v_field[0] = 1.0;
+        if(dim >= 2) v_field[1] = 1.0;
+        if(dim >= 3) v_field[2] = 1.0;
+        return v_field;
+    }
+    template <int dim>
     Tensor<1,dim> velocity_field (const Point<dim> &p)
     {
-        Point<dim> v_field;
+        Tensor<1,dim> v_field;
         //Assert (dim >= 2, ExcNotImplemented());
         //v_field(0) = p(1);
         //v_field(1) = p(0);
         //v_field /= v_field.norm();
-        v_field(0) = 1.0;
-        if(dim >= 2) v_field(1) = 1.0;
-        if(dim >= 3) v_field(2) = 1.0;
+        v_field = p;
         return v_field;
     }
     // For now hard-code source term
@@ -208,7 +215,8 @@ namespace PHiLiP
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
             const Tensor<1,dim> vel_at_point =
-                velocity_field (fe_values.quadrature_point(iquad));
+                velocity_field<dim>();
+                //velocity_field (fe_values.quadrature_point(iquad));
 
             const double source_at_point =
                 source_term (fe_values.quadrature_point(iquad));
@@ -252,14 +260,16 @@ namespace PHiLiP
         std::vector<real> boundary_values(fe_face_values.n_quadrature_points);
 
         static AdvectionBoundary<dim> boundary_function;
-        boundary_function.value_list (fe_face_values.get_quadrature_points(), boundary_values);
+        const unsigned int dummy = 0; // Virtual function that requires 3 arguments
+        boundary_function.value_list (fe_face_values.get_quadrature_points(), boundary_values, dummy);
 
         const unsigned int n_quad_pts = fe_face_values.n_quadrature_points;
         const unsigned int n_dofs_cell = fe_face_values.dofs_per_cell;
 
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             const real vel_dot_normal = 
-                velocity_field(fe_face_values.quadrature_point(iquad)) * normals[iquad];
+                velocity_field<dim> () * normals[iquad];
+                //velocity_field(fe_face_values.quadrature_point(iquad)) * normals[iquad];
 
             const bool inflow = (vel_dot_normal < 0.);
             if (inflow) {
@@ -318,7 +328,8 @@ namespace PHiLiP
 
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             const Tensor<1,dim,real> velocity_at_q =
-                velocity_field(fe_face_values1.quadrature_point(iquad));
+                velocity_field<dim>();
+                //velocity_field(fe_face_values1.quadrature_point(iquad));
 
             real w1 = 0;
             real w2 = 0;
@@ -424,7 +435,7 @@ namespace PHiLiP
     }
 
     template <int dim, typename real>
-    void PDE<dim, real>::run ()
+    int PDE<dim, real>::run ()
     {
         unsigned int n_grids = 4;
         std::vector<double> error(n_grids);
@@ -510,7 +521,7 @@ namespace PHiLiP
 
             double l2error = 0;
             for (; cell!=endc; ++cell) {
-                const unsigned int icell = cell->user_index();
+                //const unsigned int icell = cell->user_index();
 
                 fe_values.reinit (cell);
                 fe_values.get_function_values (solution, solution_values);
@@ -551,8 +562,10 @@ namespace PHiLiP
 
             //output_results (igrid);
         }
+        std::cout << std::endl << std::endl;
         for (unsigned int igrid=0; igrid<n_grids-1; ++igrid) {
-            std::cout << "From grid " << igrid
+            std::cout
+                      << "From grid " << igrid
                       << "  to grid " << igrid+1
                       << "  e1 " << error[igrid]
                       << "  e2 " << error[igrid+1]
@@ -563,9 +576,16 @@ namespace PHiLiP
                       << std::endl;
 
         }
+        std::cout << std::endl << std::endl;
+
+        int error_tolerance = 0.1;
+        if (std::abs(error[n_grids-1] - fe.get_degree()) < error_tolerance) return 1;
+
+        return 0;
+
     }
-    template void PDE<1, double>::run ();
-    template void PDE<2, double>::run ();
+    template int PDE<1, double>::run ();
+    template int PDE<2, double>::run ();
     //template void PDE<3, double>::run ();
 
 

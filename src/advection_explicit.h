@@ -19,7 +19,7 @@ namespace PHiLiP
     public:
         PDE();
         PDE(const unsigned int polynomial_order);
-        void run();
+        int run();
 
     private:
         void compute_inv_mass_matrix();

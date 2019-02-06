@@ -13,13 +13,13 @@ namespace PHiLiP
         AdvectionBoundary() = default;
         virtual void value_list(const std::vector<Point<dim>> &points,
                                 std::vector<double> &          values,
-                                const unsigned int component = 0) const override;
+                                const unsigned int /*component = 0*/) const override;
     };
 
     template <int dim>
     void AdvectionBoundary<dim>::value_list(const std::vector<Point<dim> > &points,
                                             std::vector<double> &values,
-                                            const unsigned int component) const
+                                            const unsigned int /*component*/) const
     {
         Assert(values.size()==points.size(),
                ExcDimensionMismatch(values.size(),points.size()));

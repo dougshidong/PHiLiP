@@ -24,6 +24,7 @@ namespace PHiLiP
     private:
         void compute_inv_mass_matrix();
         void setup_system();
+        void compute_time_step();
         void assemble_system();
         void solve(Vector<real> &solution);
         void output_results(const unsigned int cycle) const;

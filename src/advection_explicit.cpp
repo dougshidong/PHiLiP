@@ -47,6 +47,49 @@ namespace PHiLiP
 
     
     template <int dim, typename real>
+    void PDE<dim, real>::compute_stiffness_matrix()
+    {
+        unsigned int fe_degree = fe.get_degree();
+        QGauss<dim> quadrature(fe_degree+1);
+        unsigned int n_quad_pts = quadrature.size();
+        FEValues<dim> fe_values(mapping, fe, quadrature, update_values | update_JxW_values);
+        
+        std::vector<unsigned int> dof_indices(fe.dofs_per_cell);
+        
+        typename DoFHandler<dim>::active_cell_iterator
+           cell = dof_handler.begin_active(),
+           endc = dof_handler.end();
+        
+        // Allocate inverse mass matrices
+        inv_mass_matrix.resize(triangulation.n_active_cells(),
+                               FullMatrix<real>(fe.dofs_per_cell));
+
+        for (; cell!=endc; ++cell) {
+
+            const unsigned int icell = cell->user_index();
+            cell->get_dof_indices (dof_indices);
+            fe_values.reinit(cell);
+
+            for(unsigned int idof=0; idof<fe.dofs_per_cell; ++idof) {
+            for(unsigned int jdof=0; jdof<fe.dofs_per_cell; ++jdof) {
+
+                inv_mass_matrix[icell][idof][jdof] = 0.0;
+
+                for(unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                    inv_mass_matrix[icell][idof][jdof] +=
+                        fe_values.shape_value(idof,iquad) *
+                        fe_values.shape_value(jdof,iquad) *
+                        fe_values.JxW(iquad);
+                }
+            }
+            }
+
+            // Invert mass matrix
+            inv_mass_matrix[icell].gauss_jordan();
+        }
+
+    }
+    template <int dim, typename real>
     void PDE<dim, real>::compute_inv_mass_matrix()
     {
         unsigned int fe_degree = fe.get_degree();
@@ -75,11 +118,11 @@ namespace PHiLiP
 
                 inv_mass_matrix[icell][idof][jdof] = 0.0;
 
-                for(unsigned int q=0; q<n_quad_pts; ++q) {
+                for(unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
                     inv_mass_matrix[icell][idof][jdof] +=
-                        fe_values.shape_value(idof,q) *
-                        fe_values.shape_value(jdof,q) *
-                        fe_values.JxW(q);
+                        fe_values.shape_value(idof,iquad) *
+                        fe_values.shape_value(jdof,iquad) *
+                        fe_values.JxW(iquad);
                 }
             }
             }
@@ -126,11 +169,12 @@ namespace PHiLiP
     {
         Point<dim> v_field;
         //Assert (dim >= 2, ExcNotImplemented());
-        v_field(0) = p(1);
-        v_field(1) = p(0);
+        //v_field(0) = p(1);
+        //v_field(1) = p(0);
         //v_field /= v_field.norm();
         v_field(0) = 1.0;
-        v_field(1) = 1.0;
+        if(dim >= 2) v_field(1) = 1.0;
+        if(dim >= 3) v_field(2) = 1.0;
         return v_field;
     }
     // For now hard-code source term
@@ -139,6 +183,11 @@ namespace PHiLiP
     {
         double source;
         source = 1.0;
+        if (dim==1) source = cos(p(0));
+        if (dim==2) source = cos(p(0))*sin(p(1)) + sin(p(0))*cos(p(1));
+        if (dim==3) source =   cos(p(0))*sin(p(1))*sin(p(2))
+                             + sin(p(0))*cos(p(1))*sin(p(2))
+                             + sin(p(0))*sin(p(1))*cos(p(2));
         return source;
     }
 
@@ -171,14 +220,14 @@ namespace PHiLiP
                 for (unsigned int i_trial=0; i_trial<n_dofs_cell; ++i_trial) {
                     // Stiffness matrix contibution
                     local_vector(i_test) += 
-                        -adv_dot_grad_test *
+                        adv_dot_grad_test *
                         solution(dof_indices[i_trial]) *
                         fe_values.shape_value(i_trial,iquad) *
                         JxW[iquad];
                 }
                 // Source term contribution
                 local_vector(i_test) += 
-                    -source_at_point *
+                    source_at_point *
                     fe_values.shape_value(i_test,iquad) *
                     JxW[iquad];
             }
@@ -215,20 +264,22 @@ namespace PHiLiP
             if (inflow) {
                 // Setting the boundary condition when inflow
                 for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
-                    local_vector(itest) += -vel_dot_normal *
-                                       boundary_values[iquad] *
-                                       fe_face_values.shape_value(itest,iquad) *
-                                       JxW[iquad];
+                    local_vector(itest) += 
+                        -vel_dot_normal *
+                        boundary_values[iquad] *
+                        fe_face_values.shape_value(itest,iquad) *
+                        JxW[iquad];
                 }
             } else {
                 // "Numerical flux" at the boundary is the same as the analytical flux
                 for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
                     for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
-                        local_vector(itest) += vel_dot_normal *
-                                             fe_face_values.shape_value(itest,iquad) *
-                                             fe_face_values.shape_value(itrial,iquad) *
-                                             solution(dof_indices[itrial]) *
-                                             JxW[iquad];
+                        local_vector(itest) += 
+                            -vel_dot_normal *
+                            fe_face_values.shape_value(itest,iquad) *
+                            fe_face_values.shape_value(itrial,iquad) *
+                            solution(dof_indices[itrial]) *
+                            JxW[iquad];
                     }
                 }
             }
@@ -289,13 +340,13 @@ namespace PHiLiP
             const real normal1_numerical_flux = numerical_flux*n1;
 
             for (unsigned int itest=0; itest<n_dofs_cell1; ++itest) {
-                local_vector1(itest) += // plus
+                local_vector1(itest) -= // plus
                     fe_face_values1.shape_value(itest,iquad) *
                     normal1_numerical_flux *
                     JxW1[iquad];
             }
             for (unsigned int itest=0; itest<n_dofs_cell2; ++itest) {
-                local_vector2(itest) -= // minus
+                local_vector2(itest) += // minus
                     fe_face_values2.shape_value(itest,iquad) *
                     normal1_numerical_flux *
                     JxW1[iquad];
@@ -351,29 +402,50 @@ namespace PHiLiP
              dof_handler.end(),
              dof_info,
              info_box,
-             &PDE<dim, real>::integrate_cell_terms,
-             &PDE<dim, real>::integrate_boundary_terms,
-             &PDE<dim, real>::integrate_face_terms,
+             //&PDE<dim, real>::integrate_cell_terms,
+             //&PDE<dim, real>::integrate_boundary_terms,
+             //&PDE<dim, real>::integrate_face_terms,
+             boost::bind(&PDE<dim, real>::integrate_cell_terms,
+                    this, _1, _2),
+             boost::bind(&PDE<dim, real>::integrate_boundary_terms,
+                    this, _1, _2),
+             boost::bind(&PDE<dim, real>::integrate_face_terms,
+                    this, _1, _2, _3, _4),
              assembler);
     }
     template void PDE<1, double>::assemble_system ();
-    template void PDE<2, double>::assemble_system ();
-    template void PDE<3, double>::assemble_system ();
+    //template void PDE<2, double>::assemble_system ();
+    //template void PDE<3, double>::assemble_system ();
 
+    template <int dim, typename real>
+    void PDE<dim, real>::compute_time_step ()
+    {
+    }
 
     template <int dim, typename real>
     void PDE<dim, real>::run ()
     {
-        for (unsigned int igrid_size=0; igrid_size<5; ++igrid_size)
-        {
-            std::cout << "Cycle " << igrid_size << std::endl;
+        unsigned int n_grids = 4;
+        std::vector<double> error(n_grids);
+        std::vector<double> grid_size(n_grids);
+        std::vector<double> ncell(n_grids);
 
-            if (igrid_size == 0) {
-                GridGenerator::hyper_cube (triangulation);
-                triangulation.refine_global (2);
-            } else {
-                triangulation.refine_global (1);
-            }
+        ncell[0] = 2;
+        ncell[1] = 4;
+        ncell[2] = 6;
+        ncell[3] = 8;
+
+        for (unsigned int igrid=0; igrid<n_grids; ++igrid)
+        {
+            std::cout << "Cycle " << igrid << std::endl;
+
+            GridGenerator::subdivided_hyper_cube(triangulation, ncell[igrid]);
+            //if (igrid == 0) {
+            //    GridGenerator::hyper_cube (triangulation);
+            //    //triangulation.refine_global (1);
+            //} else {
+            //    triangulation.refine_global (1);
+            //}
 
             std::cout << "Number of active cells:       "
                     << triangulation.n_active_cells()
@@ -385,15 +457,114 @@ namespace PHiLiP
                     << dof_handler.n_dofs()
                     << std::endl;
 
-            assemble_system ();
-            //solve (solution);
 
-            //output_results (igrid_size);
+            assemble_system ();
+            double residual_norm = right_hand_side.l2_norm();
+            typename DoFHandler<dim>::active_cell_iterator
+               cell = dof_handler.begin_active(),
+               endc = dof_handler.end();
+
+            double CFL = 0.1;
+            double dx = 1.0/pow(triangulation.n_active_cells(),(1.0/dim));
+            double speed = sqrt(dim);
+            double dt = CFL * dx / speed;
+
+            std::cout   << " Speed: " << speed 
+                        << " dx: " << dx 
+                        << std::endl;
+
+            int iteration = 0;
+            int print = 1000;
+            while (residual_norm > 1e-13 && iteration < 100000) {
+                ++iteration;
+
+                assemble_system ();
+                residual_norm = right_hand_side.l2_norm();
+
+                if ( (iteration%print) == 0)
+                std::cout << " Iteration: " << iteration 
+                          << " Residual norm: " << residual_norm
+                          << std::endl;
+
+                solution += (right_hand_side*=dt);
+                //std::vector<unsigned int> dof_indices(fe.dofs_per_cell);
+                //for (; cell!=endc; ++cell)
+                //{
+                //    const unsigned int icell = cell->user_index();
+
+                //    cell->get_dof_indices (dof_indices);
+                //    solution += (right_hand_side*=dt);
+                //}
+            }
+
+            std::vector<unsigned int> dof_indices(fe.dofs_per_cell);
+
+            QGauss<dim>   quadrature(fe.degree+10);
+            const unsigned int n_quad_pts = quadrature.size();
+            FEValues<dim> fe_values(mapping, fe, quadrature, update_values | update_JxW_values | update_quadrature_points);
+
+            std::vector<double> solution_values(n_quad_pts);
+
+            double l2error = 0;
+            for (; cell!=endc; ++cell) {
+                const unsigned int icell = cell->user_index();
+
+                fe_values.reinit (cell);
+                fe_values.get_function_values (solution, solution_values);
+
+                double uexact = 0;
+                for(unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                    const Point<dim> qpoint = (fe_values.quadrature_point(iquad));
+                    if (dim==1) uexact = sin(qpoint(0));
+                    if (dim==2) uexact = sin(qpoint(0))*sin(qpoint(1));
+                    if (dim==3) uexact = sin(qpoint(0))*sin(qpoint(1))*sin(qpoint(2));
+
+                    double u_at_q = solution_values[iquad];
+                    l2error += pow(u_at_q - uexact, 2) * fe_values.JxW(iquad);
+                }
+
+            }
+            l2error = sqrt(l2error);
+
+            grid_size[igrid] = dx;
+            error[igrid] = l2error;
+
+
+            std::cout   << " dx: " << dx 
+                        << " l2error: " << l2error
+                        << " residual: " << residual_norm
+                        << std::endl;
+
+            if (igrid > 0)
+            std::cout << "From grid " << igrid-1
+                      << "  to grid " << igrid
+                      << "  e1 " << error[igrid-1]
+                      << "  e2 " << error[igrid]
+                      << "  dimension: " << dim
+                      << "  polynomial degree p: " << fe.get_degree()
+                      << "  slope " << log((error[igrid]/error[igrid-1]))
+                                      / log(grid_size[igrid]/grid_size[igrid-1])
+                      << std::endl;
+
+            //output_results (igrid);
+            triangulation.clear();
+        }
+        for (unsigned int igrid=0; igrid<n_grids-1; ++igrid) {
+            std::cout << "From grid " << igrid
+                      << "  to grid " << igrid+1
+                      << "  e1 " << error[igrid]
+                      << "  e2 " << error[igrid+1]
+                      << "  dimension: " << dim
+                      << "  polynomial degree p: " << fe.get_degree()
+                      << "  slope " << log((error[igrid+1]/error[igrid]))
+                                      / log(grid_size[igrid+1]/grid_size[igrid])
+                      << std::endl;
+
         }
     }
     template void PDE<1, double>::run ();
     template void PDE<2, double>::run ();
-    template void PDE<3, double>::run ();
+    //template void PDE<3, double>::run ();
 
 
 

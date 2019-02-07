@@ -3,6 +3,7 @@
 
 #include <deal.II/grid/tria.h>
 #include <deal.II/fe/fe_dgq.h>
+#include <deal.II/fe/fe_dgp.h>
 #include <deal.II/fe/mapping_q1.h> // Might need mapping_q
 #include <deal.II/fe/mapping_q.h> // Might need mapping_q
 #include <deal.II/dofs/dof_handler.h>
@@ -48,7 +49,9 @@ namespace PHiLiP
         const MappingQ<dim,dim> mapping;
 
         // Lagrange polynomial basis
-        FE_DGQ<dim> fe;
+        //FE_DGQ<dim> fe;
+        // Legendre polynomial basis
+        FE_DGP<dim> fe;
 
         // Degrees of freedom handler allows us to iterate over the finite
         // elements' degrees of freedom on the given triangulation

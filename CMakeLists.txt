@@ -22,13 +22,13 @@ IF(NOT ${deal.II_FOUND})
     )
 ENDIF()
 
-
+SET(CMAKE_BUILD_TYPE Release)
 # libraries to be compiled
 
 DEAL_II_INITIALIZE_CACHED_VARIABLES()
 project(philip)
 add_subdirectory(src)
-#DEAL_II_INVOKE_AUTOPILOT()
 
 enable_testing()
 add_subdirectory(tests)
+

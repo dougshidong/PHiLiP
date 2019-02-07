@@ -15,6 +15,8 @@
 #include <deal.II/meshworker/simple.h>
 #include <deal.II/meshworker/loop.h>
 
+#include "integrator.h"
+
 #include "advection_explicit.h"
 #include "advection_boundary.h"
 namespace PHiLiP
@@ -143,25 +145,43 @@ namespace PHiLiP
         //// Allocates memory from triangulation and finite element space
         dof_handler.distribute_dofs(fe);
 
-        std::cout << "Creating mass matrices... \n";
-        compute_inv_mass_matrix();
-
-        //// Generate sparsity pattern
-        //// This function is a variation of the make_sparsity_pattern()
-        //// functions above in that it assumes that the bilinear form you
-        //// want to use to generate the matrix also contains terms
-        //// that integrate over the faces between cells
-        //// (i.e., it contains "fluxes" between cells, 
-        ////        explaining the name of the function).
-        //// Basically, make_sparsity_pattern, but for DG
-        //DynamicSparsityPattern dsp(dof_handler.n_dofs());
-        //DoFTools::make_sparsity_pattern(dof_handler, dsp);
-        //sparsity_pattern.copy_from(dsp);
-        //system_matrix.reinit(sparsity_pattern);
+        //std::cout << "Creating mass matrices... \n";
+        //compute_inv_mass_matrix();
 
         // Allocate vectors
         solution.reinit(dof_handler.n_dofs());
         right_hand_side.reinit(dof_handler.n_dofs());
+
+    }
+    template <int dim, typename real>
+    void PDE<dim, real>::setup_meshworker (
+        IntegratorExplicit<dim,real> &integrator)
+    {
+
+        // Integration info
+        // Using p+1 integration points
+        const unsigned int n_gauss_points = dof_handler.get_fe().degree+1;
+
+        const unsigned int n_integration_cell  = n_gauss_points,
+                           n_integration_boundary = n_gauss_points,
+                           n_integration_face  = n_gauss_points;
+        integrator.info_box.initialize_gauss_quadrature(
+            n_integration_cell, n_integration_boundary, n_integration_face);
+
+        integrator.info_box.initialize_update_flags ();
+        integrator.info_box.add_update_flags_all (update_values |
+                                                  update_quadrature_points |
+                                                  update_JxW_values);
+        integrator.info_box.add_update_flags_cell (update_gradients);
+        integrator.info_box.add_update_flags_boundary (update_normal_vectors);
+        integrator.info_box.add_update_flags_face (update_normal_vectors);
+
+        integrator.info_box.initialize(fe, mapping);
+
+        AnyData rhs;
+        Vector<real>* data = &right_hand_side;
+        rhs.add<Vector<real>*> (data, "RHS");
+        integrator.assembler.initialize(rhs);
     }
   
     // For now hard-code advection speed
@@ -209,7 +229,7 @@ namespace PHiLiP
         Vector<real> &local_vector = dof_info.vector(0).block(0);
         std::vector<unsigned int> &dof_indices = dof_info.indices;
 
-        const unsigned int n_quad_pts = fe_values.n_quadrature_points;
+        const unsigned int n_quad_pts      = fe_values.n_quadrature_points;
         const unsigned int n_dofs_cell     = fe_values.dofs_per_cell;
 
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
@@ -242,10 +262,6 @@ namespace PHiLiP
             }
         }
     }
-    template void PDE<1, double>::integrate_cell_terms(DoFInfo &dof_info, CellInfo &cell_info);
-    template void PDE<2, double>::integrate_cell_terms(DoFInfo &dof_info, CellInfo &cell_info);
-    template void PDE<3, double>::integrate_cell_terms(DoFInfo &dof_info, CellInfo &cell_info);
-
 
     template <int dim, typename real>
     void PDE<dim, real>::integrate_boundary_terms(DoFInfo &dof_info, CellInfo &face_info)
@@ -296,9 +312,6 @@ namespace PHiLiP
             }
          }
     }
-    template void PDE<1, double>::integrate_boundary_terms(DoFInfo &dof_info, CellInfo &face_info);
-    template void PDE<2, double>::integrate_boundary_terms(DoFInfo &dof_info, CellInfo &face_info);
-    template void PDE<3, double>::integrate_boundary_terms(DoFInfo &dof_info, CellInfo &face_info);
 
     template <int dim, typename real>
     void PDE<dim, real>::integrate_face_terms(
@@ -365,46 +378,10 @@ namespace PHiLiP
             }
         }
     }
-    template void PDE<1, double>::integrate_face_terms(
-        DoFInfo &dof_info1, DoFInfo &dof_info2, CellInfo &face_info1, CellInfo &face_info2);
-    template void PDE<2, double>::integrate_face_terms(
-        DoFInfo &dof_info1, DoFInfo &dof_info2, CellInfo &face_info1, CellInfo &face_info2);
-    template void PDE<3, double>::integrate_face_terms(
-        DoFInfo &dof_info1, DoFInfo &dof_info2, CellInfo &face_info1, CellInfo &face_info2);
 
     template <int dim, typename real>
-    void PDE<dim, real>::assemble_system ()
+    void PDE<dim, real>::assemble_system (IntegratorExplicit<dim,real> &integrator)
     {
-        MeshWorker::IntegrationInfoBox<dim> info_box;
-        // Using p+1 integration points
-        const unsigned int n_gauss_points = dof_handler.get_fe().degree+1;
-
-        info_box.initialize_gauss_quadrature(n_gauss_points, n_gauss_points, n_gauss_points);
-
-        info_box.initialize_update_flags();
-        UpdateFlags update_flags = update_quadrature_points |
-                                   update_values            |
-                                   update_gradients;
-        const bool update_cell     = true;
-        const bool update_boundary = true;
-        const bool update_face     = true;
-        const bool update_neighbor = true;
-        info_box.add_update_flags(
-            update_flags, update_cell, update_boundary, update_face, update_neighbor);
-
-        info_box.initialize(fe, mapping);
-
-        MeshWorker::DoFInfo<dim> dof_info(dof_handler);
-
-        //MeshWorker::Assembler::SystemSimple< SparseMatrix<real>, Vector<real> > assembler;
-        MeshWorker::Assembler::ResidualSimple< Vector<real> > assembler;
-
-        //assembler.initialize(system_matrix, right_hand_side);
-        AnyData rhs;
-        Vector<real>* data = &right_hand_side;
-        rhs.add<Vector<real>*> (data, "RHS");
-        assembler.initialize(rhs);
-
         MeshWorker::loop<
             dim, dim, 
             MeshWorker::DoFInfo<dim>, 
@@ -412,8 +389,8 @@ namespace PHiLiP
             >
             (dof_handler.begin_active(),
              dof_handler.end(),
-             dof_info,
-             info_box,
+             integrator.dof_info,
+             integrator.info_box,
              //&PDE<dim, real>::integrate_cell_terms,
              //&PDE<dim, real>::integrate_boundary_terms,
              //&PDE<dim, real>::integrate_face_terms,
@@ -423,16 +400,12 @@ namespace PHiLiP
                     this, _1, _2),
              boost::bind(&PDE<dim, real>::integrate_face_terms,
                     this, _1, _2, _3, _4),
-             assembler);
+             integrator.assembler);
     }
-    template void PDE<1, double>::assemble_system ();
+    //template void PDE<0, double>::assemble_system ();
     //template void PDE<2, double>::assemble_system ();
     //template void PDE<3, double>::assemble_system ();
 
-    template <int dim, typename real>
-    void PDE<dim, real>::compute_time_step ()
-    {
-    }
 
     template <int dim, typename real>
     int PDE<dim, real>::run ()
@@ -447,8 +420,8 @@ namespace PHiLiP
         ncell[2] = 6;
         ncell[3] = 8;
 
-        for (unsigned int igrid=0; igrid<n_grids; ++igrid)
-        {
+        for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
+
             std::cout << "Cycle " << igrid << std::endl;
 
             triangulation.clear();
@@ -461,18 +434,23 @@ namespace PHiLiP
             //    triangulation.refine_global (1);
             //}
 
-            std::cout << "Number of active cells:       "
-                    << triangulation.n_active_cells()
-                    << std::endl;
-
+            //IntegratorExplicit<dim,real> &integrator = new IntegratorExplicit<dim,real>();
             setup_system ();
 
+            IntegratorExplicit<dim,real> integrator(dof_handler);
+
+            setup_meshworker (integrator);
+
+            assemble_system(integrator);
+
+            std::cout << "Number of active cells:       "
+                      << triangulation.n_active_cells()
+                      << std::endl;
+
             std::cout << "Number of degrees of freedom: "
-                    << dof_handler.n_dofs()
-                    << std::endl;
+                      << dof_handler.n_dofs()
+                      << std::endl;
 
-
-            assemble_system ();
             double residual_norm = right_hand_side.l2_norm();
             typename DoFHandler<dim>::active_cell_iterator
                cell = dof_handler.begin_active(),
@@ -492,7 +470,7 @@ namespace PHiLiP
             while (residual_norm > 1e-13 && iteration < 100000) {
                 ++iteration;
 
-                assemble_system ();
+                assemble_system(integrator);
                 residual_norm = right_hand_side.l2_norm();
 
                 if ( (iteration%print) == 0)

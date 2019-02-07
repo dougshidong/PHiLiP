@@ -1,3 +1,6 @@
+#ifndef __ADVECTION_EXPLICIT_H__
+#define __ADVECTION_EXPLICIT_H__
+
 #include <deal.II/grid/tria.h>
 #include <deal.II/fe/fe_dgq.h>
 #include <deal.II/fe/mapping_q1.h> // Might need mapping_q
@@ -8,6 +11,8 @@
 
 #include <deal.II/meshworker/dof_info.h>
 #include <deal.II/meshworker/integration_info.h>
+
+#include "integrator.h"
 
 namespace PHiLiP
 {
@@ -24,9 +29,13 @@ namespace PHiLiP
     private:
         void compute_inv_mass_matrix();
         void compute_stiffness_matrix();
-        void setup_system();
+
+        void setup_system ();
+        void setup_meshworker (IntegratorExplicit<dim,real> &integrator);
+
         void compute_time_step();
-        void assemble_system();
+        void assemble_system (IntegratorExplicit<dim,real> &integrator);
+
         void solve(Vector<real> &solution);
         void output_results(const unsigned int cycle) const;
 
@@ -82,3 +91,5 @@ namespace PHiLiP
     //template class PDE<2, double>;
     //template class PDE<3, double>;
 } // end of PHiLiP namespace
+
+#endif

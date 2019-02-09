@@ -49,93 +49,6 @@ namespace PHiLiP
 
     
     template <int dim, typename real>
-    void PDE<dim, real>::compute_stiffness_matrix()
-    {
-        unsigned int fe_degree = fe.get_degree();
-        QGauss<dim> quadrature(fe_degree+1);
-        unsigned int n_quad_pts = quadrature.size();
-        FEValues<dim> fe_values(mapping, fe, quadrature, update_values | update_JxW_values);
-        
-        std::vector<unsigned int> dof_indices(fe.dofs_per_cell);
-        
-        typename DoFHandler<dim>::active_cell_iterator
-           cell = dof_handler.begin_active(),
-           endc = dof_handler.end();
-        
-        // Allocate inverse mass matrices
-        inv_mass_matrix.resize(triangulation.n_active_cells(),
-                               FullMatrix<real>(fe.dofs_per_cell));
-
-        for (; cell!=endc; ++cell) {
-
-            const unsigned int icell = cell->user_index();
-            cell->get_dof_indices (dof_indices);
-            fe_values.reinit(cell);
-
-            for(unsigned int idof=0; idof<fe.dofs_per_cell; ++idof) {
-            for(unsigned int jdof=0; jdof<fe.dofs_per_cell; ++jdof) {
-
-                inv_mass_matrix[icell][idof][jdof] = 0.0;
-
-                for(unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-                    inv_mass_matrix[icell][idof][jdof] +=
-                        fe_values.shape_value(idof,iquad) *
-                        fe_values.shape_value(jdof,iquad) *
-                        fe_values.JxW(iquad);
-                }
-            }
-            }
-
-            // Invert mass matrix
-            inv_mass_matrix[icell].gauss_jordan();
-        }
-
-    }
-
-    template <int dim, typename real>
-    void PDE<dim, real>::compute_inv_mass_matrix()
-    {
-        unsigned int fe_degree = fe.get_degree();
-        QGauss<dim> quadrature(fe_degree+1);
-        unsigned int n_quad_pts = quadrature.size();
-        FEValues<dim> fe_values(mapping, fe, quadrature, update_values | update_JxW_values);
-        
-        std::vector<unsigned int> dof_indices(fe.dofs_per_cell);
-        
-        typename DoFHandler<dim>::active_cell_iterator
-           cell = dof_handler.begin_active(),
-           endc = dof_handler.end();
-        
-        // Allocate inverse mass matrices
-        inv_mass_matrix.resize(triangulation.n_active_cells(),
-                               FullMatrix<real>(fe.dofs_per_cell));
-
-        for (; cell!=endc; ++cell) {
-
-            const unsigned int icell = cell->user_index();
-            cell->get_dof_indices (dof_indices);
-            fe_values.reinit(cell);
-
-            for(unsigned int idof=0; idof<fe.dofs_per_cell; ++idof) {
-            for(unsigned int jdof=0; jdof<fe.dofs_per_cell; ++jdof) {
-
-                inv_mass_matrix[icell][idof][jdof] = 0.0;
-
-                for(unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-                    inv_mass_matrix[icell][idof][jdof] +=
-                        fe_values.shape_value(idof,iquad) *
-                        fe_values.shape_value(jdof,iquad) *
-                        fe_values.JxW(iquad);
-                }
-            }
-            }
-
-            // Invert mass matrix
-            inv_mass_matrix[icell].gauss_jordan();
-        }
-
-    }
-    template <int dim, typename real>
     void PDE<dim, real>::setup_system ()
     {
         // This function allocates all the necessary memory to the 
@@ -151,6 +64,7 @@ namespace PHiLiP
         // Allocate vectors
         solution.reinit(dof_handler.n_dofs());
         right_hand_side.reinit(dof_handler.n_dofs());
+        source_term.reinit(dof_handler.n_dofs());
 
     }
     template <int dim, typename real>
@@ -207,7 +121,7 @@ namespace PHiLiP
     }
     // For now hard-code source term
     template <int dim>
-    double source_term (const Point<dim> &p)
+    double evaluate_source_term (const Point<dim> &p)
     {
         double source;
         source = 1.0;
@@ -221,7 +135,9 @@ namespace PHiLiP
 
 
     template <int dim, typename real>
-    void PDE<dim, real>::integrate_cell_terms(DoFInfo &dof_info, CellInfo &cell_info)
+    void PDE<dim, real>::integrate_cell_terms(
+        DoFInfo &dof_info,
+        CellInfo &cell_info)
     {
         const FEValuesBase<dim> &fe_values = cell_info.fe_values();
         const std::vector<real> &JxW = fe_values.get_JxW_values ();
@@ -239,7 +155,7 @@ namespace PHiLiP
                 //velocity_field (fe_values.quadrature_point(iquad));
 
             const double source_at_point =
-                source_term (fe_values.quadrature_point(iquad));
+                evaluate_source_term (fe_values.quadrature_point(iquad));
 
             for (unsigned int i_test=0; i_test<n_dofs_cell; ++i_test) {
 

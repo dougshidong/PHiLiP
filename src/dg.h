@@ -1,5 +1,5 @@
-#ifndef __ADVECTION_EXPLICIT_H__
-#define __ADVECTION_EXPLICIT_H__
+#ifndef __DISCONTINUOUS_GALERKIN_H__
+#define __DISCONTINUOUS_GALERKIN_H__
 
 #include <deal.II/grid/tria.h>
 #include <deal.II/fe/fe_dgq.h>
@@ -10,21 +10,16 @@
 
 #include <deal.II/lac/vector.h>
 
-#include <deal.II/meshworker/dof_info.h>
-#include <deal.II/meshworker/integration_info.h>
-
-#include "integrator.h"
-
 namespace PHiLiP
 {
     using namespace dealii;
 
     template <int dim, typename real>
-    class PDE
+    class discontinuous_galerkin
     {
     public:
-        PDE();
-        PDE(const unsigned int polynomial_order);
+        discontinuous_galerkin();
+        discontinuous_galerkin(const unsigned int degree);
         int run();
 
     private:
@@ -32,10 +27,29 @@ namespace PHiLiP
         void compute_stiffness_matrix();
 
         void setup_system ();
-        void setup_meshworker (IntegratorExplicit<dim,real> &integrator);
 
         void compute_time_step();
-        void assemble_system (IntegratorExplicit<dim,real> &integrator);
+
+        void assemble_system (
+            FEValues<dim,dim> &fe_values,
+            FEFaceValues<dim,dim> &fe_values_face,
+            FEFaceValues<dim,dim> &fe_values_face_neighbor,
+            FESubfaceValues<dim,dim> &fe_values_subface);
+        void assemble_cell_terms_explicit(
+            const FEValues<dim,dim> &fe_values,
+            const std::vector<types::global_dof_index> &current_dofs_indices,
+            Vector<real> &current_cell_rhs);
+        void assemble_boundary_term_explicit(
+            const FEFaceValues<dim,dim> &fe_values_face,
+            const std::vector<types::global_dof_index> &current_dofs_indices,
+            Vector<real> &current_cell_rhs);
+        void assemble_face_term_explicit(
+            const FEValuesBase<dim,dim> &fe_values_face_current,
+            const FEFaceValues<dim,dim>     &fe_values_face_neighbor,
+            const std::vector<types::global_dof_index> &current_dofs_indices,
+            const std::vector<types::global_dof_index> &neighbor_dofs_indices,
+            Vector<real>          &current_cell_rhs,
+            Vector<real>          &neighbor_cell_rhs);
 
         void solve(Vector<real> &solution);
         void output_results(const unsigned int cycle) const;
@@ -57,6 +71,10 @@ namespace PHiLiP
         // elements' degrees of freedom on the given triangulation
         DoFHandler<dim> dof_handler;
 
+        const QGauss<dim>   quadrature;
+        const QGauss<dim-1> face_quadrature;
+
+
         //// Sparse matrix needed to hold the system
         //SparsityPattern      sparsity_pattern;
         //SparseMatrix<double> system_matrix;
@@ -74,28 +92,10 @@ namespace PHiLiP
 
         std::vector< FullMatrix<real> > inv_mass_matrix;
 
-
-        // Use MeshWorker to apply bilinear operator.
-        // Main workhorse is the MeshWorker::loop function, which applies
-        // a function on the cells, boundaries, and inner faces.
-
-        // For the PDE, the bilinear form requires an inner product, 
-        // which we define below
-
-        // Use alias for simpler naming
-        using DoFInfo = MeshWorker::DoFInfo<dim>;
-        using CellInfo = MeshWorker::IntegrationInfo<dim>;
-
-        void integrate_cell_terms(DoFInfo &dinfo, CellInfo &info);
-        void integrate_boundary_terms(DoFInfo &dinfo, CellInfo &info);
-        void integrate_face_terms(DoFInfo &dinfo1, 
-                                         DoFInfo &dinfo2, 
-                                         CellInfo &info1,
-                                         CellInfo &info2);
-    }; // end of PDE class
-    //template class PDE<1, double>;
-    //template class PDE<2, double>;
-    //template class PDE<3, double>;
+    }; // end of discontinuous_galerkin class
+    //template class discontinuous_galerkin<1, double>;
+    //template class discontinuous_galerkin<2, double>;
+    //template class discontinuous_galerkin<3, double>;
 } // end of PHiLiP namespace
 
 #endif

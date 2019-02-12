@@ -49,7 +49,7 @@ namespace PHiLiP
     }
 
     template <int dim, typename real>
-    void discontinuous_galerkin<dim, real>::assemble_cell_terms_explicit(
+    void DiscontinuousGalerkin<dim, real>::assemble_cell_terms_explicit(
         const FEValues<dim,dim> &fe_values,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<real> &current_cell_rhs)
@@ -86,21 +86,21 @@ namespace PHiLiP
             }
         }
     }
-    template void discontinuous_galerkin<1, double>::assemble_cell_terms_explicit(
+    template void DiscontinuousGalerkin<1, double>::assemble_cell_terms_explicit(
         const FEValues<1,1> &fe_values,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<double> &current_cell_rhs);
-    template void discontinuous_galerkin<2, double>::assemble_cell_terms_explicit(
+    template void DiscontinuousGalerkin<2, double>::assemble_cell_terms_explicit(
         const FEValues<2,2> &fe_values,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<double> &current_cell_rhs);
-    template void discontinuous_galerkin<3, double>::assemble_cell_terms_explicit(
+    template void DiscontinuousGalerkin<3, double>::assemble_cell_terms_explicit(
         const FEValues<3,3> &fe_values,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<double> &current_cell_rhs);
 
     template <int dim, typename real>
-    void discontinuous_galerkin<dim,real>::assemble_boundary_term_explicit(
+    void DiscontinuousGalerkin<dim,real>::assemble_boundary_term_explicit(
         const FEFaceValues<dim,dim> &fe_values_face,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<real> &current_cell_rhs)
@@ -149,21 +149,21 @@ namespace PHiLiP
             }
          }
     }
-    template void discontinuous_galerkin<1,double>::assemble_boundary_term_explicit(
+    template void DiscontinuousGalerkin<1,double>::assemble_boundary_term_explicit(
         const FEFaceValues<1,1> &fe_values_face,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<double> &current_cell_rhs);
-    template void discontinuous_galerkin<2,double>::assemble_boundary_term_explicit(
+    template void DiscontinuousGalerkin<2,double>::assemble_boundary_term_explicit(
         const FEFaceValues<2,2> &fe_values_face,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<double> &current_cell_rhs);
-    template void discontinuous_galerkin<3,double>::assemble_boundary_term_explicit(
+    template void DiscontinuousGalerkin<3,double>::assemble_boundary_term_explicit(
         const FEFaceValues<3,3> &fe_values_face,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<double> &current_cell_rhs);
 
     template <int dim, typename real>
-    void discontinuous_galerkin<dim, real>::assemble_face_term_explicit(
+    void DiscontinuousGalerkin<dim, real>::assemble_face_term_explicit(
         const FEValuesBase<dim,dim> &fe_values_face_current,
         const FEFaceValues<dim,dim>     &fe_values_face_neighbor,
         const std::vector<types::global_dof_index> &current_dofs_indices,
@@ -223,21 +223,21 @@ namespace PHiLiP
             }
         }
     }
-    template void discontinuous_galerkin<1, double>::assemble_face_term_explicit(
+    template void DiscontinuousGalerkin<1, double>::assemble_face_term_explicit(
         const FEValuesBase<1,1> &fe_values_face_current,
         const FEFaceValues<1,1>     &fe_values_face_neighbor,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         const std::vector<types::global_dof_index> &neighbor_dofs_indices,
         Vector<double>          &current_cell_rhs,
         Vector<double>          &neighbor_cell_rhs);
-    template void discontinuous_galerkin<2, double>::assemble_face_term_explicit(
+    template void DiscontinuousGalerkin<2, double>::assemble_face_term_explicit(
         const FEValuesBase<2,2> &fe_values_face_current,
         const FEFaceValues<2,2>     &fe_values_face_neighbor,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         const std::vector<types::global_dof_index> &neighbor_dofs_indices,
         Vector<double>          &current_cell_rhs,
         Vector<double>          &neighbor_cell_rhs);
-    template void discontinuous_galerkin<3, double>::assemble_face_term_explicit(
+    template void DiscontinuousGalerkin<3, double>::assemble_face_term_explicit(
         const FEValuesBase<3,3> &fe_values_face_current,
         const FEFaceValues<3,3>     &fe_values_face_neighbor,
         const std::vector<types::global_dof_index> &current_dofs_indices,

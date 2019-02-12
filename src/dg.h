@@ -1,25 +1,32 @@
-#ifndef __DISCONTINUOUS_GALERKIN_H__
-#define __DISCONTINUOUS_GALERKIN_H__
+#ifndef __DISCONTINUOUSGALERKIN_H__
+#define __DISCONTINUOUSGALERKIN_H__
+
+#include <deal.II/base/parameter_handler.h>
 
 #include <deal.II/grid/tria.h>
+
 #include <deal.II/fe/fe_dgq.h>
 #include <deal.II/fe/fe_dgp.h>
 #include <deal.II/fe/mapping_q1.h> // Might need mapping_q
 #include <deal.II/fe/mapping_q.h> // Might need mapping_q
+
 #include <deal.II/dofs/dof_handler.h>
 
 #include <deal.II/lac/vector.h>
+
+#include "parameters.h"
+
 
 namespace PHiLiP
 {
     using namespace dealii;
 
     template <int dim, typename real>
-    class discontinuous_galerkin
+    class DiscontinuousGalerkin
     {
     public:
-        discontinuous_galerkin();
-        discontinuous_galerkin(const unsigned int degree);
+        //DiscontinuousGalerkin(Parameters::AllParameters *parameters_input);
+        DiscontinuousGalerkin(Parameters::AllParameters *parameters_input, const unsigned int degree);
         int run();
 
     private:
@@ -92,10 +99,21 @@ namespace PHiLiP
 
         std::vector< FullMatrix<real> > inv_mass_matrix;
 
-    }; // end of discontinuous_galerkin class
-    //template class discontinuous_galerkin<1, double>;
-    //template class discontinuous_galerkin<2, double>;
-    //template class discontinuous_galerkin<3, double>;
+        Parameters::AllParameters *parameters;
+
+
+    }; // end of DiscontinuousGalerkin class
+    //template class DiscontinuousGalerkin<1, double>;
+    //template class DiscontinuousGalerkin<2, double>;
+    //template class DiscontinuousGalerkin<3, double>;
+
+
+    // Returns a pointer to a DiscontinuousGalerkin object with correct template arguments
+    //DiscontinuousGalerkin* create_discontinuous_galerkin (
+    //    const unsigned int dimension,
+    //    Parameters::AllParameters *parameters_input,
+    //    const unsigned int degree,
+    //    const unsigned int double_type = 0);
 } // end of PHiLiP namespace
 
 #endif

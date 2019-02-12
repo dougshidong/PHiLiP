@@ -1,3 +1,4 @@
+#include <deal.II/base/parameter_handler.h>
 #include <deal.II/base/tensor.h>
 
 #include <deal.II/grid/grid_generator.h>
@@ -19,41 +20,71 @@
 
 #include "dg.h"
 #include "advection_boundary.h"
+
+#include "parameters.h"
 namespace PHiLiP
 {
     using namespace dealii;
 
+    //DiscontinuousGalerkin* create_discontinuous_galerkin (
+    //    const unsigned int dimension,
+    //    Parameters::AllParameters *parameters_input,
+    //    const unsigned int degree,
+    //    const unsigned int double_type = 0)
+    //{
+    //    if (double_type = 0) {
+    //    // double
+    //        if (dimension == 1) return new DiscontinuousGalerkin<1, double>::DiscontinuousGalerkin(parameters_input, degree);
+    //        if (dimension == 2) return new DiscontinuousGalerkin<2, double>::DiscontinuousGalerkin(parameters_input, degree);
+    //        if (dimension == 3) return new DiscontinuousGalerkin<3, double>::DiscontinuousGalerkin(parameters_input, degree);
+    //    } else if (double_type == 1) {
+    //    // ad double
+    //        std::cerr << "create_discontinuous_galerkin() will return AD double type. Not yet implemented" << std::endl;
+    //        exit(1);
+    //    }
+    //    else { 
+    //        std::cerr << "create_discontinuous_galerkin() receive an unknown double type" << std::endl;
+    //        exit(1);
+    //    }
+
+    //}
+
     // Constructors definition
-    template <int dim, typename real>
-    discontinuous_galerkin<dim, real>::discontinuous_galerkin()
-        :
-        mapping(1)
-        , fe(1)
-        , dof_handler(triangulation)
-        , quadrature (2)
-        , face_quadrature (2)
-    {}
-    template discontinuous_galerkin<1, double>::discontinuous_galerkin();
-    template discontinuous_galerkin<2, double>::discontinuous_galerkin();
-    template discontinuous_galerkin<3, double>::discontinuous_galerkin();
+    //template <int dim, typename real>
+    //DiscontinuousGalerkin<dim, real>::DiscontinuousGalerkin(
+    //    Parameters::AllParameters *parameters_input)
+    //    :
+    //    mapping(1)
+    //    , fe(1)
+    //    , dof_handler(triangulation)
+    //    , quadrature (2)
+    //    , face_quadrature (2)
+    //    , parameters(parameters_input)
+    //{ }
+    //template DiscontinuousGalerkin<1, double>::DiscontinuousGalerkin(Parameters::AllParameters *parameters_input);
+    //template DiscontinuousGalerkin<2, double>::DiscontinuousGalerkin(Parameters::AllParameters *parameters_input);
+    //template DiscontinuousGalerkin<3, double>::DiscontinuousGalerkin(Parameters::AllParameters *parameters_input);
 
 
     template <int dim, typename real>
-    discontinuous_galerkin<dim, real>::discontinuous_galerkin(const unsigned int degree)
+    DiscontinuousGalerkin<dim, real>::DiscontinuousGalerkin(
+        Parameters::AllParameters *parameters_input,
+        const unsigned int degree)
         :
         mapping(degree+1)
         , fe(degree)
         , dof_handler(triangulation)
         , quadrature (degree+1)
         , face_quadrature (degree+1)
+        , parameters(parameters_input)
     {}
-    template discontinuous_galerkin<1, double>::discontinuous_galerkin(const unsigned int);
-    template discontinuous_galerkin<2, double>::discontinuous_galerkin(const unsigned int);
-    template discontinuous_galerkin<3, double>::discontinuous_galerkin(const unsigned int);
+    template DiscontinuousGalerkin<1, double>::DiscontinuousGalerkin(Parameters::AllParameters *parameters_input, const unsigned int);
+    template DiscontinuousGalerkin<2, double>::DiscontinuousGalerkin(Parameters::AllParameters *parameters_input, const unsigned int);
+    template DiscontinuousGalerkin<3, double>::DiscontinuousGalerkin(Parameters::AllParameters *parameters_input, const unsigned int);
 
     
     template <int dim, typename real>
-    void discontinuous_galerkin<dim, real>::setup_system ()
+    void DiscontinuousGalerkin<dim, real>::setup_system ()
     {
         // This function allocates all the necessary memory to the 
         // system matrices and vectors.
@@ -68,7 +99,7 @@ namespace PHiLiP
     }
   
     template <int dim, typename real>
-    void discontinuous_galerkin<dim, real>::assemble_system (
+    void DiscontinuousGalerkin<dim, real>::assemble_system (
         FEValues<dim,dim> &fe_values,
         FEFaceValues<dim,dim> &fe_values_face,
         FEFaceValues<dim,dim> &fe_values_face_neighbor,
@@ -89,7 +120,10 @@ namespace PHiLiP
         current_cell = dof_handler.begin_active(),
         endc = dof_handler.end();
 
+        unsigned int n_cell_visited = 0;
+        unsigned int n_face_visited = 0;
         for (; current_cell!=endc; ++current_cell) {
+            n_cell_visited++;
 
             current_cell_rhs = 0;
             fe_values.reinit (current_cell);
@@ -107,6 +141,9 @@ namespace PHiLiP
                 // Case 1:
                 // Face at boundary
                 if (current_face->at_boundary()) {
+
+                    n_face_visited++;
+
                     fe_values_face.reinit (current_cell, face_no);
                     assemble_boundary_term_explicit(fe_values_face, current_dofs_indices, current_cell_rhs);
 
@@ -121,6 +158,8 @@ namespace PHiLiP
                     const unsigned int neighbor_face = current_cell->neighbor_face_no(face_no);
 
                     for (unsigned int subface_no=0; subface_no < current_face->number_of_children(); ++subface_no) {
+
+                        n_face_visited++;
 
                         typename DoFHandler<dim>::cell_iterator neighbor_child_cell = current_cell->neighbor_child_on_subface (face_no, subface_no);
                         Assert (!neighbor_child_cell->has_children(), ExcInternalError());
@@ -153,6 +192,8 @@ namespace PHiLiP
                             (neighbor_cell->index() == current_cell->index() && current_cell->level() < neighbor_cell->level())
                         ) )
                 {
+                    n_face_visited++;
+
                     neighbor_cell_rhs = 0;
                     Assert (current_cell->neighbor(face_no).state() == IteratorState::valid, ExcInternalError());
                     typename DoFHandler<dim>::cell_iterator neighbor_cell = current_cell->neighbor(face_no);
@@ -187,7 +228,7 @@ namespace PHiLiP
     } // end of assemble_system()
 
     template <int dim, typename real>
-    int discontinuous_galerkin<dim, real>::run () {
+    int DiscontinuousGalerkin<dim, real>::run () {
         unsigned int n_grids = 4;
         std::vector<double> error(n_grids);
         std::vector<double> grid_size(n_grids);
@@ -359,12 +400,8 @@ namespace PHiLiP
         return 0;
 
     }
-    template int discontinuous_galerkin<1, double>::run ();
-    template int discontinuous_galerkin<2, double>::run ();
-    template int discontinuous_galerkin<3, double>::run ();
-
-
-
-
+    template int DiscontinuousGalerkin<1, double>::run ();
+    template int DiscontinuousGalerkin<2, double>::run ();
+    template int DiscontinuousGalerkin<3, double>::run ();
 
 } // end of PHiLiP namespace

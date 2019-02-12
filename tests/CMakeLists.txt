@@ -1,2 +1,1 @@
-add_subdirectory(gaussian_bump)
-add_subdirectory(main)
+add_subdirectory(advection_explicit)

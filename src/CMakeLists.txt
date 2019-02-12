@@ -8,10 +8,9 @@ project(advection)
 #target_include_directories(advection_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 add_library(advection_lib
-    advection_boundary.h
+    parameters.cpp
     assemble_explicit.cpp 
-    dg.cpp 
-    dg.h)
+    dg.cpp )
 target_include_directories(advection_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 DEAL_II_SETUP_TARGET(advection_lib)

@@ -1,6 +1,8 @@
 CMakeCache.txt
 CMakeFiles
 CMakeScripts
+*.cmake
+
 Testing
 Makefile
 cmake_install.cmake
@@ -9,6 +11,7 @@ compile_commands.json
 CTestTestfile.cmake
 bin/**
 lib/**
+doc/html/**
 *.eps
 *.gnuplot
 *.swp

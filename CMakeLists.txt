@@ -1,14 +1,13 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12)
+project(PHiLiP)
 
-# Set the name of the project and target:
-#SET(TARGET "PHiLiP")
+CMAKE_MINIMUM_REQUIRED(VERSION 3.3.0)
 
 set(PROJECT_BINARY_DIR ${CMAKE_SOURCE_DIR})
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 
-SET(CLEAN_UP_FILES sol.* grid.*)
+set(CLEAN_UP_FILES ./bin/*)
 
 # Find deal.ii library
 find_package(deal.II 9.0.1 QUIET
@@ -22,13 +21,13 @@ IF(NOT ${deal.II_FOUND})
     )
 ENDIF()
 
-SET(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Release)
 # libraries to be compiled
 
 DEAL_II_INITIALIZE_CACHED_VARIABLES()
-project(philip)
+
 add_subdirectory(src)
 
 enable_testing()
 add_subdirectory(tests)
-
+add_subdirectory(doc)

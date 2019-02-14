@@ -26,70 +26,42 @@ An out-of-source build must be performed using the [sample scripts](cmake/run) b
 appropriate bash script. For example, to configure for the debug build:
 ```sh
 $ ROOT$ cmake .
-$ ROOT$ make
-$ ROOT$ make test
 ```
 
 ### Compile using Make
 
 Once the code has been successfully built, the available `make` targets can be seen using
 ```sh
-BUILD$ make help
+ROOT$ make help
 ```
 
 Of primary interest are the following:
 ```sh
-BUILD$ make -j     // Compile the code.
-BUILD$ make meshes // Generate the meshes.
-BUILD$ make -j doc // Generate the Doxygen documentation.
+ROOT$ make -j     // Compile the code.
+ROOT$ make -j doc // Generate the Doxygen documentation.
 ```
 
-The html documentation can be accessed by pointing a browser at `BUILD/doc/html/index.html`.
-
-### Running the Code
-
-Executable files running various configurations of the code are placed in `BUILD/bin`, and should be executed following
-the example in `$BUILD/script_files/quick.sh`. To run an executable with valgrind's memory leak detector enabled:
-```sh
-BUILD/script_files$ ./memcheck.sh
-```
+The html documentation can be accessed by pointing a browser at `ROOT/doc/html/index.html`.
 
 ## Testing
-
-**Note: In order to run all of the available tests, the code must be compiled in all of the dimension-dependent build
-directories.**
 
 Testing can be performed using CMake's `ctest` functionality. After successfully compiling the project, all tests can be
 run by executing:
 ```sh
-BUILD$ ctest (which is equivalent to BUILD$ make test)
+$ ROOT$ make test (which is equivalent to ROOT$ make test)
 ```
 
 An alternative make target is provided to run tests with --output-on-failure:
 ```sh
-BUILD$ make check
+ROOT$ make check
 ```
 
-All tests should be passing other than those listed in the [documented failing tests file](FAILING_TESTS.md). Additional
-useful commands are:
+Additional useful commands are:
 ```sh
-BUILD$ ctest -N (List the tests that would be run but not actually run them)
-BUILD$ ctest -R <regex> (Run tests matching regular expression)
-BUILD$ ctest -V (Enable verbose output from tests)
+ROOT$ ctest -N (List the tests that would be run but not actually run them)
+ROOT$ ctest -R <regex> (Run tests matching regular expression)
+ROOT$ ctest -V (Enable verbose output from tests)
 ```
-
-## Contributors
-
-- Manmeet Bhabra
-- Cem Gormezano
-- Siva Nadarajah, siva.nadarajah (at) mcgill.ca
-- Doug Shi-Dong
-- Philip Zwanenburg, philip.zwanenburg (at) mail.mcgill.ca
-
-If you would like to make your own contributions to the project, the best place to start is the
-[getting started page](https://codedocs.xyz/PhilipZwanenburg/DPGSolver/md_doc_GETTING_STARTED.html). It is highly
-recommended to use Ctags to enable easy navigation through the code. Please see the
-[Code Navigation using Ctags README](external/ctags/README.md) for further details.
 
 # License
 

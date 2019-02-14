@@ -1,5 +1,3 @@
-project(advection)
-
 #set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 #add_library(advection_lib
 #    advection_boundary.h

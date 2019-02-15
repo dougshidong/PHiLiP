@@ -26,7 +26,7 @@ namespace PHiLiP
 {
     using namespace dealii;
 
-    //DiscontinuousGalerkin* create_discontinuous_galerkin (
+    //DiscontinuousGalerkinBase* create_discontinuous_galerkin (
     //    const unsigned int dimension,
     //    Parameters::AllParameters *parameters_input,
     //    const unsigned int degree,
@@ -49,22 +49,17 @@ namespace PHiLiP
 
     //}
 
-    // Constructors definition
-    //template <int dim, typename real>
-    //DiscontinuousGalerkin<dim, real>::DiscontinuousGalerkin(
-    //    Parameters::AllParameters *parameters_input)
+    //DiscontinuousGalerkinBase<double>::DiscontinuousGalerkinBase(
+    //    Parameters::AllParameters *parameters_input,
+    //    const unsigned int degree)
     //    :
-    //    mapping(1)
-    //    , fe(1)
+    //    mapping(degree+1)
+    //    , fe(degree)
     //    , dof_handler(triangulation)
-    //    , quadrature (2)
-    //    , face_quadrature (2)
+    //    , quadrature (degree+1)
+    //    , face_quadrature (degree+1)
     //    , parameters(parameters_input)
-    //{ }
-    //template DiscontinuousGalerkin<1, double>::DiscontinuousGalerkin(Parameters::AllParameters *parameters_input);
-    //template DiscontinuousGalerkin<2, double>::DiscontinuousGalerkin(Parameters::AllParameters *parameters_input);
-    //template DiscontinuousGalerkin<3, double>::DiscontinuousGalerkin(Parameters::AllParameters *parameters_input);
-
+    //{}
 
     template <int dim, typename real>
     DiscontinuousGalerkin<dim, real>::DiscontinuousGalerkin(

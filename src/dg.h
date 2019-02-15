@@ -21,18 +21,28 @@ namespace PHiLiP
 {
     using namespace dealii;
 
+    //class DiscontinuousGalerkinBase
+    //{
+    //public:
+    //    DiscontinuousGalerkinBase(Parameters::AllParameters *parameters_input, const unsigned int degree)
+    //    int run();
+
+    //private:
+
+
+    //}; // end of DiscontinuousGalerkin class
+    //// class DiscontinuousGalerkin<1, double>;
+
+    //DiscontinuousGalerkinBase* create_discontinuous_galerkin (
+
     template <int dim, typename real>
     class DiscontinuousGalerkin
     {
     public:
-        //DiscontinuousGalerkin(Parameters::AllParameters *parameters_input);
         DiscontinuousGalerkin(Parameters::AllParameters *parameters_input, const unsigned int degree);
         int run();
 
     private:
-        void compute_inv_mass_matrix();
-        void compute_stiffness_matrix();
-
         void setup_system ();
 
         void compute_time_step();
@@ -96,8 +106,6 @@ namespace PHiLiP
         Vector<real> source_term;
 
         Vector<real> cell_rhs;
-
-        std::vector< FullMatrix<real> > inv_mass_matrix;
 
         Parameters::AllParameters *parameters;
 

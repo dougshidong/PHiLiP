@@ -64,26 +64,61 @@ namespace PHiLiP
     template <int dim, typename real>
     DiscontinuousGalerkin<dim, real>::DiscontinuousGalerkin(
         Parameters::AllParameters *parameters_input,
+        Triangulation<dim>   *triangulation_input,
+        const unsigned int degree)
+        :
+        triangulation(triangulation_input)
+        , mapping(degree+1)
+        , fe(degree)
+        , quadrature (degree+1)
+        , face_quadrature (degree+1)
+        , parameters(parameters_input)
+    {
+    }
+    template DiscontinuousGalerkin<1, double>::DiscontinuousGalerkin(
+        Parameters::AllParameters *parameters_input,
+        Triangulation<1>   *triangulation_input,
+        const unsigned int degree);
+    template DiscontinuousGalerkin<2, double>::DiscontinuousGalerkin(
+        Parameters::AllParameters *parameters_input,
+        Triangulation<2>   *triangulation_input,
+        const unsigned int degree);
+    template DiscontinuousGalerkin<3, double>::DiscontinuousGalerkin(
+        Parameters::AllParameters *parameters_input,
+        Triangulation<3>   *triangulation_input,
+        const unsigned int degree);
+
+    template <int dim, typename real>
+    DiscontinuousGalerkin<dim, real>::DiscontinuousGalerkin(
+        Parameters::AllParameters *parameters_input,
         const unsigned int degree)
         :
         mapping(degree+1)
         , fe(degree)
-        , dof_handler(triangulation)
         , quadrature (degree+1)
         , face_quadrature (degree+1)
         , parameters(parameters_input)
-    {}
-    template DiscontinuousGalerkin<1, double>::DiscontinuousGalerkin(Parameters::AllParameters *parameters_input, const unsigned int);
-    template DiscontinuousGalerkin<2, double>::DiscontinuousGalerkin(Parameters::AllParameters *parameters_input, const unsigned int);
-    template DiscontinuousGalerkin<3, double>::DiscontinuousGalerkin(Parameters::AllParameters *parameters_input, const unsigned int);
+    {
+    }
+    template DiscontinuousGalerkin<1, double>::DiscontinuousGalerkin(
+        Parameters::AllParameters *parameters_input,
+        const unsigned int degree);
+    template DiscontinuousGalerkin<2, double>::DiscontinuousGalerkin(
+        Parameters::AllParameters *parameters_input,
+        const unsigned int degree);
+    template DiscontinuousGalerkin<3, double>::DiscontinuousGalerkin(
+        Parameters::AllParameters *parameters_input,
+        const unsigned int degree);
 
     
     template <int dim, typename real>
-    void DiscontinuousGalerkin<dim, real>::setup_system ()
+    void DiscontinuousGalerkin<dim, real>::allocate_system ()
     {
+        std::cout << std::endl << "Allocating DG system and initializing FEValues" << std::endl;
         // This function allocates all the necessary memory to the 
         // system matrices and vectors.
 
+        dof_handler.initialize(*triangulation, fe);
         // Allocates memory from triangulation and finite element space
         dof_handler.distribute_dofs(fe);
 
@@ -91,14 +126,62 @@ namespace PHiLiP
         solution.reinit(dof_handler.n_dofs());
         right_hand_side.reinit(dof_handler.n_dofs());
         source_term.reinit(dof_handler.n_dofs());
+
+        const UpdateFlags update_flags = update_values
+                                         | update_gradients
+                                         | update_quadrature_points
+                                         | update_JxW_values;
+        const UpdateFlags face_update_flags = update_values
+                                              | update_quadrature_points
+                                              | update_JxW_values
+                                              | update_normal_vectors;
+        const UpdateFlags neighbor_face_update_flags = update_values;
+
+        fe_values               = new FEValues<dim,dim> (mapping, fe, quadrature, update_flags);
+        fe_values_face          = new FEFaceValues<dim,dim> (mapping, fe, face_quadrature, face_update_flags);
+        fe_values_subface       = new FESubfaceValues<dim,dim> (mapping, fe, face_quadrature, face_update_flags);
+        fe_values_face_neighbor = new FEFaceValues<dim,dim> (mapping, fe, face_quadrature, neighbor_face_update_flags);
     }
+
+    template <int dim, typename real>
+    DiscontinuousGalerkin<dim, real>::~DiscontinuousGalerkin ()
+    {
+        std::cout << std::endl << "Deallocating DG system and initializing FEValues" << std::endl;
+
+        if (fe_values               != NULL) delete fe_values;
+        if (fe_values_face          != NULL) delete fe_values_face;
+        if (fe_values_subface       != NULL) delete fe_values_subface;
+        if (fe_values_face_neighbor != NULL) delete fe_values_face_neighbor;
+        fe_values               = NULL; 
+        fe_values_face          = NULL;
+        fe_values_subface       = NULL;
+        fe_values_face_neighbor = NULL;
+    }
+    template DiscontinuousGalerkin<1, double>::~DiscontinuousGalerkin ();
+    template DiscontinuousGalerkin<2, double>::~DiscontinuousGalerkin ();
+    template DiscontinuousGalerkin<3, double>::~DiscontinuousGalerkin ();
+
+    template <int dim, typename real>
+    void DiscontinuousGalerkin<dim, real>::delete_fe_values ()
+    {
+        std::cout << std::endl << "Deallocating DG system and initializing FEValues" << std::endl;
+
+        if (fe_values               != NULL) delete fe_values;
+        if (fe_values_face          != NULL) delete fe_values_face;
+        if (fe_values_subface       != NULL) delete fe_values_subface;
+        if (fe_values_face_neighbor != NULL) delete fe_values_face_neighbor;
+        fe_values               = NULL; 
+        fe_values_face          = NULL;
+        fe_values_subface       = NULL;
+        fe_values_face_neighbor = NULL;
+    }
+    template void DiscontinuousGalerkin<1, double>::delete_fe_values ();
+    template void DiscontinuousGalerkin<2, double>::delete_fe_values ();
+    template void DiscontinuousGalerkin<3, double>::delete_fe_values ();
+  
   
     template <int dim, typename real>
-    void DiscontinuousGalerkin<dim, real>::assemble_system (
-        FEValues<dim,dim> &fe_values,
-        FEFaceValues<dim,dim> &fe_values_face,
-        FEFaceValues<dim,dim> &fe_values_face_neighbor,
-        FESubfaceValues<dim,dim> &fe_values_subface)
+    void DiscontinuousGalerkin<dim, real>::assemble_system ()
     {
         // For now assume same polynomial degree across domain
         const unsigned int dofs_per_cell = dof_handler.get_fe().dofs_per_cell;
@@ -121,7 +204,7 @@ namespace PHiLiP
             n_cell_visited++;
 
             current_cell_rhs = 0;
-            fe_values.reinit (current_cell);
+            fe_values->reinit (current_cell);
             current_cell->get_dof_indices (current_dofs_indices);
 
             assemble_cell_terms_explicit(fe_values, current_dofs_indices, current_cell_rhs);
@@ -139,7 +222,7 @@ namespace PHiLiP
 
                     n_face_visited++;
 
-                    fe_values_face.reinit (current_cell, face_no);
+                    fe_values_face->reinit (current_cell, face_no);
                     assemble_boundary_term_explicit(fe_values_face, current_dofs_indices, current_cell_rhs);
 
                 // Case 2:
@@ -161,8 +244,8 @@ namespace PHiLiP
 
                         neighbor_child_cell->get_dof_indices (neighbor_dofs_indices);
 
-                        fe_values_subface.reinit (current_cell, face_no, subface_no);
-                        fe_values_face_neighbor.reinit (neighbor_child_cell, neighbor_face);
+                        fe_values_subface->reinit (current_cell, face_no, subface_no);
+                        fe_values_face_neighbor->reinit (neighbor_child_cell, neighbor_face);
                         assemble_face_term_explicit(
                             fe_values_subface, fe_values_face_neighbor,
                             current_dofs_indices, neighbor_dofs_indices,
@@ -197,8 +280,8 @@ namespace PHiLiP
 
                     const unsigned int neighbor_face = current_cell->neighbor_of_neighbor(face_no);
 
-                    fe_values_face.reinit (current_cell, face_no);
-                    fe_values_face_neighbor.reinit (neighbor_cell, neighbor_face);
+                    fe_values_face->reinit (current_cell, face_no);
+                    fe_values_face_neighbor->reinit (neighbor_cell, neighbor_face);
                     assemble_face_term_explicit(
                             fe_values_face, fe_values_face_neighbor,
                             current_dofs_indices, neighbor_dofs_indices,
@@ -223,7 +306,86 @@ namespace PHiLiP
     } // end of assemble_system()
 
     template <int dim, typename real>
-    int DiscontinuousGalerkin<dim, real>::run () {
+    int DiscontinuousGalerkin<dim, real>::run () 
+    {
+        allocate_system();
+        assemble_system ();
+
+        double residual_norm = right_hand_side.l2_norm();
+        typename DoFHandler<dim>::active_cell_iterator
+           cell = dof_handler.begin_active(),
+           endc = dof_handler.end();
+
+        double CFL = 0.1;
+        double dx = 1.0/pow(triangulation->n_active_cells(),(1.0/dim));
+        double speed = sqrt(dim);
+        double dt = CFL * dx / speed;
+
+        int iteration = 0;
+        int print = 1000;
+        while (residual_norm > 1e-13 && iteration < 100000) {
+            ++iteration;
+
+            assemble_system ();
+            residual_norm = right_hand_side.l2_norm();
+
+            if ( (iteration%print) == 0)
+            std::cout << " Iteration: " << iteration 
+                      << " Residual norm: " << residual_norm
+                      << std::endl;
+
+            solution += (right_hand_side*=dt);
+            //std::vector<unsigned int> dof_indices(fe.dofs_per_cell);
+            //for (; cell!=endc; ++cell)
+            //{
+            //    const unsigned int icell = cell->user_index();
+
+            //    cell->get_dof_indices (dof_indices);
+            //    solution += (right_hand_side*=dt);
+            //}
+        }
+
+        std::vector<unsigned int> dof_indices(fe.dofs_per_cell);
+
+        QGauss<dim> quad_plus10(fe.degree+10);
+        const unsigned int n_quad_pts =quad_plus10.size();
+        FEValues<dim,dim> fe_values_plus10(mapping, fe,quad_plus10, update_values | update_JxW_values | update_quadrature_points);
+
+        std::vector<double> solution_values(n_quad_pts);
+
+        double l2error = 0;
+        for (; cell!=endc; ++cell) {
+            //const unsigned int icell = cell->user_index();
+
+            fe_values_plus10.reinit (cell);
+            fe_values_plus10.get_function_values (solution, solution_values);
+
+            double uexact = 0;
+            for(unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                const Point<dim> qpoint = (fe_values_plus10.quadrature_point(iquad));
+                if (dim==1) uexact = sin(qpoint(0));
+                if (dim==2) uexact = sin(qpoint(0))*sin(qpoint(1));
+                if (dim==3) uexact = sin(qpoint(0))*sin(qpoint(1))*sin(qpoint(2));
+
+                double u_at_q = solution_values[iquad];
+                l2error += pow(u_at_q - uexact, 2) * fe_values_plus10.JxW(iquad);
+            }
+
+        }
+        l2error = sqrt(l2error);
+
+        return 0;
+
+    }
+    template int DiscontinuousGalerkin<1, double>::run ();
+    template int DiscontinuousGalerkin<2, double>::run ();
+    template int DiscontinuousGalerkin<3, double>::run ();
+
+
+    template <int dim, typename real>
+    int DiscontinuousGalerkin<dim, real>::grid_convergence () 
+    {
+
         unsigned int n_grids = 4;
         std::vector<double> error(n_grids);
         std::vector<double> grid_size(n_grids);
@@ -234,41 +396,29 @@ namespace PHiLiP
         ncell[2] = 6;
         ncell[3] = 8;
 
+        triangulation = new Triangulation<dim>();
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
 
 
-            triangulation.clear();
-            GridGenerator::subdivided_hyper_cube(triangulation, ncell[igrid]);
+            triangulation->clear();
+
+            std::cout << "Generating hypercube for grid convergence... " << std::endl;
+            GridGenerator::subdivided_hyper_cube(*triangulation, ncell[igrid]);
             //if (igrid == 0) {
-            //    //GridGenerator::hyper_cube (triangulation);
-            //    GridGenerator::hyper_ball(triangulation);
-            //    //triangulation.refine_global (1);
+            //    //GridGenerator::hyper_cube (*triangulation);
+            //    GridGenerator::hyper_ball(*triangulation);
+            //    //triangulation->refine_global (1);
             //} else {
-            //    triangulation.refine_global (1);
+            //    triangulation->refine_global (1);
             //}
 
             //IntegratorExplicit<dim,real> &integrator = new IntegratorExplicit<dim,real>();
-            setup_system ();
+            allocate_system ();
 
-            const UpdateFlags update_flags = update_values
-                                             | update_gradients
-                                             | update_quadrature_points
-                                             | update_JxW_values;
-            const UpdateFlags face_update_flags = update_values
-                                                  | update_quadrature_points
-                                                  | update_JxW_values
-                                                  | update_normal_vectors;
-            const UpdateFlags neighbor_face_update_flags = update_values;
-
-            FEValues<dim,dim> fe_values (mapping, fe, quadrature, update_flags);
-            FEFaceValues<dim,dim> fe_values_face (mapping, fe, face_quadrature, face_update_flags);
-            FESubfaceValues<dim,dim> fe_values_subface (mapping, fe, face_quadrature, face_update_flags);
-            FEFaceValues<dim,dim> fe_values_face_neighbor (mapping, fe, face_quadrature, neighbor_face_update_flags);
-
-            assemble_system (fe_values, fe_values_face, fe_values_face_neighbor, fe_values_subface);
+            assemble_system ();
 
             std::cout << "Cycle " << igrid 
-                      << ". Number of active cells: " << triangulation.n_active_cells()
+                      << ". Number of active cells: " << triangulation->n_active_cells()
                       << ". Number of degrees of freedom: " << dof_handler.n_dofs()
                       << std::endl;
 
@@ -278,7 +428,7 @@ namespace PHiLiP
                endc = dof_handler.end();
 
             double CFL = 0.1;
-            double dx = 1.0/pow(triangulation.n_active_cells(),(1.0/dim));
+            double dx = 1.0/pow(triangulation->n_active_cells(),(1.0/dim));
             double speed = sqrt(dim);
             double dt = CFL * dx / speed;
 
@@ -287,7 +437,7 @@ namespace PHiLiP
             while (residual_norm > 1e-13 && iteration < 100000) {
                 ++iteration;
 
-                assemble_system (fe_values, fe_values_face, fe_values_face_neighbor, fe_values_subface);
+                assemble_system ();
                 residual_norm = right_hand_side.l2_norm();
 
                 if ( (iteration%print) == 0)
@@ -305,6 +455,7 @@ namespace PHiLiP
                 //    solution += (right_hand_side*=dt);
                 //}
             }
+            delete_fe_values ();
 
             std::vector<unsigned int> dof_indices(fe.dofs_per_cell);
 
@@ -357,6 +508,9 @@ namespace PHiLiP
 
             //output_results (igrid);
         }
+        delete triangulation;
+        triangulation = NULL;
+
         std::cout << std::endl << std::endl;
         for (unsigned int igrid=0; igrid<n_grids-1; ++igrid) {
 
@@ -395,8 +549,8 @@ namespace PHiLiP
         return 0;
 
     }
-    template int DiscontinuousGalerkin<1, double>::run ();
-    template int DiscontinuousGalerkin<2, double>::run ();
-    template int DiscontinuousGalerkin<3, double>::run ();
+    template int DiscontinuousGalerkin<1, double>::grid_convergence ();
+    template int DiscontinuousGalerkin<2, double>::grid_convergence ();
+    template int DiscontinuousGalerkin<3, double>::grid_convergence ();
 
 } // end of PHiLiP namespace

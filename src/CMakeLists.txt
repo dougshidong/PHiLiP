@@ -8,7 +8,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 add_library(advection_lib
     parameters.cpp
     assemble_explicit.cpp 
-    dg.cpp )
+    dg.cpp)
 target_include_directories(advection_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 DEAL_II_SETUP_TARGET(advection_lib)

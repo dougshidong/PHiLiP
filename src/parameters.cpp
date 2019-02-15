@@ -88,6 +88,61 @@ namespace Parameters
 
     }
 
+    ODE::ODE () {}
+
+    void ODE::declare_parameters (ParameterHandler &prm)
+    {
+        prm.enter_subsection("manufactured solution convergence study");
+        {
+            //prm.declare_entry("output", "quiet",
+            //                  Patterns::Selection("quiet|verbose"),
+            //                  "State whether output from solver runs should be printed. "
+            //                  "Choices are <quiet|verbose>.");
+            prm.declare_entry("pde_type", "advection",
+                              Patterns::Selection("advection|convection_diffusion"),
+                              "The kind of solver for the linear system. "
+                              "Choices are <advection|convection_diffusion>.");
+            prm.declare_entry("nonlinear_max_iterations", "500000",
+                              Patterns::Integer(),
+                              "Maximum nonlinear solver iterations");
+            prm.declare_entry("nonlinear_residual", "1e-13",
+                              Patterns::Double(),
+                              "Nonlinear solver residual tolerance");
+            prm.declare_entry("dimension", "1",
+                              Patterns::Integer(),
+                              "Number of dimensions");
+
+            prm.declare_entry("degree_start", "0",
+                              Patterns::Integer(),
+                              "Starting degree for convergence study");
+            prm.declare_entry("degree_end", "3",
+                              Patterns::Integer(),
+                              "Last degree used for convergence study");
+        }
+        prm.leave_subsection();
+    }
+
+    void ODE ::parse_parameters (ParameterHandler &prm)
+    {
+        prm.enter_subsection("manufactured solution convergence study");
+        {
+            //const std::string output_string = prm.get("output");
+            //if (output_string == "verbose") output = verbose;
+            //if (output_string == "quiet") output = quiet;
+
+            const std::string pde_string = prm.get("solver_type");
+            if (pde_string == "explicit_solver") solver_type = explicit_solver;
+            if (pde_string == "implicit_solver") solver_type = implicit_solver;
+
+            nonlinear_residual          = prm.get_double("nonlinear_residual");
+            nonlinear_max_iterations    = prm.get_integer("nonlinear_max_iterations");
+        }
+        prm.leave_subsection();
+    }
+
+
+
+    // Manufactured Solution inputs
     ManufacturedConvergenceStudy::ManufacturedConvergenceStudy () {}
 
     void ManufacturedConvergenceStudy::declare_parameters (ParameterHandler &prm)
@@ -135,8 +190,8 @@ namespace Parameters
             if (pde_string == "convection_diffusion") pde_type = convection_diffusion;
 
             nonlinear_residual          = prm.get_double("nonlinear_residual");
-
             nonlinear_max_iterations    = prm.get_integer("nonlinear_max_iterations");
+
             dimension                   = prm.get_integer("dimension");
             degree_start                = prm.get_integer("degree_start");
             degree_end                  = prm.get_integer("degree_end");

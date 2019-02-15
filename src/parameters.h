@@ -1,3 +1,4 @@
+#include <deal.II/base/parameter_handler.h>
 #ifndef __PARAMETERS_H__
 #define __PARAMETERS_H__
 namespace Parameters
@@ -12,6 +13,19 @@ namespace Parameters
     // into the ParameterHandler object
     void parse_command_line ( const int argc, char *const *argv,
                               ParameterHandler &parameter_handler);
+    class ODE
+    {
+    public:
+        ODE ();
+        enum SolverType { explicit_solver, implicit_solver };
+        SolverType solver_type;
+
+        unsigned int nonlinear_max_iterations;
+        double nonlinear_residual;
+
+        static void declare_parameters (ParameterHandler &prm);
+        void parse_parameters (ParameterHandler &prm);
+    };
 
     class ManufacturedConvergenceStudy
     {
@@ -19,12 +33,13 @@ namespace Parameters
         ManufacturedConvergenceStudy ();
         enum PartialDifferentialEquation { advection, convection_diffusion };
         PartialDifferentialEquation pde_type;
-        unsigned int dimension;
-        unsigned int degree_start;
-        unsigned int degree_end;
 
         unsigned int nonlinear_max_iterations;
         double nonlinear_residual;
+
+        unsigned int dimension;
+        unsigned int degree_start;
+        unsigned int degree_end;
 
         static void declare_parameters (ParameterHandler &prm);
         void parse_parameters (ParameterHandler &prm);

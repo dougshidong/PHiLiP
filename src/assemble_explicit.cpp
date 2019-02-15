@@ -50,74 +50,74 @@ namespace PHiLiP
 
     template <int dim, typename real>
     void DiscontinuousGalerkin<dim, real>::assemble_cell_terms_explicit(
-        const FEValues<dim,dim> &fe_values,
+        const FEValues<dim,dim> *fe_values,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<real> &current_cell_rhs)
     {
-        const unsigned int n_quad_pts      = fe_values.n_quadrature_points;
-        const unsigned int n_dofs_cell     = fe_values.dofs_per_cell;
+        const unsigned int n_quad_pts      = fe_values->n_quadrature_points;
+        const unsigned int n_dofs_cell     = fe_values->dofs_per_cell;
 
         AssertDimension (n_dofs_cell, current_dofs_indices.size());
 
-        const std::vector<real> &JxW = fe_values.get_JxW_values ();
+        const std::vector<real> &JxW = fe_values->get_JxW_values ();
 
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
             const Tensor<1,dim> vel_at_point = velocity_field<dim>();
-            const double source_at_point = evaluate_source_term (fe_values.quadrature_point(iquad));
+            const double source_at_point = evaluate_source_term (fe_values->quadrature_point(iquad));
 
             for (unsigned int i_test=0; i_test<n_dofs_cell; ++i_test) {
 
-                const double adv_dot_grad_test = vel_at_point*fe_values.shape_grad(i_test, iquad);
+                const double adv_dot_grad_test = vel_at_point*fe_values->shape_grad(i_test, iquad);
 
                 for (unsigned int i_trial=0; i_trial<n_dofs_cell; ++i_trial) {
                     // Stiffness matrix contibution
                     current_cell_rhs(i_test) += 
                         adv_dot_grad_test *
                         solution(current_dofs_indices[i_trial]) *
-                        fe_values.shape_value(i_trial,iquad) *
+                        fe_values->shape_value(i_trial,iquad) *
                         JxW[iquad];
                 }
                 // Source term contribution
                 current_cell_rhs(i_test) += 
                     source_at_point *
-                    fe_values.shape_value(i_test,iquad) *
+                    fe_values->shape_value(i_test,iquad) *
                     JxW[iquad];
             }
         }
     }
     template void DiscontinuousGalerkin<1, double>::assemble_cell_terms_explicit(
-        const FEValues<1,1> &fe_values,
+        const FEValues<1,1> *fe_values,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<double> &current_cell_rhs);
     template void DiscontinuousGalerkin<2, double>::assemble_cell_terms_explicit(
-        const FEValues<2,2> &fe_values,
+        const FEValues<2,2> *fe_values,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<double> &current_cell_rhs);
     template void DiscontinuousGalerkin<3, double>::assemble_cell_terms_explicit(
-        const FEValues<3,3> &fe_values,
+        const FEValues<3,3> *fe_values,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<double> &current_cell_rhs);
 
     template <int dim, typename real>
     void DiscontinuousGalerkin<dim,real>::assemble_boundary_term_explicit(
-        const FEFaceValues<dim,dim> &fe_values_face,
+        const FEFaceValues<dim,dim> *fe_values_face,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<real> &current_cell_rhs)
     {
-        const unsigned int n_quad_pts = fe_values_face.n_quadrature_points;
-        const unsigned int n_dofs_cell = fe_values_face.dofs_per_cell;
+        const unsigned int n_quad_pts = fe_values_face->n_quadrature_points;
+        const unsigned int n_dofs_cell = fe_values_face->dofs_per_cell;
 
         AssertDimension (n_dofs_cell, current_dofs_indices.size());
 
-        const std::vector<real> &JxW = fe_values_face.get_JxW_values ();
-        const std::vector<Tensor<1,dim> > &normals = fe_values_face.get_normal_vectors ();
+        const std::vector<real> &JxW = fe_values_face->get_JxW_values ();
+        const std::vector<Tensor<1,dim> > &normals = fe_values_face->get_normal_vectors ();
 
         // Recover boundary values at quadrature points
         std::vector<real> boundary_values(n_quad_pts);
         static AdvectionBoundary<dim> boundary_function;
         const unsigned int dummy = 0; // Virtual function that requires 3 arguments
-        boundary_function.value_list (fe_values_face.get_quadrature_points(), boundary_values, dummy);
+        boundary_function.value_list (fe_values_face->get_quadrature_points(), boundary_values, dummy);
 
 
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
@@ -131,7 +131,7 @@ namespace PHiLiP
                     current_cell_rhs(itest) += 
                         -vel_dot_normal *
                         boundary_values[iquad] *
-                        fe_values_face.shape_value(itest,iquad) *
+                        fe_values_face->shape_value(itest,iquad) *
                         JxW[iquad];
                 }
             } else {
@@ -140,8 +140,8 @@ namespace PHiLiP
                     for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
                         current_cell_rhs(itest) += 
                             -vel_dot_normal *
-                            fe_values_face.shape_value(itest,iquad) *
-                            fe_values_face.shape_value(itrial,iquad) *
+                            fe_values_face->shape_value(itest,iquad) *
+                            fe_values_face->shape_value(itrial,iquad) *
                             solution(current_dofs_indices[itrial]) *
                             JxW[iquad];
                     }
@@ -150,22 +150,22 @@ namespace PHiLiP
          }
     }
     template void DiscontinuousGalerkin<1,double>::assemble_boundary_term_explicit(
-        const FEFaceValues<1,1> &fe_values_face,
+        const FEFaceValues<1,1> *fe_values_face,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<double> &current_cell_rhs);
     template void DiscontinuousGalerkin<2,double>::assemble_boundary_term_explicit(
-        const FEFaceValues<2,2> &fe_values_face,
+        const FEFaceValues<2,2> *fe_values_face,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<double> &current_cell_rhs);
     template void DiscontinuousGalerkin<3,double>::assemble_boundary_term_explicit(
-        const FEFaceValues<3,3> &fe_values_face,
+        const FEFaceValues<3,3> *fe_values_face,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<double> &current_cell_rhs);
 
     template <int dim, typename real>
     void DiscontinuousGalerkin<dim, real>::assemble_face_term_explicit(
-        const FEValuesBase<dim,dim> &fe_values_face_current,
-        const FEFaceValues<dim,dim>     &fe_values_face_neighbor,
+        const FEValuesBase<dim,dim>     *fe_values_face_current,
+        const FEFaceValues<dim,dim>     *fe_values_face_neighbor,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         const std::vector<types::global_dof_index> &neighbor_dofs_indices,
         Vector<real>          &current_cell_rhs,
@@ -173,18 +173,18 @@ namespace PHiLiP
     {
         // Use quadrature points of neighbor cell
         // Might want to use the maximum n_quad_pts1 and n_quad_pts2
-        const unsigned int n_quad_pts = fe_values_face_neighbor.n_quadrature_points;
+        const unsigned int n_quad_pts = fe_values_face_neighbor->n_quadrature_points;
 
-        const unsigned int n_dofs_current_cell = fe_values_face_current.dofs_per_cell;
-        const unsigned int n_dofs_neighbor_cell = fe_values_face_neighbor.dofs_per_cell;
+        const unsigned int n_dofs_current_cell = fe_values_face_current->dofs_per_cell;
+        const unsigned int n_dofs_neighbor_cell = fe_values_face_neighbor->dofs_per_cell;
 
         AssertDimension (n_dofs_current_cell, current_dofs_indices.size());
         AssertDimension (n_dofs_neighbor_cell, neighbor_dofs_indices.size());
 
         // Jacobian and normal should always be consistent between two elements
         // even for non-conforming meshes?
-        const std::vector<real> &JxW1 = fe_values_face_current.get_JxW_values ();
-        const std::vector<Tensor<1,dim> > &normals1 = fe_values_face_current.get_normal_vectors ();
+        const std::vector<real> &JxW1 = fe_values_face_current->get_JxW_values ();
+        const std::vector<Tensor<1,dim> > &normals1 = fe_values_face_current->get_normal_vectors ();
 
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             const Tensor<1,dim,real> velocity_at_q = velocity_field<dim>();
@@ -193,10 +193,10 @@ namespace PHiLiP
             real w2 = 0;
             // Interpolate solution to face
             for (unsigned int itrial=0; itrial<n_dofs_current_cell; itrial++) {
-                w1 += solution(current_dofs_indices[itrial]) * fe_values_face_current.shape_value(itrial, iquad);
+                w1 += solution(current_dofs_indices[itrial]) * fe_values_face_current->shape_value(itrial, iquad);
             }
             for (unsigned int itrial=0; itrial<n_dofs_neighbor_cell; itrial++) {
-                w2 += solution(neighbor_dofs_indices[itrial]) * fe_values_face_neighbor.shape_value(itrial, iquad);
+                w2 += solution(neighbor_dofs_indices[itrial]) * fe_values_face_neighbor->shape_value(itrial, iquad);
             }
             const Tensor<1,dim,real> analytical_flux1 = velocity_at_q*w1;
             const Tensor<1,dim,real> analytical_flux2 = velocity_at_q*w2;
@@ -211,35 +211,35 @@ namespace PHiLiP
 
             for (unsigned int itest=0; itest<n_dofs_current_cell; ++itest) {
                 current_cell_rhs(itest) -=
-                    fe_values_face_current.shape_value(itest,iquad) *
+                    fe_values_face_current->shape_value(itest,iquad) *
                     normal1_numerical_flux *
                     JxW1[iquad];
             }
             for (unsigned int itest=0; itest<n_dofs_neighbor_cell; ++itest) {
                 neighbor_cell_rhs(itest) -=
-                    fe_values_face_neighbor.shape_value(itest,iquad) *
+                    fe_values_face_neighbor->shape_value(itest,iquad) *
                     (-normal1_numerical_flux) *
                     JxW1[iquad];
             }
         }
     }
     template void DiscontinuousGalerkin<1, double>::assemble_face_term_explicit(
-        const FEValuesBase<1,1> &fe_values_face_current,
-        const FEFaceValues<1,1>     &fe_values_face_neighbor,
+        const FEValuesBase<1,1>     *fe_values_face_current,
+        const FEFaceValues<1,1>     *fe_values_face_neighbor,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         const std::vector<types::global_dof_index> &neighbor_dofs_indices,
         Vector<double>          &current_cell_rhs,
         Vector<double>          &neighbor_cell_rhs);
     template void DiscontinuousGalerkin<2, double>::assemble_face_term_explicit(
-        const FEValuesBase<2,2> &fe_values_face_current,
-        const FEFaceValues<2,2>     &fe_values_face_neighbor,
+        const FEValuesBase<2,2>     *fe_values_face_current,
+        const FEFaceValues<2,2>     *fe_values_face_neighbor,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         const std::vector<types::global_dof_index> &neighbor_dofs_indices,
         Vector<double>          &current_cell_rhs,
         Vector<double>          &neighbor_cell_rhs);
     template void DiscontinuousGalerkin<3, double>::assemble_face_term_explicit(
-        const FEValuesBase<3,3> &fe_values_face_current,
-        const FEFaceValues<3,3>     &fe_values_face_neighbor,
+        const FEValuesBase<3,3>     *fe_values_face_current,
+        const FEFaceValues<3,3>     *fe_values_face_neighbor,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         const std::vector<types::global_dof_index> &neighbor_dofs_indices,
         Vector<double>          &current_cell_rhs,

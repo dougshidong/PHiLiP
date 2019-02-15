@@ -25,7 +25,7 @@ namespace PHiLiP
     //{
     //public:
     //    DiscontinuousGalerkinBase(Parameters::AllParameters *parameters_input, const unsigned int degree)
-    //    int run();
+    //    virtual int grid_convergence() = 0;
 
     //private:
 
@@ -36,33 +36,41 @@ namespace PHiLiP
     //DiscontinuousGalerkinBase* create_discontinuous_galerkin (
 
     template <int dim, typename real>
-    class DiscontinuousGalerkin
+    class DiscontinuousGalerkin // : public DiscontinuousGalerkinBase
     {
     public:
-        DiscontinuousGalerkin(Parameters::AllParameters *parameters_input, const unsigned int degree);
-        int run();
+        DiscontinuousGalerkin(
+            Parameters::AllParameters *parameters_input, 
+            Triangulation<dim>   *triangulation_input,
+            const unsigned int degree);
+        DiscontinuousGalerkin(
+            Parameters::AllParameters *parameters_input, 
+            const unsigned int degree);
+
+        ~DiscontinuousGalerkin();
+
+        int grid_convergence ();
+        int run ();
 
     private:
-        void setup_system ();
+
+        void allocate_system ();
+        void delete_fe_values ();
 
         void compute_time_step();
 
-        void assemble_system (
-            FEValues<dim,dim> &fe_values,
-            FEFaceValues<dim,dim> &fe_values_face,
-            FEFaceValues<dim,dim> &fe_values_face_neighbor,
-            FESubfaceValues<dim,dim> &fe_values_subface);
+        void assemble_system ();
         void assemble_cell_terms_explicit(
-            const FEValues<dim,dim> &fe_values,
+            const FEValues<dim,dim> *fe_values,
             const std::vector<types::global_dof_index> &current_dofs_indices,
             Vector<real> &current_cell_rhs);
         void assemble_boundary_term_explicit(
-            const FEFaceValues<dim,dim> &fe_values_face,
+            const FEFaceValues<dim,dim> *fe_values_face,
             const std::vector<types::global_dof_index> &current_dofs_indices,
             Vector<real> &current_cell_rhs);
         void assemble_face_term_explicit(
-            const FEValuesBase<dim,dim> &fe_values_face_current,
-            const FEFaceValues<dim,dim>     &fe_values_face_neighbor,
+            const FEValuesBase<dim,dim>     *fe_values_face_current,
+            const FEFaceValues<dim,dim>     *fe_values_face_neighbor,
             const std::vector<types::global_dof_index> &current_dofs_indices,
             const std::vector<types::global_dof_index> &neighbor_dofs_indices,
             Vector<real>          &current_cell_rhs,
@@ -72,7 +80,7 @@ namespace PHiLiP
         void output_results(const unsigned int cycle) const;
 
         // Mesh
-        Triangulation<dim>   triangulation;
+        Triangulation<dim>   *triangulation;
 
         // For now, use linear mapping of domain boundaries
         // May need to use MappingQ or MappingQGeneric to represent curved 
@@ -106,6 +114,11 @@ namespace PHiLiP
         Vector<real> source_term;
 
         Vector<real> cell_rhs;
+
+        FEValues<dim,dim>         *fe_values;
+        FEFaceValues<dim,dim>     *fe_values_face;
+        FESubfaceValues<dim,dim>  *fe_values_subface;
+        FEFaceValues<dim,dim>     *fe_values_face_neighbor;
 
         Parameters::AllParameters *parameters;
 

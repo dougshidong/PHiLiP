@@ -7,10 +7,9 @@
 #include <iostream>
 #include <fstream>
 
-template <int dim>
 int runDG (Parameters::AllParameters &parameters, const unsigned int poly_degree)
 {
-    PHiLiP::DiscontinuousGalerkin<dim, double> dg(&parameters, poly_degree);
+    PHiLiP::DiscontinuousGalerkin<BUILD_DIM, double> dg(&parameters, poly_degree);
     return dg.grid_convergence();
 }
 
@@ -34,10 +33,7 @@ int main (int argc, char *argv[])
         const unsigned int p_start = parameters.degree_start;
         const unsigned int p_end = parameters.degree_end;
         for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
-            int failure;
-            if (dim == 1) failure = runDG<1>(parameters, poly_degree);
-            if (dim == 2) failure = runDG<2>(parameters, poly_degree);
-            if (dim == 3) failure = runDG<3>(parameters, poly_degree);
+            int failure = runDG(parameters, poly_degree);
             if (failure) return 1;
         }
         //const unsigned int np_1d = 6;

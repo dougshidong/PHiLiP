@@ -21,22 +21,8 @@ namespace PHiLiP
 {
     using namespace dealii;
 
-    //class DiscontinuousGalerkinBase
-    //{
-    //public:
-    //    DiscontinuousGalerkinBase(Parameters::AllParameters *parameters_input, const unsigned int degree)
-    //    virtual int grid_convergence() = 0;
-
-    //private:
-
-
-    //}; // end of DiscontinuousGalerkin class
-    //// class DiscontinuousGalerkin<1, double>;
-
-    //DiscontinuousGalerkinBase* create_discontinuous_galerkin (
-
     template <int dim, typename real>
-    class DiscontinuousGalerkin // : public DiscontinuousGalerkinBase
+    class DiscontinuousGalerkin // : public DiscontinuousGalerkin
     {
     public:
         DiscontinuousGalerkin(
@@ -98,16 +84,6 @@ namespace PHiLiP
 
         const QGauss<dim>   quadrature;
         const QGauss<dim-1> face_quadrature;
-
-
-        //// Sparse matrix needed to hold the system
-        //SparsityPattern      sparsity_pattern;
-        //SparseMatrix<double> system_matrix;
-        //FullMatrix<real> cell_mass_matrix;
-        //FullMatrix<real> cell_stiffness_matrix;
-        //FullMatrix<real> cell_lifting_matrix;
-        //FullMatrix<real> inverse_mass_matrix;
-        //FullMatrix<real> phys_to_ref_matrix;
 
         Vector<real> solution;
         Vector<real> right_hand_side;

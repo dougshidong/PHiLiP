@@ -26,40 +26,7 @@ namespace PHiLiP
 {
     using namespace dealii;
 
-    //DiscontinuousGalerkinBase* create_discontinuous_galerkin (
-    //    const unsigned int dimension,
-    //    Parameters::AllParameters *parameters_input,
-    //    const unsigned int degree,
-    //    const unsigned int double_type = 0)
-    //{
-    //    if (double_type = 0) {
-    //    // double
-    //        if (dimension == 1) return new DiscontinuousGalerkin<1, double>::DiscontinuousGalerkin(parameters_input, degree);
-    //        if (dimension == 2) return new DiscontinuousGalerkin<2, double>::DiscontinuousGalerkin(parameters_input, degree);
-    //        if (dimension == 3) return new DiscontinuousGalerkin<3, double>::DiscontinuousGalerkin(parameters_input, degree);
-    //    } else if (double_type == 1) {
-    //    // ad double
-    //        std::cerr << "create_discontinuous_galerkin() will return AD double type. Not yet implemented" << std::endl;
-    //        exit(1);
-    //    }
-    //    else { 
-    //        std::cerr << "create_discontinuous_galerkin() receive an unknown double type" << std::endl;
-    //        exit(1);
-    //    }
-
-    //}
-
-    //DiscontinuousGalerkinBase<double>::DiscontinuousGalerkinBase(
-    //    Parameters::AllParameters *parameters_input,
-    //    const unsigned int degree)
-    //    :
-    //    mapping(degree+1)
-    //    , fe(degree)
-    //    , dof_handler(triangulation)
-    //    , quadrature (degree+1)
-    //    , face_quadrature (degree+1)
-    //    , parameters(parameters_input)
-    //{}
+    template class DiscontinuousGalerkin <BUILD_DIM, double>;
 
     template <int dim, typename real>
     DiscontinuousGalerkin<dim, real>::DiscontinuousGalerkin(
@@ -79,14 +46,6 @@ namespace PHiLiP
         Parameters::AllParameters *parameters_input,
         Triangulation<1>   *triangulation_input,
         const unsigned int degree);
-    template DiscontinuousGalerkin<2, double>::DiscontinuousGalerkin(
-        Parameters::AllParameters *parameters_input,
-        Triangulation<2>   *triangulation_input,
-        const unsigned int degree);
-    template DiscontinuousGalerkin<3, double>::DiscontinuousGalerkin(
-        Parameters::AllParameters *parameters_input,
-        Triangulation<3>   *triangulation_input,
-        const unsigned int degree);
 
     template <int dim, typename real>
     DiscontinuousGalerkin<dim, real>::DiscontinuousGalerkin(
@@ -100,13 +59,7 @@ namespace PHiLiP
         , parameters(parameters_input)
     {
     }
-    template DiscontinuousGalerkin<1, double>::DiscontinuousGalerkin(
-        Parameters::AllParameters *parameters_input,
-        const unsigned int degree);
-    template DiscontinuousGalerkin<2, double>::DiscontinuousGalerkin(
-        Parameters::AllParameters *parameters_input,
-        const unsigned int degree);
-    template DiscontinuousGalerkin<3, double>::DiscontinuousGalerkin(
+    template DiscontinuousGalerkin<BUILD_DIM, double>::DiscontinuousGalerkin(
         Parameters::AllParameters *parameters_input,
         const unsigned int degree);
 
@@ -157,9 +110,6 @@ namespace PHiLiP
         fe_values_subface       = NULL;
         fe_values_face_neighbor = NULL;
     }
-    template DiscontinuousGalerkin<1, double>::~DiscontinuousGalerkin ();
-    template DiscontinuousGalerkin<2, double>::~DiscontinuousGalerkin ();
-    template DiscontinuousGalerkin<3, double>::~DiscontinuousGalerkin ();
 
     template <int dim, typename real>
     void DiscontinuousGalerkin<dim, real>::delete_fe_values ()
@@ -175,9 +125,6 @@ namespace PHiLiP
         fe_values_subface       = NULL;
         fe_values_face_neighbor = NULL;
     }
-    template void DiscontinuousGalerkin<1, double>::delete_fe_values ();
-    template void DiscontinuousGalerkin<2, double>::delete_fe_values ();
-    template void DiscontinuousGalerkin<3, double>::delete_fe_values ();
   
   
     template <int dim, typename real>
@@ -335,14 +282,6 @@ namespace PHiLiP
                       << std::endl;
 
             solution += (right_hand_side*=dt);
-            //std::vector<unsigned int> dof_indices(fe.dofs_per_cell);
-            //for (; cell!=endc; ++cell)
-            //{
-            //    const unsigned int icell = cell->user_index();
-
-            //    cell->get_dof_indices (dof_indices);
-            //    solution += (right_hand_side*=dt);
-            //}
         }
 
         std::vector<unsigned int> dof_indices(fe.dofs_per_cell);
@@ -377,10 +316,6 @@ namespace PHiLiP
         return 0;
 
     }
-    template int DiscontinuousGalerkin<1, double>::run ();
-    template int DiscontinuousGalerkin<2, double>::run ();
-    template int DiscontinuousGalerkin<3, double>::run ();
-
 
     template <int dim, typename real>
     int DiscontinuousGalerkin<dim, real>::grid_convergence () 
@@ -446,14 +381,6 @@ namespace PHiLiP
                           << std::endl;
 
                 solution += (right_hand_side*=dt);
-                //std::vector<unsigned int> dof_indices(fe.dofs_per_cell);
-                //for (; cell!=endc; ++cell)
-                //{
-                //    const unsigned int icell = cell->user_index();
-
-                //    cell->get_dof_indices (dof_indices);
-                //    solution += (right_hand_side*=dt);
-                //}
             }
             delete_fe_values ();
 
@@ -549,8 +476,5 @@ namespace PHiLiP
         return 0;
 
     }
-    template int DiscontinuousGalerkin<1, double>::grid_convergence ();
-    template int DiscontinuousGalerkin<2, double>::grid_convergence ();
-    template int DiscontinuousGalerkin<3, double>::grid_convergence ();
 
 } // end of PHiLiP namespace

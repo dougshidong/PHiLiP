@@ -2,7 +2,7 @@
 # ---------------------
 subsection manufactured solution convergence study
   # Last degree used for convergence study
-  set degree_end               = 0
+  set degree_end               = 3
 
   # Starting degree for convergence study
   set degree_start             = 0

@@ -13,6 +13,7 @@
 #include <deal.II/dofs/dof_handler.h>
 
 #include <deal.II/lac/vector.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
 
 #include "parameters.h"
 
@@ -36,7 +37,9 @@ namespace PHiLiP
         ~DiscontinuousGalerkin();
 
         int grid_convergence ();
-        int run ();
+        int grid_convergence_implicit ();
+        int run_explicit ();
+        int run_implicit ();
 
     private:
 
@@ -62,7 +65,25 @@ namespace PHiLiP
             Vector<real>          &current_cell_rhs,
             Vector<real>          &neighbor_cell_rhs);
 
-        void solve(Vector<real> &solution);
+        void allocate_system_implicit ();
+        void assemble_system_implicit ();
+        void assemble_cell_terms_implicit(
+            const FEValues<dim,dim> *fe_values,
+            const std::vector<types::global_dof_index> &current_dofs_indices,
+            Vector<real> &current_cell_rhs);
+        void assemble_boundary_term_implicit(
+            const FEFaceValues<dim,dim> *fe_values_face,
+            const std::vector<types::global_dof_index> &current_dofs_indices,
+            Vector<real> &current_cell_rhs);
+        void assemble_face_term_implicit(
+            const FEValuesBase<dim,dim>     *fe_values_face_current,
+            const FEFaceValues<dim,dim>     *fe_values_face_neighbor,
+            const std::vector<types::global_dof_index> &current_dofs_indices,
+            const std::vector<types::global_dof_index> &neighbor_dofs_indices,
+            Vector<real>          &current_cell_rhs,
+            Vector<real>          &neighbor_cell_rhs);
+
+        std::pair<unsigned int, double> solve_linear(Vector<real> &newton_update);
         void output_results(const unsigned int cycle) const;
 
         // Mesh
@@ -90,6 +111,11 @@ namespace PHiLiP
         Vector<real> source_term;
 
         Vector<real> cell_rhs;
+
+        Vector<real> newton_update;
+
+        TrilinosWrappers::SparseMatrix system_matrix;
+
 
         FEValues<dim,dim>         *fe_values;
         FEFaceValues<dim,dim>     *fe_values_face;

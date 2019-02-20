@@ -42,11 +42,17 @@ namespace PHiLiP
     {
         double source;
         source = 1.0;
-        if (dim==1) source = cos(p(0));
-        if (dim==2) source = cos(p(0))*sin(p(1)) + sin(p(0))*cos(p(1));
-        if (dim==3) source =   cos(p(0))*sin(p(1))*sin(p(2))
-                             + sin(p(0))*cos(p(1))*sin(p(2))
-                             + sin(p(0))*sin(p(1))*cos(p(2));
+        const double x = p(0), y = p(1), z = p(2);
+        if (dim==1) source = cos(x);
+        if (dim==2) source = cos(x)*sin(y) + sin(x)*cos(y);
+        if (dim==3) source =   cos(x)*sin(y)*sin(z)
+                             + sin(x)*cos(y)*sin(z)
+                             + sin(x)*sin(y)*cos(z);
+        if (dim==1) source = 3.19/dim*cos(3.19/dim*x);
+        if (dim==2) source = 3.19/dim*cos(3.19/dim*x)*sin(3.19/dim*y) + 3.19/dim*sin(3.19/dim*x)*cos(3.19/dim*y);
+        if (dim==3) source =   3.19/dim*cos(3.19/dim*x)*sin(3.19/dim*y)*sin(3.19/dim*z)
+                             + 3.19/dim*sin(3.19/dim*x)*cos(3.19/dim*y)*sin(3.19/dim*z)
+                             + 3.19/dim*sin(3.19/dim*x)*sin(3.19/dim*y)*cos(3.19/dim*z);
         return source;
     }
 
@@ -68,28 +74,28 @@ namespace PHiLiP
             const Tensor<1,dim> vel_at_point = velocity_field<dim>();
             const double source_at_point = evaluate_source_term (fe_values->quadrature_point(iquad));
 
-            for (unsigned int i_test=0; i_test<n_dofs_cell; ++i_test) {
+            for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
 
-                const double adv_dot_grad_test = vel_at_point*fe_values->shape_grad(i_test, iquad);
+                const double adv_dot_grad_test = vel_at_point*fe_values->shape_grad(itest, iquad);
 
-                for (unsigned int i_trial=0; i_trial<n_dofs_cell; ++i_trial) {
+                for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
                     // Stiffness matrix contibution
-                    current_cell_rhs(i_test) += 
+                    current_cell_rhs(itest) += 
                         adv_dot_grad_test *
-                        solution(current_dofs_indices[i_trial]) *
-                        fe_values->shape_value(i_trial,iquad) *
+                        solution(current_dofs_indices[itrial]) *
+                        fe_values->shape_value(itrial,iquad) *
                         JxW[iquad];
                 }
                 // Source term contribution
-                current_cell_rhs(i_test) += 
+                current_cell_rhs(itest) += 
                     source_at_point *
-                    fe_values->shape_value(i_test,iquad) *
+                    fe_values->shape_value(itest,iquad) *
                     JxW[iquad];
             }
         }
     }
-    template void DiscontinuousGalerkin<BUILD_DIM, double>::assemble_cell_terms_explicit(
-        const FEValues<BUILD_DIM,BUILD_DIM> *fe_values,
+    template void DiscontinuousGalerkin<PHILIP_DIM, double>::assemble_cell_terms_explicit(
+        const FEValues<PHILIP_DIM,PHILIP_DIM> *fe_values,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<double> &current_cell_rhs);
 
@@ -143,8 +149,8 @@ namespace PHiLiP
             }
          }
     }
-    template void DiscontinuousGalerkin<BUILD_DIM,double>::assemble_boundary_term_explicit(
-        const FEFaceValues<BUILD_DIM,BUILD_DIM> *fe_values_face,
+    template void DiscontinuousGalerkin<PHILIP_DIM,double>::assemble_boundary_term_explicit(
+        const FEFaceValues<PHILIP_DIM,PHILIP_DIM> *fe_values_face,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<double> &current_cell_rhs);
 
@@ -209,9 +215,9 @@ namespace PHiLiP
             }
         }
     }
-    template void DiscontinuousGalerkin<BUILD_DIM, double>::assemble_face_term_explicit(
-        const FEValuesBase<BUILD_DIM,BUILD_DIM>     *fe_values_face_current,
-        const FEFaceValues<BUILD_DIM,BUILD_DIM>     *fe_values_face_neighbor,
+    template void DiscontinuousGalerkin<PHILIP_DIM, double>::assemble_face_term_explicit(
+        const FEValuesBase<PHILIP_DIM,PHILIP_DIM>     *fe_values_face_current,
+        const FEFaceValues<PHILIP_DIM,PHILIP_DIM>     *fe_values_face_neighbor,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         const std::vector<types::global_dof_index> &neighbor_dofs_indices,
         Vector<double>          &current_cell_rhs,

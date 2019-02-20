@@ -1,5 +1,4 @@
-#include "dg.h"
-#include "parameters.h"
+#include <deal.II/base/utilities.h>
 
 #include <deal.II/base/logstream.h>
 #include <deal.II/base/parameter_handler.h>
@@ -7,14 +6,20 @@
 #include <iostream>
 #include <fstream>
 
+#include "dg.h"
+#include "parameters.h"
+
 int runDG (Parameters::AllParameters &parameters, const unsigned int poly_degree)
 {
-    PHiLiP::DiscontinuousGalerkin<BUILD_DIM, double> dg(&parameters, poly_degree);
-    return dg.grid_convergence();
+    PHiLiP::DiscontinuousGalerkin<PHILIP_DIM, double> dg(&parameters, poly_degree);
+    return dg.grid_convergence_implicit();
+    //return dg.grid_convergence();
 }
 
 int main (int argc, char *argv[])
 {
+    dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(
+        argc, argv, dealii::numbers::invalid_unsigned_int);
     try
     {
         std::cout << "Reading input..." << std::endl;

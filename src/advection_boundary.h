@@ -27,7 +27,7 @@ namespace PHiLiP
             values[i] = 1.;
             for (unsigned int idim=0; idim<dim; ++idim) {
                 const double loc = points[i](idim);
-                values[i] *= sin(loc);
+                values[i] *= sin(3.19/dim*loc);
             }
         }
     }

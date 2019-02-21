@@ -1,23 +1,29 @@
 # Listing of Parameters
 # ---------------------
-subsection manufactured solution convergence study
-  # Last degree used for convergence study
-  set degree_end               = 6
+# Number of dimensions
+set dimension = 1
 
-  # Starting degree for convergence study
-  set degree_start             = 0
+# The kind of solver for the linear system. Choices are
+# <advection|convection_diffusion>.
+set pde_type  = advection
 
-  # Number of dimensions
-  set dimension                = 1
 
+subsection ODE solver
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations = 500000
 
   # Nonlinear solver residual tolerance
   set nonlinear_residual       = 1e-13
 
-  # The kind of solver for the linear system. Choices are
-  # <advection|convection_diffusion>.
-  set pde_type                 = advection
+  # Explicit or implicit solverChoices are <explicit|implicit>.
+  set solver_type              = implicit
 end
 
+
+subsection manufactured solution convergence study
+  # Last degree used for convergence study
+  set degree_end   = 6 # default: 3
+
+  # Starting degree for convergence study
+  set degree_start = 0
+end

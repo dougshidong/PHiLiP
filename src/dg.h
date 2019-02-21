@@ -36,19 +36,19 @@ namespace PHiLiP
 
         ~DiscontinuousGalerkin();
 
-        int grid_convergence ();
+        int grid_convergence_explicit ();
         int grid_convergence_implicit ();
         int run_explicit ();
         int run_implicit ();
 
     private:
 
-        void allocate_system ();
+        void allocate_system_explicit ();
         void delete_fe_values ();
 
         void compute_time_step();
 
-        void assemble_system ();
+        void assemble_system_explicit ();
         void assemble_cell_terms_explicit(
             const FEValues<dim,dim> *fe_values,
             const std::vector<types::global_dof_index> &current_dofs_indices,

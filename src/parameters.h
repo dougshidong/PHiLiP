@@ -5,6 +5,11 @@ namespace Parameters
 {
     using namespace dealii;
 
+    // Be careful about multiple inheritance
+    // AllParameters will have acess to all the various varibles
+    // declared in the other classes.
+    // There might be a conflict if there are variables with the same name
+
     // Prints usage message in case the user does not provide
     // an input file, or an incorrectly formatted input file
     void print_usage_message (ParameterHandler &prm);
@@ -21,7 +26,8 @@ namespace Parameters
         SolverType solver_type;
 
         unsigned int nonlinear_max_iterations;
-        double nonlinear_residual;
+        unsigned int print_iteration_modulo;
+        double nonlinear_steady_residual_tolerance;
 
         static void declare_parameters (ParameterHandler &prm);
         void parse_parameters (ParameterHandler &prm);
@@ -31,13 +37,7 @@ namespace Parameters
     {
     public:
         ManufacturedConvergenceStudy ();
-        enum PartialDifferentialEquation { advection, convection_diffusion };
-        PartialDifferentialEquation pde_type;
 
-        unsigned int nonlinear_max_iterations;
-        double nonlinear_residual;
-
-        unsigned int dimension;
         unsigned int degree_start;
         unsigned int degree_end;
 
@@ -47,9 +47,13 @@ namespace Parameters
 
     class AllParameters
         : public ManufacturedConvergenceStudy
+        , public ODE
         //,public Output
     {
     public:
+        unsigned int dimension;
+        enum PartialDifferentialEquation { advection, convection_diffusion };
+        PartialDifferentialEquation pde_type;
 
         AllParameters();
         //FunctionParser<dim> initial_conditions;

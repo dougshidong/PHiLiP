@@ -6,14 +6,15 @@
 #include <iostream>
 #include <fstream>
 
+#include "ode_solver.h"
 #include "dg.h"
 #include "parameters.h"
 
 int runDG (Parameters::AllParameters &parameters, const unsigned int poly_degree)
 {
     PHiLiP::DiscontinuousGalerkin<PHILIP_DIM, double> dg(&parameters, poly_degree);
-    return dg.grid_convergence_implicit();
-    //return dg.grid_convergence();
+    //return dg.grid_convergence_implicit();
+    return dg.grid_convergence_explicit();
 }
 
 int main (int argc, char *argv[])
@@ -46,10 +47,10 @@ int main (int argc, char *argv[])
         //const unsigned int np_3d = 3;
         //for (unsigned int poly_degree = 0; poly_degree <= np_2d; ++poly_degree) {
         //    PHiLiP::DiscontinuousGalerkin<2, double> adv(poly_degree, parameters);
-        //    const int failure = adv.grid_convergence();
+        //    const int failure = adv.grid_convergence_explicit();
         //    if (failure) return 1;
         //}
-        // Too long to grid_convergence
+        // Too long to grid_convergence_explicit
         //for (unsigned int poly_degree = 0; poly_degree <= np_3d; ++poly_degree) {
         //    PHiLiP::DiscontinuousGalerkin<3, double> adv(poly_degree);
         //    const int failure = adv.run();

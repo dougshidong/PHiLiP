@@ -69,7 +69,7 @@ namespace PHiLiP
 
     
     template <int dim, typename real>
-    void DiscontinuousGalerkin<dim, real>::allocate_system ()
+    void DiscontinuousGalerkin<dim, real>::allocate_system_explicit ()
     {
         std::cout << std::endl << "Allocating DG system and initializing FEValues" << std::endl;
         // This function allocates all the necessary memory to the 
@@ -173,6 +173,9 @@ namespace PHiLiP
     template <int dim, typename real>
     void DiscontinuousGalerkin<dim, real>::assemble_system_implicit ()
     {
+        system_matrix = 0;
+        right_hand_side = 0;
+
         // For now assume same polynomial degree across domain
         const unsigned int dofs_per_cell = dof_handler.get_fe().dofs_per_cell;
         std::vector<types::global_dof_index> current_dofs_indices (dofs_per_cell);
@@ -296,8 +299,9 @@ namespace PHiLiP
     } // end of assemble_system_implicit ()
   
     template <int dim, typename real>
-    void DiscontinuousGalerkin<dim, real>::assemble_system ()
+    void DiscontinuousGalerkin<dim, real>::assemble_system_explicit ()
     {
+        right_hand_side = 0;
         // For now assume same polynomial degree across domain
         const unsigned int dofs_per_cell = dof_handler.get_fe().dofs_per_cell;
         std::vector<types::global_dof_index> current_dofs_indices (dofs_per_cell);
@@ -418,13 +422,13 @@ namespace PHiLiP
             }
 
         } // end of cell loop
-    } // end of assemble_system()
+    } // end of assemble_system_explicit()
 
     template <int dim, typename real>
     int DiscontinuousGalerkin<dim, real>::run_explicit () 
     {
-        allocate_system();
-        assemble_system ();
+        allocate_system_explicit ();
+        assemble_system_explicit ();
 
         double residual_norm = right_hand_side.l2_norm();
         typename DoFHandler<dim>::active_cell_iterator
@@ -441,7 +445,7 @@ namespace PHiLiP
         while (residual_norm > 1e-13 && iteration < 100000) {
             ++iteration;
 
-            assemble_system ();
+            assemble_system_explicit ();
             residual_norm = right_hand_side.l2_norm();
 
             if ( (iteration%print) == 0)
@@ -486,7 +490,7 @@ namespace PHiLiP
     }
 
     template <int dim, typename real>
-    int DiscontinuousGalerkin<dim, real>::grid_convergence () 
+    int DiscontinuousGalerkin<dim, real>::grid_convergence_explicit () 
     {
 
         unsigned int n_grids = 4;
@@ -516,9 +520,9 @@ namespace PHiLiP
             //}
 
             //IntegratorExplicit<dim,real> &integrator = new IntegratorExplicit<dim,real>();
-            allocate_system ();
+            allocate_system_explicit ();
 
-            assemble_system ();
+            assemble_system_explicit ();
 
             std::cout << "Cycle " << igrid 
                       << ". Number of active cells: " << triangulation->n_active_cells()
@@ -540,7 +544,7 @@ namespace PHiLiP
             while (residual_norm > 1e-13 && iteration < 100000) {
                 ++iteration;
 
-                assemble_system ();
+                assemble_system_explicit ();
                 residual_norm = right_hand_side.l2_norm();
 
                 if ( (iteration%print) == 0)
@@ -749,8 +753,6 @@ namespace PHiLiP
             //IntegratorExplicit<dim,real> &integrator = new IntegratorExplicit<dim,real>();
             allocate_system_implicit ();
 
-            system_matrix = 0;
-            right_hand_side = 0;
             assemble_system_implicit ();
 
             std::cout << "Cycle " << igrid 
@@ -774,7 +776,6 @@ namespace PHiLiP
                 ++iteration;
 
 
-                system_matrix = 0;
                 right_hand_side = 0;
                 assemble_system_implicit ();
                 residual_norm = right_hand_side.l2_norm();

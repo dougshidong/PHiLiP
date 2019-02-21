@@ -92,37 +92,33 @@ namespace Parameters
 
     void ODE::declare_parameters (ParameterHandler &prm)
     {
-        prm.enter_subsection("manufactured solution convergence study");
+        prm.enter_subsection("ODE solver");
         {
             //prm.declare_entry("output", "quiet",
             //                  Patterns::Selection("quiet|verbose"),
             //                  "State whether output from solver runs should be printed. "
             //                  "Choices are <quiet|verbose>.");
-            prm.declare_entry("pde_type", "advection",
-                              Patterns::Selection("advection|convection_diffusion"),
-                              "The kind of solver for the linear system. "
-                              "Choices are <advection|convection_diffusion>.");
-            prm.declare_entry("nonlinear_max_iterations", "500000",
-                              Patterns::Integer(),
-                              "Maximum nonlinear solver iterations");
-            prm.declare_entry("nonlinear_residual", "1e-13",
-                              Patterns::Double(),
-                              "Nonlinear solver residual tolerance");
-            prm.declare_entry("dimension", "1",
-                              Patterns::Integer(),
-                              "Number of dimensions");
+            prm.declare_entry("solver_type", "implicit",
+                              Patterns::Selection("explicit|implicit"),
+                              "Explicit or implicit solver"
+                              "Choices are <explicit|implicit>.");
 
-            prm.declare_entry("degree_start", "0",
-                              Patterns::Integer(),
-                              "Starting degree for convergence study");
-            prm.declare_entry("degree_end", "3",
-                              Patterns::Integer(),
-                              "Last degree used for convergence study");
+            prm.declare_entry("nonlinear_max_iterations", "500000",
+                              Patterns::Integer(1,Patterns::Integer::max_int_value),
+                              "Maximum nonlinear solver iterations");
+            prm.declare_entry("nonlinear_steady_residual_tolerance", "1e-13",
+                              Patterns::Double(1e-16,Patterns::Double::max_double_value),
+                              "Nonlinear solver residual tolerance");
+
+            prm.declare_entry("print_iteration_modulo", "1",
+                              Patterns::Integer(0,Patterns::Integer::max_int_value),
+                              "Print every print_iteration_modulo iterations of "
+                              "the nonlinear solver");
         }
         prm.leave_subsection();
     }
 
-    void ODE ::parse_parameters (ParameterHandler &prm)
+    void ODE::parse_parameters (ParameterHandler &prm)
     {
         prm.enter_subsection("manufactured solution convergence study");
         {
@@ -134,8 +130,10 @@ namespace Parameters
             if (pde_string == "explicit_solver") solver_type = explicit_solver;
             if (pde_string == "implicit_solver") solver_type = implicit_solver;
 
-            nonlinear_residual          = prm.get_double("nonlinear_residual");
-            nonlinear_max_iterations    = prm.get_integer("nonlinear_max_iterations");
+            nonlinear_steady_residual_tolerance  = prm.get_double("nonlinear_steady_residual_tolerance");
+            nonlinear_max_iterations = prm.get_integer("nonlinear_max_iterations");
+
+            print_iteration_modulo = prm.get_integer("print_iteration_modulo");
         }
         prm.leave_subsection();
     }
@@ -153,19 +151,6 @@ namespace Parameters
             //                  Patterns::Selection("quiet|verbose"),
             //                  "State whether output from solver runs should be printed. "
             //                  "Choices are <quiet|verbose>.");
-            prm.declare_entry("pde_type", "advection",
-                              Patterns::Selection("advection|convection_diffusion"),
-                              "The kind of solver for the linear system. "
-                              "Choices are <advection|convection_diffusion>.");
-            prm.declare_entry("nonlinear_max_iterations", "500000",
-                              Patterns::Integer(),
-                              "Maximum nonlinear solver iterations");
-            prm.declare_entry("nonlinear_residual", "1e-13",
-                              Patterns::Double(),
-                              "Nonlinear solver residual tolerance");
-            prm.declare_entry("dimension", "1",
-                              Patterns::Integer(),
-                              "Number of dimensions");
 
             prm.declare_entry("degree_start", "0",
                               Patterns::Integer(),
@@ -185,14 +170,6 @@ namespace Parameters
             //if (output_string == "verbose") output = verbose;
             //if (output_string == "quiet") output = quiet;
 
-            const std::string pde_string = prm.get("method");
-            if (pde_string == "advection") pde_type = advection;
-            if (pde_string == "convection_diffusion") pde_type = convection_diffusion;
-
-            nonlinear_residual          = prm.get_double("nonlinear_residual");
-            nonlinear_max_iterations    = prm.get_integer("nonlinear_max_iterations");
-
-            dimension                   = prm.get_integer("dimension");
             degree_start                = prm.get_integer("degree_start");
             degree_end                  = prm.get_integer("degree_end");
         }
@@ -202,10 +179,27 @@ namespace Parameters
     AllParameters::AllParameters () {}
     void AllParameters::declare_parameters (ParameterHandler &prm)
     {
+        prm.declare_entry("dimension", "1",
+                          Patterns::Integer(),
+                          "Number of dimensions");
+        prm.declare_entry("pde_type", "advection",
+                          Patterns::Selection("advection|convection_diffusion"),
+                          "The kind of solver for the linear system. "
+                          "Choices are <advection|convection_diffusion>.");
+
         Parameters::ManufacturedConvergenceStudy::declare_parameters (prm);
+        Parameters::ODE::declare_parameters (prm);
     }
     void AllParameters::parse_parameters (ParameterHandler &prm)
     {
+        dimension                   = prm.get_integer("dimension");
+
+        const std::string pde_string = prm.get("method");
+        if (pde_string == "advection") pde_type = advection;
+        if (pde_string == "convection_diffusion") pde_type = convection_diffusion;
+
+
         Parameters::ManufacturedConvergenceStudy::parse_parameters (prm);
+        Parameters::ODE::declare_parameters (prm);
     }
 }

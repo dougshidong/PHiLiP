@@ -51,4 +51,21 @@ namespace PHiLiP
             this->dg->right_hand_side, 
             this->solution_update);
     }
+
+    template <int dim, typename real>
+    void Explicit_ODESolver<dim, real>::allocate_system ()
+    {
+        unsigned int n_dofs = this->dg->dof_handler.n_dofs();
+        this->solution_update.reinit(n_dofs);
+        //solution.reinit(n_dofs);
+        //right_hand_side.reinit(n_dofs);
+    }
+    template <int dim, typename real>
+    void Implicit_ODESolver<dim, real>::allocate_system ()
+    {
+        solve_linear (
+            this->dg->system_matrix,
+            this->dg->right_hand_side, 
+            this->solution_update);
+    }
 }

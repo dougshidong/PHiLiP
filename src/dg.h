@@ -50,6 +50,10 @@ namespace PHiLiP
         TrilinosWrappers::SparseMatrix system_matrix;
         Vector<real> right_hand_side;
 
+        // Degrees of freedom handler allows us to iterate over the finite
+        // elements' degrees of freedom on the given triangulation
+        DoFHandler<dim> dof_handler;
+
     private:
 
         void allocate_system_explicit ();
@@ -108,9 +112,6 @@ namespace PHiLiP
         // Legendre polynomial basis
         FE_DGP<dim> fe;
 
-        // Degrees of freedom handler allows us to iterate over the finite
-        // elements' degrees of freedom on the given triangulation
-        DoFHandler<dim> dof_handler;
 
         const QGauss<dim>   quadrature;
         const QGauss<dim-1> face_quadrature;

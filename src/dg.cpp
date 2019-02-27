@@ -58,6 +58,7 @@ namespace PHiLiP
     {
         assemble_system_implicit();
     }
+    template <int dim, typename real>
     void DiscontinuousGalerkin<dim, real>::allocate_system ()
     {
         allocate_system_implicit();

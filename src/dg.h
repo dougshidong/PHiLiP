@@ -12,7 +12,9 @@
 
 #include <deal.II/dofs/dof_handler.h>
 
+
 #include <deal.II/lac/vector.h>
+#include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 
 #include "parameters.h"
@@ -40,6 +42,13 @@ namespace PHiLiP
         int grid_convergence_implicit ();
         int run_explicit ();
         int run_implicit ();
+
+        void allocate_system ();
+        void assemble_system ();
+        double get_residual_l2norm ();
+
+        TrilinosWrappers::SparseMatrix system_matrix;
+        Vector<real> right_hand_side;
 
     private:
 
@@ -107,14 +116,13 @@ namespace PHiLiP
         const QGauss<dim-1> face_quadrature;
 
         Vector<real> solution;
-        Vector<real> right_hand_side;
         Vector<real> source_term;
 
         Vector<real> cell_rhs;
 
         Vector<real> newton_update;
 
-        TrilinosWrappers::SparseMatrix system_matrix;
+        DynamicSparsityPattern sparsity_pattern;
 
 
         FEValues<dim,dim>         *fe_values;

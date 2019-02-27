@@ -28,7 +28,7 @@ namespace PHiLiP
         int    current_iteration;
 
     protected:
-        virtual void get_solution_update () = 0;
+        virtual void evaluate_solution_update () = 0;
         void compute_time_step();
 
         Vector<real> solution;
@@ -43,23 +43,25 @@ namespace PHiLiP
 
     template<int dim, typename real>
     class Explicit_ODESolver
-        : public ODESolver<int dim, typename real>
+        : public ODESolver<dim, real>
     {
-    protected:
+    public:
         void allocate_system ();
-        void get_solution_update ();
+    protected:
+        void evaluate_solution_update ();
 
-    };
+    }; // end of Explicit_ODESolver class
 
     template<int dim, typename real>
     class Implicit_ODESolver
-        : public ODESolver<int dim, typename real>
+        : public ODESolver<dim, real>
     {
-    protected:
+    public:
         void allocate_system ();
-        void get_solution_update ();
+    protected:
+        void evaluate_solution_update ();
 
-    };
+    }; // end of Implicit_ODESolver class
 
 } // end of PHiLiP namespace
 

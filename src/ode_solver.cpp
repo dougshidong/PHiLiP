@@ -1,33 +1,54 @@
 
 #include "ode_solver.h"
+#include "linear_solver.h"
 
-int ODESolver::steady_state ()
+
+namespace PHiLiP
 {
-    allocate_system ();
+    template class ODESolver<PHILIP_DIM, double>;
+    template class Explicit_ODESolver<PHILIP_DIM, double>;
+    template class Implicit_ODESolver<PHILIP_DIM, double>;
 
-    dg->assemble_system ();
-    residual_norm = dg->right_hand_side.l2_norm();
-
-    while (    residual_norm     > parameters->nonlinear_steady_residual_tolerance 
-            && current_iteration < parameters->nonlinear_max_iterations )
+    template <int dim, typename real>
+    int ODESolver<dim, real>::steady_state ()
     {
-        ++current_iteration;
-
-        if ( (current_iteration%parameters->print_iteration_modulo) == 0 )
-        std::cout << " Iteration: " << current_iteration 
-                  << " Residual norm: " << residual_norm
-                  << std::endl;
-
-        get_solution_update (solution_update);
-        solution += solution_update;
+        allocate_system ();
 
         dg->assemble_system ();
-        residual_norm = dg->right_hand_side.l2_norm();
-    }
-    return 1;
-};
+        residual_norm = dg->get_residual_l2norm();
 
-void Explicit_ODESolver::get_solution_update ()
-{
-    solution += (dg->right_hand_side*=dt);
+        while (    residual_norm     > parameters->nonlinear_steady_residual_tolerance 
+                && current_iteration < parameters->nonlinear_max_iterations )
+        {
+            ++current_iteration;
+
+            if ( (current_iteration%parameters->print_iteration_modulo) == 0 )
+            std::cout << " Iteration: " << current_iteration 
+                      << " Residual norm: " << residual_norm
+                      << std::endl;
+
+            evaluate_solution_update ();
+            solution += solution_update;
+
+            dg->assemble_system ();
+            residual_norm = dg->get_residual_l2norm();
+        }
+        return 1;
+    }
+
+    template <int dim, typename real>
+    void Explicit_ODESolver<dim, real>::evaluate_solution_update ()
+    {
+        double dt = 1.0;
+        //this->solution_update = dt*(this->dg->right_hand_side);
+        this->solution_update = (this->dg->right_hand_side);
+    }
+    template <int dim, typename real>
+    void Implicit_ODESolver<dim, real>::evaluate_solution_update ()
+    {
+        solve_linear (
+            this->dg->system_matrix,
+            this->dg->right_hand_side, 
+            this->solution_update);
+    }
 }

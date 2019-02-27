@@ -8,10 +8,12 @@ foreach(dim RANGE 1 3)
     
     set(TARGET ${TNAME})
     set(TARGET_SRC 
+        linear_solver.cpp
         assemble_explicit.cpp 
         assemble_implicit.cpp 
         parameters.cpp
         dg.cpp
+        ode_solver.cpp
         main.cpp)
 
     add_executable(${TNAME} ${TARGET_SRC})

@@ -20,12 +20,17 @@ namespace PHiLiP
     {
     public:
         ODESolver(int solver_type);
+        ODESolver(DiscontinuousGalerkin<dim, real> *dg_input)
+        :
+        dg(dg_input)
+        {}
+
         virtual void allocate_system () = 0;
         int step_in_time();
         int steady_state ();
 
         double residual_norm;
-        int    current_iteration;
+        unsigned int current_iteration;
 
     protected:
         virtual void evaluate_solution_update () = 0;

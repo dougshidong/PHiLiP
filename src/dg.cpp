@@ -46,6 +46,23 @@ namespace PHiLiP
         , parameters(parameters_input)
     {
     }
+
+
+    template <int dim, typename real>
+    double DiscontinuousGalerkin<dim, real>::get_residual_l2norm ()
+    {
+        return right_hand_side.l2_norm();
+    }
+    template <int dim, typename real>
+    void DiscontinuousGalerkin<dim, real>::assemble_system ()
+    {
+        assemble_system_implicit();
+    }
+    void DiscontinuousGalerkin<dim, real>::allocate_system ()
+    {
+        allocate_system_implicit();
+    }
+
     template DiscontinuousGalerkin<1, double>::DiscontinuousGalerkin(
         Parameters::AllParameters *parameters_input,
         Triangulation<1>   *triangulation_input,
@@ -115,7 +132,9 @@ namespace PHiLiP
         // Allocate matrix
         DynamicSparsityPattern dsp(dof_handler.n_dofs(), dof_handler.n_dofs());
         DoFTools::make_flux_sparsity_pattern(dof_handler, dsp);
-        system_matrix.reinit(dsp);
+
+        sparsity_pattern = dsp;
+        system_matrix.reinit(sparsity_pattern);
 
         // Allocate vectors
         solution.reinit(dof_handler.n_dofs());

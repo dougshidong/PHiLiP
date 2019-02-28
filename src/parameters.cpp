@@ -194,7 +194,7 @@ namespace Parameters
     {
         dimension                   = prm.get_integer("dimension");
 
-        const std::string pde_string = prm.get("method");
+        const std::string pde_string = prm.get("pde_type");
         if (pde_string == "advection") pde_type = advection;
         if (pde_string == "convection_diffusion") pde_type = convection_diffusion;
 

@@ -1,3 +1,6 @@
+#ifndef __LINEAR_SOLVER_H__
+#define __LINEAR_SOLVER_H__
+
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 
 namespace PHiLiP
@@ -13,7 +16,9 @@ namespace PHiLiP
     std::pair<unsigned int, double>
     //LinearSolver<real>::solve_linear (
     solve_linear (
-        const TrilinosWrappers::SparseMatrix &system_matrix,
+        TrilinosWrappers::SparseMatrix &system_matrix,
         Vector<real> &right_hand_side,
         Vector<real> &solution);
 }
+
+#endif

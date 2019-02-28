@@ -45,17 +45,18 @@ namespace PHiLiP
     {
         double source;
         source = 1.0;
-        const double x = p(0), y = p(1), z = p(2);
-        if (dim==1) source = cos(x);
-        if (dim==2) source = cos(x)*sin(y) + sin(x)*cos(y);
-        if (dim==3) source =   cos(x)*sin(y)*sin(z)
-                             + sin(x)*cos(y)*sin(z)
-                             + sin(x)*sin(y)*cos(z);
-        if (dim==1) source = 3.19/dim*cos(3.19/dim*x);
-        if (dim==2) source = 3.19/dim*cos(3.19/dim*x)*sin(3.19/dim*y) + 3.19/dim*sin(3.19/dim*x)*cos(3.19/dim*y);
-        if (dim==3) source =   3.19/dim*cos(3.19/dim*x)*sin(3.19/dim*y)*sin(3.19/dim*z)
+        if (dim==1) {
+            const double x = p(0);
+            source = 3.19/dim*cos(3.19/dim*x);
+        } else if (dim==2) {
+            const double x = p(0), y = p(1);
+            source = 3.19/dim*cos(3.19/dim*x)*sin(3.19/dim*y) + 3.19/dim*sin(3.19/dim*x)*cos(3.19/dim*y);
+        } else if (dim==3) {
+            const double x = p(0), y = p(1), z = p(2);
+            source =   3.19/dim*cos(3.19/dim*x)*sin(3.19/dim*y)*sin(3.19/dim*z)
                              + 3.19/dim*sin(3.19/dim*x)*cos(3.19/dim*y)*sin(3.19/dim*z)
                              + 3.19/dim*sin(3.19/dim*x)*sin(3.19/dim*y)*cos(3.19/dim*z);
+        }
         return source;
     }
 

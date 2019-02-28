@@ -9,6 +9,7 @@ foreach(dim RANGE 1 3)
     set(TARGET ${TNAME})
     set(TARGET_SRC 
         linear_solver.cpp
+        manufactured_solution.cpp
         assemble_explicit.cpp 
         assemble_implicit.cpp 
         parameters.cpp

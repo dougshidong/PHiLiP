@@ -6,16 +6,10 @@
 #include <iostream>
 #include <fstream>
 
+#include "manufactured_solution.h"
 #include "ode_solver.h"
-#include "dg.h"
 #include "parameters.h"
 
-int runDG (Parameters::AllParameters &parameters, const unsigned int poly_degree)
-{
-    PHiLiP::DiscontinuousGalerkin<PHILIP_DIM, double> dg(&parameters, poly_degree);
-    //return dg.grid_convergence_implicit();
-    return dg.grid_convergence_explicit();
-}
 
 int main (int argc, char *argv[])
 {
@@ -35,13 +29,9 @@ int main (int argc, char *argv[])
         std::cout << "Starting program..." << std::endl;
 
 
-        const unsigned int dim = parameters.dimension;
-        const unsigned int p_start = parameters.degree_start;
-        const unsigned int p_end = parameters.degree_end;
-        for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
-            int failure = runDG(parameters, poly_degree);
-            if (failure) return 1;
-        }
+        int test = PHiLiP::manufactured_grid_convergence<PHILIP_DIM> (parameters);
+        return test;
+
         //const unsigned int np_1d = 6;
         //const unsigned int np_2d = 4;
         //const unsigned int np_3d = 3;

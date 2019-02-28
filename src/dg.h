@@ -49,15 +49,32 @@ namespace PHiLiP
 
         TrilinosWrappers::SparseMatrix system_matrix;
         Vector<real> right_hand_side;
+        Vector<real> newton_update;
+        Vector<real> solution;
 
         // Degrees of freedom handler allows us to iterate over the finite
         // elements' degrees of freedom on the given triangulation
         DoFHandler<dim> dof_handler;
 
+        // For now, use linear mapping of domain boundaries
+        // May need to use MappingQ or MappingQGeneric to represent curved 
+        // boundaries iso/superparametrically
+        const MappingQ<dim,dim> mapping;
+
+
+        // Lagrange polynomial basis
+        //FE_DGQ<dim> finite_element;
+        // Legendre polynomial basis
+        const FE_DGP<dim> fe;
+        void delete_fe_values ();
+
+        void set_triangulation(Triangulation<dim> *triangulation_input);
+        // Mesh
+        Triangulation<dim>   *triangulation;
+
     private:
 
         void allocate_system_explicit ();
-        void delete_fe_values ();
 
         void compute_time_step();
 
@@ -99,29 +116,16 @@ namespace PHiLiP
         std::pair<unsigned int, double> solve_linear(Vector<real> &newton_update);
         void output_results(const unsigned int cycle) const;
 
-        // Mesh
-        Triangulation<dim>   *triangulation;
 
-        // For now, use linear mapping of domain boundaries
-        // May need to use MappingQ or MappingQGeneric to represent curved 
-        // boundaries iso/superparametrically
-        const MappingQ<dim,dim> mapping;
-
-        // Lagrange polynomial basis
-        //FE_DGQ<dim> finite_element;
-        // Legendre polynomial basis
-        FE_DGP<dim> fe;
 
 
         const QGauss<dim>   quadrature;
         const QGauss<dim-1> face_quadrature;
 
-        Vector<real> solution;
         Vector<real> source_term;
 
         Vector<real> cell_rhs;
 
-        Vector<real> newton_update;
 
         DynamicSparsityPattern sparsity_pattern;
 

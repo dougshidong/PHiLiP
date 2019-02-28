@@ -11,7 +11,7 @@ namespace PHiLiP
     template std::pair<unsigned int, double>
     //LinearSolver<double>::solve_linear (
     solve_linear (
-        const TrilinosWrappers::SparseMatrix &system_matrix,
+        TrilinosWrappers::SparseMatrix &system_matrix,
         Vector<double> &right_hand_side, 
         Vector<double> &solution);
 
@@ -19,7 +19,7 @@ namespace PHiLiP
     std::pair<unsigned int, double>
     //LinearSolver<real>::solve_linear (
     solve_linear (
-        const TrilinosWrappers::SparseMatrix &system_matrix,
+        TrilinosWrappers::SparseMatrix &system_matrix,
         Vector<real> &right_hand_side, 
         Vector<real> &solution)
     {
@@ -31,6 +31,7 @@ namespace PHiLiP
         ////system_matrix.print(std::cout, true);
         ////solution.print(std::cout);
         ////right_hand_side.print(std::cout);
+
         //direct.solve(system_matrix, solution, right_hand_side);
         //return {solver_control.last_step(), solver_control.last_value()};
 
@@ -79,6 +80,12 @@ namespace PHiLiP
             const_cast<Epetra_CrsMatrix *>(&system_matrix.trilinos_matrix()));
           solver.Iterate(max_iterations,
                          linear_residual);
+
+        std::cout << " Linear solber iteration: " << solver.NumIters() 
+                  << " Residual: " << solver.TrueResidual()
+                  << " RHS norm: " << right_hand_side.l2_norm()
+                  << " Newton update norm: " << solution.l2_norm()
+                  << std::endl;
           return {solver.NumIters(), solver.TrueResidual()};
         }
     }

@@ -14,7 +14,9 @@
 int main (int argc, char *argv[])
 {
     dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(
-        argc, argv, dealii::numbers::invalid_unsigned_int);
+        argc, argv, 1);
+    //dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(
+    //    argc, argv, dealii::numbers::invalid_unsigned_int);
     try
     {
         std::cout << "Reading input..." << std::endl;

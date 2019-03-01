@@ -72,6 +72,9 @@ namespace PHiLiP
         // Mesh
         Triangulation<dim>   *triangulation;
 
+        Parameters::AllParameters *parameters;
+
+
     private:
 
         void allocate_system_explicit ();
@@ -135,7 +138,6 @@ namespace PHiLiP
         FESubfaceValues<dim,dim>  *fe_values_subface;
         FEFaceValues<dim,dim>     *fe_values_face_neighbor;
 
-        Parameters::AllParameters *parameters;
 
 
     }; // end of DiscontinuousGalerkin class

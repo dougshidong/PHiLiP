@@ -15,19 +15,24 @@ namespace PHiLiP
 {
     using namespace dealii;
 
+
     template <int dim, typename real>
     class ODESolver
     {
     public:
+        ODESolver() {};
         ODESolver(int solver_type);
         ODESolver(DiscontinuousGalerkin<dim, real> *dg_input)
         :
-        dg(dg_input)
-        {}
+        dg(dg_input),
+        parameters(dg->parameters)
+        {};
+        virtual ~ODESolver() {};
+        
 
-        virtual void allocate_system () = 0;
+        virtual int steady_state () = 0;
+        virtual void allocate_ode_system () = 0;
         int step_in_time();
-        int steady_state ();
 
         double residual_norm;
         unsigned int current_iteration;
@@ -51,9 +56,17 @@ namespace PHiLiP
         : public ODESolver<dim, real>
     {
     public:
-        void allocate_system ();
+        Explicit_ODESolver() {};
+        Explicit_ODESolver(DiscontinuousGalerkin<dim, real> *dg_input)
+        :
+        dg(dg_input)
+        {};
+        ~Explicit_ODESolver() {};
+        void allocate_ode_system ();
+        int steady_state ();
     protected:
         void evaluate_solution_update ();
+        DiscontinuousGalerkin<dim,real> *dg;
 
     }; // end of Explicit_ODESolver class
 
@@ -62,11 +75,28 @@ namespace PHiLiP
         : public ODESolver<dim, real>
     {
     public:
-        void allocate_system ();
+        Implicit_ODESolver() {};
+        Implicit_ODESolver(DiscontinuousGalerkin<dim, real> *dg_input)
+        :
+        dg(dg_input)
+        {};
+        ~Implicit_ODESolver() {};
+        void allocate_ode_system ();
+        int steady_state ();
     protected:
         void evaluate_solution_update ();
+        DiscontinuousGalerkin<dim,real> *dg;
 
     }; // end of Implicit_ODESolver class
+
+    template <int dim, typename real>
+    class ODESolverFactory
+    {
+    public:
+        static ODESolver<dim,real> *create_ODESolver(DiscontinuousGalerkin<dim, real> *dg_input);
+        static ODESolver<dim,real> *create_ODESolver(Parameters::ODE::SolverType solver_type);
+        //static ODESolver<dim,real> *create_ODESolver(Parameters::ODE::SolverType solver_type);
+    };
 
 } // end of PHiLiP namespace
 

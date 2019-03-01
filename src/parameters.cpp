@@ -120,15 +120,25 @@ namespace Parameters
 
     void ODE::parse_parameters (ParameterHandler &prm)
     {
-        prm.enter_subsection("manufactured solution convergence study");
+        prm.enter_subsection("ODE solver");
         {
             //const std::string output_string = prm.get("output");
             //if (output_string == "verbose") output = verbose;
             //if (output_string == "quiet") output = quiet;
 
             const std::string pde_string = prm.get("solver_type");
-            if (pde_string == "explicit_solver") solver_type = explicit_solver;
-            if (pde_string == "implicit_solver") solver_type = implicit_solver;
+            if (pde_string == "explicit") {
+                solver_type = SolverType::explicit_solver;
+            } else if (pde_string == "implicit") {
+                solver_type = SolverType::implicit_solver;
+            } else {
+                std::cout << "Invalid solver type: " << pde_string << std::endl;
+            }
+            std::cout << "Solver type: " << pde_string << std::endl;
+            std::cout << "Solver type: " << SolverType::explicit_solver << std::endl;
+            std::cout << "Solver type: " << SolverType::implicit_solver << std::endl;
+
+
 
             nonlinear_steady_residual_tolerance  = prm.get_double("nonlinear_steady_residual_tolerance");
             nonlinear_max_iterations = prm.get_integer("nonlinear_max_iterations");
@@ -200,6 +210,6 @@ namespace Parameters
 
 
         Parameters::ManufacturedConvergenceStudy::parse_parameters (prm);
-        Parameters::ODE::declare_parameters (prm);
+        Parameters::ODE::parse_parameters (prm);
     }
 }

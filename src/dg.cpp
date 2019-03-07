@@ -172,22 +172,14 @@ namespace PHiLiP
     template <int dim, typename real>
     DiscontinuousGalerkin<dim, real>::~DiscontinuousGalerkin ()
     {
-        std::cout << std::endl << "Deallocating DG system and initializing FEValues" << std::endl;
-
-        if (fe_values               != NULL) delete fe_values;
-        if (fe_values_face          != NULL) delete fe_values_face;
-        if (fe_values_subface       != NULL) delete fe_values_subface;
-        if (fe_values_face_neighbor != NULL) delete fe_values_face_neighbor;
-        fe_values               = NULL; 
-        fe_values_face          = NULL;
-        fe_values_subface       = NULL;
-        fe_values_face_neighbor = NULL;
+        std::cout << std::endl << "Destructing DG" << std::endl;
+        delete_fe_values();
     }
 
     template <int dim, typename real>
     void DiscontinuousGalerkin<dim, real>::delete_fe_values ()
     {
-        std::cout << std::endl << "Deallocating DG system and initializing FEValues" << std::endl;
+        std::cout << std::endl << "Deallocating FEValues" << std::endl;
 
         if (fe_values               != NULL) delete fe_values;
         if (fe_values_face          != NULL) delete fe_values_face;

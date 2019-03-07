@@ -56,7 +56,6 @@ namespace PHiLiP
                 GridGenerator::subdivided_hyper_cube(grid, ncell[igrid]);
 
                 dg.set_triangulation(&grid);
-
                 
                 dg.allocate_system ();
 
@@ -68,41 +67,6 @@ namespace PHiLiP
                           << std::endl;
 
                 ode_solver->steady_state();
-
-                //double residual_norm = dg.get_residual_l2norm();
-
-
-                //int iteration = 0;
-                //int print = 1;
-
-                //dg.assemble_system ();
-                //while (residual_norm > 1e-13 && iteration < 100000) {
-                //    ++iteration;
-
-
-                //    dg.right_hand_side = 0;
-                //    dg.assemble_system ();
-                //    residual_norm = dg.get_residual_l2norm();
-
-                //    if ( (iteration%print) == 0)
-                //    std::cout << " Iteration: " << iteration 
-                //              << " Residual norm: " << residual_norm
-                //              << std::endl;
-
-                //    dg.newton_update = 0;
-                //    std::pair<unsigned int, double> convergence = solve_linear (
-                //        dg.system_matrix,
-                //        dg.right_hand_side, 
-                //        dg.newton_update);
-
-                //    std::cout << " Iteration: " << iteration 
-                //              << " Newton update norm: " << dg.newton_update.l2_norm()
-                //              << std::endl;
-
-                //    dg.solution += dg.newton_update;
-                //}
-
-                //dg.delete_fe_values ();
 
                 std::vector<unsigned int> dof_indices(dg.fe.dofs_per_cell);
 

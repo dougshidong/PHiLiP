@@ -1,20 +1,20 @@
 foreach(dim RANGE 1 3)
     set(PHILIP_DIM ${dim})
 
-    set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build_${PHILIP_DIM}D)
-    set(CMAKE_CURRENT_BINARY_DIR ${CMAKE_SOURCE_DIR}/build_${PHILIP_DIM}D)
+    #set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build_${PHILIP_DIM}D)
+    #set(CMAKE_CURRENT_BINARY_DIR ${CMAKE_SOURCE_DIR}/build_${PHILIP_DIM}D)
     
     string(CONCAT TNAME PHiLiP_${PHILIP_DIM}D)
     
     set(TARGET ${TNAME})
     set(TARGET_SRC 
         linear_solver.cpp
-        manufactured_solution.cpp
         assemble_explicit.cpp 
         assemble_implicit.cpp 
         parameters.cpp
         dg.cpp
         ode_solver.cpp
+        manufactured_solution.cpp
         main.cpp)
 
     add_executable(${TNAME} ${TARGET_SRC})
@@ -27,7 +27,7 @@ foreach(dim RANGE 1 3)
     # https://zhuanlan.zhihu.com/p/21385662
     # https://www.getit01.com/p2018020821385662/
     #target_link_libraries(${TNAME} tbb m mpi mpi_cxx)
-    target_link_libraries(${TNAME} tbb m mpi mpi_cxx)
+    #target_link_libraries(${TNAME} tbb m mpi mpi_cxx)
 
     DEAL_II_SETUP_TARGET(${TNAME})
     message("Adding executable " ${TNAME} " with files " ${TARGET_SRC} "\n")

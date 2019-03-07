@@ -5,10 +5,6 @@
 
 namespace PHiLiP
 {
-    template class ODESolver<PHILIP_DIM, double>;
-    template class Explicit_ODESolver<PHILIP_DIM, double>;
-    template class Implicit_ODESolver<PHILIP_DIM, double>;
-    template class ODESolverFactory<PHILIP_DIM, double>;
 
 
     // can't just call ODESolver::steady_state...
@@ -70,9 +66,12 @@ namespace PHiLiP
     template <int dim, typename real>
     void Explicit_ODESolver<dim, real>::evaluate_solution_update ()
     {
-        double dt = 1.0;
+        //double dt = 1.0;
         //this->solution_update = dt*(this->dg->right_hand_side);
-        this->solution_update = (this->dg->right_hand_side);
+        //this->solution_update = (this->dg->right_hand_side);
+        this->solution_update = 0;
+        this->solution_update -= (this->dg->right_hand_side);
+        this->solution_update *= 0.01;
     }
     template <int dim, typename real>
     void Implicit_ODESolver<dim, real>::evaluate_solution_update ()
@@ -123,4 +122,9 @@ namespace PHiLiP
             return nullptr;
         }
     }
+
+    template class ODESolver<PHILIP_DIM, double>;
+    template class Explicit_ODESolver<PHILIP_DIM, double>;
+    template class Implicit_ODESolver<PHILIP_DIM, double>;
+    template class ODESolverFactory<PHILIP_DIM, double>;
 }

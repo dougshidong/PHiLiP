@@ -8,13 +8,6 @@ namespace PHiLiP
     using namespace dealii;
 
 
-    template std::pair<unsigned int, double>
-    //LinearSolver<double>::solve_linear (
-    solve_linear (
-        TrilinosWrappers::SparseMatrix &system_matrix,
-        Vector<double> &right_hand_side, 
-        Vector<double> &solution);
-
     template <typename real>
     std::pair<unsigned int, double>
     //LinearSolver<real>::solve_linear (
@@ -28,9 +21,9 @@ namespace PHiLiP
         ////TrilinosWrappers::SolverDirect::AdditionalData data(parameters.output == Parameters::Solver::verbose);
         //TrilinosWrappers::SolverDirect direct(solver_control, data);
 
-        ////system_matrix.print(std::cout, true);
-        ////solution.print(std::cout);
-        ////right_hand_side.print(std::cout);
+        system_matrix.print(std::cout, true);
+        solution.print(std::cout);
+        right_hand_side.print(std::cout);
 
         //direct.solve(system_matrix, solution, right_hand_side);
         //return {solver_control.last_step(), solver_control.last_value()};
@@ -78,15 +71,25 @@ namespace PHiLiP
           solver.SetAztecParam(AZ_rthresh, ilut_rtol);
           solver.SetUserMatrix(
             const_cast<Epetra_CrsMatrix *>(&system_matrix.trilinos_matrix()));
+          std::cout << " Linear solver max its: " << max_iterations 
+                    << " Linear residual tolerance: " << linear_residual
+                    << std::endl;
           solver.Iterate(max_iterations,
                          linear_residual);
 
-        std::cout << " Linear solber iteration: " << solver.NumIters() 
-                  << " Residual: " << solver.TrueResidual()
-                  << " RHS norm: " << right_hand_side.l2_norm()
-                  << " Newton update norm: " << solution.l2_norm()
-                  << std::endl;
+          std::cout << " Linear solver iteration: " << solver.NumIters() 
+                    << " Residual: " << solver.TrueResidual()
+                    << " RHS norm: " << right_hand_side.l2_norm()
+                    << " Newton update norm: " << solution.l2_norm()
+                    << std::endl;
           return {solver.NumIters(), solver.TrueResidual()};
         }
     }
+
+    template std::pair<unsigned int, double>
+    //LinearSolver<double>::solve_linear (
+    solve_linear (
+        TrilinosWrappers::SparseMatrix &system_matrix,
+        Vector<double> &right_hand_side, 
+        Vector<double> &solution);
 }

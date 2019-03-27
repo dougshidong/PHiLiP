@@ -26,6 +26,8 @@
 #include "advection_boundary.h"
 
 #include "parameters.h"
+
+#include "manufactured_advection.h"
 namespace PHiLiP
 {
     using namespace dealii;
@@ -498,6 +500,8 @@ namespace PHiLiP
                 if (dim==1) uexact = sin(3.19/dim*qpoint(0));
                 if (dim==2) uexact = sin(3.19/dim*qpoint(0))*sin(3.19/dim*qpoint(1));
                 if (dim==3) uexact = sin(3.19/dim*qpoint(0))*sin(3.19/dim*qpoint(1))*sin(3.19/dim*qpoint(2));
+
+                uexact = manufactured_advection_solution (qpoint);
 
                 double u_at_q = solution_values[iquad];
                 l2error += pow(u_at_q - uexact, 2) * fe_values_plus10.JxW(iquad);

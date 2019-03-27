@@ -2,6 +2,7 @@
 #include <deal.II/base/function.h>
 #include <deal.II/base/point.h>
 
+#include "manufactured_advection.h"
 namespace PHiLiP
 {
     using namespace dealii;
@@ -24,11 +25,12 @@ namespace PHiLiP
         Assert(values.size()==points.size(),
                ExcDimensionMismatch(values.size(),points.size()));
         for (unsigned int i=0; i<values.size(); ++i) {
-            values[i] = 1.;
-            for (unsigned int idim=0; idim<dim; ++idim) {
-                const double loc = points[i](idim);
-                values[i] *= sin(3.19/dim*loc);
-            }
+            values[i] = manufactured_advection_solution (points[i]);
+            //values[i] = 1.;
+            //for (unsigned int idim=0; idim<dim; ++idim) {
+            //    const double loc = points[i](idim);
+            //    values[i] *= sin(3.19/dim*loc);
+            //}
         }
     }
 } // end of PHiLiP namespace

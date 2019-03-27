@@ -12,6 +12,7 @@
 #include "dg.h"
 #include "advection_boundary.h"
 
+#include "manufactured_advection.h"
 namespace PHiLiP
 {
     using namespace dealii;
@@ -40,25 +41,25 @@ namespace PHiLiP
     }
 
     // For now hard-code source term
-    template <int dim>
-    double evaluate_source_term (const Point<dim> &p)
-    {
-        double source;
-        source = 1.0;
-        if (dim==1) {
-            const double x = p(0);
-            source = 3.19/dim*cos(3.19/dim*x);
-        } else if (dim==2) {
-            const double x = p(0), y = p(1);
-            source = 3.19/dim*cos(3.19/dim*x)*sin(3.19/dim*y) + 3.19/dim*sin(3.19/dim*x)*cos(3.19/dim*y);
-        } else if (dim==3) {
-            const double x = p(0), y = p(1), z = p(2);
-            source =   3.19/dim*cos(3.19/dim*x)*sin(3.19/dim*y)*sin(3.19/dim*z)
-                             + 3.19/dim*sin(3.19/dim*x)*cos(3.19/dim*y)*sin(3.19/dim*z)
-                             + 3.19/dim*sin(3.19/dim*x)*sin(3.19/dim*y)*cos(3.19/dim*z);
-        }
-        return source;
-    }
+    //template <int dim>
+    //double evaluate_source_term (const Point<dim> &p)
+    //{
+    //    double source;
+    //    source = 1.0;
+    //    if (dim==1) {
+    //        const double x = p(0);
+    //        source = 3.19/dim*cos(3.19/dim*x);
+    //    } else if (dim==2) {
+    //        const double x = p(0), y = p(1);
+    //        source = 3.19/dim*cos(3.19/dim*x)*sin(3.19/dim*y) + 3.19/dim*sin(3.19/dim*x)*cos(3.19/dim*y);
+    //    } else if (dim==3) {
+    //        const double x = p(0), y = p(1), z = p(2);
+    //        source =   3.19/dim*cos(3.19/dim*x)*sin(3.19/dim*y)*sin(3.19/dim*z)
+    //                         + 3.19/dim*sin(3.19/dim*x)*cos(3.19/dim*y)*sin(3.19/dim*z)
+    //                         + 3.19/dim*sin(3.19/dim*x)*sin(3.19/dim*y)*cos(3.19/dim*z);
+    //    }
+    //    return source;
+    //}
 
     template <int dim, typename real>
     void DiscontinuousGalerkin<dim, real>::assemble_cell_terms_implicit(
@@ -88,7 +89,8 @@ namespace PHiLiP
             for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
                 const Tensor<1,dim> vel_at_point = velocity_field<dim>();
-                const double source_at_point = evaluate_source_term (fe_values->quadrature_point(iquad));
+                //const double source_at_point = evaluate_source_term (fe_values->quadrature_point(iquad));
+                const double source_at_point = manufactured_advection_source (fe_values->quadrature_point(iquad));
 
                 const double adv_dot_grad_test = vel_at_point*fe_values->shape_grad(itest, iquad);
 

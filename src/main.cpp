@@ -6,7 +6,7 @@
 #include <iostream>
 #include <fstream>
 
-#include "manufactured_solution.h"
+#include "grid_study.h"
 #include "ode_solver.h"
 #include "parameters.h"
 

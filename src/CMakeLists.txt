@@ -10,7 +10,8 @@ foreach(dim RANGE 1 3)
     set(TARGET_SRC 
         linear_solver.cpp
         manufactured_advection.cpp
-        manufactured_solution.cpp
+        manufactured_convection_diffusion.cpp
+        grid_study.cpp
         assemble_explicit.cpp 
         assemble_implicit.cpp 
         parameters.cpp

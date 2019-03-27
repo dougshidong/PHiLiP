@@ -10,7 +10,7 @@
 #include "dg.h"
 #include "advection_boundary.h"
 
-#include "manufactured_advection.h"
+#include "manufactured_solution.h"
 namespace PHiLiP
 {
     using namespace dealii;

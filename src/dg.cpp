@@ -20,6 +20,12 @@
 #include <deal.II/meshworker/simple.h>
 #include <deal.II/meshworker/loop.h>
 
+// Finally, we take our exact solution from the library as well as quadrature
+// and additional tools.
+#include <deal.II/numerics/data_out.h>
+
+
+
 #include "integrator.h"
 
 #include "dg.h"
@@ -27,7 +33,7 @@
 
 #include "parameters.h"
 
-#include "manufactured_advection.h"
+#include "manufactured_solution.h"
 namespace PHiLiP
 {
     using namespace dealii;
@@ -114,10 +120,12 @@ namespace PHiLiP
                                          | update_quadrature_points
                                          | update_JxW_values;
         const UpdateFlags face_update_flags = update_values
+                                              | update_gradients
                                               | update_quadrature_points
                                               | update_JxW_values
                                               | update_normal_vectors;
-        const UpdateFlags neighbor_face_update_flags = update_values;
+        const UpdateFlags neighbor_face_update_flags = update_values
+                                                      | update_gradients;
 
         fe_values               = new FEValues<dim,dim> (mapping, fe, quadrature, update_flags);
         fe_values_face          = new FEFaceValues<dim,dim> (mapping, fe, face_quadrature, face_update_flags);
@@ -160,10 +168,12 @@ namespace PHiLiP
                                          | update_quadrature_points
                                          | update_JxW_values;
         const UpdateFlags face_update_flags = update_values
+                                              | update_gradients
                                               | update_quadrature_points
                                               | update_JxW_values
                                               | update_normal_vectors;
-        const UpdateFlags neighbor_face_update_flags = update_values;
+        const UpdateFlags neighbor_face_update_flags = update_values
+                                                      | update_gradients;
 
         fe_values               = new FEValues<dim,dim> (mapping, fe, quadrature, update_flags);
         fe_values_face          = new FEFaceValues<dim,dim> (mapping, fe, face_quadrature, face_update_flags);
@@ -239,31 +249,68 @@ namespace PHiLiP
                     n_face_visited++;
 
                     fe_values_face->reinit (current_cell, face_no);
-                    assemble_boundary_term_implicit (fe_values_face, current_dofs_indices, current_cell_rhs);
+                    const unsigned int degree_current = fe.get_degree();
+                    const unsigned int deg1sq = (degree_current == 0) ? 1 : degree_current * (degree_current+1);
+                    const unsigned int normal_direction = GeometryInfo<dim>::unit_normal_direction[face_no];
+                    const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction);
+
+                    real penalty = deg1sq / vol_div_facearea1;
+                    //penalty = 1;//99;
+
+                    assemble_boundary_term_implicit (fe_values_face, penalty, current_dofs_indices, current_cell_rhs);
 
                 // Case 2:
                 // Neighbour is finer occurs if the face has children
-                // This is because we are looping over the current_cell's face, so 2, 4, and 8 faces.
+                // This is because we are looping over the current_cell's face, so 2, 4, and 6 faces.
                 } else if (current_face->has_children()) {
                     neighbor_cell_rhs = 0;
                     Assert (current_cell->neighbor(face_no).state() == IteratorState::valid, ExcInternalError());
 
                     // Obtain cell neighbour
-                    const unsigned int neighbor_face = current_cell->neighbor_face_no(face_no);
+                    const unsigned int neighbor_face_no = current_cell->neighbor_face_no(face_no);
 
                     for (unsigned int subface_no=0; subface_no < current_face->number_of_children(); ++subface_no) {
 
                         n_face_visited++;
 
                         typename DoFHandler<dim>::cell_iterator neighbor_child_cell = current_cell->neighbor_child_on_subface (face_no, subface_no);
+
                         Assert (!neighbor_child_cell->has_children(), ExcInternalError());
 
                         neighbor_child_cell->get_dof_indices (neighbor_dofs_indices);
 
                         fe_values_subface->reinit (current_cell, face_no, subface_no);
-                        fe_values_face_neighbor->reinit (neighbor_child_cell, neighbor_face);
+                        fe_values_face_neighbor->reinit (neighbor_child_cell, neighbor_face_no);
+
+                        const unsigned int normal_direction1 = GeometryInfo<dim>::unit_normal_direction[face_no];
+                        const unsigned int normal_direction2 = GeometryInfo<dim>::unit_normal_direction[neighbor_face_no];
+                        const unsigned int degree_current = fe.get_degree();
+                        const unsigned int deg1sq = (degree_current == 0) ? 1 : degree_current * (degree_current+1);
+                        const unsigned int deg2sq = (degree_current == 0) ? 1 : degree_current * (degree_current+1);
+
+                        //const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction1) / current_face->number_of_children();
+                        const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction1);
+                        const real vol_div_facearea2 = neighbor_child_cell->extent_in_direction(normal_direction2);
+
+                        const real penalty1 = deg1sq / vol_div_facearea1;
+                        const real penalty2 = deg2sq / vol_div_facearea2;
+                        
+                        real penalty = 0.5 * ( penalty1 + penalty2 );
+                        //penalty = 1;
+
+                        //std::cout
+                        //    << "Degree: " << deg1sq
+                        //    << "Length 1: " << vol_div_facearea1
+                        //    << "Length 2: " << vol_div_facearea2
+                        //    << "Penalty: " << penalty
+                        //    << std::endl
+                        //    << std::endl
+                        //    ;
+
+
                         assemble_face_term_implicit (
                             fe_values_subface, fe_values_face_neighbor,
+                            penalty,
                             current_dofs_indices, neighbor_dofs_indices,
                             current_cell_rhs, neighbor_cell_rhs);
 
@@ -294,12 +341,38 @@ namespace PHiLiP
 
                     neighbor_cell->get_dof_indices (neighbor_dofs_indices);
 
-                    const unsigned int neighbor_face = current_cell->neighbor_of_neighbor(face_no);
+                    const unsigned int neighbor_face_no = current_cell->neighbor_of_neighbor(face_no);
+
+                    const unsigned int normal_direction1 = GeometryInfo<dim>::unit_normal_direction[face_no];
+                    const unsigned int normal_direction2 = GeometryInfo<dim>::unit_normal_direction[neighbor_face_no];
+                    const unsigned int degree_current = fe.get_degree();
+                    const unsigned int deg1sq = (degree_current == 0) ? 1 : degree_current * (degree_current+1);
+                    const unsigned int deg2sq = (degree_current == 0) ? 1 : degree_current * (degree_current+1);
+
+                    //const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction1) / current_face->number_of_children();
+                    const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction1);
+                    const real vol_div_facearea2 = neighbor_cell->extent_in_direction(normal_direction2);
+
+                    const real penalty1 = deg1sq / vol_div_facearea1;
+                    const real penalty2 = deg2sq / vol_div_facearea2;
+                    
+                    real penalty = 0.5 * ( penalty1 + penalty2 );
+                    //penalty = 1;//99;
+
+                    //    std::cout
+                    //        << "  Degree: " << deg1sq
+                    //        << "  Length 1: " << vol_div_facearea1
+                    //        << "  Length 2: " << vol_div_facearea2
+                    //        << "  Penalty: " << penalty
+                    //        << std::endl
+                    //        << std::endl
+                    //        ;
 
                     fe_values_face->reinit (current_cell, face_no);
-                    fe_values_face_neighbor->reinit (neighbor_cell, neighbor_face);
+                    fe_values_face_neighbor->reinit (neighbor_cell, neighbor_face_no);
                     assemble_face_term_implicit (
                             fe_values_face, fe_values_face_neighbor,
+                            penalty,
                             current_dofs_indices, neighbor_dofs_indices,
                             current_cell_rhs, neighbor_cell_rhs);
 
@@ -375,7 +448,7 @@ namespace PHiLiP
                     Assert (current_cell->neighbor(face_no).state() == IteratorState::valid, ExcInternalError());
 
                     // Obtain cell neighbour
-                    const unsigned int neighbor_face = current_cell->neighbor_face_no(face_no);
+                    const unsigned int neighbor_face_no = current_cell->neighbor_face_no(face_no);
 
                     for (unsigned int subface_no=0; subface_no < current_face->number_of_children(); ++subface_no) {
 
@@ -387,7 +460,7 @@ namespace PHiLiP
                         neighbor_child_cell->get_dof_indices (neighbor_dofs_indices);
 
                         fe_values_subface->reinit (current_cell, face_no, subface_no);
-                        fe_values_face_neighbor->reinit (neighbor_child_cell, neighbor_face);
+                        fe_values_face_neighbor->reinit (neighbor_child_cell, neighbor_face_no);
                         assemble_face_term_explicit(
                             fe_values_subface, fe_values_face_neighbor,
                             current_dofs_indices, neighbor_dofs_indices,
@@ -420,10 +493,10 @@ namespace PHiLiP
 
                     neighbor_cell->get_dof_indices (neighbor_dofs_indices);
 
-                    const unsigned int neighbor_face = current_cell->neighbor_of_neighbor(face_no);
+                    const unsigned int neighbor_face_no = current_cell->neighbor_of_neighbor(face_no);
 
                     fe_values_face->reinit (current_cell, face_no);
-                    fe_values_face_neighbor->reinit (neighbor_cell, neighbor_face);
+                    fe_values_face_neighbor->reinit (neighbor_cell, neighbor_face_no);
                     assemble_face_term_explicit(
                             fe_values_face, fe_values_face_neighbor,
                             current_dofs_indices, neighbor_dofs_indices,
@@ -481,7 +554,7 @@ namespace PHiLiP
 
         std::vector<unsigned int> dof_indices(fe.dofs_per_cell);
 
-        QGauss<dim> quad_plus10(fe.degree+10);
+        QGauss<dim> quad_plus10(fe.get_degree()+10);
         const unsigned int n_quad_pts =quad_plus10.size();
         FEValues<dim,dim> fe_values_plus10(mapping, fe,quad_plus10, update_values | update_JxW_values | update_quadrature_points);
 
@@ -502,6 +575,7 @@ namespace PHiLiP
                 if (dim==3) uexact = sin(3.19/dim*qpoint(0))*sin(3.19/dim*qpoint(1))*sin(3.19/dim*qpoint(2));
 
                 uexact = manufactured_advection_solution (qpoint);
+                uexact = manufactured_convection_diffusion_solution (qpoint);
 
                 double u_at_q = solution_values[iquad];
                 l2error += pow(u_at_q - uexact, 2) * fe_values_plus10.JxW(iquad);
@@ -908,6 +982,27 @@ namespace PHiLiP
 
         return 0;
 
+    }
+
+    template <int dim, typename real>
+    void DiscontinuousGalerkin<dim,real>::output_results (const unsigned int ith_grid)// const
+    {
+      const std::string filename = "sol-" +
+                                   Utilities::int_to_string(ith_grid,2) +
+                                   ".gnuplot";
+
+      std::cout << "Writing solution to <" << filename << ">..."
+                << std::endl << std::endl;
+      std::ofstream gnuplot_output (filename.c_str());
+
+      DataOut<dim> data_out;
+      data_out.attach_dof_handler (dof_handler);
+      data_out.add_data_vector (solution, "u");
+      //data_out.add_data_vector (estimates.block(0), "est");
+
+      data_out.build_patches ();
+
+      data_out.write_gnuplot(gnuplot_output);
     }
 
 } // end of PHiLiP namespace

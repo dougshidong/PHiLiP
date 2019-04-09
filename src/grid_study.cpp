@@ -9,7 +9,7 @@
 #include "linear_solver.h"
 #include "ode_solver.h"
 
-#include "manufactured_advection.h"
+#include "manufactured_solution.h"
 namespace PHiLiP
 {
     using namespace dealii;
@@ -23,18 +23,28 @@ namespace PHiLiP
         for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
 
 
-            unsigned int n_grids = 5;
+            //unsigned int n_grids = 5;
+            //std::vector<int> ncell(n_grids);
+            //std::vector<double> error(n_grids);
+            //std::vector<double> grid_size(n_grids);
+
+            //ncell[0] = 2;
+            //ncell[1] = 4;
+            //ncell[2] = 6;
+            //ncell[3] = 8;
+            //ncell[4] = 10;
+
+
+            std::vector<int> ncell;
+            ncell.push_back(3);
+            ncell.push_back(4);
+            ncell.push_back(8);
+            ncell.push_back(10);
+            //ncell.push_back(10);
+            unsigned int n_grids = ncell.size();
             std::vector<double> error(n_grids);
             std::vector<double> grid_size(n_grids);
-            std::vector<double> ncell(n_grids);
 
-            ncell[0] = 2;
-            ncell[1] = 4;
-            ncell[2] = 6;
-            ncell[3] = 8;
-            ncell[4] = 10;
-
-            ncell[0] = 2;
             for (unsigned int i=1;i<n_grids;++i) {
                 ncell[i] = ncell[i-1]*1.5;
             }
@@ -69,6 +79,7 @@ namespace PHiLiP
                           << std::endl;
 
                 ode_solver->steady_state();
+                dg.output_results(igrid);
 
                 std::vector<unsigned int> dof_indices(dg.fe.dofs_per_cell);
 
@@ -93,6 +104,7 @@ namespace PHiLiP
                         const Point<dim> qpoint = (fe_values_plus10.quadrature_point(iquad));
 
                         uexact = manufactured_advection_solution (qpoint);
+                        uexact = manufactured_convection_diffusion_solution (qpoint);
 
 
                         double u_at_q = solution_values[iquad];
@@ -161,15 +173,15 @@ namespace PHiLiP
             const double last_slope = log(error[n_grids-1]/error[n_grids-2])
                                       / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
             const double expected_slope = poly_degree+1;
-            const double slope_diff = std::abs(last_slope-expected_slope);
-            const double slope_tolerance = 0.1;
+            const double slope_diff = last_slope-expected_slope;
+            const double slope_deficit_tolerance = -0.1;
 
-            if (slope_diff > slope_tolerance) {
+            if (slope_diff < slope_deficit_tolerance) {
                 std::cout << std::endl
                           << "Convergence order not achieved. Slope of "
                           << last_slope << " instead of expected "
                           << expected_slope << " within a tolerance of "
-                          << slope_tolerance
+                          << slope_deficit_tolerance
                           << std::endl;
                 return 1;
             }

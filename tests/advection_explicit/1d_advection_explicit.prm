@@ -10,10 +10,10 @@ set pde_type  = advection
 
 subsection ODE solver
   # Maximum nonlinear solver iterations
-  set nonlinear_max_iterations            = 500000
+  set nonlinear_max_iterations            = 3
 
   # Nonlinear solver residual tolerance
-  set nonlinear_steady_residual_tolerance = 1e-13
+  set nonlinear_steady_residual_tolerance = 1e-9
 
   # Print every print_iteration_modulo iterations of the nonlinear solver
   set print_iteration_modulo              = 1
@@ -25,9 +25,9 @@ end
 
 subsection manufactured solution convergence study
   # Last degree used for convergence study
-  set degree_end   = 3
+  set degree_end   = 4
 
   # Starting degree for convergence study
-  set degree_start = 0
+  set degree_start = 1
 end
 

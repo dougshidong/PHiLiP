@@ -20,6 +20,7 @@ namespace PHiLiP
 
         dg->assemble_system ();
         this->residual_norm = dg->get_residual_l2norm();
+        this->residual_norm = 1; // Always do at least 1 iteration
         this->current_iteration = 0;
 
         while (    this->residual_norm     > dg->parameters->nonlinear_steady_residual_tolerance 
@@ -33,6 +34,7 @@ namespace PHiLiP
                       << std::endl;
 
             evaluate_solution_update ();
+            //this->solution_update *= 0.1;
             dg->solution += this->solution_update;
 
             dg->assemble_system ();
@@ -54,7 +56,9 @@ namespace PHiLiP
             ++this->current_iteration;
 
             if ( (this->current_iteration%dg->parameters->print_iteration_modulo) == 0 )
-            std::cout << " Iteration: " << this->current_iteration 
+            std::cout 
+                      << std::endl
+                      << " Iteration: " << this->current_iteration 
                       << " Residual norm: " << this->residual_norm
                       << std::endl;
 
@@ -70,7 +74,7 @@ namespace PHiLiP
     template <int dim, typename real>
     void Explicit_ODESolver<dim, real>::evaluate_solution_update ()
     {
-        double dt = 1.0;
+        double dt = 0.1;
         //this->solution_update = dt*(this->dg->right_hand_side);
         this->solution_update = (this->dg->right_hand_side);
     }

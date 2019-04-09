@@ -52,6 +52,8 @@ namespace PHiLiP
         Vector<real> newton_update;
         Vector<real> solution;
 
+        void output_results (const unsigned int ith_grid);// const;
+
         // Degrees of freedom handler allows us to iterate over the finite
         // elements' degrees of freedom on the given triangulation
         DoFHandler<dim> dof_handler;
@@ -63,7 +65,7 @@ namespace PHiLiP
 
 
         // Lagrange polynomial basis
-        //FE_DGQ<dim> finite_element;
+        //const FE_DGQ<dim> fe;
         // Legendre polynomial basis
         const FE_DGP<dim> fe;
         void delete_fe_values ();
@@ -106,11 +108,13 @@ namespace PHiLiP
             Vector<real> &current_cell_rhs);
         void assemble_boundary_term_implicit(
             const FEFaceValues<dim,dim> *fe_values_face,
+            const real penalty,
             const std::vector<types::global_dof_index> &current_dofs_indices,
             Vector<real> &current_cell_rhs);
         void assemble_face_term_implicit(
             const FEValuesBase<dim,dim>     *fe_values_face_current,
             const FEFaceValues<dim,dim>     *fe_values_face_neighbor,
+            const real penalty,
             const std::vector<types::global_dof_index> &current_dofs_indices,
             const std::vector<types::global_dof_index> &neighbor_dofs_indices,
             Vector<real>          &current_cell_rhs,

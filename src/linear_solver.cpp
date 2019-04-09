@@ -23,17 +23,23 @@ namespace PHiLiP
         Vector<real> &right_hand_side, 
         Vector<real> &solution)
     {
-        //SolverControl solver_control(1, 0);
-        //TrilinosWrappers::SolverDirect::AdditionalData data(true);
-        ////TrilinosWrappers::SolverDirect::AdditionalData data(parameters.output == Parameters::Solver::verbose);
-        //TrilinosWrappers::SolverDirect direct(solver_control, data);
 
-        ////system_matrix.print(std::cout, true);
-        ////solution.print(std::cout);
-        ////right_hand_side.print(std::cout);
+        //system_matrix.print(std::cout, true);
+        //solution.print(std::cout);
+        //right_hand_side.print(std::cout);
+        //FullMatrix<double> fullA(system_matrix.m());
+        //fullA.copy_from(system_matrix);
+        //std::cout<<"Dense matrix:"<<std::endl;
+        //fullA.print_formatted(std::cout, 3, true, 10, "0", 1., 0.);
 
-        //direct.solve(system_matrix, solution, right_hand_side);
-        //return {solver_control.last_step(), solver_control.last_value()};
+
+        SolverControl solver_control(1, 0);
+        TrilinosWrappers::SolverDirect::AdditionalData data(true);
+        //TrilinosWrappers::SolverDirect::AdditionalData data(parameters.output == Parameters::Solver::verbose);
+        TrilinosWrappers::SolverDirect direct(solver_control, data);
+
+        direct.solve(system_matrix, solution, right_hand_side);
+        return {solver_control.last_step(), solver_control.last_value()};
 
         {
           Epetra_Vector x(View,
@@ -81,7 +87,7 @@ namespace PHiLiP
           solver.Iterate(max_iterations,
                          linear_residual);
 
-        std::cout << " Linear solber iteration: " << solver.NumIters() 
+        std::cout << " Linear solver iteration: " << solver.NumIters() 
                   << " Residual: " << solver.TrueResidual()
                   << " RHS norm: " << right_hand_side.l2_norm()
                   << " Newton update norm: " << solution.l2_norm()

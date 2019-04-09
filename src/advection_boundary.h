@@ -25,12 +25,8 @@ namespace PHiLiP
         Assert(values.size()==points.size(),
                ExcDimensionMismatch(values.size(),points.size()));
         for (unsigned int i=0; i<values.size(); ++i) {
-            values[i] = manufactured_advection_solution (points[i]);
-            //values[i] = 1.;
-            //for (unsigned int idim=0; idim<dim; ++idim) {
-            //    const double loc = points[i](idim);
-            //    values[i] *= sin(3.19/dim*loc);
-            //}
+            //values[i] = manufactured_advection_solution (points[i]);
+            values[i] = manufactured_convection_diffusion_solution (points[i]);
         }
     }
 } // end of PHiLiP namespace

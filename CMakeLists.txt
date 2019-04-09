@@ -12,7 +12,7 @@ set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin)
 set(CLEAN_UP_FILES ./bin/* ./CMakeCache.txt)
 
 # Find deal.ii library
-find_package(deal.II 9.0.1 QUIET
+find_package(deal.II 9.0.0 QUIET
   HINTS ${deal.II_DIR} ${DEAL_II_DIR} ../ ../../ $ENV{DEAL_II_DIR}
   )
 IF(NOT ${deal.II_FOUND})

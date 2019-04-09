@@ -38,7 +38,6 @@ namespace PHiLiP
 {
     using namespace dealii;
 
-    template class DiscontinuousGalerkin <PHILIP_DIM, double>;
 
     template <int dim, typename real>
     DiscontinuousGalerkin<dim, real>::DiscontinuousGalerkin(
@@ -49,9 +48,9 @@ namespace PHiLiP
         triangulation(triangulation_input)
         , mapping(degree+1)
         , fe(degree)
+        , parameters(parameters_input)
         , quadrature (degree+1)
         , face_quadrature (degree+1)
-        , parameters(parameters_input)
     {
     }
 
@@ -77,11 +76,6 @@ namespace PHiLiP
         allocate_system_implicit();
     }
 
-    template DiscontinuousGalerkin<1, double>::DiscontinuousGalerkin(
-        Parameters::AllParameters *parameters_input,
-        Triangulation<1>   *triangulation_input,
-        const unsigned int degree);
-
     template <int dim, typename real>
     DiscontinuousGalerkin<dim, real>::DiscontinuousGalerkin(
         Parameters::AllParameters *parameters_input,
@@ -94,9 +88,6 @@ namespace PHiLiP
         , parameters(parameters_input)
     {
     }
-    template DiscontinuousGalerkin<PHILIP_DIM, double>::DiscontinuousGalerkin(
-        Parameters::AllParameters *parameters_input,
-        const unsigned int degree);
 
     
     template <int dim, typename real>
@@ -864,10 +855,10 @@ namespace PHiLiP
                cell = dof_handler.begin_active(),
                endc = dof_handler.end();
 
-            double CFL = 0.1;
+            //double CFL = 0.1;
             double dx = 1.0/pow(triangulation->n_active_cells(),(1.0/dim));
-            double speed = sqrt(dim);
-            double dt = CFL * dx / speed;
+            //double speed = sqrt(dim);
+            //double dt = CFL * dx / speed;
 
             int iteration = 0;
             int print = 1;
@@ -885,7 +876,9 @@ namespace PHiLiP
                           << std::endl;
 
                 newton_update = 0;
-                std::pair<unsigned int, double> convergence = solve_linear(newton_update);
+
+                //std::pair<unsigned int, double> convergence = solve_linear(newton_update);
+                (void) solve_linear(newton_update);
 
                 solution += newton_update;
             }
@@ -1004,5 +997,9 @@ namespace PHiLiP
 
       data_out.write_gnuplot(gnuplot_output);
     }
+
+
+
+    template class DiscontinuousGalerkin <PHILIP_DIM, double>;
 
 } // end of PHiLiP namespace

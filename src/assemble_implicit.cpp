@@ -22,7 +22,7 @@ namespace PHiLiP
     Tensor<1,dim> velocity_field ()
     {
         Tensor<1,dim> v_field;
-        v_field[0] = 0.5;//1.0;
+        v_field[0] = 1.0;//0.5;//1.0;
         if(dim >= 2) v_field[1] = 1.0;
         if(dim >= 3) v_field[2] = 1.0;
         return v_field;
@@ -81,7 +81,6 @@ namespace PHiLiP
                     // Convection
                     rhs +=
                         adv_dot_grad_test *
-                        //solution(current_dofs_indices[itrial]) *
                         solution_ad[itrial] *
                         fe_values->shape_value(itrial,iquad) *
                         dx;
@@ -108,11 +107,6 @@ namespace PHiLiP
                 //residual_derivatives[itrial] = rhs.fastAccessDx(itrial);
                 residual_derivatives[itrial] = rhs.dx(itrial);
             }
-            //std::cout<< "domain term "<<std::endl;
-            //for (unsigned int itrial = 0; itrial < n_dofs_cell; ++itrial) {
-            //    std::cout << "("<< current_dofs_indices[itest] << "," << current_dofs_indices[itrial] <<") " 
-            //              << residual_derivatives[itrial] << " "<<std::endl;
-            //}
             system_matrix.add(current_dofs_indices[itest], current_dofs_indices, residual_derivatives);
         }
     }
@@ -418,20 +412,12 @@ namespace PHiLiP
             // *******************
 
             current_cell_rhs(itest_current) += rhs.val();
-            //std::cout<< "itest "<<current_dofs_indices[itest_current]<<" dR1dW1"<<std::endl;
             for (unsigned int itrial = 0; itrial < n_dofs_current_cell; ++itrial) {
                 dR1_dW1[itrial] = rhs.dx(itrial);
-                //std::cout << "("<< current_dofs_indices[itest_current] << "," << current_dofs_indices[itrial] <<") " 
-                          //<< dR1_dW1[itrial] << " "<<std::endl;
             }
-            //std::cout<<std::endl;
-            //std::cout<< "itest "<<current_dofs_indices[itest_current]<<" dR1dW2"<<std::endl;
             for (unsigned int itrial = 0; itrial < n_dofs_neighbor_cell; ++itrial) {
                 dR1_dW2[itrial] = rhs.dx(n_dofs_current_cell+itrial);
-                //std::cout << "("<< current_dofs_indices[itest_current] << "," << neighbor_dofs_indices[itrial] <<") " 
-                          //<< dR1_dW2[itrial] << " "<<std::endl;
             }
-            //std::cout<<std::endl;
             system_matrix.add(current_dofs_indices[itest_current], current_dofs_indices, dR1_dW1);
             system_matrix.add(current_dofs_indices[itest_current], neighbor_dofs_indices, dR1_dW2);
         }
@@ -494,20 +480,12 @@ namespace PHiLiP
             }
             // *******************
             neighbor_cell_rhs(itest_neighbor) += rhs.val();
-            //std::cout<< "itest "<<neighbor_dofs_indices[itest_neighbor]<<" dR2dW1"<<std::endl;
             for (unsigned int itrial = 0; itrial < n_dofs_current_cell; ++itrial) {
                 dR2_dW1[itrial] = rhs.dx(itrial);
-                //std::cout << "("<< neighbor_dofs_indices[itest_neighbor] << "," << current_dofs_indices[itrial] <<") " 
-                          //<< dR2_dW1[itrial] << " "<<std::endl;
             }
-            //std::cout<<std::endl;
-            //std::cout<< "itest "<<neighbor_dofs_indices[itest_neighbor]<<" dR2dW2"<<std::endl;
             for (unsigned int itrial = 0; itrial < n_dofs_neighbor_cell; ++itrial) {
                 dR2_dW2[itrial] = rhs.dx(n_dofs_current_cell+itrial);
-                //std::cout << "("<< neighbor_dofs_indices[itest_neighbor] << "," << neighbor_dofs_indices[itrial] <<") " 
-                          //<< dR2_dW2[itrial] << " "<<std::endl;
             }
-            //std::cout<<std::endl;
             system_matrix.add(neighbor_dofs_indices[itest_neighbor], current_dofs_indices, dR2_dW1);
             system_matrix.add(neighbor_dofs_indices[itest_neighbor], neighbor_dofs_indices, dR2_dW2);
         }

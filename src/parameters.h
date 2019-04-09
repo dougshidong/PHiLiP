@@ -40,6 +40,9 @@ namespace Parameters
 
         unsigned int degree_start;
         unsigned int degree_end;
+        unsigned int initial_grid_size;
+        unsigned int number_of_grids;
+        double grid_progression;
 
         static void declare_parameters (ParameterHandler &prm);
         void parse_parameters (ParameterHandler &prm);

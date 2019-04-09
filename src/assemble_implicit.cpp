@@ -79,12 +79,12 @@ namespace PHiLiP
 
                 for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
                     // Convection
-                    //rhs +=
-                    //    adv_dot_grad_test *
-                    //    //solution(current_dofs_indices[itrial]) *
-                    //    solution_ad[itrial] *
-                    //    fe_values->shape_value(itrial,iquad) *
-                    //    dx;
+                    rhs +=
+                        adv_dot_grad_test *
+                        //solution(current_dofs_indices[itrial]) *
+                        solution_ad[itrial] *
+                        fe_values->shape_value(itrial,iquad) *
+                        dx;
 
 
                     // Diffusion term
@@ -155,30 +155,30 @@ namespace PHiLiP
             Sacado::Fad::DFad<real> rhs = 0;
 
             // Convection
-            //for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
-            //    const real vel_dot_normal = velocity_field<dim> () * normals[iquad];
-            //    const bool inflow = (vel_dot_normal < 0.);
+                const real vel_dot_normal = velocity_field<dim> () * normals[iquad];
+                const bool inflow = (vel_dot_normal < 0.);
 
-            //    if (inflow) {
-            //    // Setting the boundary condition when inflow
-            //        rhs += 
-            //            -vel_dot_normal *
-            //            boundary_values[iquad] *
-            //            fe_values_face->shape_value(itest,iquad) *
-            //            JxW[iquad];
-            //    } else {
-            //        // "Numerical flux" at the boundary is the same as the analytical flux
-            //        for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
-            //            rhs += 
-            //                -vel_dot_normal *
-            //                fe_values_face->shape_value(itest,iquad) *
-            //                fe_values_face->shape_value(itrial,iquad) *
-            //                solution_ad[itrial] *
-            //                JxW[iquad];
-            //        }
-            //    }
-            //}
+                if (inflow) {
+                // Setting the boundary condition when inflow
+                    rhs += 
+                        -vel_dot_normal *
+                        boundary_values[iquad] *
+                        fe_values_face->shape_value(itest,iquad) *
+                        JxW[iquad];
+                } else {
+                    // "Numerical flux" at the boundary is the same as the analytical flux
+                    for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
+                        rhs += 
+                            -vel_dot_normal *
+                            fe_values_face->shape_value(itest,iquad) *
+                            fe_values_face->shape_value(itrial,iquad) *
+                            solution_ad[itrial] *
+                            JxW[iquad];
+                    }
+                }
+            }
 
             // Diffusion
             // *******************
@@ -364,12 +364,12 @@ namespace PHiLiP
             Sacado::Fad::DFad<real> rhs = 0;
 
             // Convection
-            //for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-            //    rhs -=
-            //        fe_values_face_current->shape_value(itest_current,iquad) *
-            //        normal_int_numerical_flux[iquad] *
-            //        JxW_int[iquad];
-            //}
+            for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                rhs -=
+                    fe_values_face_current->shape_value(itest_current,iquad) *
+                    normal_int_numerical_flux[iquad] *
+                    JxW_int[iquad];
+            }
             for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
                 Sacado::Fad::DFad<real> soln_int = 0;
@@ -413,19 +413,6 @@ namespace PHiLiP
 
                     rhs += (soln_jump * test_grad_avg + soln_grad_avg * test_jump - penalty*soln_jump*test_jump) * JxW_int[iquad];
 
-                    //if (current_dofs_indices[itest_current] == 2)
-                    //{
-                    //    std::cout<<"Current rows affected from current cell: "<< current_dofs_indices[itest_current]
-                    //            <<std::endl;
-                    //    std::cout<<"soln_jump = "<<soln_jump
-                    //                <<"  soln_grad_avg = "<<soln_grad_avg
-                    //                <<"  test_jump = " << test_jump
-                    //                <<"  test_grad_avg = "<< test_grad_avg
-                    //                <<"  rhs = "<< rhs
-                    //                << std::endl
-                    //                << std::endl
-                    //                << std::endl;
-                    //}
                 }
             }
             // *******************
@@ -454,12 +441,12 @@ namespace PHiLiP
             // *******************
             Sacado::Fad::DFad<real> rhs = 0;
             // Convection
-            //for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-            //    rhs -=
-            //        fe_values_face_neighbor->shape_value(itest_neighbor,iquad) *
-            //        (-normal_int_numerical_flux[iquad]) *
-            //        JxW_int[iquad];
-            //}
+            for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                rhs -=
+                    fe_values_face_neighbor->shape_value(itest_neighbor,iquad) *
+                    (-normal_int_numerical_flux[iquad]) *
+                    JxW_int[iquad];
+            }
 
             for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
@@ -503,20 +490,6 @@ namespace PHiLiP
                     const real test_grad_avg                     = 0.5*(test_grad_int + test_grad_ext);
                 
                     rhs += (soln_jump * test_grad_avg + soln_grad_avg * test_jump - penalty*soln_jump*test_jump) * JxW_int[iquad];
-
-                    ////if (neighbor_dofs_indices[itest_neighbor] == 2)
-                    //{
-                    //    std::cout<<"Current rows affected from neighbour view: "<< neighbor_dofs_indices[itest_neighbor]
-                    //            <<std::endl;
-                    //    std::cout<<"soln_jump = "<<soln_jump
-                    //                <<"  soln_grad_avg = "<<soln_grad_avg
-                    //                <<"  test_jump = " << test_jump
-                    //                <<"  test_grad_avg = "<< test_grad_avg
-                    //                <<"  rhs = "<< rhs
-                    //                << std::endl
-                    //                << std::endl
-                    //                << std::endl;
-                    //}
                 }
             }
             // *******************

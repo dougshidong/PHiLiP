@@ -33,20 +33,20 @@ namespace PHiLiP
         if (dim==1) {
             const double x = point(0);
             source = 
-                     //a*cos(a*x+d) +
+                     a*cos(a*x+d) +
                      a*a*sin(a*x+d);
         } else if (dim==2) {
             const double x = point(0), y = point(1);
             source = 
-                     //a*cos(a*x+d)*sin(b*y+e) +
-                     //b*sin(a*x+d)*cos(b*y+e) +
+                     a*cos(a*x+d)*sin(b*y+e) +
+                     b*sin(a*x+d)*cos(b*y+e) +
                      a*a*sin(a*x+d)*sin(b*y+e) +
                      b*b*sin(a*x+d)*sin(b*y+e);
         } else if (dim==3) {
             const double x = point(0), y = point(1), z = point(2);
-            source =// a*cos(a*x+d)*sin(b*y+e)*sin(c*z+f) +
-                    // b*sin(a*x+d)*cos(b*y+e)*sin(c*z+f) +
-                    // c*sin(a*x+d)*sin(b*y+e)*cos(c*z+f) +
+            source =   a*cos(a*x+d)*sin(b*y+e)*sin(c*z+f) +
+                       b*sin(a*x+d)*cos(b*y+e)*sin(c*z+f) +
+                       c*sin(a*x+d)*sin(b*y+e)*cos(c*z+f) +
                        a*a*sin(a*x+d)*sin(b*y+e)*sin(c*z+f) +
                        b*b*sin(a*x+d)*sin(b*y+e)*sin(c*z+f) +
                        c*c*sin(a*x+d)*sin(b*y+e)*sin(c*z+f);

@@ -47,6 +47,13 @@ namespace PHiLiP
         void assemble_system ();
         double get_residual_l2norm ();
 
+        void delete_fe_values ();
+
+        void set_triangulation(Triangulation<dim> *triangulation_input);
+
+        // Mesh
+        Triangulation<dim>   *triangulation;
+
         TrilinosWrappers::SparseMatrix system_matrix;
         Vector<real> right_hand_side;
         Vector<real> newton_update;
@@ -68,11 +75,6 @@ namespace PHiLiP
         //const FE_DGQ<dim> fe;
         // Legendre polynomial basis
         const FE_DGP<dim> fe;
-        void delete_fe_values ();
-
-        void set_triangulation(Triangulation<dim> *triangulation_input);
-        // Mesh
-        Triangulation<dim>   *triangulation;
 
         Parameters::AllParameters *parameters;
 

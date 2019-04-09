@@ -8,13 +8,6 @@ namespace PHiLiP
     using namespace dealii;
 
 
-    template std::pair<unsigned int, double>
-    //LinearSolver<double>::solve_linear (
-    solve_linear (
-        TrilinosWrappers::SparseMatrix &system_matrix,
-        Vector<double> &right_hand_side, 
-        Vector<double> &solution);
-
     template <typename real>
     std::pair<unsigned int, double>
     //LinearSolver<real>::solve_linear (
@@ -84,15 +77,25 @@ namespace PHiLiP
           solver.SetAztecParam(AZ_rthresh, ilut_rtol);
           solver.SetUserMatrix(
             const_cast<Epetra_CrsMatrix *>(&system_matrix.trilinos_matrix()));
+          std::cout << " Linear solver max its: " << max_iterations 
+                    << " Linear residual tolerance: " << linear_residual
+                    << std::endl;
           solver.Iterate(max_iterations,
                          linear_residual);
 
-        std::cout << " Linear solver iteration: " << solver.NumIters() 
-                  << " Residual: " << solver.TrueResidual()
-                  << " RHS norm: " << right_hand_side.l2_norm()
-                  << " Newton update norm: " << solution.l2_norm()
-                  << std::endl;
+          std::cout << " Linear solver iteration: " << solver.NumIters() 
+                    << " Residual: " << solver.TrueResidual()
+                    << " RHS norm: " << right_hand_side.l2_norm()
+                    << " Newton update norm: " << solution.l2_norm()
+                    << std::endl;
           return {solver.NumIters(), solver.TrueResidual()};
         }
     }
+
+    template std::pair<unsigned int, double>
+    //LinearSolver<double>::solve_linear (
+    solve_linear (
+        TrilinosWrappers::SparseMatrix &system_matrix,
+        Vector<double> &right_hand_side, 
+        Vector<double> &solution);
 }

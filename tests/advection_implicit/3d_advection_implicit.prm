@@ -1,7 +1,7 @@
 # Listing of Parameters
 # ---------------------
 # Number of dimensions
-set dimension = 2
+set dimension = 3
 
 # The kind of solver for the linear system. Choices are
 # <advection|convection_diffusion>.
@@ -13,7 +13,7 @@ subsection ODE solver
   set nonlinear_max_iterations            = 500000
 
   # Nonlinear solver residual tolerance
-  set nonlinear_steady_residual_tolerance = 1e-9
+  set nonlinear_steady_residual_tolerance = 1e-10
 
   # Print every print_iteration_modulo iterations of the nonlinear solver
   set print_iteration_modulo              = 1
@@ -25,9 +25,19 @@ end
 
 subsection manufactured solution convergence study
   # Last degree used for convergence study
-  set degree_end   = 4
+  set degree_end   = 3
 
   # Starting degree for convergence study
   set degree_start = 1
+
+  # Initial grid of size (initial_grid_size)^dim
+  set initial_grid_size = 2
+
+  # Number of grids in grid study
+  set number_of_grids   = 3
+
+  # Multiplier on grid size. nth-grid will be of size
+  # (initial_grid^grid_progression)^dim
+  set grid_progression  = 1.5
 end
 

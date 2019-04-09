@@ -14,7 +14,7 @@ namespace Parameters
           "deal.II intermediate format to other graphics formats.\n"
           "\n"
           "Usage:\n"
-          "    ./PHiLiP [-p input_file] input_file \n"
+          "    ./PHiLiP [-p input_file_name] input_file_name \n"
           //"              [-x output_format] [-o output_file]\n"
           "\n"
           "Parameter sequences in brackets can be omitted if a parameter file is\n"
@@ -52,13 +52,14 @@ namespace Parameters
                     exit (1);
                 }
                 args.pop_front ();
-                const std::string input_file = args.front ();
+                const std::string input_file_name = args.front ();
                 args.pop_front ();
                 try {
-                    parameter_handler.parse_input(input_file);
+                    parameter_handler.parse_input(input_file_name);
                 }
                 catch (...) {
-                    std::cerr << "Error: unable to process parameter file "
+                    std::cerr << "Error: unable to parse parameter file named "
+                              << input_file_name
                               << std::endl;
                     print_usage_message (parameter_handler);
                     exit (1);
@@ -134,11 +135,6 @@ namespace Parameters
             } else {
                 std::cout << "Invalid solver type: " << pde_string << std::endl;
             }
-            std::cout << "Solver type: " << pde_string << std::endl;
-            std::cout << "Solver type: " << SolverType::explicit_solver << std::endl;
-            std::cout << "Solver type: " << SolverType::implicit_solver << std::endl;
-
-
 
             nonlinear_steady_residual_tolerance  = prm.get_double("nonlinear_steady_residual_tolerance");
             nonlinear_max_iterations = prm.get_integer("nonlinear_max_iterations");
@@ -161,6 +157,16 @@ namespace Parameters
             //                  Patterns::Selection("quiet|verbose"),
             //                  "State whether output from solver runs should be printed. "
             //                  "Choices are <quiet|verbose>.");
+            prm.declare_entry("initial_grid_size", "2",
+                              Patterns::Integer(),
+                              "Initial grid of size (initial_grid_size)^dim");
+            prm.declare_entry("number_of_grids", "4",
+                              Patterns::Integer(),
+                              "Number of grids in grid study");
+            prm.declare_entry("grid_progression", "1.5",
+                              Patterns::Double(),
+                              "Multiplier on grid size. "
+                              "nth-grid will be of size (initial_grid^grid_progression)^dim");
 
             prm.declare_entry("degree_start", "0",
                               Patterns::Integer(),
@@ -182,6 +188,10 @@ namespace Parameters
 
             degree_start                = prm.get_integer("degree_start");
             degree_end                  = prm.get_integer("degree_end");
+
+            initial_grid_size           = prm.get_integer("initial_grid_size");
+            number_of_grids             = prm.get_integer("number_of_grids");
+            grid_progression            = prm.get_double("grid_progression");
         }
         prm.leave_subsection();
     }
@@ -193,9 +203,9 @@ namespace Parameters
                           Patterns::Integer(),
                           "Number of dimensions");
         prm.declare_entry("pde_type", "advection",
-                          Patterns::Selection("advection|convection_diffusion"),
-                          "The kind of solver for the linear system. "
-                          "Choices are <advection|convection_diffusion>.");
+                          Patterns::Selection("advection|poisson|convection_diffusion"),
+                          "The PDE we want to solve. "
+                          "Choices are <advection|poisson|convection_diffusion>.");
 
         Parameters::ManufacturedConvergenceStudy::declare_parameters (prm);
         Parameters::ODE::declare_parameters (prm);

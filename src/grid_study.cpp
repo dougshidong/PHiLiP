@@ -18,41 +18,27 @@ namespace PHiLiP
     int manufactured_grid_convergence (Parameters::AllParameters &parameters)
     {
         Assert(dim == parameters.dimension, ExcDimensionMismatch(dim, parameters.dimension));
-        const unsigned int p_start = parameters.degree_start;
-        const unsigned int p_end = parameters.degree_end;
+
+        const unsigned int p_start             = parameters.degree_start;
+        const unsigned int p_end               = parameters.degree_end;
+
+        const unsigned int initial_grid_size   = parameters.initial_grid_size;
+        const unsigned int n_grids             = parameters.number_of_grids;
+        const double grid_progression          = parameters.grid_progression;
+
         for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
 
+            std::vector<int> n_1d_cells(n_grids);
+            n_1d_cells[0] = initial_grid_size;
 
-            //unsigned int n_grids = 5;
-            //std::vector<int> ncell(n_grids);
-            //std::vector<double> error(n_grids);
-            //std::vector<double> grid_size(n_grids);
-
-            //ncell[0] = 2;
-            //ncell[1] = 4;
-            //ncell[2] = 6;
-            //ncell[3] = 8;
-            //ncell[4] = 10;
-
-
-            std::vector<int> ncell;
-            ncell.push_back(3);
-            ncell.push_back(4);
-            ncell.push_back(8);
-            ncell.push_back(10);
-            //ncell.push_back(10);
-            unsigned int n_grids = ncell.size();
             std::vector<double> error(n_grids);
             std::vector<double> grid_size(n_grids);
 
             for (unsigned int i=1;i<n_grids;++i) {
-                ncell[i] = ncell[i-1]*1.5;
+                n_1d_cells[i] = n_1d_cells[i-1]*grid_progression;
             }
 
-
             for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
-
-
                 // Note that Triangulation must be declared before DiscontinuousGalerkin
                 // DiscontinuousGalerkin will be destructed before Triangulation
                 // thus removing any dependence of Triangulation and allowing Triangulation to be destructed
@@ -65,7 +51,7 @@ namespace PHiLiP
 
 
                 std::cout << "Generating hypercube for grid convergence... " << std::endl;
-                GridGenerator::subdivided_hyper_cube(grid, ncell[igrid]);
+                GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid]);
 
                 dg.set_triangulation(&grid);
                 
@@ -103,8 +89,8 @@ namespace PHiLiP
                     for(unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
                         const Point<dim> qpoint = (fe_values_plus10.quadrature_point(iquad));
 
-                        uexact = manufactured_advection_solution (qpoint);
-                        uexact = manufactured_convection_diffusion_solution (qpoint);
+                        //uexact = manufactured_advection_solution (qpoint);
+                        uexact = manufactured_solution (qpoint);
 
 
                         double u_at_q = solution_values[iquad];

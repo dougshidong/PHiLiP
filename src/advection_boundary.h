@@ -26,7 +26,7 @@ namespace PHiLiP
                ExcDimensionMismatch(values.size(),points.size()));
         for (unsigned int i=0; i<values.size(); ++i) {
             //values[i] = manufactured_advection_solution (points[i]);
-            values[i] = manufactured_convection_diffusion_solution (points[i]);
+            values[i] = manufactured_solution (points[i]);
         }
     }
 } // end of PHiLiP namespace

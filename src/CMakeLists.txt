@@ -9,8 +9,7 @@ foreach(dim RANGE 1 3)
     set(TARGET ${TNAME})
     set(TARGET_SRC 
         linear_solver.cpp
-        manufactured_advection.cpp
-        manufactured_convection_diffusion.cpp
+        manufactured_solution.cpp
         grid_study.cpp
         assemble_explicit.cpp 
         assemble_implicit.cpp 

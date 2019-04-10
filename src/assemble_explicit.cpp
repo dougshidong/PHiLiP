@@ -8,7 +8,7 @@
 #include <deal.II/lac/vector.h>
 
 #include "dg.h"
-#include "advection_boundary.h"
+#include "boundary.h"
 
 #include "manufactured_solution.h"
 namespace PHiLiP
@@ -76,7 +76,7 @@ namespace PHiLiP
 
             const Tensor<1,dim> vel_at_point = velocity_field<dim>();
             //const double source_at_point = evaluate_source_term (fe_values->quadrature_point(iquad));
-            const double source_at_point = manufactured_advection_source (fe_values->quadrature_point(iquad));
+            const double source_at_point = manufactured_convection_diffusion_source (fe_values->quadrature_point(iquad));
 
             for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
 
@@ -119,7 +119,7 @@ namespace PHiLiP
 
         // Recover boundary values at quadrature points
         std::vector<real> boundary_values(n_quad_pts);
-        static AdvectionBoundary<dim> boundary_function;
+        static Boundary<dim> boundary_function;
         const unsigned int dummy = 0; // Virtual function that requires 3 arguments
         boundary_function.value_list (fe_values_face->get_quadrature_points(), boundary_values, dummy);
 

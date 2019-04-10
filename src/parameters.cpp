@@ -6,28 +6,7 @@ namespace Parameters
 {
     using namespace dealii;
 
-    void print_usage_message (ParameterHandler &prm)
-    {
-      static const char *message
-        =
-          "\n"
-          "deal.II intermediate format to other graphics formats.\n"
-          "\n"
-          "Usage:\n"
-          "    ./PHiLiP [-p input_file_name] input_file_name \n"
-          //"              [-x output_format] [-o output_file]\n"
-          "\n"
-          "Parameter sequences in brackets can be omitted if a parameter file is\n"
-          "specified on the command line and if it provides values for these\n"
-          "missing parameters.\n"
-          "\n"
-          "The parameter file has the following format and allows the following\n"
-          "values (you can cut and paste this and use it for your own parameter\n"
-          "file):\n"
-          "\n";
-      std::cout << message;
-      prm.print_parameters (std::cout, ParameterHandler::Text);
-    }
+    void print_usage_message (ParameterHandler &prm);
 
     void parse_command_line (const int argc, char *const *argv,
                              ParameterHandler &parameter_handler)
@@ -95,10 +74,11 @@ namespace Parameters
     {
         prm.enter_subsection("ODE solver");
         {
-            //prm.declare_entry("output", "quiet",
-            //                  Patterns::Selection("quiet|verbose"),
-            //                  "State whether output from solver runs should be printed. "
-            //                  "Choices are <quiet|verbose>.");
+            prm.declare_entry("ode_output", "quiet",
+                              Patterns::Selection("quiet|verbose"),
+                              "State whether output from ODE solver should be printed. "
+                              "Choices are <quiet|verbose>.");
+
             prm.declare_entry("solver_type", "implicit",
                               Patterns::Selection("explicit|implicit"),
                               "Explicit or implicit solver"
@@ -123,18 +103,13 @@ namespace Parameters
     {
         prm.enter_subsection("ODE solver");
         {
-            //const std::string output_string = prm.get("output");
-            //if (output_string == "verbose") output = verbose;
-            //if (output_string == "quiet") output = quiet;
+            const std::string output_string = prm.get("ode_output");
+            if (output_string == "quiet")   ode_output = OutputType::quiet;
+            if (output_string == "verbose") ode_output = OutputType::verbose;
 
-            const std::string pde_string = prm.get("solver_type");
-            if (pde_string == "explicit") {
-                solver_type = SolverType::explicit_solver;
-            } else if (pde_string == "implicit") {
-                solver_type = SolverType::implicit_solver;
-            } else {
-                std::cout << "Invalid solver type: " << pde_string << std::endl;
-            }
+            const std::string solver_string = prm.get("solver_type");
+            if (solver_string == "explicit") solver_type = SolverType::explicit_solver;
+            if (solver_string == "implicit") solver_type = SolverType::implicit_solver;
 
             nonlinear_steady_residual_tolerance  = prm.get_double("nonlinear_steady_residual_tolerance");
             nonlinear_max_iterations = prm.get_integer("nonlinear_max_iterations");
@@ -196,6 +171,83 @@ namespace Parameters
         prm.leave_subsection();
     }
 
+    // Linear solver inputs
+    LinearSolver::LinearSolver () {}
+
+    void LinearSolver::declare_parameters (ParameterHandler &prm)
+    {
+        prm.enter_subsection("linear solver");
+        {
+            prm.declare_entry("linear_solver_output", "quiet",
+                              Patterns::Selection("quiet|verbose"),
+                              "State whether output from linear solver should be printed. "
+                              "Choices are <quiet|verbose>.");
+
+            prm.declare_entry("linear_solver_type", "gmres",
+                              Patterns::Selection("direct|gmres"),
+                              "Type of linear solver"
+                              "Choices are <direct|gmres>.");
+
+            prm.enter_subsection("gmres options");
+            {
+                prm.declare_entry("linear_residual_tolerance", "1e-4",
+                                  Patterns::Double(),
+                                  "Linear residual tolerance for convergence of the linear system");
+                prm.declare_entry("max_iterations", "1000",
+                                  Patterns::Integer(),
+                                  "Maximum number of iterations for linear solver");
+
+                // ILU with threshold parameters
+                prm.declare_entry("ilut_fill", "2",
+                                  Patterns::Integer(),
+                                  "Amount of additional fill-in elements besides the sparse matrix structure");
+                prm.declare_entry("ilut_drop", "1e-10",
+                                  Patterns::Double(),
+                                  "relative size of elements which should be dropped when forming an incomplete lu decomposition with threshold");
+                prm.declare_entry("ilut_rtol", "1.1",
+                                  Patterns::Double(),
+                                  "Amount of an absolute perturbation that will be added to the diagonal of the matrix, "
+                                  "which sometimes can help to get better preconditioners");
+                prm.declare_entry("ilut_atol", "1e-9",
+                                  Patterns::Double(),
+                                  "Factor by which the diagonal of the matrix will be scaled, "
+                                  "which sometimes can help to get better preconditioners");
+            }
+            prm.leave_subsection();
+        }
+        prm.leave_subsection();
+    }
+
+    void LinearSolver ::parse_parameters (ParameterHandler &prm)
+    {
+        prm.enter_subsection("linear solver");
+        {
+            const std::string output_string = prm.get("linear_solver_output");
+            if (output_string == "verbose") linear_solver_output = verbose;
+            if (output_string == "quiet") linear_solver_output = quiet;
+
+            const std::string solver_string = prm.get("linear_solver_type");
+            if (solver_string == "direct") linear_solver_type = LinearSolverType::direct;
+
+            if (solver_string == "gmres") 
+            {
+                linear_solver_type = LinearSolverType::gmres;
+                prm.enter_subsection("gmres options");
+                {
+                    max_iterations  = prm.get_integer("max_iterations");
+                    linear_residual = prm.get_double("linear_residual_tolerance");
+
+                    ilut_fill = prm.get_integer("ilut_fill");
+                    ilut_drop = prm.get_double("ilut_drop");
+                    ilut_rtol = prm.get_double("ilut_rtol");
+                    ilut_atol = prm.get_double("ilut_atol");
+                }
+                prm.leave_subsection();
+            }
+        }
+        prm.leave_subsection();
+    }
+
     AllParameters::AllParameters () {}
     void AllParameters::declare_parameters (ParameterHandler &prm)
     {
@@ -207,6 +259,7 @@ namespace Parameters
                           "The PDE we want to solve. "
                           "Choices are <advection|poisson|convection_diffusion>.");
 
+        Parameters::LinearSolver::declare_parameters (prm);
         Parameters::ManufacturedConvergenceStudy::declare_parameters (prm);
         Parameters::ODE::declare_parameters (prm);
     }
@@ -216,10 +269,35 @@ namespace Parameters
 
         const std::string pde_string = prm.get("pde_type");
         if (pde_string == "advection") pde_type = advection;
+        if (pde_string == "poisson") pde_type = poisson;
         if (pde_string == "convection_diffusion") pde_type = convection_diffusion;
 
 
+        Parameters::LinearSolver::parse_parameters (prm);
         Parameters::ManufacturedConvergenceStudy::parse_parameters (prm);
         Parameters::ODE::parse_parameters (prm);
+    }
+
+    void print_usage_message (ParameterHandler &prm)
+    {
+        static const char *message
+          =
+            "\n"
+            "deal.II intermediate format to other graphics formats.\n"
+            "\n"
+            "Usage:\n"
+            "    ./PHiLiP [-p input_file_name] input_file_name \n"
+            //"              [-x output_format] [-o output_file]\n"
+            "\n"
+            "Parameter sequences in brackets can be omitted if a parameter file is\n"
+            "specified on the command line and if it provides values for these\n"
+            "missing parameters.\n"
+            "\n"
+            "The parameter file has the following format and allows the following\n"
+            "values (you can cut and paste this and use it for your own parameter\n"
+            "file):\n"
+            "\n";
+        std::cout << message;
+        prm.print_parameters (std::cout, ParameterHandler::Text);
     }
 }

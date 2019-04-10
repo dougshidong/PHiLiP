@@ -83,9 +83,9 @@ namespace PHiLiP
         :
         mapping(degree+1)
         , fe(degree)
+        , parameters(parameters_input)
         , quadrature (degree+1)
         , face_quadrature (degree+1)
-        , parameters(parameters_input)
     {
     }
 

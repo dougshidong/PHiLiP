@@ -62,7 +62,7 @@ namespace PHiLiP
         }
         std::vector<real> residual_derivatives(n_dofs_cell);
 
-        const unsigned int n_components = fe_values->get_fe().n_components();
+        //const unsigned int n_components = fe_values->get_fe().n_components();
 
         for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
             Sacado::Fad::DFad<real> rhs = 0;

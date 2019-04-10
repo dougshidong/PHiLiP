@@ -10,7 +10,7 @@
 #include <Sacado.hpp>
 
 #include "dg.h"
-#include "advection_boundary.h"
+#include "boundary.h"
 
 #include "manufactured_solution.h"
 namespace PHiLiP
@@ -70,8 +70,6 @@ namespace PHiLiP
             for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
                 const Tensor<1,dim> vel_at_point = velocity_field<dim>();
-                //const double source_at_point = manufactured_advection_source (fe_values->quadrature_point(iquad));
-                const double source_at_point = manufactured_convection_diffusion_source (fe_values->quadrature_point(iquad));
 
                 const double adv_dot_grad_test = vel_at_point*fe_values->shape_grad(itest, iquad);
 
@@ -95,6 +93,8 @@ namespace PHiLiP
                             dx;
                 }
                 // Source term contribution
+                double source_at_point = manufactured_advection_source (fe_values->quadrature_point(iquad));
+                source_at_point += manufactured_diffusion_source (fe_values->quadrature_point(iquad));
                 rhs += 
                     source_at_point *
                     fe_values->shape_value(itest,iquad) *
@@ -132,7 +132,7 @@ namespace PHiLiP
 
         // Recover boundary values at quadrature points
         std::vector<real> boundary_values(n_quad_pts);
-        static AdvectionBoundary<dim> boundary_function;
+        static Boundary<dim> boundary_function;
         const unsigned int dummy = 0; // Virtual function that requires 3 arguments
         boundary_function.value_list (fe_values_face->get_quadrature_points(), boundary_values, dummy);
 
@@ -148,9 +148,21 @@ namespace PHiLiP
 
             Sacado::Fad::DFad<real> rhs = 0;
 
-            // Convection
             for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
+                // Obtain solution at quadrature point
+                Sacado::Fad::DFad<real> soln_int = 0;
+                Sacado::Fad::DFad<real> soln_ext = 0;
+                for (unsigned int itrial=0; itrial<n_dofs_cell; itrial++) {
+                    soln_int += solution_ad[itrial] * fe_values_face->shape_value(itrial, iquad);
+                }
+                // Nitsche boundary condition
+                //soln_ext = -soln_int+2*boundary_values[iquad];
+
+                // Weakly imposed boundary condition
+                soln_ext = boundary_values[iquad];
+
+                // Convection
                 const real vel_dot_normal = velocity_field<dim> () * normals[iquad];
                 const bool inflow = (vel_dot_normal < 0.);
 
@@ -172,25 +184,11 @@ namespace PHiLiP
                             JxW[iquad];
                     }
                 }
-            }
 
-            // Diffusion
-            // *******************
-            for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-                Sacado::Fad::DFad<real> soln_int = 0;
-                Sacado::Fad::DFad<real> soln_ext = 0;
-
+                // Diffusion
+                // *******************
                 std::vector<Sacado::Fad::DFad<real>> soln_grad_int(dim);
                 std::vector<Sacado::Fad::DFad<real>> soln_grad_ext(dim);
-                // Diffusion
-                // Set u1, soln_ext, u1_grad, soln_grad_ext
-                for (unsigned int itrial=0; itrial<n_dofs_cell; itrial++) {
-                    soln_int += solution_ad[itrial] * fe_values_face->shape_value(itrial, iquad);
-                }
-
-                soln_ext = -soln_int+2*boundary_values[iquad];
-                soln_ext = boundary_values[iquad];
-
                 for (unsigned int idim=0; idim<dim; ++idim) {
                     soln_grad_int[idim] = 0;
                     soln_grad_ext[idim] = 0;
@@ -218,14 +216,6 @@ namespace PHiLiP
                     const Sacado::Fad::DFad<real> soln_grad_avg  = 0.5*(soln_grad_int[idim] + soln_grad_ext[idim]);
                     const real test_jump                         = (test_int - test_ext) * normal1;
                     const real test_grad_avg                     = 0.5*(test_grad_int + test_grad_ext);
-
-                    //const Sacado::Fad::DFad<real> soln_jump      = (boundary_values[iquad]) * normal1;
-                    //const Sacado::Fad::DFad<real> soln_grad_avg  = soln_grad_int[idim];
-
-                    //const real test_jump  = test_int * normal1;
-                    //const real test_grad_avg  = test_grad_int;
-
-                    //rhs += (test_grad_int*normal1*boundary_values[iquad]-penalty*test_int*boundary_values[iquad]) * JxW[iquad];
 
                     rhs += (soln_jump * test_grad_avg + soln_grad_avg * test_jump - penalty*soln_jump*test_jump) * JxW[iquad];
                 }

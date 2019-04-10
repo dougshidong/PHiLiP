@@ -11,8 +11,8 @@ namespace PHiLiP
         double uexact;
 
         const double a = 1*0.59/dim;
-        const double b = 2*1.19/dim;
-        const double c = 3*1.19/dim;
+        const double b = 2*0.81/dim;
+        const double c = 3*0.76/dim;
         const double d = 1, e = 0.2, f = 0.5;
         if (dim==1) uexact = sin(a*point(0)+d);
         if (dim==2) uexact = sin(a*point(0)+d)*sin(b*point(1)+e);
@@ -26,20 +26,22 @@ namespace PHiLiP
     {
         double source;
 
-        const double a = 1*1.19/dim;
-        const double b = 2*1.19/dim;
-        const double c = 3*1.19/dim;
+        const double a = 1*0.59/dim;
+        const double b = 2*0.81/dim;
+        const double c = 3*0.76/dim;
+        const double d = 1, e = 0.2, f = 0.5;
         if (dim==1) {
             const double x = point(0);
-            source = a*cos(a*x);
+            source = a*cos(a*x+d);
         } else if (dim==2) {
             const double x = point(0), y = point(1);
-            source = a*cos(a*x)*sin(b*y) + b*sin(a*x)*cos(b*y);
+            source = a*cos(a*x+d)*sin(b*y+e) +
+                     b*sin(a*x+d)*cos(b*y+e);
         } else if (dim==3) {
             const double x = point(0), y = point(1), z = point(2);
-            source =   a*cos(a*x)*sin(b*y)*sin(c*z)
-                     + b*sin(a*x)*cos(b*y)*sin(c*z)
-                     + c*sin(a*x)*sin(b*y)*cos(c*z);
+            source =   a*cos(a*x+d)*sin(b*y+e)*sin(c*z+f) +
+                       b*sin(a*x+d)*cos(b*y+e)*sin(c*z+f) +
+                       c*sin(a*x+d)*sin(b*y+e)*cos(c*z+f);
         }
         return source;
     }
@@ -51,24 +53,21 @@ namespace PHiLiP
         double source;
 
         const double a = 1*0.59/dim;
-        const double b = 2*1.19/dim;
-        const double c = 3*1.19/dim;
+        const double b = 2*0.81/dim;
+        const double c = 3*0.76/dim;
         const double d = 1, e = 0.2, f = 0.5;
         if (dim==1) {
             const double x = point(0);
-            source = 
-                     a*a*sin(a*x+d);
+            source = a*a*sin(a*x+d);
         } else if (dim==2) {
             const double x = point(0), y = point(1);
-            source = 
-                     a*a*sin(a*x+d)*sin(b*y+e) +
+            source = a*a*sin(a*x+d)*sin(b*y+e) +
                      b*b*sin(a*x+d)*sin(b*y+e);
         } else if (dim==3) {
             const double x = point(0), y = point(1), z = point(2);
-            source =  
-                       a*a*sin(a*x+d)*sin(b*y+e)*sin(c*z+f) +
-                       b*b*sin(a*x+d)*sin(b*y+e)*sin(c*z+f) +
-                       c*c*sin(a*x+d)*sin(b*y+e)*sin(c*z+f);
+            source =  a*a*sin(a*x+d)*sin(b*y+e)*sin(c*z+f) +
+                      b*b*sin(a*x+d)*sin(b*y+e)*sin(c*z+f) +
+                      c*c*sin(a*x+d)*sin(b*y+e)*sin(c*z+f);
         }
         return source;
     }
@@ -80,18 +79,16 @@ namespace PHiLiP
         double source;
 
         const double a = 1*0.59/dim;
-        const double b = 2*1.19/dim;
-        const double c = 3*1.19/dim;
+        const double b = 2*0.81/dim;
+        const double c = 3*0.76/dim;
         const double d = 1, e = 0.2, f = 0.5;
         if (dim==1) {
             const double x = point(0);
-            source = 
-                     a*cos(a*x+d) +
+            source = a*cos(a*x+d) +
                      a*a*sin(a*x+d);
         } else if (dim==2) {
             const double x = point(0), y = point(1);
-            source = 
-                     a*cos(a*x+d)*sin(b*y+e) +
+            source = a*cos(a*x+d)*sin(b*y+e) +
                      b*sin(a*x+d)*cos(b*y+e) +
                      a*a*sin(a*x+d)*sin(b*y+e) +
                      b*b*sin(a*x+d)*sin(b*y+e);

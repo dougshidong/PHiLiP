@@ -38,11 +38,6 @@ namespace PHiLiP
 
         ~DiscontinuousGalerkin();
 
-        int grid_convergence_explicit ();
-        int grid_convergence_implicit ();
-        int run_explicit ();
-        int run_implicit ();
-
         void allocate_system ();
         void assemble_system ();
         double get_residual_l2norm ();

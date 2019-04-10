@@ -59,7 +59,8 @@ namespace PHiLiP
         Explicit_ODESolver() {};
         Explicit_ODESolver(DiscontinuousGalerkin<dim, real> *dg_input)
         :
-        dg(dg_input)
+        dg(dg_input),
+        parameters(dg->parameters)
         {};
         ~Explicit_ODESolver() {};
         void allocate_ode_system ();
@@ -67,6 +68,8 @@ namespace PHiLiP
     protected:
         void evaluate_solution_update ();
         DiscontinuousGalerkin<dim,real> *dg;
+
+        Parameters::AllParameters *parameters;
 
     }; // end of Explicit_ODESolver class
 
@@ -78,7 +81,8 @@ namespace PHiLiP
         Implicit_ODESolver() {};
         Implicit_ODESolver(DiscontinuousGalerkin<dim, real> *dg_input)
         :
-        dg(dg_input)
+        dg(dg_input),
+        parameters(dg->parameters)
         {};
         ~Implicit_ODESolver() {};
         void allocate_ode_system ();
@@ -86,6 +90,8 @@ namespace PHiLiP
     protected:
         void evaluate_solution_update ();
         DiscontinuousGalerkin<dim,real> *dg;
+
+        Parameters::AllParameters *parameters;
 
     }; // end of Implicit_ODESolver class
 

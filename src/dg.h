@@ -125,9 +125,6 @@ namespace PHiLiP
         std::pair<unsigned int, double> solve_linear(Vector<real> &newton_update);
         void output_results(const unsigned int cycle) const;
 
-
-
-
         const QGauss<dim>   quadrature;
         const QGauss<dim-1> face_quadrature;
 
@@ -144,13 +141,7 @@ namespace PHiLiP
         FESubfaceValues<dim,dim>  *fe_values_subface;
         FEFaceValues<dim,dim>     *fe_values_face_neighbor;
 
-
-
     }; // end of DiscontinuousGalerkin class
-    //template class DiscontinuousGalerkin<1, double>;
-    //template class DiscontinuousGalerkin<2, double>;
-    //template class DiscontinuousGalerkin<3, double>;
-
 
     // Returns a pointer to a DiscontinuousGalerkin object with correct template arguments
     //DiscontinuousGalerkin* create_discontinuous_galerkin (

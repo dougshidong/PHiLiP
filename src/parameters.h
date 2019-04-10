@@ -5,6 +5,8 @@ namespace Parameters
 {
     using namespace dealii;
 
+    enum OutputType { quiet, verbose };
+
     // Be careful about multiple inheritance
     // AllParameters will have acess to all the various varibles
     // declared in the other classes.
@@ -23,6 +25,8 @@ namespace Parameters
     public:
         ODE ();
         enum SolverType { explicit_solver, implicit_solver };
+
+        OutputType ode_output;
         SolverType solver_type;
 
         unsigned int nonlinear_max_iterations;
@@ -48,14 +52,35 @@ namespace Parameters
         void parse_parameters (ParameterHandler &prm);
     };
 
+    class LinearSolver
+    {
+    public:
+        LinearSolver ();
+        enum LinearSolverType { direct, gmres };
+
+        OutputType linear_solver_output;
+        LinearSolverType linear_solver_type;
+
+        // GMRES options
+        double ilut_drop, ilut_rtol, ilut_atol;
+        int ilut_fill;
+
+        double linear_residual;
+        int max_iterations;
+
+        static void declare_parameters (ParameterHandler &prm);
+        void parse_parameters (ParameterHandler &prm);
+    };
+
     class AllParameters
         : public ManufacturedConvergenceStudy
         , public ODE
+        , public LinearSolver
         //,public Output
     {
     public:
         unsigned int dimension;
-        enum PartialDifferentialEquation { advection, convection_diffusion };
+        enum PartialDifferentialEquation { advection, poisson, convection_diffusion };
         PartialDifferentialEquation pde_type;
 
         AllParameters();

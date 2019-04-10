@@ -6,7 +6,6 @@
 namespace PHiLiP
 {
 
-
     // can't just call ODESolver::steady_state...
     // base class can't call virtual functions defined in the derived classes.
     template <int dim, typename real>
@@ -19,12 +18,13 @@ namespace PHiLiP
         this->residual_norm = 1; // Always do at least 1 iteration
         this->current_iteration = 0;
 
-        while (    this->residual_norm     > dg->parameters->nonlinear_steady_residual_tolerance 
-                && this->current_iteration < dg->parameters->nonlinear_max_iterations )
+        while (    this->residual_norm     > parameters->nonlinear_steady_residual_tolerance 
+                && this->current_iteration < parameters->nonlinear_max_iterations )
         {
             ++this->current_iteration;
 
-            if ( (this->current_iteration%dg->parameters->print_iteration_modulo) == 0 )
+            if ((this->parameters->ode_output) == Parameters::OutputType::verbose &&
+                (this->current_iteration%parameters->print_iteration_modulo) == 0 )
             std::cout << " Iteration: " << this->current_iteration 
                       << " Residual norm: " << this->residual_norm
                       << std::endl;
@@ -46,12 +46,13 @@ namespace PHiLiP
         dg->assemble_system ();
         this->residual_norm = dg->get_residual_l2norm();
 
-        while (    this->residual_norm     > dg->parameters->nonlinear_steady_residual_tolerance 
-                && this->current_iteration < dg->parameters->nonlinear_max_iterations )
+        while (    this->residual_norm     > parameters->nonlinear_steady_residual_tolerance 
+                && this->current_iteration < parameters->nonlinear_max_iterations )
         {
             ++this->current_iteration;
 
-            if ( (this->current_iteration%dg->parameters->print_iteration_modulo) == 0 )
+            if ((this->parameters->ode_output) == Parameters::OutputType::verbose &&
+                (this->current_iteration%parameters->print_iteration_modulo) == 0 )
             std::cout 
                       << std::endl
                       << " Iteration: " << this->current_iteration 
@@ -99,6 +100,7 @@ namespace PHiLiP
         unsigned int n_dofs = this->dg->dof_handler.n_dofs();
         this->solution_update.reinit(n_dofs);
     }
+
     template <int dim, typename real>
     ODESolver<dim,real> *ODESolverFactory<dim,real>::create_ODESolver(Parameters::ODE::SolverType solver_type)
     {

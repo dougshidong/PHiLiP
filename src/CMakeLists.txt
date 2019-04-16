@@ -8,6 +8,7 @@ foreach(dim RANGE 1 3)
     
     set(TARGET ${TNAME})
     set(TARGET_SRC 
+        physics.cpp
         linear_solver.cpp
         manufactured_solution.cpp
         grid_study.cpp

@@ -5,7 +5,7 @@ set dimension = 1
 
 # The kind of solver for the linear system. Choices are
 # <advection|convection_diffusion>.
-set pde_type  = advection
+set pde_type  = convection_diffusion
 
 
 subsection ODE solver

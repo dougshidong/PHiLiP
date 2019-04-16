@@ -324,14 +324,19 @@ namespace PHiLiP
                 }
             }
 
+            // Numerical flux
+
             // Evaluate analytical flux and scalar parameter for scalar dissipation
             for (unsigned int idim=0; idim<dim; ++idim) {
                 const real vel = velocity_at_q[idim];
                 const real normal1 = normals_int[iquad][idim];
-                analytical_flux_int[idim] += vel*soln_int;
-                analytical_flux_ext[idim] += vel*soln_ext;
+                //analytical_flux_int[idim] += vel*soln_int;
+                //analytical_flux_ext[idim] += vel*soln_ext;
                 lambda += vel * normal1;
             }
+            pde_physics->convective_flux (soln_int, analytical_flux_int);
+            pde_physics->convective_flux (soln_ext, analytical_flux_ext);
+            
 
             for (unsigned int idim=0; idim<dim; ++idim) {
                 const real normal1 = normals_int[iquad][idim];

@@ -102,7 +102,7 @@ namespace PHiLiP
     }
 
     template <int dim, typename real>
-    ODESolver<dim,real> *ODESolverFactory<dim,real>::create_ODESolver(Parameters::ODE::SolverType solver_type)
+    ODESolver<dim,real>* ODESolverFactory<dim,real>::create_ODESolver(Parameters::ODE::SolverType solver_type)
     {
         if(solver_type == Parameters::ODE::SolverType::explicit_solver) return new Explicit_ODESolver<dim, real>;
         if(solver_type == Parameters::ODE::SolverType::implicit_solver) return new Implicit_ODESolver<dim, real>;
@@ -112,7 +112,7 @@ namespace PHiLiP
         }
     }
     template <int dim, typename real>
-    ODESolver<dim,real> *ODESolverFactory<dim,real>::create_ODESolver(DiscontinuousGalerkin<dim,real> *dg_input)
+    ODESolver<dim,real>* ODESolverFactory<dim,real>::create_ODESolver(DiscontinuousGalerkin<dim,real> *dg_input)
     {
         if(dg_input->parameters->solver_type == Parameters::ODE::SolverType::explicit_solver) return new Explicit_ODESolver<dim, real>(dg_input);
         if(dg_input->parameters->solver_type == Parameters::ODE::SolverType::implicit_solver) return new Implicit_ODESolver<dim, real>(dg_input);

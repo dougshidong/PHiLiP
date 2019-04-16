@@ -17,6 +17,9 @@
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 
+#include <Sacado.hpp>
+
+#include "physics.h"
 #include "parameters.h"
 
 
@@ -44,7 +47,11 @@ namespace PHiLiP
 
         void delete_fe_values ();
 
-        void set_triangulation(Triangulation<dim> *triangulation_input);
+        void set_triangulation(Triangulation<dim> *triangulation_input) { triangulation = triangulation_input; } ;
+        void set_physics(Physics< dim,1,Sacado::Fad::DFad<real> > *physics) { pde_physics = physics; } ;
+
+        // Contains the physics of the PDE
+        Physics<dim, 1, Sacado::Fad::DFad<real> >  *pde_physics;
 
         // Mesh
         Triangulation<dim>   *triangulation;

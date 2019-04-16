@@ -38,25 +38,40 @@ namespace PHiLiP
     using namespace dealii;
 
 
+    // Constructors
     template <int dim, typename real>
     DiscontinuousGalerkin<dim, real>::DiscontinuousGalerkin(
         Parameters::AllParameters *parameters_input,
         Triangulation<dim>   *triangulation_input,
         const unsigned int degree)
         :
-        triangulation(triangulation_input)
-        , mapping(degree+1)
+        //triangulation(triangulation_input)
+        mapping(degree+1)
+        , fe(degree)
+        , parameters(parameters_input)
+        , quadrature (degree+1)
+        , face_quadrature (degree+1)
+    {
+        set_triangulation(triangulation_input);
+    }
+    template <int dim, typename real>
+    DiscontinuousGalerkin<dim, real>::DiscontinuousGalerkin(
+        Parameters::AllParameters *parameters_input,
+        const unsigned int degree)
+        :
+        mapping(degree+1)
         , fe(degree)
         , parameters(parameters_input)
         , quadrature (degree+1)
         , face_quadrature (degree+1)
     {
     }
-
+    // Destructor
     template <int dim, typename real>
-    void DiscontinuousGalerkin<dim, real>::set_triangulation(Triangulation<dim> *triangulation_input)
+    DiscontinuousGalerkin<dim, real>::~DiscontinuousGalerkin ()
     {
-        triangulation = triangulation_input;
+        std::cout << std::endl << "Destructing DG" << std::endl;
+        delete_fe_values();
     }
 
     template <int dim, typename real>
@@ -76,17 +91,20 @@ namespace PHiLiP
     }
 
     template <int dim, typename real>
-    DiscontinuousGalerkin<dim, real>::DiscontinuousGalerkin(
-        Parameters::AllParameters *parameters_input,
-        const unsigned int degree)
-        :
-        mapping(degree+1)
-        , fe(degree)
-        , parameters(parameters_input)
-        , quadrature (degree+1)
-        , face_quadrature (degree+1)
+    void DiscontinuousGalerkin<dim, real>::delete_fe_values ()
     {
+        std::cout << std::endl << "Deallocating FEValues" << std::endl;
+
+        if (fe_values               != NULL) delete fe_values;
+        if (fe_values_face          != NULL) delete fe_values_face;
+        if (fe_values_subface       != NULL) delete fe_values_subface;
+        if (fe_values_face_neighbor != NULL) delete fe_values_face_neighbor;
+        fe_values               = NULL; 
+        fe_values_face          = NULL;
+        fe_values_subface       = NULL;
+        fe_values_face_neighbor = NULL;
     }
+  
 
     
     template <int dim, typename real>
@@ -171,28 +189,6 @@ namespace PHiLiP
         fe_values_face_neighbor = new FEFaceValues<dim,dim> (mapping, fe, face_quadrature, neighbor_face_update_flags);
     }
 
-    template <int dim, typename real>
-    DiscontinuousGalerkin<dim, real>::~DiscontinuousGalerkin ()
-    {
-        std::cout << std::endl << "Destructing DG" << std::endl;
-        delete_fe_values();
-    }
-
-    template <int dim, typename real>
-    void DiscontinuousGalerkin<dim, real>::delete_fe_values ()
-    {
-        std::cout << std::endl << "Deallocating FEValues" << std::endl;
-
-        if (fe_values               != NULL) delete fe_values;
-        if (fe_values_face          != NULL) delete fe_values_face;
-        if (fe_values_subface       != NULL) delete fe_values_subface;
-        if (fe_values_face_neighbor != NULL) delete fe_values_face_neighbor;
-        fe_values               = NULL; 
-        fe_values_face          = NULL;
-        fe_values_subface       = NULL;
-        fe_values_face_neighbor = NULL;
-    }
-  
     template <int dim, typename real>
     void DiscontinuousGalerkin<dim, real>::assemble_system_implicit ()
     {

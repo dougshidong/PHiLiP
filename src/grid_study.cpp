@@ -5,6 +5,9 @@
 
 #include <deal.II/fe/fe_values.h>
 
+#include <Sacado.hpp>
+
+#include "physics.h"
 #include "dg.h"
 #include "linear_solver.h"
 #include "ode_solver.h"
@@ -44,19 +47,18 @@ namespace PHiLiP
                 // thus removing any dependence of Triangulation and allowing Triangulation to be destructed
                 // Otherwise, a Subscriptor error will occur
                 Triangulation<dim> grid;
-                DiscontinuousGalerkin<PHILIP_DIM, double> dg(&parameters, poly_degree);
-
-                //ODESolver<dim, double> *ode_solver = ODESolverFactory<dim, double>::create_ODESolver(parameters.solver_type);
-                ODESolver<dim, double> *ode_solver = ODESolverFactory<dim, double>::create_ODESolver(&dg);
-
-
                 std::cout << "Generating hypercube for grid convergence... " << std::endl;
                 GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid]);
 
+                Physics<dim,1,Sacado::Fad::DFad<double>> *physics = PhysicsFactory<dim, 1, Sacado::Fad::DFad<double> >::create_Physics(parameters.pde_type);
+
+                DiscontinuousGalerkin<PHILIP_DIM, double> dg(&parameters, poly_degree);
                 dg.set_triangulation(&grid);
-                
+                dg.set_physics(physics);
                 dg.allocate_system ();
 
+                //ODESolver<dim, double> *ode_solver = ODESolverFactory<dim, double>::create_ODESolver(parameters.solver_type);
+                ODESolver<dim, double> *ode_solver = ODESolverFactory<dim, double>::create_ODESolver(&dg);
 
                 unsigned int n_active_cells = grid.n_active_cells();
                 std::cout << "Grid number: " << igrid 

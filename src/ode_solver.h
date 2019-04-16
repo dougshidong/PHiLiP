@@ -99,8 +99,8 @@ namespace PHiLiP
     class ODESolverFactory
     {
     public:
-        static ODESolver<dim,real> *create_ODESolver(DiscontinuousGalerkin<dim, real> *dg_input);
-        static ODESolver<dim,real> *create_ODESolver(Parameters::ODE::SolverType solver_type);
+        static ODESolver<dim,real>* create_ODESolver(DiscontinuousGalerkin<dim, real> *dg_input);
+        static ODESolver<dim,real>* create_ODESolver(Parameters::ODE::SolverType solver_type);
         //static ODESolver<dim,real> *create_ODESolver(Parameters::ODE::SolverType solver_type);
     };
 

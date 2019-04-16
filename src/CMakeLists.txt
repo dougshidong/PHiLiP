@@ -44,3 +44,24 @@ foreach(dim RANGE 1 3)
 
 endforeach()
 
+set(PHILIP_DIM ${dim})
+
+#set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build_${PHILIP_DIM}D)
+#set(CMAKE_CURRENT_BINARY_DIR ${CMAKE_SOURCE_DIR}/build_${PHILIP_DIM}D)
+
+
+set(TNAME testrun)
+set(TARGET ${TNAME})
+set(TARGET_SRC 
+    test.cpp)
+
+add_executable(${TNAME} ${TARGET_SRC})
+    target_link_libraries(${TNAME} tbb m mpi mpi_cxx)
+
+DEAL_II_SETUP_TARGET(${TNAME})
+message("Adding executable " ${TNAME} " with files " ${TARGET_SRC} "\n")
+
+unset(TNAME)
+unset(CMAKE_BINARY_DIR)
+unset(CMAKE_CURRENT_BINARY_DIR)
+unset(TARGET ${TNAME})

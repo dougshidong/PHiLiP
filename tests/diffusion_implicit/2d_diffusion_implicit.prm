@@ -1,11 +1,11 @@
 # Listing of Parameters
 # ---------------------
 # Number of dimensions
-set dimension = 1
+set dimension = 2
 
 # The PDE we want to solve. Choices are
 # <advection|diffusion|convection_diffusion>.
-set pde_type  = advection
+set pde_type  = diffusion
 
 subsection ODE solver
   # Maximum nonlinear solver iterations
@@ -26,7 +26,7 @@ subsection manufactured solution convergence study
   set degree_end        = 3
 
   # Starting degree for convergence study
-  set degree_start      = 0
+  set degree_start      = 2
 
   # Multiplier on grid size. nth-grid will be of size
   # (initial_grid^grid_progression)^dim
@@ -36,5 +36,6 @@ subsection manufactured solution convergence study
   set initial_grid_size = 2
 
   # Number of grids in grid study
-  set number_of_grids   = 5
+  set number_of_grids   = 4
 end
+

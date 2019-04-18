@@ -1,0 +1,18 @@
+Look into member variable naming for fe_values
+    This one just bit me.
+    In face_boundary I used the member fe_values instead of passed fe_values_face by mistake.
+
+Take physics out of the DiscontinuousGalerkin class.
+
+Move boundary conditions to Physics class.
+
+Compute auxiliary variable $ \sigma = \nabla u $ independently.
+
+Take numerical flux out of the DiscontinuousGalerkin class.
+
+Vector-valued problems
+    - Figure out global solution ordering
+    - Vector valued advection
+    - Euler
+
+MPI

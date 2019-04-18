@@ -255,9 +255,9 @@ namespace Parameters
                           Patterns::Integer(),
                           "Number of dimensions");
         prm.declare_entry("pde_type", "advection",
-                          Patterns::Selection("advection|poisson|convection_diffusion"),
+                          Patterns::Selection("advection|diffusion|convection_diffusion"),
                           "The PDE we want to solve. "
-                          "Choices are <advection|poisson|convection_diffusion>.");
+                          "Choices are <advection|diffusion|convection_diffusion>.");
 
         Parameters::LinearSolver::declare_parameters (prm);
         Parameters::ManufacturedConvergenceStudy::declare_parameters (prm);
@@ -269,7 +269,7 @@ namespace Parameters
 
         const std::string pde_string = prm.get("pde_type");
         if (pde_string == "advection") pde_type = advection;
-        if (pde_string == "poisson") pde_type = poisson;
+        if (pde_string == "diffusion") pde_type = diffusion;
         if (pde_string == "convection_diffusion") pde_type = convection_diffusion;
 
 

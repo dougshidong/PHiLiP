@@ -125,13 +125,12 @@ namespace PHiLiP
             Vector<real>          &neighbor_cell_rhs);
 
         std::pair<unsigned int, double> solve_linear(Vector<real> &newton_update);
-        void output_results(const unsigned int cycle) const;
 
+        // QGauss is Gauss-Legendre quadrature nodes
         const QGauss<dim>   quadrature;
         const QGauss<dim-1> face_quadrature;
 
         Vector<real> source_term;
-
         Vector<real> cell_rhs;
 
 

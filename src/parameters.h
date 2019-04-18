@@ -80,7 +80,7 @@ namespace Parameters
     {
     public:
         unsigned int dimension;
-        enum PartialDifferentialEquation { advection, poisson, convection_diffusion };
+        enum PartialDifferentialEquation { advection, diffusion, convection_diffusion };
         PartialDifferentialEquation pde_type;
 
         AllParameters();

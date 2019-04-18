@@ -2,12 +2,20 @@
 #include <vector>
 
 #include <Sacado.hpp>
+#include <deal.II/differentiation/ad/sacado_math.h>
+//#include <deal.II/differentiation/ad/sacado_number_types.h>
+#include <deal.II/differentiation/ad/sacado_product_types.h>
 
 #include "physics.h"
 
 
 namespace PHiLiP
 {
+
+    const double a = 1*0.59/PHILIP_DIM;
+    const double b = 2*0.81/PHILIP_DIM;
+    const double c = 3*0.76/PHILIP_DIM;
+    const double d = 1, e = 0.2, f = 0.5;
 
     template <int dim, int nstate, typename real>
     Physics<dim,nstate,real>* // returns points to base class Physics
@@ -18,7 +26,7 @@ namespace PHiLiP
 
         if (pde_type == PDE_enum::advection) {
             return new LinearAdvection<dim, nstate, real>;
-        } else if (pde_type == PDE_enum::poisson) {
+        } else if (pde_type == PDE_enum::diffusion) {
             return new Diffusion<dim, nstate, real>;
         } else if (pde_type == PDE_enum::convection_diffusion) {
             return new ConvectionDiffusion<dim, nstate, real>;
@@ -31,14 +39,10 @@ namespace PHiLiP
     // Common manufactured solution for advection, diffusion, convection-diffusion
     template <int dim, int nstate, typename real>
     void Physics<dim, nstate, real>
-    ::manufactured_solution (const double *const pos, real &solution)
+    ::manufactured_solution (const Point<dim,double> pos, real &solution)
     {
-        double uexact;
+        real uexact;
 
-        const double a = 1*0.59/dim;
-        const double b = 2*0.81/dim;
-        const double c = 3*0.76/dim;
-        const double d = 1, e = 0.2, f = 0.5;
         if (dim==1) uexact = sin(a*pos[0]+d);
         if (dim==2) uexact = sin(a*pos[0]+d)*sin(b*pos[1]+e);
         if (dim==3) uexact = sin(a*pos[0]+d)*sin(b*pos[1]+e)*sin(c*pos[2]+f);
@@ -49,89 +53,88 @@ namespace PHiLiP
     // Linear advection functions
     template <int dim, int nstate, typename real>
     void LinearAdvection<dim, nstate, real>
-    ::convective_flux (const real &solution, std::vector<real> &conv_flux)
+    ::convective_flux (const real &solution, Tensor <1, dim, real> &conv_flux)
     {
         // Assert conv_flux dimensions
-        std::vector<real> velocity_field(dim);
+        Tensor <1, dim, real> velocity_field;
         if(dim >= 1) velocity_field[0] = 1.0;
         if(dim >= 2) velocity_field[1] = 1.0;
         if(dim >= 3) velocity_field[2] = 1.0;
 
         
-        if(dim >= 1) {
-            conv_flux[0] = velocity_field[0] * solution;
-        }
-        if(dim >= 2) {
-            conv_flux[1] = velocity_field[1] * solution;
-        }
-        if(dim >= 3) {
-            conv_flux[2] = velocity_field[2] * solution;
-        }
+        conv_flux = velocity_field * solution;
+        //if(dim >= 1) {
+        //    conv_flux[0] = velocity_field[0] * solution;
+        //}
+        //if(dim >= 2) {
+        //    conv_flux[1] = velocity_field[1] * solution;
+        //}
+        //if(dim >= 3) {
+        //    conv_flux[2] = velocity_field[2] * solution;
+        //}
     }
 
     template <int dim, int nstate, typename real>
     void LinearAdvection<dim, nstate, real>
-    ::dissipative_flux (const real &/*solution*/, real &/*flux*/)
+    ::dissipative_flux (const real &/*solution*/,
+                        const Tensor<1,dim,real> &/*solution_gradient*/,
+                        Tensor<1,dim,real> &diss_flux)
     {
+        // No dissipation
+        diss_flux = 0;
         return;
     }
 
     template <int dim, int nstate, typename real>
     void LinearAdvection<dim, nstate, real>
-    ::source_term (double const * const pos, const real &/*solution*/, real &source)
+    ::source_term (const Point<dim,double> pos, const real &/*solution*/, real &source)
     {
-        const double a = 1*0.59/dim;
-        const double b = 2*0.81/dim;
-        const double c = 3*0.76/dim;
-        const double d = 1, e = 0.2, f = 0.5;
         if (dim==1) {
-            const double x = pos[0];
-            source = a*a*sin(a*x+d);
+            const real x = pos[0];
+            source = a*cos(a*x+d);
         } else if (dim==2) {
-            const double x = pos[0], y = pos[1];
-            source = a*a*sin(a*x+d)*sin(b*y+e) +
-                     b*b*sin(a*x+d)*sin(b*y+e);
+            const real x = pos[0], y = pos[1];
+            source = a*cos(a*x+d)*sin(b*y+e) +
+                     b*sin(a*x+d)*cos(b*y+e);
         } else if (dim==3) {
-            const double x = pos[0], y = pos[1], z = pos[2];
+            const real x = pos[0], y = pos[1], z = pos[2];
 
-            source =  a*a*sin(a*x+d)*sin(b*y+e)*sin(c*z+f) +
-                      b*b*sin(a*x+d)*sin(b*y+e)*sin(c*z+f) +
-                      c*c*sin(a*x+d)*sin(b*y+e)*sin(c*z+f);
+            source =  a*cos(a*x+d)*sin(b*y+e)*sin(c*z+f) +
+                      b*sin(a*x+d)*cos(b*y+e)*sin(c*z+f) +
+                      c*sin(a*x+d)*sin(b*y+e)*cos(c*z+f);
         }
     }
 
     // Diffusion functions
     template <int dim, int nstate, typename real>
     void Diffusion<dim, nstate, real>
-    ::convective_flux (const real &/*solution*/, std::vector<real> &/*conv_flux*/)
+    ::convective_flux (const real &/*solution*/, Tensor <1, dim, real> &/*conv_flux*/)
     {
         return;
     }
 
     template <int dim, int nstate, typename real>
     void Diffusion<dim, nstate, real>
-    ::dissipative_flux (const real &solution, real &flux)
+    ::dissipative_flux (const real &/*solution*/,
+                        const Tensor<1,dim,real> &solution_gradient,
+                        Tensor<1,dim,real> &diss_flux)
     {
-        flux = solution;
+        diss_flux = -solution_gradient;
     }
 
     template <int dim, int nstate, typename real>
     void Diffusion<dim, nstate, real>
-    ::source_term (double const * const pos, const real &/*solution*/, real &source)
+    ::source_term (const Point<dim,double> pos, const real &/*solution*/, real &source)
     {
-        const double a = 1*0.59/dim;
-        const double b = 2*0.81/dim;
-        const double c = 3*0.76/dim;
-        const double d = 1, e = 0.2, f = 0.5;
         if (dim==1) {
-            const double x = pos[0];
+            const real x = pos[0];
             source = a*a*sin(a*x+d);
         } else if (dim==2) {
-            const double x = pos[0], y = pos[1];
+            const real x = pos[0], y = pos[1];
             source = a*a*sin(a*x+d)*sin(b*y+e) +
                      b*b*sin(a*x+d)*sin(b*y+e);
         } else if (dim==3) {
-            const double x = pos[0], y = pos[1], z = pos[2];
+            const real x = pos[0], y = pos[1], z = pos[2];
 
             source =  a*a*sin(a*x+d)*sin(b*y+e)*sin(c*z+f) +
                       b*b*sin(a*x+d)*sin(b*y+e)*sin(c*z+f) +
@@ -142,53 +145,52 @@ namespace PHiLiP
 
     template <int dim, int nstate, typename real>
     void ConvectionDiffusion<dim, nstate, real>
-    ::convective_flux (const real &solution, std::vector<real> &conv_flux)
+    ::convective_flux (const real &solution, Tensor <1, dim, real> &conv_flux)
     {
         // Assert conv_flux dimensions
-        std::vector<real> velocity_field(dim);
+        Tensor <1, dim, real> velocity_field;
         if(dim >= 1) velocity_field[0] = 1.0;
         if(dim >= 2) velocity_field[1] = 1.0;
         if(dim >= 3) velocity_field[2] = 1.0;
 
         
-        if(dim >= 1) {
-            conv_flux[0] = velocity_field[0] * solution;
-        }
-        if(dim >= 2) {
-            conv_flux[1] = velocity_field[1] * solution;
-        }
-        if(dim >= 3) {
-            conv_flux[2] = velocity_field[2] * solution;
-        }
+        conv_flux = velocity_field * solution;
+        //if(dim >= 1) {
+        //    conv_flux[0] = velocity_field[0] * solution;
+        //}
+        //if(dim >= 2) {
+        //    conv_flux[1] = velocity_field[1] * solution;
+        //}
+        //if(dim >= 3) {
+        //    conv_flux[2] = velocity_field[2] * solution;
+        //}
     }
 
     template <int dim, int nstate, typename real>
     void ConvectionDiffusion<dim, nstate, real>
-    ::dissipative_flux (const real &solution, real &flux)
+    ::dissipative_flux (const real &/*solution*/,
+                        const Tensor<1,dim,real> &solution_gradient,
+                        Tensor<1,dim,real> &diss_flux)
     {
-        flux = solution;
+        diss_flux = -solution_gradient;
     }
 
     template <int dim, int nstate, typename real>
     void ConvectionDiffusion<dim, nstate, real>
-    ::source_term (double const * const pos, const real &/*solution*/, real &source)
+    ::source_term (const Point<dim,double> pos, const real &/*solution*/, real &source)
     {
-        const double a = 1*0.59/dim;
-        const double b = 2*0.81/dim;
-        const double c = 3*0.76/dim;
-        const double d = 1, e = 0.2, f = 0.5;
         if (dim==1) {
-            const double x = pos[0];
+            const real x = pos[0];
             source = a*cos(a*x+d) +
                      a*a*sin(a*x+d);
         } else if (dim==2) {
-            const double x = pos[0], y = pos[1];
+            const real x = pos[0], y = pos[1];
             source = a*cos(a*x+d)*sin(b*y+e) +
                      b*sin(a*x+d)*cos(b*y+e) +
                      a*a*sin(a*x+d)*sin(b*y+e) +
                      b*b*sin(a*x+d)*sin(b*y+e);
         } else if (dim==3) {
-            const double x = pos[0], y = pos[1], z = pos[2];
+            const real x = pos[0], y = pos[1], z = pos[2];
             source =   a*cos(a*x+d)*sin(b*y+e)*sin(c*z+f) +
                        b*sin(a*x+d)*cos(b*y+e)*sin(c*z+f) +
                        c*sin(a*x+d)*sin(b*y+e)*cos(c*z+f) +

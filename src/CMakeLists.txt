@@ -1,5 +1,5 @@
 foreach(dim RANGE 1 3)
-    set(PHILIP_DIM ${dim})
+    set(PHILIP_DIM ${dim}) 
 
     #set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build_${PHILIP_DIM}D)
     #set(CMAKE_CURRENT_BINARY_DIR ${CMAKE_SOURCE_DIR}/build_${PHILIP_DIM}D)

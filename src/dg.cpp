@@ -20,9 +20,11 @@
 #include <deal.II/meshworker/simple.h>
 #include <deal.II/meshworker/loop.h>
 
+
 // Finally, we take our exact solution from the library as well as quadrature
 // and additional tools.
 #include <deal.II/numerics/data_out.h>
+#include <deal.II/numerics/data_out_dof_data.h>
 
 
 
@@ -207,8 +209,8 @@ namespace PHiLiP
 
         // ACTIVE cells, therefore, no children
         typename DoFHandler<dim>::active_cell_iterator
-        current_cell = dof_handler.begin_active(),
-        endc = dof_handler.end();
+            current_cell = dof_handler.begin_active(),
+            endc = dof_handler.end();
 
         unsigned int n_cell_visited = 0;
         unsigned int n_face_visited = 0;
@@ -520,7 +522,7 @@ namespace PHiLiP
 
       DataOut<dim> data_out;
       data_out.attach_dof_handler (dof_handler);
-      data_out.add_data_vector (solution, "u");
+      data_out.add_data_vector (solution, "u", DataOut<dim>::type_dof_data);
       //data_out.add_data_vector (estimates.block(0), "est");
 
       data_out.build_patches ();

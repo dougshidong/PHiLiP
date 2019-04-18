@@ -27,7 +27,7 @@ namespace PHiLiP
 
 
         SolverControl solver_control(1, 0);
-        TrilinosWrappers::SolverDirect::AdditionalData data(true);
+        TrilinosWrappers::SolverDirect::AdditionalData data(false);
         //TrilinosWrappers::SolverDirect::AdditionalData data(parameters.output == Parameters::Solver::verbose);
         TrilinosWrappers::SolverDirect direct(solver_control, data);
 
@@ -44,7 +44,7 @@ namespace PHiLiP
           AztecOO solver;
           solver.SetAztecOption(
             AZ_output,
-            (true ? AZ_none : AZ_all));
+            (false ? AZ_none : AZ_all));
           solver.SetAztecOption(AZ_solver, AZ_gmres);
           solver.SetRHS(&b);
           solver.SetLHS(&x);

@@ -29,6 +29,8 @@ namespace PHiLiP
         const unsigned int n_grids_input       = parameters.number_of_grids;
         const double       grid_progression    = parameters.grid_progression;
 
+        Physics<dim,1,double> *physics_double = PhysicsFactory<dim, 1, double>::create_Physics(parameters.pde_type);
+
         for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
 
             // p0 tends to require a finer grid to reach asymptotic region
@@ -38,7 +40,8 @@ namespace PHiLiP
             std::vector<int> n_1d_cells(n_grids);
             n_1d_cells[0] = initial_grid_size;
 
-            std::vector<double> error(n_grids);
+            std::vector<double> soln_error(n_grids);
+            std::vector<double> output_soln_error(n_grids);
             std::vector<double> grid_size(n_grids);
 
             for (unsigned int i=1;i<n_grids;++i) {
@@ -79,32 +82,39 @@ namespace PHiLiP
 
                 std::vector<unsigned int> dof_indices(dg.fe.dofs_per_cell);
 
-                QGauss<dim> quad_plus10(dg.fe.degree+10);
-                const unsigned int n_quad_pts = quad_plus10.size();
-                FEValues<dim,dim> fe_values_plus10(dg.mapping, dg.fe,quad_plus10, update_values | update_JxW_values | update_quadrature_points);
+                // Overintegrate by alot
+                QGauss<dim> quad_plus20(dg.fe.degree+50);
+                const unsigned int n_quad_pts = quad_plus20.size();
+                FEValues<dim,dim> fe_values_plus20(dg.mapping, dg.fe,quad_plus20, update_values | update_JxW_values | update_quadrature_points);
 
                 std::vector<double> solution_values(n_quad_pts);
 
                 double l2error = 0;
+                double exact_solution_integral = 0;
+                double solution_integral = 0;
                 typename DoFHandler<dim>::active_cell_iterator
                    cell = dg.dof_handler.begin_active(),
                    endc = dg.dof_handler.end();
                 for (; cell!=endc; ++cell) {
                     //const unsigned int icell = cell->user_index();
 
-                    fe_values_plus10.reinit (cell);
-                    fe_values_plus10.get_function_values (dg.solution, solution_values);
+                    fe_values_plus20.reinit (cell);
+                    fe_values_plus20.get_function_values (dg.solution, solution_values);
 
                     double uexact = 0;
                     for(unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-                        const Point<dim> qpoint = (fe_values_plus10.quadrature_point(iquad));
+                        const Point<dim> qpoint = (fe_values_plus20.quadrature_point(iquad));
 
                         //uexact = manufactured_advection_solution (qpoint);
-                        uexact = manufactured_solution (qpoint);
+                        //uexact = manufactured_solution (qpoint);
+                        physics_double->manufactured_solution (qpoint, uexact);
 
 
                         double u_at_q = solution_values[iquad];
-                        l2error += pow(u_at_q - uexact, 2) * fe_values_plus10.JxW(iquad);
+                        l2error += pow(u_at_q - uexact, 2) * fe_values_plus20.JxW(iquad);
+
+                        solution_integral += pow(u_at_q, 2) * fe_values_plus20.JxW(iquad);
+                        exact_solution_integral += pow(uexact, 2) * fe_values_plus20.JxW(iquad);
                     }
 
                 }
@@ -113,22 +123,35 @@ namespace PHiLiP
 
                 double dx = 1.0/pow(n_active_cells,(1.0/dim));
                 grid_size[igrid] = dx;
-                error[igrid] = l2error;
+                soln_error[igrid] = l2error;
+                output_soln_error[igrid] = std::abs(solution_integral - exact_solution_integral);
 
 
                 std::cout   << " Grid size h: " << dx 
-                            << " L2-error: " << l2error
+                            << " L2-soln_error: " << l2error
                             << " Residual: " << ode_solver->residual_norm
+                            << std::endl;
+
+                std::cout  
+                            << " output_exact: " << exact_solution_integral
+                            << " output_discrete: " << solution_integral
+                            << " output_error: " << output_soln_error[igrid]
                             << std::endl;
 
                 if (igrid > 0)
                 std::cout << "From grid " << igrid-1
                           << "  to grid " << igrid
-                          << "  e1 " << error[igrid-1]
-                          << "  e2 " << error[igrid]
                           << "  dimension: " << dim
                           << "  polynomial degree p: " << dg.fe.get_degree()
-                          << "  slope " << log((error[igrid]/error[igrid-1]))
+                          << std::endl
+                          << "  solution_error1 " << soln_error[igrid-1]
+                          << "  solution_error2 " << soln_error[igrid]
+                          << "  slope " << log((soln_error[igrid]/soln_error[igrid-1]))
+                                          / log(grid_size[igrid]/grid_size[igrid-1])
+                          << std::endl
+                          << "  solution_integral_error1 " << output_soln_error[igrid-1]
+                          << "  solution_integral_error2 " << output_soln_error[igrid]
+                          << "  slope " << log((output_soln_error[igrid]/output_soln_error[igrid-1]))
                                           / log(grid_size[igrid]/grid_size[igrid-1])
                           << std::endl;
 
@@ -150,23 +173,29 @@ namespace PHiLiP
             std::cout << std::endl << std::endl;
             for (unsigned int igrid=0; igrid<n_grids-1; ++igrid) {
 
-                const double slope = log(error[igrid+1]/error[igrid])
+                const double slope_soln_err = log(soln_error[igrid+1]/soln_error[igrid])
                                       / log(grid_size[igrid+1]/grid_size[igrid]);
-                std::cout
-                          << "From grid " << igrid+1
+                const double slope_output_err = log(output_soln_error[igrid+1]/output_soln_error[igrid])
+                                      / log(grid_size[igrid+1]/grid_size[igrid]);
+                std::cout << "From grid " << igrid+1
                           << "  to grid " << igrid+1+1
-                          << "  e1 " << error[igrid]
-                          << "  e2 " << error[igrid+1]
                           << "  dimension: " << dim
                           << "  polynomial degree p: " << poly_degree
-                          << "  slope " << slope
+                          << std::endl
+                          << "  solution_error1 " << soln_error[igrid]
+                          << "  solution_error2 " << soln_error[igrid+1]
+                          << "  slope " << slope_soln_err
+                          << std::endl
+                          << "  solution_integral_error1 " << output_soln_error[igrid]
+                          << "  solution_integral_error2 " << output_soln_error[igrid+1]
+                          << "  slope " << slope_output_err
                           << std::endl;
 
             }
             std::cout << std::endl << std::endl;
 
 
-            const double last_slope = log(error[n_grids-1]/error[n_grids-2])
+            const double last_slope = log(soln_error[n_grids-1]/soln_error[n_grids-2])
                                       / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
             const double expected_slope = poly_degree+1;
             const double slope_diff = last_slope-expected_slope;

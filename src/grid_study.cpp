@@ -65,7 +65,11 @@ namespace PHiLiP
                 ODESolver<dim, double> *ode_solver = ODESolverFactory<dim, double>::create_ODESolver(&dg);
 
                 unsigned int n_active_cells = grid.n_active_cells();
-                std::cout << "Grid number: " << igrid 
+                std::cout
+                          << "Dimension: " << dim
+                          << "\t Polynomial degree p: " << poly_degree
+                          << std::endl
+                          << "Grid number: " << igrid+1 << "/" << n_grids+1
                           << ". Number of active cells: " << n_active_cells
                           << ". Number of degrees of freedom: " << dg.dof_handler.n_dofs()
                           << std::endl;
@@ -112,9 +116,9 @@ namespace PHiLiP
                 error[igrid] = l2error;
 
 
-                std::cout   << " dx: " << dx 
-                            << " l2error: " << l2error
-                            << " residual: " << ode_solver->residual_norm
+                std::cout   << " Grid size h: " << dx 
+                            << " L2-error: " << l2error
+                            << " Residual: " << ode_solver->residual_norm
                             << std::endl;
 
                 if (igrid > 0)
@@ -149,8 +153,8 @@ namespace PHiLiP
                 const double slope = log(error[igrid+1]/error[igrid])
                                       / log(grid_size[igrid+1]/grid_size[igrid]);
                 std::cout
-                          << "From grid " << igrid
-                          << "  to grid " << igrid+1
+                          << "From grid " << igrid+1
+                          << "  to grid " << igrid+1+1
                           << "  e1 " << error[igrid]
                           << "  e2 " << error[igrid+1]
                           << "  dimension: " << dim

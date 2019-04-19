@@ -148,6 +148,11 @@ namespace PHiLiP
         static Boundary<dim> boundary_function;
         const unsigned int dummy = 0; // Virtual function that requires 3 arguments
         boundary_function.value_list (fe_values_face->get_quadrature_points(), boundary_values, dummy);
+        const std::vector< Point<dim, real> > quad_pts = fe_values_face->get_quadrature_points();
+        //for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        //    const Point<dim, real> x_quad = quad_pts[iquad];
+        //    pde_physics->manufactured_solution(x_quad, boundary_values[iquad]);
+        //}
 
         // AD variable
         std::vector< ADtype > solution_ad(n_dofs_cell);
@@ -185,32 +190,39 @@ namespace PHiLiP
 
             for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
-                const Tensor<1,dim,ADtype> velocity_at_q = velocity_field<dim>();
                 const Tensor<1,dim,ADtype> normal_int = normals[iquad];
 
                 // Obtain solution at quadrature point
                 ADtype soln_ext = 0;
                 // Convection
-                const ADtype vel_dot_normal = velocity_field<dim> () * normal_int;
+                const Tensor<1,dim,ADtype> characteristic_velocity_at_q = pde_physics->convective_eigenvalues(soln_int[iquad]);
+                const ADtype vel_dot_normal = characteristic_velocity_at_q * normal_int;
                 const bool inflow = (vel_dot_normal < 0.);
                 if (inflow) {
                     soln_ext = boundary_values[iquad];
-                    soln_int[iquad] = boundary_values[iquad];
-                    //soln_ext = -soln_int[iquad]+2*boundary_values[iquad];
                 } else {
                     soln_ext = soln_int[iquad];
                 }
-                pde_physics->convective_flux (soln_int[iquad], conv_phys_flux_int[iquad]);
-
                 Tensor< 1, dim, ADtype > conv_phys_flux_ext;
                 pde_physics->convective_flux (soln_ext, conv_phys_flux_ext);
 
-                ADtype lambda = velocity_at_q * normal_int;
+                // Flux average and solution jump for scalar dissipation
+                const Tensor< 1, dim, ADtype > soln_jump = normal_int * (soln_int[iquad] - soln_ext);
+                const Tensor< 1, dim, ADtype > flux_avg = 0.5*(conv_phys_flux_int[iquad] + conv_phys_flux_ext);
 
-                Tensor< 1, dim, ADtype > numerical_flux;
-                //numerical_flux = (conv_phys_flux_int[iquad] + conv_phys_flux_ext + normal_int * (soln_int[iquad] - soln_ext) * lambda) * 0.5;
-                numerical_flux = conv_phys_flux_int[iquad];
-                ADtype normal_int_numerical_flux = numerical_flux*normal_int;
+                // Evaluate spectral radius used for scalar dissipation
+                const ADtype soln_avg  = 0.5*(soln_int[iquad] + soln_ext);
+                const Tensor <1, dim, ADtype> conv_eig = pde_physics->convective_eigenvalues(soln_avg);
+                ADtype max_abs_eig = std::abs(conv_eig[0]);
+                for (int i=1; i<dim; i++) {
+                    const ADtype value = std::abs(conv_eig[i]);
+                    if(value > max_abs_eig) max_abs_eig = value;
+                }
+
+                // Scalar dissipation
+                const Tensor< 1, dim, ADtype > numerical_flux = flux_avg + 0.5 * max_abs_eig * soln_jump;
+
+                const ADtype normal_int_numerical_flux = numerical_flux*normal_int;
 
                 rhs += 
                     -normal_int_numerical_flux *
@@ -234,7 +246,7 @@ namespace PHiLiP
                 const Tensor<1,dim,real> test_grad_int = fe_values_face->shape_grad(itest, iquad);
                 const Tensor<1,dim,real> test_grad_ext;// = 0;
 
-                const Tensor<1,dim,ADtype> soln_jump        = (soln_int[iquad] - soln_ext) * normal_int;
+                //const Tensor<1,dim,ADtype> soln_jump        = (soln_int[iquad] - soln_ext) * normal_int;
                 const Tensor<1,dim,ADtype> soln_grad_avg    = 0.5*(soln_grad_int[iquad] + soln_grad_ext);
                 const Tensor<1,dim,ADtype> test_jump        = (test_int - test_ext) * normal_int;
                 const Tensor<1,dim,ADtype> test_grad_avg    = 0.5*(test_grad_int + test_grad_ext);
@@ -333,7 +345,6 @@ namespace PHiLiP
                 soln_grad_ext[iquad] += neighbor_solution_ad[itrial] * fe_values_face_neighbor->shape_grad(itrial,iquad);
             }
 
-            ADtype lambda = 0;
             normal_int_numerical_flux[iquad] = 0;
 
 
@@ -343,15 +354,24 @@ namespace PHiLiP
             // Numerical flux
 
             // Evaluate phys flux and scalar parameter for scalar dissipation
-            const Tensor<1,dim,double> velocity_at_q = velocity_field<dim>();
             const Tensor<1,dim,ADtype> normal1 = normals_int[iquad];
-            lambda = velocity_at_q * normal1;
             pde_physics->convective_flux (soln_int[iquad], conv_phys_flux_int);
             pde_physics->convective_flux (soln_ext[iquad], conv_phys_flux_ext);
             
+            // Scalar dissipation
+            // Flux average and solution jump for scalar dissipation
+            const Tensor< 1, dim, ADtype > soln_jump = normal1 * (soln_int[iquad] - soln_ext[iquad]);
+            const Tensor< 1, dim, ADtype > flux_avg = 0.5*(conv_phys_flux_int + conv_phys_flux_ext);
+            // Evaluate spectral radius used for scalar dissipation
+            const ADtype soln_avg  = 0.5*(soln_int[iquad] + soln_ext[iquad]);
+            const Tensor <1, dim, ADtype> conv_eig = pde_physics->convective_eigenvalues(soln_avg);
+            ADtype max_abs_eig = std::abs(conv_eig[0]);
+            for (int i=1; i<dim; i++) {
+                const ADtype value = std::abs(conv_eig[i]);
+                if(value > max_abs_eig) max_abs_eig = value;
+            }
+            const Tensor< 1, dim, ADtype > numerical_flux = flux_avg + 0.5 * max_abs_eig * soln_jump;
 
-            Tensor< 1, dim, ADtype > numerical_flux;
-            numerical_flux = (conv_phys_flux_int + conv_phys_flux_ext + normal1*(soln_int[iquad] - soln_ext[iquad]) * lambda) * 0.5;
             normal_int_numerical_flux[iquad] = numerical_flux*normal1;
         }
 

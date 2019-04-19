@@ -26,10 +26,14 @@ namespace PHiLiP
         const unsigned int p_end               = parameters.degree_end;
 
         const unsigned int initial_grid_size   = parameters.initial_grid_size;
-        const unsigned int n_grids             = parameters.number_of_grids;
-        const double grid_progression          = parameters.grid_progression;
+        const unsigned int n_grids_input       = parameters.number_of_grids;
+        const double       grid_progression    = parameters.grid_progression;
 
         for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
+
+            // p0 tends to require a finer grid to reach asymptotic region
+            unsigned int n_grids = n_grids_input;
+            if (poly_degree == 0) n_grids = n_grids_input + 2;
 
             std::vector<int> n_1d_cells(n_grids);
             n_1d_cells[0] = initial_grid_size;

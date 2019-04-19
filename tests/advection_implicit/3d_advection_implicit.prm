@@ -15,7 +15,7 @@ subsection ODE solver
   set nonlinear_steady_residual_tolerance = 1e-13
 
   # Print every print_iteration_modulo iterations of the nonlinear solver
-  set print_iteration_modulo              = 1
+  #set print_iteration_modulo              = 1
 
   # Explicit or implicit solverChoices are <explicit|implicit>.
   set solver_type                         = implicit
@@ -36,7 +36,5 @@ subsection manufactured solution convergence study
   set initial_grid_size = 2
 
   # Number of grids in grid study
-  set number_of_grids   = 4
+  set number_of_grids   = 3
 end
-
-

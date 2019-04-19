@@ -21,10 +21,10 @@ namespace Parameters
         }
         while (args.size()) {
 
-            if (args.front() == std::string("-p")) {
+            if (args.front() == std::string("-i")) {
 
                 if (args.size() == 1) {
-                    std::cerr << "Error: flag '-p' must be followed by the "
+                    std::cerr << "Error: flag '-i' must be followed by the "
                               << "name of a parameter file."
                               << std::endl;
                     print_usage_message (parameter_handler);
@@ -286,7 +286,7 @@ namespace Parameters
             "deal.II intermediate format to other graphics formats.\n"
             "\n"
             "Usage:\n"
-            "    ./PHiLiP [-p input_file_name] input_file_name \n"
+            "    ./PHiLiP [-i input_file_name] input_file_name \n"
             //"              [-x output_format] [-o output_file]\n"
             "\n"
             "Parameter sequences in brackets can be omitted if a parameter file is\n"

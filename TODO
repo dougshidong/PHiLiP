@@ -10,6 +10,8 @@ Compute auxiliary variable $ \sigma = \nabla u $ independently.
 
 Take numerical flux out of the DiscontinuousGalerkin class.
 
+Adjoint consistency, output integral 2p.
+
 Vector-valued problems
     - Figure out global solution ordering
     - Vector valued advection

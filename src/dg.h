@@ -50,10 +50,10 @@ namespace PHiLiP
         void set_triangulation(Triangulation<dim> *triangulation_input) { triangulation = triangulation_input; } ;
         void set_physics(Physics< dim,1,Sacado::Fad::DFad<real> > *physics) { pde_physics = physics; } ;
 
-        // Contains the physics of the PDE
+        /// Contains the physics of the PDE
         Physics<dim, 1, Sacado::Fad::DFad<real> >  *pde_physics;
 
-        // Mesh
+        /// Mesh
         Triangulation<dim>   *triangulation;
 
         TrilinosWrappers::SparseMatrix system_matrix;
@@ -63,19 +63,19 @@ namespace PHiLiP
 
         void output_results (const unsigned int ith_grid);// const;
 
-        // Degrees of freedom handler allows us to iterate over the finite
-        // elements' degrees of freedom on the given triangulation
+        /// Degrees of freedom handler allows us to iterate over the finite
+        /// elements' degrees of freedom on the given triangulation
         DoFHandler<dim> dof_handler;
 
-        // For now, use linear mapping of domain boundaries
-        // May need to use MappingQ or MappingQGeneric to represent curved 
-        // boundaries iso/superparametrically
+        /// For now, use linear mapping of domain boundaries.
+        /// May need to use MappingQ or MappingQGeneric to represent curved 
+        //// boundaries iso/superparametrically.
         const MappingQ<dim,dim> mapping;
 
 
         // Lagrange polynomial basis
         //const FE_DGQ<dim> fe;
-        // Legendre polynomial basis
+        /// Legendre polynomial basis
         const FE_DGP<dim> fe;
 
         Parameters::AllParameters *parameters;
@@ -105,6 +105,23 @@ namespace PHiLiP
             Vector<real>          &neighbor_cell_rhs);
 
         void allocate_system_implicit ();
+        /// Main loop of the DiscontinuousGalerkin class.
+        /** It loops over all the cells, evaluates the volume contributions,
+         * then loops over the faces of the current cell. Four scenarios may happen
+         *
+         * 1. Boundary condition.
+         *
+         * 2. Current face has children. Therefore, neighbor is finer. In that case,
+         * loop over neighbor faces to compute its face contributions.
+         *
+         * 3. Neighbor has same coarseness. Cell with lower global index will be used
+         * to compute the face contribution.
+         *
+         * 4. Neighbor is coarser. Therefore, the current cell is the finer one.
+         * Do nothing since this cell will be taken care of by scenario 2.
+         *    
+         */
+
         void assemble_system_implicit ();
         void assemble_cell_terms_implicit(
             const FEValues<dim,dim> *fe_values,

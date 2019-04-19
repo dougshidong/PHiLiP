@@ -9,15 +9,26 @@ namespace PHiLiP
 {
     using namespace dealii;
 
+    /** Partial differential equation is given by the divergence of the convective and
+     *  diffusive flux equal to the source term
+     *
+     *  \f$ \boldsymbol{\nabla} \cdot
+     *         (  \mathbf{F}_{conv}( u ) 
+     *          + \mathbf{F}_{diss}( u, \boldsymbol{\nabla}(u) )
+     *      = s(\mathbf{x}) \f$
+     */
     template <int dim, int nstate, typename real>
     class Physics
     {
     public:
 
+        /// Default manufactured solution
+        ///~~~~~{.cpp}
+        /// if (dim==1) uexact = sin(a*pos[0]+d);
+        /// if (dim==2) uexact = sin(a*pos[0]+d)*sin(b*pos[1]+e);
+        /// if (dim==3) uexact = sin(a*pos[0]+d)*sin(b*pos[1]+e)*sin(c*pos[2]+f);
+        ///~~~~~
         virtual void manufactured_solution (const Point<dim,double> pos, real &solution);
-
-        // PDE is given by
-        // divergence( Fconv( u ) + Fdiss( u, grad(u) ) = Source
 
         // Convective fluxes that will be differentiated once in space
         virtual void convective_flux (const real &solution,

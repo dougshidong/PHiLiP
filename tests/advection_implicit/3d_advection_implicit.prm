@@ -30,11 +30,11 @@ subsection manufactured solution convergence study
 
   # Multiplier on grid size. nth-grid will be of size
   # (initial_grid^grid_progression)^dim
-  set grid_progression  = 1.5
+  set grid_progression  = 1.2
 
   # Initial grid of size (initial_grid_size)^dim
-  set initial_grid_size = 2
+  set initial_grid_size = 5
 
   # Number of grids in grid study
-  set number_of_grids   = 3
+  set number_of_grids   = 6
 end

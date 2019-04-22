@@ -30,6 +30,12 @@ namespace PHiLiP
         ///~~~~~
         virtual void manufactured_solution (const Point<dim,double> pos, real &solution);
 
+        /// Returns the integral of the manufactured solution over the hypercube [0,1]
+        ///
+        /// Either returns the linear output $\int u dV$.
+        /// Or the nonlinear output $\int u^2 dV$.
+        virtual double integral_output (const bool linear);
+
         // Convective fluxes that will be differentiated once in space
         virtual void convective_flux (const real &solution,
                                       Tensor <1, dim, real> &conv_flux) = 0;
@@ -49,8 +55,8 @@ namespace PHiLiP
                                   real &source) = 0;
     protected:
         // Some constants used to define manufactured solution
-        const double freq_x = 1*0.59/dim, freq_y = 2*0.81/dim, freq_z = 3*0.76/dim;
-        const double offs_x = 1, offs_y = 0.2, offs_z = 0.5;
+        const double freq_x = 1*1.59/dim, freq_y = 2*1.81/dim, freq_z = 3*1.76/dim;
+        const double offs_x = 1, offs_y = 1.2, offs_z = 1.5;
     };
 
     // This class with create a new Physics object corresponding to the pde_type

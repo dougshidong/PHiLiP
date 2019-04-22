@@ -10,10 +10,10 @@ namespace PHiLiP
     {
         double uexact;
 
-        const double a = 1*0.59/dim;
-        const double b = 2*0.81/dim;
-        const double c = 3*0.76/dim;
-        const double d = 1, e = 0.2, f = 0.5;
+        const double a = 1*1.59/dim;
+        const double b = 2*1.81/dim;
+        const double c = 3*1.76/dim;
+        const double d = 1, e = 1.2, f = 1.5;
         if (dim==1) uexact = sin(a*point(0)+d);
         if (dim==2) uexact = sin(a*point(0)+d)*sin(b*point(1)+e);
         if (dim==3) uexact = sin(a*point(0)+d)*sin(b*point(1)+e)*sin(c*point(2)+f);
@@ -26,10 +26,10 @@ namespace PHiLiP
     {
         double source;
 
-        const double a = 1*0.59/dim;
-        const double b = 2*0.81/dim;
-        const double c = 3*0.76/dim;
-        const double d = 1, e = 0.2, f = 0.5;
+        const double a = 1*1.59/dim;
+        const double b = 2*1.81/dim;
+        const double c = 3*1.76/dim;
+        const double d = 1, e = 1.2, f = 1.5;
         if (dim==1) {
             const double x = point(0);
             source = a*cos(a*x+d);
@@ -52,10 +52,10 @@ namespace PHiLiP
     {
         double source;
 
-        const double a = 1*0.59/dim;
-        const double b = 2*0.81/dim;
-        const double c = 3*0.76/dim;
-        const double d = 1, e = 0.2, f = 0.5;
+        const double a = 1*1.59/dim;
+        const double b = 2*1.81/dim;
+        const double c = 3*1.76/dim;
+        const double d = 1, e = 1.2, f = 1.5;
         if (dim==1) {
             const double x = point(0);
             source = a*a*sin(a*x+d);
@@ -78,10 +78,10 @@ namespace PHiLiP
     {
         double source;
 
-        const double a = 1*0.59/dim;
-        const double b = 2*0.81/dim;
-        const double c = 3*0.76/dim;
-        const double d = 1, e = 0.2, f = 0.5;
+        const double a = 1*1.59/dim;
+        const double b = 2*1.81/dim;
+        const double c = 3*1.76/dim;
+        const double d = 1, e = 1.2, f = 1.5;
         if (dim==1) {
             const double x = point(0);
             source = a*cos(a*x+d) +

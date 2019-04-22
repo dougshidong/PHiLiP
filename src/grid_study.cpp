@@ -2,6 +2,7 @@
 
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_refinement.h>
+#include <deal.II/grid/grid_tools.h>
 
 #include <deal.II/fe/fe_values.h>
 
@@ -57,6 +58,11 @@ namespace PHiLiP
                 std::cout << "Generating hypercube for grid convergence... " << std::endl;
                 GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid]);
 
+                // Distort grid by random amount
+                const double factor = 0.2; // should be less than 0.5
+                const bool keep_boundary = true;
+                //GridTools::distort_random (factor, grid, keep_boundary);
+
                 Physics<dim,1,Sacado::Fad::DFad<double>> *physics = PhysicsFactory<dim, 1, Sacado::Fad::DFad<double> >::create_Physics(parameters.pde_type);
 
                 DiscontinuousGalerkin<PHILIP_DIM, double> dg(&parameters, poly_degree);
@@ -83,11 +89,12 @@ namespace PHiLiP
                 std::vector<unsigned int> dof_indices(dg.fe.dofs_per_cell);
 
                 // Overintegrate by alot
-                QGauss<dim> quad_plus20(dg.fe.degree+50);
-                const unsigned int n_quad_pts = quad_plus20.size();
-                FEValues<dim,dim> fe_values_plus20(dg.mapping, dg.fe,quad_plus20, update_values | update_JxW_values | update_quadrature_points);
+                QGauss<dim> quad_plus20(dg.fe.degree+10);
+                FEValues<dim,dim> fe_values_plus20(dg.mapping, dg. fe,quad_plus20, update_values | update_JxW_values | update_quadrature_points);
 
-                std::vector<double> solution_values(n_quad_pts);
+                const unsigned int n_quad_pts = fe_values_plus20.n_quadrature_points;
+
+                std::vector<double> solution_values_at_q(n_quad_pts);
 
                 double l2error = 0;
                 double exact_solution_integral = 0;
@@ -99,7 +106,7 @@ namespace PHiLiP
                     //const unsigned int icell = cell->user_index();
 
                     fe_values_plus20.reinit (cell);
-                    fe_values_plus20.get_function_values (dg.solution, solution_values);
+                    fe_values_plus20.get_function_values (dg.solution, solution_values_at_q);
 
                     double uexact = 0;
                     for(unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
@@ -110,7 +117,7 @@ namespace PHiLiP
                         physics_double->manufactured_solution (qpoint, uexact);
 
 
-                        double u_at_q = solution_values[iquad];
+                        double u_at_q = solution_values_at_q[iquad];
                         l2error += pow(u_at_q - uexact, 2) * fe_values_plus20.JxW(iquad);
 
                         solution_integral += pow(u_at_q, 2) * fe_values_plus20.JxW(iquad);
@@ -118,7 +125,57 @@ namespace PHiLiP
                     }
 
                 }
+                const bool linear_output = false;
+                exact_solution_integral = physics_double->integral_output(linear_output);
                 l2error = sqrt(l2error);
+
+                bool integrate_boundary = false;
+                if (integrate_boundary) {
+                    QGauss<dim-1> quad_face_plus20(dg.fe.degree+10);
+                    exact_solution_integral = 0;
+                    solution_integral = 0;
+                    FEFaceValues<dim,dim> fe_face_values_plus20(dg.mapping, dg.fe, quad_face_plus20, update_normal_vectors | update_values | update_JxW_values | update_quadrature_points);
+                    unsigned int n_face_quad_pts = fe_face_values_plus20.n_quadrature_points;
+                    std::vector<double> face_intp_solution_values(n_face_quad_pts);
+
+                    cell = dg.dof_handler.begin_active();
+                    for (; cell!=endc; ++cell) {
+
+                        //std::cout << "Cell loop" << std::endl;
+                        for (unsigned int face_no=0; face_no < GeometryInfo<dim>::faces_per_cell; ++face_no) {
+                            //std::cout << "Face loop" << std::endl;
+
+                            typename DoFHandler<dim>::face_iterator current_face = cell->face(face_no);
+                            fe_face_values_plus20.reinit (cell, face_no);
+                            fe_face_values_plus20.get_function_values (dg.solution, face_intp_solution_values);
+
+                            const std::vector<Tensor<1,dim> > &normals = fe_face_values_plus20.get_normal_vectors ();
+
+                            if (current_face->at_boundary()) {
+                                //std::cout << "Boundary if" << std::endl;
+
+                                for(unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+                                    //std::cout << "Quad loop" << std::endl;
+                                    const Point<dim> qpoint = (fe_face_values_plus20.quadrature_point(iquad));
+
+                                    double uexact = 0;
+                                    physics_double->manufactured_solution (qpoint, uexact);
+
+                                    const Tensor<1,dim,double> characteristic_velocity_at_q = physics_double->convective_eigenvalues(uexact);
+                                    const double vel_dot_normal = characteristic_velocity_at_q * normals[iquad];
+                                    const bool inflow = (vel_dot_normal < 0.);
+                                    if (inflow) {
+                                    } else {
+                                        double u_at_q = face_intp_solution_values[iquad];
+
+                                        solution_integral += pow(u_at_q, 2) * fe_face_values_plus20.JxW(iquad);
+                                        exact_solution_integral += pow(uexact, 2) * fe_face_values_plus20.JxW(iquad);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
 
 
                 double dx = 1.0/pow(n_active_cells,(1.0/dim));

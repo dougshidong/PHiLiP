@@ -220,7 +220,13 @@ namespace PHiLiP
                 }
 
                 // Scalar dissipation
-                const Tensor< 1, dim, ADtype > numerical_flux = flux_avg + 0.5 * max_abs_eig * soln_jump;
+                Tensor< 1, dim, ADtype > numerical_flux = flux_avg + 0.5 * max_abs_eig * soln_jump;
+
+                if (inflow) {
+                    numerical_flux = conv_phys_flux_ext;
+                } else {
+                    numerical_flux = conv_phys_flux_int[iquad];
+                }
 
                 const ADtype normal_int_numerical_flux = numerical_flux*normal_int;
 
@@ -370,7 +376,14 @@ namespace PHiLiP
                 const ADtype value = std::abs(conv_eig[i]);
                 if(value > max_abs_eig) max_abs_eig = value;
             }
-            const Tensor< 1, dim, ADtype > numerical_flux = flux_avg + 0.5 * max_abs_eig * soln_jump;
+            Tensor< 1, dim, ADtype > numerical_flux = flux_avg + 0.5 * max_abs_eig * soln_jump;
+                const ADtype vel_dot_normal = conv_eig * normal1;
+                const bool inflow = (vel_dot_normal < 0.);
+                if (inflow) {
+                    numerical_flux = conv_phys_flux_ext;
+                } else {
+                    numerical_flux = conv_phys_flux_int;
+                }
 
             normal_int_numerical_flux[iquad] = numerical_flux*normal1;
         }

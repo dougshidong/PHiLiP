@@ -1,23 +1,22 @@
+set(TARGET_SRC 
+    numerical_flux.cpp
+    linear_solver.cpp
+    manufactured_solution.cpp
+    grid_study.cpp
+    assemble_explicit.cpp 
+    assemble_implicit.cpp 
+    parameters.cpp
+    dg.cpp
+    ode_solver.cpp
+    main.cpp)
+add_subdirectory(physics)
+
 foreach(dim RANGE 1 3)
     set(PHILIP_DIM ${dim}) 
 
-    #set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build_${PHILIP_DIM}D)
-    #set(CMAKE_CURRENT_BINARY_DIR ${CMAKE_SOURCE_DIR}/build_${PHILIP_DIM}D)
-    
     string(CONCAT TNAME PHiLiP_${PHILIP_DIM}D)
     
     set(TARGET ${TNAME})
-    set(TARGET_SRC 
-        physics.cpp
-        linear_solver.cpp
-        manufactured_solution.cpp
-        grid_study.cpp
-        assemble_explicit.cpp 
-        assemble_implicit.cpp 
-        parameters.cpp
-        dg.cpp
-        ode_solver.cpp
-        main.cpp)
 
     add_executable(${TNAME} ${TARGET_SRC})
 
@@ -31,6 +30,10 @@ foreach(dim RANGE 1 3)
     #target_link_libraries(${TNAME} tbb m mpi mpi_cxx)
     target_link_libraries(${TNAME} tbb m mpi mpi_cxx)
 
+    string(CONCAT PhysicsLib Physics_${PHILIP_DIM}D)
+    target_link_libraries(${TNAME} ${PhysicsLib})
+
+
     DEAL_II_SETUP_TARGET(${TNAME})
     message("Adding executable " ${TNAME} " with files " ${TARGET_SRC} "\n")
 
@@ -38,17 +41,10 @@ foreach(dim RANGE 1 3)
     
     unset(PHILIP_DIM)
     unset(TNAME)
-    unset(CMAKE_BINARY_DIR)
-    unset(CMAKE_CURRENT_BINARY_DIR)
+    unset(PhysicsLib)
     unset(TARGET ${TNAME})
 
 endforeach()
-
-set(PHILIP_DIM ${dim})
-
-#set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build_${PHILIP_DIM}D)
-#set(CMAKE_CURRENT_BINARY_DIR ${CMAKE_SOURCE_DIR}/build_${PHILIP_DIM}D)
-
 
 set(TNAME testrun)
 set(TARGET ${TNAME})
@@ -62,6 +58,4 @@ DEAL_II_SETUP_TARGET(${TNAME})
 message("Adding executable " ${TNAME} " with files " ${TARGET_SRC} "\n")
 
 unset(TNAME)
-unset(CMAKE_BINARY_DIR)
-unset(CMAKE_CURRENT_BINARY_DIR)
 unset(TARGET ${TNAME})

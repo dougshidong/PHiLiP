@@ -3,7 +3,7 @@
 
 #include <Sacado.hpp>
 #include <deal.II/differentiation/ad/sacado_math.h>
-//#include <deal.II/differentiation/ad/sacado_number_types.h>
+#include <deal.II/differentiation/ad/sacado_number_types.h>
 #include <deal.II/differentiation/ad/sacado_product_types.h>
 
 #include "physics.h"
@@ -27,7 +27,6 @@ namespace PHiLiP
             return new ConvectionDiffusion<dim, nstate, real>;
         }
         std::cout << "Can't create Physics, invalid PDE type: " << pde_type << std::endl;
-
         return nullptr;
     }
 
@@ -84,6 +83,35 @@ namespace PHiLiP
         return 0;
     }
 
+    template <int dim, int nstate, typename real>
+    void Physics<dim, nstate, real>
+    ::boundary_face_values (
+            const int boundary_type,
+            const Point<dim, double> &pos,
+            const Tensor<1, dim, double> &normal,
+            const real &soln_int,
+            const Tensor<1, dim, real> &soln_grad_int,
+            real &soln_bc,
+            Tensor<1, dim, real> &soln_grad_bc)
+    {
+    }
+    template <int dim, int nstate, typename real>
+    void Physics<dim, nstate, real>
+    ::set_manufactured_dirichlet_boundary_condition (
+            const real &soln_int,
+            const Tensor<1, dim, real> &soln_grad_int,
+            real &soln_bc,
+            Tensor<1, dim, real> &soln_grad_bc)
+    {}
+    template <int dim, int nstate, typename real>
+    void Physics<dim, nstate, real>
+    ::set_manufactured_neumann_boundary_condition (
+            const real &soln_int,
+            const Tensor<1, dim, real> &soln_grad_int,
+            real &soln_bc,
+            Tensor<1, dim, real> &soln_grad_bc)
+    {}
+
 
     // Linear advection functions
     template <int dim, int nstate, typename real>
@@ -98,7 +126,7 @@ namespace PHiLiP
         //if(dim >= 3) advection_speed[2] = sqrt(2);
         //advection_speed = advection_speed / pi;
 
-        if(dim >= 1) advection_speed[0] = 1.0;
+        if(dim >= 1) advection_speed[0] = exp(1)/2.0;
         if(dim >= 2) advection_speed[1] = -pi/4.0;
         if(dim >= 3) advection_speed[2] = sqrt(2);
 
@@ -106,10 +134,13 @@ namespace PHiLiP
     }
 
     template <int dim, int nstate, typename real>
-    Tensor <1, dim, real> LinearAdvection<dim, nstate, real>
-    ::convective_eigenvalues (const real &/*solution*/)
+    std::vector<real> LinearAdvection<dim, nstate, real>
+    ::convective_eigenvalues (const real &/*solution*/, const Tensor<1, dim, real> &normal)
     {
-        return advection_speed();
+        std::vector<real> eig(nstate);
+        const Tensor <1, dim, real> advection_speed = this->advection_speed();
+        eig[0] = advection_speed*normal;
+        return eig;
     }
 
     template <int dim, int nstate, typename real>
@@ -117,7 +148,7 @@ namespace PHiLiP
     ::convective_flux (const real &solution, Tensor <1, dim, real> &conv_flux)
     {
         // Assert conv_flux dimensions
-        const Tensor <1, dim, real> velocity_field = advection_speed();
+        const Tensor <1, dim, real> velocity_field = this->advection_speed();
         conv_flux = velocity_field * solution;
     }
 
@@ -135,7 +166,7 @@ namespace PHiLiP
     void LinearAdvection<dim, nstate, real>
     ::source_term (const Point<dim,double> pos, const real &/*solution*/, real &source)
     {
-        const Tensor <1, dim, real> velocity_field = advection_speed();
+        const Tensor <1, dim, real> velocity_field = this->advection_speed();
         using phys = Physics<dim,nstate,real>;
         const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
         const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
@@ -161,13 +192,11 @@ namespace PHiLiP
     ::convective_flux (const real &/*solution*/, Tensor <1, dim, real> &/*conv_flux*/) { }
 
     template <int dim, int nstate, typename real>
-    Tensor <1, dim, real> Diffusion<dim, nstate, real>
-    ::convective_eigenvalues (const real &/*solution*/)
+    std::vector<real> Diffusion<dim, nstate, real>
+    ::convective_eigenvalues(const real &/*solution*/, const Tensor<1, dim, real> &/*normal*/)
     {
-        Tensor <1, dim, real> eig;
-        for (int i=0; i<dim; ++i) {
-            eig[i] = 0;
-        }
+        std::vector<real> eig(nstate);
+        eig[0] = 0;
         return eig;
     }
 
@@ -206,18 +235,9 @@ namespace PHiLiP
     void ConvectionDiffusion<dim, nstate, real>
     ::convective_flux (const real &solution, Tensor <1, dim, real> &conv_flux)
     {
-        const Tensor <1, dim, real> velocity_field = advection_speed();
+        const Tensor <1, dim, real> velocity_field = this->advection_speed();
         
         conv_flux = velocity_field * solution;
-        //if(dim >= 1) {
-        //    conv_flux[0] = velocity_field[0] * solution;
-        //}
-        //if(dim >= 2) {
-        //    conv_flux[1] = velocity_field[1] * solution;
-        //}
-        //if(dim >= 3) {
-        //    conv_flux[2] = velocity_field[2] * solution;
-        //}
     }
 
     template <int dim, int nstate, typename real>
@@ -226,11 +246,6 @@ namespace PHiLiP
     {
         Tensor <1, dim, real> advection_speed;
         const double pi = atan(1)*4.0;
-        // Works but requires finer grid for optimal convergence.
-        //if(dim >= 1) advection_speed[0] = 1.0;
-        //if(dim >= 2) advection_speed[1] = -pi; // -pi/2
-        //if(dim >= 3) advection_speed[2] = sqrt(2);
-        //advection_speed = advection_speed / pi;
 
         if(dim >= 1) advection_speed[0] = 1.0;
         if(dim >= 2) advection_speed[1] = -pi/4.0;
@@ -239,10 +254,13 @@ namespace PHiLiP
     }
 
     template <int dim, int nstate, typename real>
-    Tensor <1, dim, real> ConvectionDiffusion<dim, nstate, real>
-    ::convective_eigenvalues (const real &/*solution*/)
+    std::vector<real> ConvectionDiffusion<dim, nstate, real>
+    ::convective_eigenvalues (const real &/*solution*/, const Tensor<1, dim, real> &normal)
     {
-        return advection_speed();
+        std::vector<real> eig(nstate);
+        const Tensor <1, dim, real> advection_speed = this->advection_speed();
+        eig[0] = advection_speed*normal;
+        return eig;
     }
 
     template <int dim, int nstate, typename real>
@@ -258,7 +276,7 @@ namespace PHiLiP
     void ConvectionDiffusion<dim, nstate, real>
     ::source_term (const Point<dim,double> pos, const real &/*solution*/, real &source)
     {
-        const Tensor <1, dim, real> velocity_field = advection_speed();
+        const Tensor <1, dim, real> velocity_field = this->advection_speed();
         using phys = Physics<dim,nstate,real>;
         const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
         const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
@@ -284,17 +302,19 @@ namespace PHiLiP
     }
     // Instantiate
     template class Physics < PHILIP_DIM, 1, double >;
-    template class PhysicsFactory<PHILIP_DIM, 1, double>;
-    template class LinearAdvection < PHILIP_DIM, 1, double >;
-    template class Diffusion < PHILIP_DIM, 1, double >;
-    template class ConvectionDiffusion < PHILIP_DIM, 1, double >;
-
     template class Physics < PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
-    template class PhysicsFactory<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
-    template class LinearAdvection < PHILIP_DIM, 1, Sacado::Fad::DFad<double>  >;
-    template class Diffusion < PHILIP_DIM, 1, Sacado::Fad::DFad<double>  >;
-    template class ConvectionDiffusion < PHILIP_DIM, 1, Sacado::Fad::DFad<double>  >;
 
+    template class PhysicsFactory<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
+    template class PhysicsFactory<PHILIP_DIM, 1, double>;
+
+    template class LinearAdvection < PHILIP_DIM, 1, Sacado::Fad::DFad<double>  >;
+    template class LinearAdvection < PHILIP_DIM, 1, double >;
+
+    template class Diffusion < PHILIP_DIM, 1, Sacado::Fad::DFad<double>  >;
+    template class Diffusion < PHILIP_DIM, 1, double >;
+
+    template class ConvectionDiffusion < PHILIP_DIM, 1, double >;
+    template class ConvectionDiffusion < PHILIP_DIM, 1, Sacado::Fad::DFad<double>  >;
 
 } // end of PHiLiP namespace
 

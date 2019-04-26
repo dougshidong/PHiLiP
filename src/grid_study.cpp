@@ -1,14 +1,19 @@
+#include <deal.II/base/convergence_table.h>
+
 #include <deal.II/dofs/dof_tools.h>
 
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_refinement.h>
 #include <deal.II/grid/grid_tools.h>
+#include <deal.II/grid/grid_out.h>
+#include <deal.II/grid/grid_in.h>
+
 
 #include <deal.II/fe/fe_values.h>
 
 #include <Sacado.hpp>
 
-#include "physics.h"
+#include "physics/physics.h"
 #include "dg.h"
 #include "linear_solver.h"
 #include "ode_solver.h"

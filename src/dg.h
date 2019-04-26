@@ -70,7 +70,8 @@ namespace PHiLiP
         /// For now, use linear mapping of domain boundaries.
         /// May need to use MappingQ or MappingQGeneric to represent curved 
         //// boundaries iso/superparametrically.
-        const MappingQ<dim,dim> mapping;
+        //const MappingQ<dim,dim> mapping;
+        const MappingQGeneric<dim,dim> mapping;
 
 
         // Lagrange polynomial basis
@@ -89,16 +90,16 @@ namespace PHiLiP
 
         void assemble_system_explicit ();
         void assemble_cell_terms_explicit(
-            const FEValues<dim,dim> *fe_values,
+            const FEValues<dim,dim> *fe_values_cell,
             const std::vector<types::global_dof_index> &current_dofs_indices,
             Vector<real> &current_cell_rhs);
         void assemble_boundary_term_explicit(
-            const FEFaceValues<dim,dim> *fe_values_face,
+            const FEFaceValues<dim,dim> *fe_values_face_int,
             const std::vector<types::global_dof_index> &current_dofs_indices,
             Vector<real> &current_cell_rhs);
         void assemble_face_term_explicit(
-            const FEValuesBase<dim,dim>     *fe_values_face_current,
-            const FEFaceValues<dim,dim>     *fe_values_face_neighbor,
+            const FEValuesBase<dim,dim>     *fe_values_face_int,
+            const FEFaceValues<dim,dim>     *fe_values_face_ext,
             const std::vector<types::global_dof_index> &current_dofs_indices,
             const std::vector<types::global_dof_index> &neighbor_dofs_indices,
             Vector<real>          &current_cell_rhs,
@@ -124,17 +125,17 @@ namespace PHiLiP
 
         void assemble_system_implicit ();
         void assemble_cell_terms_implicit(
-            const FEValues<dim,dim> *fe_values,
+            const FEValues<dim,dim> *fe_values_cell,
             const std::vector<types::global_dof_index> &current_dofs_indices,
             Vector<real> &current_cell_rhs);
         void assemble_boundary_term_implicit(
-            const FEFaceValues<dim,dim> *fe_values_face,
+            const FEFaceValues<dim,dim> *fe_values_face_int,
             const real penalty,
             const std::vector<types::global_dof_index> &current_dofs_indices,
             Vector<real> &current_cell_rhs);
         void assemble_face_term_implicit(
-            const FEValuesBase<dim,dim>     *fe_values_face_current,
-            const FEFaceValues<dim,dim>     *fe_values_face_neighbor,
+            const FEValuesBase<dim,dim>     *fe_values_face_int,
+            const FEFaceValues<dim,dim>     *fe_values_face_ext,
             const real penalty,
             const std::vector<types::global_dof_index> &current_dofs_indices,
             const std::vector<types::global_dof_index> &neighbor_dofs_indices,
@@ -154,10 +155,10 @@ namespace PHiLiP
         DynamicSparsityPattern sparsity_pattern;
 
 
-        FEValues<dim,dim>         *fe_values;
-        FEFaceValues<dim,dim>     *fe_values_face;
-        FESubfaceValues<dim,dim>  *fe_values_subface;
-        FEFaceValues<dim,dim>     *fe_values_face_neighbor;
+        FEValues<dim,dim>         *fe_values_cell;
+        FEFaceValues<dim,dim>     *fe_values_face_int;
+        FESubfaceValues<dim,dim>  *fe_values_subface_int;
+        FEFaceValues<dim,dim>     *fe_values_face_ext;
 
     }; // end of DiscontinuousGalerkin class
 

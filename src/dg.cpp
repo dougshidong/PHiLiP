@@ -97,14 +97,14 @@ namespace PHiLiP
     {
         std::cout << std::endl << "Deallocating FEValues" << std::endl;
 
-        if (fe_values               != NULL) delete fe_values;
-        if (fe_values_face          != NULL) delete fe_values_face;
-        if (fe_values_subface       != NULL) delete fe_values_subface;
-        if (fe_values_face_neighbor != NULL) delete fe_values_face_neighbor;
-        fe_values               = NULL; 
-        fe_values_face          = NULL;
-        fe_values_subface       = NULL;
-        fe_values_face_neighbor = NULL;
+        if (fe_values_cell          != NULL) delete fe_values_cell;
+        if (fe_values_face_int      != NULL) delete fe_values_face_int;
+        if (fe_values_subface_int   != NULL) delete fe_values_subface_int;
+        if (fe_values_face_ext      != NULL) delete fe_values_face_ext;
+        fe_values_cell          = NULL; 
+        fe_values_face_int      = NULL;
+        fe_values_subface_int   = NULL;
+        fe_values_face_ext      = NULL;
     }
   
 
@@ -137,10 +137,10 @@ namespace PHiLiP
         const UpdateFlags neighbor_face_update_flags = update_values
                                                       | update_gradients;
 
-        fe_values               = new FEValues<dim,dim> (mapping, fe, quadrature, update_flags);
-        fe_values_face          = new FEFaceValues<dim,dim> (mapping, fe, face_quadrature, face_update_flags);
-        fe_values_subface       = new FESubfaceValues<dim,dim> (mapping, fe, face_quadrature, face_update_flags);
-        fe_values_face_neighbor = new FEFaceValues<dim,dim> (mapping, fe, face_quadrature, neighbor_face_update_flags);
+        fe_values_cell          = new FEValues<dim,dim> (mapping, fe, quadrature, update_flags);
+        fe_values_face_int      = new FEFaceValues<dim,dim> (mapping, fe, face_quadrature, face_update_flags);
+        fe_values_subface_int   = new FESubfaceValues<dim,dim> (mapping, fe, face_quadrature, face_update_flags);
+        fe_values_face_ext      = new FEFaceValues<dim,dim> (mapping, fe, face_quadrature, neighbor_face_update_flags);
     }
 
     template <int dim, typename real>
@@ -185,10 +185,10 @@ namespace PHiLiP
         const UpdateFlags neighbor_face_update_flags = update_values
                                                       | update_gradients;
 
-        fe_values               = new FEValues<dim,dim> (mapping, fe, quadrature, update_flags);
-        fe_values_face          = new FEFaceValues<dim,dim> (mapping, fe, face_quadrature, face_update_flags);
-        fe_values_subface       = new FESubfaceValues<dim,dim> (mapping, fe, face_quadrature, face_update_flags);
-        fe_values_face_neighbor = new FEFaceValues<dim,dim> (mapping, fe, face_quadrature, neighbor_face_update_flags);
+        fe_values_cell          = new FEValues<dim,dim> (mapping, fe, quadrature, update_flags);
+        fe_values_face_int      = new FEFaceValues<dim,dim> (mapping, fe, face_quadrature, face_update_flags);
+        fe_values_subface_int   = new FESubfaceValues<dim,dim> (mapping, fe, face_quadrature, face_update_flags);
+        fe_values_face_ext      = new FEFaceValues<dim,dim> (mapping, fe, face_quadrature, neighbor_face_update_flags);
     }
 
     template <int dim, typename real>
@@ -218,15 +218,15 @@ namespace PHiLiP
             n_cell_visited++;
 
             current_cell_rhs = 0;
-            fe_values->reinit (current_cell);
+            fe_values_cell->reinit (current_cell);
             current_cell->get_dof_indices (current_dofs_indices);
 
-            assemble_cell_terms_implicit (fe_values, current_dofs_indices, current_cell_rhs);
+            assemble_cell_terms_implicit (fe_values_cell, current_dofs_indices, current_cell_rhs);
 
-            for (unsigned int face_no=0; face_no < GeometryInfo<dim>::faces_per_cell; ++face_no) {
+            for (unsigned int iface=0; iface < GeometryInfo<dim>::faces_per_cell; ++iface) {
 
-                typename DoFHandler<dim>::face_iterator current_face = current_cell->face(face_no);
-                typename DoFHandler<dim>::cell_iterator neighbor_cell = current_cell->neighbor(face_no);
+                typename DoFHandler<dim>::face_iterator current_face = current_cell->face(iface);
+                typename DoFHandler<dim>::cell_iterator neighbor_cell = current_cell->neighbor(iface);
 
                 // See tutorial step-30 for breakdown of 4 face cases
 
@@ -236,41 +236,46 @@ namespace PHiLiP
 
                     n_face_visited++;
 
-                    fe_values_face->reinit (current_cell, face_no);
+                    fe_values_face_int->reinit (current_cell, iface);
                     const unsigned int degree_current = fe.get_degree();
                     const unsigned int deg1sq = (degree_current == 0) ? 1 : degree_current * (degree_current+1);
-                    const unsigned int normal_direction = GeometryInfo<dim>::unit_normal_direction[face_no];
+                    const unsigned int normal_direction = GeometryInfo<dim>::unit_normal_direction[iface];
                     const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction);
 
                     real penalty = deg1sq / vol_div_facearea1;
                     //penalty = 1;//99;
 
-                    assemble_boundary_term_implicit (fe_values_face, penalty, current_dofs_indices, current_cell_rhs);
+                    assemble_boundary_term_implicit (fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
 
                 // Case 2:
                 // Neighbour is finer occurs if the face has children
                 // This is because we are looping over the current_cell's face, so 2, 4, and 6 faces.
                 } else if (current_face->has_children()) {
+                    std::cout << "SHOULD NOT HAPPEN!!!!!!!!!!!! I haven't put in adaptatation yet" << std::endl;
+                    std::cout << "SHOULD NOT HAPPEN!!!!!!!!!!!! I haven't put in adaptatation yet" << std::endl;
+                    std::cout << "SHOULD NOT HAPPEN!!!!!!!!!!!! I haven't put in adaptatation yet" << std::endl;
+                    std::cout << "SHOULD NOT HAPPEN!!!!!!!!!!!! I haven't put in adaptatation yet" << std::endl;
+                    std::cout << "SHOULD NOT HAPPEN!!!!!!!!!!!! I haven't put in adaptatation yet" << std::endl;
                     neighbor_cell_rhs = 0;
-                    Assert (current_cell->neighbor(face_no).state() == IteratorState::valid, ExcInternalError());
+                    Assert (current_cell->neighbor(iface).state() == IteratorState::valid, ExcInternalError());
 
                     // Obtain cell neighbour
-                    const unsigned int neighbor_face_no = current_cell->neighbor_face_no(face_no);
+                    const unsigned int neighbor_face_no = current_cell->neighbor_face_no(iface);
 
                     for (unsigned int subface_no=0; subface_no < current_face->number_of_children(); ++subface_no) {
 
                         n_face_visited++;
 
-                        typename DoFHandler<dim>::cell_iterator neighbor_child_cell = current_cell->neighbor_child_on_subface (face_no, subface_no);
+                        typename DoFHandler<dim>::cell_iterator neighbor_child_cell = current_cell->neighbor_child_on_subface (iface, subface_no);
 
                         Assert (!neighbor_child_cell->has_children(), ExcInternalError());
 
                         neighbor_child_cell->get_dof_indices (neighbor_dofs_indices);
 
-                        fe_values_subface->reinit (current_cell, face_no, subface_no);
-                        fe_values_face_neighbor->reinit (neighbor_child_cell, neighbor_face_no);
+                        fe_values_subface_int->reinit (current_cell, iface, subface_no);
+                        fe_values_face_ext->reinit (neighbor_child_cell, neighbor_face_no);
 
-                        const unsigned int normal_direction1 = GeometryInfo<dim>::unit_normal_direction[face_no];
+                        const unsigned int normal_direction1 = GeometryInfo<dim>::unit_normal_direction[iface];
                         const unsigned int normal_direction2 = GeometryInfo<dim>::unit_normal_direction[neighbor_face_no];
                         const unsigned int degree_current = fe.get_degree();
                         const unsigned int deg1sq = (degree_current == 0) ? 1 : degree_current * (degree_current+1);
@@ -297,7 +302,7 @@ namespace PHiLiP
 
 
                         assemble_face_term_implicit (
-                            fe_values_subface, fe_values_face_neighbor,
+                            fe_values_subface_int, fe_values_face_ext,
                             penalty,
                             current_dofs_indices, neighbor_dofs_indices,
                             current_cell_rhs, neighbor_cell_rhs);
@@ -312,7 +317,7 @@ namespace PHiLiP
                 // Neighbor cell is NOT coarser
                 // Therefore, they have the same coarseness, and we need to choose one of them to do the work
                 } else if (
-                    !current_cell->neighbor_is_coarser(face_no) &&
+                    !current_cell->neighbor_is_coarser(iface) &&
                         // Cell with lower index does work
                         (neighbor_cell->index() > current_cell->index() || 
                         // If both cells have same index
@@ -324,14 +329,14 @@ namespace PHiLiP
                     n_face_visited++;
 
                     neighbor_cell_rhs = 0;
-                    Assert (current_cell->neighbor(face_no).state() == IteratorState::valid, ExcInternalError());
-                    typename DoFHandler<dim>::cell_iterator neighbor_cell = current_cell->neighbor(face_no);
+                    Assert (current_cell->neighbor(iface).state() == IteratorState::valid, ExcInternalError());
+                    typename DoFHandler<dim>::cell_iterator neighbor_cell = current_cell->neighbor(iface);
 
                     neighbor_cell->get_dof_indices (neighbor_dofs_indices);
 
-                    const unsigned int neighbor_face_no = current_cell->neighbor_of_neighbor(face_no);
+                    const unsigned int neighbor_face_no = current_cell->neighbor_of_neighbor(iface);
 
-                    const unsigned int normal_direction1 = GeometryInfo<dim>::unit_normal_direction[face_no];
+                    const unsigned int normal_direction1 = GeometryInfo<dim>::unit_normal_direction[iface];
                     const unsigned int normal_direction2 = GeometryInfo<dim>::unit_normal_direction[neighbor_face_no];
                     const unsigned int degree_current = fe.get_degree();
                     const unsigned int deg1sq = (degree_current == 0) ? 1 : degree_current * (degree_current+1);
@@ -356,10 +361,10 @@ namespace PHiLiP
                     //        << std::endl
                     //        ;
 
-                    fe_values_face->reinit (current_cell, face_no);
-                    fe_values_face_neighbor->reinit (neighbor_cell, neighbor_face_no);
+                    fe_values_face_int->reinit (current_cell, iface);
+                    fe_values_face_ext->reinit (neighbor_cell, neighbor_face_no);
                     assemble_face_term_implicit (
-                            fe_values_face, fe_values_face_neighbor,
+                            fe_values_face_int, fe_values_face_ext,
                             penalty,
                             current_dofs_indices, neighbor_dofs_indices,
                             current_cell_rhs, neighbor_cell_rhs);
@@ -407,15 +412,15 @@ namespace PHiLiP
             n_cell_visited++;
 
             current_cell_rhs = 0;
-            fe_values->reinit (current_cell);
+            fe_values_cell->reinit (current_cell);
             current_cell->get_dof_indices (current_dofs_indices);
 
-            assemble_cell_terms_explicit(fe_values, current_dofs_indices, current_cell_rhs);
+            assemble_cell_terms_explicit(fe_values_cell, current_dofs_indices, current_cell_rhs);
 
-            for (unsigned int face_no=0; face_no < GeometryInfo<dim>::faces_per_cell; ++face_no) {
+            for (unsigned int iface=0; iface < GeometryInfo<dim>::faces_per_cell; ++iface) {
 
-                typename DoFHandler<dim>::face_iterator current_face = current_cell->face(face_no);
-                typename DoFHandler<dim>::cell_iterator neighbor_cell = current_cell->neighbor(face_no);
+                typename DoFHandler<dim>::face_iterator current_face = current_cell->face(iface);
+                typename DoFHandler<dim>::cell_iterator neighbor_cell = current_cell->neighbor(iface);
 
                 // See tutorial step-30 for breakdown of 4 face cases
 
@@ -425,32 +430,37 @@ namespace PHiLiP
 
                     n_face_visited++;
 
-                    fe_values_face->reinit (current_cell, face_no);
-                    assemble_boundary_term_explicit(fe_values_face, current_dofs_indices, current_cell_rhs);
+                    fe_values_face_int->reinit (current_cell, iface);
+                    assemble_boundary_term_explicit(fe_values_face_int, current_dofs_indices, current_cell_rhs);
 
                 // Case 2:
                 // Neighbour is finer occurs if the face has children
                 // This is because we are looping over the current_cell's face, so 2, 4, and 8 faces.
                 } else if (current_face->has_children()) {
                     neighbor_cell_rhs = 0;
-                    Assert (current_cell->neighbor(face_no).state() == IteratorState::valid, ExcInternalError());
+                    Assert (current_cell->neighbor(iface).state() == IteratorState::valid, ExcInternalError());
+                    std::cout << "SHOULD NOT HAPPEN!!!!!!!!!!!! I haven't put in adaptatation yet" << std::endl;
+                    std::cout << "SHOULD NOT HAPPEN!!!!!!!!!!!! I haven't put in adaptatation yet" << std::endl;
+                    std::cout << "SHOULD NOT HAPPEN!!!!!!!!!!!! I haven't put in adaptatation yet" << std::endl;
+                    std::cout << "SHOULD NOT HAPPEN!!!!!!!!!!!! I haven't put in adaptatation yet" << std::endl;
+                    std::cout << "SHOULD NOT HAPPEN!!!!!!!!!!!! I haven't put in adaptatation yet" << std::endl;
 
                     // Obtain cell neighbour
-                    const unsigned int neighbor_face_no = current_cell->neighbor_face_no(face_no);
+                    const unsigned int neighbor_face_no = current_cell->neighbor_face_no(iface);
 
                     for (unsigned int subface_no=0; subface_no < current_face->number_of_children(); ++subface_no) {
 
                         n_face_visited++;
 
-                        typename DoFHandler<dim>::cell_iterator neighbor_child_cell = current_cell->neighbor_child_on_subface (face_no, subface_no);
+                        typename DoFHandler<dim>::cell_iterator neighbor_child_cell = current_cell->neighbor_child_on_subface (iface, subface_no);
                         Assert (!neighbor_child_cell->has_children(), ExcInternalError());
 
                         neighbor_child_cell->get_dof_indices (neighbor_dofs_indices);
 
-                        fe_values_subface->reinit (current_cell, face_no, subface_no);
-                        fe_values_face_neighbor->reinit (neighbor_child_cell, neighbor_face_no);
+                        fe_values_subface_int->reinit (current_cell, iface, subface_no);
+                        fe_values_face_ext->reinit (neighbor_child_cell, neighbor_face_no);
                         assemble_face_term_explicit(
-                            fe_values_subface, fe_values_face_neighbor,
+                            fe_values_subface_int, fe_values_face_ext,
                             current_dofs_indices, neighbor_dofs_indices,
                             current_cell_rhs, neighbor_cell_rhs);
 
@@ -464,7 +474,7 @@ namespace PHiLiP
                 // Neighbor cell is NOT coarser
                 // Therefore, they have the same coarseness, and we need to choose one of them to do the work
                 } else if (
-                    !current_cell->neighbor_is_coarser(face_no) &&
+                    !current_cell->neighbor_is_coarser(iface) &&
                         // Cell with lower index does work
                         (neighbor_cell->index() > current_cell->index() || 
                         // If both cells have same index
@@ -476,17 +486,17 @@ namespace PHiLiP
                     n_face_visited++;
 
                     neighbor_cell_rhs = 0;
-                    Assert (current_cell->neighbor(face_no).state() == IteratorState::valid, ExcInternalError());
-                    typename DoFHandler<dim>::cell_iterator neighbor_cell = current_cell->neighbor(face_no);
+                    Assert (current_cell->neighbor(iface).state() == IteratorState::valid, ExcInternalError());
+                    typename DoFHandler<dim>::cell_iterator neighbor_cell = current_cell->neighbor(iface);
 
                     neighbor_cell->get_dof_indices (neighbor_dofs_indices);
 
-                    const unsigned int neighbor_face_no = current_cell->neighbor_of_neighbor(face_no);
+                    const unsigned int neighbor_face_no = current_cell->neighbor_of_neighbor(iface);
 
-                    fe_values_face->reinit (current_cell, face_no);
-                    fe_values_face_neighbor->reinit (neighbor_cell, neighbor_face_no);
+                    fe_values_face_int->reinit (current_cell, iface);
+                    fe_values_face_ext->reinit (neighbor_cell, neighbor_face_no);
                     assemble_face_term_explicit(
-                            fe_values_face, fe_values_face_neighbor,
+                            fe_values_face_int, fe_values_face_ext,
                             current_dofs_indices, neighbor_dofs_indices,
                             current_cell_rhs, neighbor_cell_rhs);
 

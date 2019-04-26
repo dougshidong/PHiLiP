@@ -19,7 +19,7 @@
 
 #include <Sacado.hpp>
 
-#include "physics.h"
+#include "physics/physics.h"
 #include "parameters.h"
 
 

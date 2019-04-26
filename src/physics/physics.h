@@ -42,7 +42,9 @@ namespace PHiLiP
 
         // Spectral radius of convective term Jacobian
         // Used for scalar dissipation
-        virtual Tensor <1, dim, real> convective_eigenvalues (const real &/*solution*/) = 0;
+        //virtual Tensor <1, dim, real> convective_eigenvalues (const real &/*solution*/) = 0;
+        virtual std::vector<real> convective_eigenvalues(
+            const real &/*solution*/, const Tensor<1, dim, real> &/*normal*/) = 0;
 
         // Dissipative fluxes that will be differentiated once in space
         virtual void dissipative_flux (const real & solution,
@@ -53,7 +55,28 @@ namespace PHiLiP
         virtual void source_term (const Point<dim,double> pos,
                                   const real &solution,
                                   real &source) = 0;
+
+        // Evaluates boundary values and gradients on the other side of the face
+        virtual void boundary_face_values (
+            const int boundary_type,
+            const Point<dim, double> &pos,
+            const Tensor<1, dim, double> &normal,
+            const real &soln_int,
+            const Tensor<1, dim, real> &soln_grad_int,
+            real &soln_bc,
+            Tensor<1, dim, real> &soln_grad_bc);
     protected:
+        virtual void set_manufactured_dirichlet_boundary_condition (
+            const real &soln_int,
+            const Tensor<1, dim, real> &soln_grad_int,
+            real &soln_bc,
+            Tensor<1, dim, real> &soln_grad_bc);
+        virtual void set_manufactured_neumann_boundary_condition (
+            const real &soln_int,
+            const Tensor<1, dim, real> &soln_grad_int,
+            real &soln_bc,
+            Tensor<1, dim, real> &soln_grad_bc);
+
         // Some constants used to define manufactured solution
         const double freq_x = 1*1.59/dim, freq_y = 2*1.81/dim, freq_z = 3*1.76/dim;
         const double offs_x = 1, offs_y = 1.2, offs_z = 1.5;
@@ -82,6 +105,8 @@ namespace PHiLiP
 
         // Spectral radius of convective term Jacobian is simply the maximum 'c'
         Tensor <1, dim, real> convective_eigenvalues (const real &/*solution*/);
+        std::vector<real> convective_eigenvalues(
+            const real &/*solution*/, const Tensor<1, dim, real> &normal);
 
         // Dissipative flux: 0
         void dissipative_flux (const real &solution,
@@ -111,6 +136,8 @@ namespace PHiLiP
 
         // Spectral radius of convective term Jacobian is 0
         Tensor <1, dim, real> convective_eigenvalues (const real &/*solution*/);
+        std::vector<real> convective_eigenvalues(
+            const real &/*solution*/, const Tensor<1, dim, real> &/*normal*/);
 
         // Dissipative flux: u
         void dissipative_flux (const real &solution,
@@ -135,6 +162,8 @@ namespace PHiLiP
 
         // Spectral radius of convective term Jacobian is 'c'
         Tensor <1, dim, real> convective_eigenvalues (const real &/*solution*/);
+        std::vector<real> convective_eigenvalues(
+            const real &/*solution*/, const Tensor<1, dim, real> &/*normal*/);
 
         // Dissipative flux: u
         void dissipative_flux (const real &solution,

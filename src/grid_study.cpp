@@ -23,6 +23,50 @@ namespace PHiLiP
 {
     using namespace dealii;
 
+    template <int dim>
+    Point<dim> warp (const Point<dim> &p)
+    {
+      Point<dim> q = p;
+      q[dim-1] *= 5;
+      if (dim >= 2)
+        q[0] += 2*std::sin(q[dim-1]);
+      if (dim >= 3)
+        q[1] += 2*std::cos(q[dim-1]);
+      return q;
+    }
+
+    template <int dim>
+    void print_mesh_info(const Triangulation<dim> &triangulation,
+                         const std::string        &filename)
+    {
+      std::cout << "Mesh info:" << std::endl
+                << " dimension: " << dim << std::endl
+                << " no. of cells: " << triangulation.n_active_cells() << std::endl;
+      {
+        std::map<types::boundary_id, unsigned int> boundary_count;
+        for (auto cell : triangulation.active_cell_iterators())
+          {
+            for (unsigned int face=0; face<GeometryInfo<dim>::faces_per_cell; ++face)
+              {
+                if (cell->face(face)->at_boundary())
+                  boundary_count[cell->face(face)->boundary_id()]++;
+              }
+          }
+        std::cout << " boundary indicators: ";
+        for (const std::pair<const types::boundary_id, unsigned int> &pair : boundary_count)
+          {
+            std::cout << pair.first << "(" << pair.second << " times) ";
+          }
+        std::cout << std::endl;
+      }
+      std::ofstream out (filename);
+      GridOut grid_out;
+      grid_out.write_eps (triangulation, out);
+      std::cout << " written to " << filename
+                << std::endl
+                << std::endl;
+    }
+
     template<int dim>
     int manufactured_grid_convergence (Parameters::AllParameters &parameters)
     {
@@ -47,13 +91,14 @@ namespace PHiLiP
             n_1d_cells[0] = initial_grid_size;
 
             std::vector<double> soln_error(n_grids);
-            std::vector<double> output_soln_error(n_grids);
+            std::vector<double> output_error(n_grids);
             std::vector<double> grid_size(n_grids);
 
             for (unsigned int i=1;i<n_grids;++i) {
                 n_1d_cells[i] = n_1d_cells[i-1]*grid_progression;
             }
 
+            ConvergenceTable convergence_table;
             for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
                 // Note that Triangulation must be declared before DiscontinuousGalerkin
                 // DiscontinuousGalerkin will be destructed before Triangulation
@@ -62,13 +107,53 @@ namespace PHiLiP
                 Triangulation<dim> grid;
                 std::cout << "Generating hypercube for grid convergence... " << std::endl;
                 GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid]);
+                Point<dim> zero;
+                //GridGenerator::hyper_cube_with_cylindrical_hole(grid, 0.25, 0.5, 0.5, n_1d_cells[igrid],false);
+                //grid.refine_global(igrid);
 
-                // Distort grid by random amount
-                const double factor = 0.2; // should be less than 0.5
+
+                //   Distort grid by random amount
+                const double factor = 0.1500; // should be less than 0.5
                 const bool keep_boundary = true;
-                //GridTools::distort_random (factor, grid, keep_boundary);
+                GridTools::distort_random (factor, grid, keep_boundary);
+                //GridTools::rotate (30, grid);
+                bool warpmesh = false;
+                if (warpmesh) GridTools::transform (&warp<dim>, grid);
 
-                Physics<dim,1,Sacado::Fad::DFad<double>> *physics = PhysicsFactory<dim, 1, Sacado::Fad::DFad<double> >::create_Physics(parameters.pde_type);
+                std::string mshname = "grid-"+std::to_string(igrid)+".msh";
+
+                for (
+                    typename Triangulation<dim>::active_cell_iterator
+                    cell = grid.begin_active(); cell != grid.end(); ++cell)
+                {
+                    cell->set_material_id(9002);
+                    for (unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; ++f)
+                        if (cell->face(f)->at_boundary())
+                              cell->face(f)->set_boundary_id (9001);
+                }
+                bool readmesh = false, writemesh = true;
+                if (writemesh) {
+                    std::ofstream outmesh(mshname);
+                    GridOutFlags::Msh msh_flags(true, true);
+                    GridOut grid_out;
+                    grid_out.set_flags(msh_flags);
+                    grid_out.write_msh(grid, outmesh);
+                }
+
+                if (readmesh) {
+                    std::ifstream inmesh(mshname);
+                    GridIn<dim,dim> grid_in;
+                    grid_in.attach_triangulation(grid);
+                    grid_in.read_msh(inmesh);
+                }
+
+                std::string gridname = "grid-"+std::to_string(igrid)+".eps";
+                print_mesh_info (grid, gridname);
+
+
+                const int nstate = 1;
+                using ADtype = Sacado::Fad::DFad<double>;
+                Physics<dim, nstate, ADtype> *physics = PhysicsFactory<dim, nstate, ADtype >::create_Physics(parameters.pde_type);
 
                 DiscontinuousGalerkin<PHILIP_DIM, double> dg(&parameters, poly_degree);
                 dg.set_triangulation(&grid);
@@ -102,7 +187,13 @@ namespace PHiLiP
                 std::vector<double> solution_values_at_q(n_quad_pts);
 
                 double l2error = 0;
-                double exact_solution_integral = 0;
+
+                bool linear_output = false;
+                linear_output = true;
+                int power;
+                if (linear_output) power = 1;
+                if (!linear_output) power = 2;
+
                 double solution_integral = 0;
                 typename DoFHandler<dim>::active_cell_iterator
                    cell = dg.dof_handler.begin_active(),
@@ -125,19 +216,16 @@ namespace PHiLiP
                         double u_at_q = solution_values_at_q[iquad];
                         l2error += pow(u_at_q - uexact, 2) * fe_values_plus20.JxW(iquad);
 
-                        solution_integral += pow(u_at_q, 2) * fe_values_plus20.JxW(iquad);
-                        exact_solution_integral += pow(uexact, 2) * fe_values_plus20.JxW(iquad);
+                        solution_integral += pow(u_at_q, power) * fe_values_plus20.JxW(iquad);
                     }
 
                 }
-                const bool linear_output = false;
-                exact_solution_integral = physics_double->integral_output(linear_output);
+                const double exact_solution_integral = physics_double->integral_output(linear_output);
                 l2error = sqrt(l2error);
 
                 bool integrate_boundary = false;
                 if (integrate_boundary) {
                     QGauss<dim-1> quad_face_plus20(dg.fe.degree+10);
-                    exact_solution_integral = 0;
                     solution_integral = 0;
                     FEFaceValues<dim,dim> fe_face_values_plus20(dg.mapping, dg.fe, quad_face_plus20, update_normal_vectors | update_values | update_JxW_values | update_quadrature_points);
                     unsigned int n_face_quad_pts = fe_face_values_plus20.n_quadrature_points;
@@ -166,15 +254,13 @@ namespace PHiLiP
                                     double uexact = 0;
                                     physics_double->manufactured_solution (qpoint, uexact);
 
-                                    const Tensor<1,dim,double> characteristic_velocity_at_q = physics_double->convective_eigenvalues(uexact);
-                                    const double vel_dot_normal = characteristic_velocity_at_q * normals[iquad];
-                                    const bool inflow = (vel_dot_normal < 0.);
+                                    std::vector<double> characteristic_dot_n_at_q = physics_double->convective_eigenvalues(uexact, normals[iquad]);
+                                    const bool inflow = (characteristic_dot_n_at_q[0] < 0.);
                                     if (inflow) {
                                     } else {
                                         double u_at_q = face_intp_solution_values[iquad];
 
                                         solution_integral += pow(u_at_q, 2) * fe_face_values_plus20.JxW(iquad);
-                                        exact_solution_integral += pow(uexact, 2) * fe_face_values_plus20.JxW(iquad);
                                     }
                                 }
                             }
@@ -184,9 +270,16 @@ namespace PHiLiP
 
 
                 double dx = 1.0/pow(n_active_cells,(1.0/dim));
+                dx = GridTools::maximal_cell_diameter(grid);
                 grid_size[igrid] = dx;
                 soln_error[igrid] = l2error;
-                output_soln_error[igrid] = std::abs(solution_integral - exact_solution_integral);
+                output_error[igrid] = std::abs(solution_integral - exact_solution_integral);
+
+                convergence_table.add_value("cells", grid.n_active_cells());
+                convergence_table.add_value("dx", dx);
+                convergence_table.add_value("soln_L2_error", l2error);
+                convergence_table.add_value("output_error", output_error[igrid]);
+
 
 
                 std::cout   << " Grid size h: " << dx 
@@ -197,29 +290,48 @@ namespace PHiLiP
                 std::cout  
                             << " output_exact: " << exact_solution_integral
                             << " output_discrete: " << solution_integral
-                            << " output_error: " << output_soln_error[igrid]
+                            << " output_error: " << output_error[igrid]
                             << std::endl;
 
-                if (igrid > 0)
-                std::cout << "From grid " << igrid-1
-                          << "  to grid " << igrid
-                          << "  dimension: " << dim
-                          << "  polynomial degree p: " << dg.fe.get_degree()
-                          << std::endl
-                          << "  solution_error1 " << soln_error[igrid-1]
-                          << "  solution_error2 " << soln_error[igrid]
-                          << "  slope " << log((soln_error[igrid]/soln_error[igrid-1]))
-                                          / log(grid_size[igrid]/grid_size[igrid-1])
-                          << std::endl
-                          << "  solution_integral_error1 " << output_soln_error[igrid-1]
-                          << "  solution_integral_error2 " << output_soln_error[igrid]
-                          << "  slope " << log((output_soln_error[igrid]/output_soln_error[igrid-1]))
-                                          / log(grid_size[igrid]/grid_size[igrid-1])
-                          << std::endl;
+                if (igrid > 0) {
+                    const double slope_soln_err = log(soln_error[igrid]/soln_error[igrid-1])
+                                          / log(grid_size[igrid]/grid_size[igrid-1]);
+                    const double slope_output_err = log(output_error[igrid]/output_error[igrid-1])
+                                          / log(grid_size[igrid]/grid_size[igrid-1]);
+                    std::cout << "From grid " << igrid-1
+                              << "  to grid " << igrid
+                              << "  dimension: " << dim
+                              << "  polynomial degree p: " << dg.fe.get_degree()
+                              << std::endl
+                              << "  solution_error1 " << soln_error[igrid-1]
+                              << "  solution_error2 " << soln_error[igrid]
+                              << "  slope " << slope_soln_err
+                              << std::endl
+                              << "  solution_integral_error1 " << output_error[igrid-1]
+                              << "  solution_integral_error2 " << output_error[igrid]
+                              << "  slope " << slope_output_err
+                              << std::endl;
+                }
 
                 //output_results (igrid);
                 delete ode_solver;
             }
+            std::cout
+                << " ********************************************"
+                << std::endl
+                << " Convergence rates for p = " << poly_degree
+                << std::endl
+                << " ********************************************"
+                << std::endl;
+            //convergence_table.omit_column_from_convergence_rate_evaluation("cells");
+            //convergence_table.omit_column_from_convergence_rate_evaluation("dx");
+            convergence_table.evaluate_convergence_rates("soln_L2_error", "cells", ConvergenceTable::reduction_rate_log2, dim);
+            convergence_table.evaluate_convergence_rates("output_error", "cells", ConvergenceTable::reduction_rate_log2, dim);
+            convergence_table.set_scientific("dx", true);
+            convergence_table.set_scientific("soln_L2_error", true);
+            convergence_table.set_scientific("output_error", true);
+            convergence_table.write_text(std::cout);
+
             //dg.triangulation->list_subscribers();
             //grid->list_subscribers();
             //std::cout<<std::flush;
@@ -233,27 +345,27 @@ namespace PHiLiP
             //grid = NULL;
 
             std::cout << std::endl << std::endl;
-            for (unsigned int igrid=0; igrid<n_grids-1; ++igrid) {
+            //for (unsigned int igrid=0; igrid<n_grids-1; ++igrid) {
 
-                const double slope_soln_err = log(soln_error[igrid+1]/soln_error[igrid])
-                                      / log(grid_size[igrid+1]/grid_size[igrid]);
-                const double slope_output_err = log(output_soln_error[igrid+1]/output_soln_error[igrid])
-                                      / log(grid_size[igrid+1]/grid_size[igrid]);
-                std::cout << "From grid " << igrid+1
-                          << "  to grid " << igrid+1+1
-                          << "  dimension: " << dim
-                          << "  polynomial degree p: " << poly_degree
-                          << std::endl
-                          << "  solution_error1 " << soln_error[igrid]
-                          << "  solution_error2 " << soln_error[igrid+1]
-                          << "  slope " << slope_soln_err
-                          << std::endl
-                          << "  solution_integral_error1 " << output_soln_error[igrid]
-                          << "  solution_integral_error2 " << output_soln_error[igrid+1]
-                          << "  slope " << slope_output_err
-                          << std::endl;
+            //    const double slope_soln_err = log(soln_error[igrid+1]/soln_error[igrid])
+            //                          / log(grid_size[igrid+1]/grid_size[igrid]);
+            //    const double slope_output_err = log(output_error[igrid+1]/output_error[igrid])
+            //                          / log(grid_size[igrid+1]/grid_size[igrid]);
+            //    std::cout << "From grid " << igrid+1
+            //              << "  to grid " << igrid+1+1
+            //              << "  dimension: " << dim
+            //              << "  polynomial degree p: " << poly_degree
+            //              << std::endl
+            //              << "  solution_error1 " << soln_error[igrid]
+            //              << "  solution_error2 " << soln_error[igrid+1]
+            //              << "  slope " << slope_soln_err
+            //              << std::endl
+            //              << "  solution_integral_error1 " << output_error[igrid]
+            //              << "  solution_integral_error2 " << output_error[igrid+1]
+            //              << "  slope " << slope_output_err
+            //              << std::endl;
 
-            }
+            //}
             std::cout << std::endl << std::endl;
 
 
@@ -270,7 +382,7 @@ namespace PHiLiP
                           << expected_slope << " within a tolerance of "
                           << slope_deficit_tolerance
                           << std::endl;
-                return 1;
+                //return 1;
             }
 
         }

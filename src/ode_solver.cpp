@@ -44,7 +44,9 @@ namespace PHiLiP
         allocate_ode_system ();
 
         dg->assemble_system ();
-        this->residual_norm = dg->get_residual_l2norm();
+
+        this->residual_norm = 1.0;
+        this->current_iteration = 0;
 
         while (    this->residual_norm     > parameters->nonlinear_steady_residual_tolerance 
                 && this->current_iteration < parameters->nonlinear_max_iterations )
@@ -75,7 +77,7 @@ namespace PHiLiP
         //this->solution_update = (this->dg->right_hand_side);
         this->solution_update = 0;
         this->solution_update -= (this->dg->right_hand_side);
-        this->solution_update *= 0.01;
+        this->solution_update *= 0.1;
     }
     template <int dim, typename real>
     void Implicit_ODESolver<dim, real>::evaluate_solution_update ()

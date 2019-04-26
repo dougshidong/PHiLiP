@@ -20,29 +20,6 @@ namespace PHiLiP
 {
     using namespace dealii;
 
-    // For now hard-code advection speed
-    template <int dim>
-    Tensor<1,dim> velocity_field ()
-    {
-        Tensor<1,dim> v_field;
-        v_field[0] = 1.0;//0.5;//1.0;
-        if(dim >= 2) v_field[1] = 1.0;
-        if(dim >= 3) v_field[2] = 1.0;
-        return v_field;
-    }
-
-    template <int dim>
-    Tensor<1,dim> velocity_field (const Point<dim> &p)
-    {
-        Tensor<1,dim> v_field;
-        //Assert (dim >= 2, ExcNotImplemented());
-        //v_field(0) = p(1);
-        //v_field(1) = p(0);
-        //v_field /= v_field.norm();
-        v_field = p;
-        return v_field;
-    }
-
     template <int dim, typename real>
     void DiscontinuousGalerkin<dim, real>::assemble_cell_terms_implicit(
         const FEValues<dim,dim> *fe_values,
@@ -135,8 +112,8 @@ namespace PHiLiP
         Vector<real> &current_cell_rhs)
     {
         using ADtype = Sacado::Fad::DFad<real>;
-        const unsigned int n_quad_pts = fe_values_face->n_quadrature_points;
         const unsigned int n_dofs_cell = fe_values_face->dofs_per_cell;
+        const unsigned int n_face_quad_pts = fe_values_face->n_quadrature_points;
 
         AssertDimension (n_dofs_cell, current_dofs_indices.size());
 
@@ -144,12 +121,12 @@ namespace PHiLiP
         const std::vector<Tensor<1,dim> > &normals = fe_values_face->get_normal_vectors ();
 
         // Recover boundary values at quadrature points
-        std::vector<real> boundary_values(n_quad_pts);
+        std::vector<real> boundary_values(n_face_quad_pts);
         static Boundary<dim> boundary_function;
         const unsigned int dummy = 0; // Virtual function that requires 3 arguments
         boundary_function.value_list (fe_values_face->get_quadrature_points(), boundary_values, dummy);
         const std::vector< Point<dim, real> > quad_pts = fe_values_face->get_quadrature_points();
-        //for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        //for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
         //    const Point<dim, real> x_quad = quad_pts[iquad];
         //    pde_physics->manufactured_solution(x_quad, boundary_values[iquad]);
         //}
@@ -162,14 +139,14 @@ namespace PHiLiP
         }
         std::vector<real> residual_derivatives(n_dofs_cell);
 
-        std::vector< ADtype > soln_int(n_quad_pts);
+        std::vector< ADtype > soln_int(n_face_quad_pts);
 
-        std::vector< Tensor< 1, dim, ADtype > > soln_grad_int(n_quad_pts);
+        std::vector< Tensor< 1, dim, ADtype > > soln_grad_int(n_face_quad_pts);
 
-        std::vector< Tensor< 1, dim, ADtype > > conv_phys_flux_int(n_quad_pts);
-        std::vector< Tensor< 1, dim, ADtype > > diss_phys_flux_int(n_quad_pts);
+        std::vector< Tensor< 1, dim, ADtype > > conv_phys_flux_int(n_face_quad_pts);
+        std::vector< Tensor< 1, dim, ADtype > > diss_phys_flux_int(n_face_quad_pts);
 
-        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
             // Interpolate solution to the face quadrature points
             soln_int[iquad]      = 0;
             soln_grad_int[iquad] = 0;
@@ -188,16 +165,19 @@ namespace PHiLiP
 
             ADtype rhs = 0;
 
-            for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
 
                 const Tensor<1,dim,ADtype> normal_int = normals[iquad];
 
                 // Obtain solution at quadrature point
                 ADtype soln_ext = 0;
                 // Convection
-                const Tensor<1,dim,ADtype> characteristic_velocity_at_q = pde_physics->convective_eigenvalues(soln_int[iquad]);
-                const ADtype vel_dot_normal = characteristic_velocity_at_q * normal_int;
-                const bool inflow = (vel_dot_normal < 0.);
+
+                // Characteristic variables in normal direction
+                const int nstate = 1;
+                std::vector<ADtype> characteristic_dot_n_at_q(nstate);
+                characteristic_dot_n_at_q = pde_physics->convective_eigenvalues(boundary_values[iquad], normal_int);
+                const bool inflow = (characteristic_dot_n_at_q[0] < 0.);
                 if (inflow) {
                     soln_ext = boundary_values[iquad];
                 } else {
@@ -211,17 +191,19 @@ namespace PHiLiP
                 const Tensor< 1, dim, ADtype > flux_avg = 0.5*(conv_phys_flux_int[iquad] + conv_phys_flux_ext);
 
                 // Evaluate spectral radius used for scalar dissipation
-                const ADtype soln_avg  = 0.5*(soln_int[iquad] + soln_ext);
-                const Tensor <1, dim, ADtype> conv_eig = pde_physics->convective_eigenvalues(soln_avg);
-                ADtype max_abs_eig = std::abs(conv_eig[0]);
-                for (int i=1; i<dim; i++) {
-                    const ADtype value = std::abs(conv_eig[i]);
-                    if(value > max_abs_eig) max_abs_eig = value;
+                // eig(flux \cdot n)
+                const std::vector<ADtype> conv_eig_int = pde_physics->convective_eigenvalues(soln_int[iquad], normal_int);
+                const std::vector<ADtype> conv_eig_ext = pde_physics->convective_eigenvalues(soln_ext, normal_int); // using the same normal
+
+                std::vector<ADtype> conv_eig_max(nstate);
+                for (int i=0; i<nstate; i++) {
+                    conv_eig_max[i] = std::max(std::abs(conv_eig_int[i]), std::abs(conv_eig_ext[i]));
                 }
 
                 // Scalar dissipation
-                Tensor< 1, dim, ADtype > numerical_flux = flux_avg + 0.5 * max_abs_eig * soln_jump;
+                ADtype numerical_flux_dot_n = flux_avg*normal_int - 0.5 * conv_eig_max[0] * (soln_ext-soln_int[iquad]);
 
+                Tensor< 1, dim, ADtype > numerical_flux;
                 if (inflow) {
                     numerical_flux = conv_phys_flux_ext;
                 } else {
@@ -231,7 +213,8 @@ namespace PHiLiP
                 const ADtype normal_int_numerical_flux = numerical_flux*normal_int;
 
                 rhs += 
-                    -normal_int_numerical_flux *
+                    //-normal_int_numerical_flux *
+                    -numerical_flux_dot_n *
                     fe_values_face->shape_value(itest,iquad) *
                     JxW[iquad];
 
@@ -290,7 +273,7 @@ namespace PHiLiP
 
         // Use quadrature points of neighbor cell
         // Might want to use the maximum n_quad_pts1 and n_quad_pts2
-        const unsigned int n_quad_pts = fe_values_face_neighbor->n_quadrature_points;
+        const unsigned int n_face_quad_pts = fe_values_face_neighbor->n_quadrature_points;
 
         const unsigned int n_dofs_current_cell = fe_values_face_current->dofs_per_cell;
         const unsigned int n_dofs_neighbor_cell = fe_values_face_neighbor->dofs_per_cell;
@@ -325,17 +308,17 @@ namespace PHiLiP
         std::vector<real> dR2_dW1(n_dofs_current_cell);
         std::vector<real> dR2_dW2(n_dofs_neighbor_cell);
 
-        std::vector<ADtype> normal_int_numerical_flux(n_quad_pts);
+        std::vector<ADtype> normal_int_numerical_flux(n_face_quad_pts);
 
 
         // Interpolate solution to the face quadrature points
-        std::vector< ADtype > soln_int(n_quad_pts);
-        std::vector< ADtype > soln_ext(n_quad_pts);
+        std::vector< ADtype > soln_int(n_face_quad_pts);
+        std::vector< ADtype > soln_ext(n_face_quad_pts);
 
-        std::vector< Tensor< 1, dim, ADtype > > soln_grad_int(n_quad_pts); // Tensor initialize with zeros
-        std::vector< Tensor< 1, dim, ADtype > > soln_grad_ext(n_quad_pts); // Tensor initialize with zeros
+        std::vector< Tensor< 1, dim, ADtype > > soln_grad_int(n_face_quad_pts); // Tensor initialize with zeros
+        std::vector< Tensor< 1, dim, ADtype > > soln_grad_ext(n_face_quad_pts); // Tensor initialize with zeros
 
-        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
             soln_int[iquad]      = 0;
             soln_ext[iquad]      = 0;
             soln_grad_int[iquad] = 0;
@@ -344,11 +327,11 @@ namespace PHiLiP
             // Interpolate solution to face
             for (unsigned int itrial=0; itrial<n_dofs_current_cell; itrial++) {
                 soln_int[iquad]      += current_solution_ad[itrial] * fe_values_face_current->shape_value(itrial, iquad);
-                soln_grad_int[iquad] += current_solution_ad[itrial] * fe_values_face_current->shape_grad(itrial,iquad);
+                soln_grad_int[iquad] += current_solution_ad[itrial] * fe_values_face_current->shape_grad(itrial, iquad);
             }
             for (unsigned int itrial=0; itrial<n_dofs_neighbor_cell; itrial++) {
                 soln_ext[iquad]      += neighbor_solution_ad[itrial] * fe_values_face_neighbor->shape_value(itrial, iquad);
-                soln_grad_ext[iquad] += neighbor_solution_ad[itrial] * fe_values_face_neighbor->shape_grad(itrial,iquad);
+                soln_grad_ext[iquad] += neighbor_solution_ad[itrial] * fe_values_face_neighbor->shape_grad(itrial, iquad);
             }
 
             normal_int_numerical_flux[iquad] = 0;
@@ -370,22 +353,38 @@ namespace PHiLiP
             const Tensor< 1, dim, ADtype > flux_avg = 0.5*(conv_phys_flux_int + conv_phys_flux_ext);
             // Evaluate spectral radius used for scalar dissipation
             const ADtype soln_avg  = 0.5*(soln_int[iquad] + soln_ext[iquad]);
-            const Tensor <1, dim, ADtype> conv_eig = pde_physics->convective_eigenvalues(soln_avg);
-            ADtype max_abs_eig = std::abs(conv_eig[0]);
-            for (int i=1; i<dim; i++) {
-                const ADtype value = std::abs(conv_eig[i]);
-                if(value > max_abs_eig) max_abs_eig = value;
-            }
-            Tensor< 1, dim, ADtype > numerical_flux = flux_avg + 0.5 * max_abs_eig * soln_jump;
-                const ADtype vel_dot_normal = conv_eig * normal1;
-                const bool inflow = (vel_dot_normal < 0.);
-                if (inflow) {
-                    numerical_flux = conv_phys_flux_ext;
-                } else {
-                    numerical_flux = conv_phys_flux_int;
-                }
 
-            normal_int_numerical_flux[iquad] = numerical_flux*normal1;
+            const int nstate = 1;
+            //Tensor< 1, dim, ADtype > numerical_flux;
+            //const Tensor <1, dim, ADtype> conv_eig = pde_physics->convective_eigenvalues(soln_avg);
+            //ADtype max_abs_eig = std::abs(conv_eig[0]);
+            //for (int i=1; i<dim; i++) {
+            //    const ADtype value = std::abs(conv_eig[i]);
+            //    if(value > max_abs_eig) max_abs_eig = value;
+            //}
+            //numerical_flux = flux_avg + 0.5 * max_abs_eig * soln_jump;
+
+            //  std::vector<ADtype> characteristic_dot_n_at_q(nstate);
+            //  characteristic_dot_n_at_q = pde_physics->convective_eigenvalues(soln_int[iquad], normal1);
+            //  const bool inflow = (characteristic_dot_n_at_q[0] < 0.);
+            //  if (inflow) {
+            //      numerical_flux = conv_phys_flux_ext;
+            //  } else {
+            //      numerical_flux = conv_phys_flux_int;
+            //  }
+
+            const std::vector<ADtype> conv_eig_int = pde_physics->convective_eigenvalues(soln_int[iquad], normal1);
+            const std::vector<ADtype> conv_eig_ext = pde_physics->convective_eigenvalues(soln_ext[iquad], normal1); // using the same normal
+
+            std::vector<ADtype> conv_eig_max(nstate);
+            for (int i=0; i<nstate; i++) {
+                conv_eig_max[i] = std::max(std::abs(conv_eig_int[i]), std::abs(conv_eig_ext[i]));
+            }
+
+            // Scalar dissipation
+            ADtype numerical_flux_dot_n = flux_avg*normal1 - 0.5 * conv_eig_max[0] * (soln_ext[iquad]-soln_int[iquad]);
+
+            normal_int_numerical_flux[iquad] = numerical_flux_dot_n;
         }
 
         for (unsigned int itest_current=0; itest_current<n_dofs_current_cell; ++itest_current) {
@@ -393,7 +392,7 @@ namespace PHiLiP
             // *******************
             ADtype rhs = 0;
 
-            for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
                 // Convection
                 rhs -=
                     fe_values_face_current->shape_value(itest_current,iquad) *
@@ -455,7 +454,7 @@ namespace PHiLiP
             // From test functions associated with neighbour cell point of view
             // *******************
             ADtype rhs = 0;
-            for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
                 // Convection
                 rhs -=
                     fe_values_face_neighbor->shape_value(itest_neighbor,iquad) *

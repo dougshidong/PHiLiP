@@ -70,8 +70,8 @@ namespace PHiLiP
         /// For now, use linear mapping of domain boundaries.
         /// May need to use MappingQ or MappingQGeneric to represent curved 
         //// boundaries iso/superparametrically.
-        //const MappingQ<dim,dim> mapping;
-        const MappingQGeneric<dim,dim> mapping;
+        const MappingQ<dim,dim> mapping;
+        //const MappingQGeneric<dim,dim> mapping;
 
 
         // Lagrange polynomial basis

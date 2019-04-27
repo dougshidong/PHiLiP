@@ -1,9 +1,7 @@
 set(TARGET_SRC 
     numerical_flux.cpp
     linear_solver.cpp
-    manufactured_solution.cpp
     grid_study.cpp
-    assemble_explicit.cpp 
     assemble_implicit.cpp 
     parameters.cpp
     dg.cpp

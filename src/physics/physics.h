@@ -78,8 +78,14 @@ namespace PHiLiP
             Tensor<1, dim, real> &soln_grad_bc);
 
         // Some constants used to define manufactured solution
-        const double freq_x = 1*1.59/dim, freq_y = 2*1.81/dim, freq_z = 3*1.76/dim;
-        const double offs_x = 1, offs_y = 1.2, offs_z = 1.5;
+        //const double freq_x = 1*1.59/dim, freq_y = 2*1.81/dim, freq_z = 3*1.76/dim;
+        //const double offs_x = 1, offs_y = 1.2, offs_z = 1.5;
+
+        const double pi = atan(1)*4.0;
+        const double freq_x = 1.59/dim, freq_y = 2*1.81/dim,    freq_z = 3*1.76/dim;
+        const double offs_x = 1,        offs_y = 1.2,           offs_z = 1.5;
+        const double velo_x = exp(1)/2, velo_y =-pi/4.0,        velo_z = sqrt(2);
+        const double diff_coeff = 50.0;
     };
 
     // This class with create a new Physics object corresponding to the pde_type

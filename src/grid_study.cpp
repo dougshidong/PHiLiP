@@ -18,7 +18,6 @@
 #include "linear_solver.h"
 #include "ode_solver.h"
 
-#include "manufactured_solution.h"
 namespace PHiLiP
 {
     using namespace dealii;
@@ -27,11 +26,11 @@ namespace PHiLiP
     Point<dim> warp (const Point<dim> &p)
     {
       Point<dim> q = p;
-      q[dim-1] *= 5;
+      q[dim-1] *= 1.5;
       if (dim >= 2)
-        q[0] += 2*std::sin(q[dim-1]);
+        q[0] += 1*std::sin(q[dim-1]);
       if (dim >= 3)
-        q[1] += 2*std::cos(q[dim-1]);
+        q[1] += 1*std::cos(q[dim-1]);
       return q;
     }
 
@@ -81,11 +80,13 @@ namespace PHiLiP
 
         Physics<dim,1,double> *physics_double = PhysicsFactory<dim, 1, double>::create_Physics(parameters.pde_type);
 
+        std::vector<int> fail_conv_poly;
+        std::vector<double> fail_conv_slop;
         for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
 
             // p0 tends to require a finer grid to reach asymptotic region
             unsigned int n_grids = n_grids_input;
-            if (poly_degree == 0) n_grids = n_grids_input + 2;
+            if (poly_degree == 0) n_grids = n_grids_input + 3;
 
             std::vector<int> n_1d_cells(n_grids);
             n_1d_cells[0] = initial_grid_size;
@@ -104,51 +105,66 @@ namespace PHiLiP
                 // DiscontinuousGalerkin will be destructed before Triangulation
                 // thus removing any dependence of Triangulation and allowing Triangulation to be destructed
                 // Otherwise, a Subscriptor error will occur
+
                 Triangulation<dim> grid;
-                std::cout << "Generating hypercube for grid convergence... " << std::endl;
-                GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid]);
-                Point<dim> zero;
-                //GridGenerator::hyper_cube_with_cylindrical_hole(grid, 0.25, 0.5, 0.5, n_1d_cells[igrid],false);
+
+                bool generate_square_mesh = true;
+                bool sine_mesh = false;
+                const double factor = 0.0000; // should be less than 0.5
+                const bool keep_boundary = true;
+                bool readmesh = false, writemesh = true;
+
+                if (generate_square_mesh) {
+                    GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid]);
+                    for (
+                        typename Triangulation<dim>::active_cell_iterator
+                        cell = grid.begin_active(); cell != grid.end(); ++cell)
+                    {
+                        cell->set_material_id(9002);
+                        for (unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; ++f)
+                            if (cell->face(f)->at_boundary())
+                                  cell->face(f)->set_boundary_id (9001);
+                    }
+                }
+                //if (generate_square_mesh) GridGenerator::hyper_cube_with_cylindrical_hole(grid, 0.25, 0.5, 0.5, n_1d_cells[igrid],false);
+
+                //std::string read_mshname = "squareunsquad0.msh";
+                //std::cout<<"Reading grid: " << read_mshname << std::endl;
+                //std::ifstream inmesh(read_mshname);
+                //GridIn<dim,dim> grid_in;
+                //grid_in.attach_triangulation(grid);
+                //grid_in.read_msh(inmesh);
                 //grid.refine_global(igrid);
 
 
                 //   Distort grid by random amount
-                const double factor = 0.1500; // should be less than 0.5
-                const bool keep_boundary = true;
-                GridTools::distort_random (factor, grid, keep_boundary);
+                if (factor >= 1e-10) GridTools::distort_random (factor, grid, keep_boundary);
+                //Point<dim> zero;
                 //GridTools::rotate (30, grid);
-                bool warpmesh = false;
-                if (warpmesh) GridTools::transform (&warp<dim>, grid);
+                if (sine_mesh) GridTools::transform (&warp<dim>, grid);
 
-                std::string mshname = "grid-"+std::to_string(igrid)+".msh";
 
-                for (
-                    typename Triangulation<dim>::active_cell_iterator
-                    cell = grid.begin_active(); cell != grid.end(); ++cell)
-                {
-                    cell->set_material_id(9002);
-                    for (unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; ++f)
-                        if (cell->face(f)->at_boundary())
-                              cell->face(f)->set_boundary_id (9001);
+                if (readmesh) {
+                    //std::string write_mshname = "grid-"+std::to_string(igrid)+".msh";
+                    std::string read_mshname = "squareunsquad"+std::to_string(igrid)+".msh";
+                    std::cout<<"Reading grid: " << read_mshname << std::endl;
+                    std::ifstream inmesh(read_mshname);
+                    GridIn<dim,dim> grid_in;
+                    grid_in.attach_triangulation(grid);
+                    grid_in.read_msh(inmesh);
                 }
-                bool readmesh = false, writemesh = true;
                 if (writemesh) {
-                    std::ofstream outmesh(mshname);
+                    std::string write_mshname = "grid-"+std::to_string(igrid)+".msh";
+                    std::ofstream outmesh(write_mshname);
                     GridOutFlags::Msh msh_flags(true, true);
                     GridOut grid_out;
                     grid_out.set_flags(msh_flags);
                     grid_out.write_msh(grid, outmesh);
                 }
 
-                if (readmesh) {
-                    std::ifstream inmesh(mshname);
-                    GridIn<dim,dim> grid_in;
-                    grid_in.attach_triangulation(grid);
-                    grid_in.read_msh(inmesh);
-                }
 
                 std::string gridname = "grid-"+std::to_string(igrid)+".eps";
-                print_mesh_info (grid, gridname);
+                if (dim == 2) print_mesh_info (grid, gridname);
 
 
                 const int nstate = 1;
@@ -168,7 +184,7 @@ namespace PHiLiP
                           << "Dimension: " << dim
                           << "\t Polynomial degree p: " << poly_degree
                           << std::endl
-                          << "Grid number: " << igrid+1 << "/" << n_grids+1
+                          << "Grid number: " << igrid+1 << "/" << n_grids
                           << ". Number of active cells: " << n_active_cells
                           << ". Number of degrees of freedom: " << dg.dof_handler.n_dofs()
                           << std::endl;
@@ -179,7 +195,7 @@ namespace PHiLiP
                 std::vector<unsigned int> dof_indices(dg.fe.dofs_per_cell);
 
                 // Overintegrate by alot
-                QGauss<dim> quad_plus20(dg.fe.degree+10);
+                QGauss<dim> quad_plus20(dg.fe.degree+5);
                 FEValues<dim,dim> fe_values_plus20(dg.mapping, dg. fe,quad_plus20, update_values | update_JxW_values | update_quadrature_points);
 
                 const unsigned int n_quad_pts = fe_values_plus20.n_quadrature_points;
@@ -225,7 +241,7 @@ namespace PHiLiP
 
                 bool integrate_boundary = false;
                 if (integrate_boundary) {
-                    QGauss<dim-1> quad_face_plus20(dg.fe.degree+10);
+                    QGauss<dim-1> quad_face_plus20(dg.fe.degree+5);
                     solution_integral = 0;
                     FEFaceValues<dim,dim> fe_face_values_plus20(dg.mapping, dg.fe, quad_face_plus20, update_normal_vectors | update_values | update_JxW_values | update_quadrature_points);
                     unsigned int n_face_quad_pts = fe_face_values_plus20.n_quadrature_points;
@@ -323,8 +339,6 @@ namespace PHiLiP
                 << std::endl
                 << " ********************************************"
                 << std::endl;
-            //convergence_table.omit_column_from_convergence_rate_evaluation("cells");
-            //convergence_table.omit_column_from_convergence_rate_evaluation("dx");
             convergence_table.evaluate_convergence_rates("soln_L2_error", "cells", ConvergenceTable::reduction_rate_log2, dim);
             convergence_table.evaluate_convergence_rates("output_error", "cells", ConvergenceTable::reduction_rate_log2, dim);
             convergence_table.set_scientific("dx", true);
@@ -344,31 +358,6 @@ namespace PHiLiP
             //delete grid;
             //grid = NULL;
 
-            std::cout << std::endl << std::endl;
-            //for (unsigned int igrid=0; igrid<n_grids-1; ++igrid) {
-
-            //    const double slope_soln_err = log(soln_error[igrid+1]/soln_error[igrid])
-            //                          / log(grid_size[igrid+1]/grid_size[igrid]);
-            //    const double slope_output_err = log(output_error[igrid+1]/output_error[igrid])
-            //                          / log(grid_size[igrid+1]/grid_size[igrid]);
-            //    std::cout << "From grid " << igrid+1
-            //              << "  to grid " << igrid+1+1
-            //              << "  dimension: " << dim
-            //              << "  polynomial degree p: " << poly_degree
-            //              << std::endl
-            //              << "  solution_error1 " << soln_error[igrid]
-            //              << "  solution_error2 " << soln_error[igrid+1]
-            //              << "  slope " << slope_soln_err
-            //              << std::endl
-            //              << "  solution_integral_error1 " << output_error[igrid]
-            //              << "  solution_integral_error2 " << output_error[igrid+1]
-            //              << "  slope " << slope_output_err
-            //              << std::endl;
-
-            //}
-            std::cout << std::endl << std::endl;
-
-
             const double last_slope = log(soln_error[n_grids-1]/soln_error[n_grids-2])
                                       / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
             const double expected_slope = poly_degree+1;
@@ -382,11 +371,27 @@ namespace PHiLiP
                           << expected_slope << " within a tolerance of "
                           << slope_deficit_tolerance
                           << std::endl;
-                //return 1;
+                fail_conv_poly.push_back(poly_degree);
+                fail_conv_slop.push_back(last_slope);
             }
 
         }
-        return 0;
+        int n_fail_poly = fail_conv_poly.size();
+        if (n_fail_poly > 0) {
+            for (int ifail=0; ifail < n_fail_poly; ++ifail) {
+                const double expected_slope = fail_conv_poly[ifail]+1;
+                const double slope_deficit_tolerance = -0.1;
+                std::cout << std::endl
+                          << "Convergence order not achieved for polynomial p = "
+                          << fail_conv_poly[ifail]
+                          << ". Slope of "
+                          << fail_conv_slop[ifail] << " instead of expected "
+                          << expected_slope << " within a tolerance of "
+                          << slope_deficit_tolerance
+                          << std::endl;
+            }
+        }
+        return n_fail_poly;
 
     }
     template int manufactured_grid_convergence<PHILIP_DIM> (Parameters::AllParameters &parameters);

@@ -119,16 +119,15 @@ namespace PHiLiP
     ::advection_speed ()
     {
         Tensor <1, dim, real> advection_speed;
-        const double pi = atan(1)*4.0;
         // Works but requires finer grid for optimal convergence.
         //if(dim >= 1) advection_speed[0] = 1.0;
         //if(dim >= 2) advection_speed[1] = -pi; // -pi/2
         //if(dim >= 3) advection_speed[2] = sqrt(2);
         //advection_speed = advection_speed / pi;
 
-        if(dim >= 1) advection_speed[0] = exp(1)/2.0;
-        if(dim >= 2) advection_speed[1] = -pi/4.0;
-        if(dim >= 3) advection_speed[2] = sqrt(2);
+        if(dim >= 1) advection_speed[0] = this->velo_x;
+        if(dim >= 2) advection_speed[1] = this->velo_y;
+        if(dim >= 3) advection_speed[2] = this->velo_z;
 
         return advection_speed;
     }
@@ -205,7 +204,7 @@ namespace PHiLiP
     ::dissipative_flux (const real &/*solution*/,
                         const Tensor<1,dim,real> &solution_gradient,
                         Tensor<1,dim,real> &diss_flux)
-    { diss_flux = -solution_gradient; }
+    { diss_flux = -(this->diff_coeff)*solution_gradient; }
 
     template <int dim, int nstate, typename real>
     void Diffusion<dim, nstate, real>
@@ -214,19 +213,20 @@ namespace PHiLiP
         using phys = Physics<dim,nstate,real>;
         const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
         const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
+        const double diff_coeff = this->diff_coeff;
         if (dim==1) {
             const real x = pos[0];
-            source = a*a*sin(a*x+d);
+            source = diff_coeff*a*a*sin(a*x+d);
         } else if (dim==2) {
             const real x = pos[0], y = pos[1];
-            source = a*a*sin(a*x+d)*sin(b*y+e) +
-                     b*b*sin(a*x+d)*sin(b*y+e);
+            source = diff_coeff*a*a*sin(a*x+d)*sin(b*y+e) +
+                     diff_coeff*b*b*sin(a*x+d)*sin(b*y+e);
         } else if (dim==3) {
             const real x = pos[0], y = pos[1], z = pos[2];
 
-            source =  a*a*sin(a*x+d)*sin(b*y+e)*sin(c*z+f) +
-                      b*b*sin(a*x+d)*sin(b*y+e)*sin(c*z+f) +
-                      c*c*sin(a*x+d)*sin(b*y+e)*sin(c*z+f);
+            source =  diff_coeff*a*a*sin(a*x+d)*sin(b*y+e)*sin(c*z+f) +
+                      diff_coeff*b*b*sin(a*x+d)*sin(b*y+e)*sin(c*z+f) +
+                      diff_coeff*c*c*sin(a*x+d)*sin(b*y+e)*sin(c*z+f);
         }
     }
 
@@ -245,11 +245,10 @@ namespace PHiLiP
     ::advection_speed ()
     {
         Tensor <1, dim, real> advection_speed;
-        const double pi = atan(1)*4.0;
 
-        if(dim >= 1) advection_speed[0] = 1.0;
-        if(dim >= 2) advection_speed[1] = -pi/4.0;
-        if(dim >= 3) advection_speed[2] = sqrt(2);
+        if(dim >= 1) advection_speed[0] = this->velo_x;
+        if(dim >= 2) advection_speed[1] = this->velo_y;
+        if(dim >= 3) advection_speed[2] = this->velo_z;
         return advection_speed;
     }
 
@@ -268,9 +267,7 @@ namespace PHiLiP
     ::dissipative_flux (const real &/*solution*/,
                         const Tensor<1,dim,real> &solution_gradient,
                         Tensor<1,dim,real> &diss_flux)
-    {
-        diss_flux = -solution_gradient;
-    }
+    { diss_flux = -(this->diff_coeff)*solution_gradient; }
 
     template <int dim, int nstate, typename real>
     void ConvectionDiffusion<dim, nstate, real>
@@ -280,24 +277,26 @@ namespace PHiLiP
         using phys = Physics<dim,nstate,real>;
         const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
         const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
+
+        const double diff_coeff = this->diff_coeff;
         if (dim==1) {
             const real x = pos[0];
             source = velocity_field[0]*a*cos(a*x+d) +
-                     a*a*sin(a*x+d);
+                     diff_coeff*a*a*sin(a*x+d);
         } else if (dim==2) {
             const real x = pos[0], y = pos[1];
             source = velocity_field[0]*a*cos(a*x+d)*sin(b*y+e) +
                      velocity_field[1]*b*sin(a*x+d)*cos(b*y+e) +
-                     a*a*sin(a*x+d)*sin(b*y+e) +
-                     b*b*sin(a*x+d)*sin(b*y+e);
+                     diff_coeff*a*a*sin(a*x+d)*sin(b*y+e) +
+                     diff_coeff*b*b*sin(a*x+d)*sin(b*y+e);
         } else if (dim==3) {
             const real x = pos[0], y = pos[1], z = pos[2];
             source =   velocity_field[0]*a*cos(a*x+d)*sin(b*y+e)*sin(c*z+f) +
                        velocity_field[1]*b*sin(a*x+d)*cos(b*y+e)*sin(c*z+f) +
                        velocity_field[2]*c*sin(a*x+d)*sin(b*y+e)*cos(c*z+f) +
-                       a*a*sin(a*x+d)*sin(b*y+e)*sin(c*z+f) +
-                       b*b*sin(a*x+d)*sin(b*y+e)*sin(c*z+f) +
-                       c*c*sin(a*x+d)*sin(b*y+e)*sin(c*z+f);
+                       diff_coeff*a*a*sin(a*x+d)*sin(b*y+e)*sin(c*z+f) +
+                       diff_coeff*b*b*sin(a*x+d)*sin(b*y+e)*sin(c*z+f) +
+                       diff_coeff*c*c*sin(a*x+d)*sin(b*y+e)*sin(c*z+f);
         }
     }
     // Instantiate

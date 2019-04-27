@@ -13,27 +13,26 @@
 #include <deal.II/differentiation/ad/sacado_product_types.h>
 
 #include "dg.h"
-#include "boundary.h"
-
-#include "manufactured_solution.h"
+//#include "boundary.h"
+//#include "manufactured_solution.h"
 namespace PHiLiP
 {
     using namespace dealii;
 
     template <int dim, typename real>
     void DiscontinuousGalerkin<dim, real>::assemble_cell_terms_implicit(
-        const FEValues<dim,dim> *fe_values,
+        const FEValues<dim,dim> *fe_values_vol,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<real> &current_cell_rhs)
     {
         using ADtype = Sacado::Fad::DFad<real>;
 
-        const unsigned int n_quad_pts      = fe_values->n_quadrature_points;
-        const unsigned int n_dofs_cell     = fe_values->dofs_per_cell;
+        const unsigned int n_quad_pts      = fe_values_vol->n_quadrature_points;
+        const unsigned int n_dofs_cell     = fe_values_vol->dofs_per_cell;
 
         AssertDimension (n_dofs_cell, current_dofs_indices.size());
 
-        const std::vector<real> &JxW = fe_values->get_JxW_values ();
+        const std::vector<real> &JxW = fe_values_vol->get_JxW_values ();
 
         // AD variable
         std::vector< ADtype > solution_ad(n_dofs_cell);
@@ -57,14 +56,14 @@ namespace PHiLiP
             soln_grad_at_q[iquad] = 0;
             // Interpolate solution to face
             for (unsigned int itrial=0; itrial<n_dofs_cell; itrial++) {
-                soln_at_q[iquad]      += solution_ad[itrial] * fe_values->shape_value(itrial, iquad);
-                soln_grad_at_q[iquad] += solution_ad[itrial] * fe_values->shape_grad(itrial, iquad);
+                soln_at_q[iquad]      += solution_ad[itrial] * fe_values_vol->shape_value(itrial, iquad);
+                soln_grad_at_q[iquad] += solution_ad[itrial] * fe_values_vol->shape_grad(itrial, iquad);
             }
 
             // Evaluate physical convective flux and source term
             pde_physics->convective_flux (soln_at_q[iquad], conv_phys_flux_at_q[iquad]);
             pde_physics->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad], diss_phys_flux_at_q[iquad]);
-            pde_physics->source_term (fe_values->quadrature_point(iquad), soln_at_q[iquad], source_at_q[iquad]);
+            pde_physics->source_term (fe_values_vol->quadrature_point(iquad), soln_at_q[iquad], source_at_q[iquad]);
         }
 
         for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
@@ -81,12 +80,12 @@ namespace PHiLiP
                 // Weak form
 
                 // Convective
-                rhs += conv_phys_flux_at_q[iquad] * fe_values->shape_grad(itest,iquad) * JxW[iquad];
+                rhs += conv_phys_flux_at_q[iquad] * fe_values_vol->shape_grad(itest,iquad) * JxW[iquad];
                 // Diffusive
                 // Note that for diffusion, the negative is defined in the physics
-                rhs += diss_phys_flux_at_q[iquad] * fe_values->shape_grad(itest,iquad) * JxW[iquad];
+                rhs += diss_phys_flux_at_q[iquad] * fe_values_vol->shape_grad(itest,iquad) * JxW[iquad];
                 // Source
-                rhs += source_at_q[iquad] * fe_values->shape_value(itest,iquad) * JxW[iquad];
+                rhs += source_at_q[iquad] * fe_values_vol->shape_value(itest,iquad) * JxW[iquad];
             }
 
             current_cell_rhs(itest) += rhs.val();
@@ -99,37 +98,39 @@ namespace PHiLiP
         }
     }
     template void DiscontinuousGalerkin<PHILIP_DIM, double>::assemble_cell_terms_implicit(
-        const FEValues<PHILIP_DIM,PHILIP_DIM> *fe_values,
+        const FEValues<PHILIP_DIM,PHILIP_DIM> *fe_values_vol,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<double> &current_cell_rhs);
 
 
     template <int dim, typename real>
     void DiscontinuousGalerkin<dim,real>::assemble_boundary_term_implicit(
-        const FEFaceValues<dim,dim> *fe_values_face,
+        const FEFaceValues<dim,dim> *fe_values_boundary,
         const real penalty,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<real> &current_cell_rhs)
     {
         using ADtype = Sacado::Fad::DFad<real>;
-        const unsigned int n_dofs_cell = fe_values_face->dofs_per_cell;
-        const unsigned int n_face_quad_pts = fe_values_face->n_quadrature_points;
+        const unsigned int n_dofs_cell = fe_values_boundary->dofs_per_cell;
+        const unsigned int n_face_quad_pts = fe_values_boundary->n_quadrature_points;
 
         AssertDimension (n_dofs_cell, current_dofs_indices.size());
 
-        const std::vector<real> &JxW = fe_values_face->get_JxW_values ();
-        const std::vector<Tensor<1,dim> > &normals = fe_values_face->get_normal_vectors ();
+        const std::vector<real> &JxW = fe_values_boundary->get_JxW_values ();
+        const std::vector<Tensor<1,dim> > &normals = fe_values_boundary->get_normal_vectors ();
 
         // Recover boundary values at quadrature points
-        std::vector<real> boundary_values(n_face_quad_pts);
-        static Boundary<dim> boundary_function;
-        const unsigned int dummy = 0; // Virtual function that requires 3 arguments
-        boundary_function.value_list (fe_values_face->get_quadrature_points(), boundary_values, dummy);
-        const std::vector< Point<dim, real> > quad_pts = fe_values_face->get_quadrature_points();
-        //for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
-        //    const Point<dim, real> x_quad = quad_pts[iquad];
-        //    pde_physics->manufactured_solution(x_quad, boundary_values[iquad]);
-        //}
+        //std::vector<real> boundary_values(n_face_quad_pts);
+        //static Boundary<dim> boundary_function;
+        //const unsigned int dummy = 0; // Virtual function that requires 3 arguments
+        //boundary_function.value_list (fe_values_boundary->get_quadrature_points(), boundary_values, dummy);
+
+        std::vector<ADtype> boundary_values(n_face_quad_pts);
+        const std::vector< Point<dim, real> > quad_pts = fe_values_boundary->get_quadrature_points();
+        for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+            const Point<dim, real> x_quad = quad_pts[iquad];
+            pde_physics->manufactured_solution(x_quad, boundary_values[iquad]);
+        }
 
         // AD variable
         std::vector< ADtype > solution_ad(n_dofs_cell);
@@ -152,8 +153,8 @@ namespace PHiLiP
             soln_grad_int[iquad] = 0;
             // Interpolate solution to face
             for (unsigned int itrial=0; itrial<n_dofs_cell; itrial++) {
-                soln_int[iquad]      += solution_ad[itrial] * fe_values_face->shape_value(itrial, iquad);
-                soln_grad_int[iquad] += solution_ad[itrial] * fe_values_face->shape_grad(itrial, iquad);
+                soln_int[iquad]      += solution_ad[itrial] * fe_values_boundary->shape_value(itrial, iquad);
+                soln_grad_int[iquad] += solution_ad[itrial] * fe_values_boundary->shape_grad(itrial, iquad);
             }
             // Evaluate physical convective flux and source term
             pde_physics->convective_flux (soln_int[iquad], conv_phys_flux_int[iquad]);
@@ -179,8 +180,10 @@ namespace PHiLiP
                 characteristic_dot_n_at_q = pde_physics->convective_eigenvalues(boundary_values[iquad], normal_int);
                 const bool inflow = (characteristic_dot_n_at_q[0] < 0.);
                 if (inflow) {
+                    //soln_ext = -soln_int[iquad]+2*boundary_values[iquad];
                     soln_ext = boundary_values[iquad];
                 } else {
+                    // Neumann boundary condition
                     soln_ext = soln_int[iquad];
                 }
                 Tensor< 1, dim, ADtype > conv_phys_flux_ext;
@@ -212,10 +215,10 @@ namespace PHiLiP
 
                 const ADtype normal_int_numerical_flux = numerical_flux*normal_int;
 
-                rhs += 
-                    //-normal_int_numerical_flux *
-                    -numerical_flux_dot_n *
-                    fe_values_face->shape_value(itest,iquad) *
+                rhs -= 
+                    //normal_int_numerical_flux *
+                    numerical_flux_dot_n *
+                    fe_values_boundary->shape_value(itest,iquad) *
                     JxW[iquad];
 
                 // Diffusion
@@ -230,9 +233,9 @@ namespace PHiLiP
 
                 // Note: The test function is piece-wise defined to be non-zero only on the associated cell
                 //       and zero everywhere else.
-                const real test_int = fe_values_face->shape_value(itest, iquad);
+                const real test_int = fe_values_boundary->shape_value(itest, iquad);
                 const real test_ext = 0;
-                const Tensor<1,dim,real> test_grad_int = fe_values_face->shape_grad(itest, iquad);
+                const Tensor<1,dim,real> test_grad_int = fe_values_boundary->shape_grad(itest, iquad);
                 const Tensor<1,dim,real> test_grad_ext;// = 0;
 
                 //const Tensor<1,dim,ADtype> soln_jump        = (soln_int[iquad] - soln_ext) * normal_int;
@@ -254,15 +257,15 @@ namespace PHiLiP
         }
     }
     template void DiscontinuousGalerkin<PHILIP_DIM,double>::assemble_boundary_term_implicit(
-        const FEFaceValues<PHILIP_DIM,PHILIP_DIM> *fe_values_face,
+        const FEFaceValues<PHILIP_DIM,PHILIP_DIM> *fe_values_boundary,
         const double penalty,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<double> &current_cell_rhs);
 
     template <int dim, typename real>
     void DiscontinuousGalerkin<dim, real>::assemble_face_term_implicit(
-        const FEValuesBase<dim,dim>     *fe_values_face_current,
-        const FEFaceValues<dim,dim>     *fe_values_face_neighbor,
+        const FEValuesBase<dim,dim>     *fe_values_int,
+        const FEFaceValues<dim,dim>     *fe_values_ext,
         const real penalty,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         const std::vector<types::global_dof_index> &neighbor_dofs_indices,
@@ -273,18 +276,18 @@ namespace PHiLiP
 
         // Use quadrature points of neighbor cell
         // Might want to use the maximum n_quad_pts1 and n_quad_pts2
-        const unsigned int n_face_quad_pts = fe_values_face_neighbor->n_quadrature_points;
+        const unsigned int n_face_quad_pts = fe_values_ext->n_quadrature_points;
 
-        const unsigned int n_dofs_current_cell = fe_values_face_current->dofs_per_cell;
-        const unsigned int n_dofs_neighbor_cell = fe_values_face_neighbor->dofs_per_cell;
+        const unsigned int n_dofs_current_cell = fe_values_int->dofs_per_cell;
+        const unsigned int n_dofs_neighbor_cell = fe_values_ext->dofs_per_cell;
 
         AssertDimension (n_dofs_current_cell, current_dofs_indices.size());
         AssertDimension (n_dofs_neighbor_cell, neighbor_dofs_indices.size());
 
         // Jacobian and normal should always be consistent between two elements
         // even for non-conforming meshes?
-        const std::vector<real> &JxW_int = fe_values_face_current->get_JxW_values ();
-        const std::vector<Tensor<1,dim> > &normals_int = fe_values_face_current->get_normal_vectors ();
+        const std::vector<real> &JxW_int = fe_values_int->get_JxW_values ();
+        const std::vector<Tensor<1,dim> > &normals_int = fe_values_int->get_normal_vectors ();
 
         // AD variable
         std::vector<ADtype> current_solution_ad(n_dofs_current_cell);
@@ -326,12 +329,12 @@ namespace PHiLiP
 
             // Interpolate solution to face
             for (unsigned int itrial=0; itrial<n_dofs_current_cell; itrial++) {
-                soln_int[iquad]      += current_solution_ad[itrial] * fe_values_face_current->shape_value(itrial, iquad);
-                soln_grad_int[iquad] += current_solution_ad[itrial] * fe_values_face_current->shape_grad(itrial, iquad);
+                soln_int[iquad]      += current_solution_ad[itrial] * fe_values_int->shape_value(itrial, iquad);
+                soln_grad_int[iquad] += current_solution_ad[itrial] * fe_values_int->shape_grad(itrial, iquad);
             }
             for (unsigned int itrial=0; itrial<n_dofs_neighbor_cell; itrial++) {
-                soln_ext[iquad]      += neighbor_solution_ad[itrial] * fe_values_face_neighbor->shape_value(itrial, iquad);
-                soln_grad_ext[iquad] += neighbor_solution_ad[itrial] * fe_values_face_neighbor->shape_grad(itrial, iquad);
+                soln_ext[iquad]      += neighbor_solution_ad[itrial] * fe_values_ext->shape_value(itrial, iquad);
+                soln_grad_ext[iquad] += neighbor_solution_ad[itrial] * fe_values_ext->shape_grad(itrial, iquad);
             }
 
             normal_int_numerical_flux[iquad] = 0;
@@ -395,7 +398,7 @@ namespace PHiLiP
             for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
                 // Convection
                 rhs -=
-                    fe_values_face_current->shape_value(itest_current,iquad) *
+                    fe_values_int->shape_value(itest_current,iquad) *
                     normal_int_numerical_flux[iquad] *
                     JxW_int[iquad];
 
@@ -404,7 +407,7 @@ namespace PHiLiP
 
                 //// Note: The test function is piece-wise defined to be non-zero only on the associated cell
                 ////       and zero everywhere else.
-                //const Tensor< 1, dim, real > test_grad_int = fe_values_face_current->shape_grad(itest_current, iquad);
+                //const Tensor< 1, dim, real > test_grad_int = fe_values_int->shape_grad(itest_current, iquad);
                 //const Tensor< 1, dim, real > test_grad_ext; // Constructor initializes with zeros
 
                 //const Tensor< 1, dim, real > normal1        = normals_int[iquad];
@@ -418,13 +421,13 @@ namespace PHiLiP
 
                 // Note: The test function is piece-wise defined to be non-zero only on the associated cell
                 //       and zero everywhere else.
-                const real test_int = fe_values_face_current->shape_value(itest_current, iquad);
+                const real test_int = fe_values_int->shape_value(itest_current, iquad);
                 const real test_ext = 0;
 
                 for (unsigned int idim=0; idim<dim; ++idim) {
                     // Note: The test function is piece-wise defined to be non-zero only on the associated cell
                     //       and zero everywhere else.
-                    const real test_grad_int = fe_values_face_current->shape_grad(itest_current, iquad)[idim];
+                    const real test_grad_int = fe_values_int->shape_grad(itest_current, iquad)[idim];
                     const real test_grad_ext = 0;
 
                     // Using normals from interior point of view
@@ -457,7 +460,7 @@ namespace PHiLiP
             for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
                 // Convection
                 rhs -=
-                    fe_values_face_neighbor->shape_value(itest_neighbor,iquad) *
+                    fe_values_ext->shape_value(itest_neighbor,iquad) *
                     (-normal_int_numerical_flux[iquad]) *
                     JxW_int[iquad];
 
@@ -465,13 +468,13 @@ namespace PHiLiP
 
                 // Note: The test function is piece-wise defined to be non-zero only on the associated cell
                 //       and zero everywhere else.
-                const real test_int = fe_values_face_neighbor->shape_value(itest_neighbor, iquad);
+                const real test_int = fe_values_ext->shape_value(itest_neighbor, iquad);
                 const real test_ext = 0;
 
                 for (unsigned int idim=0; idim<dim; ++idim) {
                     // Note: The test function is piece-wise defined to be non-zero only on the associated cell
                     //       and zero everywhere else.
-                    const real test_grad_int = fe_values_face_neighbor->shape_grad(itest_neighbor, iquad)[idim];
+                    const real test_grad_int = fe_values_ext->shape_grad(itest_neighbor, iquad)[idim];
                     const real test_grad_ext = 0;
 
                     // Using normals from other side
@@ -499,8 +502,8 @@ namespace PHiLiP
         }
     }
     template void DiscontinuousGalerkin<PHILIP_DIM, double>::assemble_face_term_implicit(
-        const FEValuesBase<PHILIP_DIM,PHILIP_DIM>     *fe_values_face_current,
-        const FEFaceValues<PHILIP_DIM,PHILIP_DIM>     *fe_values_face_neighbor,
+        const FEValuesBase<PHILIP_DIM,PHILIP_DIM>     *fe_values_int,
+        const FEFaceValues<PHILIP_DIM,PHILIP_DIM>     *fe_values_ext,
         const double penalty,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         const std::vector<types::global_dof_index> &neighbor_dofs_indices,

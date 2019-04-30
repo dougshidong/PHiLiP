@@ -70,6 +70,7 @@ namespace PHiLiP
     int manufactured_grid_convergence (Parameters::AllParameters &parameters)
     {
         Assert(dim == parameters.dimension, ExcDimensionMismatch(dim, parameters.dimension));
+        const int nstate = 1;
 
         const unsigned int p_start             = parameters.degree_start;
         const unsigned int p_end               = parameters.degree_end;
@@ -167,17 +168,16 @@ namespace PHiLiP
                 if (dim == 2) print_mesh_info (grid, gridname);
 
 
-                const int nstate = 1;
                 using ADtype = Sacado::Fad::DFad<double>;
-                Physics<dim, nstate, ADtype> *physics = PhysicsFactory<dim, nstate, ADtype >::create_Physics(parameters.pde_type);
 
-                DiscontinuousGalerkin<PHILIP_DIM, double> dg(&parameters, poly_degree);
+                DiscontinuousGalerkin<dim, nstate, double> dg(&parameters, poly_degree);
                 dg.set_triangulation(&grid);
-                dg.set_physics(physics);
+                //Physics<dim, nstate, ADtype> *physics = PhysicsFactory<dim, nstate, ADtype >::create_Physics(parameters.pde_type);
+                //dg.set_physics(physics);
                 dg.allocate_system ();
 
                 //ODESolver<dim, double> *ode_solver = ODESolverFactory<dim, double>::create_ODESolver(parameters.solver_type);
-                ODESolver<dim, double> *ode_solver = ODESolverFactory<dim, double>::create_ODESolver(&dg);
+                ODESolver<dim, nstate, double> *ode_solver = ODESolverFactory<dim, nstate, double>::create_ODESolver(&dg);
 
                 unsigned int n_active_cells = grid.n_active_cells();
                 std::cout
@@ -220,7 +220,7 @@ namespace PHiLiP
                     fe_values_plus20.reinit (cell);
                     fe_values_plus20.get_function_values (dg.solution, solution_values_at_q);
 
-                    double uexact = 0;
+                    std::array<double,nstate> uexact;
                     for(unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
                         const Point<dim> qpoint = (fe_values_plus20.quadrature_point(iquad));
 
@@ -230,7 +230,7 @@ namespace PHiLiP
 
 
                         double u_at_q = solution_values_at_q[iquad];
-                        l2error += pow(u_at_q - uexact, 2) * fe_values_plus20.JxW(iquad);
+                        l2error += pow(u_at_q - uexact[0], 2) * fe_values_plus20.JxW(iquad);
 
                         solution_integral += pow(u_at_q, power) * fe_values_plus20.JxW(iquad);
                     }
@@ -267,11 +267,12 @@ namespace PHiLiP
                                     //std::cout << "Quad loop" << std::endl;
                                     const Point<dim> qpoint = (fe_face_values_plus20.quadrature_point(iquad));
 
-                                    double uexact = 0;
+                                    std::array<double,nstate> uexact;
                                     physics_double->manufactured_solution (qpoint, uexact);
 
-                                    std::vector<double> characteristic_dot_n_at_q = physics_double->convective_eigenvalues(uexact, normals[iquad]);
-                                    const bool inflow = (characteristic_dot_n_at_q[0] < 0.);
+                                    std::array<double,nstate> characteristic_dot_n_at_q = physics_double->convective_eigenvalues(uexact, normals[iquad]);
+                                    const int istate = 0;
+                                    const bool inflow = (characteristic_dot_n_at_q[istate] < 0.);
                                     if (inflow) {
                                     } else {
                                         double u_at_q = face_intp_solution_values[iquad];

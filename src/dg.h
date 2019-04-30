@@ -20,6 +20,7 @@
 #include <Sacado.hpp>
 
 #include "physics/physics.h"
+#include "numerical_flux.h"
 #include "parameters.h"
 
 
@@ -27,14 +28,14 @@ namespace PHiLiP
 {
     using namespace dealii;
 
-    template <int dim, typename real>
+    template <int dim, int nstate, typename real>
     class DiscontinuousGalerkin // : public DiscontinuousGalerkin
     {
     public:
-        DiscontinuousGalerkin(
-            Parameters::AllParameters *parameters_input, 
-            Triangulation<dim>   *triangulation_input,
-            const unsigned int degree);
+        //DiscontinuousGalerkin(
+        //    Parameters::AllParameters *parameters_input, 
+        //    Triangulation<dim>   *triangulation_input,
+        //    const unsigned int degree);
         DiscontinuousGalerkin(
             Parameters::AllParameters *parameters_input, 
             const unsigned int degree);
@@ -48,10 +49,7 @@ namespace PHiLiP
         void delete_fe_values ();
 
         void set_triangulation(Triangulation<dim> *triangulation_input) { triangulation = triangulation_input; } ;
-        void set_physics(Physics< dim,1,Sacado::Fad::DFad<real> > *physics) { pde_physics = physics; } ;
-
-        /// Contains the physics of the PDE
-        Physics<dim, 1, Sacado::Fad::DFad<real> >  *pde_physics;
+        //void set_physics(Physics< dim,1,Sacado::Fad::DFad<real> > *physics) { pde_physics = physics; } ;
 
         /// Mesh
         Triangulation<dim>   *triangulation;
@@ -83,10 +81,12 @@ namespace PHiLiP
 
 
     private:
+        /// Contains the physics of the PDE
+        Physics<dim, nstate, Sacado::Fad::DFad<real> >  *pde_physics;
+        NumericalFluxConvective<dim, nstate, Sacado::Fad::DFad<real> > *conv_num_flux;
+
 
         void allocate_system_explicit ();
-
-        void compute_time_step();
 
         void assemble_system_explicit ();
         void assemble_cell_terms_explicit(
@@ -122,7 +122,6 @@ namespace PHiLiP
          * Do nothing since this cell will be taken care of by scenario 2.
          *    
          */
-
         void assemble_system_implicit ();
         void assemble_cell_terms_implicit(
             const FEValues<dim,dim> *fe_values_cell,
@@ -142,18 +141,11 @@ namespace PHiLiP
             Vector<real>          &current_cell_rhs,
             Vector<real>          &neighbor_cell_rhs);
 
-        std::pair<unsigned int, double> solve_linear(Vector<real> &newton_update);
-
         // QGauss is Gauss-Legendre quadrature nodes
         const QGauss<dim>   quadrature;
         const QGauss<dim-1> face_quadrature;
 
-        Vector<real> source_term;
-        Vector<real> cell_rhs;
-
-
         DynamicSparsityPattern sparsity_pattern;
-
 
         FEValues<dim,dim>         *fe_values_cell;
         FEFaceValues<dim,dim>     *fe_values_face_int;

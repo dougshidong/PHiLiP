@@ -16,13 +16,13 @@ namespace PHiLiP
     using namespace dealii;
 
 
-    template <int dim, typename real>
+    template <int dim, int nstate, typename real>
     class ODESolver
     {
     public:
         ODESolver() {};
         ODESolver(int solver_type);
-        ODESolver(DiscontinuousGalerkin<dim, real> *dg_input)
+        ODESolver(DiscontinuousGalerkin<dim, nstate, real> *dg_input)
         :
         dg(dg_input),
         parameters(dg->parameters)
@@ -45,19 +45,19 @@ namespace PHiLiP
         Vector<real> solution_update;
         Vector<real> right_hand_side;
 
-        DiscontinuousGalerkin<dim,real> *dg;
+        DiscontinuousGalerkin<dim,nstate,real> *dg;
 
         Parameters::AllParameters *parameters;
 
     }; // end of ODESolver class
 
-    template<int dim, typename real>
+    template<int dim, int nstate, typename real>
     class Explicit_ODESolver
-        : public ODESolver<dim, real>
+        : public ODESolver<dim, nstate, real>
     {
     public:
         Explicit_ODESolver() {};
-        Explicit_ODESolver(DiscontinuousGalerkin<dim, real> *dg_input)
+        Explicit_ODESolver(DiscontinuousGalerkin<dim, nstate, real> *dg_input)
         :
         dg(dg_input),
         parameters(dg->parameters)
@@ -67,19 +67,19 @@ namespace PHiLiP
         int steady_state ();
     protected:
         void evaluate_solution_update ();
-        DiscontinuousGalerkin<dim,real> *dg;
+        DiscontinuousGalerkin<dim,nstate,real> *dg;
 
         Parameters::AllParameters *parameters;
 
     }; // end of Explicit_ODESolver class
 
-    template<int dim, typename real>
+    template<int dim, int nstate, typename real>
     class Implicit_ODESolver
-        : public ODESolver<dim, real>
+        : public ODESolver<dim, nstate, real>
     {
     public:
         Implicit_ODESolver() {};
-        Implicit_ODESolver(DiscontinuousGalerkin<dim, real> *dg_input)
+        Implicit_ODESolver(DiscontinuousGalerkin<dim, nstate, real> *dg_input)
         :
         dg(dg_input),
         parameters(dg->parameters)
@@ -89,19 +89,19 @@ namespace PHiLiP
         int steady_state ();
     protected:
         void evaluate_solution_update ();
-        DiscontinuousGalerkin<dim,real> *dg;
+        DiscontinuousGalerkin<dim,nstate,real> *dg;
 
         Parameters::AllParameters *parameters;
 
     }; // end of Implicit_ODESolver class
 
-    template <int dim, typename real>
+    template <int dim, int nstate, typename real>
     class ODESolverFactory
     {
     public:
-        static ODESolver<dim,real>* create_ODESolver(DiscontinuousGalerkin<dim, real> *dg_input);
-        static ODESolver<dim,real>* create_ODESolver(Parameters::ODE::SolverType solver_type);
-        //static ODESolver<dim,real> *create_ODESolver(Parameters::ODE::SolverType solver_type);
+        static ODESolver<dim,nstate,real>* create_ODESolver(DiscontinuousGalerkin<dim, nstate, real> *dg_input);
+        static ODESolver<dim,nstate,real>* create_ODESolver(Parameters::ODE::SolverType solver_type);
+        //static ODESolver<dim,nstate,real> *create_ODESolver(Parameters::ODE::SolverType solver_type);
     };
 
 } // end of PHiLiP namespace

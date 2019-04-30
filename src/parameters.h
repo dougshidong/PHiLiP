@@ -84,7 +84,10 @@ namespace Parameters
         PartialDifferentialEquation pde_type;
 
         enum ConvectiveNumericalFlux { lax_friedrichs };
-        ConvectiveNumericalFlux conv_num_flux;
+        ConvectiveNumericalFlux conv_num_flux_type;
+
+        enum DissipativeNumericalFlux { sipg };
+        DissipativeNumericalFlux diss_num_flux_type;
 
         AllParameters();
         //FunctionParser<dim> initial_conditions;

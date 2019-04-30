@@ -40,61 +40,66 @@ namespace PHiLiP
 
 
     // Constructors
-    template <int dim, typename real>
-    DiscontinuousGalerkin<dim, real>::DiscontinuousGalerkin(
+    //template <int dim, int nstate, typename real>
+    //DiscontinuousGalerkin<dim,nstate,real>::DiscontinuousGalerkin(
+    //    Parameters::AllParameters *parameters_input,
+    //    Triangulation<dim>   *triangulation_input,
+    //    const unsigned int degree)
+    //    :
+    //    //triangulation(triangulation_input)
+    //    mapping(degree+1)
+    //    , fe(degree)
+    //    , parameters(parameters_input)
+    //    , quadrature (degree+1)
+    //    , face_quadrature (degree+1)
+    //{
+    //    set_triangulation(triangulation_input);
+    //}
+    template <int dim, int nstate, typename real>
+    DiscontinuousGalerkin<dim,nstate,real>::DiscontinuousGalerkin(
         Parameters::AllParameters *parameters_input,
-        Triangulation<dim>   *triangulation_input,
         const unsigned int degree)
         :
-        //triangulation(triangulation_input)
         mapping(degree+1)
         , fe(degree)
         , parameters(parameters_input)
         , quadrature (degree+1)
         , face_quadrature (degree+1)
     {
-        set_triangulation(triangulation_input);
-    }
-    template <int dim, typename real>
-    DiscontinuousGalerkin<dim, real>::DiscontinuousGalerkin(
-        Parameters::AllParameters *parameters_input,
-        const unsigned int degree)
-        :
-        mapping(degree+1)
-        , fe(degree)
-        , parameters(parameters_input)
-        , quadrature (degree+1)
-        , face_quadrature (degree+1)
-    {
+        using ADtype = Sacado::Fad::DFad<real>;
+        pde_physics = PhysicsFactory<dim, nstate, ADtype >::create_Physics(parameters->pde_type);
+        conv_num_flux = NumericalFluxFactory<dim, nstate, ADtype>::create_convective_numerical_flux
+            (parameters->conv_num_flux_type, pde_physics);
     }
     // Destructor
-    template <int dim, typename real>
-    DiscontinuousGalerkin<dim, real>::~DiscontinuousGalerkin ()
+    template <int dim, int nstate, typename real>
+    DiscontinuousGalerkin<dim,nstate,real>::~DiscontinuousGalerkin ()
     {
         std::cout << std::endl << "Destructing DG" << std::endl;
         delete_fe_values();
     }
 
-    template <int dim, typename real>
-    double DiscontinuousGalerkin<dim, real>::get_residual_l2norm ()
+    template <int dim, int nstate, typename real>
+    double DiscontinuousGalerkin<dim,nstate,real>::get_residual_l2norm ()
     {
         return right_hand_side.l2_norm();
     }
-    template <int dim, typename real>
-    void DiscontinuousGalerkin<dim, real>::assemble_system ()
+    template <int dim, int nstate, typename real>
+    void DiscontinuousGalerkin<dim,nstate,real>::assemble_system ()
     {
         assemble_system_implicit();
     }
-    template <int dim, typename real>
-    void DiscontinuousGalerkin<dim, real>::allocate_system ()
+    template <int dim, int nstate, typename real>
+    void DiscontinuousGalerkin<dim,nstate,real>::allocate_system ()
     {
         allocate_system_implicit();
     }
 
-    template <int dim, typename real>
-    void DiscontinuousGalerkin<dim, real>::delete_fe_values ()
+    template <int dim, int nstate, typename real>
+    void DiscontinuousGalerkin<dim,nstate,real>::delete_fe_values ()
     {
-        std::cout << std::endl << "Deallocating FEValues" << std::endl;
+        delete conv_num_flux;
+        delete pde_physics;
 
         if (fe_values_cell          != NULL) delete fe_values_cell;
         if (fe_values_face_int      != NULL) delete fe_values_face_int;
@@ -108,8 +113,8 @@ namespace PHiLiP
   
 
     
-    template <int dim, typename real>
-    void DiscontinuousGalerkin<dim, real>::allocate_system_explicit ()
+    template <int dim, int nstate, typename real>
+    void DiscontinuousGalerkin<dim,nstate,real>::allocate_system_explicit ()
     {
         std::cout << std::endl << "Allocating DG system and initializing FEValues" << std::endl;
         // This function allocates all the necessary memory to the 
@@ -122,7 +127,6 @@ namespace PHiLiP
         // Allocate vectors
         solution.reinit(dof_handler.n_dofs());
         right_hand_side.reinit(dof_handler.n_dofs());
-        source_term.reinit(dof_handler.n_dofs());
 
         const UpdateFlags update_flags = update_values
                                          | update_gradients
@@ -142,8 +146,8 @@ namespace PHiLiP
         fe_values_face_ext      = new FEFaceValues<dim,dim> (mapping, fe, face_quadrature, neighbor_face_update_flags);
     }
 
-    template <int dim, typename real>
-    void DiscontinuousGalerkin<dim, real>::allocate_system_implicit ()
+    template <int dim, int nstate, typename real>
+    void DiscontinuousGalerkin<dim,nstate,real>::allocate_system_implicit ()
     {
         std::cout << std::endl << "Allocating DG system and initializing FEValues" << std::endl;
         // This function allocates all the necessary memory to the 
@@ -168,7 +172,6 @@ namespace PHiLiP
         // Allocate vectors
         solution.reinit(dof_handler.n_dofs());
         right_hand_side.reinit(dof_handler.n_dofs());
-        source_term.reinit(dof_handler.n_dofs());
 
         newton_update.reinit(dof_handler.n_dofs());
 
@@ -190,8 +193,8 @@ namespace PHiLiP
         fe_values_face_ext      = new FEFaceValues<dim,dim> (mapping, fe, face_quadrature, neighbor_face_update_flags);
     }
 
-    template <int dim, typename real>
-    void DiscontinuousGalerkin<dim, real>::assemble_system_implicit ()
+    template <int dim, int nstate, typename real>
+    void DiscontinuousGalerkin<dim,nstate,real>::assemble_system_implicit ()
     {
         system_matrix = 0;
         right_hand_side = 0;
@@ -384,8 +387,8 @@ namespace PHiLiP
         } // end of cell loop
     } // end of assemble_system_implicit ()
   
-//    template <int dim, typename real>
-//    void DiscontinuousGalerkin<dim, real>::assemble_system_explicit ()
+//    template <int dim, int nstate, typename real>
+//    void DiscontinuousGalerkin<dim,nstate,real>::assemble_system_explicit ()
 //    {
 //        right_hand_side = 0;
 //        // For now assume same polynomial degree across domain
@@ -514,8 +517,8 @@ namespace PHiLiP
 //    } // end of assemble_system_explicit()
 
 
-    template <int dim, typename real>
-    void DiscontinuousGalerkin<dim,real>::output_results (const unsigned int ith_grid)// const
+    template <int dim, int nstate, typename real>
+    void DiscontinuousGalerkin<dim,nstate,real>::output_results (const unsigned int ith_grid)// const
     {
       const std::string filename = "sol-" +
                                    Utilities::int_to_string(ith_grid,2) +
@@ -537,6 +540,6 @@ namespace PHiLiP
 
 
 
-    template class DiscontinuousGalerkin <PHILIP_DIM, double>;
+    template class DiscontinuousGalerkin <PHILIP_DIM, 1, double>;
 
 } // end of PHiLiP namespace

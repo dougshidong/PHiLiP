@@ -11,44 +11,50 @@
 
 namespace PHiLiP
 {
+    using AllParam = Parameters::AllParameters;
 
     template <int dim, int nstate, typename real>
     Physics<dim,nstate,real>* // returns points to base class Physics
     PhysicsFactory<dim,nstate,real>
-    ::create_Physics(Parameters::AllParameters::PartialDifferentialEquation pde_type)
+    ::create_Physics(AllParam::PartialDifferentialEquation pde_type)
     {
-        using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+        using PDE_enum = AllParam::PartialDifferentialEquation;
 
         if (pde_type == PDE_enum::advection) {
-            return new LinearAdvection<dim, nstate, real>;
+            return new LinearAdvection<dim,nstate,real>;
         } else if (pde_type == PDE_enum::diffusion) {
-            return new Diffusion<dim, nstate, real>;
+            return new Diffusion<dim,nstate,real>;
         } else if (pde_type == PDE_enum::convection_diffusion) {
-            return new ConvectionDiffusion<dim, nstate, real>;
+            return new ConvectionDiffusion<dim,nstate,real>;
         }
         std::cout << "Can't create Physics, invalid PDE type: " << pde_type << std::endl;
         return nullptr;
     }
 
+
+    template <int dim, int nstate, typename real>
+    Physics<dim,nstate,real>::~Physics() {}
+
     // Common manufactured solution for advection, diffusion, convection-diffusion
     template <int dim, int nstate, typename real>
-    void Physics<dim, nstate, real>
-    ::manufactured_solution (const Point<dim,double> pos, real &solution)
+    void Physics<dim,nstate,real>
+    ::manufactured_solution (const Point<dim,double> &pos, std::array<real,nstate> &solution) const
     {
-        real uexact;
+        std::array<real,nstate> uexact;
         
         using phys = Physics<dim,nstate,real>;
         const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
         const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
-        if (dim==1) uexact = sin(a*pos[0]+d);
-        if (dim==2) uexact = sin(a*pos[0]+d)*sin(b*pos[1]+e);
-        if (dim==3) uexact = sin(a*pos[0]+d)*sin(b*pos[1]+e)*sin(c*pos[2]+f);
+        const int ISTATE = 0;
+        if (dim==1) uexact[ISTATE] = sin(a*pos[0]+d);
+        if (dim==2) uexact[ISTATE] = sin(a*pos[0]+d)*sin(b*pos[1]+e);
+        if (dim==3) uexact[ISTATE] = sin(a*pos[0]+d)*sin(b*pos[1]+e)*sin(c*pos[2]+f);
         solution = uexact;
     }
 
     template <int dim, int nstate, typename real>
-    double Physics<dim, nstate, real>
-    ::integral_output (bool linear)
+    double Physics<dim,nstate,real>
+    ::integral_output (bool linear) const
     {
         using phys = Physics<dim,nstate,real>;
         const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
@@ -84,41 +90,41 @@ namespace PHiLiP
     }
 
     template <int dim, int nstate, typename real>
-    void Physics<dim, nstate, real>
+    void Physics<dim,nstate,real>
     ::boundary_face_values (
             const int boundary_type,
-            const Point<dim, double> &pos,
-            const Tensor<1, dim, double> &normal,
-            const real &soln_int,
-            const Tensor<1, dim, real> &soln_grad_int,
-            real &soln_bc,
-            Tensor<1, dim, real> &soln_grad_bc)
+            const Point<dim, double> &/*pos*/,
+            const Tensor<1,dim,real> &/*normal*/,
+            const std::array<real,nstate> &/*soln_int*/,
+            const std::array<Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
+            std::array<real,nstate> &/*soln_bc*/,
+            std::array<Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
     {
     }
     template <int dim, int nstate, typename real>
-    void Physics<dim, nstate, real>
+    void Physics<dim,nstate,real>
     ::set_manufactured_dirichlet_boundary_condition (
-            const real &soln_int,
-            const Tensor<1, dim, real> &soln_grad_int,
-            real &soln_bc,
-            Tensor<1, dim, real> &soln_grad_bc)
+            const std::array<real,nstate> &/*soln_int*/,
+            const std::array<Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
+            std::array<real,nstate> &/*soln_bc*/,
+            std::array<Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
     {}
     template <int dim, int nstate, typename real>
-    void Physics<dim, nstate, real>
+    void Physics<dim,nstate,real>
     ::set_manufactured_neumann_boundary_condition (
-            const real &soln_int,
-            const Tensor<1, dim, real> &soln_grad_int,
-            real &soln_bc,
-            Tensor<1, dim, real> &soln_grad_bc)
+            const std::array<real,nstate> &/*soln_int*/,
+            const std::array<Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
+            std::array<real,nstate> &/*soln_bc*/,
+            std::array<Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
     {}
 
 
     // Linear advection functions
     template <int dim, int nstate, typename real>
-    Tensor <1, dim, real> LinearAdvection<dim, nstate, real>
-    ::advection_speed ()
+    Tensor<1,dim,real> LinearAdvection<dim,nstate,real>
+    ::advection_speed () const
     {
-        Tensor <1, dim, real> advection_speed;
+        Tensor<1,dim,real> advection_speed;
         // Works but requires finer grid for optimal convergence.
         //if(dim >= 1) advection_speed[0] = 1.0;
         //if(dim >= 2) advection_speed[1] = -pi; // -pi/2
@@ -133,98 +139,129 @@ namespace PHiLiP
     }
 
     template <int dim, int nstate, typename real>
-    std::vector<real> LinearAdvection<dim, nstate, real>
-    ::convective_eigenvalues (const real &/*solution*/, const Tensor<1, dim, real> &normal)
+    std::array<real,nstate> LinearAdvection<dim,nstate,real>
+    ::convective_eigenvalues (
+        const std::array<real,nstate> &/*solution*/,
+        const Tensor<1,dim,real> &normal) const
     {
-        std::vector<real> eig(nstate);
-        const Tensor <1, dim, real> advection_speed = this->advection_speed();
-        eig[0] = advection_speed*normal;
+        std::array<real,nstate> eig;
+        const Tensor<1,dim,real> advection_speed = this->advection_speed();
+        for (int i=0; i<nstate; i++) {
+            eig[i] = advection_speed*normal;
+        }
         return eig;
     }
 
     template <int dim, int nstate, typename real>
-    void LinearAdvection<dim, nstate, real>
-    ::convective_flux (const real &solution, Tensor <1, dim, real> &conv_flux)
+    void LinearAdvection<dim,nstate,real>
+    ::convective_flux (
+        const std::array<real,nstate> &solution,
+        std::array<Tensor<1,dim,real>,nstate> &conv_flux) const
     {
         // Assert conv_flux dimensions
-        const Tensor <1, dim, real> velocity_field = this->advection_speed();
-        conv_flux = velocity_field * solution;
+        const Tensor<1,dim,real> velocity_field = this->advection_speed();
+        for (int i=0; i<nstate; ++i) {
+            conv_flux[i] = velocity_field * solution[i];
+        }
     }
 
     template <int dim, int nstate, typename real>
-    void LinearAdvection<dim, nstate, real>
-    ::dissipative_flux (const real &/*solution*/,
-                        const Tensor<1,dim,real> &/*solution_gradient*/,
-                        Tensor<1,dim,real> &diss_flux)
+    void LinearAdvection<dim,nstate,real>
+    ::dissipative_flux (
+        const std::array<real,nstate> &/*solution*/,
+        const std::array<Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
+        std::array<Tensor<1,dim,real>,nstate> &diss_flux) const
     {
         // No dissipation
-        diss_flux = 0.0;
+        Tensor<1,dim,real> zero;
+        for (int i=0; i<nstate; i++) {
+            diss_flux[i] = -(this->diff_coeff)*zero;
+        }
     }
 
     template <int dim, int nstate, typename real>
-    void LinearAdvection<dim, nstate, real>
-    ::source_term (const Point<dim,double> pos, const real &/*solution*/, real &source)
+    void LinearAdvection<dim,nstate,real>
+    ::source_term (
+        const Point<dim,double> &pos,
+        const std::array<real,nstate> &/*solution*/,
+        std::array<real,nstate> &source) const
     {
-        const Tensor <1, dim, real> velocity_field = this->advection_speed();
+        const Tensor<1,dim,real> vel = this->advection_speed();
         using phys = Physics<dim,nstate,real>;
         const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
         const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
+        const int ISTATE = 0;
         if (dim==1) {
             const real x = pos[0];
-            source = velocity_field[0]*a*cos(a*x+d);
+            source[ISTATE] = vel[0]*a*cos(a*x+d);
         } else if (dim==2) {
             const real x = pos[0], y = pos[1];
-            source = velocity_field[0]*a*cos(a*x+d)*sin(b*y+e) +
-                     velocity_field[1]*b*sin(a*x+d)*cos(b*y+e);
+            source[ISTATE] = vel[0]*a*cos(a*x+d)*sin(b*y+e) +
+                             vel[1]*b*sin(a*x+d)*cos(b*y+e);
         } else if (dim==3) {
             const real x = pos[0], y = pos[1], z = pos[2];
-
-            source =  velocity_field[0]*a*cos(a*x+d)*sin(b*y+e)*sin(c*z+f) +
-                      velocity_field[1]*b*sin(a*x+d)*cos(b*y+e)*sin(c*z+f) +
-                      velocity_field[2]*c*sin(a*x+d)*sin(b*y+e)*cos(c*z+f);
+            source[ISTATE] =  vel[0]*a*cos(a*x+d)*sin(b*y+e)*sin(c*z+f) +
+                              vel[1]*b*sin(a*x+d)*cos(b*y+e)*sin(c*z+f) +
+                              vel[2]*c*sin(a*x+d)*sin(b*y+e)*cos(c*z+f);
         }
     }
 
     // Diffusion functions
     template <int dim, int nstate, typename real>
-    void Diffusion<dim, nstate, real>
-    ::convective_flux (const real &/*solution*/, Tensor <1, dim, real> &/*conv_flux*/) { }
+    void Diffusion<dim,nstate,real>
+    ::convective_flux (
+        const std::array<real,nstate> &/*solution*/,
+        std::array<Tensor<1,dim,real>,nstate> &/*conv_flux*/) const
+    { }
 
     template <int dim, int nstate, typename real>
-    std::vector<real> Diffusion<dim, nstate, real>
-    ::convective_eigenvalues(const real &/*solution*/, const Tensor<1, dim, real> &/*normal*/)
+    std::array<real,nstate> Diffusion<dim,nstate,real>
+    ::convective_eigenvalues (
+        const std::array<real,nstate> &/*solution*/,
+        const Tensor<1,dim,real> &/*normal*/) const
     {
-        std::vector<real> eig(nstate);
-        eig[0] = 0;
+        std::array<real,nstate> eig;
+        for (int i=0; i<nstate; i++) {
+            eig[i] = 0.0;
+        }
         return eig;
     }
 
     template <int dim, int nstate, typename real>
-    void Diffusion<dim, nstate, real>
-    ::dissipative_flux (const real &/*solution*/,
-                        const Tensor<1,dim,real> &solution_gradient,
-                        Tensor<1,dim,real> &diss_flux)
-    { diss_flux = -(this->diff_coeff)*solution_gradient; }
+    void Diffusion<dim,nstate,real>
+    ::dissipative_flux (
+        const std::array<real,nstate> &/*solution*/,
+        const std::array<Tensor<1,dim,real>,nstate> &solution_gradient,
+        std::array<Tensor<1,dim,real>,nstate> &diss_flux) const
+    {
+        for (int i=0; i<nstate; i++) {
+            diss_flux[i] = -(this->diff_coeff)*solution_gradient[i];
+        }
+    }
 
     template <int dim, int nstate, typename real>
-    void Diffusion<dim, nstate, real>
-    ::source_term (const Point<dim,double> pos, const real &/*solution*/, real &source)
+    void Diffusion<dim,nstate,real>
+    ::source_term (
+        const Point<dim,double> &pos,
+        const std::array<real,nstate> &/*solution*/,
+        std::array<real,nstate> &source) const
     {
         using phys = Physics<dim,nstate,real>;
         const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
         const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
         const double diff_coeff = this->diff_coeff;
+        const int ISTATE = 0;
         if (dim==1) {
             const real x = pos[0];
-            source = diff_coeff*a*a*sin(a*x+d);
+            source[ISTATE] = diff_coeff*a*a*sin(a*x+d);
         } else if (dim==2) {
             const real x = pos[0], y = pos[1];
-            source = diff_coeff*a*a*sin(a*x+d)*sin(b*y+e) +
+            source[ISTATE] = diff_coeff*a*a*sin(a*x+d)*sin(b*y+e) +
                      diff_coeff*b*b*sin(a*x+d)*sin(b*y+e);
         } else if (dim==3) {
             const real x = pos[0], y = pos[1], z = pos[2];
 
-            source =  diff_coeff*a*a*sin(a*x+d)*sin(b*y+e)*sin(c*z+f) +
+            source[ISTATE] =  diff_coeff*a*a*sin(a*x+d)*sin(b*y+e)*sin(c*z+f) +
                       diff_coeff*b*b*sin(a*x+d)*sin(b*y+e)*sin(c*z+f) +
                       diff_coeff*c*c*sin(a*x+d)*sin(b*y+e)*sin(c*z+f);
         }
@@ -232,19 +269,22 @@ namespace PHiLiP
 
 
     template <int dim, int nstate, typename real>
-    void ConvectionDiffusion<dim, nstate, real>
-    ::convective_flux (const real &solution, Tensor <1, dim, real> &conv_flux)
+    void ConvectionDiffusion<dim,nstate,real>
+    ::convective_flux (
+        const std::array<real,nstate> &solution,
+        std::array<Tensor<1,dim,real>,nstate> &conv_flux) const
     {
-        const Tensor <1, dim, real> velocity_field = this->advection_speed();
-        
-        conv_flux = velocity_field * solution;
+        const Tensor<1,dim,real> velocity_field = this->advection_speed();
+        for (int i=0; i<nstate; ++i) {
+            conv_flux[i] = velocity_field * solution[i];
+        }
     }
 
     template <int dim, int nstate, typename real>
-    Tensor <1, dim, real> ConvectionDiffusion<dim, nstate, real>
-    ::advection_speed ()
+    Tensor<1,dim,real> ConvectionDiffusion<dim,nstate,real>
+    ::advection_speed () const
     {
-        Tensor <1, dim, real> advection_speed;
+        Tensor<1,dim,real> advection_speed;
 
         if(dim >= 1) advection_speed[0] = this->velo_x;
         if(dim >= 2) advection_speed[1] = this->velo_y;
@@ -253,45 +293,58 @@ namespace PHiLiP
     }
 
     template <int dim, int nstate, typename real>
-    std::vector<real> ConvectionDiffusion<dim, nstate, real>
-    ::convective_eigenvalues (const real &/*solution*/, const Tensor<1, dim, real> &normal)
+    std::array<real,nstate> ConvectionDiffusion<dim,nstate,real>
+    ::convective_eigenvalues (
+        const std::array<real,nstate> &/*solution*/,
+        const Tensor<1,dim,real> &normal) const
     {
-        std::vector<real> eig(nstate);
-        const Tensor <1, dim, real> advection_speed = this->advection_speed();
-        eig[0] = advection_speed*normal;
+        std::array<real,nstate> eig;
+        const Tensor<1,dim,real> advection_speed = this->advection_speed();
+        for (int i=0; i<nstate; i++) {
+            eig[i] = advection_speed*normal;
+        }
         return eig;
     }
 
     template <int dim, int nstate, typename real>
-    void ConvectionDiffusion<dim, nstate, real>
-    ::dissipative_flux (const real &/*solution*/,
-                        const Tensor<1,dim,real> &solution_gradient,
-                        Tensor<1,dim,real> &diss_flux)
-    { diss_flux = -(this->diff_coeff)*solution_gradient; }
+    void ConvectionDiffusion<dim,nstate,real>
+    ::dissipative_flux (
+        const std::array<real,nstate> &/*solution*/,
+        const std::array<Tensor<1,dim,real>,nstate> &solution_gradient,
+        std::array<Tensor<1,dim,real>,nstate> &diss_flux) const
+    {
+        for (int i=0; i<nstate; i++) {
+            diss_flux[i] = -(this->diff_coeff)*solution_gradient[i];
+        }
+    }
 
     template <int dim, int nstate, typename real>
-    void ConvectionDiffusion<dim, nstate, real>
-    ::source_term (const Point<dim,double> pos, const real &/*solution*/, real &source)
+    void ConvectionDiffusion<dim,nstate,real>
+    ::source_term (
+        const Point<dim,double> &pos,
+        const std::array<real,nstate> &/*solution*/,
+        std::array<real,nstate> &source) const
     {
-        const Tensor <1, dim, real> velocity_field = this->advection_speed();
+        const Tensor<1,dim,real> velocity_field = this->advection_speed();
         using phys = Physics<dim,nstate,real>;
         const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
         const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
 
         const double diff_coeff = this->diff_coeff;
+        const int ISTATE = 0;
         if (dim==1) {
             const real x = pos[0];
-            source = velocity_field[0]*a*cos(a*x+d) +
+            source[ISTATE] = velocity_field[0]*a*cos(a*x+d) +
                      diff_coeff*a*a*sin(a*x+d);
         } else if (dim==2) {
             const real x = pos[0], y = pos[1];
-            source = velocity_field[0]*a*cos(a*x+d)*sin(b*y+e) +
+            source[ISTATE] = velocity_field[0]*a*cos(a*x+d)*sin(b*y+e) +
                      velocity_field[1]*b*sin(a*x+d)*cos(b*y+e) +
                      diff_coeff*a*a*sin(a*x+d)*sin(b*y+e) +
                      diff_coeff*b*b*sin(a*x+d)*sin(b*y+e);
         } else if (dim==3) {
             const real x = pos[0], y = pos[1], z = pos[2];
-            source =   velocity_field[0]*a*cos(a*x+d)*sin(b*y+e)*sin(c*z+f) +
+            source[ISTATE] =   velocity_field[0]*a*cos(a*x+d)*sin(b*y+e)*sin(c*z+f) +
                        velocity_field[1]*b*sin(a*x+d)*cos(b*y+e)*sin(c*z+f) +
                        velocity_field[2]*c*sin(a*x+d)*sin(b*y+e)*cos(c*z+f) +
                        diff_coeff*a*a*sin(a*x+d)*sin(b*y+e)*sin(c*z+f) +

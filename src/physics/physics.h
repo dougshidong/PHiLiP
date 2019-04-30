@@ -22,60 +22,67 @@ namespace PHiLiP
     {
     public:
 
+        virtual ~Physics() = 0;
+
         /// Default manufactured solution
         ///~~~~~{.cpp}
         /// if (dim==1) uexact = sin(a*pos[0]+d);
         /// if (dim==2) uexact = sin(a*pos[0]+d)*sin(b*pos[1]+e);
         /// if (dim==3) uexact = sin(a*pos[0]+d)*sin(b*pos[1]+e)*sin(c*pos[2]+f);
         ///~~~~~
-        virtual void manufactured_solution (const Point<dim,double> pos, real &solution);
+        virtual void manufactured_solution (
+            const Point<dim,double> &pos,
+            std::array<real,nstate> &solution) const;
 
         /// Returns the integral of the manufactured solution over the hypercube [0,1]
         ///
         /// Either returns the linear output $\int u dV$.
         /// Or the nonlinear output $\int u^2 dV$.
-        virtual double integral_output (const bool linear);
+        virtual double integral_output (const bool linear) const;
 
         // Convective fluxes that will be differentiated once in space
-        virtual void convective_flux (const real &solution,
-                                      Tensor <1, dim, real> &conv_flux) = 0;
+        virtual void convective_flux (
+            const std::array<real,nstate> &solution,
+            std::array<Tensor<1,dim,real>,nstate> &conv_flux) const = 0;
 
         // Spectral radius of convective term Jacobian
         // Used for scalar dissipation
-        //virtual Tensor <1, dim, real> convective_eigenvalues (const real &/*solution*/) = 0;
-        virtual std::vector<real> convective_eigenvalues(
-            const real &/*solution*/, const Tensor<1, dim, real> &/*normal*/) = 0;
+        virtual std::array<real,nstate> convective_eigenvalues (
+            const std::array<real,nstate> &/*solution*/,
+            const Tensor<1,dim,real> &/*normal*/) const = 0;
 
         // Dissipative fluxes that will be differentiated once in space
-        virtual void dissipative_flux (const real & solution,
-                        const Tensor<1,dim,real> &solution_gradient,
-                        Tensor<1,dim,real> &diss_flux) = 0;
+        virtual void dissipative_flux (
+            const std::array<real,nstate> &solution,
+            const std::array<Tensor<1,dim,real>,nstate> &solution_gradient,
+            std::array<Tensor<1,dim,real>,nstate> &diss_flux) const = 0;
 
         // Source term that does not require differentiation
-        virtual void source_term (const Point<dim,double> pos,
-                                  const real &solution,
-                                  real &source) = 0;
+        virtual void source_term (
+            const Point<dim,double> &pos,
+            const std::array<real,nstate> &solution,
+            std::array<real,nstate> &source) const = 0;
 
         // Evaluates boundary values and gradients on the other side of the face
         virtual void boundary_face_values (
-            const int boundary_type,
-            const Point<dim, double> &pos,
-            const Tensor<1, dim, double> &normal,
-            const real &soln_int,
-            const Tensor<1, dim, real> &soln_grad_int,
-            real &soln_bc,
-            Tensor<1, dim, real> &soln_grad_bc);
+            const int /*boundary_type*/,
+            const Point<dim, double> &/*pos*/,
+            const Tensor<1,dim,real> &/*normal*/,
+            const std::array<real,nstate> &/*soln_int*/,
+            const std::array<Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
+            std::array<real,nstate> &/*soln_bc*/,
+            std::array<Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
     protected:
         virtual void set_manufactured_dirichlet_boundary_condition (
-            const real &soln_int,
-            const Tensor<1, dim, real> &soln_grad_int,
-            real &soln_bc,
-            Tensor<1, dim, real> &soln_grad_bc);
+            const std::array<real,nstate> &/*soln_int*/,
+            const std::array<Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
+            std::array<real,nstate> &/*soln_bc*/,
+            std::array<Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
         virtual void set_manufactured_neumann_boundary_condition (
-            const real &soln_int,
-            const Tensor<1, dim, real> &soln_grad_int,
-            real &soln_bc,
-            Tensor<1, dim, real> &soln_grad_bc);
+            const std::array<real,nstate> &/*soln_int*/,
+            const std::array<Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
+            std::array<real,nstate> &/*soln_bc*/,
+            std::array<Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
 
         // Some constants used to define manufactured solution
         //const double freq_x = 1*1.59/dim, freq_y = 2*1.81/dim, freq_z = 3*1.76/dim;
@@ -84,7 +91,8 @@ namespace PHiLiP
         const double pi = atan(1)*4.0;
         const double freq_x = 1.59/dim, freq_y = 2*1.81/dim,    freq_z = 3*1.76/dim;
         const double offs_x = 1,        offs_y = 1.2,           offs_z = 1.5;
-        const double velo_x = exp(1)/2, velo_y =-pi/4.0,        velo_z = sqrt(2);
+        //const double velo_x = exp(1)/2, velo_y =-pi/4.0,        velo_z = sqrt(2);
+        const double velo_x = 1.0, velo_y =-pi/4.0,        velo_z = sqrt(2);
         const double diff_coeff = 50.0;
     };
 
@@ -106,25 +114,32 @@ namespace PHiLiP
         // -\nabla \cdot (c*u) = source
 
     public:
+        ~LinearAdvection () {};
         // Convective flux:  c*u
-        void convective_flux (const real &solution, Tensor <1, dim, real> &conv_flux);
+        void convective_flux (
+            const std::array<real,nstate> &solution,
+            std::array<Tensor<1,dim,real>,nstate> &conv_flux) const;
 
         // Spectral radius of convective term Jacobian is simply the maximum 'c'
-        Tensor <1, dim, real> convective_eigenvalues (const real &/*solution*/);
-        std::vector<real> convective_eigenvalues(
-            const real &/*solution*/, const Tensor<1, dim, real> &normal);
+        std::array<real,nstate> convective_eigenvalues (
+            const std::array<real,nstate> &/*solution*/,
+            const Tensor<1,dim,real> &normal) const;
 
         // Dissipative flux: 0
-        void dissipative_flux (const real &solution,
-                               const Tensor<1,dim,real> &solution_gradient,
-                               Tensor<1,dim,real> &diss_flux);
+        void dissipative_flux (
+            const std::array<real,nstate> &solution,
+            const std::array<Tensor<1,dim,real>,nstate> &solution_gradient,
+            std::array<Tensor<1,dim,real>,nstate> &diss_flux) const;
 
         // Source term is zero or depends on manufactured solution
-        void source_term (const Point<dim,double> pos, const real &solution, real &source);
+        void source_term (
+            const Point<dim,double> &pos,
+            const std::array<real,nstate> &solution,
+            std::array<real,nstate> &source) const;
 
     protected:
         // Linear advection speed:  c
-        Tensor <1, dim, real> advection_speed ();
+        Tensor<1,dim,real> advection_speed () const;
 
     };
 
@@ -137,21 +152,28 @@ namespace PHiLiP
         // -\nabla \cdot (\nabla u) = source
 
     public:
+        ~Diffusion () {};
         // Convective flux:  0
-        void convective_flux (const real &solution, Tensor <1, dim, real> &conv_flux);
+        void convective_flux (
+            const std::array<real,nstate> &solution,
+            std::array<Tensor<1,dim,real>,nstate> &conv_flux) const;
 
-        // Spectral radius of convective term Jacobian is 0
-        Tensor <1, dim, real> convective_eigenvalues (const real &/*solution*/);
-        std::vector<real> convective_eigenvalues(
-            const real &/*solution*/, const Tensor<1, dim, real> &/*normal*/);
+        // Convective eigenvalues dotted with normal
+        std::array<real,nstate> convective_eigenvalues (
+            const std::array<real,nstate> &/*solution*/,
+            const Tensor<1,dim,real> &/*normal*/) const;
 
         // Dissipative flux: u
-        void dissipative_flux (const real &solution,
-                               const Tensor<1,dim,real> &solution_gradient,
-                               Tensor<1,dim,real> &diss_flux);
+        void dissipative_flux (
+            const std::array<real,nstate> &solution,
+            const std::array<Tensor<1,dim,real>,nstate> &solution_gradient,
+            std::array<Tensor<1,dim,real>,nstate> &diss_flux) const;
 
         // Source term is zero or depends on manufactured solution
-        void source_term (const Point<dim,double> pos, const real &solution, real &source);
+        void source_term (
+            const Point<dim,double> &pos,
+            const std::array<real,nstate> &solution,
+            std::array<real,nstate> &source) const;
     };
 
     template <int dim, int nstate, typename real>
@@ -163,25 +185,32 @@ namespace PHiLiP
         // \nabla \cdot (c*u) -\nabla \cdot (\nabla u) = source
 
     public:
+        ~ConvectionDiffusion () {};
         // Convective flux:  0
-        void convective_flux (const real &solution, Tensor <1, dim, real> &conv_flux);
+        void convective_flux (
+            const std::array<real,nstate> &solution,
+            std::array<Tensor<1,dim,real>,nstate> &conv_flux) const;
 
         // Spectral radius of convective term Jacobian is 'c'
-        Tensor <1, dim, real> convective_eigenvalues (const real &/*solution*/);
-        std::vector<real> convective_eigenvalues(
-            const real &/*solution*/, const Tensor<1, dim, real> &/*normal*/);
+        std::array<real,nstate> convective_eigenvalues (
+            const std::array<real,nstate> &/*solution*/,
+            const Tensor<1,dim,real> &/*normal*/) const;
 
         // Dissipative flux: u
-        void dissipative_flux (const real &solution,
-                               const Tensor<1,dim,real> &solution_gradient,
-                               Tensor<1,dim,real> &diss_flux);
+        void dissipative_flux (
+            const std::array<real,nstate> &solution,
+            const std::array<Tensor<1,dim,real>,nstate> &solution_gradient,
+            std::array<Tensor<1,dim,real>,nstate> &diss_flux) const;
 
         // Source term is zero or depends on manufactured solution
-        void source_term (const Point<dim,double> pos, const real &solution, real &source);
+        void source_term (
+            const Point<dim,double> &pos,
+            const std::array<real,nstate> &solution,
+            std::array<real,nstate> &source) const;
 
     protected:
         // Linear advection speed:  c
-        Tensor <1, dim, real> advection_speed ();
+        Tensor<1,dim,real> advection_speed () const;
     };
 
 } // end of PHiLiP namespace

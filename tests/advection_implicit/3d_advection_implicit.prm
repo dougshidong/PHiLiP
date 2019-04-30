@@ -7,6 +7,8 @@ set dimension = 3
 # <advection|diffusion|convection_diffusion>.
 set pde_type  = advection
 
+set conv_num_flux = lax_friedrichs
+
 subsection ODE solver
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations            = 500000
@@ -23,18 +25,18 @@ end
 
 subsection manufactured solution convergence study
   # Last degree used for convergence study
-  set degree_end        = 3
+  set degree_end        = 2
 
   # Starting degree for convergence study
   set degree_start      = 0
 
   # Multiplier on grid size. nth-grid will be of size
   # (initial_grid^grid_progression)^dim
-  set grid_progression  = 1.2
+  set grid_progression  = 1.5
 
   # Initial grid of size (initial_grid_size)^dim
-  set initial_grid_size = 5
+  set initial_grid_size = 2
 
   # Number of grids in grid study
-  set number_of_grids   = 6
+  set number_of_grids   = 5
 end

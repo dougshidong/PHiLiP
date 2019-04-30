@@ -86,7 +86,7 @@ namespace PHiLiP
 
             // p0 tends to require a finer grid to reach asymptotic region
             unsigned int n_grids = n_grids_input;
-            if (poly_degree == 0) n_grids = n_grids_input + 3;
+            if (poly_degree == 0) n_grids = n_grids_input + 2;
 
             std::vector<int> n_1d_cells(n_grids);
             n_1d_cells[0] = initial_grid_size;
@@ -196,7 +196,7 @@ namespace PHiLiP
 
                 // Overintegrate by alot
                 QGauss<dim> quad_plus20(dg.fe.degree+5);
-                FEValues<dim,dim> fe_values_plus20(dg.mapping, dg. fe,quad_plus20, update_values | update_JxW_values | update_quadrature_points);
+                FEValues<dim,dim> fe_values_plus20(dg.mapping, dg.fe, quad_plus20, update_values | update_JxW_values | update_quadrature_points);
 
                 const unsigned int n_quad_pts = fe_values_plus20.n_quadrature_points;
 
@@ -205,7 +205,7 @@ namespace PHiLiP
                 double l2error = 0;
 
                 bool linear_output = false;
-                linear_output = true;
+                //linear_output = true;
                 int power;
                 if (linear_output) power = 1;
                 if (!linear_output) power = 2;

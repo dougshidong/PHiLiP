@@ -180,8 +180,9 @@ namespace PHiLiP
                 characteristic_dot_n_at_q = pde_physics->convective_eigenvalues(boundary_values[iquad], normal_int);
                 const bool inflow = (characteristic_dot_n_at_q[0] < 0.);
                 if (inflow) {
-                    //soln_ext = -soln_int[iquad]+2*boundary_values[iquad];
+                    // Dirichlet boundary condition
                     soln_ext = boundary_values[iquad];
+                    //soln_ext = -soln_int[iquad]+2*boundary_values[iquad];
                 } else {
                     // Neumann boundary condition
                     soln_ext = soln_int[iquad];

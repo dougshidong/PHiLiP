@@ -83,6 +83,9 @@ namespace Parameters
         enum PartialDifferentialEquation { advection, diffusion, convection_diffusion };
         PartialDifferentialEquation pde_type;
 
+        enum ConvectiveNumericalFlux { lax_friedrichs };
+        ConvectiveNumericalFlux conv_num_flux;
+
         AllParameters();
         //FunctionParser<dim> initial_conditions;
         //BoundaryConditions  boundary_conditions[max_n_boundaries];

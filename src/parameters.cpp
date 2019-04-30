@@ -258,6 +258,10 @@ namespace Parameters
                           Patterns::Selection("advection|diffusion|convection_diffusion"),
                           "The PDE we want to solve. "
                           "Choices are <advection|diffusion|convection_diffusion>.");
+        prm.declare_entry("conv_num_flux", "lax_friedrichs",
+                          Patterns::Selection("lax_friedrichs"),
+                          "Convective numerical flux. "
+                          "Choices are <lax_friedrichs>.");
 
         Parameters::LinearSolver::declare_parameters (prm);
         Parameters::ManufacturedConvergenceStudy::declare_parameters (prm);
@@ -271,6 +275,9 @@ namespace Parameters
         if (pde_string == "advection") pde_type = advection;
         if (pde_string == "diffusion") pde_type = diffusion;
         if (pde_string == "convection_diffusion") pde_type = convection_diffusion;
+
+        const std::string conv_num_flux_string = prm.get("conv_num_flux");
+        if (conv_num_flux_string == "lax_friedrichs") conv_num_flux = lax_friedrichs;
 
 
         Parameters::LinearSolver::parse_parameters (prm);

@@ -86,7 +86,7 @@ namespace Parameters
         enum ConvectiveNumericalFlux { lax_friedrichs };
         ConvectiveNumericalFlux conv_num_flux_type;
 
-        enum DissipativeNumericalFlux { sipg };
+        enum DissipativeNumericalFlux { symm_internal_penalty };
         DissipativeNumericalFlux diss_num_flux_type;
 
         AllParameters();

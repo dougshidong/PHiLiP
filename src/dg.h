@@ -20,7 +20,7 @@
 #include <Sacado.hpp>
 
 #include "physics/physics.h"
-#include "numerical_flux.h"
+#include "numerical_flux/numerical_flux.h"
 #include "parameters.h"
 
 

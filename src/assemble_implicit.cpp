@@ -13,8 +13,7 @@
 #include <deal.II/differentiation/ad/sacado_product_types.h>
 
 #include "dg.h"
-#include "numerical_flux.h"
-//#include "manufactured_solution.h"
+
 namespace PHiLiP
 {
     using namespace dealii;
@@ -158,11 +157,11 @@ namespace PHiLiP
         std::vector<ADArrayVector> soln_grad_int(n_face_quad_pts);
         std::vector<ADArrayVector> soln_grad_ext(n_face_quad_pts);
 
-        std::vector<ADArrayVector> conv_phys_flux_int(n_face_quad_pts);
         std::vector<ADArrayVector> diss_phys_flux_int(n_face_quad_pts);
-
-        std::vector<ADArrayVector> conv_phys_flux_ext(n_face_quad_pts);
         std::vector<ADArrayVector> diss_phys_flux_ext(n_face_quad_pts);
+
+
+        std::vector<ADArray> convective_num_flux_dot_n(n_face_quad_pts);
 
         for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
 
@@ -181,19 +180,18 @@ namespace PHiLiP
 
                 const bool inflow = (characteristic_dot_n_at_q[istate] < 0.);
 
-                if (inflow) {
-                    // Dirichlet boundary condition
+                if (inflow) { // Dirichlet boundary condition
                     soln_ext[iquad][istate] = boundary_values[iquad][istate];
+                    // For some reason, Nitsche boundary type is adjoint inconsistent
                     //soln_ext[iquad][istate] = -soln_int[iquad][istate]+2*boundary_values[iquad][istate];
-                } else {
-                    // Neumann boundary condition
+                } else { // Neumann boundary condition
                     soln_ext[iquad][istate] = soln_int[iquad][istate];
                 }
             }
             // Evaluate physical convective flux and source term
-            pde_physics->convective_flux (soln_int[iquad], conv_phys_flux_int[iquad]);
-            pde_physics->convective_flux (soln_ext[iquad], conv_phys_flux_ext[iquad]);
             pde_physics->dissipative_flux (soln_int[iquad], soln_grad_int[iquad], diss_phys_flux_int[iquad]);
+
+            convective_num_flux_dot_n[iquad] = conv_num_flux->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
         }
 
         // Applying convection boundary condition
@@ -206,40 +204,9 @@ namespace PHiLiP
 
             for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
 
-                const Tensor<1,dim,ADtype> normal_int = normals[iquad];
-
-                //  // Flux average and solution jump for scalar dissipation
-                //  const ADArrayVector soln_jump = normal_int * (soln_int[iquad][istate] - soln_ext[iquad][istate]);
-                //  const ADArrayVector flux_avg = 0.5*(conv_phys_flux_int[iquad][istate] + conv_phys_flux_ext[iquad][istate]);
-
-                //  // Evaluate spectral radius used for scalar dissipation
-                //  // eig(flux \cdot n)
-                //  const std::vector<ADtype> conv_eig_int = pde_physics->convective_eigenvalues(soln_int[iquad], normal_int);
-                //  const std::vector<ADtype> conv_eig_ext = pde_physics->convective_eigenvalues(soln_ext[iquad], normal_int); // using the same normal
-
-                //  std::vector<ADtype> conv_eig_max(nstate);
-                //  for (int i=0; i<nstate; i++) {
-                //      conv_eig_max[i] = std::max(std::abs(conv_eig_int[i]), std::abs(conv_eig_ext[i]));
-                //  }
-
-                //  // Scalar dissipation
-                //  ADArray numerical_flux_dot_n = flux_avg*normal_int - 0.5 * conv_eig_max[0] * (soln_ext-soln_int[iquad]);
-
-                //  ADArrayVector numerical_flux;
-                //  if (inflow) {
-                //      numerical_flux = conv_phys_flux_ext;
-                //  } else {
-                //      numerical_flux = conv_phys_flux_int[iquad];
-                //  }
-
-                //  const ADArray normal_int_numerical_flux = numerical_flux*normal_int;
-
-                const ADArray numerical_flux_dot_n = conv_num_flux->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
-
                 for (int istate=0; istate<nstate; istate++) {
                     rhs[istate] -= 
-                        //normal_int_numerical_flux *
-                        numerical_flux_dot_n[istate] *
+                        convective_num_flux_dot_n[iquad][istate] *
                         fe_values_boundary->shape_value(itest,iquad) *
                         JxW[iquad];
                 }
@@ -367,56 +334,6 @@ namespace PHiLiP
                 }
             }
             normal_int_numerical_flux[iquad] = conv_num_flux->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
-
-
-            //    normal_int_numerical_flux[iquad] = 0;
-
-
-            //    Tensor< 1, dim, ADtype > conv_phys_flux_int;
-            //    Tensor< 1, dim, ADtype > conv_phys_flux_ext;
-
-            //    // Numerical flux
-
-            //    // Evaluate phys flux and scalar parameter for scalar dissipation
-            //    const Tensor<1,dim,ADtype> normal1 = normals_int[iquad];
-            //    pde_physics->convective_flux (soln_int[iquad], conv_phys_flux_int);
-            //    pde_physics->convective_flux (soln_ext[iquad], conv_phys_flux_ext);
-            //    
-            //    // Scalar dissipation
-            //    // Flux average and solution jump for scalar dissipation
-            //    const Tensor< 1, dim, ADtype > soln_jump = normal1 * (soln_int[iquad] - soln_ext[iquad]);
-            //    const Tensor< 1, dim, ADtype > flux_avg = 0.5*(conv_phys_flux_int + conv_phys_flux_ext);
-            //    // Evaluate spectral radius used for scalar dissipation
-            //    const ADArray soln_avg  = 0.5*(soln_int[iquad] + soln_ext[iquad]);
-
-            //    //Tensor< 1, dim, ADtype > numerical_flux;
-            //    //const Tensor <1, dim, ADtype> conv_eig = pde_physics->convective_eigenvalues(soln_avg);
-            //    //ADtype max_abs_eig = std::abs(conv_eig[0]);
-            //    //for (int i=1; i<dim; i++) {
-            //    //    const ADtype value = std::abs(conv_eig[i]);
-            //    //    if(value > max_abs_eig) max_abs_eig = value;
-            //    //}
-            //    //numerical_flux = flux_avg + 0.5 * max_abs_eig * soln_jump;
-
-            //    //  std::vector<ADtype> characteristic_dot_n_at_q(nstate);
-            //    //  characteristic_dot_n_at_q = pde_physics->convective_eigenvalues(soln_int[iquad], normal1);
-            //    //  const bool inflow = (characteristic_dot_n_at_q[0] < 0.);
-            //    //  if (inflow) {
-            //    //      numerical_flux = conv_phys_flux_ext;
-            //    //  } else {
-            //    //      numerical_flux = conv_phys_flux_int;
-            //    //  }
-
-            //    const std::vector<ADArray> conv_eig_int = pde_physics->convective_eigenvalues(soln_int[iquad], normal1);
-            //    const std::vector<ADArray> conv_eig_ext = pde_physics->convective_eigenvalues(soln_ext[iquad], normal1); // using the same normal
-
-            //    std::vector<ADArray> conv_eig_max(nstate);
-            //    for (int i=0; i<nstate; i++) {
-            //        conv_eig_max[i] = std::max(std::abs(conv_eig_int[i]), std::abs(conv_eig_ext[i]));
-            //    }
-
-            //    // Scalar dissipation
-            //    ADArray numerical_flux_dot_n = flux_avg*normal1 - 0.5 * conv_eig_max[0] * (soln_ext[iquad]-soln_int[iquad]);
 
         }
 

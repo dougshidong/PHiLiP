@@ -1,5 +1,4 @@
 set(TARGET_SRC 
-    numerical_flux.cpp
     linear_solver.cpp
     grid_study.cpp
     assemble_implicit.cpp 
@@ -8,6 +7,7 @@ set(TARGET_SRC
     ode_solver.cpp
     main.cpp)
 add_subdirectory(physics)
+add_subdirectory(numerical_flux)
 
 foreach(dim RANGE 1 3)
     set(PHILIP_DIM ${dim}) 
@@ -29,7 +29,9 @@ foreach(dim RANGE 1 3)
     target_link_libraries(${TNAME} tbb m mpi mpi_cxx)
 
     string(CONCAT PhysicsLib Physics_${PHILIP_DIM}D)
+    string(CONCAT NumericalFluxLib NumericalFlux_${PHILIP_DIM}D)
     target_link_libraries(${TNAME} ${PhysicsLib})
+    target_link_libraries(${TNAME} ${NumericalFluxLib})
 
 
     DEAL_II_SETUP_TARGET(${TNAME})
@@ -40,6 +42,7 @@ foreach(dim RANGE 1 3)
     unset(PHILIP_DIM)
     unset(TNAME)
     unset(PhysicsLib)
+    unset(NumericalFluxLib)
     unset(TARGET ${TNAME})
 
 endforeach()

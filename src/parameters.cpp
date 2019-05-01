@@ -262,10 +262,10 @@ namespace Parameters
                           Patterns::Selection("lax_friedrichs"),
                           "Convective numerical flux. "
                           "Choices are <lax_friedrichs>.");
-        prm.declare_entry("diss_num_flux", "sipg",
-                          Patterns::Selection("sipg"),
+        prm.declare_entry("diss_num_flux", "symm_internal_penalty",
+                          Patterns::Selection("symm_internal_penalty"),
                           "Dissipative numerical flux. "
-                          "Choices are <sipg>.");
+                          "Choices are <symm_internal_penalty>.");
 
         Parameters::LinearSolver::declare_parameters (prm);
         Parameters::ManufacturedConvergenceStudy::declare_parameters (prm);
@@ -284,7 +284,7 @@ namespace Parameters
         if (conv_num_flux_string == "lax_friedrichs") conv_num_flux_type = lax_friedrichs;
 
         const std::string diss_num_flux_string = prm.get("diss_num_flux");
-        if (diss_num_flux_string == "sipg") diss_num_flux_type = sipg;
+        if (diss_num_flux_string == "symm_internal_penalty") diss_num_flux_type = symm_internal_penalty;
 
 
         Parameters::LinearSolver::parse_parameters (prm);

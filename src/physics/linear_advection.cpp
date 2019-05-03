@@ -50,16 +50,25 @@ namespace PHiLiP
     }
 
     template <int dim, int nstate, typename real>
+    std::array<Tensor<2,dim,real>,nstate> LinearAdvection<dim,nstate,real>
+    ::diffusion_matrix ( const std::array<real,nstate> &solution ) const
+    {
+		std::array<Tensor<2,dim,real>,nstate> zero; // deal.II tensors are initialized with zeros
+        return zero;
+    }
+
+    template <int dim, int nstate, typename real>
     void LinearAdvection<dim,nstate,real>
     ::dissipative_flux (
-        const std::array<real,nstate> &/*solution*/,
-        const std::array<Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
+        const std::array<real,nstate> &solution,
+        const std::array<Tensor<1,dim,real>,nstate> &solution_gradient,
         std::array<Tensor<1,dim,real>,nstate> &diss_flux) const
     {
         // No dissipation
-        Tensor<1,dim,real> zero;
+        const double diff_coeff = this->diff_coeff;
+        const std::array<Tensor<2,dim,real>,nstate> diff_matrix = diffusion_matrix(solution);
         for (int i=0; i<nstate; i++) {
-            diss_flux[i] = -(this->diff_coeff)*zero;
+            diss_flux[i] = -diff_coeff*diff_matrix[i]*solution_gradient[i];
         }
     }
 

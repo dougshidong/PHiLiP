@@ -7,6 +7,20 @@ namespace PHiLiP
     using namespace dealii;
     using AllParam = Parameters::AllParameters;
 
+    // Protyping low level functions
+    template<int nstate, typename real_tensor>
+    std::array<real_tensor, nstate> array_average(
+        const std::array<real_tensor, nstate> &array1,
+        const std::array<real_tensor, nstate> &array2)
+    {
+        std::array<real_tensor,nstate> array_average;
+        for (int s=0; s<nstate; s++) {
+            array_average[s] = 0.5*(array1[s] + array2[s]);
+        }
+        return array_average;
+    }
+
+
     template <int dim, int nstate, typename real>
     NumericalFluxConvective<dim,nstate,real>*
     NumericalFluxFactory<dim, nstate, real>
@@ -51,10 +65,12 @@ namespace PHiLiP
         pde_physics->convective_flux (soln_int, conv_phys_flux_int);
         pde_physics->convective_flux (soln_ext, conv_phys_flux_ext);
         
-        RealArrayVector flux_avg;
-        for (int s=0; s<nstate; s++) {
-            flux_avg[s] = 0.5*(conv_phys_flux_int[s] + conv_phys_flux_ext[s]);
-        }
+        RealArrayVector flux_avg = 
+            array_average<nstate, Tensor<1,dim,real>> 
+            (conv_phys_flux_int, conv_phys_flux_ext);
+        //for (int s=0; s<nstate; s++) {
+        //    flux_avg[s] = 0.5*(conv_phys_flux_int[s] + conv_phys_flux_ext[s]);
+        //}
 
         const std::array<real,nstate> conv_eig_int = pde_physics->convective_eigenvalues(soln_int, n_int);
         const std::array<real,nstate> conv_eig_ext = pde_physics->convective_eigenvalues(soln_ext, n_int); // using the same normal
@@ -85,9 +101,14 @@ namespace PHiLiP
         std::array<real, nstate> &soln_flux,
         std::array<Tensor<1,dim,real>, nstate> &grad_flux) const
     {
-        return;
-    }
+        std::array<real,nstate> soln_avg = array_average<nstate,real>(soln_int, soln_ext);
 
+        //std::array<Tensor<2,dim,real>,nstate> diffusion_matrix_int = 
+        //    pde_physics->diffusion_matrix(soln_int);
+
+        //std::array<Tensor<2,dim,real>,nstate> diffusion_matrix_ext = 
+        //    pde_physics->diffusion_matrix(soln_ext);
+    }
 
 
     // Instantiation

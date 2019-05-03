@@ -28,14 +28,28 @@ namespace PHiLiP
     }
 
     template <int dim, int nstate, typename real>
+    std::array<Tensor<2,dim,real>,nstate> Diffusion<dim,nstate,real>
+    ::diffusion_matrix ( const std::array<real,nstate> &solution ) const
+    {
+        // deal.II tensors are initialized with zeros
+        std::array<Tensor<2,dim,real>,nstate> diff_matrix;
+        for (int d=0; d<dim; d++) {
+            diff_matrix[0][d][d] = 1.0;
+        }
+        return diff_matrix;
+    }
+
+    template <int dim, int nstate, typename real>
     void Diffusion<dim,nstate,real>
     ::dissipative_flux (
-        const std::array<real,nstate> &/*solution*/,
+        const std::array<real,nstate> &solution,
         const std::array<Tensor<1,dim,real>,nstate> &solution_gradient,
         std::array<Tensor<1,dim,real>,nstate> &diss_flux) const
     {
+        const double diff_coeff = this->diff_coeff;
+        const std::array<Tensor<2,dim,real>,nstate> diff_matrix = diffusion_matrix(solution);
         for (int i=0; i<nstate; i++) {
-            diss_flux[i] = -(this->diff_coeff)*solution_gradient[i];
+            diss_flux[i] = -diff_coeff*diff_matrix[i]*solution_gradient[i];
         }
     }
 

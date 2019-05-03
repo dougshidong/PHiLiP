@@ -73,9 +73,9 @@ namespace PHiLiP
 
 
         // Lagrange polynomial basis
-        //const FE_DGQ<dim> fe;
+        const FE_DGQ<dim> fe;
         /// Legendre polynomial basis
-        const FE_DGP<dim> fe;
+        //const FE_DGP<dim> fe;
 
         Parameters::AllParameters *parameters;
 

@@ -2,6 +2,7 @@
 #define __LINEAR_SOLVER_H__
 
 #include <deal.II/lac/trilinos_sparse_matrix.h>
+#include "parameters.h"
 
 namespace PHiLiP
 {
@@ -18,7 +19,8 @@ namespace PHiLiP
     solve_linear (
         TrilinosWrappers::SparseMatrix &system_matrix,
         Vector<real> &right_hand_side,
-        Vector<real> &solution);
+        Vector<real> &solution,
+        Parameters::AllParameters const * const param);
 }
 
 #endif

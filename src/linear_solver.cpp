@@ -14,7 +14,8 @@ namespace PHiLiP
     solve_linear (
         TrilinosWrappers::SparseMatrix &system_matrix,
         Vector<real> &right_hand_side, 
-        Vector<real> &solution)
+        Vector<real> &solution,
+        Parameters::AllParameters const * const param)
     {
 
         //system_matrix.print(std::cout, true);
@@ -26,15 +27,16 @@ namespace PHiLiP
         //fullA.print_formatted(std::cout, 3, true, 10, "0", 1., 0.);
 
 
-        SolverControl solver_control(1, 0);
-        TrilinosWrappers::SolverDirect::AdditionalData data(false);
-        //TrilinosWrappers::SolverDirect::AdditionalData data(parameters.output == Parameters::Solver::verbose);
-        TrilinosWrappers::SolverDirect direct(solver_control, data);
+        using LinSolvParam = Parameters::LinearSolver;
+        if (param->linear_solver_type == LinSolvParam::LinearSolverType::direct) {
+            SolverControl solver_control(1, 0);
+            TrilinosWrappers::SolverDirect::AdditionalData data(false);
+            //TrilinosWrappers::SolverDirect::AdditionalData data(parameters.output == Parameters::Solver::verbose);
+            TrilinosWrappers::SolverDirect direct(solver_control, data);
 
-        direct.solve(system_matrix, solution, right_hand_side);
-        return {solver_control.last_step(), solver_control.last_value()};
-
-        {
+            direct.solve(system_matrix, solution, right_hand_side);
+            return {solver_control.last_step(), solver_control.last_value()};
+        } else if (param->linear_solver_type == LinSolvParam::LinearSolverType::gmres) {
           Epetra_Vector x(View,
                           system_matrix.trilinos_matrix().DomainMap(),
                           solution.begin());
@@ -44,7 +46,7 @@ namespace PHiLiP
           AztecOO solver;
           solver.SetAztecOption(
             AZ_output,
-            (false ? AZ_none : AZ_all));
+            (param->linear_solver_output ? AZ_all : AZ_none));
           solver.SetAztecOption(AZ_solver, AZ_gmres);
           solver.SetRHS(&b);
           solver.SetLHS(&x);
@@ -90,6 +92,7 @@ namespace PHiLiP
                     << std::endl;
           return {solver.NumIters(), solver.TrueResidual()};
         }
+        return {-1.0, -1.0};
     }
 
     template std::pair<unsigned int, double>
@@ -97,5 +100,6 @@ namespace PHiLiP
     solve_linear (
         TrilinosWrappers::SparseMatrix &system_matrix,
         Vector<double> &right_hand_side, 
-        Vector<double> &solution);
+        Vector<double> &solution,
+        Parameters::AllParameters const * const param);
 }

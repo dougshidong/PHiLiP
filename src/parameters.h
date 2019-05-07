@@ -42,6 +42,14 @@ namespace Parameters
     public:
         ManufacturedConvergenceStudy ();
 
+        enum GridType { hypercube, sinehypercube, read_grid };
+
+        GridType grid_type;
+        std::string input_grids;
+
+        double random_distortion;
+        bool output_meshes;
+
         unsigned int degree_start;
         unsigned int degree_end;
         unsigned int initial_grid_size;

@@ -85,7 +85,8 @@ namespace PHiLiP
         solve_linear (
             this->dg->system_matrix,
             this->dg->right_hand_side, 
-            this->solution_update);
+            this->solution_update,
+            this->parameters);
     }
 
     template <int dim, int nstate, typename real>

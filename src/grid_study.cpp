@@ -69,6 +69,7 @@ namespace PHiLiP
     template<int dim>
     int manufactured_grid_convergence (Parameters::AllParameters &parameters)
     {
+        using Param = Parameters::AllParameters;
         Assert(dim == parameters.dimension, ExcDimensionMismatch(dim, parameters.dimension));
         const int nstate = 1;
 
@@ -83,6 +84,8 @@ namespace PHiLiP
 
         std::vector<int> fail_conv_poly;
         std::vector<double> fail_conv_slop;
+
+        std::vector<ConvergenceTable> convergence_table_vector;
         for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
 
             // p0 tends to require a finer grid to reach asymptotic region
@@ -111,12 +114,14 @@ namespace PHiLiP
 
                 bool generate_square_mesh = true;
                 bool sine_mesh = false;
-                const double factor = 0.0000; // should be less than 0.5
+                const double random_factor = parameters.random_distortion; // should be less than 0.5
                 const bool keep_boundary = true;
                 bool readmesh = false, writemesh = true;
 
-                if (generate_square_mesh) {
+                if (   parameters.grid_type == Param::GridType::hypercube
+                    || parameters.grid_type == Param::GridType::sinehypercube ) {
                     GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid]);
+                    //GridGenerator::hyper_cube_with_cylindrical_hole(grid, 0.25, 0.5, 0.5, n_1d_cells[igrid],false);
                     for (
                         typename Triangulation<dim>::active_cell_iterator
                         cell = grid.begin_active(); cell != grid.end(); ++cell)
@@ -126,35 +131,22 @@ namespace PHiLiP
                             if (cell->face(f)->at_boundary())
                                   cell->face(f)->set_boundary_id (9001);
                     }
+                    if (parameters.grid_type == Param::GridType::sinehypercube) GridTools::transform (&warp<dim>, grid);
                 }
-                //if (generate_square_mesh) GridGenerator::hyper_cube_with_cylindrical_hole(grid, 0.25, 0.5, 0.5, n_1d_cells[igrid],false);
-
-                //std::string read_mshname = "squareunsquad0.msh";
-                //std::cout<<"Reading grid: " << read_mshname << std::endl;
-                //std::ifstream inmesh(read_mshname);
-                //GridIn<dim,dim> grid_in;
-                //grid_in.attach_triangulation(grid);
-                //grid_in.read_msh(inmesh);
-                //grid.refine_global(igrid);
-
 
                 //   Distort grid by random amount
-                if (factor >= 1e-10) GridTools::distort_random (factor, grid, keep_boundary);
-                //Point<dim> zero;
-                //GridTools::rotate (30, grid);
-                if (sine_mesh) GridTools::transform (&warp<dim>, grid);
+                if (random_factor > 0.0) GridTools::distort_random (random_factor, grid, keep_boundary);
 
-
-                if (readmesh) {
+                if (parameters.grid_type == Param::GridType::read_grid) {
                     //std::string write_mshname = "grid-"+std::to_string(igrid)+".msh";
-                    std::string read_mshname = "squareunsquad"+std::to_string(igrid)+".msh";
+                    std::string read_mshname = parameters.input_grids+std::to_string(igrid)+".msh";
                     std::cout<<"Reading grid: " << read_mshname << std::endl;
                     std::ifstream inmesh(read_mshname);
                     GridIn<dim,dim> grid_in;
                     grid_in.attach_triangulation(grid);
                     grid_in.read_msh(inmesh);
                 }
-                if (writemesh) {
+                if (parameters.output_meshes) {
                     std::string write_mshname = "grid-"+std::to_string(igrid)+".msh";
                     std::ofstream outmesh(write_mshname);
                     GridOutFlags::Msh msh_flags(true, true);
@@ -292,11 +284,11 @@ namespace PHiLiP
                 soln_error[igrid] = l2error;
                 output_error[igrid] = std::abs(solution_integral - exact_solution_integral);
 
+                convergence_table.add_value("p", poly_degree);
                 convergence_table.add_value("cells", grid.n_active_cells());
                 convergence_table.add_value("dx", dx);
                 convergence_table.add_value("soln_L2_error", l2error);
                 convergence_table.add_value("output_error", output_error[igrid]);
-
 
 
                 std::cout   << " Grid size h: " << dx 
@@ -347,6 +339,8 @@ namespace PHiLiP
             convergence_table.set_scientific("output_error", true);
             convergence_table.write_text(std::cout);
 
+            convergence_table_vector.push_back(convergence_table);
+
             //dg.triangulation->list_subscribers();
             //grid->list_subscribers();
             //std::cout<<std::flush;
@@ -376,6 +370,21 @@ namespace PHiLiP
                 fail_conv_slop.push_back(last_slope);
             }
 
+        }
+        std::cout << std::endl
+                  << std::endl
+                  << std::endl
+                  << std::endl;
+        std::cout << " ********************************************"
+                  << std::endl;
+        std::cout << " Convergence summary"
+                  << std::endl;
+        std::cout << " ********************************************"
+                  << std::endl;
+        for (auto conv = convergence_table_vector.begin(); conv!=convergence_table_vector.end(); conv++) {
+            conv->write_text(std::cout);
+            std::cout << " ********************************************"
+                      << std::endl;
         }
         int n_fail_poly = fail_conv_poly.size();
         if (n_fail_poly > 0) {

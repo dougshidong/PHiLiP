@@ -1,6 +1,7 @@
 #include <Sacado.hpp>
 #include <deal.II/differentiation/ad/sacado_product_types.h>
 #include "numerical_flux.h"
+#include "viscous_numerical_flux.h"
 
 namespace PHiLiP
 {
@@ -87,30 +88,6 @@ namespace PHiLiP
         return numerical_flux_dot_n;
     }
 
-    template <int dim, int nstate, typename real>
-    NumericalFluxDissipative<dim,nstate,real>::~NumericalFluxDissipative() {}
-
-    template<int dim, int nstate, typename real>
-    void SymmetricInternalPenalty<dim,nstate,real>
-    ::evaluate_flux (
-        const std::array<real, nstate> &soln_int,
-        const std::array<real, nstate> &soln_ext,
-        const std::array<Tensor<1,dim,real>, nstate> &soln_grad_int,
-        const std::array<Tensor<1,dim,real>, nstate> &soln_grad_ext,
-        const Tensor<1,dim,real> &normal1,
-        std::array<real, nstate> &soln_flux,
-        std::array<Tensor<1,dim,real>, nstate> &grad_flux) const
-    {
-        std::array<real,nstate> soln_avg = array_average<nstate,real>(soln_int, soln_ext);
-
-        //std::array<Tensor<2,dim,real>,nstate> diffusion_matrix_int = 
-        //    pde_physics->diffusion_matrix(soln_int);
-
-        //std::array<Tensor<2,dim,real>,nstate> diffusion_matrix_ext = 
-        //    pde_physics->diffusion_matrix(soln_ext);
-    }
-
-
     // Instantiation
     template class NumericalFluxConvective<PHILIP_DIM, 1, double>;
     template class NumericalFluxConvective<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
@@ -118,11 +95,6 @@ namespace PHiLiP
     template class LaxFriedrichs<PHILIP_DIM, 1, double>;
     template class LaxFriedrichs<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
 
-    template class NumericalFluxDissipative<PHILIP_DIM, 1, double>;
-    template class NumericalFluxDissipative<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
-
-    template class SymmetricInternalPenalty<PHILIP_DIM, 1, double>;
-    template class SymmetricInternalPenalty<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
 
     template class NumericalFluxFactory<PHILIP_DIM, 1, double>;
     template class NumericalFluxFactory<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;

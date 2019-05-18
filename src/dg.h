@@ -44,6 +44,7 @@ namespace PHiLiP
 
         void allocate_system ();
         void assemble_system ();
+        void evaluate_inverse_mass_matrices ();
         double get_residual_l2norm ();
 
         void delete_fe_values ();
@@ -84,6 +85,7 @@ namespace PHiLiP
         /// Contains the physics of the PDE
         Physics<dim, nstate, Sacado::Fad::DFad<real> >  *pde_physics;
         NumericalFluxConvective<dim, nstate, Sacado::Fad::DFad<real> > *conv_num_flux;
+        NumericalFluxDissipative<dim, nstate, Sacado::Fad::DFad<real> > *diss_num_flux;
 
 
         void allocate_system_explicit ();
@@ -140,6 +142,8 @@ namespace PHiLiP
             const std::vector<types::global_dof_index> &neighbor_dofs_indices,
             Vector<real>          &current_cell_rhs,
             Vector<real>          &neighbor_cell_rhs);
+
+        std::vector<FullMatrix<real>> inv_mass_matrix;
 
         // QGauss is Gauss-Legendre quadrature nodes
         const QGauss<dim>   quadrature;

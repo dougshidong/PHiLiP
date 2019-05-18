@@ -2,15 +2,11 @@ Look into member variable naming for fe_values
     This one just bit me.
     In face_boundary I used the member fe_values instead of passed fe_values_face by mistake.
 
-Take physics out of the DiscontinuousGalerkin class.
+Find the adjoint consistent boundary condition for the diffusion problem and convection-diffusion problem
+
+Find out why the linear solver is soooo much slower for the diffusion problems. Maybe just need pre-conditioner.
 
 Move boundary conditions to Physics class.
-
-Compute auxiliary variable $ \sigma = \nabla u $ independently.
-
-Take numerical flux out of the DiscontinuousGalerkin class.
-
-Adjoint consistency, output integral 2p.
 
 Vector-valued problems
     - Figure out global solution ordering

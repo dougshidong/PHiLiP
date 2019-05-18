@@ -20,15 +20,18 @@ namespace PHiLiP
 
         //system_matrix.print(std::cout, true);
         //solution.print(std::cout);
-        //right_hand_side.print(std::cout);
-        //FullMatrix<double> fullA(system_matrix.m());
-        //fullA.copy_from(system_matrix);
-        //std::cout<<"Dense matrix:"<<std::endl;
-        //fullA.print_formatted(std::cout, 3, true, 10, "0", 1., 0.);
 
 
         using LinSolvParam = Parameters::LinearSolver;
         if (param->linear_solver_type == LinSolvParam::LinearSolverType::direct) {
+            if (param->linear_solver_output == Parameters::OutputType::verbose) {
+                right_hand_side.print(std::cout);
+                FullMatrix<double> fullA(system_matrix.m());
+                fullA.copy_from(system_matrix);
+                std::cout<<"Dense matrix:"<<std::endl;
+                fullA.print_formatted(std::cout, 3, true, 10, "0", 1., 0.);
+            }
+
             SolverControl solver_control(1, 0);
             TrilinosWrappers::SolverDirect::AdditionalData data(false);
             //TrilinosWrappers::SolverDirect::AdditionalData data(parameters.output == Parameters::Solver::verbose);

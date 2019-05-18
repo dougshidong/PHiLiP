@@ -3,19 +3,17 @@
 # Number of dimensions
 set dimension = 1
 
-# The PDE we want to solve. Choices are
-# <diffusion|diffusion|convection_diffusion>.
-set pde_type  = convection_diffusion
+# The kind of solver for the linear system. Choices are
+# <advection|convection_diffusion>.
+set pde_type  = advection
+
 
 subsection ODE solver
-
-  set ode_output                          = verbose
-
   # Maximum nonlinear solver iterations
-  set nonlinear_max_iterations            = 500000
+  set nonlinear_max_iterations            = 3
 
   # Nonlinear solver residual tolerance
-  set nonlinear_steady_residual_tolerance = 1e-12
+  set nonlinear_steady_residual_tolerance = 1e-13
 
   # Print every print_iteration_modulo iterations of the nonlinear solver
   set print_iteration_modulo              = 1
@@ -24,20 +22,22 @@ subsection ODE solver
   set solver_type                         = implicit
 end
 
+
 subsection manufactured solution convergence study
   # Last degree used for convergence study
-  set degree_end        = 3
+  set degree_end   = 4
 
   # Starting degree for convergence study
-  set degree_start      = 1
+  set degree_start = 1
+
+  # Initial grid of size (initial_grid_size)^dim
+  set initial_grid_size = 2
+
+  # Number of grids in grid study
+  set number_of_grids   = 5
 
   # Multiplier on grid size. nth-grid will be of size
   # (initial_grid^grid_progression)^dim
   set grid_progression  = 1.5
-
-  # Initial grid of size (initial_grid_size)^dim
-  set initial_grid_size = 3
-
-  # Number of grids in grid study
-  set number_of_grids   = 6
 end
+

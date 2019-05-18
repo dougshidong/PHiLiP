@@ -74,7 +74,7 @@ namespace Parameters
     {
         prm.enter_subsection("ODE solver");
         {
-            prm.declare_entry("ode_output", "quiet",
+            prm.declare_entry("ode_output", "verbose",
                               Patterns::Selection("quiet|verbose"),
                               "State whether output from ODE solver should be printed. "
                               "Choices are <quiet|verbose>.");

@@ -1,4 +1,5 @@
 set(SOURCE
+    viscous_numerical_flux.cpp
     numerical_flux.cpp
     )
 

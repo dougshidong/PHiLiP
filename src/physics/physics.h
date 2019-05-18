@@ -32,6 +32,9 @@ namespace PHiLiP
         virtual void manufactured_solution (
             const Point<dim,double> &pos,
             std::array<real,nstate> &solution) const;
+        virtual void manufactured_gradient (
+            const Point<dim,double> &pos,
+            std::array<Tensor<1,dim,real>,nstate> &solution_gradient) const;
 
         /// Returns the integral of the manufactured solution over the hypercube [0,1]
         ///
@@ -51,8 +54,17 @@ namespace PHiLiP
             const Tensor<1,dim,real> &/*normal*/) const = 0;
 
         // Evaluate the diffusion matrix $ A $ such that $F_v = A \nabla u$
-        virtual std::array<Tensor<2,dim,real>,nstate> diffusion_matrix (
-            const std::array<real,nstate> &solution) const = 0;
+        virtual std::array<Tensor<1,dim,real>,nstate> apply_diffusion_matrix (
+            const std::array<real,nstate> &solution,
+            const std::array<Tensor<1,dim,real>,nstate> &solution_grad) const = 0;
+
+        // Dissipative fluxes that will be differentiated once in space
+        // Evaluates the dissipative flux through the linearization F = A(u)*grad(u)
+        void dissipative_flux_A_gradu (
+            const real scaling,
+            const std::array<real,nstate> &solution,
+            const std::array<Tensor<1,dim,real>,nstate> &solution_gradient,
+            std::array<Tensor<1,dim,real>,nstate> &diss_flux) const;
 
         // Dissipative fluxes that will be differentiated once in space
         virtual void dissipative_flux (
@@ -92,7 +104,7 @@ namespace PHiLiP
         //const double offs_x = 1, offs_y = 1.2, offs_z = 1.5;
 
         const double pi = atan(1)*4.0;
-        const double freq_x = 1.59/dim, freq_y = 2*1.81/dim,    freq_z = 3*1.76/dim;
+        const double freq_x = 0.59/dim, freq_y = 2*0.81/dim,    freq_z = 3*0.76/dim;
         const double offs_x = 1,        offs_y = 1.2,           offs_z = 1.5;
         const double velo_x = exp(1)/2, velo_y =-pi/4.0,        velo_z = sqrt(2);
         //const double velo_x = 1.0, velo_y =-pi/4.0,        velo_z = sqrt(2);
@@ -129,8 +141,9 @@ namespace PHiLiP
             const Tensor<1,dim,real> &normal) const;
 
         // Diffusion matrix: 0
-        std::array<Tensor<2,dim,real>,nstate> diffusion_matrix (
-            const std::array<real,nstate> &solution) const;
+        std::array<Tensor<1,dim,real>,nstate> apply_diffusion_matrix (
+            const std::array<real,nstate> &solution,
+            const std::array<Tensor<1,dim,real>,nstate> &solution_grad) const;
 
         // Dissipative flux: 0
         void dissipative_flux (
@@ -171,8 +184,9 @@ namespace PHiLiP
             const Tensor<1,dim,real> &/*normal*/) const;
 
         // Diffusion matrix is identity
-        std::array<Tensor<2,dim,real>,nstate> diffusion_matrix (
-            const std::array<real,nstate> &solution) const;
+        std::array<Tensor<1,dim,real>,nstate> apply_diffusion_matrix (
+            const std::array<real,nstate> &solution,
+            const std::array<Tensor<1,dim,real>,nstate> &solution_grad) const;
 
         // Dissipative flux: u
         void dissipative_flux (
@@ -208,8 +222,9 @@ namespace PHiLiP
             const Tensor<1,dim,real> &/*normal*/) const;
 
         // Diffusion matrix is identity
-        std::array<Tensor<2,dim,real>,nstate> diffusion_matrix (
-            const std::array<real,nstate> &solution) const;
+        std::array<Tensor<1,dim,real>,nstate> apply_diffusion_matrix (
+            const std::array<real,nstate> &solution,
+            const std::array<Tensor<1,dim,real>,nstate> &solution_grad) const;
 
         // Dissipative flux: u
         void dissipative_flux (

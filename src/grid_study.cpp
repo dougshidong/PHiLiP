@@ -90,7 +90,7 @@ namespace PHiLiP
 
             // p0 tends to require a finer grid to reach asymptotic region
             unsigned int n_grids = n_grids_input;
-            if (poly_degree == 0) n_grids = n_grids_input + 2;
+            if (poly_degree <= 1) n_grids = n_grids_input + 1;
 
             std::vector<int> n_1d_cells(n_grids);
             n_1d_cells[0] = initial_grid_size;
@@ -167,6 +167,8 @@ namespace PHiLiP
                 //Physics<dim, nstate, ADtype> *physics = PhysicsFactory<dim, nstate, ADtype >::create_Physics(parameters.pde_type);
                 //dg.set_physics(physics);
                 dg.allocate_system ();
+
+                dg.evaluate_inverse_mass_matrices();
 
                 //ODESolver<dim, double> *ode_solver = ODESolverFactory<dim, double>::create_ODESolver(parameters.solver_type);
                 ODESolver<dim, nstate, double> *ode_solver = ODESolverFactory<dim, nstate, double>::create_ODESolver(&dg);

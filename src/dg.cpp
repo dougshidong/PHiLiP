@@ -70,6 +70,8 @@ namespace PHiLiP
         pde_physics = PhysicsFactory<dim, nstate, ADtype >::create_Physics(parameters->pde_type);
         conv_num_flux = NumericalFluxFactory<dim, nstate, ADtype>::create_convective_numerical_flux
             (parameters->conv_num_flux_type, pde_physics);
+        diss_num_flux = NumericalFluxFactory<dim, nstate, ADtype>::create_dissipative_numerical_flux
+            (parameters->diss_num_flux_type, pde_physics);
     }
     // Destructor
     template <int dim, int nstate, typename real>
@@ -99,6 +101,7 @@ namespace PHiLiP
     void DiscontinuousGalerkin<dim,nstate,real>::delete_fe_values ()
     {
         delete conv_num_flux;
+        delete diss_num_flux;
         delete pde_physics;
 
         if (fe_values_cell          != NULL) delete fe_values_cell;
@@ -537,6 +540,44 @@ namespace PHiLiP
 
       data_out.write_gnuplot(gnuplot_output);
     }
+
+    template <int dim, int nstate, typename real>
+    void DiscontinuousGalerkin<dim,nstate,real>::evaluate_inverse_mass_matrices ()
+    {
+        // Invert and store mass matrix
+        // Using Gauss-Jordan since it's deal.II's default invert function
+        // Could store Cholesky decomposition for more efficient pre-processing
+        const int n_quad_pts      = quadrature.size();
+        const int n_dofs_per_cell = fe.dofs_per_cell;
+
+        typename DoFHandler<dim>::active_cell_iterator
+           cell = dof_handler.begin_active(),
+           endc = dof_handler.end();
+
+        inv_mass_matrix.resize(triangulation->n_active_cells(),
+                               FullMatrix<real>(n_dofs_per_cell));
+        FullMatrix<real> mass_matrix(n_dofs_per_cell);
+        for (; cell!=endc; ++cell) {
+
+            int cell_index = cell->index();
+            fe_values_cell->reinit(cell);
+
+            for (int itest=0; itest<n_dofs_per_cell; ++itest) {
+                for (int itrial=itest; itrial<n_dofs_per_cell; ++itrial) {
+                    mass_matrix[itest][itrial] = 0.0;
+                    for (int iquad=0; iquad<n_quad_pts; ++iquad) {
+                        mass_matrix[itest][itrial] +=
+                            fe_values_cell->shape_value(itest,iquad)
+                            * fe_values_cell->shape_value(itrial,iquad)
+                            * fe_values_cell->JxW(iquad);
+                    }
+                    mass_matrix[itrial][itest] = mass_matrix[itest][itrial];
+                }
+            }
+            inv_mass_matrix[cell_index].invert(mass_matrix);
+        }
+    }
+
 
 
 

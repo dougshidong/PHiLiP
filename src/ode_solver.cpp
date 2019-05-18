@@ -16,25 +16,39 @@ namespace PHiLiP
         dg->assemble_system ();
         this->residual_norm = dg->get_residual_l2norm();
         this->residual_norm = 1; // Always do at least 1 iteration
+        double update_norm = 1; // Always do at least 1 iteration
         this->current_iteration = 0;
 
-        while (    this->residual_norm     > parameters->nonlinear_steady_residual_tolerance 
+        while (    
+                   this->residual_norm     > parameters->nonlinear_steady_residual_tolerance 
+                && update_norm             > parameters->nonlinear_steady_residual_tolerance 
                 && this->current_iteration < parameters->nonlinear_max_iterations )
         {
-            ++this->current_iteration;
-
             if ((this->parameters->ode_output) == Parameters::OutputType::verbose &&
                 (this->current_iteration%parameters->print_iteration_modulo) == 0 )
             std::cout << " Iteration: " << this->current_iteration 
                       << " Residual norm: " << this->residual_norm
                       << std::endl;
 
+            if ((this->parameters->ode_output) == Parameters::OutputType::verbose &&
+                (this->current_iteration%parameters->print_iteration_modulo) == 0 )
+            std::cout << " Assembling system... ";
+            dg->assemble_system ();
+
+            if ((this->parameters->ode_output) == Parameters::OutputType::verbose &&
+                (this->current_iteration%parameters->print_iteration_modulo) == 0 )
+            std::cout << " Evaluating system update... ";
             evaluate_solution_update ();
+
+
             //this->solution_update *= 0.1;
+            update_norm = this->solution_update.l2_norm();
             dg->solution += this->solution_update;
 
-            dg->assemble_system ();
             this->residual_norm = dg->get_residual_l2norm();
+
+            ++(this->current_iteration);
+
         }
         return 1;
     }

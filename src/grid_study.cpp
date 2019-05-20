@@ -105,18 +105,15 @@ namespace PHiLiP
 
             ConvergenceTable convergence_table;
             for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
-                // Note that Triangulation must be declared before DiscontinuousGalerkin
-                // DiscontinuousGalerkin will be destructed before Triangulation
+                // Note that Triangulation must be declared before DG
+                // DG will be destructed before Triangulation
                 // thus removing any dependence of Triangulation and allowing Triangulation to be destructed
                 // Otherwise, a Subscriptor error will occur
 
                 Triangulation<dim> grid;
 
-                bool generate_square_mesh = true;
-                bool sine_mesh = false;
                 const double random_factor = parameters.random_distortion; // should be less than 0.5
                 const bool keep_boundary = true;
-                bool readmesh = false, writemesh = true;
 
                 if (   parameters.grid_type == Param::GridType::hypercube
                     || parameters.grid_type == Param::GridType::sinehypercube ) {
@@ -155,23 +152,23 @@ namespace PHiLiP
                     grid_out.write_msh(grid, outmesh);
                 }
 
-
                 std::string gridname = "grid-"+std::to_string(igrid)+".eps";
                 if (dim == 2) print_mesh_info (grid, gridname);
 
 
                 using ADtype = Sacado::Fad::DFad<double>;
 
-                DiscontinuousGalerkin<dim, nstate, double> dg(&parameters, poly_degree);
-                dg.set_triangulation(&grid);
+                //DG<dim, nstate, double> dg(&parameters, poly_degree);
+                std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&parameters, poly_degree);
+                dg->set_triangulation(&grid);
                 //Physics<dim, nstate, ADtype> *physics = PhysicsFactory<dim, nstate, ADtype >::create_Physics(parameters.pde_type);
-                //dg.set_physics(physics);
-                dg.allocate_system ();
+                //dg->set_physics(physics);
+                dg->allocate_system ();
 
-                dg.evaluate_inverse_mass_matrices();
+                dg->evaluate_inverse_mass_matrices();
 
                 //ODESolver<dim, double> *ode_solver = ODESolverFactory<dim, double>::create_ODESolver(parameters.solver_type);
-                ODESolver<dim, nstate, double> *ode_solver = ODESolverFactory<dim, nstate, double>::create_ODESolver(&dg);
+                std::shared_ptr<ODESolver<dim, double>> ode_solver = ODESolverFactory<dim, double>::create_ODESolver(dg);
 
                 unsigned int n_active_cells = grid.n_active_cells();
                 std::cout
@@ -180,17 +177,17 @@ namespace PHiLiP
                           << std::endl
                           << "Grid number: " << igrid+1 << "/" << n_grids
                           << ". Number of active cells: " << n_active_cells
-                          << ". Number of degrees of freedom: " << dg.dof_handler.n_dofs()
+                          << ". Number of degrees of freedom: " << dg->dof_handler.n_dofs()
                           << std::endl;
 
                 ode_solver->steady_state();
-                dg.output_results(igrid);
+                dg->output_results(igrid);
 
-                std::vector<unsigned int> dof_indices(dg.fe.dofs_per_cell);
+                std::vector<unsigned int> dof_indices(dg->fe.dofs_per_cell);
 
                 // Overintegrate by alot
-                QGauss<dim> quad_plus20(dg.fe.degree+5);
-                FEValues<dim,dim> fe_values_plus20(dg.mapping, dg.fe, quad_plus20, update_values | update_JxW_values | update_quadrature_points);
+                QGauss<dim> quad_plus20(dg->fe.degree+5);
+                FEValues<dim,dim> fe_values_plus20(dg->mapping, dg->fe, quad_plus20, update_values | update_JxW_values | update_quadrature_points);
 
                 const unsigned int n_quad_pts = fe_values_plus20.n_quadrature_points;
 
@@ -206,13 +203,13 @@ namespace PHiLiP
 
                 double solution_integral = 0;
                 typename DoFHandler<dim>::active_cell_iterator
-                   cell = dg.dof_handler.begin_active(),
-                   endc = dg.dof_handler.end();
+                   cell = dg->dof_handler.begin_active(),
+                   endc = dg->dof_handler.end();
                 for (; cell!=endc; ++cell) {
                     //const unsigned int icell = cell->user_index();
 
                     fe_values_plus20.reinit (cell);
-                    fe_values_plus20.get_function_values (dg.solution, solution_values_at_q);
+                    fe_values_plus20.get_function_values (dg->solution, solution_values_at_q);
 
                     std::array<double,nstate> uexact;
                     for(unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
@@ -235,13 +232,13 @@ namespace PHiLiP
 
                 bool integrate_boundary = false;
                 if (integrate_boundary) {
-                    QGauss<dim-1> quad_face_plus20(dg.fe.degree+5);
+                    QGauss<dim-1> quad_face_plus20(dg->fe.degree+5);
                     solution_integral = 0;
-                    FEFaceValues<dim,dim> fe_face_values_plus20(dg.mapping, dg.fe, quad_face_plus20, update_normal_vectors | update_values | update_JxW_values | update_quadrature_points);
+                    FEFaceValues<dim,dim> fe_face_values_plus20(dg->mapping, dg->fe, quad_face_plus20, update_normal_vectors | update_values | update_JxW_values | update_quadrature_points);
                     unsigned int n_face_quad_pts = fe_face_values_plus20.n_quadrature_points;
                     std::vector<double> face_intp_solution_values(n_face_quad_pts);
 
-                    cell = dg.dof_handler.begin_active();
+                    cell = dg->dof_handler.begin_active();
                     for (; cell!=endc; ++cell) {
 
                         //std::cout << "Cell loop" << std::endl;
@@ -250,7 +247,7 @@ namespace PHiLiP
 
                             typename DoFHandler<dim>::face_iterator current_face = cell->face(face_no);
                             fe_face_values_plus20.reinit (cell, face_no);
-                            fe_face_values_plus20.get_function_values (dg.solution, face_intp_solution_values);
+                            fe_face_values_plus20.get_function_values (dg->solution, face_intp_solution_values);
 
                             const std::vector<Tensor<1,dim> > &normals = fe_face_values_plus20.get_normal_vectors ();
 
@@ -278,7 +275,6 @@ namespace PHiLiP
                         }
                     }
                 }
-
 
                 double dx = 1.0/pow(n_active_cells,(1.0/dim));
                 dx = GridTools::maximal_cell_diameter(grid);
@@ -312,7 +308,7 @@ namespace PHiLiP
                     std::cout << "From grid " << igrid-1
                               << "  to grid " << igrid
                               << "  dimension: " << dim
-                              << "  polynomial degree p: " << dg.fe.get_degree()
+                              << "  polynomial degree p: " << dg->fe.get_degree()
                               << std::endl
                               << "  solution_error1 " << soln_error[igrid-1]
                               << "  solution_error2 " << soln_error[igrid]
@@ -325,7 +321,6 @@ namespace PHiLiP
                 }
 
                 //output_results (igrid);
-                delete ode_solver;
             }
             std::cout
                 << " ********************************************"
@@ -404,7 +399,6 @@ namespace PHiLiP
             }
         }
         return n_fail_poly;
-
     }
     template int manufactured_grid_convergence<PHILIP_DIM> (Parameters::AllParameters &parameters);
 

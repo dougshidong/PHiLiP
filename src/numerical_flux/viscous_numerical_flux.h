@@ -72,6 +72,40 @@ namespace PHiLiP
 
     };
 
+    //template<int dim, int nstate, typename real>
+    //class BassiRebay2: public NumericalFluxDissipative<dim, nstate, real>
+    //{
+    //public:
+    ///// Constructor
+    //SymmetricInternalPenalty(Physics<dim, nstate, real> *physics_input)
+    //:
+    //pde_physics(physics_input)
+    //{};
+    ///// Destructor
+    //~SymmetricInternalPenalty() {};
+
+    ///// Evaluate solution and gradient flux
+    ///*  $\hat{u} = {u_h}$, 
+    // *  $ \hat{A} = {{ A \nabla u_h }} - \mu {{ A }} [[ u_h ]] $
+    // */
+    //std::array<real, nstate> evaluate_solution_flux (
+    //    const std::array<real, nstate> &soln_int,
+    //    const std::array<real, nstate> &soln_ext,
+    //    const Tensor<1,dim,real> &normal_int) const;
+
+    //std::array<real, nstate> evaluate_auxiliary_flux (
+    //    const std::array<real, nstate> &soln_int,
+    //    const std::array<real, nstate> &soln_ext,
+    //    const std::array<Tensor<1,dim,real>, nstate> &soln_grad_int,
+    //    const std::array<Tensor<1,dim,real>, nstate> &soln_grad_ext,
+    //    const Tensor<1,dim,real> &normal_int,
+    //    const real &penalty) const;
+    //    
+    //protected:
+    //const Physics<dim, nstate, real> *pde_physics;
+
+    //};
+
 }
 
 #endif

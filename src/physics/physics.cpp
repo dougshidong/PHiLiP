@@ -54,23 +54,18 @@ namespace PHiLiP
     void Physics<dim,nstate,real>
     ::manufactured_solution (const Point<dim,double> &pos, std::array<real,nstate> &solution) const
     {
-        std::array<real,nstate> uexact;
-        
         using phys = Physics<dim,nstate,real>;
         const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
         const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
         const int ISTATE = 0;
-        if (dim==1) uexact[ISTATE] = sin(a*pos[0]+d);
-        if (dim==2) uexact[ISTATE] = sin(a*pos[0]+d)*sin(b*pos[1]+e);
-        if (dim==3) uexact[ISTATE] = sin(a*pos[0]+d)*sin(b*pos[1]+e)*sin(c*pos[2]+f);
-        solution = uexact;
+        if (dim==1) solution[ISTATE] = sin(a*pos[0]+d);
+        if (dim==2) solution[ISTATE] = sin(a*pos[0]+d)*sin(b*pos[1]+e);
+        if (dim==3) solution[ISTATE] = sin(a*pos[0]+d)*sin(b*pos[1]+e)*sin(c*pos[2]+f);
     }
     template <int dim, int nstate, typename real>
     void Physics<dim,nstate,real>
     ::manufactured_gradient (const Point<dim,double> &pos, std::array<Tensor<1,dim,real>,nstate> &solution_gradient) const
     {
-        std::array<real,nstate> uexact;
-        
         using phys = Physics<dim,nstate,real>;
         const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
         const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
@@ -127,7 +122,7 @@ namespace PHiLiP
     template <int dim, int nstate, typename real>
     void Physics<dim,nstate,real>
     ::boundary_face_values (
-            const int boundary_type,
+            const int /*boundary_type*/,
             const Point<dim, double> &/*pos*/,
             const Tensor<1,dim,real> &/*normal*/,
             const std::array<real,nstate> &/*soln_int*/,
@@ -205,8 +200,8 @@ namespace PHiLiP
     template <int dim, int nstate, typename real>
     std::array<Tensor<1,dim,real>,nstate> LinearAdvection<dim,nstate,real>
     ::apply_diffusion_matrix(
-            const std::array<real,nstate> &solution,
-            const std::array<Tensor<1,dim,real>,nstate> &solution_grad) const
+            const std::array<real,nstate> &/*solution*/,
+            const std::array<Tensor<1,dim,real>,nstate> &/*solution_grad*/) const
     {
 		std::array<Tensor<1,dim,real>,nstate> zero; // deal.II tensors are initialized with zeros
         return zero;
@@ -215,12 +210,11 @@ namespace PHiLiP
     template <int dim, int nstate, typename real>
     void LinearAdvection<dim,nstate,real>
     ::dissipative_flux (
-        const std::array<real,nstate> &solution,
-        const std::array<Tensor<1,dim,real>,nstate> &solution_gradient,
+        const std::array<real,nstate> &/*solution*/,
+        const std::array<Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
         std::array<Tensor<1,dim,real>,nstate> &diss_flux) const
     {
         // No dissipation
-        const double diff_coeff = this->diff_coeff;
         for (int i=0; i<nstate; i++) {
             diss_flux[i] = 0;
         }
@@ -279,7 +273,7 @@ namespace PHiLiP
     template <int dim, int nstate, typename real>
     std::array<Tensor<1,dim,real>,nstate> Diffusion<dim,nstate,real>
     ::apply_diffusion_matrix(
-            const std::array<real,nstate> &solution,
+            const std::array<real,nstate> &/*solution*/,
             const std::array<Tensor<1,dim,real>,nstate> &solution_grad) const
     {
         // deal.II tensors are initialized with zeros
@@ -293,7 +287,7 @@ namespace PHiLiP
     template <int dim, int nstate, typename real>
     void Diffusion<dim,nstate,real>
     ::dissipative_flux (
-        const std::array<real,nstate> &solution,
+        const std::array<real,nstate> &/*solution*/,
         const std::array<Tensor<1,dim,real>,nstate> &solution_gradient,
         std::array<Tensor<1,dim,real>,nstate> &diss_flux) const
     {
@@ -375,7 +369,7 @@ namespace PHiLiP
     template <int dim, int nstate, typename real>
     std::array<Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,real>
     ::apply_diffusion_matrix(
-            const std::array<real,nstate> &solution,
+            const std::array<real,nstate> &/*solution*/,
             const std::array<Tensor<1,dim,real>,nstate> &solution_grad) const
     {
         // deal.II tensors are initialized with zeros
@@ -389,7 +383,7 @@ namespace PHiLiP
     template <int dim, int nstate, typename real>
     void ConvectionDiffusion<dim,nstate,real>
     ::dissipative_flux (
-        const std::array<real,nstate> &solution,
+        const std::array<real,nstate> &/*solution*/,
         const std::array<Tensor<1,dim,real>,nstate> &solution_gradient,
         std::array<Tensor<1,dim,real>,nstate> &diss_flux) const
     {

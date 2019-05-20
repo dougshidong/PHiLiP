@@ -96,7 +96,7 @@ namespace PHiLiP
     ::evaluate_solution_flux (
         const std::array<real, nstate> &soln_int,
         const std::array<real, nstate> &soln_ext,
-        const Tensor<1,dim,real> &normal_int) const
+        const Tensor<1,dim,real> &/*normal_int*/) const
     {
         std::array<real,nstate> soln_avg = array_average<nstate,real>(soln_int, soln_ext);
 

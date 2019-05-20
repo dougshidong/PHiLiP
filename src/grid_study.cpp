@@ -67,20 +67,21 @@ namespace PHiLiP
     }
 
     template<int dim>
-    int manufactured_grid_convergence (Parameters::AllParameters &parameters)
+    int manufactured_grid_convergence (Parameters::AllParameters &all_parameters)
     {
         using Param = Parameters::AllParameters;
-        Assert(dim == parameters.dimension, ExcDimensionMismatch(dim, parameters.dimension));
+        Assert(dim == all_parameters.dimension, ExcDimensionMismatch(dim, all_parameters.dimension));
         const int nstate = 1;
 
-        const unsigned int p_start             = parameters.degree_start;
-        const unsigned int p_end               = parameters.degree_end;
+        Parameters::ManufacturedConvergenceStudyParam manu_grid_conv_param = all_parameters.manufactured_convergence_study_param;
+        const unsigned int p_start             = manu_grid_conv_param.degree_start;
+        const unsigned int p_end               = manu_grid_conv_param.degree_end;
 
-        const unsigned int initial_grid_size   = parameters.initial_grid_size;
-        const unsigned int n_grids_input       = parameters.number_of_grids;
-        const double       grid_progression    = parameters.grid_progression;
+        const unsigned int initial_grid_size   = manu_grid_conv_param.initial_grid_size;
+        const unsigned int n_grids_input       = manu_grid_conv_param.number_of_grids;
+        const double       grid_progression    = manu_grid_conv_param.grid_progression;
 
-        Physics<dim,1,double> *physics_double = PhysicsFactory<dim, 1, double>::create_Physics(parameters.pde_type);
+        Physics<dim,1,double> *physics_double = PhysicsFactory<dim, 1, double>::create_Physics(all_parameters.pde_type);
 
         std::vector<int> fail_conv_poly;
         std::vector<double> fail_conv_slop;
@@ -112,11 +113,11 @@ namespace PHiLiP
 
                 Triangulation<dim> grid;
 
-                const double random_factor = parameters.random_distortion; // should be less than 0.5
+                const double random_factor = manu_grid_conv_param.random_distortion; // should be less than 0.5
                 const bool keep_boundary = true;
 
-                if (   parameters.grid_type == Param::GridType::hypercube
-                    || parameters.grid_type == Param::GridType::sinehypercube ) {
+                if (   manu_grid_conv_param.grid_type == Parameters::ManufacturedConvergenceStudyParam::GridEnum::hypercube
+                    || manu_grid_conv_param.grid_type == Parameters::ManufacturedConvergenceStudyParam::GridEnum::sinehypercube ) {
                     GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid]);
                     //GridGenerator::hyper_cube_with_cylindrical_hole(grid, 0.25, 0.5, 0.5, n_1d_cells[igrid],false);
                     for (
@@ -128,22 +129,22 @@ namespace PHiLiP
                             if (cell->face(f)->at_boundary())
                                   cell->face(f)->set_boundary_id (9001);
                     }
-                    if (parameters.grid_type == Param::GridType::sinehypercube) GridTools::transform (&warp<dim>, grid);
+                    if (manu_grid_conv_param.grid_type == Parameters::ManufacturedConvergenceStudyParam::GridEnum::sinehypercube) GridTools::transform (&warp<dim>, grid);
                 }
 
                 //   Distort grid by random amount
                 if (random_factor > 0.0) GridTools::distort_random (random_factor, grid, keep_boundary);
 
-                if (parameters.grid_type == Param::GridType::read_grid) {
+                if (manu_grid_conv_param.grid_type == Parameters::ManufacturedConvergenceStudyParam::GridEnum::read_grid) {
                     //std::string write_mshname = "grid-"+std::to_string(igrid)+".msh";
-                    std::string read_mshname = parameters.input_grids+std::to_string(igrid)+".msh";
+                    std::string read_mshname = manu_grid_conv_param.input_grids+std::to_string(igrid)+".msh";
                     std::cout<<"Reading grid: " << read_mshname << std::endl;
                     std::ifstream inmesh(read_mshname);
                     GridIn<dim,dim> grid_in;
                     grid_in.attach_triangulation(grid);
                     grid_in.read_msh(inmesh);
                 }
-                if (parameters.output_meshes) {
+                if (manu_grid_conv_param.output_meshes) {
                     std::string write_mshname = "grid-"+std::to_string(igrid)+".msh";
                     std::ofstream outmesh(write_mshname);
                     GridOutFlags::Msh msh_flags(true, true);
@@ -158,16 +159,16 @@ namespace PHiLiP
 
                 using ADtype = Sacado::Fad::DFad<double>;
 
-                //DG<dim, nstate, double> dg(&parameters, poly_degree);
-                std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&parameters, poly_degree);
+                //DG<dim, nstate, double> dg(&all_parameters, poly_degree);
+                std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters, poly_degree);
                 dg->set_triangulation(&grid);
-                //Physics<dim, nstate, ADtype> *physics = PhysicsFactory<dim, nstate, ADtype >::create_Physics(parameters.pde_type);
+                //Physics<dim, nstate, ADtype> *physics = PhysicsFactory<dim, nstate, ADtype >::create_Physics(all_parameters.pde_type);
                 //dg->set_physics(physics);
                 dg->allocate_system ();
 
                 dg->evaluate_inverse_mass_matrices();
 
-                //ODESolver<dim, double> *ode_solver = ODESolverFactory<dim, double>::create_ODESolver(parameters.solver_type);
+                //ODESolver<dim, double> *ode_solver = ODESolverFactory<dim, double>::create_ODESolver(all_parameters.ode_solver_type);
                 std::shared_ptr<ODESolver<dim, double>> ode_solver = ODESolverFactory<dim, double>::create_ODESolver(dg);
 
                 unsigned int n_active_cells = grid.n_active_cells();
@@ -400,6 +401,6 @@ namespace PHiLiP
         }
         return n_fail_poly;
     }
-    template int manufactured_grid_convergence<PHILIP_DIM> (Parameters::AllParameters &parameters);
+    template int manufactured_grid_convergence<PHILIP_DIM> (Parameters::AllParameters &all_parameters);
 
 } // end of PHiLiP namespace

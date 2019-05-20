@@ -21,7 +21,7 @@
 
 #include "physics/physics.h"
 #include "numerical_flux/numerical_flux.h"
-#include "parameters.h"
+#include "parameters/all_parameters.h"
 
 
 namespace PHiLiP
@@ -76,7 +76,7 @@ namespace PHiLiP
         const FE_DGQ<dim> fe;
         //const FE_DGQLegendre<dim> fe;
 
-        Parameters::AllParameters *parameters;
+        Parameters::AllParameters *all_parameters;
 
 
         /// Degrees of freedom handler allows us to iterate over the finite
@@ -190,7 +190,7 @@ namespace PHiLiP
         //static DGBase<dim,real>*
         static std::shared_ptr< DGBase<dim,real> >
             create_discontinuous_galerkin(
-            Parameters::AllParameters *parameters, 
+            Parameters::AllParameters *parameters_input, 
             const unsigned int degree);
     };
 } // end of PHiLiP namespace

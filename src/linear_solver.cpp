@@ -15,16 +15,17 @@ namespace PHiLiP
         TrilinosWrappers::SparseMatrix &system_matrix,
         Vector<real> &right_hand_side, 
         Vector<real> &solution,
-        Parameters::AllParameters const * const param)
+        const Parameters::LinearSolverParam &param)
     {
 
         //system_matrix.print(std::cout, true);
         //solution.print(std::cout);
 
+        Parameters::LinearSolverParam::LinearSolverEnum direct_type = Parameters::LinearSolverParam::LinearSolverEnum::direct;
+        Parameters::LinearSolverParam::LinearSolverEnum gmres_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
 
-        using LinSolvParam = Parameters::LinearSolver;
-        if (param->linear_solver_type == LinSolvParam::LinearSolverType::direct) {
-            if (param->linear_solver_output == Parameters::OutputType::verbose) {
+        if (param.linear_solver_type == direct_type) {
+            if (param.linear_solver_output == Parameters::OutputEnum::verbose) {
                 right_hand_side.print(std::cout);
                 FullMatrix<double> fullA(system_matrix.m());
                 fullA.copy_from(system_matrix);
@@ -39,7 +40,7 @@ namespace PHiLiP
 
             direct.solve(system_matrix, solution, right_hand_side);
             return {solver_control.last_step(), solver_control.last_value()};
-        } else if (param->linear_solver_type == LinSolvParam::LinearSolverType::gmres) {
+        } else if (param.linear_solver_type == gmres_type) {
           Epetra_Vector x(View,
                           system_matrix.trilinos_matrix().DomainMap(),
                           solution.begin());
@@ -47,7 +48,7 @@ namespace PHiLiP
                           system_matrix.trilinos_matrix().RangeMap(),
                           right_hand_side.begin());
           AztecOO solver;
-          solver.SetAztecOption( AZ_output, (param->linear_solver_output ? AZ_all : AZ_none));
+          solver.SetAztecOption( AZ_output, (param.linear_solver_output ? AZ_all : AZ_none));
           solver.SetAztecOption(AZ_solver, AZ_gmres);
           solver.SetRHS(&b);
           solver.SetLHS(&x);
@@ -102,5 +103,5 @@ namespace PHiLiP
         TrilinosWrappers::SparseMatrix &system_matrix,
         Vector<double> &right_hand_side, 
         Vector<double> &solution,
-        Parameters::AllParameters const * const param);
+        const Parameters::LinearSolverParam &param);
 }

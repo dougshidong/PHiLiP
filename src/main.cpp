@@ -8,7 +8,7 @@
 
 #include "grid_study.h"
 #include "ode_solver.h"
-#include "parameters.h"
+#include "parameters/all_parameters.h"
 
 
 int main (int argc, char *argv[])
@@ -26,19 +26,19 @@ int main (int argc, char *argv[])
         Parameters::parse_command_line (argc, argv, parameter_handler);
 
 
-        Parameters::AllParameters parameters;
-        parameters.parse_parameters (parameter_handler);
+        Parameters::AllParameters all_parameters;
+        all_parameters.parse_parameters (parameter_handler);
 
         std::cout << "Starting program..." << std::endl;
 
 
-        test = PHiLiP::manufactured_grid_convergence<PHILIP_DIM> (parameters);
+        test = PHiLiP::manufactured_grid_convergence<PHILIP_DIM> (all_parameters);
 
         //const unsigned int np_1d = 6;
         //const unsigned int np_2d = 4;
         //const unsigned int np_3d = 3;
         //for (unsigned int poly_degree = 0; poly_degree <= np_2d; ++poly_degree) {
-        //    PHiLiP::DiscontinuousGalerkin<2, double> adv(poly_degree, parameters);
+        //    PHiLiP::DiscontinuousGalerkin<2, double> adv(poly_degree, all_parameters);
         //    const int failure = adv.grid_convergence_explicit();
         //    if (failure) return 1;
         //}

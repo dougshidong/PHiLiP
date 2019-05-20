@@ -243,6 +243,47 @@ namespace PHiLiP
         Tensor<1,dim,real> advection_speed () const;
     };
 
+    template <int dim, int nstate, typename real>
+    class LinearAdvectionVectorValued : public Physics <dim, nstate, real>
+    {
+        // State variable:   u
+        // -\nabla \cdot (c*u) = source
+
+    public:
+        ~LinearAdvectionVectorValued () {};
+        // Convective flux:  c*u
+        void convective_flux (
+            const std::array<real,nstate> &solution,
+            std::array<Tensor<1,dim,real>,nstate> &conv_flux) const;
+
+        // Spectral radius of convective term Jacobian is simply the maximum 'c'
+        std::array<real,nstate> convective_eigenvalues (
+            const std::array<real,nstate> &/*solution*/,
+            const Tensor<1,dim,real> &normal) const;
+
+        // Diffusion matrix: 0
+        std::array<Tensor<1,dim,real>,nstate> apply_diffusion_matrix (
+            const std::array<real,nstate> &solution,
+            const std::array<Tensor<1,dim,real>,nstate> &solution_grad) const;
+
+        // Dissipative flux: 0
+        void dissipative_flux (
+            const std::array<real,nstate> &solution,
+            const std::array<Tensor<1,dim,real>,nstate> &solution_gradient,
+            std::array<Tensor<1,dim,real>,nstate> &diss_flux) const;
+
+        // Source term is zero or depends on manufactured solution
+        void source_term (
+            const Point<dim,double> &pos,
+            const std::array<real,nstate> &solution,
+            std::array<real,nstate> &source) const;
+
+    protected:
+        // Linear advection speed:  c
+        Tensor<1,dim,real> advection_speed () const;
+
+    };
+
 } // end of PHiLiP namespace
 
 #endif

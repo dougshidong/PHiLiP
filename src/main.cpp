@@ -13,10 +13,11 @@
 
 int main (int argc, char *argv[])
 {
-    dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(
-        argc, argv, 1);
+    dealii::deallog.depth_console(99);
+    dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
     //dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(
     //    argc, argv, dealii::numbers::invalid_unsigned_int);
+    int test = 1;
     try
     {
         std::cout << "Reading input..." << std::endl;
@@ -31,8 +32,7 @@ int main (int argc, char *argv[])
         std::cout << "Starting program..." << std::endl;
 
 
-        int test = PHiLiP::manufactured_grid_convergence<PHILIP_DIM> (parameters);
-        return test;
+        test = PHiLiP::manufactured_grid_convergence<PHILIP_DIM> (parameters);
 
         //const unsigned int np_1d = 6;
         //const unsigned int np_2d = 4;
@@ -77,5 +77,5 @@ int main (int argc, char *argv[])
         return 1;
     }
     std::cout << "End of program." << std::endl;
-    return 0;
+    return test;
 }

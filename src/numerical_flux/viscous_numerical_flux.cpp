@@ -144,6 +144,41 @@ namespace PHiLiP
 
     }
 
+    //template<int dim, int nstate, typename real>
+    //std::array<real, nstate> BassiRebay2<dim,nstate,real>
+    //::evaluate_auxiliary_flux (
+    //    const std::array<real, nstate> &soln_int,
+    //    const std::array<real, nstate> &soln_ext,
+    //    const std::array<Tensor<1,dim,real>, nstate> &soln_grad_int,
+    //    const std::array<Tensor<1,dim,real>, nstate> &soln_grad_ext,
+    //    const Tensor<1,dim,real> &normal_int,
+    //    const real &penalty) const
+    //{
+    //    using ArrayTensor1 = std::array<Tensor<1,dim,real>, nstate>;
+    //    ArrayTensor1 phys_flux_int, phys_flux_ext;
+
+    //    // {{A*grad_u}}
+    //    pde_physics->dissipative_flux (soln_int, soln_grad_int, phys_flux_int);
+    //    pde_physics->dissipative_flux (soln_ext, soln_grad_ext, phys_flux_ext);
+    //    ArrayTensor1 phys_flux_avg = array_average<nstate,Tensor<1,dim,real>>(phys_flux_int, phys_flux_ext);
+
+    //    // {{A}}*[[u]]
+    //    ArrayTensor1 soln_jump     = array_jump<dim,nstate,real>(soln_int, soln_ext, normal_int);
+    //    ArrayTensor1 A_jumpu_int, A_jumpu_ext;
+    //    pde_physics->dissipative_flux (soln_int, soln_jump, A_jumpu_int);
+    //    pde_physics->dissipative_flux (soln_ext, soln_jump, A_jumpu_ext);
+    //    const ArrayTensor1 A_jumpu_avg = array_average<nstate,Tensor<1,dim,real>>(A_jumpu_int, A_jumpu_ext);
+
+
+    //    std::array<real,nstate> auxiliary_flux_dot_n;
+    //    for (int s=0; s<nstate; s++) {
+    //        auxiliary_flux_dot_n[s] = (phys_flux_avg[s] - penalty * A_jumpu_avg[s]) * normal_int;
+    //        //auxiliary_flux_dot_n[s] = (phys_flux_avg[s] - penalty * soln_jump[s]) * normal_int;
+    //    }
+    //    return auxiliary_flux_dot_n;
+
+    //}
+
 
 
 

@@ -19,7 +19,7 @@ namespace PHiLiP
     using namespace dealii;
 
     template <int dim, int nstate, typename real>
-    void DiscontinuousGalerkin<dim,nstate,real>::assemble_cell_terms_implicit(
+    void DG<dim,nstate,real>::assemble_cell_terms_implicit(
         const FEValues<dim,dim> *fe_values_vol,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<real> &current_cell_rhs)
@@ -39,7 +39,7 @@ namespace PHiLiP
         std::vector< ADArray > solution_ad(n_dofs_cell);
         for (unsigned int i = 0; i < n_dofs_cell; ++i) {
             const int ISTATE = 0;
-            solution_ad[i][ISTATE] = solution(current_dofs_indices[i]);
+            solution_ad[i][ISTATE] = DGBase<dim,real>::solution(current_dofs_indices[i]);
             solution_ad[i][ISTATE].diff(i, n_dofs_cell);
         }
         std::vector<real> residual_derivatives(n_dofs_cell);
@@ -101,17 +101,17 @@ namespace PHiLiP
                 //residual_derivatives[itrial] = rhs.fastAccessDx(itrial);
                 residual_derivatives[itrial] = rhs[ISTATE].dx(itrial);
             }
-            system_matrix.add(current_dofs_indices[itest], current_dofs_indices, residual_derivatives);
+            this->system_matrix.add(current_dofs_indices[itest], current_dofs_indices, residual_derivatives);
         }
     }
-    template void DiscontinuousGalerkin<PHILIP_DIM, 1, double>::assemble_cell_terms_implicit(
+    template void DG<PHILIP_DIM, 1, double>::assemble_cell_terms_implicit(
         const FEValues<PHILIP_DIM,PHILIP_DIM> *fe_values_vol,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<double> &current_cell_rhs);
 
 
     template <int dim, int nstate, typename real>
-    void DiscontinuousGalerkin<dim,nstate,real>::assemble_boundary_term_implicit(
+    void DG<dim,nstate,real>::assemble_boundary_term_implicit(
         const FEFaceValues<dim,dim> *fe_values_boundary,
         const real penalty,
         const std::vector<types::global_dof_index> &current_dofs_indices,
@@ -148,7 +148,7 @@ namespace PHiLiP
         std::vector< ADArray > solution_ad(n_dofs_cell);
         for (unsigned int i = 0; i < n_dofs_cell; ++i) {
             const int ISTATE=0;
-            solution_ad[i][ISTATE] = solution(current_dofs_indices[i]);
+            solution_ad[i][ISTATE] = DGBase<dim,real>::solution(current_dofs_indices[i]);
             solution_ad[i][ISTATE].diff(i, n_dofs_cell);
         }
         std::vector<real> residual_derivatives(n_dofs_cell);
@@ -281,17 +281,17 @@ namespace PHiLiP
                 //residual_derivatives[itrial] = rhs[ISTATE].fastAccessDx(itrial);
                 residual_derivatives[itrial] = rhs[ISTATE].dx(itrial);
             }
-            system_matrix.add(current_dofs_indices[itest], current_dofs_indices, residual_derivatives);
+            this->system_matrix.add(current_dofs_indices[itest], current_dofs_indices, residual_derivatives);
         }
     }
-    template void DiscontinuousGalerkin<PHILIP_DIM, 1, double>::assemble_boundary_term_implicit(
+    template void DG<PHILIP_DIM, 1, double>::assemble_boundary_term_implicit(
         const FEFaceValues<PHILIP_DIM,PHILIP_DIM> *fe_values_boundary,
         const double penalty,
         const std::vector<types::global_dof_index> &current_dofs_indices,
         Vector<double> &current_cell_rhs);
 
     template <int dim, int nstate, typename real>
-    void DiscontinuousGalerkin<dim,nstate,real>::assemble_face_term_implicit(
+    void DG<dim,nstate,real>::assemble_face_term_implicit(
         const FEValuesBase<dim,dim>     *fe_values_int,
         const FEFaceValues<dim,dim>     *fe_values_ext,
         const real penalty,
@@ -327,12 +327,12 @@ namespace PHiLiP
 
         for (unsigned int i = 0; i < n_dofs_current_cell; ++i) {
             const int ISTATE = 0;
-            current_solution_ad[i][ISTATE] = solution(current_dofs_indices[i]);
+            current_solution_ad[i][ISTATE] = DGBase<dim,real>::solution(current_dofs_indices[i]);
             current_solution_ad[i][ISTATE].diff(i, total_indep);
         }
         for (unsigned int i = 0; i < n_dofs_neighbor_cell; ++i) {
             const int ISTATE = 0;
-            neighbor_solution_ad[i][ISTATE] = solution(neighbor_dofs_indices[i]);
+            neighbor_solution_ad[i][ISTATE] = DGBase<dim,real>::solution(neighbor_dofs_indices[i]);
             neighbor_solution_ad[i][ISTATE].diff(i+n_dofs_current_cell, total_indep);
         }
         // Jacobian blocks
@@ -424,8 +424,8 @@ namespace PHiLiP
             for (unsigned int itrial = 0; itrial < n_dofs_neighbor_cell; ++itrial) {
                 dR1_dW2[itrial] = rhs[ISTATE].dx(n_dofs_current_cell+itrial);
             }
-            system_matrix.add(current_dofs_indices[itest_int], current_dofs_indices, dR1_dW1);
-            system_matrix.add(current_dofs_indices[itest_int], neighbor_dofs_indices, dR1_dW2);
+            this->system_matrix.add(current_dofs_indices[itest_int], current_dofs_indices, dR1_dW1);
+            this->system_matrix.add(current_dofs_indices[itest_int], neighbor_dofs_indices, dR1_dW2);
         }
 
         for (unsigned int itest_ext=0; itest_ext<n_dofs_neighbor_cell; ++itest_ext) {
@@ -454,11 +454,11 @@ namespace PHiLiP
             for (unsigned int itrial = 0; itrial < n_dofs_neighbor_cell; ++itrial) {
                 dR2_dW2[itrial] = rhs[ISTATE].dx(n_dofs_current_cell+itrial);
             }
-            system_matrix.add(neighbor_dofs_indices[itest_ext], current_dofs_indices, dR2_dW1);
-            system_matrix.add(neighbor_dofs_indices[itest_ext], neighbor_dofs_indices, dR2_dW2);
+            this->system_matrix.add(neighbor_dofs_indices[itest_ext], current_dofs_indices, dR2_dW1);
+            this->system_matrix.add(neighbor_dofs_indices[itest_ext], neighbor_dofs_indices, dR2_dW2);
         }
     }
-    template void DiscontinuousGalerkin<PHILIP_DIM, 1, double>::assemble_face_term_implicit(
+    template void DG<PHILIP_DIM, 1, double>::assemble_face_term_implicit(
         const FEValuesBase<PHILIP_DIM,PHILIP_DIM>     *fe_values_int,
         const FEFaceValues<PHILIP_DIM,PHILIP_DIM>     *fe_values_ext,
         const double penalty,

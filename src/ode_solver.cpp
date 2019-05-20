@@ -8,8 +8,8 @@ namespace PHiLiP
 
     // can't just call ODESolver::steady_state...
     // base class can't call virtual functions defined in the derived classes.
-    template <int dim, int nstate, typename real>
-    int Implicit_ODESolver<dim,nstate,real>::steady_state ()
+    template <int dim, typename real>
+    int Implicit_ODESolver<dim,real>::steady_state ()
     {
         allocate_ode_system ();
 
@@ -52,8 +52,8 @@ namespace PHiLiP
         }
         return 1;
     }
-    template <int dim, int nstate, typename real>
-    int Explicit_ODESolver<dim,nstate,real>::steady_state ()
+    template <int dim, typename real>
+    int Explicit_ODESolver<dim,real>::steady_state ()
     {
         allocate_ode_system ();
 
@@ -84,8 +84,8 @@ namespace PHiLiP
         return 1;
     }
 
-    template <int dim, int nstate, typename real>
-    void Explicit_ODESolver<dim,nstate,real>::evaluate_solution_update ()
+    template <int dim, typename real>
+    void Explicit_ODESolver<dim,real>::evaluate_solution_update ()
     {
         //this->solution_update = dt*(this->dg->right_hand_side);
         //this->solution_update = (this->dg->right_hand_side);
@@ -93,8 +93,8 @@ namespace PHiLiP
         this->solution_update -= (this->dg->right_hand_side);
         this->solution_update *= 0.1;
     }
-    template <int dim, int nstate, typename real>
-    void Implicit_ODESolver<dim,nstate,real>::evaluate_solution_update ()
+    template <int dim, typename real>
+    void Implicit_ODESolver<dim,real>::evaluate_solution_update ()
     {
         solve_linear (
             this->dg->system_matrix,
@@ -103,36 +103,36 @@ namespace PHiLiP
             this->parameters);
     }
 
-    template <int dim, int nstate, typename real>
-    void Explicit_ODESolver<dim,nstate,real>::allocate_ode_system ()
+    template <int dim, typename real>
+    void Explicit_ODESolver<dim,real>::allocate_ode_system ()
     {
         unsigned int n_dofs = this->dg->dof_handler.n_dofs();
         this->solution_update.reinit(n_dofs);
         //solution.reinit(n_dofs);
         //right_hand_side.reinit(n_dofs);
     }
-    template <int dim, int nstate, typename real>
-    void Implicit_ODESolver<dim,nstate,real>::allocate_ode_system ()
+    template <int dim, typename real>
+    void Implicit_ODESolver<dim,real>::allocate_ode_system ()
     {
         unsigned int n_dofs = this->dg->dof_handler.n_dofs();
         this->solution_update.reinit(n_dofs);
     }
 
-    template <int dim, int nstate, typename real>
-    ODESolver<dim,nstate,real>* ODESolverFactory<dim,nstate,real>::create_ODESolver(Parameters::ODE::SolverType solver_type)
+    template <int dim, typename real>
+    std::shared_ptr<ODESolver<dim,real>> ODESolverFactory<dim,real>::create_ODESolver(Parameters::ODE::SolverType solver_type)
     {
-        if(solver_type == Parameters::ODE::SolverType::explicit_solver) return new Explicit_ODESolver<dim,nstate,real>;
-        if(solver_type == Parameters::ODE::SolverType::implicit_solver) return new Implicit_ODESolver<dim,nstate,real>;
+        if(solver_type == Parameters::ODE::SolverType::explicit_solver) return std::make_shared<Explicit_ODESolver<dim,real>>();
+        if(solver_type == Parameters::ODE::SolverType::implicit_solver) return std::make_shared<Implicit_ODESolver<dim,real>>();
         else {
             std::cout << "Can't create ODE solver since explicit/implicit solver is not clear." << std::endl;
             return nullptr;
         }
     }
-    template <int dim, int nstate, typename real>
-    ODESolver<dim,nstate,real>* ODESolverFactory<dim,nstate,real>::create_ODESolver(DiscontinuousGalerkin<dim,nstate,real> *dg_input)
+    template <int dim, typename real>
+    std::shared_ptr<ODESolver<dim,real>> ODESolverFactory<dim,real>::create_ODESolver(std::shared_ptr< DGBase<dim,real> > dg_input)
     {
-        if(dg_input->parameters->solver_type == Parameters::ODE::SolverType::explicit_solver) return new Explicit_ODESolver<dim,nstate,real>(dg_input);
-        if(dg_input->parameters->solver_type == Parameters::ODE::SolverType::implicit_solver) return new Implicit_ODESolver<dim,nstate,real>(dg_input);
+        if(dg_input->parameters->solver_type == Parameters::ODE::SolverType::explicit_solver) return std::make_shared<Explicit_ODESolver<dim,real>>(dg_input);
+        if(dg_input->parameters->solver_type == Parameters::ODE::SolverType::implicit_solver) return std::make_shared<Implicit_ODESolver<dim,real>>(dg_input);
         else {
             std::cout << "********************************************************************" << std::endl;
             std::cout << "Can't create ODE solver since explicit/implicit solver is not clear." << std::endl;
@@ -145,8 +145,8 @@ namespace PHiLiP
         }
     }
 
-    template class ODESolver<PHILIP_DIM, 1, double>;
-    template class Explicit_ODESolver<PHILIP_DIM, 1, double>;
-    template class Implicit_ODESolver<PHILIP_DIM, 1, double>;
-    template class ODESolverFactory<PHILIP_DIM, 1, double>;
+    template class ODESolver<PHILIP_DIM, double>;
+    template class Explicit_ODESolver<PHILIP_DIM, double>;
+    template class Implicit_ODESolver<PHILIP_DIM, double>;
+    template class ODESolverFactory<PHILIP_DIM, double>;
 }

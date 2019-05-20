@@ -47,9 +47,7 @@ namespace PHiLiP
                           system_matrix.trilinos_matrix().RangeMap(),
                           right_hand_side.begin());
           AztecOO solver;
-          solver.SetAztecOption(
-            AZ_output,
-            (param->linear_solver_output ? AZ_all : AZ_none));
+          solver.SetAztecOption( AZ_output, (param->linear_solver_output ? AZ_all : AZ_none));
           solver.SetAztecOption(AZ_solver, AZ_gmres);
           solver.SetRHS(&b);
           solver.SetLHS(&x);
@@ -60,12 +58,12 @@ namespace PHiLiP
 
           const double 
             ilut_drop = 1e-10,
-            ilut_rtol = 1.1,
-            ilut_atol = 1e-9,
-            linear_residual = 1e-4;
+            ilut_rtol = 0.0,//1.1,
+            ilut_atol = 0.0,//1e-9,
+            linear_residual = 1e-5;
           const int 
-            ilut_fill = 2,
-            max_iterations = 1000
+            ilut_fill = 1,
+            max_iterations = 2000
             ;
 
           //solver.SetAztecParam(AZ_drop, parameters.ilut_drop);

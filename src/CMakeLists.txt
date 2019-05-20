@@ -2,10 +2,10 @@ set(TARGET_SRC
     linear_solver.cpp
     grid_study.cpp
     assemble_implicit.cpp 
-    parameters.cpp
     dg.cpp
     ode_solver.cpp
     main.cpp)
+add_subdirectory(parameters)
 add_subdirectory(physics)
 add_subdirectory(numerical_flux)
 
@@ -27,8 +27,11 @@ foreach(dim RANGE 1 3)
     # https://www.getit01.com/p2018020821385662/
     target_link_libraries(${TNAME} tbb m mpi mpi_cxx)
 
+    set(ParameterLib ParametersLibrary)
     string(CONCAT PhysicsLib Physics_${PHILIP_DIM}D)
     string(CONCAT NumericalFluxLib NumericalFlux_${PHILIP_DIM}D)
+
+    target_link_libraries(${TNAME} ${ParameterLib})
     target_link_libraries(${TNAME} ${PhysicsLib})
     target_link_libraries(${TNAME} ${NumericalFluxLib})
 

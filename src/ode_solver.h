@@ -7,7 +7,7 @@
 #include <deal.II/lac/trilinos_precondition.h>
 #include <deal.II/lac/trilinos_solver.h>
 
-#include "parameters.h"
+#include "parameters/all_parameters.h"
 #include "dg.h"
 
 
@@ -21,12 +21,12 @@ namespace PHiLiP
     {
     public:
         ODESolver() {};
-        ODESolver(int solver_type);
+        ODESolver(int ode_solver_type);
         //ODESolver(DGBase<dim, real> *dg_input)
         ODESolver(std::shared_ptr< DGBase<dim, real> > dg_input)
         :
         dg(dg_input),
-        parameters(dg->parameters)
+        all_parameters(dg->all_parameters)
         {};
         virtual ~ODESolver() {};
         
@@ -48,7 +48,7 @@ namespace PHiLiP
 
         std::shared_ptr<DGBase<dim,real>> dg;
 
-        Parameters::AllParameters *parameters;
+        Parameters::AllParameters *all_parameters;
 
     }; // end of ODESolver class
 
@@ -61,7 +61,7 @@ namespace PHiLiP
         Explicit_ODESolver(std::shared_ptr<DGBase<dim, real>> dg_input)
         :
         dg(dg_input),
-        parameters(dg->parameters)
+        all_parameters(dg->all_parameters)
         {};
         ~Explicit_ODESolver() {};
         void allocate_ode_system ();
@@ -70,7 +70,7 @@ namespace PHiLiP
         void evaluate_solution_update ();
         std::shared_ptr<DGBase<dim,real>> dg;
 
-        Parameters::AllParameters *parameters;
+        Parameters::AllParameters *all_parameters;
 
     }; // end of Explicit_ODESolver class
 
@@ -83,7 +83,7 @@ namespace PHiLiP
         Implicit_ODESolver(std::shared_ptr<DGBase<dim, real>> dg_input)
         :
         dg(dg_input),
-        parameters(dg->parameters)
+        all_parameters(dg->all_parameters)
         {};
         ~Implicit_ODESolver() {};
         void allocate_ode_system ();
@@ -92,7 +92,7 @@ namespace PHiLiP
         void evaluate_solution_update ();
         std::shared_ptr<DGBase<dim,real>> dg;
 
-        Parameters::AllParameters *parameters;
+        Parameters::AllParameters *all_parameters;
 
     }; // end of Implicit_ODESolver class
 
@@ -101,7 +101,7 @@ namespace PHiLiP
     {
     public:
         static std::shared_ptr<ODESolver<dim,real>> create_ODESolver(std::shared_ptr< DGBase<dim, real> > dg_input);
-        static std::shared_ptr<ODESolver<dim,real>> create_ODESolver(Parameters::ODE::SolverType solver_type);
+        static std::shared_ptr<ODESolver<dim,real>> create_ODESolver(Parameters::ODESolverParam::ODESolverEnum ode_solver_type);
     };
 
 } // end of PHiLiP namespace

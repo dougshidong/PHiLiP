@@ -29,8 +29,6 @@
 
 #include "dg.h"
 
-#include "parameters.h"
-
 namespace PHiLiP
 {
     using namespace dealii;
@@ -73,7 +71,7 @@ namespace PHiLiP
         :
         mapping(degree+1)
         , fe(degree)
-        , parameters(parameters_input)
+        , all_parameters(parameters_input)
         , quadrature (degree+1)
         , face_quadrature (degree+1)
     {

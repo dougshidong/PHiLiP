@@ -1,7 +1,6 @@
 #include <deal.II/base/tensor.h>
 
-#include "parameters.h"
-#include "parameters.h"
+#include "parameters/parameters.h"
 #include "physics/physics.h"
 #include "numerical_flux/numerical_flux.h"
 
@@ -28,8 +27,8 @@ void set_solution (
         soln_ext[s] = sin(s-atan(1));
 
         for (int d=0; d<dim; d++) {
-            soln_int[s] = d*exp(s+d*exp(1));
-            soln_ext[s] = sin(d*s-atan(1))/(d+0.1);
+            soln_grad_int[s][d] = d*exp(s+d*exp(1));
+            soln_grad_ext[s][d] = sin(d*s-atan(1))/(d+0.1);
         }
     }
 }
@@ -212,10 +211,8 @@ int test_convective_numerical_flux_consistency (const PDEType pde_type, const Co
     return 0;
 }
 
-int main (int argc, char *argv[])
+int main (int /*argc*/, char * /*argv*/[])
 {
-    const int nstate = 0;
-
     std::vector<PDEType> pde_type {
         PDEType::advection,
         PDEType::diffusion,

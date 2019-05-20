@@ -3,7 +3,7 @@
 
 #include <deal.II/base/tensor.h>
 
-#include "parameters.h"
+#include "parameters/all_parameters.h"
 
 namespace PHiLiP
 {

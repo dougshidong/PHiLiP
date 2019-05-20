@@ -1,7 +1,5 @@
-
 #include "ode_solver.h"
 #include "linear_solver.h"
-
 
 namespace PHiLiP
 {
@@ -11,6 +9,7 @@ namespace PHiLiP
     template <int dim, typename real>
     int Implicit_ODESolver<dim,real>::steady_state ()
     {
+        Parameters::ODESolverParam ode_param = all_parameters->ode_solver_param;
         allocate_ode_system ();
 
         dg->assemble_system ();
@@ -20,23 +19,23 @@ namespace PHiLiP
         this->current_iteration = 0;
 
         while (    
-                   this->residual_norm     > parameters->nonlinear_steady_residual_tolerance 
-                && update_norm             > parameters->nonlinear_steady_residual_tolerance 
-                && this->current_iteration < parameters->nonlinear_max_iterations )
+                   this->residual_norm     > ode_param.nonlinear_steady_residual_tolerance 
+                && update_norm             > ode_param.nonlinear_steady_residual_tolerance 
+                && this->current_iteration < ode_param.nonlinear_max_iterations )
         {
-            if ((this->parameters->ode_output) == Parameters::OutputType::verbose &&
-                (this->current_iteration%parameters->print_iteration_modulo) == 0 )
+            if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
+                (this->current_iteration%ode_param.print_iteration_modulo) == 0 )
             std::cout << " Iteration: " << this->current_iteration 
                       << " Residual norm: " << this->residual_norm
                       << std::endl;
 
-            if ((this->parameters->ode_output) == Parameters::OutputType::verbose &&
-                (this->current_iteration%parameters->print_iteration_modulo) == 0 )
+            if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
+                (this->current_iteration%ode_param.print_iteration_modulo) == 0 )
             std::cout << " Assembling system... ";
             dg->assemble_system ();
 
-            if ((this->parameters->ode_output) == Parameters::OutputType::verbose &&
-                (this->current_iteration%parameters->print_iteration_modulo) == 0 )
+            if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
+                (this->current_iteration%ode_param.print_iteration_modulo) == 0 )
             std::cout << " Evaluating system update... ";
             evaluate_solution_update ();
 
@@ -55,6 +54,7 @@ namespace PHiLiP
     template <int dim, typename real>
     int Explicit_ODESolver<dim,real>::steady_state ()
     {
+        Parameters::ODESolverParam ode_param = all_parameters->ode_solver_param;
         allocate_ode_system ();
 
         dg->assemble_system ();
@@ -62,13 +62,13 @@ namespace PHiLiP
         this->residual_norm = 1.0;
         this->current_iteration = 0;
 
-        while (    this->residual_norm     > parameters->nonlinear_steady_residual_tolerance 
-                && this->current_iteration < parameters->nonlinear_max_iterations )
+        while (    this->residual_norm     > ode_param.nonlinear_steady_residual_tolerance 
+                && this->current_iteration < ode_param.nonlinear_max_iterations )
         {
             ++this->current_iteration;
 
-            if ((this->parameters->ode_output) == Parameters::OutputType::verbose &&
-                (this->current_iteration%parameters->print_iteration_modulo) == 0 )
+            if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
+                (this->current_iteration%ode_param.print_iteration_modulo) == 0 )
             std::cout 
                       << std::endl
                       << " Iteration: " << this->current_iteration 
@@ -100,7 +100,7 @@ namespace PHiLiP
             this->dg->system_matrix,
             this->dg->right_hand_side, 
             this->solution_update,
-            this->parameters);
+            this->all_parameters->linear_solver_param);
     }
 
     template <int dim, typename real>
@@ -119,10 +119,10 @@ namespace PHiLiP
     }
 
     template <int dim, typename real>
-    std::shared_ptr<ODESolver<dim,real>> ODESolverFactory<dim,real>::create_ODESolver(Parameters::ODE::SolverType solver_type)
+    std::shared_ptr<ODESolver<dim,real>> ODESolverFactory<dim,real>::create_ODESolver(Parameters::ODESolverParam::ODESolverEnum ode_solver_type)
     {
-        if(solver_type == Parameters::ODE::SolverType::explicit_solver) return std::make_shared<Explicit_ODESolver<dim,real>>();
-        if(solver_type == Parameters::ODE::SolverType::implicit_solver) return std::make_shared<Implicit_ODESolver<dim,real>>();
+        if(ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::explicit_solver) return std::make_shared<Explicit_ODESolver<dim,real>>();
+        if(ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::implicit_solver) return std::make_shared<Implicit_ODESolver<dim,real>>();
         else {
             std::cout << "Can't create ODE solver since explicit/implicit solver is not clear." << std::endl;
             return nullptr;
@@ -131,15 +131,16 @@ namespace PHiLiP
     template <int dim, typename real>
     std::shared_ptr<ODESolver<dim,real>> ODESolverFactory<dim,real>::create_ODESolver(std::shared_ptr< DGBase<dim,real> > dg_input)
     {
-        if(dg_input->parameters->solver_type == Parameters::ODE::SolverType::explicit_solver) return std::make_shared<Explicit_ODESolver<dim,real>>(dg_input);
-        if(dg_input->parameters->solver_type == Parameters::ODE::SolverType::implicit_solver) return std::make_shared<Implicit_ODESolver<dim,real>>(dg_input);
+        Parameters::ODESolverParam::ODESolverEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
+        if(ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::explicit_solver) return std::make_shared<Explicit_ODESolver<dim,real>>(dg_input);
+        if(ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::implicit_solver) return std::make_shared<Implicit_ODESolver<dim,real>>(dg_input);
         else {
             std::cout << "********************************************************************" << std::endl;
             std::cout << "Can't create ODE solver since explicit/implicit solver is not clear." << std::endl;
-            std::cout << "Solver type specified: " << dg_input->parameters->solver_type << std::endl;
+            std::cout << "Solver type specified: " << ode_solver_type << std::endl;
             std::cout << "Solver type possible: " << std::endl;
-            std::cout <<  Parameters::ODE::SolverType::explicit_solver << std::endl;
-            std::cout <<  Parameters::ODE::SolverType::implicit_solver << std::endl;
+            std::cout <<  Parameters::ODESolverParam::ODESolverEnum::explicit_solver << std::endl;
+            std::cout <<  Parameters::ODESolverParam::ODESolverEnum::implicit_solver << std::endl;
             std::cout << "********************************************************************" << std::endl;
             return nullptr;
         }

@@ -5,7 +5,7 @@
 #---------------------------------------------------------------------------
 DOXYFILE_ENCODING      = UTF-8
 PROJECT_NAME           = "@CMAKE_PROJECT_NAME@"
-PROJECT_NUMBER         = "@DPGSolver_VERSION@"
+PROJECT_NUMBER         = "@PHiLiP_VERSION@"
 PROJECT_BRIEF          = "(P)arallel (Hi)gh-order (Li)brary for PDEs"
 PROJECT_LOGO           =
 OUTPUT_DIRECTORY       =

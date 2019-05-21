@@ -28,61 +28,133 @@ namespace PHiLiP
 {
     using namespace dealii;
 
-    /// DG is independent of the number of state variables.
+    /// DGBase is independent of the number of state variables.
     /**  This base class allows the use of arrays to efficiently allocate the data structures
       *  through std::array in the derived class DG.
       *  This class is the one being returned by the DGFactory and is the main
-      *  interface for a user to call its main functions such as "assemble_system"
+      *  interface for a user to call its main functions such as "assemble_system".
+      *
+      *  Discretizes the problem
+      *  \f[
+      *      \frac{\partial \mathbf{u}}{\partial t} 
+      *      + \boldsymbol\nabla \cdot
+      *      ( \mathbf{F}_{conv}(\mathbf{u})
+      *      + \mathbf{F}_{diss}(\mathbf{u},\boldsymbol\nabla\mathbf{u}) )
+      *      = \mathbf{q}
+      *  \f]
+      *
+      *  Note that it does not currently handle nonlinear or time-accurate problems
+      *  since mass matrices have not been used/verified yet.
       */
     template <int dim, typename real>
     class DGBase 
     {
     public:
-
-        DGBase () = delete; // Can't initialize this without inputs
+        /// Constructor. Deleted the default constructor since it should not be used
+        DGBase () = delete;
+        /// Principal constructor.
+        /** Will initialize mapping, fe, all_parameters, quadrature, and face_quadrature
+         *  from DGBase. The it will new some FEValues that will be used to retrieve the
+         *  finite element values at physical locations.
+         */
         DGBase(
             Parameters::AllParameters *parameters_input, 
             const unsigned int degree);
 
-        virtual ~DGBase();
+        virtual ~DGBase(); ///< Destructor. Also calls delete_fe_values().
+        void delete_fe_values (); ///< Delete the new-ed pointers to FEValues
 
-        virtual void allocate_system () = 0;
-        virtual void assemble_system () = 0;
+        /// Sets the triangulation. Should be done before allocate system
+        void set_triangulation(Triangulation<dim> *triangulation_input)
+        { triangulation = triangulation_input; } ;
+
+        virtual void allocate_system () = 0; ///< Virtual function defined in DG
+        virtual void assemble_system () = 0; ///< Virtual function defined in DG
+
+        /// Allocates and evaluates the inverse mass matrices for the entire grid
+        /*  Although straightforward, this has not been tested yet.
+         *  Will be required for accurate time-stepping or nonlinear problems
+         */
         void evaluate_inverse_mass_matrices ();
-        double get_residual_l2norm ();
-
-        void delete_fe_values ();
-
-        void set_triangulation(Triangulation<dim> *triangulation_input) { triangulation = triangulation_input; } ;
-        //void set_physics(Physics< dim,1,Sacado::Fad::DFad<real> > *physics) { pde_physics = physics; } ;
-
-        /// Mesh
-        Triangulation<dim>   *triangulation;
-
-
+        /// Vector of inverse mass matrices.
+        /** Contains the inverse mass matrices of each cell at the quadrature points.  */
         std::vector<FullMatrix<real>> inv_mass_matrix;
 
+        double get_residual_l2norm (); ///< Returns the L2-norm of the right_hand_side vector
+
+        Triangulation<dim>   *triangulation; ///< Mesh
+
+
+        /// Sparsity pattern used on the system_matrix
+        /** Not sure we need to store it.  */
         DynamicSparsityPattern sparsity_pattern;
+
+        /// System matrix corresponding to the derivative of the right_hand_side with
+        /// respect to the solution
         TrilinosWrappers::SparseMatrix system_matrix;
+
+        /// Residual of the current solution
+        /** Weak form.
+         * 
+         *  The right-hand side sends all the term to the side of the source term.
+         * 
+         *  Given
+         *  \f[
+         *      \frac{\partial \mathbf{u}}{\partial t} 
+         *      + \boldsymbol\nabla \cdot
+         *      ( \mathbf{F}_{conv}(\mathbf{u})
+         *      + \mathbf{F}_{diss}(\mathbf{u},\boldsymbol\nabla\mathbf{u}) )
+         *      = \mathbf{q}
+         *  \f]
+         *  The right-hand side is given by
+         *  \f[
+         *      \mathbf{\text{rhs}} = - \boldsymbol\nabla \cdot
+         *            ( \mathbf{F}_{conv}(\mathbf{u})
+         *            + \mathbf{F}_{diss}(\mathbf{u},\boldsymbol\nabla\mathbf{u}) )
+         *            + \mathbf{q}
+         *  \f]
+         *
+         *  It is important to note that the \f$\mathbf{F}_{diss}\f$ is positive in the DG
+         *  formulation. Therefore, the Physics class should have a negative when
+         *  considering stable applications of diffusion.
+         * 
+         */
         Vector<real> right_hand_side;
-        Vector<real> newton_update;
-        Vector<real> solution;
 
-        void output_results (const unsigned int ith_grid);// const;
+        Vector<real> solution; ///< Current modal coefficients of the solution
 
+        void output_results (const unsigned int ith_grid); ///< Output solution
+
+        /// Mapping is currently MappingQ.
+        /*  Refer to deal.II documentation for the various mapping types */
         const MappingQ<dim> mapping;
 
         /// Lagrange polynomial basis
+        /** Refer to deal.II documentation for the various polynomial types
+         *  Note that only tensor-product polynomials recover optimal convergence
+         *  since the mapping from the reference to physical element is a bilnear mapping.
+         *
+         *  As a result, FE_DGP does not give optimal convergence orders.
+         *  See 
+         *  [discussion on deal.II group forum]
+         *  (https://groups.google.com/d/msg/dealii/f9NzCp8dnyU/aAdO6I9JCwAJ)
+         *  .
+         */
         const FE_DGQ<dim> fe;
         //const FE_DGQLegendre<dim> fe;
 
+        /// Pointer to all parameters
         Parameters::AllParameters *all_parameters;
 
 
-        /// Degrees of freedom handler allows us to iterate over the finite
-        /// elements' degrees of freedom on the given triangulation
-        /// Must be defined after fe since it is a subscriptor of fe.
-        /// Destructor are called in reverse order in which they appear in class definition. 
+        /// Degrees of freedom handler
+        /*  Allows us to iterate over the finite elements' degrees of freedom.
+         *  Note that since we are not using FESystem, we need to multiply
+         *  the index by a factor of "nstate"
+         *
+         *  Must be defined after fe since it is a subscriptor of fe.
+         *  Destructor are called in reverse order in which they appear in class definition. 
+         */ 
         DoFHandler<dim> dof_handler;
 
 
@@ -117,24 +189,38 @@ namespace PHiLiP
 
     }; // end of DG class
 
+    /// DG class templated on the number of state variables
+    /*  Contains the functions that need to be templated on the number of state variables.
+     *  
+     *  Also defines the main loop of the DG class which is assemble_system
+     */
     template <int dim, int nstate, typename real>
     class DG : public DGBase<dim, real>
     {
     public:
+        /// Constructor
         DG(
             Parameters::AllParameters *parameters_input, 
             const unsigned int degree);
 
+        /// Destructor
         ~DG();
 
     private:
         /// Contains the physics of the PDE
         Physics<dim, nstate, Sacado::Fad::DFad<real> >  *pde_physics;
+        /// Convective numerical flux
         NumericalFluxConvective<dim, nstate, Sacado::Fad::DFad<real> > *conv_num_flux;
+        /// Dissipative numerical flux
         NumericalFluxDissipative<dim, nstate, Sacado::Fad::DFad<real> > *diss_num_flux;
 
 
+
+        /// Allocates the system.
+        /** Must be done after setting the mesh and before assembling the system.
+         */
         void allocate_system ();
+
         /// Main loop of the DG class.
         /** It loops over all the cells, evaluates the volume contributions,
          * then loops over the faces of the current cell. Four scenarios may happen
@@ -152,15 +238,20 @@ namespace PHiLiP
          *    
          */
         void assemble_system ();
+
+
+        /// Evaluate the integral over the cell volume
         void assemble_cell_terms_implicit(
             const FEValues<dim,dim> *fe_values_cell,
             const std::vector<types::global_dof_index> &current_dofs_indices,
             Vector<real> &current_cell_rhs);
+        /// Evaluate the integral over the cell edges that are on domain boundaries
         void assemble_boundary_term_implicit(
             const FEFaceValues<dim,dim> *fe_values_face_int,
             const real penalty,
             const std::vector<types::global_dof_index> &current_dofs_indices,
             Vector<real> &current_cell_rhs);
+        /// Evaluate the integral over the internal cell edges
         void assemble_face_term_implicit(
             const FEValuesBase<dim,dim>     *fe_values_face_int,
             const FEFaceValues<dim,dim>     *fe_values_face_ext,
@@ -172,13 +263,6 @@ namespace PHiLiP
 
     }; // end of DG class
 
-    // Returns a pointer to a DG object with correct template arguments
-    //DG* create_discontinuous_galerkin (
-    //    const unsigned int dimension,
-    //    Parameters::AllParameters *parameters_input,
-    //    const unsigned int degree,
-    //    const unsigned int double_type = 0);
-
     /// This class creates a new DGBase object
     /** This allows the DGBase to not be templated on the number of state variables
       * while allowing DG to be template on the number of state variables
@@ -187,7 +271,9 @@ namespace PHiLiP
     class DGFactory
     {
     public:
-        //static DGBase<dim,real>*
+        /// Creates a derived object DG, but returns it as DGBase.
+        /** That way, the called is agnostic to the number of state variables
+         */
         static std::shared_ptr< DGBase<dim,real> >
             create_discontinuous_galerkin(
             Parameters::AllParameters *parameters_input, 

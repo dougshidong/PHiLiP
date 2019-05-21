@@ -1,5 +1,3 @@
-#Installation
-
 ## deal.II
 
 This is the main library being used by this code.

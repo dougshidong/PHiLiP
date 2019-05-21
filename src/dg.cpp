@@ -100,10 +100,8 @@ namespace PHiLiP
     { 
         std::cout << "Destructing DGBase..." << std::endl;
         delete_fe_values();
-        fe.list_subscribers();
-        deallog<<"test"<<std::endl;
-        deallog<<std::flush;
     }
+
     template <int dim, typename real>
     void DGBase<dim,real>::delete_fe_values ()
     {
@@ -116,18 +114,6 @@ namespace PHiLiP
         fe_values_subface_int   = NULL;
         fe_values_face_ext      = NULL;
     }
-
-    //template <int dim, typename real>
-    //void DGBase<dim,real>::allocate_system ()
-    //{
-    //    allocate_system_implicit();
-    //}
-
-    //template <int dim, typename real>
-    //void DGBase<dim,real>::assemble_system ()
-    //{
-    //    assemble_system_implicit();
-    //}
 
     template <int dim, typename real>
     double DGBase<dim,real>::get_residual_l2norm ()
@@ -149,7 +135,6 @@ namespace PHiLiP
       DataOut<dim> data_out;
       data_out.attach_dof_handler (dof_handler);
       data_out.add_data_vector (solution, "u", DataOut<dim>::type_dof_data);
-      //data_out.add_data_vector (estimates.block(0), "est");
 
       data_out.build_patches ();
 
@@ -246,7 +231,6 @@ namespace PHiLiP
         DGBase<dim,real>::solution.reinit(n_dofs);
         DGBase<dim,real>::right_hand_side.reinit(n_dofs);
 
-        DGBase<dim,real>::newton_update.reinit(n_dofs);
     }
 
     template <int dim, int nstate, typename real>

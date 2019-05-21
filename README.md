@@ -12,8 +12,6 @@
 - Supported elements: LINEs, QUADs, HEXs
 - (TODO) Supported refinements: isotropic h (size) or p (order).
 
-[//]: # (**It is recommended** to follow the [Coding Style Guidelines](STYLE.md) when making modifications to the code.)
-
 ## Building/Running the Code
 
 The code has been succesfully built in the following environments:

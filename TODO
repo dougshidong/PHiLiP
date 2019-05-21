@@ -1,3 +1,7 @@
+Look into using BOOST for explicit template instantiation. See
+https://stackoverflow.com/a/1776295/11047627
+
+
 Look into member variable naming for fe_values
     This one just bit me.
     In face_boundary I used the member fe_values instead of passed fe_values_face by mistake.

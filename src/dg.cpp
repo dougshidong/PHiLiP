@@ -54,6 +54,8 @@ namespace PHiLiP
 
         if (pde_type == PDE_enum::advection) {
             return std::make_shared< DG<dim,1,real> >(parameters_input, degree);
+        } else if (pde_type == PDE_enum::advection_vector) {
+            return std::make_shared< DG<dim,dim,real> >(parameters_input, degree);
         } else if (pde_type == PDE_enum::diffusion) {
             return std::make_shared< DG<dim,1,real> >(parameters_input, degree);
         } else if (pde_type == PDE_enum::convection_diffusion) {
@@ -446,5 +448,9 @@ namespace PHiLiP
     template class DGBase <PHILIP_DIM, double>;
     template class DGFactory <PHILIP_DIM, double>;
     template class DG <PHILIP_DIM, 1, double>;
+    template class DG <PHILIP_DIM, 2, double>;
+    template class DG <PHILIP_DIM, 3, double>;
+    template class DG <PHILIP_DIM, 4, double>;
+    template class DG <PHILIP_DIM, 5, double>;
 
 } // end of PHiLiP namespace

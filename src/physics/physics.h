@@ -117,6 +117,14 @@ namespace PHiLiP
         const double velo_x = exp(1)/2, velo_y =-pi/4.0,        velo_z = sqrt(2);
         //const double velo_x = 1.0, velo_y =-pi/4.0,        velo_z = sqrt(2);
         const double diff_coeff = 50.0;
+
+        /// Heterogeneous diffusion matrix
+        /** As long as the diagonal components are positive and diagonally dominant
+         *  we should have a stable diffusive system
+         */
+        const double A11 =   9, A12 =  -2, A13 =  -6;
+        const double A21 =   3, A22 =  10, A23 =   4;
+        const double A31 =  -2, A32 = 0.5, A33 =  81;
     };
 
     /// This class with create a new Physics object corresponding to the pde_type

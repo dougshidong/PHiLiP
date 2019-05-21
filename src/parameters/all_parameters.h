@@ -30,7 +30,11 @@ namespace Parameters
         unsigned int dimension;
 
         /// Currently allows to solve advection, diffusion, convection-diffusion
-        enum PartialDifferentialEquation { advection, diffusion, convection_diffusion };
+        enum PartialDifferentialEquation { 
+            advection,
+            diffusion,
+            convection_diffusion,
+            advection_vector};
         /// Store the PDE type to be solved
         PartialDifferentialEquation pde_type;
 

@@ -104,10 +104,6 @@ namespace PHiLiP
             this->system_matrix.add(current_dofs_indices[itest], current_dofs_indices, residual_derivatives);
         }
     }
-    template void DG<PHILIP_DIM, 1, double>::assemble_cell_terms_implicit(
-        const FEValues<PHILIP_DIM,PHILIP_DIM> *fe_values_vol,
-        const std::vector<types::global_dof_index> &current_dofs_indices,
-        Vector<double> &current_cell_rhs);
 
 
     template <int dim, int nstate, typename real>
@@ -284,11 +280,6 @@ namespace PHiLiP
             this->system_matrix.add(current_dofs_indices[itest], current_dofs_indices, residual_derivatives);
         }
     }
-    template void DG<PHILIP_DIM, 1, double>::assemble_boundary_term_implicit(
-        const FEFaceValues<PHILIP_DIM,PHILIP_DIM> *fe_values_boundary,
-        const double penalty,
-        const std::vector<types::global_dof_index> &current_dofs_indices,
-        Vector<double> &current_cell_rhs);
 
     template <int dim, int nstate, typename real>
     void DG<dim,nstate,real>::assemble_face_term_implicit(
@@ -458,7 +449,84 @@ namespace PHiLiP
             this->system_matrix.add(neighbor_dofs_indices[itest_ext], neighbor_dofs_indices, dR2_dW2);
         }
     }
+    template void DG<PHILIP_DIM, 1, double>::assemble_cell_terms_implicit(
+        const FEValues<PHILIP_DIM,PHILIP_DIM> *fe_values_vol,
+        const std::vector<types::global_dof_index> &current_dofs_indices,
+        Vector<double> &current_cell_rhs);
+    template void DG<PHILIP_DIM, 1, double>::assemble_boundary_term_implicit(
+        const FEFaceValues<PHILIP_DIM,PHILIP_DIM> *fe_values_boundary,
+        const double penalty,
+        const std::vector<types::global_dof_index> &current_dofs_indices,
+        Vector<double> &current_cell_rhs);
     template void DG<PHILIP_DIM, 1, double>::assemble_face_term_implicit(
+        const FEValuesBase<PHILIP_DIM,PHILIP_DIM>     *fe_values_int,
+        const FEFaceValues<PHILIP_DIM,PHILIP_DIM>     *fe_values_ext,
+        const double penalty,
+        const std::vector<types::global_dof_index> &current_dofs_indices,
+        const std::vector<types::global_dof_index> &neighbor_dofs_indices,
+        Vector<double>          &current_cell_rhs,
+        Vector<double>          &neighbor_cell_rhs);
+    template void DG<PHILIP_DIM, 2, double>::assemble_cell_terms_implicit(
+        const FEValues<PHILIP_DIM,PHILIP_DIM> *fe_values_vol,
+        const std::vector<types::global_dof_index> &current_dofs_indices,
+        Vector<double> &current_cell_rhs);
+    template void DG<PHILIP_DIM, 2, double>::assemble_boundary_term_implicit(
+        const FEFaceValues<PHILIP_DIM,PHILIP_DIM> *fe_values_boundary,
+        const double penalty,
+        const std::vector<types::global_dof_index> &current_dofs_indices,
+        Vector<double> &current_cell_rhs);
+    template void DG<PHILIP_DIM, 2, double>::assemble_face_term_implicit(
+        const FEValuesBase<PHILIP_DIM,PHILIP_DIM>     *fe_values_int,
+        const FEFaceValues<PHILIP_DIM,PHILIP_DIM>     *fe_values_ext,
+        const double penalty,
+        const std::vector<types::global_dof_index> &current_dofs_indices,
+        const std::vector<types::global_dof_index> &neighbor_dofs_indices,
+        Vector<double>          &current_cell_rhs,
+        Vector<double>          &neighbor_cell_rhs);
+    template void DG<PHILIP_DIM, 3, double>::assemble_cell_terms_implicit(
+        const FEValues<PHILIP_DIM,PHILIP_DIM> *fe_values_vol,
+        const std::vector<types::global_dof_index> &current_dofs_indices,
+        Vector<double> &current_cell_rhs);
+    template void DG<PHILIP_DIM, 3, double>::assemble_boundary_term_implicit(
+        const FEFaceValues<PHILIP_DIM,PHILIP_DIM> *fe_values_boundary,
+        const double penalty,
+        const std::vector<types::global_dof_index> &current_dofs_indices,
+        Vector<double> &current_cell_rhs);
+    template void DG<PHILIP_DIM, 3, double>::assemble_face_term_implicit(
+        const FEValuesBase<PHILIP_DIM,PHILIP_DIM>     *fe_values_int,
+        const FEFaceValues<PHILIP_DIM,PHILIP_DIM>     *fe_values_ext,
+        const double penalty,
+        const std::vector<types::global_dof_index> &current_dofs_indices,
+        const std::vector<types::global_dof_index> &neighbor_dofs_indices,
+        Vector<double>          &current_cell_rhs,
+        Vector<double>          &neighbor_cell_rhs);
+    template void DG<PHILIP_DIM, 4, double>::assemble_cell_terms_implicit(
+        const FEValues<PHILIP_DIM,PHILIP_DIM> *fe_values_vol,
+        const std::vector<types::global_dof_index> &current_dofs_indices,
+        Vector<double> &current_cell_rhs);
+    template void DG<PHILIP_DIM, 4, double>::assemble_boundary_term_implicit(
+        const FEFaceValues<PHILIP_DIM,PHILIP_DIM> *fe_values_boundary,
+        const double penalty,
+        const std::vector<types::global_dof_index> &current_dofs_indices,
+        Vector<double> &current_cell_rhs);
+    template void DG<PHILIP_DIM, 4, double>::assemble_face_term_implicit(
+        const FEValuesBase<PHILIP_DIM,PHILIP_DIM>     *fe_values_int,
+        const FEFaceValues<PHILIP_DIM,PHILIP_DIM>     *fe_values_ext,
+        const double penalty,
+        const std::vector<types::global_dof_index> &current_dofs_indices,
+        const std::vector<types::global_dof_index> &neighbor_dofs_indices,
+        Vector<double>          &current_cell_rhs,
+        Vector<double>          &neighbor_cell_rhs);
+    template void DG<PHILIP_DIM, 5, double>::assemble_cell_terms_implicit(
+        const FEValues<PHILIP_DIM,PHILIP_DIM> *fe_values_vol,
+        const std::vector<types::global_dof_index> &current_dofs_indices,
+        Vector<double> &current_cell_rhs);
+    template void DG<PHILIP_DIM, 5, double>::assemble_boundary_term_implicit(
+        const FEFaceValues<PHILIP_DIM,PHILIP_DIM> *fe_values_boundary,
+        const double penalty,
+        const std::vector<types::global_dof_index> &current_dofs_indices,
+        Vector<double> &current_cell_rhs);
+    template void DG<PHILIP_DIM, 5, double>::assemble_face_term_implicit(
         const FEValuesBase<PHILIP_DIM,PHILIP_DIM>     *fe_values_int,
         const FEFaceValues<PHILIP_DIM,PHILIP_DIM>     *fe_values_ext,
         const double penalty,

@@ -22,6 +22,8 @@ namespace PHiLiP
 
         if (pde_type == PDE_enum::advection) {
             return new LinearAdvection<dim,nstate,real>;
+        } else if (pde_type == PDE_enum::advection_vector) {
+            return new LinearAdvection<dim,nstate,real>;
         } else if (pde_type == PDE_enum::diffusion) {
             return new Diffusion<dim,nstate,real>;
         } else if (pde_type == PDE_enum::convection_diffusion) {
@@ -35,19 +37,19 @@ namespace PHiLiP
     template <int dim, int nstate, typename real>
     Physics<dim,nstate,real>::~Physics() {}
 
-    template <int dim, int nstate, typename real>
-    void Physics<dim,nstate,real>
-    ::dissipative_flux_A_gradu (
-        const real scaling,
-        const std::array<real,nstate> &solution,
-        const std::array<Tensor<1,dim,real>,nstate> &solution_gradient,
-        std::array<Tensor<1,dim,real>,nstate> &dissipative_flux) const
-    {
-        const std::array<Tensor<1,dim,real>,nstate> dissipation = apply_diffusion_matrix(solution, solution_gradient);
-        for (int s=0; s<nstate; s++) {
-            dissipative_flux[s] = -scaling*dissipation[s];
-        }
-    }
+    //  template <int dim, int nstate, typename real>
+    //  void Physics<dim,nstate,real>
+    //  ::dissipative_flux_A_gradu (
+    //      const real scaling,
+    //      const std::array<real,nstate> &solution,
+    //      const std::array<Tensor<1,dim,real>,nstate> &solution_gradient,
+    //      std::array<Tensor<1,dim,real>,nstate> &dissipative_flux) const
+    //  {
+    //      const std::array<Tensor<1,dim,real>,nstate> dissipation = apply_diffusion_matrix(solution, solution_gradient);
+    //      for (int s=0; s<nstate; s++) {
+    //          dissipative_flux[s] = -scaling*dissipation[s];
+    //      }
+    //  }
 
     // Common manufactured solution for advection, diffusion, convection-diffusion
     template <int dim, int nstate, typename real>
@@ -148,14 +150,6 @@ namespace PHiLiP
             std::array<Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
     {}
 
-
-    // Instantiate
-    template class Physics < PHILIP_DIM, 1, double >;
-    template class Physics < PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
-
-    template class PhysicsFactory<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
-    template class PhysicsFactory<PHILIP_DIM, 1, double>;
-
     // Linear advection functions
     template <int dim, int nstate, typename real>
     Tensor<1,dim,real> LinearAdvection<dim,nstate,real>
@@ -197,15 +191,15 @@ namespace PHiLiP
         }
     }
 
-    template <int dim, int nstate, typename real>
-    std::array<Tensor<1,dim,real>,nstate> LinearAdvection<dim,nstate,real>
-    ::apply_diffusion_matrix(
-            const std::array<real,nstate> &/*solution*/,
-            const std::array<Tensor<1,dim,real>,nstate> &/*solution_grad*/) const
-    {
-		std::array<Tensor<1,dim,real>,nstate> zero; // deal.II tensors are initialized with zeros
-        return zero;
-    }
+    //  template <int dim, int nstate, typename real>
+    //  std::array<Tensor<1,dim,real>,nstate> LinearAdvection<dim,nstate,real>
+    //  ::apply_diffusion_matrix(
+    //          const std::array<real,nstate> &/*solution*/,
+    //          const std::array<Tensor<1,dim,real>,nstate> &/*solution_grad*/) const
+    //  {
+	//  	std::array<Tensor<1,dim,real>,nstate> zero; // deal.II tensors are initialized with zeros
+    //      return zero;
+    //  }
 
     template <int dim, int nstate, typename real>
     void LinearAdvection<dim,nstate,real>
@@ -247,9 +241,6 @@ namespace PHiLiP
         }
     }
 
-    template class LinearAdvection < PHILIP_DIM, 1, Sacado::Fad::DFad<double>  >;
-    template class LinearAdvection < PHILIP_DIM, 1, double >;
-
     template <int dim, int nstate, typename real>
     void Diffusion<dim, nstate, real>
     ::convective_flux (
@@ -270,19 +261,19 @@ namespace PHiLiP
         return eig;
     }
 
-    template <int dim, int nstate, typename real>
-    std::array<Tensor<1,dim,real>,nstate> Diffusion<dim,nstate,real>
-    ::apply_diffusion_matrix(
-            const std::array<real,nstate> &/*solution*/,
-            const std::array<Tensor<1,dim,real>,nstate> &solution_grad) const
-    {
-        // deal.II tensors are initialized with zeros
-        std::array<Tensor<1,dim,real>,nstate> diffusion;
-        for (int d=0; d<dim; d++) {
-            diffusion[0][d] = 1.0*solution_grad[0][d];
-        }
-        return diffusion;
-    }
+    //  template <int dim, int nstate, typename real>
+    //  std::array<Tensor<1,dim,real>,nstate> Diffusion<dim,nstate,real>
+    //  ::apply_diffusion_matrix(
+    //          const std::array<real,nstate> &/*solution*/,
+    //          const std::array<Tensor<1,dim,real>,nstate> &solution_grad) const
+    //  {
+    //      // deal.II tensors are initialized with zeros
+    //      std::array<Tensor<1,dim,real>,nstate> diffusion;
+    //      for (int d=0; d<dim; d++) {
+    //          diffusion[0][d] = 1.0*solution_grad[0][d];
+    //      }
+    //      return diffusion;
+    //  }
 
     template <int dim, int nstate, typename real>
     void Diffusion<dim,nstate,real>
@@ -292,8 +283,36 @@ namespace PHiLiP
         std::array<Tensor<1,dim,real>,nstate> &diss_flux) const
     {
         const double diff_coeff = this->diff_coeff;
+
+        using phys = Physics<dim,nstate,real>;
+        //const double a11 = 10*phys::freq_x, a12 = phys::freq_y, a13 = phys::freq_z;
+        //const double a21 = phys::offs_x, a22 = 10*phys::offs_y, a23 = phys::offs_z;
+        //const double a31 = phys::velo_x, a32 = phys::velo_y, a33 = 10*phys::velo_z;
+
+        const double a11 = phys::A11, a12 = phys::A12, a13 = phys::A13;
+        const double a21 = phys::A11, a22 = phys::A22, a23 = phys::A23;
+        const double a31 = phys::A11, a32 = phys::A32, a33 = phys::A33;
         for (int i=0; i<nstate; i++) {
-            diss_flux[i] = -diff_coeff*1.0*solution_gradient[i];
+            //diss_flux[i] = -diff_coeff*1.0*solution_gradient[i];
+            if (dim==1) {
+                diss_flux[i] = -diff_coeff*a11*solution_gradient[i];
+            } else if (dim==2) {
+                diss_flux[i][0] = -diff_coeff*a11*solution_gradient[i][0]
+                                  -diff_coeff*a12*solution_gradient[i][1];
+                diss_flux[i][1] = -diff_coeff*a21*solution_gradient[i][0]
+                                  -diff_coeff*a22*solution_gradient[i][1];
+            } else if (dim==3) {
+                diss_flux[i][0] = -diff_coeff*a11*solution_gradient[i][0]
+                                  -diff_coeff*a12*solution_gradient[i][1]
+                                  -diff_coeff*a13*solution_gradient[i][2];
+                diss_flux[i][1] = -diff_coeff*a21*solution_gradient[i][0]
+                                  -diff_coeff*a22*solution_gradient[i][1]
+                                  -diff_coeff*a23*solution_gradient[i][2];
+                diss_flux[i][2] = -diff_coeff*a31*solution_gradient[i][0]
+                                  -diff_coeff*a32*solution_gradient[i][1]
+                                  -diff_coeff*a33*solution_gradient[i][2];
+            }
+
         }
     }
 
@@ -315,7 +334,7 @@ namespace PHiLiP
         } else if (dim==2) {
             const real x = pos[0], y = pos[1];
             source[ISTATE] = diff_coeff*a*a*sin(a*x+d)*sin(b*y+e) +
-                     diff_coeff*b*b*sin(a*x+d)*sin(b*y+e);
+                             diff_coeff*b*b*sin(a*x+d)*sin(b*y+e);
         } else if (dim==3) {
             const real x = pos[0], y = pos[1], z = pos[2];
 
@@ -323,10 +342,35 @@ namespace PHiLiP
                       diff_coeff*b*b*sin(a*x+d)*sin(b*y+e)*sin(c*z+f) +
                       diff_coeff*c*c*sin(a*x+d)*sin(b*y+e)*sin(c*z+f);
         }
-    }
+        //const double a11 = 10*phys::freq_x, a12 = phys::freq_y, a13 = phys::freq_z;
+        //const double a21 = phys::offs_x, a22 = 10*phys::offs_y, a23 = phys::offs_z;
+        //const double a31 = phys::velo_x, a32 = phys::velo_y, a33 = 10*phys::velo_z;
+        const double a11 = phys::A11, a12 = phys::A12, a13 = phys::A13;
+        const double a21 = phys::A11, a22 = phys::A22, a23 = phys::A23;
+        const double a31 = phys::A11, a32 = phys::A32, a33 = phys::A33;
+        if (dim==1) {
+            const real x = pos[0];
+            source[ISTATE] = diff_coeff*a11*a*a*sin(a*x+d);
+        } else if (dim==2) {
+            const real x = pos[0], y = pos[1];
+            source[ISTATE] =   diff_coeff*a11*a*a*sin(a*x+d)*sin(b*y+e)
+                             - diff_coeff*a12*a*b*cos(a*x+d)*cos(b*y+e)
+                             - diff_coeff*a21*b*a*cos(a*x+d)*cos(b*y+e)
+                             + diff_coeff*a22*b*b*sin(a*x+d)*sin(b*y+e);
+        } else if (dim==3) {
+            const real x = pos[0], y = pos[1], z = pos[2];
 
-    template class Diffusion < PHILIP_DIM, 1, Sacado::Fad::DFad<double>  >;
-    template class Diffusion < PHILIP_DIM, 1, double >;
+            source[ISTATE] =   diff_coeff*a11*a*a*sin(a*x+d)*sin(b*y+e)*sin(c*z+f)
+                             - diff_coeff*a12*a*b*cos(a*x+d)*cos(b*y+e)*sin(c*z+f)
+                             - diff_coeff*a13*a*c*cos(a*x+d)*sin(b*y+e)*cos(c*z+f)
+                             - diff_coeff*a21*b*a*cos(a*x+d)*cos(b*y+e)*sin(c*z+f)
+                             + diff_coeff*a22*b*b*sin(a*x+d)*sin(b*y+e)*sin(c*z+f)
+                             - diff_coeff*a23*b*c*sin(a*x+d)*cos(b*y+e)*cos(c*z+f)
+                             - diff_coeff*a31*c*a*cos(a*x+d)*sin(b*y+e)*cos(c*z+f)
+                             - diff_coeff*a32*c*b*sin(a*x+d)*cos(b*y+e)*cos(c*z+f)
+                             + diff_coeff*a33*c*c*sin(a*x+d)*sin(b*y+e)*sin(c*z+f);
+        }
+    }
 
     template <int dim, int nstate, typename real>
     void ConvectionDiffusion<dim,nstate,real>
@@ -366,19 +410,19 @@ namespace PHiLiP
         return eig;
     }
 
-    template <int dim, int nstate, typename real>
-    std::array<Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,real>
-    ::apply_diffusion_matrix(
-            const std::array<real,nstate> &/*solution*/,
-            const std::array<Tensor<1,dim,real>,nstate> &solution_grad) const
-    {
-        // deal.II tensors are initialized with zeros
-        std::array<Tensor<1,dim,real>,nstate> diffusion;
-        for (int d=0; d<dim; d++) {
-            diffusion[0][d] = 1.0*solution_grad[0][d];
-        }
-        return diffusion;
-    }
+    //  template <int dim, int nstate, typename real>
+    //  std::array<Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,real>
+    //  ::apply_diffusion_matrix(
+    //          const std::array<real,nstate> &/*solution*/,
+    //          const std::array<Tensor<1,dim,real>,nstate> &solution_grad) const
+    //  {
+    //      // deal.II tensors are initialized with zeros
+    //      std::array<Tensor<1,dim,real>,nstate> diffusion;
+    //      for (int d=0; d<dim; d++) {
+    //          diffusion[0][d] = 1.0*solution_grad[0][d];
+    //      }
+    //      return diffusion;
+    //  }
 
     template <int dim, int nstate, typename real>
     void ConvectionDiffusion<dim,nstate,real>
@@ -427,9 +471,62 @@ namespace PHiLiP
                        diff_coeff*c*c*sin(a*x+d)*sin(b*y+e)*sin(c*z+f);
         }
     }
-    // Instantiate
+    // Instantiate explicitly
+
+    template class Physics < PHILIP_DIM, 1, double >;
+    template class Physics < PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
+    template class Physics < PHILIP_DIM, 2, double >;
+    template class Physics < PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
+    template class Physics < PHILIP_DIM, 3, double >;
+    template class Physics < PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
+    template class Physics < PHILIP_DIM, 4, double >;
+    template class Physics < PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
+    template class Physics < PHILIP_DIM, 5, double >;
+    template class Physics < PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
+
+    template class LinearAdvection < PHILIP_DIM, 1, double >;
+    template class LinearAdvection < PHILIP_DIM, 1, Sacado::Fad::DFad<double>  >;
+    template class LinearAdvection < PHILIP_DIM, 2, double >;
+    template class LinearAdvection < PHILIP_DIM, 2, Sacado::Fad::DFad<double>  >;
+    template class LinearAdvection < PHILIP_DIM, 3, double >;
+    template class LinearAdvection < PHILIP_DIM, 3, Sacado::Fad::DFad<double>  >;
+    template class LinearAdvection < PHILIP_DIM, 4, double >;
+    template class LinearAdvection < PHILIP_DIM, 4, Sacado::Fad::DFad<double>  >;
+    template class LinearAdvection < PHILIP_DIM, 5, double >;
+    template class LinearAdvection < PHILIP_DIM, 5, Sacado::Fad::DFad<double>  >;
+
+    template class PhysicsFactory<PHILIP_DIM, 1, double>;
+    template class PhysicsFactory<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
+    template class PhysicsFactory<PHILIP_DIM, 2, double>;
+    template class PhysicsFactory<PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
+    template class PhysicsFactory<PHILIP_DIM, 3, double>;
+    template class PhysicsFactory<PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
+    template class PhysicsFactory<PHILIP_DIM, 4, double>;
+    template class PhysicsFactory<PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
+    template class PhysicsFactory<PHILIP_DIM, 5, double>;
+    template class PhysicsFactory<PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
+
+    template class Diffusion < PHILIP_DIM, 1, double >;
+    template class Diffusion < PHILIP_DIM, 1, Sacado::Fad::DFad<double>  >;
+    template class Diffusion < PHILIP_DIM, 2, double >;
+    template class Diffusion < PHILIP_DIM, 2, Sacado::Fad::DFad<double>  >;
+    template class Diffusion < PHILIP_DIM, 3, double >;
+    template class Diffusion < PHILIP_DIM, 3, Sacado::Fad::DFad<double>  >;
+    template class Diffusion < PHILIP_DIM, 4, double >;
+    template class Diffusion < PHILIP_DIM, 4, Sacado::Fad::DFad<double>  >;
+    template class Diffusion < PHILIP_DIM, 5, double >;
+    template class Diffusion < PHILIP_DIM, 5, Sacado::Fad::DFad<double>  >;
+
     template class ConvectionDiffusion < PHILIP_DIM, 1, double >;
     template class ConvectionDiffusion < PHILIP_DIM, 1, Sacado::Fad::DFad<double>  >;
+    template class ConvectionDiffusion < PHILIP_DIM, 2, double >;
+    template class ConvectionDiffusion < PHILIP_DIM, 2, Sacado::Fad::DFad<double>  >;
+    template class ConvectionDiffusion < PHILIP_DIM, 3, double >;
+    template class ConvectionDiffusion < PHILIP_DIM, 3, Sacado::Fad::DFad<double>  >;
+    template class ConvectionDiffusion < PHILIP_DIM, 4, double >;
+    template class ConvectionDiffusion < PHILIP_DIM, 4, Sacado::Fad::DFad<double>  >;
+    template class ConvectionDiffusion < PHILIP_DIM, 5, double >;
+    template class ConvectionDiffusion < PHILIP_DIM, 5, Sacado::Fad::DFad<double>  >;
 
 
 } // end of PHiLiP namespace

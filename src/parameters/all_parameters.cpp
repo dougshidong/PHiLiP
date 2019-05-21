@@ -16,9 +16,17 @@ namespace Parameters
                           Patterns::Integer(),
                           "Number of dimensions");
         prm.declare_entry("pde_type", "advection",
-                          Patterns::Selection("advection|diffusion|convection_diffusion"),
+                          Patterns::Selection(
+                              " advection | "
+                              " diffusion | "
+                              " convection_diffusion | "
+                              " advection_vector"),
                           "The PDE we want to solve. "
-                          "Choices are <advection|diffusion|convection_diffusion>.");
+                          "Choices are " 
+                          " <advection | " 
+                          "  diffusion | "
+                          "  convection_diffusion | "
+                          "  advection_vector>.");
         prm.declare_entry("conv_num_flux", "lax_friedrichs",
                           Patterns::Selection("lax_friedrichs"),
                           "Convective numerical flux. "

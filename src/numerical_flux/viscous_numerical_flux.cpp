@@ -185,8 +185,24 @@ namespace PHiLiP
     // Instantiation
     template class NumericalFluxDissipative<PHILIP_DIM, 1, double>;
     template class NumericalFluxDissipative<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
+    template class NumericalFluxDissipative<PHILIP_DIM, 2, double>;
+    template class NumericalFluxDissipative<PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
+    template class NumericalFluxDissipative<PHILIP_DIM, 3, double>;
+    template class NumericalFluxDissipative<PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
+    template class NumericalFluxDissipative<PHILIP_DIM, 4, double>;
+    template class NumericalFluxDissipative<PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
+    template class NumericalFluxDissipative<PHILIP_DIM, 5, double>;
+    template class NumericalFluxDissipative<PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
 
     template class SymmetricInternalPenalty<PHILIP_DIM, 1, double>;
     template class SymmetricInternalPenalty<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
+    template class SymmetricInternalPenalty<PHILIP_DIM, 2, double>;
+    template class SymmetricInternalPenalty<PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
+    template class SymmetricInternalPenalty<PHILIP_DIM, 3, double>;
+    template class SymmetricInternalPenalty<PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
+    template class SymmetricInternalPenalty<PHILIP_DIM, 4, double>;
+    template class SymmetricInternalPenalty<PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
+    template class SymmetricInternalPenalty<PHILIP_DIM, 5, double>;
+    template class SymmetricInternalPenalty<PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
 
 }

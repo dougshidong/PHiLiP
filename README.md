@@ -1,5 +1,7 @@
 # Discontinuous Galerkin Solver
 
+[![Documentation](https://codedocs.xyz/dougshidong/PHiLiP.svg)](https://codedocs.xyz/dougshidong/PHiLiP/)
+
 
 ## Code Description
 - Code uses deal.II library as the backbone (https://www.dealii.org/)
@@ -10,8 +12,7 @@
 - Supported elements: LINEs, QUADs, HEXs
 - (TODO) Supported refinements: isotropic h (size) or p (order).
 
-**It is recommended** to follow the [Coding Style Guidelines](STYLE.md) when making modifications to
-the code.
+[//]: # (**It is recommended** to follow the [Coding Style Guidelines](STYLE.md) when making modifications to the code.)
 
 ## Building/Running the Code
 
@@ -25,7 +26,9 @@ Please consult the [installation instructions](INSTALL.md) for details concernin
 An out-of-source build must be performed using the [sample scripts](cmake/run) by executing the
 appropriate bash script. For example, to configure for the debug build:
 ```sh
-$ ROOT$ cmake .
+$ ROOT$ mkdir build
+$ ROOT$ cd build
+$ ROOT$ cmake ../
 ```
 
 ### Compile using Make
@@ -40,6 +43,8 @@ Of primary interest are the following:
 ROOT$ make -j     // Compile the code.
 ROOT$ make -j doc // Generate the Doxygen documentation.
 ```
+
+Based on past experiences, you might want to limit the number of processor to 2 or 3 (make -j 3) if you have 8GB of RAM.
 
 The html documentation can be accessed by pointing a browser at `ROOT/doc/html/index.html`.
 

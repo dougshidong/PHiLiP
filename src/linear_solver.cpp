@@ -24,14 +24,14 @@ namespace PHiLiP
         Parameters::LinearSolverParam::LinearSolverEnum direct_type = Parameters::LinearSolverParam::LinearSolverEnum::direct;
         Parameters::LinearSolverParam::LinearSolverEnum gmres_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
 
+        if (param.linear_solver_output == Parameters::OutputEnum::verbose) {
+            right_hand_side.print(std::cout);
+            FullMatrix<double> fullA(system_matrix.m());
+            fullA.copy_from(system_matrix);
+            std::cout<<"Dense matrix:"<<std::endl;
+            fullA.print_formatted(std::cout, 3, true, 10, "0", 1., 0.);
+        }
         if (param.linear_solver_type == direct_type) {
-            if (param.linear_solver_output == Parameters::OutputEnum::verbose) {
-                right_hand_side.print(std::cout);
-                FullMatrix<double> fullA(system_matrix.m());
-                fullA.copy_from(system_matrix);
-                std::cout<<"Dense matrix:"<<std::endl;
-                fullA.print_formatted(std::cout, 3, true, 10, "0", 1., 0.);
-            }
 
             SolverControl solver_control(1, 0);
             TrilinosWrappers::SolverDirect::AdditionalData data(false);

@@ -176,7 +176,7 @@ namespace PHiLiP
                 if(dim==1) dg->output_results(igrid);
 
                 // Overintegrate the error to make sure there is not integration error in the error estimate
-                int overintegrate = 1;
+                int overintegrate = 5;
                 QGauss<dim> quad_extra(dg->fe_system.tensor_degree()+overintegrate);
                 FEValues<dim,dim> fe_values_extra(dg->mapping, dg->fe_system, quad_extra, update_values | update_JxW_values | update_quadrature_points);
                 const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;

@@ -49,9 +49,19 @@ namespace Parameters
         dimension                   = prm.get_integer("dimension");
 
         const std::string pde_string = prm.get("pde_type");
-        if (pde_string == "advection") pde_type = advection;
-        if (pde_string == "diffusion") pde_type = diffusion;
-        if (pde_string == "convection_diffusion") pde_type = convection_diffusion;
+        if (pde_string == "advection") {
+            pde_type = advection;
+            nstate = 1;
+        } else if (pde_string == "advection_vector") {
+            pde_type = advection_vector;
+            nstate = 2;
+        } else if (pde_string == "diffusion") {
+            pde_type = diffusion;
+            nstate = 1;
+        } else if (pde_string == "convection_diffusion") {
+            pde_type = convection_diffusion;
+            nstate = 1;
+        }
 
         const std::string conv_num_flux_string = prm.get("conv_num_flux");
         if (conv_num_flux_string == "lax_friedrichs") conv_num_flux_type = lax_friedrichs;

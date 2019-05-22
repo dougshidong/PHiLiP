@@ -29,6 +29,10 @@ namespace Parameters
         /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
         unsigned int dimension;
 
+
+        /// Number of state variables. Will depend on PDE
+        int nstate;
+
         /// Currently allows to solve advection, diffusion, convection-diffusion
         enum PartialDifferentialEquation { 
             advection,

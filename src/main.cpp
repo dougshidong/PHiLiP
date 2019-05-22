@@ -29,6 +29,8 @@ int main (int argc, char *argv[])
         Parameters::AllParameters all_parameters;
         all_parameters.parse_parameters (parameter_handler);
 
+        AssertDimension(all_parameters.dimension, PHILIP_DIM);
+
         std::cout << "Starting program..." << std::endl;
 
 

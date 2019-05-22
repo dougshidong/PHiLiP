@@ -4,3 +4,5 @@ add_subdirectory(advection_implicit)
 add_subdirectory(diffusion_implicit)
 add_subdirectory(convection_diffusion_implicit)
 
+add_subdirectory(advection_vector_implicit)
+

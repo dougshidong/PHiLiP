@@ -63,7 +63,7 @@ namespace PHiLiP
     {
         using Param = Parameters::AllParameters;
         Assert(dim == all_parameters.dimension, ExcDimensionMismatch(dim, all_parameters.dimension));
-        const int nstate = 1;
+        const int nstate = all_parameters.nstate;
 
         Parameters::ManufacturedConvergenceStudyParam manu_grid_conv_param = all_parameters.manufactured_convergence_study_param;
         const unsigned int p_start             = manu_grid_conv_param.degree_start;
@@ -73,7 +73,7 @@ namespace PHiLiP
         const unsigned int n_grids_input       = manu_grid_conv_param.number_of_grids;
         const double       grid_progression    = manu_grid_conv_param.grid_progression;
 
-        Physics<dim,1,double> *physics_double = PhysicsFactory<dim, 1, double>::create_Physics(all_parameters.pde_type);
+        Physics<dim,2,double> *physics_double = PhysicsFactory<dim, 2, double>::create_Physics(all_parameters.pde_type);
 
         std::vector<int> fail_conv_poly;
         std::vector<double> fail_conv_slop;
@@ -83,7 +83,7 @@ namespace PHiLiP
 
             // p0 tends to require a finer grid to reach asymptotic region
             unsigned int n_grids = n_grids_input;
-            if (poly_degree <= 1) n_grids = n_grids_input + 1;
+            if (poly_degree <= 1) n_grids = n_grids_input + 2;
 
             std::vector<int> n_1d_cells(n_grids);
             n_1d_cells[0] = initial_grid_size;
@@ -92,8 +92,8 @@ namespace PHiLiP
             std::vector<double> output_error(n_grids);
             std::vector<double> grid_size(n_grids);
 
-            for (unsigned int i=1;i<n_grids;++i) {
-                n_1d_cells[i] = n_1d_cells[i-1]*grid_progression;
+            for (unsigned int igrid=1;igrid<n_grids;++igrid) {
+                n_1d_cells[igrid] = n_1d_cells[igrid-1]*grid_progression;
             }
 
             ConvergenceTable convergence_table;
@@ -176,10 +176,12 @@ namespace PHiLiP
                 if(dim==1) dg->output_results(igrid);
 
                 // Overintegrate the error to make sure there is not integration error in the error estimate
-                QGauss<dim> quad_extra(dg->fe.degree+5);
-                FEValues<dim,dim> fe_values_extra(dg->mapping, dg->fe, quad_extra, update_values | update_JxW_values | update_quadrature_points);
+                int overintegrate = 1;
+                QGauss<dim> quad_extra(dg->fe_system.tensor_degree()+overintegrate);
+                FEValues<dim,dim> fe_values_extra(dg->mapping, dg->fe_system, quad_extra, update_values | update_JxW_values | update_quadrature_points);
                 const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
-                std::vector<double> solution_values_at_q(n_quad_pts);
+                std::vector<double> soln_at_q(nstate);
+                std::vector<double> uexact(nstate);
 
                 double l2error = 0;
 
@@ -194,73 +196,78 @@ namespace PHiLiP
                 typename DoFHandler<dim>::active_cell_iterator
                    cell = dg->dof_handler.begin_active(),
                    endc = dg->dof_handler.end();
+
+                std::vector<types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
                 for (; cell!=endc; ++cell) {
-                    //const unsigned int icell = cell->user_index();
 
                     fe_values_extra.reinit (cell);
-                    fe_values_extra.get_function_values (dg->solution, solution_values_at_q);
+                    cell->get_dof_indices (dofs_indices);
 
-                    std::array<double,nstate> uexact;
-                    for(unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+
+                        std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
+                        for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
+                            const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
+                            soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
+                        }
+
                         const Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
+                        physics_double->manufactured_solution (qpoint, &uexact[0]);
+                        //std::cout << "cos(0.59*x+1 " << cos(0.59*qpoint[0]+1) << std::endl;
+                        //std::cout << "uexact[1] " << uexact[1] << std::endl;
 
-                        //uexact = manufactured_advection_solution (qpoint);
-                        //uexact = manufactured_solution (qpoint);
-                        physics_double->manufactured_solution (qpoint, uexact);
-
-
-                        double u_at_q = solution_values_at_q[iquad];
-                        l2error += pow(u_at_q - uexact[0], 2) * fe_values_extra.JxW(iquad);
-
-                        solution_integral += pow(u_at_q, power) * fe_values_extra.JxW(iquad);
+                        for (int istate=0; istate<nstate; ++istate) {
+                            l2error += pow(soln_at_q[istate] - uexact[istate], 2) * fe_values_extra.JxW(iquad);
+                            solution_integral += pow(soln_at_q[istate], power) * fe_values_extra.JxW(iquad);
+                        }
                     }
 
                 }
                 const double exact_solution_integral = physics_double->integral_output(linear_output);
                 l2error = sqrt(l2error);
 
-                // Integrate boundary. Not needed for now. Might need something like this for adjoint consistency later on
-                bool integrate_boundary = false;
-                if (integrate_boundary) {
-                    QGauss<dim-1> quad_face_plus20(dg->fe.degree+5);
-                    solution_integral = 0;
-                    FEFaceValues<dim,dim> fe_face_values_plus20(dg->mapping, dg->fe, quad_face_plus20, update_normal_vectors | update_values | update_JxW_values | update_quadrature_points);
-                    unsigned int n_face_quad_pts = fe_face_values_plus20.n_quadrature_points;
-                    std::vector<double> face_intp_solution_values(n_face_quad_pts);
+                //  // Integrate boundary. Not needed for now. Might need something like this for adjoint consistency later on
+                //  bool integrate_boundary = false;
+                //  if (integrate_boundary) {
+                //      QGauss<dim-1> quad_face_plus20(dg->fe_system.tensor_degree()+overintegrate);
+                //      solution_integral = 0;
+                //      FEFaceValues<dim,dim> fe_face_values_plus20(dg->mapping, dg->fe_system, quad_face_plus20, update_normal_vectors | update_values | update_JxW_values | update_quadrature_points);
+                //      unsigned int n_face_quad_pts = fe_face_values_plus20.n_quadrature_points;
+                //      std::vector<double> face_intp_solution_values(n_face_quad_pts);
 
-                    cell = dg->dof_handler.begin_active();
-                    for (; cell!=endc; ++cell) {
+                //      cell = dg->dof_handler.begin_active();
+                //      for (; cell!=endc; ++cell) {
 
-                        for (unsigned int face_no=0; face_no < GeometryInfo<dim>::faces_per_cell; ++face_no) {
+                //          for (unsigned int face_no=0; face_no < GeometryInfo<dim>::faces_per_cell; ++face_no) {
 
-                            typename DoFHandler<dim>::face_iterator current_face = cell->face(face_no);
-                            fe_face_values_plus20.reinit (cell, face_no);
-                            fe_face_values_plus20.get_function_values (dg->solution, face_intp_solution_values);
+                //              typename DoFHandler<dim>::face_iterator current_face = cell->face(face_no);
+                //              fe_face_values_plus20.reinit (cell, face_no);
+                //              fe_face_values_plus20.get_function_values (dg->solution, face_intp_solution_values);
 
-                            const std::vector<Tensor<1,dim> > &normals = fe_face_values_plus20.get_normal_vectors ();
+                //              const std::vector<Tensor<1,dim> > &normals = fe_face_values_plus20.get_normal_vectors ();
 
-                            if (current_face->at_boundary()) {
+                //              if (current_face->at_boundary()) {
 
-                                for(unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
-                                    const Point<dim> qpoint = (fe_face_values_plus20.quadrature_point(iquad));
+                //                  for(unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+                //                      const Point<dim> qpoint = (fe_face_values_plus20.quadrature_point(iquad));
 
-                                    std::array<double,nstate> uexact;
-                                    physics_double->manufactured_solution (qpoint, uexact);
+                //                      std::array<double,nstate> uexact;
+                //                      physics_double->manufactured_solution (qpoint, uexact);
 
-                                    std::array<double,nstate> characteristic_dot_n_at_q = physics_double->convective_eigenvalues(uexact, normals[iquad]);
-                                    const int istate = 0;
-                                    const bool inflow = (characteristic_dot_n_at_q[istate] < 0.);
-                                    if (inflow) {
-                                    } else {
-                                        double u_at_q = face_intp_solution_values[iquad];
+                //                      std::array<double,nstate> characteristic_dot_n_at_q = physics_double->convective_eigenvalues(uexact, normals[iquad]);
+                //                      const int istate = 0;
+                //                      const bool inflow = (characteristic_dot_n_at_q[istate] < 0.);
+                //                      if (inflow) {
+                //                      } else {
+                //                          double u_at_q = face_intp_solution_values[iquad];
 
-                                        solution_integral += pow(u_at_q, 2) * fe_face_values_plus20.JxW(iquad);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                //                          solution_integral += pow(u_at_q, 2) * fe_face_values_plus20.JxW(iquad);
+                //                      }
+                //                  }
+                //              }
+                //          }
+                //      }
+                //  }
 
                 // Convergence table
                 double dx = 1.0/pow(n_active_cells,(1.0/dim));
@@ -295,7 +302,7 @@ namespace PHiLiP
                     std::cout << "From grid " << igrid-1
                               << "  to grid " << igrid
                               << "  dimension: " << dim
-                              << "  polynomial degree p: " << dg->fe.get_degree()
+                              << "  polynomial degree p: " << dg->fe_system.tensor_degree()
                               << std::endl
                               << "  solution_error1 " << soln_error[igrid-1]
                               << "  solution_error2 " << soln_error[igrid]

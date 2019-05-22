@@ -35,7 +35,8 @@ namespace PHiLiP
          */
         virtual void manufactured_solution (
             const Point<dim,double> &pos,
-            std::array<real,nstate> &solution) const;
+            //std::array<real,nstate> &solution) const;
+            real *const solution) const;
 
         /// Default manufactured solution gradient.
         virtual void manufactured_gradient (
@@ -116,15 +117,15 @@ namespace PHiLiP
         const double offs_x = 1,        offs_y = 1.2,           offs_z = 1.5;
         const double velo_x = exp(1)/2, velo_y =-pi/4.0,        velo_z = sqrt(2);
         //const double velo_x = 1.0, velo_y =-pi/4.0,        velo_z = sqrt(2);
-        const double diff_coeff = 50.0;
+        const double diff_coeff = 5.0;
 
         /// Heterogeneous diffusion matrix
         /** As long as the diagonal components are positive and diagonally dominant
          *  we should have a stable diffusive system
          */
         const double A11 =   9, A12 =  -2, A13 =  -6;
-        const double A21 =   3, A22 =  10, A23 =   4;
-        const double A31 =  -2, A32 = 0.5, A33 =  81;
+        const double A21 =   3, A22 =  20, A23 =   4;
+        const double A31 =  -2, A32 = 0.5, A33 =   8;
     };
 
     /// This class with create a new Physics object corresponding to the pde_type

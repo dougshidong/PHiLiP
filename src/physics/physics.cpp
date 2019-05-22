@@ -20,9 +20,7 @@ namespace PHiLiP
     {
         using PDE_enum = AllParam::PartialDifferentialEquation;
 
-        if (pde_type == PDE_enum::advection) {
-            return new LinearAdvection<dim,nstate,real>;
-        } else if (pde_type == PDE_enum::advection_vector) {
+        if (pde_type == PDE_enum::advection || pde_type == PDE_enum::advection_vector) {
             return new LinearAdvection<dim,nstate,real>;
         } else if (pde_type == PDE_enum::diffusion) {
             return new Diffusion<dim,nstate,real>;
@@ -54,15 +52,24 @@ namespace PHiLiP
     // Common manufactured solution for advection, diffusion, convection-diffusion
     template <int dim, int nstate, typename real>
     void Physics<dim,nstate,real>
-    ::manufactured_solution (const Point<dim,double> &pos, std::array<real,nstate> &solution) const
+    //::manufactured_solution (const Point<dim,double> &pos, std::array<real,nstate> &solution) const
+    ::manufactured_solution (const Point<dim,double> &pos, real *const solution) const
     {
         using phys = Physics<dim,nstate,real>;
         const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
         const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
-        const int ISTATE = 0;
-        if (dim==1) solution[ISTATE] = sin(a*pos[0]+d);
-        if (dim==2) solution[ISTATE] = sin(a*pos[0]+d)*sin(b*pos[1]+e);
-        if (dim==3) solution[ISTATE] = sin(a*pos[0]+d)*sin(b*pos[1]+e)*sin(c*pos[2]+f);
+
+        int istate = 0;
+        if (dim==1) solution[istate] = sin(a*pos[0]+d);
+        if (dim==2) solution[istate] = sin(a*pos[0]+d)*sin(b*pos[1]+e);
+        if (dim==3) solution[istate] = sin(a*pos[0]+d)*sin(b*pos[1]+e)*sin(c*pos[2]+f);
+
+        if (nstate > 1) {
+            istate = 1;
+            if (dim==1) solution[istate] = cos(a*pos[0]+d);
+            if (dim==2) solution[istate] = cos(a*pos[0]+d)*cos(b*pos[1]+e);
+            if (dim==3) solution[istate] = cos(a*pos[0]+d)*cos(b*pos[1]+e)*cos(c*pos[2]+f);
+        }
     }
     template <int dim, int nstate, typename real>
     void Physics<dim,nstate,real>
@@ -71,16 +78,31 @@ namespace PHiLiP
         using phys = Physics<dim,nstate,real>;
         const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
         const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
-        const int ISTATE = 0;
+
+        int istate = 0;
         if (dim==1) {
-            solution_gradient[ISTATE][0] = a*cos(a*pos[0]+d);
+            solution_gradient[istate][0] = a*cos(a*pos[0]+d);
         } else if (dim==2) {
-            solution_gradient[ISTATE][0] = a*cos(a*pos[0]+d)*sin(b*pos[1]+e);
-            solution_gradient[ISTATE][1] = b*sin(a*pos[0]+d)*cos(b*pos[1]+e);
+            solution_gradient[istate][0] = a*cos(a*pos[0]+d)*sin(b*pos[1]+e);
+            solution_gradient[istate][1] = b*sin(a*pos[0]+d)*cos(b*pos[1]+e);
         } else if (dim==3) {
-            solution_gradient[ISTATE][0] = a*cos(a*pos[0]+d)*sin(b*pos[1]+e)*sin(c*pos[2]+f);
-            solution_gradient[ISTATE][1] = b*sin(a*pos[0]+d)*cos(b*pos[1]+e)*sin(c*pos[2]+f);
-            solution_gradient[ISTATE][2] = c*sin(a*pos[0]+d)*sin(b*pos[1]+e)*cos(c*pos[2]+f);
+            solution_gradient[istate][0] = a*cos(a*pos[0]+d)*sin(b*pos[1]+e)*sin(c*pos[2]+f);
+            solution_gradient[istate][1] = b*sin(a*pos[0]+d)*cos(b*pos[1]+e)*sin(c*pos[2]+f);
+            solution_gradient[istate][2] = c*sin(a*pos[0]+d)*sin(b*pos[1]+e)*cos(c*pos[2]+f);
+        }
+
+        if (nstate > 1) {
+            int istate = 1;
+            if (dim==1) {
+                solution_gradient[istate][0] = -a*sin(a*pos[0]+d);
+            } else if (dim==2) {
+                solution_gradient[istate][0] = -a*sin(a*pos[0]+d)*cos(b*pos[1]+e);
+                solution_gradient[istate][1] = -b*cos(a*pos[0]+d)*sin(b*pos[1]+e);
+            } else if (dim==3) {
+                solution_gradient[istate][0] = -a*sin(a*pos[0]+d)*cos(b*pos[1]+e)*cos(c*pos[2]+f);
+                solution_gradient[istate][1] = -b*cos(a*pos[0]+d)*sin(b*pos[1]+e)*cos(c*pos[2]+f);
+                solution_gradient[istate][2] = -c*cos(a*pos[0]+d)*cos(b*pos[1]+e)*sin(c*pos[2]+f);
+            }
         }
     }
 
@@ -225,19 +247,37 @@ namespace PHiLiP
         using phys = Physics<dim,nstate,real>;
         const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
         const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
-        const int ISTATE = 0;
+
+        int istate = 0;
         if (dim==1) {
             const real x = pos[0];
-            source[ISTATE] = vel[0]*a*cos(a*x+d);
+            source[istate] = vel[0]*a*cos(a*x+d);
         } else if (dim==2) {
             const real x = pos[0], y = pos[1];
-            source[ISTATE] = vel[0]*a*cos(a*x+d)*sin(b*y+e) +
+            source[istate] = vel[0]*a*cos(a*x+d)*sin(b*y+e) +
                              vel[1]*b*sin(a*x+d)*cos(b*y+e);
         } else if (dim==3) {
             const real x = pos[0], y = pos[1], z = pos[2];
-            source[ISTATE] =  vel[0]*a*cos(a*x+d)*sin(b*y+e)*sin(c*z+f) +
+            source[istate] =  vel[0]*a*cos(a*x+d)*sin(b*y+e)*sin(c*z+f) +
                               vel[1]*b*sin(a*x+d)*cos(b*y+e)*sin(c*z+f) +
                               vel[2]*c*sin(a*x+d)*sin(b*y+e)*cos(c*z+f);
+        }
+
+        if (nstate > 1) {
+            int istate = 1;
+            if (dim==1) {
+                const real x = pos[0];
+                source[istate] = -vel[0]*a*sin(a*x+d);
+            } else if (dim==2) {
+                const real x = pos[0], y = pos[1];
+                source[istate] = - vel[0]*a*sin(a*x+d)*cos(b*y+e)
+                                 - vel[1]*b*cos(a*x+d)*sin(b*y+e);
+            } else if (dim==3) {
+                const real x = pos[0], y = pos[1], z = pos[2];
+                source[istate] =  - vel[0]*a*sin(a*x+d)*cos(b*y+e)*cos(c*z+f)
+                                  - vel[1]*b*cos(a*x+d)*sin(b*y+e)*cos(c*z+f)
+                                  - vel[2]*c*cos(a*x+d)*cos(b*y+e)*sin(c*z+f);
+            }
         }
     }
 

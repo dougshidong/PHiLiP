@@ -55,7 +55,7 @@ namespace PHiLiP
         if (pde_type == PDE_enum::advection) {
             return std::make_shared< DG<dim,1,real> >(parameters_input, degree);
         } else if (pde_type == PDE_enum::advection_vector) {
-            return std::make_shared< DG<dim,dim,real> >(parameters_input, degree);
+            return std::make_shared< DG<dim,2,real> >(parameters_input, degree);
         } else if (pde_type == PDE_enum::diffusion) {
             return std::make_shared< DG<dim,1,real> >(parameters_input, degree);
         } else if (pde_type == PDE_enum::convection_diffusion) {
@@ -68,11 +68,14 @@ namespace PHiLiP
     // DGBase ***************************************************************************
     template <int dim, typename real>
     DGBase<dim,real>::DGBase(
+        const int nstate_input,
         Parameters::AllParameters *parameters_input,
         const unsigned int degree)
         :
-        mapping(degree+1)
-        , fe(degree)
+        nstate(nstate_input)
+        , mapping(degree+1)
+        , fe_dg(degree)
+        , fe_system(fe_dg, nstate)
         , all_parameters(parameters_input)
         , quadrature (degree+1)
         , face_quadrature (degree+1)
@@ -90,10 +93,10 @@ namespace PHiLiP
         const UpdateFlags neighbor_face_update_flags = update_values
                                                       | update_gradients;
 
-        fe_values_cell          = new FEValues<dim,dim> (DGBase<dim,real>::mapping, DGBase<dim,real>::fe, DGBase<dim,real>::quadrature, update_flags);
-        fe_values_face_int      = new FEFaceValues<dim,dim> (DGBase<dim,real>::mapping, DGBase<dim,real>::fe, DGBase<dim,real>::face_quadrature, face_update_flags);
-        fe_values_subface_int   = new FESubfaceValues<dim,dim> (DGBase<dim,real>::mapping, DGBase<dim,real>::fe, DGBase<dim,real>::face_quadrature, face_update_flags);
-        fe_values_face_ext      = new FEFaceValues<dim,dim> (DGBase<dim,real>::mapping, DGBase<dim,real>::fe, DGBase<dim,real>::face_quadrature, neighbor_face_update_flags);
+        fe_values_cell          = new FEValues<dim,dim> (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::quadrature, update_flags);
+        fe_values_face_int      = new FEFaceValues<dim,dim> (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::face_quadrature, face_update_flags);
+        fe_values_subface_int   = new FESubfaceValues<dim,dim> (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::face_quadrature, face_update_flags);
+        fe_values_face_ext      = new FEFaceValues<dim,dim> (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::face_quadrature, neighbor_face_update_flags);
     }
 
     // Destructor
@@ -150,22 +153,23 @@ namespace PHiLiP
         // Using Gauss-Jordan since it's deal.II's default invert function
         // Could store Cholesky decomposition for more efficient pre-processing
         const int n_quad_pts      = quadrature.size();
-        const int n_dofs_per_cell = fe.dofs_per_cell;
+        // Number of test functions, not total number of degrees of freedom
+        const int n_tests_cell    = fe_dg.dofs_per_cell;
 
         typename DoFHandler<dim>::active_cell_iterator
            cell = dof_handler.begin_active(),
            endc = dof_handler.end();
 
         inv_mass_matrix.resize(triangulation->n_active_cells(),
-                               FullMatrix<real>(n_dofs_per_cell));
-        FullMatrix<real> mass_matrix(n_dofs_per_cell);
+                               FullMatrix<real>(n_tests_cell));
+        FullMatrix<real> mass_matrix(n_tests_cell);
         for (; cell!=endc; ++cell) {
 
             int cell_index = cell->index();
             fe_values_cell->reinit(cell);
 
-            for (int itest=0; itest<n_dofs_per_cell; ++itest) {
-                for (int itrial=itest; itrial<n_dofs_per_cell; ++itrial) {
+            for (int itest=0; itest<n_tests_cell; ++itest) {
+                for (int itrial=itest; itrial<n_tests_cell; ++itrial) {
                     mass_matrix[itest][itrial] = 0.0;
                     for (int iquad=0; iquad<n_quad_pts; ++iquad) {
                         mass_matrix[itest][itrial] +=
@@ -187,7 +191,7 @@ namespace PHiLiP
     DG<dim,nstate,real>::DG(
         Parameters::AllParameters *parameters_input,
         const unsigned int degree)
-        : DGBase<dim,real>::DGBase(parameters_input, degree) // Use DGBase constructor
+        : DGBase<dim,real>::DGBase(nstate, parameters_input, degree) // Use DGBase constructor
 
     {
         using ADtype = Sacado::Fad::DFad<real>;
@@ -215,9 +219,11 @@ namespace PHiLiP
         // This function allocates all the necessary memory to the 
         // system matrices and vectors.
 
-        DGBase<dim,real>::dof_handler.initialize(*DGBase<dim,real>::triangulation, DGBase<dim,real>::fe);
+        DGBase<dim,real>::dof_handler.initialize(*DGBase<dim,real>::triangulation, DGBase<dim,real>::fe_system);
+        //DGBase<dim,real>::dof_handler.initialize(*DGBase<dim,real>::triangulation, DGBase<dim,real>::fe_dg);
         // Allocates memory from triangulation and finite element space
-        DGBase<dim,real>::dof_handler.distribute_dofs(DGBase<dim,real>::fe);
+        // Use fe_system since it will have the (fe_dg.n_dofs)*nstate
+        DGBase<dim,real>::dof_handler.distribute_dofs(DGBase<dim,real>::fe_system);
 
 
         // Allocate matrix
@@ -280,7 +286,7 @@ namespace PHiLiP
                     n_face_visited++;
 
                     DGBase<dim,real>::fe_values_face_int->reinit (current_cell, iface);
-                    const unsigned int degree_current = DGBase<dim,real>::fe.get_degree();
+                    const unsigned int degree_current = DGBase<dim,real>::fe_system.tensor_degree();
                     const unsigned int deg1sq = (degree_current == 0) ? 1 : degree_current * (degree_current+1);
                     const unsigned int normal_direction = GeometryInfo<dim>::unit_normal_direction[iface];
                     const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction);
@@ -316,7 +322,7 @@ namespace PHiLiP
 
                         const unsigned int normal_direction1 = GeometryInfo<dim>::unit_normal_direction[iface];
                         const unsigned int normal_direction2 = GeometryInfo<dim>::unit_normal_direction[neighbor_face_no];
-                        const unsigned int degree_current = DGBase<dim,real>::fe.get_degree();
+                        const unsigned int degree_current = DGBase<dim,real>::fe_system.tensor_degree();
                         const unsigned int deg1sq = (degree_current == 0) ? 1 : degree_current * (degree_current+1);
                         const unsigned int deg2sq = (degree_current == 0) ? 1 : degree_current * (degree_current+1);
 
@@ -367,7 +373,7 @@ namespace PHiLiP
 
                     const unsigned int normal_direction1 = GeometryInfo<dim>::unit_normal_direction[iface];
                     const unsigned int normal_direction2 = GeometryInfo<dim>::unit_normal_direction[neighbor_face_no];
-                    const unsigned int degree_current = DGBase<dim,real>::fe.get_degree();
+                    const unsigned int degree_current = DGBase<dim,real>::fe_system.tensor_degree();
                     const unsigned int deg1sq = (degree_current == 0) ? 1 : degree_current * (degree_current+1);
                     const unsigned int deg2sq = (degree_current == 0) ? 1 : degree_current * (degree_current+1);
 
@@ -408,42 +414,6 @@ namespace PHiLiP
 
         } // end of cell loop
     } // end of assemble_system_implicit ()
-
-    
-    //template <int dim, int nstate, typename real>
-    //void DG<dim,nstate,real>::allocate_system_explicit ()
-    //{
-    //    std::cout << std::endl << "Allocating DG system and initializing FEValues" << std::endl;
-    //    // This function allocates all the necessary memory to the 
-    //    // system matrices and vectors.
-
-    //    DGBase<dim,real>::dof_handler.initialize(*DGBase<dim,real>::triangulation, fe);
-    //    // Allocates memory from triangulation and finite element space
-    //    DGBase<dim,real>::dof_handler.distribute_dofs(fe);
-
-    //    // Allocate vectors
-    //    DGBase<dim,real>::solution.reinit(DGBase<dim,real>::dof_handler.n_dofs());
-    //    DGBase<dim,real>::right_hand_side.reinit(DGBase<dim,real>::dof_handler.n_dofs());
-
-    //    const UpdateFlags update_flags = update_values
-    //                                     | update_gradients
-    //                                     | update_quadrature_points
-    //                                     | update_JxW_values;
-    //    const UpdateFlags face_update_flags = update_values
-    //                                          | update_gradients
-    //                                          | update_quadrature_points
-    //                                          | update_JxW_values
-    //                                          | update_normal_vectors;
-    //    const UpdateFlags neighbor_face_update_flags = update_values
-    //                                                  | update_gradients;
-
-    //    fe_values_cell          = new FEValues<dim,dim> (mapping, fe, DGBase<dim,real>::quadrature, update_flags);
-    //    fe_values_face_int      = new FEFaceValues<dim,dim> (mapping, fe, face_quadrature, face_update_flags);
-    //    fe_values_subface_int   = new FESubfaceValues<dim,dim> (mapping, fe, face_quadrature, face_update_flags);
-    //    fe_values_face_ext      = new FEFaceValues<dim,dim> (mapping, fe, face_quadrature, neighbor_face_update_flags);
-    //}
-
-
 
     template class DGBase <PHILIP_DIM, double>;
     template class DGFactory <PHILIP_DIM, double>;

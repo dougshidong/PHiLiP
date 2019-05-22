@@ -7,6 +7,8 @@
 
 #include <deal.II/fe/fe_dgq.h>
 #include <deal.II/fe/fe_dgp.h>
+#include <deal.II/fe/fe_system.h>
+
 #include <deal.II/fe/mapping_q1.h> // Might need mapping_q
 #include <deal.II/fe/mapping_q.h> // Might need mapping_q
 
@@ -50,14 +52,21 @@ namespace PHiLiP
     class DGBase 
     {
     public:
+        /// Number of state variables.
+        /** This is known through the constructor parameters.
+         *  DGBase cannot use nstate as a compile-time known.
+         */
+        const int nstate;
+
         /// Constructor. Deleted the default constructor since it should not be used
         DGBase () = delete;
         /// Principal constructor.
-        /** Will initialize mapping, fe, all_parameters, quadrature, and face_quadrature
+        /** Will initialize mapping, fe_dg, all_parameters, quadrature, and face_quadrature
          *  from DGBase. The it will new some FEValues that will be used to retrieve the
          *  finite element values at physical locations.
          */
         DGBase(
+            const int nstate_input,
             Parameters::AllParameters *parameters_input, 
             const unsigned int degree);
 
@@ -140,8 +149,17 @@ namespace PHiLiP
          *  (https://groups.google.com/d/msg/dealii/f9NzCp8dnyU/aAdO6I9JCwAJ)
          *  .
          */
-        const FE_DGQ<dim> fe;
-        //const FE_DGQLegendre<dim> fe;
+        const FE_DGQ<dim> fe_dg;
+        //const FE_DGQLegendre<dim> fe_dg;
+
+        /// Finite Element System used for vector-valued problems
+        /** Note that we will use the same set of polynomials for all state equations
+         *  therefore, FESystem is only used for the ease of obtaining sizes and 
+         *  global indexing.
+         *
+         *  When evaluating the function values, we will still be using fe_dg
+         */
+        const FESystem<dim,dim> fe_system;
 
         /// Pointer to all parameters
         Parameters::AllParameters *all_parameters;
@@ -152,7 +170,7 @@ namespace PHiLiP
          *  Note that since we are not using FESystem, we need to multiply
          *  the index by a factor of "nstate"
          *
-         *  Must be defined after fe since it is a subscriptor of fe.
+         *  Must be defined after fe_dg since it is a subscriptor of fe_dg.
          *  Destructor are called in reverse order in which they appear in class definition. 
          */ 
         DoFHandler<dim> dof_handler;

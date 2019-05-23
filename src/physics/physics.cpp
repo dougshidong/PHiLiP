@@ -114,33 +114,44 @@ namespace PHiLiP
         const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
         const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
 
+        // See integral_hypercube.m MATLAB file
+        double integral = 0;
         if (dim==1) { 
             // Source from Wolfram Alpha
             // https://www.wolframalpha.com/input/?i=integrate+sin(a*x%2Bd)+dx+,+x+%3D0,1
-            if(linear)  return (cos(d) - cos(a + d))/a;
-            else        return (sin(2.0*d)/4.0 - sin(2.0*a + 2.0*d)/4.0)/a + 1.0/2.0;
+            if(linear)  integral += (cos(d) - cos(a + d))/a;
+            else        integral += (sin(2.0*d)/4.0 - sin(2.0*a + 2.0*d)/4.0)/a + 1.0/2.0;
         }
         if (dim==2) {
             // Source from Wolfram Alpha
             // https://www.wolframalpha.com/input/?i=integrate+sin(a*x%2Bd)*sin(b*y%2Be)+dx+dy,+x+%3D0,1,y%3D0,1
-            if(linear)  return ((cos(d) - cos(a + d))*(cos(e) - cos(b + e)))/(a*b);
-            else        return ((2.0*a + sin(2.0*d) - sin(2.0*a + 2.0*d))
-                                *(2.0*b + sin(2.0*e) - sin(2.0*b + 2.0*e)))
-                               /(16.0*a*b);
+            if(linear)  integral += ((cos(d) - cos(a + d))*(cos(e) - cos(b + e)))/(a*b);
+            else        integral += ((2.0*a + sin(2.0*d) - sin(2.0*a + 2.0*d)) *(2.0*b + sin(2.0*e) - sin(2.0*b + 2.0*e))) /(16.0*a*b);
         }
         if (dim==3) {
             // Source from Wolfram Alpha
             // https://www.wolframalpha.com/input/?i=integrate+sin(a*x%2Bd)*sin(b*y%2Be)*sin(c*z%2Bf)++dx+dy+dz,+x+%3D0,1,y%3D0,1,z%3D0,1
-            if(linear)  return ( 4.0*(cos(f) - cos(c + f))
-                                 * sin(a/2.0)*sin(b/2.0)*sin(a/2.0 + d)*sin(b/2.0 + e) )
-                                /(a*b*c);
-            else return 
-                ((2.0*a + sin(2.0*d) - sin(2.0*a + 2.0*d))
-                 *(2.0*b + sin(2.0*e) - sin(2.0*b + 2.0*e))
-                 *(2.0*c + sin(2.0*f) - sin(2.0*c + 2.0*f)))
-                 /(64.0*a*b*c);
+            if(linear)  integral += ( 4.0*(cos(f) - cos(c + f)) * sin(a/2.0)*sin(b/2.0)*sin(a/2.0 + d)*sin(b/2.0 + e) ) /(a*b*c);
+            else        integral += ((2.0*a + sin(2.0*d) - sin(2.0*a + 2.0*d)) *(2.0*b + sin(2.0*e) - sin(2.0*b + 2.0*e)) *(2.0*c + sin(2.0*f) - sin(2.0*c + 2.0*f))) /(64.0*a*b*c);
         }
-        return 0;
+
+        //std::cout << "NSTATE   " << nstate << std::endl;
+        //if (nstate > 1) {
+        //    std::cout << "Adding 2nd state variable to integral output" << std::endl;
+        //    if (dim==1) { 
+        //        if(linear)  integral += (sin(a + d) - sin(d))/a;
+        //        else        integral += 0.5 - (sin(2.0*d)/4 - sin(2.0*a + 2.0*d)/4.0)/a;
+        //    }
+        //    if (dim==2) {
+        //        if(linear)  integral += ((sin(a + d) - sin(d))*(sin(b + e) - sin(e)))/(a*b);
+        //        else        integral += ((2.0*a - sin(2.0*d) + sin(2.0*a + 2.0*d))*(2.0*b - sin(2.0*e) + sin(2.0*b + 2.0*e)))/(16.0*a*b);
+        //    }
+        //    if (dim==3) {
+        //        if(linear)  integral += -((cos(c + f) - cos(f))*(sin(a + d) - sin(d))*(sin(b + e) - sin(e)))/(a*b*c);
+        //        else        integral += ((2.0*a - sin(2.0*d) + sin(2.0*a + 2.0*d))*(2.0*b - sin(2.0*e) + sin(2.0*b + 2.0*e))*(2.0*c + sin(2.0*f) - sin(2.0*c + 2.0*f)))/(64.0*a*b*c);
+        //    }
+        //}
+        return integral;
     }
 
     template <int dim, int nstate, typename real>

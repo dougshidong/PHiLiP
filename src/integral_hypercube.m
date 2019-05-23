@@ -1,9 +1,14 @@
 clear;
 syms x y z a b c d e f
 
-u1d = @(x,y,z,a,b,c,d,e,f) (sin(a*x+d));
-u2d = @(x,y,z,a,b,c,d,e,f) (sin(a*x+d)*sin(b*y+e));
-u3d = @(x,y,z,a,b,c,d,e,f) (sin(a*x+d)*sin(b*y+e)*sin(c*z+f));
+%u1d = @(x,y,z,a,b,c,d,e,f) (sin(a*x+d));
+%u2d = @(x,y,z,a,b,c,d,e,f) (sin(a*x+d)*sin(b*y+e));
+%u3d = @(x,y,z,a,b,c,d,e,f) (sin(a*x+d)*sin(b*y+e)*sin(c*z+f));
+
+
+u1d = @(x,y,z,a,b,c,d,e,f) (cos(a*x+d));
+u2d = @(x,y,z,a,b,c,d,e,f) (cos(a*x+d)*cos(b*y+e));
+u3d = @(x,y,z,a,b,c,d,e,f) (cos(a*x+d)*cos(b*y+e)*sin(c*z+f));
 
 %% Integrate from 0 to 1 the manufactured solution int_0^1 u dx dy dz
 f = @(x,y,z,a,b,c,d,e,f) u1d(x,y,z,a,b,c,d,e,f);

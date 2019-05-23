@@ -1,4 +1,5 @@
 add_subdirectory(numerical_flux)
+add_subdirectory(regression)
 
 add_subdirectory(advection_implicit)
 add_subdirectory(diffusion_implicit)

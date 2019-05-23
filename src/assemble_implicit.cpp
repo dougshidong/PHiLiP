@@ -88,8 +88,8 @@ namespace PHiLiP
 
                 // Convective
                 rhs += fe_values_vol->shape_grad_component(itest,iquad,istate) * conv_phys_flux_at_q[iquad][istate] * JxW[iquad];
-                // Diffusive
-                // Note that for diffusion, the negative is defined in the physics
+                //// Diffusive
+                //// Note that for diffusion, the negative is defined in the physics
                 rhs += fe_values_vol->shape_grad_component(itest,iquad,istate) * diss_phys_flux_at_q[iquad][istate] * JxW[iquad];
                 // Source
                 rhs += fe_values_vol->shape_value_component(itest,iquad,istate) * source_at_q[iquad][istate] * JxW[iquad];

@@ -73,7 +73,6 @@ namespace PHiLiP
         const unsigned int n_grids_input       = manu_grid_conv_param.number_of_grids;
         const double       grid_progression    = manu_grid_conv_param.grid_progression;
 
-        Physics<dim,2,double> *physics_double = PhysicsFactory<dim, 2, double>::create_Physics(all_parameters.pde_type);
 
         std::vector<int> fail_conv_poly;
         std::vector<double> fail_conv_slop;
@@ -192,11 +191,15 @@ namespace PHiLiP
                 if (!linear_output) power = 2;
 
                 // Integrate solution error and output error
-                double solution_integral = 0;
+                double solution_integral = 0.0;
                 typename DoFHandler<dim>::active_cell_iterator
                    cell = dg->dof_handler.begin_active(),
                    endc = dg->dof_handler.end();
 
+                // Physics required for exact solution and output error
+                // Using the maximum number of state variables
+                // Not sure how to retrieve Physics with a variable number of templates
+                Physics<dim,2,double> *physics_double = PhysicsFactory<dim, 2, double>::create_Physics(all_parameters.pde_type);
                 std::vector<types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
                 for (; cell!=endc; ++cell) {
 
@@ -218,8 +221,9 @@ namespace PHiLiP
 
                         for (int istate=0; istate<nstate; ++istate) {
                             l2error += pow(soln_at_q[istate] - uexact[istate], 2) * fe_values_extra.JxW(iquad);
-                            solution_integral += pow(soln_at_q[istate], power) * fe_values_extra.JxW(iquad);
                         }
+                        // Only integrate first state variable for output error
+                        solution_integral += pow(soln_at_q[0], power) * fe_values_extra.JxW(iquad);
                     }
 
                 }

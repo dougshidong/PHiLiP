@@ -216,7 +216,8 @@ int main (int /*argc*/, char * /*argv*/[])
     std::vector<PDEType> pde_type {
         PDEType::advection,
         PDEType::diffusion,
-        PDEType::convection_diffusion
+        PDEType::convection_diffusion,
+        PDEType::advection_vector
     };
 
     std::vector<ConvType> conv_type {

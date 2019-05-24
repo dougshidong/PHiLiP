@@ -27,7 +27,7 @@ namespace PHiLiP
     NumericalFluxFactory<dim, nstate, real>
     ::create_convective_numerical_flux(
         AllParam::ConvectiveNumericalFlux conv_num_flux_type,
-        Physics<dim, nstate, real> *physics_input)
+        PhysicsBase<dim, nstate, real> *physics_input)
     {
         if(conv_num_flux_type == AllParam::lax_friedrichs) {
             return new LaxFriedrichs<dim, nstate, real>(physics_input);
@@ -40,7 +40,7 @@ namespace PHiLiP
     NumericalFluxFactory<dim, nstate, real>
     ::create_dissipative_numerical_flux(
         AllParam::DissipativeNumericalFlux diss_num_flux_type,
-        Physics<dim, nstate, real> *physics_input)
+        PhysicsBase<dim, nstate, real> *physics_input)
     {
         if(diss_num_flux_type == AllParam::symm_internal_penalty) {
             return new SymmetricInternalPenalty<dim, nstate, real>(physics_input);

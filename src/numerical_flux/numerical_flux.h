@@ -30,7 +30,7 @@ namespace PHiLiP
     public:
 
     /// Constructor
-    LaxFriedrichs(Physics<dim, nstate, real> *physics_input)
+    LaxFriedrichs(PhysicsBase<dim, nstate, real> *physics_input)
     :
     pde_physics(physics_input)
     {};
@@ -43,7 +43,7 @@ namespace PHiLiP
         const Tensor<1,dim,real> &normal1) const;
 
     protected:
-    const Physics<dim, nstate, real> *pde_physics;
+    const PhysicsBase<dim, nstate, real> *pde_physics;
 
     };
 
@@ -55,11 +55,11 @@ namespace PHiLiP
         static NumericalFluxConvective<dim,nstate,real>*
             create_convective_numerical_flux
                 (AllParam::ConvectiveNumericalFlux conv_num_flux_type,
-                Physics<dim, nstate, real> *physics_input);
+                PhysicsBase<dim, nstate, real> *physics_input);
         static NumericalFluxDissipative<dim,nstate,real>*
             create_dissipative_numerical_flux
                 (AllParam::DissipativeNumericalFlux diss_num_flux_type,
-                Physics<dim, nstate, real> *physics_input);
+                PhysicsBase<dim, nstate, real> *physics_input);
     };
 
 

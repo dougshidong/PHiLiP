@@ -124,7 +124,7 @@ namespace PHiLiP
          *  \f]
          *
          *  It is important to note that the \f$\mathbf{F}_{diss}\f$ is positive in the DG
-         *  formulation. Therefore, the Physics class should have a negative when
+         *  formulation. Therefore, the PhysicsBase class should have a negative when
          *  considering stable applications of diffusion.
          * 
          */
@@ -226,7 +226,7 @@ namespace PHiLiP
 
     private:
         /// Contains the physics of the PDE
-        Physics<dim, nstate, Sacado::Fad::DFad<real> >  *pde_physics;
+        PhysicsBase<dim, nstate, Sacado::Fad::DFad<real> >  *pde_physics;
         /// Convective numerical flux
         NumericalFluxConvective<dim, nstate, Sacado::Fad::DFad<real> > *conv_num_flux;
         /// Dissipative numerical flux

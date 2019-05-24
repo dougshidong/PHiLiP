@@ -1,20 +1,36 @@
 set(PHILIP_SRC 
-    linear_solver.cpp
-    grid_study.cpp
-    assemble_implicit.cpp 
-    dg.cpp
-    ode_solver.cpp)
+    grid_study.cpp)
+
 set(MAIN_SRC 
     main.cpp)
+add_subdirectory(linear_solver)
 add_subdirectory(parameters)
 add_subdirectory(physics)
 add_subdirectory(numerical_flux)
+add_subdirectory(dg)
+add_subdirectory(ode_solver)
 
 foreach(dim RANGE 1 3)
-    set(PHILIP_DIM ${dim}) 
 
-    string(CONCAT PHiLiPLib PHiLiPLib_${PHILIP_DIM}D)
+    # #####################################################
+    # Main PHiLiP library
+    string(CONCAT PHiLiPLib PHiLiPLib_${dim}D)
+    message("Adding PHiLiP library " ${PHiLiPLib} " with files " ${PHILIP_SRC} "\n")
     add_library(${PHiLiPLib} STATIC ${PHILIP_SRC})
+    # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
+    target_compile_definitions(${PHiLiPLib} PRIVATE PHILIP_DIM=${dim})
+
+    # Library dependency
+    set(ParameterLib ParametersLibrary)
+    string(CONCAT ODESolverLib ODESolver_${dim}D)
+    string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
+    string(CONCAT NumericalFluxLib NumericalFlux_${dim}D)
+    target_link_libraries(${PHiLiPLib} ${ParameterLib})
+    target_link_libraries(${PHiLiPLib} ${ODESolverLib})
+    target_link_libraries(${PHiLiPLib} ${DiscontinuousGalerkinLib})
+    target_link_libraries(${PHiLiPLib} ${NumericalFluxLib})
+    # Setup target with deal.II
+    DEAL_II_SETUP_TARGET(${PHiLiPLib})
 
     # Weird thing where we need to add more libraries
     # Otherwise, we get the following error:
@@ -25,46 +41,42 @@ foreach(dim RANGE 1 3)
     # https://www.getit01.com/p2018020821385662/
     target_link_libraries(${PHiLiPLib} tbb m mpi mpi_cxx)
 
-    set(ParameterLib ParametersLibrary)
-    string(CONCAT PhysicsLib Physics_${PHILIP_DIM}D)
-    string(CONCAT NumericalFluxLib NumericalFlux_${PHILIP_DIM}D)
-    target_link_libraries(${PHiLiPLib} ${ParameterLib})
-    target_link_libraries(${PHiLiPLib} ${PhysicsLib})
-    target_link_libraries(${PHiLiPLib} ${NumericalFluxLib})
 
-    string(CONCAT MAIN_TARGET PHiLiP_${PHILIP_DIM}D)
-    add_executable(${MAIN_TARGET} ${MAIN_SRC})
-    target_link_libraries(${MAIN_TARGET} ${PHiLiPLib})
-
-
-    target_compile_definitions(${PHiLiPLib} PRIVATE PHILIP_DIM=${dim})
-    target_compile_definitions(${MAIN_TARGET} PRIVATE PHILIP_DIM=${dim})
-
-
-    DEAL_II_SETUP_TARGET(${PHiLiPLib})
-    DEAL_II_SETUP_TARGET(${MAIN_TARGET})
-
-    message("Adding PHiLiP library " ${PHiLiPLib} " with files " ${PHILIP_SRC} "\n")
+    # #####################################################
+    # Main executable
+    # Simply calls the case manager given an input file
+    string(CONCAT MAIN_TARGET PHiLiP_${dim}D)
     message("Adding executable " ${MAIN_TARGET} " with files " ${MAIN_SRC} "\n")
+    add_executable(${MAIN_TARGET} ${MAIN_SRC})
+    set_target_properties(${MAIN_TARGET} PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD 1)
 
+    # Compile when calling 'make 1D', 'make 2D', 'make 3D'
+    add_dependencies(${dim}D ${MAIN_TARGET})
+
+    # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
+    target_compile_definitions(${MAIN_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Library dependency
+    target_link_libraries(${MAIN_TARGET} ${PHiLiPLib})
+    DEAL_II_SETUP_TARGET(${MAIN_TARGET})
     
-    unset(PHILIP_DIM)
     unset(MAIN_TARGET)
-    unset(PhysicsLib)
-    unset(NumericalFluxLib)
+    unset(ParameterLib)
+    unset(ODESolverLib)
+    unset(DiscontinuousGalerkinLib)
+    unset(PHiLiPLib)
 
 endforeach()
 
-set(TNAME testrun)
-set(TARGET ${TNAME})
-set(TARGET_SRC 
+set(SMALL_TEST testrun)
+set(TARGET ${SMALL_TEST})
+set(SMALL_TEST_SRC 
     test.cpp)
 
-add_executable(${TNAME} ${TARGET_SRC})
-    target_link_libraries(${TNAME} tbb m mpi mpi_cxx)
+add_executable(${SMALL_TEST} ${SMALL_TEST_SRC})
+    target_link_libraries(${SMALL_TEST} tbb m mpi mpi_cxx)
 
-DEAL_II_SETUP_TARGET(${TNAME})
-message("Adding executable " ${TNAME} " with files " ${TARGET_SRC} "\n")
+DEAL_II_SETUP_TARGET(${SMALL_TEST})
+message("Adding executable " ${SMALL_TEST} " with files " ${SMALL_TEST_SRC} "\n")
 
-unset(TNAME)
-unset(TARGET ${TNAME})
+unset(SMALL_TEST)
+unset(TARGET ${SMALL_TEST})

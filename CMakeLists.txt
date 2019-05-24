@@ -13,7 +13,8 @@ set(CLEAN_UP_FILES ./bin/* ./CMakeCache.txt)
 
 # Find deal.ii library
 find_package(deal.II 9.0.0 QUIET
-  HINTS ${deal.II_DIR} ${DEAL_II_DIR} ../ ../../ $ENV{DEAL_II_DIR}
+#HINTS ${deal.II_DIR} ${DEAL_II_DIR} ../ ../../ $ENV{DEAL_II_DIR}
+  HINTS ${DEAL_II_DIR} ../ ../../ $ENV{DEAL_II_DIR}
   )
 IF(NOT ${deal.II_FOUND})
   message(FATAL_ERROR "\n"
@@ -23,14 +24,96 @@ IF(NOT ${deal.II_FOUND})
     )
 ENDIF()
 
-#set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_BUILD_TYPE Debug)
 
 DEAL_II_INITIALIZE_CACHED_VARIABLES()
+
+add_custom_target(1D COMMAND ${CMAKE_COMMAND} -E echo "Makes all 1D executables, including tests. Allows ctest -R 1D")
+add_custom_target(2D COMMAND ${CMAKE_COMMAND} -E echo "l 2D executables, including tests. Allows ctest -R 2D")
+add_custom_target(3D COMMAND ${CMAKE_COMMAND} -E echo "l 3D executables, including tests. Allows ctest -R 3D")
+SET(_dimension_targets "#
+#      make 1D             - to build all 1D executables, including tests, allow 'ctest -R 1D' 
+#      make 2D             - to build all 2D executables, including tests, allow 'ctest -R 1D'
+#      make 3D             - to build all 3D executables, including tests, allow 'ctest -R 1D' ")
+SET(_philip_targets "#
+#      make PHiLiP_1D      - to build main program in 1D
+#      make PHiLiP_2D      - to build main program in 2D
+#      make PHiLiP_3D      - to build main program in 3D ")
+add_custom_target(unit_tests)
 
 include_directories(src)
 add_subdirectory(src)
 
+# Test directory
 enable_testing()
 add_subdirectory(tests)
+
+# Documentation
 add_subdirectory(doc)
+
+##########
+# Add a few commands to make life easier
+
+
+# Define custom targets to easily switch the build type:
+#set(CMAKE_BUILD_TYPE Release)
+#set(CMAKE_BUILD_TYPE Debug)
+ADD_CUSTOM_TARGET(debug
+  COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Debug ${CMAKE_SOURCE_DIR}
+  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all
+  COMMENT "Switch CMAKE_BUILD_TYPE to Debug"
+  )
+
+ADD_CUSTOM_TARGET(release
+  COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Release ${CMAKE_SOURCE_DIR}
+  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all
+  COMMENT "Switch CMAKE_BUILD_TYPE to Release"
+  )
+IF(${DEAL_II_BUILD_TYPE} MATCHES "DebugRelease")
+SET(_switch_targets "#
+#      make debug          - to switch the build type to 'Debug'
+#      make release        - to switch the build type to 'Release' "
+)
+ENDIF()
+
+# Print out some usage information to file:
+FILE(WRITE ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/print_usage.cmake
+"MESSAGE(
+\"###
+#
+#  Project  ${TARGET}  set up with  ${DEAL_II_PACKAGE_NAME}-${DEAL_II_PACKAGE_VERSION}  found at
+#      ${DEAL_II_PATH}
+#
+#  CMAKE_BUILD_TYPE:          ${CMAKE_BUILD_TYPE}
+#
+#  You can now run
+#      make                - to compile and link all the program and tests.
+${_philip_targets}
+${_dimension_targets}
+${_switch_targets}
+")
+  FILE(APPEND ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/print_usage.cmake
+"#
+#      make clean          - to remove the generated executable as well as
+#                               all intermediate compilation files
+#      make cleancmake     - to remove CMakeCache and CMakeFiles/
+#      make info           - to view this message again
+#
+#  Have a nice day!
+#
+###\")"
+)
+
+ADD_CUSTOM_TARGET(info
+  COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/print_usage.cmake
+)
+
+# Print this message once:
+#IF(NOT USAGE_PRINTED)
+#  INCLUDE(${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/print_usage.cmake)
+#  SET(USAGE_PRINTED TRUE CACHE INTERNAL "")
+#ELSE()
+#  MESSAGE(STATUS "Run  make info  to print a detailed help message")
+#ENDIF()
+INCLUDE(${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/print_usage.cmake)
+MESSAGE(STATUS "Run  make info  to print a detailed help message")
+

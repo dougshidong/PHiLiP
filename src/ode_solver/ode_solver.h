@@ -8,7 +8,7 @@
 #include <deal.II/lac/trilinos_solver.h>
 
 #include "parameters/all_parameters.h"
-#include "dg.h"
+#include "dg/dg.h"
 
 
 namespace PHiLiP
@@ -41,7 +41,7 @@ namespace PHiLiP
 
         double residual_norm; ///< Current residual norm. Only makes sense for steady state
 
-        unsigned int current_iteration; ///< Current iteration
+        unsigned int current_iteration; ///< Current iteration.
 
     protected:
         /// Virtual function to evaluate solution update
@@ -132,6 +132,7 @@ namespace PHiLiP
         static std::shared_ptr<ODESolver<dim,real>> create_ODESolver(std::shared_ptr< DGBase<dim, real> > dg_input);
         static std::shared_ptr<ODESolver<dim,real>> create_ODESolver(Parameters::ODESolverParam::ODESolverEnum ode_solver_type);
     };
+
 
 } // end of PHiLiP namespace
 

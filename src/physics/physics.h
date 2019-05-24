@@ -325,6 +325,102 @@ namespace PHiLiP
 
     };
 
+    /// Euler flow
+    /** Only 2D and 3D
+     *  State variable and convective fluxes given by
+     *
+     *  \f[ 
+     *  \mathbf{u} = 
+     *  \begin{bmatrix} \rho \\ \rho v_1 \\ \rho v_2 \\ \rho v_3 \\ e \end{bmatrix}
+     *  , \qquad
+     *  \mathbf{F}_{conv} = 
+     *  \begin{bmatrix} 
+     *      \mathbf{f}^x_{conv}, \mathbf{f}^y_{conv}, \mathbf{f}^z_{conv}
+     *  \end{bmatrix}
+     *  =
+     *  \begin{bmatrix} 
+     *  \begin{bmatrix} 
+     *  \rho v_1 \\
+     *  \rho v_1 v_1 + p \\
+     *  \rho v_1 v_2     \\ 
+     *  \rho v_1 v_3     \\
+     *  v_1 (e+p)
+     *  \end{bmatrix}
+     *  ,
+     *  \begin{bmatrix} 
+     *  \rho v_2 \\
+     *  \rho v_1 v_2     \\
+     *  \rho v_2 v_2 + p \\ 
+     *  \rho v_2 v_3     \\
+     *  v_2 (e+p)
+     *  \end{bmatrix}
+     *  ,
+     *  \begin{bmatrix} 
+     *  \rho v_3 \\
+     *  \rho v_1 v_3     \\
+     *  \rho v_2 v_3     \\ 
+     *  \rho v_3 v_3 + p \\
+     *  v_3 (e+p)
+     *  \end{bmatrix}
+     *  \end{bmatrix} \f]
+     *  
+     *  For a calorically perfect gas
+     *
+     *  \f[
+     *  p=(\gamma -1)(e-\frac{1}{2}\rho \|\mathbf{v}\|)
+     *  \f]
+     *
+     *  Dissipative flux \f$ \mathbf{F}_{diss} = \mathbf{0} \f$
+     *
+     *  Source term \f$ s(\mathbf{x}) \f$
+     *
+     *  Equation:
+     *  \f[ \boldsymbol{\nabla} \cdot
+     *         (  \mathbf{F}_{conv}( u ) 
+     *          + \mathbf{F}_{diss}( u, \boldsymbol{\nabla}(u) )
+     *      = s(\mathbf{x})
+     *  \f]
+     */
+    template <int dim, int nstate, typename real>
+    class Euler : public Physics <dim, nstate, real>
+    {
+    public:
+        ~Euler () {};
+
+        const real gam = 1.4;
+        real compute_pressure ( const std::array<real,nstate> &solution );
+        real compute_sound    ( const std::array<real,nstate> &solution );
+
+        /// Convective flux: \f$ \mathbf{F}_{conv} =  u \f$
+        void convective_flux (
+            const std::array<real,nstate> &solution,
+            std::array<Tensor<1,dim,real>,nstate> &conv_flux) const;
+
+        /// Spectral radius of convective term Jacobian is 'c'
+        std::array<real,nstate> convective_eigenvalues (
+            const std::array<real,nstate> &/*solution*/,
+            const Tensor<1,dim,real> &/*normal*/) const;
+
+        //  /// Diffusion matrix is identity
+        //  std::array<Tensor<1,dim,real>,nstate> apply_diffusion_matrix (
+        //      const std::array<real,nstate> &solution,
+        //      const std::array<Tensor<1,dim,real>,nstate> &solution_grad) const;
+
+        /// Dissipative flux: u
+        void dissipative_flux (
+            const std::array<real,nstate> &solution,
+            const std::array<Tensor<1,dim,real>,nstate> &solution_gradient,
+            std::array<Tensor<1,dim,real>,nstate> &diss_flux) const;
+
+        /// Source term is zero or depends on manufactured solution
+        void source_term (
+            const Point<dim,double> &pos,
+            const std::array<real,nstate> &solution,
+            std::array<real,nstate> &source) const;
+
+    protected:
+    };
+
 } // end of PHiLiP namespace
 
 #endif

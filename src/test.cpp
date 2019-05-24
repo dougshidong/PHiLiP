@@ -2,7 +2,7 @@
 #include <deal.II/differentiation/ad/sacado_product_types.h>
 #include <deal.II/base/tensor.h>
 
-int main (int argc, char *argv[])
+int main (int /*argc*/, char * /*argv*/[])
 {
     using namespace dealii;
 

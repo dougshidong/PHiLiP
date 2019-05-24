@@ -1,5 +1,5 @@
 #include "ode_solver.h"
-#include "linear_solver.h"
+#include "linear_solver/linear_solver.h"
 
 namespace PHiLiP
 {

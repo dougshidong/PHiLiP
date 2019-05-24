@@ -539,12 +539,12 @@ namespace PHiLiP
     template class LinearAdvection < PHILIP_DIM, 1, Sacado::Fad::DFad<double>  >;
     template class LinearAdvection < PHILIP_DIM, 2, double >;
     template class LinearAdvection < PHILIP_DIM, 2, Sacado::Fad::DFad<double>  >;
-    template class LinearAdvection < PHILIP_DIM, 3, double >;
-    template class LinearAdvection < PHILIP_DIM, 3, Sacado::Fad::DFad<double>  >;
-    template class LinearAdvection < PHILIP_DIM, 4, double >;
-    template class LinearAdvection < PHILIP_DIM, 4, Sacado::Fad::DFad<double>  >;
-    template class LinearAdvection < PHILIP_DIM, 5, double >;
-    template class LinearAdvection < PHILIP_DIM, 5, Sacado::Fad::DFad<double>  >;
+    //template class LinearAdvection < PHILIP_DIM, 3, double >;
+    //template class LinearAdvection < PHILIP_DIM, 3, Sacado::Fad::DFad<double>  >;
+    //template class LinearAdvection < PHILIP_DIM, 4, double >;
+    //template class LinearAdvection < PHILIP_DIM, 4, Sacado::Fad::DFad<double>  >;
+    //template class LinearAdvection < PHILIP_DIM, 5, double >;
+    //template class LinearAdvection < PHILIP_DIM, 5, Sacado::Fad::DFad<double>  >;
 
     template class PhysicsFactory<PHILIP_DIM, 1, double>;
     template class PhysicsFactory<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
@@ -559,25 +559,25 @@ namespace PHiLiP
 
     template class Diffusion < PHILIP_DIM, 1, double >;
     template class Diffusion < PHILIP_DIM, 1, Sacado::Fad::DFad<double>  >;
-    template class Diffusion < PHILIP_DIM, 2, double >;
-    template class Diffusion < PHILIP_DIM, 2, Sacado::Fad::DFad<double>  >;
-    template class Diffusion < PHILIP_DIM, 3, double >;
-    template class Diffusion < PHILIP_DIM, 3, Sacado::Fad::DFad<double>  >;
-    template class Diffusion < PHILIP_DIM, 4, double >;
-    template class Diffusion < PHILIP_DIM, 4, Sacado::Fad::DFad<double>  >;
-    template class Diffusion < PHILIP_DIM, 5, double >;
-    template class Diffusion < PHILIP_DIM, 5, Sacado::Fad::DFad<double>  >;
+    //template class Diffusion < PHILIP_DIM, 2, double >;
+    //template class Diffusion < PHILIP_DIM, 2, Sacado::Fad::DFad<double>  >;
+    //template class Diffusion < PHILIP_DIM, 3, double >;
+    //template class Diffusion < PHILIP_DIM, 3, Sacado::Fad::DFad<double>  >;
+    //template class Diffusion < PHILIP_DIM, 4, double >;
+    //template class Diffusion < PHILIP_DIM, 4, Sacado::Fad::DFad<double>  >;
+    //template class Diffusion < PHILIP_DIM, 5, double >;
+    //template class Diffusion < PHILIP_DIM, 5, Sacado::Fad::DFad<double>  >;
 
     template class ConvectionDiffusion < PHILIP_DIM, 1, double >;
     template class ConvectionDiffusion < PHILIP_DIM, 1, Sacado::Fad::DFad<double>  >;
-    template class ConvectionDiffusion < PHILIP_DIM, 2, double >;
-    template class ConvectionDiffusion < PHILIP_DIM, 2, Sacado::Fad::DFad<double>  >;
-    template class ConvectionDiffusion < PHILIP_DIM, 3, double >;
-    template class ConvectionDiffusion < PHILIP_DIM, 3, Sacado::Fad::DFad<double>  >;
-    template class ConvectionDiffusion < PHILIP_DIM, 4, double >;
-    template class ConvectionDiffusion < PHILIP_DIM, 4, Sacado::Fad::DFad<double>  >;
-    template class ConvectionDiffusion < PHILIP_DIM, 5, double >;
-    template class ConvectionDiffusion < PHILIP_DIM, 5, Sacado::Fad::DFad<double>  >;
+    //template class ConvectionDiffusion < PHILIP_DIM, 2, double >;
+    //template class ConvectionDiffusion < PHILIP_DIM, 2, Sacado::Fad::DFad<double>  >;
+    //template class ConvectionDiffusion < PHILIP_DIM, 3, double >;
+    //template class ConvectionDiffusion < PHILIP_DIM, 3, Sacado::Fad::DFad<double>  >;
+    //template class ConvectionDiffusion < PHILIP_DIM, 4, double >;
+    //template class ConvectionDiffusion < PHILIP_DIM, 4, Sacado::Fad::DFad<double>  >;
+    //template class ConvectionDiffusion < PHILIP_DIM, 5, double >;
+    //template class ConvectionDiffusion < PHILIP_DIM, 5, Sacado::Fad::DFad<double>  >;
 
 
 } // end of PHiLiP namespace

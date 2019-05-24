@@ -14,9 +14,8 @@
 #include <Sacado.hpp>
 
 #include "physics/physics.h"
-#include "dg.h"
-#include "linear_solver.h"
-#include "ode_solver.h"
+#include "dg/dg.h"
+#include "ode_solver/ode_solver.h"
 
 namespace PHiLiP
 {

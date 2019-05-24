@@ -6,9 +6,11 @@ set(SOURCE
     all_parameters.cpp
     )
 
+# Output library
 set(ParameterLib ParametersLibrary)
 add_library(${ParameterLib} STATIC ${SOURCE})
 
+# Setup target with deal.II
 DEAL_II_SETUP_TARGET(${ParameterLib})
 
 unset(ParameterLib)

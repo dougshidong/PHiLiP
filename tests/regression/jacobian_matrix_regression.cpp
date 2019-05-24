@@ -7,7 +7,7 @@
 
 #include <fstream>
 
-#include "dg.h"
+#include "dg/dg.h"
 #include "parameters/parameters.h"
 #include "physics/physics.h"
 #include "numerical_flux/numerical_flux.h"
@@ -77,6 +77,7 @@ int main (int argc, char * argv[])
 
                 if (COMPARE_MATRICES) {
                     // Load up matrix from file
+                    std::cout << "Reading matrix from: "<< path << std::endl;
                     std::ifstream infile (path,std::ifstream::binary);
                     SparseMatrix<double> sparse_mat_from_file;
                     sparse_mat_from_file.reinit(sparsity_pattern);

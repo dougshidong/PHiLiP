@@ -7,7 +7,7 @@
 #include <fstream>
 
 #include "grid_study.h"
-#include "ode_solver.h"
+#include "ode_solver/ode_solver.h"
 #include "parameters/all_parameters.h"
 
 

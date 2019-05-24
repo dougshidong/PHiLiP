@@ -43,7 +43,7 @@ namespace PHiLiP
     {
     public:
     /// Constructor
-    SymmetricInternalPenalty(Physics<dim, nstate, real> *physics_input)
+    SymmetricInternalPenalty(PhysicsBase<dim, nstate, real> *physics_input)
     :
     pde_physics(physics_input)
     {};
@@ -68,7 +68,7 @@ namespace PHiLiP
         const real &penalty) const;
         
     protected:
-    const Physics<dim, nstate, real> *pde_physics;
+    const PhysicsBase<dim, nstate, real> *pde_physics;
 
     };
 
@@ -77,7 +77,7 @@ namespace PHiLiP
     //{
     //public:
     ///// Constructor
-    //SymmetricInternalPenalty(Physics<dim, nstate, real> *physics_input)
+    //SymmetricInternalPenalty(PhysicsBase<dim, nstate, real> *physics_input)
     //:
     //pde_physics(physics_input)
     //{};
@@ -102,7 +102,7 @@ namespace PHiLiP
     //    const real &penalty) const;
     //    
     //protected:
-    //const Physics<dim, nstate, real> *pde_physics;
+    //const PhysicsBase<dim, nstate, real> *pde_physics;
 
     //};
 

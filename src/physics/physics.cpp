@@ -14,7 +14,7 @@ namespace PHiLiP
     using AllParam = Parameters::AllParameters;
 
     template <int dim, int nstate, typename real>
-    Physics<dim,nstate,real>* // returns points to base class Physics
+    PhysicsBase<dim,nstate,real>* // returns points to base class PhysicsBase
     PhysicsFactory<dim,nstate,real>
     ::create_Physics(AllParam::PartialDifferentialEquation pde_type)
     {
@@ -27,16 +27,16 @@ namespace PHiLiP
         } else if (pde_type == PDE_enum::convection_diffusion) {
             return new ConvectionDiffusion<dim,nstate,real>;
         }
-        std::cout << "Can't create Physics, invalid PDE type: " << pde_type << std::endl;
+        std::cout << "Can't create PhysicsBase, invalid PDE type: " << pde_type << std::endl;
         return nullptr;
     }
 
 
     template <int dim, int nstate, typename real>
-    Physics<dim,nstate,real>::~Physics() {}
+    PhysicsBase<dim,nstate,real>::~PhysicsBase() {}
 
     //  template <int dim, int nstate, typename real>
-    //  void Physics<dim,nstate,real>
+    //  void PhysicsBase<dim,nstate,real>
     //  ::dissipative_flux_A_gradu (
     //      const real scaling,
     //      const std::array<real,nstate> &solution,
@@ -51,11 +51,11 @@ namespace PHiLiP
 
     // Common manufactured solution for advection, diffusion, convection-diffusion
     template <int dim, int nstate, typename real>
-    void Physics<dim,nstate,real>
+    void PhysicsBase<dim,nstate,real>
     //::manufactured_solution (const Point<dim,double> &pos, std::array<real,nstate> &solution) const
     ::manufactured_solution (const Point<dim,double> &pos, real *const solution) const
     {
-        using phys = Physics<dim,nstate,real>;
+        using phys = PhysicsBase<dim,nstate,real>;
         const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
         const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
 
@@ -72,10 +72,10 @@ namespace PHiLiP
         }
     }
     template <int dim, int nstate, typename real>
-    void Physics<dim,nstate,real>
+    void PhysicsBase<dim,nstate,real>
     ::manufactured_gradient (const Point<dim,double> &pos, std::array<Tensor<1,dim,real>,nstate> &solution_gradient) const
     {
-        using phys = Physics<dim,nstate,real>;
+        using phys = PhysicsBase<dim,nstate,real>;
         const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
         const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
 
@@ -107,10 +107,10 @@ namespace PHiLiP
     }
 
     template <int dim, int nstate, typename real>
-    double Physics<dim,nstate,real>
+    double PhysicsBase<dim,nstate,real>
     ::integral_output (bool linear) const
     {
-        using phys = Physics<dim,nstate,real>;
+        using phys = PhysicsBase<dim,nstate,real>;
         const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
         const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
 
@@ -155,7 +155,7 @@ namespace PHiLiP
     }
 
     template <int dim, int nstate, typename real>
-    void Physics<dim,nstate,real>
+    void PhysicsBase<dim,nstate,real>
     ::boundary_face_values (
             const int /*boundary_type*/,
             const Point<dim, double> &/*pos*/,
@@ -167,7 +167,7 @@ namespace PHiLiP
     {
     }
     template <int dim, int nstate, typename real>
-    void Physics<dim,nstate,real>
+    void PhysicsBase<dim,nstate,real>
     ::set_manufactured_dirichlet_boundary_condition (
             const std::array<real,nstate> &/*soln_int*/,
             const std::array<Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
@@ -175,7 +175,7 @@ namespace PHiLiP
             std::array<Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
     {}
     template <int dim, int nstate, typename real>
-    void Physics<dim,nstate,real>
+    void PhysicsBase<dim,nstate,real>
     ::set_manufactured_neumann_boundary_condition (
             const std::array<real,nstate> &/*soln_int*/,
             const std::array<Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
@@ -255,7 +255,7 @@ namespace PHiLiP
         std::array<real,nstate> &source) const
     {
         const Tensor<1,dim,real> vel = this->advection_speed();
-        using phys = Physics<dim,nstate,real>;
+        using phys = PhysicsBase<dim,nstate,real>;
         const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
         const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
 
@@ -335,7 +335,7 @@ namespace PHiLiP
     {
         const double diff_coeff = this->diff_coeff;
 
-        using phys = Physics<dim,nstate,real>;
+        using phys = PhysicsBase<dim,nstate,real>;
         //const double a11 = 10*phys::freq_x, a12 = phys::freq_y, a13 = phys::freq_z;
         //const double a21 = phys::offs_x, a22 = 10*phys::offs_y, a23 = phys::offs_z;
         //const double a31 = phys::velo_x, a32 = phys::velo_y, a33 = 10*phys::velo_z;
@@ -374,7 +374,7 @@ namespace PHiLiP
         const std::array<real,nstate> &/*solution*/,
         std::array<real,nstate> &source) const
     {
-        using phys = Physics<dim,nstate,real>;
+        using phys = PhysicsBase<dim,nstate,real>;
         const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
         const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
         const double diff_coeff = this->diff_coeff;
@@ -496,7 +496,7 @@ namespace PHiLiP
         std::array<real,nstate> &source) const
     {
         const Tensor<1,dim,real> velocity_field = this->advection_speed();
-        using phys = Physics<dim,nstate,real>;
+        using phys = PhysicsBase<dim,nstate,real>;
         const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
         const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
 
@@ -524,16 +524,16 @@ namespace PHiLiP
     }
     // Instantiate explicitly
 
-    template class Physics < PHILIP_DIM, 1, double >;
-    template class Physics < PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
-    template class Physics < PHILIP_DIM, 2, double >;
-    template class Physics < PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
-    template class Physics < PHILIP_DIM, 3, double >;
-    template class Physics < PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
-    template class Physics < PHILIP_DIM, 4, double >;
-    template class Physics < PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
-    template class Physics < PHILIP_DIM, 5, double >;
-    template class Physics < PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
+    template class PhysicsBase < PHILIP_DIM, 1, double >;
+    template class PhysicsBase < PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
+    template class PhysicsBase < PHILIP_DIM, 2, double >;
+    template class PhysicsBase < PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
+    template class PhysicsBase < PHILIP_DIM, 3, double >;
+    template class PhysicsBase < PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
+    template class PhysicsBase < PHILIP_DIM, 4, double >;
+    template class PhysicsBase < PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
+    template class PhysicsBase < PHILIP_DIM, 5, double >;
+    template class PhysicsBase < PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
 
     template class LinearAdvection < PHILIP_DIM, 1, double >;
     template class LinearAdvection < PHILIP_DIM, 1, Sacado::Fad::DFad<double>  >;

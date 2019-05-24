@@ -195,10 +195,10 @@ namespace PHiLiP
                    cell = dg->dof_handler.begin_active(),
                    endc = dg->dof_handler.end();
 
-                // Physics required for exact solution and output error
+                // PhysicsBase required for exact solution and output error
                 // Using the maximum number of state variables
-                // Not sure how to retrieve Physics with a variable number of templates
-                Physics<dim,2,double> *physics_double = PhysicsFactory<dim, 2, double>::create_Physics(all_parameters.pde_type);
+                // Not sure how to retrieve PhysicsBase with a variable number of templates
+                PhysicsBase<dim,2,double> *physics_double = PhysicsFactory<dim, 2, double>::create_Physics(all_parameters.pde_type);
                 std::vector<types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
                 for (; cell!=endc; ++cell) {
 

@@ -9,7 +9,12 @@ namespace PHiLiP
 {
     using namespace dealii;
 
-    /** Abstract class of Physics.
+    /** Base class PhysicsBase.
+     *
+     *  Main interface for all the convective and diffusive terms.
+     *
+     *  LinearAdvection, Diffusion, ConvectionDiffusion, Euler are derived from this class.
+     *
      *  Partial differential equation is given by the divergence of the convective and
      *  diffusive flux equal to the source term
      *
@@ -20,11 +25,11 @@ namespace PHiLiP
      *  \f]
      */
     template <int dim, int nstate, typename real>
-    class Physics
+    class PhysicsBase
     {
     public:
         /// Virtual destructor required for abstract classes.
-        virtual ~Physics() = 0;
+        virtual ~PhysicsBase() = 0;
 
         /// Default manufactured solution.
         /** ~~~~~{.cpp}
@@ -128,26 +133,29 @@ namespace PHiLiP
         const double A31 =  -2, A32 = 0.5, A33 =   8;
     };
 
-    /// This class with create a new Physics object corresponding to the pde_type
+    /// This class with create a new PhysicsBase object corresponding to the pde_type
     /// given as a user input
     template <int dim, int nstate, typename real>
     class PhysicsFactory
     {
     public:
-        static Physics<dim,nstate,real>*
+        static PhysicsBase<dim,nstate,real>*
             create_Physics(Parameters::AllParameters::PartialDifferentialEquation pde_type);
     };
 
 
     /** Partial differential equation is given by the divergence of the convective and
-     *  diffusive flux equal to the source term
+     *  diffusive flux equal to the source term.
+     *
+     *  Also allows the use of vector-valued linear advection for 2 state variables,
+     *  independent of the number of dimensions.
      *
      *  State variable: \f[ u \f]
      *  
      *  Equation: \f[ \boldsymbol\nabla \cdot (c*u) = s \f]
      */
     template <int dim, int nstate, typename real>
-    class LinearAdvection : public Physics <dim, nstate, real>
+    class LinearAdvection : public PhysicsBase <dim, nstate, real>
     {
 
     public:
@@ -201,7 +209,7 @@ namespace PHiLiP
      *  \f]
      */
     template <int dim, int nstate, typename real>
-    class Diffusion : public Physics <dim, nstate, real>
+    class Diffusion : public PhysicsBase <dim, nstate, real>
     {
     public:
         ~Diffusion () {};
@@ -250,7 +258,7 @@ namespace PHiLiP
      *  \f]
      */
     template <int dim, int nstate, typename real>
-    class ConvectionDiffusion : public Physics <dim, nstate, real>
+    class ConvectionDiffusion : public PhysicsBase <dim, nstate, real>
     {
     public:
         ~ConvectionDiffusion () {};
@@ -284,45 +292,6 @@ namespace PHiLiP
     protected:
         /// Linear advection speed:  c
         Tensor<1,dim,real> advection_speed () const;
-    };
-
-    /// NOT READY YET
-    template <int dim, int nstate, typename real>
-    class LinearAdvectionVectorValued : public Physics <dim, nstate, real>
-    {
-    public:
-        ~LinearAdvectionVectorValued () {};
-        /// Convective flux:  c*u
-        void convective_flux (
-            const std::array<real,nstate> &solution,
-            std::array<Tensor<1,dim,real>,nstate> &conv_flux) const;
-
-        /// Spectral radius of convective term Jacobian is simply the maximum 'c'
-        std::array<real,nstate> convective_eigenvalues (
-            const std::array<real,nstate> &/*solution*/,
-            const Tensor<1,dim,real> &normal) const;
-
-        //  /// Diffusion matrix: 0
-        //  std::array<Tensor<1,dim,real>,nstate> apply_diffusion_matrix (
-        //      const std::array<real,nstate> &solution,
-        //      const std::array<Tensor<1,dim,real>,nstate> &solution_grad) const;
-
-        /// Dissipative flux: 0
-        void dissipative_flux (
-            const std::array<real,nstate> &solution,
-            const std::array<Tensor<1,dim,real>,nstate> &solution_gradient,
-            std::array<Tensor<1,dim,real>,nstate> &diss_flux) const;
-
-        /// Source term is zero or depends on manufactured solution
-        void source_term (
-            const Point<dim,double> &pos,
-            const std::array<real,nstate> &solution,
-            std::array<real,nstate> &source) const;
-
-    protected:
-        /// Linear advection speed:  c
-        Tensor<1,dim,real> advection_speed () const;
-
     };
 
     /// Euler flow
@@ -382,7 +351,7 @@ namespace PHiLiP
      *  \f]
      */
     template <int dim, int nstate, typename real>
-    class Euler : public Physics <dim, nstate, real>
+    class Euler : public PhysicsBase <dim, nstate, real>
     {
     public:
         ~Euler () {};

@@ -4,65 +4,73 @@
 #include <deal.II/base/tensor.h>
 #include "physics/physics.h"
 #include "numerical_flux/viscous_numerical_flux.h"
-namespace PHiLiP
+
+namespace PHiLiP {
+namespace NumericalFlux {
+
+using AllParam = Parameters::AllParameters;
+
+/// Base class of numerical flux associated with convection
+template<int dim, int nstate, typename real>
+class NumericalFluxConvective
 {
-    using namespace dealii;
-    using AllParam = Parameters::AllParameters;
+public:
+virtual ~NumericalFluxConvective() = 0; ///< Base class destructor required for abstract classes.
 
-    /// Numerical flux associated with convection
-    template<int dim, int nstate, typename real>
-    class NumericalFluxConvective
-    {
-    public:
-    virtual ~NumericalFluxConvective() = 0;
+/// Returns the convective numerical flux at an interface.
+virtual std::array<real, nstate> evaluate_flux (
+    const std::array<real, nstate> &soln_int,
+    const std::array<real, nstate> &soln_ext,
+    const dealii::Tensor<1,dim,real> &normal1) const = 0;
 
-    virtual std::array<real, nstate> evaluate_flux (
-        const std::array<real, nstate> &soln_int,
-        const std::array<real, nstate> &soln_ext,
-        const Tensor<1,dim,real> &normal1) const = 0;
-
-    };
+};
 
 
-    template<int dim, int nstate, typename real>
-    class LaxFriedrichs: public NumericalFluxConvective<dim, nstate, real>
-    {
-    public:
+/// Lax-Friedrichs numerical flux. Derived from NumericalFluxConvective.
+template<int dim, int nstate, typename real>
+class LaxFriedrichs: public NumericalFluxConvective<dim, nstate, real>
+{
+public:
 
-    /// Constructor
-    LaxFriedrichs(PhysicsBase<dim, nstate, real> *physics_input)
-    :
-    pde_physics(physics_input)
-    {};
-    /// Destructor
-    ~LaxFriedrichs() {};
+/// Constructor
+LaxFriedrichs(Physics::PhysicsBase<dim, nstate, real> *physics_input)
+:
+pde_physics(physics_input)
+{};
+/// Destructor
+~LaxFriedrichs() {};
 
-    std::array<real, nstate> evaluate_flux (
-        const std::array<real, nstate> &soln_int,
-        const std::array<real, nstate> &soln_ext,
-        const Tensor<1,dim,real> &normal1) const;
+/// Returns the Lax-Friedrichs convective numerical flux at an interface.
+std::array<real, nstate> evaluate_flux (
+    const std::array<real, nstate> &soln_int,
+    const std::array<real, nstate> &soln_ext,
+    const dealii::Tensor<1,dim,real> &normal1) const;
 
-    protected:
-    const PhysicsBase<dim, nstate, real> *pde_physics;
+protected:
+/// Numerical flux requires physics to evaluate convective eigenvalues.
+const Physics::PhysicsBase<dim, nstate, real> *pde_physics;
 
-    };
-
-
-    template <int dim, int nstate, typename real>
-    class NumericalFluxFactory
-    {
-    public:
-        static NumericalFluxConvective<dim,nstate,real>*
-            create_convective_numerical_flux
-                (AllParam::ConvectiveNumericalFlux conv_num_flux_type,
-                PhysicsBase<dim, nstate, real> *physics_input);
-        static NumericalFluxDissipative<dim,nstate,real>*
-            create_dissipative_numerical_flux
-                (AllParam::DissipativeNumericalFlux diss_num_flux_type,
-                PhysicsBase<dim, nstate, real> *physics_input);
-    };
+};
 
 
-}
+/// Creates a NumericalFluxConvective or NumericalFluxDissipative based on input.
+template <int dim, int nstate, typename real>
+class NumericalFluxFactory
+{
+public:
+    /// Creates convective numerical flux based on input.
+    static NumericalFluxConvective<dim,nstate,real>*
+        create_convective_numerical_flux
+            (AllParam::ConvectiveNumericalFlux conv_num_flux_type,
+            Physics::PhysicsBase<dim, nstate, real> *physics_input);
+    /// Creates dissipative numerical flux based on input.
+    static NumericalFluxDissipative<dim,nstate,real>*
+        create_dissipative_numerical_flux
+            (AllParam::DissipativeNumericalFlux diss_num_flux_type,
+            Physics::PhysicsBase<dim, nstate, real> *physics_input);
+};
+
+} // NumericalFlux namespace
+} // PHiLiP namespace
 
 #endif

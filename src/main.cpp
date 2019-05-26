@@ -22,11 +22,11 @@ int main (int argc, char *argv[])
     {
         std::cout << "Reading input..." << std::endl;
         dealii::ParameterHandler parameter_handler;
-        Parameters::AllParameters::declare_parameters (parameter_handler);
-        Parameters::parse_command_line (argc, argv, parameter_handler);
+        PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler);
+        PHiLiP::Parameters::parse_command_line (argc, argv, parameter_handler);
 
 
-        Parameters::AllParameters all_parameters;
+        PHiLiP::Parameters::AllParameters all_parameters;
         all_parameters.parse_parameters (parameter_handler);
 
         AssertDimension(all_parameters.dimension, PHILIP_DIM);

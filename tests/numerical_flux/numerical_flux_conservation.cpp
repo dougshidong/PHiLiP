@@ -4,9 +4,10 @@
 #include "physics/physics.h"
 #include "numerical_flux/numerical_flux.h"
 
-using PDEType  = Parameters::AllParameters::PartialDifferentialEquation;
-using ConvType = Parameters::AllParameters::ConvectiveNumericalFlux;
-using DissType = Parameters::AllParameters::DissipativeNumericalFlux;
+using PDEType  = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
+using ConvType = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;
+using DissType = PHiLiP::Parameters::AllParameters::DissipativeNumericalFlux;
+
 
 const double TOLERANCE = 1E-12;
 
@@ -62,15 +63,15 @@ int test_dissipative_numerical_flux_conservation (const PDEType pde_type, const 
 
 
     using namespace PHiLiP;
-    PhysicsBase<dim, nstate, double> *pde_physics = PhysicsFactory<dim, nstate, double>::create_Physics(pde_type);
+    Physics::PhysicsBase<dim, nstate, double> *pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(pde_type);
 
-    Tensor<1,dim,double> normal_int;
+    dealii::Tensor<1,dim,double> normal_int;
     std::array<double, nstate> soln_int, soln_ext;
-    std::array<Tensor<1,dim,double>, nstate> soln_grad_int, soln_grad_ext;
+    std::array<dealii::Tensor<1,dim,double>, nstate> soln_grad_int, soln_grad_ext;
     set_solution<dim, nstate> (soln_int, soln_ext, soln_grad_int, soln_grad_ext, normal_int);
 
-    NumericalFluxDissipative<dim, nstate, double> *diss_num_flux = 
-        NumericalFluxFactory<dim, nstate, double>
+    NumericalFlux::NumericalFluxDissipative<dim, nstate, double> *diss_num_flux = 
+        NumericalFlux::NumericalFluxFactory<dim, nstate, double>
         ::create_dissipative_numerical_flux (diss_type, pde_physics);
     std::array<double, nstate> diss_num_flux_dot_n_1 = diss_num_flux->evaluate_solution_flux(soln_int, soln_ext, normal_int);
     std::array<double, nstate> diss_num_flux_dot_n_2 = diss_num_flux->evaluate_solution_flux(soln_ext, soln_int, -normal_int);
@@ -103,15 +104,15 @@ template<int dim, int nstate>
 int test_dissipative_numerical_flux_consistency (const PDEType pde_type, const DissType diss_type)
 {
     using namespace PHiLiP;
-    PhysicsBase<dim, nstate, double> *pde_physics = PhysicsFactory<dim, nstate, double>::create_Physics(pde_type);
+    Physics::PhysicsBase<dim, nstate, double> *pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(pde_type);
 
-    NumericalFluxDissipative<dim, nstate, double> *diss_num_flux = 
-        NumericalFluxFactory<dim, nstate, double>
+    NumericalFlux::NumericalFluxDissipative<dim, nstate, double> *diss_num_flux = 
+        NumericalFlux::NumericalFluxFactory<dim, nstate, double>
         ::create_dissipative_numerical_flux (diss_type, pde_physics);
 
-    Tensor<1,dim,double> normal_int;
+    dealii::Tensor<1,dim,double> normal_int;
     std::array<double, nstate> soln_int, soln_ext;
-    std::array<Tensor<1,dim,double>, nstate> soln_grad_int, soln_grad_ext;
+    std::array<dealii::Tensor<1,dim,double>, nstate> soln_grad_int, soln_grad_ext;
     set_solution<dim,nstate> (soln_int, soln_ext, soln_grad_int, soln_grad_ext, normal_int);
 
     // Copy state to ext cell
@@ -127,7 +128,7 @@ int test_dissipative_numerical_flux_consistency (const PDEType pde_type, const D
                  normal_int, penalty);
 
 
-    std::array<Tensor<1,dim,double>, nstate> diss_phys_flux_int;
+    std::array<dealii::Tensor<1,dim,double>, nstate> diss_phys_flux_int;
     pde_physics->dissipative_flux (soln_int, diss_phys_flux_int);
 
     std::array<double, nstate> diss_phys_flux_dot_n;
@@ -151,15 +152,15 @@ template<int dim, int nstate>
 int test_convective_numerical_flux_conservation (const PDEType pde_type, const ConvType conv_type)
 {
     using namespace PHiLiP;
-    PhysicsBase<dim, nstate, double> *pde_physics = PhysicsFactory<dim, nstate, double>::create_Physics(pde_type);
+    Physics::PhysicsBase<dim, nstate, double> *pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(pde_type);
 
-    NumericalFluxConvective<dim, nstate, double> *conv_num_flux = 
-        NumericalFluxFactory<dim, nstate, double>
+    NumericalFlux::NumericalFluxConvective<dim, nstate, double> *conv_num_flux = 
+        NumericalFlux::NumericalFluxFactory<dim, nstate, double>
         ::create_convective_numerical_flux (conv_type, pde_physics);
 
-    Tensor<1,dim,double> normal_int;
+    dealii::Tensor<1,dim,double> normal_int;
     std::array<double, nstate> soln_int, soln_ext;
-    std::array<Tensor<1,dim,double>, nstate> soln_grad_int, soln_grad_ext;
+    std::array<dealii::Tensor<1,dim,double>, nstate> soln_grad_int, soln_grad_ext;
     set_solution<dim,nstate> (soln_int, soln_ext, soln_grad_int, soln_grad_ext, normal_int);
 
     std::array<double, nstate> conv_num_flux_dot_n_1 = conv_num_flux->evaluate_flux(soln_int, soln_ext, normal_int);
@@ -178,15 +179,15 @@ template<int dim, int nstate>
 int test_convective_numerical_flux_consistency (const PDEType pde_type, const ConvType conv_type)
 {
     using namespace PHiLiP;
-    PhysicsBase<dim, nstate, double> *pde_physics = PhysicsFactory<dim, nstate, double>::create_Physics(pde_type);
+    Physics::PhysicsBase<dim, nstate, double> *pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(pde_type);
 
-    NumericalFluxConvective<dim, nstate, double> *conv_num_flux = 
-        NumericalFluxFactory<dim, nstate, double>
+    NumericalFlux::NumericalFluxConvective<dim, nstate, double> *conv_num_flux = 
+        NumericalFlux::NumericalFluxFactory<dim, nstate, double>
         ::create_convective_numerical_flux (conv_type, pde_physics);
 
-    Tensor<1,dim,double> normal_int;
+    dealii::Tensor<1,dim,double> normal_int;
     std::array<double, nstate> soln_int, soln_ext;
-    std::array<Tensor<1,dim,double>, nstate> soln_grad_int, soln_grad_ext;
+    std::array<dealii::Tensor<1,dim,double>, nstate> soln_grad_int, soln_grad_ext;
     set_solution<dim,nstate> (soln_int, soln_ext, soln_grad_int, soln_grad_ext, normal_int);
 
     // Consistent numerical flux should be equal to physical flux when both states are equal
@@ -194,7 +195,7 @@ int test_convective_numerical_flux_consistency (const PDEType pde_type, const Co
     soln_int = soln_ext;
     std::array<double, nstate> conv_num_flux_dot_n = conv_num_flux->evaluate_flux(soln_int, soln_ext, normal_int);
 
-    std::array<Tensor<1,dim,double>, nstate> conv_phys_flux_int;
+    std::array<dealii::Tensor<1,dim,double>, nstate> conv_phys_flux_int;
     pde_physics->convective_flux (soln_int, conv_phys_flux_int);
 
     std::array<double, nstate> conv_phys_flux_dot_n;

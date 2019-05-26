@@ -12,9 +12,9 @@
 #include "physics/physics.h"
 #include "numerical_flux/numerical_flux.h"
 
-using PDEType  = Parameters::AllParameters::PartialDifferentialEquation;
-using ConvType = Parameters::AllParameters::ConvectiveNumericalFlux;
-using DissType = Parameters::AllParameters::DissipativeNumericalFlux;
+using PDEType  = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
+using ConvType = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;
+using DissType = PHiLiP::Parameters::AllParameters::DissipativeNumericalFlux;
 
 const bool   COMPARE_MATRICES = true;//false;
 const bool   PRODUCE_TESTS    = !COMPARE_MATRICES;

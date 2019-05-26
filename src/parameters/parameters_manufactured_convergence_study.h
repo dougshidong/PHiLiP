@@ -4,34 +4,57 @@
 #include <deal.II/base/parameter_handler.h>
 #include "parameters/parameters.h"
 
-namespace Parameters
+namespace PHiLiP {
+namespace Parameters {
+
+/// Parameters related to the manufactured convergence study
+class ManufacturedConvergenceStudyParam
 {
-    using namespace dealii;
+public:
+    ManufacturedConvergenceStudyParam (); ///< Constructor
 
-    class ManufacturedConvergenceStudyParam
-    {
-    public:
-        ManufacturedConvergenceStudyParam ();
+    /// Types of grids that can be used for convergence study.
+    /** Hypercube is simply a square from 0,1 in multiple dimensions.
+     *  Sinehypercube will take that hypercube and transform it into a sinoisidal pattern
+     *  read_grid takes in a set of grids from Gmsh
+     */
+    enum GridEnum { hypercube, sinehypercube, read_grid };
 
-        enum GridEnum { hypercube, sinehypercube, read_grid };
+    /// Grid type
+    GridEnum grid_type;
 
-        GridEnum grid_type;
-        std::string input_grids;
+    /// Name of the input grids if read_grid
+    /** input_grids-XX.msh, where XX represents the grid number
+     */
+    std::string input_grids;
 
-        double random_distortion;
-        bool output_meshes;
+    /// Will randomly distort mesh except on boundaries.
+    /** Useful sanity check to make sure some errors don't cancel out.
+     */
+    double random_distortion;
+    /// Output the meshes as in a Gmsh format
+    bool output_meshes;
 
-        unsigned int degree_start;
-        unsigned int degree_end;
-        unsigned int initial_grid_size;
-        unsigned int number_of_grids;
-        double grid_progression;
+    unsigned int degree_start; ///< First polynomial degree to start the loop. If diffusion, must be at least 1.
+    unsigned int degree_end; ///< Last polynomial degree to loop.
+    unsigned int initial_grid_size; ///< Initial grid size.
+    /// Number of grid in the grid study.
+    /** Note that for p=0, it will use number_of_grids+2 because for p=0, we need more grids to observe the p+1 convergence
+    */
+    unsigned int number_of_grids;
+    /// Multiplies the last grid size by this amount.
+    /** Note that this is the grid progression in 1 dimension.
+     *  For 2 and 3 dim, you will end up with grid_progression^dim times more elements in total.
+     */
+    double grid_progression;
 
-        static void declare_parameters (ParameterHandler &prm);
-        void parse_parameters (ParameterHandler &prm);
-    };
+    /// Declares the possible variables and sets the defaults.
+    static void declare_parameters (dealii::ParameterHandler &prm);
+    /// Parses input file and sets the variables.
+    void parse_parameters (dealii::ParameterHandler &prm);
+};
 
-}
-
+} // Parameters namespace
+} // PHiLiP namespace
 #endif
 

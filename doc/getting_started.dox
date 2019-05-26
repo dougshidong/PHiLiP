@@ -3,36 +3,5 @@
 \getting_started
 
 
-- Code uses deal.II library as the backbone (https://www.dealii.org/)
-- Physics implementation and finite element operator will follow Philip Zwanenburg's derivations and snippets of DPGSolver (https://github.com/PhilipZwanenburg/DPGSolver)
-- Methods to be implemented
-	- Discontinuous Galerkin (DG);
-- Supported Partial Differential Equations: Advection, Diffusion, Convection-Diffusion
-- Supported elements: LINEs, QUADs, HEXs
-- (TODO) Supported refinements: isotropic h (size) or p (order).
-
-A good place to start is the <a href="pages.html">pages page</a>, which provides a getting started
-file which contains detailed instructions for building your understanding of the implementation.
-
-
-The <a href="https://github.com/PhilipZwanenburg/DPGSolver/tree/master">project home</a> contains
-additional information relating to the code functionality and status.
-
-\section s1_mainpage Software
-
-We would like to express our thanks to these other projects whose software we are using:
-- <a href="http://dealii.org">deal.II</a>
-- <a href="http://gcc.gnu.org">GCC</a>
-- <a href="https://cmake.org/">CMake</a>
-- <a href="http://www.doxygen.org">Doxygen</a>
-- <a href="http://gmsh.info">Gmsh</a>
-- <a href="https://www.paraview.org">Paraview</a>
-- <a href="https://www.mcs.anl.gov/petsc/">PETSc</a>
-- <a href="http://ctags.sourceforge.net/">Exuberant Ctags</a>
-
-\section s2_mainpage License
-
-The code is licensed under the <a href="md_LICENSE.html">GNU GPLv3</a>.
-
 */
 

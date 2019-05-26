@@ -2,18 +2,25 @@
 
 \mainpage
 
-These pages serve as the main programmer's reference manual for DGSolver and were automatically generated from the
+These pages serve as the main programmer's reference manual for PHiLiP and were automatically generated from the
 source using Doxygen.
 
 
-A good place to start is the <a href="pages.html">pages page</a>, which provides a getting started
+A good place to start is the <a href="gettingstartedpages.html">Getting Started page</a>, which provides a getting started
 file which contains detailed instructions for building your understanding of the implementation.
 
-
-The <a href="https://github.com/PhilipZwanenburg/DPGSolver/tree/master">project home</a> contains
+The <a href="https://github.com/dougshidong/PHiLiP/tree/master">project home</a> contains
 additional information relating to the code functionality and status.
 
-\section s1_mainpage Software
+\section s1_mainpage Coding style
+
+I am still learning C++ and its best practices.
+I try my best to follow some good guidelines in terms of coding style, and welcome any input.
+
+For the most part, I often refer to <a href="https://google.github.io/styleguide/cppguide.html"> Google's C++ style guide </a>.
+
+
+\section s2_mainpage Software
 
 We would like to express our thanks to these other projects whose software we are using:
 - <a href="http://dealii.org">deal.II</a>
@@ -25,7 +32,7 @@ We would like to express our thanks to these other projects whose software we ar
 - <a href="https://www.mcs.anl.gov/petsc/">PETSc</a>
 - <a href="http://ctags.sourceforge.net/">Exuberant Ctags</a>
 
-\section s2_mainpage License
+\section s3_mainpage License
 
 The code is licensed under the <a href="md_LICENSE.html">GNU GPLv3</a>.
 

@@ -4,9 +4,7 @@
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include "parameters/all_parameters.h"
 
-namespace PHiLiP
-{
-    using namespace dealii;
+namespace PHiLiP {
 
     // Still need to make a LinearSolver class for our problems
     // Note that right hand side should be const
@@ -17,10 +15,11 @@ namespace PHiLiP
     std::pair<unsigned int, double>
     //LinearSolver<real>::solve_linear (
     solve_linear (
-        TrilinosWrappers::SparseMatrix &system_matrix,
-        Vector<real> &right_hand_side,
-        Vector<real> &solution,
+        dealii::TrilinosWrappers::SparseMatrix &system_matrix,
+        dealii::Vector<real> &right_hand_side,
+        dealii::Vector<real> &solution,
         const Parameters::LinearSolverParam &param);
-}
+
+} // PHiLiP namespace
 
 #endif

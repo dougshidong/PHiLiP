@@ -13,48 +13,70 @@ namespace PHiLiP {
 namespace Physics {
 
 template <int dim, int nstate, typename real>
-real Euler<dim,nstate,real>
-::compute_pressure ( const std::array<real,nstate> &solution )
+inline std::array<real,dim> Euler<dim,nstate,real>
+::compute_velocities ( const std::array<real,nstate> &soln ) const
 {
-    const real density = solution[0];
-    const real energy  = solution[1+dim];
-    real vel2 = 0.0; // velocity squared
+    std::array<real, dim> vel;
+    const real density = soln[0];
+    for (int idim=0; idim<dim; ++idim) {
+        vel[idim] = soln[1+idim]/density;
+    }
+    return vel;
+}
+
+template <int dim, int nstate, typename real>
+inline real Euler<dim,nstate,real>
+::compute_pressure ( const std::array<real,nstate> &soln ) const
+{
+    const real density = soln[0];
+    const real energy  = soln[1+dim];
+    const std::array<real,dim> vel = compute_velocities(soln);
+    real vel2 = 0;
     for (int d=0; d<dim; d++) {
-        vel2 += std::pow(solution[1+d]/density, 2);
+        vel2 = vel2 + vel[d]*vel[d];
     }
     const real pressure = (gam-1.0)*(energy - 0.5*density*vel2);
     return pressure;
 }
 
 template <int dim, int nstate, typename real>
-real Euler<dim,nstate,real>
-::compute_sound ( const std::array<real,nstate> &solution )
+inline real Euler<dim,nstate,real>
+::compute_sound ( const std::array<real,nstate> &soln ) const
 {
-    const real density = solution[0];
-    const real energy  = solution[1+dim];
-    real vel2 = 0.0; // velocity squared
-    for (int d=0; d<dim; d++) {
-        vel2 += std::pow(solution[1+d]/density, 2);
-    }
-    const real pressure = (gam-1.0)*(energy - 0.5*density*vel2);
-    return pressure;
+    const real density = soln[0];
+    const real pressure = compute_pressure(soln);
+    const real sound = std::sqrt(pressure*gam/density);
+    return sound;
 }
 
 template <int dim, int nstate, typename real>
 void Euler<dim,nstate,real>
 ::convective_flux (
-    const std::array<real,nstate> &solution,
+    const std::array<real,nstate> &soln,
     std::array<dealii::Tensor<1,dim,real>,nstate> &conv_flux) const
 {
-    for (int i=0; i<nstate; ++i) {
-        //conv_flux[i] = velocity_field * solution[i];
+    const real density = soln[0];
+    const real pressure = compute_pressure (soln);
+    const std::array<real,dim> vel = compute_velocities(soln);
+    const real tot_energy = soln[nstate-1];
+
+    for (int fdim=0; fdim<dim; ++fdim) {
+        // Density equation
+        conv_flux[0][fdim] = soln[1+fdim];
+        // Momentum equation
+        for (int sdim=0; sdim<dim; ++sdim){
+            conv_flux[1+sdim][fdim] = density*vel[fdim]*vel[sdim];
+        }
+        conv_flux[1+fdim][1+fdim] += pressure; // Add diagonal of pressure
+        // Energy equation
+        conv_flux[2+dim][fdim] = (soln[2+dim]+pressure)*vel[fdim];
     }
 }
 
 template <int dim, int nstate, typename real>
 std::array<real,nstate> Euler<dim,nstate,real>
 ::convective_eigenvalues (
-    const std::array<real,nstate> &/*solution*/,
+    const std::array<real,nstate> &/*soln*/,
     const dealii::Tensor<1,dim,real> &normal) const
 {
     std::array<real,nstate> eig;
@@ -68,7 +90,7 @@ std::array<real,nstate> Euler<dim,nstate,real>
 template <int dim, int nstate, typename real>
 void Euler<dim,nstate,real>
 ::dissipative_flux (
-    const std::array<real,nstate> &/*solution*/,
+    const std::array<real,nstate> &/*soln*/,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
     std::array<dealii::Tensor<1,dim,real>,nstate> &diss_flux) const
 {
@@ -82,7 +104,7 @@ template <int dim, int nstate, typename real>
 void Euler<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,double> &pos,
-    const std::array<real,nstate> &/*solution*/,
+    const std::array<real,nstate> &/*soln*/,
     std::array<real,nstate> &source) const
 {
     using phys = PhysicsBase<dim,nstate,real>;
@@ -124,13 +146,8 @@ void Euler<dim,nstate,real>
 
 // Instantiate explicitly
 
-template class Euler < PHILIP_DIM, 3, double >;
-template class Euler < PHILIP_DIM, 3, Sacado::Fad::DFad<double>  >;
-template class Euler < PHILIP_DIM, 4, double >;
-template class Euler < PHILIP_DIM, 4, Sacado::Fad::DFad<double>  >;
-template class Euler < PHILIP_DIM, 5, double >;
-template class Euler < PHILIP_DIM, 5, Sacado::Fad::DFad<double>  >;
-
+template class Euler < PHILIP_DIM, PHILIP_DIM+2, double >;
+template class Euler < PHILIP_DIM, PHILIP_DIM+2, Sacado::Fad::DFad<double>  >;
 
 } // Physics namespace
 } // PHiLiP namespace

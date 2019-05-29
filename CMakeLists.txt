@@ -1,6 +1,8 @@
 project(PHiLiP)
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.3.0)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 17)
 
 #set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build_${BUILD_DIM}D)
 
@@ -95,8 +97,12 @@ ${_switch_targets}
 "#
 #      make clean          - to remove the generated executable as well as
 #                               all intermediate compilation files
-#      make cleancmake     - to remove CMakeCache and CMakeFiles/
 #      make info           - to view this message again
+#
+#  Note that you may append -j N, where N represents the number of processors
+#  to compile with. If you are compiling on 8GB of memory, be careful not to
+#  use too many processors, as you will run out of RAM. If you have (m) GB of 
+#  available memory, you can use around (m-1) processor without having to use the swap.
 #
 #  Have a nice day!
 #

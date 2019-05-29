@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include <deal.II/base/convergence_table.h>
 
 #include <deal.II/dofs/dof_tools.h>
@@ -13,56 +15,37 @@
 
 #include <Sacado.hpp>
 
+#include "tests.h"
+#include "grid_study.h"
+
 #include "physics/physics.h"
 #include "dg/dg.h"
 #include "ode_solver/ode_solver.h"
 
+//#include "template_instantiator.h"
+
+
 namespace PHiLiP {
+namespace Tests {
 
-template <int dim>
-dealii::Point<dim> warp (const dealii::Point<dim> &p)
+template <int dim, int nstate>
+GridStudy<dim,nstate>::GridStudy(const Parameters::AllParameters *const parameters_input)
+    :
+    TestsBase::TestsBase(parameters_input)
+{}
+
+template<int dim, int nstate>
+int GridStudy<dim,nstate>
+::run_test () const
 {
-    dealii::Point<dim> q = p;
-    q[dim-1] *= 1.5;
-    if (dim >= 2) q[0] += 1*std::sin(q[dim-1]);
-    if (dim >= 3) q[1] += 1*std::cos(q[dim-1]);
-    return q;
-}
+    using ManParam = Parameters::ManufacturedConvergenceStudyParam;
+    using GridEnum = ManParam::GridEnum;
+    const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
-template <int dim>
-void print_mesh_info(const dealii::Triangulation<dim> &triangulation,
-                     const std::string        &filename)
-{
-    std::cout << "Mesh info:" << std::endl
-              << " dimension: " << dim << std::endl
-              << " no. of cells: " << triangulation.n_active_cells() << std::endl;
-    {
-        std::map<dealii::types::boundary_id, unsigned int> boundary_count;
-        for (auto cell : triangulation.active_cell_iterators()) {
-            for (unsigned int face=0; face < dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-                if (cell->face(face)->at_boundary()) boundary_count[cell->face(face)->boundary_id()]++;
-            }
-        }
-        std::cout << " boundary indicators: ";
-        for (const std::pair<const dealii::types::boundary_id, unsigned int> &pair : boundary_count) {
-            std::cout << pair.first << "(" << pair.second << " times) ";
-        }
-        std::cout << std::endl;
-    }
-    std::ofstream out (filename);
-    dealii::GridOut grid_out;
-    grid_out.write_eps (triangulation, out);
-    std::cout << " written to " << filename << std::endl << std::endl;
-}
+    Assert(dim == param.dimension, ExcDimensionMismatch(dim, param.dimension));
 
-template<int dim>
-int manufactured_grid_convergence (Parameters::AllParameters &all_parameters)
-{
-    using Param = Parameters::AllParameters;
-    Assert(dim == all_parameters.dimension, ExcDimensionMismatch(dim, all_parameters.dimension));
-    const int nstate = all_parameters.nstate;
+    ManParam manu_grid_conv_param = param.manufactured_convergence_study_param;
 
-    Parameters::ManufacturedConvergenceStudyParam manu_grid_conv_param = all_parameters.manufactured_convergence_study_param;
     const unsigned int p_start             = manu_grid_conv_param.degree_start;
     const unsigned int p_end               = manu_grid_conv_param.degree_end;
 
@@ -101,8 +84,8 @@ int manufactured_grid_convergence (Parameters::AllParameters &all_parameters)
             dealii::Triangulation<dim> grid;
 
             // Generate hypercube
-            if (   manu_grid_conv_param.grid_type == Parameters::ManufacturedConvergenceStudyParam::GridEnum::hypercube
-                || manu_grid_conv_param.grid_type == Parameters::ManufacturedConvergenceStudyParam::GridEnum::sinehypercube ) {
+            if (   manu_grid_conv_param.grid_type == GridEnum::hypercube
+                || manu_grid_conv_param.grid_type == GridEnum::sinehypercube ) {
                 dealii::GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid]);
                 for (typename dealii::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
                     // Set a dummy boundary ID
@@ -112,7 +95,7 @@ int manufactured_grid_convergence (Parameters::AllParameters &all_parameters)
                               cell->face(face)->set_boundary_id (9001);
                 }
                 // Warp grid if requested in input file
-                if (manu_grid_conv_param.grid_type == Parameters::ManufacturedConvergenceStudyParam::GridEnum::sinehypercube) dealii::GridTools::transform (&warp<dim>, grid);
+                if (manu_grid_conv_param.grid_type == GridEnum::sinehypercube) dealii::GridTools::transform (&warp, grid);
             }
 
             // Distort grid by random amount if requested
@@ -121,7 +104,7 @@ int manufactured_grid_convergence (Parameters::AllParameters &all_parameters)
             if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, grid, keep_boundary);
 
             // Read grid if requested
-            if (manu_grid_conv_param.grid_type == Parameters::ManufacturedConvergenceStudyParam::GridEnum::read_grid) {
+            if (manu_grid_conv_param.grid_type == GridEnum::read_grid) {
                 //std::string write_mshname = "grid-"+std::to_string(igrid)+".msh";
                 std::string read_mshname = manu_grid_conv_param.input_grids+std::to_string(igrid)+".msh";
                 std::cout<<"Reading grid: " << read_mshname << std::endl;
@@ -147,7 +130,7 @@ int manufactured_grid_convergence (Parameters::AllParameters &all_parameters)
             using ADtype = Sacado::Fad::DFad<double>;
 
             // Create DG object using the factory
-            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters, poly_degree);
+            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree);
             dg->set_triangulation(&grid);
             dg->allocate_system ();
             //dg->evaluate_inverse_mass_matrices();
@@ -195,9 +178,7 @@ int manufactured_grid_convergence (Parameters::AllParameters &all_parameters)
                endc = dg->dof_handler.end();
 
             // PhysicsBase required for exact solution and output error
-            // Using the maximum number of state variables
-            // Not sure how to retrieve PhysicsBase with a variable number of templates
-            Physics::PhysicsBase<dim,2,double> *physics_double = Physics::PhysicsFactory<dim, 2, double>::create_Physics(all_parameters.pde_type);
+            Physics::PhysicsBase<dim,nstate,double> *physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(param.pde_type);
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
             for (; cell!=endc; ++cell) {
 
@@ -384,6 +365,54 @@ int manufactured_grid_convergence (Parameters::AllParameters &all_parameters)
     }
     return n_fail_poly;
 }
-template int manufactured_grid_convergence<PHILIP_DIM> (Parameters::AllParameters &all_parameters);
 
+template <int dim, int nstate>
+dealii::Point<dim> GridStudy<dim,nstate>
+::warp (const dealii::Point<dim> &p)
+{
+    dealii::Point<dim> q = p;
+    q[dim-1] *= 1.5;
+    if (dim >= 2) q[0] += 1*std::sin(q[dim-1]);
+    if (dim >= 3) q[1] += 1*std::cos(q[dim-1]);
+    return q;
+}
+
+template <int dim, int nstate>
+void GridStudy<dim,nstate>
+::print_mesh_info(const dealii::Triangulation<dim> &triangulation, const std::string &filename) const
+{
+    std::cout << "Mesh info:" << std::endl
+              << " dimension: " << dim << std::endl
+              << " no. of cells: " << triangulation.n_active_cells() << std::endl;
+    {
+        std::map<dealii::types::boundary_id, unsigned int> boundary_count;
+        for (auto cell : triangulation.active_cell_iterators()) {
+            for (unsigned int face=0; face < dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+                if (cell->face(face)->at_boundary()) boundary_count[cell->face(face)->boundary_id()]++;
+            }
+        }
+        std::cout << " boundary indicators: ";
+        for (const std::pair<const dealii::types::boundary_id, unsigned int> &pair : boundary_count) {
+            std::cout << pair.first << "(" << pair.second << " times) ";
+        }
+        std::cout << std::endl;
+    }
+    if (dim == 2) {
+        std::ofstream out (filename);
+        dealii::GridOut grid_out;
+        grid_out.write_eps (triangulation, out);
+        std::cout << " written to " << filename << std::endl << std::endl;
+    }
+}
+
+template class GridStudy <PHILIP_DIM,1>;
+template class GridStudy <PHILIP_DIM,2>;
+template class GridStudy <PHILIP_DIM,3>;
+template class GridStudy <PHILIP_DIM,4>;
+template class GridStudy <PHILIP_DIM,5>;
+//template struct Instantiator<GridStudy,3,5>;
+
+
+
+} // Tests namespace
 } // PHiLiP namespace

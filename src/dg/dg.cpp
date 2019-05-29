@@ -36,7 +36,7 @@ template <int dim, typename real>
 std::shared_ptr< DGBase<dim,real> >
 DGFactory<dim,real>
 ::create_discontinuous_galerkin(
-    Parameters::AllParameters *parameters_input,
+    const Parameters::AllParameters *const parameters_input,
     const unsigned int degree)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
@@ -67,7 +67,7 @@ DGFactory<dim,real>
 template <int dim, typename real>
 DGBase<dim,real>::DGBase(
     const int nstate_input,
-    Parameters::AllParameters *parameters_input,
+    const Parameters::AllParameters *const parameters_input,
     const unsigned int degree)
     :
     nstate(nstate_input)
@@ -189,7 +189,7 @@ void DGBase<dim,real>::evaluate_inverse_mass_matrices ()
 // Constructor
 template <int dim, int nstate, typename real>
 DG<dim,nstate,real>::DG(
-    Parameters::AllParameters *parameters_input,
+    const Parameters::AllParameters *const parameters_input,
     const unsigned int degree)
     : DGBase<dim,real>::DGBase(nstate, parameters_input, degree) // Use DGBase constructor
 

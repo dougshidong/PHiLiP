@@ -1,5 +1,5 @@
-set(PHILIP_SRC 
-    grid_study.cpp)
+#set(PHILIP_SRC 
+#    grid_study.cpp)
 
 set(MAIN_SRC 
     main.cpp)
@@ -10,36 +10,38 @@ add_subdirectory(numerical_flux)
 add_subdirectory(dg)
 add_subdirectory(ode_solver)
 
+add_subdirectory(tests)
+
 foreach(dim RANGE 1 3)
 
     # #####################################################
-    # Main PHiLiP library
-    string(CONCAT PHiLiPLib PHiLiPLib_${dim}D)
-    message("Adding PHiLiP library " ${PHiLiPLib} " with files " ${PHILIP_SRC} "\n")
-    add_library(${PHiLiPLib} STATIC ${PHILIP_SRC})
-    # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
-    target_compile_definitions(${PHiLiPLib} PRIVATE PHILIP_DIM=${dim})
-
-    # Library dependency
-    set(ParameterLib ParametersLibrary)
-    string(CONCAT ODESolverLib ODESolver_${dim}D)
-    string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
-    string(CONCAT NumericalFluxLib NumericalFlux_${dim}D)
-    target_link_libraries(${PHiLiPLib} ${ParameterLib})
-    target_link_libraries(${PHiLiPLib} ${ODESolverLib})
-    target_link_libraries(${PHiLiPLib} ${DiscontinuousGalerkinLib})
-    target_link_libraries(${PHiLiPLib} ${NumericalFluxLib})
-    # Setup target with deal.II
-    DEAL_II_SETUP_TARGET(${PHiLiPLib})
-
-    # Weird thing where we need to add more libraries
-    # Otherwise, we get the following error:
-    # /usr/bin/ld: ********.o: undefined reference to symbol '_ZN3MPI8Datatype4FreeEv'
-    # //usr/lib/libmpi_cxx.so.1: error adding symbols: DSO missing from command line
-    # See one of the following links (translate chinese to english using Google)
-    # https://zhuanlan.zhihu.com/p/21385662
-    # https://www.getit01.com/p2018020821385662/
-    target_link_libraries(${PHiLiPLib} tbb m mpi mpi_cxx)
+#    # Main PHiLiP library
+#    string(CONCAT PHiLiPLib PHiLiPLib_${dim}D)
+#    message("Adding PHiLiP library " ${PHiLiPLib} " with files " ${PHILIP_SRC} "\n")
+#    add_library(${PHiLiPLib} STATIC ${PHILIP_SRC})
+#    # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
+#    target_compile_definitions(${PHiLiPLib} PRIVATE PHILIP_DIM=${dim})
+#
+#    # Library dependency
+#    set(ParameterLib ParametersLibrary)
+#    string(CONCAT ODESolverLib ODESolver_${dim}D)
+#    string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
+#    string(CONCAT NumericalFluxLib NumericalFlux_${dim}D)
+#    target_link_libraries(${PHiLiPLib} ${ParameterLib})
+#    target_link_libraries(${PHiLiPLib} ${ODESolverLib})
+#    target_link_libraries(${PHiLiPLib} ${DiscontinuousGalerkinLib})
+#    target_link_libraries(${PHiLiPLib} ${NumericalFluxLib})
+#    # Setup target with deal.II
+#    DEAL_II_SETUP_TARGET(${PHiLiPLib})
+#
+#    # Weird thing where we need to add more libraries
+#    # Otherwise, we get the following error:
+#    # /usr/bin/ld: ********.o: undefined reference to symbol '_ZN3MPI8Datatype4FreeEv'
+#    # //usr/lib/libmpi_cxx.so.1: error adding symbols: DSO missing from command line
+#    # See one of the following links (translate chinese to english using Google)
+#    # https://zhuanlan.zhihu.com/p/21385662
+#    # https://www.getit01.com/p2018020821385662/
+#    target_link_libraries(${PHiLiPLib} tbb m mpi mpi_cxx)
 
 
     # #####################################################
@@ -56,21 +58,23 @@ foreach(dim RANGE 1 3)
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${MAIN_TARGET} PRIVATE PHILIP_DIM=${dim})
     # Library dependency
-    target_link_libraries(${MAIN_TARGET} ${PHiLiPLib})
+    set(ParameterLib ParametersLibrary)
+    string(CONCAT TestsLib Tests_${dim}D)
+    target_link_libraries(${MAIN_TARGET} ${ParameterLib})
+    target_link_libraries(${MAIN_TARGET} ${TestsLib})
+    target_link_libraries(${MAIN_TARGET} tbb m mpi mpi_cxx)
     DEAL_II_SETUP_TARGET(${MAIN_TARGET})
     
     unset(MAIN_TARGET)
     unset(ParameterLib)
-    unset(ODESolverLib)
-    unset(DiscontinuousGalerkinLib)
-    unset(PHiLiPLib)
+    unset(TestsLib)
 
 endforeach()
 
 set(SMALL_TEST testrun)
 set(TARGET ${SMALL_TEST})
 set(SMALL_TEST_SRC 
-    test.cpp)
+    temporary_test.cpp)
 
 add_executable(${SMALL_TEST} ${SMALL_TEST_SRC})
     target_link_libraries(${SMALL_TEST} tbb m mpi mpi_cxx)

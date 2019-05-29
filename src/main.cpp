@@ -6,7 +6,8 @@
 #include <iostream>
 #include <fstream>
 
-#include "grid_study.h"
+#include "tests/tests.h"
+#include "tests/grid_study.h"
 #include "ode_solver/ode_solver.h"
 #include "parameters/all_parameters.h"
 
@@ -15,42 +16,27 @@ int main (int argc, char *argv[])
 {
     dealii::deallog.depth_console(99);
     dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
-    //dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(
-    //    argc, argv, dealii::numbers::invalid_unsigned_int);
-    int test = 1;
+    int test_error = 1;
     try
     {
-        std::cout << "Reading input..." << std::endl;
+        // Declare possible inputs
         dealii::ParameterHandler parameter_handler;
         PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler);
         PHiLiP::Parameters::parse_command_line (argc, argv, parameter_handler);
 
-
+        // Read inputs from parameter file and set those values in AllParameters object
         PHiLiP::Parameters::AllParameters all_parameters;
+        std::cout << "Reading input..." << std::endl;
         all_parameters.parse_parameters (parameter_handler);
 
         AssertDimension(all_parameters.dimension, PHILIP_DIM);
 
         std::cout << "Starting program..." << std::endl;
 
-
-        test = PHiLiP::manufactured_grid_convergence<PHILIP_DIM> (all_parameters);
-
-        //const unsigned int np_1d = 6;
-        //const unsigned int np_2d = 4;
-        //const unsigned int np_3d = 3;
-        //for (unsigned int poly_degree = 0; poly_degree <= np_2d; ++poly_degree) {
-        //    PHiLiP::DiscontinuousGalerkin<2, double> adv(poly_degree, all_parameters);
-        //    const int failure = adv.grid_convergence_explicit();
-        //    if (failure) return 1;
-        //}
-        // Too long to grid_convergence_explicit
-        //for (unsigned int poly_degree = 0; poly_degree <= np_3d; ++poly_degree) {
-        //    PHiLiP::DiscontinuousGalerkin<3, double> adv(poly_degree);
-        //    const int failure = adv.run();
-        //    if (failure) return 1;
-        //}
-                                                                 
+        const int max_dim = PHILIP_DIM;
+        const int max_nstate = 5;
+        std::unique_ptr<PHiLiP::Tests::TestsBase> test = PHiLiP::Tests::TestsFactory<max_dim,max_nstate>::create_test(&all_parameters);
+        test_error = test->run_test();
 
     }
     catch (std::exception &exc)
@@ -79,5 +65,5 @@ int main (int argc, char *argv[])
         return 1;
     }
     std::cout << "End of program." << std::endl;
-    return test;
+    return test_error;
 }

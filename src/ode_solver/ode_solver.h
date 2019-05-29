@@ -19,7 +19,7 @@ template <int dim, typename real>
 class ODESolver
 {
 public:
-    ODESolver() {}; ///< Constructor
+    ODESolver() = delete; ///< Constructor
     ODESolver(int ode_solver_type); ///< Constructor
     /// Constructor
     ODESolver(std::shared_ptr< DGBase<dim, real> > dg_input)
@@ -63,8 +63,8 @@ protected:
     /// Smart pointer to DGBase
     std::shared_ptr<DGBase<dim,real>> dg;
 
-    /// Pointer to AllParameters
-    Parameters::AllParameters *all_parameters;
+    const Parameters::AllParameters *const all_parameters;
+
 
 }; // end of ODESolver class
 
@@ -78,21 +78,17 @@ class Implicit_ODESolver
     : public ODESolver<dim, real>
 {
 public:
-    Implicit_ODESolver() {}; ///< Constructor.
+    Implicit_ODESolver() = delete; ///< Constructor.
     /// Constructor.
     Implicit_ODESolver(std::shared_ptr<DGBase<dim, real>> dg_input)
     :
-    dg(dg_input),
-    all_parameters(dg->all_parameters)
+    ODESolver<dim,real>::ODESolver(dg_input)
     {};
     ~Implicit_ODESolver() {}; ///< Destructor.
     void allocate_ode_system ();
     int steady_state ();
 protected:
     void evaluate_solution_update ();
-    std::shared_ptr<DGBase<dim,real>> dg;
-
-    Parameters::AllParameters *all_parameters;
 
 }; // end of Implicit_ODESolver class
 
@@ -106,21 +102,16 @@ class Explicit_ODESolver
     : public ODESolver<dim, real>
 {
 public:
-    Explicit_ODESolver() {};
+    Explicit_ODESolver() = delete;
     Explicit_ODESolver(std::shared_ptr<DGBase<dim, real>> dg_input)
     :
-    dg(dg_input),
-    all_parameters(dg->all_parameters)
+    ODESolver<dim,real>::ODESolver(dg_input)
     {};
     ~Explicit_ODESolver() {};
     void allocate_ode_system ();
     int steady_state ();
 protected:
     void evaluate_solution_update ();
-    std::shared_ptr<DGBase<dim,real>> dg;
-
-    Parameters::AllParameters *all_parameters;
-
 }; // end of Explicit_ODESolver class
 
 /// Creates and assemble Explicit_ODESolver or Implicit_ODESolver as ODESolver based on input.

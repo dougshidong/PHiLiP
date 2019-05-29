@@ -65,7 +65,7 @@ public:
      */
     DGBase(
         const int nstate_input,
-        Parameters::AllParameters *parameters_input, 
+        const Parameters::AllParameters *const parameters_input, 
         const unsigned int degree);
 
     virtual ~DGBase(); ///< Destructor. Also calls delete_fe_values().
@@ -160,7 +160,7 @@ public:
     const dealii::FESystem<dim,dim> fe_system;
 
     /// Pointer to all parameters
-    Parameters::AllParameters *all_parameters;
+    const Parameters::AllParameters *const all_parameters;
 
 
     /// Degrees of freedom handler
@@ -216,7 +216,7 @@ class DG : public DGBase<dim, real>
 public:
     /// Constructor
     DG(
-        Parameters::AllParameters *parameters_input, 
+        const Parameters::AllParameters *const parameters_input, 
         const unsigned int degree);
 
     /// Destructor
@@ -292,7 +292,7 @@ public:
      */
     static std::shared_ptr< DGBase<dim,real> >
         create_discontinuous_galerkin(
-        Parameters::AllParameters *parameters_input, 
+        const Parameters::AllParameters *const parameters_input, 
         const unsigned int degree);
 };
 

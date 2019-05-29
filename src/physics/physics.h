@@ -355,10 +355,6 @@ class Euler : public PhysicsBase <dim, nstate, real>
 public:
     ~Euler () {};
 
-    const real gam = 1.4;
-    real compute_pressure ( const std::array<real,nstate> &solution );
-    real compute_sound    ( const std::array<real,nstate> &solution );
-
     /// Convective flux: \f$ \mathbf{F}_{conv} =  u \f$
     void convective_flux (
         const std::array<real,nstate> &solution,
@@ -387,6 +383,11 @@ public:
         std::array<real,nstate> &source) const;
 
 protected:
+    const real gam = 1.4;
+    real compute_pressure ( const std::array<real,nstate> &solution ) const;
+    real compute_sound ( const std::array<real,nstate> &solution ) const;
+    std::array<real,dim> compute_velocities ( const std::array<real,nstate> &solution ) const;
+
 };
 
 } // Physics namespace

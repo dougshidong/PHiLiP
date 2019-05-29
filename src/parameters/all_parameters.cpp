@@ -15,6 +15,17 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     prm.declare_entry("dimension", "1",
                       dealii::Patterns::Integer(),
                       "Number of dimensions");
+    prm.declare_entry("test_type", "run_control",
+                      dealii::Patterns::Selection(
+                      " run_control | "
+                      " numerical_flux_convervation | "
+                      " jacobian_regression "),
+                      "The type of test we want to solve. "
+                      "Choices are " 
+                      " <run_control | " 
+                      "  numerical_flux_convervation | "
+                      "  jacobian_regression>.");
+
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
                           " advection | "
@@ -48,6 +59,11 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     std::cout << "Parsing main input..." << std::endl;
 
     dimension                   = prm.get_integer("dimension");
+
+    const std::string test_string = prm.get("test_type");
+    if (test_string == "run_control") { test_type = run_control; }
+    else if (test_string == "numerical_flux_convervation") { test_type = numerical_flux_convervation; }
+    else if (test_string == "jacobian_regression") { test_type = jacobian_regression; }
 
     const std::string pde_string = prm.get("pde_type");
     if (pde_string == "advection") {

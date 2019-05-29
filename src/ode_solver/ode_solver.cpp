@@ -9,11 +9,11 @@ namespace ODE {
 template <int dim, typename real>
 int Implicit_ODESolver<dim,real>::steady_state ()
 {
-    Parameters::ODESolverParam ode_param = all_parameters->ode_solver_param;
+    Parameters::ODESolverParam ode_param = ODESolver<dim,real>::all_parameters->ode_solver_param;
     allocate_ode_system ();
 
-    dg->assemble_system ();
-    this->residual_norm = dg->get_residual_l2norm();
+    ODESolver<dim,real>::dg->assemble_system ();
+    this->residual_norm = ODESolver<dim,real>::dg->get_residual_l2norm();
     this->residual_norm = 1; // Always do at least 1 iteration
     double update_norm = 1; // Always do at least 1 iteration
     this->current_iteration = 0;
@@ -32,7 +32,7 @@ int Implicit_ODESolver<dim,real>::steady_state ()
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
             (this->current_iteration%ode_param.print_iteration_modulo) == 0 )
         std::cout << " Assembling system... ";
-        dg->assemble_system ();
+        ODESolver<dim,real>::dg->assemble_system ();
 
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
             (this->current_iteration%ode_param.print_iteration_modulo) == 0 )
@@ -42,9 +42,9 @@ int Implicit_ODESolver<dim,real>::steady_state ()
 
         //this->solution_update *= 0.1;
         update_norm = this->solution_update.l2_norm();
-        dg->solution += this->solution_update;
+        ODESolver<dim,real>::dg->solution += this->solution_update;
 
-        this->residual_norm = dg->get_residual_l2norm();
+        this->residual_norm = ODESolver<dim,real>::dg->get_residual_l2norm();
 
         ++(this->current_iteration);
 
@@ -54,10 +54,10 @@ int Implicit_ODESolver<dim,real>::steady_state ()
 template <int dim, typename real>
 int Explicit_ODESolver<dim,real>::steady_state ()
 {
-    Parameters::ODESolverParam ode_param = all_parameters->ode_solver_param;
+    Parameters::ODESolverParam ode_param = ODESolver<dim,real>::all_parameters->ode_solver_param;
     allocate_ode_system ();
 
-    dg->assemble_system ();
+    ODESolver<dim,real>::dg->assemble_system ();
 
     this->residual_norm = 1.0;
     this->current_iteration = 0;
@@ -76,10 +76,10 @@ int Explicit_ODESolver<dim,real>::steady_state ()
                   << std::endl;
 
         evaluate_solution_update ();
-        dg->solution += this->solution_update;
+        ODESolver<dim,real>::dg->solution += this->solution_update;
 
-        dg->assemble_system ();
-        this->residual_norm = dg->get_residual_l2norm();
+        ODESolver<dim,real>::dg->assemble_system ();
+        this->residual_norm = ODESolver<dim,real>::dg->get_residual_l2norm();
     }
     return 1;
 }
@@ -100,7 +100,7 @@ void Implicit_ODESolver<dim,real>::evaluate_solution_update ()
         this->dg->system_matrix,
         this->dg->right_hand_side, 
         this->solution_update,
-        this->all_parameters->linear_solver_param);
+        this->ODESolver<dim,real>::all_parameters->linear_solver_param);
 }
 
 template <int dim, typename real>
@@ -118,29 +118,31 @@ void Implicit_ODESolver<dim,real>::allocate_ode_system ()
     this->solution_update.reinit(n_dofs);
 }
 
-template <int dim, typename real>
-std::shared_ptr<ODESolver<dim,real>> ODESolverFactory<dim,real>::create_ODESolver(Parameters::ODESolverParam::ODESolverEnum ode_solver_type)
-{
-    if(ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::explicit_solver) return std::make_shared<Explicit_ODESolver<dim,real>>();
-    if(ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::implicit_solver) return std::make_shared<Implicit_ODESolver<dim,real>>();
-    else {
-        std::cout << "Can't create ODE solver since explicit/implicit solver is not clear." << std::endl;
-        return nullptr;
-    }
-}
+//template <int dim, typename real>
+//std::shared_ptr<ODESolver<dim,real>> ODESolverFactory<dim,real>::create_ODESolver(Parameters::ODESolverParam::ODESolverEnum ode_solver_type)
+//{
+//    using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
+//    if(ode_solver_type == ODEEnum::explicit_solver) return std::make_shared<Explicit_ODESolver<dim,real>>();
+//    if(ode_solver_type == ODEEnum::implicit_solver) return std::make_shared<Implicit_ODESolver<dim,real>>();
+//    else {
+//        std::cout << "Can't create ODE solver since explicit/implicit solver is not clear." << std::endl;
+//        return nullptr;
+//    }
+//}
 template <int dim, typename real>
 std::shared_ptr<ODESolver<dim,real>> ODESolverFactory<dim,real>::create_ODESolver(std::shared_ptr< DGBase<dim,real> > dg_input)
 {
-    Parameters::ODESolverParam::ODESolverEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
-    if(ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::explicit_solver) return std::make_shared<Explicit_ODESolver<dim,real>>(dg_input);
-    if(ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::implicit_solver) return std::make_shared<Implicit_ODESolver<dim,real>>(dg_input);
+    using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
+    ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
+    if(ode_solver_type == ODEEnum::explicit_solver) return std::make_shared<Explicit_ODESolver<dim,real>>(dg_input);
+    if(ode_solver_type == ODEEnum::implicit_solver) return std::make_shared<Implicit_ODESolver<dim,real>>(dg_input);
     else {
         std::cout << "********************************************************************" << std::endl;
         std::cout << "Can't create ODE solver since explicit/implicit solver is not clear." << std::endl;
         std::cout << "Solver type specified: " << ode_solver_type << std::endl;
         std::cout << "Solver type possible: " << std::endl;
-        std::cout <<  Parameters::ODESolverParam::ODESolverEnum::explicit_solver << std::endl;
-        std::cout <<  Parameters::ODESolverParam::ODESolverEnum::implicit_solver << std::endl;
+        std::cout <<  ODEEnum::explicit_solver << std::endl;
+        std::cout <<  ODEEnum::implicit_solver << std::endl;
         std::cout << "********************************************************************" << std::endl;
         return nullptr;
     }

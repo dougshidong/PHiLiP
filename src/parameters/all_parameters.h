@@ -33,6 +33,13 @@ public:
     int nstate;
 
     /// Currently allows to solve advection, diffusion, convection-diffusion
+    enum TestType { 
+        run_control,
+        numerical_flux_convervation,
+        jacobian_regression};
+    TestType test_type;
+
+    /// Currently allows to solve advection, diffusion, convection-diffusion
     enum PartialDifferentialEquation { 
         advection,
         diffusion,

@@ -6,6 +6,7 @@
 
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_tools.h>
+#include <deal.II/dofs/dof_renumbering.h>
 
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
@@ -224,6 +225,9 @@ void DG<dim,nstate,real>::allocate_system ()
     // Allocates memory from triangulation and finite element space
     // Use fe_system since it will have the (fe_dg.n_dofs)*nstate
     DGBase<dim,real>::dof_handler.distribute_dofs(DGBase<dim,real>::fe_system);
+
+    //std::vector<unsigned int> block_component(nstate,0);
+    //dealii::DoFRenumbering::component_wise(DGBase<dim,real>::dof_handler, block_component);
 
 
     // Allocate matrix

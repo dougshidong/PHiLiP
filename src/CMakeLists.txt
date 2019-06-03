@@ -71,16 +71,16 @@ foreach(dim RANGE 1 3)
 
 endforeach()
 
-set(SMALL_TEST testrun)
-set(TARGET ${SMALL_TEST})
-set(SMALL_TEST_SRC 
-    temporary_test.cpp)
-
-add_executable(${SMALL_TEST} ${SMALL_TEST_SRC})
-    target_link_libraries(${SMALL_TEST} tbb m mpi mpi_cxx)
-
-DEAL_II_SETUP_TARGET(${SMALL_TEST})
-message("Adding executable " ${SMALL_TEST} " with files " ${SMALL_TEST_SRC} "\n")
-
-unset(SMALL_TEST)
-unset(TARGET ${SMALL_TEST})
+# set(SMALL_TEST testrun)
+# set(TARGET ${SMALL_TEST})
+# set(SMALL_TEST_SRC 
+#     temporary_test.cpp)
+# 
+# add_executable(${SMALL_TEST} ${SMALL_TEST_SRC})
+#     target_link_libraries(${SMALL_TEST} tbb m mpi mpi_cxx)
+# 
+# DEAL_II_SETUP_TARGET(${SMALL_TEST})
+# message("Adding executable " ${SMALL_TEST} " with files " ${SMALL_TEST_SRC} "\n")
+# 
+# unset(SMALL_TEST)
+# unset(TARGET ${SMALL_TEST})

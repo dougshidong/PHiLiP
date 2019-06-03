@@ -65,9 +65,9 @@ void DG<dim,nstate,real>::assemble_cell_terms_implicit(
               soln_grad_at_q[iquad][istate] += soln_coeff[itrial] * fe_values_vol->shape_grad_component(itrial, iquad, istate);
         }
         // Evaluate physical convective flux and source term
-        pde_physics->convective_flux (soln_at_q[iquad], conv_phys_flux_at_q[iquad]);
-        pde_physics->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad], diss_phys_flux_at_q[iquad]);
-        pde_physics->source_term (fe_values_vol->quadrature_point(iquad), soln_at_q[iquad], source_at_q[iquad]);
+        conv_phys_flux_at_q[iquad] = pde_physics->convective_flux (soln_at_q[iquad]);
+        diss_phys_flux_at_q[iquad] = pde_physics->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
+        source_at_q[iquad] = pde_physics->source_term (fe_values_vol->quadrature_point(iquad), soln_at_q[iquad]);
     }
 
     // Weak form
@@ -85,12 +85,12 @@ void DG<dim,nstate,real>::assemble_cell_terms_implicit(
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
             // Convective
-            rhs += fe_values_vol->shape_grad_component(itest,iquad,istate) * conv_phys_flux_at_q[iquad][istate] * JxW[iquad];
+            rhs = rhs + fe_values_vol->shape_grad_component(itest,iquad,istate) * conv_phys_flux_at_q[iquad][istate] * JxW[iquad];
             //// Diffusive
             //// Note that for diffusion, the negative is defined in the physics
-            rhs += fe_values_vol->shape_grad_component(itest,iquad,istate) * diss_phys_flux_at_q[iquad][istate] * JxW[iquad];
+            rhs = rhs + fe_values_vol->shape_grad_component(itest,iquad,istate) * diss_phys_flux_at_q[iquad][istate] * JxW[iquad];
             // Source
-            rhs += fe_values_vol->shape_value_component(itest,iquad,istate) * source_at_q[iquad][istate] * JxW[iquad];
+            rhs = rhs + fe_values_vol->shape_value_component(itest,iquad,istate) * source_at_q[iquad][istate] * JxW[iquad];
         }
 
         local_rhs_int_cell(itest) += rhs.val();
@@ -134,8 +134,8 @@ void DG<dim,nstate,real>::assemble_boundary_term_implicit(
     const std::vector< dealii::Point<dim,real> > quad_pts = fe_values_boundary->get_quadrature_points();
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
         const dealii::Point<dim, real> x_quad = quad_pts[iquad];
-        pde_physics->manufactured_solution(x_quad, &boundary_values[iquad][0]);
-        pde_physics->manufactured_gradient(x_quad, boundary_gradients[iquad]);
+        boundary_values[iquad] = pde_physics->manufactured_solution(x_quad);
+        boundary_gradients[iquad] = pde_physics->manufactured_gradient(x_quad);
     }
 
     std::vector<real> residual_derivatives(n_dofs_cell);
@@ -200,7 +200,7 @@ void DG<dim,nstate,real>::assemble_boundary_term_implicit(
             }
         }
         // Evaluate physical convective flux, physical dissipative flux, and source term
-        pde_physics->dissipative_flux (soln_int[iquad], soln_grad_int[iquad], diss_phys_flux_int[iquad]);
+        diss_phys_flux_int[iquad] = pde_physics->dissipative_flux (soln_int[iquad], soln_grad_int[iquad]);
         conv_num_flux_dot_n[iquad] = conv_num_flux->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
         diss_soln_num_flux[iquad] = diss_num_flux->evaluate_solution_flux(soln_int[iquad], soln_ext[iquad], normal_int);
 
@@ -208,7 +208,7 @@ void DG<dim,nstate,real>::assemble_boundary_term_implicit(
         for (int s=0; s<nstate; s++) {
             diss_soln_jump_int[s] = (diss_soln_num_flux[iquad][s] - soln_int[iquad][s]) * normal_int;
         }
-        pde_physics->dissipative_flux (soln_int[iquad], diss_soln_jump_int, diss_flux_jump_int[iquad]);
+        diss_flux_jump_int[iquad] = pde_physics->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
 
         diss_auxi_num_flux_dot_n[iquad] = diss_num_flux->evaluate_auxiliary_flux(
             soln_int[iquad], soln_ext[iquad],
@@ -226,10 +226,10 @@ void DG<dim,nstate,real>::assemble_boundary_term_implicit(
         for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
 
             // Convection
-            rhs -= fe_values_boundary->shape_value_component(itest,iquad,istate) * conv_num_flux_dot_n[iquad][istate] * JxW[iquad];
+            rhs = rhs - fe_values_boundary->shape_value_component(itest,iquad,istate) * conv_num_flux_dot_n[iquad][istate] * JxW[iquad];
             // Diffusive
-            rhs -= fe_values_boundary->shape_value_component(itest,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW[iquad];
-            rhs += fe_values_boundary->shape_grad_component(itest,iquad,istate) * diss_flux_jump_int[iquad][istate] * JxW[iquad];
+            rhs = rhs - fe_values_boundary->shape_value_component(itest,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW[iquad];
+            rhs = rhs + fe_values_boundary->shape_grad_component(itest,iquad,istate) * diss_flux_jump_int[iquad][istate] * JxW[iquad];
         }
         // *******************
 
@@ -315,12 +315,12 @@ void DG<dim,nstate,real>::assemble_face_term_implicit(
             soln_grad_ext[iquad][istate] = 0;
         }
     }
-    // Interpolate solution to face
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
 
         const dealii::Tensor<1,dim,ADtype> normal_int = normals_int[iquad];
         const dealii::Tensor<1,dim,ADtype> normal_ext = -normal_int;
 
+        // Interpolate solution to face
         for (unsigned int itrial=0; itrial<fe_values_int->dofs_per_cell; ++itrial) {
             const unsigned int istate = fe_values_int->get_fe().system_to_component_index(itrial).first;
             soln_int[iquad][istate]      += soln_coeff_int_ad[itrial] * fe_values_int->shape_value_component(itrial, iquad, istate);
@@ -341,8 +341,8 @@ void DG<dim,nstate,real>::assemble_face_term_implicit(
             diss_soln_jump_int[s] = (diss_soln_num_flux[iquad][s] - soln_int[iquad][s]) * normal_int;
             diss_soln_jump_ext[s] = (diss_soln_num_flux[iquad][s] - soln_ext[iquad][s]) * normal_ext;
         }
-        pde_physics->dissipative_flux (soln_int[iquad], diss_soln_jump_int, diss_flux_jump_int[iquad]);
-        pde_physics->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext, diss_flux_jump_ext[iquad]);
+        diss_flux_jump_int[iquad] = pde_physics->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
+        diss_flux_jump_ext[iquad] = pde_physics->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext);
 
         diss_auxi_num_flux_dot_n[iquad] = diss_num_flux->evaluate_auxiliary_flux(
             soln_int[iquad], soln_ext[iquad],
@@ -350,20 +350,18 @@ void DG<dim,nstate,real>::assemble_face_term_implicit(
             normal_int, penalty);
     }
 
+    // From test functions associated with interior cell point of view
     for (unsigned int itest_int=0; itest_int<n_dofs_int; ++itest_int) {
-        // From test functions associated with interior cell point of view
-        // *******************
         ADtype rhs = 0.0;
         const unsigned int istate = fe_values_int->get_fe().system_to_component_index(itest_int).first;
 
         for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
             // Convection
-            rhs -= fe_values_int->shape_value_component(itest_int,iquad,istate) * conv_num_flux_dot_n[iquad][istate] * JxW_int[iquad];
+            rhs = rhs - fe_values_int->shape_value_component(itest_int,iquad,istate) * conv_num_flux_dot_n[iquad][istate] * JxW_int[iquad];
             // Diffusive
-            rhs -= fe_values_int->shape_value_component(itest_int,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW_int[iquad];
-            rhs += fe_values_int->shape_grad_component(itest_int,iquad,istate) * diss_flux_jump_int[iquad][istate] * JxW_int[iquad];
+            rhs = rhs - fe_values_int->shape_value_component(itest_int,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW_int[iquad];
+            rhs = rhs + fe_values_int->shape_grad_component(itest_int,iquad,istate) * diss_flux_jump_int[iquad][istate] * JxW_int[iquad];
         }
-        // *******************
 
         local_rhs_int_cell(itest_int) += rhs.val();
         for (unsigned int itrial = 0; itrial < n_dofs_int; ++itrial) {
@@ -376,20 +374,19 @@ void DG<dim,nstate,real>::assemble_face_term_implicit(
         this->system_matrix.add(dof_indices_int[itest_int], dof_indices_ext, dR1_dW2);
     }
 
+    // From test functions associated with neighbour cell point of view
     for (unsigned int itest_ext=0; itest_ext<n_dofs_ext; ++itest_ext) {
-        // From test functions associated with neighbour cell point of view
-        // *******************
         ADtype rhs = 0.0;
         const unsigned int istate = fe_values_int->get_fe().system_to_component_index(itest_ext).first;
 
         for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
             // Convection
-            rhs -= fe_values_ext->shape_value_component(itest_ext,iquad,istate) * (-conv_num_flux_dot_n[iquad][istate]) * JxW_int[iquad];
+            rhs = rhs - fe_values_ext->shape_value_component(itest_ext,iquad,istate) * (-conv_num_flux_dot_n[iquad][istate]) * JxW_int[iquad];
             // Diffusive
-            rhs -= fe_values_ext->shape_value_component(itest_ext,iquad,istate) * (-diss_auxi_num_flux_dot_n[iquad][istate]) * JxW_int[iquad];
-            rhs += fe_values_ext->shape_grad_component(itest_ext,iquad,istate) * diss_flux_jump_ext[iquad][istate] * JxW_int[iquad];
+            rhs = rhs - fe_values_ext->shape_value_component(itest_ext,iquad,istate) * (-diss_auxi_num_flux_dot_n[iquad][istate]) * JxW_int[iquad];
+            rhs = rhs + fe_values_ext->shape_grad_component(itest_ext,iquad,istate) * diss_flux_jump_ext[iquad][istate] * JxW_int[iquad];
         }
-        // *******************
+
         local_rhs_ext_cell(itest_ext) += rhs.val();
         for (unsigned int itrial = 0; itrial < n_dofs_int; ++itrial) {
             dR2_dW1[itrial] = rhs.dx(itrial);

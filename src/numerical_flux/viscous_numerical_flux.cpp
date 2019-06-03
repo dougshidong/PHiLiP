@@ -123,15 +123,15 @@ std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
     ArrayTensor1 phys_flux_int, phys_flux_ext;
 
     // {{A*grad_u}}
-    pde_physics->dissipative_flux (soln_int, soln_grad_int, phys_flux_int);
-    pde_physics->dissipative_flux (soln_ext, soln_grad_ext, phys_flux_ext);
+    phys_flux_int = pde_physics->dissipative_flux (soln_int, soln_grad_int);
+    phys_flux_ext = pde_physics->dissipative_flux (soln_ext, soln_grad_ext);
     ArrayTensor1 phys_flux_avg = array_average<nstate,dealii::Tensor<1,dim,real>>(phys_flux_int, phys_flux_ext);
 
     // {{A}}*[[u]]
     ArrayTensor1 soln_jump     = array_jump<dim,nstate,real>(soln_int, soln_ext, normal_int);
     ArrayTensor1 A_jumpu_int, A_jumpu_ext;
-    pde_physics->dissipative_flux (soln_int, soln_jump, A_jumpu_int);
-    pde_physics->dissipative_flux (soln_ext, soln_jump, A_jumpu_ext);
+    A_jumpu_int = pde_physics->dissipative_flux (soln_int, soln_jump);
+    A_jumpu_ext = pde_physics->dissipative_flux (soln_ext, soln_jump);
     const ArrayTensor1 A_jumpu_avg = array_average<nstate,dealii::Tensor<1,dim,real>>(A_jumpu_int, A_jumpu_ext);
 
 

@@ -1,3 +1,4 @@
+#include<fstream>
 #include <deal.II/base/parameter_handler.h>
 #include <deal.II/base/tensor.h>
 
@@ -306,7 +307,7 @@ void DG<dim,nstate,real>::assemble_system ()
             } else if (current_face->has_children()) {
                 std::cout << "SHOULD NOT HAPPEN!!!!!!!!!!!! I haven't put in adaptatation yet" << std::endl;
                 neighbor_cell_rhs = 0;
-                Assert (current_cell->neighbor(iface).state() == IteratorState::valid, ExcInternalError());
+                Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
 
                 // Obtain cell neighbour
                 const unsigned int neighbor_face_no = current_cell->neighbor_face_no(iface);
@@ -317,7 +318,7 @@ void DG<dim,nstate,real>::assemble_system ()
 
                     typename dealii::DoFHandler<dim>::cell_iterator neighbor_child_cell = current_cell->neighbor_child_on_subface (iface, subface_no);
 
-                    Assert (!neighbor_child_cell->has_children(), ExcInternalError());
+                    Assert (!neighbor_child_cell->has_children(), dealii::ExcInternalError());
 
                     neighbor_child_cell->get_dof_indices (neighbor_dofs_indices);
 
@@ -368,7 +369,7 @@ void DG<dim,nstate,real>::assemble_system ()
                 n_face_visited++;
 
                 neighbor_cell_rhs = 0;
-                Assert (current_cell->neighbor(iface).state() == IteratorState::valid, ExcInternalError());
+                Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
                 typename dealii::DoFHandler<dim>::cell_iterator neighbor_cell = current_cell->neighbor(iface);
 
                 neighbor_cell->get_dof_indices (neighbor_dofs_indices);

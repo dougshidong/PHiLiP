@@ -33,26 +33,13 @@ PhysicsFactory<dim,nstate,real>
 template <int dim, int nstate, typename real>
 PhysicsBase<dim,nstate,real>::~PhysicsBase() {}
 
-//  template <int dim, int nstate, typename real>
-//  void PhysicsBase<dim,nstate,real>
-//  ::dissipative_flux_A_gradu (
-//      const real scaling,
-//      const std::array<real,nstate> &solution,
-//      const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-//      std::array<dealii::Tensor<1,dim,real>,nstate> &dissipative_flux) const
-//  {
-//      const std::array<dealii::Tensor<1,dim,real>,nstate> dissipation = apply_diffusion_matrix(solution, solution_gradient);
-//      for (int s=0; s<nstate; s++) {
-//          dissipative_flux[s] = -scaling*dissipation[s];
-//      }
-//  }
-
 // Common manufactured solution for advection, diffusion, convection-diffusion
 template <int dim, int nstate, typename real>
-void PhysicsBase<dim,nstate,real>
-//::manufactured_solution (const dealii::Point<dim,double> &pos, std::array<real,nstate> &solution) const
-::manufactured_solution (const dealii::Point<dim,double> &pos, real *const solution) const
+std::array<real,nstate> PhysicsBase<dim,nstate,real>
+::manufactured_solution (const dealii::Point<dim,double> &pos) const
+//::manufactured_solution (const dealii::Point<dim,double> &pos, real *const solution) const
 {
+    std::array<real,nstate> solution;
     using phys = PhysicsBase<dim,nstate,real>;
     const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
     const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
@@ -68,11 +55,13 @@ void PhysicsBase<dim,nstate,real>
         if (dim==2) solution[istate] = cos(a*pos[0]+d)*cos(b*pos[1]+e);
         if (dim==3) solution[istate] = cos(a*pos[0]+d)*cos(b*pos[1]+e)*cos(c*pos[2]+f);
     }
+    return solution;
 }
 template <int dim, int nstate, typename real>
-void PhysicsBase<dim,nstate,real>
-::manufactured_gradient (const dealii::Point<dim,double> &pos, std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>
+::manufactured_gradient (const dealii::Point<dim,double> &pos) const
 {
+    std::array<dealii::Tensor<1,dim,real>,nstate> solution_gradient;
     using phys = PhysicsBase<dim,nstate,real>;
     const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
     const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
@@ -102,6 +91,7 @@ void PhysicsBase<dim,nstate,real>
             solution_gradient[istate][2] = -c*cos(a*pos[0]+d)*cos(b*pos[1]+e)*sin(c*pos[2]+f);
         }
     }
+    return solution_gradient;
 }
 
 template <int dim, int nstate, typename real>
@@ -210,16 +200,28 @@ std::array<real,nstate> LinearAdvection<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-void LinearAdvection<dim,nstate,real>
-::convective_flux (
-    const std::array<real,nstate> &solution,
-    std::array<dealii::Tensor<1,dim,real>,nstate> &conv_flux) const
+real LinearAdvection<dim,nstate,real>
+::max_convective_eigenvalue (const std::array<real,nstate> &/*soln*/) const
 {
+    const dealii::Tensor<1,dim,real> advection_speed = this->advection_speed();
+    real max_eig = 0;
+    for (int i=0; i<dim; i++) {
+        max_eig = std::max(max_eig,std::abs(advection_speed[0]));
+    }
+    return max_eig;
+}
+
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> LinearAdvection<dim,nstate,real>
+::convective_flux (const std::array<real,nstate> &solution) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
     // Assert conv_flux dimensions
     const dealii::Tensor<1,dim,real> velocity_field = this->advection_speed();
     for (int i=0; i<nstate; ++i) {
         conv_flux[i] = velocity_field * solution[i];
     }
+    return conv_flux;
 }
 
 //  template <int dim, int nstate, typename real>
@@ -233,25 +235,26 @@ void LinearAdvection<dim,nstate,real>
 //  }
 
 template <int dim, int nstate, typename real>
-void LinearAdvection<dim,nstate,real>
+std::array<dealii::Tensor<1,dim,real>,nstate> LinearAdvection<dim,nstate,real>
 ::dissipative_flux (
     const std::array<real,nstate> &/*solution*/,
-    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
-    std::array<dealii::Tensor<1,dim,real>,nstate> &diss_flux) const
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/) const
 {
+    std::array<dealii::Tensor<1,dim,real>,nstate> diss_flux;
     // No dissipation
     for (int i=0; i<nstate; i++) {
         diss_flux[i] = 0;
     }
+    return diss_flux;
 }
 
 template <int dim, int nstate, typename real>
-void LinearAdvection<dim,nstate,real>
+std::array<real,nstate> LinearAdvection<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,double> &pos,
-    const std::array<real,nstate> &/*solution*/,
-    std::array<real,nstate> &source) const
+    const std::array<real,nstate> &/*solution*/) const
 {
+    std::array<real,nstate> source;
     const dealii::Tensor<1,dim,real> vel = this->advection_speed();
     using phys = PhysicsBase<dim,nstate,real>;
     const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
@@ -288,14 +291,19 @@ void LinearAdvection<dim,nstate,real>
                               - vel[2]*c*cos(a*x+d)*cos(b*y+e)*sin(c*z+f);
         }
     }
+    return source;
 }
 
 template <int dim, int nstate, typename real>
-void Diffusion<dim, nstate, real>
-::convective_flux (
-    const std::array<real,nstate> &/*solution*/,
-    std::array<dealii::Tensor<1,dim,real>,nstate> &/*conv_flux*/) const
-{ }
+std::array<dealii::Tensor<1,dim,real>,nstate> Diffusion<dim, nstate, real>
+::convective_flux (const std::array<real,nstate> &/*solution*/) const
+{ 
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
+    for (int i=0; i<nstate; i++) {
+        conv_flux[i] = 0;
+    }
+    return conv_flux;
+}
 
 template <int dim, int nstate, typename real>
 std::array<real, nstate> Diffusion<dim, nstate, real>
@@ -308,6 +316,13 @@ std::array<real, nstate> Diffusion<dim, nstate, real>
         eig[i] = 0;
     }
     return eig;
+}
+template <int dim, int nstate, typename real>
+real Diffusion<dim,nstate,real>
+::max_convective_eigenvalue (const std::array<real,nstate> &/*soln*/) const
+{
+    const real max_eig = 0;
+    return max_eig;
 }
 
 //  template <int dim, int nstate, typename real>
@@ -325,12 +340,12 @@ std::array<real, nstate> Diffusion<dim, nstate, real>
 //  }
 
 template <int dim, int nstate, typename real>
-void Diffusion<dim,nstate,real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Diffusion<dim,nstate,real>
 ::dissipative_flux (
     const std::array<real,nstate> &/*solution*/,
-    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-    std::array<dealii::Tensor<1,dim,real>,nstate> &diss_flux) const
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const
 {
+    std::array<dealii::Tensor<1,dim,real>,nstate> diss_flux;
     const double diff_coeff = this->diff_coeff;
 
     using phys = PhysicsBase<dim,nstate,real>;
@@ -363,15 +378,16 @@ void Diffusion<dim,nstate,real>
         }
 
     }
+    return diss_flux;
 }
 
 template <int dim, int nstate, typename real>
-void Diffusion<dim,nstate,real>
+std::array<real,nstate> Diffusion<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,double> &pos,
-    const std::array<real,nstate> &/*solution*/,
-    std::array<real,nstate> &source) const
+    const std::array<real,nstate> &/*solution*/) const
 {
+    std::array<real,nstate> source;
     using phys = PhysicsBase<dim,nstate,real>;
     const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
     const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
@@ -419,18 +435,19 @@ void Diffusion<dim,nstate,real>
                          - diff_coeff*a32*c*b*sin(a*x+d)*cos(b*y+e)*cos(c*z+f)
                          + diff_coeff*a33*c*c*sin(a*x+d)*sin(b*y+e)*sin(c*z+f);
     }
+    return source;
 }
 
 template <int dim, int nstate, typename real>
-void ConvectionDiffusion<dim,nstate,real>
-::convective_flux (
-    const std::array<real,nstate> &solution,
-    std::array<dealii::Tensor<1,dim,real>,nstate> &conv_flux) const
+std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,real>
+::convective_flux (const std::array<real,nstate> &solution) const
 {
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
     const dealii::Tensor<1,dim,real> velocity_field = this->advection_speed();
     for (int i=0; i<nstate; ++i) {
         conv_flux[i] = velocity_field * solution[i];
     }
+    return conv_flux;
 }
 
 template <int dim, int nstate, typename real>
@@ -459,6 +476,18 @@ std::array<real,nstate> ConvectionDiffusion<dim,nstate,real>
     return eig;
 }
 
+template <int dim, int nstate, typename real>
+real ConvectionDiffusion<dim,nstate,real>
+::max_convective_eigenvalue (const std::array<real,nstate> &/*soln*/) const
+{
+    const dealii::Tensor<1,dim,real> advection_speed = this->advection_speed();
+    real max_eig = 0;
+    for (int i=0; i<dim; i++) {
+        max_eig = std::max(max_eig,std::abs(advection_speed[0]));
+    }
+    return max_eig;
+}
+
 //  template <int dim, int nstate, typename real>
 //  std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,real>
 //  ::apply_diffusion_matrix(
@@ -474,25 +503,26 @@ std::array<real,nstate> ConvectionDiffusion<dim,nstate,real>
 //  }
 
 template <int dim, int nstate, typename real>
-void ConvectionDiffusion<dim,nstate,real>
+std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,real>
 ::dissipative_flux (
     const std::array<real,nstate> &/*solution*/,
-    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-    std::array<dealii::Tensor<1,dim,real>,nstate> &diss_flux) const
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const
 {
+    std::array<dealii::Tensor<1,dim,real>,nstate> diss_flux;
     const double diff_coeff = this->diff_coeff;
     for (int i=0; i<nstate; i++) {
         diss_flux[i] = -diff_coeff*1.0*solution_gradient[i];
     }
+    return diss_flux;
 }
 
 template <int dim, int nstate, typename real>
-void ConvectionDiffusion<dim,nstate,real>
+std::array<real,nstate> ConvectionDiffusion<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,double> &pos,
-    const std::array<real,nstate> &/*solution*/,
-    std::array<real,nstate> &source) const
+    const std::array<real,nstate> &/*solution*/) const
 {
+    std::array<real,nstate> source;
     const dealii::Tensor<1,dim,real> velocity_field = this->advection_speed();
     using phys = PhysicsBase<dim,nstate,real>;
     const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
@@ -519,6 +549,7 @@ void ConvectionDiffusion<dim,nstate,real>
                    diff_coeff*b*b*sin(a*x+d)*sin(b*y+e)*sin(c*z+f) +
                    diff_coeff*c*c*sin(a*x+d)*sin(b*y+e)*sin(c*z+f);
     }
+    return source;
 }
 // Instantiate explicitly
 

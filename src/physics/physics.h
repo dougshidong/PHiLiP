@@ -354,11 +354,11 @@ public:
 
     /// Convective flux: \f$ \mathbf{F}_{conv} =  u \f$
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
-        const std::array<real,nstate> &solution) const;
+        const std::array<real,nstate> &conservative_soln) const;
 
     /// Spectral radius of convective term Jacobian is 'c'
     std::array<real,nstate> convective_eigenvalues (
-        const std::array<real,nstate> &/*solution*/,
+        const std::array<real,nstate> &/*conservative_soln*/,
         const dealii::Tensor<1,dim,real> &/*normal*/) const;
 
     /// Maximum convective eigenvalue used in Lax-Friedrichs
@@ -366,24 +366,48 @@ public:
 
     //  /// Diffusion matrix is identity
     //  std::array<dealii::Tensor<1,dim,real>,nstate> apply_diffusion_matrix (
-    //      const std::array<real,nstate> &solution,
+    //      const std::array<real,nstate> &conservative_soln,
     //      const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_grad) const;
 
     /// Dissipative flux: u
     std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
-        const std::array<real,nstate> &solution,
+        const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
 
     /// Source term is zero or depends on manufactured solution
     std::array<real,nstate> source_term (
         const dealii::Point<dim,double> &pos,
-        const std::array<real,nstate> &solution) const;
+        const std::array<real,nstate> &conservative_soln) const;
+
+    /// Given conservative variables [density, [momentum], total energy],
+    /// returns primitive variables [density, [velocities], pressure].
+    ///
+    /// Opposite of convert_primitive_to_conservative
+    std::array<real,nstate> convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const;
+
+    /// Given primitive variables [density, [velocities], pressure],
+    /// returns conservative variables [density, [momentum], total energy].
+    ///
+    /// Opposite of convert_primitive_to_conservative
+    std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const;
 
 protected:
+    /// Constant heat capacity ratio of air
     const real gam = 1.4;
-    real compute_pressure ( const std::array<real,nstate> &solution ) const;
-    real compute_sound ( const std::array<real,nstate> &solution ) const;
-    std::array<real,dim> compute_velocities ( const std::array<real,nstate> &solution ) const;
+    /// Evaluate pressure from conservative variables
+    real compute_pressure ( const std::array<real,nstate> &conservative_soln ) const;
+    /// Evaluate speed of sound from conservative variables
+    real compute_sound ( const std::array<real,nstate> &conservative_soln ) const;
+    /// Evaluate velocities from conservative variables
+    std::array<real,dim> compute_velocities ( const std::array<real,nstate> &conservative_soln ) const;
+    /// Given the velocity vector \f$ \mathbf{u} \f$, returns the dot-product  \f$ \mathbf{u} \cdot \mathbf{u} \f$
+    real compute_velocity_squared ( const std::array<real,dim> &velocities ) const;
+
+    /// Given primitive variables, returns velocities.
+    std::array<real,dim> extract_velocities_from_primitive ( const std::array<real,nstate> &primitive_soln ) const;
+    /// Given primitive variables, returns total energy
+    real compute_energy ( const std::array<real,nstate> &primitive_soln ) const;
+
 
 };
 

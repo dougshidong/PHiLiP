@@ -37,7 +37,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " <advection | " 
                       "  diffusion | "
                       "  convection_diffusion | "
-                      "  advection_vector>.");
+                      "  advection_vector | "
+                      "  euler>.");
     prm.declare_entry("conv_num_flux", "lax_friedrichs",
                       dealii::Patterns::Selection("lax_friedrichs"),
                       "Convective numerical flux. "
@@ -78,6 +79,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     } else if (pde_string == "convection_diffusion") {
         pde_type = convection_diffusion;
         nstate = 1;
+    } else if (pde_string == "euler") {
+        pde_type = euler;
+        nstate = dimension+2;
     }
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");

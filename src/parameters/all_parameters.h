@@ -44,7 +44,8 @@ public:
         advection,
         diffusion,
         convection_diffusion,
-        advection_vector};
+        advection_vector,
+        euler};
     /// Store the PDE type to be solved
     PartialDifferentialEquation pde_type;
 

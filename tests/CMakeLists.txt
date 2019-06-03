@@ -7,3 +7,5 @@ add_subdirectory(convection_diffusion_implicit)
 
 add_subdirectory(advection_vector_implicit)
 
+
+add_subdirectory(euler_unit_test)

@@ -24,6 +24,8 @@ PhysicsFactory<dim,nstate,real>
         return new Diffusion<dim,nstate,real>;
     } else if (pde_type == PDE_enum::convection_diffusion) {
         return new ConvectionDiffusion<dim,nstate,real>;
+    } else if (pde_type == PDE_enum::euler) {
+        if constexpr (nstate==dim+2) return new Euler<dim,nstate,real>;
     }
     std::cout << "Can't create PhysicsBase, invalid PDE type: " << pde_type << std::endl;
     return nullptr;

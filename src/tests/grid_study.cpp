@@ -42,7 +42,7 @@ int GridStudy<dim,nstate>
     using GridEnum = ManParam::GridEnum;
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
-    Assert(dim == param.dimension, ExcDimensionMismatch(dim, param.dimension));
+    Assert(dim == param.dimension, dealii::ExcDimensionMismatch(dim, param.dimension));
 
     ManParam manu_grid_conv_param = param.manufactured_convergence_study_param;
 
@@ -160,8 +160,8 @@ int GridStudy<dim,nstate>
             dealii::FEValues<dim,dim> fe_values_extra(dg->mapping, dg->fe_system, quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
-            std::vector<double> soln_at_q(nstate);
-            std::vector<double> uexact(nstate);
+            std::array<double,nstate> soln_at_q;
+            std::array<double,nstate> uexact;
 
             double l2error = 0;
 
@@ -194,7 +194,7 @@ int GridStudy<dim,nstate>
                     }
 
                     const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
-                    physics_double->manufactured_solution (qpoint, &uexact[0]);
+                    uexact = physics_double->manufactured_solution (qpoint);
                     //std::cout << "cos(0.59*x+1 " << cos(0.59*qpoint[0]+1) << std::endl;
                     //std::cout << "uexact[1] " << uexact[1] << std::endl;
 

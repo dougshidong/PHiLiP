@@ -13,6 +13,14 @@ namespace PHiLiP {
 namespace Physics {
 
 template <int dim, int nstate, typename real>
+std::array<real,nstate> Euler<dim,nstate,real>
+::manufactured_solution (const dealii::Point<dim,double> &pos) const
+{
+    std::array<real,nstate> soln;
+    return soln;
+}
+
+template <int dim, int nstate, typename real>
 inline std::array<real,dim> Euler<dim,nstate,real>
 ::compute_velocities ( const std::array<real,nstate> &soln ) const
 {
@@ -50,11 +58,10 @@ inline real Euler<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-void Euler<dim,nstate,real>
-::convective_flux (
-    const std::array<real,nstate> &soln,
-    std::array<dealii::Tensor<1,dim,real>,nstate> &conv_flux) const
+std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
+::convective_flux (const std::array<real,nstate> &soln) const
 {
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
     const real density = soln[0];
     const real pressure = compute_pressure (soln);
     const std::array<real,dim> vel = compute_velocities(soln);
@@ -71,42 +78,58 @@ void Euler<dim,nstate,real>
         // Energy equation
         conv_flux[2+dim][fdim] = (soln[2+dim]+pressure)*vel[fdim];
     }
+    return conv_flux;
 }
 
 template <int dim, int nstate, typename real>
 std::array<real,nstate> Euler<dim,nstate,real>
 ::convective_eigenvalues (
-    const std::array<real,nstate> &/*soln*/,
+    const std::array<real,nstate> &soln,
     const dealii::Tensor<1,dim,real> &normal) const
 {
+    const std::array<real,dim> vel = compute_velocities(soln);
     std::array<real,nstate> eig;
     for (int i=0; i<nstate; i++) {
         //eig[i] = advection_speed*normal;
     }
     return eig;
 }
+template <int dim, int nstate, typename real>
+real Euler<dim,nstate,real>
+::max_convective_eigenvalue (const std::array<real,nstate> &soln) const
+{
+    const std::array<real,dim> vel = compute_velocities(soln);
+    const real sound = compute_sound (soln);
+    real speed = 0.0;
+    for (int i=0; i<dim; i++) {
+        speed = speed + vel[i]*vel[i];
+    }
+    const real max_eig = sqrt(speed) + sound;
+    return max_eig;
+}
 
 
 template <int dim, int nstate, typename real>
-void Euler<dim,nstate,real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
 ::dissipative_flux (
     const std::array<real,nstate> &/*soln*/,
-    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
-    std::array<dealii::Tensor<1,dim,real>,nstate> &diss_flux) const
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/) const
 {
+    std::array<dealii::Tensor<1,dim,real>,nstate> diss_flux;
     // No dissipation
     for (int i=0; i<nstate; i++) {
         diss_flux[i] = 0;
     }
+    return diss_flux;
 }
 
 template <int dim, int nstate, typename real>
-void Euler<dim,nstate,real>
+std::array<real,nstate> Euler<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,double> &pos,
-    const std::array<real,nstate> &/*soln*/,
-    std::array<real,nstate> &source) const
+    const std::array<real,nstate> &/*soln*/) const
 {
+    std::array<real,nstate> source;
     using phys = PhysicsBase<dim,nstate,real>;
     const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
     const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
@@ -142,6 +165,7 @@ void Euler<dim,nstate,real>
     //                           - vel[2]*c*cos(a*x+d)*cos(b*y+e)*sin(c*z+f);
     //     }
     // }
+    return source;
 }
 
 // Instantiate explicitly

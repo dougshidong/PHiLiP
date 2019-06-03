@@ -37,15 +37,11 @@ public:
      *  if (dim==3) uexact = sin(a*pos[0]+d)*sin(b*pos[1]+e)*sin(c*pos[2]+f);
      *  ~~~~~
      */
-    virtual void manufactured_solution (
-        const dealii::Point<dim,double> &pos,
-        //std::array<real,nstate> &solution) const;
-        real *const solution) const;
+    virtual std::array<real,nstate> manufactured_solution (const dealii::Point<dim,double> &pos) const;
 
     /// Default manufactured solution gradient.
-    virtual void manufactured_gradient (
-        const dealii::Point<dim,double> &pos,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
+    virtual std::array<dealii::Tensor<1,dim,real>,nstate> manufactured_gradient (
+        const dealii::Point<dim,double> &pos) const;
 
     /// Returns the integral of the manufactured solution over the hypercube [0,1].
     ///
@@ -54,15 +50,17 @@ public:
     virtual double integral_output (const bool linear) const;
 
     /// Convective fluxes that will be differentiated once in space.
-    virtual void convective_flux (
-        const std::array<real,nstate> &solution,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &conv_flux) const = 0;
+    virtual std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
+        const std::array<real,nstate> &solution) const = 0;
 
     /// Spectral radius of convective term Jacobian.
     /// Used for scalar dissipation
     virtual std::array<real,nstate> convective_eigenvalues (
         const std::array<real,nstate> &/*solution*/,
         const dealii::Tensor<1,dim,real> &/*normal*/) const = 0;
+
+    /// Maximum convective eigenvalue used in Lax-Friedrichs
+    virtual real max_convective_eigenvalue (const std::array<real,nstate> &soln) const = 0;
 
     // /// Evaluate the diffusion matrix \f$ A \f$ such that \f$F_v = A \nabla u\f$.
     // virtual std::array<dealii::Tensor<1,dim,real>,nstate> apply_diffusion_matrix (
@@ -71,23 +69,21 @@ public:
 
     /// Dissipative fluxes that will be differentiated once in space.
     /// Evaluates the dissipative flux through the linearization F = A(u)*grad(u).
-    void dissipative_flux_A_gradu (
+    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux_A_gradu (
         const real scaling,
         const std::array<real,nstate> &solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         std::array<dealii::Tensor<1,dim,real>,nstate> &diss_flux) const;
 
     /// Dissipative fluxes that will be differentiated once in space.
-    virtual void dissipative_flux (
+    virtual std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
         const std::array<real,nstate> &solution,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &diss_flux) const = 0;
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const = 0;
 
     /// Source term that does not require differentiation.
-    virtual void source_term (
+    virtual std::array<real,nstate> source_term (
         const dealii::Point<dim,double> &pos,
-        const std::array<real,nstate> &solution,
-        std::array<real,nstate> &source) const = 0;
+        const std::array<real,nstate> &solution) const = 0;
 
     /// Evaluates boundary values and gradients on the other side of the face.
     virtual void boundary_face_values (
@@ -117,8 +113,8 @@ protected:
     const double pi = atan(1)*4.0;
 
     /// Some constants used to define manufactured solution
-    const double freq_x = 0.59/dim, freq_y = 2*0.81/dim,    freq_z = 3*0.76/dim;
-    const double offs_x = 1,        offs_y = 1.2,           offs_z = 1.5;
+    const double freq_x = 0.59/dim, freq_y = 2*0.41/dim,    freq_z = 3*0.76/dim;
+    const double offs_x = 1,        offs_y = 0.2,           offs_z = 1.5;
     const double velo_x = exp(1)/2, velo_y =-pi/4.0,        velo_z = sqrt(2);
     //const double velo_x = 1.0, velo_y =-pi/4.0,        velo_z = sqrt(2);
     const double diff_coeff = 5.0;
@@ -160,14 +156,16 @@ class LinearAdvection : public PhysicsBase <dim, nstate, real>
 public:
     ~LinearAdvection () {};
     /// Convective flux:  c*u
-    void convective_flux (
-        const std::array<real,nstate> &solution,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &conv_flux) const;
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
+        const std::array<real,nstate> &solution) const;
 
     /// Spectral radius of convective term Jacobian is simply the maximum 'c'
     std::array<real,nstate> convective_eigenvalues (
         const std::array<real,nstate> &/*solution*/,
         const dealii::Tensor<1,dim,real> &normal) const;
+
+    /// Maximum convective eigenvalue used in Lax-Friedrichs
+    real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
 
     //  /// Diffusion matrix: 0
     //  std::array<dealii::Tensor<1,dim,real>,nstate> apply_diffusion_matrix (
@@ -175,16 +173,14 @@ public:
     //      const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_grad) const;
 
     /// Dissipative flux: 0
-    void dissipative_flux (
+    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
         const std::array<real,nstate> &solution,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &diss_flux) const;
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
 
     /// Source term is zero or depends on manufactured solution
-    void source_term (
+    std::array<real,nstate> source_term (
         const dealii::Point<dim,double> &pos,
-        const std::array<real,nstate> &solution,
-        std::array<real,nstate> &source) const;
+        const std::array<real,nstate> &solution) const;
 
 protected:
     /// Linear advection speed:  c
@@ -213,14 +209,15 @@ class Diffusion : public PhysicsBase <dim, nstate, real>
 public:
     ~Diffusion () {};
     /// Convective flux:  0
-    void convective_flux (
-        const std::array<real,nstate> &solution,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &conv_flux) const;
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (const std::array<real,nstate> &solution) const;
 
     /// Convective eigenvalues dotted with normal
     std::array<real,nstate> convective_eigenvalues (
         const std::array<real,nstate> &/*solution*/,
         const dealii::Tensor<1,dim,real> &/*normal*/) const;
+
+    /// Maximum convective eigenvalue used in Lax-Friedrichs
+    real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
 
     //  /// Diffusion matrix is identity
     //  std::array<dealii::Tensor<1,dim,real>,nstate> apply_diffusion_matrix (
@@ -228,16 +225,14 @@ public:
     //      const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_grad) const;
 
     /// Dissipative flux: u
-    void dissipative_flux (
+    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
         const std::array<real,nstate> &solution,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &diss_flux) const;
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
 
     /// Source term is zero or depends on manufactured solution
-    void source_term (
+    std::array<real,nstate> source_term (
         const dealii::Point<dim,double> &pos,
-        const std::array<real,nstate> &solution,
-        std::array<real,nstate> &source) const;
+        const std::array<real,nstate> &solution) const;
 };
 
 /// Convection-diffusion with linear advective and diffusive term.  Derived from PhysicsBase.
@@ -262,14 +257,15 @@ class ConvectionDiffusion : public PhysicsBase <dim, nstate, real>
 public:
     ~ConvectionDiffusion () {};
     /// Convective flux: \f$ \mathbf{F}_{conv} =  u \f$
-    void convective_flux (
-        const std::array<real,nstate> &solution,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &conv_flux) const;
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (const std::array<real,nstate> &solution) const;
 
     /// Spectral radius of convective term Jacobian is 'c'
     std::array<real,nstate> convective_eigenvalues (
         const std::array<real,nstate> &/*solution*/,
         const dealii::Tensor<1,dim,real> &/*normal*/) const;
+
+    /// Maximum convective eigenvalue used in Lax-Friedrichs
+    real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
 
     //  /// Diffusion matrix is identity
     //  std::array<dealii::Tensor<1,dim,real>,nstate> apply_diffusion_matrix (
@@ -277,16 +273,14 @@ public:
     //      const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_grad) const;
 
     /// Dissipative flux: u
-    void dissipative_flux (
+    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
         const std::array<real,nstate> &solution,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &diss_flux) const;
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
 
     /// Source term is zero or depends on manufactured solution
-    void source_term (
+    std::array<real,nstate> source_term (
         const dealii::Point<dim,double> &pos,
-        const std::array<real,nstate> &solution,
-        std::array<real,nstate> &source) const;
+        const std::array<real,nstate> &solution) const;
 
 protected:
     /// Linear advection speed:  c
@@ -355,15 +349,20 @@ class Euler : public PhysicsBase <dim, nstate, real>
 public:
     ~Euler () {};
 
+    /// Manufactured solution for Euler
+    std::array<real,nstate> manufactured_solution (const dealii::Point<dim,double> &pos) const;
+
     /// Convective flux: \f$ \mathbf{F}_{conv} =  u \f$
-    void convective_flux (
-        const std::array<real,nstate> &solution,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &conv_flux) const;
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
+        const std::array<real,nstate> &solution) const;
 
     /// Spectral radius of convective term Jacobian is 'c'
     std::array<real,nstate> convective_eigenvalues (
         const std::array<real,nstate> &/*solution*/,
         const dealii::Tensor<1,dim,real> &/*normal*/) const;
+
+    /// Maximum convective eigenvalue used in Lax-Friedrichs
+    real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
 
     //  /// Diffusion matrix is identity
     //  std::array<dealii::Tensor<1,dim,real>,nstate> apply_diffusion_matrix (
@@ -371,16 +370,14 @@ public:
     //      const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_grad) const;
 
     /// Dissipative flux: u
-    void dissipative_flux (
+    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
         const std::array<real,nstate> &solution,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &diss_flux) const;
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
 
     /// Source term is zero or depends on manufactured solution
-    void source_term (
+    std::array<real,nstate> source_term (
         const dealii::Point<dim,double> &pos,
-        const std::array<real,nstate> &solution,
-        std::array<real,nstate> &source) const;
+        const std::array<real,nstate> &solution) const;
 
 protected:
     const real gam = 1.4;

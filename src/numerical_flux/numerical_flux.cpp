@@ -63,8 +63,8 @@ std::array<real, nstate> LaxFriedrichs<dim,nstate,real>
     RealArrayVector conv_phys_flux_int;
     RealArrayVector conv_phys_flux_ext;
 
-    pde_physics->convective_flux (soln_int, conv_phys_flux_int);
-    pde_physics->convective_flux (soln_ext, conv_phys_flux_ext);
+    conv_phys_flux_int = pde_physics->convective_flux (soln_int);
+    conv_phys_flux_ext = pde_physics->convective_flux (soln_ext);
     
     RealArrayVector flux_avg = 
         array_average<nstate, dealii::Tensor<1,dim,real>> 
@@ -73,16 +73,13 @@ std::array<real, nstate> LaxFriedrichs<dim,nstate,real>
     //    flux_avg[s] = 0.5*(conv_phys_flux_int[s] + conv_phys_flux_ext[s]);
     //}
 
-    const std::array<real,nstate> conv_eig_int = pde_physics->convective_eigenvalues(soln_int, normal_int);
-    const std::array<real,nstate> conv_eig_ext = pde_physics->convective_eigenvalues(soln_ext, normal_int); // using the same normal
-    std::array<real,nstate> conv_eig_max;
-    for (int s=0; s<nstate; s++) {
-        conv_eig_max[s] = std::max(std::abs(conv_eig_int[s]), std::abs(conv_eig_ext[s]));
-    }
+    const real conv_max_eig_int = pde_physics->max_convective_eigenvalue(soln_int);
+    const real conv_max_eig_ext = pde_physics->max_convective_eigenvalue(soln_int);
+    const real conv_max_eig = std::max(conv_max_eig_int, conv_max_eig_ext);
     // Scalar dissipation
     std::array<real, nstate> numerical_flux_dot_n;
     for (int s=0; s<nstate; s++) {
-        numerical_flux_dot_n[s] = flux_avg[s]*normal_int - 0.5 * conv_eig_max[s] * (soln_ext[s]-soln_int[s]);
+        numerical_flux_dot_n[s] = flux_avg[s]*normal_int - 0.5 * conv_max_eig * (soln_ext[s]-soln_int[s]);
     }
 
     return numerical_flux_dot_n;

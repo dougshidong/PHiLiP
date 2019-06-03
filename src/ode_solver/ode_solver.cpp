@@ -25,25 +25,27 @@ int Implicit_ODESolver<dim,real>::steady_state ()
     {
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
             (this->current_iteration%ode_param.print_iteration_modulo) == 0 )
-        std::cout << " Iteration: " << this->current_iteration 
-                  << " Residual norm: " << this->residual_norm
+        std::cout << " ********************************************************** "
+                  << std::endl
+                  << " Nonlinear iteration: " << this->current_iteration 
+                  << " residual norm: " << this->residual_norm
                   << std::endl;
 
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
             (this->current_iteration%ode_param.print_iteration_modulo) == 0 )
-        std::cout << " Assembling system... ";
+        std::cout << " Assembling system... " << std::endl;
         ODESolver<dim,real>::dg->assemble_system ();
 
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
             (this->current_iteration%ode_param.print_iteration_modulo) == 0 )
-        std::cout << " Evaluating system update... ";
+        std::cout << " Evaluating system update... " << std::endl;
         evaluate_solution_update ();
 
 
         //this->solution_update *= 0.1;
-        update_norm = this->solution_update.l2_norm();
         ODESolver<dim,real>::dg->solution += this->solution_update;
 
+        update_norm = this->solution_update.l2_norm();
         this->residual_norm = ODESolver<dim,real>::dg->get_residual_l2norm();
 
         ++(this->current_iteration);

@@ -58,7 +58,7 @@ solve_linear (
         ilut_drop = 1e-10,
         ilut_rtol = 0.0,//1.1,
         ilut_atol = 0.0,//1e-9,
-        linear_residual = 1e-5;
+        linear_residual = 1e-10;
       const int 
         ilut_fill = 1,
         max_iterations = 2000
@@ -84,9 +84,10 @@ solve_linear (
       solver.Iterate(max_iterations,
                      linear_residual);
 
-      std::cout << " Linear solver iteration: " << solver.NumIters() 
-                << " Residual: " << solver.TrueResidual()
-                << " RHS norm: " << right_hand_side.l2_norm()
+      std::cout << " Linear solver took " << solver.NumIters()
+                << " iterations resulting in a linear residual of " << solver.TrueResidual()
+                << std::endl
+                << " Current RHS norm: " << right_hand_side.l2_norm()
                 << " Newton update norm: " << solution.l2_norm()
                 << std::endl;
       return {solver.NumIters(), solver.TrueResidual()};

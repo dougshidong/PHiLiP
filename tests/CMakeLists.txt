@@ -1,11 +1,12 @@
+# Unit tests
 add_subdirectory(numerical_flux)
 add_subdirectory(regression)
+add_subdirectory(euler_unit_test)
 
+# Integration tests
 add_subdirectory(advection_implicit)
 add_subdirectory(diffusion_implicit)
 add_subdirectory(convection_diffusion_implicit)
-
 add_subdirectory(advection_vector_implicit)
 
-
-add_subdirectory(euler_unit_test)
+add_subdirectory(euler_implicit)

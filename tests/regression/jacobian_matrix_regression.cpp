@@ -16,7 +16,7 @@ using PDEType  = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
 using ConvType = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;
 using DissType = PHiLiP::Parameters::AllParameters::DissipativeNumericalFlux;
 
-const bool   COMPARE_MATRICES = false;//true;//false;
+const bool   COMPARE_MATRICES = true;//false;
 const bool   PRODUCE_TESTS    = !COMPARE_MATRICES;
 const double TOLERANCE = 1E-12;
 
@@ -135,6 +135,7 @@ int main (int argc, char * argv[])
         }
     }
 
+    if(PRODUCE_TESTS) return 1;
     return error;
 }
 

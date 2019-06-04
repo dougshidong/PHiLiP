@@ -12,7 +12,7 @@ void assert_compare_array ( const std::array<double, nstate> &array1, const std:
     for (int s=0; s<nstate; s++) {
         const double diff = std::abs(array1[s] - scale2*array2[s]);
         std::cout
-            << "State " << s << " out of " << nstate
+            << "State " << s+1 << " out of " << nstate
             << std::endl
             << "Array 1 = " << array1[s]
             << std::endl

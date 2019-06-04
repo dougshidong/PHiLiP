@@ -21,16 +21,17 @@ std::array<real,nstate> Euler<dim,nstate,real>
     const double pi = atan(1)*4.0;
     const double ee = exp(1);
 
-    dealii::Table<1,real> base_value(nstate);
-    base_value[0] = pi/4;
+    std::array<real,nstate> base_value;
+    base_value[0] = pi/4.0;
     for (int i=0;i<dim;i++) {
         base_value[1+i] = ee/(i+1);
     }
     base_value[nstate-1] = ee/pi;
 
 
-    dealii::Table<2,real> amplitudes(nstate, dim);
-    dealii::Table<2,real> frequencies(nstate, dim);
+
+    std::array<dealii::Tensor<1,dim,real>,nstate> amplitudes;
+    std::array<dealii::Tensor<1,dim,real>,nstate> frequencies;
     for (int s=0; s<nstate; s++) {
         for (int d=0; d<dim; d++) {
             amplitudes[s][d] = 0.5*base_value[s]*(dim-d)/dim*(nstate-s)/nstate;
@@ -59,23 +60,85 @@ std::array<real,nstate> Euler<dim,nstate,real>
     const double pi = atan(1)*4.0;
     const double ee = exp(1);
 
-    dealii::Table<1,real> base_value(nstate);
-    base_value[0] = pi/4;
+    std::array<real,nstate> base_value;
+    base_value[0] = pi/4.0;
     for (int i=0;i<dim;i++) {
         base_value[1+i] = ee/(i+1);
     }
     base_value[nstate-1] = ee/pi;
 
-    dealii::Table<2,real> amplitudes(nstate, dim);
-    dealii::Table<2,real> frequencies(nstate, dim);
+
+    std::array<dealii::Tensor<1,dim,real>,nstate> ampl;
+    std::array<dealii::Tensor<1,dim,real>,nstate> freq;
     for (int s=0; s<nstate; s++) {
-        for (int d=0; d<nstate; d++) {
-            amplitudes[s][d] = 0.5*base_value[s]*(dim-d)/dim*(nstate-s)/nstate;
-            frequencies[s][d] = 1.0+sin(0.1+s*0.5+d*0.2);
+        for (int d=0; d<dim; d++) {
+            ampl[s][d] = 0.5*base_value[s]*(dim-d)/dim*(nstate-s)/nstate;
+            freq[s][d] = 1.0+sin(0.1+s*0.5+d*0.2);
         }
     }
 
+
+    // Obtain primitive solution
+    const std::array<real,nstate> conservative_manu_soln = manufactured_solution(pos);
+    const std::array<real,nstate> primitive_soln = Euler<dim,nstate,real>::convert_conservative_to_primitive(conservative_manu_soln);
+    const real density = primitive_soln[0];
+    const std::array<real,dim> vel = Euler::extract_velocities_from_primitive(primitive_soln);
+    const real pressure = primitive_soln[nstate-1];
+    const real energy = conservative_manu_soln[nstate-1];
+
+    // Derivatives of total energy w.r.t primitive variables
+    const real v2 = Euler::compute_velocity_squared(vel);
+    const real dedr = 0.5*v2;
+    std::array<real,dim> dedv;
+    for (int d=0;d<dim;d++) {
+        dedv[d] = density*vel[d];
+    }
+    const real dedp = 1.0/(gam-1.0);
+
     std::array<real,nstate> source;
+    source.fill(0.0);
+    dealii::Table<3,real> dflux_dx(nstate, dim, dim); // state, flux_dim, deri_dim
+    for (int deri_dim=0; deri_dim<dim; ++deri_dim){
+
+        // Derivative of primitive solution w.r.t x, y, or z
+        real drdx = ampl[0][deri_dim] * freq[0][deri_dim] * pi/2.0 * cos( freq[0][deri_dim] * pos[deri_dim] * pi / 2.0 );
+        std::array<real,dim> dvdx;
+        for (int vel_d=0;vel_d<dim;vel_d++) {
+            dvdx[vel_d] = ampl[1+vel_d][deri_dim] * freq[1+vel_d][deri_dim] * pi/2.0 * cos( freq[1+vel_d][deri_dim] * pos[deri_dim] * pi / 2.0 );
+        }
+        real dpdx = ampl[nstate-1][deri_dim] * freq[nstate-1][deri_dim] * pi/2.0 * cos( freq[nstate-1][deri_dim] * pos[deri_dim] * pi / 2.0 );
+
+
+        //for (int flux_dim=0; flux_dim<dim; ++flux_dim){
+        // Only need the divergence of the flux, not all the derivatives
+        const int flux_dim = deri_dim;
+        {
+            const real vflux = primitive_soln[1+flux_dim];
+            const real dvflux_dx = dvdx[flux_dim];
+
+            const real dmassflux_dx = drdx * vflux + dvflux_dx * density;
+
+            // Mass flux
+            dflux_dx[0][flux_dim][deri_dim] = dmassflux_dx;
+            // Momentum flux
+            for (int vel_d=0; vel_d<dim; ++vel_d) {
+                dflux_dx[1+vel_d][flux_dim][deri_dim] = dvdx[vel_d] * density * vflux + dmassflux_dx*vel[vel_d];
+            }
+            dflux_dx[1+flux_dim][flux_dim][deri_dim] += dpdx;
+            // Energy flux
+            dflux_dx[nstate-1][flux_dim][deri_dim] = dvflux_dx * (energy + pressure) + dpdx * vflux;
+            dflux_dx[nstate-1][flux_dim][deri_dim] += dedr * drdx * vflux;
+            for (int vel_d=0; vel_d<dim; ++vel_d) {
+                dflux_dx[nstate-1][flux_dim][deri_dim] += dedv[vel_d] * dvdx[vel_d] * vflux;
+            }
+            dflux_dx[nstate-1][flux_dim][deri_dim] += dedp * dpdx * vflux;
+        }
+        source[0] += dflux_dx[0][flux_dim][deri_dim];
+        for (int vel_d=0; vel_d<dim; ++vel_d) {
+            source[1+vel_d] += dflux_dx[1+vel_d][flux_dim][deri_dim];
+        }
+        source[nstate-1] += dflux_dx[nstate-1][flux_dim][deri_dim];
+    }
 
     return source;
 }
@@ -90,11 +153,11 @@ inline std::array<real,nstate> Euler<dim,nstate,real>
     std::array<real, dim> vel = compute_velocities (conservative_soln);
     real pressure = compute_pressure (conservative_soln);
 
-    primitive_soln[0] = conservative_soln[0];
+    primitive_soln[0] = density;
     for (int d=0; d<dim; ++d) {
         primitive_soln[1+d] = vel[d];
     }
-    primitive_soln[1+dim] = pressure;
+    primitive_soln[nstate-1] = pressure;
     return primitive_soln;
 }
 
@@ -105,14 +168,13 @@ inline std::array<real,nstate> Euler<dim,nstate,real>
 
     const real density = primitive_soln[0];
     const std::array<real,dim> velocities = extract_velocities_from_primitive(primitive_soln);
-    const real pressure = primitive_soln[1+dim];
 
     std::array<real, nstate> conservative_soln;
     conservative_soln[0] = density;
     for (int d=0; d<dim; ++d) {
         conservative_soln[1+d] = density*velocities[d];
     }
-    conservative_soln[1+dim] = compute_energy(primitive_soln);
+    conservative_soln[nstate-1] = compute_energy(primitive_soln);
 
     return conservative_soln;
 }
@@ -152,7 +214,7 @@ inline real Euler<dim,nstate,real>
 ::compute_energy ( const std::array<real,nstate> &primitive_soln ) const
 {
     const real density = primitive_soln[0];
-    const real pressure = primitive_soln[1+dim];
+    const real pressure = primitive_soln[nstate-1];
     const std::array<real,dim> velocities = extract_velocities_from_primitive(primitive_soln);
     const real vel2 = compute_velocity_squared(velocities);
 
@@ -165,7 +227,7 @@ inline real Euler<dim,nstate,real>
 ::compute_pressure ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real density = conservative_soln[0];
-    const real energy  = conservative_soln[1+dim];
+    const real energy  = conservative_soln[nstate-1];
     const std::array<real,dim> vel = compute_velocities(conservative_soln);
     const real vel2 = compute_velocity_squared(vel);
     const real pressure = (gam-1.0)*(energy - 0.5*density*vel2);
@@ -192,16 +254,16 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
     const std::array<real,dim> vel = compute_velocities(conservative_soln);
     const real tot_energy = conservative_soln[nstate-1];
 
-    for (int fdim=0; fdim<dim; ++fdim) {
+    for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
         // Density equation
-        conv_flux[0][fdim] = conservative_soln[1+fdim];
+        conv_flux[0][flux_dim] = conservative_soln[1+flux_dim];
         // Momentum equation
-        for (int sdim=0; sdim<dim; ++sdim){
-            conv_flux[1+sdim][fdim] = density*vel[fdim]*vel[sdim];
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+            conv_flux[1+velocity_dim][flux_dim] = density*vel[flux_dim]*vel[velocity_dim];
         }
-        conv_flux[1+fdim][1+fdim] += pressure; // Add diagonal of pressure
+        conv_flux[1+flux_dim][flux_dim] += pressure; // Add diagonal of pressure
         // Energy equation
-        conv_flux[2+dim][fdim] = (conservative_soln[2+dim]+pressure)*vel[fdim];
+        conv_flux[nstate-1][flux_dim] = (tot_energy+pressure)*vel[flux_dim];
     }
     return conv_flux;
 }
@@ -214,6 +276,8 @@ std::array<real,nstate> Euler<dim,nstate,real>
 {
     const std::array<real,dim> vel = compute_velocities(conservative_soln);
     std::array<real,nstate> eig;
+    (void) vel;
+    (void) normal;
     for (int i=0; i<nstate; i++) {
         //eig[i] = advection_speed*normal;
     }

@@ -63,11 +63,19 @@ void DG<dim,nstate,real>::assemble_cell_terms_implicit(
               const unsigned int istate = fe_values_vol->get_fe().system_to_component_index(itrial).first;
               soln_at_q[iquad][istate]      += soln_coeff[itrial] * fe_values_vol->shape_value_component(itrial, iquad, istate);
               soln_grad_at_q[iquad][istate] += soln_coeff[itrial] * fe_values_vol->shape_grad_component(itrial, iquad, istate);
+              std::cout<< "soln at  " << iquad << " " << istate << " " << soln_at_q[iquad][istate] << std::endl;
+              std::cout<< "solngrad at  " << iquad << " " << istate << " " << soln_grad_at_q[iquad][istate] << std::endl;
         }
         // Evaluate physical convective flux and source term
         conv_phys_flux_at_q[iquad] = pde_physics->convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = pde_physics->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
         source_at_q[iquad] = pde_physics->source_term (fe_values_vol->quadrature_point(iquad), soln_at_q[iquad]);
+
+        for (int istate=0; istate<nstate; istate++) {
+            std::cout<< "conv_phys_flux at  " << iquad << " " << conv_phys_flux_at_q[iquad][istate] << std::endl;
+            std::cout<< "diss_phys_flux at  " << iquad << " " << diss_phys_flux_at_q[iquad][istate] << std::endl;
+            std::cout<< "source at  " << iquad << " " << source_at_q[iquad][istate] << std::endl;
+        }
     }
 
     // Weak form
@@ -86,11 +94,14 @@ void DG<dim,nstate,real>::assemble_cell_terms_implicit(
 
             // Convective
             rhs = rhs + fe_values_vol->shape_grad_component(itest,iquad,istate) * conv_phys_flux_at_q[iquad][istate] * JxW[iquad];
+            std::cout<< "1  " << rhs.val() << std::endl;
             //// Diffusive
             //// Note that for diffusion, the negative is defined in the physics
             rhs = rhs + fe_values_vol->shape_grad_component(itest,iquad,istate) * diss_phys_flux_at_q[iquad][istate] * JxW[iquad];
+            std::cout<< "2  " << rhs.val() << std::endl;
             // Source
             rhs = rhs + fe_values_vol->shape_value_component(itest,iquad,istate) * source_at_q[iquad][istate] * JxW[iquad];
+            std::cout<< "3  " << rhs.val() << std::endl;
         }
 
         local_rhs_int_cell(itest) += rhs.val();

@@ -59,10 +59,10 @@ void DG<dim,nstate,real>::assemble_cell_terms_implicit(
     }
     // Interpolate solution to face
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        for (unsigned int itrial=0; itrial<fe_values_vol->dofs_per_cell; ++itrial) {
-              const unsigned int istate = fe_values_vol->get_fe().system_to_component_index(itrial).first;
-              soln_at_q[iquad][istate]      += soln_coeff[itrial] * fe_values_vol->shape_value_component(itrial, iquad, istate);
-              soln_grad_at_q[iquad][istate] += soln_coeff[itrial] * fe_values_vol->shape_grad_component(itrial, iquad, istate);
+        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+              const unsigned int istate = fe_values_vol->get_fe().system_to_component_index(idof).first;
+              soln_at_q[iquad][istate]      += soln_coeff[idof] * fe_values_vol->shape_value_component(idof, iquad, istate);
+              soln_grad_at_q[iquad][istate] += soln_coeff[idof] * fe_values_vol->shape_grad_component(idof, iquad, istate);
               std::cout<< "soln at  " << iquad << " " << istate << " " << soln_at_q[iquad][istate] << std::endl;
               std::cout<< "solngrad at  " << iquad << " " << istate << " " << soln_grad_at_q[iquad][istate] << std::endl;
         }
@@ -106,9 +106,9 @@ void DG<dim,nstate,real>::assemble_cell_terms_implicit(
 
         local_rhs_int_cell(itest) += rhs.val();
 
-        for (unsigned int itrial = 0; itrial < n_dofs_cell; ++itrial) {
-            //residual_derivatives[itrial] = rhs.fastAccessDx(itrial);
-            residual_derivatives[itrial] = rhs.dx(itrial);
+        for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
+            //residual_derivatives[idof] = rhs.fastAccessDx(idof);
+            residual_derivatives[idof] = rhs.dx(idof);
         }
         this->system_matrix.add(cell_dofs_indices[itest], cell_dofs_indices, residual_derivatives);
     }
@@ -187,10 +187,10 @@ void DG<dim,nstate,real>::assemble_boundary_term_implicit(
         const dealii::Tensor<1,dim,ADtype> normal_ext = -normal_int;
         ADArray characteristic_dot_n_at_q = pde_physics->convective_eigenvalues(boundary_values[iquad], normal_int);
 
-        for (unsigned int itrial=0; itrial<fe_values_boundary->dofs_per_cell; ++itrial) {
-            const unsigned int istate = fe_values_boundary->get_fe().system_to_component_index(itrial).first;
-            soln_int[iquad][istate]      += soln_coeff_int[itrial] * fe_values_boundary->shape_value_component(itrial, iquad, istate);
-            soln_grad_int[iquad][istate] += soln_coeff_int[itrial] * fe_values_boundary->shape_grad_component(itrial, iquad, istate);
+        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+            const unsigned int istate = fe_values_boundary->get_fe().system_to_component_index(idof).first;
+            soln_int[iquad][istate]      += soln_coeff_int[idof] * fe_values_boundary->shape_value_component(idof, iquad, istate);
+            soln_grad_int[iquad][istate] += soln_coeff_int[idof] * fe_values_boundary->shape_grad_component(idof, iquad, istate);
 
             const bool inflow = (characteristic_dot_n_at_q[istate] < 0.);
 
@@ -246,9 +246,9 @@ void DG<dim,nstate,real>::assemble_boundary_term_implicit(
 
         local_rhs_int_cell(itest) += rhs.val();
 
-        for (unsigned int itrial = 0; itrial < n_dofs_cell; ++itrial) {
-            //residual_derivatives[itrial] = rhs.fastAccessDx(itrial);
-            residual_derivatives[itrial] = rhs.dx(itrial);
+        for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
+            //residual_derivatives[idof] = rhs.fastAccessDx(idof);
+            residual_derivatives[idof] = rhs.dx(idof);
         }
         this->system_matrix.add(dof_indices_int[itest], dof_indices_int, residual_derivatives);
     }
@@ -332,15 +332,15 @@ void DG<dim,nstate,real>::assemble_face_term_implicit(
         const dealii::Tensor<1,dim,ADtype> normal_ext = -normal_int;
 
         // Interpolate solution to face
-        for (unsigned int itrial=0; itrial<fe_values_int->dofs_per_cell; ++itrial) {
-            const unsigned int istate = fe_values_int->get_fe().system_to_component_index(itrial).first;
-            soln_int[iquad][istate]      += soln_coeff_int_ad[itrial] * fe_values_int->shape_value_component(itrial, iquad, istate);
-            soln_grad_int[iquad][istate] += soln_coeff_int_ad[itrial] * fe_values_int->shape_grad_component(itrial, iquad, istate);
+        for (unsigned int idof=0; idof<n_dofs_int; ++idof) {
+            const unsigned int istate = fe_values_int->get_fe().system_to_component_index(idof).first;
+            soln_int[iquad][istate]      += soln_coeff_int_ad[idof] * fe_values_int->shape_value_component(idof, iquad, istate);
+            soln_grad_int[iquad][istate] += soln_coeff_int_ad[idof] * fe_values_int->shape_grad_component(idof, iquad, istate);
         }
-        for (unsigned int itrial=0; itrial<fe_values_ext->dofs_per_cell; ++itrial) {
-            const unsigned int istate = fe_values_ext->get_fe().system_to_component_index(itrial).first;
-            soln_ext[iquad][istate]      += soln_coeff_ext_ad[itrial] * fe_values_ext->shape_value_component(itrial, iquad, istate);
-            soln_grad_ext[iquad][istate] += soln_coeff_ext_ad[itrial] * fe_values_ext->shape_grad_component(itrial, iquad, istate);
+        for (unsigned int idof=0; idof<n_dofs_ext; ++idof) {
+            const unsigned int istate = fe_values_ext->get_fe().system_to_component_index(idof).first;
+            soln_ext[iquad][istate]      += soln_coeff_ext_ad[idof] * fe_values_ext->shape_value_component(idof, iquad, istate);
+            soln_grad_ext[iquad][istate] += soln_coeff_ext_ad[idof] * fe_values_ext->shape_grad_component(idof, iquad, istate);
         }
 
         // Evaluate physical convective flux, physical dissipative flux, and source term
@@ -375,11 +375,11 @@ void DG<dim,nstate,real>::assemble_face_term_implicit(
         }
 
         local_rhs_int_cell(itest_int) += rhs.val();
-        for (unsigned int itrial = 0; itrial < n_dofs_int; ++itrial) {
-            dR1_dW1[itrial] = rhs.dx(itrial);
+        for (unsigned int idof = 0; idof < n_dofs_int; ++idof) {
+            dR1_dW1[idof] = rhs.dx(idof);
         }
-        for (unsigned int itrial = 0; itrial < n_dofs_ext; ++itrial) {
-            dR1_dW2[itrial] = rhs.dx(n_dofs_int+itrial);
+        for (unsigned int idof = 0; idof < n_dofs_ext; ++idof) {
+            dR1_dW2[idof] = rhs.dx(n_dofs_int+idof);
         }
         this->system_matrix.add(dof_indices_int[itest_int], dof_indices_int, dR1_dW1);
         this->system_matrix.add(dof_indices_int[itest_int], dof_indices_ext, dR1_dW2);
@@ -399,11 +399,11 @@ void DG<dim,nstate,real>::assemble_face_term_implicit(
         }
 
         local_rhs_ext_cell(itest_ext) += rhs.val();
-        for (unsigned int itrial = 0; itrial < n_dofs_int; ++itrial) {
-            dR2_dW1[itrial] = rhs.dx(itrial);
+        for (unsigned int idof = 0; idof < n_dofs_int; ++idof) {
+            dR2_dW1[idof] = rhs.dx(idof);
         }
-        for (unsigned int itrial = 0; itrial < n_dofs_ext; ++itrial) {
-            dR2_dW2[itrial] = rhs.dx(n_dofs_int+itrial);
+        for (unsigned int idof = 0; idof < n_dofs_ext; ++idof) {
+            dR2_dW2[idof] = rhs.dx(n_dofs_int+idof);
         }
         this->system_matrix.add(dof_indices_ext[itest_ext], dof_indices_int, dR2_dW1);
         this->system_matrix.add(dof_indices_ext[itest_ext], dof_indices_ext, dR2_dW2);

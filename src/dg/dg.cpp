@@ -60,6 +60,8 @@ DGFactory<dim,real>
         return std::make_shared< DG<dim,1,real> >(parameters_input, degree);
     } else if (pde_type == PDE_enum::convection_diffusion) {
         return std::make_shared< DG<dim,1,real> >(parameters_input, degree);
+    } else if (pde_type == PDE_enum::euler) {
+        return std::make_shared< DG<dim,dim+2,real> >(parameters_input, degree);
     }
     std::cout << "Can't create DGBase, invalid PDE type: " << pde_type << std::endl;
     return nullptr;
@@ -146,6 +148,44 @@ void DGBase<dim,real>::output_results (const unsigned int ith_grid)// const
   data_out.build_patches ();
 
   data_out.write_gnuplot(gnuplot_output);
+}
+
+template <int dim, typename real>
+void DGBase<dim,real>::output_paraview_results (const std::string filename)// const
+{
+//    std::cout << "Writing solution to <" << filename << ">..." << std::endl << std::endl;
+//
+//    DataOut<dim> data_out;
+//    data_out.attach_dof_handler (dof_handler);
+//    
+//    data_out.add_data_vector (solution,
+//                              EulerEquations<dim>::component_names (),
+//                              DataOut<dim>::type_dof_data,
+//                              EulerEquations<dim>::component_interpretation ());
+//    
+//    data_out.add_data_vector (current_solution, postprocessor);
+//    
+//    data_out.build_patches (mapping(), fe.degree);
+//    
+//    static unsigned int output_file_number = 0;
+//    std::string filename = "solution-" + Utilities::int_to_string (output_file_number, 3);
+//    
+//    if(parameters.output_format == "vtk")     
+//       filename += ".vtu";
+//    else if(parameters.output_format == "tecplot") 
+//       filename += ".plt";
+//    
+//    std::cout << "Writing file " << filename << std::endl;
+//    std::ofstream output (filename.c_str());
+//    
+//    if(parameters.output_format == "vtk")     
+//    {
+//       DataOutBase::VtkFlags flags(elapsed_time, output_file_number);
+//       data_out.set_flags(flags);
+//       data_out.write_vtu (output);
+//    }
+//    else if(parameters.output_format == "tecplot") 
+//       data_out.write_tecplot (output);
 }
 
 template <int dim, typename real>

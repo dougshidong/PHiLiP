@@ -154,6 +154,8 @@ class LinearAdvection : public PhysicsBase <dim, nstate, real>
 {
 
 public:
+    LinearAdvection (); ///< Constructor
+    /// Destructor
     ~LinearAdvection () {};
     /// Convective flux:  c*u
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
@@ -207,6 +209,12 @@ template <int dim, int nstate, typename real>
 class Diffusion : public PhysicsBase <dim, nstate, real>
 {
 public:
+    /// Constructor
+    Diffusion ()
+    {
+        static_assert(nstate==1, "Physics::Diffusion() should be created with nstate=1");
+    };
+    /// Destructor
     ~Diffusion () {};
     /// Convective flux:  0
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (const std::array<real,nstate> &solution) const;
@@ -255,6 +263,12 @@ template <int dim, int nstate, typename real>
 class ConvectionDiffusion : public PhysicsBase <dim, nstate, real>
 {
 public:
+    /// Constructor
+    ConvectionDiffusion ()
+    {
+        static_assert(nstate==1, "Physics::ConvectionDiffusion() should be created with nstate=1");
+    };
+    /// Destructor
     ~ConvectionDiffusion () {};
     /// Convective flux: \f$ \mathbf{F}_{conv} =  u \f$
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (const std::array<real,nstate> &solution) const;
@@ -347,7 +361,14 @@ template <int dim, int nstate, typename real>
 class Euler : public PhysicsBase <dim, nstate, real>
 {
 public:
-    ~Euler () {};
+    /// Constructor
+    Euler ()
+    {
+        static_assert(nstate==dim+2, "Physics::Euler() should be created with nstate=dim+2");
+    };
+    /// Destructor
+    ~Euler ()
+    {};
 
     /// Manufactured solution for Euler
     std::array<real,nstate> manufactured_solution (const dealii::Point<dim,double> &pos) const;

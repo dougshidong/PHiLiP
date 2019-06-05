@@ -28,8 +28,6 @@ std::array<real,nstate> Euler<dim,nstate,real>
     }
     base_value[nstate-1] = ee/pi;
 
-
-
     std::array<dealii::Tensor<1,dim,real>,nstate> amplitudes;
     std::array<dealii::Tensor<1,dim,real>,nstate> frequencies;
     for (int s=0; s<nstate; s++) {
@@ -231,6 +229,7 @@ inline real Euler<dim,nstate,real>
     const std::array<real,dim> vel = compute_velocities(conservative_soln);
     const real vel2 = compute_velocity_squared(vel);
     const real pressure = (gam-1.0)*(energy - 0.5*density*vel2);
+    assert(pressure>0.0);
     return pressure;
 }
 
@@ -239,6 +238,7 @@ inline real Euler<dim,nstate,real>
 ::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real density = conservative_soln[0];
+    assert(density > 0);
     const real pressure = compute_pressure(conservative_soln);
     const real sound = std::sqrt(pressure*gam/density);
     return sound;

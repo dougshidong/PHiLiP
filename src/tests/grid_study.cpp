@@ -1,3 +1,4 @@
+#include <stdlib.h>     /* srand, rand */
 #include <iostream>
 
 #include <deal.II/base/convergence_table.h>
@@ -33,6 +34,18 @@ GridStudy<dim,nstate>::GridStudy(const Parameters::AllParameters *const paramete
     :
     TestsBase::TestsBase(parameters_input)
 {}
+
+//template <int dim, int nstate>
+//void GridStudy<dim,nstate>
+//::initialize_perturbed_solution(DGBase<dim,double> &dg, Physics::PhysicsBase<dim,nstate,double> &physics)
+//{
+//    //for (auto cell : dg.triangulation->active_cell_iterators()) {
+//    //    const unsigned int n_dofs_cell = fe_values_vol->dofs_per_cell;
+//    //    for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
+//    //    }
+//    //}
+//
+//}
 
 template<int dim, int nstate>
 int GridStudy<dim,nstate>

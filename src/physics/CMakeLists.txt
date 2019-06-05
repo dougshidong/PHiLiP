@@ -1,8 +1,8 @@
 SET(SOURCE
-    #linear_advection.cpp
-    #diffusion.cpp
-    #convection_diffusion.cpp
     physics.cpp
+    linear_advection.cpp
+    diffusion.cpp
+    convection_diffusion.cpp
     euler.cpp
     )
 

@@ -27,6 +27,9 @@ template <int dim, int nstate, typename real>
 class PhysicsBase
 {
 public:
+    /// Default constructor that will set the constants.
+    PhysicsBase();
+
     /// Virtual destructor required for abstract classes.
     virtual ~PhysicsBase() = 0;
 
@@ -109,23 +112,19 @@ protected:
         std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
 
 
-    /// Constant \f$\pi\f$
-    const double pi = atan(1)*4.0;
-
     /// Some constants used to define manufactured solution
-    const double freq_x = 0.59/dim, freq_y = 2*0.41/dim,    freq_z = 3*0.76/dim;
-    const double offs_x = 1,        offs_y = 0.2,           offs_z = 1.5;
-    const double velo_x = exp(1)/2, velo_y =-pi/4.0,        velo_z = sqrt(2);
-    //const double velo_x = 1.0, velo_y =-pi/4.0,        velo_z = sqrt(2);
-    const double diff_coeff = 5.0;
+    double freq_x, freq_y, freq_z;
+    double offs_x, offs_y, offs_z;
+    double velo_x, velo_y, velo_z;
+    double diff_coeff;
 
     /// Heterogeneous diffusion matrix
     /** As long as the diagonal components are positive and diagonally dominant
      *  we should have a stable diffusive system
      */
-    const double A11 =   9, A12 =  -2, A13 =  -6;
-    const double A21 =   3, A22 =  20, A23 =   4;
-    const double A31 =  -2, A32 = 0.5, A33 =   8;
+    double A11, A12, A13;
+    double A21, A22, A23;
+    double A31, A32, A33;
 };
 
 /// Create specified physics as PhysicsBase object 
@@ -137,110 +136,6 @@ class PhysicsFactory
 public:
     static PhysicsBase<dim,nstate,real>*
         create_Physics(Parameters::AllParameters::PartialDifferentialEquation pde_type);
-};
-
-
-/// Linear advection equation. Derived from PhysicsBase
-/**
- *  Also allows the use of vector-valued linear advection for 2 state variables,
- *  independent of the number of dimensions.
- *
- *  State variable: \f[ u \f]
- *  
- *  Equation: \f[ \boldsymbol\nabla \cdot (c*u) = s \f]
- */
-template <int dim, int nstate, typename real>
-class LinearAdvection : public PhysicsBase <dim, nstate, real>
-{
-
-public:
-    LinearAdvection (); ///< Constructor
-    /// Destructor
-    ~LinearAdvection () {};
-    /// Convective flux:  c*u
-    std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
-        const std::array<real,nstate> &solution) const;
-
-    /// Spectral radius of convective term Jacobian is simply the maximum 'c'
-    std::array<real,nstate> convective_eigenvalues (
-        const std::array<real,nstate> &/*solution*/,
-        const dealii::Tensor<1,dim,real> &normal) const;
-
-    /// Maximum convective eigenvalue used in Lax-Friedrichs
-    real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
-
-    //  /// Diffusion matrix: 0
-    //  std::array<dealii::Tensor<1,dim,real>,nstate> apply_diffusion_matrix (
-    //      const std::array<real,nstate> &solution,
-    //      const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_grad) const;
-
-    /// Dissipative flux: 0
-    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
-        const std::array<real,nstate> &solution,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
-
-    /// Source term is zero or depends on manufactured solution
-    std::array<real,nstate> source_term (
-        const dealii::Point<dim,double> &pos,
-        const std::array<real,nstate> &solution) const;
-
-protected:
-    /// Linear advection speed:  c
-    dealii::Tensor<1,dim,real> advection_speed () const;
-
-};
-
-/// Poisson equation. Derived from PhysicsBase
-/** State variable: \f$ u \f$
- *  
- *  Convective flux \f$ \mathbf{F}_{conv} =  0 \f$
- *
- *  Dissipative flux \f$ \mathbf{F}_{diss} = -\boldsymbol\nabla u \f$
- *
- *  Source term \f$ s(\mathbf{x}) \f$
- *
- *  Equation:
- *  \f[ \boldsymbol{\nabla} \cdot
- *         (\mathbf{F}_{diss}( u, \boldsymbol{\nabla}(u) )
- *      = s(\mathbf{x})
- *  \f]
- */
-template <int dim, int nstate, typename real>
-class Diffusion : public PhysicsBase <dim, nstate, real>
-{
-public:
-    /// Constructor
-    Diffusion ()
-    {
-        static_assert(nstate==1, "Physics::Diffusion() should be created with nstate=1");
-    };
-    /// Destructor
-    ~Diffusion () {};
-    /// Convective flux:  0
-    std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (const std::array<real,nstate> &solution) const;
-
-    /// Convective eigenvalues dotted with normal
-    std::array<real,nstate> convective_eigenvalues (
-        const std::array<real,nstate> &/*solution*/,
-        const dealii::Tensor<1,dim,real> &/*normal*/) const;
-
-    /// Maximum convective eigenvalue used in Lax-Friedrichs
-    real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
-
-    //  /// Diffusion matrix is identity
-    //  std::array<dealii::Tensor<1,dim,real>,nstate> apply_diffusion_matrix (
-    //      const std::array<real,nstate> &solution,
-    //      const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_grad) const;
-
-    /// Dissipative flux: u
-    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
-        const std::array<real,nstate> &solution,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
-
-    /// Source term is zero or depends on manufactured solution
-    std::array<real,nstate> source_term (
-        const dealii::Point<dim,double> &pos,
-        const std::array<real,nstate> &solution) const;
 };
 
 /// Convection-diffusion with linear advective and diffusive term.  Derived from PhysicsBase.
@@ -263,11 +158,15 @@ template <int dim, int nstate, typename real>
 class ConvectionDiffusion : public PhysicsBase <dim, nstate, real>
 {
 public:
+    const bool hasConvection;
+    const bool hasDiffusion;
     /// Constructor
-    ConvectionDiffusion ()
+    ConvectionDiffusion (const bool convection = true, const bool diffusion = true)
+        : hasConvection(convection), hasDiffusion(diffusion)
     {
-        static_assert(nstate==1, "Physics::ConvectionDiffusion() should be created with nstate=1");
+        static_assert(nstate<=2, "Physics::ConvectionDiffusion() should be created with nstate<=2");
     };
+
     /// Destructor
     ~ConvectionDiffusion () {};
     /// Convective flux: \f$ \mathbf{F}_{conv} =  u \f$
@@ -296,9 +195,20 @@ public:
         const dealii::Point<dim,double> &pos,
         const std::array<real,nstate> &solution) const;
 
+    void boundary_face_values (
+        const int /*boundary_type*/,
+        const dealii::Point<dim, double> &/*pos*/,
+        const dealii::Tensor<1,dim,real> &/*normal*/,
+        const std::array<real,nstate> &/*soln_int*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
+        std::array<real,nstate> &/*soln_bc*/,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
+
 protected:
     /// Linear advection speed:  c
     dealii::Tensor<1,dim,real> advection_speed () const;
+    /// Diffusion coefficient
+    real diffusion_coefficient () const;
 };
 
 /// Euler equations. Derived from PhysicsBase

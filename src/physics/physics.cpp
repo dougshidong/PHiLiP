@@ -20,11 +20,11 @@ PhysicsFactory<dim,nstate,real>
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
 
     if (pde_type == PDE_enum::advection || pde_type == PDE_enum::advection_vector) {
-        if constexpr (nstate<=2) return new LinearAdvection<dim,nstate,real>;
+        if constexpr (nstate<=2) return new ConvectionDiffusion<dim,nstate,real>(true,false);
     } else if (pde_type == PDE_enum::diffusion) {
-        if constexpr (nstate==1) return new Diffusion<dim,nstate,real>;
+        if constexpr (nstate==1) return new ConvectionDiffusion<dim,nstate,real>(false,true);
     } else if (pde_type == PDE_enum::convection_diffusion) {
-        if constexpr (nstate==1) return new ConvectionDiffusion<dim,nstate,real>;
+        if constexpr (nstate==1) return new ConvectionDiffusion<dim,nstate,real>(true,true);
     } else if (pde_type == PDE_enum::euler) {
         if constexpr (nstate==dim+2) return new Euler<dim,nstate,real>;
     }
@@ -33,9 +33,67 @@ PhysicsFactory<dim,nstate,real>
     return nullptr;
 }
 
+template <int dim, int nstate, typename real>
+PhysicsBase<dim,nstate,real>::PhysicsBase() 
+{
+    double pi = atan(1)*4.0;
+
+    // Some constants used to define manufactured solution
+    freq_x =-pi/2.0;   freq_y = pi/2.0;        freq_z = exp(1)/5.0;
+    offs_x = 1;        offs_y = 0.2;           offs_z = 1.5;
+    velo_x = exp(1)/2; velo_y = pi/4.0;        velo_z = sqrt(2)/2.0;
+    diff_coeff = velo_x*pi/exp(1);
+
+    // Heterogeneous diffusion matrix
+    A11 =   9; A12 =  -2; A13 =  -6;
+    A21 =   3; A22 =  20; A23 =   4;
+    A31 =  -2; A32 = 0.5; A33 =   8;
+}
 
 template <int dim, int nstate, typename real>
 PhysicsBase<dim,nstate,real>::~PhysicsBase() {}
+
+template <int dim, int nstate, typename real>
+void PhysicsBase<dim,nstate,real>
+::boundary_face_values (
+   const int /*boundary_type*/,
+   const dealii::Point<dim, double> &pos,
+   const dealii::Tensor<1,dim,real> &normal_int,
+   const std::array<real,nstate> &soln_int,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+   std::array<real,nstate> &soln_bc,
+   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+{
+
+    std::array<real,nstate> boundary_values = manufactured_solution(pos);
+    std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients = manufactured_gradient(pos);
+    for (int istate=0; istate<nstate; ++istate) {
+
+        std::array<real,nstate> characteristic_dot_n = convective_eigenvalues(boundary_values, normal_int);
+        const bool inflow = (characteristic_dot_n[istate] <= 0.);
+
+        if (inflow) { // Dirichlet boundary condition
+            // soln_bc[istate] = boundary_values[istate];
+            // soln_grad_bc[istate] = soln_grad_int[istate];
+
+            soln_bc[istate] = boundary_values[istate];
+            soln_grad_bc[istate] = soln_grad_int[istate];
+
+        } else { // Neumann boundary condition
+            // //soln_bc[istate] = soln_int[istate];
+            // //soln_bc[istate] = boundary_values[istate];
+            // soln_bc[istate] = -soln_int[istate]+2*boundary_values[istate];
+
+            // //soln_grad_bc[istate] = soln_grad_int[istate];
+            // soln_grad_bc[istate] = boundary_gradients[istate];
+
+            soln_bc[istate] = soln_int[istate];
+            //soln_grad_bc[istate] = soln_grad_int[istate];
+            soln_grad_bc[istate] = boundary_gradients[istate];
+            //soln_grad_bc[istate] = -soln_grad_int[istate]+2*boundary_gradients[istate];
+        }
+    }
+}
 
 // Common manufactured solution for advection, diffusion, convection-diffusion
 template <int dim, int nstate, typename real>
@@ -146,18 +204,6 @@ double PhysicsBase<dim,nstate,real>
     return integral;
 }
 
-template <int dim, int nstate, typename real>
-void PhysicsBase<dim,nstate,real>
-::boundary_face_values (
-        const int /*boundary_type*/,
-        const dealii::Point<dim, double> &/*pos*/,
-        const dealii::Tensor<1,dim,real> &/*normal*/,
-        const std::array<real,nstate> &/*soln_int*/,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
-        std::array<real,nstate> &/*soln_bc*/,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
-{
-}
 template <int dim, int nstate, typename real>
 void PhysicsBase<dim,nstate,real>
 ::set_manufactured_dirichlet_boundary_condition (

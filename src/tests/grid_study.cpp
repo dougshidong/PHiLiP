@@ -79,6 +79,7 @@ int GridStudy<dim,nstate>
 
         std::vector<int> n_1d_cells(n_grids);
         n_1d_cells[0] = initial_grid_size;
+        if(poly_degree==0) n_1d_cells[0] = initial_grid_size + 1;
 
         std::vector<double> soln_error(n_grids);
         std::vector<double> output_error(n_grids);
@@ -168,7 +169,7 @@ int GridStudy<dim,nstate>
             if(dim==1) dg->output_results(igrid);
 
             // Overintegrate the error to make sure there is not integration error in the error estimate
-            int overintegrate = 5;
+            int overintegrate = 10;
             dealii::QGauss<dim> quad_extra(dg->fe_system.tensor_degree()+overintegrate);
             dealii::FEValues<dim,dim> fe_values_extra(dg->mapping, dg->fe_system, quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
@@ -178,7 +179,7 @@ int GridStudy<dim,nstate>
 
             double l2error = 0;
 
-            bool linear_output = false;
+            bool linear_output = true;
             //linear_output = true;
             int power;
             if (linear_output) power = 1;
@@ -328,21 +329,30 @@ int GridStudy<dim,nstate>
 
         convergence_table_vector.push_back(convergence_table);
 
+        const double expected_slope = poly_degree+1;
+
         const double last_slope = log(soln_error[n_grids-1]/soln_error[n_grids-2])
                                   / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
-        const double expected_slope = poly_degree+1;
-        const double slope_diff = last_slope-expected_slope;
-        const double slope_deficit_tolerance = -0.1;
+        double before_last_slope = last_slope;
+        if ( n_grids > 2 ) {
+        before_last_slope = log(soln_error[n_grids-2]/soln_error[n_grids-3])
+                            / log(grid_size[n_grids-2]/grid_size[n_grids-3]);
+        }
+        const double slope_avg = 0.5*(before_last_slope+last_slope);
+        const double slope_diff = slope_avg-expected_slope;
+
+        double slope_deficit_tolerance = -0.1;
+        if(poly_degree == 0) slope_deficit_tolerance = -0.2; // Otherwise, grid sizes need to be much bigger for p=0
 
         if (slope_diff < slope_deficit_tolerance) {
             std::cout << std::endl
-                      << "Convergence order not achieved. Slope of "
-                      << last_slope << " instead of expected "
+                      << "Convergence order not achieved. Average last 2 slopes of "
+                      << slope_avg << " instead of expected "
                       << expected_slope << " within a tolerance of "
                       << slope_deficit_tolerance
                       << std::endl;
             fail_conv_poly.push_back(poly_degree);
-            fail_conv_slop.push_back(last_slope);
+            fail_conv_slop.push_back(slope_avg);
         }
 
     }

@@ -117,9 +117,28 @@ std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
     const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_int,
     const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_ext,
     const dealii::Tensor<1,dim,real> &normal_int,
-    const real &penalty) const
+    const real &penalty,
+    const bool on_boundary) const
 {
     using ArrayTensor1 = std::array<dealii::Tensor<1,dim,real>, nstate>;
+
+    if (on_boundary) {
+        // Following the the boundary treatment given by 
+        // Hartmann, R., Numerical Analysis of Higher Order Discontinuous Galerkin Finite Element Methods, Institute of Aerodynamics and Flow Technology, DLR (German Aerospace Center), 2008.
+        // Details given on page 93
+        const std::array<real, nstate> soln_bc = soln_ext;
+        //const std::array<dealii::Tensor<1,dim,real>, nstate> soln_grad_bc = soln_grad_ext;
+        const ArrayTensor1 phys_flux_bc = pde_physics->dissipative_flux (soln_bc, soln_grad_int);
+
+        const ArrayTensor1 soln_jump    = array_jump<dim,nstate,real>(soln_int, soln_bc, normal_int);
+        const ArrayTensor1 Abc_jumpu    = pde_physics->dissipative_flux (soln_bc, soln_jump);
+        std::array<real,nstate> auxiliary_flux_dot_n;
+        for (int s=0; s<nstate; s++) {
+            auxiliary_flux_dot_n[s] = (phys_flux_bc[s] - penalty * Abc_jumpu[s]) * normal_int;
+        }
+        return auxiliary_flux_dot_n;
+    } 
+
     ArrayTensor1 phys_flux_int, phys_flux_ext;
 
     // {{A*grad_u}}
@@ -138,6 +157,7 @@ std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
     std::array<real,nstate> auxiliary_flux_dot_n;
     for (int s=0; s<nstate; s++) {
         auxiliary_flux_dot_n[s] = (phys_flux_avg[s] - penalty * A_jumpu_avg[s]) * normal_int;
+        //if (on_boundary) auxiliary_flux_dot_n[s] = (phys_flux_ext[s] - penalty * A_jumpu_int[s]) * normal_int;
         //auxiliary_flux_dot_n[s] = (phys_flux_avg[s] - penalty * soln_jump[s]) * normal_int;
     }
     return auxiliary_flux_dot_n;

@@ -63,19 +63,11 @@ void DG<dim,nstate,real>::assemble_cell_terms_implicit(
               const unsigned int istate = fe_values_vol->get_fe().system_to_component_index(idof).first;
               soln_at_q[iquad][istate]      += soln_coeff[idof] * fe_values_vol->shape_value_component(idof, iquad, istate);
               soln_grad_at_q[iquad][istate] += soln_coeff[idof] * fe_values_vol->shape_grad_component(idof, iquad, istate);
-              std::cout<< "soln at  " << iquad << " " << istate << " " << soln_at_q[iquad][istate] << std::endl;
-              std::cout<< "solngrad at  " << iquad << " " << istate << " " << soln_grad_at_q[iquad][istate] << std::endl;
         }
         // Evaluate physical convective flux and source term
         conv_phys_flux_at_q[iquad] = pde_physics->convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = pde_physics->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
         source_at_q[iquad] = pde_physics->source_term (fe_values_vol->quadrature_point(iquad), soln_at_q[iquad]);
-
-        for (int istate=0; istate<nstate; istate++) {
-            std::cout<< "conv_phys_flux at  " << iquad << " " << conv_phys_flux_at_q[iquad][istate] << std::endl;
-            std::cout<< "diss_phys_flux at  " << iquad << " " << diss_phys_flux_at_q[iquad][istate] << std::endl;
-            std::cout<< "source at  " << iquad << " " << source_at_q[iquad][istate] << std::endl;
-        }
     }
 
     // Weak form
@@ -94,14 +86,11 @@ void DG<dim,nstate,real>::assemble_cell_terms_implicit(
 
             // Convective
             rhs = rhs + fe_values_vol->shape_grad_component(itest,iquad,istate) * conv_phys_flux_at_q[iquad][istate] * JxW[iquad];
-            std::cout<< "1  " << rhs.val() << std::endl;
             //// Diffusive
             //// Note that for diffusion, the negative is defined in the physics
             rhs = rhs + fe_values_vol->shape_grad_component(itest,iquad,istate) * diss_phys_flux_at_q[iquad][istate] * JxW[iquad];
-            std::cout<< "2  " << rhs.val() << std::endl;
             // Source
             rhs = rhs + fe_values_vol->shape_value_component(itest,iquad,istate) * source_at_q[iquad][istate] * JxW[iquad];
-            std::cout<< "3  " << rhs.val() << std::endl;
         }
 
         local_rhs_int_cell(itest) += rhs.val();
@@ -157,10 +146,6 @@ void DG<dim,nstate,real>::assemble_boundary_term_implicit(
     std::vector<ADArrayTensor1> soln_grad_int(n_face_quad_pts);
     std::vector<ADArrayTensor1> soln_grad_ext(n_face_quad_pts);
 
-    std::vector<ADArrayTensor1> diss_phys_flux_int(n_face_quad_pts);
-    std::vector<ADArrayTensor1> diss_phys_flux_ext(n_face_quad_pts);
-
-
     std::vector<ADArray> conv_num_flux_dot_n(n_face_quad_pts);
     std::vector<ADArray> diss_soln_num_flux(n_face_quad_pts); // u*
     std::vector<ADArrayTensor1> diss_flux_jump_int(n_face_quad_pts); // u*-u_int
@@ -187,33 +172,52 @@ void DG<dim,nstate,real>::assemble_boundary_term_implicit(
         const dealii::Tensor<1,dim,ADtype> normal_ext = -normal_int;
         ADArray characteristic_dot_n_at_q = pde_physics->convective_eigenvalues(boundary_values[iquad], normal_int);
 
+        // for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+        //     const unsigned int istate = fe_values_boundary->get_fe().system_to_component_index(idof).first;
+        //     soln_int[iquad][istate]      += soln_coeff_int[idof] * fe_values_boundary->shape_value_component(idof, iquad, istate);
+        //     soln_grad_int[iquad][istate] += soln_coeff_int[idof] * fe_values_boundary->shape_grad_component(idof, iquad, istate);
+
+        //     const bool inflow = (characteristic_dot_n_at_q[istate] <= 0.);
+
+        //     // For some reason, Nitsche boundary type is adjoint inconsistent at the inflow
+        //     // but we need to impose dirichlet Nitsche boundary type at outflows
+        //     if (inflow) { // Dirichlet boundary condition
+        //         // soln_ext[iquad][istate] = boundary_values[iquad][istate];
+        //         // soln_grad_ext[iquad][istate] = soln_grad_int[iquad][istate];
+
+        //         soln_ext[iquad][istate] = boundary_values[iquad][istate];
+        //         soln_grad_ext[iquad][istate] = soln_grad_int[iquad][istate];
+
+        //     } else { // Neumann boundary condition
+        //         // //soln_ext[iquad][istate] = soln_int[iquad][istate];
+        //         // //soln_ext[iquad][istate] = boundary_values[iquad][istate];
+        //         // soln_ext[iquad][istate] = -soln_int[iquad][istate]+2*boundary_values[iquad][istate];
+
+        //         // //soln_grad_ext[iquad][istate] = soln_grad_int[iquad][istate];
+        //         // soln_grad_ext[iquad][istate] = boundary_gradients[iquad][istate];
+
+        //         soln_ext[iquad][istate] = soln_int[iquad][istate];
+        //         //soln_grad_ext[iquad][istate] = soln_grad_int[iquad][istate];
+        //         soln_grad_ext[iquad][istate] = boundary_gradients[iquad][istate];
+        //         //soln_grad_ext[iquad][istate] = -soln_grad_int[iquad][istate]+2*boundary_gradients[iquad][istate];
+        //     }
+        // }
         for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
             const unsigned int istate = fe_values_boundary->get_fe().system_to_component_index(idof).first;
             soln_int[iquad][istate]      += soln_coeff_int[idof] * fe_values_boundary->shape_value_component(idof, iquad, istate);
             soln_grad_int[iquad][istate] += soln_coeff_int[idof] * fe_values_boundary->shape_grad_component(idof, iquad, istate);
-
-            const bool inflow = (characteristic_dot_n_at_q[istate] < 0.);
-
-            // For some reason, Nitsche boundary type is adjoint inconsistent at the inflow
-            // but we need to impose dirichlet Nitsche boundary type at outflows
-            if (inflow) { // Dirichlet boundary condition
-                soln_ext[iquad][istate] = boundary_values[iquad][istate];
-                //soln_ext[iquad][istate] = -soln_int[iquad][istate]+2*boundary_values[iquad][istate];
-
-                soln_grad_ext[iquad][istate] = soln_grad_int[iquad][istate];
-            } else { // Neumann boundary condition
-                //soln_ext[iquad][istate] = soln_int[iquad][istate];
-                //soln_ext[iquad][istate] = boundary_values[iquad][istate];
-                soln_ext[iquad][istate] = -soln_int[iquad][istate]+2*boundary_values[iquad][istate];
-
-                //soln_grad_ext[iquad][istate] = soln_grad_int[iquad][istate];
-                soln_grad_ext[iquad][istate] = boundary_gradients[iquad][istate];
-            }
         }
+        const dealii::Point<dim, real> x_quad = quad_pts[iquad];
+        pde_physics->boundary_face_values (1, x_quad, normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
         // Evaluate physical convective flux, physical dissipative flux, and source term
-        diss_phys_flux_int[iquad] = pde_physics->dissipative_flux (soln_int[iquad], soln_grad_int[iquad]);
-        conv_num_flux_dot_n[iquad] = conv_num_flux->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
-        diss_soln_num_flux[iquad] = diss_num_flux->evaluate_solution_flux(soln_int[iquad], soln_ext[iquad], normal_int);
+
+        // Following the the boundary treatment given by 
+        // Hartmann, R., Numerical Analysis of Higher Order Discontinuous Galerkin Finite Element Methods, Institute of Aerodynamics and Flow Technology, DLR (German Aerospace Center), 2008.
+        // Details given on page 93
+
+        conv_num_flux_dot_n[iquad] = conv_num_flux->evaluate_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
+        // Notice that the flux uses the solution given by the Dirichlet or Neumann boundary condition
+        diss_soln_num_flux[iquad] = diss_num_flux->evaluate_solution_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
 
         ADArrayTensor1 diss_soln_jump_int;
         for (int s=0; s<nstate; s++) {
@@ -224,7 +228,7 @@ void DG<dim,nstate,real>::assemble_boundary_term_implicit(
         diss_auxi_num_flux_dot_n[iquad] = diss_num_flux->evaluate_auxiliary_flux(
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
-            normal_int, penalty);
+            normal_int, penalty, true);
     }
 
     // Applying convection boundary condition

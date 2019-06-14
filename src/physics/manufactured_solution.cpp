@@ -21,12 +21,12 @@ ManufacturedSolutionFunction<dim,real>
 {
 
     const double pi = atan(1)*4.0;
-    const double ee = exp(1);
+    //const double ee = exp(1);
 
-    for (int s=0; s<nstate; s++) {
+    for (int s=0; s<(int)nstate; s++) {
         base_values[s] = pi*(s+1)/nstate;
+        amplitudes[s] = 0.2*base_values[s]*sin((static_cast<double>(nstate)-s)/nstate);
         for (int d=0; d<dim; d++) {
-            amplitudes[s][d] = 0.5*base_values[s]*(dim-d)/dim*(nstate-s)/nstate;
             frequencies[s][d] = 1.0+sin(0.1+s*0.5+d*0.2) *  pi / 2.0;
         }
     }
@@ -36,10 +36,11 @@ template <int dim, typename real>
 inline real ManufacturedSolutionFunction<dim,real>
 ::value (const dealii::Point<dim> &point, const unsigned int istate) const
 {
-    real value = base_values[istate];
+    real value = amplitudes[istate];
     for (int d=0; d<dim; d++) {
-        value += amplitudes[istate][d] * sin( frequencies[istate][d] * point[d] );
+        value *= sin( frequencies[istate][d] * point[d] );
     }
+    value += base_values[istate];
     return value;
 }
 
@@ -48,8 +49,11 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionFunction<dim,real>
 ::gradient (const dealii::Point<dim> &point, const unsigned int istate) const
 {
     dealii::Tensor<1,dim,real> gradient;
-    for (int d=0; d<dim; d++) {
-        gradient[d] = amplitudes[istate][d] * frequencies[istate][d] * cos( frequencies[istate][d] * point[d] );
+    for (int dim_deri=0; dim_deri<dim; dim_deri++) {
+        gradient[dim_deri] = amplitudes[istate] * frequencies[istate][dim_deri] * cos( frequencies[istate][dim_deri] * point[dim_deri] );
+        for (int dim_sine=0; dim_sine<dim; dim_sine++) {
+            if (dim_deri != dim_sine) gradient[dim_sine] *= sin( frequencies[istate][dim_sine] * point[dim_sine] );
+        }
     }
     return gradient;
 }

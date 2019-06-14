@@ -105,6 +105,7 @@ INPUT                  = "@PROJECT_SOURCE_DIR@"
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          = *.cpp \
                          *.h \
+                         *.hpp \
                          *.h.in \
                          *.dox \
 #                         *.md \ # doxygen was given errors for relative paths in markdown files.

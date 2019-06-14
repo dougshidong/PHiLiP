@@ -34,11 +34,11 @@ public:
     virtual ~PhysicsBase() = 0;
 
     /// Default manufactured solution.
-    /** ~~~~~{.cpp}
+    /** \code
      *  if (dim==1) uexact = sin(a*pos[0]+d);
      *  if (dim==2) uexact = sin(a*pos[0]+d)*sin(b*pos[1]+e);
      *  if (dim==3) uexact = sin(a*pos[0]+d)*sin(b*pos[1]+e)*sin(c*pos[2]+f);
-     *  ~~~~~
+     *  \endcode
      */
     virtual std::array<real,nstate> manufactured_solution (const dealii::Point<dim,double> &pos) const;
 
@@ -47,9 +47,10 @@ public:
         const dealii::Point<dim,double> &pos) const;
 
     /// Returns the integral of the manufactured solution over the hypercube [0,1].
-    ///
-    /// Either returns the linear output \f$\int u dV\f$
-    /// or the nonlinear output \f$\int u^2 dV\f$.
+    /**
+     *  Either returns the linear output \f$\int u dV\f$
+     *  or the nonlinear output \f$\int u^2 dV\f$.
+     */
     virtual double integral_output (const bool linear) const;
 
     /// Convective fluxes that will be differentiated once in space.

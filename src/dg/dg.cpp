@@ -151,7 +151,7 @@ void DGBase<dim,real>::output_results (const unsigned int ith_grid)// const
 }
 
 template <int dim, typename real>
-void DGBase<dim,real>::output_paraview_results (const std::string filename)// const
+void DGBase<dim,real>::output_paraview_results (const std::string /* filename */)// const
 {
 //    std::cout << "Writing solution to <" << filename << ">..." << std::endl << std::endl;
 //

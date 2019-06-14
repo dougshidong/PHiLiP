@@ -21,7 +21,7 @@ void ConvectionDiffusion<dim,nstate,real>
 {
 
     const std::array<real,nstate> boundary_values = PhysicsBase<dim,nstate,real>::manufactured_solution(pos);
-    const std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients = PhysicsBase<dim,nstate,real>::manufactured_gradient(pos);
+    //const std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients = PhysicsBase<dim,nstate,real>::manufactured_gradient(pos);
 
     for (int istate=0; istate<nstate; ++istate) {
 

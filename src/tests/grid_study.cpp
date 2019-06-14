@@ -11,6 +11,7 @@
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/grid_in.h>
 
+#include <deal.II/numerics/vector_tools.h>
 
 #include <deal.II/fe/fe_values.h>
 
@@ -20,6 +21,7 @@
 #include "grid_study.h"
 
 #include "physics/physics.h"
+#include "physics/manufactured_solution.h"
 #include "dg/dg.h"
 #include "ode_solver/ode_solver.h"
 
@@ -35,17 +37,22 @@ GridStudy<dim,nstate>::GridStudy(const Parameters::AllParameters *const paramete
     TestsBase::TestsBase(parameters_input)
 {}
 
-//template <int dim, int nstate>
-//void GridStudy<dim,nstate>
-//::initialize_perturbed_solution(DGBase<dim,double> &dg, Physics::PhysicsBase<dim,nstate,double> &physics)
-//{
-//    //for (auto cell : dg.triangulation->active_cell_iterators()) {
-//    //    const unsigned int n_dofs_cell = fe_values_vol->dofs_per_cell;
-//    //    for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-//    //    }
-//    //}
-//
-//}
+template <int dim, int nstate>
+void GridStudy<dim,nstate>
+::initialize_perturbed_solution(DGBase<dim,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &/*physics */) const
+{
+
+    //ManufacturedSolutionFunction<dim,double>::ManufacturedSolutionFunction manufactured_solution(nstate);
+    dealii::VectorTools::interpolate(dg.dof_handler,
+                             ManufacturedSolutionFunction<dim,double>(),
+                             dg.solution);
+    //for (auto cell : dg.triangulation->active_cell_iterators()) {
+    //    const unsigned int n_dofs_cell = fe_values_vol->dofs_per_cell;
+    //    for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
+    //    }
+    //}
+
+}
 
 template<int dim, int nstate>
 int GridStudy<dim,nstate>
@@ -56,6 +63,8 @@ int GridStudy<dim,nstate>
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
     Assert(dim == param.dimension, dealii::ExcDimensionMismatch(dim, param.dimension));
+    Assert(param.pde_type != param.PartialDifferentialEquation::euler, dealii::ExcNotImplemented());
+    if (param.pde_type == param.PartialDifferentialEquation::euler) return 1;
 
     ManParam manu_grid_conv_param = param.manufactured_convergence_study_param;
 
@@ -148,6 +157,11 @@ int GridStudy<dim,nstate>
             dg->set_triangulation(&grid);
             dg->allocate_system ();
             //dg->evaluate_inverse_mass_matrices();
+            //
+            // PhysicsBase required for exact solution and output error
+            Physics::PhysicsBase<dim,nstate,double> *physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(param.pde_type);
+
+            initialize_perturbed_solution(*(dg), *(physics_double));
 
             // Create ODE solver using the factory and providing the DG object
             std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
@@ -191,8 +205,6 @@ int GridStudy<dim,nstate>
                cell = dg->dof_handler.begin_active(),
                endc = dg->dof_handler.end();
 
-            // PhysicsBase required for exact solution and output error
-            Physics::PhysicsBase<dim,nstate,double> *physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(param.pde_type);
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
             for (; cell!=endc; ++cell) {
 

@@ -2,6 +2,8 @@
 #define __GRID_STUDY_H__
 
 #include "tests.h"
+#include "dg/dg.h"
+#include "physics/physics.h"
 #include "parameters/all_parameters.h"
 
 namespace PHiLiP {
@@ -42,6 +44,8 @@ protected:
     /** Useful to check non-cartesian linear meshes
      */
     static dealii::Point<dim> warp (const dealii::Point<dim> &p);
+
+    void initialize_perturbed_solution(DGBase<dim,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &physics) const;
 };
 
 

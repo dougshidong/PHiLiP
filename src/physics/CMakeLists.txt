@@ -2,6 +2,7 @@ SET(SOURCE
     physics.cpp
     convection_diffusion.cpp
     euler.cpp
+    manufactured_solution.cpp
     )
 
 foreach(dim RANGE 1 3)

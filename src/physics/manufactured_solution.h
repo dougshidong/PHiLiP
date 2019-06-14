@@ -61,7 +61,7 @@ public:
 
 private:
     std::vector<real> base_values;
-    std::vector<dealii::Tensor<1,dim,real>> amplitudes;
+    std::vector<real> amplitudes;
     std::vector<dealii::Tensor<1,dim,real>> frequencies;
 };
 

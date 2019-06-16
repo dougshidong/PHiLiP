@@ -4,6 +4,7 @@
 #include <deal.II/base/tensor.h>
 
 #include "parameters/all_parameters.h"
+#include "physics/manufactured_solution.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -33,25 +34,8 @@ public:
     /// Virtual destructor required for abstract classes.
     virtual ~PhysicsBase() = 0;
 
-    /// Default manufactured solution.
-    /** \code
-     *  if (dim==1) uexact = sin(a*pos[0]+d);
-     *  if (dim==2) uexact = sin(a*pos[0]+d)*sin(b*pos[1]+e);
-     *  if (dim==3) uexact = sin(a*pos[0]+d)*sin(b*pos[1]+e)*sin(c*pos[2]+f);
-     *  \endcode
-     */
-    virtual std::array<real,nstate> manufactured_solution (const dealii::Point<dim,double> &pos) const;
-
-    /// Default manufactured solution gradient.
-    virtual std::array<dealii::Tensor<1,dim,real>,nstate> manufactured_gradient (
-        const dealii::Point<dim,double> &pos) const;
-
-    /// Returns the integral of the manufactured solution over the hypercube [0,1].
-    /**
-     *  Either returns the linear output \f$\int u dV\f$
-     *  or the nonlinear output \f$\int u^2 dV\f$.
-     */
-    virtual double integral_output (const bool linear) const;
+    /// Manufactured solution function
+    const ManufacturedSolutionFunction<dim,real> manufactured_solution_function;
 
     /// Convective fluxes that will be differentiated once in space.
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
@@ -114,18 +98,14 @@ protected:
 
 
     /// Some constants used to define manufactured solution
-    double freq_x, freq_y, freq_z;
-    double offs_x, offs_y, offs_z;
     double velo_x, velo_y, velo_z;
     double diff_coeff;
 
-    /// Heterogeneous diffusion matrix
+    /// Anisotropic diffusion matrix
     /** As long as the diagonal components are positive and diagonally dominant
      *  we should have a stable diffusive system
      */
-    double A11, A12, A13;
-    double A21, A22, A23;
-    double A31, A32, A33;
+    dealii::Tensor<2,dim,double> diffusion_tensor;
 };
 
 /// Create specified physics as PhysicsBase object 
@@ -196,6 +176,10 @@ public:
         const dealii::Point<dim,double> &pos,
         const std::array<real,nstate> &solution) const;
 
+    /// If diffusion is present, assign Dirichlet boundary condition
+    /** Using Neumann boundary conditions might need to modify the functional
+     *  in order to obtain the optimal 2p convergence of the functional error
+     */
     void boundary_face_values (
         const int /*boundary_type*/,
         const dealii::Point<dim, double> &/*pos*/,
@@ -281,7 +265,6 @@ public:
     ~Euler ()
     {};
 
-    /// Manufactured solution for Euler
     std::array<real,nstate> manufactured_solution (const dealii::Point<dim,double> &pos) const;
 
     /// Convective flux: \f$ \mathbf{F}_{conv} =  u \f$
@@ -295,11 +278,6 @@ public:
 
     /// Maximum convective eigenvalue used in Lax-Friedrichs
     real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
-
-    //  /// Diffusion matrix is identity
-    //  std::array<dealii::Tensor<1,dim,real>,nstate> apply_diffusion_matrix (
-    //      const std::array<real,nstate> &conservative_soln,
-    //      const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_grad) const;
 
     /// Dissipative flux: u
     std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (

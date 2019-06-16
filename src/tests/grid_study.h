@@ -46,6 +46,7 @@ protected:
     static dealii::Point<dim> warp (const dealii::Point<dim> &p);
 
     void initialize_perturbed_solution(DGBase<dim,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &physics) const;
+    double integrate_solution_over_domain(DGBase<dim,double> &dg) const;
 };
 
 

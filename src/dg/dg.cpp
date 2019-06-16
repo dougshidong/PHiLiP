@@ -270,6 +270,7 @@ void DG<dim,nstate,real>::allocate_system ()
     //std::vector<unsigned int> block_component(nstate,0);
     //dealii::DoFRenumbering::component_wise(DGBase<dim,real>::dof_handler, block_component);
 
+    DGBase<dim,real>::evaluate_inverse_mass_matrices ();
 
     // Allocate matrix
     unsigned int n_dofs = DGBase<dim,real>::dof_handler.n_dofs();
@@ -339,6 +340,7 @@ void DG<dim,nstate,real>::assemble_system ()
                 real penalty = deg1sq / vol_div_facearea1;
                 //penalty = 1;//99;
 
+                // Need to somehow get boundary type from the mesh
                 assemble_boundary_term_implicit (DGBase<dim,real>::fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
 
             // Case 2:

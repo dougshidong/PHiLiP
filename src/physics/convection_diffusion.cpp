@@ -8,6 +8,14 @@
 namespace PHiLiP {
 namespace Physics {
 
+template <int nstate, typename real>
+std::array<real,nstate> stdvector_to_stdarray(const std::vector<real> vector)
+{
+    std::array<real,nstate> array;
+    for (int i=0; i<nstate; i++) { array[i] = vector[i]; }
+    return array;
+}
+
 template <int dim, int nstate, typename real>
 void ConvectionDiffusion<dim,nstate,real>
 ::boundary_face_values (
@@ -19,9 +27,12 @@ void ConvectionDiffusion<dim,nstate,real>
    std::array<real,nstate> &soln_bc,
    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
-
-    const std::array<real,nstate> boundary_values = PhysicsBase<dim,nstate,real>::manufactured_solution(pos);
-    //const std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients = PhysicsBase<dim,nstate,real>::manufactured_gradient(pos);
+    std::array<real,nstate> boundary_values;
+    std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
+    for (int i=0; i<nstate; i++) {
+        boundary_values[i] = this->manufactured_solution_function.value (pos, i);
+        boundary_gradients[i] = this->manufactured_solution_function.gradient (pos, i);
+    }
 
     for (int istate=0; istate<nstate; ++istate) {
 
@@ -39,13 +50,16 @@ void ConvectionDiffusion<dim,nstate,real>
             // //soln_bc[istate] = soln_int[istate];
             // //soln_bc[istate] = boundary_values[istate];
             // soln_bc[istate] = -soln_int[istate]+2*boundary_values[istate];
-
-            // //soln_grad_bc[istate] = soln_grad_int[istate];
-            // soln_grad_bc[istate] = boundary_gradients[istate];
-
             soln_bc[istate] = soln_int[istate];
+
+            // **************************************************************************************************************
+            // Note I don't know how to properly impose the soln_grad_bc to obtain an adjoint consistent scheme
+            // Currently, Neumann boundary conditions are only imposed for the linear advection
+            // Therefore, soln_grad_bc does not affect the solution
+            // **************************************************************************************************************
             soln_grad_bc[istate] = soln_grad_int[istate];
             //soln_grad_bc[istate] = boundary_gradients[istate];
+            //soln_grad_bc[istate] = -soln_grad_int[istate]+2*boundary_gradients[istate];
         }
     }
 }
@@ -123,30 +137,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,rea
     std::array<dealii::Tensor<1,dim,real>,nstate> diss_flux;
     const real diff_coeff = diffusion_coefficient();
     using phys = PhysicsBase<dim,nstate,real>;
-    const double a11 = phys::A11, a12 = phys::A12, a13 = phys::A13;
-    const double a21 = phys::A21, a22 = phys::A22, a23 = phys::A23;
-    const double a31 = phys::A31, a32 = phys::A32, a33 = phys::A33;
     for (int i=0; i<nstate; i++) {
-        //diss_flux[i] = -diff_coeff*1.0*solution_gradient[i];
-        if (dim==1) {
-            diss_flux[i] = -diff_coeff*a11*solution_gradient[i];
-        } else if (dim==2) {
-            diss_flux[i][0] = -diff_coeff*a11*solution_gradient[i][0]
-                              -diff_coeff*a12*solution_gradient[i][1];
-            diss_flux[i][1] = -diff_coeff*a21*solution_gradient[i][0]
-                              -diff_coeff*a22*solution_gradient[i][1];
-        } else if (dim==3) {
-            diss_flux[i][0] = -diff_coeff*a11*solution_gradient[i][0]
-                              -diff_coeff*a12*solution_gradient[i][1]
-                              -diff_coeff*a13*solution_gradient[i][2];
-            diss_flux[i][1] = -diff_coeff*a21*solution_gradient[i][0]
-                              -diff_coeff*a22*solution_gradient[i][1]
-                              -diff_coeff*a23*solution_gradient[i][2];
-            diss_flux[i][2] = -diff_coeff*a31*solution_gradient[i][0]
-                              -diff_coeff*a32*solution_gradient[i][1]
-                              -diff_coeff*a33*solution_gradient[i][2];
-        }
-
+        diss_flux[i] = -diff_coeff*((this->diffusion_tensor)*solution_gradient[i]);
     }
     return diss_flux;
 }
@@ -160,63 +152,27 @@ std::array<real,nstate> ConvectionDiffusion<dim,nstate,real>
     std::array<real,nstate> source;
     const dealii::Tensor<1,dim,real> velocity_field = this->advection_speed();
     using phys = PhysicsBase<dim,nstate,real>;
-    const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
-    const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
-
     const real diff_coeff = diffusion_coefficient();
 
-    const double a11 = phys::A11, a12 = phys::A12, a13 = phys::A13;
-    const double a21 = phys::A21, a22 = phys::A22, a23 = phys::A23;
-    const double a31 = phys::A31, a32 = phys::A32, a33 = phys::A33;
-
-    int istate = 0;
-    if (dim==1) {
-        const real x = pos[0];
-        source[istate] =
-              velocity_field[0]*a*cos(a*x+d)
-            + diff_coeff*a11*a*a*sin(a*x+d);
-    } else if (dim==2) {
-        const real x = pos[0], y = pos[1];
-        source[istate] =
-              velocity_field[0]*a*cos(a*x+d)*sin(b*y+e)
-            + velocity_field[1]*b*sin(a*x+d)*cos(b*y+e)
-            + diff_coeff*a11*a*a*sin(a*x+d)*sin(b*y+e)
-            - diff_coeff*a12*a*b*cos(a*x+d)*cos(b*y+e)
-            - diff_coeff*a21*b*a*cos(a*x+d)*cos(b*y+e)
-            + diff_coeff*a22*b*b*sin(a*x+d)*sin(b*y+e);
-    } else if (dim==3) {
-        const real x = pos[0], y = pos[1], z = pos[2];
-        source[istate] =   
-              velocity_field[0]*a*cos(a*x+d)*sin(b*y+e)*sin(c*z+f)
-            + velocity_field[1]*b*sin(a*x+d)*cos(b*y+e)*sin(c*z+f)
-            + velocity_field[2]*c*sin(a*x+d)*sin(b*y+e)*cos(c*z+f)
-            + diff_coeff*a11*a*a*sin(a*x+d)*sin(b*y+e)*sin(c*z+f)
-            - diff_coeff*a12*a*b*cos(a*x+d)*cos(b*y+e)*sin(c*z+f)
-            - diff_coeff*a13*a*c*cos(a*x+d)*sin(b*y+e)*cos(c*z+f)
-            - diff_coeff*a21*b*a*cos(a*x+d)*cos(b*y+e)*sin(c*z+f)
-            + diff_coeff*a22*b*b*sin(a*x+d)*sin(b*y+e)*sin(c*z+f)
-            - diff_coeff*a23*b*c*sin(a*x+d)*cos(b*y+e)*cos(c*z+f)
-            - diff_coeff*a31*c*a*cos(a*x+d)*sin(b*y+e)*cos(c*z+f)
-            - diff_coeff*a32*c*b*sin(a*x+d)*cos(b*y+e)*cos(c*z+f)
-            + diff_coeff*a33*c*c*sin(a*x+d)*sin(b*y+e)*sin(c*z+f);
-    }
-
-    istate = 1;
-    if (nstate > 1) {
-        int istate = 1;
-        if (dim==1) {
-            const real x = pos[0];
-            source[istate] = -velocity_field[0]*a*sin(a*x+d);
-        } else if (dim==2) {
-            const real x = pos[0], y = pos[1];
-            source[istate] = - velocity_field[0]*a*sin(a*x+d)*cos(b*y+e)
-                             - velocity_field[1]*b*cos(a*x+d)*sin(b*y+e);
-        } else if (dim==3) {
-            const real x = pos[0], y = pos[1], z = pos[2];
-            source[istate] =  - velocity_field[0]*a*sin(a*x+d)*cos(b*y+e)*cos(c*z+f)
-                              - velocity_field[1]*b*cos(a*x+d)*sin(b*y+e)*cos(c*z+f)
-                              - velocity_field[2]*c*cos(a*x+d)*cos(b*y+e)*sin(c*z+f);
-        }
+    for (int istate=0; istate<nstate; istate++) {
+        dealii::Tensor<1,dim,real> manufactured_gradient = this->manufactured_solution_function.gradient (pos, istate);
+            // dealii::Tensor<1,dim,real> manufactured_gradient_fd = this->manufactured_solution_function.gradient_fd (pos, istate);
+            // std::cout<<"FD" <<std::endl;
+            // std::cout<<manufactured_gradient_fd <<std::endl;
+            // std::cout<<"AN" <<std::endl;
+            // std::cout<<manufactured_gradient <<std::endl;
+            // std::cout<<"DIFF" <<std::endl;
+            // std::cout<<manufactured_gradient - manufactured_gradient_fd <<std::endl;
+        dealii::SymmetricTensor<2,dim,real> manufactured_hessian = this->manufactured_solution_function.hessian (pos, istate);
+            // dealii::SymmetricTensor<2,dim,real> manufactured_hessian_fd = this->manufactured_solution_function.hessian_fd (pos, istate);
+            // std::cout<<"FD" <<std::endl;
+            // std::cout<<manufactured_hessian_fd <<std::endl;
+            // std::cout<<"AN" <<std::endl;
+            // std::cout<<manufactured_hessian <<std::endl;
+            // std::cout<<"DIFF" <<std::endl;
+            // std::cout<<manufactured_hessian - manufactured_hessian_fd <<std::endl;
+        source[istate] = velocity_field*manufactured_gradient;
+        source[istate] += -diff_coeff*scalar_product((this->diffusion_tensor),manufactured_hessian);
     }
     return source;
 }

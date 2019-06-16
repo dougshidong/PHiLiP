@@ -39,19 +39,53 @@ GridStudy<dim,nstate>::GridStudy(const Parameters::AllParameters *const paramete
 
 template <int dim, int nstate>
 void GridStudy<dim,nstate>
-::initialize_perturbed_solution(DGBase<dim,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &/*physics */) const
+::initialize_perturbed_solution(DGBase<dim,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &physics) const
 {
+    dealii::VectorTools::interpolate(dg.dof_handler, physics.manufactured_solution_function, dg.solution);
+}
+template <int dim, int nstate>
+double GridStudy<dim,nstate>
+::integrate_solution_over_domain(DGBase<dim,double> &dg) const
+{
+    std::cout << "Evaluating solution integral..." << std::endl;
+    double solution_integral = 0.0;
 
-    //ManufacturedSolutionFunction<dim,double>::ManufacturedSolutionFunction manufactured_solution(nstate);
-    dealii::VectorTools::interpolate(dg.dof_handler,
-                             ManufacturedSolutionFunction<dim,double>(),
-                             dg.solution);
-    //for (auto cell : dg.triangulation->active_cell_iterators()) {
-    //    const unsigned int n_dofs_cell = fe_values_vol->dofs_per_cell;
-    //    for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-    //    }
-    //}
+    // Overintegrate the error to make sure there is not integration error in the error estimate
+    int overintegrate = 10;
+    dealii::QGauss<dim> quad_extra(dg.fe_system.tensor_degree()+overintegrate);
+    dealii::FEValues<dim,dim> fe_values_extra(dg.mapping, dg.fe_system, quad_extra, 
+            dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+    const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
+    std::array<double,nstate> soln_at_q;
 
+    const bool linear_output = false;
+    int power;
+    if (linear_output) power = 1;
+    else power = 2;
+
+    // Integrate solution error and output error
+    std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
+    for (auto cell : dg.dof_handler.active_cell_iterators()) {
+
+        fe_values_extra.reinit (cell);
+        cell->get_dof_indices (dofs_indices);
+
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+
+            // Interpolate solution to quadrature points
+            std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
+            for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
+                const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
+                soln_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
+            }
+            // Integrate solution
+            for (int s=0; s<nstate; s++) {
+                solution_integral += pow(soln_at_q[0], power) * fe_values_extra.JxW(iquad);
+            }
+        }
+
+    }
+    return solution_integral;
 }
 
 template<int dim, int nstate>
@@ -76,10 +110,29 @@ int GridStudy<dim,nstate>
     const double       grid_progression    = manu_grid_conv_param.grid_progression;
 
 
+
+    Physics::PhysicsBase<dim,nstate,double> *physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(param.pde_type);
+
+    // Evaluate solution integral on really fine mesh
+    double exact_solution_integral;
+    std::cout << "Evaluating EXACT solution integral..." << std::endl;
+    // Limit the scope of grid_super_fine and dg_super_fine
+    {
+        dealii::Triangulation<dim> grid_super_fine;
+        dealii::GridGenerator::subdivided_hyper_cube(grid_super_fine, initial_grid_size*pow(grid_progression,n_grids_input));
+        std::shared_ptr < DGBase<dim, double> > dg_super_fine = DGFactory<dim,double>::create_discontinuous_galerkin(&param, p_end);
+        dg_super_fine->set_triangulation(&grid_super_fine);
+        dg_super_fine->allocate_system ();
+
+        initialize_perturbed_solution(*dg_super_fine, *physics_double);
+        exact_solution_integral = integrate_solution_over_domain(*dg_super_fine);
+        std::cout << "Exact solution integral is " << exact_solution_integral << std::endl;
+    }
+
     std::vector<int> fail_conv_poly;
     std::vector<double> fail_conv_slop;
-
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
+
     for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
 
         // p0 tends to require a finer grid to reach asymptotic region
@@ -99,6 +152,7 @@ int GridStudy<dim,nstate>
         }
 
         dealii::ConvergenceTable convergence_table;
+
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
             // Note that Triangulation must be declared before DG
             // DG will be destructed before Triangulation
@@ -159,7 +213,7 @@ int GridStudy<dim,nstate>
             //dg->evaluate_inverse_mass_matrices();
             //
             // PhysicsBase required for exact solution and output error
-            Physics::PhysicsBase<dim,nstate,double> *physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(param.pde_type);
+            std::cout<<"Test Physics nstate" << nstate << std::endl;
 
             initialize_perturbed_solution(*(dg), *(physics_double));
 
@@ -189,18 +243,10 @@ int GridStudy<dim,nstate>
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;
-            std::array<double,nstate> uexact;
 
             double l2error = 0;
 
-            bool linear_output = true;
-            //linear_output = true;
-            int power;
-            if (linear_output) power = 1;
-            if (!linear_output) power = 2;
-
             // Integrate solution error and output error
-            double solution_integral = 0.0;
             typename dealii::DoFHandler<dim>::active_cell_iterator
                cell = dg->dof_handler.begin_active(),
                endc = dg->dof_handler.end();
@@ -220,20 +266,21 @@ int GridStudy<dim,nstate>
                     }
 
                     const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
-                    uexact = physics_double->manufactured_solution (qpoint);
+                    //std::array<double,nstate> uexact;
                     //std::cout << "cos(0.59*x+1 " << cos(0.59*qpoint[0]+1) << std::endl;
                     //std::cout << "uexact[1] " << uexact[1] << std::endl;
 
                     for (int istate=0; istate<nstate; ++istate) {
-                        l2error += pow(soln_at_q[istate] - uexact[istate], 2) * fe_values_extra.JxW(iquad);
+                        const double uexact = physics_double->manufactured_solution_function.value(qpoint, istate);
+                        l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
                     }
                     // Only integrate first state variable for output error
-                    solution_integral += pow(soln_at_q[0], power) * fe_values_extra.JxW(iquad);
                 }
 
             }
-            const double exact_solution_integral = physics_double->integral_output(linear_output);
             l2error = sqrt(l2error);
+
+            double solution_integral = integrate_solution_over_domain(*dg);
 
             //  // Integrate boundary. Not needed for now. Might need something like this for adjoint consistency later on
             //  bool integrate_boundary = false;

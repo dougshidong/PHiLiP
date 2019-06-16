@@ -46,6 +46,20 @@ public:
         convection_diffusion,
         advection_vector,
         euler};
+
+    /// Possible boundary types, NOT IMPLEMENTED YET
+    enum BoundaryType { 
+        manufactured_dirichlet,
+        manufactured_neumann,
+        manufactured_inout_flow,
+    };
+
+    /// Possible source terms, NOT IMPLEMENTED YET
+    enum SourceTerm { 
+        zero,
+        manufactured,
+    };
+
     /// Store the PDE type to be solved
     PartialDifferentialEquation pde_type;
 

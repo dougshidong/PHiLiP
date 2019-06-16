@@ -35,19 +35,50 @@ PhysicsFactory<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 PhysicsBase<dim,nstate,real>::PhysicsBase() 
+    : manufactured_solution_function(nstate)
 {
-    double pi = atan(1)*4.0;
+    const double pi = atan(1)*4.0;
+    const double ee = exp(1);
 
     // Some constants used to define manufactured solution
-    freq_x =-pi/2.0;   freq_y = pi/2.0;        freq_z = exp(1)/5.0;
-    offs_x = 1;        offs_y = 0.2;           offs_z = 1.5;
-    velo_x = exp(1)/2; velo_y = pi/4.0;        velo_z = sqrt(2)/2.0;
-    diff_coeff = velo_x*pi/exp(1);
+    velo_x = 1.1; velo_y = -pi/ee; velo_z = ee/pi;
+    diff_coeff = pi/ee;
 
-    // Heterogeneous diffusion matrix
-    A11 =   9; A12 =  -2; A13 =  -6;
-    A21 =   3; A22 =  20; A23 =   4;
-    A31 =  -2; A32 = 0.5; A33 =   8;
+    // Anisotropic diffusion matrix
+    //A11 =   9; A12 =  -2; A13 =  -6;
+    //A21 =   3; A22 =  20; A23 =   4;
+    //A31 =  -2; A32 = 0.5; A33 =   8;
+
+    diffusion_tensor[0][0] = 12;
+    if (dim>=2) {
+        diffusion_tensor[0][1] = -2;
+        diffusion_tensor[1][0] = 3;
+        diffusion_tensor[1][1] = 20;
+    }
+    if (dim>=3) {
+        diffusion_tensor[0][2] = -6;
+        diffusion_tensor[1][2] = -4;
+        diffusion_tensor[2][0] = -2;
+        diffusion_tensor[2][1] = 0.5;
+        diffusion_tensor[2][2] = 8;
+    }
+
+    diffusion_tensor[0][0] = 12;
+    if (dim>=2) {
+        diffusion_tensor[0][1] = 3;
+        diffusion_tensor[1][0] = 3;
+        diffusion_tensor[1][1] = 20;
+    }
+    if (dim>=3) {
+        diffusion_tensor[0][2] = -2;
+        diffusion_tensor[2][0] = 2;
+        diffusion_tensor[2][1] = 5;
+        diffusion_tensor[1][2] = -5;
+        diffusion_tensor[2][2] = 18;
+    }
+    //for (int i=0;i<dim;i++)
+    //    for (int j=0;j<dim;j++)
+    //        diffusion_tensor[i][j] = (i==j) ? 1.0 : 0.0;
 }
 
 template <int dim, int nstate, typename real>
@@ -64,9 +95,13 @@ void PhysicsBase<dim,nstate,real>
    std::array<real,nstate> &soln_bc,
    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
+    std::array<real,nstate> boundary_values;
+    std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
+    for (int i=0; i<nstate; i++) {
+        boundary_values[i] = this->manufactured_solution_function.value (pos, i);
+        boundary_gradients[i] = this->manufactured_solution_function.gradient (pos, i);
+    }
 
-    std::array<real,nstate> boundary_values = manufactured_solution(pos);
-    std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients = manufactured_gradient(pos);
     for (int istate=0; istate<nstate; ++istate) {
 
         std::array<real,nstate> characteristic_dot_n = convective_eigenvalues(boundary_values, normal_int);
@@ -84,125 +119,20 @@ void PhysicsBase<dim,nstate,real>
             // //soln_bc[istate] = boundary_values[istate];
             // soln_bc[istate] = -soln_int[istate]+2*boundary_values[istate];
 
-            // //soln_grad_bc[istate] = soln_grad_int[istate];
-            // soln_grad_bc[istate] = boundary_gradients[istate];
-
             soln_bc[istate] = soln_int[istate];
-            //soln_grad_bc[istate] = soln_grad_int[istate];
-            soln_grad_bc[istate] = boundary_gradients[istate];
+
+            // **************************************************************************************************************
+            // Note I don't know how to properly impose the soln_grad_bc to obtain an adjoint consistent scheme
+            // Currently, Neumann boundary conditions are only imposed for the linear advection
+            // Therefore, soln_grad_bc does not affect the solution
+            // **************************************************************************************************************
+            soln_grad_bc[istate] = soln_grad_int[istate];
+            //soln_grad_bc[istate] = boundary_gradients[istate];
             //soln_grad_bc[istate] = -soln_grad_int[istate]+2*boundary_gradients[istate];
         }
     }
 }
 
-// Common manufactured solution for advection, diffusion, convection-diffusion
-template <int dim, int nstate, typename real>
-std::array<real,nstate> PhysicsBase<dim,nstate,real>
-::manufactured_solution (const dealii::Point<dim,double> &pos) const
-//::manufactured_solution (const dealii::Point<dim,double> &pos, real *const solution) const
-{
-    std::array<real,nstate> solution;
-    using phys = PhysicsBase<dim,nstate,real>;
-    const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
-    const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
-
-    int istate = 0;
-    if (dim==1) solution[istate] = sin(a*pos[0]+d);
-    if (dim==2) solution[istate] = sin(a*pos[0]+d)*sin(b*pos[1]+e);
-    if (dim==3) solution[istate] = sin(a*pos[0]+d)*sin(b*pos[1]+e)*sin(c*pos[2]+f);
-
-    if (nstate > 1) {
-        istate = 1;
-        if (dim==1) solution[istate] = cos(a*pos[0]+d);
-        if (dim==2) solution[istate] = cos(a*pos[0]+d)*cos(b*pos[1]+e);
-        if (dim==3) solution[istate] = cos(a*pos[0]+d)*cos(b*pos[1]+e)*cos(c*pos[2]+f);
-    }
-    return solution;
-}
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>
-::manufactured_gradient (const dealii::Point<dim,double> &pos) const
-{
-    std::array<dealii::Tensor<1,dim,real>,nstate> solution_gradient;
-    using phys = PhysicsBase<dim,nstate,real>;
-    const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
-    const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
-
-    int istate = 0;
-    if (dim==1) {
-        solution_gradient[istate][0] = a*cos(a*pos[0]+d);
-    } else if (dim==2) {
-        solution_gradient[istate][0] = a*cos(a*pos[0]+d)*sin(b*pos[1]+e);
-        solution_gradient[istate][1] = b*sin(a*pos[0]+d)*cos(b*pos[1]+e);
-    } else if (dim==3) {
-        solution_gradient[istate][0] = a*cos(a*pos[0]+d)*sin(b*pos[1]+e)*sin(c*pos[2]+f);
-        solution_gradient[istate][1] = b*sin(a*pos[0]+d)*cos(b*pos[1]+e)*sin(c*pos[2]+f);
-        solution_gradient[istate][2] = c*sin(a*pos[0]+d)*sin(b*pos[1]+e)*cos(c*pos[2]+f);
-    }
-
-    if (nstate > 1) {
-        int istate = 1;
-        if (dim==1) {
-            solution_gradient[istate][0] = -a*sin(a*pos[0]+d);
-        } else if (dim==2) {
-            solution_gradient[istate][0] = -a*sin(a*pos[0]+d)*cos(b*pos[1]+e);
-            solution_gradient[istate][1] = -b*cos(a*pos[0]+d)*sin(b*pos[1]+e);
-        } else if (dim==3) {
-            solution_gradient[istate][0] = -a*sin(a*pos[0]+d)*cos(b*pos[1]+e)*cos(c*pos[2]+f);
-            solution_gradient[istate][1] = -b*cos(a*pos[0]+d)*sin(b*pos[1]+e)*cos(c*pos[2]+f);
-            solution_gradient[istate][2] = -c*cos(a*pos[0]+d)*cos(b*pos[1]+e)*sin(c*pos[2]+f);
-        }
-    }
-    return solution_gradient;
-}
-
-template <int dim, int nstate, typename real>
-double PhysicsBase<dim,nstate,real>
-::integral_output (bool linear) const
-{
-    using phys = PhysicsBase<dim,nstate,real>;
-    const double a = phys::freq_x, b = phys::freq_y, c = phys::freq_z;
-    const double d = phys::offs_x, e = phys::offs_y, f = phys::offs_z;
-
-    // See integral_hypercube.m MATLAB file
-    double integral = 0;
-    if (dim==1) { 
-        // Source from Wolfram Alpha
-        // https://www.wolframalpha.com/input/?i=integrate+sin(a*x%2Bd)+dx+,+x+%3D0,1
-        if(linear)  integral += (cos(d) - cos(a + d))/a;
-        else        integral += (sin(2.0*d)/4.0 - sin(2.0*a + 2.0*d)/4.0)/a + 1.0/2.0;
-    }
-    if (dim==2) {
-        // Source from Wolfram Alpha
-        // https://www.wolframalpha.com/input/?i=integrate+sin(a*x%2Bd)*sin(b*y%2Be)+dx+dy,+x+%3D0,1,y%3D0,1
-        if(linear)  integral += ((cos(d) - cos(a + d))*(cos(e) - cos(b + e)))/(a*b);
-        else        integral += ((2.0*a + sin(2.0*d) - sin(2.0*a + 2.0*d)) *(2.0*b + sin(2.0*e) - sin(2.0*b + 2.0*e))) /(16.0*a*b);
-    }
-    if (dim==3) {
-        // Source from Wolfram Alpha
-        // https://www.wolframalpha.com/input/?i=integrate+sin(a*x%2Bd)*sin(b*y%2Be)*sin(c*z%2Bf)++dx+dy+dz,+x+%3D0,1,y%3D0,1,z%3D0,1
-        if(linear)  integral += ( 4.0*(cos(f) - cos(c + f)) * sin(a/2.0)*sin(b/2.0)*sin(a/2.0 + d)*sin(b/2.0 + e) ) /(a*b*c);
-        else        integral += ((2.0*a + sin(2.0*d) - sin(2.0*a + 2.0*d)) *(2.0*b + sin(2.0*e) - sin(2.0*b + 2.0*e)) *(2.0*c + sin(2.0*f) - sin(2.0*c + 2.0*f))) /(64.0*a*b*c);
-    }
-
-    //std::cout << "NSTATE   " << nstate << std::endl;
-    //if (nstate > 1) {
-    //    std::cout << "Adding 2nd state variable to integral output" << std::endl;
-    //    if (dim==1) { 
-    //        if(linear)  integral += (sin(a + d) - sin(d))/a;
-    //        else        integral += 0.5 - (sin(2.0*d)/4 - sin(2.0*a + 2.0*d)/4.0)/a;
-    //    }
-    //    if (dim==2) {
-    //        if(linear)  integral += ((sin(a + d) - sin(d))*(sin(b + e) - sin(e)))/(a*b);
-    //        else        integral += ((2.0*a - sin(2.0*d) + sin(2.0*a + 2.0*d))*(2.0*b - sin(2.0*e) + sin(2.0*b + 2.0*e)))/(16.0*a*b);
-    //    }
-    //    if (dim==3) {
-    //        if(linear)  integral += -((cos(c + f) - cos(f))*(sin(a + d) - sin(d))*(sin(b + e) - sin(e)))/(a*b*c);
-    //        else        integral += ((2.0*a - sin(2.0*d) + sin(2.0*a + 2.0*d))*(2.0*b - sin(2.0*e) + sin(2.0*b + 2.0*e))*(2.0*c + sin(2.0*f) - sin(2.0*c + 2.0*f)))/(64.0*a*b*c);
-    //    }
-    //}
-    return integral;
-}
 
 template <int dim, int nstate, typename real>
 void PhysicsBase<dim,nstate,real>

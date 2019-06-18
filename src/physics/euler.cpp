@@ -228,8 +228,9 @@ inline real Euler<dim,nstate,real>
     const real energy  = conservative_soln[nstate-1];
     const std::array<real,dim> vel = compute_velocities(conservative_soln);
     const real vel2 = compute_velocity_squared(vel);
-    const real pressure = (gam-1.0)*(energy - 0.5*density*vel2);
-    assert(pressure>0.0);
+    real pressure = (gam-1.0)*(energy - 0.5*density*vel2);
+    //if(pressure<1e-4) pressure = 0.01;
+    //assert(pressure>0.0);
     return pressure;
 }
 
@@ -237,8 +238,9 @@ template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
 ::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
-    const real density = conservative_soln[0];
-    assert(density > 0);
+    real density = conservative_soln[0];
+    //if(density<1e-4) density = 0.01;
+    //assert(density > 0);
     const real pressure = compute_pressure(conservative_soln);
     const real sound = std::sqrt(pressure*gam/density);
     return sound;
@@ -266,6 +268,51 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
         conv_flux[nstate-1][flux_dim] = (tot_energy+pressure)*vel[flux_dim];
     }
     return conv_flux;
+}
+
+template <int dim, int nstate, typename real>
+dealii::Tensor<2,nstate,real> Euler<dim,nstate,real>
+::convective_flux_directional_jacobian (
+    const std::array<real,nstate> &conservative_soln,
+    const dealii::Tensor<1,dim,real> &normal) const
+{
+    // See Blazek Appendix A.9 p. 429-430
+    const std::array<real,dim> vel = compute_velocities(conservative_soln);
+    real vel_normal = 0.0;
+    for (int d=0;d<dim;d++) { vel_normal += vel[d] * normal[d]; }
+
+    const real vel2 = compute_velocity_squared(vel);
+    const real phi = 0.5*(gam-1.0) * vel2;
+
+    const real density = conservative_soln[0];
+    const real tot_energy = conservative_soln[nstate-1];
+    const real E = tot_energy / density;
+    const real a1 = gam*E-phi;
+    const real a2 = gam-1.0;
+    const real a3 = gam-2.0;
+
+    dealii::Tensor<2,nstate,real> jacobian;
+    for (int d=0; d<dim; ++d) {
+        jacobian[0][1+d] = normal[d];
+    }
+    for (int row_dim=0; row_dim<dim; ++row_dim) {
+        jacobian[1+row_dim][0] = normal[row_dim]*phi - vel[row_dim] * vel_normal;
+        for (int col_dim=0; col_dim<dim; ++col_dim){
+            if (row_dim == col_dim) {
+                jacobian[1+row_dim][1+col_dim] = vel_normal - a3*normal[row_dim]*vel[row_dim];
+            } else {
+                jacobian[1+row_dim][1+col_dim] = normal[col_dim]*vel[row_dim] - a2*normal[row_dim]*vel[col_dim];
+            }
+        }
+        jacobian[1+row_dim][nstate-1] = normal[row_dim]*a2;
+    }
+    jacobian[nstate-1][0] = vel_normal*(phi-a1);
+    for (int d=0; d<dim; ++d){
+        jacobian[nstate-1][1+d] = normal[d]*a1 - a2*vel[d]*vel_normal;
+    }
+    jacobian[nstate-1][nstate-1] = gam*vel_normal;
+
+    return jacobian;
 }
 
 template <int dim, int nstate, typename real>

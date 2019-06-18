@@ -1,31 +1,11 @@
 #include <assert.h>
 #include <deal.II/grid/grid_generator.h>
 
+#include "assert_compare_array.h"
 #include "parameters/parameters.h"
 #include "physics/physics.h"
 
 const double TOLERANCE = 1E-12;
-
-template<int dim, int nstate>
-void assert_compare_array ( const std::array<double, nstate> &array1, const std::array<double, nstate> &array2, double scale2)
-{
-    for (int s=0; s<nstate; s++) {
-        const double diff = std::abs(array1[s] - scale2*array2[s]);
-        std::cout
-            << "State " << s+1 << " out of " << nstate
-            << std::endl
-            << "Array 1 = " << array1[s]
-            << std::endl
-            << "Array 2 = " << array2[s]
-            << std::endl
-            << "Difference = " << diff
-            << std::endl;
-        assert(diff < TOLERANCE);
-    }
-    std::cout << std::endl
-              << std::endl
-              << std::endl;
-}
 
 
 int main (int /*argc*/, char * /*argv*/[])
@@ -60,7 +40,7 @@ int main (int /*argc*/, char * /*argv*/[])
 
             // Flipping back and forth between conservative and primitive solution result
             // in the same solution
-            assert_compare_array<dim,nstate> ( conservative_soln, conservative_soln2, 1.0);
+            assert_compare_array<nstate> ( conservative_soln, conservative_soln2, 1.0, TOLERANCE);
             // Manufactured solution gives positive density
             assert(conservative_soln[0] > TOLERANCE);
             // Manufactured solution gives positive energy

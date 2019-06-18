@@ -97,8 +97,8 @@ int GridStudy<dim,nstate>
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
     Assert(dim == param.dimension, dealii::ExcDimensionMismatch(dim, param.dimension));
-    Assert(param.pde_type != param.PartialDifferentialEquation::euler, dealii::ExcNotImplemented());
-    if (param.pde_type == param.PartialDifferentialEquation::euler) return 1;
+    //Assert(param.pde_type != param.PartialDifferentialEquation::euler, dealii::ExcNotImplemented());
+    //if (param.pde_type == param.PartialDifferentialEquation::euler) return 1;
 
     ManParam manu_grid_conv_param = param.manufactured_convergence_study_param;
 

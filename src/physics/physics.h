@@ -201,8 +201,8 @@ protected:
  *  State variable and convective fluxes given by
  *
  *  \f[ 
- *  \mathbf{u} = 
- *  \begin{bmatrix} \rho \\ \rho v_1 \\ \rho v_2 \\ \rho v_3 \\ e \end{bmatrix}
+ *  \mathbf{w} = 
+ *  \begin{bmatrix} \rho \\ \rho v_1 \\ \rho v_2 \\ \rho v_3 \\ \rho E \end{bmatrix}
  *  , \qquad
  *  \mathbf{F}_{conv} = 
  *  \begin{bmatrix} 
@@ -215,7 +215,7 @@ protected:
  *  \rho v_1 v_1 + p \\
  *  \rho v_1 v_2     \\ 
  *  \rho v_1 v_3     \\
- *  v_1 (e+p)
+ *  v_1 (\rho e+p)
  *  \end{bmatrix}
  *  ,
  *  \begin{bmatrix} 
@@ -223,7 +223,7 @@ protected:
  *  \rho v_1 v_2     \\
  *  \rho v_2 v_2 + p \\ 
  *  \rho v_2 v_3     \\
- *  v_2 (e+p)
+ *  v_2 (\rho e+p)
  *  \end{bmatrix}
  *  ,
  *  \begin{bmatrix} 
@@ -231,14 +231,14 @@ protected:
  *  \rho v_1 v_3     \\
  *  \rho v_2 v_3     \\ 
  *  \rho v_3 v_3 + p \\
- *  v_3 (e+p)
+ *  v_3 (\rho e+p)
  *  \end{bmatrix}
  *  \end{bmatrix} \f]
  *  
  *  For a calorically perfect gas
  *
  *  \f[
- *  p=(\gamma -1)(e-\frac{1}{2}\rho \|\mathbf{v}\|)
+ *  p=(\gamma -1)(\rho e-\frac{1}{2}\rho \|\mathbf{v}\|)
  *  \f]
  *
  *  Dissipative flux \f$ \mathbf{F}_{diss} = \mathbf{0} \f$
@@ -247,8 +247,8 @@ protected:
  *
  *  Equation:
  *  \f[ \boldsymbol{\nabla} \cdot
- *         (  \mathbf{F}_{conv}( u ) 
- *          + \mathbf{F}_{diss}( u, \boldsymbol{\nabla}(u) )
+ *         (  \mathbf{F}_{conv}( w ) 
+ *          + \mathbf{F}_{diss}( w, \boldsymbol{\nabla}(w) )
  *      = s(\mathbf{x})
  *  \f]
  */
@@ -267,9 +267,14 @@ public:
 
     std::array<real,nstate> manufactured_solution (const dealii::Point<dim,double> &pos) const;
 
-    /// Convective flux: \f$ \mathbf{F}_{conv} =  u \f$
+    /// Convective flux: \f$ \mathbf{F}_{conv} \f$
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
         const std::array<real,nstate> &conservative_soln) const;
+
+    /// Convective flux Jacobian: \f$ \frac{\partial \mathbf{F}_{conv}}{\partial w} \f$
+    dealii::Tensor<2,nstate,real> convective_flux_directional_jacobian (
+        const std::array<real,nstate> &conservative_soln,
+        const dealii::Tensor<1,dim,real> &normal) const;
 
     /// Spectral radius of convective term Jacobian is 'c'
     std::array<real,nstate> convective_eigenvalues (
@@ -279,7 +284,7 @@ public:
     /// Maximum convective eigenvalue used in Lax-Friedrichs
     real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
 
-    /// Dissipative flux: u
+    /// Dissipative flux: 0
     std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;

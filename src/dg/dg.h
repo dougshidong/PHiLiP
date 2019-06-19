@@ -145,10 +145,8 @@ public:
      *  since the mapping from the reference to physical element is a bilnear mapping.
      *
      *  As a result, FE_DGP does not give optimal convergence orders.
-     *  See 
-     *  [discussion on deal.II group forum]
-     *  (https://groups.google.com/d/msg/dealii/f9NzCp8dnyU/aAdO6I9JCwAJ)
-     *  .
+     *  See [discussion](https://groups.google.com/d/msg/dealii/f9NzCp8dnyU/aAdO6I9JCwAJ)
+     *  on deal.II group forum]
      */
     const dealii::FE_DGQ<dim> fe_dg;
     //const dealii::FE_DGQLegendre<dim> fe_dg;

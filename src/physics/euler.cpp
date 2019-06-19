@@ -16,129 +16,36 @@ namespace Physics {
 
 template <int dim, int nstate, typename real>
 std::array<real,nstate> Euler<dim,nstate,real>
-::manufactured_solution (const dealii::Point<dim,double> &pos) const
-{
-    const double pi = atan(1)*4.0;
-    const double ee = exp(1);
-
-    std::array<real,nstate> base_value;
-    base_value[0] = pi/4.0;
-    for (int i=0;i<dim;i++) {
-        base_value[1+i] = ee/(i+1);
-    }
-    base_value[nstate-1] = ee/pi;
-
-    std::array<dealii::Tensor<1,dim,real>,nstate> amplitudes;
-    std::array<dealii::Tensor<1,dim,real>,nstate> frequencies;
-    for (int s=0; s<nstate; s++) {
-        for (int d=0; d<dim; d++) {
-            amplitudes[s][d] = 0.5*base_value[s]*(dim-d)/dim*(nstate-s)/nstate;
-            frequencies[s][d] = 1.0+sin(0.1+s*0.5+d*0.2);
-        }
-    }
-
-    // Density, velocity_x, velocity_y, velocity_z, pressure
-    std::array<real,nstate> primitive_soln;
-    for (int s=0; s<nstate; s++) {
-        primitive_soln[s] = base_value[s];
-        for (int d=0; d<dim; d++) {
-            primitive_soln[s] += amplitudes[s][d] * sin( frequencies[s][d] * pos[d] * pi / 2.0 );
-        }
-    }
-
-    return convert_primitive_to_conservative(primitive_soln);
-}
-
-template <int dim, int nstate, typename real>
-std::array<real,nstate> Euler<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,double> &pos,
     const std::array<real,nstate> &/*conservative_soln*/) const
 {
-    const double pi = atan(1)*4.0;
-    const double ee = exp(1);
-
-    std::array<real,nstate> base_value;
-    base_value[0] = pi/4.0;
-    for (int i=0;i<dim;i++) {
-        base_value[1+i] = ee/(i+1);
-    }
-    base_value[nstate-1] = ee/pi;
-
-
-    std::array<dealii::Tensor<1,dim,real>,nstate> ampl;
-    std::array<dealii::Tensor<1,dim,real>,nstate> freq;
+    std::array<real,nstate> manufactured_solution;
     for (int s=0; s<nstate; s++) {
-        for (int d=0; d<dim; d++) {
-            ampl[s][d] = 0.5*base_value[s]*(dim-d)/dim*(nstate-s)/nstate;
-            freq[s][d] = 1.0+sin(0.1+s*0.5+d*0.2);
-        }
+        manufactured_solution[s] = this->manufactured_solution_function.value (pos, s);
     }
-
-
-    // Obtain primitive solution
-    const std::array<real,nstate> conservative_manu_soln = manufactured_solution(pos);
-    const std::array<real,nstate> primitive_soln = Euler<dim,nstate,real>::convert_conservative_to_primitive(conservative_manu_soln);
-    const real density = primitive_soln[0];
-    const std::array<real,dim> vel = Euler::extract_velocities_from_primitive(primitive_soln);
-    const real pressure = primitive_soln[nstate-1];
-    const real energy = conservative_manu_soln[nstate-1];
-
-    // Derivatives of total energy w.r.t primitive variables
-    const real v2 = Euler::compute_velocity_squared(vel);
-    const real dedr = 0.5*v2;
-    std::array<real,dim> dedv;
+    std::vector<dealii::Tensor<1,dim,real>> manufactured_solution_gradient_dealii(nstate);
+    this->manufactured_solution_function.vector_gradient (pos, manufactured_solution_gradient_dealii);
+    std::array<dealii::Tensor<1,nstate,real>,dim> manufactured_solution_gradient;
     for (int d=0;d<dim;d++) {
-        dedv[d] = density*vel[d];
-    }
-    const real dedp = 1.0/(gam-1.0);
-
-    std::array<real,nstate> source;
-    source.fill(0.0);
-    dealii::Table<3,real> dflux_dx(nstate, dim, dim); // state, flux_dim, deri_dim
-    for (int deri_dim=0; deri_dim<dim; ++deri_dim){
-
-        // Derivative of primitive solution w.r.t x, y, or z
-        real drdx = ampl[0][deri_dim] * freq[0][deri_dim] * pi/2.0 * cos( freq[0][deri_dim] * pos[deri_dim] * pi / 2.0 );
-        std::array<real,dim> dvdx;
-        for (int vel_d=0;vel_d<dim;vel_d++) {
-            dvdx[vel_d] = ampl[1+vel_d][deri_dim] * freq[1+vel_d][deri_dim] * pi/2.0 * cos( freq[1+vel_d][deri_dim] * pos[deri_dim] * pi / 2.0 );
+        for (int s=0; s<nstate; s++) {
+            manufactured_solution_gradient[d][s] = manufactured_solution_gradient_dealii[s][d];
         }
-        real dpdx = ampl[nstate-1][deri_dim] * freq[nstate-1][deri_dim] * pi/2.0 * cos( freq[nstate-1][deri_dim] * pos[deri_dim] * pi / 2.0 );
-
-
-        //for (int flux_dim=0; flux_dim<dim; ++flux_dim){
-        // Only need the divergence of the flux, not all the derivatives
-        const int flux_dim = deri_dim;
-        {
-            const real vflux = primitive_soln[1+flux_dim];
-            const real dvflux_dx = dvdx[flux_dim];
-
-            const real dmassflux_dx = drdx * vflux + dvflux_dx * density;
-
-            // Mass flux
-            dflux_dx[0][flux_dim][deri_dim] = dmassflux_dx;
-            // Momentum flux
-            for (int vel_d=0; vel_d<dim; ++vel_d) {
-                dflux_dx[1+vel_d][flux_dim][deri_dim] = dvdx[vel_d] * density * vflux + dmassflux_dx*vel[vel_d];
-            }
-            dflux_dx[1+flux_dim][flux_dim][deri_dim] += dpdx;
-            // Energy flux
-            dflux_dx[nstate-1][flux_dim][deri_dim] = dvflux_dx * (energy + pressure) + dpdx * vflux;
-            dflux_dx[nstate-1][flux_dim][deri_dim] += dedr * drdx * vflux;
-            for (int vel_d=0; vel_d<dim; ++vel_d) {
-                dflux_dx[nstate-1][flux_dim][deri_dim] += dedv[vel_d] * dvdx[vel_d] * vflux;
-            }
-            dflux_dx[nstate-1][flux_dim][deri_dim] += dedp * dpdx * vflux;
-        }
-        source[0] += dflux_dx[0][flux_dim][deri_dim];
-        for (int vel_d=0; vel_d<dim; ++vel_d) {
-            source[1+vel_d] += dflux_dx[1+vel_d][flux_dim][deri_dim];
-        }
-        source[nstate-1] += dflux_dx[nstate-1][flux_dim][deri_dim];
     }
 
-    return source;
+    dealii::Tensor<1,nstate,real> convective_flux_divergence;
+    for (int d=0;d<dim;d++) {
+        dealii::Tensor<1,dim,real> normal;
+        normal[d] = 1.0;
+        const dealii::Tensor<2,nstate,real> jacobian = convective_flux_directional_jacobian(manufactured_solution, normal);
+        convective_flux_divergence += jacobian*manufactured_solution_gradient[d];
+    }
+    std::array<real,nstate> source_term;
+    for (int s=0; s<nstate; s++) {
+        source_term[s] = convective_flux_divergence[s];
+    }
+
+    return source_term;
 }
 
 template <int dim, int nstate, typename real>

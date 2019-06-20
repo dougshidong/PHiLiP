@@ -76,6 +76,8 @@ void DG<dim,nstate,real>::assemble_cell_terms_implicit(
     // \divergence ( Fconv + Fdiss ) = source 
     // has the right-hand side
     // rhs = - \divergence( Fconv + Fdiss ) + source 
+    // Since we have done an integration by parts, the volume term resulting from the divergence of Fconv and Fdiss
+    // is negative. Therefore, negative of negative means we add that volume term to the right-hand-side
     for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
 
         ADtype rhs = 0;

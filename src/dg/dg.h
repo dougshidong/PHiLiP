@@ -84,8 +84,29 @@ public:
      */
     void evaluate_inverse_mass_matrices ();
     /// Vector of inverse mass matrices.
-    /** Contains the inverse mass matrices of each cell at the quadrature points.  */
+    /** Contains the inverse mass matrices of each cell.  */
     std::vector<dealii::FullMatrix<real>> inv_mass_matrix;
+
+    /// Allocates and evaluates the mass matrices for the entire grid
+    /*  Although straightforward, this has not been tested yet.
+     *  Will be required for accurate time-stepping or nonlinear problems
+     */
+    void evaluate_mass_matrices ();
+    /// Vector of mass matrices.
+    /** Contains the mass matrices of each cell.  */
+    dealii::TrilinosWrappers::SparseMatrix global_mass_matrix;
+
+    /// Evaluates the maximum stable time step
+    /*  If exact_time_stepping = true, use the same time step for the entire solution
+     *  NOT YET IMPLEMENTED
+     */
+    std::vector<real> evaluate_time_steps (const bool exact_time_stepping = 0);
+
+    /// Add mass matrices to the system scaled by a factor (likely time-step)
+    /*  Although straightforward, this has not been tested yet.
+     *  Will be required for accurate time-stepping or nonlinear problems
+     */
+    void add_mass_matrices (const real scale);
 
     double get_residual_l2norm (); ///< Returns the L2-norm of the right_hand_side vector
 
@@ -180,6 +201,8 @@ protected:
     // QGauss is Gauss-Legendre quadrature nodes
     const dealii::QGauss<dim>   quadrature;
     const dealii::QGauss<dim-1> face_quadrature;
+    // const dealii::QGaussLobatto<dim>   quadrature;
+    // const dealii::QGaussLobatto<dim-1> face_quadrature;
 
     dealii::FEValues<dim,dim>         *fe_values_cell;
     dealii::FEFaceValues<dim,dim>     *fe_values_face_int;
@@ -239,7 +262,22 @@ private:
     void allocate_system ();
 
     /// Main loop of the DG class.
-    /** It loops over all the cells, evaluates the volume contributions,
+    /** Evaluates the right-hand-side \f$ \mathbf{R(\mathbf{u}}) \f$ of the system
+     *
+     *  \f[
+     *      \frac{\partial \mathbf{u}}{\partial t} = \mathbf{R(\mathbf{u}}) = 
+     *      - \boldsymbol\nabla \cdot
+     *      ( \mathbf{F}_{conv}(\mathbf{u})
+     *      + \mathbf{F}_{diss}(\mathbf{u},\boldsymbol\nabla\mathbf{u}) )
+     *      + \mathbf{q}
+     *  \f]
+     *
+     *  As well as sets the
+     *  \f[
+     *  \mathbf{\text{system_matrix}} = \frac{\partial \mathbf{R}}{\partial \mathbf{u}}
+     *  \f]
+     *
+     * It loops over all the cells, evaluates the volume contributions,
      * then loops over the faces of the current cell. Four scenarios may happen
      *
      * 1. Boundary condition.

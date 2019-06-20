@@ -196,7 +196,7 @@ void DGBase<dim,real>::evaluate_inverse_mass_matrices ()
     // Could store Cholesky decomposition for more efficient pre-processing
     const int n_quad_pts      = quadrature.size();
     // Number of test functions, not total number of degrees of freedom
-    const int n_tests_cell    = fe_dg.dofs_per_cell;
+    const int n_tests_cell    = fe_system.dofs_per_cell;
 
     typename dealii::DoFHandler<dim>::active_cell_iterator
        cell = dof_handler.begin_active(),
@@ -224,6 +224,81 @@ void DGBase<dim,real>::evaluate_inverse_mass_matrices ()
         }
         inv_mass_matrix[cell_index].invert(mass_matrix);
     }
+}
+template <int dim, typename real>
+void DGBase<dim,real>::evaluate_mass_matrices ()
+{
+    unsigned int n_dofs = dof_handler.n_dofs();
+    const int n_dofs_per_cell    = fe_system.dofs_per_cell;
+    //const dealii::SparsityPattern sp(n_dofs, n_dofs_per_cell);
+    dealii::TrilinosWrappers::SparsityPattern sp(n_dofs, n_dofs, n_dofs_per_cell);
+    dealii::DoFTools::make_sparsity_pattern(dof_handler, sp);
+    sp.compress();
+
+    global_mass_matrix.reinit(sp);
+
+    const int n_quad_pts      = quadrature.size();
+
+    typename dealii::DoFHandler<dim>::active_cell_iterator
+       cell = dof_handler.begin_active(),
+       endc = dof_handler.end();
+
+    dealii::FullMatrix<real> local_mass_matrix(n_dofs_per_cell);
+    std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_per_cell);
+    for (; cell!=endc; ++cell) {
+
+        //int cell_index = cell->index();
+        cell->get_dof_indices (dofs_indices);
+        fe_values_cell->reinit(cell);
+
+        for (int itest=0; itest<n_dofs_per_cell; ++itest) {
+            const unsigned int istate_test = fe_values_cell->get_fe().system_to_component_index(itest).first;
+            for (int itrial=itest; itrial<n_dofs_per_cell; ++itrial) {
+                const unsigned int istate_trial = fe_values_cell->get_fe().system_to_component_index(itrial).first;
+                real value = 0.0;
+                for (int iquad=0; iquad<n_quad_pts; ++iquad) {
+                    value +=
+                        fe_values_cell->shape_value_component(itest,iquad,istate_test)
+                        * fe_values_cell->shape_value_component(itrial,iquad,istate_trial)
+                        * fe_values_cell->JxW(iquad);
+                }
+                local_mass_matrix[itrial][itest] = value;
+                local_mass_matrix[itest][itrial] = value;
+            }
+        }
+        global_mass_matrix.set (dofs_indices, local_mass_matrix);
+
+    }
+    global_mass_matrix.compress(dealii::VectorOperation::insert);
+
+    std::cout<<"Is this printing? Dense matrix:"<<std::endl;
+    {
+        dealii::FullMatrix<double> fullA(global_mass_matrix.m());
+        fullA.copy_from(global_mass_matrix);
+        std::cout<<"Dense matrix:"<<std::endl;
+        fullA.print_formatted(std::cout, 3, true, 10, "0", 1., 0.);
+    }
+    return;
+}
+template<int dim, typename real>
+void DGBase<dim,real>::add_mass_matrices(const real scale)
+{
+    system_matrix.add(scale, global_mass_matrix);
+    //{
+    //    dealii::FullMatrix<double> fullA(system_matrix.m());
+    //    fullA.copy_from(system_matrix);
+    //    std::cout<<"Dense matrix:"<<std::endl;
+    //    fullA.print_formatted(std::cout, 3, true, 10, "0", 1., 0.);
+    //}
+}
+
+template <int dim, typename real>
+std::vector<real> DGBase<dim,real>::evaluate_time_steps (const bool exact_time_stepping)
+{
+    // TO BE DONE
+    std::vector<real> time_steps(10);
+    if(exact_time_stepping) return time_steps;
+    return time_steps;
 }
 
 
@@ -262,15 +337,13 @@ void DG<dim,nstate,real>::allocate_system ()
     // system matrices and vectors.
 
     DGBase<dim,real>::dof_handler.initialize(*DGBase<dim,real>::triangulation, DGBase<dim,real>::fe_system);
-    //DGBase<dim,real>::dof_handler.initialize(*DGBase<dim,real>::triangulation, DGBase<dim,real>::fe_dg);
+    //DGBase<dim,real>::dof_handler.initialize(*DGBase<dim,real>::triangulation, DGBase<dim,real>::fe_system);
     // Allocates memory from triangulation and finite element space
-    // Use fe_system since it will have the (fe_dg.n_dofs)*nstate
+    // Use fe_system since it will have the (fe_system.n_dofs)*nstate
     DGBase<dim,real>::dof_handler.distribute_dofs(DGBase<dim,real>::fe_system);
 
     //std::vector<unsigned int> block_component(nstate,0);
     //dealii::DoFRenumbering::component_wise(DGBase<dim,real>::dof_handler, block_component);
-
-    DGBase<dim,real>::evaluate_inverse_mass_matrices ();
 
     // Allocate matrix
     unsigned int n_dofs = DGBase<dim,real>::dof_handler.n_dofs();
@@ -391,7 +464,7 @@ void DG<dim,nstate,real>::assemble_system ()
 
                     // Add local contribution from neighbor cell to global vector
                     for (unsigned int i=0; i<dofs_per_cell; ++i) {
-                        DGBase<dim,real>::right_hand_side(neighbor_dofs_indices[i]) -= neighbor_cell_rhs(i);
+                        DGBase<dim,real>::right_hand_side(neighbor_dofs_indices[i]) += neighbor_cell_rhs(i);
                     }
                 }
 
@@ -444,7 +517,7 @@ void DG<dim,nstate,real>::assemble_system ()
 
                 // Add local contribution from neighbor cell to global vector
                 for (unsigned int i=0; i<dofs_per_cell; ++i) {
-                    DGBase<dim,real>::right_hand_side(neighbor_dofs_indices[i]) -= neighbor_cell_rhs(i);
+                    DGBase<dim,real>::right_hand_side(neighbor_dofs_indices[i]) += neighbor_cell_rhs(i);
                 }
             } else {
             // Do nothing
@@ -456,7 +529,7 @@ void DG<dim,nstate,real>::assemble_system ()
         } // end of face loop
 
         for (unsigned int i=0; i<dofs_per_cell; ++i) {
-            DGBase<dim,real>::right_hand_side(current_dofs_indices[i]) -= current_cell_rhs(i);
+            DGBase<dim,real>::right_hand_side(current_dofs_indices[i]) += current_cell_rhs(i);
         }
 
     } // end of cell loop

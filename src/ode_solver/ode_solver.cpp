@@ -12,8 +12,6 @@ int Implicit_ODESolver<dim,real>::steady_state ()
     Parameters::ODESolverParam ode_param = ODESolver<dim,real>::all_parameters->ode_solver_param;
     allocate_ode_system ();
 
-    ODESolver<dim,real>::dg->assemble_system ();
-    this->residual_norm = ODESolver<dim,real>::dg->get_residual_l2norm();
     this->residual_norm = 1; // Always do at least 1 iteration
     double update_norm = 1; // Always do at least 1 iteration
     this->current_iteration = 0;
@@ -33,8 +31,13 @@ int Implicit_ODESolver<dim,real>::steady_state ()
 
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
             (this->current_iteration%ode_param.print_iteration_modulo) == 0 )
-        std::cout << " Assembling system... " << std::endl;
+        std::cout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
         ODESolver<dim,real>::dg->assemble_system ();
+        // (M/dt - dRdW) dw = R
+        ODESolver<dim,real>::dg->system_matrix *= -1.0;
+
+        const real time_step = 0.01;
+        ODESolver<dim,real>::dg->add_mass_matrices(1.0/time_step);
 
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
             (this->current_iteration%ode_param.print_iteration_modulo) == 0 )
@@ -42,7 +45,6 @@ int Implicit_ODESolver<dim,real>::steady_state ()
         evaluate_solution_update ();
 
 
-        //this->solution_update *= 0.1;
         ODESolver<dim,real>::dg->solution += this->solution_update;
 
         update_norm = this->solution_update.l2_norm();
@@ -110,6 +112,7 @@ void Explicit_ODESolver<dim,real>::allocate_ode_system ()
 {
     unsigned int n_dofs = this->dg->dof_handler.n_dofs();
     this->solution_update.reinit(n_dofs);
+    this->dg->evaluate_inverse_mass_matrices();
     //solution.reinit(n_dofs);
     //right_hand_side.reinit(n_dofs);
 }
@@ -118,6 +121,7 @@ void Implicit_ODESolver<dim,real>::allocate_ode_system ()
 {
     unsigned int n_dofs = this->dg->dof_handler.n_dofs();
     this->solution_update.reinit(n_dofs);
+    this->dg->evaluate_mass_matrices();
 }
 
 //template <int dim, typename real>

@@ -15,6 +15,11 @@ namespace PHiLiP {
 namespace ODE {
 
 /// Base class ODE solver.
+/** The ODE solver assumes the following form of the equations are given
+ *  \f[
+ *      \frac{\partial \mathbf{u}}{\partial t} = \mathbf{R}(\mathbf{u})
+ *  \f]
+ */
 template <int dim, typename real>
 class ODESolver
 {
@@ -72,6 +77,19 @@ protected:
 /** Currently works to find steady state of linear problems.
  *  Need to add mass matrix to operator to handle nonlinear problems
  *  and time-accurate solutions.
+ *
+ *  Uses backward-Euler by linearizing the residual
+ *  \f[
+ *      \mathbf{R}(\mathbf{u}^{n+1}) = \mathbf{R}(\mathbf{u}^{n}) + 
+ *      \left. \frac{\partial \mathbf{R}}{\partial \mathbf{u}} \right|_{\mathbf{u}^{n}} (\mathbf{u}^{n+1} - \mathbf{u}^{n})
+ *  \f]
+ *  \f[
+ *      \frac{\partial \mathbf{u}}{\partial t} = \mathbf{R}(\mathbf{u}^{n+1})
+ *  \f]
+ *  \f[
+ *      \frac{\mathbf{u}^{n+1} - \mathbf{u}^{n}}{\Delta t} = \mathbf{R}(\mathbf{u}^{n}) + 
+ *      \left. \frac{\partial \mathbf{R}}{\partial \mathbf{u}} \right|_{\mathbf{u}^{n}} (\mathbf{u}^{n+1} - \mathbf{u}^{n})
+ *  \f]
  */
 template<int dim, typename real>
 class Implicit_ODESolver

@@ -218,7 +218,9 @@ int main (int /*argc*/, char * /*argv*/[])
         PDEType::advection,
         PDEType::diffusion,
         PDEType::convection_diffusion,
-        PDEType::advection_vector
+        PDEType::advection_vector,
+        PDEType::burgers_inviscid,
+        PDEType::euler
     };
 
     std::vector<ConvType> conv_type {
@@ -231,10 +233,20 @@ int main (int /*argc*/, char * /*argv*/[])
     int success = 0;
     for (auto pde = pde_type.begin(); pde != pde_type.end() && success == 0; pde++) {
         for (auto conv = conv_type.begin(); conv != conv_type.end() && success == 0; conv++) {
-            success = test_convective_numerical_flux_conservation<PHILIP_DIM,1> (*pde, *conv);
+            if(*pde==PDEType::advection) success = test_convective_numerical_flux_conservation<PHILIP_DIM,1> (*pde, *conv);
+            if(*pde==PDEType::diffusion) success = test_convective_numerical_flux_conservation<PHILIP_DIM,1> (*pde, *conv);
+            if(*pde==PDEType::convection_diffusion) success = test_convective_numerical_flux_conservation<PHILIP_DIM,1> (*pde, *conv);
+            if(*pde==PDEType::advection_vector) success = test_convective_numerical_flux_conservation<PHILIP_DIM,2> (*pde, *conv);
+            if(*pde==PDEType::burgers_inviscid) success = test_convective_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM> (*pde, *conv);
+            if(*pde==PDEType::euler) success = test_convective_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (*pde, *conv);
         }
         for (auto diss = diss_type.begin(); diss != diss_type.end() && success == 0; diss++) {
-            success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,1> (*pde, *diss);
+            if(*pde==PDEType::advection) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,1> (*pde, *diss);
+            if(*pde==PDEType::diffusion) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,1> (*pde, *diss);
+            if(*pde==PDEType::convection_diffusion) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,1> (*pde, *diss);
+            if(*pde==PDEType::advection_vector) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,2> (*pde, *diss);
+            if(*pde==PDEType::burgers_inviscid) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM> (*pde, *diss);
+            if(*pde==PDEType::euler) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (*pde, *diss);
         }
     }
     return success;

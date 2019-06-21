@@ -32,6 +32,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                           " diffusion | "
                           " convection_diffusion | "
                           " advection_vector | "
+                          " burgers_inviscid | "
                           " euler"),
                       "The PDE we want to solve. "
                       "Choices are " 
@@ -39,6 +40,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  diffusion | "
                       "  convection_diffusion | "
                       "  advection_vector | "
+                      "  burgers_inviscid | "
                       "  euler>.");
     prm.declare_entry("conv_num_flux", "lax_friedrichs",
                       dealii::Patterns::Selection("lax_friedrichs"),
@@ -80,6 +82,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     } else if (pde_string == "convection_diffusion") {
         pde_type = convection_diffusion;
         nstate = 1;
+    } else if (pde_string == "burgers_inviscid") {
+        pde_type = burgers_inviscid;
+        nstate = dimension;
     } else if (pde_string == "euler") {
         pde_type = euler;
         nstate = dimension+2;

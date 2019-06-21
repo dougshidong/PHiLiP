@@ -58,7 +58,7 @@ solve_linear (
         ilut_drop = 1e-10,
         ilut_rtol = 0.0,//1.1,
         ilut_atol = 0.0,//1e-9,
-        linear_residual = 1e-14;
+        linear_residual = 1e-4;
       const int 
         ilut_fill = 1,
         max_iterations = 2000

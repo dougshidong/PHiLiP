@@ -159,7 +159,6 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int ith_grid)// const
     for(int s=0;s<nstate;++s) {
         std::string varname = "u-" + dealii::Utilities::int_to_string(s,1);
         solution_names.push_back(varname);
-        std::cout<<solution_names[s]<<std::endl;
     }
     //std::vector<DataComponentInterpretation::DataComponentInterpretation> data_component_interpretation (nstate, DataComponentInterpretation::component_is_part_of_vector);
     std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation>
@@ -170,7 +169,7 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int ith_grid)// const
                               dealii::DataOut<dim>::type_dof_data,
                               data_component_interpretation);
     data_out.build_patches ();
-    std::string filename = "solution-" + dealii::Utilities::int_to_string(ith_grid, 3) + ".vtk";
+    std::string filename = "solution-" +dealii::Utilities::int_to_string(dim, 1) +"D-"+ dealii::Utilities::int_to_string(ith_grid, 3) + ".vtk";
     std::ofstream output(filename);
     data_out.write_vtk(output);
 

@@ -36,7 +36,7 @@ int Implicit_ODESolver<dim,real>::steady_state ()
         // (M/dt - dRdW) dw = R
         ODESolver<dim,real>::dg->system_matrix *= -1.0;
 
-        const real time_step = 9990.001;
+        const real time_step = 99.0;
         ODESolver<dim,real>::dg->add_mass_matrices(1.0/time_step);
 
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&

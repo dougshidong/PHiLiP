@@ -9,7 +9,7 @@
 #include "parameters/parameters.h"
 #include "physics/physics.h"
 
-const double TOLERANCE = 1E-7;
+const double TOLERANCE = 1E-6;
 
 int main (int /*argc*/, char * /*argv*/[])
 {
@@ -23,7 +23,7 @@ int main (int /*argc*/, char * /*argv*/[])
     const double max = 10.0;
     const int nx = 6;
 
-    const double perturbation = 1e-6;
+    const double perturbation = 1e-5;
 
     std::vector<unsigned int> repetitions(dim, nx);
     dealii::Point<dim,double> corner1, corner2;

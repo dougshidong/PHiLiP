@@ -36,7 +36,7 @@ int Implicit_ODESolver<dim,real>::steady_state ()
         // (M/dt - dRdW) dw = R
         ODESolver<dim,real>::dg->system_matrix *= -1.0;
 
-        const real time_step = 0.01;
+        const real time_step = 9990.001;
         ODESolver<dim,real>::dg->add_mass_matrices(1.0/time_step);
 
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
@@ -45,6 +45,7 @@ int Implicit_ODESolver<dim,real>::steady_state ()
         evaluate_solution_update ();
 
 
+        ODESolver<dim,real>::dg->output_results_vtk(this->current_iteration);
         ODESolver<dim,real>::dg->solution += this->solution_update;
 
         update_norm = this->solution_update.l2_norm();
@@ -53,6 +54,7 @@ int Implicit_ODESolver<dim,real>::steady_state ()
         ++(this->current_iteration);
 
     }
+    ODESolver<dim,real>::dg->output_results_vtk(this->current_iteration);
     return 1;
 }
 template <int dim, typename real>

@@ -64,6 +64,9 @@ void DG<dim,nstate,real>::assemble_cell_terms_implicit(
               soln_at_q[iquad][istate]      += soln_coeff[idof] * fe_values_vol->shape_value_component(idof, iquad, istate);
               soln_grad_at_q[iquad][istate] += soln_coeff[idof] * fe_values_vol->shape_grad_component(idof, iquad, istate);
         }
+        //std::cout << "Density " << soln_at_q[iquad][0] << std::endl;
+        //if(nstate>1) std::cout << "Momentum " << soln_at_q[iquad][1] << std::endl;
+        //std::cout << "Energy " << soln_at_q[iquad][nstate-1] << std::endl;
         // Evaluate physical convective flux and source term
         conv_phys_flux_at_q[iquad] = pde_physics->convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = pde_physics->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
@@ -307,6 +310,12 @@ void DG<dim,nstate,real>::assemble_face_term_implicit(
             soln_ext[iquad][istate]      += soln_coeff_ext_ad[idof] * fe_values_ext->shape_value_component(idof, iquad, istate);
             soln_grad_ext[iquad][istate] += soln_coeff_ext_ad[idof] * fe_values_ext->shape_grad_component(idof, iquad, istate);
         }
+        //std::cout << "Density int" << soln_int[iquad][0] << std::endl;
+        //if(nstate>1) std::cout << "Momentum int" << soln_int[iquad][1] << std::endl;
+        //std::cout << "Energy int" << soln_int[iquad][nstate-1] << std::endl;
+        //std::cout << "Density ext" << soln_ext[iquad][0] << std::endl;
+        //if(nstate>1) std::cout << "Momentum ext" << soln_ext[iquad][1] << std::endl;
+        //std::cout << "Energy ext" << soln_ext[iquad][nstate-1] << std::endl;
 
         // Evaluate physical convective flux, physical dissipative flux, and source term
         conv_num_flux_dot_n[iquad] = conv_num_flux->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);

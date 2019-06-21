@@ -100,7 +100,7 @@ public:
     /*  If exact_time_stepping = true, use the same time step for the entire solution
      *  NOT YET IMPLEMENTED
      */
-    std::vector<real> evaluate_time_steps (const bool exact_time_stepping = 0);
+    std::vector<real> evaluate_time_steps (const bool exact_time_stepping);
 
     /// Add mass matrices to the system scaled by a factor (likely time-step)
     /*  Although straightforward, this has not been tested yet.
@@ -154,6 +154,7 @@ public:
     void initialize_manufactured_solution (); ///< Virtual function defined in DG
 
     void output_results (const unsigned int ith_grid); ///< Output solution
+    void output_results_vtk (const unsigned int ith_grid); ///< Output solution
     void output_paraview_results (std::string filename); ///< Outputs a paraview file to view the solution
 
     /// Mapping is currently MappingQ.

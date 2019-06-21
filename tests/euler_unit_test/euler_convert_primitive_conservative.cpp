@@ -44,11 +44,15 @@ int main (int /*argc*/, char * /*argv*/[])
             // in the same solution
             assert_compare_array<nstate> ( conservative_soln, conservative_soln2, 1.0, TOLERANCE);
             // Manufactured solution gives positive density
-            assert(conservative_soln[0] > TOLERANCE);
+            if(conservative_soln[0] < TOLERANCE) std::abort();
             // Manufactured solution gives positive energy
-            assert(conservative_soln[1+dim] > TOLERANCE);
+            if(conservative_soln[nstate-1] < TOLERANCE) std::abort();
             // Manufactured solution gives positive pressure
-            assert(primitive_soln[1+dim] > TOLERANCE);
+            if(primitive_soln[1+dim] < TOLERANCE) std::abort();
+
+            if(euler_physics.compute_pressure(conservative_soln) < TOLERANCE) std::abort();
+            if(euler_physics.compute_sound(conservative_soln) < TOLERANCE) std::abort();
+
         }
     }
     return 0;

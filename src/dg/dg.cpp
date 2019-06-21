@@ -151,6 +151,48 @@ void DGBase<dim,real>::output_results (const unsigned int ith_grid)// const
 }
 
 template <int dim, typename real>
+void DGBase<dim,real>::output_results_vtk (const unsigned int ith_grid)// const
+{
+    std::vector<std::string> solution_names;
+    for(int s=0;s<nstate;++s) {
+        std::string varname = "u-" + dealii::Utilities::int_to_string(s,1);
+        solution_names.push_back(varname);
+        std::cout<<solution_names[s]<<std::endl;
+    }
+    //std::vector<DataComponentInterpretation::DataComponentInterpretation> data_component_interpretation (nstate, DataComponentInterpretation::component_is_part_of_vector);
+    std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation>
+        data_component_interpretation(nstate, dealii::DataComponentInterpretation::component_is_scalar);
+    dealii::DataOut<dim> data_out;
+    data_out.attach_dof_handler (dof_handler);
+    data_out.add_data_vector (solution, solution_names,
+                              dealii::DataOut<dim>::type_dof_data,
+                              data_component_interpretation);
+    data_out.build_patches ();
+    std::string filename = "solution-" + dealii::Utilities::int_to_string(ith_grid, 3) + ".vtk";
+    std::ofstream output(filename);
+    data_out.write_vtk(output);
+
+    // typename EulerEquations<dim>::Postprocessor postprocessor(
+    //   parameters.schlieren_plot);
+    // DataOut<dim> data_out;
+    // data_out.attach_dof_handler(dof_handler);
+    // data_out.add_data_vector(current_solution,
+    //                          EulerEquations<dim>::component_names(),
+    //                          DataOut<dim>::type_dof_data,
+    //                          EulerEquations<dim>::component_interpretation());
+    // data_out.add_data_vector(current_solution, postprocessor);
+    // data_out.build_patches();
+    // static unsigned int output_file_number = 0;
+    // std::string         filename =
+    //   "solution-" + Utilities::int_to_string(output_file_number, 3) + ".vtk";
+    // std::ofstream output(filename);
+    // data_out.write_vtk(output);
+    // ++output_file_number;
+}
+
+
+
+template <int dim, typename real>
 void DGBase<dim,real>::output_paraview_results (const std::string /* filename */)// const
 {
 //    std::cout << "Writing solution to <" << filename << ">..." << std::endl << std::endl;
@@ -251,6 +293,24 @@ void DGBase<dim,real>::evaluate_mass_matrices ()
         cell->get_dof_indices (dofs_indices);
         fe_values_cell->reinit(cell);
 
+
+        //const int n_dofs_per_state = fe_dg.dofs_per_cell;
+        //for (int istate=0; istate<nstate; ++istate) {
+        //    for (int itest=0; itest<n_dofs_per_state; ++itest) {
+        //        for (int itrial=itest; itrial<n_dofs_per_state; ++itrial) {
+        //            real value = 0.0;
+        //            for (int iquad=0; iquad<n_quad_pts; ++iquad) {
+        //                value +=
+        //                    fe_values_cell->shape_value_component(itest,iquad,istate)
+        //                    * fe_values_cell->shape_value_component(itrial,iquad,istate)
+        //                    * fe_values_cell->JxW(iquad);
+        //            }
+        //            local_mass_matrix[istate*n_dofs_per_state+itrial][istate*n_dofs_per_state+itest] = value;
+        //            local_mass_matrix[istate*n_dofs_per_state+itest][istate*n_dofs_per_state+itrial] = value;
+        //        }
+        //    }
+        //}
+
         for (int itest=0; itest<n_dofs_per_cell; ++itest) {
             const unsigned int istate_test = fe_values_cell->get_fe().system_to_component_index(itest).first;
             for (int itrial=itest; itrial<n_dofs_per_cell; ++itrial) {
@@ -262,8 +322,12 @@ void DGBase<dim,real>::evaluate_mass_matrices ()
                         * fe_values_cell->shape_value_component(itrial,iquad,istate_trial)
                         * fe_values_cell->JxW(iquad);
                 }
+                local_mass_matrix[itrial][itest] = 0.0;
+                local_mass_matrix[itest][itrial] = 0.0;
+                if(istate_test==istate_trial) { 
                 local_mass_matrix[itrial][itest] = value;
                 local_mass_matrix[itest][itrial] = value;
+                }
             }
         }
         global_mass_matrix.set (dofs_indices, local_mass_matrix);
@@ -271,13 +335,13 @@ void DGBase<dim,real>::evaluate_mass_matrices ()
     }
     global_mass_matrix.compress(dealii::VectorOperation::insert);
 
-    std::cout<<"Is this printing? Dense matrix:"<<std::endl;
-    {
-        dealii::FullMatrix<double> fullA(global_mass_matrix.m());
-        fullA.copy_from(global_mass_matrix);
-        std::cout<<"Dense matrix:"<<std::endl;
-        fullA.print_formatted(std::cout, 3, true, 10, "0", 1., 0.);
-    }
+    //std::cout<<"MASS MATRIX:"<<std::endl;
+    //{
+    //    dealii::FullMatrix<double> fullA(global_mass_matrix.m());
+    //    fullA.copy_from(global_mass_matrix);
+    //    std::cout<<"Dense matrix:"<<std::endl;
+    //    fullA.print_formatted(std::cout, 3, true, 10, "0", 1., 0.);
+    //}
     return;
 }
 template<int dim, typename real>
@@ -383,6 +447,7 @@ void DG<dim,nstate,real>::assemble_system ()
     unsigned int n_cell_visited = 0;
     unsigned int n_face_visited = 0;
     for (; current_cell!=endc; ++current_cell) {
+        // std::cout << "Current cell index: " << current_cell->index() << std::endl;
         n_cell_visited++;
 
         current_cell_rhs = 0;

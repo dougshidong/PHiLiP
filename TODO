@@ -3,6 +3,10 @@ https://stackoverflow.com/a/1776295/11047627
 
 Remove pointers to FEValues. Just create the object through initializer list.
 
+
+Lost adjoint consistency by computing F* = F*(Uin, Ubc) instead of F*= F*(Ubc, Ubc). See comment in assemble_boundary_term_implicit.
+
+
 Find the adjoint consistent boundary condition for Neumann boundary conditions for diffusion problem and convection-diffusion problem.
 Basically, what is the correct formulation for the exterior gradient? Do we need some extra terms in the functional evaluation?
 

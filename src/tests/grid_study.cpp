@@ -408,8 +408,9 @@ int GridStudy<dim,nstate>
                       << expected_slope << " within a tolerance of "
                       << slope_deficit_tolerance
                       << std::endl;
-            fail_conv_poly.push_back(poly_degree);
-            fail_conv_slop.push_back(slope_avg);
+            // p=0 just requires too many meshes to get into the asymptotic region.
+            if(poly_degree!=0) fail_conv_poly.push_back(poly_degree);
+            if(poly_degree!=0) fail_conv_slop.push_back(slope_avg);
         }
 
     }

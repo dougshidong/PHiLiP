@@ -45,6 +45,7 @@ public:
         diffusion,
         convection_diffusion,
         advection_vector,
+        burgers_inviscid,
         euler};
 
     /// Possible boundary types, NOT IMPLEMENTED YET

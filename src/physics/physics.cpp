@@ -25,6 +25,8 @@ PhysicsFactory<dim,nstate,real>
         if constexpr (nstate==1) return new ConvectionDiffusion<dim,nstate,real>(false,true);
     } else if (pde_type == PDE_enum::convection_diffusion) {
         if constexpr (nstate==1) return new ConvectionDiffusion<dim,nstate,real>(true,true);
+    } else if (pde_type == PDE_enum::burgers_inviscid) {
+        if constexpr (nstate==dim) return new Burgers<dim,nstate,real>(true,false);
     } else if (pde_type == PDE_enum::euler) {
         if constexpr (nstate==dim+2) return new Euler<dim,nstate,real>;
     }

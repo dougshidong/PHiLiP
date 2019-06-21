@@ -1,6 +1,7 @@
 SET(SOURCE
     physics.cpp
     convection_diffusion.cpp
+    burgers.cpp
     euler.cpp
     manufactured_solution.cpp
     )

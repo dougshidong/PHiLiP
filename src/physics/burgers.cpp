@@ -1,0 +1,153 @@
+#include <Sacado.hpp>
+#include <deal.II/differentiation/ad/sacado_math.h>
+#include <deal.II/differentiation/ad/sacado_number_types.h>
+#include <deal.II/differentiation/ad/sacado_product_types.h>
+
+#include "physics.h"
+
+namespace PHiLiP {
+namespace Physics {
+
+template <int dim, int nstate, typename real>
+void Burgers<dim,nstate,real>
+::boundary_face_values (
+   const int /*boundary_type*/,
+   const dealii::Point<dim, double> &pos,
+   const dealii::Tensor<1,dim,real> &normal_int,
+   const std::array<real,nstate> &soln_int,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+   std::array<real,nstate> &soln_bc,
+   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+{
+    std::array<real,nstate> boundary_values;
+    std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
+    for (int i=0; i<nstate; i++) {
+        boundary_values[i] = this->manufactured_solution_function.value (pos, i);
+        boundary_gradients[i] = this->manufactured_solution_function.gradient (pos, i);
+    }
+
+    for (int istate=0; istate<nstate; ++istate) {
+
+        std::array<real,nstate> characteristic_dot_n = convective_eigenvalues(boundary_values, normal_int);
+        const bool inflow = (characteristic_dot_n[istate] <= 0.);
+
+        if (inflow || hasDiffusion) { // Dirichlet boundary condition
+            // soln_bc[istate] = boundary_values[istate];
+            // soln_grad_bc[istate] = soln_grad_int[istate];
+
+            soln_bc[istate] = boundary_values[istate];
+            soln_grad_bc[istate] = soln_grad_int[istate];
+
+        } else { // Neumann boundary condition
+            // //soln_bc[istate] = soln_int[istate];
+            // //soln_bc[istate] = boundary_values[istate];
+            // soln_bc[istate] = -soln_int[istate]+2*boundary_values[istate];
+            soln_bc[istate] = soln_int[istate];
+
+            // **************************************************************************************************************
+            // Note I don't know how to properly impose the soln_grad_bc to obtain an adjoint consistent scheme
+            // Currently, Neumann boundary conditions are only imposed for the linear advection
+            // Therefore, soln_grad_bc does not affect the solution
+            // **************************************************************************************************************
+            soln_grad_bc[istate] = soln_grad_int[istate];
+            //soln_grad_bc[istate] = boundary_gradients[istate];
+            //soln_grad_bc[istate] = -soln_grad_int[istate]+2*boundary_gradients[istate];
+        }
+    }
+}
+
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>
+::convective_flux (const std::array<real,nstate> &solution) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
+    for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
+        for (int s=0; s<nstate; ++s) {
+            conv_flux[s][flux_dim] = 0.5*solution[flux_dim]*solution[s];
+        }
+    }
+    return conv_flux;
+}
+
+template <int dim, int nstate, typename real>
+real Burgers<dim,nstate,real>
+::diffusion_coefficient () const
+{
+    if(hasDiffusion) return this->diff_coeff;
+    const real zero = 0.0;
+    return zero;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> Burgers<dim,nstate,real>
+::convective_eigenvalues (
+    const std::array<real,nstate> &solution,
+    const dealii::Tensor<1,dim,real> &normal) const
+{
+    std::array<real,nstate> eig;
+    for (int i=0; i<nstate; i++) {
+        eig[i] = 0.0;
+        for (int d=0;d<dim;++d) {
+            eig[i] += solution[d]*normal[d];
+        }
+    }
+    return eig;
+}
+
+template <int dim, int nstate, typename real>
+real Burgers<dim,nstate,real>
+::max_convective_eigenvalue (const std::array<real,nstate> &soln) const
+{
+    real max_eig = 0;
+    for (int i=0; i<dim; i++) {
+        max_eig = std::max(max_eig,std::abs(soln[i]));
+    }
+    return max_eig;
+}
+
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>
+::dissipative_flux (
+    const std::array<real,nstate> &/*solution*/,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> diss_flux;
+    const real diff_coeff = diffusion_coefficient();
+    using phys = PhysicsBase<dim,nstate,real>;
+    for (int i=0; i<nstate; i++) {
+        diss_flux[i] = -diff_coeff*((this->diffusion_tensor)*solution_gradient[i]);
+    }
+    return diss_flux;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> Burgers<dim,nstate,real>
+::source_term (
+    const dealii::Point<dim,double> &pos,
+    const std::array<real,nstate> &/*solution*/) const
+{
+    std::array<real,nstate> source;
+    using phys = PhysicsBase<dim,nstate,real>;
+    const real diff_coeff = diffusion_coefficient();
+
+    for (int istate=0; istate<nstate; istate++) {
+        dealii::Tensor<1,dim,real> manufactured_gradient = this->manufactured_solution_function.gradient (pos, istate);
+        dealii::SymmetricTensor<2,dim,real> manufactured_hessian = this->manufactured_solution_function.hessian (pos, istate);
+        source[istate] = 0.0;
+        for (int d=0;d<dim;++d) {
+            real manufactured_solution = this->manufactured_solution_function.value (pos, d);
+            source[istate] += manufactured_solution*manufactured_gradient[d];
+        }
+        source[istate] += -diff_coeff*scalar_product((this->diffusion_tensor),manufactured_hessian);
+    }
+    return source;
+}
+
+template class Burgers < PHILIP_DIM, PHILIP_DIM, double >;
+template class Burgers < PHILIP_DIM, PHILIP_DIM, Sacado::Fad::DFad<double>  >;
+
+} // Physics namespace
+} // PHiLiP namespace
+
+
+

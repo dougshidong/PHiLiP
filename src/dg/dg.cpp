@@ -60,10 +60,12 @@ DGFactory<dim,real>
         return std::make_shared< DG<dim,1,real> >(parameters_input, degree);
     } else if (pde_type == PDE_enum::convection_diffusion) {
         return std::make_shared< DG<dim,1,real> >(parameters_input, degree);
+    } else if (pde_type == PDE_enum::burgers_inviscid) {
+        return std::make_shared< DG<dim,dim,real> >(parameters_input, degree);
     } else if (pde_type == PDE_enum::euler) {
         return std::make_shared< DG<dim,dim+2,real> >(parameters_input, degree);
     }
-    std::cout << "Can't create DGBase, invalid PDE type: " << pde_type << std::endl;
+    std::cout << "Can't create DGBase in create_discontinuous_galerkin(). Invalid PDE type: " << pde_type << std::endl;
     return nullptr;
 }
 

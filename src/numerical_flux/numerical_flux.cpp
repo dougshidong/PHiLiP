@@ -74,7 +74,7 @@ std::array<real, nstate> LaxFriedrichs<dim,nstate,real>
     //}
 
     const real conv_max_eig_int = pde_physics->max_convective_eigenvalue(soln_int);
-    const real conv_max_eig_ext = pde_physics->max_convective_eigenvalue(soln_int);
+    const real conv_max_eig_ext = pde_physics->max_convective_eigenvalue(soln_ext);
     const real conv_max_eig = std::max(conv_max_eig_int, conv_max_eig_ext);
     // Scalar dissipation
     std::array<real, nstate> numerical_flux_dot_n;

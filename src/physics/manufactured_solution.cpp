@@ -29,12 +29,13 @@ ManufacturedSolutionFunction<dim,real>
     //const double ee = exp(1);
 
     for (int s=0; s<(int)nstate; s++) {
-        base_values[s] = pi*(s+1)/nstate;
+        base_values[s] = (s+1.0)/nstate;
+        base_values[nstate-1] = 10;
         amplitudes[s] = 0.2*base_values[s]*sin((static_cast<double>(nstate)-s)/nstate);
         //amplitudes[s] = 0.1;
         //std::cout<< s << " AMPLITUDES[S] "<< amplitudes[s] << std::endl;
         for (int d=0; d<dim; d++) {
-            frequencies[s][d] = 1.0 + sin(0.1+s*0.5+d*0.2) *  pi / 2.0;
+            frequencies[s][d] = 3.0 + sin(0.1+s*0.5+d*0.2) *  pi / 2.0;
             //frequencies[s][d] = 1.0;
             //frequencies[s][d] = sin(0.1+s*0.5)*(d+1.0)/dim;
             //std::cout<< d << "FREQUENCIES[S][D] "<< frequencies[s][d] << std::endl;

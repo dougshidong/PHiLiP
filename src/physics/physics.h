@@ -306,7 +306,6 @@ public:
     /// Opposite of convert_primitive_to_conservative
     std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const;
 
-protected:
     /// Constant heat capacity ratio of air
     const real gam = 1.4;
     /// Evaluate pressure from conservative variables
@@ -321,7 +320,8 @@ protected:
     /// Given primitive variables, returns velocities.
     std::array<real,dim> extract_velocities_from_primitive ( const std::array<real,nstate> &primitive_soln ) const;
     /// Given primitive variables, returns total energy
-    real compute_energy ( const std::array<real,nstate> &primitive_soln ) const;
+    real compute_total_energy ( const std::array<real,nstate> &primitive_soln ) const;
+protected:
 
 
 };

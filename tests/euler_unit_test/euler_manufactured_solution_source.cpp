@@ -25,7 +25,7 @@ int main (int /*argc*/, char * /*argv*/[])
     const double max = 10.0;
     const int nx = 11;
 
-    const double perturbation = 1e-6;
+    const double perturbation = 1e-5;
 
     std::vector<unsigned int> repetitions(dim, nx);
     dealii::Point<dim,double> corner1, corner2;

@@ -12,7 +12,7 @@ subsection ODE solver
   set ode_output                          = verbose
 
   # Maximum nonlinear solver iterations
-  set nonlinear_max_iterations            = 500000
+  set nonlinear_max_iterations            = 500
 
   # Nonlinear solver residual tolerance
   set nonlinear_steady_residual_tolerance = 1e-12

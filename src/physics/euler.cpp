@@ -79,7 +79,7 @@ inline std::array<real,nstate> Euler<dim,nstate,real>
     for (int d=0; d<dim; ++d) {
         conservative_soln[1+d] = density*velocities[d];
     }
-    conservative_soln[nstate-1] = compute_energy(primitive_soln);
+    conservative_soln[nstate-1] = compute_total_energy(primitive_soln);
 
     return conservative_soln;
 }
@@ -88,8 +88,8 @@ template <int dim, int nstate, typename real>
 inline std::array<real,dim> Euler<dim,nstate,real>
 ::compute_velocities ( const std::array<real,nstate> &conservative_soln ) const
 {
-    std::array<real, dim> vel;
     const real density = conservative_soln[0];
+    std::array<real, dim> vel;
     for (int d=0; d<dim; ++d) {
         vel[d] = conservative_soln[1+d]/density;
     }
@@ -116,15 +116,15 @@ inline std::array<real,dim> Euler<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
-::compute_energy ( const std::array<real,nstate> &primitive_soln ) const
+::compute_total_energy ( const std::array<real,nstate> &primitive_soln ) const
 {
     const real density = primitive_soln[0];
     const real pressure = primitive_soln[nstate-1];
     const std::array<real,dim> velocities = extract_velocities_from_primitive(primitive_soln);
     const real vel2 = compute_velocity_squared(velocities);
 
-    const real energy = pressure / (gam-1.0) + 0.5*density*vel2;
-    return energy;
+    const real tot_energy = pressure / (gam-1.0) + 0.5*density*vel2;
+    return tot_energy;
 }
 
 template <int dim, int nstate, typename real>
@@ -132,12 +132,17 @@ inline real Euler<dim,nstate,real>
 ::compute_pressure ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real density = conservative_soln[0];
-    const real energy  = conservative_soln[nstate-1];
+    const real tot_energy  = conservative_soln[nstate-1];
     const std::array<real,dim> vel = compute_velocities(conservative_soln);
     const real vel2 = compute_velocity_squared(vel);
-    real pressure = (gam-1.0)*(energy - 0.5*density*vel2);
+    real pressure = (gam-1.0)*(tot_energy - 0.5*density*vel2);
+    if(pressure<1e-4) {
+        std::cout<<"density"<<density<<std::endl;
+        for(int d=0;d<dim;d++) std::cout<<"vel"<<d<<" "<<vel[d]<<std::endl;
+        std::cout<<"energy"<<tot_energy<<std::endl;
+    }
+    assert(pressure>0.0);
     //if(pressure<1e-4) pressure = 0.01;
-    //assert(pressure>0.0);
     return pressure;
 }
 
@@ -146,8 +151,8 @@ inline real Euler<dim,nstate,real>
 ::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
     real density = conservative_soln[0];
+    assert(density > 0);
     //if(density<1e-4) density = 0.01;
-    //assert(density > 0);
     const real pressure = compute_pressure(conservative_soln);
     const real sound = std::sqrt(pressure*gam/density);
     return sound;
@@ -230,10 +235,14 @@ std::array<real,nstate> Euler<dim,nstate,real>
 {
     const std::array<real,dim> vel = compute_velocities(conservative_soln);
     std::array<real,nstate> eig;
-    (void) vel;
-    (void) normal;
+    real vel_dot_n = 0.0;
+    for (int d=0;d<dim;++d) { vel_dot_n += vel[d]*normal[d]; };
     for (int i=0; i<nstate; i++) {
+        eig[i] = vel_dot_n;
         //eig[i] = advection_speed*normal;
+
+        //eig[i] = 1.0;
+        //eig[i] = -1.0;
     }
     return eig;
 }
@@ -243,11 +252,8 @@ real Euler<dim,nstate,real>
 {
     const std::array<real,dim> vel = compute_velocities(conservative_soln);
     const real sound = compute_sound (conservative_soln);
-    real speed = 0.0;
-    for (int i=0; i<dim; i++) {
-        speed = speed + vel[i]*vel[i];
-    }
-    const real max_eig = sqrt(speed) + sound;
+    const real vel2 = compute_velocity_squared(vel);
+    const real max_eig = sqrt(vel2) + sound;
     return max_eig;
 }
 

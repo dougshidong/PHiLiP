@@ -66,12 +66,7 @@ std::array<real, nstate> LaxFriedrichs<dim,nstate,real>
     conv_phys_flux_int = pde_physics->convective_flux (soln_int);
     conv_phys_flux_ext = pde_physics->convective_flux (soln_ext);
     
-    RealArrayVector flux_avg = 
-        array_average<nstate, dealii::Tensor<1,dim,real>> 
-        (conv_phys_flux_int, conv_phys_flux_ext);
-    //for (int s=0; s<nstate; s++) {
-    //    flux_avg[s] = 0.5*(conv_phys_flux_int[s] + conv_phys_flux_ext[s]);
-    //}
+    RealArrayVector flux_avg = array_average<nstate, dealii::Tensor<1,dim,real>> (conv_phys_flux_int, conv_phys_flux_ext);
 
     const real conv_max_eig_int = pde_physics->max_convective_eigenvalue(soln_int);
     const real conv_max_eig_ext = pde_physics->max_convective_eigenvalue(soln_ext);

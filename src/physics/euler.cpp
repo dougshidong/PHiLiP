@@ -153,6 +153,10 @@ inline real Euler<dim,nstate,real>
     real density = conservative_soln[0];
     assert(density > 0);
     //if(density<1e-4) density = 0.01;
+    if(density<1e-4) {
+        std::cout<<"density"<<density<<std::endl;
+        std::abort();
+    }
     const real pressure = compute_pressure(conservative_soln);
     const real sound = std::sqrt(pressure*gam/density);
     return sound;
@@ -270,6 +274,68 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
         diss_flux[i] = 0;
     }
     return diss_flux;
+}
+
+template <int dim, int nstate, typename real>
+void Euler<dim,nstate,real>
+::boundary_face_values (
+   const int /*boundary_type*/,
+   const dealii::Point<dim, double> &pos,
+   const dealii::Tensor<1,dim,real> &normal_int,
+   const std::array<real,nstate> &soln_int,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+   std::array<real,nstate> &soln_bc,
+   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+{
+    std::array<real,nstate> conservative_boundary_values;
+    std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
+    for (int s=0; s<nstate; s++) {
+        conservative_boundary_values[s] = this->manufactured_solution_function.value (pos, s);
+        boundary_gradients[s] = this->manufactured_solution_function.gradient (pos, s);
+    }
+    std::array<real,nstate> primitive_boundary_values = convert_conservative_to_primitive(conservative_boundary_values);
+
+    // const std::array<real,dim> vel = compute_velocities(conservative_boundary_values);
+    // const real vel2 = compute_velocity_squared(vel);
+    // const real sound = compute_sound (conservative_boundary_values);
+    // std::cout << "U boundary: " << sqrt(vel2) << " sound: " << sound << std::endl;
+    for (int istate=0; istate<nstate; ++istate) {
+
+        std::array<real,nstate> characteristic_dot_n = convective_eigenvalues(conservative_boundary_values, normal_int);
+        const bool inflow = (characteristic_dot_n[istate] <= 0.);
+
+        if (inflow) { // Dirichlet boundary condition
+
+            soln_bc[istate] = conservative_boundary_values[istate];
+            soln_grad_bc[istate] = soln_grad_int[istate];
+
+            // Only set the pressure and velocity
+            // primitive_boundary_values[0] = soln_int[0];;
+            // for(int d=0;d<dim;d++){
+            //    primitive_boundary_values[1+d] = soln_int[1+d]/soln_int[0];;
+            //}
+            conservative_boundary_values = convert_primitive_to_conservative(primitive_boundary_values);
+            //conservative_boundary_values[nstate-1] = soln_int[nstate-1];
+            soln_bc[istate] = conservative_boundary_values[istate];
+
+        } else { // Neumann boundary condition
+            // soln_bc[istate] = -soln_int[istate]+2*conservative_boundary_values[istate];
+            soln_bc[istate] = soln_int[istate];
+
+            // **************************************************************************************************************
+            // Note I don't know how to properly impose the soln_grad_bc to obtain an adjoint consistent scheme
+            // Currently, Neumann boundary conditions are only imposed for the linear advection
+            // Therefore, soln_grad_bc does not affect the solution
+            // **************************************************************************************************************
+            soln_grad_bc[istate] = soln_grad_int[istate];
+            //soln_grad_bc[istate] = boundary_gradients[istate];
+            //soln_grad_bc[istate] = -soln_grad_int[istate]+2*boundary_gradients[istate];
+        }
+
+        // HARDCODE DIRICHLET BC
+        soln_bc[istate] = conservative_boundary_values[istate];
+
+    }
 }
 
 // Instantiate explicitly

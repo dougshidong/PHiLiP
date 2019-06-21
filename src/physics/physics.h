@@ -321,6 +321,15 @@ public:
     std::array<real,dim> extract_velocities_from_primitive ( const std::array<real,nstate> &primitive_soln ) const;
     /// Given primitive variables, returns total energy
     real compute_total_energy ( const std::array<real,nstate> &primitive_soln ) const;
+
+    void boundary_face_values (
+        const int /*boundary_type*/,
+        const dealii::Point<dim, double> &/*pos*/,
+        const dealii::Tensor<1,dim,real> &/*normal*/,
+        const std::array<real,nstate> &/*soln_int*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
+        std::array<real,nstate> &/*soln_bc*/,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
 protected:
 
 

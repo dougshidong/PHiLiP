@@ -14,9 +14,9 @@ add_test(
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
-configure_file(3d_euler_implicit.prm 3d_euler_implicit.prm COPYONLY)
-add_test(
-  NAME 3D_EULER_IMPLICIT_MANUFACTURED_SOLUTION
-  COMMAND ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3d_euler_implicit.prm
-  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
+# configure_file(3d_euler_implicit.prm 3d_euler_implicit.prm COPYONLY)
+# add_test(
+#   NAME 3D_EULER_IMPLICIT_MANUFACTURED_SOLUTION
+#   COMMAND ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3d_euler_implicit.prm
+#   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+# )

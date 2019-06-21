@@ -68,7 +68,18 @@ int test_dissipative_numerical_flux_conservation (const PDEType pde_type, const 
     dealii::Tensor<1,dim,double> normal_int;
     std::array<double, nstate> soln_int, soln_ext;
     std::array<dealii::Tensor<1,dim,double>, nstate> soln_grad_int, soln_grad_ext;
-    set_solution<dim, nstate> (soln_int, soln_ext, soln_grad_int, soln_grad_ext, normal_int);
+    dealii::Point<dim> point_1;
+    dealii::Point<dim> point_2;
+    for(int d=0; d<dim; d++) {
+        point_1[d] = 0;
+        point_2[d] = 1;
+    }
+    for(int s=0; s<nstate; s++) {
+        soln_int[s] = pde_physics->manufactured_solution_function.value(point_1,s);
+        soln_ext[s] = pde_physics->manufactured_solution_function.value(point_2,s);
+        soln_grad_int[s] = pde_physics->manufactured_solution_function.gradient(point_1,s);
+        soln_grad_ext[s] = pde_physics->manufactured_solution_function.gradient(point_2,s);
+    }
 
     NumericalFlux::NumericalFluxDissipative<dim, nstate, double> *diss_num_flux = 
         NumericalFlux::NumericalFluxFactory<dim, nstate, double>
@@ -113,7 +124,19 @@ int test_dissipative_numerical_flux_consistency (const PDEType pde_type, const D
     dealii::Tensor<1,dim,double> normal_int;
     std::array<double, nstate> soln_int, soln_ext;
     std::array<dealii::Tensor<1,dim,double>, nstate> soln_grad_int, soln_grad_ext;
-    set_solution<dim,nstate> (soln_int, soln_ext, soln_grad_int, soln_grad_ext, normal_int);
+    //set_solution<dim,nstate> (soln_int, soln_ext, soln_grad_int, soln_grad_ext, normal_int);
+    dealii::Point<dim> point_1;
+    dealii::Point<dim> point_2;
+    for(int d=0; d<dim; d++) {
+        point_1[d] = 0;
+        point_2[d] = 1;
+    }
+    for(int s=0; s<nstate; s++) {
+        soln_int[s] = pde_physics->manufactured_solution_function.value(point_1,s);
+        soln_ext[s] = soln_int[s];
+        soln_grad_int[s] = pde_physics->manufactured_solution_function.gradient(point_1,s);
+        soln_grad_ext[s] = soln_grad_int[s];
+    }
 
     // Copy state to ext cell
     soln_int = soln_ext;
@@ -161,7 +184,19 @@ int test_convective_numerical_flux_conservation (const PDEType pde_type, const C
     dealii::Tensor<1,dim,double> normal_int;
     std::array<double, nstate> soln_int, soln_ext;
     std::array<dealii::Tensor<1,dim,double>, nstate> soln_grad_int, soln_grad_ext;
-    set_solution<dim,nstate> (soln_int, soln_ext, soln_grad_int, soln_grad_ext, normal_int);
+    //set_solution<dim,nstate> (soln_int, soln_ext, soln_grad_int, soln_grad_ext, normal_int);
+    dealii::Point<dim> point_1;
+    dealii::Point<dim> point_2;
+    for(int d=0; d<dim; d++) {
+        point_1[d] = 0;
+        point_2[d] = 1;
+    }
+    for(int s=0; s<nstate; s++) {
+        soln_int[s] = pde_physics->manufactured_solution_function.value(point_1,s);
+        soln_ext[s] = soln_int[s];
+        soln_grad_int[s] = pde_physics->manufactured_solution_function.gradient(point_1,s);
+        soln_grad_ext[s] = soln_grad_int[s];
+    }
 
     std::array<double, nstate> conv_num_flux_dot_n_1 = conv_num_flux->evaluate_flux(soln_int, soln_ext, normal_int);
     std::array<double, nstate> conv_num_flux_dot_n_2 = conv_num_flux->evaluate_flux(soln_ext, soln_int, -normal_int);
@@ -188,7 +223,19 @@ int test_convective_numerical_flux_consistency (const PDEType pde_type, const Co
     dealii::Tensor<1,dim,double> normal_int;
     std::array<double, nstate> soln_int, soln_ext;
     std::array<dealii::Tensor<1,dim,double>, nstate> soln_grad_int, soln_grad_ext;
-    set_solution<dim,nstate> (soln_int, soln_ext, soln_grad_int, soln_grad_ext, normal_int);
+    //set_solution<dim,nstate> (soln_int, soln_ext, soln_grad_int, soln_grad_ext, normal_int);
+    dealii::Point<dim> point_1;
+    dealii::Point<dim> point_2;
+    for(int d=0; d<dim; d++) {
+        point_1[d] = 0;
+        point_2[d] = 1;
+    }
+    for(int s=0; s<nstate; s++) {
+        soln_int[s] = pde_physics->manufactured_solution_function.value(point_1,s);
+        soln_ext[s] = soln_int[s];
+        soln_grad_int[s] = pde_physics->manufactured_solution_function.gradient(point_1,s);
+        soln_grad_ext[s] = soln_grad_int[s];
+    }
 
     // Consistent numerical flux should be equal to physical flux when both states are equal
     // Therefore, f1 - f2 = 0

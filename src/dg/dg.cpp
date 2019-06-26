@@ -157,7 +157,7 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int ith_grid)// const
 {
     std::vector<std::string> solution_names;
     for(int s=0;s<nstate;++s) {
-        std::string varname = "u-" + dealii::Utilities::int_to_string(s,1);
+        std::string varname = "u" + dealii::Utilities::int_to_string(s,1);
         solution_names.push_back(varname);
     }
     //std::vector<DataComponentInterpretation::DataComponentInterpretation> data_component_interpretation (nstate, DataComponentInterpretation::component_is_part_of_vector);

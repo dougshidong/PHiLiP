@@ -31,7 +31,7 @@ foreach(dim RANGE 1 3)
     # See one of the following links (translate chinese to english using Google)
     # https://zhuanlan.zhihu.com/p/21385662
     # https://www.getit01.com/p2018020821385662/
-    target_link_libraries(${TEST_TARGET} tbb m mpi mpi_cxx)
+    target_link_libraries(${TEST_TARGET} m mpi mpi_cxx)
 
 
     add_test(

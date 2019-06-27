@@ -54,7 +54,7 @@ int main (int argc, char * argv[])
                 std::shared_ptr < DGBase<PHILIP_DIM, double> > dg = DGFactory<PHILIP_DIM,double>::create_discontinuous_galerkin(&all_parameters, poly_degree);
                 dg->set_triangulation(&grid);
                 dg->allocate_system ();
-                dg->assemble_system ();
+                dg->assemble_residual_dRdW ();
 
                 const int nrows = dg->system_matrix.m();
 

@@ -32,7 +32,7 @@ namespace PHiLiP {
 /**  This base class allows the use of arrays to efficiently allocate the data structures
   *  through std::array in the derived class DG.
   *  This class is the one being returned by the DGFactory and is the main
-  *  interface for a user to call its main functions such as "assemble_system".
+  *  interface for a user to call its main functions such as "assemble_residual".
   *
   *  Discretizes the problem
   *  \f[
@@ -68,15 +68,13 @@ public:
         const Parameters::AllParameters *const parameters_input, 
         const unsigned int degree);
 
-    virtual ~DGBase(); ///< Destructor. Also calls delete_fe_values().
-    void delete_fe_values (); ///< Delete the new-ed pointers to FEValues
+    virtual ~DGBase(); ///< Destructor.
 
     /// Sets the triangulation. Should be done before allocate system
     void set_triangulation(dealii::Triangulation<dim> *triangulation_input)
     { triangulation = triangulation_input; } ;
 
     virtual void allocate_system () = 0; ///< Virtual function defined in DG
-    virtual void assemble_system () = 0; ///< Virtual function defined in DG
 
     /// Allocates and evaluates the inverse mass matrices for the entire grid
     /*  Although straightforward, this has not been tested yet.
@@ -196,8 +194,61 @@ public:
      */ 
     dealii::DoFHandler<dim> dof_handler;
 
+    /// Main loop of the DG class.
+    /** Evaluates the right-hand-side \f$ \mathbf{R(\mathbf{u}}) \f$ of the system
+     *
+     *  \f[
+     *      \frac{\partial \mathbf{u}}{\partial t} = \mathbf{R(\mathbf{u}}) = 
+     *      - \boldsymbol\nabla \cdot
+     *      ( \mathbf{F}_{conv}(\mathbf{u})
+     *      + \mathbf{F}_{diss}(\mathbf{u},\boldsymbol\nabla\mathbf{u}) )
+     *      + \mathbf{q}
+     *  \f]
+     *
+     *  As well as sets the
+     *  \f[
+     *  \mathbf{\text{system_matrix}} = \frac{\partial \mathbf{R}}{\partial \mathbf{u}}
+     *  \f]
+     *
+     * It loops over all the cells, evaluates the volume contributions,
+     * then loops over the faces of the current cell. Four scenarios may happen
+     *
+     * 1. Boundary condition.
+     *
+     * 2. Current face has children. Therefore, neighbor is finer. In that case,
+     * loop over neighbor faces to compute its face contributions.
+     *
+     * 3. Neighbor has same coarseness. Cell with lower global index will be used
+     * to compute the face contribution.
+     *
+     * 4. Neighbor is coarser. Therefore, the current cell is the finer one.
+     * Do nothing since this cell will be taken care of by scenario 2.
+     *    
+     */
+    void assemble_residual_dRdW ();
 
 protected:
+
+    /// Evaluate the integral over the cell volume
+    virtual void assemble_cell_terms_implicit(
+        const dealii::FEValues<dim,dim> &fe_values_cell,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs) = 0;
+    /// Evaluate the integral over the cell edges that are on domain boundaries
+    virtual void assemble_boundary_term_implicit(
+        const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
+        const real penalty,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs) = 0;
+    /// Evaluate the integral over the internal cell edges
+    virtual void assemble_face_term_implicit(
+        const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
+        const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
+        const real penalty,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
+        dealii::Vector<real>          &current_cell_rhs,
+        dealii::Vector<real>          &neighbor_cell_rhs) = 0;
 
     // QGauss is Gauss-Legendre quadrature nodes
     const dealii::QGauss<dim>   quadrature;
@@ -239,7 +290,7 @@ protected:
 /// DG class templated on the number of state variables
 /*  Contains the functions that need to be templated on the number of state variables.
  *  
- *  Also defines the main loop of the DG class which is assemble_system
+ *  Also defines the main loop of the DG class which is assemble_residual
  */
 template <int dim, int nstate, typename real>
 class DG : public DGBase<dim, real>
@@ -262,45 +313,10 @@ private:
     NumericalFlux::NumericalFluxDissipative<dim, nstate, Sacado::Fad::DFad<real> > *diss_num_flux;
 
 
-
     /// Allocates the system.
     /** Must be done after setting the mesh and before assembling the system.
      */
     void allocate_system ();
-
-    /// Main loop of the DG class.
-    /** Evaluates the right-hand-side \f$ \mathbf{R(\mathbf{u}}) \f$ of the system
-     *
-     *  \f[
-     *      \frac{\partial \mathbf{u}}{\partial t} = \mathbf{R(\mathbf{u}}) = 
-     *      - \boldsymbol\nabla \cdot
-     *      ( \mathbf{F}_{conv}(\mathbf{u})
-     *      + \mathbf{F}_{diss}(\mathbf{u},\boldsymbol\nabla\mathbf{u}) )
-     *      + \mathbf{q}
-     *  \f]
-     *
-     *  As well as sets the
-     *  \f[
-     *  \mathbf{\text{system_matrix}} = \frac{\partial \mathbf{R}}{\partial \mathbf{u}}
-     *  \f]
-     *
-     * It loops over all the cells, evaluates the volume contributions,
-     * then loops over the faces of the current cell. Four scenarios may happen
-     *
-     * 1. Boundary condition.
-     *
-     * 2. Current face has children. Therefore, neighbor is finer. In that case,
-     * loop over neighbor faces to compute its face contributions.
-     *
-     * 3. Neighbor has same coarseness. Cell with lower global index will be used
-     * to compute the face contribution.
-     *
-     * 4. Neighbor is coarser. Therefore, the current cell is the finer one.
-     * Do nothing since this cell will be taken care of by scenario 2.
-     *    
-     */
-    void assemble_system ();
-
 
     /// Evaluate the integral over the cell volume
     void assemble_cell_terms_implicit(

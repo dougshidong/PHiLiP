@@ -32,7 +32,7 @@ int Implicit_ODESolver<dim,real>::steady_state ()
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
             (this->current_iteration%ode_param.print_iteration_modulo) == 0 )
         std::cout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
-        ODESolver<dim,real>::dg->assemble_system ();
+        ODESolver<dim,real>::dg->assemble_residual_dRdW ();
         // (M/dt - dRdW) dw = R
         ODESolver<dim,real>::dg->system_matrix *= -1.0;
 
@@ -63,7 +63,7 @@ int Explicit_ODESolver<dim,real>::steady_state ()
     Parameters::ODESolverParam ode_param = ODESolver<dim,real>::all_parameters->ode_solver_param;
     allocate_ode_system ();
 
-    ODESolver<dim,real>::dg->assemble_system ();
+    ODESolver<dim,real>::dg->assemble_residual_dRdW ();
 
     this->residual_norm = 1.0;
     this->current_iteration = 0;
@@ -84,7 +84,7 @@ int Explicit_ODESolver<dim,real>::steady_state ()
         evaluate_solution_update ();
         ODESolver<dim,real>::dg->solution += this->solution_update;
 
-        ODESolver<dim,real>::dg->assemble_system ();
+        ODESolver<dim,real>::dg->assemble_residual_dRdW ();
         this->residual_norm = ODESolver<dim,real>::dg->get_residual_l2norm();
     }
     return 1;

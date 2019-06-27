@@ -83,48 +83,16 @@ DGBase<dim,real>::DGBase(
     , all_parameters(parameters_input)
     , quadrature (degree+1)
     , face_quadrature (degree+1)
-{
-
-    const dealii::UpdateFlags update_flags =
-        dealii::update_values | dealii::update_gradients
-        | dealii::update_quadrature_points | dealii::update_JxW_values;
-    const dealii::UpdateFlags face_update_flags =
-        dealii::update_values | dealii::update_gradients
-        | dealii::update_quadrature_points | dealii::update_JxW_values
-        | dealii::update_normal_vectors;
-    const dealii::UpdateFlags neighbor_face_update_flags =
-        dealii::update_values | dealii::update_gradients;
-
-    fe_values_cell          = new dealii::FEValues<dim,dim>
-        (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::quadrature, update_flags);
-    fe_values_face_int      = new dealii::FEFaceValues<dim,dim>
-        (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::face_quadrature, face_update_flags);
-    fe_values_subface_int   = new dealii::FESubfaceValues<dim,dim>
-        (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::face_quadrature, face_update_flags);
-    fe_values_face_ext      = new dealii::FEFaceValues<dim,dim>
-        (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::face_quadrature, neighbor_face_update_flags);
-}
+{ }
 
 // Destructor
 template <int dim, typename real>
 DGBase<dim,real>::~DGBase ()
-{ 
-    std::cout << "Destructing DGBase..." << std::endl;
-    delete_fe_values();
-}
+{ }
 
 template <int dim, typename real>
 void DGBase<dim,real>::delete_fe_values ()
-{
-    if (fe_values_cell          != NULL) delete fe_values_cell;
-    if (fe_values_face_int      != NULL) delete fe_values_face_int;
-    if (fe_values_subface_int   != NULL) delete fe_values_subface_int;
-    if (fe_values_face_ext      != NULL) delete fe_values_face_ext;
-    fe_values_cell          = NULL; 
-    fe_values_face_int      = NULL;
-    fe_values_subface_int   = NULL;
-    fe_values_face_ext      = NULL;
-}
+{ }
 
 template <int dim, typename real>
 double DGBase<dim,real>::get_residual_l2norm ()
@@ -248,19 +216,20 @@ void DGBase<dim,real>::evaluate_inverse_mass_matrices ()
     inv_mass_matrix.resize(triangulation->n_active_cells(),
                            dealii::FullMatrix<real>(n_tests_cell));
     dealii::FullMatrix<real> mass_matrix(n_tests_cell);
+    dealii::FEValues<dim,dim> fe_values_cell (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::quadrature, this->update_flags);
     for (; cell!=endc; ++cell) {
 
         int cell_index = cell->index();
-        fe_values_cell->reinit(cell);
+        fe_values_cell.reinit(cell);
 
         for (int itest=0; itest<n_tests_cell; ++itest) {
             for (int itrial=itest; itrial<n_tests_cell; ++itrial) {
                 mass_matrix[itest][itrial] = 0.0;
                 for (int iquad=0; iquad<n_quad_pts; ++iquad) {
                     mass_matrix[itest][itrial] +=
-                        fe_values_cell->shape_value(itest,iquad)
-                        * fe_values_cell->shape_value(itrial,iquad)
-                        * fe_values_cell->JxW(iquad);
+                        fe_values_cell.shape_value(itest,iquad)
+                        * fe_values_cell.shape_value(itrial,iquad)
+                        * fe_values_cell.JxW(iquad);
                 }
                 mass_matrix[itrial][itest] = mass_matrix[itest][itrial];
             }
@@ -288,11 +257,12 @@ void DGBase<dim,real>::evaluate_mass_matrices ()
 
     dealii::FullMatrix<real> local_mass_matrix(n_dofs_per_cell);
     std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_per_cell);
+    dealii::FEValues<dim,dim> fe_values_cell (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::quadrature, this->update_flags);
     for (; cell!=endc; ++cell) {
 
         //int cell_index = cell->index();
         cell->get_dof_indices (dofs_indices);
-        fe_values_cell->reinit(cell);
+        fe_values_cell.reinit(cell);
 
 
         //const int n_dofs_per_state = fe_dg.dofs_per_cell;
@@ -302,9 +272,9 @@ void DGBase<dim,real>::evaluate_mass_matrices ()
         //            real value = 0.0;
         //            for (int iquad=0; iquad<n_quad_pts; ++iquad) {
         //                value +=
-        //                    fe_values_cell->shape_value_component(itest,iquad,istate)
-        //                    * fe_values_cell->shape_value_component(itrial,iquad,istate)
-        //                    * fe_values_cell->JxW(iquad);
+        //                    fe_values_cell.shape_value_component(itest,iquad,istate)
+        //                    * fe_values_cell.shape_value_component(itrial,iquad,istate)
+        //                    * fe_values_cell.JxW(iquad);
         //            }
         //            local_mass_matrix[istate*n_dofs_per_state+itrial][istate*n_dofs_per_state+itest] = value;
         //            local_mass_matrix[istate*n_dofs_per_state+itest][istate*n_dofs_per_state+itrial] = value;
@@ -313,15 +283,15 @@ void DGBase<dim,real>::evaluate_mass_matrices ()
         //}
 
         for (int itest=0; itest<n_dofs_per_cell; ++itest) {
-            const unsigned int istate_test = fe_values_cell->get_fe().system_to_component_index(itest).first;
+            const unsigned int istate_test = fe_values_cell.get_fe().system_to_component_index(itest).first;
             for (int itrial=itest; itrial<n_dofs_per_cell; ++itrial) {
-                const unsigned int istate_trial = fe_values_cell->get_fe().system_to_component_index(itrial).first;
+                const unsigned int istate_trial = fe_values_cell.get_fe().system_to_component_index(itrial).first;
                 real value = 0.0;
                 for (int iquad=0; iquad<n_quad_pts; ++iquad) {
                     value +=
-                        fe_values_cell->shape_value_component(itest,iquad,istate_test)
-                        * fe_values_cell->shape_value_component(itrial,iquad,istate_trial)
-                        * fe_values_cell->JxW(iquad);
+                        fe_values_cell.shape_value_component(itest,iquad,istate_test)
+                        * fe_values_cell.shape_value_component(itrial,iquad,istate_trial)
+                        * fe_values_cell.JxW(iquad);
                 }
                 local_mass_matrix[itrial][itest] = 0.0;
                 local_mass_matrix[itest][itrial] = 0.0;
@@ -447,15 +417,21 @@ void DG<dim,nstate,real>::assemble_system ()
 
     unsigned int n_cell_visited = 0;
     unsigned int n_face_visited = 0;
+
+    dealii::FEValues<dim,dim>        fe_values_cell (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::quadrature, this->update_flags);
+    dealii::FEFaceValues<dim,dim>    fe_values_face_int (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::face_quadrature, this->face_update_flags);
+    dealii::FESubfaceValues<dim,dim> fe_values_subface_int (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::face_quadrature, this->face_update_flags);
+    dealii::FEFaceValues<dim,dim>    fe_values_face_ext (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::face_quadrature, this->neighbor_face_update_flags);
+
     for (; current_cell!=endc; ++current_cell) {
         // std::cout << "Current cell index: " << current_cell->index() << std::endl;
         n_cell_visited++;
 
         current_cell_rhs = 0;
-        DGBase<dim,real>::fe_values_cell->reinit (current_cell);
+        fe_values_cell.reinit (current_cell);
         current_cell->get_dof_indices (current_dofs_indices);
 
-        assemble_cell_terms_implicit (DGBase<dim,real>::fe_values_cell, current_dofs_indices, current_cell_rhs);
+        assemble_cell_terms_implicit (fe_values_cell, current_dofs_indices, current_cell_rhs);
 
         for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
 
@@ -470,7 +446,7 @@ void DG<dim,nstate,real>::assemble_system ()
 
                 n_face_visited++;
 
-                DGBase<dim,real>::fe_values_face_int->reinit (current_cell, iface);
+                fe_values_face_int.reinit (current_cell, iface);
                 const unsigned int degree_current = DGBase<dim,real>::fe_system.tensor_degree();
                 const unsigned int deg1sq = (degree_current == 0) ? 1 : degree_current * (degree_current+1);
                 const unsigned int normal_direction = dealii::GeometryInfo<dim>::unit_normal_direction[iface];
@@ -480,7 +456,7 @@ void DG<dim,nstate,real>::assemble_system ()
                 //penalty = 1;//99;
 
                 // Need to somehow get boundary type from the mesh
-                assemble_boundary_term_implicit (DGBase<dim,real>::fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
+                assemble_boundary_term_implicit (fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
 
             // Case 2:
             // Neighbour is finer occurs if the face has children
@@ -503,8 +479,8 @@ void DG<dim,nstate,real>::assemble_system ()
 
                     neighbor_child_cell->get_dof_indices (neighbor_dofs_indices);
 
-                    DGBase<dim,real>::fe_values_subface_int->reinit (current_cell, iface, subface_no);
-                    DGBase<dim,real>::fe_values_face_ext->reinit (neighbor_child_cell, neighbor_face_no);
+                    fe_values_subface_int.reinit (current_cell, iface, subface_no);
+                    fe_values_face_ext.reinit (neighbor_child_cell, neighbor_face_no);
 
                     const unsigned int normal_direction1 = dealii::GeometryInfo<dim>::unit_normal_direction[iface];
                     const unsigned int normal_direction2 = dealii::GeometryInfo<dim>::unit_normal_direction[neighbor_face_no];
@@ -523,7 +499,7 @@ void DG<dim,nstate,real>::assemble_system ()
                     //penalty = 1;
 
                     assemble_face_term_implicit (
-                        DGBase<dim,real>::fe_values_subface_int, DGBase<dim,real>::fe_values_face_ext,
+                        fe_values_subface_int, fe_values_face_ext,
                         penalty,
                         current_dofs_indices, neighbor_dofs_indices,
                         current_cell_rhs, neighbor_cell_rhs);
@@ -573,10 +549,10 @@ void DG<dim,nstate,real>::assemble_system ()
                 real penalty = 0.5 * ( penalty1 + penalty2 );
                 //penalty = 1;//99;
 
-                DGBase<dim,real>::fe_values_face_int->reinit (current_cell, iface);
-                DGBase<dim,real>::fe_values_face_ext->reinit (neighbor_cell, neighbor_face_no);
+                fe_values_face_int.reinit (current_cell, iface);
+                fe_values_face_ext.reinit (neighbor_cell, neighbor_face_no);
                 assemble_face_term_implicit (
-                        DGBase<dim,real>::fe_values_face_int, DGBase<dim,real>::fe_values_face_ext,
+                        fe_values_face_int, fe_values_face_ext,
                         penalty,
                         current_dofs_indices, neighbor_dofs_indices,
                         current_cell_rhs, neighbor_cell_rhs);

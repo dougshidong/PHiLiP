@@ -18,7 +18,7 @@ namespace PHiLiP {
 
 template <int dim, int nstate, typename real>
 void DG<dim,nstate,real>::assemble_cell_terms_implicit(
-    const dealii::FEValues<dim,dim> *fe_values_vol,
+    const dealii::FEValues<dim,dim> &fe_values_vol,
     const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
     dealii::Vector<real> &local_rhs_int_cell)
 {
@@ -26,12 +26,12 @@ void DG<dim,nstate,real>::assemble_cell_terms_implicit(
     using ADArray = std::array<ADtype,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
 
-    const unsigned int n_quad_pts      = fe_values_vol->n_quadrature_points;
-    const unsigned int n_dofs_cell     = fe_values_vol->dofs_per_cell;
+    const unsigned int n_quad_pts      = fe_values_vol.n_quadrature_points;
+    const unsigned int n_dofs_cell     = fe_values_vol.dofs_per_cell;
 
     AssertDimension (n_dofs_cell, cell_dofs_indices.size());
 
-    const std::vector<real> &JxW = fe_values_vol->get_JxW_values ();
+    const std::vector<real> &JxW = fe_values_vol.get_JxW_values ();
 
 
     std::vector<real> residual_derivatives(n_dofs_cell);
@@ -60,9 +60,9 @@ void DG<dim,nstate,real>::assemble_cell_terms_implicit(
     // Interpolate solution to face
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
-              const unsigned int istate = fe_values_vol->get_fe().system_to_component_index(idof).first;
-              soln_at_q[iquad][istate]      += soln_coeff[idof] * fe_values_vol->shape_value_component(idof, iquad, istate);
-              soln_grad_at_q[iquad][istate] += soln_coeff[idof] * fe_values_vol->shape_grad_component(idof, iquad, istate);
+              const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(idof).first;
+              soln_at_q[iquad][istate]      += soln_coeff[idof] * fe_values_vol.shape_value_component(idof, iquad, istate);
+              soln_grad_at_q[iquad][istate] += soln_coeff[idof] * fe_values_vol.shape_grad_component(idof, iquad, istate);
         }
         //std::cout << "Density " << soln_at_q[iquad][0] << std::endl;
         //if(nstate>1) std::cout << "Momentum " << soln_at_q[iquad][1] << std::endl;
@@ -70,7 +70,7 @@ void DG<dim,nstate,real>::assemble_cell_terms_implicit(
         // Evaluate physical convective flux and source term
         conv_phys_flux_at_q[iquad] = pde_physics->convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = pde_physics->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
-        source_at_q[iquad] = pde_physics->source_term (fe_values_vol->quadrature_point(iquad), soln_at_q[iquad]);
+        source_at_q[iquad] = pde_physics->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad]);
     }
 
     // Weak form
@@ -85,17 +85,17 @@ void DG<dim,nstate,real>::assemble_cell_terms_implicit(
 
         ADtype rhs = 0;
 
-        const unsigned int istate = fe_values_vol->get_fe().system_to_component_index(itest).first;
+        const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(itest).first;
 
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
             // Convective
-            rhs = rhs + fe_values_vol->shape_grad_component(itest,iquad,istate) * conv_phys_flux_at_q[iquad][istate] * JxW[iquad];
+            rhs = rhs + fe_values_vol.shape_grad_component(itest,iquad,istate) * conv_phys_flux_at_q[iquad][istate] * JxW[iquad];
             //// Diffusive
             //// Note that for diffusion, the negative is defined in the physics
-            rhs = rhs + fe_values_vol->shape_grad_component(itest,iquad,istate) * diss_phys_flux_at_q[iquad][istate] * JxW[iquad];
+            rhs = rhs + fe_values_vol.shape_grad_component(itest,iquad,istate) * diss_phys_flux_at_q[iquad][istate] * JxW[iquad];
             // Source
-            rhs = rhs + fe_values_vol->shape_value_component(itest,iquad,istate) * source_at_q[iquad][istate] * JxW[iquad];
+            rhs = rhs + fe_values_vol.shape_value_component(itest,iquad,istate) * source_at_q[iquad][istate] * JxW[iquad];
         }
 
         local_rhs_int_cell(itest) += rhs.val();
@@ -111,7 +111,7 @@ void DG<dim,nstate,real>::assemble_cell_terms_implicit(
 
 template <int dim, int nstate, typename real>
 void DG<dim,nstate,real>::assemble_boundary_term_implicit(
-    const dealii::FEFaceValues<dim,dim> *fe_values_boundary,
+    const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
     const real penalty,
     const std::vector<dealii::types::global_dof_index> &dof_indices_int,
     dealii::Vector<real> &local_rhs_int_cell)
@@ -120,13 +120,13 @@ void DG<dim,nstate,real>::assemble_boundary_term_implicit(
     using ADArray = std::array<ADtype,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
 
-    const unsigned int n_dofs_cell = fe_values_boundary->dofs_per_cell;
-    const unsigned int n_face_quad_pts = fe_values_boundary->n_quadrature_points;
+    const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
+    const unsigned int n_face_quad_pts = fe_values_boundary.n_quadrature_points;
 
     AssertDimension (n_dofs_cell, dof_indices_int.size());
 
-    const std::vector<real> &JxW = fe_values_boundary->get_JxW_values ();
-    const std::vector<dealii::Tensor<1,dim>> &normals = fe_values_boundary->get_normal_vectors ();
+    const std::vector<real> &JxW = fe_values_boundary.get_JxW_values ();
+    const std::vector<dealii::Tensor<1,dim>> &normals = fe_values_boundary.get_normal_vectors ();
 
     std::vector<real> residual_derivatives(n_dofs_cell);
 
@@ -157,16 +157,16 @@ void DG<dim,nstate,real>::assemble_boundary_term_implicit(
         }
     }
     // Interpolate solution to face
-    const std::vector< dealii::Point<dim,real> > quad_pts = fe_values_boundary->get_quadrature_points();
+    const std::vector< dealii::Point<dim,real> > quad_pts = fe_values_boundary.get_quadrature_points();
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
 
         const dealii::Tensor<1,dim,ADtype> normal_int = normals[iquad];
         const dealii::Tensor<1,dim,ADtype> normal_ext = -normal_int;
 
         for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
-            const int istate = fe_values_boundary->get_fe().system_to_component_index(idof).first;
-            soln_int[iquad][istate]      += soln_coeff_int[idof] * fe_values_boundary->shape_value_component(idof, iquad, istate);
-            soln_grad_int[iquad][istate] += soln_coeff_int[idof] * fe_values_boundary->shape_grad_component(idof, iquad, istate);
+            const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
+            soln_int[iquad][istate]      += soln_coeff_int[idof] * fe_values_boundary.shape_value_component(idof, iquad, istate);
+            soln_grad_int[iquad][istate] += soln_coeff_int[idof] * fe_values_boundary.shape_grad_component(idof, iquad, istate);
         }
 
         const unsigned int boundary_id = 1; // dummy value for now
@@ -206,15 +206,15 @@ void DG<dim,nstate,real>::assemble_boundary_term_implicit(
 
         ADtype rhs = 0.0;
 
-        const unsigned int istate = fe_values_boundary->get_fe().system_to_component_index(itest).first;
+        const unsigned int istate = fe_values_boundary.get_fe().system_to_component_index(itest).first;
 
         for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
 
             // Convection
-            rhs = rhs - fe_values_boundary->shape_value_component(itest,iquad,istate) * conv_num_flux_dot_n[iquad][istate] * JxW[iquad];
+            rhs = rhs - fe_values_boundary.shape_value_component(itest,iquad,istate) * conv_num_flux_dot_n[iquad][istate] * JxW[iquad];
             // Diffusive
-            rhs = rhs - fe_values_boundary->shape_value_component(itest,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW[iquad];
-            rhs = rhs + fe_values_boundary->shape_grad_component(itest,iquad,istate) * diss_flux_jump_int[iquad][istate] * JxW[iquad];
+            rhs = rhs - fe_values_boundary.shape_value_component(itest,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW[iquad];
+            rhs = rhs + fe_values_boundary.shape_grad_component(itest,iquad,istate) * diss_flux_jump_int[iquad][istate] * JxW[iquad];
         }
         // *******************
 
@@ -230,8 +230,8 @@ void DG<dim,nstate,real>::assemble_boundary_term_implicit(
 
 template <int dim, int nstate, typename real>
 void DG<dim,nstate,real>::assemble_face_term_implicit(
-    const dealii::FEValuesBase<dim,dim>     *fe_values_int,
-    const dealii::FEFaceValues<dim,dim>     *fe_values_ext,
+    const dealii::FEValuesBase<dim,dim>     &fe_values_int,
+    const dealii::FEFaceValues<dim,dim>     &fe_values_ext,
     const real penalty,
     const std::vector<dealii::types::global_dof_index> &dof_indices_int,
     const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
@@ -244,18 +244,18 @@ void DG<dim,nstate,real>::assemble_face_term_implicit(
 
     // Use quadrature points of neighbor cell
     // Might want to use the maximum n_quad_pts1 and n_quad_pts2
-    const unsigned int n_face_quad_pts = fe_values_ext->n_quadrature_points;
+    const unsigned int n_face_quad_pts = fe_values_ext.n_quadrature_points;
 
-    const unsigned int n_dofs_int = fe_values_int->dofs_per_cell;
-    const unsigned int n_dofs_ext = fe_values_ext->dofs_per_cell;
+    const unsigned int n_dofs_int = fe_values_int.dofs_per_cell;
+    const unsigned int n_dofs_ext = fe_values_ext.dofs_per_cell;
 
     AssertDimension (n_dofs_int, dof_indices_int.size());
     AssertDimension (n_dofs_ext, dof_indices_ext.size());
 
     // Jacobian and normal should always be consistent between two elements
     // even for non-conforming meshes?
-    const std::vector<real> &JxW_int = fe_values_int->get_JxW_values ();
-    const std::vector<dealii::Tensor<1,dim> > &normals_int = fe_values_int->get_normal_vectors ();
+    const std::vector<real> &JxW_int = fe_values_int.get_JxW_values ();
+    const std::vector<dealii::Tensor<1,dim> > &normals_int = fe_values_int.get_normal_vectors ();
 
     // AD variable
     std::vector<ADtype> soln_coeff_int_ad(n_dofs_int);
@@ -307,14 +307,14 @@ void DG<dim,nstate,real>::assemble_face_term_implicit(
 
         // Interpolate solution to face
         for (unsigned int idof=0; idof<n_dofs_int; ++idof) {
-            const unsigned int istate = fe_values_int->get_fe().system_to_component_index(idof).first;
-            soln_int[iquad][istate]      += soln_coeff_int_ad[idof] * fe_values_int->shape_value_component(idof, iquad, istate);
-            soln_grad_int[iquad][istate] += soln_coeff_int_ad[idof] * fe_values_int->shape_grad_component(idof, iquad, istate);
+            const unsigned int istate = fe_values_int.get_fe().system_to_component_index(idof).first;
+            soln_int[iquad][istate]      += soln_coeff_int_ad[idof] * fe_values_int.shape_value_component(idof, iquad, istate);
+            soln_grad_int[iquad][istate] += soln_coeff_int_ad[idof] * fe_values_int.shape_grad_component(idof, iquad, istate);
         }
         for (unsigned int idof=0; idof<n_dofs_ext; ++idof) {
-            const unsigned int istate = fe_values_ext->get_fe().system_to_component_index(idof).first;
-            soln_ext[iquad][istate]      += soln_coeff_ext_ad[idof] * fe_values_ext->shape_value_component(idof, iquad, istate);
-            soln_grad_ext[iquad][istate] += soln_coeff_ext_ad[idof] * fe_values_ext->shape_grad_component(idof, iquad, istate);
+            const unsigned int istate = fe_values_ext.get_fe().system_to_component_index(idof).first;
+            soln_ext[iquad][istate]      += soln_coeff_ext_ad[idof] * fe_values_ext.shape_value_component(idof, iquad, istate);
+            soln_grad_ext[iquad][istate] += soln_coeff_ext_ad[idof] * fe_values_ext.shape_grad_component(idof, iquad, istate);
         }
         //std::cout << "Density int" << soln_int[iquad][0] << std::endl;
         //if(nstate>1) std::cout << "Momentum int" << soln_int[iquad][1] << std::endl;
@@ -344,14 +344,14 @@ void DG<dim,nstate,real>::assemble_face_term_implicit(
     // From test functions associated with interior cell point of view
     for (unsigned int itest_int=0; itest_int<n_dofs_int; ++itest_int) {
         ADtype rhs = 0.0;
-        const unsigned int istate = fe_values_int->get_fe().system_to_component_index(itest_int).first;
+        const unsigned int istate = fe_values_int.get_fe().system_to_component_index(itest_int).first;
 
         for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
             // Convection
-            rhs = rhs - fe_values_int->shape_value_component(itest_int,iquad,istate) * conv_num_flux_dot_n[iquad][istate] * JxW_int[iquad];
+            rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * conv_num_flux_dot_n[iquad][istate] * JxW_int[iquad];
             // Diffusive
-            rhs = rhs - fe_values_int->shape_value_component(itest_int,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW_int[iquad];
-            rhs = rhs + fe_values_int->shape_grad_component(itest_int,iquad,istate) * diss_flux_jump_int[iquad][istate] * JxW_int[iquad];
+            rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW_int[iquad];
+            rhs = rhs + fe_values_int.shape_grad_component(itest_int,iquad,istate) * diss_flux_jump_int[iquad][istate] * JxW_int[iquad];
         }
 
         local_rhs_int_cell(itest_int) += rhs.val();
@@ -368,14 +368,14 @@ void DG<dim,nstate,real>::assemble_face_term_implicit(
     // From test functions associated with neighbour cell point of view
     for (unsigned int itest_ext=0; itest_ext<n_dofs_ext; ++itest_ext) {
         ADtype rhs = 0.0;
-        const unsigned int istate = fe_values_int->get_fe().system_to_component_index(itest_ext).first;
+        const unsigned int istate = fe_values_int.get_fe().system_to_component_index(itest_ext).first;
 
         for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
             // Convection
-            rhs = rhs - fe_values_ext->shape_value_component(itest_ext,iquad,istate) * (-conv_num_flux_dot_n[iquad][istate]) * JxW_int[iquad];
+            rhs = rhs - fe_values_ext.shape_value_component(itest_ext,iquad,istate) * (-conv_num_flux_dot_n[iquad][istate]) * JxW_int[iquad];
             // Diffusive
-            rhs = rhs - fe_values_ext->shape_value_component(itest_ext,iquad,istate) * (-diss_auxi_num_flux_dot_n[iquad][istate]) * JxW_int[iquad];
-            rhs = rhs + fe_values_ext->shape_grad_component(itest_ext,iquad,istate) * diss_flux_jump_ext[iquad][istate] * JxW_int[iquad];
+            rhs = rhs - fe_values_ext.shape_value_component(itest_ext,iquad,istate) * (-diss_auxi_num_flux_dot_n[iquad][istate]) * JxW_int[iquad];
+            rhs = rhs + fe_values_ext.shape_grad_component(itest_ext,iquad,istate) * diss_flux_jump_ext[iquad][istate] * JxW_int[iquad];
         }
 
         local_rhs_ext_cell(itest_ext) += rhs.val();

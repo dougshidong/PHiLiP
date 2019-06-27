@@ -205,10 +205,16 @@ protected:
     // const dealii::QGaussLobatto<dim>   quadrature;
     // const dealii::QGaussLobatto<dim-1> face_quadrature;
 
-    dealii::FEValues<dim,dim>         *fe_values_cell;
-    dealii::FEFaceValues<dim,dim>     *fe_values_face_int;
-    dealii::FESubfaceValues<dim,dim>  *fe_values_subface_int;
-    dealii::FEFaceValues<dim,dim>     *fe_values_face_ext;
+    const dealii::UpdateFlags update_flags =
+        dealii::update_values | dealii::update_gradients
+        | dealii::update_quadrature_points | dealii::update_JxW_values;
+    const dealii::UpdateFlags face_update_flags =
+        dealii::update_values | dealii::update_gradients
+        | dealii::update_quadrature_points | dealii::update_JxW_values
+        | dealii::update_normal_vectors;
+    const dealii::UpdateFlags neighbor_face_update_flags =
+        dealii::update_values | dealii::update_gradients;
+
     /// Main loop of the DGBase class.
     /** It loops over all the cells, evaluates the volume contributions,
      * then loops over the faces of the current cell. Four scenarios may happen
@@ -298,19 +304,19 @@ private:
 
     /// Evaluate the integral over the cell volume
     void assemble_cell_terms_implicit(
-        const dealii::FEValues<dim,dim> *fe_values_cell,
+        const dealii::FEValues<dim,dim> &fe_values_cell,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs);
     /// Evaluate the integral over the cell edges that are on domain boundaries
     void assemble_boundary_term_implicit(
-        const dealii::FEFaceValues<dim,dim> *fe_values_face_int,
+        const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs);
     /// Evaluate the integral over the internal cell edges
     void assemble_face_term_implicit(
-        const dealii::FEValuesBase<dim,dim>     *fe_values_face_int,
-        const dealii::FEFaceValues<dim,dim>     *fe_values_face_ext,
+        const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
+        const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,

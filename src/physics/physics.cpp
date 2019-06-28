@@ -13,22 +13,22 @@ namespace PHiLiP {
 namespace Physics {
 
 template <int dim, int nstate, typename real>
-PhysicsBase<dim,nstate,real>* // returns points to base class PhysicsBase
+std::shared_ptr < PhysicsBase<dim,nstate,real> >
 PhysicsFactory<dim,nstate,real>
 ::create_Physics(Parameters::AllParameters::PartialDifferentialEquation pde_type)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
 
     if (pde_type == PDE_enum::advection || pde_type == PDE_enum::advection_vector) {
-        if constexpr (nstate<=2) return new ConvectionDiffusion<dim,nstate,real>(true,false);
+        if constexpr (nstate<=2) return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(true,false);
     } else if (pde_type == PDE_enum::diffusion) {
-        if constexpr (nstate==1) return new ConvectionDiffusion<dim,nstate,real>(false,true);
+        if constexpr (nstate==1) return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(false,true);
     } else if (pde_type == PDE_enum::convection_diffusion) {
-        if constexpr (nstate==1) return new ConvectionDiffusion<dim,nstate,real>(true,true);
+        if constexpr (nstate==1) return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(true,true);
     } else if (pde_type == PDE_enum::burgers_inviscid) {
-        if constexpr (nstate==dim) return new Burgers<dim,nstate,real>(true,false);
+        if constexpr (nstate==dim) return std::make_shared < Burgers<dim,nstate,real> >(true,false);
     } else if (pde_type == PDE_enum::euler) {
-        if constexpr (nstate==dim+2) return new Euler<dim,nstate,real>;
+        if constexpr (nstate==dim+2) return std::make_shared < Euler<dim,nstate,real> >();
     }
     std::cout << "Can't create PhysicsBase, invalid PDE type: " << pde_type << std::endl;
     assert(0==1 && "Can't create PhysicsBase, invalid PDE type");

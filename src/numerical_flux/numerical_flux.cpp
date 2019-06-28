@@ -27,7 +27,7 @@ NumericalFluxConvective<dim,nstate,real>*
 NumericalFluxFactory<dim, nstate, real>
 ::create_convective_numerical_flux(
     AllParam::ConvectiveNumericalFlux conv_num_flux_type,
-    Physics::PhysicsBase<dim, nstate, real> *physics_input)
+    std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input)
 {
     if(conv_num_flux_type == AllParam::lax_friedrichs) {
         return new LaxFriedrichs<dim, nstate, real>(physics_input);
@@ -40,7 +40,7 @@ NumericalFluxDissipative<dim,nstate,real>*
 NumericalFluxFactory<dim, nstate, real>
 ::create_dissipative_numerical_flux(
     AllParam::DissipativeNumericalFlux diss_num_flux_type,
-    Physics::PhysicsBase<dim, nstate, real> *physics_input)
+    std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
 {
     if(diss_num_flux_type == AllParam::symm_internal_penalty) {
         return new SymmetricInternalPenalty<dim, nstate, real>(physics_input);

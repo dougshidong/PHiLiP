@@ -527,7 +527,7 @@ DG<dim,nstate,real>::DG(
 
 {
     using ADtype = Sacado::Fad::DFad<real>;
-    pde_physics = Physics::PhysicsFactory<dim, nstate, ADtype >
+    pde_physics = Physics::PhysicsFactory<dim,nstate,ADtype> 
         ::create_Physics(parameters_input->pde_type);
     conv_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, ADtype>
         ::create_convective_numerical_flux (parameters_input->conv_num_flux_type, pde_physics);
@@ -541,7 +541,6 @@ DG<dim,nstate,real>::~DG ()
     std::cout << "Destructing DG..." << std::endl;
     delete conv_num_flux;
     delete diss_num_flux;
-    delete pde_physics;
 }
 
 template <int dim, int nstate, typename real>

@@ -52,18 +52,34 @@ DGFactory<dim,real>
     //    return new DG<dim,1,real>(parameters_input, degree);
     //}
 
-    if (pde_type == PDE_enum::advection) {
-        return std::make_shared< DG<dim,1,real> >(parameters_input, degree);
-    } else if (pde_type == PDE_enum::advection_vector) {
-        return std::make_shared< DG<dim,2,real> >(parameters_input, degree);
-    } else if (pde_type == PDE_enum::diffusion) {
-        return std::make_shared< DG<dim,1,real> >(parameters_input, degree);
-    } else if (pde_type == PDE_enum::convection_diffusion) {
-        return std::make_shared< DG<dim,1,real> >(parameters_input, degree);
-    } else if (pde_type == PDE_enum::burgers_inviscid) {
-        return std::make_shared< DG<dim,dim,real> >(parameters_input, degree);
-    } else if (pde_type == PDE_enum::euler) {
-        return std::make_shared< DG<dim,dim+2,real> >(parameters_input, degree);
+    if (parameters_input->use_weak_form) {
+        if (pde_type == PDE_enum::advection) {
+            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree);
+        } else if (pde_type == PDE_enum::advection_vector) {
+            return std::make_shared< DGWeak<dim,2,real> >(parameters_input, degree);
+        } else if (pde_type == PDE_enum::diffusion) {
+            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree);
+        } else if (pde_type == PDE_enum::convection_diffusion) {
+            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree);
+        } else if (pde_type == PDE_enum::burgers_inviscid) {
+            return std::make_shared< DGWeak<dim,dim,real> >(parameters_input, degree);
+        } else if (pde_type == PDE_enum::euler) {
+            return std::make_shared< DGWeak<dim,dim+2,real> >(parameters_input, degree);
+        }
+    } else {
+        if (pde_type == PDE_enum::advection) {
+            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree);
+        } else if (pde_type == PDE_enum::advection_vector) {
+            return std::make_shared< DGStrong<dim,2,real> >(parameters_input, degree);
+        } else if (pde_type == PDE_enum::diffusion) {
+            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree);
+        } else if (pde_type == PDE_enum::convection_diffusion) {
+            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree);
+        } else if (pde_type == PDE_enum::burgers_inviscid) {
+            return std::make_shared< DGStrong<dim,dim,real> >(parameters_input, degree);
+        } else if (pde_type == PDE_enum::euler) {
+            return std::make_shared< DGStrong<dim,dim+2,real> >(parameters_input, degree);
+        }
     }
     std::cout << "Can't create DGBase in create_discontinuous_galerkin(). Invalid PDE type: " << pde_type << std::endl;
     return nullptr;
@@ -87,8 +103,39 @@ DGBase<dim,real>::DGBase(
 
 // Destructor
 template <int dim, typename real>
-DGBase<dim,real>::~DGBase ()
-{ }
+DGBase<dim,real>::~DGBase () { }
+
+template <int dim, typename real>
+void DGBase<dim,real>::allocate_system ()
+{
+    std::cout << std::endl << "Allocating DGWeak system and initializing FEValues" << std::endl;
+    // This function allocates all the necessary memory to the 
+    // system matrices and vectors.
+
+    DGBase<dim,real>::dof_handler.initialize(*DGBase<dim,real>::triangulation, DGBase<dim,real>::fe_system);
+    //DGBase<dim,real>::dof_handler.initialize(*DGBase<dim,real>::triangulation, DGBase<dim,real>::fe_system);
+    // Allocates memory from triangulation and finite element space
+    // Use fe_system since it will have the (fe_system.n_dofs)*nstate
+    DGBase<dim,real>::dof_handler.distribute_dofs(DGBase<dim,real>::fe_system);
+
+    //std::vector<unsigned int> block_component(nstate,0);
+    //dealii::DoFRenumbering::component_wise(DGBase<dim,real>::dof_handler, block_component);
+
+    // Allocate matrix
+    unsigned int n_dofs = DGBase<dim,real>::dof_handler.n_dofs();
+    //DynamicSparsityPattern dsp(n_dofs, n_dofs);
+    DGBase<dim,real>::sparsity_pattern.reinit(n_dofs, n_dofs);
+
+    dealii::DoFTools::make_flux_sparsity_pattern(DGBase<dim,real>::dof_handler, DGBase<dim,real>::sparsity_pattern);
+
+    DGBase<dim,real>::system_matrix.reinit(DGBase<dim,real>::sparsity_pattern);
+
+    // Allocate vectors
+    DGBase<dim,real>::solution.reinit(n_dofs);
+    DGBase<dim,real>::right_hand_side.reinit(n_dofs);
+
+}
+
 
 template <int dim, typename real>
 void DGBase<dim,real>::assemble_residual_dRdW ()
@@ -516,71 +563,7 @@ std::vector<real> DGBase<dim,real>::evaluate_time_steps (const bool exact_time_s
     return time_steps;
 }
 
-
-// DG     ***************************************************************************
-// Constructor
-template <int dim, int nstate, typename real>
-DG<dim,nstate,real>::DG(
-    const Parameters::AllParameters *const parameters_input,
-    const unsigned int degree)
-    : DGBase<dim,real>::DGBase(nstate, parameters_input, degree) // Use DGBase constructor
-
-{
-    using ADtype = Sacado::Fad::DFad<real>;
-    pde_physics = Physics::PhysicsFactory<dim,nstate,ADtype> 
-        ::create_Physics(parameters_input->pde_type);
-    conv_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, ADtype>
-        ::create_convective_numerical_flux (parameters_input->conv_num_flux_type, pde_physics);
-    diss_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, ADtype>
-        ::create_dissipative_numerical_flux (parameters_input->diss_num_flux_type, pde_physics);
-}
-// Destructor
-template <int dim, int nstate, typename real>
-DG<dim,nstate,real>::~DG ()
-{ 
-    std::cout << "Destructing DG..." << std::endl;
-    delete conv_num_flux;
-    delete diss_num_flux;
-}
-
-template <int dim, int nstate, typename real>
-void DG<dim,nstate,real>::allocate_system ()
-{
-    std::cout << std::endl << "Allocating DG system and initializing FEValues" << std::endl;
-    // This function allocates all the necessary memory to the 
-    // system matrices and vectors.
-
-    DGBase<dim,real>::dof_handler.initialize(*DGBase<dim,real>::triangulation, DGBase<dim,real>::fe_system);
-    //DGBase<dim,real>::dof_handler.initialize(*DGBase<dim,real>::triangulation, DGBase<dim,real>::fe_system);
-    // Allocates memory from triangulation and finite element space
-    // Use fe_system since it will have the (fe_system.n_dofs)*nstate
-    DGBase<dim,real>::dof_handler.distribute_dofs(DGBase<dim,real>::fe_system);
-
-    //std::vector<unsigned int> block_component(nstate,0);
-    //dealii::DoFRenumbering::component_wise(DGBase<dim,real>::dof_handler, block_component);
-
-    // Allocate matrix
-    unsigned int n_dofs = DGBase<dim,real>::dof_handler.n_dofs();
-    //DynamicSparsityPattern dsp(n_dofs, n_dofs);
-    DGBase<dim,real>::sparsity_pattern.reinit(n_dofs, n_dofs);
-
-    dealii::DoFTools::make_flux_sparsity_pattern(DGBase<dim,real>::dof_handler, DGBase<dim,real>::sparsity_pattern);
-
-    DGBase<dim,real>::system_matrix.reinit(DGBase<dim,real>::sparsity_pattern);
-
-    // Allocate vectors
-    DGBase<dim,real>::solution.reinit(n_dofs);
-    DGBase<dim,real>::right_hand_side.reinit(n_dofs);
-
-}
-
-
 template class DGBase <PHILIP_DIM, double>;
 template class DGFactory <PHILIP_DIM, double>;
-template class DG <PHILIP_DIM, 1, double>;
-template class DG <PHILIP_DIM, 2, double>;
-template class DG <PHILIP_DIM, 3, double>;
-template class DG <PHILIP_DIM, 4, double>;
-template class DG <PHILIP_DIM, 5, double>;
 
 } // PHiLiP namespace

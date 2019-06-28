@@ -1,6 +1,7 @@
 set(DG_SOURCE
     dg.cpp
-    assemble_implicit.cpp
+    weak_dg.cpp
+    strong_dg.cpp
     )
 
 foreach(dim RANGE 1 3)

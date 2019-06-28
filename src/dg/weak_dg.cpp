@@ -17,7 +17,30 @@
 namespace PHiLiP {
 
 template <int dim, int nstate, typename real>
-void DG<dim,nstate,real>::assemble_cell_terms_implicit(
+DGWeak<dim,nstate,real>::DGWeak(
+    const Parameters::AllParameters *const parameters_input,
+    const unsigned int degree)
+    : DGBase<dim,real>::DGBase(nstate, parameters_input, degree) // Use DGBase constructor
+{
+    using ADtype = Sacado::Fad::DFad<real>;
+    pde_physics = Physics::PhysicsFactory<dim,nstate,ADtype> 
+        ::create_Physics(parameters_input->pde_type);
+    conv_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, ADtype>
+        ::create_convective_numerical_flux (parameters_input->conv_num_flux_type, pde_physics);
+    diss_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, ADtype>
+        ::create_dissipative_numerical_flux (parameters_input->diss_num_flux_type, pde_physics);
+}
+// Destructor
+template <int dim, int nstate, typename real>
+DGWeak<dim,nstate,real>::~DGWeak ()
+{ 
+    std::cout << "Destructing DGWeak..." << std::endl;
+    delete conv_num_flux;
+    delete diss_num_flux;
+}
+
+template <int dim, int nstate, typename real>
+void DGWeak<dim,nstate,real>::assemble_cell_terms_implicit(
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
     dealii::Vector<real> &local_rhs_int_cell)
@@ -110,7 +133,7 @@ void DG<dim,nstate,real>::assemble_cell_terms_implicit(
 
 
 template <int dim, int nstate, typename real>
-void DG<dim,nstate,real>::assemble_boundary_term_implicit(
+void DGWeak<dim,nstate,real>::assemble_boundary_term_implicit(
     const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
     const real penalty,
     const std::vector<dealii::types::global_dof_index> &dof_indices_int,
@@ -229,7 +252,7 @@ void DG<dim,nstate,real>::assemble_boundary_term_implicit(
 }
 
 template <int dim, int nstate, typename real>
-void DG<dim,nstate,real>::assemble_face_term_implicit(
+void DGWeak<dim,nstate,real>::assemble_face_term_implicit(
     const dealii::FEValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValues<dim,dim>     &fe_values_ext,
     const real penalty,
@@ -389,11 +412,11 @@ void DG<dim,nstate,real>::assemble_face_term_implicit(
         this->system_matrix.add(dof_indices_ext[itest_ext], dof_indices_ext, dR2_dW2);
     }
 }
-template class DG <PHILIP_DIM, 1, double>;
-template class DG <PHILIP_DIM, 2, double>;
-template class DG <PHILIP_DIM, 3, double>;
-template class DG <PHILIP_DIM, 4, double>;
-template class DG <PHILIP_DIM, 5, double>;
+template class DGWeak <PHILIP_DIM, 1, double>;
+template class DGWeak <PHILIP_DIM, 2, double>;
+template class DGWeak <PHILIP_DIM, 3, double>;
+template class DGWeak <PHILIP_DIM, 4, double>;
+template class DGWeak <PHILIP_DIM, 5, double>;
 
 } // PHiLiP namespace
 

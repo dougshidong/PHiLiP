@@ -63,7 +63,7 @@ int test_dissipative_numerical_flux_conservation (const PDEType pde_type, const 
 
 
     using namespace PHiLiP;
-    Physics::PhysicsBase<dim, nstate, double> *pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(pde_type);
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, double> > pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(pde_type);
 
     dealii::Tensor<1,dim,double> normal_int;
     std::array<double, nstate> soln_int, soln_ext;
@@ -106,7 +106,6 @@ int test_dissipative_numerical_flux_conservation (const PDEType pde_type, const 
     compare_array<dim,nstate> (diss_auxi_num_flux_dot_n_1, diss_auxi_num_flux_dot_n_2, -1.0);
 
     delete diss_num_flux;
-    delete pde_physics;
 
     return 0;
 }
@@ -115,7 +114,7 @@ template<int dim, int nstate>
 int test_dissipative_numerical_flux_consistency (const PDEType pde_type, const DissType diss_type)
 {
     using namespace PHiLiP;
-    Physics::PhysicsBase<dim, nstate, double> *pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(pde_type);
+    std::shared_ptr <Physics::PhysicsBase<dim, nstate, double>> pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(pde_type);
 
     NumericalFlux::NumericalFluxDissipative<dim, nstate, double> *diss_num_flux = 
         NumericalFlux::NumericalFluxFactory<dim, nstate, double>
@@ -166,7 +165,6 @@ int test_dissipative_numerical_flux_consistency (const PDEType pde_type, const D
     compare_array<dim,nstate> (diss_auxi_num_flux_dot_n, diss_phys_flux_int, 1.0);
 
     delete diss_num_flux;
-    delete pde_physics;
 
     return 0;
 }
@@ -175,7 +173,7 @@ template<int dim, int nstate>
 int test_convective_numerical_flux_conservation (const PDEType pde_type, const ConvType conv_type)
 {
     using namespace PHiLiP;
-    Physics::PhysicsBase<dim, nstate, double> *pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(pde_type);
+    std::shared_ptr <Physics::PhysicsBase<dim, nstate, double>> pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(pde_type);
 
     NumericalFlux::NumericalFluxConvective<dim, nstate, double> *conv_num_flux = 
         NumericalFlux::NumericalFluxFactory<dim, nstate, double>
@@ -205,7 +203,6 @@ int test_convective_numerical_flux_conservation (const PDEType pde_type, const C
     compare_array<dim,nstate> (conv_num_flux_dot_n_1, conv_num_flux_dot_n_2, -1.0);
 
     delete conv_num_flux;
-    delete pde_physics;
 
     return 0;
 }
@@ -214,7 +211,7 @@ template<int dim, int nstate>
 int test_convective_numerical_flux_consistency (const PDEType pde_type, const ConvType conv_type)
 {
     using namespace PHiLiP;
-    Physics::PhysicsBase<dim, nstate, double> *pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(pde_type);
+    std::shared_ptr <Physics::PhysicsBase<dim, nstate, double>> pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(pde_type);
 
     NumericalFlux::NumericalFluxConvective<dim, nstate, double> *conv_num_flux = 
         NumericalFlux::NumericalFluxFactory<dim, nstate, double>
@@ -254,7 +251,6 @@ int test_convective_numerical_flux_consistency (const PDEType pde_type, const Co
     compare_array<dim,nstate> (conv_num_flux_dot_n, conv_phys_flux_dot_n, 1.0);
 
     delete conv_num_flux;
-    delete pde_physics;
 
     return 0;
 }

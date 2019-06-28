@@ -306,7 +306,7 @@ public:
 
 private:
     /// Contains the physics of the PDE
-    Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<real> >  *pde_physics;
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<real> > > pde_physics;
     /// Convective numerical flux
     NumericalFlux::NumericalFluxConvective<dim, nstate, Sacado::Fad::DFad<real> > *conv_num_flux;
     /// Dissipative numerical flux

@@ -42,9 +42,8 @@ namespace PHiLiP {
   *      + \mathbf{F}_{diss}(\mathbf{u},\boldsymbol\nabla\mathbf{u}) )
   *      = \mathbf{q}
   *  \f]
-  *
-  *  Note that it does not currently handle nonlinear or time-accurate problems
-  *  since mass matrices have not been used/verified yet.
+  *  
+  *  Also defines the main loop of the DGWeak class which is assemble_residual
   */
 template <int dim, typename real>
 class DGBase 
@@ -74,7 +73,9 @@ public:
     void set_triangulation(dealii::Triangulation<dim> *triangulation_input)
     { triangulation = triangulation_input; } ;
 
-    virtual void allocate_system () = 0; ///< Virtual function defined in DG
+    /// Allocates the system.
+    /** Must be done after setting the mesh and before assembling the system. */
+    virtual void allocate_system ();
 
     /// Allocates and evaluates the inverse mass matrices for the entire grid
     /*  Although straightforward, this has not been tested yet.
@@ -285,24 +286,22 @@ protected:
     //virtual void allocate_system_implicit () = 0;
     //virtual void assemble_system_implicit () = 0;
 
-}; // end of DG class
+}; // end of DGBase class
 
-/// DG class templated on the number of state variables
+/// DGWeak class templated on the number of state variables
 /*  Contains the functions that need to be templated on the number of state variables.
- *  
- *  Also defines the main loop of the DG class which is assemble_residual
  */
 template <int dim, int nstate, typename real>
-class DG : public DGBase<dim, real>
+class DGWeak : public DGBase<dim, real>
 {
 public:
     /// Constructor
-    DG(
+    DGWeak(
         const Parameters::AllParameters *const parameters_input, 
         const unsigned int degree);
 
     /// Destructor
-    ~DG();
+    ~DGWeak();
 
 private:
     /// Contains the physics of the PDE
@@ -311,12 +310,6 @@ private:
     NumericalFlux::NumericalFluxConvective<dim, nstate, Sacado::Fad::DFad<real> > *conv_num_flux;
     /// Dissipative numerical flux
     NumericalFlux::NumericalFluxDissipative<dim, nstate, Sacado::Fad::DFad<real> > *diss_num_flux;
-
-
-    /// Allocates the system.
-    /** Must be done after setting the mesh and before assembling the system.
-     */
-    void allocate_system ();
 
     /// Evaluate the integral over the cell volume
     void assemble_cell_terms_implicit(
@@ -339,7 +332,54 @@ private:
         dealii::Vector<real>          &current_cell_rhs,
         dealii::Vector<real>          &neighbor_cell_rhs);
 
-}; // end of DG class
+}; // end of DGWeak class
+
+/// DGStrong class templated on the number of state variables
+/*  Contains the functions that need to be templated on the number of state variables.
+ */
+template <int dim, int nstate, typename real>
+class DGStrong : public DGBase<dim, real>
+{
+public:
+    /// Constructor
+    DGStrong(
+        const Parameters::AllParameters *const parameters_input, 
+        const unsigned int degree);
+
+    /// Destructor
+    ~DGStrong();
+
+private:
+    /// Contains the physics of the PDE
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<real> > > pde_physics;
+    /// Convective numerical flux
+    NumericalFlux::NumericalFluxConvective<dim, nstate, Sacado::Fad::DFad<real> > *conv_num_flux;
+    /// Dissipative numerical flux
+    NumericalFlux::NumericalFluxDissipative<dim, nstate, Sacado::Fad::DFad<real> > *diss_num_flux;
+
+
+    /// Evaluate the integral over the cell volume
+    void assemble_cell_terms_implicit(
+        const dealii::FEValues<dim,dim> &fe_values_cell,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs);
+    /// Evaluate the integral over the cell edges that are on domain boundaries
+    void assemble_boundary_term_implicit(
+        const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
+        const real penalty,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs);
+    /// Evaluate the integral over the internal cell edges
+    void assemble_face_term_implicit(
+        const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
+        const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
+        const real penalty,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
+        dealii::Vector<real>          &current_cell_rhs,
+        dealii::Vector<real>          &neighbor_cell_rhs);
+
+}; // end of DGStrong class
 
 /// This class creates a new DGBase object
 /** This allows the DGBase to not be templated on the number of state variables

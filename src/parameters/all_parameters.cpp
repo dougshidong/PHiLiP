@@ -15,13 +15,17 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     prm.declare_entry("dimension", "1",
                       dealii::Patterns::Integer(),
                       "Number of dimensions");
+
+    prm.declare_entry("use_weak_form", "true",
+                      dealii::Patterns::Bool(),
+                      "Use weak form by default. If false, use strong form.");
     prm.declare_entry("test_type", "run_control",
                       dealii::Patterns::Selection(
                       " run_control | "
                       " numerical_flux_convervation | "
                       " jacobian_regression "),
                       "The type of test we want to solve. "
-                      "Choices are " 
+                      "Choices are (only run control has been coded up for now)" 
                       " <run_control | " 
                       "  numerical_flux_convervation | "
                       "  jacobian_regression>.");
@@ -89,6 +93,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
         pde_type = euler;
         nstate = dimension+2;
     }
+    use_weak_form = prm.get_bool("use_weak_form");
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
     if (conv_num_flux_string == "lax_friedrichs") conv_num_flux_type = lax_friedrichs;

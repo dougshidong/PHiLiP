@@ -28,6 +28,8 @@ public:
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;
 
+    /// Flag to use weak or strong form of DG
+    bool use_weak_form;
 
     /// Number of state variables. Will depend on PDE
     int nstate;

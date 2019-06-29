@@ -23,7 +23,7 @@
 #include <deal.II/meshworker/loop.h>
 
 
-// Finally, we take our exact solution from the library as well as quadrature
+// Finally, we take our exact solution from the library as well as volume_quadrature
 // and additional tools.
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/data_out_dof_data.h>
@@ -97,7 +97,8 @@ DGBase<dim,real>::DGBase(
     , fe_dg(degree)
     , fe_system(fe_dg, nstate)
     , all_parameters(parameters_input)
-    , quadrature (degree+1)
+    , oned_quadrature (degree+1)
+    , volume_quadrature (degree+1)
     , face_quadrature (degree+1)
 { }
 
@@ -156,7 +157,7 @@ void DGBase<dim,real>::assemble_residual_dRdW ()
     unsigned int n_cell_visited = 0;
     unsigned int n_face_visited = 0;
 
-    dealii::FEValues<dim,dim>        fe_values_cell (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::quadrature, this->update_flags);
+    dealii::FEValues<dim,dim>        fe_values_cell (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::volume_quadrature, this->update_flags);
     dealii::FEFaceValues<dim,dim>    fe_values_face_int (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::face_quadrature, this->face_update_flags);
     dealii::FESubfaceValues<dim,dim> fe_values_subface_int (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::face_quadrature, this->face_update_flags);
     dealii::FEFaceValues<dim,dim>    fe_values_face_ext (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::face_quadrature, this->neighbor_face_update_flags);
@@ -432,7 +433,7 @@ void DGBase<dim,real>::evaluate_inverse_mass_matrices ()
     // Invert and store mass matrix
     // Using Gauss-Jordan since it's deal.II's default invert function
     // Could store Cholesky decomposition for more efficient pre-processing
-    const int n_quad_pts      = quadrature.size();
+    const int n_quad_pts      = volume_quadrature.size();
     // Number of test functions, not total number of degrees of freedom
     const int n_tests_cell    = fe_system.dofs_per_cell;
 
@@ -443,7 +444,7 @@ void DGBase<dim,real>::evaluate_inverse_mass_matrices ()
     inv_mass_matrix.resize(triangulation->n_active_cells(),
                            dealii::FullMatrix<real>(n_tests_cell));
     dealii::FullMatrix<real> mass_matrix(n_tests_cell);
-    dealii::FEValues<dim,dim> fe_values_cell (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::quadrature, this->update_flags);
+    dealii::FEValues<dim,dim> fe_values_cell (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::volume_quadrature, this->update_flags);
     for (; cell!=endc; ++cell) {
 
         int cell_index = cell->index();
@@ -476,7 +477,7 @@ void DGBase<dim,real>::evaluate_mass_matrices ()
 
     global_mass_matrix.reinit(sp);
 
-    const int n_quad_pts      = quadrature.size();
+    const int n_quad_pts      = volume_quadrature.size();
 
     typename dealii::DoFHandler<dim>::active_cell_iterator
        cell = dof_handler.begin_active(),
@@ -484,7 +485,7 @@ void DGBase<dim,real>::evaluate_mass_matrices ()
 
     dealii::FullMatrix<real> local_mass_matrix(n_dofs_per_cell);
     std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_per_cell);
-    dealii::FEValues<dim,dim> fe_values_cell (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::quadrature, this->update_flags);
+    dealii::FEValues<dim,dim> fe_values_cell (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::volume_quadrature, this->update_flags);
     for (; cell!=endc; ++cell) {
 
         //int cell_index = cell->index();

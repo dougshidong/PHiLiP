@@ -58,7 +58,7 @@ public:
     /// Constructor. Deleted the default constructor since it should not be used
     DGBase () = delete;
     /// Principal constructor.
-    /** Will initialize mapping, fe_dg, all_parameters, quadrature, and face_quadrature
+    /** Will initialize mapping, fe_dg, all_parameters, volume_quadrature, and face_quadrature
      *  from DGBase. The it will new some FEValues that will be used to retrieve the
      *  finite element values at physical locations.
      */
@@ -252,9 +252,10 @@ protected:
         dealii::Vector<real>          &neighbor_cell_rhs) = 0;
 
     // QGauss is Gauss-Legendre quadrature nodes
-    const dealii::QGauss<dim>   quadrature;
+    const dealii::QGauss<1>     oned_quadrature; // For the strong form
+    const dealii::QGauss<dim>   volume_quadrature;
     const dealii::QGauss<dim-1> face_quadrature;
-    // const dealii::QGaussLobatto<dim>   quadrature;
+    // const dealii::QGaussLobatto<dim>   volume_quadrature;
     // const dealii::QGaussLobatto<dim-1> face_quadrature;
 
     const dealii::UpdateFlags update_flags =

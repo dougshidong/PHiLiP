@@ -32,6 +32,7 @@
 #include <deal.II/fe/fe_values.h>
 
 #include <deal.II/fe/mapping_q.h>
+#include <deal.II/fe/mapping_manifold.h>
 
 #include <iostream>
 #include <fstream>
@@ -58,17 +59,15 @@ namespace Step10
     Point<2> UpperManifold::pull_back(const Point<2> &space_point) const {
         double x_phys = space_point[0];
         double y_phys = space_point[1];
-        double x_ref = (x_phys+1.5)/3.0;
+        double x_ref = x_phys;//(x_phys+1.5)/3.0;
         double y_ref = 0.5;
 
         for (int i=0; i<20; i++) {
-            const double function = 0.8*y_ref + exp(-20*y_ref*y_ref)*0.0625*exp(-25*x_phys*x_phys) - y_phys;
-            const double derivative = 0.8 + -40*y_ref*exp(-20*y_ref*y_ref)*0.0625*exp(-25*x_phys*x_phys);
+            const double function = 0.8*y_ref + exp(-30*y_ref*y_ref)*0.0625*exp(-25*x_phys*x_phys) - y_phys;
+            const double derivative = 0.8 + -30*y_ref*exp(-30*y_ref*y_ref)*0.0625*exp(-25*x_phys*x_phys);
             y_ref = y_ref - function/derivative;
         }
 
-        std::cout << "x_ref: " << x_ref << " x_phys: " << x_phys << std::endl;
-        std::cout << "y_ref: " << y_ref << " y_phys: " << y_phys << std::endl;
         Point<2> p(x_ref, y_ref);
         return p;
     }
@@ -77,11 +76,9 @@ namespace Step10
         double x_ref = chart_point[0];
         double y_ref = chart_point[1];
         // return Point<2> (x_ref, -2*x_ref*x_ref + 2*x_ref + 1);   // Parabole 
-        double x_phys = -1.5+x_ref*3.0;
-        double y_phys = 0.8*y_ref + exp(-20*y_ref*y_ref)*0.0625*exp(-25*x_phys*x_phys);
+        double x_phys = x_ref;//-1.5+x_ref*3.0;
+        double y_phys = 0.8*y_ref + exp(-30*y_ref*y_ref)*0.0625*exp(-25*x_phys*x_phys);
         //return Point<2> ( -1.5+x_ref*3.0, 0.8*y_ref + exp(-10*y_ref*y_ref)*0.0625*exp(-25*x_ref*x_ref) ); // Trigonometric
-        std::cout << "x_ref: " << x_ref << " x_phys: " << x_phys << std::endl;
-        std::cout << "y_ref: " << y_ref << " y_phys: " << y_phys << std::endl;
         //return Point<2> ( x_phys, y_phys ); // Trigonometric
         return Point<2> ( x_phys, y_phys); // Trigonometric
     }
@@ -92,30 +89,28 @@ namespace Step10
     }
   
     template <int dim>
-    void compute_pi_by_area ()
+    void compute_area ()
     {
-        std::cout << "Computation of Pi:" << std::endl
-                  << "==============================" << std::endl;
+        const double exact_bump_integral = 0.02215567313631895;
   			
         // The case p=1, is trivial: no bending!
-        for (unsigned int degree=1; degree<5; ++degree) {
+        for (unsigned int degree=1; degree<6; ++degree) {
             std::cout << "Degree = " << degree << std::endl;
 
             Triangulation<dim> triangulation;
 
-            // new lines
-                
             const bool colorize = false;
             Point<2> p1(-1.5,0.0), p2(1.5,0.8);
             GridGenerator::hyper_rectangle (triangulation, p1, p2, colorize);
             
-            unsigned int curved_faces_label=0; // top face, see GridGenerator::hyper_rectangle, colorize=true
-            static const UpperManifold boundary;
+            unsigned int manifold_id=0; // top face, see GridGenerator::hyper_rectangle, colorize=true
+            static const UpperManifold manifold;
             triangulation.set_all_manifold_ids(0);
-            triangulation.set_manifold ( curved_faces_label, boundary );
+            triangulation.set_manifold ( manifold_id, manifold );
             
             const MappingQ<dim> mapping (degree, true);
-            const QGauss<dim> quadrature(degree);
+            //const MappingManifold<dim> mapping ();
+            const QGauss<dim> quadrature(degree+1);
             
             const FE_Q<dim> dummy_fe (QGauss<1>(degree + 1));
             DoFHandler<dim> dof_handler (triangulation);
@@ -124,7 +119,7 @@ namespace Step10
 
             ConvergenceTable table;
             
-            for (unsigned int refinement=0; refinement<5; ++refinement, triangulation.refine_global (1))
+            for (unsigned int refinement=0; refinement<6; ++refinement, triangulation.refine_global (1))
             {
                 table.add_value("cells", triangulation.n_active_cells());
 
@@ -144,10 +139,10 @@ namespace Step10
                     }
                 };
 
-                double new_area = 0.5/(area-1.0); // not working
+                double new_area = 3.0*0.8-area; // not working
 
                 table.add_value("eval.pi", static_cast<double> (new_area));
-                table.add_value("error",   static_cast<double> (std::fabs(new_area-PI)));
+                table.add_value("error",   static_cast<double> (std::fabs(new_area-exact_bump_integral)));
 
                 //if (refinement == 0) {
                 DataOut<dim> data_out;
@@ -187,7 +182,7 @@ namespace Step10
     try
       {
         std::cout.precision (16);
-        Step10::compute_pi_by_area<2> ();
+        Step10::compute_area<2> ();
       }
     catch (std::exception &exc)
       {

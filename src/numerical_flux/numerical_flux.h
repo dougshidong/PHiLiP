@@ -33,7 +33,7 @@ class LaxFriedrichs: public NumericalFluxConvective<dim, nstate, real>
 public:
 
 /// Constructor
-LaxFriedrichs(Physics::PhysicsBase<dim, nstate, real> *physics_input)
+LaxFriedrichs(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
 :
 pde_physics(physics_input)
 {};
@@ -48,7 +48,7 @@ std::array<real, nstate> evaluate_flux (
 
 protected:
 /// Numerical flux requires physics to evaluate convective eigenvalues.
-const Physics::PhysicsBase<dim, nstate, real> *pde_physics;
+const std::shared_ptr < Physics::PhysicsBase<dim, nstate, real> > pde_physics;
 
 };
 
@@ -62,12 +62,12 @@ public:
     static NumericalFluxConvective<dim,nstate,real>*
         create_convective_numerical_flux
             (AllParam::ConvectiveNumericalFlux conv_num_flux_type,
-            Physics::PhysicsBase<dim, nstate, real> *physics_input);
+            std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input);
     /// Creates dissipative numerical flux based on input.
     static NumericalFluxDissipative<dim,nstate,real>*
         create_dissipative_numerical_flux
             (AllParam::DissipativeNumericalFlux diss_num_flux_type,
-            Physics::PhysicsBase<dim, nstate, real> *physics_input);
+            std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input);
 };
 
 } // NumericalFlux namespace

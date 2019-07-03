@@ -115,7 +115,7 @@ template <int dim, int nstate, typename real>
 class PhysicsFactory
 {
 public:
-    static PhysicsBase<dim,nstate,real>*
+    static std::shared_ptr< PhysicsBase<dim,nstate,real> >
         create_Physics(Parameters::AllParameters::PartialDifferentialEquation pde_type);
 };
 

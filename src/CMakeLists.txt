@@ -41,7 +41,7 @@ foreach(dim RANGE 1 3)
 #    # See one of the following links (translate chinese to english using Google)
 #    # https://zhuanlan.zhihu.com/p/21385662
 #    # https://www.getit01.com/p2018020821385662/
-#    target_link_libraries(${PHiLiPLib} tbb m mpi mpi_cxx)
+#    target_link_libraries(${PHiLiPLib} m mpi mpi_cxx)
 
 
     # #####################################################
@@ -62,7 +62,7 @@ foreach(dim RANGE 1 3)
     string(CONCAT TestsLib Tests_${dim}D)
     target_link_libraries(${MAIN_TARGET} ${ParameterLib})
     target_link_libraries(${MAIN_TARGET} ${TestsLib})
-    target_link_libraries(${MAIN_TARGET} tbb m mpi mpi_cxx)
+    target_link_libraries(${MAIN_TARGET} m mpi mpi_cxx)
     DEAL_II_SETUP_TARGET(${MAIN_TARGET})
     
     unset(MAIN_TARGET)
@@ -77,7 +77,7 @@ endforeach()
 #     temporary_test.cpp)
 # 
 # add_executable(${SMALL_TEST} ${SMALL_TEST_SRC})
-#     target_link_libraries(${SMALL_TEST} tbb m mpi mpi_cxx)
+#     target_link_libraries(${SMALL_TEST} m mpi mpi_cxx)
 # 
 # DEAL_II_SETUP_TARGET(${SMALL_TEST})
 # message("Adding executable " ${SMALL_TEST} " with files " ${SMALL_TEST_SRC} "\n")

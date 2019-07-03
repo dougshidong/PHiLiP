@@ -22,7 +22,7 @@ foreach(dim RANGE 1 3)
     string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
     target_link_libraries(${TEST_TARGET} ${ParametersLib})
     target_link_libraries(${TEST_TARGET} ${DiscontinuousGalerkinLib})
-    target_link_libraries(${TEST_TARGET} tbb m mpi mpi_cxx)
+    target_link_libraries(${TEST_TARGET} m mpi mpi_cxx)
     # Setup target with deal.II
     DEAL_II_SETUP_TARGET(${TEST_TARGET})
 

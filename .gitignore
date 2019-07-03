@@ -16,3 +16,4 @@ doc/html/**
 *.gnuplot
 *.swp
 *.swo
+*.vtk

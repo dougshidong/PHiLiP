@@ -43,7 +43,7 @@ class SymmetricInternalPenalty: public NumericalFluxDissipative<dim, nstate, rea
 {
 public:
 /// Constructor
-SymmetricInternalPenalty(Physics::PhysicsBase<dim, nstate, real> *physics_input)
+SymmetricInternalPenalty(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input)
 :
 pde_physics(physics_input)
 {};
@@ -74,7 +74,7 @@ std::array<real, nstate> evaluate_auxiliary_flux (
     const bool on_boundary = false) const;
     
 protected:
-const Physics::PhysicsBase<dim, nstate, real> *pde_physics;
+const std::shared_ptr < Physics::PhysicsBase<dim, nstate, real> > pde_physics;
 
 };
 

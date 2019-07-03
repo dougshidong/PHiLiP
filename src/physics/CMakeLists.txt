@@ -15,7 +15,7 @@ foreach(dim RANGE 1 3)
     DEAL_II_SETUP_TARGET(${PhysicsLib})
 
     target_compile_definitions(${PhysicsLib} PRIVATE PHILIP_DIM=${dim})
-    target_link_libraries(${PhysicsLib} tbb m mpi mpi_cxx)
+    target_link_libraries(${PhysicsLib} m mpi mpi_cxx)
 
     # Setup target with deal.II
     unset(PhysicsLib)

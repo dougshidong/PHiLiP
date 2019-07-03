@@ -3,6 +3,8 @@ https://stackoverflow.com/a/1776295/11047627
 
 Remove pointers to FEValues. Just create the object through initializer list.
 
+Alot of copied code between weak and strong form. Reduce copying somehow.
+
 
 Lost adjoint consistency by computing F* = F*(Uin, Ubc) instead of F*= F*(Ubc, Ubc). See comment in assemble_boundary_term_implicit.
 

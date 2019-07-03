@@ -110,7 +110,7 @@ int GridStudy<dim,nstate>
     const double       grid_progression    = manu_grid_conv_param.grid_progression;
 
     std::cout<<"Test Physics nstate" << nstate << std::endl;
-    Physics::PhysicsBase<dim,nstate,double> *physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(param.pde_type);
+    std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(param.pde_type);
 
     // Evaluate solution integral on really fine mesh
     double exact_solution_integral;

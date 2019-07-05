@@ -4,6 +4,7 @@
 
 #include "tests.h"
 #include "grid_study.h"
+#include "euler_gaussian_bump.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -23,6 +24,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
 
     if(test_type == Test_enum::run_control) {
         return std::make_unique<GridStudy<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::euler_gaussian_bump) {
+        if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerGaussianBump<dim,nstate>>(parameters_input);
     }
 
     return nullptr;

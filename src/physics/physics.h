@@ -322,6 +322,9 @@ public:
     /// Given primitive variables, returns total energy
     real compute_total_energy ( const std::array<real,nstate> &primitive_soln ) const;
 
+    /// Evaluate entropy from conservative variables
+    real compute_entropy ( const std::array<real,nstate> &conservative_soln ) const;
+
     void boundary_face_values (
         const int /*boundary_type*/,
         const dealii::Point<dim, double> &/*pos*/,

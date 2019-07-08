@@ -1,4 +1,9 @@
-//This class is not complete yet!
+//This class is not complete yet! For now I've just copied the DGStrong class
+/*There are a couple things that need to be changed in order to implement the strong split form:
+ *The assemble functions need to be modified to take in \mathbf{f}, \mathbf{g}, \alpha_1, \alpha_2 and implement
+ *\alpha_1 \mathbf{f}_1 D \mathbf{g}_1 + \alpha_2 \mathbf{f}_2 D \mathbf{g}_2. There can, of course, be more terms...we'll just have to feed an array of data
+ *and the functions take care of the rest.
+ */
 
 #include <deal.II/base/tensor.h>
 
@@ -38,18 +43,18 @@ DGStrong<dim,nstate,real>::DGStrong(
 template <int dim, int nstate, typename real>
 DGStrong<dim,nstate,real>::~DGStrong ()
 {
-    std::cout << "Destructing DGStrong..." << std::endl;
+    std::cout << "Destructing DGStrongExplicit..." << std::endl;
     delete conv_num_flux;
     delete diss_num_flux;
 }
 
 template <int dim, int nstate, typename real>
-void DGStrong<dim,nstate,real>::assemble_cell_terms_implicit(
+void DGStrong<dim,nstate,real>::assemble_cell_terms_explicit(
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
     dealii::Vector<real> &local_rhs_int_cell)
 {
-    using ADtype = Sacado::Fad::DFad<real>;
+    using ADtype = real;
     using ADArray = std::array<ADtype,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
 
@@ -156,13 +161,13 @@ void DGStrong<dim,nstate,real>::assemble_cell_terms_implicit(
 
 
 template <int dim, int nstate, typename real>
-void DGStrong<dim,nstate,real>::assemble_boundary_term_implicit(
+void DGStrong<dim,nstate,real>::assemble_boundary_term_explicit(
     const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
     const real penalty,
     const std::vector<dealii::types::global_dof_index> &dof_indices_int,
     dealii::Vector<real> &local_rhs_int_cell)
 {
-    using ADtype = Sacado::Fad::DFad<real>;
+    using ADtype = real;
     using ADArray = std::array<ADtype,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
 
@@ -283,7 +288,7 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_implicit(
 }
 
 template <int dim, int nstate, typename real>
-void DGStrong<dim,nstate,real>::assemble_face_term_implicit(
+void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
     const dealii::FEValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValues<dim,dim>     &fe_values_ext,
     const real penalty,
@@ -292,7 +297,7 @@ void DGStrong<dim,nstate,real>::assemble_face_term_implicit(
     dealii::Vector<real>          &local_rhs_int_cell,
     dealii::Vector<real>          &local_rhs_ext_cell)
 {
-    using ADtype = Sacado::Fad::DFad<real>;
+    using ADtype = real;
     using ADArray = std::array<ADtype,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
 
@@ -451,11 +456,11 @@ void DGStrong<dim,nstate,real>::assemble_face_term_implicit(
         this->system_matrix.add(dof_indices_ext[itest_ext], dof_indices_ext, dR2_dW2);
     }
 }
-template class DGStrong <PHILIP_DIM, 1, double>;
-template class DGStrong <PHILIP_DIM, 2, double>;
-template class DGStrong <PHILIP_DIM, 3, double>;
-template class DGStrong <PHILIP_DIM, 4, double>;
-template class DGStrong <PHILIP_DIM, 5, double>;
+template class DGStrongExplicit <PHILIP_DIM, 1, double>;
+template class DGStrongExplicit <PHILIP_DIM, 2, double>;
+template class DGStrongExplicit <PHILIP_DIM, 3, double>;
+template class DGStrongExplicit <PHILIP_DIM, 4, double>;
+template class DGStrongExplicit <PHILIP_DIM, 5, double>;
 
 } // PHiLiP namespace
 

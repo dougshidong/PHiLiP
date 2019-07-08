@@ -107,7 +107,7 @@ int EulerGaussianBump<dim,nstate>
     const double       grid_progression    = manu_grid_conv_param.grid_progression;
 
     std::cout<<"Test Physics nstate" << nstate << std::endl;
-    std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(param.pde_type);
+    std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&param);
 
     // Evaluate solution integral on really fine mesh
     const double exact_entropy_integral = 0.0;
@@ -143,6 +143,19 @@ int EulerGaussianBump<dim,nstate>
             // Otherwise, a Subscriptor error will occur
             dealii::Triangulation<dim> grid;
 
+            const bool colorize = false;
+            std::vector<unsigned int> n_subdivisions(dim);
+            n_subdivisions[2] = n_1d_cells[igrid];
+            n_subdivisions[1] = 4*n_subdivisions[2];
+
+            dealii::Point<2> p1(-1.5,0.0), p2(1.5,0.8);
+            dealii::GridGenerator::subdivided_hyper_rectangle (grid, n_subdivisions, p1, p2, colorize);
+            
+            unsigned int manifold_id=0; // top face, see GridGenerator::hyper_rectangle, colorize=true
+            static const BumpManifold manifold;
+            grid.set_all_manifold_ids(0);
+            grid.set_manifold ( manifold_id, manifold );
+
             // Distort grid by random amount if requested
             const double random_factor = manu_grid_conv_param.random_distortion;
             const bool keep_boundary = true;
@@ -154,9 +167,6 @@ int EulerGaussianBump<dim,nstate>
             std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree);
             dg->set_triangulation(&grid);
             dg->allocate_system ();
-            //dg->evaluate_inverse_mass_matrices();
-            //
-            // PhysicsBase required for exact solution and output error
 
             initialize_perturbed_solution(*(dg), *(physics_double));
 
@@ -165,9 +175,7 @@ int EulerGaussianBump<dim,nstate>
 
             unsigned int n_active_cells = grid.n_active_cells();
             std::cout
-                      << "Dimension: " << dim
-                      << "\t Polynomial degree p: " << poly_degree
-                      << std::endl
+                      << "Dimension: " << dim << "\t Polynomial degree p: " << poly_degree << std::endl
                       << "Grid number: " << igrid+1 << "/" << n_grids
                       << ". Number of active cells: " << n_active_cells
                       << ". Number of degrees of freedom: " << dg->dof_handler.n_dofs()

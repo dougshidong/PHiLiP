@@ -15,9 +15,11 @@ namespace Physics {
 template <int dim, int nstate, typename real>
 std::shared_ptr < PhysicsBase<dim,nstate,real> >
 PhysicsFactory<dim,nstate,real>
-::create_Physics(Parameters::AllParameters::PartialDifferentialEquation pde_type)
+::create_Physics(const Parameters::AllParameters *const parameters_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+
+    PDE_enum pde_type = parameters_input->pde_type;
 
     if (pde_type == PDE_enum::advection || pde_type == PDE_enum::advection_vector) {
         if constexpr (nstate<=2) return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(true,false);
@@ -28,7 +30,13 @@ PhysicsFactory<dim,nstate,real>
     } else if (pde_type == PDE_enum::burgers_inviscid) {
         if constexpr (nstate==dim) return std::make_shared < Burgers<dim,nstate,real> >(true,false);
     } else if (pde_type == PDE_enum::euler) {
-        if constexpr (nstate==dim+2) return std::make_shared < Euler<dim,nstate,real> >();
+        if constexpr (nstate==dim+2) {
+            return std::make_shared < Euler<dim,nstate,real> > (parameters_input->euler_param.ref_length 
+                                                               ,parameters_input->euler_param.mach_inf
+                                                               ,parameters_input->euler_param.angle_of_attack
+                                                               ,parameters_input->euler_param.side_slip_angle);
+        }
+
     }
     std::cout << "Can't create PhysicsBase, invalid PDE type: " << pde_type << std::endl;
     assert(0==1 && "Can't create PhysicsBase, invalid PDE type");

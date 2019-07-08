@@ -110,7 +110,7 @@ int GridStudy<dim,nstate>
     const double       grid_progression    = manu_grid_conv_param.grid_progression;
 
     std::cout<<"Test Physics nstate" << nstate << std::endl;
-    std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(param.pde_type);
+    std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&param);
 
     // Evaluate solution integral on really fine mesh
     double exact_solution_integral;
@@ -160,8 +160,8 @@ int GridStudy<dim,nstate>
             dealii::Triangulation<dim> grid;
 
             // Generate hypercube
-            if (   manu_grid_conv_param.grid_type == GridEnum::hypercube
-                || manu_grid_conv_param.grid_type == GridEnum::sinehypercube ) {
+            if (   manu_grid_conv_param.grid_type == GridEnum::hypercube || manu_grid_conv_param.grid_type == GridEnum::sinehypercube ) {
+
                 dealii::GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid]);
                 for (typename dealii::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
                     // Set a dummy boundary ID

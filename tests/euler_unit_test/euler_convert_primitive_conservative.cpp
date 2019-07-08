@@ -13,7 +13,9 @@ int main (int /*argc*/, char * /*argv*/[])
     const int dim = PHILIP_DIM;
     const int nstate = dim+2;
 
-    PHiLiP::Physics::Euler<dim, nstate, double> euler_physics = PHiLiP::Physics::Euler<dim, nstate, double>();
+    //const double ref_length = 1.0, mach_inf=1.0, angle_of_attack = 0.0, side_slip_angle = 0.0;
+    const double a = 1.0;
+    PHiLiP::Physics::Euler<dim, nstate, double> euler_physics = PHiLiP::Physics::Euler<dim, nstate, double>(a,a,a,a);
 
     const double min = -10.0;
     const double max = 10.0;

@@ -2,7 +2,9 @@
 #define __PARAMETERS_LINEAR_SOLVER_H__
 
 #include <deal.II/base/parameter_handler.h>
-#include "parameters/parameters.h"
+
+#include "parameters.h"
+
 namespace PHiLiP {
 namespace Parameters {
 

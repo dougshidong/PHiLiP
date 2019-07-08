@@ -7,6 +7,7 @@
 #include "parameters/parameters_linear_solver.h"
 #include "parameters/parameters_manufactured_convergence_study.h"
 
+#include "parameters/parameters_euler.h"
 
 namespace PHiLiP {
 namespace Parameters {
@@ -24,6 +25,8 @@ public:
     ODESolverParam ode_solver_param;
     /// Contains parameters for linear solver
     LinearSolverParam linear_solver_param;
+    /// Contains parameters for the Euler equations non-dimensionalization
+    EulerParam euler_param;
 
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;

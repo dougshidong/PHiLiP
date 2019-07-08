@@ -116,7 +116,7 @@ class PhysicsFactory
 {
 public:
     static std::shared_ptr< PhysicsBase<dim,nstate,real> >
-        create_Physics(Parameters::AllParameters::PartialDifferentialEquation pde_type);
+        create_Physics(const Parameters::AllParameters *const parameters_input);
 };
 
 /// Convection-diffusion with linear advective and diffusive term.  Derived from PhysicsBase.
@@ -257,13 +257,23 @@ class Euler : public PhysicsBase <dim, nstate, real>
 {
 public:
     /// Constructor
-    Euler ()
+    Euler (const double ref_length, const double mach_inf, const double angle_of_attack, const double side_slip_angle)
+    : ref_length(ref_length)
+    , mach_inf(mach_inf)
+    , angle_of_attack(angle_of_attack)
+    , side_slip_angle(side_slip_angle)
     {
         static_assert(nstate==dim+2, "Physics::Euler() should be created with nstate=dim+2");
     };
     /// Destructor
     ~Euler ()
     {};
+
+    const double ref_length;
+    const double mach_inf;
+    const double angle_of_attack;
+    const double side_slip_angle;
+
 
     std::array<real,nstate> manufactured_solution (const dealii::Point<dim,double> &pos) const;
 
@@ -324,6 +334,11 @@ public:
 
     /// Evaluate entropy from conservative variables
     real compute_entropy ( const std::array<real,nstate> &conservative_soln ) const;
+
+    /// Evaluate temperature from conservative variables. ***WARNING***
+    /** Equation depends on non-dimensionalization, which uses free-stream non-dimensionalization
+     * 
+     */
 
     void boundary_face_values (
         const int /*boundary_type*/,

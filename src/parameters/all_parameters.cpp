@@ -4,10 +4,10 @@ namespace PHiLiP {
 namespace Parameters {
 
 AllParameters::AllParameters ()
-    :
-    manufactured_convergence_study_param(ManufacturedConvergenceStudyParam()),
-    ode_solver_param(ODESolverParam()),
-    linear_solver_param(LinearSolverParam())
+    : manufactured_convergence_study_param(ManufacturedConvergenceStudyParam())
+    , ode_solver_param(ODESolverParam())
+    , linear_solver_param(LinearSolverParam())
+    , euler_param(EulerParam())
 { }
 void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 {
@@ -61,6 +61,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
     Parameters::ODESolverParam::declare_parameters (prm);
 
+    Parameters::EulerParam::declare_parameters (prm);
+
     std::cout << "Done declaring inputs." << std::endl;
 }
 
@@ -113,6 +115,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     std::cout << "Parsing manufactured convergence study subsection..." << std::endl;
     manufactured_convergence_study_param.parse_parameters (prm);
+
+    std::cout << "Parsing euler subsection..." << std::endl;
+    euler_param.parse_parameters (prm);
 
     std::cout << "Done parsing." << std::endl;
 }

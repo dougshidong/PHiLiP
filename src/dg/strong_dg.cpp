@@ -27,7 +27,7 @@ DGStrong<dim,nstate,real>::DGStrong(
 {
     using ADtype = Sacado::Fad::DFad<real>;
     pde_physics = Physics::PhysicsFactory<dim,nstate,ADtype> 
-        ::create_Physics(parameters_input->pde_type);
+        ::create_Physics(parameters_input);
     conv_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, ADtype>
         ::create_convective_numerical_flux (parameters_input->conv_num_flux_type, pde_physics);
     diss_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, ADtype>

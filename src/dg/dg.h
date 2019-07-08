@@ -382,6 +382,53 @@ private:
 
 }; // end of DGStrong class
 
+
+///An explicit DGStrong class that explicitly integrates in time by assembling du/dt = rhs at each timestep
+template <int dim, int nstate, typename real>
+class DGStrongExplicit : public DGBase <dim, real>
+{
+public:
+    /// Constructor
+    DGStrongExplicit(
+        const Parameters::AllParameters *const parameters_input,
+        const unsigned int degree);
+
+    /// Destructor
+    ~DGStrongExplicit();
+
+private:
+    /// Contains the physics of the PDE
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, real > > pde_physics;
+    /// Convective numerical flux
+    NumericalFlux::NumericalFluxConvective<dim, nstate, real > *conv_num_flux;
+    /// Dissipative numerical flux
+    NumericalFlux::NumericalFluxDissipative<dim, nstate, real > *diss_num_flux;
+
+
+    /// Evaluate the integral over the cell volume
+    void assemble_cell_terms_explicit(
+        const dealii::FEValues<dim,dim> &fe_values_cell,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs);
+    /// Evaluate the integral over the cell edges that are on domain boundaries
+    void assemble_boundary_term_explicit(
+        const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
+        const real penalty,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs);
+    /// Evaluate the integral over the internal cell edges
+    void assemble_face_term_explicit(
+        const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
+        const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
+        const real penalty,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
+        dealii::Vector<real>          &current_cell_rhs,
+        dealii::Vector<real>          &neighbor_cell_rhs);
+};
+
+
+
 /// This class creates a new DGBase object
 /** This allows the DGBase to not be templated on the number of state variables
   * while allowing DG to be template on the number of state variables

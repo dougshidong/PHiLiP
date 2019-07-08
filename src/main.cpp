@@ -39,7 +39,6 @@ int main (int argc, char *argv[])
         const int max_nstate = 5;
         std::unique_ptr<PHiLiP::Tests::TestsBase> test = PHiLiP::Tests::TestsFactory<max_dim,max_nstate>::create_test(&all_parameters);
         test_error = test->run_test();
-
     }
     catch (std::exception &exc)
     {

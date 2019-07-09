@@ -15,6 +15,7 @@
 #include <deal.II/fe/fe_dgq.h> // Used for flux interpolation
 
 #include "dg.h"
+#include "physics/physics_factory.h"
 
 namespace PHiLiP {
 
@@ -216,7 +217,7 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_implicit(
             soln_grad_int[iquad][istate] += soln_coeff_int[idof] * fe_values_boundary.shape_grad_component(idof, iquad, istate);
         }
 
-        const unsigned int boundary_id = 1; // dummy value for now
+        const unsigned int boundary_id = 0; // dummy value for now
         const dealii::Point<dim, real> x_quad = quad_pts[iquad];
         pde_physics->boundary_face_values (boundary_id, x_quad, normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
 

@@ -20,7 +20,7 @@
 #include "tests.h"
 #include "grid_study.h"
 
-#include "physics/physics.h"
+#include "physics/physics_factory.h"
 #include "physics/manufactured_solution.h"
 #include "dg/dg.h"
 #include "ode_solver/ode_solver.h"

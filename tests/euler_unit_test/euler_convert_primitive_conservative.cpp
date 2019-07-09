@@ -3,7 +3,7 @@
 
 #include "assert_compare_array.h"
 #include "parameters/parameters.h"
-#include "physics/physics.h"
+#include "physics/euler.h"
 
 const double TOLERANCE = 1E-12;
 

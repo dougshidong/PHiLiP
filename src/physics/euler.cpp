@@ -6,9 +6,7 @@
 #include <deal.II/differentiation/ad/sacado_number_types.h>
 #include <deal.II/differentiation/ad/sacado_product_types.h>
 
-#include <deal.II/base/table.h>
-
-#include "physics.h"
+#include "euler.h"
 
 
 namespace PHiLiP {
@@ -55,7 +53,7 @@ inline std::array<real,nstate> Euler<dim,nstate,real>
     std::array<real, nstate> primitive_soln;
 
     real density = conservative_soln[0];
-    std::array<real, dim> vel = compute_velocities (conservative_soln);
+    dealii::Tensor<1,dim,real> vel = compute_velocities (conservative_soln);
     real pressure = compute_pressure (conservative_soln);
 
     primitive_soln[0] = density;
@@ -72,7 +70,7 @@ inline std::array<real,nstate> Euler<dim,nstate,real>
 {
 
     const real density = primitive_soln[0];
-    const std::array<real,dim> velocities = extract_velocities_from_primitive(primitive_soln);
+    const dealii::Tensor<1,dim,real> velocities = extract_velocities_from_primitive(primitive_soln);
 
     std::array<real, nstate> conservative_soln;
     conservative_soln[0] = density;
@@ -85,20 +83,18 @@ inline std::array<real,nstate> Euler<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-inline std::array<real,dim> Euler<dim,nstate,real>
+inline dealii::Tensor<1,dim,real> Euler<dim,nstate,real>
 ::compute_velocities ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real density = conservative_soln[0];
-    std::array<real, dim> vel;
-    for (int d=0; d<dim; ++d) {
-        vel[d] = conservative_soln[1+d]/density;
-    }
+    dealii::Tensor<1,dim,real> vel;
+    for (int d=0; d<dim; ++d) { vel[d] = conservative_soln[1+d]/density; }
     return vel;
 }
 
 template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
-::compute_velocity_squared ( const std::array<real,dim> &velocities ) const
+::compute_velocity_squared ( const dealii::Tensor<1,dim,real> &velocities ) const
 {
     real vel2 = 0.0;
     for (int d=0; d<dim; d++) { vel2 = vel2 + velocities[d]*velocities[d]; }
@@ -106,10 +102,10 @@ inline real Euler<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-inline std::array<real,dim> Euler<dim,nstate,real>
+inline dealii::Tensor<1,dim,real> Euler<dim,nstate,real>
 ::extract_velocities_from_primitive ( const std::array<real,nstate> &primitive_soln ) const
 {
-    std::array<real,dim> velocities;
+    dealii::Tensor<1,dim,real> velocities;
     for (int d=0; d<dim; d++) { velocities[d] = primitive_soln[1+d]; }
     return velocities;
 }
@@ -120,7 +116,7 @@ inline real Euler<dim,nstate,real>
 {
     const real density = primitive_soln[0];
     const real pressure = primitive_soln[nstate-1];
-    const std::array<real,dim> velocities = extract_velocities_from_primitive(primitive_soln);
+    const dealii::Tensor<1,dim,real> velocities = extract_velocities_from_primitive(primitive_soln);
     const real vel2 = compute_velocity_squared(velocities);
 
     const real tot_energy = pressure / (gam-1.0) + 0.5*density*vel2;
@@ -137,11 +133,30 @@ inline real Euler<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
+::compute_dimensional_temperature ( const std::array<real,nstate> &primitive_soln ) const
+{
+    const real density = primitive_soln[0];
+    const real pressure = primitive_soln[nstate-1];
+    const real temperature = gam*pressure/density;
+    return temperature;
+}
+
+template <int dim, int nstate, typename real>
+inline real Euler<dim,nstate,real>
+::compute_temperature ( const std::array<real,nstate> &primitive_soln ) const
+{
+    const real dimensional_temperature = compute_dimensional_temperature(primitive_soln);
+    const real temperature = dimensional_temperature * mach_inf*mach_inf;
+    return temperature;
+}
+
+template <int dim, int nstate, typename real>
+inline real Euler<dim,nstate,real>
 ::compute_pressure ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real density = conservative_soln[0];
     const real tot_energy  = conservative_soln[nstate-1];
-    const std::array<real,dim> vel = compute_velocities(conservative_soln);
+    const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
     const real vel2 = compute_velocity_squared(vel);
     real pressure = (gam-1.0)*(tot_energy - 0.5*density*vel2);
     if(pressure<1e-4) {
@@ -177,7 +192,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
     const real density = conservative_soln[0];
     const real pressure = compute_pressure (conservative_soln);
-    const std::array<real,dim> vel = compute_velocities(conservative_soln);
+    const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
     const real tot_energy = conservative_soln[nstate-1];
 
     for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
@@ -201,7 +216,7 @@ dealii::Tensor<2,nstate,real> Euler<dim,nstate,real>
     const dealii::Tensor<1,dim,real> &normal) const
 {
     // See Blazek Appendix A.9 p. 429-430
-    const std::array<real,dim> vel = compute_velocities(conservative_soln);
+    const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
     real vel_normal = 0.0;
     for (int d=0;d<dim;d++) { vel_normal += vel[d] * normal[d]; }
 
@@ -245,7 +260,7 @@ std::array<real,nstate> Euler<dim,nstate,real>
     const std::array<real,nstate> &conservative_soln,
     const dealii::Tensor<1,dim,real> &normal) const
 {
-    const std::array<real,dim> vel = compute_velocities(conservative_soln);
+    const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
     std::array<real,nstate> eig;
     real vel_dot_n = 0.0;
     for (int d=0;d<dim;++d) { vel_dot_n += vel[d]*normal[d]; };
@@ -262,7 +277,7 @@ template <int dim, int nstate, typename real>
 real Euler<dim,nstate,real>
 ::max_convective_eigenvalue (const std::array<real,nstate> &conservative_soln) const
 {
-    const std::array<real,dim> vel = compute_velocities(conservative_soln);
+    const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
     const real sound = compute_sound (conservative_soln);
     const real vel2 = compute_velocity_squared(vel);
     const real max_eig = sqrt(vel2) + sound;
@@ -287,7 +302,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
 template <int dim, int nstate, typename real>
 void Euler<dim,nstate,real>
 ::boundary_face_values (
-   const int /*boundary_type*/,
+   const int boundary_type,
    const dealii::Point<dim, double> &pos,
    const dealii::Tensor<1,dim,real> &normal_int,
    const std::array<real,nstate> &soln_int,
@@ -303,46 +318,75 @@ void Euler<dim,nstate,real>
     }
     std::array<real,nstate> primitive_boundary_values = convert_conservative_to_primitive(conservative_boundary_values);
 
-    // const std::array<real,dim> vel = compute_velocities(conservative_boundary_values);
-    // const real vel2 = compute_velocity_squared(vel);
-    // const real sound = compute_sound (conservative_boundary_values);
-    // std::cout << "U boundary: " << sqrt(vel2) << " sound: " << sound << std::endl;
-    for (int istate=0; istate<nstate; ++istate) {
+    if (boundary_type == 0) {
+        for (int istate=0; istate<nstate; ++istate) {
 
-        std::array<real,nstate> characteristic_dot_n = convective_eigenvalues(conservative_boundary_values, normal_int);
-        const bool inflow = (characteristic_dot_n[istate] <= 0.);
+            std::array<real,nstate> characteristic_dot_n = convective_eigenvalues(conservative_boundary_values, normal_int);
+            const bool inflow = (characteristic_dot_n[istate] <= 0.);
 
-        if (inflow) { // Dirichlet boundary condition
+            if (inflow) { // Dirichlet boundary condition
 
+                soln_bc[istate] = conservative_boundary_values[istate];
+                soln_grad_bc[istate] = soln_grad_int[istate];
+
+                // Only set the pressure and velocity
+                // primitive_boundary_values[0] = soln_int[0];;
+                // for(int d=0;d<dim;d++){
+                //    primitive_boundary_values[1+d] = soln_int[1+d]/soln_int[0];;
+                //}
+                conservative_boundary_values = convert_primitive_to_conservative(primitive_boundary_values);
+                //conservative_boundary_values[nstate-1] = soln_int[nstate-1];
+                soln_bc[istate] = conservative_boundary_values[istate];
+
+            } else { // Neumann boundary condition
+                // soln_bc[istate] = -soln_int[istate]+2*conservative_boundary_values[istate];
+                soln_bc[istate] = soln_int[istate];
+
+                // **************************************************************************************************************
+                // Note I don't know how to properly impose the soln_grad_bc to obtain an adjoint consistent scheme
+                // Currently, Neumann boundary conditions are only imposed for the linear advection
+                // Therefore, soln_grad_bc does not affect the solution
+                // **************************************************************************************************************
+                soln_grad_bc[istate] = soln_grad_int[istate];
+                //soln_grad_bc[istate] = boundary_gradients[istate];
+                //soln_grad_bc[istate] = -soln_grad_int[istate]+2*boundary_gradients[istate];
+            }
+
+            // HARDCODE DIRICHLET BC
             soln_bc[istate] = conservative_boundary_values[istate];
-            soln_grad_bc[istate] = soln_grad_int[istate];
 
-            // Only set the pressure and velocity
-            // primitive_boundary_values[0] = soln_int[0];;
-            // for(int d=0;d<dim;d++){
-            //    primitive_boundary_values[1+d] = soln_int[1+d]/soln_int[0];;
-            //}
-            conservative_boundary_values = convert_primitive_to_conservative(primitive_boundary_values);
-            //conservative_boundary_values[nstate-1] = soln_int[nstate-1];
-            soln_bc[istate] = conservative_boundary_values[istate];
+        }
+    } else if (boundary_type == 1) {
+        // No penetration,
+        // Given by Algorithm II of the following paper
+        // Krivodonova, L., and Berger, M.,
+        // “High-order accurate implementation of solid wall boundary conditions in curved geometries,”
+        // Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
+        const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(conservative_boundary_values);
+        
+        // Copy density and pressure
+        std::array<real,nstate> primitive_boundary_values;
+        primitive_boundary_values[0] = primitive_interior_values[0];
+        primitive_boundary_values[nstate-1] = primitive_interior_values[nstate-1];
 
-        } else { // Neumann boundary condition
-            // soln_bc[istate] = -soln_int[istate]+2*conservative_boundary_values[istate];
-            soln_bc[istate] = soln_int[istate];
-
-            // **************************************************************************************************************
-            // Note I don't know how to properly impose the soln_grad_bc to obtain an adjoint consistent scheme
-            // Currently, Neumann boundary conditions are only imposed for the linear advection
-            // Therefore, soln_grad_bc does not affect the solution
-            // **************************************************************************************************************
-            soln_grad_bc[istate] = soln_grad_int[istate];
-            //soln_grad_bc[istate] = boundary_gradients[istate];
-            //soln_grad_bc[istate] = -soln_grad_int[istate]+2*boundary_gradients[istate];
+        const dealii::Tensor<1,dim,real> surface_normal = -normal_int;
+        const dealii::Tensor<1,dim,real> velocities_int = extract_velocities_from_primitive(primitive_interior_values);
+        const dealii::Tensor<1,dim,real> velocities_bc = velocities_int - 2.0*(velocities_int*surface_normal)*surface_normal;
+        for (int d=0; d<dim; ++d) {
+            primitive_boundary_values[1+d] = velocities_bc[d];
         }
 
-        // HARDCODE DIRICHLET BC
-        soln_bc[istate] = conservative_boundary_values[istate];
+        soln_bc = convert_primitive_to_conservative(primitive_boundary_values);
 
+    } else if (boundary_type == 2) {
+        // Pressure Outflow Boundary Condition (back pressure)
+        // Carlson 2011, sec. 2.4
+
+        const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(conservative_boundary_values);
+        const real temperature_int = compute_temperature(primitive_interior_values);
+
+    } else if (boundary_type == 3) {
+    } else if (boundary_type == 4) {
     }
 }
 

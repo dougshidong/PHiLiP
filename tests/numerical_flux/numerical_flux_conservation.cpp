@@ -2,8 +2,8 @@
 
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
-#include "physics/physics.h"
 #include "numerical_flux/numerical_flux.h"
+#include "physics/physics_factory.h"
 
 using PDEType  = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
 using ConvType = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;

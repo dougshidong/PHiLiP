@@ -13,37 +13,6 @@ namespace PHiLiP {
 namespace Physics {
 
 template <int dim, int nstate, typename real>
-std::shared_ptr < PhysicsBase<dim,nstate,real> >
-PhysicsFactory<dim,nstate,real>
-::create_Physics(const Parameters::AllParameters *const parameters_input)
-{
-    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-
-    PDE_enum pde_type = parameters_input->pde_type;
-
-    if (pde_type == PDE_enum::advection || pde_type == PDE_enum::advection_vector) {
-        if constexpr (nstate<=2) return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(true,false);
-    } else if (pde_type == PDE_enum::diffusion) {
-        if constexpr (nstate==1) return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(false,true);
-    } else if (pde_type == PDE_enum::convection_diffusion) {
-        if constexpr (nstate==1) return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(true,true);
-    } else if (pde_type == PDE_enum::burgers_inviscid) {
-        if constexpr (nstate==dim) return std::make_shared < Burgers<dim,nstate,real> >(true,false);
-    } else if (pde_type == PDE_enum::euler) {
-        if constexpr (nstate==dim+2) {
-            return std::make_shared < Euler<dim,nstate,real> > (parameters_input->euler_param.ref_length 
-                                                               ,parameters_input->euler_param.mach_inf
-                                                               ,parameters_input->euler_param.angle_of_attack
-                                                               ,parameters_input->euler_param.side_slip_angle);
-        }
-
-    }
-    std::cout << "Can't create PhysicsBase, invalid PDE type: " << pde_type << std::endl;
-    assert(0==1 && "Can't create PhysicsBase, invalid PDE type");
-    return nullptr;
-}
-
-template <int dim, int nstate, typename real>
 PhysicsBase<dim,nstate,real>::PhysicsBase() 
     : manufactured_solution_function(nstate)
 {
@@ -172,17 +141,6 @@ template class PhysicsBase < PHILIP_DIM, 4, double >;
 template class PhysicsBase < PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
 template class PhysicsBase < PHILIP_DIM, 5, double >;
 template class PhysicsBase < PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
-
-template class PhysicsFactory<PHILIP_DIM, 1, double>;
-template class PhysicsFactory<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
-template class PhysicsFactory<PHILIP_DIM, 2, double>;
-template class PhysicsFactory<PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
-template class PhysicsFactory<PHILIP_DIM, 3, double>;
-template class PhysicsFactory<PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
-template class PhysicsFactory<PHILIP_DIM, 4, double>;
-template class PhysicsFactory<PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
-template class PhysicsFactory<PHILIP_DIM, 5, double>;
-template class PhysicsFactory<PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
 
 } // Physics namespace
 } // PHiLiP namespace

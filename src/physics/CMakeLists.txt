@@ -1,4 +1,5 @@
 SET(SOURCE
+    physics_factory.cpp
     physics.cpp
     convection_diffusion.cpp
     burgers.cpp

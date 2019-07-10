@@ -344,7 +344,7 @@ void DGBase<dim,real>::output_results (const unsigned int ith_grid)// const
   data_out.attach_dof_handler (dof_handler);
   data_out.add_data_vector (solution, "u", dealii::DataOut<dim>::type_dof_data);
 
-  data_out.build_patches ();
+  data_out.build_patches (mapping, fe_system.tensor_degree()+1, dealii::DataOut<dim>::curved_inner_cells);
 
   data_out.write_gnuplot(gnuplot_output);
 }
@@ -365,7 +365,7 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int ith_grid)// const
     data_out.add_data_vector (solution, solution_names,
                               dealii::DataOut<dim>::type_dof_data,
                               data_component_interpretation);
-    data_out.build_patches ();
+    data_out.build_patches (mapping, fe_system.tensor_degree()+1, dealii::DataOut<dim>::curved_inner_cells);
     std::string filename = "solution-" +dealii::Utilities::int_to_string(dim, 1) +"D-"+ dealii::Utilities::int_to_string(ith_grid, 3) + ".vtk";
     std::ofstream output(filename);
     data_out.write_vtk(output);

@@ -28,6 +28,34 @@
 namespace PHiLiP {
 namespace Tests {
 
+template <int dim, typename real>
+class InitialConditions : public dealii::Function<dim,real>
+{
+public:
+    InitialConditions (const unsigned int nstate = dim+2);
+
+    ~InitialConditions() {};
+  
+    real value (const dealii::Point<dim> &point, const unsigned int istate) const;
+};
+
+template <int dim, typename real>
+InitialConditions<dim,real>
+::InitialConditions (const unsigned int nstate)
+    :
+    dealii::Function<dim,real>(nstate)
+{ }
+
+template <int dim, typename real>
+inline real InitialConditions<dim,real>
+::value (const dealii::Point<dim> &point, const unsigned int istate) const
+{
+    if(istate==0) return 1.0;
+    if(istate==this->n_components-1) return 2.0;
+    return 0.1;
+}
+template class InitialConditions <2,double>;
+
 template <int dim, int nstate>
 EulerGaussianBump<dim,nstate>::EulerGaussianBump(const Parameters::AllParameters *const parameters_input)
     :
@@ -38,7 +66,8 @@ template <int dim, int nstate>
 void EulerGaussianBump<dim,nstate>
 ::initialize_perturbed_solution(DGBase<dim,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &physics) const
 {
-    dealii::VectorTools::interpolate(dg.dof_handler, physics.manufactured_solution_function, dg.solution);
+    InitialConditions<dim,double> initial_conditions(nstate);
+    dealii::VectorTools::interpolate(dg.dof_handler, initial_conditions, dg.solution);
 }
 template <int dim, int nstate>
 double EulerGaussianBump<dim,nstate>

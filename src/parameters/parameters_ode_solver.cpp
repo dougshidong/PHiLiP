@@ -25,6 +25,9 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("nonlinear_steady_residual_tolerance", "1e-13",
                           dealii::Patterns::Double(1e-16,dealii::Patterns::Double::max_double_value),
                           "Nonlinear solver residual tolerance");
+        prm.declare_entry("time_step", "100.0",
+                          dealii::Patterns::Double(1e-16,dealii::Patterns::Double::max_double_value),
+                          "Time step used in ODE solver.");
 
         prm.declare_entry("print_iteration_modulo", "1",
                           dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
@@ -48,6 +51,7 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
 
         nonlinear_steady_residual_tolerance  = prm.get_double("nonlinear_steady_residual_tolerance");
         nonlinear_max_iterations = prm.get_integer("nonlinear_max_iterations");
+        time_step  = prm.get_double("time_step");
 
         print_iteration_modulo = prm.get_integer("print_iteration_modulo");
     }

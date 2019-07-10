@@ -119,7 +119,7 @@ inline real Euler<dim,nstate,real>
     const dealii::Tensor<1,dim,real> velocities = extract_velocities_from_primitive(primitive_soln);
     const real vel2 = compute_velocity_squared(velocities);
 
-    const real tot_energy = pressure / (gam-1.0) + 0.5*density*vel2;
+    const real tot_energy = pressure / gamm1 + 0.5*density*vel2;
     return tot_energy;
 }
 
@@ -146,9 +146,18 @@ inline real Euler<dim,nstate,real>
 ::compute_temperature ( const std::array<real,nstate> &primitive_soln ) const
 {
     const real dimensional_temperature = compute_dimensional_temperature(primitive_soln);
-    const real temperature = dimensional_temperature * mach_inf*mach_inf;
+    const real temperature = dimensional_temperature * mach_inf_sqr;
     return temperature;
 }
+
+template <int dim, int nstate, typename real>
+inline real Euler<dim,nstate,real>
+::compute_density_from_pressure_temperature ( const real pressure, const real temperature ) const
+{
+    const real density = gam*pressure/temperature * mach_inf_sqr;
+    return density;
+}
+
 
 template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
@@ -158,8 +167,8 @@ inline real Euler<dim,nstate,real>
     const real tot_energy  = conservative_soln[nstate-1];
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
     const real vel2 = compute_velocity_squared(vel);
-    real pressure = (gam-1.0)*(tot_energy - 0.5*density*vel2);
-    if(pressure<1e-4) {
+    real pressure = gamm1*(tot_energy - 0.5*density*vel2);
+    if(pressure<1e-14) {
         std::cout<<"density"<<density<<std::endl;
         for(int d=0;d<dim;d++) std::cout<<"vel"<<d<<" "<<vel[d]<<std::endl;
         std::cout<<"energy"<<tot_energy<<std::endl;
@@ -176,13 +185,24 @@ inline real Euler<dim,nstate,real>
     real density = conservative_soln[0];
     assert(density > 0);
     //if(density<1e-4) density = 0.01;
-    if(density<1e-4) {
+    if(density<1e-14) {
         std::cout<<"density"<<density<<std::endl;
         std::abort();
     }
     const real pressure = compute_pressure(conservative_soln);
     const real sound = std::sqrt(pressure*gam/density);
     return sound;
+}
+
+template <int dim, int nstate, typename real>
+inline real Euler<dim,nstate,real>
+::compute_mach_number ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
+    const real sound = compute_sound (conservative_soln);
+    const real velocity = sqrt(compute_velocity_squared(vel));
+    const real mach_number = velocity/sound;
+    return mach_number;
 }
 
 template <int dim, int nstate, typename real>
@@ -193,7 +213,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
     const real density = conservative_soln[0];
     const real pressure = compute_pressure (conservative_soln);
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
-    const real tot_energy = conservative_soln[nstate-1];
+    const real specific_total_energy = conservative_soln[nstate-1]/conservative_soln[0];
+    const real specific_total_enthalpy = specific_total_energy + pressure/density;
 
     for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
         // Density equation
@@ -204,7 +225,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
         }
         conv_flux[1+flux_dim][flux_dim] += pressure; // Add diagonal of pressure
         // Energy equation
-        conv_flux[nstate-1][flux_dim] = (tot_energy+pressure)*vel[flux_dim];
+        conv_flux[nstate-1][flux_dim] = density*vel[flux_dim]*specific_total_enthalpy;
     }
     return conv_flux;
 }
@@ -221,7 +242,7 @@ dealii::Tensor<2,nstate,real> Euler<dim,nstate,real>
     for (int d=0;d<dim;d++) { vel_normal += vel[d] * normal[d]; }
 
     const real vel2 = compute_velocity_squared(vel);
-    const real phi = 0.5*(gam-1.0) * vel2;
+    const real phi = 0.5*gamm1 * vel2;
 
     const real density = conservative_soln[0];
     const real tot_energy = conservative_soln[nstate-1];
@@ -382,10 +403,108 @@ void Euler<dim,nstate,real>
         // Pressure Outflow Boundary Condition (back pressure)
         // Carlson 2011, sec. 2.4
 
+        const real back_pressure = 0.90; // Make it as an input later on
+        
+        const real mach_int = compute_mach_number(soln_int);
         const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(conservative_boundary_values);
+        const real pressure_int = primitive_interior_values[nstate-1];
+        const real pressure_bc = (mach_int >= 1) ? pressure_int : back_pressure;
         const real temperature_int = compute_temperature(primitive_interior_values);
 
+        // Assign primitive boundary values
+        std::array<real,nstate> primitive_boundary_values;
+        primitive_boundary_values[0] = compute_density_from_pressure_temperature(pressure_bc, temperature_int);
+        for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = primitive_interior_values[1+d]; }
+        primitive_boundary_values[nstate-1] = pressure_bc;
+
+        soln_bc = convert_primitive_to_conservative(primitive_boundary_values);
+
     } else if (boundary_type == 3) {
+        // Inflow
+        // Carlson 2011, sec. 2.2 & sec 2.9
+
+        const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(soln_int);
+
+        const real                       density_i    = primitive_interior_values[0];
+        const dealii::Tensor<1,dim,real> velocities_i = extract_velocities_from_primitive(primitive_interior_values);
+        const real                       pressure_i   = primitive_interior_values[nstate-1];
+
+        const real                       normal_vel_i = velocities_i*normal_int;
+        const real                       sound_i      = compute_sound(soln_int);
+        const real                       mach_i       = std::abs(normal_vel_i)/sound_i;
+
+        const dealii::Tensor<1,dim,real> velocities_o = velocities_inf;
+        const real                       normal_vel_o = velocities_o*normal_int;
+        const real                       sound_o      = sound_inf;
+        const real                       mach_o       = mach_inf;
+
+        // NEED TO PROVIDE AS INPUT **************************************
+        const real total_inlet_pressure = 1.0;
+        const real total_inlet_temperature = 1.0;
+        if(mach_i < 1.0) {
+            // Subsonic inflow, sec 2.7
+
+            // Want to solve for c_b (sound_bc), to then solve for U (velocity_magnitude_bc) and M_b (mach_bc)
+            // Eq. 37
+            const real riemann_pos = -normal_vel_i - 2.0*sound_i/gamm1;
+            // Could evaluate enthalpy from primitive like eq.36, but easier to use the following
+            const real specific_total_energy = soln_int[nstate-1]/soln_int[0];
+            const real specific_total_enthalpy = specific_total_energy + pressure_i/density_i;
+            // Eq. 43
+            const real a = 1.0+2.0/gamm1;
+            const real b = 2.0*riemann_pos;
+            const real c = 0.5*gamm1 * (riemann_pos*riemann_pos - 2.0*specific_total_enthalpy);
+            // Eq. 42
+            const real term1 = -0.5*b/a;
+            const real term2= 0.5*sqrt(b*b-4.0*a*c)/a;
+            const real sound_bc1 = term1 + term2;
+            const real sound_bc2 = term1 - term2;
+            // Eq. 44
+            const real sound_bc  = std::max(sound_bc1, sound_bc2);
+            // Eq. 45
+            const real velocity_magnitude_bc = 2.0*sound_bc/gamm1 - riemann_pos;
+            const real mach_bc = velocity_magnitude_bc/sound_bc;
+            // Eq. 46
+            const real radicant = 1.0+0.5*gamm1*mach_bc*mach_bc;
+            const real pressure_bc = total_inlet_pressure * pow(radicant, -gam/gamm1);
+            const real temperature_bc = total_inlet_temperature * pow(radicant, -1.0);
+   
+            const real density_bc  = compute_density_from_pressure_temperature(pressure_bc, temperature_bc);
+            std::array<real,nstate> primitive_boundary_values;
+            primitive_boundary_values[0] = density_bc;
+            for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = velocity_magnitude_bc*normal_int[d]; }
+            primitive_boundary_values[nstate-1] = pressure_bc;
+            soln_bc = convert_primitive_to_conservative(primitive_boundary_values);
+
+        } else {
+            // Supersonic inflow, sec 2.9
+            // Specify all quantities through
+            // total_inlet_pressure, total_inlet_temperature, mach_inf & angle_of_attack
+            const real radicant = 1.0+0.5*gamm1*mach_inf_sqr;
+            const real static_inlet_pressure    = total_inlet_pressure * pow(radicant, -gam/gamm1);
+            const real static_inlet_temperature = total_inlet_temperature * pow(radicant, -1.0);
+
+            const real pressure_bc = static_inlet_pressure;
+            const real temperature_bc = static_inlet_temperature;
+            const real density_bc  = compute_density_from_pressure_temperature(pressure_bc, temperature_bc);
+            const real sound_bc = sqrt(gam * pressure_bc / density_bc);
+            const real velocity_magnitude_bc = mach_inf * sound_bc;
+   
+            // Assign primitive boundary values
+            std::array<real,nstate> primitive_boundary_values;
+            primitive_boundary_values[0] = density_bc;
+            for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = velocity_magnitude_bc*normal_int[d]; }
+            primitive_boundary_values[nstate-1] = pressure_bc;
+            soln_bc = convert_primitive_to_conservative(primitive_boundary_values);
+        }
+
+        std::array<real,nstate> primitive_boundary_values;
+
+        //primitive_boundary_values[0] = compute_density_from_pressure_temperature(pressure_bc, temperature_int);
+        //for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = primitive_interior_values[1+d]; }
+        //primitive_boundary_values[nstate-1] = pressure_bc;
+
+        //soln_bc = convert_primitive_to_conservative(primitive_boundary_values);
     } else if (boundary_type == 4) {
     }
 }

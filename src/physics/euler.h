@@ -46,6 +46,11 @@ namespace Physics {
  *  \end{bmatrix}
  *  \end{bmatrix} \f]
  *  
+ *  where, \f$ E \f$ is the specific total energy and \f$ e \f$ is the specific internal
+ *  energy, related by
+ *  \f[
+ *      E = e + |V|^2 / 2
+ *  \f] 
  *  For a calorically perfect gas
  *
  *  \f[
@@ -71,10 +76,29 @@ public:
     Euler (const double ref_length, const double mach_inf, const double angle_of_attack, const double side_slip_angle)
     : ref_length(ref_length)
     , mach_inf(mach_inf)
+    , mach_inf_sqr(mach_inf*mach_inf)
     , angle_of_attack(angle_of_attack)
     , side_slip_angle(side_slip_angle)
+    , sound_inf(1.0/(mach_inf))
+    //, pressure_inf(1.0/(gam*mach_inf_sqr))
+    //, internal_energy_inf(mach_inf_sqr/(gam*(gam-1.0)))
     {
         static_assert(nstate==dim+2, "Physics::Euler() should be created with nstate=dim+2");
+
+        // For now, don't allow side-slip angle
+        std::cout << "I have not figured out the angles just yet." << std::endl;
+        if(dim==2) {
+            if (std::abs(side_slip_angle) >= 1e-14) {
+                std::cout << "Side slip angle = " << side_slip_angle << ". In 2D, side_slip_angle must be zero. " << std::endl;
+            }
+            velocities_inf[0] = cos(angle_of_attack)*cos(side_slip_angle);
+            velocities_inf[1] = sin(angle_of_attack); // Maybe minus??
+        } else if (dim==3) {
+            velocities_inf[0] = cos(angle_of_attack);
+            velocities_inf[1] = sin(angle_of_attack);
+            velocities_inf[2] = 0.0;
+        }
+        assert(std::abs(velocities_inf.norm() - 1.0) < 1e-14);
     };
     /// Destructor
     ~Euler ()
@@ -82,8 +106,17 @@ public:
 
     const double ref_length;
     const double mach_inf;
+    const double mach_inf_sqr;
     const double angle_of_attack;
     const double side_slip_angle;
+
+    const double density_inf = 1.0;
+    const double normal_vel_inf = 1.0;
+    const double sound_inf;
+    //const double pressure_inf;
+    //const double internal_energy_inf;
+    dealii::Tensor<1,dim,real> velocities_inf; // should be const
+
 
 
     std::array<real,nstate> manufactured_solution (const dealii::Point<dim,double> &pos) const;
@@ -128,7 +161,8 @@ public:
     std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const;
 
     /// Constant heat capacity ratio of air
-    const real gam = 1.4;
+    const double gam = 1.4;
+    const double gamm1 = 1.4 - 1.0;
     /// Evaluate pressure from conservative variables
     real compute_pressure ( const std::array<real,nstate> &conservative_soln ) const;
     /// Evaluate speed of sound from conservative variables
@@ -146,6 +180,9 @@ public:
     /// Evaluate entropy from conservative variables
     real compute_entropy ( const std::array<real,nstate> &conservative_soln ) const;
 
+    /// Given conservative variables, returns Mach number
+    real compute_mach_number ( const std::array<real,nstate> &conservative_soln ) const;
+
     /// Given primitive variables, returns DIMENSIONALIZED temperature using the equation of state
     real compute_dimensional_temperature ( const std::array<real,nstate> &primitive_soln ) const;
 
@@ -153,10 +190,9 @@ public:
     /** See the book I do like CFD, sec 4.14.2 */
     real compute_temperature ( const std::array<real,nstate> &primitive_soln ) const;
 
-    /// Evaluate temperature from conservative variables. ***WARNING***
-    /** Equation depends on non-dimensionalization, which uses free-stream non-dimensionalization
-     * 
-     */
+    /// Given pressure and temperature, returns NON-DIMENSIONALIZED density using free-stream non-dimensionalization
+    /** See the book I do like CFD, sec 4.14.2 */
+    real compute_density_from_pressure_temperature ( const real pressure, const real temperature ) const;
 
     void boundary_face_values (
         const int /*boundary_type*/,

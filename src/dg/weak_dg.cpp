@@ -65,7 +65,7 @@ void DGWeak<dim,nstate,real>::assemble_cell_terms_implicit(
 
     std::vector< ADArrayTensor1 > conv_phys_flux_at_q(n_quad_pts);
     std::vector< ADArrayTensor1 > diss_phys_flux_at_q(n_quad_pts);
-    std::vector< ADArray > source_at_q(n_quad_pts);
+    //std::vector< ADArray > source_at_q(n_quad_pts);
 
 
     // AD variable
@@ -94,7 +94,7 @@ void DGWeak<dim,nstate,real>::assemble_cell_terms_implicit(
         // Evaluate physical convective flux and source term
         conv_phys_flux_at_q[iquad] = pde_physics->convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = pde_physics->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
-        source_at_q[iquad] = pde_physics->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad]);
+        //source_at_q[iquad] = pde_physics->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad]);
     }
 
     // Weak form
@@ -119,7 +119,7 @@ void DGWeak<dim,nstate,real>::assemble_cell_terms_implicit(
             //// Note that for diffusion, the negative is defined in the physics
             rhs = rhs + fe_values_vol.shape_grad_component(itest,iquad,istate) * diss_phys_flux_at_q[iquad][istate] * JxW[iquad];
             // Source
-            rhs = rhs + fe_values_vol.shape_value_component(itest,iquad,istate) * source_at_q[iquad][istate] * JxW[iquad];
+            //rhs = rhs + fe_values_vol.shape_value_component(itest,iquad,istate) * source_at_q[iquad][istate] * JxW[iquad];
         }
 
         local_rhs_int_cell(itest) += rhs.val();

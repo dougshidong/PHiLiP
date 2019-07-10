@@ -41,6 +41,7 @@ std::array<real,nstate> Euler<dim,nstate,real>
     std::array<real,nstate> source_term;
     for (int s=0; s<nstate; s++) {
         source_term[s] = convective_flux_divergence[s];
+        source_term[s] = 0.0;
     }
 
     return source_term;
@@ -169,7 +170,8 @@ inline real Euler<dim,nstate,real>
     const real vel2 = compute_velocity_squared(vel);
     real pressure = gamm1*(tot_energy - 0.5*density*vel2);
     if(pressure<1e-14) {
-        std::cout<<"density"<<density<<std::endl;
+        std::cout<<"Cannot compute pressure..."<<std::endl;
+        std::cout<<"density "<<density<<std::endl;
         for(int d=0;d<dim;d++) std::cout<<"vel"<<d<<" "<<vel[d]<<std::endl;
         std::cout<<"energy"<<tot_energy<<std::endl;
     }
@@ -331,15 +333,15 @@ void Euler<dim,nstate,real>
    std::array<real,nstate> &soln_bc,
    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
-    std::array<real,nstate> conservative_boundary_values;
-    std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
-    for (int s=0; s<nstate; s++) {
-        conservative_boundary_values[s] = this->manufactured_solution_function.value (pos, s);
-        boundary_gradients[s] = this->manufactured_solution_function.gradient (pos, s);
-    }
-    std::array<real,nstate> primitive_boundary_values = convert_conservative_to_primitive(conservative_boundary_values);
-
     if (boundary_type == 1000) {
+        // Manufactured solution
+        std::array<real,nstate> conservative_boundary_values;
+        std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
+        for (int s=0; s<nstate; s++) {
+            conservative_boundary_values[s] = this->manufactured_solution_function.value (pos, s);
+            boundary_gradients[s] = this->manufactured_solution_function.gradient (pos, s);
+        }
+        std::array<real,nstate> primitive_boundary_values = convert_conservative_to_primitive(conservative_boundary_values);
         for (int istate=0; istate<nstate; ++istate) {
 
             std::array<real,nstate> characteristic_dot_n = convective_eigenvalues(conservative_boundary_values, normal_int);
@@ -383,7 +385,7 @@ void Euler<dim,nstate,real>
         // Krivodonova, L., and Berger, M.,
         // “High-order accurate implementation of solid wall boundary conditions in curved geometries,”
         // Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
-        const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(conservative_boundary_values);
+        const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(soln_int);
         
         // Copy density and pressure
         std::array<real,nstate> primitive_boundary_values;
@@ -406,7 +408,7 @@ void Euler<dim,nstate,real>
         const real back_pressure = 0.90; // Make it as an input later on
         
         const real mach_int = compute_mach_number(soln_int);
-        const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(conservative_boundary_values);
+        const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(soln_int);
         const real pressure_int = primitive_interior_values[nstate-1];
         const real pressure_bc = (mach_int >= 1) ? pressure_int : back_pressure;
         const real temperature_int = compute_temperature(primitive_interior_values);

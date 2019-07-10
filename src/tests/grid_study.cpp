@@ -160,15 +160,15 @@ int GridStudy<dim,nstate>
             dealii::Triangulation<dim> grid;
 
             // Generate hypercube
-            if (   manu_grid_conv_param.grid_type == GridEnum::hypercube || manu_grid_conv_param.grid_type == GridEnum::sinehypercube ) {
+            if ( manu_grid_conv_param.grid_type == GridEnum::hypercube || manu_grid_conv_param.grid_type == GridEnum::sinehypercube ) {
 
                 dealii::GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid]);
                 for (typename dealii::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
                     // Set a dummy boundary ID
                     cell->set_material_id(9002);
-                    for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face)
-                        if (cell->face(face)->at_boundary())
-                              cell->face(face)->set_boundary_id (9001);
+                    for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+                        if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
+                    }
                 }
                 // Warp grid if requested in input file
                 if (manu_grid_conv_param.grid_type == GridEnum::sinehypercube) dealii::GridTools::transform (&warp, grid);

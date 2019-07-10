@@ -339,7 +339,7 @@ void Euler<dim,nstate,real>
     }
     std::array<real,nstate> primitive_boundary_values = convert_conservative_to_primitive(conservative_boundary_values);
 
-    if (boundary_type == 0) {
+    if (boundary_type == 1000) {
         for (int istate=0; istate<nstate; ++istate) {
 
             std::array<real,nstate> characteristic_dot_n = convective_eigenvalues(conservative_boundary_values, normal_int);
@@ -377,7 +377,7 @@ void Euler<dim,nstate,real>
             soln_bc[istate] = conservative_boundary_values[istate];
 
         }
-    } else if (boundary_type == 1) {
+    } else if (boundary_type == 1001) {
         // No penetration,
         // Given by Algorithm II of the following paper
         // Krivodonova, L., and Berger, M.,
@@ -399,7 +399,7 @@ void Euler<dim,nstate,real>
 
         soln_bc = convert_primitive_to_conservative(primitive_boundary_values);
 
-    } else if (boundary_type == 2) {
+    } else if (boundary_type == 1002) {
         // Pressure Outflow Boundary Condition (back pressure)
         // Carlson 2011, sec. 2.4
 
@@ -419,7 +419,7 @@ void Euler<dim,nstate,real>
 
         soln_bc = convert_primitive_to_conservative(primitive_boundary_values);
 
-    } else if (boundary_type == 3) {
+    } else if (boundary_type == 1003) {
         // Inflow
         // Carlson 2011, sec. 2.2 & sec 2.9
 
@@ -505,7 +505,7 @@ void Euler<dim,nstate,real>
         //primitive_boundary_values[nstate-1] = pressure_bc;
 
         //soln_bc = convert_primitive_to_conservative(primitive_boundary_values);
-    } else if (boundary_type == 4) {
+    } else if (boundary_type == 1004) {
     }
 }
 

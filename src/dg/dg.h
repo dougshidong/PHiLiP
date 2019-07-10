@@ -237,6 +237,7 @@ protected:
         dealii::Vector<real> &current_cell_rhs) = 0;
     /// Evaluate the integral over the cell edges that are on domain boundaries
     virtual void assemble_boundary_term_implicit(
+        const unsigned int boundary_id,
         const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
@@ -319,6 +320,7 @@ private:
         dealii::Vector<real> &current_cell_rhs);
     /// Evaluate the integral over the cell edges that are on domain boundaries
     void assemble_boundary_term_implicit(
+        const unsigned int boundary_id,
         const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
@@ -366,6 +368,7 @@ private:
         dealii::Vector<real> &current_cell_rhs);
     /// Evaluate the integral over the cell edges that are on domain boundaries
     void assemble_boundary_term_implicit(
+        const unsigned int boundary_id,
         const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,

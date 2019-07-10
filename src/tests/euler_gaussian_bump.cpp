@@ -143,14 +143,28 @@ int EulerGaussianBump<dim,nstate>
             // Otherwise, a Subscriptor error will occur
             dealii::Triangulation<dim> grid;
 
-            const bool colorize = false;
             std::vector<unsigned int> n_subdivisions(dim);
-            n_subdivisions[2] = n_1d_cells[igrid];
-            n_subdivisions[1] = 4*n_subdivisions[2];
+            n_subdivisions[1] = n_1d_cells[igrid]; // y-direction
+            n_subdivisions[0] = 4*n_subdivisions[1]; // x-direction
 
+            std::cout << "Generate hyper-rectangle" << std::endl;
             dealii::Point<2> p1(-1.5,0.0), p2(1.5,0.8);
+            const bool colorize = true;
             dealii::GridGenerator::subdivided_hyper_rectangle (grid, n_subdivisions, p1, p2, colorize);
+
+            for (typename dealii::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+                // Set a dummy boundary ID
+                for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+                    if (cell->face(face)->at_boundary()) {
+                        unsigned int current_id = cell->face(face)->boundary_id();
+                        if (current_id == 2 || current_id == 3) cell->face(face)->set_boundary_id (1001); // Bottom and top wall
+                        if (current_id == 1) cell->face(face)->set_boundary_id (1002); // Outflow with supersonic or back_pressure
+                        if (current_id == 0) cell->face(face)->set_boundary_id (1003); // Inflow
+                    }
+                }
+            }
             
+            std::cout << "Generate bump manifold" << std::endl;
             unsigned int manifold_id=0; // top face, see GridGenerator::hyper_rectangle, colorize=true
             static const BumpManifold manifold;
             grid.set_all_manifold_ids(0);
@@ -168,6 +182,7 @@ int EulerGaussianBump<dim,nstate>
             dg->set_triangulation(&grid);
             dg->allocate_system ();
 
+            std::cout << "Initialize perturbed solution" << std::endl;
             initialize_perturbed_solution(*(dg), *(physics_double));
 
             // Create ODE solver using the factory and providing the DG object

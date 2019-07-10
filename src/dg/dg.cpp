@@ -196,8 +196,9 @@ void DGBase<dim,real>::assemble_residual_dRdW ()
                 real penalty = deg1sq / vol_div_facearea1;
                 //penalty = 1;//99;
 
+                const unsigned int boundary_id = current_face->boundary_id();
                 // Need to somehow get boundary type from the mesh
-                assemble_boundary_term_implicit (fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
+                assemble_boundary_term_implicit (boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
 
             // Case 2:
             // Neighbour is finer occurs if the face has children

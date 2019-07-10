@@ -87,7 +87,9 @@ public:
 
         // For now, don't allow side-slip angle
         std::cout << "I have not figured out the angles just yet." << std::endl;
-        if(dim==2) {
+        if(dim==1) {
+            velocities_inf[0] = 1.0;
+        } else if(dim==2) {
             if (std::abs(side_slip_angle) >= 1e-14) {
                 std::cout << "Side slip angle = " << side_slip_angle << ". In 2D, side_slip_angle must be zero. " << std::endl;
             }

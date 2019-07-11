@@ -41,6 +41,7 @@ public:
     enum TestType { 
         run_control,
         euler_gaussian_bump,
+        euler_cylinder,
         numerical_flux_convervation,
         jacobian_regression};
     TestType test_type;

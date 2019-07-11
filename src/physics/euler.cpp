@@ -519,7 +519,19 @@ void Euler<dim,nstate,real>
         }
 
     } else if (boundary_type == 1004) {
+        // Farfield boundary condition
+        const real density_bc = density_inf;
+        const real pressure_bc = 1.0/(gam*mach_inf_sqr);
+        std::array<real,nstate> primitive_boundary_values;
+        primitive_boundary_values[0] = density_bc;
+        for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = velocities_inf[d]; } // minus since it's inflow
+        primitive_boundary_values[nstate-1] = pressure_bc;
+        soln_bc = convert_primitive_to_conservative(primitive_boundary_values);
+    } else{
+        std::cout << "Invalid boundary_type: " << boundary_type << std::endl;
+        std::abort();
     }
+
 }
 
 // Instantiate explicitly

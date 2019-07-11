@@ -1,4 +1,4 @@
-#include <stdlib.h>     /* srand, rand */
+#include <stdlib.h>
 #include <iostream>
 
 #include <deal.II/base/convergence_table.h>
@@ -15,7 +15,7 @@
 
 #include <deal.II/fe/fe_values.h>
 
-#include "euler_gaussian_bump.h"
+#include "euler_cylinder.h"
 
 #include "physics/euler.h"
 #include "physics/manufactured_solution.h"
@@ -28,65 +28,95 @@
 namespace PHiLiP {
 namespace Tests {
 
+dealii::Point<2> warp_cylinder (const dealii::Point<2> &p)
+{
+    const double rectangle_height = 1.0;
+    const double original_radius = std::abs(p[0]);
+    const double angle = p[1]/rectangle_height * dealii::numbers::PI;
+
+    const double radius = std::abs(p[0]);
+
+    dealii::Point<2> q = p;
+    q[0] = -radius*cos(angle);
+    q[1] = radius*sin(angle);
+    return q;
+}
+
+void half_cylinder(dealii::Triangulation<2> & tria,
+                   const dealii::Point<2> &   center,
+                   const double       inner_radius,
+                   const double       outer_radius,
+                   const unsigned int n_cells_circle,
+                   const unsigned int n_cells_radial)
+{
+    const double pi = dealii::numbers::PI;
+    const unsigned int n_cells = n_cells_circle*n_cells_radial;
+
+    double inner_circumference = inner_radius*pi;
+    double outer_circumference = outer_radius*pi;
+    const double rectangle_height = inner_circumference;
+    dealii::Point<2> p1(-outer_radius,0.0), p2(-inner_radius,1.0);
+
+    const bool colorize = true;
+
+    std::vector<unsigned int> n_subdivisions(2);
+    n_subdivisions[0] = n_cells_radial;
+    n_subdivisions[1] = n_cells_circle;
+    dealii::GridGenerator::subdivided_hyper_rectangle (tria, n_subdivisions, p1, p2, colorize);
+
+    dealii::GridTools::transform (&warp_cylinder, tria);
+
+    tria.set_all_manifold_ids(0);
+    tria.set_manifold(0, dealii::SphericalManifold<2>(center));
+}
+
+
 template <int dim, typename real>
-class InitialConditions : public dealii::Function<dim,real>
+class InitialConditions2 : public dealii::Function<dim,real>
 {
 public:
-    InitialConditions (const unsigned int nstate = dim+2);
+    InitialConditions2 (const unsigned int nstate = dim+2);
 
-    ~InitialConditions() {};
+    ~InitialConditions2() {};
   
     real value (const dealii::Point<dim> &point, const unsigned int istate) const;
 };
 
 template <int dim, typename real>
-InitialConditions<dim,real>
-::InitialConditions (const unsigned int nstate)
+InitialConditions2<dim,real>
+::InitialConditions2 (const unsigned int nstate)
     :
     dealii::Function<dim,real>(nstate)
 { }
 
 template <int dim, typename real>
-inline real InitialConditions<dim,real>
+inline real InitialConditions2<dim,real>
 ::value (const dealii::Point<dim> &point, const unsigned int istate) const
 {
-    if(istate==0) return 0.3;
-    if(istate==1) return 0.2;
-    if(istate==2) return 0.1;
+    if(istate==0) return 1.0;
+    if(istate==1) return 1.0;
+    if(istate==2) return 0.0;
     if(istate==3) return 2.5;
     return 0.1;
 }
-template class InitialConditions <2,double>;
+template class InitialConditions2 <2,double>;
 
 template <int dim, int nstate>
-EulerGaussianBump<dim,nstate>::EulerGaussianBump(const Parameters::AllParameters *const parameters_input)
+EulerCylinder<dim,nstate>::EulerCylinder(const Parameters::AllParameters *const parameters_input)
     :
     TestsBase::TestsBase(parameters_input)
 {}
 
 template <int dim, int nstate>
-dealii::Point<dim> EulerGaussianBump<dim,nstate>
-::warp (const dealii::Point<dim> &p)
-{
-    const double x_ref = p[0];
-    const double y_ref = p[1];
-    dealii::Point<dim> q = p;
-    q[0] = x_ref;
-    q[1] = 0.8*y_ref + exp(-30*y_ref*y_ref)*0.0625*exp(-25*q[0]*q[0]);
-    return q;
-}
-
-
-template <int dim, int nstate>
-void EulerGaussianBump<dim,nstate>
+void EulerCylinder<dim,nstate>
 ::initialize_perturbed_solution(DGBase<dim,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &physics) const
 {
-    InitialConditions<dim,double> initial_conditions(nstate);
+    InitialConditions2<dim,double> initial_conditions(nstate);
     dealii::VectorTools::interpolate(dg.dof_handler, initial_conditions, dg.solution);
 }
 
 template<int dim, int nstate>
-int EulerGaussianBump<dim,nstate>
+int EulerCylinder<dim,nstate>
 ::run_test () const
 {
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
@@ -147,39 +177,69 @@ int EulerGaussianBump<dim,nstate>
             n_subdivisions[1] = n_1d_cells[igrid]; // y-direction
             n_subdivisions[0] = 4*n_subdivisions[1]; // x-direction
 
-            std::cout << "Generate hyper-rectangle" << std::endl;
-            dealii::Point<2> p1(-1.5,0.0), p2(1.5,0.8);
             const bool colorize = true;
-            dealii::GridGenerator::subdivided_hyper_rectangle (grid, n_subdivisions, p1, p2, colorize);
+            const double L_z = 1.0;
+            const unsigned int repetitions_z = 2;
+            //
+            //dealii::GridGenerator::hyper_cube_with_cylindrical_hole(grid, inner_radius, outer_radius, L_z, repetitions_z, colorize)
+            //for (typename dealii::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+            //    // Set a dummy boundary ID
+            //    for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+            //        if (cell->face(face)->at_boundary()) {
+            //            unsigned int current_id = cell->face(face)->boundary_id();
+            //            if (current_id == 0) {
+            //                cell->face(face)->set_boundary_id (1001); // Inner/Wall
+            //            } else {
+            //                cell->face(face)->set_boundary_id (1004); // Outer/Farfield
+            //            }
+            //        }
+            //    }
+            //}
 
+            const int n_cells = n_1d_cells[igrid]*n_1d_cells[igrid];
+            dealii::Point<2> center(0.0,0.0);
+            const unsigned int n_cells_circle = n_1d_cells[n_grids-2];
+            //const unsigned int n_cells_circle = n_1d_cells[igrid];
+            const unsigned int n_cells_radial = n_cells_circle;
+            const double inner_radius = 1, outer_radius = inner_radius*40;
+            half_cylinder(grid, center, inner_radius, outer_radius, n_cells_circle, n_cells_radial);
             for (typename dealii::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
                 // Set a dummy boundary ID
                 for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
                     if (cell->face(face)->at_boundary()) {
                         unsigned int current_id = cell->face(face)->boundary_id();
-                        if (current_id == 2 || current_id == 3) cell->face(face)->set_boundary_id (1001); // Bottom and top wall
-                        if (current_id == 1) cell->face(face)->set_boundary_id (1002); // Outflow with supersonic or back_pressure
-                        if (current_id == 0) cell->face(face)->set_boundary_id (1003); // Inflow
+                        if (current_id == 3) {
+                            cell->face(face)->set_boundary_id (1001); // Wall
+                        } else if (current_id == 1) {
+                            cell->face(face)->set_boundary_id (1001); // Symmetry/Wall
+                        } else if (current_id == 2) {
+                            cell->face(face)->set_boundary_id (1001); // Symmetry/Wall
+                        } else if (current_id == 0) {
+                            cell->face(face)->set_boundary_id (1004); // Farfield
+                        } else {
+                            std::abort();
+                        }
                     }
                 }
             }
-            
+            //const double max_ratio = 1.5;
+            //const int max_iterations = 5;
+            //dealii::GridTools::remove_anisotropy(grid, max_ratio, max_iterations);
+            if(igrid>0) grid.refine_global(igrid);
 
-            // Warp grid to be a gaussian bump
-            dealii::GridTools::transform (&warp, grid);
-            // Assign a manifold to have curved geometry
-            static const BumpManifold manifold;
-            unsigned int manifold_id=0; // top face, see GridGenerator::hyper_rectangle, colorize=true
-            grid.reset_all_manifolds();
-            grid.set_all_manifold_ids(0);
-            grid.set_manifold ( manifold_id, manifold );
+            std::string filename = "grid_cylinder-" + dealii::Utilities::int_to_string(igrid, 1) + ".eps";
+            std::ofstream out (filename);
+            dealii::GridOut grid_out;
+            grid_out.write_eps (grid, out);
+            std::cout << " Grid #" << igrid+1 << " . Number of cells: " << grid.n_active_cells() << std::endl;
+            std::cout << " written to " << filename << std::endl << std::endl;
+
+            //continue;
 
             // Distort grid by random amount if requested
             const double random_factor = manu_grid_conv_param.random_distortion;
             const bool keep_boundary = true;
             if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, grid, keep_boundary);
-
-            using ADtype = Sacado::Fad::DFad<double>;
 
             // Create DG object using the factory
             std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree);
@@ -222,11 +282,10 @@ int EulerGaussianBump<dim,nstate>
 
             const double gam = euler_physics_double.gam;
             const double mach_inf = euler_physics_double.mach_inf;
-            const double tot_temperature_inf = 1.0;
-            const double tot_pressure_inf = 1.0;
             // Assuming a tank at rest, velocity = 0, therefore, static pressure and temperature are same as total
-            const double density_inf = gam*tot_pressure_inf/tot_temperature_inf * mach_inf * mach_inf;
-            const double entropy_inf = tot_pressure_inf*pow(density_inf,-gam);
+            const double density_inf = euler_physics_double.density_inf;
+            const double pressure_inf = 1.0/(gam*mach_inf*mach_inf);
+            const double entropy_inf = pressure_inf*pow(density_inf,-gam);
 
             for (; cell!=endc; ++cell) {
 
@@ -359,43 +418,11 @@ int EulerGaussianBump<dim,nstate>
     return n_fail_poly;
 }
 
-dealii::Point<2> BumpManifold::pull_back(const dealii::Point<2> &space_point) const {
-    double x_phys = space_point[0];
-    double y_phys = space_point[1];
-    double x_ref = x_phys;//(x_phys+1.5)/3.0;
-    double y_ref = 0.5;
-
-    for (int i=0; i<20; i++) {
-        const double function = 0.8*y_ref + exp(-30*y_ref*y_ref)*0.0625*exp(-25*x_phys*x_phys) - y_phys;
-        const double derivative = 0.8 + -30*y_ref*exp(-30*y_ref*y_ref)*0.0625*exp(-25*x_phys*x_phys);
-        y_ref = y_ref - function/derivative;
-    }
-
-    dealii::Point<2> p(x_ref, y_ref);
-    return p;
-}
-
-dealii::Point<2> BumpManifold::push_forward(const dealii::Point<2> &chart_point) const {
-    double x_ref = chart_point[0];
-    double y_ref = chart_point[1];
-    // return dealii::Point<2> (x_ref, -2*x_ref*x_ref + 2*x_ref + 1);   // Parabole 
-    double x_phys = x_ref;//-1.5+x_ref*3.0;
-    double y_phys = 0.8*y_ref + exp(-30*y_ref*y_ref)*0.0625*exp(-25*x_phys*x_phys);
-    //return dealii::Point<2> ( -1.5+x_ref*3.0, 0.8*y_ref + exp(-10*y_ref*y_ref)*0.0625*exp(-25*x_ref*x_ref) ); // Trigonometric
-    //return dealii::Point<2> ( x_phys, y_phys ); // Trigonometric
-    return dealii::Point<2> ( x_phys, y_phys); // Trigonometric
-}
-
-std::unique_ptr<dealii::Manifold<2,2> > BumpManifold::clone() const
-{
-    return std::make_unique<BumpManifold>();
-}
-
-
 #if PHILIP_DIM==2
-    template class EulerGaussianBump <PHILIP_DIM,PHILIP_DIM+2>;
+    template class EulerCylinder <PHILIP_DIM,PHILIP_DIM+2>;
 #endif
 
 } // Tests namespace
 } // PHiLiP namespace
+
 

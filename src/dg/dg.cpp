@@ -93,7 +93,7 @@ DGBase<dim,real>::DGBase(
     const unsigned int degree)
     :
     nstate(nstate_input)
-    , mapping(degree+1)
+    , mapping(degree+1,true)
     , fe_dg(degree)
     , fe_system(fe_dg, nstate)
     , all_parameters(parameters_input)
@@ -362,10 +362,8 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int ith_grid)// const
         data_component_interpretation(nstate, dealii::DataComponentInterpretation::component_is_scalar);
     dealii::DataOut<dim> data_out;
     data_out.attach_dof_handler (dof_handler);
-    data_out.add_data_vector (solution, solution_names,
-                              dealii::DataOut<dim>::type_dof_data,
-                              data_component_interpretation);
-    data_out.build_patches (mapping, fe_system.tensor_degree()+1, dealii::DataOut<dim>::curved_inner_cells);
+    data_out.add_data_vector (solution, solution_names, dealii::DataOut<dim>::type_dof_data, data_component_interpretation);
+    data_out.build_patches (mapping, fe_system.tensor_degree()+2, dealii::DataOut<dim>::curved_inner_cells);
     std::string filename = "solution-" +dealii::Utilities::int_to_string(dim, 1) +"D-"+ dealii::Utilities::int_to_string(ith_grid, 3) + ".vtk";
     std::ofstream output(filename);
     data_out.write_vtk(output);

@@ -16,6 +16,10 @@ int Implicit_ODESolver<dim,real>::steady_state ()
     double update_norm = 1; // Always do at least 1 iteration
     this->current_iteration = 0;
 
+    std::cout << " Evaluating right-hand side and setting system_matrix to Jacobian before starting iterations... " << std::endl;
+    ODESolver<dim,real>::dg->assemble_residual_dRdW ();
+    real initial_residual_norm = ODESolver<dim,real>::dg->get_residual_l2norm();
+
     while (    
                this->residual_norm     > ode_param.nonlinear_steady_residual_tolerance 
             && update_norm             > ode_param.nonlinear_steady_residual_tolerance 
@@ -33,13 +37,15 @@ int Implicit_ODESolver<dim,real>::steady_state ()
             (this->current_iteration%ode_param.print_iteration_modulo) == 0 )
         std::cout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
         ODESolver<dim,real>::dg->assemble_residual_dRdW ();
+        this->residual_norm = ODESolver<dim,real>::dg->get_residual_l2norm() / initial_residual_norm;
         // (M/dt - dRdW) dw = R
         ODESolver<dim,real>::dg->system_matrix *= -1.0;
 
-        //const real time_step = 99.0;
-        //ODESolver<dim,real>::dg->add_mass_matrices(1.0/ode_param.time_step);
-        const real time_step = 0.1;
-        ODESolver<dim,real>::dg->add_mass_matrices(1.0/time_step);
+        double dt = ode_param.initial_time_step * pow((1.0-std::log10(this->residual_norm)*ode_param.time_step_factor_residual), ode_param.time_step_factor_residual_exp);
+        std::cout << "Time step = " << dt << std::endl;
+        ODESolver<dim,real>::dg->add_mass_matrices(1.0/dt);
+        //const real initial_time_step = 0.1;
+        //ODESolver<dim,real>::dg->add_mass_matrices(1.0/initial_time_step);
 
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
             (this->current_iteration%ode_param.print_iteration_modulo) == 0 )
@@ -51,7 +57,6 @@ int Implicit_ODESolver<dim,real>::steady_state ()
         ODESolver<dim,real>::dg->solution += this->solution_update;
 
         update_norm = this->solution_update.l2_norm();
-        this->residual_norm = ODESolver<dim,real>::dg->get_residual_l2norm();
 
         ++(this->current_iteration);
 

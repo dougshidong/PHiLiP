@@ -20,13 +20,17 @@ end
 
 subsection ODE solver
   # Maximum nonlinear solver iterations
-  set nonlinear_max_iterations            = 500
+  set nonlinear_max_iterations            = 5000
 
   # Nonlinear solver residual tolerance
   set nonlinear_steady_residual_tolerance = 1e-13
 
+  set initial_time_step = 0.001
+  set time_step_factor_residual = 20.0
+  set time_step_factor_residual_exp = 2.0
+
   # Print every print_iteration_modulo iterations of the nonlinear solver
-  set print_iteration_modulo              = 1
+  set print_iteration_modulo              = 3
 
   # Explicit or implicit solverChoices are <explicit|implicit>.
   set ode_solver_type                         = implicit
@@ -47,6 +51,6 @@ subsection manufactured solution convergence study
   set initial_grid_size = 2
 
   # Number of grids in grid study
-  set number_of_grids   = 6
+  set number_of_grids   = 4
 end
 

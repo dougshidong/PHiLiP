@@ -2,6 +2,7 @@ set(TESTS_SOURCE
     tests.cpp
     grid_study.cpp
     euler_gaussian_bump.cpp
+    euler_cylinder.cpp
 )
 
 foreach(dim RANGE 1 3)

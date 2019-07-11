@@ -23,12 +23,14 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Selection(
                       " run_control | "
                       " euler_gaussian_bump | "
+                      " euler_cylinder | "
                       " numerical_flux_convervation | "
                       " jacobian_regression "),
                       "The type of test we want to solve. "
                       "Choices are (only run control has been coded up for now)" 
                       " <run_control | " 
                       "  euler_gaussian_bump | "
+                      "  euler_cylinder | "
                       "  numerical_flux_convervation | "
                       "  jacobian_regression>.");
 
@@ -75,6 +77,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     const std::string test_string = prm.get("test_type");
     if (test_string == "run_control") { test_type = run_control; }
     else if (test_string == "euler_gaussian_bump") { test_type = euler_gaussian_bump; }
+    else if (test_string == "euler_cylinder") { test_type = euler_cylinder; }
     else if (test_string == "numerical_flux_convervation") { test_type = numerical_flux_convervation; }
     else if (test_string == "jacobian_regression") { test_type = jacobian_regression; }
 

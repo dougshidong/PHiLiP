@@ -5,6 +5,7 @@
 #include "tests.h"
 #include "grid_study.h"
 #include "euler_gaussian_bump.h"
+#include "euler_cylinder.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -26,6 +27,10 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
         return std::make_unique<GridStudy<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_gaussian_bump) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerGaussianBump<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::euler_cylinder) {
+        if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerCylinder<dim,nstate>>(parameters_input);
+    } else {
+        std::cout << "Invalid test." << std::endl;
     }
 
     return nullptr;

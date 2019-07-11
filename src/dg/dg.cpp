@@ -204,7 +204,7 @@ void DGBase<dim,real>::assemble_residual_dRdW ()
             // Neighbour is finer occurs if the face has children
             // This is because we are looping over the current_cell's face, so 2, 4, and 6 faces.
             } else if (current_face->has_children()) {
-                std::cout << "SHOULD NOT HAPPEN!!!!!!!!!!!! I haven't put in adaptatation yet" << std::endl;
+                //std::cout << "SHOULD NOT HAPPEN!!!!!!!!!!!! I haven't put in adaptatation yet" << std::endl;
 
                 dealii::Vector<double> neighbor_cell_rhs (dofs_per_cell); // Defaults to 0.0 initialization
                 Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());

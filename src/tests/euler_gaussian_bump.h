@@ -35,6 +35,9 @@ public:
 
     ~EulerGaussianBump() {}; ///< Destructor.
 
+    // Warp grid into Gaussian bump
+    static dealii::Point<dim> warp (const dealii::Point<dim> &p);
+
     /// Grid convergence on Euler Gaussian Bump
     /** Will run the a grid convergence test for various p
      *  on multiple grids to determine the order of convergence.

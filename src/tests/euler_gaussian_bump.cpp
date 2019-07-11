@@ -17,7 +17,7 @@
 
 #include "euler_gaussian_bump.h"
 
-#include "physics/physics_factory.h"
+#include "physics/euler.h"
 #include "physics/manufactured_solution.h"
 #include "dg/dg.h"
 #include "ode_solver/ode_solver.h"
@@ -50,8 +50,10 @@ template <int dim, typename real>
 inline real InitialConditions<dim,real>
 ::value (const dealii::Point<dim> &point, const unsigned int istate) const
 {
-    if(istate==0) return 1.0;
-    if(istate==this->n_components-1) return 2.0;
+    if(istate==0) return 0.3;
+    if(istate==1) return 0.2;
+    if(istate==2) return 0.1;
+    if(istate==3) return 2.5;
     return 0.1;
 }
 template class InitialConditions <2,double>;
@@ -63,55 +65,24 @@ EulerGaussianBump<dim,nstate>::EulerGaussianBump(const Parameters::AllParameters
 {}
 
 template <int dim, int nstate>
+dealii::Point<dim> EulerGaussianBump<dim,nstate>
+::warp (const dealii::Point<dim> &p)
+{
+    const double x_ref = p[0];
+    const double y_ref = p[1];
+    dealii::Point<dim> q = p;
+    q[0] = x_ref;
+    q[1] = 0.8*y_ref + exp(-30*y_ref*y_ref)*0.0625*exp(-25*q[0]*q[0]);
+    return q;
+}
+
+
+template <int dim, int nstate>
 void EulerGaussianBump<dim,nstate>
 ::initialize_perturbed_solution(DGBase<dim,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &physics) const
 {
     InitialConditions<dim,double> initial_conditions(nstate);
     dealii::VectorTools::interpolate(dg.dof_handler, initial_conditions, dg.solution);
-}
-template <int dim, int nstate>
-double EulerGaussianBump<dim,nstate>
-::integrate_entropy_over_domain(DGBase<dim,double> &dg) const
-{
-    std::cout << "Evaluating solution integral..." << std::endl;
-    double entropy_integral = 0.0;
-
-    // Overintegrate the error to make sure there is not integration error in the error estimate
-    int overintegrate = 10;
-    dealii::QGauss<dim> quad_extra(dg.fe_system.tensor_degree()+overintegrate);
-    dealii::FEValues<dim,dim> fe_values_extra(dg.mapping, dg.fe_system, quad_extra, 
-            dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
-    const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
-    std::array<double,nstate> soln_at_q;
-
-    const bool linear_output = false;
-    int power;
-    if (linear_output) power = 1;
-    else power = 2;
-
-    // Integrate solution error and output error
-    std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
-    for (auto cell : dg.dof_handler.active_cell_iterators()) {
-
-        fe_values_extra.reinit (cell);
-        cell->get_dof_indices (dofs_indices);
-
-        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-
-            // Interpolate solution to quadrature points
-            std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
-            for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
-                const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
-                soln_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
-            }
-            // Integrate solution
-            for (int s=0; s<nstate; s++) {
-                entropy_integral += pow(soln_at_q[0], power) * fe_values_extra.JxW(iquad);
-            }
-        }
-
-    }
-    return entropy_integral;
 }
 
 template<int dim, int nstate>
@@ -135,11 +106,12 @@ int EulerGaussianBump<dim,nstate>
     const unsigned int n_grids_input       = manu_grid_conv_param.number_of_grids;
     const double       grid_progression    = manu_grid_conv_param.grid_progression;
 
-    std::cout<<"Test Physics nstate" << nstate << std::endl;
-    std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&param);
-
-    // Evaluate solution integral on really fine mesh
-    const double exact_entropy_integral = 0.0;
+    Physics::Euler<dim,nstate,double> euler_physics_double
+        = Physics::Euler<dim, nstate, double>(
+                param.euler_param.ref_length,
+                param.euler_param.mach_inf,
+                param.euler_param.angle_of_attack,
+                param.euler_param.side_slip_angle);
 
     std::vector<int> fail_conv_poly;
     std::vector<double> fail_conv_slop;
@@ -149,14 +121,13 @@ int EulerGaussianBump<dim,nstate>
 
         // p0 tends to require a finer grid to reach asymptotic region
         unsigned int n_grids = n_grids_input;
-        if (poly_degree <= 1) n_grids = n_grids_input + 2;
+        if (poly_degree <= 1) n_grids = n_grids_input;
 
         std::vector<int> n_1d_cells(n_grids);
         n_1d_cells[0] = initial_grid_size;
         if(poly_degree==0) n_1d_cells[0] = initial_grid_size + 1;
 
-        std::vector<double> soln_error(n_grids);
-        std::vector<double> output_error(n_grids);
+        std::vector<double> entropy_error(n_grids);
         std::vector<double> grid_size(n_grids);
 
         for (unsigned int igrid=1;igrid<n_grids;++igrid) {
@@ -193,9 +164,13 @@ int EulerGaussianBump<dim,nstate>
                 }
             }
             
-            std::cout << "Generate bump manifold" << std::endl;
-            unsigned int manifold_id=0; // top face, see GridGenerator::hyper_rectangle, colorize=true
+
+            // Warp grid to be a gaussian bump
+            dealii::GridTools::transform (&warp, grid);
+            // Assign a manifold to have curved geometry
             static const BumpManifold manifold;
+            unsigned int manifold_id=0; // top face, see GridGenerator::hyper_rectangle, colorize=true
+            grid.reset_all_manifolds();
             grid.set_all_manifold_ids(0);
             grid.set_manifold ( manifold_id, manifold );
 
@@ -212,7 +187,7 @@ int EulerGaussianBump<dim,nstate>
             dg->allocate_system ();
 
             std::cout << "Initialize perturbed solution" << std::endl;
-            initialize_perturbed_solution(*(dg), *(physics_double));
+            initialize_perturbed_solution(*(dg), euler_physics_double);
 
             // Create ODE solver using the factory and providing the DG object
             std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
@@ -244,6 +219,15 @@ int EulerGaussianBump<dim,nstate>
                endc = dg->dof_handler.end();
 
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
+
+            const double gam = euler_physics_double.gam;
+            const double mach_inf = euler_physics_double.mach_inf;
+            const double tot_temperature_inf = 1.0;
+            const double tot_pressure_inf = 1.0;
+            // Assuming a tank at rest, velocity = 0, therefore, static pressure and temperature are same as total
+            const double density_inf = gam*tot_pressure_inf/tot_temperature_inf * mach_inf * mach_inf;
+            const double entropy_inf = tot_pressure_inf*pow(density_inf,-gam);
+
             for (; cell!=endc; ++cell) {
 
                 fe_values_extra.reinit (cell);
@@ -256,62 +240,45 @@ int EulerGaussianBump<dim,nstate>
                         const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
                         soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
                     }
+                    const double entropy = euler_physics_double.compute_entropy_measure(soln_at_q);
 
                     const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
 
-                    for (int istate=0; istate<nstate; ++istate) {
-                        const double uexact = physics_double->manufactured_solution_function.value(qpoint, istate);
-                        l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
-                    }
+                    const double uexact = entropy_inf;
+                    l2error += pow(entropy - uexact, 2) * fe_values_extra.JxW(iquad);
                 }
-
             }
             l2error = sqrt(l2error);
 
-            double entropy_integral = integrate_entropy_over_domain(*dg);
 
             // Convergence table
             double dx = 1.0/pow(n_active_cells,(1.0/dim));
             dx = dealii::GridTools::maximal_cell_diameter(grid);
             grid_size[igrid] = dx;
-            soln_error[igrid] = l2error;
-            output_error[igrid] = std::abs(entropy_integral - exact_entropy_integral);
+            entropy_error[igrid] = l2error;
 
             convergence_table.add_value("p", poly_degree);
             convergence_table.add_value("cells", grid.n_active_cells());
             convergence_table.add_value("dx", dx);
-            convergence_table.add_value("soln_L2_error", l2error);
-            convergence_table.add_value("output_error", output_error[igrid]);
+            convergence_table.add_value("L2_entropy_error", l2error);
 
 
             std::cout   << " Grid size h: " << dx 
-                        << " L2-soln_error: " << l2error
+                        << " L2-entropy_error: " << l2error
                         << " Residual: " << ode_solver->residual_norm
                         << std::endl;
 
-            std::cout  
-                        << " output_exact: " << exact_entropy_integral
-                        << " output_discrete: " << entropy_integral
-                        << " output_error: " << output_error[igrid]
-                        << std::endl;
-
             if (igrid > 0) {
-                const double slope_soln_err = log(soln_error[igrid]/soln_error[igrid-1])
-                                      / log(grid_size[igrid]/grid_size[igrid-1]);
-                const double slope_output_err = log(output_error[igrid]/output_error[igrid-1])
+                const double slope_soln_err = log(entropy_error[igrid]/entropy_error[igrid-1])
                                       / log(grid_size[igrid]/grid_size[igrid-1]);
                 std::cout << "From grid " << igrid-1
                           << "  to grid " << igrid
                           << "  dimension: " << dim
                           << "  polynomial degree p: " << dg->fe_system.tensor_degree()
                           << std::endl
-                          << "  solution_error1 " << soln_error[igrid-1]
-                          << "  solution_error2 " << soln_error[igrid]
+                          << "  entropy_error1 " << entropy_error[igrid-1]
+                          << "  entropy_error2 " << entropy_error[igrid]
                           << "  slope " << slope_soln_err
-                          << std::endl
-                          << "  solution_integral_error1 " << output_error[igrid-1]
-                          << "  solution_integral_error2 " << output_error[igrid]
-                          << "  slope " << slope_output_err
                           << std::endl;
             }
 
@@ -324,22 +291,20 @@ int EulerGaussianBump<dim,nstate>
             << std::endl
             << " ********************************************"
             << std::endl;
-        convergence_table.evaluate_convergence_rates("soln_L2_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        convergence_table.evaluate_convergence_rates("output_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+        convergence_table.evaluate_convergence_rates("L2_entropy_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.set_scientific("dx", true);
-        convergence_table.set_scientific("soln_L2_error", true);
-        convergence_table.set_scientific("output_error", true);
+        convergence_table.set_scientific("L2_entropy_error", true);
         convergence_table.write_text(std::cout);
 
         convergence_table_vector.push_back(convergence_table);
 
         const double expected_slope = poly_degree+1;
 
-        const double last_slope = log(soln_error[n_grids-1]/soln_error[n_grids-2])
+        const double last_slope = log(entropy_error[n_grids-1]/entropy_error[n_grids-2])
                                   / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
         double before_last_slope = last_slope;
         if ( n_grids > 2 ) {
-        before_last_slope = log(soln_error[n_grids-2]/soln_error[n_grids-3])
+        before_last_slope = log(entropy_error[n_grids-2]/entropy_error[n_grids-3])
                             / log(grid_size[n_grids-2]/grid_size[n_grids-3]);
         }
         const double slope_avg = 0.5*(before_last_slope+last_slope);

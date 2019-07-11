@@ -28,7 +28,7 @@
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_accessor.h>
-#include <deal.II/fe/fe_q.h>
+#include <deal.II/fe/fe_dgq.h>
 #include <deal.II/fe/fe_values.h>
 
 #include <deal.II/fe/mapping_q.h>
@@ -108,11 +108,12 @@ namespace Step10
             triangulation.set_all_manifold_ids(0);
             triangulation.set_manifold ( manifold_id, manifold );
             
-            const MappingQ<dim> mapping (degree, true);
+            const MappingQ<dim> mapping (degree+1, true);
             //const MappingManifold<dim> mapping ();
             const QGauss<dim> quadrature(degree+1);
             
-            const FE_Q<dim> dummy_fe (QGauss<1>(degree + 1));
+            //const FE_DGQ<dim> dummy_fe (QGauss<1>(degree + 1));
+            const FE_DGQ<dim> dummy_fe (degree + 1);
             DoFHandler<dim> dof_handler (triangulation);
                 
             FEValues<dim> fe_values (mapping, dummy_fe, quadrature, update_JxW_values);
@@ -124,6 +125,21 @@ namespace Step10
                 table.add_value("cells", triangulation.n_active_cells());
 
                 dof_handler.distribute_dofs (dummy_fe);
+
+                DataOut<dim> data_out;
+                data_out.attach_dof_handler (dof_handler);
+
+                Vector<double> dummy ( dof_handler.n_dofs() );
+                std::string name = "grid";
+                data_out.add_data_vector (dummy, name);
+
+                std::ostringstream ss;	
+                ss <<"grid_p" << degree << "_ref" << refinement << ".vtk";
+                std::ofstream output (ss.str().c_str());
+
+                data_out.build_patches (mapping, degree+1, DataOut<dim>::curved_inner_cells);
+
+                data_out.write_vtk (output);
 
                 long double area = 0;
 
@@ -145,20 +161,6 @@ namespace Step10
                 table.add_value("error",   static_cast<double> (std::fabs(new_area-exact_bump_integral)));
 
                 //if (refinement == 0) {
-                DataOut<dim> data_out;
-                data_out.attach_dof_handler (dof_handler);
-
-                Vector<double> dummy ( dof_handler.n_dofs() );
-                std::string name = "grid";
-                data_out.add_data_vector (dummy, name );
-
-                std::ostringstream ss;	
-                ss <<"grid_p" << degree << "_ref" << refinement << ".vtk";
-                std::ofstream output (ss.str().c_str());
-
-                data_out.build_patches (mapping, degree+1, DataOut<dim>::curved_inner_cells);
-
-                data_out.write_vtk (output);
 
                 //}
             };

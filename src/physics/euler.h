@@ -180,7 +180,12 @@ public:
     real compute_total_energy ( const std::array<real,nstate> &primitive_soln ) const;
 
     /// Evaluate entropy from conservative variables
-    real compute_entropy ( const std::array<real,nstate> &conservative_soln ) const;
+    /** Note that it is not the actual entropy since it's missing some constants.
+     *  Used to check entropy convergence
+     *  See discussion in
+     *  https://physics.stackexchange.com/questions/116779/entropy-is-constant-how-to-express-this-equation-in-terms-of-pressure-and-densi?answertab=votes#tab-top
+     */
+    real compute_entropy_measure ( const std::array<real,nstate> &conservative_soln ) const;
 
     /// Given conservative variables, returns Mach number
     real compute_mach_number ( const std::array<real,nstate> &conservative_soln ) const;

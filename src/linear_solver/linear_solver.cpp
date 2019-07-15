@@ -61,7 +61,7 @@ solve_linear (
         linear_residual = 1e-4;
       const int 
         ilut_fill = 1,
-        max_iterations = 2000
+        max_iterations = 200
         ;
 
       //solver.SetAztecParam(AZ_drop, parameters.ilut_drop);

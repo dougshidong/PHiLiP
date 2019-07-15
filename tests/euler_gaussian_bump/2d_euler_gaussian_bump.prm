@@ -25,12 +25,12 @@ subsection ODE solver
   # Nonlinear solver residual tolerance
   set nonlinear_steady_residual_tolerance = 1e-13
 
-  set initial_time_step = 0.001
-  set time_step_factor_residual = 20.0
+  set initial_time_step = 0.0003
+  set time_step_factor_residual = 15.0
   set time_step_factor_residual_exp = 3.0
 
   # Print every print_iteration_modulo iterations of the nonlinear solver
-  set print_iteration_modulo              = 3
+  set print_iteration_modulo              = 1
 
   # Explicit or implicit solverChoices are <explicit|implicit>.
   set ode_solver_type                         = implicit
@@ -48,9 +48,9 @@ subsection manufactured solution convergence study
   set grid_progression  = 1.5
 
   # Initial grid of size (initial_grid_size)^dim
-  set initial_grid_size = 2
+  set initial_grid_size = 3
 
   # Number of grids in grid study
-  set number_of_grids   = 4
+  set number_of_grids   = 5
 end
 

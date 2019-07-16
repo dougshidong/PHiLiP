@@ -42,6 +42,7 @@ public:
         run_control,
         euler_gaussian_bump,
         euler_cylinder,
+        euler_vortex,
         numerical_flux_convervation,
         jacobian_regression};
     TestType test_type;

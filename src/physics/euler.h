@@ -80,20 +80,23 @@ public:
     , angle_of_attack(angle_of_attack)
     , side_slip_angle(side_slip_angle)
     , sound_inf(1.0/(mach_inf))
-    //, pressure_inf(1.0/(gam*mach_inf_sqr))
+    , pressure_inf(1.0/(gam*mach_inf_sqr))
     //, internal_energy_inf(mach_inf_sqr/(gam*(gam-1.0)))
     {
         static_assert(nstate==dim+2, "Physics::Euler() should be created with nstate=dim+2");
 
+        temperature_inf = gam*pressure_inf/density_inf * mach_inf_sqr;
+
         // For now, don't allow side-slip angle
-        std::cout << "I have not figured out the angles just yet." << std::endl;
+        if (std::abs(side_slip_angle) >= 1e-14) {
+            std::cout << "Side slip angle = " << side_slip_angle << ". Side_slip_angle must be zero. " << std::endl;
+            std::cout << "I have not figured out the side slip angles just yet." << std::endl;
+            std::abort();
+        }
         if(dim==1) {
             velocities_inf[0] = 1.0;
         } else if(dim==2) {
-            if (std::abs(side_slip_angle) >= 1e-14) {
-                std::cout << "Side slip angle = " << side_slip_angle << ". In 2D, side_slip_angle must be zero. " << std::endl;
-            }
-            velocities_inf[0] = cos(angle_of_attack)*cos(side_slip_angle);
+            velocities_inf[0] = cos(angle_of_attack);
             velocities_inf[1] = sin(angle_of_attack); // Maybe minus??
         } else if (dim==3) {
             velocities_inf[0] = cos(angle_of_attack);
@@ -101,6 +104,7 @@ public:
             velocities_inf[2] = 0.0;
         }
         assert(std::abs(velocities_inf.norm() - 1.0) < 1e-14);
+
     };
     /// Destructor
     ~Euler ()
@@ -115,9 +119,13 @@ public:
     const double density_inf = 1.0;
     const double normal_vel_inf = 1.0;
     const double sound_inf;
-    //const double pressure_inf;
+    const double pressure_inf;
+    double temperature_inf;
     //const double internal_energy_inf;
-    dealii::Tensor<1,dim,real> velocities_inf; // should be const
+    dealii::Tensor<1,dim,double> velocities_inf; // should be const
+
+
+    dealii::Tensor<1,dim,double> compute_velocities_inf() const;
 
 
 
@@ -164,7 +172,7 @@ public:
 
     /// Constant heat capacity ratio of air
     const double gam = 1.4;
-    const double gamm1 = 1.4 - 1.0;
+    const double gamm1 = gam - 1.0;
     /// Evaluate pressure from conservative variables
     real compute_pressure ( const std::array<real,nstate> &conservative_soln ) const;
     /// Evaluate speed of sound from conservative variables
@@ -200,6 +208,10 @@ public:
     /// Given pressure and temperature, returns NON-DIMENSIONALIZED density using free-stream non-dimensionalization
     /** See the book I do like CFD, sec 4.14.2 */
     real compute_density_from_pressure_temperature ( const real pressure, const real temperature ) const;
+
+    /// Given density and pressure, returns NON-DIMENSIONALIZED temperature using free-stream non-dimensionalization
+    /** See the book I do like CFD, sec 4.14.2 */
+    real compute_temperature_from_density_pressure ( const real density, const real pressure ) const;
 
     void boundary_face_values (
         const int /*boundary_type*/,

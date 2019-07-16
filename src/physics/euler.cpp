@@ -84,6 +84,13 @@ inline std::array<real,nstate> Euler<dim,nstate,real>
     return conservative_soln;
 }
 
+//template <int dim, int nstate, typename real>
+//inline dealii::Tensor<1,dim,double> Euler<dim,nstate,real>::compute_velocities_inf() const
+//{
+//    dealii::Tensor<1,dim,double> velocities;
+//    return velocities;
+//}
+
 template <int dim, int nstate, typename real>
 inline dealii::Tensor<1,dim,real> Euler<dim,nstate,real>
 ::compute_velocities ( const std::array<real,nstate> &conservative_soln ) const
@@ -160,6 +167,13 @@ inline real Euler<dim,nstate,real>
 {
     const real density = gam*pressure/temperature * mach_inf_sqr;
     return density;
+}
+template <int dim, int nstate, typename real>
+inline real Euler<dim,nstate,real>
+::compute_temperature_from_density_pressure ( const real density, const real pressure ) const
+{
+    const real temperature = gam*pressure/density * mach_inf_sqr;
+    return temperature;
 }
 
 
@@ -447,12 +461,12 @@ void Euler<dim,nstate,real>
 
         const real                       normal_vel_i = velocities_i*normal;
         const real                       sound_i      = compute_sound(soln_int);
-        const real                       mach_i       = std::abs(normal_vel_i)/sound_i;
+        //const real                       mach_i       = std::abs(normal_vel_i)/sound_i;
 
-        const dealii::Tensor<1,dim,real> velocities_o = velocities_inf;
-        const real                       normal_vel_o = velocities_o*normal;
-        const real                       sound_o      = sound_inf;
-        const real                       mach_o       = mach_inf;
+        //const dealii::Tensor<1,dim,real> velocities_o = velocities_inf;
+        //const real                       normal_vel_o = velocities_o*normal;
+        //const real                       sound_o      = sound_inf;
+        //const real                       mach_o       = mach_inf;
 
         if(mach_inf < 1.0) {
             //std::cout << "Subsonic inflow, mach=" << mach_i << std::endl;

@@ -6,6 +6,7 @@
 #include "grid_study.h"
 #include "euler_gaussian_bump.h"
 #include "euler_cylinder.h"
+#include "euler_vortex.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -29,6 +30,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerGaussianBump<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_cylinder) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerCylinder<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::euler_vortex) {
+        if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerVortex<dim,nstate>>(parameters_input);
     } else {
         std::cout << "Invalid test." << std::endl;
     }

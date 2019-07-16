@@ -2,7 +2,7 @@ CMakeCache.txt
 CMakeFiles
 CMakeScripts
 *.cmake
-
+build/*
 Testing
 Makefile
 cmake_install.cmake

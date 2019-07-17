@@ -44,14 +44,16 @@ EulerVortexFunction<dim,real>
     , initial_vortex_center(initial_vortex_center)
     , vortex_strength(vortex_strength)
     , vortex_decay(vortex_decay)
-{ }
+{ 
+    static_assert(dim==2);
+}
 
 template <int dim, typename real>
 inline dealii::Point<2> EulerVortexFunction<dim,real>::advected_location(dealii::Point<2> old_location) const
 {
     dealii::Point<2> new_location;
     for(int d=0; d<dim; d++) {
-        new_location[d] = (old_location[d] - initial_vortex_center[d]) - euler_physics.velocities_inf[d];
+        new_location[d] = (old_location[d] - initial_vortex_center[d]) - euler_physics.velocities_inf[d] * this->time;
     }
     return new_location;
 }
@@ -60,7 +62,19 @@ template <int dim, typename real>
 inline real EulerVortexFunction<dim,real>
 ::value (const dealii::Point<dim> &point, const unsigned int istate) const
 {
+    dealii::Point<2> new_loc = advected_location(point);
 
+    const double pi = dealii::numbers::PI;
+    const double local_radius_sqr = new_loc.square();
+    const double x = new_loc[0], y = new_loc[1];
+    
+    const double sound_inf = euler_physics.sound_inf;
+
+    double vel_x = euler_physics.velocities_inf[0] / sound_inf - vortex_strength / (2.0*pi*sound_inf) * y * exp(0.5*vortex_decay*(1.0-local_radius_sqr));
+    double vel_y = euler_physics.velocities_inf[1] / sound_inf - vortex_strength / (2.0*pi*sound_inf) * x * exp(0.5*vortex_decay*(1.0-local_radius_sqr));
+    double temperature = 1.0 - vortex_strength*vortex_strength*euler_physics.gamm1 / (8.0*vortex_decay*pi*pi*sound_inf*sound_inf) * exp(vortex_decay*(1.0-local_radius_sqr));
+
+    const double value = vel_x+vel_y+temperature;
     return value;
 }
 

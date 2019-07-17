@@ -11,6 +11,7 @@ class EulerParam
 public:
     double ref_length;
     double mach_inf;
+    double gamma_gas;
     double angle_of_attack;
     double side_slip_angle;
 

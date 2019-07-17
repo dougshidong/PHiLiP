@@ -119,6 +119,8 @@ template<int dim, int nstate>
 int EulerCylinder<dim,nstate>
 ::run_test () const
 {
+    std::cout   << " Running Euler cylinder entropy convergence. " << std::endl;
+    static_assert(dim==2);
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
     using GridEnum = ManParam::GridEnum;
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
@@ -139,6 +141,7 @@ int EulerCylinder<dim,nstate>
     Physics::Euler<dim,nstate,double> euler_physics_double
         = Physics::Euler<dim, nstate, double>(
                 param.euler_param.ref_length,
+                param.euler_param.gamma_gas,
                 param.euler_param.mach_inf,
                 param.euler_param.angle_of_attack,
                 param.euler_param.side_slip_angle);

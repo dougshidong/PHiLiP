@@ -29,6 +29,7 @@ PhysicsFactory<dim,nstate,real>
     } else if (pde_type == PDE_enum::euler) {
         if constexpr (nstate==dim+2) {
             return std::make_shared < Euler<dim,nstate,real> > (parameters_input->euler_param.ref_length 
+                                                               ,parameters_input->euler_param.gamma_gas
                                                                ,parameters_input->euler_param.mach_inf
                                                                ,parameters_input->euler_param.angle_of_attack
                                                                ,parameters_input->euler_param.side_slip_angle);

@@ -73,8 +73,10 @@ class Euler : public PhysicsBase <dim, nstate, real>
 {
 public:
     /// Constructor
-    Euler (const double ref_length, const double mach_inf, const double angle_of_attack, const double side_slip_angle)
+    Euler (const double ref_length, const double gamma_gas, const double mach_inf, const double angle_of_attack, const double side_slip_angle)
     : ref_length(ref_length)
+    , gam(gamma_gas)
+    , gamm1(gam-1.0)
     , mach_inf(mach_inf)
     , mach_inf_sqr(mach_inf*mach_inf)
     , angle_of_attack(angle_of_attack)
@@ -85,6 +87,7 @@ public:
     {
         static_assert(nstate==dim+2, "Physics::Euler() should be created with nstate=dim+2");
 
+        std::cout << "Density inf " << density_inf << std::endl;
         temperature_inf = gam*pressure_inf/density_inf * mach_inf_sqr;
 
         // For now, don't allow side-slip angle
@@ -111,6 +114,10 @@ public:
     {};
 
     const double ref_length;
+    /// Constant heat capacity ratio of air
+    const double gam;
+    /// Gamma-1.0 used often
+    const double gamm1;
     const double mach_inf;
     const double mach_inf_sqr;
     const double angle_of_attack;
@@ -121,6 +128,7 @@ public:
     const double sound_inf;
     const double pressure_inf;
     double temperature_inf;
+
     //const double internal_energy_inf;
     dealii::Tensor<1,dim,double> velocities_inf; // should be const
 
@@ -170,9 +178,6 @@ public:
     /// Opposite of convert_primitive_to_conservative
     std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const;
 
-    /// Constant heat capacity ratio of air
-    const double gam = 1.4;
-    const double gamm1 = gam - 1.0;
     /// Evaluate pressure from conservative variables
     real compute_pressure ( const std::array<real,nstate> &conservative_soln ) const;
     /// Evaluate speed of sound from conservative variables

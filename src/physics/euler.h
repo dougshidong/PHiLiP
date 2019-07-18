@@ -67,6 +67,10 @@ namespace Physics {
  *          + \mathbf{F}_{diss}( w, \boldsymbol{\nabla}(w) )
  *      = s(\mathbf{x})
  *  \f]
+ *
+ *
+ *  Still need to provide functions to un-non-dimensionalize the variables.
+ *  Like, given density_inf
  */
 template <int dim, int nstate, typename real>
 class Euler : public PhysicsBase <dim, nstate, real>
@@ -123,11 +127,14 @@ public:
     const double angle_of_attack;
     const double side_slip_angle;
 
+    /// Non-dimensionalized density* at infinity. density* = density/density_ref
+    /// Choose density_ref = density(inf)
+    /// density*(inf) = density(inf) / density_ref = density(inf)/density(inf) = 1.0
     const double density_inf = 1.0;
-    const double normal_vel_inf = 1.0;
-    const double sound_inf;
-    const double pressure_inf;
-    double temperature_inf;
+
+    const double sound_inf; /// Non-dimensionalized sound* at infinity
+    const double pressure_inf; /// Non-dimensionalized pressure* at infinity
+    double temperature_inf; /// Non-dimensionalized temperature* at infinity. Should equal 1/density*(inf)
 
     //const double internal_energy_inf;
     dealii::Tensor<1,dim,double> velocities_inf; // should be const

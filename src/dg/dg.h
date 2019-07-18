@@ -77,11 +77,6 @@ public:
     /** Must be done after setting the mesh and before assembling the system. */
     virtual void allocate_system ();
 
-    /// Allocates and evaluates the inverse mass matrices for the entire grid
-    /*  Although straightforward, this has not been tested yet.
-     *  Will be required for accurate time-stepping or nonlinear problems
-     */
-    void evaluate_inverse_mass_matrices ();
     /// Vector of inverse mass matrices.
     /** Contains the inverse mass matrices of each cell.  */
     std::vector<dealii::FullMatrix<real>> inv_mass_matrix;
@@ -90,10 +85,15 @@ public:
     /*  Although straightforward, this has not been tested yet.
      *  Will be required for accurate time-stepping or nonlinear problems
      */
-    void evaluate_mass_matrices ();
-    /// Vector of mass matrices.
-    /** Contains the mass matrices of each cell.  */
+    void evaluate_mass_matrices (bool do_inverse_mass_matrix = false);
+
+    /// Global mass matrix
+    /** Should be block diagonal where each block contains the mass matrix of each cell.  */
     dealii::TrilinosWrappers::SparseMatrix global_mass_matrix;
+
+    /// Global inverser mass matrix
+    /** Should be block diagonal where each block contains the inverse mass matrix of each cell.  */
+    dealii::TrilinosWrappers::SparseMatrix global_inverse_mass_matrix;
 
     /// Evaluates the maximum stable time step
     /*  If exact_time_stepping = true, use the same time step for the entire solution

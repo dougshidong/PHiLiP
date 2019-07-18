@@ -1,7 +1,7 @@
 # Listing of Parameters
 # ---------------------
 
-set test_type = euler_cylinder
+set test_type = euler_vortex
 
 # Number of dimensions
 set dimension = 2
@@ -41,7 +41,7 @@ subsection manufactured solution convergence study
   set degree_end        = 4
 
   # Starting degree for convergence study
-  set degree_start      = 1
+  set degree_start      = 0
 
   # Multiplier on grid size. nth-grid will be of size
   # (initial_grid^grid_progression)^dim

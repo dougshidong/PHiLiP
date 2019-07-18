@@ -4,8 +4,55 @@
 #include <assert.h>
 #include "physics.h"
 #include "parameters/all_parameters.h"
+
+#define USING_SPLIT_FORM
+
 namespace  PHiLiP
 {
+
+
+
+namespace functions // can't put namespaces inside classes, but nested classes are possible
+{
+
+namespace burgers1d
+{
+	template <int dim, int nstate, typename real>
+	class F1 //the reasons we implement functions as functors is so we can pass them as objects as opposed to functions (which are more messy to deal with)
+	{
+	public:
+		F1(){};
+		real operator()(const std::array<real,nstate> &conservative_soln);
+	};
+
+	template <int dim, int nstate, typename real>
+	class F2
+	{
+	public:
+		F2(){};
+		real operator()(const std::array<real,nstate> &conservative_soln);
+	};
+
+	template <int dim, int nstate, typename real>
+	class G1
+	{
+	public:
+		G1(){};
+		real operator()(const std::array<real,nstate> &conservative_soln);
+	};
+
+	template <int dim, int nstate, typename real>
+	class G2
+	{
+	public:
+		G2(){};
+		real operator()(const std::array<real,nstate> &conservative_soln);
+};
+}
+
+
+}
+
 
 template<int dim, int nstate, typename real>
 class SplitElement
@@ -14,8 +61,8 @@ public:
 	SplitElement() {};
 	//SplitElement(double alph); //NEED TO DO PROPER TEMPLATE INSTANTIATION
 	double alpha;
-	std::function<double(std::array<double,nstate>)> f;
-	std::function<double(std::array<double,nstate>)> g;
+	std::function<real(std::array<real,nstate>)> f;
+	std::function<real(std::array<real,nstate>)> g;
 };
 
 template <int dim, int nstate, typename real>
@@ -35,47 +82,11 @@ class SplitFormBurgers1D : public SplitFormBase<dim, nstate, real> //technically
 {
 public:
 	SplitFormBurgers1D();
-
-	class functions // can't put namespaces inside classes, but nested classes are possible
-	{
-	public:
-		functions() {};
-		class F1 //the reasons we implement functions as functors is so we can pass them as objects as opposed to functions (which are more messy to deal with)
-		{
-		public:
-			F1(){};
-			double operator()(const std::array<double,nstate> &variables);
-		};
-
-		class F2
-		{
-		public:
-			F2(){};
-			double operator()(const std::array<double,nstate> &variables);
-		};
-
-		class G1
-		{
-		public:
-			G1(){};
-			double operator()(const std::array<double,nstate> &variables);
-		};
-
-		class G2
-		{
-		public:
-			G2(){};
-			double operator()(const std::array<double,nstate> &variables);
-		};
-
-		F1 f1;
-		F2 f2;
-		G1 g1;
-		G2 g2;
-	};
+	functions::burgers1d::F1<dim, nstate, real> f1;
+	functions::burgers1d::F2<dim, nstate, real> f2;
+	functions::burgers1d::G1<dim, nstate, real> g1;
+	functions::burgers1d::G2<dim, nstate, real> g2;
 };
-
-
 
 template <int dim, int nstate, typename real>
 class SplitFormFactory

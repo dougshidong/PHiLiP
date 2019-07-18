@@ -211,14 +211,14 @@ int EulerCylinder<dim,nstate>
                 for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
                     if (cell->face(face)->at_boundary()) {
                         unsigned int current_id = cell->face(face)->boundary_id();
-                        if (current_id == 3) {
-                            cell->face(face)->set_boundary_id (1001); // Wall
+                        if (current_id == 0) {
+                            cell->face(face)->set_boundary_id (1004); // x_left, Farfield
                         } else if (current_id == 1) {
-                            cell->face(face)->set_boundary_id (1001); // Symmetry/Wall
+                            cell->face(face)->set_boundary_id (1001); // x_right, Symmetry/Wall
                         } else if (current_id == 2) {
-                            cell->face(face)->set_boundary_id (1001); // Symmetry/Wall
-                        } else if (current_id == 0) {
-                            cell->face(face)->set_boundary_id (1004); // Farfield
+                            cell->face(face)->set_boundary_id (1001); // y_bottom, Symmetry/Wall
+                        } else if (current_id == 3) {
+                            cell->face(face)->set_boundary_id (1004); // y_top, Wall
                         } else {
                             std::abort();
                         }

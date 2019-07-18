@@ -9,7 +9,11 @@
 namespace PHiLiP {
 namespace Tests {
 
-/// Masatsuka2018 section 6.3 & section 7.13.3
+// Masatsuka2018 section 6.3 & section 7.13.3
+
+/// Spiegel, S. C., Huynh, H. T., and DeBonis, J. R.,
+/// “A Survey of the Isentropic Euler Vortex Problem using High-Order Methods,”
+/// 22nd AIAA Computational Fluid Dynamics Conference, American Institute of Aeronautics and Astronautics, 2015.
 template <int dim, typename real>
 class EulerVortexFunction : public dealii::Function<dim,real>
 {
@@ -23,11 +27,13 @@ public:
         const Physics::Euler<dim, dim+2, real> euler_physics,
         const dealii::Point<2> initial_vortex_center,
         const real vortex_strength,
-        const real vortex_decay);
+        const real vortex_stddev_decay);
 
     const Physics::Euler<dim, dim+2, real> euler_physics;
-    const dealii::Point<2> initial_vortex_center;
-    const real vortex_strength, vortex_decay; // K, alpha
+    const dealii::Point<2> initial_vortex_center; // x_c, y_c
+    const real vortex_characteristic_length; // R
+    const real vortex_strength; // beta
+    const real vortex_stddev_decay; // sigma
 
     /// Destructor
     ~EulerVortexFunction() {};
@@ -71,8 +77,6 @@ public:
      */
     int run_test () const;
 
-protected:
-    void initialize_perturbed_solution(DGBase<dim,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &physics) const;
 };
 
 

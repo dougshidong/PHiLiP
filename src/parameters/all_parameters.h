@@ -31,6 +31,9 @@ public:
     /// Flag to use weak or strong form of DG
     bool use_weak_form;
 
+    /// Flag to use split form.
+    bool use_split_form;
+
     /// Number of state variables. Will depend on PDE
     int nstate;
 

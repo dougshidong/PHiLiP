@@ -87,7 +87,7 @@ DGFactory<dim,real>
 
 // DGBase ***************************************************************************
 template <int dim, typename real>
-DGBase<dim,real>::DGBase(
+DGBase<dim,real>::DGBase( // @suppress("Class members should be properly initialized")
     const int nstate_input,
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree)
@@ -100,7 +100,39 @@ DGBase<dim,real>::DGBase(
     , oned_quadrature (degree+1)
     , volume_quadrature (degree+1)
     , face_quadrature (degree+1)
-{ }
+{
+	if (parameters_input->use_collocated_nodes)
+	{
+		dealii::QGauss<1> oned_quad_Gauss_Lobatto (degree+1);
+		dealii::QGauss<dim> vol_quad_Gauss_Lobatto (degree+1);
+		oned_quadrature = oned_quad_Gauss_Lobatto;
+		volume_quadrature = vol_quad_Gauss_Lobatto;
+
+		if(dim == 1)
+		{
+			dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
+			face_quadrature = face_quad_Gauss_Legendre;
+		}
+		else
+		{
+			dealii::QGaussLobatto<dim-1> face_quad_Gauss_Lobatto (degree+1);
+			face_quadrature = face_quad_Gauss_Lobatto;
+		}
+
+
+	}
+	else
+	{
+		dealii::QGauss<1> oned_quad_Gauss_Legendre (degree+1);
+		dealii::QGauss<dim> vol_quad_Gauss_Legendre (degree+1);
+		dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
+		oned_quadrature = oned_quad_Gauss_Legendre;
+		volume_quadrature = vol_quad_Gauss_Legendre;
+		face_quadrature = face_quad_Gauss_Legendre;
+	}
+
+
+}
 
 // Destructor
 template <int dim, typename real>

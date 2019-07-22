@@ -69,6 +69,9 @@ void DGStrong<dim,nstate,real>::assemble_cell_terms_implicit(
     std::vector< ADArrayTensor1 > diss_phys_flux_at_q(n_quad_pts);
     std::vector< ADArray > source_at_q(n_quad_pts);
 
+    //vector containing split forms;
+    std::vector<ADArrayTensor1> conv_split_phys_flux_at_q(n_quad_pts);
+
 
     // AD variable
     std::vector< ADtype > soln_coeff(n_dofs_cell);
@@ -96,6 +99,11 @@ void DGStrong<dim,nstate,real>::assemble_cell_terms_implicit(
         // Evaluate physical convective flux and source term
         conv_phys_flux_at_q[iquad] = pde_physics->convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = pde_physics->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
+
+
+        //THIS IS WHERE I NEED TO EVALUATE SPLIT FORM FLUXES
+
+
         source_at_q[iquad] = pde_physics->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad]);
     }
 
@@ -126,15 +134,34 @@ void DGStrong<dim,nstate,real>::assemble_cell_terms_implicit(
     for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
 
         ADtype rhs = 0;
+        ADtype intermediate1 = 0;
 
         const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(itest).first;
+
+        bool use_split_form = false; //remove later
+        if (use_split_form)
+        {
+        	for (unsigned int isplit = 0; isplit < split_fluxes->split_convective_fluxes[istate].size(); ++isplit)
+        	{
+        		for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad)
+        		{
+        			for (int idim = 0; idim < dim ; ++idim)
+        			{
+        				intermediate1 = intermediate1 +  fe_values_vol.shape_grad_component(itest,iquad,istate)[idim] * split_fluxes->split_convective_fluxes[idim][istate][isplit].g(soln_at_q[iquad]);
+        				rhs = rhs - intermediate1 * split_fluxes->split_convective_fluxes[idim][istate][isplit].alpha * split_fluxes->split_convective_fluxes[idim][istate][isplit].f(soln_at_q[iquad]) * JxW[iquad];
+        			}
+        		}
+        	}
+        }
 
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
             // Convective
             // Now minus such 2 integrations by parts
             assert(JxW[iquad] - fe_values_lagrange.JxW(iquad) < 1e-14);
-            rhs = rhs - fe_values_vol.shape_value_component(itest,iquad,istate) * flux_divergence[iquad][istate] * JxW[iquad];
+
+            if (!use_split_form)
+            	rhs = rhs - fe_values_vol.shape_value_component(itest,iquad,istate) * flux_divergence[iquad][istate] * JxW[iquad];
 
             //// Diffusive
             //// Note that for diffusion, the negative is defined in the physics

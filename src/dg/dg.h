@@ -25,6 +25,8 @@
 #include "numerical_flux/numerical_flux.h"
 #include "parameters/all_parameters.h"
 
+#include "physics/split_form.h"
+
 
 namespace PHiLiP {
 
@@ -252,9 +254,9 @@ protected:
         dealii::Vector<real>          &neighbor_cell_rhs) = 0;
 
     // QGauss is Gauss-Legendre quadrature nodes
-    const dealii::QGauss<1>     oned_quadrature; // For the strong form
-    const dealii::QGauss<dim>   volume_quadrature;
-    const dealii::QGauss<dim-1> face_quadrature;
+    dealii::QGauss<1>     oned_quadrature; // For the strong form
+    dealii::Quadrature<dim>   volume_quadrature;
+    dealii::Quadrature<dim-1> face_quadrature;
     // const dealii::QGaussLobatto<dim>   volume_quadrature;
     // const dealii::QGaussLobatto<dim-1> face_quadrature;
 
@@ -357,6 +359,9 @@ private:
     NumericalFlux::NumericalFluxConvective<dim, nstate, Sacado::Fad::DFad<real> > *conv_num_flux;
     /// Dissipative numerical flux
     NumericalFlux::NumericalFluxDissipative<dim, nstate, Sacado::Fad::DFad<real> > *diss_num_flux;
+
+    /// Contains the split fluxes
+    std::shared_ptr < SplitFormBase<dim,nstate,Sacado::Fad::DFad<real> > > split_fluxes;
 
 
     /// Evaluate the integral over the cell volume

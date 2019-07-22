@@ -19,6 +19,15 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     prm.declare_entry("use_weak_form", "true",
                       dealii::Patterns::Bool(),
                       "Use weak form by default. If false, use strong form.");
+
+    prm.declare_entry("use_collocated_nodes", "false",
+    				  dealii::Patterns::Bool(),
+					  "Use Gauss-Legendre by default. Otherwise, use Gauss-Lobatto to collocate.");
+
+    prm.declare_entry("use_split_form", "false",
+    				  dealii::Patterns::Bool(),
+					  "Use original form by defualt. Otherwise, split the fluxes.");
+
     prm.declare_entry("test_type", "run_control",
                       dealii::Patterns::Selection(
                       " run_control | "
@@ -93,7 +102,10 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
         pde_type = euler;
         nstate = dimension+2;
     }
+
     use_weak_form = prm.get_bool("use_weak_form");
+    use_collocated_nodes = prm.get_bool("use_collocated_nodes");
+    use_split_form = prm.get_bool("use_split_form");
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
     if (conv_num_flux_string == "lax_friedrichs") conv_num_flux_type = lax_friedrichs;

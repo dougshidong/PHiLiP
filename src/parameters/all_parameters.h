@@ -31,6 +31,9 @@ public:
     /// Flag to use weak or strong form of DG
     bool use_weak_form;
 
+    /// Flag to use Gauss-Lobatto Nodes;
+    bool use_collocated_nodes;
+
     /// Flag to use split form.
     bool use_split_form;
 

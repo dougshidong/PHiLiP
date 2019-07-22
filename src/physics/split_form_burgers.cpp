@@ -3,7 +3,7 @@
 namespace PHiLiP
 {
 
-namespace functions
+namespace splitfunctions
 {
 
 namespace burgers1d
@@ -57,7 +57,7 @@ SplitFormBurgers1D<dim, nstate, real>::SplitFormBurgers1D()
 
 	 vector_of_split_elements.push_back(split_element);
 
-	 SplitFormBase<dim, nstate,real>::split_convective_fluxes[0] = vector_of_split_elements;
+	 SplitFormBase<dim, nstate,real>::split_convective_fluxes[0][0] = vector_of_split_elements;
 
 	 vector_of_split_elements.clear();
 }

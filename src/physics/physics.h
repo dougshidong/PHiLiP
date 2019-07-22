@@ -5,6 +5,7 @@
 
 #include "parameters/all_parameters.h"
 #include "physics/manufactured_solution.h"
+#include "physics/split_form.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -40,6 +41,9 @@ public:
     /// Convective fluxes that will be differentiated once in space.
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
         const std::array<real,nstate> &solution) const = 0;
+
+    /// Split convective fluxes.
+    std::shared_ptr < SplitFormBase<dim, nstate, Sacado::Fad::DFad<real> > > split_flux;
 
     /// Spectral radius of convective term Jacobian.
     /// Used for scalar dissipation
@@ -358,10 +362,14 @@ public:
     const bool hasConvection;
     const bool hasDiffusion;
     /// Constructor
-    Burgers (const bool convection = true, const bool diffusion = true)
+    Burgers (Parameters::AllParameters::PartialDifferentialEquation pde_type, const bool convection = true, const bool diffusion = true)
         : hasConvection(convection), hasDiffusion(diffusion)
     {
         static_assert(nstate==dim, "Physics::Burgers() should be created with nstate==dim");
+
+        using ADtype = Sacado::Fad::DFad<real>;
+        if (true) //needs to be if use_split_form
+        	PhysicsBase<dim,nstate,real>::split_flux = SplitFormFactory<dim,nstate,ADtype>::create_SplitForm(pde_type);
     };
 
     /// Destructor

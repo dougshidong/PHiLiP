@@ -26,7 +26,7 @@ PhysicsFactory<dim,nstate,real>
     } else if (pde_type == PDE_enum::convection_diffusion) {
         if constexpr (nstate==1) return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(true,true);
     } else if (pde_type == PDE_enum::burgers_inviscid) {
-        if constexpr (nstate==dim) return std::make_shared < Burgers<dim,nstate,real> >(true,false);
+        if constexpr (nstate==dim) return std::make_shared < Burgers<dim,nstate,real> >(pde_type,true,false);
     } else if (pde_type == PDE_enum::euler) {
         if constexpr (nstate==dim+2) return std::make_shared < Euler<dim,nstate,real> >();
     }

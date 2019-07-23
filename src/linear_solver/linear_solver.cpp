@@ -47,6 +47,7 @@ solve_linear (
       AztecOO solver;
       solver.SetAztecOption( AZ_output, (param.linear_solver_output ? AZ_all : AZ_none));
       solver.SetAztecOption(AZ_solver, AZ_gmres);
+      //solver.SetAztecOption(AZ_kspace, param.restart_number);
       solver.SetRHS(&b);
       solver.SetLHS(&x);
       solver.SetAztecOption(AZ_precond, AZ_dom_decomp);

@@ -11,7 +11,7 @@
 #include "parameters/parameters.h"
 #include "physics/euler.h"
 
-const double TOLERANCE = 1E-7;
+const double TOLERANCE = 1E-6;
 
 int main (int /*argc*/, char * /*argv*/[])
 {

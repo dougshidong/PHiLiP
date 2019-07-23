@@ -41,9 +41,7 @@ std::array<real,nstate> Euler<dim,nstate,real>
     std::array<real,nstate> source_term;
     for (int s=0; s<nstate; s++) {
         source_term[s] = convective_flux_divergence[s];
-        source_term[s] = 0.0;
     }
-    std::cout << "Zero source term hard-coded for now." << std::endl;
 
     return source_term;
 }

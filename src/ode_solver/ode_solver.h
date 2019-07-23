@@ -29,11 +29,14 @@ public:
     /// Constructor
     ODESolver(std::shared_ptr< DGBase<dim, real> > dg_input)
     :
+    current_time(0.0),
     dg(dg_input),
     all_parameters(dg->all_parameters)
     {};
     virtual ~ODESolver() {}; ///< Destructor
     
+
+    double current_time;
 
     /// Evaluate steady state solution
     int steady_state ();
@@ -61,6 +64,8 @@ protected:
 
     /// Solution update given by the ODE solver
     dealii::Vector<real> solution_update;
+
+    std::vector<dealii::Vector<real>> rk_stage;
 
     /// Solution vector.
     /** Currently not used. Might make it a vector pointing to dg->solution */

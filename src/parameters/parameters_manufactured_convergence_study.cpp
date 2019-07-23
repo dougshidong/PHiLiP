@@ -10,10 +10,10 @@ void ManufacturedConvergenceStudyParam::declare_parameters (dealii::ParameterHan
 {
     prm.enter_subsection("manufactured solution convergence study");
     {
-        //prm.declare_entry("output", "quiet",
-        //                  dealii::Patterns::Selection("quiet|verbose"),
-        //                  "State whether output from solver runs should be printed. "
-        //                  "Choices are <quiet|verbose>.");
+        prm.declare_entry("use_manufactured_source_term", "false",
+                          dealii::Patterns::Bool(),
+                          "Uses non-zero source term based on the manufactured solution and the PDE.");
+
         prm.declare_entry("grid_type", "hypercube",
                           dealii::Patterns::Selection("hypercube|sinehypercube|read_grid"),
                           "Enum of generated grid. "
@@ -43,7 +43,11 @@ void ManufacturedConvergenceStudyParam::declare_parameters (dealii::ParameterHan
         prm.declare_entry("grid_progression", "1.5",
                           dealii::Patterns::Double(),
                           "Multiplier on grid size. "
-                          "nth-grid will be of size (initial_grid^grid_progression)^dim");
+                          "ith-grid will be of size (initial_grid*(i*grid_progression)+(i*grid_progression_add))^dim");
+        prm.declare_entry("grid_progression_add", "0",
+                          dealii::Patterns::Integer(),
+                          "Adds number of cell to 1D grid. "
+                          "ith-grid will be of size (initial_grid*(i*grid_progression)+(i*grid_progression_add))^dim");
 
         prm.declare_entry("degree_start", "0",
                           dealii::Patterns::Integer(),
@@ -59,9 +63,7 @@ void ManufacturedConvergenceStudyParam ::parse_parameters (dealii::ParameterHand
 {
     prm.enter_subsection("manufactured solution convergence study");
     {
-        //const std::string output_string = prm.get("output");
-        //if (output_string == "verbose") output = verbose;
-        //if (output_string == "quiet") output = quiet;
+        use_manufactured_source_term = prm.get_bool("use_manufactured_source_term");
         const std::string grid_string = prm.get("grid_type");
         if (grid_string == "hypercube") grid_type = GridEnum::hypercube;
         if (grid_string == "sinehypercube") grid_type = GridEnum::sinehypercube;
@@ -79,6 +81,7 @@ void ManufacturedConvergenceStudyParam ::parse_parameters (dealii::ParameterHand
         initial_grid_size           = prm.get_integer("initial_grid_size");
         number_of_grids             = prm.get_integer("number_of_grids");
         grid_progression            = prm.get_double("grid_progression");
+        grid_progression_add        = prm.get_double("grid_progression_add");
     }
     prm.leave_subsection();
 }

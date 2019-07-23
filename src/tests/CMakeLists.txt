@@ -4,6 +4,7 @@ set(TESTS_SOURCE
     euler_gaussian_bump.cpp
     euler_cylinder.cpp
     euler_vortex.cpp
+    euler_entropy_waves.cpp
 )
 
 foreach(dim RANGE 1 3)

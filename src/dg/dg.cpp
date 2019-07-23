@@ -93,7 +93,7 @@ DGBase<dim,real>::DGBase(
     const unsigned int degree)
     :
     nstate(nstate_input)
-    , mapping(degree+1,true)
+    , mapping(degree+3,true)
     , fe_dg(degree)
     , fe_system(fe_dg, nstate)
     , all_parameters(parameters_input)
@@ -332,21 +332,21 @@ double DGBase<dim,real>::get_residual_l2norm ()
 template <int dim, typename real>
 void DGBase<dim,real>::output_results (const unsigned int ith_grid)// const
 {
-  const std::string filename = "sol-" +
-                               dealii::Utilities::int_to_string(ith_grid,2) +
-                               ".gnuplot";
-
-  std::cout << "Writing solution to <" << filename << ">..."
-            << std::endl << std::endl;
-  std::ofstream gnuplot_output (filename.c_str());
-
-  dealii::DataOut<dim> data_out;
-  data_out.attach_dof_handler (dof_handler);
-  data_out.add_data_vector (solution, "u", dealii::DataOut<dim>::type_dof_data);
-
-  data_out.build_patches (mapping, fe_system.tensor_degree()+1, dealii::DataOut<dim>::curved_inner_cells);
-
-  data_out.write_gnuplot(gnuplot_output);
+    const std::string filename = "sol-" +
+                                 dealii::Utilities::int_to_string(ith_grid,2) +
+                                 ".gnuplot";
+  
+    std::cout << "Writing solution to <" << filename << ">..."
+              << std::endl << std::endl;
+    std::ofstream gnuplot_output (filename.c_str());
+  
+    dealii::DataOut<dim> data_out;
+    data_out.attach_dof_handler (dof_handler);
+    data_out.add_data_vector (solution, "u", dealii::DataOut<dim>::type_dof_data);
+  
+    data_out.build_patches (mapping, fe_system.tensor_degree()+1, dealii::DataOut<dim>::curved_inner_cells);
+  
+    data_out.write_gnuplot(gnuplot_output);
 }
 
 template <int dim, typename real>

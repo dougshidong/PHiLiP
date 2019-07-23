@@ -91,7 +91,6 @@ public:
     {
         static_assert(nstate==dim+2, "Physics::Euler() should be created with nstate=dim+2");
 
-        std::cout << "Density inf " << density_inf << std::endl;
         temperature_inf = gam*pressure_inf/density_inf * mach_inf_sqr;
 
         // For now, don't allow side-slip angle
@@ -106,9 +105,9 @@ public:
             velocities_inf[0] = cos(angle_of_attack);
             velocities_inf[1] = sin(angle_of_attack); // Maybe minus??
         } else if (dim==3) {
-            velocities_inf[0] = cos(angle_of_attack);
-            velocities_inf[1] = sin(angle_of_attack);
-            velocities_inf[2] = 0.0;
+            velocities_inf[0] = cos(angle_of_attack)*cos(side_slip_angle);
+            velocities_inf[1] = sin(angle_of_attack)*cos(side_slip_angle);
+            velocities_inf[2] = sin(side_slip_angle);
         }
         assert(std::abs(velocities_inf.norm() - 1.0) < 1e-14);
 

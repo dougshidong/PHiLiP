@@ -13,6 +13,9 @@ class ManufacturedConvergenceStudyParam
 public:
     ManufacturedConvergenceStudyParam (); ///< Constructor
 
+    /// Uses non-zero source term based on the manufactured solution and the PDE.
+    bool use_manufactured_source_term;
+
     /// Types of grids that can be used for convergence study.
     /** Hypercube is simply a square from 0,1 in multiple dimensions.
      *  Sinehypercube will take that hypercube and transform it into a sinoisidal pattern
@@ -44,9 +47,15 @@ public:
     unsigned int number_of_grids;
     /// Multiplies the last grid size by this amount.
     /** Note that this is the grid progression in 1 dimension.
-     *  For 2 and 3 dim, you will end up with grid_progression^dim times more elements in total.
+     *  ith-grid will be of size (initial_grid*(i*grid_progression)+(i*grid_progression_add))^dim")
      */
     double grid_progression;
+
+    /// Adds number of cells to 1D grid.
+    /** Note that this is the grid progression in 1 dimension.
+     *  ith-grid will be of size (initial_grid*(i*grid_progression)+(i*grid_progression_add))^dim")
+     */
+    double grid_progression_add;
 
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);

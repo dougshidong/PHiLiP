@@ -20,7 +20,7 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           "Choices are <explicit|implicit>.");
 
         prm.declare_entry("nonlinear_max_iterations", "500000",
-                          dealii::Patterns::Integer(1,dealii::Patterns::Integer::max_int_value),
+                          dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
                           "Maximum nonlinear solver iterations");
         prm.declare_entry("nonlinear_steady_residual_tolerance", "1e-13",
                           dealii::Patterns::Double(1e-16,dealii::Patterns::Double::max_double_value),

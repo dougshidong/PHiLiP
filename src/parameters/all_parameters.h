@@ -43,6 +43,7 @@ public:
         euler_gaussian_bump,
         euler_cylinder,
         euler_vortex,
+        euler_entropy_waves,
         numerical_flux_convervation,
         jacobian_regression};
     TestType test_type;

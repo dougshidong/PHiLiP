@@ -30,17 +30,17 @@ void LinearSolverParam::declare_parameters (dealii::ParameterHandler &prm)
                               "Maximum number of iterations for linear solver");
 
             // ILU with threshold parameters
-            prm.declare_entry("ilut_fill", "2",
+            prm.declare_entry("ilut_fill", "1",
                               dealii::Patterns::Integer(),
                               "Amount of additional fill-in elements besides the sparse matrix structure");
             prm.declare_entry("ilut_drop", "1e-10",
                               dealii::Patterns::Double(),
                               "relative size of elements which should be dropped when forming an incomplete lu decomposition with threshold");
-            prm.declare_entry("ilut_rtol", "1.1",
+            prm.declare_entry("ilut_rtol", "0.0",
                               dealii::Patterns::Double(),
                               "Amount of an absolute perturbation that will be added to the diagonal of the matrix, "
                               "which sometimes can help to get better preconditioners");
-            prm.declare_entry("ilut_atol", "1e-9",
+            prm.declare_entry("ilut_atol", "0.0",
                               dealii::Patterns::Double(),
                               "Factor by which the diagonal of the matrix will be scaled, "
                               "which sometimes can help to get better preconditioners");

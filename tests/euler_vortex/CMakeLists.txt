@@ -1,8 +1,0 @@
-set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
-
-configure_file(2d_euler_vortex.prm 2d_euler_vortex.prm COPYONLY)
-add_test(
-  NAME 2D_EULER_VORTEX
-  COMMAND ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_vortex.prm
-  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)

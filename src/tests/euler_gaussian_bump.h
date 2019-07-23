@@ -53,8 +53,6 @@ public:
 
 protected:
 
-    void initialize_perturbed_solution(DGBase<dim,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &physics) const;
-
     double integrate_entropy_over_domain(DGBase<dim,double> &dg) const;
 };
 

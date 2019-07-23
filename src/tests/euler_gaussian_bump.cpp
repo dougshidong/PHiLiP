@@ -77,14 +77,6 @@ dealii::Point<dim> EulerGaussianBump<dim,nstate>
 }
 
 
-template <int dim, int nstate>
-void EulerGaussianBump<dim,nstate>
-::initialize_perturbed_solution(DGBase<dim,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &physics) const
-{
-    InitialConditions<dim,double> initial_conditions(nstate);
-    dealii::VectorTools::interpolate(dg.dof_handler, initial_conditions, dg.solution);
-}
-
 template<int dim, int nstate>
 int EulerGaussianBump<dim,nstate>
 ::run_test () const
@@ -188,7 +180,8 @@ int EulerGaussianBump<dim,nstate>
             dg->allocate_system ();
 
             std::cout << "Initialize perturbed solution" << std::endl;
-            initialize_perturbed_solution(*(dg), euler_physics_double);
+            InitialConditions<dim,double> initial_conditions(nstate);
+            dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
             // Create ODE solver using the factory and providing the DG object
             std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);

@@ -41,7 +41,7 @@ EulerVortexFunction<dim,real>
     :
     dealii::Function<dim,real>(dim+2, 0.0)
     , euler_physics(euler_physics)
-    , vortex_characteristic_length(euler_physics.ref_length)
+    , vortex_characteristic_length(2.0*euler_physics.ref_length)
     , initial_vortex_center(initial_vortex_center)
     , vortex_strength(vortex_strength)
     , vortex_stddev_decay(vortex_stddev_decay)
@@ -136,18 +136,14 @@ int EulerVortex<dim,nstate>
     EulerVortexFunction<dim,double> initial_vortex_function(*euler, initial_vortex_center, vortex_strength, vortex_stddev_decay);
     initial_vortex_function.set_time(0.0);
 
-    EulerVortexFunction<dim,double> final_vortex_function(*euler, initial_vortex_center, vortex_strength, vortex_stddev_decay);
-    final_vortex_function.set_time(0.0);
-
     for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
 
         // p0 tends to require a finer grid to reach asymptotic region
         unsigned int n_grids = n_grids_input;
-        if (poly_degree <= 1) n_grids = n_grids_input + 2;
+        //if (poly_degree <= 1) n_grids = n_grids_input + 1;
 
         std::vector<int> n_1d_cells(n_grids);
         n_1d_cells[0] = initial_grid_size;
-        if(poly_degree==0) n_1d_cells[0] = initial_grid_size + 1;
 
         std::vector<double> soln_error(n_grids);
         std::vector<double> grid_size(n_grids);
@@ -223,11 +219,17 @@ int EulerVortex<dim,nstate>
                       << ". Number of degrees of freedom: " << dg->dof_handler.n_dofs()
                       << std::endl;
 
-            // Solve the steady state problem
+            // Not really steady state
+            // Will have a low number of time steps in the control file (around 10-20)
+            // We can then compare the exact solution to whatever time it reached
             ode_solver->steady_state();
+            
+            const double final_time = ode_solver->current_time;
+            EulerVortexFunction<dim,double> final_vortex_function(*euler, initial_vortex_center, vortex_strength, vortex_stddev_decay);
+            final_vortex_function.set_time(final_time);
 
             // Overintegrate the error to make sure there is not integration error in the error estimate
-            int overintegrate = 10;
+            int overintegrate = 5;
             dealii::QGauss<dim> quad_extra(dg->fe_system.tensor_degree()+overintegrate);
             dealii::FEValues<dim,dim> fe_values_extra(dg->mapping, dg->fe_system, quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
@@ -237,9 +239,7 @@ int EulerVortex<dim,nstate>
             double l2error = 0;
 
             // Integrate solution error
-            typename dealii::DoFHandler<dim>::active_cell_iterator
-               cell = dg->dof_handler.begin_active(),
-               endc = dg->dof_handler.end();
+            typename dealii::DoFHandler<dim>::active_cell_iterator cell = dg->dof_handler.begin_active(), endc = dg->dof_handler.end();
 
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
             for (; cell!=endc; ++cell) {
@@ -256,12 +256,10 @@ int EulerVortex<dim,nstate>
                     }
 
                     const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
-                    //std::array<double,nstate> uexact;
-                    //std::cout << "cos(0.59*x+1 " << cos(0.59*qpoint[0]+1) << std::endl;
-                    //std::cout << "uexact[1] " << uexact[1] << std::endl;
 
-                    for (int istate=0; istate<nstate; ++istate) {
-                        const double uexact = physics->manufactured_solution_function.value(qpoint, istate);
+                    // Check only density
+                    for (int istate=0; istate<1; ++istate) {
+                        const double uexact = final_vortex_function.value(qpoint, istate);
                         l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
                     }
                 }
@@ -323,7 +321,8 @@ int EulerVortex<dim,nstate>
         before_last_slope = log(soln_error[n_grids-2]/soln_error[n_grids-3])
                             / log(grid_size[n_grids-2]/grid_size[n_grids-3]);
         }
-        const double slope_avg = 0.5*(before_last_slope+last_slope);
+        // Don't actually take the average for this case
+        const double slope_avg = 0.0*before_last_slope+ 1.0*last_slope;
         const double slope_diff = slope_avg-expected_slope;
 
         double slope_deficit_tolerance = -0.1;

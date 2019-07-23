@@ -77,10 +77,6 @@ public:
     /** Must be done after setting the mesh and before assembling the system. */
     virtual void allocate_system ();
 
-    /// Vector of inverse mass matrices.
-    /** Contains the inverse mass matrices of each cell.  */
-    std::vector<dealii::FullMatrix<real>> inv_mass_matrix;
-
     /// Allocates and evaluates the mass matrices for the entire grid
     /*  Although straightforward, this has not been tested yet.
      *  Will be required for accurate time-stepping or nonlinear problems
@@ -253,9 +249,9 @@ protected:
         dealii::Vector<real>          &neighbor_cell_rhs) = 0;
 
     // QGauss is Gauss-Legendre quadrature nodes
-    const dealii::QGauss<1>     oned_quadrature; // For the strong form
-    const dealii::QGauss<dim>   volume_quadrature;
-    const dealii::QGauss<dim-1> face_quadrature;
+    dealii::QGauss<1>     oned_quadrature; // For the strong form
+    dealii::QGauss<dim>   volume_quadrature;
+    dealii::QGauss<dim-1> face_quadrature;
     // const dealii::QGaussLobatto<dim>   volume_quadrature;
     // const dealii::QGaussLobatto<dim-1> face_quadrature;
 

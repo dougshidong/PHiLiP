@@ -12,7 +12,7 @@ subsection ODE solver
   set nonlinear_max_iterations            = 500
 
   # Nonlinear solver residual tolerance
-  set nonlinear_steady_residual_tolerance = 1e-13
+  set nonlinear_steady_residual_tolerance = 5e-12
 
   # Print every print_iteration_modulo iterations of the nonlinear solver
   set print_iteration_modulo              = 1
@@ -22,6 +22,7 @@ subsection ODE solver
 end
 
 subsection manufactured solution convergence study
+  set use_manufactured_source_term = true
   # Last degree used for convergence study
   set degree_end        = 3
 

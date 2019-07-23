@@ -36,8 +36,9 @@ void EulerParam ::parse_parameters (dealii::ParameterHandler &prm)
         ref_length      = prm.get_double("reference_length");
         mach_inf        = prm.get_double("mach_infinity");
         gamma_gas       = prm.get_double("gamma_gas");
-        angle_of_attack = prm.get_double("angle_of_attack");
-        side_slip_angle = prm.get_double("side_slip_angle");
+        const double pi = atan(1.0) * 4.0;
+        angle_of_attack = prm.get_double("angle_of_attack") * pi/180.0;
+        side_slip_angle = prm.get_double("side_slip_angle") * pi/180.0;
     }
     prm.leave_subsection();
 }

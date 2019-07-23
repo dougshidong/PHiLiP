@@ -5,6 +5,8 @@
 
 #include "manufactured_solution.h"
 
+//#define ADDITIVE_SOLUTION
+
 template class dealii::FunctionTime<Sacado::Fad::DFad<double>>; // Needed by Function
 template class dealii::Function<PHILIP_DIM,Sacado::Fad::DFad<double>>;
 
@@ -32,13 +34,9 @@ ManufacturedSolutionFunction<dim,real>
         base_values[s] = 1+(s+1.0)/nstate;
         base_values[nstate-1] = 10;
         amplitudes[s] = 0.2*base_values[s]*sin((static_cast<double>(nstate)-s)/nstate);
-        //amplitudes[s] = 0.1;
-        //std::cout<< s << " AMPLITUDES[S] "<< amplitudes[s] << std::endl;
         for (int d=0; d<dim; d++) {
+            //frequencies[s][d] = 2.0 + sin(0.1+s*0.5+d*0.2) *  pi / 2.0;
             frequencies[s][d] = 2.0 + sin(0.1+s*0.5+d*0.2) *  pi / 2.0;
-            //frequencies[s][d] = 1.0;
-            //frequencies[s][d] = sin(0.1+s*0.5)*(d+1.0)/dim;
-            //std::cout<< d << "FREQUENCIES[S][D] "<< frequencies[s][d] << std::endl;
         }
     }
 }
@@ -52,6 +50,15 @@ inline real ManufacturedSolutionFunction<dim,real>
         value *= sin( frequencies[istate][d] * point[d] );
         assert(isfinite(value));
     }
+
+#ifdef ADDITIVE_SOLUTION
+    value = 0.0;
+    for (int d=0; d<dim; d++) {
+        value += amplitudes[istate]*sin( frequencies[istate][d] * point[d] );
+        assert(isfinite(value));
+    }
+#endif
+
     value += base_values[istate];
     return value;
 }
@@ -91,6 +98,27 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionFunction<dim,real>
         gradient[1] = A*f[1]*sin(fx)*cos(fy)*sin(fz);
         gradient[2] = A*f[2]*sin(fx)*sin(fy)*cos(fz);
     }
+
+#ifdef ADDITIVE_SOLUTION
+    if (dim==1) {
+        const real fx = f[0]*point[0];
+        gradient[0] = A*f[0]*cos(fx);
+    }
+    if (dim==2) {
+        const real fx = f[0]*point[0];
+        const real fy = f[1]*point[1];
+        gradient[0] = A*f[0]*cos(fx);
+        gradient[1] = A*f[1]*cos(fy);
+    }
+    if (dim==3) {
+        const real fx = f[0]*point[0];
+        const real fy = f[1]*point[1];
+        const real fz = f[2]*point[2];
+        gradient[0] = A*f[0]*cos(fx);
+        gradient[1] = A*f[1]*cos(fy);
+        gradient[2] = A*f[2]*cos(fz);
+    }
+#endif
     return gradient;
 }
 template <int dim, typename real>
@@ -148,6 +176,38 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionFunction<dim,real
         hessian[2][1] =  A*f[2]*f[1]*sin(fx)*cos(fy)*cos(fz);
         hessian[2][2] = -A*f[2]*f[2]*sin(fx)*sin(fy)*sin(fz);
     }
+
+#ifdef ADDITIVE_SOLUTION
+    if (dim==1) {
+        const real fx = f[0]*point[0];
+        hessian[0][0] = -A*f[0]*f[0]*sin(fx);
+    }
+    if (dim==2) {
+        const real fx = f[0]*point[0];
+        const real fy = f[1]*point[1];
+        hessian[0][0] = -A*f[0]*f[0]*sin(fx);
+        hessian[0][1] =  0.0;
+
+        hessian[1][0] =  0.0;
+        hessian[1][1] = -A*f[1]*f[1]*sin(fy);
+    }
+    if (dim==3) {
+        const real fx = f[0]*point[0];
+        const real fy = f[1]*point[1];
+        const real fz = f[2]*point[2];
+        hessian[0][0] = -A*f[0]*f[0]*sin(fx);
+        hessian[0][1] =  0.0;
+        hessian[0][2] =  0.0;
+        
+        hessian[1][0] =  0.0;
+        hessian[1][1] = -A*f[1]*f[1]*sin(fy);
+        hessian[1][2] =  0.0;
+        
+        hessian[2][0] =  0.0;
+        hessian[2][1] =  0.0;
+        hessian[2][2] = -A*f[2]*f[2]*sin(fz);
+    }
+#endif
     return hessian;
 }
 

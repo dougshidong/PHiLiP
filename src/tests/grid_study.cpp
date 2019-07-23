@@ -51,7 +51,7 @@ double GridStudy<dim,nstate>
     double solution_integral = 0.0;
 
     // Overintegrate the error to make sure there is not integration error in the error estimate
-    int overintegrate = 10;
+    int overintegrate = 5;
     dealii::QGauss<dim> quad_extra(dg.fe_system.tensor_degree()+overintegrate);
     dealii::FEValues<dim,dim> fe_values_extra(dg.mapping, dg.fe_system, quad_extra, 
             dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
@@ -105,11 +105,8 @@ int GridStudy<dim,nstate>
     const unsigned int p_start             = manu_grid_conv_param.degree_start;
     const unsigned int p_end               = manu_grid_conv_param.degree_end;
 
-    const unsigned int initial_grid_size   = manu_grid_conv_param.initial_grid_size;
     const unsigned int n_grids_input       = manu_grid_conv_param.number_of_grids;
-    const double       grid_progression    = manu_grid_conv_param.grid_progression;
 
-    std::cout<<"Test Physics nstate" << nstate << std::endl;
     std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&param);
 
     // Evaluate solution integral on really fine mesh
@@ -117,8 +114,9 @@ int GridStudy<dim,nstate>
     std::cout << "Evaluating EXACT solution integral..." << std::endl;
     // Limit the scope of grid_super_fine and dg_super_fine
     {
+        const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids_input);
         dealii::Triangulation<dim> grid_super_fine;
-        dealii::GridGenerator::subdivided_hyper_cube(grid_super_fine, initial_grid_size*pow(grid_progression,n_grids_input));
+        dealii::GridGenerator::subdivided_hyper_cube(grid_super_fine, n_1d_cells[n_grids_input-1]);
         std::shared_ptr < DGBase<dim, double> > dg_super_fine = DGFactory<dim,double>::create_discontinuous_galerkin(&param, p_end);
         dg_super_fine->set_triangulation(&grid_super_fine);
         dg_super_fine->allocate_system ();
@@ -392,8 +390,8 @@ int GridStudy<dim,nstate>
         const double slope_avg = 0.5*(before_last_slope+last_slope);
         const double slope_diff = slope_avg-expected_slope;
 
-        double slope_deficit_tolerance = -0.1;
-        if(poly_degree == 0) slope_deficit_tolerance = -0.2; // Otherwise, grid sizes need to be much bigger for p=0
+        double slope_deficit_tolerance = -std::abs(manu_grid_conv_param.slope_deficit_tolerance);
+        if(poly_degree == 0) slope_deficit_tolerance *= 2; // Otherwise, grid sizes need to be much bigger for p=0
 
         if (slope_diff < slope_deficit_tolerance) {
             std::cout << std::endl
@@ -427,7 +425,7 @@ int GridStudy<dim,nstate>
     if (n_fail_poly > 0) {
         for (int ifail=0; ifail < n_fail_poly; ++ifail) {
             const double expected_slope = fail_conv_poly[ifail]+1;
-            const double slope_deficit_tolerance = -0.1;
+            const double slope_deficit_tolerance = -std::abs(manu_grid_conv_param.slope_deficit_tolerance);
             std::cout << std::endl
                       << "Convergence order not achieved for polynomial p = "
                       << fail_conv_poly[ifail]

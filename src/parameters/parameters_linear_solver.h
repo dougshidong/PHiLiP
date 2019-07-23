@@ -34,6 +34,7 @@ public:
 
     double linear_residual; ///< Tolerance for linear residual.
     int max_iterations; ///< Maximum number of linear iteration.
+    int restart_number; ///< Number of iterations before restarting GMRES
 
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);

@@ -28,6 +28,9 @@ void LinearSolverParam::declare_parameters (dealii::ParameterHandler &prm)
             prm.declare_entry("max_iterations", "1000",
                               dealii::Patterns::Integer(),
                               "Maximum number of iterations for linear solver");
+            prm.declare_entry("restart_number", "30",
+                              dealii::Patterns::Integer(),
+                              "Number of iterations before restarting GMRES");
 
             // ILU with threshold parameters
             prm.declare_entry("ilut_fill", "1",
@@ -67,6 +70,7 @@ void LinearSolverParam ::parse_parameters (dealii::ParameterHandler &prm)
             prm.enter_subsection("gmres options");
             {
                 max_iterations  = prm.get_integer("max_iterations");
+                restart_number  = prm.get_integer("restart_number");
                 linear_residual = prm.get_double("linear_residual_tolerance");
 
                 ilut_fill = prm.get_integer("ilut_fill");

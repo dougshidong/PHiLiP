@@ -49,6 +49,10 @@ void ManufacturedConvergenceStudyParam::declare_parameters (dealii::ParameterHan
                           "Adds number of cell to 1D grid. "
                           "ith-grid will be of size (initial_grid*(i*grid_progression)+(i*grid_progression_add))^dim");
 
+        prm.declare_entry("slope_deficit_tolerance", "0.1",
+                          dealii::Patterns::Double(),
+                          "Tolerance within which the convergence orders are considered to be optimal. ");
+
         prm.declare_entry("degree_start", "0",
                           dealii::Patterns::Integer(),
                           "Starting degree for convergence study");
@@ -82,6 +86,8 @@ void ManufacturedConvergenceStudyParam ::parse_parameters (dealii::ParameterHand
         number_of_grids             = prm.get_integer("number_of_grids");
         grid_progression            = prm.get_double("grid_progression");
         grid_progression_add        = prm.get_double("grid_progression_add");
+
+        slope_deficit_tolerance     = prm.get_double("slope_deficit_tolerance");
     }
     prm.leave_subsection();
 }

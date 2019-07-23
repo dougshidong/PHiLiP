@@ -30,8 +30,8 @@ public:
         const real vortex_stddev_decay);
 
     const Physics::Euler<dim, dim+2, real> euler_physics;
-    const dealii::Point<2> initial_vortex_center; // x_c, y_c
     const real vortex_characteristic_length; // R
+    const dealii::Point<2> initial_vortex_center; // x_c, y_c
     const real vortex_strength; // beta
     const real vortex_stddev_decay; // sigma
 

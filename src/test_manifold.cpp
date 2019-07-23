@@ -147,7 +147,6 @@ namespace Step10
                     cell = dof_handler.begin_active(),
                     endc = dof_handler.end();
                 for (; cell!=endc; ++cell) {
-                    double r = cell->center ().distance(Point<dim>(0,0));
 
                     fe_values.reinit (cell);
                     for (unsigned int i=0; i<fe_values.n_quadrature_points; ++i) {

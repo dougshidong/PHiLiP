@@ -41,9 +41,6 @@ public:
      */
     int run_test () const;
 
-protected:
-
-    void initialize_perturbed_solution(DGBase<dim,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &physics) const;
 };
 
 

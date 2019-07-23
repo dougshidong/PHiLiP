@@ -48,7 +48,7 @@ InitialConditions<dim,real>
 
 template <int dim, typename real>
 inline real InitialConditions<dim,real>
-::value (const dealii::Point<dim> &point, const unsigned int istate) const
+::value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const
 {
     if(istate==0) return 0.3;
     if(istate==1) return 0.2;
@@ -94,9 +94,7 @@ int EulerGaussianBump<dim,nstate>
     const unsigned int p_start             = manu_grid_conv_param.degree_start;
     const unsigned int p_end               = manu_grid_conv_param.degree_end;
 
-    const unsigned int initial_grid_size   = manu_grid_conv_param.initial_grid_size;
     const unsigned int n_grids_input       = manu_grid_conv_param.number_of_grids;
-    const double       grid_progression    = manu_grid_conv_param.grid_progression;
 
     Physics::Euler<dim,nstate,double> euler_physics_double
         = Physics::Euler<dim, nstate, double>(
@@ -116,16 +114,10 @@ int EulerGaussianBump<dim,nstate>
         unsigned int n_grids = n_grids_input;
         if (poly_degree <= 1) n_grids = n_grids_input;
 
-        std::vector<int> n_1d_cells(n_grids);
-        n_1d_cells[0] = initial_grid_size;
-        if(poly_degree==0) n_1d_cells[0] = initial_grid_size + 1;
-
         std::vector<double> entropy_error(n_grids);
         std::vector<double> grid_size(n_grids);
 
-        for (unsigned int igrid=1;igrid<n_grids;++igrid) {
-            n_1d_cells[igrid] = n_1d_cells[igrid-1]*grid_progression;
-        }
+        const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids);
 
         dealii::ConvergenceTable convergence_table;
 
@@ -235,8 +227,6 @@ int EulerGaussianBump<dim,nstate>
                         soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
                     }
                     const double entropy = euler_physics_double.compute_entropy_measure(soln_at_q);
-
-                    const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
 
                     const double uexact = entropy_inf;
                     l2error += pow(entropy - uexact, 2) * fe_values_extra.JxW(iquad);

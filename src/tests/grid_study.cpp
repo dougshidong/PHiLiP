@@ -138,17 +138,11 @@ int GridStudy<dim,nstate>
         unsigned int n_grids = n_grids_input;
         if (poly_degree <= 1) n_grids = n_grids_input + 2;
 
-        std::vector<int> n_1d_cells(n_grids);
-        n_1d_cells[0] = initial_grid_size;
-        if(poly_degree==0) n_1d_cells[0] = initial_grid_size + 1;
-
         std::vector<double> soln_error(n_grids);
         std::vector<double> output_error(n_grids);
         std::vector<double> grid_size(n_grids);
 
-        for (unsigned int igrid=1;igrid<n_grids;++igrid) {
-            n_1d_cells[igrid] = n_1d_cells[igrid-1]*grid_progression;
-        }
+        const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids);
 
         dealii::ConvergenceTable convergence_table;
 

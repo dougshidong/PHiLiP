@@ -25,7 +25,7 @@ std::vector<int> TestsBase::get_number_1d_cells(const int n_grids) const
     Parameters::ManufacturedConvergenceStudyParam param = all_parameters->manufactured_convergence_study_param;
     n_1d_cells[0] = param.initial_grid_size;
     for (int igrid=1;igrid<n_grids;++igrid) {
-        n_1d_cells[igrid] = n_1d_cells[igrid-1]*param.grid_progression + igrid*param.grid_progression_add;
+        n_1d_cells[igrid] = n_1d_cells[igrid-1]*param.grid_progression + param.grid_progression_add;
     }
     return n_1d_cells;
 

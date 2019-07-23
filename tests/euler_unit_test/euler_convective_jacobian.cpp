@@ -55,15 +55,40 @@ int main (int /*argc*/, char * /*argv*/[])
 
                 dealii::Tensor<2,nstate,double> jacobian_fd;
                 for (int col=0; col<nstate; col++) {
+                    // const double dw = perturbation*soln[col];
+                    // std::array<double, dim+2> soln_plus = soln;
+                    // std::array<double, dim+2> soln_mins = soln;
+                    // soln_plus[col] += dw;
+                    // soln_mins[col] -= dw;
+                    // const std::array<dealii::Tensor<1,dim,double>,nstate> conv_flux_plus = euler_physics.convective_flux(soln_plus);
+                    // const std::array<dealii::Tensor<1,dim,double>,nstate> conv_flux_mins = euler_physics.convective_flux(soln_mins);
+
+                    // for (int row=0; row<nstate; row++) {
+                    //     jacobian_fd[row][col] = (conv_flux_plus[row][d] - conv_flux_mins[row][d]) / (2.0*dw);
+                    // }
+
+                    const double dw = perturbation*soln[col];
+                    std::array<double, dim+2> soln_plus2 = soln;
                     std::array<double, dim+2> soln_plus = soln;
                     std::array<double, dim+2> soln_mins = soln;
-                    soln_plus[col] += perturbation;
-                    soln_mins[col] -= perturbation;
+                    std::array<double, dim+2> soln_mins2 = soln;
+                    soln_plus2[col] += 2*dw;
+                    soln_plus[col] += dw;
+                    soln_mins[col] -= dw;
+                    soln_mins2[col] -= 2*dw;
+
+                    const std::array<dealii::Tensor<1,dim,double>,nstate> conv_flux_plus2 = euler_physics.convective_flux(soln_plus2);
                     const std::array<dealii::Tensor<1,dim,double>,nstate> conv_flux_plus = euler_physics.convective_flux(soln_plus);
                     const std::array<dealii::Tensor<1,dim,double>,nstate> conv_flux_mins = euler_physics.convective_flux(soln_mins);
+                    const std::array<dealii::Tensor<1,dim,double>,nstate> conv_flux_mins2 = euler_physics.convective_flux(soln_mins2);
 
                     for (int row=0; row<nstate; row++) {
-                        jacobian_fd[row][col] = (conv_flux_plus[row][d] - conv_flux_mins[row][d]) / (2.0*perturbation);
+                        jacobian_fd[row][col] = 
+                                -     conv_flux_plus2[row][d] 
+                                + 8 * conv_flux_plus[row][d]
+                                - 8 * conv_flux_mins[row][d]
+                                +     conv_flux_mins2[row][d];
+                        jacobian_fd[row][col] /= 12*dw;
                     }
                 }
 

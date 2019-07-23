@@ -77,6 +77,39 @@ dealii::Point<dim> EulerGaussianBump<dim,nstate>
 }
 
 
+dealii::Point<2> BumpManifold::pull_back(const dealii::Point<2> &space_point) const {
+    double x_phys = space_point[0];
+    double y_phys = space_point[1];
+    double x_ref = x_phys;//(x_phys+1.5)/3.0;
+    double y_ref = 0.5;
+
+    for (int i=0; i<20; i++) {
+        const double function = 0.8*y_ref + exp(-30*y_ref*y_ref)*0.0625*exp(-25*x_phys*x_phys) - y_phys;
+        const double derivative = 0.8 + -30*y_ref*exp(-30*y_ref*y_ref)*0.0625*exp(-25*x_phys*x_phys);
+        y_ref = y_ref - function/derivative;
+    }
+
+    dealii::Point<2> p(x_ref, y_ref);
+    return p;
+}
+
+dealii::Point<2> BumpManifold::push_forward(const dealii::Point<2> &chart_point) const {
+    double x_ref = chart_point[0];
+    double y_ref = chart_point[1];
+    // return dealii::Point<2> (x_ref, -2*x_ref*x_ref + 2*x_ref + 1);   // Parabole 
+    double x_phys = x_ref;//-1.5+x_ref*3.0;
+    double y_phys = 0.8*y_ref + exp(-30*y_ref*y_ref)*0.0625*exp(-25*x_phys*x_phys);
+    //return dealii::Point<2> ( -1.5+x_ref*3.0, 0.8*y_ref + exp(-10*y_ref*y_ref)*0.0625*exp(-25*x_ref*x_ref) ); // Trigonometric
+    //return dealii::Point<2> ( x_phys, y_phys ); // Trigonometric
+    return dealii::Point<2> ( x_phys, y_phys); // Trigonometric
+}
+
+std::unique_ptr<dealii::Manifold<2,2> > BumpManifold::clone() const
+{
+    return std::make_unique<BumpManifold>();
+}
+
+
 template<int dim, int nstate>
 int EulerGaussianBump<dim,nstate>
 ::run_test () const
@@ -341,38 +374,6 @@ int EulerGaussianBump<dim,nstate>
         }
     }
     return n_fail_poly;
-}
-
-dealii::Point<2> BumpManifold::pull_back(const dealii::Point<2> &space_point) const {
-    double x_phys = space_point[0];
-    double y_phys = space_point[1];
-    double x_ref = x_phys;//(x_phys+1.5)/3.0;
-    double y_ref = 0.5;
-
-    for (int i=0; i<20; i++) {
-        const double function = 0.8*y_ref + exp(-30*y_ref*y_ref)*0.0625*exp(-25*x_phys*x_phys) - y_phys;
-        const double derivative = 0.8 + -30*y_ref*exp(-30*y_ref*y_ref)*0.0625*exp(-25*x_phys*x_phys);
-        y_ref = y_ref - function/derivative;
-    }
-
-    dealii::Point<2> p(x_ref, y_ref);
-    return p;
-}
-
-dealii::Point<2> BumpManifold::push_forward(const dealii::Point<2> &chart_point) const {
-    double x_ref = chart_point[0];
-    double y_ref = chart_point[1];
-    // return dealii::Point<2> (x_ref, -2*x_ref*x_ref + 2*x_ref + 1);   // Parabole 
-    double x_phys = x_ref;//-1.5+x_ref*3.0;
-    double y_phys = 0.8*y_ref + exp(-30*y_ref*y_ref)*0.0625*exp(-25*x_phys*x_phys);
-    //return dealii::Point<2> ( -1.5+x_ref*3.0, 0.8*y_ref + exp(-10*y_ref*y_ref)*0.0625*exp(-25*x_ref*x_ref) ); // Trigonometric
-    //return dealii::Point<2> ( x_phys, y_phys ); // Trigonometric
-    return dealii::Point<2> ( x_phys, y_phys); // Trigonometric
-}
-
-std::unique_ptr<dealii::Manifold<2,2> > BumpManifold::clone() const
-{
-    return std::make_unique<BumpManifold>();
 }
 
 

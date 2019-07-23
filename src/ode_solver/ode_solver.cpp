@@ -97,6 +97,7 @@ void Explicit_ODESolver<dim,real>::evaluate_solution_update ()
     //this->solution_update = (this->dg->right_hand_side);
 	double dt = 0.1;
     this->solution_update = 0;
+    this->solution_update.reinit(this->dg->dof_handler.n_dofs());
     this->dg->global_mass_matrix.vmult(this->solution_update,this->dg->right_hand_side); //should be negative?
     this->solution_update *= dt;
 }

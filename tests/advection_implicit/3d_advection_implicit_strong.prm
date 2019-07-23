@@ -12,11 +12,16 @@ set use_weak_form = false
 set conv_num_flux = lax_friedrichs
 
 subsection ODE solver
+  set initial_time_step = 1e10
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations            = 500000
 
   # Nonlinear solver residual tolerance
-  set nonlinear_steady_residual_tolerance = 1e-13
+  set nonlinear_steady_residual_tolerance = 1e-12
+
+  set initial_time_step = 100
+  set time_step_factor_residual = 20.0
+  set time_step_factor_residual_exp = 3.0
 
   # Print every print_iteration_modulo iterations of the nonlinear solver
   #set print_iteration_modulo              = 1
@@ -26,6 +31,7 @@ subsection ODE solver
 end
 
 subsection manufactured solution convergence study
+  set use_manufactured_source_term = true
   # Last degree used for convergence study
   set degree_end        = 2
 
@@ -40,5 +46,5 @@ subsection manufactured solution convergence study
   set initial_grid_size = 2
 
   # Number of grids in grid study
-  set number_of_grids   = 5
+  set number_of_grids   = 4
 end

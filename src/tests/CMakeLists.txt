@@ -1,6 +1,10 @@
 set(TESTS_SOURCE
     tests.cpp
     grid_study.cpp
+    euler_gaussian_bump.cpp
+    euler_cylinder.cpp
+    euler_vortex.cpp
+    euler_entropy_waves.cpp
 )
 
 foreach(dim RANGE 1 3)

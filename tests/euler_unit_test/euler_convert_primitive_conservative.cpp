@@ -3,7 +3,7 @@
 
 #include "assert_compare_array.h"
 #include "parameters/parameters.h"
-#include "physics/physics.h"
+#include "physics/euler.h"
 
 const double TOLERANCE = 1E-12;
 
@@ -13,7 +13,9 @@ int main (int /*argc*/, char * /*argv*/[])
     const int dim = PHILIP_DIM;
     const int nstate = dim+2;
 
-    PHiLiP::Physics::Euler<dim, nstate, double> euler_physics = PHiLiP::Physics::Euler<dim, nstate, double>();
+    //const double ref_length = 1.0, mach_inf=1.0, angle_of_attack = 0.0, side_slip_angle = 0.0, gamma_gas = 1.4;
+    const double a = 1.0 , b = 0.0, c = 1.4;
+    PHiLiP::Physics::Euler<dim, nstate, double> euler_physics = PHiLiP::Physics::Euler<dim, nstate, double>(a,c,a,b,b);
 
     const double min = -10.0;
     const double max = 10.0;

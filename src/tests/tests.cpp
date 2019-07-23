@@ -4,6 +4,10 @@
 
 #include "tests.h"
 #include "grid_study.h"
+#include "euler_gaussian_bump.h"
+#include "euler_cylinder.h"
+#include "euler_vortex.h"
+#include "euler_entropy_waves.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -15,6 +19,18 @@ TestsBase::TestsBase(Parameters::AllParameters const *const parameters_input)
     all_parameters(parameters_input)
 {}
 
+std::vector<int> TestsBase::get_number_1d_cells(const int n_grids) const
+{
+    std::vector<int> n_1d_cells(n_grids);
+    Parameters::ManufacturedConvergenceStudyParam param = all_parameters->manufactured_convergence_study_param;
+    n_1d_cells[0] = param.initial_grid_size;
+    for (int igrid=1;igrid<n_grids;++igrid) {
+        n_1d_cells[igrid] = n_1d_cells[igrid-1]*param.grid_progression + igrid*param.grid_progression_add;
+    }
+    return n_1d_cells;
+
+}
+
 template<int dim, int nstate>
 std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
 ::select_test(const AllParam *const parameters_input) {
@@ -23,6 +39,16 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
 
     if(test_type == Test_enum::run_control) {
         return std::make_unique<GridStudy<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::euler_gaussian_bump) {
+        if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerGaussianBump<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::euler_cylinder) {
+        if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerCylinder<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::euler_vortex) {
+        if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerVortex<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::euler_entropy_waves) {
+        if constexpr (nstate==PHILIP_DIM+2) return std::make_unique<EulerEntropyWaves<dim,nstate>>(parameters_input);
+    } else {
+        std::cout << "Invalid test." << std::endl;
     }
 
     return nullptr;

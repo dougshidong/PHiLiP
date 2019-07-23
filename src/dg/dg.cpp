@@ -93,7 +93,7 @@ DGBase<dim,real>::DGBase( // @suppress("Class members should be properly initial
     const unsigned int degree)
     :
     nstate(nstate_input)
-    , mapping(degree+1)
+    , mapping(degree+3,true)
     , fe_dg(degree)
     , fe_system(fe_dg, nstate)
     , all_parameters(parameters_input)
@@ -228,14 +228,15 @@ void DGBase<dim,real>::assemble_residual_dRdW ()
                 real penalty = deg1sq / vol_div_facearea1;
                 //penalty = 1;//99;
 
+                const unsigned int boundary_id = current_face->boundary_id();
                 // Need to somehow get boundary type from the mesh
-                assemble_boundary_term_implicit (fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
+                assemble_boundary_term_implicit (boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
 
             // Case 2:
             // Neighbour is finer occurs if the face has children
             // This is because we are looping over the current_cell's face, so 2, 4, and 6 faces.
             } else if (current_face->has_children()) {
-                std::cout << "SHOULD NOT HAPPEN!!!!!!!!!!!! I haven't put in adaptatation yet" << std::endl;
+                //std::cout << "SHOULD NOT HAPPEN!!!!!!!!!!!! I haven't put in adaptatation yet" << std::endl;
 
                 dealii::Vector<double> neighbor_cell_rhs (dofs_per_cell); // Defaults to 0.0 initialization
                 Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
@@ -363,21 +364,21 @@ double DGBase<dim,real>::get_residual_l2norm ()
 template <int dim, typename real>
 void DGBase<dim,real>::output_results (const unsigned int ith_grid)// const
 {
-  const std::string filename = "sol-" +
-                               dealii::Utilities::int_to_string(ith_grid,2) +
-                               ".gnuplot";
-
-  std::cout << "Writing solution to <" << filename << ">..."
-            << std::endl << std::endl;
-  std::ofstream gnuplot_output (filename.c_str());
-
-  dealii::DataOut<dim> data_out;
-  data_out.attach_dof_handler (dof_handler);
-  data_out.add_data_vector (solution, "u", dealii::DataOut<dim>::type_dof_data);
-
-  data_out.build_patches ();
-
-  data_out.write_gnuplot(gnuplot_output);
+    const std::string filename = "sol-" +
+                                 dealii::Utilities::int_to_string(ith_grid,2) +
+                                 ".gnuplot";
+  
+    std::cout << "Writing solution to <" << filename << ">..."
+              << std::endl << std::endl;
+    std::ofstream gnuplot_output (filename.c_str());
+  
+    dealii::DataOut<dim> data_out;
+    data_out.attach_dof_handler (dof_handler);
+    data_out.add_data_vector (solution, "u", dealii::DataOut<dim>::type_dof_data);
+  
+    data_out.build_patches (mapping, fe_system.tensor_degree()+1, dealii::DataOut<dim>::curved_inner_cells);
+  
+    data_out.write_gnuplot(gnuplot_output);
 }
 
 template <int dim, typename real>
@@ -393,10 +394,8 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int ith_grid)// const
         data_component_interpretation(nstate, dealii::DataComponentInterpretation::component_is_scalar);
     dealii::DataOut<dim> data_out;
     data_out.attach_dof_handler (dof_handler);
-    data_out.add_data_vector (solution, solution_names,
-                              dealii::DataOut<dim>::type_dof_data,
-                              data_component_interpretation);
-    data_out.build_patches ();
+    data_out.add_data_vector (solution, solution_names, dealii::DataOut<dim>::type_dof_data, data_component_interpretation);
+    data_out.build_patches (mapping, fe_system.tensor_degree()+1, dealii::DataOut<dim>::curved_inner_cells);
     std::string filename = "solution-" +dealii::Utilities::int_to_string(dim, 1) +"D-"+ dealii::Utilities::int_to_string(ith_grid, 3) + ".vtk";
     std::ofstream output(filename);
     data_out.write_vtk(output);
@@ -460,45 +459,7 @@ void DGBase<dim,real>::output_paraview_results (const std::string /* filename */
 }
 
 template <int dim, typename real>
-void DGBase<dim,real>::evaluate_inverse_mass_matrices ()
-{
-    // Invert and store mass matrix
-    // Using Gauss-Jordan since it's deal.II's default invert function
-    // Could store Cholesky decomposition for more efficient pre-processing
-    const int n_quad_pts      = volume_quadrature.size();
-    // Number of test functions, not total number of degrees of freedom
-    const int n_tests_cell    = fe_system.dofs_per_cell;
-
-    typename dealii::DoFHandler<dim>::active_cell_iterator
-       cell = dof_handler.begin_active(),
-       endc = dof_handler.end();
-
-    inv_mass_matrix.resize(triangulation->n_active_cells(),
-                           dealii::FullMatrix<real>(n_tests_cell));
-    dealii::FullMatrix<real> mass_matrix(n_tests_cell);
-    dealii::FEValues<dim,dim> fe_values_cell (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::volume_quadrature, this->update_flags);
-    for (; cell!=endc; ++cell) {
-
-        int cell_index = cell->index();
-        fe_values_cell.reinit(cell);
-
-        for (int itest=0; itest<n_tests_cell; ++itest) {
-            for (int itrial=itest; itrial<n_tests_cell; ++itrial) {
-                mass_matrix[itest][itrial] = 0.0;
-                for (int iquad=0; iquad<n_quad_pts; ++iquad) {
-                    mass_matrix[itest][itrial] +=
-                        fe_values_cell.shape_value(itest,iquad)
-                        * fe_values_cell.shape_value(itrial,iquad)
-                        * fe_values_cell.JxW(iquad);
-                }
-                mass_matrix[itrial][itest] = mass_matrix[itest][itrial];
-            }
-        }
-        inv_mass_matrix[cell_index].invert(mass_matrix);
-    }
-}
-template <int dim, typename real>
-void DGBase<dim,real>::evaluate_mass_matrices ()
+void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
 {
     unsigned int n_dofs = dof_handler.n_dofs();
     const int n_dofs_per_cell    = fe_system.dofs_per_cell;
@@ -507,7 +468,11 @@ void DGBase<dim,real>::evaluate_mass_matrices ()
     dealii::DoFTools::make_sparsity_pattern(dof_handler, sp);
     sp.compress();
 
-    global_mass_matrix.reinit(sp);
+    if (do_inverse_mass_matrix == true) {
+        global_inverse_mass_matrix.reinit(sp);
+    } else {
+        global_mass_matrix.reinit(sp);
+    }
 
     const int n_quad_pts      = volume_quadrature.size();
 
@@ -516,6 +481,7 @@ void DGBase<dim,real>::evaluate_mass_matrices ()
        endc = dof_handler.end();
 
     dealii::FullMatrix<real> local_mass_matrix(n_dofs_per_cell);
+    dealii::FullMatrix<real> local_inverse_mass_matrix(n_dofs_per_cell);
     std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_per_cell);
     dealii::FEValues<dim,dim> fe_values_cell (DGBase<dim,real>::mapping, DGBase<dim,real>::fe_system, DGBase<dim,real>::volume_quadrature, this->update_flags);
     for (; cell!=endc; ++cell) {
@@ -523,24 +489,6 @@ void DGBase<dim,real>::evaluate_mass_matrices ()
         //int cell_index = cell->index();
         cell->get_dof_indices (dofs_indices);
         fe_values_cell.reinit(cell);
-
-
-        //const int n_dofs_per_state = fe_dg.dofs_per_cell;
-        //for (int istate=0; istate<nstate; ++istate) {
-        //    for (int itest=0; itest<n_dofs_per_state; ++itest) {
-        //        for (int itrial=itest; itrial<n_dofs_per_state; ++itrial) {
-        //            real value = 0.0;
-        //            for (int iquad=0; iquad<n_quad_pts; ++iquad) {
-        //                value +=
-        //                    fe_values_cell.shape_value_component(itest,iquad,istate)
-        //                    * fe_values_cell.shape_value_component(itrial,iquad,istate)
-        //                    * fe_values_cell.JxW(iquad);
-        //            }
-        //            local_mass_matrix[istate*n_dofs_per_state+itrial][istate*n_dofs_per_state+itest] = value;
-        //            local_mass_matrix[istate*n_dofs_per_state+itest][istate*n_dofs_per_state+itrial] = value;
-        //        }
-        //    }
-        //}
 
         for (int itest=0; itest<n_dofs_per_cell; ++itest) {
             const unsigned int istate_test = fe_values_cell.get_fe().system_to_component_index(itest).first;
@@ -556,35 +504,31 @@ void DGBase<dim,real>::evaluate_mass_matrices ()
                 local_mass_matrix[itrial][itest] = 0.0;
                 local_mass_matrix[itest][itrial] = 0.0;
                 if(istate_test==istate_trial) { 
-                local_mass_matrix[itrial][itest] = value;
-                local_mass_matrix[itest][itrial] = value;
+                    local_mass_matrix[itrial][itest] = value;
+                    local_mass_matrix[itest][itrial] = value;
                 }
             }
         }
-        global_mass_matrix.set (dofs_indices, local_mass_matrix);
-
+        if (do_inverse_mass_matrix == true) {
+            local_inverse_mass_matrix.invert(local_mass_matrix);
+            global_inverse_mass_matrix.set (dofs_indices, local_inverse_mass_matrix);
+        } else {
+            global_mass_matrix.set (dofs_indices, local_mass_matrix);
+        }
     }
-    global_mass_matrix.compress(dealii::VectorOperation::insert);
 
-    //std::cout<<"MASS MATRIX:"<<std::endl;
-    //{
-    //    dealii::FullMatrix<double> fullA(global_mass_matrix.m());
-    //    fullA.copy_from(global_mass_matrix);
-    //    std::cout<<"Dense matrix:"<<std::endl;
-    //    fullA.print_formatted(std::cout, 3, true, 10, "0", 1., 0.);
-    //}
+    if (do_inverse_mass_matrix == true) {
+        global_inverse_mass_matrix.compress(dealii::VectorOperation::insert);
+    } else {
+        global_mass_matrix.compress(dealii::VectorOperation::insert);
+    }
+
     return;
 }
 template<int dim, typename real>
 void DGBase<dim,real>::add_mass_matrices(const real scale)
 {
     system_matrix.add(scale, global_mass_matrix);
-    //{
-    //    dealii::FullMatrix<double> fullA(system_matrix.m());
-    //    fullA.copy_from(system_matrix);
-    //    std::cout<<"Dense matrix:"<<std::endl;
-    //    fullA.print_formatted(std::cout, 3, true, 10, "0", 1., 0.);
-    //}
 }
 
 template <int dim, typename real>

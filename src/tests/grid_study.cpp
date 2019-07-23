@@ -20,7 +20,7 @@
 #include "tests.h"
 #include "grid_study.h"
 
-#include "physics/physics.h"
+#include "physics/physics_factory.h"
 #include "physics/manufactured_solution.h"
 #include "dg/dg.h"
 #include "ode_solver/ode_solver.h"
@@ -110,7 +110,7 @@ int GridStudy<dim,nstate>
     const double       grid_progression    = manu_grid_conv_param.grid_progression;
 
     std::cout<<"Test Physics nstate" << nstate << std::endl;
-    std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(param.pde_type);
+    std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&param);
 
     // Evaluate solution integral on really fine mesh
     double exact_solution_integral;
@@ -138,17 +138,11 @@ int GridStudy<dim,nstate>
         unsigned int n_grids = n_grids_input;
         if (poly_degree <= 1) n_grids = n_grids_input + 2;
 
-        std::vector<int> n_1d_cells(n_grids);
-        n_1d_cells[0] = initial_grid_size;
-        if(poly_degree==0) n_1d_cells[0] = initial_grid_size + 1;
-
         std::vector<double> soln_error(n_grids);
         std::vector<double> output_error(n_grids);
         std::vector<double> grid_size(n_grids);
 
-        for (unsigned int igrid=1;igrid<n_grids;++igrid) {
-            n_1d_cells[igrid] = n_1d_cells[igrid-1]*grid_progression;
-        }
+        const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids);
 
         dealii::ConvergenceTable convergence_table;
 
@@ -160,15 +154,15 @@ int GridStudy<dim,nstate>
             dealii::Triangulation<dim> grid;
 
             // Generate hypercube
-            if (   manu_grid_conv_param.grid_type == GridEnum::hypercube
-                || manu_grid_conv_param.grid_type == GridEnum::sinehypercube ) {
+            if ( manu_grid_conv_param.grid_type == GridEnum::hypercube || manu_grid_conv_param.grid_type == GridEnum::sinehypercube ) {
+
                 dealii::GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid]);
                 for (typename dealii::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
                     // Set a dummy boundary ID
                     cell->set_material_id(9002);
-                    for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face)
-                        if (cell->face(face)->at_boundary())
-                              cell->face(face)->set_boundary_id (9001);
+                    for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+                        if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
+                    }
                 }
                 // Warp grid if requested in input file
                 if (manu_grid_conv_param.grid_type == GridEnum::sinehypercube) dealii::GridTools::transform (&warp, grid);

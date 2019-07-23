@@ -55,14 +55,13 @@ solve_linear (
       solver.SetAztecOption(AZ_reorder, 0);
 
       const double 
-        ilut_drop = 1e-10,
-        ilut_rtol = 0.0,//1.1,
-        ilut_atol = 0.0,//1e-9,
-        linear_residual = 1e-4;
+        ilut_drop = param.ilut_drop,
+        ilut_rtol = param.ilut_rtol,//0.0,//1.1,
+        ilut_atol = param.ilut_atol,//0.0,//1e-9,
+        linear_residual = param.linear_residual;//1e-4;
       const int 
-        ilut_fill = 1,
-        max_iterations = 2000
-        ;
+        ilut_fill = param.ilut_fill,//1,
+        max_iterations = param.max_iterations;//200
 
       //solver.SetAztecParam(AZ_drop, parameters.ilut_drop);
       //solver.SetAztecParam(AZ_ilut_fill, parameters.ilut_fill);

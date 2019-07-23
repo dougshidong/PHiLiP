@@ -13,6 +13,7 @@
 #include <deal.II/differentiation/ad/sacado_product_types.h>
 
 #include "dg.h"
+#include "physics/physics_factory.h"
 
 namespace PHiLiP {
 
@@ -24,7 +25,7 @@ DGWeak<dim,nstate,real>::DGWeak(
 {
     using ADtype = Sacado::Fad::DFad<real>;
     pde_physics = Physics::PhysicsFactory<dim,nstate,ADtype> 
-        ::create_Physics(parameters_input->pde_type);
+        ::create_Physics(parameters_input);
     conv_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, ADtype>
         ::create_convective_numerical_flux (parameters_input->conv_num_flux_type, pde_physics);
     diss_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, ADtype>
@@ -93,7 +94,9 @@ void DGWeak<dim,nstate,real>::assemble_cell_terms_implicit(
         // Evaluate physical convective flux and source term
         conv_phys_flux_at_q[iquad] = pde_physics->convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = pde_physics->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
-        source_at_q[iquad] = pde_physics->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad]);
+        if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
+            source_at_q[iquad] = pde_physics->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad]);
+        }
     }
 
     // Weak form
@@ -118,22 +121,27 @@ void DGWeak<dim,nstate,real>::assemble_cell_terms_implicit(
             //// Note that for diffusion, the negative is defined in the physics
             rhs = rhs + fe_values_vol.shape_grad_component(itest,iquad,istate) * diss_phys_flux_at_q[iquad][istate] * JxW[iquad];
             // Source
-            rhs = rhs + fe_values_vol.shape_value_component(itest,iquad,istate) * source_at_q[iquad][istate] * JxW[iquad];
+            if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
+                rhs = rhs + fe_values_vol.shape_value_component(itest,iquad,istate) * source_at_q[iquad][istate] * JxW[iquad];
+            }
         }
 
         local_rhs_int_cell(itest) += rhs.val();
 
-        for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-            //residual_derivatives[idof] = rhs.fastAccessDx(idof);
-            residual_derivatives[idof] = rhs.dx(idof);
+        if (this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::implicit_solver) {
+            for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
+                //residual_derivatives[idof] = rhs.fastAccessDx(idof);
+                residual_derivatives[idof] = rhs.dx(idof);
+            }
+            this->system_matrix.add(cell_dofs_indices[itest], cell_dofs_indices, residual_derivatives);
         }
-        this->system_matrix.add(cell_dofs_indices[itest], cell_dofs_indices, residual_derivatives);
     }
 }
 
 
 template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_boundary_term_implicit(
+    const unsigned int boundary_id,
     const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
     const real penalty,
     const std::vector<dealii::types::global_dof_index> &dof_indices_int,
@@ -192,7 +200,6 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_implicit(
             soln_grad_int[iquad][istate] += soln_coeff_int[idof] * fe_values_boundary.shape_grad_component(idof, iquad, istate);
         }
 
-        const unsigned int boundary_id = 1; // dummy value for now
         const dealii::Point<dim, real> x_quad = quad_pts[iquad];
         pde_physics->boundary_face_values (boundary_id, x_quad, normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
 
@@ -243,11 +250,13 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_implicit(
 
         local_rhs_int_cell(itest) += rhs.val();
 
-        for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-            //residual_derivatives[idof] = rhs.fastAccessDx(idof);
-            residual_derivatives[idof] = rhs.dx(idof);
+        if (this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::implicit_solver) {
+            for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
+                //residual_derivatives[idof] = rhs.fastAccessDx(idof);
+                residual_derivatives[idof] = rhs.dx(idof);
+            }
+            this->system_matrix.add(dof_indices_int[itest], dof_indices_int, residual_derivatives);
         }
-        this->system_matrix.add(dof_indices_int[itest], dof_indices_int, residual_derivatives);
     }
 }
 
@@ -378,14 +387,16 @@ void DGWeak<dim,nstate,real>::assemble_face_term_implicit(
         }
 
         local_rhs_int_cell(itest_int) += rhs.val();
-        for (unsigned int idof = 0; idof < n_dofs_int; ++idof) {
-            dR1_dW1[idof] = rhs.dx(idof);
+        if (this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::implicit_solver) {
+            for (unsigned int idof = 0; idof < n_dofs_int; ++idof) {
+                dR1_dW1[idof] = rhs.dx(idof);
+            }
+            for (unsigned int idof = 0; idof < n_dofs_ext; ++idof) {
+                dR1_dW2[idof] = rhs.dx(n_dofs_int+idof);
+            }
+            this->system_matrix.add(dof_indices_int[itest_int], dof_indices_int, dR1_dW1);
+            this->system_matrix.add(dof_indices_int[itest_int], dof_indices_ext, dR1_dW2);
         }
-        for (unsigned int idof = 0; idof < n_dofs_ext; ++idof) {
-            dR1_dW2[idof] = rhs.dx(n_dofs_int+idof);
-        }
-        this->system_matrix.add(dof_indices_int[itest_int], dof_indices_int, dR1_dW1);
-        this->system_matrix.add(dof_indices_int[itest_int], dof_indices_ext, dR1_dW2);
     }
 
     // From test functions associated with neighbour cell point of view
@@ -402,14 +413,16 @@ void DGWeak<dim,nstate,real>::assemble_face_term_implicit(
         }
 
         local_rhs_ext_cell(itest_ext) += rhs.val();
-        for (unsigned int idof = 0; idof < n_dofs_int; ++idof) {
-            dR2_dW1[idof] = rhs.dx(idof);
+        if (this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::implicit_solver) {
+            for (unsigned int idof = 0; idof < n_dofs_int; ++idof) {
+                dR2_dW1[idof] = rhs.dx(idof);
+            }
+            for (unsigned int idof = 0; idof < n_dofs_ext; ++idof) {
+                dR2_dW2[idof] = rhs.dx(n_dofs_int+idof);
+            }
+            this->system_matrix.add(dof_indices_ext[itest_ext], dof_indices_int, dR2_dW1);
+            this->system_matrix.add(dof_indices_ext[itest_ext], dof_indices_ext, dR2_dW2);
         }
-        for (unsigned int idof = 0; idof < n_dofs_ext; ++idof) {
-            dR2_dW2[idof] = rhs.dx(n_dofs_int+idof);
-        }
-        this->system_matrix.add(dof_indices_ext[itest_ext], dof_indices_int, dR2_dW1);
-        this->system_matrix.add(dof_indices_ext[itest_ext], dof_indices_ext, dR2_dW2);
     }
 }
 template class DGWeak <PHILIP_DIM, 1, double>;

@@ -4,10 +4,10 @@ namespace PHiLiP {
 namespace Parameters {
 
 AllParameters::AllParameters ()
-    :
-    manufactured_convergence_study_param(ManufacturedConvergenceStudyParam()),
-    ode_solver_param(ODESolverParam()),
-    linear_solver_param(LinearSolverParam())
+    : manufactured_convergence_study_param(ManufacturedConvergenceStudyParam())
+    , ode_solver_param(ODESolverParam())
+    , linear_solver_param(LinearSolverParam())
+    , euler_param(EulerParam())
 { }
 void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 {
@@ -31,11 +31,19 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     prm.declare_entry("test_type", "run_control",
                       dealii::Patterns::Selection(
                       " run_control | "
+                      " euler_gaussian_bump | "
+                      " euler_cylinder | "
+                      " euler_vortex | "
+                      " euler_entropy_waves | "
                       " numerical_flux_convervation | "
                       " jacobian_regression "),
                       "The type of test we want to solve. "
                       "Choices are (only run control has been coded up for now)" 
                       " <run_control | " 
+                      "  euler_gaussian_bump | "
+                      "  euler_cylinder | "
+                      "  euler_vortex | "
+                      "  euler_entropy_waves | "
                       "  numerical_flux_convervation | "
                       "  jacobian_regression>.");
 
@@ -68,6 +76,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
     Parameters::ODESolverParam::declare_parameters (prm);
 
+    Parameters::EulerParam::declare_parameters (prm);
+
     std::cout << "Done declaring inputs." << std::endl;
 }
 
@@ -79,6 +89,10 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     const std::string test_string = prm.get("test_type");
     if (test_string == "run_control") { test_type = run_control; }
+    else if (test_string == "euler_gaussian_bump") { test_type = euler_gaussian_bump; }
+    else if (test_string == "euler_cylinder") { test_type = euler_cylinder; }
+    else if (test_string == "euler_vortex") { test_type = euler_vortex; }
+    else if (test_string == "euler_entropy_waves") { test_type = euler_entropy_waves; }
     else if (test_string == "numerical_flux_convervation") { test_type = numerical_flux_convervation; }
     else if (test_string == "jacobian_regression") { test_type = jacobian_regression; }
 
@@ -122,6 +136,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     std::cout << "Parsing manufactured convergence study subsection..." << std::endl;
     manufactured_convergence_study_param.parse_parameters (prm);
+
+    std::cout << "Parsing euler subsection..." << std::endl;
+    euler_param.parse_parameters (prm);
 
     std::cout << "Done parsing." << std::endl;
 }

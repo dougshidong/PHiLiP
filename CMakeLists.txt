@@ -5,8 +5,9 @@ set(CMAKE_CXX_COMPILER mpicxx)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 17)
     
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Werror")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -Werror")
 
+#set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -Og -g")
 
 #set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build_${BUILD_DIM}D)
 
@@ -35,7 +36,7 @@ option(USE_LD_GOLD "Use GNU gold linker" ON)
 if(USE_LD_GOLD AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
   execute_process(COMMAND ${CMAKE_C_COMPILER} -fuse-ld=gold -Wl,--version OUTPUT_VARIABLE stdout ERROR_QUIET)
   if("${stdout}" MATCHES "GNU gold")
-    set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -fuse-ld=gold")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-ld=gold")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fuse-ld=gold")
   else()
     message(WARNING "GNU gold linker isn't available, using the default system linker.")

@@ -16,7 +16,7 @@ real F1<dim, nstate, real>::operator()(const std::array<real,nstate> &conservati
 }
 
 template <int dim, int nstate, typename real>
-real F2<dim, nstate, real>::operator()(const std::array<real,nstate> &conservative_soln)
+real F2<dim, nstate, real>::operator()(const std::array<real,nstate>)
 {
 	return 1.0;
 }

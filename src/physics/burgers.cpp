@@ -3,7 +3,7 @@
 #include <deal.II/differentiation/ad/sacado_number_types.h>
 #include <deal.II/differentiation/ad/sacado_product_types.h>
 
-#include "physics.h"
+#include "burgers.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -113,7 +113,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>
 {
     std::array<dealii::Tensor<1,dim,real>,nstate> diss_flux;
     const real diff_coeff = diffusion_coefficient();
-    using phys = PhysicsBase<dim,nstate,real>;
     for (int i=0; i<nstate; i++) {
         diss_flux[i] = -diff_coeff*((this->diffusion_tensor)*solution_gradient[i]);
     }
@@ -127,7 +126,6 @@ std::array<real,nstate> Burgers<dim,nstate,real>
     const std::array<real,nstate> &/*solution*/) const
 {
     std::array<real,nstate> source;
-    using phys = PhysicsBase<dim,nstate,real>;
     const real diff_coeff = diffusion_coefficient();
 
     for (int istate=0; istate<nstate; istate++) {

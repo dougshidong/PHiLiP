@@ -17,8 +17,10 @@ foreach(dim RANGE 1 3)
     add_dependencies(${dim}D ${TEST_TARGET})
 
     # Library dependency
+    set(ParameterLib ParametersLibrary)
     string(CONCAT PhysicsLib Physics_${dim}D)
     string(CONCAT NumericalFluxLib NumericalFlux_${dim}D)
+    target_link_libraries(${TEST_TARGET} ${ParameterLib})
     target_link_libraries(${TEST_TARGET} ${PhysicsLib})
     target_link_libraries(${TEST_TARGET} ${NumericalFluxLib})
     # Setup target with deal.II
@@ -44,5 +46,6 @@ foreach(dim RANGE 1 3)
     unset(TEST_TARGET)
     unset(PhysicsLib)
     unset(NumericalFluxLib)
+    unset(ParameterLib)
 
 endforeach()

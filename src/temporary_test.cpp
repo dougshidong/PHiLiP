@@ -3,9 +3,20 @@
 #include <deal.II/differentiation/ad/sacado_product_types.h>
 #include <deal.II/base/tensor.h>
 
+#include <deal.II/lac/vector.h>
+
 int main (int /*argc*/, char * /*argv*/[])
 {
     using namespace dealii;
+
+    dealii::Vector<double> vector1, vector2;
+    vector1.reinit(10);
+    vector2.reinit(10);
+    vector1.add(1);
+    vector2.add(2);
+    vector2.add(3,vector1);
+    std::cout << "vector1 " << std::endl << vector1 << std::endl;
+    std::cout << "vector2 " << std::endl << vector2 << std::endl;
 
     using ADtype = Sacado::Fad::DFad<double>;
     using ADADtype = Sacado::Fad::DFad<ADtype>;

@@ -22,6 +22,10 @@ public:
 
     double nonlinear_steady_residual_tolerance; ///< Tolerance to determine steady-state convergence.
 
+    double initial_time_step; ///< Time step used in ODE solver.
+    double time_step_factor_residual; ///< Multiplies initial time-step by time_step_factor_residual*(-log10(residual_norm))
+    double time_step_factor_residual_exp; ///< Scales initial time step by pow(time_step_factor_residual*(-log10(residual_norm)),time_step_factor_residual_exp)
+
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
     /// Parses input file and sets the variables.

@@ -29,26 +29,34 @@ public:
     /// Constructor
     ODESolver(std::shared_ptr< DGBase<dim, real> > dg_input)
     :
+    current_time(0.0),
     dg(dg_input),
     all_parameters(dg->all_parameters)
     {};
     virtual ~ODESolver() {}; ///< Destructor
     
 
-    /// Virtual function to evaluate steady state solution
-    virtual int steady_state () = 0;
+    double current_time;
+
+    /// Evaluate steady state solution
+    int steady_state ();
+
+    /// Virtual function to advance solution to time+dt
+    int advance_solution_time (double time_advance);
+
     /// Virtual function to allocate the ODE system
     virtual void allocate_ode_system () = 0;
-
-    int step_in_time(); ///< Step in time once.
 
     double residual_norm; ///< Current residual norm. Only makes sense for steady state
 
     unsigned int current_iteration; ///< Current iteration.
 
 protected:
+    double update_norm;
+    double initial_residual_norm;
+
     /// Virtual function to evaluate solution update
-    virtual void evaluate_solution_update () = 0;
+    virtual void step_in_time(real dt) = 0;
 
     /// Evaluate stable time-step
     /** Currently not used */
@@ -56,6 +64,8 @@ protected:
 
     /// Solution update given by the ODE solver
     dealii::Vector<real> solution_update;
+
+    std::vector<dealii::Vector<real>> rk_stage;
 
     /// Solution vector.
     /** Currently not used. Might make it a vector pointing to dg->solution */
@@ -104,9 +114,8 @@ public:
     {};
     ~Implicit_ODESolver() {}; ///< Destructor.
     void allocate_ode_system ();
-    int steady_state ();
 protected:
-    void evaluate_solution_update ();
+    void step_in_time(real dt);
 
 }; // end of Implicit_ODESolver class
 
@@ -122,14 +131,13 @@ class Explicit_ODESolver
 public:
     Explicit_ODESolver() = delete;
     Explicit_ODESolver(std::shared_ptr<DGBase<dim, real>> dg_input)
-    :
-    ODESolver<dim,real>::ODESolver(dg_input)
+    : ODESolver<dim,real>::ODESolver(dg_input) 
     {};
     ~Explicit_ODESolver() {};
     void allocate_ode_system ();
-    int steady_state ();
+
 protected:
-    void evaluate_solution_update ();
+    void step_in_time(real dt);
 }; // end of Explicit_ODESolver class
 
 /// Creates and assemble Explicit_ODESolver or Implicit_ODESolver as ODESolver based on input.

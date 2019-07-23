@@ -79,23 +79,19 @@ public:
     /** Must be done after setting the mesh and before assembling the system. */
     virtual void allocate_system ();
 
-    /// Allocates and evaluates the inverse mass matrices for the entire grid
-    /*  Although straightforward, this has not been tested yet.
-     *  Will be required for accurate time-stepping or nonlinear problems
-     */
-    void evaluate_inverse_mass_matrices ();
-    /// Vector of inverse mass matrices.
-    /** Contains the inverse mass matrices of each cell.  */
-    std::vector<dealii::FullMatrix<real>> inv_mass_matrix;
-
     /// Allocates and evaluates the mass matrices for the entire grid
     /*  Although straightforward, this has not been tested yet.
      *  Will be required for accurate time-stepping or nonlinear problems
      */
-    void evaluate_mass_matrices ();
-    /// Vector of mass matrices.
-    /** Contains the mass matrices of each cell.  */
+    void evaluate_mass_matrices (bool do_inverse_mass_matrix = false);
+
+    /// Global mass matrix
+    /** Should be block diagonal where each block contains the mass matrix of each cell.  */
     dealii::TrilinosWrappers::SparseMatrix global_mass_matrix;
+
+    /// Global inverser mass matrix
+    /** Should be block diagonal where each block contains the inverse mass matrix of each cell.  */
+    dealii::TrilinosWrappers::SparseMatrix global_inverse_mass_matrix;
 
     /// Evaluates the maximum stable time step
     /*  If exact_time_stepping = true, use the same time step for the entire solution
@@ -239,6 +235,7 @@ protected:
         dealii::Vector<real> &current_cell_rhs) = 0;
     /// Evaluate the integral over the cell edges that are on domain boundaries
     virtual void assemble_boundary_term_implicit(
+        const unsigned int boundary_id,
         const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
@@ -254,7 +251,7 @@ protected:
         dealii::Vector<real>          &neighbor_cell_rhs) = 0;
 
     // QGauss is Gauss-Legendre quadrature nodes
-    dealii::QGauss<1>     oned_quadrature; // For the strong form
+    dealii::Quadrature<1>     oned_quadrature; // For the strong form
     dealii::Quadrature<dim>   volume_quadrature;
     dealii::Quadrature<dim-1> face_quadrature;
     // const dealii::QGaussLobatto<dim>   volume_quadrature;
@@ -321,6 +318,7 @@ private:
         dealii::Vector<real> &current_cell_rhs);
     /// Evaluate the integral over the cell edges that are on domain boundaries
     void assemble_boundary_term_implicit(
+        const unsigned int boundary_id,
         const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
@@ -371,6 +369,7 @@ private:
         dealii::Vector<real> &current_cell_rhs);
     /// Evaluate the integral over the cell edges that are on domain boundaries
     void assemble_boundary_term_implicit(
+        const unsigned int boundary_id,
         const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,

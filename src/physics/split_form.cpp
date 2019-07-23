@@ -5,7 +5,7 @@ namespace PHiLiP
 //SplitForm Factory
 template <int dim, int nstate, typename real>
 std::shared_ptr < SplitFormBase<dim, nstate, real> >
-SplitFormFactory<dim,nstate,real>::create_SplitForm(Parameters::AllParameters::PartialDifferentialEquation pde_type)
+SplitFormFactory<dim,nstate,real>::create_SplitForm(Parameters::AllParameters::PartialDifferentialEquation /*pde_type*/)
 {
 //	using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
 //	if (pde_type == PDE_enum::burgers_inviscid) {

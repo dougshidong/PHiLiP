@@ -33,7 +33,7 @@ namespace burgers1d
 	{
 	public:
 		F2(){};
-		real operator()(const std::array<real,nstate> &conservative_soln);
+		real operator()(const std::array<real,nstate> /*&conservative_soln*/);
 	};
 
 	template <int dim, int nstate, typename real>
@@ -95,7 +95,7 @@ class SplitFormFactory
 {
 public:
 	static std::shared_ptr< SplitFormBase<dim, nstate, real> >
-		create_SplitForm(Parameters::AllParameters::PartialDifferentialEquation pde_type);
+		create_SplitForm(Parameters::AllParameters::PartialDifferentialEquation /*pde_type*/);
 };
 
 

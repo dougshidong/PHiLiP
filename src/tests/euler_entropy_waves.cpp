@@ -89,10 +89,7 @@ int EulerEntropyWaves<dim,nstate>
     const unsigned int p_start             = manu_grid_conv_param.degree_start;
     const unsigned int p_end               = manu_grid_conv_param.degree_end;
 
-    const unsigned int initial_grid_size   = manu_grid_conv_param.initial_grid_size;
     const unsigned int n_grids_input       = manu_grid_conv_param.number_of_grids;
-    const double       grid_progression    = manu_grid_conv_param.grid_progression;
-
 
     std::vector<int> fail_conv_poly;
     std::vector<double> fail_conv_slop;
@@ -114,16 +111,10 @@ int EulerEntropyWaves<dim,nstate>
         unsigned int n_grids = n_grids_input;
         if (poly_degree <= 1) n_grids = n_grids_input + 2;
 
-        std::vector<int> n_1d_cells(n_grids);
-        n_1d_cells[0] = initial_grid_size;
-        if(poly_degree==0) n_1d_cells[0] = initial_grid_size + 1;
-
         std::vector<double> soln_error(n_grids);
         std::vector<double> grid_size(n_grids);
 
-        for (unsigned int igrid=1;igrid<n_grids;++igrid) {
-            n_1d_cells[igrid] = n_1d_cells[igrid-1]*grid_progression;
-        }
+        const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids);
 
         dealii::ConvergenceTable convergence_table;
 

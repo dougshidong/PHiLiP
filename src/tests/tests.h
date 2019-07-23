@@ -29,6 +29,10 @@ public:
     /** This will get overloaded by the derived test classes.
      */
     virtual int run_test() const = 0;
+protected:
+
+    /// Evaluates the number of cells to generate the grids for 1D grid based on input file.
+    std::vector<int> get_number_1d_cells(const int ngrids) const;
 
 };
 

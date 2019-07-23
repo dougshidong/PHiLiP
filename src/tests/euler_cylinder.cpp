@@ -31,7 +31,7 @@ namespace Tests {
 dealii::Point<2> warp_cylinder (const dealii::Point<2> &p)
 {
     const double rectangle_height = 1.0;
-    const double original_radius = std::abs(p[0]);
+    //const double original_radius = std::abs(p[0]);
     const double angle = p[1]/rectangle_height * dealii::numbers::PI;
 
     const double radius = std::abs(p[0]);
@@ -49,12 +49,10 @@ void half_cylinder(dealii::Triangulation<2> & tria,
                    const unsigned int n_cells_circle,
                    const unsigned int n_cells_radial)
 {
-    const double pi = dealii::numbers::PI;
-    const unsigned int n_cells = n_cells_circle*n_cells_radial;
-
-    double inner_circumference = inner_radius*pi;
-    double outer_circumference = outer_radius*pi;
-    const double rectangle_height = inner_circumference;
+    //const double pi = dealii::numbers::PI;
+    //double inner_circumference = inner_radius*pi;
+    //double outer_circumference = outer_radius*pi;
+    //const double rectangle_height = inner_circumference;
     dealii::Point<2> p1(-outer_radius,0.0), p2(-inner_radius,1.0);
 
     const bool colorize = true;
@@ -91,7 +89,7 @@ InitialConditions2<dim,real>
 
 template <int dim, typename real>
 inline real InitialConditions2<dim,real>
-::value (const dealii::Point<dim> &point, const unsigned int istate) const
+::value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const
 {
     if(istate==0) return 1.0;
     if(istate==1) return 1.0;
@@ -106,14 +104,6 @@ EulerCylinder<dim,nstate>::EulerCylinder(const Parameters::AllParameters *const 
     :
     TestsBase::TestsBase(parameters_input)
 {}
-
-template <int dim, int nstate>
-void EulerCylinder<dim,nstate>
-::initialize_perturbed_solution(DGBase<dim,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &physics) const
-{
-    InitialConditions2<dim,double> initial_conditions(nstate);
-    dealii::VectorTools::interpolate(dg.dof_handler, initial_conditions, dg.solution);
-}
 
 template<int dim, int nstate>
 int EulerCylinder<dim,nstate>
@@ -134,9 +124,7 @@ int EulerCylinder<dim,nstate>
     const unsigned int p_start             = manu_grid_conv_param.degree_start;
     const unsigned int p_end               = manu_grid_conv_param.degree_end;
 
-    const unsigned int initial_grid_size   = manu_grid_conv_param.initial_grid_size;
     const unsigned int n_grids_input       = manu_grid_conv_param.number_of_grids;
-    const double       grid_progression    = manu_grid_conv_param.grid_progression;
 
     Physics::Euler<dim,nstate,double> euler_physics_double
         = Physics::Euler<dim, nstate, double>(
@@ -156,16 +144,10 @@ int EulerCylinder<dim,nstate>
         unsigned int n_grids = n_grids_input;
         if (poly_degree <= 1) n_grids = n_grids_input;
 
-        std::vector<int> n_1d_cells(n_grids);
-        n_1d_cells[0] = initial_grid_size;
-        if(poly_degree==0) n_1d_cells[0] = initial_grid_size + 1;
-
         std::vector<double> entropy_error(n_grids);
         std::vector<double> grid_size(n_grids);
 
-        for (unsigned int igrid=1;igrid<n_grids;++igrid) {
-            n_1d_cells[igrid] = n_1d_cells[igrid-1]*grid_progression;
-        }
+        const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids);
 
         dealii::ConvergenceTable convergence_table;
 
@@ -180,9 +162,9 @@ int EulerCylinder<dim,nstate>
             n_subdivisions[1] = n_1d_cells[igrid]; // y-direction
             n_subdivisions[0] = 4*n_subdivisions[1]; // x-direction
 
-            const bool colorize = true;
-            const double L_z = 1.0;
-            const unsigned int repetitions_z = 2;
+            //const bool colorize = true;
+            //const double L_z = 1.0;
+            //const unsigned int repetitions_z = 2;
             //
             //dealii::GridGenerator::hyper_cube_with_cylindrical_hole(grid, inner_radius, outer_radius, L_z, repetitions_z, colorize)
             //for (typename dealii::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
@@ -199,7 +181,6 @@ int EulerCylinder<dim,nstate>
             //    }
             //}
 
-            const int n_cells = n_1d_cells[igrid]*n_1d_cells[igrid];
             dealii::Point<2> center(0.0,0.0);
             const unsigned int n_cells_circle = n_1d_cells[n_grids-2];
             //const unsigned int n_cells_circle = n_1d_cells[igrid];
@@ -250,7 +231,8 @@ int EulerCylinder<dim,nstate>
             dg->allocate_system ();
 
             std::cout << "Initialize perturbed solution" << std::endl;
-            initialize_perturbed_solution(*(dg), euler_physics_double);
+            InitialConditions2<dim,double> initial_conditions(nstate);
+            dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
             // Create ODE solver using the factory and providing the DG object
             std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
@@ -303,8 +285,6 @@ int EulerCylinder<dim,nstate>
                         soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
                     }
                     const double entropy = euler_physics_double.compute_entropy_measure(soln_at_q);
-
-                    const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
 
                     const double uexact = entropy_inf;
                     l2error += pow(entropy - uexact, 2) * fe_values_extra.JxW(iquad);

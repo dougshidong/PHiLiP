@@ -41,7 +41,7 @@ EulerVortexFunction<dim,real>
     :
     dealii::Function<dim,real>(dim+2, 0.0)
     , euler_physics(euler_physics)
-    , vortex_characteristic_length(2.0*euler_physics.ref_length)
+    , vortex_characteristic_length(1.0*euler_physics.ref_length)
     , initial_vortex_center(initial_vortex_center)
     , vortex_strength(vortex_strength)
     , vortex_stddev_decay(vortex_stddev_decay)
@@ -50,12 +50,12 @@ EulerVortexFunction<dim,real>
 }
 
 template <int dim, typename real>
-inline dealii::Point<2> EulerVortexFunction<dim,real>::advected_location(dealii::Point<2> old_location) const
+inline dealii::Point<2> EulerVortexFunction<dim,real>::advected_location(dealii::Point<2> grid_location) const
 {
     dealii::Point<2> new_location;
     const double time = this->get_time();
     for(int d=0; d<dim; d++) {
-        new_location[d] = (old_location[d] - initial_vortex_center[d]) - euler_physics.velocities_inf[d] * time;
+        new_location[d] = (grid_location[d] - initial_vortex_center[d]) - euler_physics.velocities_inf[d] * time;
     }
     return new_location;
 }
@@ -81,13 +81,31 @@ inline real EulerVortexFunction<dim,real>
     const double vel_x = euler_physics.velocities_inf[0] + delta_vel_x;
     const double vel_y = euler_physics.velocities_inf[1] + delta_vel_y;
     const double temperature = (euler_physics.temperature_inf + delta_temp);
+    //if(std::abs(x) > 19.9) {
+    //    std::cout<< "Gaussian " << gaussian << std::endl;
+    //    std::cout<< "pert " << perturbation_strength << std::endl;
+    //    std::cout<< "velx " << vel_x << std::endl;
+    //    std::cout<< "vely " << vel_y << std::endl;
+    //    std::cout<< "delta_temp " << delta_temp << std::endl;
+    //    std::cout<< "temperature " << temperature << std::endl;
+    //    std::cout<< std::endl;
+    //}
 
     // Use isentropic relations to recover density and pressure
     const double density = pow(temperature, 1.0/euler_physics.gamm1);
-    const double pressure = euler_physics.pressure_inf * 1.0/euler_physics.gam * pow(temperature, euler_physics.gam/euler_physics.gamm1);
+    //const double pressure = euler_physics.pressure_inf * 1.0/euler_physics.gam * pow(temperature, euler_physics.gam/euler_physics.gamm1);
+    const double pressure = euler_physics.pressure_inf * pow(temperature, euler_physics.gam/euler_physics.gamm1);
 
     const std::array<double, 4> primitive_values = {density, vel_x, vel_y, pressure};
     const std::array<double, 4> conservative_values = euler_physics.convert_primitive_to_conservative(primitive_values);
+
+    // if(std::abs(x) > 19.9) {
+    //     std::cout<< "density " << conservative_values[0] << std::endl;
+    //     std::cout<< "momx " << conservative_values[1] << std::endl;
+    //     std::cout<< "momy " << conservative_values[2] << std::endl;
+    //     std::cout<< "energy " << conservative_values[3] << std::endl;
+    //     std::cout<< std::endl;
+    // }
 
     return conservative_values[istate];
 }
@@ -126,7 +144,7 @@ int EulerVortex<dim,nstate>
     const dealii::Point<2> initial_vortex_center(0.0,0.0);
     const double vortex_strength = euler->mach_inf*4.0;
     const double vortex_stddev_decay = 1.0;
-    const double half_length = 10*euler->ref_length;
+    const double half_length = 20*euler->ref_length;
     EulerVortexFunction<dim,double> initial_vortex_function(*euler, initial_vortex_center, vortex_strength, vortex_stddev_decay);
     initial_vortex_function.set_time(0.0);
 
@@ -213,8 +231,8 @@ int EulerVortex<dim,nstate>
             // We can then compare the exact solution to whatever time it reached
             ode_solver->steady_state();
             
-            const double final_time = ode_solver->current_time;
             EulerVortexFunction<dim,double> final_vortex_function(*euler, initial_vortex_center, vortex_strength, vortex_stddev_decay);
+            const double final_time = ode_solver->current_time;
             final_vortex_function.set_time(final_time);
 
             // Overintegrate the error to make sure there is not integration error in the error estimate

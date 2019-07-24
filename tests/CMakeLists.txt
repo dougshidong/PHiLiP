@@ -9,7 +9,9 @@ add_subdirectory(diffusion_implicit)
 add_subdirectory(convection_diffusion_implicit)
 add_subdirectory(advection_vector_implicit)
 add_subdirectory(burgers_inviscid_implicit)
+add_subdirectory(burgers_inviscid_explicit)
 add_subdirectory(burgers_inviscid_explicit_split)
+add_subdirectory(burgers_split_stability)
 
 add_subdirectory(euler_implicit)
 

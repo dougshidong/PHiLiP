@@ -100,17 +100,6 @@ int ODESolver<dim,real>::advance_solution_time (double time_advance)
 }
 
 template <int dim, typename real>
-void Explicit_ODESolver<dim,real>::evaluate_solution_update ()
-{
-    //this->solution_update = dt*(this->dg->right_hand_side);
-    //this->solution_update = (this->dg->right_hand_side);
-	double dt = 0.1;
-    this->solution_update = 0;
-    this->solution_update.reinit(this->dg->dof_handler.n_dofs());
-    this->dg->global_mass_matrix.vmult(this->solution_update,this->dg->right_hand_side); //should be negative?
-    this->solution_update *= dt;
-}
-template <int dim, typename real>
 void Implicit_ODESolver<dim,real>::step_in_time (real dt)
 {
     this->current_time += dt;

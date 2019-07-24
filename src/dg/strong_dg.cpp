@@ -142,8 +142,7 @@ void DGStrong<dim,nstate,real>::assemble_cell_terms_implicit(
 
         const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(itest).first;
 
-        bool use_split_form = false; //remove later
-        if (use_split_form)
+        if (this->all_parameters->use_split_form)
         {
         	for (unsigned int isplit = 0; isplit < split_fluxes->split_convective_fluxes[istate].size(); ++isplit)
         	{
@@ -164,7 +163,7 @@ void DGStrong<dim,nstate,real>::assemble_cell_terms_implicit(
             // Now minus such 2 integrations by parts
             assert(JxW[iquad] - fe_values_lagrange.JxW(iquad) < 1e-14);
 
-            if (!use_split_form)
+            if (!this->all_parameters->use_split_form)
             	rhs = rhs - fe_values_vol.shape_value_component(itest,iquad,istate) * flux_divergence[iquad][istate] * JxW[iquad];
 
             //// Diffusive

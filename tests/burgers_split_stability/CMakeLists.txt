@@ -2,7 +2,7 @@ set(TEST_SRC
     burgers_stability.cpp
     )
 
-foreach(dim RANGE 1 3)
+foreach(dim RANGE 1 1)
 
     
     # Output executable
@@ -20,21 +20,19 @@ foreach(dim RANGE 1 3)
     set(ParameterLib ParametersLibrary)
     string(CONCAT PhysicsLib Physics_${dim}D)
     string(CONCAT NumericalFluxLib NumericalFlux_${dim}D)
+    string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D) 
+    string(CONCAT ODESolverLib ODESolver_${dim}D)
+
     target_link_libraries(${TEST_TARGET} ${ParameterLib})
     target_link_libraries(${TEST_TARGET} ${PhysicsLib})
     target_link_libraries(${TEST_TARGET} ${NumericalFluxLib})
-    # Setup target with deal.II
-    DEAL_II_SETUP_TARGET(${TEST_TARGET})
+    target_link_libraries(${TEST_TARGET} ${DiscontinuousGalerkinLib})
+    target_link_libraries(${TEST_TARGET} ${ODESolverLib})
 
-    # Weird thing where we need to add more libraries
-    # Otherwise, we get the following error:
-    # /usr/bin/ld: ********.o: undefined reference to symbol '_ZN3MPI8Datatype4FreeEv'
-    # //usr/lib/libmpi_cxx.so.1: error adding symbols: DSO missing from command line
-    # See one of the following links (translate chinese to english using Google)
-    # https://zhuanlan.zhihu.com/p/21385662
-    # https://www.getit01.com/p2018020821385662/
     target_link_libraries(${TEST_TARGET} m mpi mpi_cxx)
 
+    # Setup target with deal.II
+    DEAL_II_SETUP_TARGET(${TEST_TARGET})
 
     add_test(
       NAME ${TEST_TARGET}
@@ -47,5 +45,7 @@ foreach(dim RANGE 1 3)
     unset(PhysicsLib)
     unset(NumericalFluxLib)
     unset(ParameterLib)
+    unset(DiscontinuousGalerkinLib)
+    unset(ODESolverLib)
 
 endforeach()

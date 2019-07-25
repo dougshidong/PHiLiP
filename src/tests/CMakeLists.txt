@@ -26,7 +26,7 @@ foreach(dim RANGE 1 3)
     # Setup target with deal.II
     DEAL_II_SETUP_TARGET(${TestsLib})
 
-    unset(Testsib)
+    unset(TestsLib)
     unset(DiscontinuousGalerkinLib)
     unset(ODESolverLib)
     unset(NumericalFluxLib)

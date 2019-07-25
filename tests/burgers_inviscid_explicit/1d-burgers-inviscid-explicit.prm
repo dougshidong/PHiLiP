@@ -29,7 +29,7 @@ subsection ODE solver
   # Explicit or implicit solverChoices are <explicit|implicit>.
   set ode_solver_type                         = explicit
 
-  set initial_time_step = 0.1
+  set initial_time_step = 0.001
 end
 
 subsection manufactured solution convergence study

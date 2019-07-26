@@ -18,7 +18,7 @@ int ODESolver<dim,real>::steady_state ()
     this->dg->output_results_vtk(this->current_iteration);
 
     std::cout << " Evaluating right-hand side and setting system_matrix to Jacobian before starting iterations... " << std::endl;
-    this->dg->assemble_residual_dRdW ();
+    this->dg->assemble_residual ();
     initial_residual_norm = this->dg->get_residual_l2norm();
 
     // Output initial solution
@@ -38,7 +38,7 @@ int ODESolver<dim,real>::steady_state ()
             (this->current_iteration%ode_param.print_iteration_modulo) == 0 )
         std::cout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
 
-        this->dg->assemble_residual_dRdW ();
+        this->dg->assemble_residual ();
         this->residual_norm = this->dg->get_residual_l2norm() / this->initial_residual_norm;
 
         double dt = ode_param.initial_time_step;
@@ -47,10 +47,9 @@ int ODESolver<dim,real>::steady_state ()
 
         step_in_time(dt);
 
-        this->dg->output_results_vtk(this->current_iteration);
-
-
         ++(this->current_iteration);
+
+        //this->dg->output_results_vtk(this->current_iteration);
 
     }
     return 1;
@@ -88,13 +87,11 @@ int ODESolver<dim,real>::advance_solution_time (double time_advance)
             (this->current_iteration%ode_param.print_iteration_modulo) == 0 )
         std::cout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
 
-        this->dg->assemble_residual_dRdW ();
-
         step_in_time(constant_time_step);
 
-        this->dg->output_results_vtk(this->current_iteration);
-
         ++(this->current_iteration);
+
+        //this->dg->output_results_vtk(this->current_iteration);
     }
     return 1;
 }
@@ -102,6 +99,7 @@ int ODESolver<dim,real>::advance_solution_time (double time_advance)
 template <int dim, typename real>
 void Implicit_ODESolver<dim,real>::step_in_time (real dt)
 {
+    this->dg->assemble_residual_dRdW ();
     this->current_time += dt;
     // Solve (M/dt - dRdW) dw = R
     // w = w + dw
@@ -129,8 +127,9 @@ void Implicit_ODESolver<dim,real>::step_in_time (real dt)
 template <int dim, typename real>
 void Explicit_ODESolver<dim,real>::step_in_time (real dt)
 {
+    this->dg->assemble_residual ();
     this->current_time += dt;
-    const int rk_order = 1;
+    const int rk_order = 3;
     if (rk_order == 1) {
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
         this->update_norm = this->solution_update.l2_norm();
@@ -148,7 +147,7 @@ void Explicit_ODESolver<dim,real>::step_in_time (real dt)
         this->dg->solution = this->rk_stage[1];
 
         // Stage 2
-        this->dg->assemble_residual_dRdW ();
+        this->dg->assemble_residual ();
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
 
         this->rk_stage[2] = this->rk_stage[0];
@@ -159,7 +158,7 @@ void Explicit_ODESolver<dim,real>::step_in_time (real dt)
         this->dg->solution = this->rk_stage[2];
 
         // Stage 3
-        this->dg->assemble_residual_dRdW ();
+        this->dg->assemble_residual ();
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
 
         this->rk_stage[3] = this->rk_stage[0];

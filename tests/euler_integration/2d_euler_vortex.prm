@@ -14,16 +14,16 @@ set conv_num_flux = lax_friedrichs
 
 subsection euler
   set reference_length = 1.0
-  set mach_infinity = 0.3
-  set angle_of_attack = 0.0
+  set mach_infinity = 0.5
+  set angle_of_attack = 45
 end
 
 subsection ODE solver
   # Maximum nonlinear solver iterations
   # Simply do 20 explicit time steps and compare with exact solution
-  set nonlinear_max_iterations = 10
+  set nonlinear_max_iterations = 100
 
-  set initial_time_step = 1e-6
+  set initial_time_step = 1e-4
 
   # Print every print_iteration_modulo iterations of the nonlinear solver
   set print_iteration_modulo              = 1
@@ -34,19 +34,21 @@ end
 
 subsection manufactured solution convergence study
   # Last degree used for convergence study
-  set degree_end        = 4
+  set degree_end        = 2
 
   # Starting degree for convergence study
-  set degree_start      = 1
+  set degree_start      = 2
 
   # Multiplier on grid size. nth-grid will be of size
   # (initial_grid^grid_progression)^dim
-  set grid_progression  = 1.8
+  set grid_progression  = 1.5
+
+  set grid_progression_add  = 3
 
   # Initial grid of size (initial_grid_size)^dim
-  set initial_grid_size = 3
+  set initial_grid_size = 6
 
   # Number of grids in grid study
-  set number_of_grids   = 5
+  set number_of_grids   = 1
 end
 

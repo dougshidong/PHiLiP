@@ -25,13 +25,13 @@ public:
      */
     EulerVortexFunction (
         const Physics::Euler<dim, dim+2, real> euler_physics,
-        const dealii::Point<2> initial_vortex_center,
+        const dealii::Point<dim> initial_vortex_center,
         const real vortex_strength,
         const real vortex_stddev_decay);
 
     const Physics::Euler<dim, dim+2, real> euler_physics;
     const real vortex_characteristic_length; // R
-    const dealii::Point<2> initial_vortex_center; // x_c, y_c
+    const dealii::Point<dim> initial_vortex_center; // x_c, y_c
     const real vortex_strength; // beta
     const real vortex_stddev_decay; // sigma
 
@@ -46,7 +46,7 @@ public:
     real value (const dealii::Point<dim> &point, const unsigned int istate = 0) const;
 
 private:
-    dealii::Point<2> advected_location(const dealii::Point<2> old_location) const;
+    dealii::Point<dim> advected_location(const dealii::Point<dim> old_location) const;
 
 };
 

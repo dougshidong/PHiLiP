@@ -17,6 +17,8 @@ public:
     OutputEnum ode_output; ///< verbose or quiet.
     ODESolverEnum ode_solver_type; ///< ODE solver type. Note that only implicit has been fully tested for now.
 
+    unsigned int output_solution_every_x_steps; ///< Outputs the solution every x steps to .vtk file
+
     unsigned int nonlinear_max_iterations; ///< Maximum number of iterations.
     unsigned int print_iteration_modulo; ///< If ode_output==verbose, print every print_iteration_modulo iterations.
 

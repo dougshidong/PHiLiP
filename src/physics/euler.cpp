@@ -349,8 +349,8 @@ void Euler<dim,nstate,real>
    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
     // NEED TO PROVIDE AS INPUT **************************************
-    const real total_inlet_pressure = 1.0;
-    const real total_inlet_temperature = 1.0;
+    const real total_inlet_pressure = pressure_inf*pow(1.0+0.5*gamm1*mach_inf_sqr, gam/gamm1);
+    const real total_inlet_temperature = temperature_inf*pow(total_inlet_pressure/pressure_inf, gamm1/gam);
 
     if (boundary_type == 1000) {
         // Manufactured solution
@@ -429,7 +429,10 @@ void Euler<dim,nstate,real>
         const real mach_int = compute_mach_number(soln_int);
         const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(soln_int);
         const real pressure_int = primitive_interior_values[nstate-1];
-        const real pressure_bc = (mach_int >= 1) ? pressure_int : back_pressure*total_inlet_pressure;
+
+        const real radicant = 1.0+0.5*gamm1*mach_inf_sqr;
+        const real pressure_inlet = total_inlet_pressure * pow(radicant, -gam/gamm1);
+        const real pressure_bc = (mach_int >= 1) ? pressure_int : back_pressure*pressure_inlet;
         const real temperature_int = compute_temperature(primitive_interior_values);
 
         // Assign primitive boundary values
@@ -495,6 +498,9 @@ void Euler<dim,nstate,real>
             const real radicant = 1.0+0.5*gamm1*mach_bc*mach_bc;
             const real pressure_bc = total_inlet_pressure * pow(radicant, -gam/gamm1);
             const real temperature_bc = total_inlet_temperature * pow(radicant, -1.0);
+            //std::cout << " pressure_bc " << pressure_bc << "pressure_inf" << pressure_inf << std::endl;
+            //std::cout << " temperature_bc " << temperature_bc << "temperature_inf" << temperature_inf << std::endl;
+            //
    
             const real density_bc  = compute_density_from_pressure_temperature(pressure_bc, temperature_bc);
             std::array<real,nstate> primitive_boundary_values;
@@ -502,6 +508,8 @@ void Euler<dim,nstate,real>
             for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = velocity_magnitude_bc*normal[d]; }
             primitive_boundary_values[nstate-1] = pressure_bc;
             soln_bc = convert_primitive_to_conservative(primitive_boundary_values);
+
+            //std::cout << " entropy_bc " << compute_entropy_measure(soln_bc) << "entropy_inf" << entropy_inf << std::endl;
 
         } else {
             // Supersonic inflow, sec 2.9

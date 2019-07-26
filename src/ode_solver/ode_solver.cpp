@@ -49,7 +49,13 @@ int ODESolver<dim,real>::steady_state ()
 
         ++(this->current_iteration);
 
-        //this->dg->output_results_vtk(this->current_iteration);
+        if (ode_param.output_solution_every_x_steps > 0) {
+            const bool is_output_iteration = (this->current_iteration % ode_param.output_solution_every_x_steps == 0);
+            if (is_output_iteration) {
+                const int file_number = this->current_iteration / ode_param.output_solution_every_x_steps;
+                this->dg->output_results_vtk(file_number);
+            }
+        }
 
     }
     return 1;

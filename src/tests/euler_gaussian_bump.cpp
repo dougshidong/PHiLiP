@@ -50,10 +50,10 @@ template <int dim, typename real>
 inline real InitialConditions<dim,real>
 ::value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const
 {
-    if(istate==0) return 0.3;
-    if(istate==1) return 0.2;
-    if(istate==2) return 0.1;
-    if(istate==3) return 2.5;
+    if(istate==0) return 0.927;
+    if(istate==1) return 1.17;
+    if(istate==2) return 0.0;
+    if(istate==3) return 7.17;
     return 0.1;
 }
 template class InitialConditions <2,double>;
@@ -79,6 +79,7 @@ dealii::Point<dim> EulerGaussianBump<dim,nstate>
     } else {
         q[0] = 1.0/C - exp(a*-x_ref)/C;
     }
+    q[0] = x_ref;
     q[1] = 0.8*y_ref + exp(-30*y_ref*y_ref)*0.0625*exp(-25*q[0]*q[0]);
     return q;
 }
@@ -94,9 +95,9 @@ dealii::Point<2> BumpManifold::pull_back(const dealii::Point<2> &space_point) co
     //} else {
     //    x_ref = -sqrt(1.5*1.5*-x_phys);
     //}
-    double y_ref = 0.5;
+    double y_ref = y_phys;
 
-    for (int i=0; i<20; i++) {
+    for (int i=0; i<200; i++) {
         const double function = 0.8*y_ref + exp(-30*y_ref*y_ref)*0.0625*exp(-25*x_phys*x_phys) - y_phys;
         const double derivative = 0.8 + -30*y_ref*exp(-30*y_ref*y_ref)*0.0625*exp(-25*x_phys*x_phys);
         y_ref = y_ref - function/derivative;
@@ -198,19 +199,19 @@ int EulerGaussianBump<dim,nstate>
             
 
             // Warp grid to be a gaussian bump
-            //dealii::GridTools::transform (&warp, grid);
+            dealii::GridTools::transform (&warp, grid);
             
             // Assign a manifold to have curved geometry
             static const BumpManifold manifold;
             unsigned int manifold_id=0; // top face, see GridGenerator::hyper_rectangle, colorize=true
             grid.reset_all_manifolds();
             grid.set_all_manifold_ids(manifold_id);
-            //grid.set_manifold ( manifold_id, manifold );
+            grid.set_manifold ( manifold_id, manifold );
 
             grid.refine_global (igrid);
 
             // Distort grid by random amount if requested
-            const double random_factor = 0.1;//manu_grid_conv_param.random_distortion;
+            const double random_factor = 0.0;//manu_grid_conv_param.random_distortion;
             const bool keep_boundary = true;
             if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, grid, keep_boundary);
 
@@ -257,12 +258,13 @@ int EulerGaussianBump<dim,nstate>
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
 
             //const double gam = euler_physics_double.gam;
+            //const double gamm1 = euler_physics_double.gamm1;
             //const double mach_inf = euler_physics_double.mach_inf;
-            //const double tot_temperature_inf = 1.0;
-            //const double tot_pressure_inf = 1.0;
+            //const double tot_inlet_pressure = euler_physics_double.pressure_inf*pow(1.0+0.5*gamm1*mach_inf*mach_inf, gam/gamm1);
+            //const double tot_inlet_temperature = euler_physics_double.temperature_inf*pow(tot_inlet_pressure/euler_physics_double.pressure_inf, gamm1/gam);
             //// Assuming a tank at rest, velocity = 0, therefore, static pressure and temperature are same as total
-            //const double density_inf = gam*tot_pressure_inf/tot_temperature_inf * mach_inf * mach_inf;
-            //const double entropy_inf = tot_pressure_inf*pow(density_inf,-gam);
+            //const double density_inf = gam*tot_inlet_pressure/tot_inlet_temperature * mach_inf * mach_inf;
+            //const double entropy_inf = tot_inlet_pressure*pow(density_inf,-gam);
             const double entropy_inf = euler_physics_double.entropy_inf;
 
             for (; cell!=endc; ++cell) {

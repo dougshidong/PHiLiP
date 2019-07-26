@@ -12,8 +12,10 @@ foreach(dim RANGE 1 3)
     target_compile_definitions(${DiscontinuousGalerkinLib} PRIVATE PHILIP_DIM=${dim})
 
     # Library dependency
+    string(CONCAT PostprocessingLib Postprocessing_${dim}D)
     string(CONCAT NumericalFluxLib NumericalFlux_${dim}D)
     string(CONCAT PhysicsLib Physics_${dim}D)
+    target_link_libraries(${DiscontinuousGalerkinLib} ${PostprocessingLib})
     target_link_libraries(${DiscontinuousGalerkinLib} ${NumericalFluxLib})
     target_link_libraries(${DiscontinuousGalerkinLib} ${PhysicsLib})
     # Setup target with deal.II

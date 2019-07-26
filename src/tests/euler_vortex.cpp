@@ -201,7 +201,7 @@ int EulerVortex<dim,nstate>
 
         // p0 tends to require a finer grid to reach asymptotic region
         unsigned int n_grids = n_grids_input;
-        //if (poly_degree <= 1) n_grids = n_grids_input + 1;
+        if (poly_degree <= 2) n_grids = n_grids_input + 1;
 
         std::vector<double> soln_error(n_grids);
         std::vector<double> grid_size(n_grids);
@@ -325,7 +325,7 @@ int EulerVortex<dim,nstate>
 
             // Convergence table
             double dx = 1.0/pow(n_active_cells,(1.0/dim));
-            dx = dealii::GridTools::maximal_cell_diameter(grid);
+            //dx = dealii::GridTools::maximal_cell_diameter(grid);
             grid_size[igrid] = dx;
             soln_error[igrid] = l2error;
 

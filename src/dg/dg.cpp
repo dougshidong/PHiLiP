@@ -94,7 +94,7 @@ DGBase<dim,real>::DGBase(
     const unsigned int degree)
     :
     nstate(nstate_input)
-    , mapping(degree+3,true)
+    , mapping(degree+10,true)
     , fe_dg(degree)
     , fe_system(fe_dg, nstate)
     , all_parameters(parameters_input)

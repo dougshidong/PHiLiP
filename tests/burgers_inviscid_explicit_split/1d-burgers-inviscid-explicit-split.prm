@@ -18,7 +18,7 @@ subsection ODE solver
   set ode_output                          = verbose
 
   # Maximum nonlinear solver iterations
-  set nonlinear_max_iterations            = 500
+  set nonlinear_max_iterations            = 5
 
   # Nonlinear solver residual tolerance
   set nonlinear_steady_residual_tolerance = 1e-12
@@ -28,9 +28,14 @@ subsection ODE solver
 
   # Explicit or implicit solverChoices are <explicit|implicit>.
   set ode_solver_type                         = explicit
+
+  set initial_time_step = 0.0001
 end
 
 subsection manufactured solution convergence study
+
+  set use_manufactured_source_term = true  
+
   # Last degree used for convergence study
   set degree_end        = 3
 

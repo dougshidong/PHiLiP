@@ -6,7 +6,7 @@ foreach(dim RANGE 1 1)
 
     
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_BURGERS_ENERGY_STABILITY)
+    string(CONCAT TEST_TARGET ${dim}D_burgers_energy_stability)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
@@ -33,10 +33,11 @@ foreach(dim RANGE 1 1)
 
     # Setup target with deal.II
     DEAL_II_SETUP_TARGET(${TEST_TARGET})
-
+    
+    configure_file(1D_burgers_stability.prm 1D_burgers_stability.prm COPYONLY)
     add_test(
       NAME ${TEST_TARGET}
-      COMMAND ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
+      COMMAND ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET} -i ${CMAKE_CURRENT_BINARY_DIR}/1D_burgers_stability.prm
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
 

@@ -5,7 +5,7 @@ set dimension = 1
 
 # The PDE we want to solve. Choices are
 # <diffusion|diffusion|convection_diffusion>.
-set pde_type  = burgers_inviscid
+set pde_type  = burgers_inviscid 
 
 subsection ODE solver
 
@@ -21,7 +21,7 @@ subsection ODE solver
   set print_iteration_modulo              = 1
 
   # Explicit or implicit solverChoices are <explicit|implicit>.
-  set ode_solver_type                         = explicit
+  set ode_solver_type                         = implicit
 end
 
 subsection manufactured solution convergence study

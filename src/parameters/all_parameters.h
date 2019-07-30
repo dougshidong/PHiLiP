@@ -40,6 +40,8 @@ public:
     /// Flag to use split form.
     bool use_split_form;
 
+    bool use_periodic_bc;
+
     /// Number of state variables. Will depend on PDE
     int nstate;
 

@@ -33,6 +33,8 @@ DGStrong<dim,nstate,real>::DGStrong(
         ::create_convective_numerical_flux (parameters_input->conv_num_flux_type, pde_physics);
     diss_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, ADtype>
         ::create_dissipative_numerical_flux (parameters_input->diss_num_flux_type, pde_physics);
+    split_fluxes = SplitFormFactory<dim, nstate, ADtype>
+        ::create_SplitForm(parameters_input->pde_type);
 }
 
 template <int dim, int nstate, typename real>
@@ -49,6 +51,7 @@ void DGStrong<dim,nstate,real>::assemble_cell_terms_implicit(
     const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
     dealii::Vector<real> &local_rhs_int_cell)
 {
+
     using ADtype = Sacado::Fad::DFad<real>;
     using ADArray = std::array<ADtype,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
@@ -103,9 +106,6 @@ void DGStrong<dim,nstate,real>::assemble_cell_terms_implicit(
 
         //THIS IS WHERE I NEED TO EVALUATE SPLIT FORM FLUXES
 
-        source_at_q[iquad] = pde_physics->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad]);
-
-        //doug added this i think?
         if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
             source_at_q[iquad] = pde_physics->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad]);
         }
@@ -118,12 +118,35 @@ void DGStrong<dim,nstate,real>::assemble_cell_terms_implicit(
     dealii::FEValues<dim,dim> fe_values_lagrange (this->mapping, lagrange_poly, this->volume_quadrature, this->update_flags);
     fe_values_lagrange.reinit(fe_values_vol.get_cell());
     std::vector<ADArray> flux_divergence(n_quad_pts);
+    std::vector<ADtype> f1(n_quad_pts);
+    std::vector<ADtype> f2(n_quad_pts);
+    std::vector<ADtype> g1(n_quad_pts);
+    std::vector<ADtype> g2(n_quad_pts);
     for (int istate = 0; istate<nstate; ++istate) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             flux_divergence[iquad][istate] = 0.0;
+            f1[iquad]=0;
+            f2[iquad]=0;
+            g1[iquad]=0;
+            g2[iquad]=0;
             for ( unsigned int flux_basis = 0; flux_basis < n_quad_pts; ++flux_basis ) {
                 flux_divergence[iquad][istate] += conv_phys_flux_at_q[flux_basis][istate] * fe_values_lagrange.shape_grad(flux_basis,iquad);
+                //std::cout << split_fluxes->split_convective_fluxes[0][0][1].g(soln_at_q[flux_basis]) << " vs " << conv_phys_flux_at_q[flux_basis][istate] << std::endl;
+                //std::cout << fe_values_vol.shape_grad(flux_basis,iquad)[0] << " VS " << fe_values_lagrange.shape_grad(flux_basis,iquad) << std::endl;
+                //abtin_divergence[iquad][istate] += split_fluxes->split_convective_fluxes[0][0][1].g(soln_at_q[flux_basis]) * fe_values_vol.shape_grad(flux_basis,istate)[0];
+                f1[iquad] += split_fluxes->split_convective_fluxes[0][0][0].f(soln_at_q[flux_basis]) * fe_values_vol.shape_grad_component(flux_basis,iquad, istate)[0];
+                f2[iquad] += split_fluxes->split_convective_fluxes[0][0][1].f(soln_at_q[flux_basis]) * fe_values_vol.shape_grad_component(flux_basis,iquad, istate)[0];
+                g1[iquad] += split_fluxes->split_convective_fluxes[0][0][0].g(soln_at_q[flux_basis]) * fe_values_vol.shape_grad_component(flux_basis,iquad, istate)[0];
+                g2[iquad] += split_fluxes->split_convective_fluxes[0][0][1].g(soln_at_q[flux_basis]) * fe_values_vol.shape_grad_component(flux_basis,iquad, istate)[0];
+                //std:: cout << " flux " << split_fluxes->split_convective_fluxes[0][0][1].g(soln_at_q[flux_state]) << " shapegrad "
+                //		   << fe_values_vol.shape_grad_component(flux_basis, iquad, istate)[0]
+				//		   << " soln " << soln_at_q[iquad][0]
+				//		   << std::endl;
+               // std::cout << g2[iquad] << std::endl;
+
             }
+           // std::cout << g2[iquad].val() << std::endl;
+
         }
     }
 
@@ -138,23 +161,38 @@ void DGStrong<dim,nstate,real>::assemble_cell_terms_implicit(
     for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
 
         ADtype rhs = 0;
-        ADtype intermediate1 = 0;
+
 
         const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(itest).first;
 
         if (this->all_parameters->use_split_form)
         {
-        	for (unsigned int isplit = 0; isplit < split_fluxes->split_convective_fluxes[istate].size(); ++isplit)
+        	ADtype inter1 = 0;
+        	ADtype inter2 = 0;
+        	for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad)
         	{
-        		for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad)
-        		{
-        			for (int idim = 0; idim < dim ; ++idim)
-        			{
-        				intermediate1 = intermediate1 +  fe_values_vol.shape_grad_component(itest,iquad,istate)[idim] * split_fluxes->split_convective_fluxes[idim][istate][isplit].g(soln_at_q[iquad]);
-        				rhs = rhs - intermediate1 * split_fluxes->split_convective_fluxes[idim][istate][isplit].alpha * split_fluxes->split_convective_fluxes[idim][istate][isplit].f(soln_at_q[iquad]) * JxW[iquad];
-        			}
-        		}
+        		inter2 = inter2 + fe_values_vol.shape_value_component(itest,iquad,istate) *  g2[iquad] * JxW[iquad];
+        		inter1 = inter1 + fe_values_vol.shape_value_component(itest,iquad,istate) * g1[iquad] * JxW[iquad];
         	}
+
+        	rhs = rhs - inter1 * split_fluxes->split_convective_fluxes[0][0][0].f(soln_at_q[itest]) * split_fluxes->split_convective_fluxes[0][0][0].alpha;
+        	rhs = rhs - inter2 * split_fluxes->split_convective_fluxes[0][0][1].f(soln_at_q[itest]) * split_fluxes->split_convective_fluxes[0][0][1].alpha;
+
+//        	assert(this->all_parameters->use_collocated_nodes == true && "Nodes aren't collocated, can't use split form");
+//        	ADtype intermediate1 = 0;
+//        	for (int idim = 0; idim < dim ; ++idim)
+//        	{
+//        		for (unsigned int isplit = 0; isplit < split_fluxes->split_convective_fluxes[idim][istate].size(); ++isplit)
+//        		{
+//        			for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad)
+//        			{
+//        				intermediate1 = intermediate1 + fe_values_vol.shape_grad_component(itest,iquad,istate)[idim] * split_fluxes->split_convective_fluxes[idim][istate][isplit].g(soln_at_q[iquad]);
+//        			}
+//
+//        			rhs = rhs - intermediate1 * split_fluxes->split_convective_fluxes[idim][istate][isplit].alpha * split_fluxes->split_convective_fluxes[idim][istate][isplit].f(soln_at_q[itest]) * JxW[itest];
+//        			intermediate1 = 0;
+//        		}
+//        	}
         }
 
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
@@ -163,7 +201,7 @@ void DGStrong<dim,nstate,real>::assemble_cell_terms_implicit(
             // Now minus such 2 integrations by parts
             assert(JxW[iquad] - fe_values_lagrange.JxW(iquad) < 1e-14);
 
-            if (!this->all_parameters->use_split_form)
+            if (this->all_parameters->use_split_form == false)
             	rhs = rhs - fe_values_vol.shape_value_component(itest,iquad,istate) * flux_divergence[iquad][istate] * JxW[iquad];
 
             //// Diffusive

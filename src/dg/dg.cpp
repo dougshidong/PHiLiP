@@ -103,8 +103,8 @@ DGBase<dim,real>::DGBase( // @suppress("Class members should be properly initial
 {
 	if (parameters_input->use_collocated_nodes)
 	{
-		dealii::QGauss<1> oned_quad_Gauss_Lobatto (degree+1);
-		dealii::QGauss<dim> vol_quad_Gauss_Lobatto (degree+1);
+		dealii::QGaussLobatto<1> oned_quad_Gauss_Lobatto (degree+1);
+		dealii::QGaussLobatto<dim> vol_quad_Gauss_Lobatto (degree+1);
 		oned_quadrature = oned_quad_Gauss_Lobatto;
 		volume_quadrature = vol_quad_Gauss_Lobatto;
 
@@ -205,7 +205,6 @@ void DGBase<dim,real>::assemble_residual_dRdW ()
         current_cell->get_dof_indices (current_dofs_indices);
 
         assemble_cell_terms_implicit (fe_values_cell, current_dofs_indices, current_cell_rhs);
-
         for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
 
             typename dealii::DoFHandler<dim>::face_iterator current_face = current_cell->face(iface);
@@ -220,18 +219,46 @@ void DGBase<dim,real>::assemble_residual_dRdW ()
                 n_face_visited++;
 
                 fe_values_face_int.reinit (current_cell, iface);
-                const unsigned int degree_current = DGBase<dim,real>::fe_system.tensor_degree();
-                const unsigned int deg1sq = (degree_current == 0) ? 1 : degree_current * (degree_current+1);
-                const unsigned int normal_direction = dealii::GeometryInfo<dim>::unit_normal_direction[iface];
-                const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction);
 
-                real penalty = deg1sq / vol_div_facearea1;
-                //penalty = 1;//99;
+                if(all_parameters->use_periodic_bc == true) //using periodic BCs (for 1d)
+                {
+                	int cell_index = current_cell->index();
+                	if (cell_index == 0 && iface == 0)
+                	{
+             			fe_values_face_int.reinit(current_cell, iface);
+                		typename dealii::DoFHandler<dim>::active_cell_iterator neighbour_cell = dof_handler.begin_active();
+                		for (unsigned int i = 0 ; i < triangulation->n_active_cells() - 1; ++i)
+                		{
+                			++neighbour_cell;
+                		}
+                		neighbour_cell->get_dof_indices(neighbor_dofs_indices);
+                		fe_values_face_ext.reinit(neighbour_cell,(iface == 1) ? 0 : 1);
 
-                const unsigned int boundary_id = current_face->boundary_id();
-                // Need to somehow get boundary type from the mesh
-                assemble_boundary_term_implicit (boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
+                	}
+                	else if (cell_index == (int) triangulation->n_active_cells() - 1 && iface == 1)
+                	{
+                		fe_values_face_int.reinit(current_cell, iface);
+                		typename dealii::DoFHandler<dim>::active_cell_iterator neighbour_cell = dof_handler.begin_active();
+                		neighbour_cell->get_dof_indices(neighbor_dofs_indices);
+                		fe_values_face_ext.reinit(neighbour_cell,(iface == 1) ? 0 : 1); //not sure how changing the face number would work in dim!=1-dimensions.
+                	}
+                }
 
+                else
+                {
+					const unsigned int degree_current = DGBase<dim,real>::fe_system.tensor_degree();
+					const unsigned int deg1sq = (degree_current == 0) ? 1 : degree_current * (degree_current+1);
+					const unsigned int normal_direction = dealii::GeometryInfo<dim>::unit_normal_direction[iface];
+					const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction);
+
+					real penalty = deg1sq / vol_div_facearea1;
+					//penalty = 1;//99;
+
+					const unsigned int boundary_id = current_face->boundary_id();
+					// Need to somehow get boundary type from the mesh
+
+					assemble_boundary_term_implicit (boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
+                }
             // Case 2:
             // Neighbour is finer occurs if the face has children
             // This is because we are looping over the current_cell's face, so 2, 4, and 6 faces.

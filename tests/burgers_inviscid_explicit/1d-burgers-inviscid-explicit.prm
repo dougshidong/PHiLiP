@@ -5,7 +5,7 @@ set dimension = 1
 
 set use_weak_form = false
 
-set use_collocated_nodes = false
+set use_collocated_nodes = true
 
 set use_split_form = false
 
@@ -29,10 +29,13 @@ subsection ODE solver
   # Explicit or implicit solverChoices are <explicit|implicit>.
   set ode_solver_type                         = explicit
 
-  set initial_time_step = 0.001
+  set initial_time_step = 0.0001
 end
 
 subsection manufactured solution convergence study
+
+  set use_manufactured_source_term = true
+
   # Last degree used for convergence study
   set degree_end        = 3
 

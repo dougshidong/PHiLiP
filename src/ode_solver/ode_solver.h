@@ -48,6 +48,7 @@ public:
     virtual void allocate_ode_system () = 0;
 
     double residual_norm; ///< Current residual norm. Only makes sense for steady state
+    double residual_norm_decrease; ///< Current residual norm normalized by initial residual. Only makes sense for steady state
 
     unsigned int current_iteration; ///< Current iteration.
 

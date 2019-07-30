@@ -8,8 +8,9 @@ set dimension = 2
 set pde_type  = euler
 
 subsection ODE solver
+  set output_solution_every_x_steps   = 1
   # Maximum nonlinear solver iterations
-  set nonlinear_max_iterations            = 500000
+  set nonlinear_max_iterations            = 10
 
   # Nonlinear solver residual tolerance
   set nonlinear_steady_residual_tolerance = 1e-9
@@ -36,10 +37,10 @@ end
 subsection manufactured solution convergence study
   set use_manufactured_source_term = true
   # Last degree used for convergence study
-  set degree_end        = 3
+  set degree_end        = 4
 
   # Starting degree for convergence study
-  set degree_start      = 1
+  set degree_start      = 0
 
   set grid_progression  = 1.0
 
@@ -54,6 +55,6 @@ subsection manufactured solution convergence study
   # WARNING
   # If we want actual optimal orders with a tigher tolerance
   # we need to increase the grid sizes by a significant amount
-  set slope_deficit_tolerance = 0.3
+  set slope_deficit_tolerance = 0.1
 end
 

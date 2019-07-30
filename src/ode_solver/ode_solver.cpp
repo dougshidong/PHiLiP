@@ -11,7 +11,8 @@ int ODESolver<dim,real>::steady_state ()
     std::cout << " Performing steady state analysis... " << std::endl;
     allocate_ode_system ();
 
-    this->residual_norm = 1; // Always do at least 1 iteration
+    this->residual_norm = 1;
+    this->residual_norm_decrease = 1; // Always do at least 1 iteration
     update_norm = 1; // Always do at least 1 iteration
     this->current_iteration = 0;
 
@@ -23,6 +24,7 @@ int ODESolver<dim,real>::steady_state ()
 
     // Output initial solution
     while (    this->residual_norm     > ode_param.nonlinear_steady_residual_tolerance 
+            && this->residual_norm_decrease > ode_param.nonlinear_steady_residual_tolerance 
             && update_norm             > ode_param.nonlinear_steady_residual_tolerance 
             && this->current_iteration < ode_param.nonlinear_max_iterations )
     {
@@ -39,10 +41,11 @@ int ODESolver<dim,real>::steady_state ()
         std::cout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
 
         this->dg->assemble_residual ();
-        this->residual_norm = this->dg->get_residual_l2norm() / this->initial_residual_norm;
+        this->residual_norm = this->dg->get_residual_l2norm();
+        this->residual_norm_decrease = this->residual_norm / this->initial_residual_norm;
 
         double dt = ode_param.initial_time_step;
-        dt *= pow((1.0-std::log10(this->residual_norm)*ode_param.time_step_factor_residual), ode_param.time_step_factor_residual_exp);
+        dt *= pow((1.0-std::log10(this->residual_norm_decrease)*ode_param.time_step_factor_residual), ode_param.time_step_factor_residual_exp);
         std::cout << "Time step = " << dt << std::endl;
 
         step_in_time(dt);

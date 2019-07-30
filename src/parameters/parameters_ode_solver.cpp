@@ -34,10 +34,10 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           "Time step used in ODE solver.");
         prm.declare_entry("time_step_factor_residual", "0.0",
                           dealii::Patterns::Double(0,dealii::Patterns::Double::max_double_value),
-                          "Multiplies initial time-step by time_step_factor_residual*(-log10(residual_norm)).");
+                          "Multiplies initial time-step by time_step_factor_residual*(-log10(residual_norm_decrease)).");
         prm.declare_entry("time_step_factor_residual_exp", "1.0",
                           dealii::Patterns::Double(0,dealii::Patterns::Double::max_double_value),
-                          "Scales initial time step by pow(time_step_factor_residual*(-log10(residual_norm)),time_step_factor_residual_exp).");
+                          "Scales initial time step by pow(time_step_factor_residual*(-log10(residual_norm_decrease)),time_step_factor_residual_exp).");
 
         prm.declare_entry("print_iteration_modulo", "1",
                           dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),

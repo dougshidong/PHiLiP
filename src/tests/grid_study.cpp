@@ -134,7 +134,7 @@ int GridStudy<dim,nstate>
 
         // p0 tends to require a finer grid to reach asymptotic region
         unsigned int n_grids = n_grids_input;
-        if (poly_degree <= 1) n_grids = n_grids_input + 2;
+        if (poly_degree <= 1) n_grids = n_grids_input + 1;
 
         std::vector<double> soln_error(n_grids);
         std::vector<double> output_error(n_grids);

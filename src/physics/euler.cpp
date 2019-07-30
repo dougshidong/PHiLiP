@@ -188,7 +188,7 @@ inline real Euler<dim,nstate,real>
         std::cout<<"Cannot compute pressure..."<<std::endl;
         std::cout<<"density "<<density<<std::endl;
         for(int d=0;d<dim;d++) std::cout<<"vel"<<d<<" "<<vel[d]<<std::endl;
-        std::cout<<"energy"<<tot_energy<<std::endl;
+        std::cout<<"energy "<<tot_energy<<std::endl;
     }
     assert(pressure>0.0);
     //if(pressure<1e-4) pressure = 0.01;

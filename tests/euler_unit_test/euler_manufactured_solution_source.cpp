@@ -11,7 +11,7 @@
 #include "parameters/parameters.h"
 #include "physics/euler.h"
 
-const double TOLERANCE = 1E-6;
+const double TOLERANCE = 1E-5;
 
 int main (int /*argc*/, char * /*argv*/[])
 {
@@ -23,8 +23,8 @@ int main (int /*argc*/, char * /*argv*/[])
     const double a = 1.0 , b = 0.0, c = 1.4;
     PHiLiP::Physics::Euler<dim, nstate, double> euler_physics = PHiLiP::Physics::Euler<dim, nstate, double>(a,c,a,b,b);
 
-    const double min = -10.0;
-    const double max = 10.0;
+    const double min = 0.0;
+    const double max = 1.0;
     const int nx = 11;
 
     const double perturbation = 1e-5;

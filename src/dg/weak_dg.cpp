@@ -132,7 +132,7 @@ void DGWeak<dim,nstate,real>::assemble_cell_terms_implicit(
         if (this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::implicit_solver) {
             for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
                 //residual_derivatives[idof] = rhs.fastAccessDx(idof);
-                residual_derivatives[idof] = rhs.dx(idof);
+                residual_derivatives[idof] = rhs.fastAccessDx(idof);
             }
             this->system_matrix.add(cell_dofs_indices[itest], cell_dofs_indices, residual_derivatives);
         }
@@ -253,7 +253,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_implicit(
         if (this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::implicit_solver) {
             for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
                 //residual_derivatives[idof] = rhs.fastAccessDx(idof);
-                residual_derivatives[idof] = rhs.dx(idof);
+                residual_derivatives[idof] = rhs.fastAccessDx(idof);
             }
             this->system_matrix.add(dof_indices_int[itest], dof_indices_int, residual_derivatives);
         }
@@ -389,10 +389,10 @@ void DGWeak<dim,nstate,real>::assemble_face_term_implicit(
         local_rhs_int_cell(itest_int) += rhs.val();
         if (this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::implicit_solver) {
             for (unsigned int idof = 0; idof < n_dofs_int; ++idof) {
-                dR1_dW1[idof] = rhs.dx(idof);
+                dR1_dW1[idof] = rhs.fastAccessDx(idof);
             }
             for (unsigned int idof = 0; idof < n_dofs_ext; ++idof) {
-                dR1_dW2[idof] = rhs.dx(n_dofs_int+idof);
+                dR1_dW2[idof] = rhs.fastAccessDx(n_dofs_int+idof);
             }
             this->system_matrix.add(dof_indices_int[itest_int], dof_indices_int, dR1_dW1);
             this->system_matrix.add(dof_indices_int[itest_int], dof_indices_ext, dR1_dW2);
@@ -415,10 +415,10 @@ void DGWeak<dim,nstate,real>::assemble_face_term_implicit(
         local_rhs_ext_cell(itest_ext) += rhs.val();
         if (this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::implicit_solver) {
             for (unsigned int idof = 0; idof < n_dofs_int; ++idof) {
-                dR2_dW1[idof] = rhs.dx(idof);
+                dR2_dW1[idof] = rhs.fastAccessDx(idof);
             }
             for (unsigned int idof = 0; idof < n_dofs_ext; ++idof) {
-                dR2_dW2[idof] = rhs.dx(n_dofs_int+idof);
+                dR2_dW2[idof] = rhs.fastAccessDx(n_dofs_int+idof);
             }
             this->system_matrix.add(dof_indices_ext[itest_ext], dof_indices_int, dR2_dW1);
             this->system_matrix.add(dof_indices_ext[itest_ext], dof_indices_ext, dR2_dW2);

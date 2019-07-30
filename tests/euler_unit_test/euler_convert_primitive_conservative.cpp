@@ -17,8 +17,8 @@ int main (int /*argc*/, char * /*argv*/[])
     const double a = 1.0 , b = 0.0, c = 1.4;
     PHiLiP::Physics::Euler<dim, nstate, double> euler_physics = PHiLiP::Physics::Euler<dim, nstate, double>(a,c,a,b,b);
 
-    const double min = -10.0;
-    const double max = 10.0;
+    const double min = 0.0;
+    const double max = 1.0;
     const int nx = 11;
 
     std::vector<unsigned int> repetitions(dim, nx);

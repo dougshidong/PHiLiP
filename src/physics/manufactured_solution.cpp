@@ -6,6 +6,10 @@
 #include "manufactured_solution.h"
 
 //#define ADDITIVE_SOLUTION
+//#define COSINE_SOLUTION
+#define EXP_SOLUTION
+//#define EVENPOLY_SOLUTION
+//#define POLY_SOLUTION
 
 template class dealii::FunctionTime<Sacado::Fad::DFad<double>>; // Needed by Function
 template class dealii::Function<PHILIP_DIM,Sacado::Fad::DFad<double>>;
@@ -56,6 +60,38 @@ inline real ManufacturedSolutionFunction<dim,real>
     for (int d=0; d<dim; d++) {
         value += amplitudes[istate]*sin( frequencies[istate][d] * point[d] );
         assert(isfinite(value));
+    }
+#endif
+
+#ifdef COSINE_SOLUTION
+    value = amplitudes[istate];
+    for (int d=0; d<dim; d++) {
+        value *= cos( frequencies[istate][d] * point[d] );
+        assert(isfinite(value));
+    }
+#endif
+
+#ifdef EXP_SOLUTION
+    value = 0.0;
+    for (int d=0; d<dim; d++) {
+        value += exp( point[d] );
+        assert(isfinite(value));
+    }
+#endif
+
+#ifdef EVENPOLY_SOLUTION
+    value = 0.0;
+    const double poly_max = 7;
+    for (int d=0; d<dim; d++) {
+        value += pow(point[d] + 0.5, poly_max);
+    }
+#endif
+
+#ifdef POLY_SOLUTION
+    value = 0.0;
+    for (int d=0; d<dim; d++) {
+        const double x = point[d];
+        value += 1.0 + x - x*x - x*x*x + x*x*x*x - x*x*x*x*x + x*x*x*x*x*x + 0.001*sin(50*x);
     }
 #endif
 
@@ -117,6 +153,76 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionFunction<dim,real>
         gradient[0] = A*f[0]*cos(fx);
         gradient[1] = A*f[1]*cos(fy);
         gradient[2] = A*f[2]*cos(fz);
+    }
+#endif
+
+#ifdef COSINE_SOLUTION
+    if (dim==1) {
+        const real fx = f[0]*point[0];
+        gradient[0] = -A*f[0]*sin(fx);
+    }
+    if (dim==2) {
+        const real fx = f[0]*point[0];
+        const real fy = f[1]*point[1];
+        gradient[0] = -A*f[0]*sin(fx)*cos(fy);
+        gradient[1] = -A*f[1]*cos(fx)*sin(fy);
+    }
+    if (dim==3) {
+        const real fx = f[0]*point[0];
+        const real fy = f[1]*point[1];
+        const real fz = f[2]*point[2];
+        gradient[0] = -A*f[0]*sin(fx)*cos(fy)*cos(fz);
+        gradient[1] = -A*f[1]*cos(fx)*sin(fy)*cos(fz);
+        gradient[2] = -A*f[2]*cos(fx)*cos(fy)*sin(fz);
+    }
+#endif
+#ifdef EXP_SOLUTION
+    if (dim==1) {
+        gradient[0] = exp(point[0]);
+    }
+    if (dim==2) {
+        gradient[0] = exp(point[0]);
+        gradient[1] = exp(point[1]);
+    }
+    if (dim==3) {
+        gradient[0] = exp(point[0]);
+        gradient[1] = exp(point[1]);
+        gradient[2] = exp(point[2]);
+    }
+#endif
+#ifdef EVENPOLY_SOLUTION
+    const double poly_max = 7;
+    if (dim==1) {
+        gradient[0] = poly_max*pow(point[0] + 0.5, poly_max-1);
+    }
+    if (dim==2) {
+        gradient[0] = poly_max*pow(point[0] + 0.5, poly_max-1);
+        gradient[1] = poly_max*pow(point[1] + 0.5, poly_max-1);
+    }
+    if (dim==3) {
+        gradient[0] = poly_max*pow(point[0] + 0.5, poly_max-1);
+        gradient[1] = poly_max*pow(point[1] + 0.5, poly_max-1);
+        gradient[2] = poly_max*pow(point[2] + 0.5, poly_max-1);
+    }
+#endif
+#ifdef POLY_SOLUTION
+    if (dim==1) {
+        const double x = point[0];
+        gradient[0] = 1.0 - 2*x -3*x*x + 4*x*x*x - 5*x*x*x*x + 6*x*x*x*x*x + 0.050*cos(50*x);
+    }
+    if (dim==2) {
+        double x = point[0];
+        gradient[0] = 1.0 - 2*x -3*x*x + 4*x*x*x - 5*x*x*x*x + 6*x*x*x*x*x + 0.050*cos(50*x);
+        x = point[1];
+        gradient[1] = 1.0 - 2*x -3*x*x + 4*x*x*x - 5*x*x*x*x + 6*x*x*x*x*x + 0.050*cos(50*x);
+    }
+    if (dim==3) {
+        double x = point[0];
+        gradient[0] = 1.0 - 2*x -3*x*x + 4*x*x*x - 5*x*x*x*x + 6*x*x*x*x*x;
+        x = point[1];
+        gradient[1] = 1.0 - 2*x -3*x*x + 4*x*x*x - 5*x*x*x*x + 6*x*x*x*x*x;
+        x = point[2];
+        gradient[2] = 1.0 - 2*x -3*x*x + 4*x*x*x - 5*x*x*x*x + 6*x*x*x*x*x;
     }
 #endif
     return gradient;
@@ -206,6 +312,89 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionFunction<dim,real
         hessian[2][0] =  0.0;
         hessian[2][1] =  0.0;
         hessian[2][2] = -A*f[2]*f[2]*sin(fz);
+    }
+#endif
+
+#ifdef COSINE_SOLUTION
+    if (dim==1) {
+        const real fx = f[0]*point[0];
+        hessian[0][0] = -A*f[0]*f[0]*cos(fx);
+    }
+    if (dim==2) {
+        const real fx = f[0]*point[0];
+        const real fy = f[1]*point[1];
+        hessian[0][0] = -A*f[0]*f[0]*cos(fx)*cos(fy);
+        hessian[0][1] =  A*f[0]*f[1]*sin(fx)*sin(fy);
+
+        hessian[1][0] =  A*f[1]*f[0]*sin(fx)*sin(fy);
+        hessian[1][1] = -A*f[1]*f[1]*cos(fx)*cos(fy);
+    }
+    if (dim==3) {
+        const real fx = f[0]*point[0];
+        const real fy = f[1]*point[1];
+        const real fz = f[2]*point[2];
+        hessian[0][0] = -A*f[0]*f[0]*cos(fx)*cos(fy)*cos(fz);
+        hessian[0][1] =  A*f[0]*f[1]*sin(fx)*sin(fy)*cos(fz);
+        hessian[0][2] =  A*f[0]*f[2]*sin(fx)*cos(fy)*sin(fz);
+        
+        hessian[1][0] =  A*f[1]*f[0]*sin(fx)*sin(fy)*cos(fz);
+        hessian[1][1] = -A*f[1]*f[1]*cos(fx)*cos(fy)*cos(fz);
+        hessian[1][2] =  A*f[1]*f[2]*cos(fx)*sin(fy)*sin(fz);
+        
+        hessian[2][0] =  A*f[2]*f[0]*sin(fx)*cos(fy)*sin(fz);
+        hessian[2][1] =  A*f[2]*f[1]*cos(fx)*sin(fy)*sin(fz);
+        hessian[2][2] = -A*f[2]*f[2]*cos(fx)*cos(fy)*cos(fz);
+    }
+#endif
+#ifdef EXP_SOLUTION
+    if (dim==1) {
+        hessian[0][0] = exp(point[0]);
+    }
+    if (dim==2) {
+        hessian[0][0] = exp(point[0]);
+        hessian[0][1] = 0.0;
+
+        hessian[1][0] = 0.0;
+        hessian[1][1] = exp(point[1]);
+    }
+    if (dim==3) {
+        hessian[0][0] = exp(point[0]);
+        hessian[0][1] = 0.0;
+        hessian[0][2] = 0.0;
+        
+        hessian[1][0] = 0.0;
+        hessian[1][1] = exp(point[1]);
+        hessian[1][2] = 0.0;
+        
+        hessian[2][0] = 0.0;
+        hessian[2][1] = 0.0;
+        hessian[2][2] = exp(point[2]);
+    }
+#endif
+#ifdef EVENPOLY_SOLUTION
+    const double poly_max = 7;
+    if (dim==1) {
+        hessian[0][0] = poly_max*poly_max*pow(point[0] + 0.5, poly_max-2);
+    }
+    if (dim==2) {
+        hessian[0][0] = poly_max*poly_max*pow(point[0] + 0.5, poly_max-2);
+        hessian[0][1] = 0.0;
+
+        hessian[1][0] = 0.0;
+        hessian[1][1] = poly_max*poly_max*pow(point[1] + 0.5, poly_max-2);
+    }
+    if (dim==3) {
+        hessian[0][0] = poly_max*poly_max*pow(point[0] + 0.5, poly_max-2);
+        hessian[0][1] = 0.0;
+        hessian[0][2] = 0.0;
+        
+        hessian[1][0] = 0.0;
+        hessian[1][1] = poly_max*poly_max*pow(point[1] + 0.5, poly_max-2);
+        hessian[1][2] = 0.0;
+        
+        hessian[2][0] = 0.0;
+        hessian[2][1] = 0.0;
+        hessian[2][2] = poly_max*poly_max*pow(point[2] + 0.5, poly_max-2);
     }
 #endif
     return hessian;

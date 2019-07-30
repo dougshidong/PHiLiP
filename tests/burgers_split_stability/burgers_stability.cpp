@@ -73,7 +73,7 @@ int BurgersEnergyStability<dim, nstate>::run_test()
 	double right = 2.0;
 	const bool colorize = true;
 	int n_refinements = 5;
-	unsigned int poly_degree = 2;
+	unsigned int poly_degree = 7;
 	dealii::GridGenerator::hyper_cube(grid, left, right, colorize);
 	grid.refine_global(n_refinements);
 
@@ -91,12 +91,13 @@ int BurgersEnergyStability<dim, nstate>::run_test()
 	                             expression,
 	                             constants);
 	dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
-
+	std::cout << "yo wassup" << std::endl;
 	// Create ODE solver using the factory and providing the DG object
 	std::shared_ptr<PHiLiP::ODE::ODESolver<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
+	double finalTime = 3;
+	ode_solver->advance_solution_time(finalTime);
 	return 0; //need to change
-
 }
 
 int main (int argc, char * argv[])
@@ -123,8 +124,8 @@ int main (int argc, char * argv[])
 
 		dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
 		using namespace PHiLiP;
-		const Parameters::AllParameters parameters_input;
-		BurgersEnergyStability<PHILIP_DIM, 1> burgers_test(&parameters_input);
+		//const Parameters::AllParameters parameters_input;
+		BurgersEnergyStability<PHILIP_DIM, 1> burgers_test(&all_parameters);
 		int i = burgers_test.run_test();
 		return i;
 	}

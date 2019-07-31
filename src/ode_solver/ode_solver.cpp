@@ -108,7 +108,8 @@ int ODESolver<dim,real>::advance_solution_time (double time_advance)
 template <int dim, typename real>
 void Implicit_ODESolver<dim,real>::step_in_time (real dt)
 {
-    this->dg->assemble_residual_dRdW ();
+    const bool compute_dRdW = true;
+    this->dg->assemble_residual(compute_dRdW);
     this->current_time += dt;
     // Solve (M/dt - dRdW) dw = R
     // w = w + dw
@@ -183,7 +184,7 @@ void Explicit_ODESolver<dim,real>::step_in_time (real dt)
 template <int dim, typename real>
 void Explicit_ODESolver<dim,real>::allocate_ode_system ()
 {
-    unsigned int n_dofs = this->dg->dof_handler.n_dofs();
+    unsigned int n_dofs = this->dg->solution.size();
     const bool do_inverse_mass_matrix = true;
     this->solution_update.reinit(n_dofs);
     this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
@@ -198,7 +199,7 @@ void Explicit_ODESolver<dim,real>::allocate_ode_system ()
 template <int dim, typename real>
 void Implicit_ODESolver<dim,real>::allocate_ode_system ()
 {
-    unsigned int n_dofs = this->dg->dof_handler.n_dofs();
+    unsigned int n_dofs = this->dg->solution.size();
     const bool do_inverse_mass_matrix = false;
     this->solution_update.reinit(n_dofs);
     this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);

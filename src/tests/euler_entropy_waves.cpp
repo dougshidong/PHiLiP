@@ -199,9 +199,13 @@ int EulerEntropyWaves<dim,nstate>
 
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;
-            dealii::QGauss<dim> quad_extra(dg->fe_system.tensor_degree()+overintegrate);
-            dealii::FEValues<dim,dim> fe_values_extra(dg->mapping, dg->fe_system, quad_extra, 
+            dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
+            dealii::FEValues<dim,dim> fe_values_extra(dealii::MappingQ<dim>(dg->max_degree+overintegrate), dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+            //int overintegrate = 10;
+            //dealii::QGauss<dim> quad_extra(dg->fe_system.tensor_degree()+overintegrate);
+            //dealii::FEValues<dim,dim> fe_values_extra(dg->mapping, dg->fe_system, quad_extra, 
+            //        dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;
 
@@ -263,7 +267,7 @@ int EulerEntropyWaves<dim,nstate>
                 std::cout << "From grid " << igrid-1
                           << "  to grid " << igrid
                           << "  dimension: " << dim
-                          << "  polynomial degree p: " << dg->fe_system.tensor_degree()
+                          << "  polynomial degree p: " << poly_degree
                           << std::endl
                           << "  solution_error1 " << soln_error[igrid-1]
                           << "  solution_error2 " << soln_error[igrid]

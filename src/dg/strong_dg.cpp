@@ -45,7 +45,7 @@ DGStrong<dim,nstate,real>::~DGStrong ()
 }
 
 template <int dim, int nstate, typename real>
-void DGStrong<dim,nstate,real>::assemble_cell_terms_implicit(
+void DGStrong<dim,nstate,real>::assemble_volume_terms_implicit(
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
     dealii::Vector<real> &local_rhs_int_cell)
@@ -106,9 +106,7 @@ void DGStrong<dim,nstate,real>::assemble_cell_terms_implicit(
 
     // Evaluate flux divergence by interpolating the flux
     // Since we have nodal values of the flux, we use the Lagrange polynomials to obtain the gradients at the quadrature points.
-    dealii::FE_DGQArbitraryNodes<dim,dim> lagrange_poly(this->oned_quadrature);
-    dealii::FEValues<dim,dim> fe_values_lagrange (this->mapping, lagrange_poly, this->volume_quadrature, this->update_flags);
-    fe_values_lagrange.reinit(fe_values_vol.get_cell());
+    const dealii::FEValues<dim,dim> &fe_values_lagrange = this->fe_values_collection_volume_lagrange.get_present_fe_values();
     std::vector<ADArray> flux_divergence(n_quad_pts);
     for (int istate = 0; istate<nstate; ++istate) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
@@ -467,7 +465,7 @@ void DGStrong<dim,nstate,real>::assemble_face_term_implicit(
 }
 
 template <int dim, int nstate, typename real>
-void DGStrong<dim,nstate,real>::assemble_cell_terms_explicit(
+void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
     dealii::Vector<real> &local_rhs_int_cell)
@@ -528,9 +526,7 @@ void DGStrong<dim,nstate,real>::assemble_cell_terms_explicit(
 
     // Evaluate flux divergence by interpolating the flux
     // Since we have nodal values of the flux, we use the Lagrange polynomials to obtain the gradients at the quadrature points.
-    dealii::FE_DGQArbitraryNodes<dim,dim> lagrange_poly(this->oned_quadrature);
-    dealii::FEValues<dim,dim> fe_values_lagrange (this->mapping, lagrange_poly, this->volume_quadrature, this->update_flags);
-    fe_values_lagrange.reinit(fe_values_vol.get_cell());
+    const dealii::FEValues<dim,dim> &fe_values_lagrange = this->fe_values_collection_volume_lagrange.get_present_fe_values();
     std::vector<ADArray> flux_divergence(n_quad_pts);
     for (int istate = 0; istate<nstate; ++istate) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {

@@ -14,6 +14,9 @@
 
 #include <deal.II/dofs/dof_handler.h>
 
+#include <deal.II/hp/q_collection.h>
+#include <deal.II/hp/mapping_collection.h>
+#include <deal.II/hp/fe_values.h>
 
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
@@ -51,27 +54,42 @@ class DGBase
 public:
     /// Number of state variables.
     /** This is known through the constructor parameters.
-     *  DGBase cannot use nstate as a compile-time known.
-     */
+     *  DGBase cannot use nstate as a compile-time known.  */
     const int nstate;
 
-    /// Constructor. Deleted the default constructor since it should not be used
-    DGBase () = delete;
+    /// Maximum degree used for p-refinement
+    /** This is known through the constructor parameters.
+     *  DGBase cannot use nstate as a compile-time known.  */
+    const unsigned int max_degree;
+
+    /// Pointer to all parameters
+    const Parameters::AllParameters *const all_parameters;
+
     /// Principal constructor.
     /** Will initialize mapping, fe_dg, all_parameters, volume_quadrature, and face_quadrature
      *  from DGBase. The it will new some FEValues that will be used to retrieve the
      *  finite element values at physical locations.
      */
-    DGBase(
-        const int nstate_input,
-        const Parameters::AllParameters *const parameters_input, 
-        const unsigned int degree);
+    DGBase(const int nstate_input, const Parameters::AllParameters *const parameters_input, const unsigned int max_degree);
+
+    /// Delegated constructor that initializes collections
+    /** Since a function is used to generate multiple different objects, a delegated
+     *  constructor is used to unwrap the tuple and initialize the collections */
+    DGBase( const int nstate_input,
+            const Parameters::AllParameters *const parameters_input,
+            const unsigned int max_degree_input,
+            const std::tuple< dealii::hp::MappingCollection<dim>, dealii::hp::FECollection<dim>,
+                              dealii::hp::QCollection<dim>, dealii::hp::QCollection<dim-1>, dealii::hp::QCollection<1>,
+                              dealii::hp::FECollection<dim> > collection_tuple);
 
     virtual ~DGBase(); ///< Destructor.
+
 
     /// Sets the triangulation. Should be done before allocate system
     void set_triangulation(dealii::Triangulation<dim> *triangulation_input)
     { triangulation = triangulation_input; } ;
+
+    void set_all_cells_fe_degree ( const unsigned int degree );
 
     /// Allocates the system.
     /** Must be done after setting the mesh and before assembling the system. */
@@ -103,10 +121,21 @@ public:
      */
     void add_mass_matrices (const real scale);
 
-    double get_residual_l2norm (); ///< Returns the L2-norm of the right_hand_side vector
+    double get_residual_l2norm () const; ///< Returns the L2-norm of the right_hand_side vector
+
+    unsigned int n_dofs() const; /// Number of degrees of freedom
 
     dealii::Triangulation<dim>   *triangulation; ///< Mesh
 
+    /// Degrees of freedom handler
+    /*  Allows us to iterate over the finite elements' degrees of freedom.
+     *  Note that since we are not using FESystem, we need to multiply
+     *  the index by a factor of "nstate"
+     *
+     *  Must be defined after fe_dg since it is a subscriptor of fe_dg.
+     *  Destructor are called in reverse order in which they appear in class definition. 
+     */ 
+    dealii::hp::DoFHandler<dim> dof_handler;
 
     /// Sparsity pattern used on the system_matrix
     /** Not sure we need to store it.  */
@@ -148,48 +177,12 @@ public:
 
     void initialize_manufactured_solution (); ///< Virtual function defined in DG
 
-    void output_results (const unsigned int ith_grid); ///< Output solution
     void output_results_vtk (const unsigned int ith_grid); ///< Output solution
     void output_paraview_results (std::string filename); ///< Outputs a paraview file to view the solution
 
-    /// Mapping is currently MappingQ.
-    /*  Refer to deal.II documentation for the various mapping types */
-    const dealii::MappingQ<dim> mapping;
-
-    /// Lagrange polynomial basis
-    /** Refer to deal.II documentation for the various polynomial types
-     *  Note that only tensor-product polynomials recover optimal convergence
-     *  since the mapping from the reference to physical element is a bilnear mapping.
-     *
-     *  As a result, FE_DGP does not give optimal convergence orders.
-     *  See [discussion](https://groups.google.com/d/msg/dealii/f9NzCp8dnyU/aAdO6I9JCwAJ)
-     *  on deal.II group forum]
-     */
-    const dealii::FE_DGQ<dim> fe_dg;
-    //const dealii::FE_DGQLegendre<dim> fe_dg;
-
-    /// Finite Element System used for vector-valued problems
-    /** Note that we will use the same set of polynomials for all state equations
-     *  therefore, FESystem is only used for the ease of obtaining sizes and 
-     *  global indexing.
-     *
-     *  When evaluating the function values, we will still be using fe_dg
-     */
-    const dealii::FESystem<dim,dim> fe_system;
-
-    /// Pointer to all parameters
-    const Parameters::AllParameters *const all_parameters;
 
 
-    /// Degrees of freedom handler
-    /*  Allows us to iterate over the finite elements' degrees of freedom.
-     *  Note that since we are not using FESystem, we need to multiply
-     *  the index by a factor of "nstate"
-     *
-     *  Must be defined after fe_dg since it is a subscriptor of fe_dg.
-     *  Destructor are called in reverse order in which they appear in class definition. 
-     */ 
-    dealii::DoFHandler<dim> dof_handler;
+
 
     /// Main loop of the DG class.
     /** Evaluates the right-hand-side \f$ \mathbf{R(\mathbf{u}}) \f$ of the system
@@ -222,14 +215,23 @@ public:
      * Do nothing since this cell will be taken care of by scenario 2.
      *    
      */
-    void assemble_residual_dRdW ();
-    void assemble_residual ();
+    //void assemble_residual_dRdW ();
+    void assemble_residual (const bool compute_dRdW=false);
+
+    /// Finite Element Collection for p-finite-element
+    /** This is a collection of FESystems */
+    const dealii::hp::FECollection<dim>    fe_collection;
 
 protected:
 
+    std::tuple< dealii::hp::MappingCollection<dim>, dealii::hp::FECollection<dim>,
+                dealii::hp::QCollection<dim>, dealii::hp::QCollection<dim-1>, dealii::hp::QCollection<1>,
+                dealii::hp::FECollection<dim> >
+                create_collection_tuple(const unsigned int max_degree, const int nstate) const;
+
     /// Evaluate the integral over the cell volume
-    virtual void assemble_cell_terms_implicit(
-        const dealii::FEValues<dim,dim> &fe_values_cell,
+    virtual void assemble_volume_terms_implicit(
+        const dealii::FEValues<dim,dim> &fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs) = 0;
     /// Evaluate the integral over the cell edges that are on domain boundaries
@@ -250,8 +252,8 @@ protected:
         dealii::Vector<real>          &neighbor_cell_rhs) = 0;
 
     /// Evaluate the integral over the cell volume
-    virtual void assemble_cell_terms_explicit(
-        const dealii::FEValues<dim,dim> &fe_values_cell,
+    virtual void assemble_volume_terms_explicit(
+        const dealii::FEValues<dim,dim> &fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs) = 0;
     /// Evaluate the integral over the cell edges that are on domain boundaries
@@ -271,41 +273,66 @@ protected:
         dealii::Vector<real>          &current_cell_rhs,
         dealii::Vector<real>          &neighbor_cell_rhs) = 0;
 
-    // QGauss is Gauss-Legendre quadrature nodes
-    dealii::QGauss<1>     oned_quadrature; // For the strong form
-    dealii::QGauss<dim>   volume_quadrature;
-    dealii::QGauss<dim-1> face_quadrature;
-    // const dealii::QGaussLobatto<dim>   volume_quadrature;
-    // const dealii::QGaussLobatto<dim-1> face_quadrature;
+    // /// Lagrange polynomial basis
+    // /** Refer to deal.II documentation for the various polynomial types
+    //  *  Note that only tensor-product polynomials recover optimal convergence
+    //  *  since the mapping from the reference to physical element is a bilnear mapping.
+    //  *
+    //  *  As a result, FE_DGP does not give optimal convergence orders.
+    //  *  See [discussion](https://groups.google.com/d/msg/dealii/f9NzCp8dnyU/aAdO6I9JCwAJ)
+    //  *  on deal.II group forum]
+    //  */
+    // const dealii::FE_DGQ<dim> fe_dg;
+    // //const dealii::FE_DGQLegendre<dim> fe_dg;
 
-    const dealii::UpdateFlags update_flags =
-        dealii::update_values | dealii::update_gradients
-        | dealii::update_quadrature_points | dealii::update_JxW_values;
-    const dealii::UpdateFlags face_update_flags =
-        dealii::update_values | dealii::update_gradients
-        | dealii::update_quadrature_points | dealii::update_JxW_values
-        | dealii::update_normal_vectors;
-    const dealii::UpdateFlags neighbor_face_update_flags =
-        dealii::update_values | dealii::update_gradients;
+    // /// Finite Element System used for vector-valued problems
+    // /** Note that we will use the same set of polynomials for all state equations
+    //  *  therefore, FESystem is only used for the ease of obtaining sizes and 
+    //  *  global indexing.
+    //  *
+    //  *  When evaluating the function values, we will still be using fe_dg
+    //  */
+    // const dealii::FESystem<dim,dim> fe_system;
+    //
 
-    /// Main loop of the DGBase class.
-    /** It loops over all the cells, evaluates the volume contributions,
-     * then loops over the faces of the current cell. Four scenarios may happen
-     *
-     * 1. Boundary condition.
-     *
-     * 2. Current face has children. Therefore, neighbor is finer. In that case,
-     * loop over neighbor faces to compute its face contributions.
-     *
-     * 3. Neighbor has same coarseness. Cell with lower global index will be used
-     * to compute the face contribution.
-     *
-     * 4. Neighbor is coarser. Therefore, the current cell is the finer one.
-     * Do nothing since this cell will be taken care of by scenario 2.
-     *    
-     */
-    //virtual void allocate_system_implicit () = 0;
-    //virtual void assemble_system_implicit () = 0;
+    // /// QGauss is Gauss-Legendre quadrature nodes
+    // dealii::QGauss<1>     oned_quadrature; // For the strong form
+    // dealii::QGauss<dim>   volume_quadrature;
+    // dealii::QGauss<dim-1> face_quadrature;
+    // // const dealii::QGaussLobatto<dim>   volume_quadrature;
+    // // const dealii::QGaussLobatto<dim-1> face_quadrature;
+
+    /// Mapping is currently MappingQ.
+    /**  Refer to deal.II documentation for the various mapping types */
+    //const dealii::MappingQ<dim> mapping;
+    const dealii::hp::MappingCollection<dim> mapping_collection;
+
+    /// Create mapping collection for initializer list
+    dealii::hp::MappingCollection<dim> create_mapping_collection(const unsigned int max_degree) const;
+
+    /// Create FECollection for initializer list
+    dealii::hp::FECollection<dim> create_fe_collection(const unsigned int max_degree) const;
+
+
+    dealii::hp::QCollection<dim>     volume_quadrature_collection;
+    dealii::hp::QCollection<dim-1>   face_quadrature_collection;
+    dealii::hp::QCollection<1>       oned_quadrature_collection;
+
+    const dealii::UpdateFlags volume_update_flags = dealii::update_values | dealii::update_gradients |
+                                                    dealii::update_quadrature_points | dealii::update_JxW_values;
+    const dealii::UpdateFlags face_update_flags =   dealii::update_values | dealii::update_gradients |
+                                                    dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_normal_vectors;
+    const dealii::UpdateFlags neighbor_face_update_flags = dealii::update_values | dealii::update_gradients;
+
+    dealii::hp::FEValues<dim,dim>        fe_values_collection_volume;
+    dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_int;
+    dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_ext;
+    dealii::hp::FESubfaceValues<dim,dim> fe_values_collection_subface;
+
+    /// Lagrange basis used in strong form
+    /** This is a collection of scalar Lagrange bases */
+    const dealii::hp::FECollection<dim>  fe_collection_lagrange;
+    dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange;
 
 }; // end of DGBase class
 
@@ -340,8 +367,8 @@ private:
     NumericalFlux::NumericalFluxDissipative<dim, nstate, real > *diss_num_flux_double;
 
     /// Evaluate the integral over the cell volume
-    void assemble_cell_terms_implicit(
-        const dealii::FEValues<dim,dim> &fe_values_cell,
+    void assemble_volume_terms_implicit(
+        const dealii::FEValues<dim,dim> &fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs);
     /// Evaluate the integral over the cell edges that are on domain boundaries
@@ -362,8 +389,8 @@ private:
         dealii::Vector<real>          &neighbor_cell_rhs);
 
     /// Evaluate the integral over the cell volume
-    void assemble_cell_terms_explicit(
-        const dealii::FEValues<dim,dim> &fe_values_cell,
+    void assemble_volume_terms_explicit(
+        const dealii::FEValues<dim,dim> &fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs);
     /// Evaluate the integral over the cell edges that are on domain boundaries
@@ -417,8 +444,8 @@ private:
 
 
     /// Evaluate the integral over the cell volume
-    void assemble_cell_terms_implicit(
-        const dealii::FEValues<dim,dim> &fe_values_cell,
+    void assemble_volume_terms_implicit(
+        const dealii::FEValues<dim,dim> &fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs);
     /// Evaluate the integral over the cell edges that are on domain boundaries
@@ -439,8 +466,8 @@ private:
         dealii::Vector<real>          &neighbor_cell_rhs);
 
     /// Evaluate the integral over the cell volume
-    void assemble_cell_terms_explicit(
-        const dealii::FEValues<dim,dim> &fe_values_cell,
+    void assemble_volume_terms_explicit(
+        const dealii::FEValues<dim,dim> &fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs);
     /// Evaluate the integral over the cell edges that are on domain boundaries

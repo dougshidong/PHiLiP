@@ -51,9 +51,14 @@ double GridStudy<dim,nstate>
     double solution_integral = 0.0;
 
     // Overintegrate the error to make sure there is not integration error in the error estimate
-    int overintegrate = 5;
-    dealii::QGauss<dim> quad_extra(dg.fe_system.tensor_degree()+overintegrate);
-    dealii::FEValues<dim,dim> fe_values_extra(dg.mapping, dg.fe_system, quad_extra, 
+    //int overintegrate = 5;
+    //dealii::QGauss<dim> quad_extra(dg.fe_system.tensor_degree()+overintegrate);
+    //dealii::FEValues<dim,dim> fe_values_extra(dg.mapping, dg.fe_system, quad_extra, 
+    //        dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+    int overintegrate = 10;
+    dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
+    dealii::MappingQ<dim> mappingq(dg.max_degree+overintegrate);
+    dealii::FEValues<dim,dim> fe_values_extra(mappingq, dg.fe_collection[dg.max_degree], quad_extra, 
             dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
     const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
     std::array<double,nstate> soln_at_q;
@@ -217,19 +222,17 @@ int GridStudy<dim,nstate>
                       << std::endl
                       << "Grid number: " << igrid+1 << "/" << n_grids
                       << ". Number of active cells: " << n_active_cells
-                      << ". Number of degrees of freedom: " << dg->dof_handler.n_dofs()
+                      << ". Number of degrees of freedom: " << dg->n_dofs()
                       << std::endl;
 
             // Solve the steady state problem
             ode_solver->steady_state();
 
-            // Output the solution to gnuplot. Can only visualize 1D for now
-            if(dim==1) dg->output_results(igrid);
-
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;
-            dealii::QGauss<dim> quad_extra(dg->fe_system.tensor_degree()+overintegrate);
-            dealii::FEValues<dim,dim> fe_values_extra(dg->mapping, dg->fe_system, quad_extra, 
+            dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
+            dealii::MappingQ<dim> mappingq(dg->max_degree+overintegrate);
+            dealii::FEValues<dim,dim> fe_values_extra(mappingq, dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;
@@ -237,12 +240,9 @@ int GridStudy<dim,nstate>
             double l2error = 0;
 
             // Integrate solution error and output error
-            typename dealii::DoFHandler<dim>::active_cell_iterator
-               cell = dg->dof_handler.begin_active(),
-               endc = dg->dof_handler.end();
 
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
-            for (; cell!=endc; ++cell) {
+            for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
 
                 fe_values_extra.reinit (cell);
                 cell->get_dof_indices (dofs_indices);
@@ -256,64 +256,17 @@ int GridStudy<dim,nstate>
                     }
 
                     const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
-                    //std::array<double,nstate> uexact;
-                    //std::cout << "cos(0.59*x+1 " << cos(0.59*qpoint[0]+1) << std::endl;
-                    //std::cout << "uexact[1] " << uexact[1] << std::endl;
 
                     for (int istate=0; istate<nstate; ++istate) {
                         const double uexact = physics_double->manufactured_solution_function.value(qpoint, istate);
                         l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
                     }
-                    // Only integrate first state variable for output error
                 }
 
             }
             l2error = sqrt(l2error);
 
             double solution_integral = integrate_solution_over_domain(*dg);
-
-            //  // Integrate boundary. Not needed for now. Might need something like this for adjoint consistency later on
-            //  bool integrate_boundary = false;
-            //  if (integrate_boundary) {
-            //      QGauss<dim-1> quad_face_plus20(dg->fe_system.tensor_degree()+overintegrate);
-            //      solution_integral = 0;
-            //      FEFaceValues<dim,dim> fe_face_values_plus20(dg->mapping, dg->fe_system, quad_face_plus20, update_normal_vectors | update_values | update_JxW_values | update_quadrature_points);
-            //      unsigned int n_face_quad_pts = fe_face_values_plus20.n_quadrature_points;
-            //      std::vector<double> face_intp_solution_values(n_face_quad_pts);
-
-            //      cell = dg->dof_handler.begin_active();
-            //      for (; cell!=endc; ++cell) {
-
-            //          for (unsigned int face_no=0; face_no < dealii::GeometryInfo<dim>::faces_per_cell; ++face_no) {
-
-            //              typename dealii::DoFHandler<dim>::face_iterator current_face = cell->face(face_no);
-            //              fe_face_values_plus20.reinit (cell, face_no);
-            //              fe_face_values_plus20.get_function_values (dg->solution, face_intp_solution_values);
-
-            //              const std::vector<Tensor<1,dim> > &normals = fe_face_values_plus20.get_normal_vectors ();
-
-            //              if (current_face->at_boundary()) {
-
-            //                  for(unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
-            //                      const dealii::Point<dim> qpoint = (fe_face_values_plus20.quadrature_point(iquad));
-
-            //                      std::array<double,nstate> uexact;
-            //                      physics_double->manufactured_solution (qpoint, uexact);
-
-            //                      std::array<double,nstate> characteristic_dot_n_at_q = physics_double->convective_eigenvalues(uexact, normals[iquad]);
-            //                      const int istate = 0;
-            //                      const bool inflow = (characteristic_dot_n_at_q[istate] < 0.);
-            //                      if (inflow) {
-            //                      } else {
-            //                          double u_at_q = face_intp_solution_values[iquad];
-
-            //                          solution_integral += pow(u_at_q, 2) * fe_face_values_plus20.JxW(iquad);
-            //                      }
-            //                  }
-            //              }
-            //          }
-            //      }
-            //  }
 
             // Convergence table
             double dx = 1.0/pow(n_active_cells,(1.0/dim));
@@ -348,7 +301,7 @@ int GridStudy<dim,nstate>
                 std::cout << "From grid " << igrid-1
                           << "  to grid " << igrid
                           << "  dimension: " << dim
-                          << "  polynomial degree p: " << dg->fe_system.tensor_degree()
+                          << "  polynomial degree p: " << poly_degree
                           << std::endl
                           << "  solution_error1 " << soln_error[igrid-1]
                           << "  solution_error2 " << soln_error[igrid]
@@ -360,7 +313,6 @@ int GridStudy<dim,nstate>
                           << std::endl;
             }
 
-            //output_results (igrid);
         }
         std::cout
             << " ********************************************"

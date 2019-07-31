@@ -112,23 +112,65 @@ void PhysicsBase<dim,nstate,real>
     }
 }
 
+template <int dim, int nstate, typename real>
+dealii::Vector<double> PhysicsBase<dim,nstate,real>::post_compute_derived_quantities_vector (
+    const dealii::Vector<double>              &uh,
+    const std::vector<dealii::Tensor<1,dim> > &/*duh*/,
+    const std::vector<dealii::Tensor<2,dim> > &/*dduh*/,
+    const dealii::Tensor<1,dim>                  &/*normals*/,
+    const dealii::Point<dim>                  &/*evaluation_points*/) const
+{
+    dealii::Vector<double> computed_quantities(nstate);
+    for (unsigned int s=0; s<nstate; ++s) {
+        computed_quantities(s) = uh(s);
+    }
+    return computed_quantities;
+}
 
 template <int dim, int nstate, typename real>
-void PhysicsBase<dim,nstate,real>
-::set_manufactured_dirichlet_boundary_condition (
-        const std::array<real,nstate> &/*soln_int*/,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
-        std::array<real,nstate> &/*soln_bc*/,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
-{}
+dealii::Vector<double> PhysicsBase<dim,nstate,real>::post_compute_derived_quantities_scalar (
+    const double              &uh,
+    const dealii::Tensor<1,dim> &/*duh*/,
+    const dealii::Tensor<2,dim> &/*dduh*/,
+    const dealii::Tensor<1,dim> &/*normals*/,
+    const dealii::Point<dim>    &/*evaluation_points*/) const
+{
+    assert(nstate == 1);
+    dealii::Vector<double> computed_quantities(nstate);
+    for (unsigned int s=0; s<nstate; ++s) {
+        computed_quantities(s) = uh;
+    }
+    return computed_quantities;
+}
+
 template <int dim, int nstate, typename real>
-void PhysicsBase<dim,nstate,real>
-::set_manufactured_neumann_boundary_condition (
-        const std::array<real,nstate> &/*soln_int*/,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
-        std::array<real,nstate> &/*soln_bc*/,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
-{}
+std::vector<std::string> PhysicsBase<dim,nstate,real> ::post_get_names () const
+{
+    std::vector<std::string> names;
+    for (unsigned int s=0; s<nstate; ++s) {
+        std::string varname = "u" + dealii::Utilities::int_to_string(s,1);
+        names.push_back(varname);
+    }
+    return names;
+}
+
+template <int dim, int nstate, typename real>
+std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> PhysicsBase<dim,nstate,real>
+::post_get_data_component_interpretation () const
+{
+    std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> interpretation;
+    for (unsigned int s=0; s<nstate; ++s) {
+        interpretation.push_back (dealii::DataComponentInterpretation::component_is_scalar);
+    }
+    return interpretation;
+}
+
+template <int dim, int nstate, typename real>
+dealii::UpdateFlags PhysicsBase<dim,nstate,real>
+::post_get_needed_update_flags () const
+{
+    return dealii::update_values;
+}
 
 
 template class PhysicsBase < PHILIP_DIM, 1, double >;

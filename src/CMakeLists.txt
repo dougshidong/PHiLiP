@@ -9,6 +9,7 @@ add_subdirectory(physics)
 add_subdirectory(numerical_flux)
 add_subdirectory(dg)
 add_subdirectory(ode_solver)
+add_subdirectory(post_processor)
 
 add_subdirectory(tests)
 

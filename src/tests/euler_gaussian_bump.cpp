@@ -71,7 +71,14 @@ dealii::Point<dim> EulerGaussianBump<dim,nstate>
     const double x_ref = p[0];
     const double y_ref = p[1];
     dealii::Point<dim> q = p;
-    q[0] = x_ref;
+    //q[0] = x_ref;
+    const double a = 1.1;
+    const double C = exp(1.5*a) / 1.5;
+    if ( x_ref > 0 ) {
+        q[0] = exp(a*x_ref)/C - 1.0/C;
+    } else {
+        q[0] = 1.0/C - exp(a*-x_ref)/C;
+    }
     q[1] = 0.8*y_ref + exp(-30*y_ref*y_ref)*0.0625*exp(-25*q[0]*q[0]);
     return q;
 }
@@ -80,7 +87,13 @@ dealii::Point<dim> EulerGaussianBump<dim,nstate>
 dealii::Point<2> BumpManifold::pull_back(const dealii::Point<2> &space_point) const {
     double x_phys = space_point[0];
     double y_phys = space_point[1];
-    double x_ref = x_phys;//(x_phys+1.5)/3.0;
+    double x_ref = x_phys;
+
+    //if ( x_phys > 0 ) {
+    //    x_ref = sqrt(1.5*1.5*x_phys);
+    //} else {
+    //    x_ref = -sqrt(1.5*1.5*-x_phys);
+    //}
     double y_ref = 0.5;
 
     for (int i=0; i<20; i++) {
@@ -155,14 +168,14 @@ int EulerGaussianBump<dim,nstate>
         dealii::ConvergenceTable convergence_table;
 
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
-            // Note that Triangulation must be declared before DG
-            // DG will be destructed before Triangulation
-            // thus removing any dependence of Triangulation and allowing Triangulation to be destructed
-            // Otherwise, a Subscriptor error will occur
             dealii::Triangulation<dim> grid;
 
+            //std::vector<unsigned int> n_subdivisions(dim);
+            //n_subdivisions[1] = n_1d_cells[igrid]; // y-direction
+            //n_subdivisions[0] = 4*n_subdivisions[1]; // x-direction
+
             std::vector<unsigned int> n_subdivisions(dim);
-            n_subdivisions[1] = n_1d_cells[igrid]; // y-direction
+            n_subdivisions[1] = n_1d_cells[0]; // y-direction
             n_subdivisions[0] = 4*n_subdivisions[1]; // x-direction
 
             std::cout << "Generate hyper-rectangle" << std::endl;
@@ -181,19 +194,23 @@ int EulerGaussianBump<dim,nstate>
                     }
                 }
             }
+
             
 
             // Warp grid to be a gaussian bump
-            dealii::GridTools::transform (&warp, grid);
+            //dealii::GridTools::transform (&warp, grid);
+            
             // Assign a manifold to have curved geometry
             static const BumpManifold manifold;
             unsigned int manifold_id=0; // top face, see GridGenerator::hyper_rectangle, colorize=true
             grid.reset_all_manifolds();
-            grid.set_all_manifold_ids(0);
-            grid.set_manifold ( manifold_id, manifold );
+            grid.set_all_manifold_ids(manifold_id);
+            //grid.set_manifold ( manifold_id, manifold );
+
+            grid.refine_global (igrid);
 
             // Distort grid by random amount if requested
-            const double random_factor = manu_grid_conv_param.random_distortion;
+            const double random_factor = 0.1;//manu_grid_conv_param.random_distortion;
             const bool keep_boundary = true;
             if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, grid, keep_boundary);
 
@@ -211,7 +228,7 @@ int EulerGaussianBump<dim,nstate>
             // Create ODE solver using the factory and providing the DG object
             std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
-            unsigned int n_active_cells = grid.n_active_cells();
+            const unsigned int n_active_cells = grid.n_active_cells();
             std::cout
                       << "Dimension: " << dim << "\t Polynomial degree p: " << poly_degree << std::endl
                       << "Grid number: " << igrid+1 << "/" << n_grids
@@ -239,13 +256,14 @@ int EulerGaussianBump<dim,nstate>
 
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
 
-            const double gam = euler_physics_double.gam;
-            const double mach_inf = euler_physics_double.mach_inf;
-            const double tot_temperature_inf = 1.0;
-            const double tot_pressure_inf = 1.0;
-            // Assuming a tank at rest, velocity = 0, therefore, static pressure and temperature are same as total
-            const double density_inf = gam*tot_pressure_inf/tot_temperature_inf * mach_inf * mach_inf;
-            const double entropy_inf = tot_pressure_inf*pow(density_inf,-gam);
+            //const double gam = euler_physics_double.gam;
+            //const double mach_inf = euler_physics_double.mach_inf;
+            //const double tot_temperature_inf = 1.0;
+            //const double tot_pressure_inf = 1.0;
+            //// Assuming a tank at rest, velocity = 0, therefore, static pressure and temperature are same as total
+            //const double density_inf = gam*tot_pressure_inf/tot_temperature_inf * mach_inf * mach_inf;
+            //const double entropy_inf = tot_pressure_inf*pow(density_inf,-gam);
+            const double entropy_inf = euler_physics_double.entropy_inf;
 
             for (; cell!=endc; ++cell) {
 
@@ -270,7 +288,7 @@ int EulerGaussianBump<dim,nstate>
 
             // Convergence table
             double dx = 1.0/pow(n_active_cells,(1.0/dim));
-            dx = dealii::GridTools::maximal_cell_diameter(grid);
+            //dx = dealii::GridTools::maximal_cell_diameter(grid);
             grid_size[igrid] = dx;
             entropy_error[igrid] = l2error;
 

@@ -225,6 +225,7 @@ public:
      *    
      */
     void assemble_residual_dRdW ();
+    void assemble_residual ();
 
 protected:
 
@@ -242,6 +243,28 @@ protected:
         dealii::Vector<real> &current_cell_rhs) = 0;
     /// Evaluate the integral over the internal cell edges
     virtual void assemble_face_term_implicit(
+        const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
+        const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
+        const real penalty,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
+        dealii::Vector<real>          &current_cell_rhs,
+        dealii::Vector<real>          &neighbor_cell_rhs) = 0;
+
+    /// Evaluate the integral over the cell volume
+    virtual void assemble_cell_terms_explicit(
+        const dealii::FEValues<dim,dim> &fe_values_cell,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs) = 0;
+    /// Evaluate the integral over the cell edges that are on domain boundaries
+    virtual void assemble_boundary_term_explicit(
+        const unsigned int boundary_id,
+        const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
+        const real penalty,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs) = 0;
+    /// Evaluate the integral over the internal cell edges
+    virtual void assemble_face_term_explicit(
         const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
         const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
         const real penalty,
@@ -311,6 +334,13 @@ private:
     /// Dissipative numerical flux
     NumericalFlux::NumericalFluxDissipative<dim, nstate, Sacado::Fad::DFad<real> > *diss_num_flux;
 
+    /// Contains the physics of the PDE
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, real > > pde_physics_double;
+    /// Convective numerical flux
+    NumericalFlux::NumericalFluxConvective<dim, nstate, real > *conv_num_flux_double;
+    /// Dissipative numerical flux
+    NumericalFlux::NumericalFluxDissipative<dim, nstate, real > *diss_num_flux_double;
+
     /// Evaluate the integral over the cell volume
     void assemble_cell_terms_implicit(
         const dealii::FEValues<dim,dim> &fe_values_cell,
@@ -325,6 +355,28 @@ private:
         dealii::Vector<real> &current_cell_rhs);
     /// Evaluate the integral over the internal cell edges
     void assemble_face_term_implicit(
+        const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
+        const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
+        const real penalty,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
+        dealii::Vector<real>          &current_cell_rhs,
+        dealii::Vector<real>          &neighbor_cell_rhs);
+
+    /// Evaluate the integral over the cell volume
+    void assemble_cell_terms_explicit(
+        const dealii::FEValues<dim,dim> &fe_values_cell,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs);
+    /// Evaluate the integral over the cell edges that are on domain boundaries
+    void assemble_boundary_term_explicit(
+        const unsigned int boundary_id,
+        const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
+        const real penalty,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs);
+    /// Evaluate the integral over the internal cell edges
+    void assemble_face_term_explicit(
         const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
         const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
         const real penalty,
@@ -358,9 +410,15 @@ private:
     /// Dissipative numerical flux
     NumericalFlux::NumericalFluxDissipative<dim, nstate, Sacado::Fad::DFad<real> > *diss_num_flux;
 
+
     /// Contains the split fluxes
     std::shared_ptr < SplitFormBase<dim,nstate,Sacado::Fad::DFad<real> > > split_fluxes;
-
+    /// Contains the physics of the PDE
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, real > > pde_physics_double;
+    /// Convective numerical flux
+    NumericalFlux::NumericalFluxConvective<dim, nstate, real > *conv_num_flux_double;
+    /// Dissipative numerical flux
+    NumericalFlux::NumericalFluxDissipative<dim, nstate, real > *diss_num_flux_double;
 
     /// Evaluate the integral over the cell volume
     void assemble_cell_terms_implicit(
@@ -376,6 +434,28 @@ private:
         dealii::Vector<real> &current_cell_rhs);
     /// Evaluate the integral over the internal cell edges
     void assemble_face_term_implicit(
+        const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
+        const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
+        const real penalty,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
+        dealii::Vector<real>          &current_cell_rhs,
+        dealii::Vector<real>          &neighbor_cell_rhs);
+
+    /// Evaluate the integral over the cell volume
+    void assemble_cell_terms_explicit(
+        const dealii::FEValues<dim,dim> &fe_values_cell,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs);
+    /// Evaluate the integral over the cell edges that are on domain boundaries
+    void assemble_boundary_term_explicit(
+        const unsigned int boundary_id,
+        const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
+        const real penalty,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs);
+    /// Evaluate the integral over the internal cell edges
+    void assemble_face_term_explicit(
         const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
         const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
         const real penalty,

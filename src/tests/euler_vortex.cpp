@@ -35,13 +35,13 @@ template <int dim, typename real>
 EulerVortexFunction<dim,real>
 ::EulerVortexFunction (
         const Physics::Euler<dim, dim+2, real> euler_physics,
-        const dealii::Point<2> initial_vortex_center,
+        const dealii::Point<dim> initial_vortex_center,
         const real vortex_strength,
         const real vortex_stddev_decay)
     :
     dealii::Function<dim,real>(dim+2, 0.0)
     , euler_physics(euler_physics)
-    , vortex_characteristic_length(2.0*euler_physics.ref_length)
+    , vortex_characteristic_length(1.0*euler_physics.ref_length)
     , initial_vortex_center(initial_vortex_center)
     , vortex_strength(vortex_strength)
     , vortex_stddev_decay(vortex_stddev_decay)
@@ -50,44 +50,111 @@ EulerVortexFunction<dim,real>
 }
 
 template <int dim, typename real>
-inline dealii::Point<2> EulerVortexFunction<dim,real>::advected_location(dealii::Point<2> old_location) const
+inline dealii::Point<dim> EulerVortexFunction<dim,real>::advected_location(dealii::Point<dim> grid_location) const
 {
-    dealii::Point<2> new_location;
+    dealii::Point<dim> new_location;
     const double time = this->get_time();
     for(int d=0; d<dim; d++) {
-        new_location[d] = (old_location[d] - initial_vortex_center[d]) - euler_physics.velocities_inf[d] * time;
+        new_location[d] = (grid_location[d] - initial_vortex_center[d]) - euler_physics.velocities_inf[d] * time;
     }
     return new_location;
 }
+
+//template <int dim, typename real>
+//inline real EulerVortexFunction<dim,real>
+//::value (const dealii::Point<dim> &point, const unsigned int istate) const
+//{
+//    dealii::Point<dim> new_loc = advected_location(point);
+//    const double x = new_loc[0];
+//    const double y = new_loc[1];
+//    const double local_radius_sqr = new_loc.square();
+//    
+//    const double variance = vortex_stddev_decay*vortex_stddev_decay;
+//    const double char_length_sqr = vortex_characteristic_length*vortex_characteristic_length;
+//    const double perturbation_strength = -(0.5/variance)*local_radius_sqr/char_length_sqr;
+//    const double gaussian = vortex_strength * exp(perturbation_strength);
+//
+//    const double delta_vel_x = -y/vortex_characteristic_length * gaussian;
+//    const double delta_vel_y =  x/vortex_characteristic_length * gaussian;
+//    const double delta_temp  =  -0.5*euler_physics.gamm1 * gaussian*gaussian;
+//
+//    const double vel_x = euler_physics.velocities_inf[0] + delta_vel_x;
+//    const double vel_y = euler_physics.velocities_inf[1] + delta_vel_y;
+//    const double temperature = (euler_physics.temperature_inf + delta_temp);
+//    //if(std::abs(x) > 19.9) {
+//    //    std::cout<< "Gaussian " << gaussian << std::endl;
+//    //    std::cout<< "pert " << perturbation_strength << std::endl;
+//    //    std::cout<< "velx " << vel_x << std::endl;
+//    //    std::cout<< "vely " << vel_y << std::endl;
+//    //    std::cout<< "delta_temp " << delta_temp << std::endl;
+//    //    std::cout<< "temperature " << temperature << std::endl;
+//    //    std::cout<< std::endl;
+//    //}
+//
+//    // Use isentropic relations to recover density and pressure
+//    const double density = pow(temperature, 1.0/euler_physics.gamm1);
+//    //const double pressure = euler_physics.pressure_inf * 1.0/euler_physics.gam * pow(temperature, euler_physics.gam/euler_physics.gamm1);
+//    const double pressure = euler_physics.pressure_inf * pow(temperature, euler_physics.gam/euler_physics.gamm1);
+//
+//    const std::array<double, 4> primitive_values = {density, vel_x, vel_y, pressure};
+//    const std::array<double, 4> conservative_values = euler_physics.convert_primitive_to_conservative(primitive_values);
+//
+//    // if(std::abs(x) > 19.9) {
+//    //     std::cout<< "density " << conservative_values[0] << std::endl;
+//    //     std::cout<< "momx " << conservative_values[1] << std::endl;
+//    //     std::cout<< "momy " << conservative_values[2] << std::endl;
+//    //     std::cout<< "energy " << conservative_values[3] << std::endl;
+//    //     std::cout<< std::endl;
+//    // }
+//
+//    return conservative_values[istate];
+//}
 
 template <int dim, typename real>
 inline real EulerVortexFunction<dim,real>
 ::value (const dealii::Point<dim> &point, const unsigned int istate) const
 {
-    dealii::Point<2> new_loc = advected_location(point);
+    dealii::Point<dim> new_loc = advected_location(point);
     const double x = new_loc[0];
     const double y = new_loc[1];
     const double local_radius_sqr = new_loc.square();
     
-    const double variance = vortex_stddev_decay*vortex_stddev_decay;
-    const double char_length_sqr = vortex_characteristic_length*vortex_characteristic_length;
-    const double perturbation_strength = -(0.5/variance)*local_radius_sqr/char_length_sqr;
-    const double gaussian = vortex_strength * exp(perturbation_strength);
+    const double pi = dealii::numbers::PI;
+    const double variance = vortex_stddev_decay;
+    const double perturbation_strength = vortex_strength * exp(0.5*variance*(1.0-local_radius_sqr)) * 0.5 / pi;
 
-    const double delta_vel_x = -y/vortex_characteristic_length * gaussian;
-    const double delta_vel_y =  x/vortex_characteristic_length * gaussian;
-    const double delta_temp  =  -0.5*euler_physics.gamm1 * gaussian*gaussian;
+    const double delta_vel_x = -y * perturbation_strength;
+    const double delta_vel_y =  x * perturbation_strength;
+    const double delta_temp  =  euler_physics.temperature_inf / pow(euler_physics.sound_inf, 2) * 0.5*euler_physics.gamm1 * perturbation_strength*perturbation_strength;
 
     const double vel_x = euler_physics.velocities_inf[0] + delta_vel_x;
     const double vel_y = euler_physics.velocities_inf[1] + delta_vel_y;
     const double temperature = (euler_physics.temperature_inf + delta_temp);
+    //if(std::abs(x) > 19.9) {
+    //    std::cout<< "Gaussian " << gaussian << std::endl;
+    //    std::cout<< "pert " << perturbation_strength << std::endl;
+    //    std::cout<< "velx " << vel_x << std::endl;
+    //    std::cout<< "vely " << vel_y << std::endl;
+    //    std::cout<< "delta_temp " << delta_temp << std::endl;
+    //    std::cout<< "temperature " << temperature << std::endl;
+    //    std::cout<< std::endl;
+    //}
 
     // Use isentropic relations to recover density and pressure
-    const double density = pow(temperature, 1.0/euler_physics.gamm1);
-    const double pressure = euler_physics.pressure_inf * 1.0/euler_physics.gam * pow(temperature, euler_physics.gam/euler_physics.gamm1);
+    const double density = euler_physics.density_inf*pow(temperature, 1.0/euler_physics.gamm1);
+    //const double pressure = euler_physics.pressure_inf * 1.0/euler_physics.gam * pow(temperature, euler_physics.gam/euler_physics.gamm1);
+    const double pressure = euler_physics.pressure_inf * pow(temperature, euler_physics.gam/euler_physics.gamm1);
 
     const std::array<double, 4> primitive_values = {density, vel_x, vel_y, pressure};
     const std::array<double, 4> conservative_values = euler_physics.convert_primitive_to_conservative(primitive_values);
+
+    // if(std::abs(x) > 19.9) {
+    //     std::cout<< "density " << conservative_values[0] << std::endl;
+    //     std::cout<< "momx " << conservative_values[1] << std::endl;
+    //     std::cout<< "momy " << conservative_values[2] << std::endl;
+    //     std::cout<< "energy " << conservative_values[3] << std::endl;
+    //     std::cout<< std::endl;
+    // }
 
     return conservative_values[istate];
 }
@@ -123,10 +190,10 @@ int EulerVortex<dim,nstate>
     std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&param);
     std::shared_ptr <Physics::Euler<dim,nstate,double>> euler = std::dynamic_pointer_cast<Physics::Euler<dim,nstate,double>>(physics);
 
-    const dealii::Point<2> initial_vortex_center(0.0,0.0);
+    const dealii::Point<dim> initial_vortex_center(0.0,0.0);
     const double vortex_strength = euler->mach_inf*4.0;
     const double vortex_stddev_decay = 1.0;
-    const double half_length = 10*euler->ref_length;
+    const double half_length = 20*euler->ref_length;
     EulerVortexFunction<dim,double> initial_vortex_function(*euler, initial_vortex_center, vortex_strength, vortex_stddev_decay);
     initial_vortex_function.set_time(0.0);
 
@@ -157,7 +224,7 @@ int EulerVortex<dim,nstate>
                 n_subdivisions[0] = n_1d_cells[igrid];
                 n_subdivisions[1] = n_1d_cells[igrid];
                 const bool colorize = true;
-                dealii::Point<2> p1(-half_length,-half_length), p2(half_length,half_length);
+                dealii::Point<dim> p1(-half_length,-half_length), p2(half_length,half_length);
                 dealii::GridGenerator::subdivided_hyper_rectangle (grid, n_subdivisions, p1, p2, colorize);
                 for (typename dealii::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
                     // Set a dummy boundary ID
@@ -213,8 +280,8 @@ int EulerVortex<dim,nstate>
             // We can then compare the exact solution to whatever time it reached
             ode_solver->steady_state();
             
-            const double final_time = ode_solver->current_time;
             EulerVortexFunction<dim,double> final_vortex_function(*euler, initial_vortex_center, vortex_strength, vortex_stddev_decay);
+            const double final_time = ode_solver->current_time;
             final_vortex_function.set_time(final_time);
 
             // Overintegrate the error to make sure there is not integration error in the error estimate

@@ -2,10 +2,13 @@
 #define __PHYSICS__
 
 #include <deal.II/base/tensor.h>
+#include <deal.II/numerics/data_component_interpretation.h>
+#include <deal.II/fe/fe_update_flags.h>
 
 #include "parameters/all_parameters.h"
 #include "physics/manufactured_solution.h"
 #include "physics/split_form.h"
+
 
 namespace PHiLiP {
 namespace Physics {
@@ -86,20 +89,24 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
         std::array<real,nstate> &/*soln_bc*/,
         std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
-protected:
-    /// Not yet implemented
-    virtual void set_manufactured_dirichlet_boundary_condition (
-        const std::array<real,nstate> &/*soln_int*/,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
-        std::array<real,nstate> &/*soln_bc*/,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
-    /// Not yet implemented
-    virtual void set_manufactured_neumann_boundary_condition (
-        const std::array<real,nstate> &/*soln_int*/,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
-        std::array<real,nstate> &/*soln_bc*/,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
 
+    virtual dealii::Vector<double> post_compute_derived_quantities_vector (
+        const dealii::Vector<double>      &uh,
+        const std::vector<dealii::Tensor<1,dim> > &duh,
+        const std::vector<dealii::Tensor<2,dim> > &dduh,
+        const dealii::Tensor<1,dim>                  &normals,
+        const dealii::Point<dim>                  &evaluation_points) const;
+
+    virtual dealii::Vector<double> post_compute_derived_quantities_scalar (
+        const double              &uh,
+        const dealii::Tensor<1,dim> &/*duh*/,
+        const dealii::Tensor<2,dim> &/*dduh*/,
+        const dealii::Tensor<1,dim> &/*normals*/,
+        const dealii::Point<dim>    &/*evaluation_points*/) const;
+    virtual std::vector<std::string> post_get_names () const;
+    virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const;
+    virtual dealii::UpdateFlags post_get_needed_update_flags () const;
+protected:
 
     /// Some constants used to define manufactured solution
     double velo_x, velo_y, velo_z;

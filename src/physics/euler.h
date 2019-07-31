@@ -81,12 +81,14 @@ public:
     : ref_length(ref_length)
     , gam(gamma_gas)
     , gamm1(gam-1.0)
+    , density_inf(1.0)
     , mach_inf(mach_inf)
     , mach_inf_sqr(mach_inf*mach_inf)
     , angle_of_attack(angle_of_attack)
     , side_slip_angle(side_slip_angle)
     , sound_inf(1.0/(mach_inf))
     , pressure_inf(1.0/(gam*mach_inf_sqr))
+    , entropy_inf(pressure_inf*pow(density_inf,-gam))
     //, internal_energy_inf(mach_inf_sqr/(gam*(gam-1.0)))
     {
         static_assert(nstate==dim+2, "Physics::Euler() should be created with nstate=dim+2");
@@ -111,6 +113,7 @@ public:
         }
         assert(std::abs(velocities_inf.norm() - 1.0) < 1e-14);
 
+
     };
     /// Destructor
     ~Euler ()
@@ -121,18 +124,21 @@ public:
     const double gam;
     /// Gamma-1.0 used often
     const double gamm1;
+
+    /// Non-dimensionalized density* at infinity. density* = density/density_ref
+    /// Choose density_ref = density(inf)
+    /// density*(inf) = density(inf) / density_ref = density(inf)/density(inf) = 1.0
+    const double density_inf;
+
     const double mach_inf;
     const double mach_inf_sqr;
     const double angle_of_attack;
     const double side_slip_angle;
 
-    /// Non-dimensionalized density* at infinity. density* = density/density_ref
-    /// Choose density_ref = density(inf)
-    /// density*(inf) = density(inf) / density_ref = density(inf)/density(inf) = 1.0
-    const double density_inf = 1.0;
 
     const double sound_inf; /// Non-dimensionalized sound* at infinity
     const double pressure_inf; /// Non-dimensionalized pressure* at infinity
+    const double entropy_inf; /// Entropy measure at infinity
     double temperature_inf; /// Non-dimensionalized temperature* at infinity. Should equal 1/density*(inf)
 
     //const double internal_energy_inf;
@@ -186,6 +192,7 @@ public:
 
     /// Evaluate pressure from conservative variables
     real compute_pressure ( const std::array<real,nstate> &conservative_soln ) const;
+
     /// Evaluate speed of sound from conservative variables
     real compute_sound ( const std::array<real,nstate> &conservative_soln ) const;
     /// Evaluate velocities from conservative variables
@@ -232,6 +239,16 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
         std::array<real,nstate> &/*soln_bc*/,
         std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
+
+    virtual dealii::Vector<double> post_compute_derived_quantities_vector (
+        const dealii::Vector<double>      &uh,
+        const std::vector<dealii::Tensor<1,dim> > &duh,
+        const std::vector<dealii::Tensor<2,dim> > &dduh,
+        const dealii::Tensor<1,dim>                  &normals,
+        const dealii::Point<dim>                  &evaluation_points) const;
+    virtual std::vector<std::string> post_get_names () const;
+    virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const;
+    virtual dealii::UpdateFlags post_get_needed_update_flags () const;
 protected:
 
 

@@ -539,11 +539,97 @@ void Euler<dim,nstate,real>
         for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = velocities_inf[d]; } // minus since it's inflow
         primitive_boundary_values[nstate-1] = pressure_bc;
         soln_bc = convert_primitive_to_conservative(primitive_boundary_values);
+        //std::cout << "Density inf " << soln_bc[0] << std::endl;
+        //std::cout << "momxinf " << soln_bc[1] << std::endl;
+        //std::cout << "momxinf " << soln_bc[2] << std::endl;
+        //std::cout << "energy inf " << soln_bc[3] << std::endl;
     } else{
         std::cout << "Invalid boundary_type: " << boundary_type << std::endl;
         std::abort();
     }
+}
 
+template <int dim, int nstate, typename real>
+dealii::Vector<double> Euler<dim,nstate,real>::post_compute_derived_quantities_vector (
+    const dealii::Vector<double>              &uh,
+    const std::vector<dealii::Tensor<1,dim> > &/*duh*/,
+    const std::vector<dealii::Tensor<2,dim> > &/*dduh*/,
+    const dealii::Tensor<1,dim>                  &/*normals*/,
+    const dealii::Point<dim>                  &/*evaluation_points*/) const
+{
+    std::vector<std::string> names = post_get_names ();
+    dealii::Vector<double> computed_quantities(names.size());
+    if constexpr (std::is_same<real,double>::value) {
+        std::array<double, nstate> conservative_soln;
+        for (unsigned int s=0; s<nstate; ++s) {
+            conservative_soln[s] = uh(s);
+        }
+        const std::array<double, nstate> primitive_soln = convert_conservative_to_primitive(conservative_soln);
+
+        int data_index = 0;
+        // Density
+        computed_quantities(data_index++) = primitive_soln[0];
+        // Velocities
+        for (unsigned int d=0; d<dim; ++d) {
+            computed_quantities(data_index++) = primitive_soln[1+d];
+        }
+        // Momentum
+        for (unsigned int d=0; d<dim; ++d) {
+            computed_quantities(data_index++) = conservative_soln[1+d];
+        }
+        // Energy
+        computed_quantities(data_index++) = conservative_soln[nstate-1];
+        // Pressure
+        computed_quantities(data_index++) = primitive_soln[nstate-1];
+        // Entropy generation
+        computed_quantities(data_index++) = compute_entropy_measure(conservative_soln) - entropy_inf;
+    }
+
+    return computed_quantities;
+}
+
+template <int dim, int nstate, typename real>
+std::vector<std::string> Euler<dim,nstate,real> ::post_get_names () const
+{
+    std::vector<std::string> names;
+    names.push_back ("density");
+    for (unsigned int d=0; d<dim; ++d) {
+      names.push_back ("velocity");
+    }
+    for (unsigned int d=0; d<dim; ++d) {
+      names.push_back ("momentum");
+    }
+    names.push_back ("energy");
+    names.push_back ("pressure");
+
+    names.push_back ("entropy_generation");
+    return names;
+}
+
+template <int dim, int nstate, typename real>
+std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Euler<dim,nstate,real>
+::post_get_data_component_interpretation () const
+{
+    std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> interpretation;
+    interpretation.push_back (dealii::DataComponentInterpretation::component_is_scalar); // Density
+    for (unsigned int d=0; d<dim; ++d) {
+        interpretation.push_back (dealii::DataComponentInterpretation::component_is_part_of_vector); // Velocity
+    }
+    for (unsigned int d=0; d<dim; ++d) {
+        interpretation.push_back (dealii::DataComponentInterpretation::component_is_part_of_vector); // Momentum
+    }
+    interpretation.push_back (dealii::DataComponentInterpretation::component_is_scalar); // Energy
+    interpretation.push_back (dealii::DataComponentInterpretation::component_is_scalar); // Pressure
+    interpretation.push_back (dealii::DataComponentInterpretation::component_is_scalar); // Entropy generation
+    return interpretation;
+}
+
+template <int dim, int nstate, typename real>
+dealii::UpdateFlags Euler<dim,nstate,real>
+::post_get_needed_update_flags () const
+{
+    //return update_values | update_gradients;
+    return dealii::update_values;
 }
 
 // Instantiate explicitly

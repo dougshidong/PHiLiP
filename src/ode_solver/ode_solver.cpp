@@ -91,12 +91,13 @@ int ODESolver<dim,real>::advance_solution_time (double time_advance)
         this->dg->assemble_residual_dRdW ();
 
         step_in_time(constant_time_step);
-        double energy = 0;
-        for (unsigned int i = 0; i < this->dg->dof_handler.n_dofs(); ++i)
-        {
-        	energy += (1./this->dg->global_inverse_mass_matrix.el(i,i)) * this->dg->solution(i) * this->dg->solution(i);
-        }
-        std::cout << "energy is " << energy << std::endl;
+        //calculates energy for burgers'
+//        double energy = 0;
+//        for (unsigned int i = 0; i < this->dg->dof_handler.n_dofs(); ++i)
+//        {
+//        	energy += (1./this->dg->global_inverse_mass_matrix.el(i,i)) * this->dg->solution(i) * this->dg->solution(i);
+//        }
+//        std::cout << "energy is " << energy << std::endl;
 
         if (this->current_iteration%ode_param.print_iteration_modulo == 0)
         	this->dg->output_results(this->current_iteration);

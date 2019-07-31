@@ -104,8 +104,6 @@ void DGStrong<dim,nstate,real>::assemble_cell_terms_implicit(
         conv_phys_flux_at_q[iquad] = pde_physics->convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = pde_physics->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
 
-        //THIS IS WHERE I NEED TO EVALUATE SPLIT FORM FLUXES
-
         if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
             source_at_q[iquad] = pde_physics->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad]);
         }
@@ -118,34 +116,16 @@ void DGStrong<dim,nstate,real>::assemble_cell_terms_implicit(
     dealii::FEValues<dim,dim> fe_values_lagrange (this->mapping, lagrange_poly, this->volume_quadrature, this->update_flags);
     fe_values_lagrange.reinit(fe_values_vol.get_cell());
     std::vector<ADArray> flux_divergence(n_quad_pts);
-    std::vector<ADtype> f1(n_quad_pts);
-    std::vector<ADtype> f2(n_quad_pts);
-    std::vector<ADtype> g1(n_quad_pts);
-    std::vector<ADtype> g2(n_quad_pts);
+
+    std::array<std::array<std::vector<ADtype>,nstate>,dim> f;
+    std::array<std::array<std::vector<ADtype>,nstate>,dim> g;
+
     for (int istate = 0; istate<nstate; ++istate) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             flux_divergence[iquad][istate] = 0.0;
-            f1[iquad]=0;
-            f2[iquad]=0;
-            g1[iquad]=0;
-            g2[iquad]=0;
             for ( unsigned int flux_basis = 0; flux_basis < n_quad_pts; ++flux_basis ) {
                 flux_divergence[iquad][istate] += conv_phys_flux_at_q[flux_basis][istate] * fe_values_lagrange.shape_grad(flux_basis,iquad);
-                //std::cout << split_fluxes->split_convective_fluxes[0][0][1].g(soln_at_q[flux_basis]) << " vs " << conv_phys_flux_at_q[flux_basis][istate] << std::endl;
-                //std::cout << fe_values_vol.shape_grad(flux_basis,iquad)[0] << " VS " << fe_values_lagrange.shape_grad(flux_basis,iquad) << std::endl;
-                //abtin_divergence[iquad][istate] += split_fluxes->split_convective_fluxes[0][0][1].g(soln_at_q[flux_basis]) * fe_values_vol.shape_grad(flux_basis,istate)[0];
-                f1[iquad] += split_fluxes->split_convective_fluxes[0][0][0].f(soln_at_q[flux_basis]) * fe_values_vol.shape_grad_component(flux_basis,iquad, istate)[0];
-                f2[iquad] += split_fluxes->split_convective_fluxes[0][0][1].f(soln_at_q[flux_basis]) * fe_values_vol.shape_grad_component(flux_basis,iquad, istate)[0];
-                g1[iquad] += split_fluxes->split_convective_fluxes[0][0][0].g(soln_at_q[flux_basis]) * fe_values_vol.shape_grad_component(flux_basis,iquad, istate)[0];
-                g2[iquad] += split_fluxes->split_convective_fluxes[0][0][1].g(soln_at_q[flux_basis]) * fe_values_vol.shape_grad_component(flux_basis,iquad, istate)[0];
-                //std:: cout << " flux " << split_fluxes->split_convective_fluxes[0][0][1].g(soln_at_q[flux_state]) << " shapegrad "
-                //		   << fe_values_vol.shape_grad_component(flux_basis, iquad, istate)[0]
-				//		   << " soln " << soln_at_q[iquad][0]
-				//		   << std::endl;
-               // std::cout << g2[iquad] << std::endl;
-
             }
-           // std::cout << g2[iquad].val() << std::endl;
 
         }
     }
@@ -167,32 +147,26 @@ void DGStrong<dim,nstate,real>::assemble_cell_terms_implicit(
 
         if (this->all_parameters->use_split_form)
         {
-        	ADtype inter1 = 0;
-        	ADtype inter2 = 0;
-        	for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad)
+        	assert(this->all_parameters->use_collocated_nodes == true && "Nodes aren't collocated, can't use split form");
+
+        	for (unsigned int idim = 0; idim < dim; ++idim)
         	{
-        		inter2 = inter2 + fe_values_vol.shape_value_component(itest,iquad,istate) *  g2[iquad] * JxW[iquad];
-        		inter1 = inter1 + fe_values_vol.shape_value_component(itest,iquad,istate) * g1[iquad] * JxW[iquad];
+        		for (unsigned int isplit=0; isplit < split_fluxes->split_convective_fluxes[idim][istate].size(); ++isplit)
+        		{
+        			ADtype inter1;
+        			for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad)
+        			{
+        				ADtype inter = 0;
+        				for (unsigned int flux_basis = 0; flux_basis < n_quad_pts; ++flux_basis)
+        				{
+        					inter = inter + split_fluxes->split_convective_fluxes[idim][istate][isplit].g(soln_at_q[flux_basis]) * fe_values_vol.shape_grad_component(flux_basis,iquad, istate)[idim];
+        				}
+        				inter1 = inter1 + fe_values_vol.shape_value_component(itest,iquad,istate) * inter * JxW[iquad];
+        			}
+        			rhs = rhs - inter1 * split_fluxes->split_convective_fluxes[idim][istate][isplit].f(soln_at_q[itest]) * split_fluxes->split_convective_fluxes[idim][istate][isplit].alpha;
+
+        		}
         	}
-
-        	rhs = rhs - inter1 * split_fluxes->split_convective_fluxes[0][0][0].f(soln_at_q[itest]) * split_fluxes->split_convective_fluxes[0][0][0].alpha;
-        	rhs = rhs - inter2 * split_fluxes->split_convective_fluxes[0][0][1].f(soln_at_q[itest]) * split_fluxes->split_convective_fluxes[0][0][1].alpha;
-
-//        	assert(this->all_parameters->use_collocated_nodes == true && "Nodes aren't collocated, can't use split form");
-//        	ADtype intermediate1 = 0;
-//        	for (int idim = 0; idim < dim ; ++idim)
-//        	{
-//        		for (unsigned int isplit = 0; isplit < split_fluxes->split_convective_fluxes[idim][istate].size(); ++isplit)
-//        		{
-//        			for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad)
-//        			{
-//        				intermediate1 = intermediate1 + fe_values_vol.shape_grad_component(itest,iquad,istate)[idim] * split_fluxes->split_convective_fluxes[idim][istate][isplit].g(soln_at_q[iquad]);
-//        			}
-//
-//        			rhs = rhs - intermediate1 * split_fluxes->split_convective_fluxes[idim][istate][isplit].alpha * split_fluxes->split_convective_fluxes[idim][istate][isplit].f(soln_at_q[itest]) * JxW[itest];
-//        			intermediate1 = 0;
-//        		}
-//        	}
         }
 
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {

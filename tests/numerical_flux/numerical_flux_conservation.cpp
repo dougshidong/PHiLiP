@@ -10,7 +10,7 @@ using ConvType = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;
 using DissType = PHiLiP::Parameters::AllParameters::DissipativeNumericalFlux;
 
 
-#define TOLERANCE = 1E-12;
+#define TOLERANCE 1E-12
 
 template<int dim, int nstate>
 void compare_array ( const std::array<double, nstate> &array1, const std::array<double, nstate> &array2, double scale2)

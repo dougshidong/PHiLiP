@@ -242,18 +242,15 @@ int EulerGaussianBump<dim,nstate>
 
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;
-            dealii::QGauss<dim> quad_extra(dg->fe_system.tensor_degree()+overintegrate);
-            dealii::FEValues<dim,dim> fe_values_extra(dg->mapping, dg->fe_system, quad_extra, 
+            dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
+            dealii::MappingQ<dim> mappingq(dg->max_degree+overintegrate);
+            dealii::FEValues<dim,dim> fe_values_extra(mappingq, dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;
 
             double l2error = 0;
 
-            // Integrate solution error and output error
-            typename dealii::DoFHandler<dim>::active_cell_iterator
-               cell = dg->dof_handler.begin_active(),
-               endc = dg->dof_handler.end();
 
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
 
@@ -267,7 +264,8 @@ int EulerGaussianBump<dim,nstate>
             //const double entropy_inf = tot_inlet_pressure*pow(density_inf,-gam);
             const double entropy_inf = euler_physics_double.entropy_inf;
 
-            for (; cell!=endc; ++cell) {
+            // Integrate solution error and output error
+            for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
 
                 fe_values_extra.reinit (cell);
                 cell->get_dof_indices (dofs_indices);
@@ -311,7 +309,7 @@ int EulerGaussianBump<dim,nstate>
                 std::cout << "From grid " << igrid-1
                           << "  to grid " << igrid
                           << "  dimension: " << dim
-                          << "  polynomial degree p: " << dg->fe_system.tensor_degree()
+                          << "  polynomial degree p: " << poly_degree
                           << std::endl
                           << "  entropy_error1 " << entropy_error[igrid-1]
                           << "  entropy_error2 " << entropy_error[igrid]

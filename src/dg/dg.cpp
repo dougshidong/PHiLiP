@@ -175,13 +175,21 @@ DGBase<dim,real>::~DGBase ()
 }
 
 template <int dim, typename real>
+void DGBase<dim,real>::set_triangulation(dealii::Triangulation<dim> *triangulation_input)
+{ 
+    dof_handler.clear();
+    triangulation = triangulation_input;
+    dof_handler.initialize(*triangulation, fe_collection);
+}
+
+
+template <int dim, typename real>
 void DGBase<dim,real>::allocate_system ()
 {
     std::cout << std::endl << "Allocating DG system and initializing FEValues" << std::endl;
     // This function allocates all the necessary memory to the 
     // system matrices and vectors.
 
-    dof_handler.initialize(*triangulation, fe_collection);
     set_all_cells_fe_degree ( max_degree );
     dof_handler.distribute_dofs(fe_collection);
 

@@ -86,8 +86,7 @@ public:
 
 
     /// Sets the triangulation. Should be done before allocate system
-    void set_triangulation(dealii::Triangulation<dim> *triangulation_input)
-    { triangulation = triangulation_input; } ;
+    void set_triangulation(dealii::Triangulation<dim> *triangulation_input);
 
     void set_all_cells_fe_degree ( const unsigned int degree );
 

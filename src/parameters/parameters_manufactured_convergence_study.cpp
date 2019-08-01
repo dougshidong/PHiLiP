@@ -85,7 +85,7 @@ void ManufacturedConvergenceStudyParam ::parse_parameters (dealii::ParameterHand
         initial_grid_size           = prm.get_integer("initial_grid_size");
         number_of_grids             = prm.get_integer("number_of_grids");
         grid_progression            = prm.get_double("grid_progression");
-        grid_progression_add        = prm.get_double("grid_progression_add");
+        grid_progression_add        = prm.get_integer("grid_progression_add");
 
         slope_deficit_tolerance     = prm.get_double("slope_deficit_tolerance");
     }

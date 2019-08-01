@@ -26,16 +26,6 @@ foreach(dim RANGE 1 3)
     # Setup target with deal.II
     DEAL_II_SETUP_TARGET(${TEST_TARGET})
 
-    # Weird thing where we need to add more libraries
-    # Otherwise, we get the following error:
-    # /usr/bin/ld: ********.o: undefined reference to symbol '_ZN3MPI8Datatype4FreeEv'
-    # //usr/lib/libmpi_cxx.so.1: error adding symbols: DSO missing from command line
-    # See one of the following links (translate chinese to english using Google)
-    # https://zhuanlan.zhihu.com/p/21385662
-    # https://www.getit01.com/p2018020821385662/
-    target_link_libraries(${TEST_TARGET} m mpi mpi_cxx)
-
-
     add_test(
       NAME ${TEST_TARGET}
       COMMAND ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}

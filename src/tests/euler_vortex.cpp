@@ -286,19 +286,18 @@ int EulerVortex<dim,nstate>
 
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 5;
-            dealii::QGauss<dim> quad_extra(dg->fe_system.tensor_degree()+overintegrate);
-            dealii::FEValues<dim,dim> fe_values_extra(dg->mapping, dg->fe_system, quad_extra, 
+            dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
+            dealii::MappingQ<dim> mappingq(dg->max_degree+overintegrate);
+            dealii::FEValues<dim,dim> fe_values_extra(mappingq, dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;
 
             double l2error = 0;
 
-            // Integrate solution error
-            typename dealii::DoFHandler<dim>::active_cell_iterator cell = dg->dof_handler.begin_active(), endc = dg->dof_handler.end();
-
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
-            for (; cell!=endc; ++cell) {
+            // Integrate solution error
+            for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
 
                 fe_values_extra.reinit (cell);
                 cell->get_dof_indices (dofs_indices);
@@ -346,7 +345,7 @@ int EulerVortex<dim,nstate>
                 std::cout << "From grid " << igrid-1
                           << "  to grid " << igrid
                           << "  dimension: " << dim
-                          << "  polynomial degree p: " << dg->fe_system.tensor_degree()
+                          << "  polynomial degree p: " << poly_degree
                           << std::endl
                           << "  solution_error1 " << soln_error[igrid-1]
                           << "  solution_error2 " << soln_error[igrid]

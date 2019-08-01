@@ -30,7 +30,7 @@
 
 
 #include "dg.h"
-#include "post_processor/euler_post.h"
+#include "post_processor/physics_post_processor.h"
 
 namespace PHiLiP {
 
@@ -475,6 +475,21 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int ith_grid)// const
 
     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
     data_out.add_data_vector (solution, *post_processor);
+
+    // Output the polynomial degree in each cell
+    //dealii::Vector<double> polynomial_degree_vector (dof_handler.n_active_cells()); // Defaults to 0.0 initialization
+    //const unsigned int max_dofs_per_cell = dof_handler.get_fe_collection().max_dofs_per_cell();
+    //std::vector<dealii::types::global_dof_index> dofs_indices(max_dofs_per_cell);
+    //for (auto cell dof_handler.begin_active(); cell!=dof_handler.end(); ++cell) {
+    //    const unsigned int curr_cell_degree = fe_collection[cell->active_fe_index].tensor_degree();
+    //    dofs_indices.resize(n_dofs_curr_cell);
+    //    cell->get_dof_indices (dofs_indices);
+    //}
+    std::vector<unsigned int> active_fe_indices;
+    dof_handler.get_active_fe_indices(active_fe_indices);
+    dealii::Vector<double> active_fe_indices_dealiivector(active_fe_indices.begin(), active_fe_indices.end());
+    data_out.add_data_vector (active_fe_indices_dealiivector, "PolynomialDegree");
+
 
     data_out.build_patches (mapping_collection[mapping_collection.size()-1]);
     std::string filename = "solution-" +dealii::Utilities::int_to_string(dim, 1) +"D-"+ dealii::Utilities::int_to_string(ith_grid, 3) + ".vtk";

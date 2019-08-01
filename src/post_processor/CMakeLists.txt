@@ -1,5 +1,5 @@
 SET(SOURCE
-    euler_post.cpp
+    physics_post_processor.cpp
     )
 
 foreach(dim RANGE 1 3)

@@ -180,6 +180,8 @@ void DGBase<dim,real>::set_triangulation(dealii::Triangulation<dim> *triangulati
     dof_handler.clear();
     triangulation = triangulation_input;
     dof_handler.initialize(*triangulation, fe_collection);
+
+    set_all_cells_fe_degree ( max_degree );
 }
 
 
@@ -190,7 +192,6 @@ void DGBase<dim,real>::allocate_system ()
     // This function allocates all the necessary memory to the 
     // system matrices and vectors.
 
-    set_all_cells_fe_degree ( max_degree );
     dof_handler.distribute_dofs(fe_collection);
 
 

@@ -1,4 +1,4 @@
-#include "euler_post.h"
+#include "physics_post_processor.h"
 #include "physics/physics_factory.h"
 
 namespace PHiLiP {

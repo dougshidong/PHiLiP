@@ -196,8 +196,6 @@ int EulerGaussianBump<dim,nstate>
                 }
             }
 
-            
-
             // Warp grid to be a gaussian bump
             dealii::GridTools::transform (&warp, grid);
             

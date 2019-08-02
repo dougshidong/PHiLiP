@@ -13,6 +13,8 @@ set use_periodic_bc = true
 # The PDE we want to solve
 set pde_type = burgers_inviscid
 
+set conv_num_flux = split_form
+
 subsection ODE solver
 
   set ode_output = verbose
@@ -23,6 +25,6 @@ subsection ODE solver
 
   set ode_solver_type = explicit
 
-  set initial_time_step = 0.0001
+  set initial_time_step = 0.001
 
 end

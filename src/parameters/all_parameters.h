@@ -82,7 +82,7 @@ public:
     PartialDifferentialEquation pde_type;
 
     /// Currently only Lax-Friedrichs can be used as an input parameter
-    enum ConvectiveNumericalFlux { lax_friedrichs };
+    enum ConvectiveNumericalFlux { lax_friedrichs, split_form };
     /// Store convective flux type
     ConvectiveNumericalFlux conv_num_flux_type;
 

@@ -43,6 +43,11 @@ public:
     /// Convective flux: \f$ \mathbf{F}_{conv} =  u \f$
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (const std::array<real,nstate> &solution) const;
 
+    /// Convective split flux
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
+        		const std::array<real,nstate> &soln_const,
+				const std::array<real,nstate> & soln_loop) const;
+
     /// Spectral radius of convective term Jacobian is 'c'
     std::array<real,nstate> convective_eigenvalues (
         const std::array<real,nstate> &/*solution*/,

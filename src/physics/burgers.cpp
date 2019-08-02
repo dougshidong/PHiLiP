@@ -70,6 +70,20 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>::convective_numerical_split_flux (
+        		const std::array<real,nstate> &soln_const,
+				const std::array<real,nstate> & soln_loop) const
+{
+	std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
+	    for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
+	        for (int s=0; s<nstate; ++s) {
+	            conv_flux[s][flux_dim] = 1./6. * (soln_const[flux_dim]*soln_const[flux_dim] + soln_const[flux_dim]*soln_loop[s] + soln_loop[s]*soln_loop[s]);
+	        }
+	    }
+	    return conv_flux;
+}
+
+template <int dim, int nstate, typename real>
 real Burgers<dim,nstate,real>
 ::diffusion_coefficient () const
 {

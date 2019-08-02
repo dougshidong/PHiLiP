@@ -2,6 +2,7 @@
 #include <deal.II/differentiation/ad/sacado_product_types.h>
 #include "numerical_flux.h"
 #include "viscous_numerical_flux.h"
+#include "split_form_numerical_flux.h"
 
 namespace PHiLiP {
 namespace NumericalFlux {
@@ -31,6 +32,9 @@ NumericalFluxFactory<dim, nstate, real>
 {
     if(conv_num_flux_type == AllParam::lax_friedrichs) {
         return new LaxFriedrichs<dim, nstate, real>(physics_input);
+    }
+    else if (conv_num_flux_type == AllParam::split_form) {
+    	return new SplitFormNumFlux<dim, nstate, real>(physics_input);
     }
 
     return nullptr;

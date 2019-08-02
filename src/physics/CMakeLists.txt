@@ -5,8 +5,6 @@ SET(SOURCE
     burgers.cpp
     euler.cpp
     manufactured_solution.cpp
-    split_form.cpp
-    split_form_burgers.cpp
     )
 
 foreach(dim RANGE 1 3)

@@ -25,9 +25,6 @@
 #include "numerical_flux/numerical_flux.h"
 #include "parameters/all_parameters.h"
 
-#include "physics/split_form.h"
-
-
 namespace PHiLiP {
 
 /// DGBase is independent of the number of state variables.
@@ -411,8 +408,6 @@ private:
     NumericalFlux::NumericalFluxDissipative<dim, nstate, Sacado::Fad::DFad<real> > *diss_num_flux;
 
 
-    /// Contains the split fluxes
-    std::shared_ptr < SplitFormBase<dim,nstate,Sacado::Fad::DFad<real> > > split_fluxes;
     /// Contains the physics of the PDE
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, real > > pde_physics_double;
     /// Convective numerical flux

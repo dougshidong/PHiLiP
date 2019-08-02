@@ -155,6 +155,17 @@ public:
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
         const std::array<real,nstate> &conservative_soln) const;
 
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
+           		const std::array<real,nstate> &soln_const, const std::array<real,nstate> &soln_loop) const
+    		{
+        	std::array<real,nstate> arr_avg;
+        		for (int i = 0 ; i < nstate; ++i)
+        		{
+        			arr_avg[i] = (soln_const[i] + soln_loop[i])/2.;
+        		}
+        		return convective_flux(arr_avg);
+    		};
+
     /// Convective flux Jacobian: \f$ \frac{\partial \mathbf{F}_{conv}}{\partial w} \cdot \mathbf{n} \f$
     dealii::Tensor<2,nstate,real> convective_flux_directional_jacobian (
         const std::array<real,nstate> &conservative_soln,

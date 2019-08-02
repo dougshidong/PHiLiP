@@ -15,7 +15,7 @@ int ODESolver<dim,real>::steady_state ()
     update_norm = 1; // Always do at least 1 iteration
     this->current_iteration = 0;
 
-    this->dg->output_results_vtk(this->current_iteration);
+    //this->dg->output_results_vtk(this->current_iteration);
 
     std::cout << " Evaluating right-hand side and setting system_matrix to Jacobian before starting iterations... " << std::endl;
     this->dg->assemble_residual ();
@@ -71,7 +71,7 @@ int ODESolver<dim,real>::advance_solution_time (double time_advance)
     this->current_iteration = 0;
 
     // Output initial solution
-    this->dg->output_results_vtk(this->current_iteration);
+    //this->dg->output_results_vtk(this->current_iteration);
 
     while (this->current_iteration < number_of_time_steps)
     {

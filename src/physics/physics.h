@@ -7,7 +7,6 @@
 
 #include "parameters/all_parameters.h"
 #include "physics/manufactured_solution.h"
-#include "physics/split_form.h"
 
 
 namespace PHiLiP {
@@ -45,8 +44,9 @@ public:
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
         const std::array<real,nstate> &solution) const = 0;
 
-    /// Split convective fluxes.
-    std::shared_ptr < SplitFormBase<dim, nstate, Sacado::Fad::DFad<real> > > split_flux;
+    /// Convective Numerical Split Flux for split form
+    virtual std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
+    		const std::array<real,nstate> &soln_const, const std::array<real,nstate> &soln_loop) const = 0;
 
     /// Spectral radius of convective term Jacobian.
     /// Used for scalar dissipation

@@ -34,8 +34,6 @@ DGStrong<dim,nstate,real>::DGStrong(
     pde_physics_double = Physics::PhysicsFactory<dim,nstate,real> ::create_Physics(parameters_input);
     conv_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_convective_numerical_flux (parameters_input->conv_num_flux_type, pde_physics_double);
     diss_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_dissipative_numerical_flux (parameters_input->diss_num_flux_type, pde_physics_double);
-    split_fluxes = SplitFormFactory<dim, nstate, ADtype>
-            ::create_SplitForm(parameters_input->pde_type);
 }
 
 template <int dim, int nstate, typename real>
@@ -73,9 +71,6 @@ void DGStrong<dim,nstate,real>::assemble_cell_terms_implicit(
     std::vector< ADArrayTensor1 > conv_phys_flux_at_q(n_quad_pts);
     std::vector< ADArrayTensor1 > diss_phys_flux_at_q(n_quad_pts);
     std::vector< ADArray > source_at_q(n_quad_pts);
-
-    //vector containing split forms;
-    std::vector<ADArrayTensor1> conv_split_phys_flux_at_q(n_quad_pts);
 
 
     // AD variable
@@ -146,38 +141,13 @@ void DGStrong<dim,nstate,real>::assemble_cell_terms_implicit(
 
         const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(itest).first;
 
-        if (this->all_parameters->use_split_form)
-        {
-        	assert(this->all_parameters->use_collocated_nodes == true && "Nodes aren't collocated, can't use split form");
-
-        	for (unsigned int idim = 0; idim < dim; ++idim)
-        	{
-        		for (unsigned int isplit=0; isplit < split_fluxes->split_convective_fluxes[idim][istate].size(); ++isplit)
-        		{
-        			ADtype inter1;
-        			for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad)
-        			{
-        				ADtype inter = 0;
-        				for (unsigned int flux_basis = 0; flux_basis < n_quad_pts; ++flux_basis)
-        				{
-        					inter = inter + split_fluxes->split_convective_fluxes[idim][istate][isplit].g(soln_at_q[flux_basis]) * fe_values_vol.shape_grad_component(flux_basis,iquad, istate)[idim];
-        				}
-        				inter1 = inter1 + fe_values_vol.shape_value_component(itest,iquad,istate) * inter * JxW[iquad];
-        			}
-        			rhs = rhs - inter1 * split_fluxes->split_convective_fluxes[idim][istate][isplit].f(soln_at_q[itest]) * split_fluxes->split_convective_fluxes[idim][istate][isplit].alpha;
-
-        		}
-        	}
-        }
-
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
             // Convective
             // Now minus such 2 integrations by parts
             assert(JxW[iquad] - fe_values_lagrange.JxW(iquad) < 1e-14);
 
-            if (this->all_parameters->use_split_form == false)
-            	rhs = rhs - fe_values_vol.shape_value_component(itest,iquad,istate) * flux_divergence[iquad][istate] * JxW[iquad];
+            rhs = rhs - fe_values_vol.shape_value_component(itest,iquad,istate) * flux_divergence[iquad][istate] * JxW[iquad];
 
             //// Diffusive
             //// Note that for diffusion, the negative is defined in the physics
@@ -575,7 +545,14 @@ void DGStrong<dim,nstate,real>::assemble_cell_terms_explicit(
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             flux_divergence[iquad][istate] = 0.0;
             for ( unsigned int flux_basis = 0; flux_basis < n_quad_pts; ++flux_basis ) {
-                flux_divergence[iquad][istate] += conv_phys_flux_at_q[flux_basis][istate] * fe_values_lagrange.shape_grad(flux_basis,iquad);
+            	if (this->all_parameters->use_split_form == true)
+            	{
+            		flux_divergence[iquad][istate] += 2* pde_physics->convective_numerical_split_flux(soln_at_q[iquad],soln_at_q[flux_basis])[istate] *  fe_values_lagrange.shape_grad(flux_basis,iquad);
+            	}
+            	else
+            	{
+                    flux_divergence[iquad][istate] += conv_phys_flux_at_q[flux_basis][istate] * fe_values_lagrange.shape_grad(flux_basis,iquad);
+            	}
             }
         }
     }
@@ -599,6 +576,7 @@ void DGStrong<dim,nstate,real>::assemble_cell_terms_explicit(
             // Convective
             // Now minus such 2 integrations by parts
             assert(JxW[iquad] - fe_values_lagrange.JxW(iquad) < 1e-14);
+
             rhs = rhs - fe_values_vol.shape_value_component(itest,iquad,istate) * flux_divergence[iquad][istate] * JxW[iquad];
 
             //// Diffusive

@@ -18,6 +18,7 @@
 
 #include "tests.h"
 #include "euler_entropy_waves.h"
+#include <deal.II/fe/mapping_q.h>
 
 #include "physics/physics_factory.h"
 #include "dg/dg.h"

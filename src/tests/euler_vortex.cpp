@@ -17,6 +17,8 @@
 
 #include <Sacado.hpp>
 
+#include <deal.II/fe/mapping_q.h>
+
 #include "tests.h"
 #include "euler_vortex.h"
 
@@ -287,7 +289,7 @@ int EulerVortex<dim,nstate>
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 5;
             dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
-            dealii::MappingQ<dim> mappingq(dg->max_degree+overintegrate);
+            dealii::MappingQ<dim,dim> mappingq(dg->max_degree+overintegrate);
             dealii::FEValues<dim,dim> fe_values_extra(mappingq, dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;

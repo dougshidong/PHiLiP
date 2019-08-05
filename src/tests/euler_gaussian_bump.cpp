@@ -12,8 +12,11 @@
 #include <deal.II/grid/grid_in.h>
 
 #include <deal.II/numerics/vector_tools.h>
+#include <deal.II/numerics/solution_transfer.h>
 
 #include <deal.II/fe/fe_values.h>
+
+#include <deal.II/fe/mapping_q.h>
 
 #include "euler_gaussian_bump.h"
 
@@ -28,35 +31,32 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, typename real>
-class InitialConditions : public dealii::Function<dim,real>
+template <int dim, int nstate>
+class FreeStreamInitialConditions : public dealii::Function<dim>
 {
 public:
-    InitialConditions (const unsigned int nstate = dim+2);
+    std::array<double,nstate> far_field_conservative;
 
-    ~InitialConditions() {};
+    FreeStreamInitialConditions (const Physics::Euler<dim,nstate,double> euler_physics)
+    : dealii::Function<dim,double>(nstate)
+    {
+        const double density_bc = euler_physics.density_inf;
+        const double pressure_bc = 1.0/(euler_physics.gam*euler_physics.mach_inf_sqr);
+        std::array<double,nstate> primitive_boundary_values;
+        primitive_boundary_values[0] = density_bc;
+        for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = euler_physics.velocities_inf[d]; }
+        primitive_boundary_values[nstate-1] = pressure_bc;
+        far_field_conservative = euler_physics.convert_primitive_to_conservative(primitive_boundary_values);
+    }
+
+    ~FreeStreamInitialConditions() {};
   
-    real value (const dealii::Point<dim> &point, const unsigned int istate) const;
+    double value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const
+    {
+        return far_field_conservative[istate];
+    }
 };
-
-template <int dim, typename real>
-InitialConditions<dim,real>
-::InitialConditions (const unsigned int nstate)
-    :
-    dealii::Function<dim,real>(nstate)
-{ }
-
-template <int dim, typename real>
-inline real InitialConditions<dim,real>
-::value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const
-{
-    if(istate==0) return 0.927;
-    if(istate==1) return 1.17;
-    if(istate==2) return 0.0;
-    if(istate==3) return 7.17;
-    return 0.1;
-}
-template class InitialConditions <2,double>;
+template class FreeStreamInitialConditions <PHILIP_DIM, PHILIP_DIM+2>;
 
 template <int dim, int nstate>
 EulerGaussianBump<dim,nstate>::EulerGaussianBump(const Parameters::AllParameters *const parameters_input)
@@ -64,6 +64,10 @@ EulerGaussianBump<dim,nstate>::EulerGaussianBump(const Parameters::AllParameters
     TestsBase::TestsBase(parameters_input)
 {}
 
+const double y_height = 1.0;
+const double bump_height = 0.0625; // High-Order Prediction Workshop
+const double coeff_expx = -25; // High-Order Prediction Workshop
+const double coeff_expy = -30;
 template <int dim, int nstate>
 dealii::Point<dim> EulerGaussianBump<dim,nstate>
 ::warp (const dealii::Point<dim> &p)
@@ -71,16 +75,8 @@ dealii::Point<dim> EulerGaussianBump<dim,nstate>
     const double x_ref = p[0];
     const double y_ref = p[1];
     dealii::Point<dim> q = p;
-    //q[0] = x_ref;
-    const double a = 1.1;
-    const double C = exp(1.5*a) / 1.5;
-    if ( x_ref > 0 ) {
-        q[0] = exp(a*x_ref)/C - 1.0/C;
-    } else {
-        q[0] = 1.0/C - exp(a*-x_ref)/C;
-    }
     q[0] = x_ref;
-    q[1] = 0.8*y_ref + exp(-30*y_ref*y_ref)*0.0625*exp(-25*q[0]*q[0]);
+    q[1] = 0.8*y_ref + bump_height*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*q[0]*q[0]);
     return q;
 }
 
@@ -90,32 +86,46 @@ dealii::Point<2> BumpManifold::pull_back(const dealii::Point<2> &space_point) co
     double y_phys = space_point[1];
     double x_ref = x_phys;
 
-    //if ( x_phys > 0 ) {
-    //    x_ref = sqrt(1.5*1.5*x_phys);
-    //} else {
-    //    x_ref = -sqrt(1.5*1.5*-x_phys);
-    //}
     double y_ref = y_phys;
 
-    for (int i=0; i<200; i++) {
-        const double function = 0.8*y_ref + exp(-30*y_ref*y_ref)*0.0625*exp(-25*x_phys*x_phys) - y_phys;
-        const double derivative = 0.8 + -30*y_ref*exp(-30*y_ref*y_ref)*0.0625*exp(-25*x_phys*x_phys);
+    for (int i=0; i<2000; i++) {
+        const double function = y_height*y_ref + bump_height*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*x_phys*x_phys) - y_phys;
+        const double derivative = y_height + bump_height*coeff_expy*2*y_ref*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*x_phys*x_phys);
         y_ref = y_ref - function/derivative;
+        if(std::abs(function) < 1e-15) break;
     }
+    const double function = y_height*y_ref + bump_height*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*x_phys*x_phys);
+    const double error = std::abs(function - y_phys);
+    if (error > 1e-15) std::cout << "xref " << x_ref << "yref " << y_ref << "y_phys " << y_phys << " " << function << " " << error << std::endl;
 
     dealii::Point<2> p(x_ref, y_ref);
     return p;
 }
 
-dealii::Point<2> BumpManifold::push_forward(const dealii::Point<2> &chart_point) const {
+dealii::Point<2> BumpManifold::push_forward(const dealii::Point<2> &chart_point) const 
+{
     double x_ref = chart_point[0];
     double y_ref = chart_point[1];
     // return dealii::Point<2> (x_ref, -2*x_ref*x_ref + 2*x_ref + 1);   // Parabole 
     double x_phys = x_ref;//-1.5+x_ref*3.0;
-    double y_phys = 0.8*y_ref + exp(-30*y_ref*y_ref)*0.0625*exp(-25*x_phys*x_phys);
-    //return dealii::Point<2> ( -1.5+x_ref*3.0, 0.8*y_ref + exp(-10*y_ref*y_ref)*0.0625*exp(-25*x_ref*x_ref) ); // Trigonometric
+    double y_phys = y_height*y_ref + exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys);
+    //return dealii::Point<2> ( -1.5+x_ref*3.0, y_height*y_ref + exp(-10*y_ref*y_ref)*bump_height*exp(coeff_expx*x_ref*x_ref) ); // Trigonometric
     //return dealii::Point<2> ( x_phys, y_phys ); // Trigonometric
     return dealii::Point<2> ( x_phys, y_phys); // Trigonometric
+}
+
+dealii::DerivativeForm<1,2,2> BumpManifold::push_forward_gradient(const dealii::Point<2> &chart_point) const
+{
+    dealii::DerivativeForm<1, 2, 2> dphys_dref;
+    double x_ref = chart_point[0];
+    double y_ref = chart_point[1];
+    double x_phys = x_ref;
+    //double y_phys = y_height*y_ref + exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys);
+    dphys_dref[0][0] = 1;
+    dphys_dref[0][1] = 0;
+    dphys_dref[1][0] = exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys) * coeff_expx*2*x_phys*dphys_dref[0][0];
+    dphys_dref[1][1] = y_height + coeff_expy * 2*y_ref * exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys);
+    return dphys_dref;
 }
 
 std::unique_ptr<dealii::Manifold<2,2> > BumpManifold::clone() const
@@ -150,6 +160,11 @@ int EulerGaussianBump<dim,nstate>
                 param.euler_param.mach_inf,
                 param.euler_param.angle_of_attack,
                 param.euler_param.side_slip_angle);
+    FreeStreamInitialConditions<dim,nstate> initial_conditions(euler_physics_double);
+    std::cout << "Farfield conditions: "<< std::endl;
+    for (int s=0;s<nstate;s++) {
+        std::cout << initial_conditions.far_field_conservative[s] << std::endl;
+    }
 
     std::vector<int> fail_conv_poly;
     std::vector<double> fail_conv_slop;
@@ -168,64 +183,56 @@ int EulerGaussianBump<dim,nstate>
 
         dealii::ConvergenceTable convergence_table;
 
-        for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
-            dealii::Triangulation<dim> grid;
+        std::vector<unsigned int> n_subdivisions(dim);
+        n_subdivisions[1] = n_1d_cells[0]; // y-direction
+        n_subdivisions[0] = 4*n_subdivisions[1]; // x-direction
+        dealii::Point<2> p1(-1.5,0.0), p2(1.5,y_height);
+        const bool colorize = true;
+        dealii::Triangulation<dim> grid;
+        dealii::GridGenerator::subdivided_hyper_rectangle (grid, n_subdivisions, p1, p2, colorize);
 
-            //std::vector<unsigned int> n_subdivisions(dim);
-            //n_subdivisions[1] = n_1d_cells[igrid]; // y-direction
-            //n_subdivisions[0] = 4*n_subdivisions[1]; // x-direction
-
-            std::vector<unsigned int> n_subdivisions(dim);
-            n_subdivisions[1] = n_1d_cells[0]; // y-direction
-            n_subdivisions[0] = 4*n_subdivisions[1]; // x-direction
-
-            std::cout << "Generate hyper-rectangle" << std::endl;
-            dealii::Point<2> p1(-1.5,0.0), p2(1.5,0.8);
-            const bool colorize = true;
-            dealii::GridGenerator::subdivided_hyper_rectangle (grid, n_subdivisions, p1, p2, colorize);
-
-            for (typename dealii::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
-                // Set a dummy boundary ID
-                for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-                    if (cell->face(face)->at_boundary()) {
-                        unsigned int current_id = cell->face(face)->boundary_id();
-                        if (current_id == 2 || current_id == 3) cell->face(face)->set_boundary_id (1001); // Bottom and top wall
-                        if (current_id == 1) cell->face(face)->set_boundary_id (1002); // Outflow with supersonic or back_pressure
-                        if (current_id == 0) cell->face(face)->set_boundary_id (1003); // Inflow
-                    }
+        for (typename dealii::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+            for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+                if (cell->face(face)->at_boundary()) {
+                    unsigned int current_id = cell->face(face)->boundary_id();
+                    if (current_id == 2 || current_id == 3) cell->face(face)->set_boundary_id (1001); // Bottom and top wall
+                    if (current_id == 1) cell->face(face)->set_boundary_id (1002); // Outflow with supersonic or back_pressure
+                    if (current_id == 0) cell->face(face)->set_boundary_id (1003); // Inflow
                 }
             }
+        }
 
-            // Warp grid to be a gaussian bump
-            dealii::GridTools::transform (&warp, grid);
-            
-            // Assign a manifold to have curved geometry
-            static const BumpManifold manifold;
-            unsigned int manifold_id=0; // top face, see GridGenerator::hyper_rectangle, colorize=true
-            grid.reset_all_manifolds();
-            grid.set_all_manifold_ids(manifold_id);
-            grid.set_manifold ( manifold_id, manifold );
+        // Warp grid to be a gaussian bump
+        dealii::GridTools::transform (&warp, grid);
+        
+        // Assign a manifold to have curved geometry
+        const BumpManifold bump_manifold;
+        unsigned int manifold_id=0; // top face, see GridGenerator::hyper_rectangle, colorize=true
+        grid.reset_all_manifolds();
+        grid.set_all_manifold_ids(manifold_id);
+        grid.set_manifold ( manifold_id, bump_manifold );
 
-            grid.refine_global (igrid);
+        // Create DG object
+        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree);
+        dg->set_triangulation(&grid);
 
-            // Distort grid by random amount if requested
-            const double random_factor = 0.0;//manu_grid_conv_param.random_distortion;
-            const bool keep_boundary = true;
-            if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, grid, keep_boundary);
 
-            using ADtype = Sacado::Fad::DFad<double>;
+        // Initialize coarse grid solution with free-stream
+        dg->allocate_system ();
+        dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
-            // Create DG object using the factory
-            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree);
-            dg->set_triangulation(&grid);
-            dg->allocate_system ();
+        for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
 
-            std::cout << "Initialize perturbed solution" << std::endl;
-            InitialConditions<dim,double> initial_conditions(nstate);
-            dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
-            // Create ODE solver using the factory and providing the DG object
-            std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+            if (igrid!=0) {
+                dealii::Vector<double> old_solution(dg->solution);
+                dealii::SolutionTransfer<dim, dealii::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+                solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
+                grid.refine_global (1);
+                dg->allocate_system ();
+                solution_transfer.interpolate(old_solution, dg->solution);
+                solution_transfer.clear();
+            }
 
             const unsigned int n_active_cells = grid.n_active_cells();
             std::cout
@@ -235,8 +242,17 @@ int EulerGaussianBump<dim,nstate>
                       << ". Number of degrees of freedom: " << dg->dof_handler.n_dofs()
                       << std::endl;
 
+
+            // Create ODE solver using the factory and providing the DG object
+            std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+
+            //if (igrid==0) {
+            //    ode_solver->initialize_steady_polynomial_ramping (poly_degree);
+            //}
+
             // Solve the steady state problem
             ode_solver->steady_state();
+            //ode_solver->initialize_steady_polynomial_ramping(poly_degree);
 
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;
@@ -252,14 +268,6 @@ int EulerGaussianBump<dim,nstate>
 
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
 
-            //const double gam = euler_physics_double.gam;
-            //const double gamm1 = euler_physics_double.gamm1;
-            //const double mach_inf = euler_physics_double.mach_inf;
-            //const double tot_inlet_pressure = euler_physics_double.pressure_inf*pow(1.0+0.5*gamm1*mach_inf*mach_inf, gam/gamm1);
-            //const double tot_inlet_temperature = euler_physics_double.temperature_inf*pow(tot_inlet_pressure/euler_physics_double.pressure_inf, gamm1/gam);
-            //// Assuming a tank at rest, velocity = 0, therefore, static pressure and temperature are same as total
-            //const double density_inf = gam*tot_inlet_pressure/tot_inlet_temperature * mach_inf * mach_inf;
-            //const double entropy_inf = tot_inlet_pressure*pow(density_inf,-gam);
             const double entropy_inf = euler_physics_double.entropy_inf;
 
             // Integrate solution error and output error

@@ -9,8 +9,6 @@
 #include <deal.II/fe/fe_dgp.h>
 #include <deal.II/fe/fe_system.h>
 
-#include <deal.II/fe/mapping_q1.h> // Might need mapping_q
-#include <deal.II/fe/mapping_q.h> // Might need mapping_q
 
 #include <deal.II/dofs/dof_handler.h>
 
@@ -221,6 +219,12 @@ public:
     /** This is a collection of FESystems */
     const dealii::hp::FECollection<dim>    fe_collection;
 
+    /// Mapping is currently MappingQ.
+    /**  Refer to deal.II documentation for the various mapping types */
+    //const dealii::MappingQ<dim> mapping;
+    const dealii::hp::MappingCollection<dim> mapping_collection;
+
+
 protected:
 
     std::tuple< dealii::hp::MappingCollection<dim>, dealii::hp::FECollection<dim>,
@@ -300,11 +304,6 @@ protected:
     // dealii::QGauss<dim-1> face_quadrature;
     // // const dealii::QGaussLobatto<dim>   volume_quadrature;
     // // const dealii::QGaussLobatto<dim-1> face_quadrature;
-
-    /// Mapping is currently MappingQ.
-    /**  Refer to deal.II documentation for the various mapping types */
-    //const dealii::MappingQ<dim> mapping;
-    const dealii::hp::MappingCollection<dim> mapping_collection;
 
     /// Create mapping collection for initializer list
     dealii::hp::MappingCollection<dim> create_mapping_collection(const unsigned int max_degree) const;

@@ -15,7 +15,7 @@
 
 int main (int argc, char *argv[])
 {
-    //feenableexcept(FE_INVALID | FE_OVERFLOW); // catch nan
+    feenableexcept(FE_INVALID | FE_OVERFLOW); // catch nan
     dealii::deallog.depth_console(99);
     dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
     int test_error = 1;

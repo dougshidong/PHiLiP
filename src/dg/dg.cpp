@@ -22,6 +22,9 @@
 #include <deal.II/meshworker/simple.h>
 #include <deal.II/meshworker/loop.h>
 
+//#include <deal.II/fe/mapping_q1.h> // Might need mapping_q
+#include <deal.II/fe/mapping_q.h> // Might need mapping_q
+#include <deal.II/fe/mapping_manifold.h> 
 
 // Finally, we take our exact solution from the library as well as volume_quadrature
 // and additional tools.
@@ -133,7 +136,9 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
 
     dealii::hp::FECollection<dim>      fe_coll_lagr;
     for (unsigned int degree=0; degree<=max_degree; ++degree) {
-        const dealii::MappingQ<dim> mapping(degree+10);
+        //const dealii::MappingQ<dim,dim> mapping(degree, true);
+        const dealii::MappingQ<dim,dim> mapping(degree+1, true);
+        //const dealii::MappingManifold<dim,dim> mapping;
         mapping_coll.push_back(mapping);
 
         const dealii::FE_DGQ<dim> fe_dg(degree);
@@ -194,7 +199,6 @@ void DGBase<dim,real>::allocate_system ()
 
     dof_handler.distribute_dofs(fe_collection);
 
-
     //std::vector<unsigned int> block_component(nstate,0);
     //dealii::DoFRenumbering::component_wise(dof_handler, block_component);
 
@@ -210,7 +214,6 @@ void DGBase<dim,real>::allocate_system ()
     // Allocate vectors
     solution.reinit(n_dofs);
     right_hand_side.reinit(n_dofs);
-
 }
 
 template <int dim, typename real>
@@ -460,8 +463,6 @@ unsigned int DGBase<dim,real>::n_dofs () const
 template <int dim, typename real>
 void DGBase<dim,real>::output_results_vtk (const unsigned int ith_grid)// const
 {
-
-
     dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> data_out;
     data_out.attach_dof_handler (dof_handler);
 

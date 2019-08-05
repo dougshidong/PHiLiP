@@ -53,7 +53,7 @@ solve_linear (
       solver.SetAztecOption(AZ_precond, AZ_dom_decomp);
       solver.SetAztecOption(AZ_subdomain_solve, AZ_ilut);
       solver.SetAztecOption(AZ_overlap, 0);
-      solver.SetAztecOption(AZ_reorder, 0);
+      solver.SetAztecOption(AZ_reorder, 1); // RCM re-ordering
 
       const double 
         ilut_drop = param.ilut_drop,
@@ -85,7 +85,7 @@ solve_linear (
                      linear_residual);
 
       std::cout << " Linear solver took " << solver.NumIters()
-                << " iterations resulting in a linear residual of " << solver.TrueResidual()
+                << " iterations resulting in a linear residual of " << solver.ScaledResidual()
                 << std::endl
                 << " Current RHS norm: " << right_hand_side.l2_norm()
                 << " Newton update norm: " << solution.l2_norm()

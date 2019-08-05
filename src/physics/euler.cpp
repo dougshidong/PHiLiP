@@ -217,8 +217,8 @@ inline real Euler<dim,nstate,real>
 ::compute_mach_number ( const std::array<real,nstate> &conservative_soln ) const
 {
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
-    const real sound = compute_sound (conservative_soln);
     const real velocity = sqrt(compute_velocity_squared(vel));
+    const real sound = compute_sound (conservative_soln);
     const real mach_number = velocity/sound;
     return mach_number;
 }
@@ -425,7 +425,7 @@ void Euler<dim,nstate,real>
         // Pressure Outflow Boundary Condition (back pressure)
         // Carlson 2011, sec. 2.4
 
-        const real back_pressure = 0.90; // Make it as an input later on
+        const real back_pressure = 0.95; // Make it as an input later on
         
         const real mach_int = compute_mach_number(soln_int);
         const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(soln_int);
@@ -571,6 +571,7 @@ dealii::Vector<double> Euler<dim,nstate,real>::post_compute_derived_quantities_v
     unsigned int current_data_index = computed_quantities.size() - 1;
     computed_quantities.grow_or_shrink(names.size());
     if constexpr (std::is_same<real,double>::value) {
+
         std::array<double, nstate> conservative_soln;
         for (unsigned int s=0; s<nstate; ++s) {
             conservative_soln[s] = uh(s);
@@ -578,25 +579,59 @@ dealii::Vector<double> Euler<dim,nstate,real>::post_compute_derived_quantities_v
         const std::array<double, nstate> primitive_soln = convert_conservative_to_primitive(conservative_soln);
 
         // Density
-        computed_quantities(current_data_index++) = primitive_soln[0];
+        computed_quantities(++current_data_index) = primitive_soln[0];
         // Velocities
         for (unsigned int d=0; d<dim; ++d) {
-            computed_quantities(current_data_index++) = primitive_soln[1+d];
+            computed_quantities(++current_data_index) = primitive_soln[1+d];
         }
         // Momentum
         for (unsigned int d=0; d<dim; ++d) {
-            computed_quantities(current_data_index++) = conservative_soln[1+d];
+            computed_quantities(++current_data_index) = conservative_soln[1+d];
         }
         // Energy
-        computed_quantities(current_data_index++) = conservative_soln[nstate-1];
+        computed_quantities(++current_data_index) = conservative_soln[nstate-1];
         // Pressure
-        computed_quantities(current_data_index++) = primitive_soln[nstate-1];
+        computed_quantities(++current_data_index) = primitive_soln[nstate-1];
         // Entropy generation
-        computed_quantities(current_data_index++) = compute_entropy_measure(conservative_soln) - entropy_inf;
+        computed_quantities(++current_data_index) = compute_entropy_measure(conservative_soln) - entropy_inf;
+        // Mach Number
+        computed_quantities(++current_data_index) = compute_mach_number(conservative_soln);
+
+    }
+    if (computed_quantities.size()-1 != current_data_index) {
+        std::cout << " Did not assign a value to all the data. Missing " << computed_quantities.size() - current_data_index << " variables."
+                  << " If you added a new output variable, make sure the names and DataComponentInterpretation match the above. "
+                  << std::endl;
     }
 
     return computed_quantities;
 }
+
+template <int dim, int nstate, typename real>
+std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Euler<dim,nstate,real>
+::post_get_data_component_interpretation () const
+{
+    namespace DCI = dealii::DataComponentInterpretation;
+    std::vector<DCI::DataComponentInterpretation> interpretation = PhysicsBase<dim,nstate,real>::post_get_data_component_interpretation (); // state variables
+    interpretation.push_back (DCI::component_is_scalar); // Density
+    for (unsigned int d=0; d<dim; ++d) {
+        interpretation.push_back (DCI::component_is_part_of_vector); // Velocity
+    }
+    for (unsigned int d=0; d<dim; ++d) {
+        interpretation.push_back (DCI::component_is_part_of_vector); // Momentum
+    }
+    interpretation.push_back (DCI::component_is_scalar); // Energy
+    interpretation.push_back (DCI::component_is_scalar); // Pressure
+    interpretation.push_back (DCI::component_is_scalar); // Entropy generation
+    interpretation.push_back (DCI::component_is_scalar); // Mach number
+
+    std::vector<std::string> names = post_get_names();
+    if (names.size() != interpretation.size()) {
+        std::cout << "Number of DataComponentInterpretation is not the same as number of names for output file" << std::endl;
+    }
+    return interpretation;
+}
+
 
 template <int dim, int nstate, typename real>
 std::vector<std::string> Euler<dim,nstate,real> ::post_get_names () const
@@ -613,26 +648,8 @@ std::vector<std::string> Euler<dim,nstate,real> ::post_get_names () const
     names.push_back ("pressure");
 
     names.push_back ("entropy_generation");
+    names.push_back ("mach_number");
     return names;
-}
-
-template <int dim, int nstate, typename real>
-std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Euler<dim,nstate,real>
-::post_get_data_component_interpretation () const
-{
-    namespace DCI = dealii::DataComponentInterpretation;
-    std::vector<DCI::DataComponentInterpretation> interpretation = PhysicsBase<dim,nstate,real>::post_get_data_component_interpretation ();
-    interpretation.push_back (DCI::component_is_scalar); // Density
-    for (unsigned int d=0; d<dim; ++d) {
-        interpretation.push_back (DCI::component_is_part_of_vector); // Velocity
-    }
-    for (unsigned int d=0; d<dim; ++d) {
-        interpretation.push_back (DCI::component_is_part_of_vector); // Momentum
-    }
-    interpretation.push_back (DCI::component_is_scalar); // Energy
-    interpretation.push_back (DCI::component_is_scalar); // Pressure
-    interpretation.push_back (DCI::component_is_scalar); // Entropy generation
-    return interpretation;
 }
 
 template <int dim, int nstate, typename real>

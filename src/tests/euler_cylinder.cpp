@@ -15,6 +15,9 @@
 
 #include <deal.II/fe/fe_values.h>
 
+#include <deal.II/fe/mapping_q.h>
+
+
 #include "euler_cylinder.h"
 
 #include "physics/euler.h"
@@ -69,35 +72,32 @@ void half_cylinder(dealii::Triangulation<2> & tria,
 }
 
 
-template <int dim, typename real>
-class InitialConditions2 : public dealii::Function<dim,real>
+template <int dim, int nstate>
+class FreeStreamInitialConditions : public dealii::Function<dim>
 {
 public:
-    InitialConditions2 (const unsigned int nstate = dim+2);
+    std::array<double,nstate> far_field_conservative;
 
-    ~InitialConditions2() {};
+    FreeStreamInitialConditions (const Physics::Euler<dim,nstate,double> euler_physics)
+    : dealii::Function<dim,double>(nstate)
+    {
+        const double density_bc = euler_physics.density_inf;
+        const double pressure_bc = 1.0/(euler_physics.gam*euler_physics.mach_inf_sqr);
+        std::array<double,nstate> primitive_boundary_values;
+        primitive_boundary_values[0] = density_bc;
+        for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = euler_physics.velocities_inf[d]; }
+        primitive_boundary_values[nstate-1] = pressure_bc;
+        far_field_conservative = euler_physics.convert_primitive_to_conservative(primitive_boundary_values);
+    }
+
+    ~FreeStreamInitialConditions() {};
   
-    real value (const dealii::Point<dim> &point, const unsigned int istate) const;
+    double value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const
+    {
+        return far_field_conservative[istate];
+    }
 };
-
-template <int dim, typename real>
-InitialConditions2<dim,real>
-::InitialConditions2 (const unsigned int nstate)
-    :
-    dealii::Function<dim,real>(nstate)
-{ }
-
-template <int dim, typename real>
-inline real InitialConditions2<dim,real>
-::value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const
-{
-    if(istate==0) return 1.0;
-    if(istate==1) return 1.0;
-    if(istate==2) return 0.0;
-    if(istate==3) return 2.5;
-    return 0.1;
-}
-template class InitialConditions2 <2,double>;
+template class FreeStreamInitialConditions <PHILIP_DIM, PHILIP_DIM+2>;
 
 template <int dim, int nstate>
 EulerCylinder<dim,nstate>::EulerCylinder(const Parameters::AllParameters *const parameters_input)
@@ -231,7 +231,7 @@ int EulerCylinder<dim,nstate>
             dg->allocate_system ();
 
             std::cout << "Initialize perturbed solution" << std::endl;
-            InitialConditions2<dim,double> initial_conditions(nstate);
+            FreeStreamInitialConditions<dim,nstate> initial_conditions(euler_physics_double);
             dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
             // Create ODE solver using the factory and providing the DG object
@@ -251,7 +251,7 @@ int EulerCylinder<dim,nstate>
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;
             dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
-            dealii::MappingQ<dim> mappingq(dg->max_degree+overintegrate);
+            dealii::MappingQ<dim,dim> mappingq(dg->max_degree+overintegrate);
             dealii::FEValues<dim,dim> fe_values_extra(mappingq, dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;

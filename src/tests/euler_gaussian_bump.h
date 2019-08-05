@@ -13,12 +13,11 @@ namespace Tests {
 
 class BumpManifold: public dealii::ChartManifold<2,2,2> {
 public:
-    virtual dealii::Point<2>
-    pull_back(const dealii::Point<2> &space_point) const;
-    virtual dealii::Point<2>
-    push_forward(const dealii::Point<2> &chart_point) const;
+    virtual dealii::Point<2> pull_back(const dealii::Point<2> &space_point) const override;
+    virtual dealii::Point<2> push_forward(const dealii::Point<2> &chart_point) const override;
+    virtual dealii::DerivativeForm<1,2,2> push_forward_gradient(const dealii::Point<2> &chart_point) const override;
     
-    virtual std::unique_ptr<dealii::Manifold<2,2> > clone() const;
+    virtual std::unique_ptr<dealii::Manifold<2,2> > clone() const override;
 };
 
 /// Performs grid convergence for various polynomial degrees.

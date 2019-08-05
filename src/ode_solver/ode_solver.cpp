@@ -1,8 +1,35 @@
 #include "ode_solver.h"
 #include "linear_solver/linear_solver.h"
+#include <deal.II/numerics/solution_transfer.h>
 
 namespace PHiLiP {
 namespace ODE {
+
+template <int dim, typename real>
+void ODESolver<dim,real>::initialize_steady_polynomial_ramping (const unsigned int global_final_poly_degree)
+{
+    //Parameters::ODESolverParam ode_param = ODESolver<dim,real>::all_parameters->ode_solver_param;
+    std::cout << " ************************************************************************ " << std::endl;
+    std::cout << " Initializing DG with global polynomial degree = " << global_final_poly_degree << " by ramping from degree 0 ... " << std::endl;
+    std::cout << " ************************************************************************ " << std::endl;
+
+    dealii::SolutionTransfer<dim, dealii::Vector<double>, dealii::hp::DoFHandler<dim>> soltrans(dg->dof_handler);
+
+    for (unsigned int degree = 0; degree <= global_final_poly_degree; degree++) {
+        std::cout << " ************************************************************************ " << std::endl;
+        std::cout << " Ramping degree " << degree << " until p=" << global_final_poly_degree << std::endl;
+        std::cout << " ************************************************************************ " << std::endl;
+        dealii::Vector<double> old_solution(dg->solution);
+
+        soltrans.prepare_for_coarsening_and_refinement(old_solution);
+
+        dg->set_all_cells_fe_degree(degree);
+        dg->allocate_system();
+        soltrans.interpolate(old_solution, dg->solution);
+
+        steady_state();
+    }
+}
 
 template <int dim, typename real>
 int ODESolver<dim,real>::steady_state ()

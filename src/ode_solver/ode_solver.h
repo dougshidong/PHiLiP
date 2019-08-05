@@ -41,6 +41,9 @@ public:
     /// Evaluate steady state solution
     int steady_state ();
 
+    void initialize_steady_polynomial_ramping (const unsigned int global_final_poly_degree);
+
+
     /// Virtual function to advance solution to time+dt
     int advance_solution_time (double time_advance);
 

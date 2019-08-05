@@ -491,8 +491,19 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int ith_grid)// const
     data_out.add_data_vector (active_fe_indices_dealiivector, "PolynomialDegree");
 
 
+    assemble_residual (false);
+    std::vector<std::string> residual_names;
+    for(int s=0;s<nstate;++s) {
+        std::string varname = "residual" + dealii::Utilities::int_to_string(s,1);
+        residual_names.push_back(varname);
+    }
+    data_out.add_data_vector (right_hand_side, residual_names);
+
+
     data_out.build_patches (mapping_collection[mapping_collection.size()-1]);
     std::string filename = "solution-" +dealii::Utilities::int_to_string(dim, 1) +"D-"+ dealii::Utilities::int_to_string(ith_grid, 3) + ".vtk";
+
+
     std::ofstream output(filename);
     data_out.write_vtk(output);
 }

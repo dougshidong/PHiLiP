@@ -12,6 +12,7 @@
 #include <deal.II/grid/grid_in.h>
 
 #include <deal.II/numerics/vector_tools.h>
+#include <deal.II/numerics/solution_transfer.h>
 
 #include <deal.II/fe/fe_values.h>
 
@@ -31,13 +32,19 @@
 namespace PHiLiP {
 namespace Tests {
 
-dealii::Point<2> warp_cylinder (const dealii::Point<2> &p)
+dealii::Point<2> center(0.0,0.0);
+const double inner_radius = 1, outer_radius = inner_radius*40;
+
+dealii::Point<2> warp_cylinder (const dealii::Point<2> &p)//, const double inner_radius, const double outer_radius)
 {
     const double rectangle_height = 1.0;
     //const double original_radius = std::abs(p[0]);
     const double angle = p[1]/rectangle_height * dealii::numbers::PI;
 
-    const double radius = std::abs(p[0]);
+    //const double radius = std::abs(p[0]);
+
+    const double power = 2.5;
+    const double radius = outer_radius*(inner_radius/outer_radius + pow(std::abs(p[0]), power));
 
     dealii::Point<2> q = p;
     q[0] = -radius*cos(angle);
@@ -46,9 +53,6 @@ dealii::Point<2> warp_cylinder (const dealii::Point<2> &p)
 }
 
 void half_cylinder(dealii::Triangulation<2> & tria,
-                   const dealii::Point<2> &   center,
-                   const double       inner_radius,
-                   const double       outer_radius,
                    const unsigned int n_cells_circle,
                    const unsigned int n_cells_radial)
 {
@@ -56,7 +60,7 @@ void half_cylinder(dealii::Triangulation<2> & tria,
     //double inner_circumference = inner_radius*pi;
     //double outer_circumference = outer_radius*pi;
     //const double rectangle_height = inner_circumference;
-    dealii::Point<2> p1(-outer_radius,0.0), p2(-inner_radius,1.0);
+    dealii::Point<2> p1(-1,0.0), p2(-0.0,1.0);
 
     const bool colorize = true;
 
@@ -133,6 +137,7 @@ int EulerCylinder<dim,nstate>
                 param.euler_param.mach_inf,
                 param.euler_param.angle_of_attack,
                 param.euler_param.side_slip_angle);
+    FreeStreamInitialConditions<dim,nstate> initial_conditions(euler_physics_double);
 
     std::vector<int> fail_conv_poly;
     std::vector<double> fail_conv_slop;
@@ -151,88 +156,59 @@ int EulerCylinder<dim,nstate>
 
         dealii::ConvergenceTable convergence_table;
 
-        for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
-            // Note that Triangulation must be declared before DG
-            // DG will be destructed before Triangulation
-            // thus removing any dependence of Triangulation and allowing Triangulation to be destructed
-            // Otherwise, a Subscriptor error will occur
-            dealii::Triangulation<dim> grid;
+        // Generate grid and mapping
+        dealii::Triangulation<dim> grid;
 
-            std::vector<unsigned int> n_subdivisions(dim);
-            n_subdivisions[1] = n_1d_cells[igrid]; // y-direction
-            n_subdivisions[0] = 4*n_subdivisions[1]; // x-direction
-
-            //const bool colorize = true;
-            //const double L_z = 1.0;
-            //const unsigned int repetitions_z = 2;
-            //
-            //dealii::GridGenerator::hyper_cube_with_cylindrical_hole(grid, inner_radius, outer_radius, L_z, repetitions_z, colorize)
-            //for (typename dealii::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
-            //    // Set a dummy boundary ID
-            //    for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-            //        if (cell->face(face)->at_boundary()) {
-            //            unsigned int current_id = cell->face(face)->boundary_id();
-            //            if (current_id == 0) {
-            //                cell->face(face)->set_boundary_id (1001); // Inner/Wall
-            //            } else {
-            //                cell->face(face)->set_boundary_id (1004); // Outer/Farfield
-            //            }
-            //        }
-            //    }
-            //}
-
-            dealii::Point<2> center(0.0,0.0);
-            const unsigned int n_cells_circle = n_1d_cells[n_grids-2];
-            //const unsigned int n_cells_circle = n_1d_cells[igrid];
-            const unsigned int n_cells_radial = n_cells_circle;
-            const double inner_radius = 1, outer_radius = inner_radius*40;
-            half_cylinder(grid, center, inner_radius, outer_radius, n_cells_circle, n_cells_radial);
-            for (typename dealii::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
-                // Set a dummy boundary ID
-                for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-                    if (cell->face(face)->at_boundary()) {
-                        unsigned int current_id = cell->face(face)->boundary_id();
-                        if (current_id == 0) {
-                            cell->face(face)->set_boundary_id (1004); // x_left, Farfield
-                        } else if (current_id == 1) {
-                            cell->face(face)->set_boundary_id (1001); // x_right, Symmetry/Wall
-                        } else if (current_id == 2) {
-                            cell->face(face)->set_boundary_id (1001); // y_bottom, Symmetry/Wall
-                        } else if (current_id == 3) {
-                            cell->face(face)->set_boundary_id (1004); // y_top, Wall
-                        } else {
-                            std::abort();
-                        }
+        const unsigned int n_cells_circle = n_1d_cells[0];
+        const unsigned int n_cells_radial = 2.0*n_cells_circle;
+        half_cylinder(grid, n_cells_circle, n_cells_radial);
+        // Assign BC
+        for (typename dealii::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+            // Set a dummy boundary ID
+            for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+                if (cell->face(face)->at_boundary()) {
+                    unsigned int current_id = cell->face(face)->boundary_id();
+                    if (current_id == 0) {
+                        cell->face(face)->set_boundary_id (1004); // x_left, Farfield
+                    } else if (current_id == 1) {
+                        cell->face(face)->set_boundary_id (1001); // x_right, Symmetry/Wall
+                    } else if (current_id == 2) {
+                        cell->face(face)->set_boundary_id (1001); // y_bottom, Symmetry/Wall
+                    } else if (current_id == 3) {
+                        cell->face(face)->set_boundary_id (1001); // y_top, Wall
+                    } else {
+                        std::abort();
                     }
                 }
             }
-            //const double max_ratio = 1.5;
-            //const int max_iterations = 5;
-            //dealii::GridTools::remove_anisotropy(grid, max_ratio, max_iterations);
-            if(igrid>0) grid.refine_global(igrid);
+        }
 
-            std::string filename = "grid_cylinder-" + dealii::Utilities::int_to_string(igrid, 1) + ".eps";
-            std::ofstream out (filename);
-            dealii::GridOut grid_out;
-            grid_out.write_eps (grid, out);
-            std::cout << " Grid #" << igrid+1 << " . Number of cells: " << grid.n_active_cells() << std::endl;
-            std::cout << " written to " << filename << std::endl << std::endl;
+        // Create DG object
+        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree);
+        dg->set_triangulation(&grid);
 
-            //continue;
 
-            // Distort grid by random amount if requested
-            const double random_factor = manu_grid_conv_param.random_distortion;
-            const bool keep_boundary = true;
-            if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, grid, keep_boundary);
+        // Initialize coarse grid solution with free-stream
+        dg->allocate_system ();
+        dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
-            // Create DG object using the factory
-            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree);
-            dg->set_triangulation(&grid);
-            dg->allocate_system ();
+        for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
+            if (igrid>0) {
+                dealii::Vector<double> old_solution(dg->solution);
+                dealii::SolutionTransfer<dim, dealii::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+                solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
+                grid.refine_global (1);
+                dg->allocate_system ();
+                solution_transfer.interpolate(old_solution, dg->solution);
+                solution_transfer.clear();
+            }
 
-            std::cout << "Initialize perturbed solution" << std::endl;
-            FreeStreamInitialConditions<dim,nstate> initial_conditions(euler_physics_double);
-            dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
+            // std::string filename = "grid_cylinder-" + dealii::Utilities::int_to_string(igrid, 1) + ".eps";
+            // std::ofstream out (filename);
+            // dealii::GridOut grid_out;
+            // grid_out.write_eps (grid, out);
+            // std::cout << " Grid #" << igrid+1 << " . Number of cells: " << grid.n_active_cells() << std::endl;
+            // std::cout << " written to " << filename << std::endl << std::endl;
 
             // Create ODE solver using the factory and providing the DG object
             std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
@@ -245,28 +221,25 @@ int EulerCylinder<dim,nstate>
                       << ". Number of degrees of freedom: " << dg->dof_handler.n_dofs()
                       << std::endl;
 
+            //ode_solver->initialize_steady_polynomial_ramping (poly_degree);
             // Solve the steady state problem
             ode_solver->steady_state();
 
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;
             dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
-            dealii::MappingQ<dim,dim> mappingq(dg->max_degree+overintegrate);
-            dealii::FEValues<dim,dim> fe_values_extra(mappingq, dg->fe_collection[poly_degree], quad_extra, 
+            dealii::FEValues<dim,dim> fe_values_extra(dg->mapping_collection[poly_degree], dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;
 
             double l2error = 0;
+            double area = 0;
+            const double exact_area = (std::pow(outer_radius+inner_radius, 2.0) - std::pow(inner_radius,2.0))*dealii::numbers::PI / 2.0;
 
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
 
-            const double gam = euler_physics_double.gam;
-            const double mach_inf = euler_physics_double.mach_inf;
-            // Assuming a tank at rest, velocity = 0, therefore, static pressure and temperature are same as total
-            const double density_inf = euler_physics_double.density_inf;
-            const double pressure_inf = 1.0/(gam*mach_inf*mach_inf);
-            const double entropy_inf = pressure_inf*pow(density_inf,-gam);
+            const double entropy_inf = euler_physics_double.entropy_inf;
 
             // Integrate solution error and output error
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
@@ -285,9 +258,13 @@ int EulerCylinder<dim,nstate>
 
                     const double uexact = entropy_inf;
                     l2error += pow(entropy - uexact, 2) * fe_values_extra.JxW(iquad);
+
+                    area += fe_values_extra.JxW(iquad);
                 }
             }
             l2error = sqrt(l2error);
+
+            std::cout << exact_area << " " << area << std::endl;
 
 
             // Convergence table
@@ -300,6 +277,7 @@ int EulerCylinder<dim,nstate>
             convergence_table.add_value("cells", grid.n_active_cells());
             convergence_table.add_value("dx", dx);
             convergence_table.add_value("L2_entropy_error", l2error);
+            convergence_table.add_value("area_error", std::abs(area-exact_area));
 
 
             std::cout   << " Grid size h: " << dx 
@@ -331,8 +309,10 @@ int EulerCylinder<dim,nstate>
             << " ********************************************"
             << std::endl;
         convergence_table.evaluate_convergence_rates("L2_entropy_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+        convergence_table.evaluate_convergence_rates("area_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.set_scientific("dx", true);
         convergence_table.set_scientific("L2_entropy_error", true);
+        convergence_table.set_scientific("area_error", true);
         convergence_table.write_text(std::cout);
 
         convergence_table_vector.push_back(convergence_table);

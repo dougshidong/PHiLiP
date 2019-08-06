@@ -498,6 +498,8 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int ith_grid)// const
         std::string varname = "residual" + dealii::Utilities::int_to_string(s,1);
         residual_names.push_back(varname);
     }
+    //std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> data_component_interpretation(nstate, dealii::DataComponentInterpretation::component_is_scalar);
+    //data_out.add_data_vector (right_hand_side, residual_names, dealii::DataOut<dim, dealii::hp::DoFHandler<dim>>::type_dof_data, data_component_interpretation);
     data_out.add_data_vector (right_hand_side, residual_names);
 
 

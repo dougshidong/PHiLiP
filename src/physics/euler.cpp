@@ -425,7 +425,7 @@ void Euler<dim,nstate,real>
         // Pressure Outflow Boundary Condition (back pressure)
         // Carlson 2011, sec. 2.4
 
-        const real back_pressure = 0.95; // Make it as an input later on
+        const real back_pressure = 0.99; // Make it as an input later on
         
         const real mach_int = compute_mach_number(soln_int);
         const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(soln_int);

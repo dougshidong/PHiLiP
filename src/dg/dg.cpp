@@ -137,8 +137,8 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
     dealii::hp::FECollection<dim>      fe_coll_lagr;
     for (unsigned int degree=0; degree<=max_degree; ++degree) {
         //const dealii::MappingQ<dim,dim> mapping(degree, true);
-        const dealii::MappingQ<dim,dim> mapping(degree+1, true);
-        //const dealii::MappingManifold<dim,dim> mapping;
+        //const dealii::MappingQ<dim,dim> mapping(degree+1, true);
+        const dealii::MappingManifold<dim,dim> mapping;
         mapping_coll.push_back(mapping);
 
         const dealii::FE_DGQ<dim> fe_dg(degree);

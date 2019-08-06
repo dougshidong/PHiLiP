@@ -24,21 +24,21 @@ subsection linear solver
     set linear_residual_tolerance = 1e-2
     set max_iterations = 2000
     set restart_number = 50
-#    set ilut_fill = 2
-    # set ilut_drop = 1e-4
+    set ilut_fill = 2
+    set ilut_drop = 1e-2
   end 
 end
 
 subsection ODE solver
   set output_solution_every_x_steps = 1
   # Maximum nonlinear solver iterations
-  set nonlinear_max_iterations            = 25
+  set nonlinear_max_iterations            = 100
 
   # Nonlinear solver residual tolerance
-  set nonlinear_steady_residual_tolerance = 1e-11
+  set nonlinear_steady_residual_tolerance = 5e-12
 
-  set initial_time_step = 0.1
-  set time_step_factor_residual = 30.0
+  set initial_time_step = 0.01
+  set time_step_factor_residual = 50.0
   set time_step_factor_residual_exp = 3.0
 
   # Print every print_iteration_modulo iterations of the nonlinear solver
@@ -50,17 +50,13 @@ end
 
 subsection manufactured solution convergence study
   # Last degree used for convergence study
-  set degree_end        = 4
+  set degree_end        = 3
 
   # Starting degree for convergence study
   set degree_start      = 1
 
-  # Multiplier on grid size. nth-grid will be of size
-  # (initial_grid^grid_progression)^dim
-  set grid_progression  = 1.5
-
   # Initial grid of size (initial_grid_size)^dim
-  set initial_grid_size = 3
+  set initial_grid_size = 2
 
   # Number of grids in grid study
   set number_of_grids   = 4

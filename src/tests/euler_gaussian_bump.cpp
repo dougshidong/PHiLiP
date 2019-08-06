@@ -64,7 +64,7 @@ EulerGaussianBump<dim,nstate>::EulerGaussianBump(const Parameters::AllParameters
     TestsBase::TestsBase(parameters_input)
 {}
 
-const double y_height = 1.0;
+const double y_height = 0.8;
 const double bump_height = 0.0625; // High-Order Prediction Workshop
 const double coeff_expx = -25; // High-Order Prediction Workshop
 const double coeff_expy = -30;
@@ -73,10 +73,11 @@ dealii::Point<dim> EulerGaussianBump<dim,nstate>
 ::warp (const dealii::Point<dim> &p)
 {
     const double x_ref = p[0];
-    const double y_ref = p[1];
+    const double coeff = 1.0;
+    const double y_ref = (exp(coeff*std::pow(p[1],1.25))-1.0)/(exp(coeff)-1.0);
     dealii::Point<dim> q = p;
     q[0] = x_ref;
-    q[1] = 0.8*y_ref + bump_height*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*q[0]*q[0]);
+    q[1] = 0.8*y_ref + bump_height*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*q[0]*q[0]) * (1.0+0.7*q[0]);
     return q;
 }
 
@@ -88,15 +89,20 @@ dealii::Point<2> BumpManifold::pull_back(const dealii::Point<2> &space_point) co
 
     double y_ref = y_phys;
 
-    for (int i=0; i<2000; i++) {
-        const double function = y_height*y_ref + bump_height*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*x_phys*x_phys) - y_phys;
-        const double derivative = y_height + bump_height*coeff_expy*2*y_ref*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*x_phys*x_phys);
+    for (int i=0; i<200; i++) {
+        const double function = y_height*y_ref + bump_height*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*x_phys*x_phys) * (1.0+0.7*x_phys) - y_phys;
+        const double derivative = y_height + bump_height*coeff_expy*2*y_ref*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*x_phys*x_phys) * (1.0+0.7*x_phys);
+        //const double function = y_height*y_ref + bump_height*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*x_phys*x_phys) - y_phys;
+        //const double derivative = y_height + bump_height*coeff_expy*2*y_ref*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*x_phys*x_phys);
         y_ref = y_ref - function/derivative;
         if(std::abs(function) < 1e-15) break;
     }
-    const double function = y_height*y_ref + bump_height*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*x_phys*x_phys);
+    const double function = y_height*y_ref + bump_height*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*x_phys*x_phys) * (1.0+0.7*x_phys);
     const double error = std::abs(function - y_phys);
-    if (error > 1e-15) std::cout << "xref " << x_ref << "yref " << y_ref << "y_phys " << y_phys << " " << function << " " << error << std::endl;
+    if (error > 1e-13) {
+        std::cout << "Large error " << error << std::endl;
+        std::cout << "xref " << x_ref << "yref " << y_ref << "y_phys " << y_phys << " " << function << " " << error << std::endl;
+    }
 
     dealii::Point<2> p(x_ref, y_ref);
     return p;
@@ -106,11 +112,8 @@ dealii::Point<2> BumpManifold::push_forward(const dealii::Point<2> &chart_point)
 {
     double x_ref = chart_point[0];
     double y_ref = chart_point[1];
-    // return dealii::Point<2> (x_ref, -2*x_ref*x_ref + 2*x_ref + 1);   // Parabole 
     double x_phys = x_ref;//-1.5+x_ref*3.0;
-    double y_phys = y_height*y_ref + exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys);
-    //return dealii::Point<2> ( -1.5+x_ref*3.0, y_height*y_ref + exp(-10*y_ref*y_ref)*bump_height*exp(coeff_expx*x_ref*x_ref) ); // Trigonometric
-    //return dealii::Point<2> ( x_phys, y_phys ); // Trigonometric
+    double y_phys = y_height*y_ref + exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys) * (1.0+0.7*x_phys);
     return dealii::Point<2> ( x_phys, y_phys); // Trigonometric
 }
 
@@ -123,8 +126,9 @@ dealii::DerivativeForm<1,2,2> BumpManifold::push_forward_gradient(const dealii::
     //double y_phys = y_height*y_ref + exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys);
     dphys_dref[0][0] = 1;
     dphys_dref[0][1] = 0;
-    dphys_dref[1][0] = exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys) * coeff_expx*2*x_phys*dphys_dref[0][0];
-    dphys_dref[1][1] = y_height + coeff_expy * 2*y_ref * exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys);
+    dphys_dref[1][0] = exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys) * coeff_expx*2*x_phys*dphys_dref[0][0] * (1.0+0.7*x_phys);
+    dphys_dref[1][0] += exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys) * 0.7*dphys_dref[0][0];
+    dphys_dref[1][1] = y_height + coeff_expy * 2*y_ref * exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys) * (1.0+0.7*x_phys);
     return dphys_dref;
 }
 
@@ -184,8 +188,10 @@ int EulerGaussianBump<dim,nstate>
         dealii::ConvergenceTable convergence_table;
 
         std::vector<unsigned int> n_subdivisions(dim);
+        //n_subdivisions[1] = n_1d_cells[0]; // y-direction
+        //n_subdivisions[0] = 4*n_subdivisions[1]; // x-direction
         n_subdivisions[1] = n_1d_cells[0]; // y-direction
-        n_subdivisions[0] = 4*n_subdivisions[1]; // x-direction
+        n_subdivisions[0] = 2*n_subdivisions[1]; // x-direction
         dealii::Point<2> p1(-1.5,0.0), p2(1.5,y_height);
         const bool colorize = true;
         dealii::Triangulation<dim> grid;
@@ -221,6 +227,10 @@ int EulerGaussianBump<dim,nstate>
         dg->allocate_system ();
         dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
+        // Create ODE solver and ramp up the solution from p0
+        std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        ode_solver->initialize_steady_polynomial_ramping (poly_degree);
+
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
 
 
@@ -235,20 +245,13 @@ int EulerGaussianBump<dim,nstate>
             }
 
             const unsigned int n_active_cells = grid.n_active_cells();
+            const unsigned int n_dofs = dg->dof_handler.n_dofs();
             std::cout
                       << "Dimension: " << dim << "\t Polynomial degree p: " << poly_degree << std::endl
                       << "Grid number: " << igrid+1 << "/" << n_grids
                       << ". Number of active cells: " << n_active_cells
-                      << ". Number of degrees of freedom: " << dg->dof_handler.n_dofs()
+                      << ". Number of degrees of freedom: " << n_dofs
                       << std::endl;
-
-
-            // Create ODE solver using the factory and providing the DG object
-            std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-
-            //if (igrid==0) {
-            //    ode_solver->initialize_steady_polynomial_ramping (poly_degree);
-            //}
 
             // Solve the steady state problem
             ode_solver->steady_state();
@@ -293,13 +296,14 @@ int EulerGaussianBump<dim,nstate>
 
 
             // Convergence table
-            double dx = 1.0/pow(n_active_cells,(1.0/dim));
+            double dx = 1.0/pow(n_dofs,(1.0/dim));
             //dx = dealii::GridTools::maximal_cell_diameter(grid);
             grid_size[igrid] = dx;
             entropy_error[igrid] = l2error;
 
             convergence_table.add_value("p", poly_degree);
-            convergence_table.add_value("cells", grid.n_active_cells());
+            convergence_table.add_value("cells", n_active_cells);
+            convergence_table.add_value("DoFs", n_dofs);
             convergence_table.add_value("dx", dx);
             convergence_table.add_value("L2_entropy_error", l2error);
 

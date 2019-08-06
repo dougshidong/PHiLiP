@@ -33,7 +33,7 @@ namespace PHiLiP {
 namespace Tests {
 
 dealii::Point<2> center(0.0,0.0);
-const double inner_radius = 1, outer_radius = inner_radius*40;
+const double inner_radius = 1, outer_radius = inner_radius*20;
 
 dealii::Point<2> warp_cylinder (const dealii::Point<2> &p)//, const double inner_radius, const double outer_radius)
 {
@@ -43,7 +43,7 @@ dealii::Point<2> warp_cylinder (const dealii::Point<2> &p)//, const double inner
 
     //const double radius = std::abs(p[0]);
 
-    const double power = 2.5;
+    const double power = 2.25;
     const double radius = outer_radius*(inner_radius/outer_radius + pow(std::abs(p[0]), power));
 
     dealii::Point<2> q = p;
@@ -160,7 +160,7 @@ int EulerCylinder<dim,nstate>
         dealii::Triangulation<dim> grid;
 
         const unsigned int n_cells_circle = n_1d_cells[0];
-        const unsigned int n_cells_radial = 2.0*n_cells_circle;
+        const unsigned int n_cells_radial = 3.0*n_cells_circle;
         half_cylinder(grid, n_cells_circle, n_cells_radial);
         // Assign BC
         for (typename dealii::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
@@ -192,7 +192,12 @@ int EulerCylinder<dim,nstate>
         dg->allocate_system ();
         dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
+        // Create ODE solver and ramp up the solution from p0
+        std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        ode_solver->initialize_steady_polynomial_ramping(poly_degree);
+
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
+            // Interpolate solution from previous grid
             if (igrid>0) {
                 dealii::Vector<double> old_solution(dg->solution);
                 dealii::SolutionTransfer<dim, dealii::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
@@ -210,8 +215,6 @@ int EulerCylinder<dim,nstate>
             // std::cout << " Grid #" << igrid+1 << " . Number of cells: " << grid.n_active_cells() << std::endl;
             // std::cout << " written to " << filename << std::endl << std::endl;
 
-            // Create ODE solver using the factory and providing the DG object
-            std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
             unsigned int n_active_cells = grid.n_active_cells();
             std::cout
@@ -264,17 +267,14 @@ int EulerCylinder<dim,nstate>
             }
             l2error = sqrt(l2error);
 
-            std::cout << exact_area << " " << area << std::endl;
-
-
             // Convergence table
             double dx = 1.0/pow(n_active_cells,(1.0/dim));
-            dx = dealii::GridTools::maximal_cell_diameter(grid);
             grid_size[igrid] = dx;
             entropy_error[igrid] = l2error;
 
             convergence_table.add_value("p", poly_degree);
             convergence_table.add_value("cells", grid.n_active_cells());
+            convergence_table.add_value("DoFs", dg->dof_handler.n_dofs());
             convergence_table.add_value("dx", dx);
             convergence_table.add_value("L2_entropy_error", l2error);
             convergence_table.add_value("area_error", std::abs(area-exact_area));

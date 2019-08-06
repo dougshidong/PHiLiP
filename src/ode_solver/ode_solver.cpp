@@ -73,6 +73,8 @@ int ODESolver<dim,real>::steady_state ()
 
         double dt = ode_param.initial_time_step;
         dt *= pow((1.0-std::log10(this->residual_norm_decrease)*ode_param.time_step_factor_residual), ode_param.time_step_factor_residual_exp);
+        //const double decrease_log = (1.0-std::log10(this->residual_norm_decrease));
+        //dt *= dt*pow(10, decrease_log);
         std::cout << "Time step = " << dt << std::endl;
 
         step_in_time(dt);

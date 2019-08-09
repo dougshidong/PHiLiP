@@ -191,7 +191,7 @@ int EulerGaussianBump<dim,nstate>
         //n_subdivisions[1] = n_1d_cells[0]; // y-direction
         //n_subdivisions[0] = 4*n_subdivisions[1]; // x-direction
         n_subdivisions[1] = n_1d_cells[0]; // y-direction
-        n_subdivisions[0] = 2*n_subdivisions[1]; // x-direction
+        n_subdivisions[0] = 3*n_subdivisions[1]; // x-direction
         dealii::Point<2> p1(-1.5,0.0), p2(1.5,y_height);
         const bool colorize = true;
         dealii::Triangulation<dim> grid;

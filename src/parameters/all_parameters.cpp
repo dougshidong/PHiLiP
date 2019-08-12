@@ -55,9 +55,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  burgers_inviscid | "
                       "  euler>.");
     prm.declare_entry("conv_num_flux", "lax_friedrichs",
-                      dealii::Patterns::Selection("lax_friedrichs"),
+                      dealii::Patterns::Selection("lax_friedrichs | roe"),
                       "Convective numerical flux. "
-                      "Choices are <lax_friedrichs>.");
+                      "Choices are <lax_friedrichs | roe>.");
     prm.declare_entry("diss_num_flux", "symm_internal_penalty",
                       dealii::Patterns::Selection("symm_internal_penalty"),
                       "Dissipative numerical flux. "
@@ -111,6 +111,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
     if (conv_num_flux_string == "lax_friedrichs") conv_num_flux_type = lax_friedrichs;
+    if (conv_num_flux_string == "roe") conv_num_flux_type = roe;
 
     const std::string diss_num_flux_string = prm.get("diss_num_flux");
     if (diss_num_flux_string == "symm_internal_penalty") diss_num_flux_type = symm_internal_penalty;

@@ -224,6 +224,11 @@ public:
     //const dealii::MappingQ<dim> mapping;
     const dealii::hp::MappingCollection<dim> mapping_collection;
 
+    dealii::hp::QCollection<dim>     volume_quadrature_collection;
+    dealii::hp::QCollection<dim-1>   face_quadrature_collection;
+    dealii::hp::QCollection<1>       oned_quadrature_collection;
+
+
 
 protected:
 
@@ -311,10 +316,6 @@ protected:
     /// Create FECollection for initializer list
     dealii::hp::FECollection<dim> create_fe_collection(const unsigned int max_degree) const;
 
-
-    dealii::hp::QCollection<dim>     volume_quadrature_collection;
-    dealii::hp::QCollection<dim-1>   face_quadrature_collection;
-    dealii::hp::QCollection<1>       oned_quadrature_collection;
 
     const dealii::UpdateFlags volume_update_flags = dealii::update_values | dealii::update_gradients |
                                                     dealii::update_quadrature_points | dealii::update_JxW_values;

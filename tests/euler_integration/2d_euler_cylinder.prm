@@ -10,7 +10,7 @@ set dimension = 2
 # <advection|diffusion|convection_diffusion>.
 set pde_type  = euler
 
-set conv_num_flux = lax_friedrichs
+set conv_num_flux = roe
 
 subsection euler
   set reference_length = 1.0

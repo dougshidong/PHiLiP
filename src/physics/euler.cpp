@@ -141,6 +141,17 @@ inline real Euler<dim,nstate,real>
     return entropy_measure;
 }
 
+
+template <int dim, int nstate, typename real>
+inline real Euler<dim,nstate,real>
+::compute_specific_enthalpy ( const std::array<real,nstate> &conservative_soln, const real pressure ) const
+{
+    const real density = conservative_soln[0];
+    const real total_energy = conservative_soln[nstate-1];
+    const real specific_enthalpy = (total_energy+pressure)/density;
+    return specific_enthalpy;
+}
+
 template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
 ::compute_dimensional_temperature ( const std::array<real,nstate> &primitive_soln ) const
@@ -214,6 +225,15 @@ inline real Euler<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
+::compute_sound ( const real density, const real pressure ) const
+{
+    assert(density > 0);
+    const real sound = std::sqrt(pressure*gam/density);
+    return sound;
+}
+
+template <int dim, int nstate, typename real>
+inline real Euler<dim,nstate,real>
 ::compute_mach_number ( const std::array<real,nstate> &conservative_soln ) const
 {
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
@@ -246,6 +266,30 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
         conv_flux[nstate-1][flux_dim] = density*vel[flux_dim]*specific_total_enthalpy;
     }
     return conv_flux;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> Euler<dim,nstate,real>
+::convective_normal_flux (const std::array<real,nstate> &conservative_soln, const dealii::Tensor<1,dim,real> &normal) const
+{
+    std::array<real, nstate> conv_normal_flux;
+    const real density = conservative_soln[0];
+    const real pressure = compute_pressure (conservative_soln);
+    const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
+    const real normal_vel = vel*normal;
+    const real total_energy = conservative_soln[nstate-1];
+    const real specific_total_enthalpy = (total_energy + pressure) / density;
+
+    const real rhoV = density*normal_vel;
+    // Density equation
+    conv_normal_flux[0] = rhoV;
+    // Momentum equation
+    for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+        conv_normal_flux[1+velocity_dim] = rhoV*vel[velocity_dim] + normal[velocity_dim] * pressure;
+    }
+    // Energy equation
+    conv_normal_flux[nstate-1] = rhoV*specific_total_enthalpy;
+    return conv_normal_flux;
 }
 
 template <int dim, int nstate, typename real>
@@ -592,6 +636,8 @@ dealii::Vector<double> Euler<dim,nstate,real>::post_compute_derived_quantities_v
         computed_quantities(++current_data_index) = conservative_soln[nstate-1];
         // Pressure
         computed_quantities(++current_data_index) = primitive_soln[nstate-1];
+        // Pressure
+        computed_quantities(++current_data_index) = compute_temperature(primitive_soln);
         // Entropy generation
         computed_quantities(++current_data_index) = compute_entropy_measure(conservative_soln) - entropy_inf;
         // Mach Number
@@ -622,6 +668,7 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Eu
     }
     interpretation.push_back (DCI::component_is_scalar); // Energy
     interpretation.push_back (DCI::component_is_scalar); // Pressure
+    interpretation.push_back (DCI::component_is_scalar); // Temperature
     interpretation.push_back (DCI::component_is_scalar); // Entropy generation
     interpretation.push_back (DCI::component_is_scalar); // Mach number
 
@@ -646,6 +693,7 @@ std::vector<std::string> Euler<dim,nstate,real> ::post_get_names () const
     }
     names.push_back ("energy");
     names.push_back ("pressure");
+    names.push_back ("temperature");
 
     names.push_back ("entropy_generation");
     names.push_back ("mach_number");

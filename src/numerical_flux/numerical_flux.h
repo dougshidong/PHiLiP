@@ -2,8 +2,9 @@
 #define __NUMERICAL_FLUX__
 
 #include <deal.II/base/tensor.h>
-#include "physics/physics.h"
 #include "numerical_flux/viscous_numerical_flux.h"
+#include "physics/physics.h"
+#include "physics/euler.h"
 
 namespace PHiLiP {
 namespace NumericalFlux {
@@ -49,6 +50,32 @@ std::array<real, nstate> evaluate_flux (
 protected:
 /// Numerical flux requires physics to evaluate convective eigenvalues.
 const std::shared_ptr < Physics::PhysicsBase<dim, nstate, real> > pde_physics;
+
+};
+
+/// Roe flux with entropy fix. Derived from NumericalFluxConvective.
+template<int dim, int nstate, typename real>
+class Roe: public NumericalFluxConvective<dim, nstate, real>
+{
+public:
+
+/// Constructor
+Roe(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
+:
+euler_physics(std::dynamic_pointer_cast<Physics::Euler<dim,nstate,real>>(physics_input))
+{};
+/// Destructor
+~Roe() {};
+
+/// Returns the Roe convective numerical flux at an interface.
+std::array<real, nstate> evaluate_flux (
+    const std::array<real, nstate> &soln_int,
+    const std::array<real, nstate> &soln_ext,
+    const dealii::Tensor<1,dim,real> &normal1) const;
+
+protected:
+/// Numerical flux requires physics to evaluate convective eigenvalues.
+const std::shared_ptr < Physics::Euler<dim, nstate, real> > euler_physics;
 
 };
 

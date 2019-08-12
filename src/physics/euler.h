@@ -155,6 +155,8 @@ public:
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
         const std::array<real,nstate> &conservative_soln) const;
 
+    std::array<real,nstate> convective_normal_flux (const std::array<real,nstate> &conservative_soln, const dealii::Tensor<1,dim,real> &normal) const;
+
     /// Convective flux Jacobian: \f$ \frac{\partial \mathbf{F}_{conv}}{\partial w} \cdot \mathbf{n} \f$
     dealii::Tensor<2,nstate,real> convective_flux_directional_jacobian (
         const std::array<real,nstate> &conservative_soln,
@@ -193,8 +195,17 @@ public:
     /// Evaluate pressure from conservative variables
     real compute_pressure ( const std::array<real,nstate> &conservative_soln ) const;
 
+    /// Evaluate pressure from conservative variables
+    real compute_pressure_from_enthalpy ( const std::array<real,nstate> &conservative_soln ) const;
+
+    /// Evaluate pressure from conservative variables
+    real compute_specific_enthalpy ( const std::array<real,nstate> &conservative_soln, const real pressure) const;
+
     /// Evaluate speed of sound from conservative variables
     real compute_sound ( const std::array<real,nstate> &conservative_soln ) const;
+    /// Evaluate speed of sound from density and pressure
+    real compute_sound ( const real density, const real pressure ) const;
+
     /// Evaluate velocities from conservative variables
     dealii::Tensor<1,dim,real> compute_velocities ( const std::array<real,nstate> &conservative_soln ) const;
     /// Given the velocity vector \f$ \mathbf{u} \f$, returns the dot-product  \f$ \mathbf{u} \cdot \mathbf{u} \f$

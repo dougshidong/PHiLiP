@@ -355,8 +355,8 @@ int EulerGaussianBump<dim,nstate>
         const double slope_avg = 0.5*(before_last_slope+last_slope);
         const double slope_diff = slope_avg-expected_slope;
 
-        double slope_deficit_tolerance = -0.1;
-        if(poly_degree == 0) slope_deficit_tolerance = -0.2; // Otherwise, grid sizes need to be much bigger for p=0
+        double slope_deficit_tolerance = -std::abs(manu_grid_conv_param.slope_deficit_tolerance);
+        if(poly_degree == 0) slope_deficit_tolerance *= 2; // Otherwise, grid sizes need to be much bigger for p=0
 
         if (slope_diff < slope_deficit_tolerance) {
             std::cout << std::endl

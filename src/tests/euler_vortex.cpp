@@ -69,40 +69,56 @@ template <int dim, typename real>
 inline real EulerVortexFunction<dim,real>
 ::value (const dealii::Point<dim> &point, const unsigned int istate) const
 {
+    const double variance = vortex_stddev_decay*vortex_stddev_decay;
+
     dealii::Point<dim> new_loc = advected_location(point);
     const double x = new_loc[0];
     const double y = new_loc[1];
-    const double local_radius_sqr = new_loc.square();
-    
-    const double pi = dealii::numbers::PI;
-    const double variance = vortex_stddev_decay;
-    const double perturbation_strength = vortex_strength * exp(0.5*variance*(1.0-local_radius_sqr)) * 0.5 / pi;
 
-    const double delta_vel_x = -y * perturbation_strength;
-    const double delta_vel_y =  x * perturbation_strength;
-    const double delta_temp  =  euler_physics.temperature_inf / pow(euler_physics.sound_inf, 2) * 0.5*euler_physics.gamm1 * perturbation_strength*perturbation_strength;
+    //const double local_radius_sqr = new_loc.square();
+    //const double pi = dealii::numbers::PI;
+    //const double perturbation_strength = vortex_strength * exp(0.5*variance*(1.0-local_radius_sqr)) * 0.5 / pi;
+    //const double delta_vel_x = -y * perturbation_strength;
+    //const double delta_vel_y =  x * perturbation_strength;
+    //const double delta_temp  =  euler_physics.temperature_inf / pow(euler_physics.sound_inf, 2) * 0.5*euler_physics.gamm1 * perturbation_strength*perturbation_strength;
 
-    const double vel_x = euler_physics.velocities_inf[0] + delta_vel_x;
-    const double vel_y = euler_physics.velocities_inf[1] + delta_vel_y;
-    const double temperature = (euler_physics.temperature_inf + delta_temp);
-    //if(std::abs(x) > 19.9) {
-    //    std::cout<< "Gaussian " << gaussian << std::endl;
-    //    std::cout<< "pert " << perturbation_strength << std::endl;
-    //    std::cout<< "velx " << vel_x << std::endl;
-    //    std::cout<< "vely " << vel_y << std::endl;
-    //    std::cout<< "delta_temp " << delta_temp << std::endl;
-    //    std::cout<< "temperature " << temperature << std::endl;
-    //    std::cout<< std::endl;
-    //}
+    //const double vel_x = euler_physics.velocities_inf[0] + delta_vel_x;
+    //const double vel_y = euler_physics.velocities_inf[1] + delta_vel_y;
+    //const double temperature = (euler_physics.temperature_inf + delta_temp);
 
-    // Use isentropic relations to recover density and pressure
-    const double density = euler_physics.density_inf*pow(temperature/euler_physics.temperature_inf, 1.0/euler_physics.gamm1);
-    //const double pressure = euler_physics.pressure_inf * 1.0/euler_physics.gam * pow(temperature, euler_physics.gam/euler_physics.gamm1);
-    const double pressure = euler_physics.pressure_inf * pow(temperature/euler_physics.temperature_inf, euler_physics.gam/euler_physics.gamm1);
+    //// Use isentropic relations to recover density and pressure
+    //const double density = euler_physics.density_inf*pow(temperature/euler_physics.temperature_inf, 1.0/euler_physics.gamm1);
+    ////const double pressure = euler_physics.pressure_inf * 1.0/euler_physics.gam * pow(temperature, euler_physics.gam/euler_physics.gamm1);
+    //const double pressure = euler_physics.pressure_inf * pow(temperature/euler_physics.temperature_inf, euler_physics.gam/euler_physics.gamm1);
+
+    // Spiegel2015 isentropic vortex
+    //const double local_radius_sqr = new_loc.square();
+    //const double perturbation_strength = vortex_strength * exp(-0.5/(variance*std::pow(vortex_characteristic_length,2))*(local_radius_sqr));
+    //const double delta_vel_x = -y * perturbation_strength;
+    //const double delta_vel_y =  x * perturbation_strength;
+    //const double delta_temp  =  -0.5*euler_physics.gamm1 * perturbation_strength*perturbation_strength;
+
+    //const double vel_x = euler_physics.velocities_inf[0] + delta_vel_x;
+    //const double vel_y = euler_physics.velocities_inf[1] + delta_vel_y;
+    //const double temperature = euler_physics.temperature_inf * (1.0+delta_temp);
+    //const double pressure = euler_physics.pressure_inf * std::pow(1.0+delta_temp,euler_physics.gam/euler_physics.gamm1);
+    ////const double density = euler_physics.density_inf * std::pow(temperature/euler_physics.temperature_inf,1.0/euler_physics.gamm1);
+    //const double density = euler_physics.compute_density_from_pressure_temperature (pressure, temperature);
+
+
+    // Philip's isentropic vortex
+	const double r2 = (std::pow(x,2.0)+std::pow(y,2.0))/(variance);
+    const double density  = euler_physics.density_inf;
+	const double vel_x    = euler_physics.velocities_inf[0] - y*vortex_strength/(variance)*exp(-0.5*r2);
+	const double vel_y    = euler_physics.velocities_inf[1] + x*vortex_strength/(variance)*exp(-0.5*r2);
+	const double pressure = euler_physics.pressure_inf  - euler_physics.density_inf*(vortex_strength*vortex_strength)/(2*variance)*exp(-r2);
 
     const std::array<double, 4> primitive_values = {density, vel_x, vel_y, pressure};
     const std::array<double, 4> conservative_values = euler_physics.convert_primitive_to_conservative(primitive_values);
 
+    //std::cout << density << " " << pressure << std::endl;
+    //std::cout << primitive_values[0] << " " << primitive_values[1] << " " << primitive_values[2]<< " " << primitive_values[3]<< std::endl;
+    //std::cout << conservative_values[0] << " " << conservative_values[1] << " " << conservative_values[2]<< " " << conservative_values[3]<< std::endl;
     // if(std::abs(x) > 19.9) {
     //     std::cout<< "density " << conservative_values[0] << std::endl;
     //     std::cout<< "momx " << conservative_values[1] << std::endl;
@@ -145,11 +161,11 @@ int EulerVortex<dim,nstate>
     std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&param);
     std::shared_ptr <Physics::Euler<dim,nstate,double>> euler = std::dynamic_pointer_cast<Physics::Euler<dim,nstate,double>>(physics);
 
-    const dealii::Point<dim> initial_vortex_center(0.0,0.0);
+    const dealii::Point<dim> initial_vortex_center(-0.0,-0.0);
     const double vortex_strength = euler->mach_inf*4.0;
     const double vortex_stddev_decay = 1.0;
-    //const double half_length = 20*euler->ref_length;
-    const double half_length = 4*euler->ref_length;
+    const double half_length = 5*euler->ref_length;
+    //const double half_length = 5*euler->ref_length;
     EulerVortexFunction<dim,double> initial_vortex_function(*euler, initial_vortex_center, vortex_strength, vortex_stddev_decay);
     initial_vortex_function.set_time(0.0);
 
@@ -157,7 +173,7 @@ int EulerVortex<dim,nstate>
 
         // p0 tends to require a finer grid to reach asymptotic region
         unsigned int n_grids = n_grids_input;
-        if (poly_degree <= 2) n_grids = n_grids_input + 1;
+        //if (poly_degree <= 2) n_grids = n_grids_input + 1;
 
         std::vector<double> soln_error(n_grids);
         std::vector<double> grid_size(n_grids);
@@ -228,14 +244,13 @@ int EulerVortex<dim,nstate>
             // Create ODE solver using the factory and providing the DG object
             std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
-            unsigned int n_active_cells = grid.n_active_cells();
+            const unsigned int n_active_cells = grid.n_active_cells();
+            const unsigned int n_dofs = dg->dof_handler.n_dofs();
             std::cout
-                      << "Dimension: " << dim
-                      << "\t Polynomial degree p: " << poly_degree
-                      << std::endl
+                      << "Dimension: " << dim << "\t Polynomial degree p: " << poly_degree << std::endl
                       << "Grid number: " << igrid+1 << "/" << n_grids
                       << ". Number of active cells: " << n_active_cells
-                      << ". Number of degrees of freedom: " << dg->dof_handler.n_dofs()
+                      << ". Number of degrees of freedom: " << n_dofs
                       << std::endl;
 
             // Not really steady state
@@ -248,7 +263,7 @@ int EulerVortex<dim,nstate>
             final_vortex_function.set_time(final_time);
 
             // Overintegrate the error to make sure there is not integration error in the error estimate
-            int overintegrate = 5;
+            int overintegrate = 10;
             dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
             dealii::MappingQ<dim,dim> mappingq(dg->max_degree+overintegrate);
             dealii::FEValues<dim,dim> fe_values_extra(mappingq, dg->fe_collection[poly_degree], quad_extra, 
@@ -276,7 +291,8 @@ int EulerVortex<dim,nstate>
                     const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
 
                     // Check only density
-                    for (int istate=0; istate<1; ++istate) {
+                    // Check only energy
+                    for (int istate=3; istate<4; ++istate) {
                         const double uexact = final_vortex_function.value(qpoint, istate);
                         l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
                     }
@@ -286,13 +302,14 @@ int EulerVortex<dim,nstate>
             l2error = sqrt(l2error);
 
             // Convergence table
-            double dx = 1.0/pow(n_active_cells,(1.0/dim));
+            double dx = 1.0/pow(n_dofs,(1.0/dim));
             //dx = dealii::GridTools::maximal_cell_diameter(grid);
             grid_size[igrid] = dx;
             soln_error[igrid] = l2error;
 
             convergence_table.add_value("p", poly_degree);
-            convergence_table.add_value("cells", grid.n_active_cells());
+            convergence_table.add_value("cells", n_active_cells);
+            convergence_table.add_value("DoFs", n_dofs);
             convergence_table.add_value("dx", dx);
             convergence_table.add_value("soln_L2_error", l2error);
 
@@ -340,11 +357,11 @@ int EulerVortex<dim,nstate>
                             / log(grid_size[n_grids-2]/grid_size[n_grids-3]);
         }
         // Don't actually take the average for this case
-        const double slope_avg = 0.0*before_last_slope+ 1.0*last_slope;
+        const double slope_avg = 0.5*before_last_slope+ 0.5*last_slope;
         const double slope_diff = slope_avg-expected_slope;
 
-        double slope_deficit_tolerance = -0.1;
-        if(poly_degree == 0) slope_deficit_tolerance = -0.2; // Otherwise, grid sizes need to be much bigger for p=0
+        double slope_deficit_tolerance = -std::abs(manu_grid_conv_param.slope_deficit_tolerance);
+        if(poly_degree == 0) slope_deficit_tolerance *= 2; // Otherwise, grid sizes need to be much bigger for p=0
 
         if (slope_diff < slope_deficit_tolerance) {
             std::cout << std::endl

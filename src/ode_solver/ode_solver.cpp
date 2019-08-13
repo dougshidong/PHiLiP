@@ -178,6 +178,7 @@ void Explicit_ODESolver<dim,real>::step_in_time (real dt)
         this->rk_stage[0] = this->dg->solution;
 
         // Stage 1
+        std::cout<< "Stage 1... ";
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
 
         this->rk_stage[1] = this->rk_stage[0];
@@ -186,6 +187,7 @@ void Explicit_ODESolver<dim,real>::step_in_time (real dt)
         this->dg->solution = this->rk_stage[1];
 
         // Stage 2
+        std::cout<< "2... ";
         this->dg->assemble_residual ();
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
 
@@ -197,6 +199,7 @@ void Explicit_ODESolver<dim,real>::step_in_time (real dt)
         this->dg->solution = this->rk_stage[2];
 
         // Stage 3
+        std::cout<< "3... ";
         this->dg->assemble_residual ();
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
 
@@ -206,6 +209,7 @@ void Explicit_ODESolver<dim,real>::step_in_time (real dt)
         this->rk_stage[3].add(2.0/3.0*dt, this->solution_update);
 
         this->dg->solution = this->rk_stage[3];
+        std::cout<< "done." << std::endl;
     }
 
 }

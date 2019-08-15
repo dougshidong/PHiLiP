@@ -4,11 +4,16 @@
 
 #include <deal.II/dofs/dof_tools.h>
 
+#include <deal.II/distributed/tria.h>
+
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_refinement.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/grid_in.h>
+
+#include <deal.II/grid/grid_tools.h>
+
 
 #include <deal.II/numerics/vector_tools.h>
 
@@ -120,13 +125,16 @@ int EulerEntropyWaves<dim,nstate>
         dealii::ConvergenceTable convergence_table;
 
         // Create periodicity vector to store the periodic info.
-        std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<dim>::cell_iterator > > periodicity_vector;
+        std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<dim>::cell_iterator > > periodicity_vector;
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
             // Note that Triangulation must be declared before DG
             // DG will be destructed before Triangulation
             // thus removing any dependence of Triangulation and allowing Triangulation to be destructed
             // Otherwise, a Subscriptor error will occur
-            dealii::Triangulation<dim> grid;
+            dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator,
+                typename dealii::Triangulation<dim>::MeshSmoothing(
+                    dealii::Triangulation<dim>::smoothing_on_refinement |
+                    dealii::Triangulation<dim>::smoothing_on_coarsening));
 
             // Generate hypercube
             if ( manu_grid_conv_param.grid_type == GridEnum::hypercube || manu_grid_conv_param.grid_type == GridEnum::sinehypercube ) {
@@ -141,8 +149,13 @@ int EulerEntropyWaves<dim,nstate>
                     p2[d] = 1.0;
                 }
                 dealii::GridGenerator::subdivided_hyper_rectangle (grid, n_subdivisions, p1, p2, colorize);
+
+                dealii::FullMatrix<double> rotation_matrix(dim);
+                rotation_matrix[1][0] = 1.;
+                rotation_matrix[0][1] = 1.;
                 for (int d=0;d<dim;d++) {
-                    dealii::GridTools::collect_periodic_faces(grid, 2*d, 2*d+1, d, periodicity_vector);
+                    dealii::GridTools::collect_periodic_faces< dealii::parallel::distributed::Triangulation<dim>> (grid, 2*d, 2*d+1, d, periodicity_vector, dealii::Tensor<1, dim>(),
+                                  rotation_matrix);
                 }
                 grid.add_periodicity(periodicity_vector);
 

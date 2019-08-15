@@ -13,13 +13,13 @@ void ODESolver<dim,real>::initialize_steady_polynomial_ramping (const unsigned i
     std::cout << " Initializing DG with global polynomial degree = " << global_final_poly_degree << " by ramping from degree 0 ... " << std::endl;
     std::cout << " ************************************************************************ " << std::endl;
 
-    dealii::SolutionTransfer<dim, dealii::Vector<double>, dealii::hp::DoFHandler<dim>> soltrans(dg->dof_handler);
+    dealii::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> soltrans(dg->dof_handler);
 
     for (unsigned int degree = 0; degree <= global_final_poly_degree; degree++) {
         std::cout << " ************************************************************************ " << std::endl;
         std::cout << " Ramping degree " << degree << " until p=" << global_final_poly_degree << std::endl;
         std::cout << " ************************************************************************ " << std::endl;
-        dealii::Vector<double> old_solution(dg->solution);
+        dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
 
         soltrans.prepare_for_coarsening_and_refinement(old_solution);
 
@@ -68,6 +68,14 @@ int ODESolver<dim,real>::steady_state ()
         std::cout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
 
         this->dg->assemble_residual ();
+        // for (unsigned int i=0; i<dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD); i++) {
+        //     if (i==dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)) {
+        //         std::cout << "residual MPI process " << i << std::endl;
+        //         this->dg->right_hand_side.print(std::cout);
+        //         std::cout << std::endl;
+        //     }
+        //     MPI_Barrier(MPI_COMM_WORLD);
+        // }
         this->residual_norm = this->dg->get_residual_l2norm();
         this->residual_norm_decrease = this->residual_norm / this->initial_residual_norm;
 
@@ -217,24 +225,20 @@ void Explicit_ODESolver<dim,real>::step_in_time (real dt)
 template <int dim, typename real>
 void Explicit_ODESolver<dim,real>::allocate_ode_system ()
 {
-    unsigned int n_dofs = this->dg->solution.size();
     const bool do_inverse_mass_matrix = true;
-    this->solution_update.reinit(n_dofs);
+    this->solution_update.reinit(this->dg->right_hand_side);
     this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
-    //solution.reinit(n_dofs);
-    //right_hand_side.reinit(n_dofs);
 
     this->rk_stage.resize(4);
     for (int i=0; i<4; i++) {
-        this->rk_stage[i].reinit(n_dofs);
+        this->rk_stage[i].reinit(this->dg->solution);
     }
 }
 template <int dim, typename real>
 void Implicit_ODESolver<dim,real>::allocate_ode_system ()
 {
-    unsigned int n_dofs = this->dg->solution.size();
     const bool do_inverse_mass_matrix = false;
-    this->solution_update.reinit(n_dofs);
+    this->solution_update.reinit(this->dg->right_hand_side);
     this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
 }
 

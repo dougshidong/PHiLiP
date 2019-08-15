@@ -194,10 +194,13 @@ int EulerGaussianBump<dim,nstate>
         n_subdivisions[0] = 3*n_subdivisions[1]; // x-direction
         dealii::Point<2> p1(-1.5,0.0), p2(1.5,y_height);
         const bool colorize = true;
-        dealii::Triangulation<dim> grid;
+        dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator,
+            typename dealii::Triangulation<dim>::MeshSmoothing(
+                dealii::Triangulation<dim>::smoothing_on_refinement |
+                dealii::Triangulation<dim>::smoothing_on_coarsening));
         dealii::GridGenerator::subdivided_hyper_rectangle (grid, n_subdivisions, p1, p2, colorize);
 
-        for (typename dealii::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+        for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
             for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
                 if (cell->face(face)->at_boundary()) {
                     unsigned int current_id = cell->face(face)->boundary_id();
@@ -235,8 +238,8 @@ int EulerGaussianBump<dim,nstate>
 
 
             if (igrid!=0) {
-                dealii::Vector<double> old_solution(dg->solution);
-                dealii::SolutionTransfer<dim, dealii::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+                dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
+                dealii::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
                 solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
                 grid.refine_global (1);
                 dg->allocate_system ();

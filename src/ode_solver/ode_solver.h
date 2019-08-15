@@ -67,17 +67,9 @@ protected:
     void compute_time_step();
 
     /// Solution update given by the ODE solver
-    dealii::Vector<real> solution_update;
+    dealii::LinearAlgebra::distributed::Vector<double> solution_update;
 
-    std::vector<dealii::Vector<real>> rk_stage;
-
-    /// Solution vector.
-    /** Currently not used. Might make it a vector pointing to dg->solution */
-    dealii::Vector<real> solution;
-
-    /// Right hand side vector.
-    /** Currently not used. Might make it a vector pointing to dg->right_hand_side */
-    dealii::Vector<real> right_hand_side;
+    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;
 
     /// Smart pointer to DGBase
     std::shared_ptr<DGBase<dim,real>> dg;

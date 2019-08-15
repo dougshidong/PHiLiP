@@ -114,6 +114,7 @@ DGBase<dim,real>::DGBase(
     , volume_quadrature_collection(std::get<2>(collection_tuple))
     , face_quadrature_collection(std::get<3>(collection_tuple))
     , oned_quadrature_collection(std::get<4>(collection_tuple))
+    , mpi_communicator(MPI_COMM_WORLD)
     , fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, this->volume_update_flags)
     , fe_values_collection_face_int (mapping_collection, fe_collection, face_quadrature_collection, this->face_update_flags)
     , fe_values_collection_face_ext (mapping_collection, fe_collection, face_quadrature_collection, this->neighbor_face_update_flags)
@@ -162,11 +163,9 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
 template <int dim, typename real>
 void DGBase<dim,real>::set_all_cells_fe_degree ( const unsigned int degree )
 {
-    for (typename dealii::hp::DoFHandler<dim>::active_cell_iterator
-        cell = dof_handler.begin_active();
-        cell != dof_handler.end(); ++cell)
+    for (auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell)
     {
-        cell->set_active_fe_index (degree);
+        if (cell->is_locally_owned()) cell->set_active_fe_index (degree);
     }
 }
 
@@ -191,32 +190,6 @@ void DGBase<dim,real>::set_triangulation(dealii::Triangulation<dim> *triangulati
 
 
 template <int dim, typename real>
-void DGBase<dim,real>::allocate_system ()
-{
-    std::cout << std::endl << "Allocating DG system and initializing FEValues" << std::endl;
-    // This function allocates all the necessary memory to the 
-    // system matrices and vectors.
-
-    dof_handler.distribute_dofs(fe_collection);
-
-    //std::vector<unsigned int> block_component(nstate,0);
-    //dealii::DoFRenumbering::component_wise(dof_handler, block_component);
-
-    // Allocate matrix
-    unsigned int n_dofs = dof_handler.n_dofs();
-    //DynamicSparsityPattern dsp(n_dofs, n_dofs);
-    sparsity_pattern.reinit(n_dofs, n_dofs);
-
-    dealii::DoFTools::make_flux_sparsity_pattern(dof_handler, sparsity_pattern);
-
-    system_matrix.reinit(sparsity_pattern);
-
-    // Allocate vectors
-    solution.reinit(n_dofs);
-    right_hand_side.reinit(n_dofs);
-}
-
-template <int dim, typename real>
 void DGBase<dim,real>::assemble_residual (const bool compute_dRdW)
 {
     right_hand_side = 0;
@@ -231,7 +204,9 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW)
     unsigned int n_cell_visited = 0;
     unsigned int n_face_visited = 0;
 
+    solution.update_ghost_values();
     for (auto current_cell = dof_handler.begin_active(); current_cell != dof_handler.end(); ++current_cell) {
+        if (!current_cell->is_locally_owned()) continue;
         n_cell_visited++;
 
         // Current reference element related to this physical cell
@@ -445,6 +420,8 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW)
         }
 
     } // end of cell loop
+    right_hand_side.compress(dealii::VectorOperation::add);
+    if ( compute_dRdW ) system_matrix.compress(dealii::VectorOperation::add);
 
 } // end of assemble_system_explicit ()
 
@@ -489,7 +466,8 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int ith_grid)// const
     std::vector<unsigned int> active_fe_indices;
     dof_handler.get_active_fe_indices(active_fe_indices);
     dealii::Vector<double> active_fe_indices_dealiivector(active_fe_indices.begin(), active_fe_indices.end());
-    data_out.add_data_vector (active_fe_indices_dealiivector, "PolynomialDegree");
+    //using DVTenum = dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType;
+    data_out.add_data_vector (active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
 
     assemble_residual (false);
@@ -500,7 +478,7 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int ith_grid)// const
     }
     //std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> data_component_interpretation(nstate, dealii::DataComponentInterpretation::component_is_scalar);
     //data_out.add_data_vector (right_hand_side, residual_names, dealii::DataOut<dim, dealii::hp::DoFHandler<dim>>::type_dof_data, data_component_interpretation);
-    data_out.add_data_vector (right_hand_side, residual_names);
+    data_out.add_data_vector (right_hand_side, residual_names, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
 
 
     data_out.build_patches (mapping_collection[mapping_collection.size()-1]);
@@ -513,31 +491,86 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int ith_grid)// const
 
 
 template <int dim, typename real>
+void DGBase<dim,real>::allocate_system ()
+{
+    std::cout << std::endl << "Allocating DG system and initializing FEValues" << std::endl;
+    // This function allocates all the necessary memory to the 
+    // system matrices and vectors.
+
+    dof_handler.distribute_dofs(fe_collection);
+
+    // Solution and RHS
+    locally_owned_dofs = dof_handler.locally_owned_dofs();
+    dealii::DoFTools::extract_locally_relevant_dofs(dof_handler, ghost_dofs);
+    locally_relevant_dofs = ghost_dofs;
+    ghost_dofs.subtract_set(locally_owned_dofs);
+    //dealii::DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
+
+    solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
+    //right_hand_side.reinit(locally_owned_dofs, mpi_communicator);
+    right_hand_side.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
+
+    // System matrix allocation
+    dealii::DynamicSparsityPattern dsp(locally_relevant_dofs);
+    dealii::DoFTools::make_flux_sparsity_pattern(dof_handler, dsp);
+    dealii::SparsityTools::distribute_sparsity_pattern(dsp, dof_handler.n_locally_owned_dofs_per_processor(), mpi_communicator, locally_relevant_dofs);
+
+    sparsity_pattern.copy_from(dsp);
+
+    system_matrix.reinit(locally_owned_dofs, sparsity_pattern, mpi_communicator);
+}
+
+template <int dim, typename real>
 void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
 {
-    unsigned int n_dofs = dof_handler.n_dofs();
-    // Could try and figure out the number of dofs per row, but not necessary
-    // We would then use
-    //     dealii::TrilinosWrappers::SparsityPattern sp(n_dofs, n_dofs, n_entries_per_row);
-    //unsigned int n_active_cells = triangulation.n_active_cells();
-    //std::vector< unsigned int > active_fe_indices(n_active_cells);
-    //dof_handler.get_active_fe_indices(active_fe_indices);
-    //std::vector<unsigned int> n_entries_per_row(n_dofs);
-    //for (auto cell dof_handler.begin_active(); cell!=dof_handler.end(); ++cell) {
-    //}
+    // Mass matrix sparsity pattern
+    //dealii::SparsityPattern dsp(dof_handler.n_dofs(), dof_handler.n_dofs(), dof_handler.get_fe_collection().max_dofs_per_cell());
+    //dealii::SparsityPattern dsp(dof_handler.n_dofs(), dof_handler.n_dofs(), dof_handler.get_fe_collection().max_dofs_per_cell());
+    //dealii::DynamicSparsityPattern dsp(dof_handler.n_locally_owned_dofs(), dof_handler.n_locally_owned_dofs(), dof_handler.get_fe_collection().max_dofs_per_cell());
+    dealii::DynamicSparsityPattern dsp(dof_handler.n_dofs());
+    std::vector<dealii::types::global_dof_index> dofs_indices;
+    for (auto cell = dof_handler.begin_active(); cell!=dof_handler.end(); ++cell) {
 
-    dealii::TrilinosWrappers::SparsityPattern sp(n_dofs, n_dofs);
-    dealii::DoFTools::make_sparsity_pattern(dof_handler, sp);
-    sp.compress();
+        if (!cell->is_locally_owned()) continue;
 
+        const unsigned int fe_index_curr_cell = cell->active_fe_index();
+
+        // Current reference element related to this physical cell
+        const dealii::FESystem<dim,dim> &current_fe_ref = fe_collection[fe_index_curr_cell];
+        const unsigned int n_dofs_cell = current_fe_ref.n_dofs_per_cell();
+
+        dofs_indices.resize(n_dofs_cell);
+        cell->get_dof_indices (dofs_indices);
+        for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+            for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
+                dsp.add(dofs_indices[itest], dofs_indices[itrial]);
+            }
+        }
+    }
+    dealii::SparsityTools::distribute_sparsity_pattern(dsp, dof_handler.n_locally_owned_dofs_per_processor(), mpi_communicator, locally_owned_dofs);
+    mass_sparsity_pattern.copy_from(dsp);
     if (do_inverse_mass_matrix == true) {
-        global_inverse_mass_matrix.reinit(sp);
+        global_inverse_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
     } else {
-        global_mass_matrix.reinit(sp);
+        global_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
     }
 
-    std::vector<dealii::types::global_dof_index> dofs_indices (dof_handler.get_fe_collection().max_dofs_per_cell());
+    //dealii::TrilinosWrappers::SparseMatrix 
+    //    matrix_with_correct_size(locally_owned_dofs,
+    //            mpi_communicator,
+    //            dof_handler.get_fe_collection().max_dofs_per_cell());
+    //std::cout << "Before compress" << std::endl;
+    //matrix_with_correct_size.compress(dealii::VectorOperation::unknown);
+    //if (do_inverse_mass_matrix == true) {
+    //    global_inverse_mass_matrix.reinit(matrix_with_correct_size);
+    //} else {
+    //    global_mass_matrix.reinit(matrix_with_correct_size);
+    //}
+    //std::cout << "AFter reinit" << std::endl;
+
     for (auto cell = dof_handler.begin_active(); cell!=dof_handler.end(); ++cell) {
+
+        if (!cell->is_locally_owned()) continue;
 
         const unsigned int fe_index_curr_cell = cell->active_fe_index();
 
@@ -593,7 +626,27 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
 template<int dim, typename real>
 void DGBase<dim,real>::add_mass_matrices(const real scale)
 {
+    //for (unsigned int i=0; i<dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD); i++) {
+    //    if (i==dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)) {
+    //        std::cout << "MPI process " << i << std::endl;
+    //        std::cout << "Mass Local range " << global_mass_matrix.local_range().first << " " << global_mass_matrix.local_range().second << std::endl;
+    //        std::cout << "System Local range " << system_matrix.local_range().first << " " << system_matrix.local_range().second << std::endl;
+    //        global_mass_matrix.print(std::cout);
+    //        std::cout << std::endl;
+    //        system_matrix.print(std::cout);
+    //    }
+    //    MPI_Barrier(MPI_COMM_WORLD);
+    //}
     system_matrix.add(scale, global_mass_matrix);
+    //for (unsigned int i=0; i<dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD); i++) {
+    //    if (i==dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)) {
+    //        std::cout << "MPI process " << i << std::endl;
+    //        global_mass_matrix.print(std::cout);
+    //        std::cout << std::endl;
+    //        system_matrix.print(std::cout);
+    //    }
+    //    MPI_Barrier(MPI_COMM_WORLD);
+    //}
 }
 
 template <int dim, typename real>

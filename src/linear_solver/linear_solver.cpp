@@ -5,13 +5,11 @@
 #include "linear_solver.h"
 namespace PHiLiP {
 
-template <typename real>
 std::pair<unsigned int, double>
-//LinearSolver<real>::solve_linear (
 solve_linear (
     dealii::TrilinosWrappers::SparseMatrix &system_matrix,
-    dealii::Vector<real> &right_hand_side, 
-    dealii::Vector<real> &solution,
+    dealii::LinearAlgebra::distributed::Vector<double> &right_hand_side,
+    dealii::LinearAlgebra::distributed::Vector<double> &solution,
     const Parameters::LinearSolverParam &param)
 {
 
@@ -94,13 +92,5 @@ solve_linear (
     }
     return {-1.0, -1.0};
 }
-
-template std::pair<unsigned int, double>
-//LinearSolver<double>::solve_linear (
-solve_linear (
-    dealii::TrilinosWrappers::SparseMatrix &system_matrix,
-    dealii::Vector<double> &right_hand_side, 
-    dealii::Vector<double> &solution,
-    const Parameters::LinearSolverParam &param);
 
 } // PHiLiP namespace

@@ -187,7 +187,10 @@ int EulerVortex<dim,nstate>
             // DG will be destructed before Triangulation
             // thus removing any dependence of Triangulation and allowing Triangulation to be destructed
             // Otherwise, a Subscriptor error will occur
-            dealii::Triangulation<dim> grid;
+            dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator,
+                typename dealii::Triangulation<dim>::MeshSmoothing(
+                    dealii::Triangulation<dim>::smoothing_on_refinement |
+                    dealii::Triangulation<dim>::smoothing_on_coarsening));
 
             // Generate hypercube
             if ( manu_grid_conv_param.grid_type == GridEnum::hypercube || manu_grid_conv_param.grid_type == GridEnum::sinehypercube ) {
@@ -198,7 +201,7 @@ int EulerVortex<dim,nstate>
                 const bool colorize = true;
                 dealii::Point<dim> p1(-half_length,-half_length), p2(half_length,half_length);
                 dealii::GridGenerator::subdivided_hyper_rectangle (grid, n_subdivisions, p1, p2, colorize);
-                for (typename dealii::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+                for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
                     // Set a dummy boundary ID
                     for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
                         if (cell->face(face)->at_boundary()) {

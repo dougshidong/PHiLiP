@@ -5,6 +5,8 @@
 
 #include <deal.II/dofs/dof_tools.h>
 
+#include <deal.II/distributed/tria.h>
+
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_refinement.h>
 #include <deal.II/grid/grid_tools.h>
@@ -52,7 +54,7 @@ dealii::Point<2> warp_cylinder (const dealii::Point<2> &p)//, const double inner
     return q;
 }
 
-void half_cylinder(dealii::Triangulation<2> & tria,
+void half_cylinder(dealii::parallel::distributed::Triangulation<2> & tria,
                    const unsigned int n_cells_circle,
                    const unsigned int n_cells_radial)
 {
@@ -157,13 +159,17 @@ int EulerCylinder<dim,nstate>
         dealii::ConvergenceTable convergence_table;
 
         // Generate grid and mapping
-        dealii::Triangulation<dim> grid;
+        dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator,
+            typename dealii::Triangulation<dim>::MeshSmoothing(
+                dealii::Triangulation<dim>::smoothing_on_refinement |
+                dealii::Triangulation<dim>::smoothing_on_coarsening));
 
         const unsigned int n_cells_circle = n_1d_cells[0];
         const unsigned int n_cells_radial = 3.0*n_cells_circle;
         half_cylinder(grid, n_cells_circle, n_cells_radial);
         // Assign BC
-        for (typename dealii::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+        for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
+            if (!cell->is_locally_owned()) continue;
             // Set a dummy boundary ID
             for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
                 if (cell->face(face)->at_boundary()) {
@@ -199,8 +205,8 @@ int EulerCylinder<dim,nstate>
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
             // Interpolate solution from previous grid
             if (igrid>0) {
-                dealii::Vector<double> old_solution(dg->solution);
-                dealii::SolutionTransfer<dim, dealii::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+                dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
+                dealii::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
                 solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
                 grid.refine_global (1);
                 dg->allocate_system ();
@@ -246,6 +252,8 @@ int EulerCylinder<dim,nstate>
 
             // Integrate solution error and output error
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
+
+                if (!cell->is_locally_owned()) continue;
 
                 fe_values_extra.reinit (cell);
                 cell->get_dof_indices (dofs_indices);

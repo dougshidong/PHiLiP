@@ -5,8 +5,10 @@
 
 #include <deal.II/dofs/dof_tools.h>
 
+#include <deal.II/distributed/tria.h>
+#include <deal.II/grid/tria.h>
+
 #include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/grid_refinement.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/grid_in.h>
@@ -41,7 +43,10 @@ template <int dim, int nstate>
 void GridStudy<dim,nstate>
 ::initialize_perturbed_solution(DGBase<dim,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &physics) const
 {
-    dealii::VectorTools::interpolate(dg.dof_handler, physics.manufactured_solution_function, dg.solution);
+    dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
+    solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
+    dealii::VectorTools::interpolate(dg.dof_handler, physics.manufactured_solution_function, solution_no_ghost);
+    dg.solution = solution_no_ghost;
 }
 template <int dim, int nstate>
 double GridStudy<dim,nstate>
@@ -72,6 +77,8 @@ double GridStudy<dim,nstate>
     std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
     for (auto cell : dg.dof_handler.active_cell_iterators()) {
 
+        if (!cell->is_locally_owned()) continue;
+
         fe_values_extra.reinit (cell);
         cell->get_dof_indices (dofs_indices);
 
@@ -90,7 +97,8 @@ double GridStudy<dim,nstate>
         }
 
     }
-    return solution_integral;
+    const double solution_integral_mpi_sum = dealii::Utilities::MPI::sum(solution_integral, mpi_communicator);
+    return solution_integral_mpi_sum;
 }
 
 template<int dim, int nstate>
@@ -120,7 +128,10 @@ int GridStudy<dim,nstate>
     // Limit the scope of grid_super_fine and dg_super_fine
     {
         const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids_input);
-        dealii::Triangulation<dim> grid_super_fine;
+        dealii::parallel::distributed::Triangulation<dim> grid_super_fine(this->mpi_communicator,
+            typename dealii::Triangulation<dim>::MeshSmoothing(
+                dealii::Triangulation<dim>::smoothing_on_refinement |
+                dealii::Triangulation<dim>::smoothing_on_coarsening));
         dealii::GridGenerator::subdivided_hyper_cube(grid_super_fine, n_1d_cells[n_grids_input-1]);
         std::shared_ptr < DGBase<dim, double> > dg_super_fine = DGFactory<dim,double>::create_discontinuous_galerkin(&param, p_end);
         dg_super_fine->set_triangulation(&grid_super_fine);
@@ -154,7 +165,11 @@ int GridStudy<dim,nstate>
             // DG will be destructed before Triangulation
             // thus removing any dependence of Triangulation and allowing Triangulation to be destructed
             // Otherwise, a Subscriptor error will occur
-            dealii::Triangulation<dim> grid;
+            dealii::parallel::distributed::Triangulation<dim> grid(
+                this->mpi_communicator,
+                typename dealii::Triangulation<dim>::MeshSmoothing(
+                    dealii::Triangulation<dim>::smoothing_on_refinement |
+                    dealii::Triangulation<dim>::smoothing_on_coarsening));
 
             // Generate hypercube
             if ( manu_grid_conv_param.grid_type == GridEnum::hypercube || manu_grid_conv_param.grid_type == GridEnum::sinehypercube ) {
@@ -244,6 +259,8 @@ int GridStudy<dim,nstate>
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
 
+                if (!cell->is_locally_owned()) continue;
+
                 fe_values_extra.reinit (cell);
                 cell->get_dof_indices (dofs_indices);
 
@@ -264,7 +281,7 @@ int GridStudy<dim,nstate>
                 }
 
             }
-            l2error = sqrt(l2error);
+            const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
 
             double solution_integral = integrate_solution_over_domain(*dg);
 
@@ -272,18 +289,18 @@ int GridStudy<dim,nstate>
             double dx = 1.0/pow(n_active_cells,(1.0/dim));
             dx = dealii::GridTools::maximal_cell_diameter(grid);
             grid_size[igrid] = dx;
-            soln_error[igrid] = l2error;
+            soln_error[igrid] = l2error_mpi_sum;
             output_error[igrid] = std::abs(solution_integral - exact_solution_integral);
 
             convergence_table.add_value("p", poly_degree);
             convergence_table.add_value("cells", grid.n_active_cells());
             convergence_table.add_value("dx", dx);
-            convergence_table.add_value("soln_L2_error", l2error);
+            convergence_table.add_value("soln_L2_error", l2error_mpi_sum);
             convergence_table.add_value("output_error", output_error[igrid]);
 
 
             std::cout   << " Grid size h: " << dx 
-                        << " L2-soln_error: " << l2error
+                        << " L2-soln_error: " << l2error_mpi_sum
                         << " Residual: " << ode_solver->residual_norm
                         << std::endl;
 

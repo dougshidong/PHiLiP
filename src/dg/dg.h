@@ -17,15 +17,15 @@
 #include <deal.II/hp/fe_values.h>
 
 #include <deal.II/lac/vector.h>
-#include <deal.II/lac/dynamic_sparsity_pattern.h>
+#include <deal.II/lac/sparsity_pattern.h>
 #include <deal.II/lac/trilinos_sparse_matrix.h>
+#include <deal.II/lac/trilinos_vector.h>
 
 #include <Sacado.hpp>
 
 #include "physics/physics.h"
 #include "numerical_flux/numerical_flux.h"
 #include "parameters/all_parameters.h"
-
 
 namespace PHiLiP {
 
@@ -98,14 +98,6 @@ public:
      */
     void evaluate_mass_matrices (bool do_inverse_mass_matrix = false);
 
-    /// Global mass matrix
-    /** Should be block diagonal where each block contains the mass matrix of each cell.  */
-    dealii::TrilinosWrappers::SparseMatrix global_mass_matrix;
-
-    /// Global inverser mass matrix
-    /** Should be block diagonal where each block contains the inverse mass matrix of each cell.  */
-    dealii::TrilinosWrappers::SparseMatrix global_inverse_mass_matrix;
-
     /// Evaluates the maximum stable time step
     /*  If exact_time_stepping = true, use the same time step for the entire solution
      *  NOT YET IMPLEMENTED
@@ -136,8 +128,18 @@ public:
 
     /// Sparsity pattern used on the system_matrix
     /** Not sure we need to store it.  */
-    dealii::DynamicSparsityPattern sparsity_pattern;
+    dealii::SparsityPattern sparsity_pattern;
 
+    /// Sparsity pattern used on the system_matrix
+    /** Not sure we need to store it.  */
+    dealii::SparsityPattern mass_sparsity_pattern;
+
+    /// Global mass matrix
+    /** Should be block diagonal where each block contains the mass matrix of each cell.  */
+    dealii::TrilinosWrappers::SparseMatrix global_mass_matrix;
+    /// Global inverser mass matrix
+    /** Should be block diagonal where each block contains the inverse mass matrix of each cell.  */
+    dealii::TrilinosWrappers::SparseMatrix global_inverse_mass_matrix;
     /// System matrix corresponding to the derivative of the right_hand_side with
     /// respect to the solution
     dealii::TrilinosWrappers::SparseMatrix system_matrix;
@@ -168,9 +170,16 @@ public:
      *  considering stable applications of diffusion.
      * 
      */
-    dealii::Vector<real> right_hand_side;
+    dealii::LinearAlgebra::distributed::Vector<double> right_hand_side;
 
-    dealii::Vector<real> solution; ///< Current modal coefficients of the solution
+    dealii::IndexSet locally_owned_dofs; ///< Locally own degrees of freedom
+    dealii::IndexSet ghost_dofs; ///< Locally relevant ghost degrees of freedom
+    dealii::IndexSet locally_relevant_dofs; ///< Union of locally owned degrees of freedom and relevant ghost degrees of freedom
+    /// Current modal coefficients of the solution
+    /** Note that the current processor has read-access to all locally_relevant_dofs
+     *  and has write-access to all locally_owned_dofs
+     */
+    dealii::LinearAlgebra::distributed::Vector<double> solution;
 
     void initialize_manufactured_solution (); ///< Virtual function defined in DG
 
@@ -231,6 +240,8 @@ public:
 
 
 protected:
+    MPI_Comm mpi_communicator;
+
 
     std::tuple< dealii::hp::MappingCollection<dim>, dealii::hp::FECollection<dim>,
                 dealii::hp::QCollection<dim>, dealii::hp::QCollection<dim-1>, dealii::hp::QCollection<1>,

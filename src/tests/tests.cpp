@@ -15,8 +15,8 @@ namespace Tests {
 using AllParam = Parameters::AllParameters;
 
 TestsBase::TestsBase(Parameters::AllParameters const *const parameters_input)
-    :
-    all_parameters(parameters_input)
+    : all_parameters(parameters_input)
+    , mpi_communicator(MPI_COMM_WORLD)
 {}
 
 std::vector<int> TestsBase::get_number_1d_cells(const int n_grids) const
@@ -46,7 +46,7 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
     } else if(test_type == Test_enum::euler_vortex) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerVortex<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_entropy_waves) {
-        if constexpr (nstate==PHILIP_DIM+2) return std::make_unique<EulerEntropyWaves<dim,nstate>>(parameters_input);
+        if constexpr (dim>=2 && nstate==PHILIP_DIM+2) return std::make_unique<EulerEntropyWaves<dim,nstate>>(parameters_input);
     } else {
         std::cout << "Invalid test." << std::endl;
     }

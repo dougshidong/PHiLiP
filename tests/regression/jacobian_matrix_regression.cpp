@@ -26,7 +26,7 @@ int main (int argc, char * argv[])
 
     using namespace dealii;
     using namespace PHiLiP;
-    int dim = PHILIP_DIM;
+    const int dim = PHILIP_DIM;
     int error = 0;
     int success_bool = true;
 
@@ -46,7 +46,11 @@ int main (int argc, char * argv[])
         for (unsigned int poly_degree=1; poly_degree<3; ++poly_degree) {
             for (unsigned int igrid=2; igrid<5; ++igrid) {
                 // Generate grids
-                Triangulation<PHILIP_DIM> grid;
+                dealii::parallel::distributed::Triangulation<dim> grid(
+                    MPI_COMM_WORLD,
+                    typename dealii::Triangulation<dim>::MeshSmoothing(
+                        dealii::Triangulation<dim>::smoothing_on_refinement |
+                        dealii::Triangulation<dim>::smoothing_on_coarsening));
                 GridGenerator::subdivided_hyper_cube(grid, igrid);
 
                 // Assemble Jacobian
@@ -59,10 +63,12 @@ int main (int argc, char * argv[])
                 const int nrows = dg->system_matrix.m();
 
                 // Copy stuff into SparseMatrix since it has the function block_write and block_read
-                SparsityPattern sparsity_pattern;
                 SparseMatrix<double> sparse_mat;
+                SparsityPattern sparsity_pattern;
                 sparsity_pattern.copy_from(dg->sparsity_pattern);
                 sparse_mat.reinit(sparsity_pattern);
+                std::cout << sparse_mat.m() << std::endl;
+                std::cout << dg->system_matrix.m() << std::endl;
                 sparse_mat.copy_from(dg->system_matrix);
 
                 // Define filename
@@ -81,7 +87,7 @@ int main (int argc, char * argv[])
                     std::ifstream infile (path,std::ifstream::binary);
                     SparseMatrix<double> sparse_mat_from_file;
                     sparse_mat_from_file.reinit(sparsity_pattern);
-                    sparse_mat_from_file.block_read(infile);
+                    if (dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0) sparse_mat_from_file.block_read(infile);
                     infile.close();
 
                     // Compare the matrices and evaluate the relative error in the Frobenius norm

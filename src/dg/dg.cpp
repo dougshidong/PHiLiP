@@ -438,7 +438,7 @@ unsigned int DGBase<dim,real>::n_dofs () const
 }
 
 template <int dim, typename real>
-void DGBase<dim,real>::output_results_vtk (const unsigned int ith_grid)// const
+void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
 {
     dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> data_out;
     data_out.attach_dof_handler (dof_handler);
@@ -454,15 +454,13 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int ith_grid)// const
     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
     data_out.add_data_vector (solution, *post_processor);
 
+    dealii::Vector<float> subdomain(triangulation->n_active_cells());
+    for (unsigned int i = 0; i < subdomain.size(); ++i) {
+        subdomain(i) = triangulation->locally_owned_subdomain();
+    }
+    data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+
     // Output the polynomial degree in each cell
-    //dealii::Vector<double> polynomial_degree_vector (dof_handler.n_active_cells()); // Defaults to 0.0 initialization
-    //const unsigned int max_dofs_per_cell = dof_handler.get_fe_collection().max_dofs_per_cell();
-    //std::vector<dealii::types::global_dof_index> dofs_indices(max_dofs_per_cell);
-    //for (auto cell dof_handler.begin_active(); cell!=dof_handler.end(); ++cell) {
-    //    const unsigned int curr_cell_degree = fe_collection[cell->active_fe_index].tensor_degree();
-    //    dofs_indices.resize(n_dofs_curr_cell);
-    //    cell->get_dof_indices (dofs_indices);
-    //}
     std::vector<unsigned int> active_fe_indices;
     dof_handler.get_active_fe_indices(active_fe_indices);
     dealii::Vector<double> active_fe_indices_dealiivector(active_fe_indices.begin(), active_fe_indices.end());
@@ -482,11 +480,28 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int ith_grid)// const
 
 
     data_out.build_patches (mapping_collection[mapping_collection.size()-1]);
-    std::string filename = "solution-" +dealii::Utilities::int_to_string(dim, 1) +"D-"+ dealii::Utilities::int_to_string(ith_grid, 3) + ".vtk";
-
-
+    std::string filename = "solution-" + dealii::Utilities::int_to_string(dim, 1) +"D-";
+    filename += dealii::Utilities::int_to_string(cycle, 4) + ".";
+    filename += dealii::Utilities::int_to_string(triangulation->locally_owned_subdomain(), 4);
+    filename += ".vtu";
     std::ofstream output(filename);
-    data_out.write_vtk(output);
+    data_out.write_vtu(output);
+
+    if (dealii::Utilities::MPI::this_mpi_process(mpi_communicator) == 0) {
+        std::vector<std::string> filenames;
+        for (unsigned int iproc = 0; iproc < dealii::Utilities::MPI::n_mpi_processes(mpi_communicator); ++iproc) {
+            std::string fn = "solution-" + dealii::Utilities::int_to_string(dim, 1) +"D-";
+            fn += dealii::Utilities::int_to_string(cycle, 4) + ".";
+            fn += dealii::Utilities::int_to_string(iproc, 4);
+            fn += ".vtu";
+            filenames.push_back(fn);
+        }
+        std::string master_fn = "solution-" + dealii::Utilities::int_to_string(dim, 1) +"D-";
+        master_fn += dealii::Utilities::int_to_string(cycle, 4) + ".pvtu";
+        std::ofstream master_output(master_fn);
+        data_out.write_pvtu_record(master_output, filenames);
+    }
+
 }
 
 

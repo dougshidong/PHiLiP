@@ -5,6 +5,7 @@
 
 #include <deal.II/dofs/dof_tools.h>
 
+#include <deal.II/distributed/solution_transfer.h>
 #include <deal.II/distributed/tria.h>
 
 #include <deal.II/grid/grid_generator.h>
@@ -14,7 +15,6 @@
 #include <deal.II/grid/grid_in.h>
 
 #include <deal.II/numerics/vector_tools.h>
-#include <deal.II/numerics/solution_transfer.h>
 
 #include <deal.II/fe/fe_values.h>
 
@@ -206,12 +206,13 @@ int EulerCylinder<dim,nstate>
             // Interpolate solution from previous grid
             if (igrid>0) {
                 dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
-                dealii::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+                dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
                 solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
                 grid.refine_global (1);
                 dg->allocate_system ();
-                solution_transfer.interpolate(old_solution, dg->solution);
-                solution_transfer.clear();
+                dg->solution.zero_out_ghosts();
+                solution_transfer.interpolate(dg->solution);
+                dg->solution.update_ghost_values();
             }
 
             // std::string filename = "grid_cylinder-" + dealii::Utilities::int_to_string(igrid, 1) + ".eps";

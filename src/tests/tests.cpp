@@ -2,6 +2,8 @@
 
 #include <deal.II/grid/grid_out.h>
 
+#include <deal.II/distributed/solution_transfer.h>
+
 #include "tests.h"
 #include "grid_study.h"
 #include "euler_gaussian_bump.h"
@@ -30,6 +32,18 @@ std::vector<int> TestsBase::get_number_1d_cells(const int n_grids) const
     return n_1d_cells;
 
 }
+
+//template<int dim, int nstate>
+// void TestsBase::globally_refine_and_interpolate(DGBase<dim, double> &dg) const
+//{
+//    dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
+//    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+//    solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
+//    grid.refine_global (1);
+//    dg->allocate_system ();
+//    solution_transfer.interpolate(old_solution, dg->solution);
+//    solution_transfer.clear();
+//}
 
 template<int dim, int nstate>
 std::unique_ptr< TestsBase > TestsFactory<dim,nstate>

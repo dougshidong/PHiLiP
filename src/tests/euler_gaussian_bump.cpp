@@ -3,6 +3,7 @@
 
 #include <deal.II/base/convergence_table.h>
 
+#include <deal.II/distributed/solution_transfer.h>
 #include <deal.II/dofs/dof_tools.h>
 
 #include <deal.II/grid/grid_generator.h>
@@ -12,7 +13,6 @@
 #include <deal.II/grid/grid_in.h>
 
 #include <deal.II/numerics/vector_tools.h>
-#include <deal.II/numerics/solution_transfer.h>
 
 #include <deal.II/fe/fe_values.h>
 
@@ -40,7 +40,7 @@ public:
     FreeStreamInitialConditions (const Physics::Euler<dim,nstate,double> euler_physics)
     : dealii::Function<dim,double>(nstate)
     {
-        const double density_bc = euler_physics.density_inf;
+        const double density_bc = 2.33333*euler_physics.density_inf;
         const double pressure_bc = 1.0/(euler_physics.gam*euler_physics.mach_inf_sqr);
         std::array<double,nstate> primitive_boundary_values;
         primitive_boundary_values[0] = density_bc;
@@ -239,12 +239,13 @@ int EulerGaussianBump<dim,nstate>
 
             if (igrid!=0) {
                 dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
-                dealii::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+                dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
                 solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
                 grid.refine_global (1);
                 dg->allocate_system ();
-                solution_transfer.interpolate(old_solution, dg->solution);
-                solution_transfer.clear();
+                dg->solution.zero_out_ghosts();
+                solution_transfer.interpolate(dg->solution);
+                dg->solution.update_ghost_values();
             }
 
             const unsigned int n_active_cells = grid.n_active_cells();

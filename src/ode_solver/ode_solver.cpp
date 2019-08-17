@@ -1,6 +1,6 @@
 #include "ode_solver.h"
 #include "linear_solver/linear_solver.h"
-#include <deal.II/numerics/solution_transfer.h>
+#include <deal.II/distributed/solution_transfer.h>
 
 namespace PHiLiP {
 namespace ODE {
@@ -8,24 +8,39 @@ namespace ODE {
 template <int dim, typename real>
 void ODESolver<dim,real>::initialize_steady_polynomial_ramping (const unsigned int global_final_poly_degree)
 {
-    //Parameters::ODESolverParam ode_param = ODESolver<dim,real>::all_parameters->ode_solver_param;
     std::cout << " ************************************************************************ " << std::endl;
     std::cout << " Initializing DG with global polynomial degree = " << global_final_poly_degree << " by ramping from degree 0 ... " << std::endl;
     std::cout << " ************************************************************************ " << std::endl;
-
-    dealii::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> soltrans(dg->dof_handler);
 
     for (unsigned int degree = 0; degree <= global_final_poly_degree; degree++) {
         std::cout << " ************************************************************************ " << std::endl;
         std::cout << " Ramping degree " << degree << " until p=" << global_final_poly_degree << std::endl;
         std::cout << " ************************************************************************ " << std::endl;
+
         dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
+        old_solution.update_ghost_values();
 
-        soltrans.prepare_for_coarsening_and_refinement(old_solution);
+        dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+        solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
 
+        dg->triangulation->execute_coarsening_and_refinement();
         dg->set_all_cells_fe_degree(degree);
-        dg->allocate_system();
-        soltrans.interpolate(old_solution, dg->solution);
+        // Required even if no mesh refinement takes place
+        //dg->triangulation->execute_coarsening_and_refinement();
+        //dg->triangulation->refine_global (1);
+        dg->allocate_system ();
+
+        old_solution.print(std::cout);
+        dg->solution.zero_out_ghosts();
+        solution_transfer.interpolate(dg->solution);
+        dg->solution.update_ghost_values();
+        dg->solution.print(std::cout);
+
+        //dealii::LinearAlgebra::distributed::Vector<double> new_solution(dg->locally_owned_dofs, MPI_COMM_WORLD);
+        //new_solution.zero_out_ghosts();
+        //solution_transfer.interpolate(new_solution);
+        //new_solution.update_ghost_values();
+        //new_solution.print(std::cout);
 
         steady_state();
     }

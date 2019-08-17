@@ -3,6 +3,8 @@
 
 #include "parameters/all_parameters.h"
 #include <deal.II/grid/tria.h>
+
+//#include "dg/dg.h"
 namespace PHiLiP {
 namespace Tests {
 
@@ -34,6 +36,9 @@ protected:
 
     /// Evaluates the number of cells to generate the grids for 1D grid based on input file.
     std::vector<int> get_number_1d_cells(const int ngrids) const;
+
+    // /// Evaluates the number of cells to generate the grids for 1D grid based on input file.
+    // void globally_refine_and_interpolate(DGBase<dim, double> &dg) const;
 
 };
 

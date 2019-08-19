@@ -163,10 +163,12 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
 template <int dim, typename real>
 void DGBase<dim,real>::set_all_cells_fe_degree ( const unsigned int degree )
 {
+    triangulation->prepare_coarsening_and_refinement();
     for (auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell)
     {
-        if (cell->is_locally_owned()) cell->set_active_fe_index (degree);
+        if (cell->is_locally_owned()) cell->set_future_fe_index (degree);
     }
+    triangulation->execute_coarsening_and_refinement();
 }
 
 

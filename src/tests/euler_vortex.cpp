@@ -235,14 +235,14 @@ int EulerVortex<dim,nstate>
             dg->allocate_system ();
 
             // Initialize solution with vortex function at time t=0
-            //dealii::VectorTools::interpolate(dg->dof_handler, initial_vortex_function, dg->solution);
-            dealii::AffineConstraints<double> constraints;
-            constraints.close();
-            dealii::VectorTools::project (dg->dof_handler,
-                                    constraints,
-                                    dg->volume_quadrature_collection,
-                                    initial_vortex_function,
-                                    dg->solution);
+            dealii::VectorTools::interpolate(dg->dof_handler, initial_vortex_function, dg->solution);
+            // dealii::AffineConstraints<double> constraints;
+            // constraints.close();
+            // dealii::VectorTools::project (dg->dof_handler,
+            //                         constraints,
+            //                         dg->volume_quadrature_collection,
+            //                         initial_vortex_function,
+            //                         dg->solution);
 
             // Create ODE solver using the factory and providing the DG object
             std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);

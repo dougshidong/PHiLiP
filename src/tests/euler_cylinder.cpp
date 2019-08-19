@@ -274,23 +274,24 @@ int EulerCylinder<dim,nstate>
                     area += fe_values_extra.JxW(iquad);
                 }
             }
-            l2error = sqrt(l2error);
+            const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
+            const double area_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(area, mpi_communicator));
 
             // Convergence table
             double dx = 1.0/pow(n_active_cells,(1.0/dim));
             grid_size[igrid] = dx;
-            entropy_error[igrid] = l2error;
+            entropy_error[igrid] = l2error_mpi_sum;
 
             convergence_table.add_value("p", poly_degree);
             convergence_table.add_value("cells", grid.n_active_cells());
             convergence_table.add_value("DoFs", dg->dof_handler.n_dofs());
             convergence_table.add_value("dx", dx);
-            convergence_table.add_value("L2_entropy_error", l2error);
-            convergence_table.add_value("area_error", std::abs(area-exact_area));
+            convergence_table.add_value("L2_entropy_error", l2error_mpi_sum);
+            convergence_table.add_value("area_error", std::abs(area_mpi_sum-exact_area));
 
 
             std::cout   << " Grid size h: " << dx 
-                        << " L2-entropy_error: " << l2error
+                        << " L2-entropy_error: " << l2error_mpi_sum
                         << " Residual: " << ode_solver->residual_norm
                         << std::endl;
 

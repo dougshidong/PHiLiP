@@ -280,6 +280,7 @@ int EulerGaussianBump<dim,nstate>
             // Integrate solution error and output error
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
 
+                if (!cell->is_locally_owned()) continue;
                 fe_values_extra.reinit (cell);
                 cell->get_dof_indices (dofs_indices);
 
@@ -296,24 +297,24 @@ int EulerGaussianBump<dim,nstate>
                     l2error += pow(entropy - uexact, 2) * fe_values_extra.JxW(iquad);
                 }
             }
-            l2error = sqrt(l2error);
+            const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
 
 
             // Convergence table
             double dx = 1.0/pow(n_dofs,(1.0/dim));
             //dx = dealii::GridTools::maximal_cell_diameter(grid);
             grid_size[igrid] = dx;
-            entropy_error[igrid] = l2error;
+            entropy_error[igrid] = l2error_mpi_sum;
 
             convergence_table.add_value("p", poly_degree);
             convergence_table.add_value("cells", n_active_cells);
             convergence_table.add_value("DoFs", n_dofs);
             convergence_table.add_value("dx", dx);
-            convergence_table.add_value("L2_entropy_error", l2error);
+            convergence_table.add_value("L2_entropy_error", l2error_mpi_sum);
 
 
             std::cout   << " Grid size h: " << dx 
-                        << " L2-entropy_error: " << l2error
+                        << " L2-entropy_error: " << l2error_mpi_sum
                         << " Residual: " << ode_solver->residual_norm
                         << std::endl;
 

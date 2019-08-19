@@ -23,8 +23,8 @@ void ODESolver<dim,real>::initialize_steady_polynomial_ramping (const unsigned i
         dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
         solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
 
-        dg->triangulation->execute_coarsening_and_refinement();
         dg->set_all_cells_fe_degree(degree);
+        //dg->triangulation->execute_coarsening_and_refinement();
         // Required even if no mesh refinement takes place
         //dg->triangulation->execute_coarsening_and_refinement();
         //dg->triangulation->refine_global (1);

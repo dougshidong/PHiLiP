@@ -5,12 +5,11 @@
 
 ## Code Description
 - Code uses deal.II library as the backbone (https://www.dealii.org/)
-- Physics implementation and finite element operator will follow Philip Zwanenburg's derivations and snippets of DPGSolver (https://github.com/PhilipZwanenburg/DPGSolver)
-- Methods to be implemented
-	- Discontinuous Galerkin (DG);
-- Supported Partial Differential Equations: Advection, (TODO): Diffusion, Euler, Navier-Stokes.
+- Supported Partial Differential Equations: Convection-diffusion, Euler, TODO: Navier-Stokes.
+- Supported convective numerical fluxes: Lax-Friedrichs, Roe (Harten's entropy fix) for Euler
+- Supported diffusive numerical fluxes: Symmetric Interior Penalty
 - Supported elements: LINEs, QUADs, HEXs
-- (TODO) Supported refinements: isotropic h (size) or p (order).
+- Supported refinements: h (size) or p (order).
 
 ## Building/Running the Code
 
@@ -26,7 +25,7 @@ appropriate bash script. For example, to configure for the debug build:
 ```sh
 $ ROOT$ mkdir build
 $ ROOT$ cd build
-$ ROOT$ cmake ../
+$ ROOT$ cmake -DDEAL_II_DIR=/path_to_dealii_install/ ../
 ```
 
 ### Compile using Make
@@ -38,13 +37,16 @@ ROOT$ make help
 
 Of primary interest are the following:
 ```sh
-ROOT$ make -j     // Compile the code.
-ROOT$ make -j doc // Generate the Doxygen documentation.
+ROOT$ make -j2     // Compile the entire code, 1D, 2D, and 3D
+ROOT$ make -j2 doc // Generate the Doxygen documentation.
+ROOT$ make -j2 1D  // Compile the 1D version of the code
+ROOT$ make -j2 2D  // Compile the 2D version of the code
+ROOT$ make -j2 3D  // Compile the 3D version of the code
 ```
 
 Based on past experiences, you might want to limit the number of processor to 2 or 3 (make -j 3) if you have 8GB of RAM.
 
-The html documentation can be accessed by pointing a browser at `ROOT/doc/html/index.html`.
+The html documentation can be accessed by pointing a browser at `ROOT/doc/html/index.html`. e.g. `google-chrome ROOT/doc/html/index.html`.
 
 ## Testing
 

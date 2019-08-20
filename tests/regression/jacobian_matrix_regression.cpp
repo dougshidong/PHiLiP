@@ -46,11 +46,18 @@ int main (int argc, char * argv[])
         for (unsigned int poly_degree=1; poly_degree<3; ++poly_degree) {
             for (unsigned int igrid=2; igrid<5; ++igrid) {
                 // Generate grids
+#if PHILIP_DIM==1
+                dealii::Triangulation<dim> grid(
+                    typename dealii::Triangulation<dim>::MeshSmoothing(
+                        dealii::Triangulation<dim>::smoothing_on_refinement |
+                        dealii::Triangulation<dim>::smoothing_on_coarsening));
+#else
                 dealii::parallel::distributed::Triangulation<dim> grid(
                     MPI_COMM_WORLD,
                     typename dealii::Triangulation<dim>::MeshSmoothing(
                         dealii::Triangulation<dim>::smoothing_on_refinement |
                         dealii::Triangulation<dim>::smoothing_on_coarsening));
+#endif
                 GridGenerator::subdivided_hyper_cube(grid, igrid);
 
                 // Assemble Jacobian

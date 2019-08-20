@@ -15,7 +15,9 @@
 
 int main (int argc, char *argv[])
 {
+#if !defined(__APPLE__)
     feenableexcept(FE_INVALID | FE_OVERFLOW); // catch nan
+#endif
     dealii::deallog.depth_console(99);
     dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
     int test_error = 1;

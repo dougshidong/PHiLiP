@@ -128,10 +128,18 @@ int GridStudy<dim,nstate>
     // Limit the scope of grid_super_fine and dg_super_fine
     {
         const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids_input);
-        dealii::parallel::distributed::Triangulation<dim> grid_super_fine(this->mpi_communicator,
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+        dealii::Triangulation<dim> grid_super_fine(
             typename dealii::Triangulation<dim>::MeshSmoothing(
                 dealii::Triangulation<dim>::smoothing_on_refinement |
                 dealii::Triangulation<dim>::smoothing_on_coarsening));
+#else
+        dealii::parallel::distributed::Triangulation<dim> grid_super_fine(
+            this->mpi_communicator,
+            typename dealii::Triangulation<dim>::MeshSmoothing(
+                dealii::Triangulation<dim>::smoothing_on_refinement |
+                dealii::Triangulation<dim>::smoothing_on_coarsening));
+#endif
         dealii::GridGenerator::subdivided_hyper_cube(grid_super_fine, n_1d_cells[n_grids_input-1]);
         std::shared_ptr < DGBase<dim, double> > dg_super_fine = DGFactory<dim,double>::create_discontinuous_galerkin(&param, p_end);
         dg_super_fine->set_triangulation(&grid_super_fine);
@@ -165,17 +173,24 @@ int GridStudy<dim,nstate>
             // DG will be destructed before Triangulation
             // thus removing any dependence of Triangulation and allowing Triangulation to be destructed
             // Otherwise, a Subscriptor error will occur
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+            dealii::Triangulation<dim> grid(
+                typename dealii::Triangulation<dim>::MeshSmoothing(
+                    dealii::Triangulation<dim>::smoothing_on_refinement |
+                    dealii::Triangulation<dim>::smoothing_on_coarsening));
+#else
             dealii::parallel::distributed::Triangulation<dim> grid(
                 this->mpi_communicator,
                 typename dealii::Triangulation<dim>::MeshSmoothing(
                     dealii::Triangulation<dim>::smoothing_on_refinement |
                     dealii::Triangulation<dim>::smoothing_on_coarsening));
+#endif
 
             // Generate hypercube
             if ( manu_grid_conv_param.grid_type == GridEnum::hypercube || manu_grid_conv_param.grid_type == GridEnum::sinehypercube ) {
 
                 dealii::GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid]);
-                for (typename dealii::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+                for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
                     // Set a dummy boundary ID
                     cell->set_material_id(9002);
                     for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {

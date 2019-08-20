@@ -20,6 +20,14 @@ int main (int argc, char *argv[])
 #endif
     dealii::deallog.depth_console(99);
     dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
+    if ((PHILIP_DIM==1) && !(dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD)==1)) {
+        std::cout << "********************************************************" << std::endl;
+        std::cout << "Can't use mpirun -np X, where X>1, for 1D." << std::endl
+                  << "Currently using " << dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD) << " processors." << std::endl
+                  << "Aborting..." << std::endl;
+        std::cout << "********************************************************" << std::endl;
+        std::abort();
+    }
     int test_error = 1;
     try
     {

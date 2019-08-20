@@ -165,7 +165,7 @@ int EulerCylinder<dim,nstate>
                 dealii::Triangulation<dim>::smoothing_on_coarsening));
 
         const unsigned int n_cells_circle = n_1d_cells[0];
-        const unsigned int n_cells_radial = 3.0*n_cells_circle;
+        const unsigned int n_cells_radial = 3*n_cells_circle;
         half_cylinder(grid, n_cells_circle, n_cells_radial);
         // Assign BC
         for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {

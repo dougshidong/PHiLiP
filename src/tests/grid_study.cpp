@@ -245,14 +245,15 @@ int GridStudy<dim,nstate>
             // Create ODE solver using the factory and providing the DG object
             std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
-            unsigned int n_active_cells = grid.n_active_cells();
+            const unsigned int n_global_active_cells = grid.n_global_active_cells();
+            const unsigned int n_dofs = dg->dof_handler.n_dofs();
             std::cout
                       << "Dimension: " << dim
                       << "\t Polynomial degree p: " << poly_degree
                       << std::endl
                       << "Grid number: " << igrid+1 << "/" << n_grids
-                      << ". Number of active cells: " << n_active_cells
-                      << ". Number of degrees of freedom: " << dg->n_dofs()
+                      << ". Number of active cells: " << n_global_active_cells
+                      << ". Number of degrees of freedom: " << n_dofs
                       << std::endl;
 
             // Solve the steady state problem
@@ -301,14 +302,14 @@ int GridStudy<dim,nstate>
             double solution_integral = integrate_solution_over_domain(*dg);
 
             // Convergence table
-            double dx = 1.0/pow(n_active_cells,(1.0/dim));
-            dx = dealii::GridTools::maximal_cell_diameter(grid);
+            const double dx = 1.0/pow(n_dofs,(1.0/dim));
             grid_size[igrid] = dx;
             soln_error[igrid] = l2error_mpi_sum;
             output_error[igrid] = std::abs(solution_integral - exact_solution_integral);
 
             convergence_table.add_value("p", poly_degree);
-            convergence_table.add_value("cells", grid.n_active_cells());
+            convergence_table.add_value("cells", n_global_active_cells);
+            convergence_table.add_value("DoFs", n_dofs);
             convergence_table.add_value("dx", dx);
             convergence_table.add_value("soln_L2_error", l2error_mpi_sum);
             convergence_table.add_value("output_error", output_error[igrid]);
@@ -440,7 +441,7 @@ void GridStudy<dim,nstate>
 {
     std::cout << "Mesh info:" << std::endl
               << " dimension: " << dim << std::endl
-              << " no. of cells: " << triangulation.n_active_cells() << std::endl;
+              << " no. of cells: " << triangulation.n_global_active_cells() << std::endl;
     {
         std::map<dealii::types::boundary_id, unsigned int> boundary_count;
         for (auto cell : triangulation.active_cell_iterators()) {

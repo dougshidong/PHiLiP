@@ -248,12 +248,12 @@ int EulerGaussianBump<dim,nstate>
                 dg->solution.update_ghost_values();
             }
 
-            const unsigned int n_active_cells = grid.n_active_cells();
+            const unsigned int n_global_active_cells = grid.n_global_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
             std::cout
                       << "Dimension: " << dim << "\t Polynomial degree p: " << poly_degree << std::endl
                       << "Grid number: " << igrid+1 << "/" << n_grids
-                      << ". Number of active cells: " << n_active_cells
+                      << ". Number of active cells: " << n_global_active_cells
                       << ". Number of degrees of freedom: " << n_dofs
                       << std::endl;
 
@@ -307,7 +307,7 @@ int EulerGaussianBump<dim,nstate>
             entropy_error[igrid] = l2error_mpi_sum;
 
             convergence_table.add_value("p", poly_degree);
-            convergence_table.add_value("cells", n_active_cells);
+            convergence_table.add_value("cells", n_global_active_cells);
             convergence_table.add_value("DoFs", n_dofs);
             convergence_table.add_value("dx", dx);
             convergence_table.add_value("L2_entropy_error", l2error_mpi_sum);

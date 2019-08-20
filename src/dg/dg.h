@@ -82,9 +82,14 @@ public:
 
     virtual ~DGBase(); ///< Destructor.
 
-
-    /// Sets the triangulation. Should be done before allocate system
-    void set_triangulation(dealii::Triangulation<dim> *triangulation_input);
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    using Triangulation = dealii::Triangulation<dim>;
+#else
+    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+#endif
+    Triangulation *triangulation; ///< Mesh
+    /// Sets the triangulation for 2D and 3D. Should be done before allocate system
+    void set_triangulation(Triangulation *triangulation_input);
 
     void set_all_cells_fe_degree ( const unsigned int degree );
 
@@ -114,7 +119,6 @@ public:
 
     unsigned int n_dofs() const; /// Number of degrees of freedom
 
-    dealii::Triangulation<dim>   *triangulation; ///< Mesh
 
     /// Degrees of freedom handler
     /*  Allows us to iterate over the finite elements' degrees of freedom.

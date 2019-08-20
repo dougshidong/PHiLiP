@@ -180,8 +180,13 @@ DGBase<dim,real>::~DGBase ()
     dof_handler.clear ();
 }
 
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    template <int dim> using Triangulation = dealii::Triangulation<dim>;
+#else
+    template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+#endif
 template <int dim, typename real>
-void DGBase<dim,real>::set_triangulation(dealii::Triangulation<dim> *triangulation_input)
+void DGBase<dim,real>::set_triangulation(Triangulation *triangulation_input)
 { 
     dof_handler.clear();
     triangulation = triangulation_input;

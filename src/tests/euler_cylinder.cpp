@@ -219,16 +219,17 @@ int EulerCylinder<dim,nstate>
             // std::ofstream out (filename);
             // dealii::GridOut grid_out;
             // grid_out.write_eps (grid, out);
-            // std::cout << " Grid #" << igrid+1 << " . Number of cells: " << grid.n_active_cells() << std::endl;
+            // std::cout << " Grid #" << igrid+1 << " . Number of cells: " << grid.n_global_active_cells() << std::endl;
             // std::cout << " written to " << filename << std::endl << std::endl;
 
 
-            unsigned int n_active_cells = grid.n_active_cells();
+            const unsigned int n_global_active_cells = grid.n_global_active_cells();
+            const unsigned int n_dofs = dg->dof_handler.n_dofs();
             std::cout
                       << "Dimension: " << dim << "\t Polynomial degree p: " << poly_degree << std::endl
                       << "Grid number: " << igrid+1 << "/" << n_grids
-                      << ". Number of active cells: " << n_active_cells
-                      << ". Number of degrees of freedom: " << dg->dof_handler.n_dofs()
+                      << ". Number of active cells: " << n_global_active_cells
+                      << ". Number of degrees of freedom: " << n_dofs
                       << std::endl;
 
             //ode_solver->initialize_steady_polynomial_ramping (poly_degree);
@@ -275,16 +276,16 @@ int EulerCylinder<dim,nstate>
                 }
             }
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
-            const double area_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(area, mpi_communicator));
+            const double area_mpi_sum = dealii::Utilities::MPI::sum(area, mpi_communicator);
 
             // Convergence table
-            double dx = 1.0/pow(n_active_cells,(1.0/dim));
+            const double dx = 1.0/pow(n_dofs,(1.0/dim));
             grid_size[igrid] = dx;
             entropy_error[igrid] = l2error_mpi_sum;
 
             convergence_table.add_value("p", poly_degree);
-            convergence_table.add_value("cells", grid.n_active_cells());
-            convergence_table.add_value("DoFs", dg->dof_handler.n_dofs());
+            convergence_table.add_value("cells", n_global_active_cells);
+            convergence_table.add_value("DoFs", n_dofs);
             convergence_table.add_value("dx", dx);
             convergence_table.add_value("L2_entropy_error", l2error_mpi_sum);
             convergence_table.add_value("area_error", std::abs(area_mpi_sum-exact_area));

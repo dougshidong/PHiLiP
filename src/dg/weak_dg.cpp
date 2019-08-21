@@ -36,7 +36,7 @@ DGWeak<dim,nstate,real>::DGWeak(
 template <int dim, int nstate, typename real>
 DGWeak<dim,nstate,real>::~DGWeak ()
 { 
-    std::cout << "Destructing DGWeak..." << std::endl;
+    pcout << "Destructing DGWeak..." << std::endl;
     delete conv_num_flux;
     delete diss_num_flux;
 }

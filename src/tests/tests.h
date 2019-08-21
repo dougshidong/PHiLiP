@@ -3,6 +3,7 @@
 
 #include "parameters/all_parameters.h"
 #include <deal.II/grid/tria.h>
+#include <deal.II/base/conditional_ostream.h>
 
 //#include "dg/dg.h"
 namespace PHiLiP {
@@ -32,7 +33,8 @@ public:
      */
     virtual int run_test() const = 0;
 protected:
-    MPI_Comm mpi_communicator;
+    const MPI_Comm mpi_communicator;
+    dealii::ConditionalOStream pcout;
 
     /// Evaluates the number of cells to generate the grids for 1D grid based on input file.
     std::vector<int> get_number_1d_cells(const int ngrids) const;

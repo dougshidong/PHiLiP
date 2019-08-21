@@ -52,7 +52,7 @@ template <int dim, int nstate>
 double GridStudy<dim,nstate>
 ::integrate_solution_over_domain(DGBase<dim,double> &dg) const
 {
-    std::cout << "Evaluating solution integral..." << std::endl;
+    pcout << "Evaluating solution integral..." << std::endl;
     double solution_integral = 0.0;
 
     // Overintegrate the error to make sure there is not integration error in the error estimate
@@ -124,7 +124,7 @@ int GridStudy<dim,nstate>
 
     // Evaluate solution integral on really fine mesh
     double exact_solution_integral;
-    std::cout << "Evaluating EXACT solution integral..." << std::endl;
+    pcout << "Evaluating EXACT solution integral..." << std::endl;
     // Limit the scope of grid_super_fine and dg_super_fine
     {
         const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids_input);
@@ -147,7 +147,7 @@ int GridStudy<dim,nstate>
 
         initialize_perturbed_solution(*dg_super_fine, *physics_double);
         exact_solution_integral = integrate_solution_over_domain(*dg_super_fine);
-        std::cout << "Exact solution integral is " << exact_solution_integral << std::endl;
+        pcout << "Exact solution integral is " << exact_solution_integral << std::endl;
     }
 
     std::vector<int> fail_conv_poly;
@@ -210,7 +210,7 @@ int GridStudy<dim,nstate>
             if (manu_grid_conv_param.grid_type == GridEnum::read_grid) {
                 //std::string write_mshname = "grid-"+std::to_string(igrid)+".msh";
                 std::string read_mshname = manu_grid_conv_param.input_grids+std::to_string(igrid)+".msh";
-                std::cout<<"Reading grid: " << read_mshname << std::endl;
+                pcout<<"Reading grid: " << read_mshname << std::endl;
                 std::ifstream inmesh(read_mshname);
                 dealii::GridIn<dim,dim> grid_in;
                 grid_in.attach_triangulation(grid);
@@ -247,14 +247,13 @@ int GridStudy<dim,nstate>
 
             const unsigned int n_global_active_cells = grid.n_global_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
-            std::cout
-                      << "Dimension: " << dim
-                      << "\t Polynomial degree p: " << poly_degree
-                      << std::endl
-                      << "Grid number: " << igrid+1 << "/" << n_grids
-                      << ". Number of active cells: " << n_global_active_cells
-                      << ". Number of degrees of freedom: " << n_dofs
-                      << std::endl;
+            pcout << "Dimension: " << dim
+                 << "\t Polynomial degree p: " << poly_degree
+                 << std::endl
+                 << "Grid number: " << igrid+1 << "/" << n_grids
+                 << ". Number of active cells: " << n_global_active_cells
+                 << ". Number of degrees of freedom: " << n_dofs
+                 << std::endl;
 
             // Solve the steady state problem
             ode_solver->steady_state();
@@ -315,51 +314,49 @@ int GridStudy<dim,nstate>
             convergence_table.add_value("output_error", output_error[igrid]);
 
 
-            std::cout   << " Grid size h: " << dx 
-                        << " L2-soln_error: " << l2error_mpi_sum
-                        << " Residual: " << ode_solver->residual_norm
-                        << std::endl;
+            pcout << " Grid size h: " << dx 
+                 << " L2-soln_error: " << l2error_mpi_sum
+                 << " Residual: " << ode_solver->residual_norm
+                 << std::endl;
 
-            std::cout  
-                        << " output_exact: " << exact_solution_integral
-                        << " output_discrete: " << solution_integral
-                        << " output_error: " << output_error[igrid]
-                        << std::endl;
+            pcout << " output_exact: " << exact_solution_integral
+                 << " output_discrete: " << solution_integral
+                 << " output_error: " << output_error[igrid]
+                 << std::endl;
 
             if (igrid > 0) {
                 const double slope_soln_err = log(soln_error[igrid]/soln_error[igrid-1])
                                       / log(grid_size[igrid]/grid_size[igrid-1]);
                 const double slope_output_err = log(output_error[igrid]/output_error[igrid-1])
                                       / log(grid_size[igrid]/grid_size[igrid-1]);
-                std::cout << "From grid " << igrid-1
-                          << "  to grid " << igrid
-                          << "  dimension: " << dim
-                          << "  polynomial degree p: " << poly_degree
-                          << std::endl
-                          << "  solution_error1 " << soln_error[igrid-1]
-                          << "  solution_error2 " << soln_error[igrid]
-                          << "  slope " << slope_soln_err
-                          << std::endl
-                          << "  solution_integral_error1 " << output_error[igrid-1]
-                          << "  solution_integral_error2 " << output_error[igrid]
-                          << "  slope " << slope_output_err
-                          << std::endl;
+                pcout << "From grid " << igrid-1
+                     << "  to grid " << igrid
+                     << "  dimension: " << dim
+                     << "  polynomial degree p: " << poly_degree
+                     << std::endl
+                     << "  solution_error1 " << soln_error[igrid-1]
+                     << "  solution_error2 " << soln_error[igrid]
+                     << "  slope " << slope_soln_err
+                     << std::endl
+                     << "  solution_integral_error1 " << output_error[igrid-1]
+                     << "  solution_integral_error2 " << output_error[igrid]
+                     << "  slope " << slope_output_err
+                     << std::endl;
             }
 
         }
-        std::cout
-            << " ********************************************"
-            << std::endl
-            << " Convergence rates for p = " << poly_degree
-            << std::endl
-            << " ********************************************"
-            << std::endl;
+        pcout << " ********************************************"
+             << std::endl
+             << " Convergence rates for p = " << poly_degree
+             << std::endl
+             << " ********************************************"
+             << std::endl;
         convergence_table.evaluate_convergence_rates("soln_L2_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.evaluate_convergence_rates("output_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.set_scientific("dx", true);
         convergence_table.set_scientific("soln_L2_error", true);
         convergence_table.set_scientific("output_error", true);
-        convergence_table.write_text(std::cout);
+        if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
 
         convergence_table_vector.push_back(convergence_table);
 
@@ -379,46 +376,39 @@ int GridStudy<dim,nstate>
         if(poly_degree == 0) slope_deficit_tolerance *= 2; // Otherwise, grid sizes need to be much bigger for p=0
 
         if (slope_diff < slope_deficit_tolerance) {
-            std::cout << std::endl
-                      << "Convergence order not achieved. Average last 2 slopes of "
-                      << slope_avg << " instead of expected "
-                      << expected_slope << " within a tolerance of "
-                      << slope_deficit_tolerance
-                      << std::endl;
+            pcout << std::endl
+                 << "Convergence order not achieved. Average last 2 slopes of "
+                 << slope_avg << " instead of expected "
+                 << expected_slope << " within a tolerance of "
+                 << slope_deficit_tolerance
+                 << std::endl;
             // p=0 just requires too many meshes to get into the asymptotic region.
             if(poly_degree!=0) fail_conv_poly.push_back(poly_degree);
             if(poly_degree!=0) fail_conv_slop.push_back(slope_avg);
         }
 
     }
-    std::cout << std::endl
-              << std::endl
-              << std::endl
-              << std::endl;
-    std::cout << " ********************************************"
-              << std::endl;
-    std::cout << " Convergence summary"
-              << std::endl;
-    std::cout << " ********************************************"
-              << std::endl;
+    pcout << std::endl << std::endl << std::endl << std::endl;
+    pcout << " ********************************************" << std::endl;
+    pcout << " Convergence summary" << std::endl;
+    pcout << " ********************************************" << std::endl;
     for (auto conv = convergence_table_vector.begin(); conv!=convergence_table_vector.end(); conv++) {
-        conv->write_text(std::cout);
-        std::cout << " ********************************************"
-                  << std::endl;
+        if (pcout.is_active()) conv->write_text(pcout.get_stream());
+        pcout << " ********************************************" << std::endl;
     }
     int n_fail_poly = fail_conv_poly.size();
     if (n_fail_poly > 0) {
         for (int ifail=0; ifail < n_fail_poly; ++ifail) {
             const double expected_slope = fail_conv_poly[ifail]+1;
             const double slope_deficit_tolerance = -std::abs(manu_grid_conv_param.slope_deficit_tolerance);
-            std::cout << std::endl
-                      << "Convergence order not achieved for polynomial p = "
-                      << fail_conv_poly[ifail]
-                      << ". Slope of "
-                      << fail_conv_slop[ifail] << " instead of expected "
-                      << expected_slope << " within a tolerance of "
-                      << slope_deficit_tolerance
-                      << std::endl;
+            pcout << std::endl
+                 << "Convergence order not achieved for polynomial p = "
+                 << fail_conv_poly[ifail]
+                 << ". Slope of "
+                 << fail_conv_slop[ifail] << " instead of expected "
+                 << expected_slope << " within a tolerance of "
+                 << slope_deficit_tolerance
+                 << std::endl;
         }
     }
     return n_fail_poly;
@@ -439,27 +429,25 @@ template <int dim, int nstate>
 void GridStudy<dim,nstate>
 ::print_mesh_info(const dealii::Triangulation<dim> &triangulation, const std::string &filename) const
 {
-    std::cout << "Mesh info:" << std::endl
-              << " dimension: " << dim << std::endl
-              << " no. of cells: " << triangulation.n_global_active_cells() << std::endl;
-    {
-        std::map<dealii::types::boundary_id, unsigned int> boundary_count;
-        for (auto cell : triangulation.active_cell_iterators()) {
-            for (unsigned int face=0; face < dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-                if (cell->face(face)->at_boundary()) boundary_count[cell->face(face)->boundary_id()]++;
-            }
+    pcout << "Mesh info:" << std::endl
+         << " dimension: " << dim << std::endl
+         << " no. of cells: " << triangulation.n_global_active_cells() << std::endl;
+    std::map<dealii::types::boundary_id, unsigned int> boundary_count;
+    for (auto cell : triangulation.active_cell_iterators()) {
+        for (unsigned int face=0; face < dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+            if (cell->face(face)->at_boundary()) boundary_count[cell->face(face)->boundary_id()]++;
         }
-        std::cout << " boundary indicators: ";
-        for (const std::pair<const dealii::types::boundary_id, unsigned int> &pair : boundary_count) {
-            std::cout << pair.first << "(" << pair.second << " times) ";
-        }
-        std::cout << std::endl;
     }
+    pcout << " boundary indicators: ";
+    for (const std::pair<const dealii::types::boundary_id, unsigned int> &pair : boundary_count) {
+        pcout      << pair.first << "(" << pair.second << " times) ";
+    }
+    pcout << std::endl;
     if (dim == 2) {
         std::ofstream out (filename);
         dealii::GridOut grid_out;
         grid_out.write_eps (triangulation, out);
-        std::cout << " written to " << filename << std::endl << std::endl;
+        pcout << " written to " << filename << std::endl << std::endl;
     }
 }
 

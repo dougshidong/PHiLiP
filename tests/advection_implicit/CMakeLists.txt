@@ -14,6 +14,13 @@ add_test(
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
+configure_file(2d_advection_explicit.prm 2d_advection_explicit.prm COPYONLY)
+add_test(
+  NAME MPI_2D_ADVECTION_EXPLICIT_MANUFACTURED_SOLUTION
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_advection_explicit.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
 configure_file(2d_advection_implicit.prm 2d_advection_implicit.prm COPYONLY)
 add_test(
   NAME MPI_2D_ADVECTION_IMPLICIT_MANUFACTURED_SOLUTION

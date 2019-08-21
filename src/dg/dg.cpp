@@ -114,13 +114,14 @@ DGBase<dim,real>::DGBase(
     , volume_quadrature_collection(std::get<2>(collection_tuple))
     , face_quadrature_collection(std::get<3>(collection_tuple))
     , oned_quadrature_collection(std::get<4>(collection_tuple))
-    , mpi_communicator(MPI_COMM_WORLD)
     , fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, this->volume_update_flags)
     , fe_values_collection_face_int (mapping_collection, fe_collection, face_quadrature_collection, this->face_update_flags)
     , fe_values_collection_face_ext (mapping_collection, fe_collection, face_quadrature_collection, this->neighbor_face_update_flags)
     , fe_values_collection_subface (mapping_collection, fe_collection, face_quadrature_collection, this->face_update_flags)
     , fe_collection_lagrange(std::get<5>(collection_tuple))
     , fe_values_collection_volume_lagrange (mapping_collection, fe_collection_lagrange, volume_quadrature_collection, this->volume_update_flags)
+    , mpi_communicator(MPI_COMM_WORLD)
+    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {}
 
 template <int dim, typename real>
@@ -275,7 +276,6 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW)
             // Neighbour is finer occurs if the face has children
             // In this case, we loop over the current large face's subfaces and visit multiple neighbors
             } else if (current_face->has_children()) {
-                //std::cout << "SHOULD NOT HAPPEN!!!!!!!!!!!! I haven't put in adaptatation yet" << std::endl;
 
                 Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
 
@@ -515,7 +515,7 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
 template <int dim, typename real>
 void DGBase<dim,real>::allocate_system ()
 {
-    std::cout << std::endl << "Allocating DG system and initializing FEValues" << std::endl;
+    pcout << "Allocating DG system and initializing FEValues" << std::endl;
     // This function allocates all the necessary memory to the 
     // system matrices and vectors.
 
@@ -581,14 +581,14 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
     //    matrix_with_correct_size(locally_owned_dofs,
     //            mpi_communicator,
     //            dof_handler.get_fe_collection().max_dofs_per_cell());
-    //std::cout << "Before compress" << std::endl;
+    //pcout << "Before compress" << std::endl;
     //matrix_with_correct_size.compress(dealii::VectorOperation::unknown);
     //if (do_inverse_mass_matrix == true) {
     //    global_inverse_mass_matrix.reinit(matrix_with_correct_size);
     //} else {
     //    global_mass_matrix.reinit(matrix_with_correct_size);
     //}
-    //std::cout << "AFter reinit" << std::endl;
+    //pcout << "AFter reinit" << std::endl;
 
     for (auto cell = dof_handler.begin_active(); cell!=dof_handler.end(); ++cell) {
 
@@ -648,27 +648,7 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
 template<int dim, typename real>
 void DGBase<dim,real>::add_mass_matrices(const real scale)
 {
-    //for (unsigned int i=0; i<dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD); i++) {
-    //    if (i==dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)) {
-    //        std::cout << "MPI process " << i << std::endl;
-    //        std::cout << "Mass Local range " << global_mass_matrix.local_range().first << " " << global_mass_matrix.local_range().second << std::endl;
-    //        std::cout << "System Local range " << system_matrix.local_range().first << " " << system_matrix.local_range().second << std::endl;
-    //        global_mass_matrix.print(std::cout);
-    //        std::cout << std::endl;
-    //        system_matrix.print(std::cout);
-    //    }
-    //    MPI_Barrier(MPI_COMM_WORLD);
-    //}
     system_matrix.add(scale, global_mass_matrix);
-    //for (unsigned int i=0; i<dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD); i++) {
-    //    if (i==dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)) {
-    //        std::cout << "MPI process " << i << std::endl;
-    //        global_mass_matrix.print(std::cout);
-    //        std::cout << std::endl;
-    //        system_matrix.print(std::cout);
-    //    }
-    //    MPI_Barrier(MPI_COMM_WORLD);
-    //}
 }
 
 template <int dim, typename real>

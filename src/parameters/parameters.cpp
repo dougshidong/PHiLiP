@@ -1,3 +1,6 @@
+#include <deal.II/base/mpi.h>
+#include <deal.II/base/utilities.h>
+#include <deal.II/base/conditional_ostream.h>
 #include "parameters.h"
 
 namespace PHiLiP {
@@ -83,8 +86,9 @@ void print_usage_message (dealii::ParameterHandler &prm)
         "values (you can cut and paste this and use it for your own parameter\n"
         "file):\n"
         "\n";
-    std::cout << message;
-    prm.print_parameters (std::cout, dealii::ParameterHandler::Text);
+    dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
+    pcout << message;
+    if (pcout.is_active()) prm.print_parameters (pcout.get_stream(), dealii::ParameterHandler::Text);
 }
 
 } // Parameters namespace

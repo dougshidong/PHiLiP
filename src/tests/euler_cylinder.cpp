@@ -115,7 +115,7 @@ template<int dim, int nstate>
 int EulerCylinder<dim,nstate>
 ::run_test () const
 {
-    std::cout   << " Running Euler cylinder entropy convergence. " << std::endl;
+    pcout << " Running Euler cylinder entropy convergence. " << std::endl;
     static_assert(dim==2);
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
     using GridEnum = ManParam::GridEnum;
@@ -219,18 +219,17 @@ int EulerCylinder<dim,nstate>
             // std::ofstream out (filename);
             // dealii::GridOut grid_out;
             // grid_out.write_eps (grid, out);
-            // std::cout << " Grid #" << igrid+1 << " . Number of cells: " << grid.n_global_active_cells() << std::endl;
-            // std::cout << " written to " << filename << std::endl << std::endl;
+            // pcout << " Grid #" << igrid+1 << " . Number of cells: " << grid.n_global_active_cells() << std::endl;
+            // pcout << " written to " << filename << std::endl << std::endl;
 
 
             const unsigned int n_global_active_cells = grid.n_global_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
-            std::cout
-                      << "Dimension: " << dim << "\t Polynomial degree p: " << poly_degree << std::endl
-                      << "Grid number: " << igrid+1 << "/" << n_grids
-                      << ". Number of active cells: " << n_global_active_cells
-                      << ". Number of degrees of freedom: " << n_dofs
-                      << std::endl;
+            pcout << "Dimension: " << dim << "\t Polynomial degree p: " << poly_degree << std::endl
+                 << "Grid number: " << igrid+1 << "/" << n_grids
+                 << ". Number of active cells: " << n_global_active_cells
+                 << ". Number of degrees of freedom: " << n_dofs
+                 << std::endl;
 
             //ode_solver->initialize_steady_polynomial_ramping (poly_degree);
             // Solve the steady state problem
@@ -291,40 +290,36 @@ int EulerCylinder<dim,nstate>
             convergence_table.add_value("area_error", std::abs(area_mpi_sum-exact_area));
 
 
-            std::cout   << " Grid size h: " << dx 
-                        << " L2-entropy_error: " << l2error_mpi_sum
-                        << " Residual: " << ode_solver->residual_norm
-                        << std::endl;
+            pcout << " Grid size h: " << dx 
+                 << " L2-entropy_error: " << l2error_mpi_sum
+                 << " Residual: " << ode_solver->residual_norm
+                 << std::endl;
 
             if (igrid > 0) {
                 const double slope_soln_err = log(entropy_error[igrid]/entropy_error[igrid-1])
                                       / log(grid_size[igrid]/grid_size[igrid-1]);
-                std::cout << "From grid " << igrid-1
-                          << "  to grid " << igrid
-                          << "  dimension: " << dim
-                          << "  polynomial degree p: " << poly_degree
-                          << std::endl
-                          << "  entropy_error1 " << entropy_error[igrid-1]
-                          << "  entropy_error2 " << entropy_error[igrid]
-                          << "  slope " << slope_soln_err
-                          << std::endl;
+                pcout << "From grid " << igrid-1
+                     << "  to grid " << igrid
+                     << "  dimension: " << dim
+                     << "  polynomial degree p: " << poly_degree
+                     << std::endl
+                     << "  entropy_error1 " << entropy_error[igrid-1]
+                     << "  entropy_error2 " << entropy_error[igrid]
+                     << "  slope " << slope_soln_err
+                     << std::endl;
             }
 
             //output_results (igrid);
         }
-        std::cout
-            << " ********************************************"
-            << std::endl
-            << " Convergence rates for p = " << poly_degree
-            << std::endl
-            << " ********************************************"
-            << std::endl;
+        pcout << " ********************************************" << std::endl
+             << " Convergence rates for p = " << poly_degree << std::endl
+             << " ********************************************" << std::endl;
         convergence_table.evaluate_convergence_rates("L2_entropy_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.evaluate_convergence_rates("area_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.set_scientific("dx", true);
         convergence_table.set_scientific("L2_entropy_error", true);
         convergence_table.set_scientific("area_error", true);
-        convergence_table.write_text(std::cout);
+        if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
 
         convergence_table_vector.push_back(convergence_table);
 
@@ -344,46 +339,39 @@ int EulerCylinder<dim,nstate>
         if(poly_degree == 0) slope_deficit_tolerance *= 2; // Otherwise, grid sizes need to be much bigger for p=0
 
         if (slope_diff < slope_deficit_tolerance) {
-            std::cout << std::endl
-                      << "Convergence order not achieved. Average last 2 slopes of "
-                      << slope_avg << " instead of expected "
-                      << expected_slope << " within a tolerance of "
-                      << slope_deficit_tolerance
-                      << std::endl;
+            pcout << std::endl
+                 << "Convergence order not achieved. Average last 2 slopes of "
+                 << slope_avg << " instead of expected "
+                 << expected_slope << " within a tolerance of "
+                 << slope_deficit_tolerance
+                 << std::endl;
             // p=0 just requires too many meshes to get into the asymptotic region.
             if(poly_degree!=0) fail_conv_poly.push_back(poly_degree);
             if(poly_degree!=0) fail_conv_slop.push_back(slope_avg);
         }
 
     }
-    std::cout << std::endl
-              << std::endl
-              << std::endl
-              << std::endl;
-    std::cout << " ********************************************"
-              << std::endl;
-    std::cout << " Convergence summary"
-              << std::endl;
-    std::cout << " ********************************************"
-              << std::endl;
+    pcout << std::endl << std::endl << std::endl << std::endl;
+    pcout << " ********************************************" << std::endl;
+    pcout << " Convergence summary" << std::endl;
+    pcout << " ********************************************" << std::endl;
     for (auto conv = convergence_table_vector.begin(); conv!=convergence_table_vector.end(); conv++) {
-        conv->write_text(std::cout);
-        std::cout << " ********************************************"
-                  << std::endl;
+        if (pcout.is_active()) conv->write_text(pcout.get_stream());
+        pcout << " ********************************************" << std::endl;
     }
     int n_fail_poly = fail_conv_poly.size();
     if (n_fail_poly > 0) {
         for (int ifail=0; ifail < n_fail_poly; ++ifail) {
             const double expected_slope = fail_conv_poly[ifail]+1;
             const double slope_deficit_tolerance = -0.1;
-            std::cout << std::endl
-                      << "Convergence order not achieved for polynomial p = "
-                      << fail_conv_poly[ifail]
-                      << ". Slope of "
-                      << fail_conv_slop[ifail] << " instead of expected "
-                      << expected_slope << " within a tolerance of "
-                      << slope_deficit_tolerance
-                      << std::endl;
+            pcout << std::endl
+                 << "Convergence order not achieved for polynomial p = "
+                 << fail_conv_poly[ifail]
+                 << ". Slope of "
+                 << fail_conv_slop[ifail] << " instead of expected "
+                 << expected_slope << " within a tolerance of "
+                 << slope_deficit_tolerance
+                 << std::endl;
         }
     }
     return n_fail_poly;

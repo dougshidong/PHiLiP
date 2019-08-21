@@ -1,6 +1,7 @@
 #ifndef __DISCONTINUOUSGALERKIN_H__
 #define __DISCONTINUOUSGALERKIN_H__
 
+#include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/parameter_handler.h>
 
 #include <deal.II/grid/tria.h>
@@ -244,8 +245,6 @@ public:
 
 
 protected:
-    MPI_Comm mpi_communicator;
-
 
     std::tuple< dealii::hp::MappingCollection<dim>, dealii::hp::FECollection<dim>,
                 dealii::hp::QCollection<dim>, dealii::hp::QCollection<dim-1>, dealii::hp::QCollection<1>,
@@ -348,6 +347,9 @@ protected:
     const dealii::hp::FECollection<dim>  fe_collection_lagrange;
     dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange;
 
+    MPI_Comm mpi_communicator;
+    dealii::ConditionalOStream pcout;
+
 }; // end of DGBase class
 
 /// DGWeak class templated on the number of state variables
@@ -423,6 +425,9 @@ private:
         const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
         dealii::Vector<real>          &current_cell_rhs,
         dealii::Vector<real>          &neighbor_cell_rhs);
+
+    using DGBase<dim,real>::mpi_communicator;
+    using DGBase<dim,real>::pcout;
 
 }; // end of DGWeak class
 
@@ -500,6 +505,9 @@ private:
         const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
         dealii::Vector<real>          &current_cell_rhs,
         dealii::Vector<real>          &neighbor_cell_rhs);
+
+    using DGBase<dim,real>::mpi_communicator;
+    using DGBase<dim,real>::pcout;
 
 }; // end of DGStrong class
 

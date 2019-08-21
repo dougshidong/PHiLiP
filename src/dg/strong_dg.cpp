@@ -39,7 +39,7 @@ DGStrong<dim,nstate,real>::DGStrong(
 template <int dim, int nstate, typename real>
 DGStrong<dim,nstate,real>::~DGStrong ()
 { 
-    std::cout << "Destructing DGStrong..." << std::endl;
+    pcout << "Destructing DGStrong..." << std::endl;
     delete conv_num_flux;
     delete diss_num_flux;
 }

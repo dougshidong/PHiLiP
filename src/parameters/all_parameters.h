@@ -1,6 +1,7 @@
 #ifndef __ALL_PARAMETERS_H__
 #define __ALL_PARAMETERS_H__
 
+#include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/parameter_handler.h>
 #include "parameters.h"
 #include "parameters/parameters_ode_solver.h"
@@ -97,6 +98,9 @@ public:
 
     //FunctionParser<dim> initial_conditions;
     //BoundaryConditions  boundary_conditions[max_n_boundaries];
+protected:
+    dealii::ConditionalOStream pcout;
+
 };  
 
 } // Parameters namespace

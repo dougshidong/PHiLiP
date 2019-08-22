@@ -51,7 +51,7 @@ template <int dim, typename real>
 class DGBase 
 {
 public:
-    const Parameters::AllParameters *const all_parameters; /// Pointer to all parameters
+    const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
 
     /// Number of state variables.
     /** This is known through the constructor parameters.
@@ -121,7 +121,7 @@ public:
 
     double get_residual_l2norm () const; ///< Returns the L2-norm of the right_hand_side vector
 
-    unsigned int n_dofs() const; /// Number of degrees of freedom
+    unsigned int n_dofs() const; ///< Number of degrees of freedom
 
 
     /// Degrees of freedom handler
@@ -338,18 +338,18 @@ protected:
     /** NOTE: With hp-adaptation, might need to query neighbor's quadrature points depending on the order of the cells. */
     const dealii::UpdateFlags neighbor_face_update_flags = dealii::update_values | dealii::update_gradients;
 
-    dealii::hp::FEValues<dim,dim>        fe_values_collection_volume;   /// FEValues of volume.
-    dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_int; /// FEValues of interior face.
-    dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_ext; /// FEValues of exterior face.
-    dealii::hp::FESubfaceValues<dim,dim> fe_values_collection_subface;  /// FEValues of subface.
+    dealii::hp::FEValues<dim,dim>        fe_values_collection_volume;   ///< FEValues of volume.
+    dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_int; ///< FEValues of interior face.
+    dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_ext; ///< FEValues of exterior face.
+    dealii::hp::FESubfaceValues<dim,dim> fe_values_collection_subface;  ///< FEValues of subface.
 
     /// Lagrange basis used in strong form
     /** This is a collection of scalar Lagrange bases */
     const dealii::hp::FECollection<dim>  fe_collection_lagrange;
     dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange;
 
-    MPI_Comm mpi_communicator; /// MPI communicator
-    dealii::ConditionalOStream pcout; /// Parallel std::cout that only outputs on mpi_rank==0
+    MPI_Comm mpi_communicator; ///< MPI communicator
+    dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 private:
 
     /// Makes for cleaner doxygen documentation
@@ -373,7 +373,7 @@ public:
         const Parameters::AllParameters *const parameters_input, 
         const unsigned int degree);
 
-    ~DGWeak(); /// Destructor
+    ~DGWeak(); ///< Destructor
 
 private:
     /// Contains the physics of the PDE
@@ -439,8 +439,8 @@ private:
         dealii::Vector<real>          &current_cell_rhs,
         dealii::Vector<real>          &neighbor_cell_rhs);
 
-    using DGBase<dim,real>::mpi_communicator; /// MPI communicator
-    using DGBase<dim,real>::pcout; /// Parallel std::cout that only outputs on mpi_rank==0
+    using DGBase<dim,real>::mpi_communicator; ///< MPI communicator
+    using DGBase<dim,real>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
 }; // end of DGWeak class
 
@@ -524,9 +524,9 @@ private:
         dealii::Vector<real>          &current_cell_rhs,
         dealii::Vector<real>          &neighbor_cell_rhs);
 
-    using DGBase<dim,real>::all_parameters; /// Pointer to all parameters
-    using DGBase<dim,real>::mpi_communicator; /// MPI communicator
-    using DGBase<dim,real>::pcout; /// Parallel std::cout that only outputs on mpi_rank==0
+    using DGBase<dim,real>::all_parameters; ///< Pointer to all parameters
+    using DGBase<dim,real>::mpi_communicator; ///< MPI communicator
+    using DGBase<dim,real>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
 }; // end of DGStrong class
 

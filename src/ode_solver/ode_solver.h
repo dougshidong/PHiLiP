@@ -22,13 +22,12 @@ template <int dim, typename real>
 class ODESolver
 {
 public:
-    ODESolver() = delete; ///< Constructor
     ODESolver(int ode_solver_type); ///< Constructor
-    /// Constructor
-    ODESolver(std::shared_ptr< DGBase<dim, real> > dg_input);
+    ODESolver(std::shared_ptr< DGBase<dim, real> > dg_input); ///< Constructor
     virtual ~ODESolver() {}; ///< Destructor
-    
 
+    /// Useful for accurate time-stepping.
+    /** This variable will change when advance_solution_time() or step_in_time() is called. */
     double current_time;
 
     /// Evaluate steady state solution

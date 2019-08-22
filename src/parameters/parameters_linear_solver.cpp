@@ -36,7 +36,7 @@ void LinearSolverParam::declare_parameters (dealii::ParameterHandler &prm)
             prm.declare_entry("ilut_fill", "1",
                               dealii::Patterns::Integer(),
                               "Amount of additional fill-in elements besides the sparse matrix structure");
-            prm.declare_entry("ilut_drop", "1e-10",
+            prm.declare_entry("ilut_drop", "0.0",
                               dealii::Patterns::Double(),
                               "relative size of elements which should be dropped when forming an incomplete lu decomposition with threshold");
             prm.declare_entry("ilut_rtol", "0.0",

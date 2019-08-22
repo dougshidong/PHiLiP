@@ -3,6 +3,7 @@ CMakeFiles
 CMakeScripts
 *.cmake
 build/*
+TAGS
 Testing
 Makefile
 cmake_install.cmake

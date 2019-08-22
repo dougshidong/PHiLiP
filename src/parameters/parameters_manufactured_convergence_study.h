@@ -55,7 +55,7 @@ public:
     /** Note that this is the grid progression in 1 dimension.
      *  ith-grid will be of size (initial_grid*(i*grid_progression)+(i*grid_progression_add))^dim")
      */
-    double grid_progression_add;
+    int grid_progression_add;
 
     /// Tolerance within which the convergence orders are considered to be optimal.
     double slope_deficit_tolerance;

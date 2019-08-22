@@ -4,11 +4,16 @@
 
 #include <deal.II/dofs/dof_tools.h>
 
+#include <deal.II/distributed/tria.h>
+
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_refinement.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/grid_in.h>
+
+#include <deal.II/grid/grid_tools.h>
+
 
 #include <deal.II/numerics/vector_tools.h>
 
@@ -18,6 +23,7 @@
 
 #include "tests.h"
 #include "euler_entropy_waves.h"
+#include <deal.II/fe/mapping_q.h>
 
 #include "physics/physics_factory.h"
 #include "dg/dg.h"
@@ -119,13 +125,16 @@ int EulerEntropyWaves<dim,nstate>
         dealii::ConvergenceTable convergence_table;
 
         // Create periodicity vector to store the periodic info.
-        std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<dim>::cell_iterator > > periodicity_vector;
+        std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<dim>::cell_iterator > > periodicity_vector;
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
             // Note that Triangulation must be declared before DG
             // DG will be destructed before Triangulation
             // thus removing any dependence of Triangulation and allowing Triangulation to be destructed
             // Otherwise, a Subscriptor error will occur
-            dealii::Triangulation<dim> grid;
+            dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator,
+                typename dealii::Triangulation<dim>::MeshSmoothing(
+                    dealii::Triangulation<dim>::smoothing_on_refinement |
+                    dealii::Triangulation<dim>::smoothing_on_coarsening));
 
             // Generate hypercube
             if ( manu_grid_conv_param.grid_type == GridEnum::hypercube || manu_grid_conv_param.grid_type == GridEnum::sinehypercube ) {
@@ -140,8 +149,13 @@ int EulerEntropyWaves<dim,nstate>
                     p2[d] = 1.0;
                 }
                 dealii::GridGenerator::subdivided_hyper_rectangle (grid, n_subdivisions, p1, p2, colorize);
+
+                dealii::FullMatrix<double> rotation_matrix(dim);
+                rotation_matrix[1][0] = 1.;
+                rotation_matrix[0][1] = 1.;
                 for (int d=0;d<dim;d++) {
-                    dealii::GridTools::collect_periodic_faces(grid, 2*d, 2*d+1, d, periodicity_vector);
+                    dealii::GridTools::collect_periodic_faces< dealii::parallel::distributed::Triangulation<dim>> (grid, 2*d, 2*d+1, d, periodicity_vector, dealii::Tensor<1, dim>(),
+                                  rotation_matrix);
                 }
                 grid.add_periodicity(periodicity_vector);
 
@@ -199,9 +213,13 @@ int EulerEntropyWaves<dim,nstate>
 
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;
-            dealii::QGauss<dim> quad_extra(dg->fe_system.tensor_degree()+overintegrate);
-            dealii::FEValues<dim,dim> fe_values_extra(dg->mapping, dg->fe_system, quad_extra, 
+            dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
+            dealii::FEValues<dim,dim> fe_values_extra(dealii::MappingQ<dim>(dg->max_degree+overintegrate), dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+            //int overintegrate = 10;
+            //dealii::QGauss<dim> quad_extra(dg->fe_system.tensor_degree()+overintegrate);
+            //dealii::FEValues<dim,dim> fe_values_extra(dg->mapping, dg->fe_system, quad_extra, 
+            //        dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;
 
@@ -263,7 +281,7 @@ int EulerEntropyWaves<dim,nstate>
                 std::cout << "From grid " << igrid-1
                           << "  to grid " << igrid
                           << "  dimension: " << dim
-                          << "  polynomial degree p: " << dg->fe_system.tensor_degree()
+                          << "  polynomial degree p: " << poly_degree
                           << std::endl
                           << "  solution_error1 " << soln_error[igrid-1]
                           << "  solution_error2 " << soln_error[igrid]

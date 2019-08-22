@@ -8,9 +8,6 @@ set dimension = 1
 set pde_type  = burgers_inviscid
 
 subsection ODE solver
-
-  set ode_output                          = verbose
-
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations            = 500
 

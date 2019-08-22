@@ -15,7 +15,7 @@ int ODESolver<dim,real>::steady_state ()
     update_norm = 1; // Always do at least 1 iteration
     this->current_iteration = 0;
 
-    //this->dg->output_results_vtk(this->current_iteration);
+    this->dg->output_results_vtk(this->current_iteration);
 
     std::cout << " Evaluating right-hand side and setting system_matrix to Jacobian before starting iterations... " << std::endl;
     this->dg->assemble_residual ();
@@ -49,7 +49,7 @@ int ODESolver<dim,real>::steady_state ()
 
         ++(this->current_iteration);
 
-        //this->dg->output_results_vtk(this->current_iteration);
+        this->dg->output_results_vtk(this->current_iteration);
 
     }
     return 1;
@@ -71,7 +71,7 @@ int ODESolver<dim,real>::advance_solution_time (double time_advance)
     this->current_iteration = 0;
 
     // Output initial solution
-    //this->dg->output_results_vtk(this->current_iteration);
+    this->dg->output_results_vtk(this->current_iteration);
 
     while (this->current_iteration < number_of_time_steps)
     {
@@ -89,10 +89,11 @@ int ODESolver<dim,real>::advance_solution_time (double time_advance)
 
         step_in_time(constant_time_step);
 
-        if (this->current_iteration%ode_param.print_iteration_modulo == 0)
-        	this->dg->output_results(this->current_iteration);
 
+        if (this->current_iteration%ode_param.print_iteration_modulo == 0)
+        	this->dg->output_results_vtk(this->current_iteration);
         ++(this->current_iteration);
+
 
         //this->dg->output_results_vtk(this->current_iteration);
     }
@@ -132,7 +133,7 @@ void Explicit_ODESolver<dim,real>::step_in_time (real dt)
 {
     this->dg->assemble_residual ();
     this->current_time += dt;
-    const int rk_order = 3;
+    const int rk_order = 1;
     if (rk_order == 1) {
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
         this->update_norm = this->solution_update.l2_norm();

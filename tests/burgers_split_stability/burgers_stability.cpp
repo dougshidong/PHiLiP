@@ -92,10 +92,12 @@ int BurgersEnergyStability<dim, nstate>::run_test()
 	// Create ODE solver using the factory and providing the DG object
 	std::shared_ptr<PHiLiP::ODE::ODESolver<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
-	double finalTime = 1.;
+	double finalTime = 3.;
 
 	double dt = all_parameters->ode_solver_param.initial_time_step;
+
 	//need to call ode_solver before calculating energy because mass matrix isn't allocated yet.
+
 	ode_solver->advance_solution_time(0.000001);
 	double initial_energy = compute_energy(dg);
 
@@ -103,16 +105,24 @@ int BurgersEnergyStability<dim, nstate>::run_test()
 	//this causes some issues with outputs (only one file is output, which is overwritten at each time step)
 	//also the ode solver output doesn't make sense (says "iteration 1 out of 1")
 	//but it works. I'll keep it for now and need to modify the output functions later to account for this.
+	std::ofstream myfile ("energy_plot.gpl" , std::ios::trunc);
+
 	for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
 	{
 		ode_solver->advance_solution_time(dt);
 		double current_energy = compute_energy(dg);
 		std::cout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
+		myfile << i * dt << " " << current_energy << std::endl;
 		if (current_energy - initial_energy >= 0.001)
 		{
 			return 1;
 		}
 	}
+	myfile.close();
+
+
+	//ode_solver->advance_solution_time(finalTime);
+
 	return 0; //need to change
 }
 

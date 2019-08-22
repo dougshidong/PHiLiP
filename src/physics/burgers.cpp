@@ -41,7 +41,7 @@ void Burgers<dim,nstate,real>
         } else { // Neumann boundary condition
             // //soln_bc[istate] = soln_int[istate];
             // //soln_bc[istate] = boundary_values[istate];
-            // soln_bc[istate] = -soln_int[istate]+2*boundary_values[istate];
+            //soln_bc[istate] = -soln_int[istate]+2*boundary_values[istate];
             soln_bc[istate] = soln_int[istate];
 
             // **************************************************************************************************************
@@ -101,6 +101,7 @@ real Burgers<dim,nstate,real>
     real max_eig = 0;
     for (int i=0; i<dim; i++) {
         max_eig = std::max(max_eig,std::abs(soln[i]));
+        //max_eig += soln[i] * soln[i];
     }
     return max_eig;
 }
@@ -127,17 +128,53 @@ std::array<real,nstate> Burgers<dim,nstate,real>
 {
     std::array<real,nstate> source;
     const real diff_coeff = diffusion_coefficient();
-
+    // for (int istate=0; istate<nstate; istate++) {
+    //     dealii::Tensor<1,dim,real> manufactured_gradient = this->manufactured_solution_function.gradient (pos, istate);
+    //     dealii::SymmetricTensor<2,dim,real> manufactured_hessian = this->manufactured_solution_function.hessian (pos, istate);
+    //     source[istate] = 0.0;
+    //     for (int d=0;d<dim;++d) {
+    //         real manufactured_solution = this->manufactured_solution_function.value (pos, d);
+    //         source[istate] += manufactured_solution*manufactured_gradient[d];
+    //     }
+    //     source[istate] += -diff_coeff*scalar_product((this->diffusion_tensor),manufactured_hessian);
+    // }
     for (int istate=0; istate<nstate; istate++) {
+        source[istate] = 0.0;
         dealii::Tensor<1,dim,real> manufactured_gradient = this->manufactured_solution_function.gradient (pos, istate);
         dealii::SymmetricTensor<2,dim,real> manufactured_hessian = this->manufactured_solution_function.hessian (pos, istate);
-        source[istate] = 0.0;
         for (int d=0;d<dim;++d) {
             real manufactured_solution = this->manufactured_solution_function.value (pos, d);
-            source[istate] += manufactured_solution*manufactured_gradient[d];
+            source[istate] += 0.5*manufactured_solution*manufactured_gradient[d];
         }
         source[istate] += -diff_coeff*scalar_product((this->diffusion_tensor),manufactured_hessian);
     }
+    for (int istate=0; istate<nstate; istate++) {
+        real manufactured_solution = this->manufactured_solution_function.value (pos, istate);
+        real divergence = 0.0;
+        for (int d=0;d<dim;++d) {
+            dealii::Tensor<1,dim,real> manufactured_gradient = this->manufactured_solution_function.gradient (pos, d);
+            divergence += manufactured_gradient[d];
+        }
+        source[istate] += 0.5*manufactured_solution*divergence;
+    }
+
+    // for (int istate=0; istate<nstate; istate++) {
+    //     source[istate] = 0.0;
+    //     for (int d=0;d<dim;++d) {
+    //         dealii::Point<dim,double> posp = pos;
+    //         dealii::Point<dim,double> posm = pos;
+    //         posp[d] += 1e-8;
+    //         posm[d] -= 1e-8;
+    //         std::array<real,nstate> solp,solm;
+    //         for (int s=0; s<nstate; s++) { 
+    //             solp[s] = this->manufactured_solution_function.value (posp, s);
+    //             solm[s] = this->manufactured_solution_function.value (posm, s);
+    //         }
+    //         std::array<dealii::Tensor<1,dim,real>,nstate> convp = convective_flux (solp);
+    //         std::array<dealii::Tensor<1,dim,real>,nstate> convm = convective_flux (solm);
+    //         source[istate] += (convp[istate][d] - convm[istate][d]) / 2e-8;
+    //     }
+    // }
     return source;
 }
 

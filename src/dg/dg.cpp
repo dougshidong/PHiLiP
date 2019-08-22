@@ -48,13 +48,6 @@ DGFactory<dim,real>
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
 
     PDE_enum pde_type = parameters_input->pde_type;
-    //if (pde_type == PDE_enum::advection) {
-    //    return new DG<dim,1,real>(parameters_input, degree);
-    //} else if (pde_type == PDE_enum::diffusion) {
-    //    return new DG<dim,1,real>(parameters_input, degree);
-    //} else if (pde_type == PDE_enum::convection_diffusion) {
-    //    return new DG<dim,1,real>(parameters_input, degree);
-    //}
 
     if (parameters_input->use_weak_form) {
         if (pde_type == PDE_enum::advection) {
@@ -106,11 +99,11 @@ DGBase<dim,real>::DGBase(
     std::tuple< dealii::hp::MappingCollection<dim>, dealii::hp::FECollection<dim>,
                 dealii::hp::QCollection<dim>, dealii::hp::QCollection<dim-1>, dealii::hp::QCollection<1>,
                 dealii::hp::FECollection<dim> > collection_tuple)
-    : nstate(nstate_input)
+    : all_parameters(parameters_input)
+    , nstate(nstate_input)
     , max_degree(max_degree_input)
-    , all_parameters(parameters_input)
-    , fe_collection(std::get<1>(collection_tuple))
     , mapping_collection(std::get<0>(collection_tuple))
+    , fe_collection(std::get<1>(collection_tuple))
     , volume_quadrature_collection(std::get<2>(collection_tuple))
     , face_quadrature_collection(std::get<3>(collection_tuple))
     , oned_quadrature_collection(std::get<4>(collection_tuple))

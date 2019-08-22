@@ -51,29 +51,32 @@ template <int dim, typename real>
 class DGBase 
 {
 public:
+    const Parameters::AllParameters *const all_parameters; /// Pointer to all parameters
+
     /// Number of state variables.
     /** This is known through the constructor parameters.
      *  DGBase cannot use nstate as a compile-time known.  */
     const int nstate;
 
-    /// Maximum degree used for p-refinement
+    /// Maximum degree used for p-refinement.
     /** This is known through the constructor parameters.
      *  DGBase cannot use nstate as a compile-time known.  */
     const unsigned int max_degree;
 
-    /// Pointer to all parameters
-    const Parameters::AllParameters *const all_parameters;
-
-    /// Principal constructor.
+    /// Principal constructor that will call delegated constructor.
     /** Will initialize mapping, fe_dg, all_parameters, volume_quadrature, and face_quadrature
      *  from DGBase. The it will new some FEValues that will be used to retrieve the
      *  finite element values at physical locations.
+     *
+     *  Passes create_collection_tuple() to the delegated constructor.
      */
     DGBase(const int nstate_input, const Parameters::AllParameters *const parameters_input, const unsigned int max_degree);
 
-    /// Delegated constructor that initializes collections
+    /// Delegated constructor that initializes collections.
     /** Since a function is used to generate multiple different objects, a delegated
-     *  constructor is used to unwrap the tuple and initialize the collections */
+     *  constructor is used to unwrap the tuple and initialize the collections.
+     *  
+     *  The tuple is built from create_collection_tuple(). */
     DGBase( const int nstate_input,
             const Parameters::AllParameters *const parameters_input,
             const unsigned int max_degree_input,
@@ -191,10 +194,6 @@ public:
     void output_results_vtk (const unsigned int ith_grid); ///< Output solution
     void output_paraview_results (std::string filename); ///< Outputs a paraview file to view the solution
 
-
-
-
-
     /// Main loop of the DG class.
     /** Evaluates the right-hand-side \f$ \mathbf{R(\mathbf{u}}) \f$ of the system
      *
@@ -229,14 +228,14 @@ public:
     //void assemble_residual_dRdW ();
     void assemble_residual (const bool compute_dRdW=false);
 
-    /// Finite Element Collection for p-finite-element
-    /** This is a collection of FESystems */
-    const dealii::hp::FECollection<dim>    fe_collection;
-
     /// Mapping is currently MappingQ.
     /**  Refer to deal.II documentation for the various mapping types */
     //const dealii::MappingQ<dim> mapping;
     const dealii::hp::MappingCollection<dim> mapping_collection;
+
+    /// Finite Element Collection for p-finite-element
+    /** This is a collection of FESystems */
+    const dealii::hp::FECollection<dim>    fe_collection;
 
     dealii::hp::QCollection<dim>     volume_quadrature_collection;
     dealii::hp::QCollection<dim-1>   face_quadrature_collection;
@@ -246,17 +245,14 @@ public:
 
 protected:
 
-    std::tuple< dealii::hp::MappingCollection<dim>, dealii::hp::FECollection<dim>,
-                dealii::hp::QCollection<dim>, dealii::hp::QCollection<dim-1>, dealii::hp::QCollection<1>,
-                dealii::hp::FECollection<dim> >
-                create_collection_tuple(const unsigned int max_degree, const int nstate) const;
-
-    /// Evaluate the integral over the cell volume
+    /// Evaluate the integral over the cell volume.
+    /** Compute both the right-hand side and the block of the Jacobian */
     virtual void assemble_volume_terms_implicit(
         const dealii::FEValues<dim,dim> &fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs) = 0;
     /// Evaluate the integral over the cell edges that are on domain boundaries
+    /** Compute both the right-hand side and the block of the Jacobian */
     virtual void assemble_boundary_term_implicit(
         const unsigned int boundary_id,
         const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
@@ -264,6 +260,9 @@ protected:
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs) = 0;
     /// Evaluate the integral over the internal cell edges
+    /** Compute both the right-hand side and the block of the Jacobian.
+     *  This adds the contribution to both cell's residual and effectively 
+     *  computes 4 block contributions to the Jacobian. */
     virtual void assemble_face_term_implicit(
         const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
         const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
@@ -331,24 +330,34 @@ protected:
     dealii::hp::FECollection<dim> create_fe_collection(const unsigned int max_degree) const;
 
 
-    const dealii::UpdateFlags volume_update_flags = dealii::update_values | dealii::update_gradients |
-                                                    dealii::update_quadrature_points | dealii::update_JxW_values;
-    const dealii::UpdateFlags face_update_flags =   dealii::update_values | dealii::update_gradients |
-                                                    dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_normal_vectors;
+    /// Update flags needed at volume points.
+    const dealii::UpdateFlags volume_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values;
+    /// Update flags needed at face points.
+    const dealii::UpdateFlags face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_normal_vectors;
+    /// Update flags needed at neighbor' face points. 
+    /** NOTE: With hp-adaptation, might need to query neighbor's quadrature points depending on the order of the cells. */
     const dealii::UpdateFlags neighbor_face_update_flags = dealii::update_values | dealii::update_gradients;
 
-    dealii::hp::FEValues<dim,dim>        fe_values_collection_volume;
-    dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_int;
-    dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_ext;
-    dealii::hp::FESubfaceValues<dim,dim> fe_values_collection_subface;
+    dealii::hp::FEValues<dim,dim>        fe_values_collection_volume;   /// FEValues of volume.
+    dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_int; /// FEValues of interior face.
+    dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_ext; /// FEValues of exterior face.
+    dealii::hp::FESubfaceValues<dim,dim> fe_values_collection_subface;  /// FEValues of subface.
 
     /// Lagrange basis used in strong form
     /** This is a collection of scalar Lagrange bases */
     const dealii::hp::FECollection<dim>  fe_collection_lagrange;
     dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange;
 
-    MPI_Comm mpi_communicator;
-    dealii::ConditionalOStream pcout;
+    MPI_Comm mpi_communicator; /// MPI communicator
+    dealii::ConditionalOStream pcout; /// Parallel std::cout that only outputs on mpi_rank==0
+private:
+
+    /// Makes for cleaner doxygen documentation
+    using CollectionTuple = std::tuple< dealii::hp::MappingCollection<dim>, dealii::hp::FECollection<dim>,
+                dealii::hp::QCollection<dim>, dealii::hp::QCollection<dim-1>, dealii::hp::QCollection<1>,
+                dealii::hp::FECollection<dim> >;
+    /// Used in the delegated constructor
+    CollectionTuple create_collection_tuple(const unsigned int max_degree, const int nstate) const;
 
 }; // end of DGBase class
 
@@ -364,8 +373,7 @@ public:
         const Parameters::AllParameters *const parameters_input, 
         const unsigned int degree);
 
-    /// Destructor
-    ~DGWeak();
+    ~DGWeak(); /// Destructor
 
 private:
     /// Contains the physics of the PDE
@@ -383,11 +391,13 @@ private:
     NumericalFlux::NumericalFluxDissipative<dim, nstate, real > *diss_num_flux_double;
 
     /// Evaluate the integral over the cell volume
+    /** Compute both the right-hand side and the block of the Jacobian */
     void assemble_volume_terms_implicit(
         const dealii::FEValues<dim,dim> &fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs);
     /// Evaluate the integral over the cell edges that are on domain boundaries
+    /** Compute both the right-hand side and the block of the Jacobian */
     void assemble_boundary_term_implicit(
         const unsigned int boundary_id,
         const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
@@ -395,6 +405,9 @@ private:
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs);
     /// Evaluate the integral over the internal cell edges
+    /** Compute both the right-hand side and the block of the Jacobian.
+     *  This adds the contribution to both cell's residual and effectively 
+     *  computes 4 block contributions to the Jacobian. */
     void assemble_face_term_implicit(
         const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
         const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
@@ -426,8 +439,8 @@ private:
         dealii::Vector<real>          &current_cell_rhs,
         dealii::Vector<real>          &neighbor_cell_rhs);
 
-    using DGBase<dim,real>::mpi_communicator;
-    using DGBase<dim,real>::pcout;
+    using DGBase<dim,real>::mpi_communicator; /// MPI communicator
+    using DGBase<dim,real>::pcout; /// Parallel std::cout that only outputs on mpi_rank==0
 
 }; // end of DGWeak class
 
@@ -463,11 +476,13 @@ private:
 
 
     /// Evaluate the integral over the cell volume
+    /** Compute both the right-hand side and the block of the Jacobian */
     void assemble_volume_terms_implicit(
         const dealii::FEValues<dim,dim> &fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs);
     /// Evaluate the integral over the cell edges that are on domain boundaries
+    /** Compute both the right-hand side and the block of the Jacobian */
     void assemble_boundary_term_implicit(
         const unsigned int boundary_id,
         const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
@@ -475,6 +490,9 @@ private:
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs);
     /// Evaluate the integral over the internal cell edges
+    /** Compute both the right-hand side and the block of the Jacobian.
+     *  This adds the contribution to both cell's residual and effectively 
+     *  computes 4 block contributions to the Jacobian. */
     void assemble_face_term_implicit(
         const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
         const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
@@ -506,22 +524,21 @@ private:
         dealii::Vector<real>          &current_cell_rhs,
         dealii::Vector<real>          &neighbor_cell_rhs);
 
-    using DGBase<dim,real>::mpi_communicator;
-    using DGBase<dim,real>::pcout;
+    using DGBase<dim,real>::all_parameters; /// Pointer to all parameters
+    using DGBase<dim,real>::mpi_communicator; /// MPI communicator
+    using DGBase<dim,real>::pcout; /// Parallel std::cout that only outputs on mpi_rank==0
 
 }; // end of DGStrong class
 
 /// This class creates a new DGBase object
 /** This allows the DGBase to not be templated on the number of state variables
-  * while allowing DG to be template on the number of state variables
- */
+  * while allowing DG to be template on the number of state variables */
 template <int dim, typename real>
 class DGFactory
 {
 public:
     /// Creates a derived object DG, but returns it as DGBase.
-    /** That way, the called is agnostic to the number of state variables
-     */
+    /** That way, the caller is agnostic to the number of state variables */
     static std::shared_ptr< DGBase<dim,real> >
         create_discontinuous_galerkin(
         const Parameters::AllParameters *const parameters_input, 

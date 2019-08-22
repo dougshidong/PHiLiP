@@ -215,13 +215,14 @@ void DGBase<dim,real>::assemble_residual ()
 
             // Case 1:
             // Face at boundary
-            if (current_face->at_boundary()) {
+            if (current_face->at_boundary() && !current_cell->has_periodic_neighbor(iface) ) {
 
                 n_face_visited++;
 
                 fe_values_face_int.reinit (current_cell, iface);
 
-                if(all_parameters->use_periodic_bc == true) //using periodic BCs (for 1d)
+                //no need to worry about this for now.
+                if(current_face->at_boundary() && all_parameters->use_periodic_bc == true && dim == 1) //using periodic BCs (for 1d)
                 {
                   	int cell_index = current_cell->index();
                     if (cell_index == 0 && iface == 0)
@@ -258,6 +259,63 @@ void DGBase<dim,real>::assemble_residual ()
 					// Need to somehow get boundary type from the mesh
 					assemble_boundary_term_explicit (boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
                 }
+
+                //CASE 1.5: periodic boundary conditions
+                //note that periodicity is not adapted for hp adaptivity yet. this needs to be figured out in the future
+            } else if (current_face->at_boundary() && current_cell->has_periodic_neighbor(iface)){
+
+            	neighbor_cell = current_cell->periodic_neighbor(iface);
+
+            	if (!current_cell->periodic_neighbor_is_coarser(iface) &&
+            		(neighbor_cell->index() > current_cell->index() ||
+            		 (neighbor_cell->index() == current_cell->index() && current_cell->level() < neighbor_cell->level())
+            		)
+				   )
+            	{
+            		n_face_visited++;
+
+            		dealii::Vector<double> neighbor_cell_rhs (dofs_per_cell); // Defaults to 0.0 initialization
+	                Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
+	                typename dealii::DoFHandler<dim>::cell_iterator neighbor_cell = current_cell->periodic_neighbor(iface);
+
+                    neighbor_cell->get_dof_indices (neighbor_dofs_indices);
+
+                    const unsigned int neighbor_face_no = current_cell->periodic_neighbor_of_periodic_neighbor(iface); //removed const
+
+            	    const unsigned int normal_direction1 = dealii::GeometryInfo<dim>::unit_normal_direction[iface];
+            	    const unsigned int normal_direction2 = dealii::GeometryInfo<dim>::unit_normal_direction[neighbor_face_no];
+            	    const unsigned int degree_current = DGBase<dim,real>::fe_system.tensor_degree();
+            	    const unsigned int deg1sq = (degree_current == 0) ? 1 : degree_current * (degree_current+1);
+            	    const unsigned int deg2sq = (degree_current == 0) ? 1 : degree_current * (degree_current+1);
+
+            	    //const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction1) / current_face->number_of_children();
+            	    const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction1);
+            	    const real vol_div_facearea2 = neighbor_cell->extent_in_direction(normal_direction2);
+	                const real penalty1 = deg1sq / vol_div_facearea1;
+	                const real penalty2 = deg2sq / vol_div_facearea2;
+
+	                real penalty = 0.5 * ( penalty1 + penalty2 );
+            		//penalty = 1;//99;
+
+            		fe_values_face_int.reinit (current_cell, iface);
+            		fe_values_face_ext.reinit (neighbor_cell, neighbor_face_no);
+            		//std::cout << "about to assemble the periodic cell terms!" << std::endl;
+            		assemble_face_term_explicit (
+            		                        fe_values_face_int, fe_values_face_ext,
+            		                        penalty,
+            		                        current_dofs_indices, neighbor_dofs_indices,
+            		                        current_cell_rhs, neighbor_cell_rhs);
+            		//std::cout << "done assembleing the periodic cell terms!" << std::endl;
+            		// Add local contribution from neighbor cell to global vector
+            		for (unsigned int i=0; i<dofs_per_cell; ++i) {
+            			DGBase<dim,real>::right_hand_side(neighbor_dofs_indices[i]) += neighbor_cell_rhs(i);
+            	    }
+            	}
+            	else
+            	{
+            		//do nothing
+            	}
+
             // Case 2:
             // Neighbour is finer occurs if the face has children
             // This is because we are looping over the current_cell's face, so 2, 4, and 6 faces.
@@ -304,7 +362,6 @@ void DGBase<dim,real>::assemble_residual ()
                         penalty,
                         current_dofs_indices, neighbor_dofs_indices,
                         current_cell_rhs, neighbor_cell_rhs);
-
                     // Add local contribution from neighbor cell to global vector
                     for (unsigned int i=0; i<dofs_per_cell; ++i) {
                         DGBase<dim,real>::right_hand_side(neighbor_dofs_indices[i]) += neighbor_cell_rhs(i);
@@ -314,8 +371,8 @@ void DGBase<dim,real>::assemble_residual ()
             // Case 3:
             // Neighbor cell is NOT coarser
             // Therefore, they have the same coarseness, and we need to choose one of them to do the work
-            } else if (
-                !current_cell->neighbor_is_coarser(iface) &&
+            } else if ( //added a criteria for periodicity
+                (!current_cell->neighbor_is_coarser(iface))  &&
                     // Cell with lower index does work
                     (neighbor_cell->index() > current_cell->index() || 
                     // If both cells have same index
@@ -329,11 +386,11 @@ void DGBase<dim,real>::assemble_residual ()
                 dealii::Vector<double> neighbor_cell_rhs (dofs_per_cell); // Defaults to 0.0 initialization
 
                 Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
-                typename dealii::DoFHandler<dim>::cell_iterator neighbor_cell = current_cell->neighbor(iface);
+                typename dealii::DoFHandler<dim>::cell_iterator neighbor_cell = current_cell->neighbor_or_periodic_neighbor(iface);
 
                 neighbor_cell->get_dof_indices (neighbor_dofs_indices);
 
-                const unsigned int neighbor_face_no = current_cell->neighbor_of_neighbor(iface);
+                unsigned int neighbor_face_no = current_cell->neighbor_of_neighbor(iface);
 
                 const unsigned int normal_direction1 = dealii::GeometryInfo<dim>::unit_normal_direction[iface];
                 const unsigned int normal_direction2 = dealii::GeometryInfo<dim>::unit_normal_direction[neighbor_face_no];
@@ -358,7 +415,7 @@ void DGBase<dim,real>::assemble_residual ()
                         penalty,
                         current_dofs_indices, neighbor_dofs_indices,
                         current_cell_rhs, neighbor_cell_rhs);
-
+             //   std::cout << "done assembling the non-periodic cell terms!" << std::endl;
                 // Add local contribution from neighbor cell to global vector
                 for (unsigned int i=0; i<dofs_per_cell; ++i) {
                     DGBase<dim,real>::right_hand_side(neighbor_dofs_indices[i]) += neighbor_cell_rhs(i);
@@ -624,8 +681,7 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int ith_grid)// const
 {
 
 
-    dealii::DataOut<dim> data_out;
-    data_out.attach_dof_handler (dof_handler);
+
 
     //std::vector<std::string> solution_names;
     //for(int s=0;s<nstate;++s) {
@@ -636,6 +692,8 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int ith_grid)// const
     //data_out.add_data_vector (solution, solution_names, dealii::DataOut<dim>::type_dof_data, data_component_interpretation);
 
     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
+    dealii::DataOut<dim> data_out;
+    data_out.attach_dof_handler (dof_handler);
     data_out.add_data_vector (solution, *post_processor);
 
     data_out.build_patches (mapping, fe_system.tensor_degree()+1, dealii::DataOut<dim>::curved_inner_cells);

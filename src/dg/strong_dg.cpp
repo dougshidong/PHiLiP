@@ -481,6 +481,7 @@ void DGStrong<dim,nstate,real>::assemble_cell_terms_explicit(
     const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
     dealii::Vector<real> &local_rhs_int_cell)
 {
+	//std::cout << "assembling cell terms" << std::endl;
     using ADtype = Sacado::Fad::DFad<real>;
     using ADArray = std::array<ADtype,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
@@ -741,6 +742,7 @@ void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
     dealii::Vector<real>          &local_rhs_int_cell,
     dealii::Vector<real>          &local_rhs_ext_cell)
 {
+	//std::cout << "assembling face terms" << std::endl;
     using ADtype = Sacado::Fad::DFad<real>;
     using ADArray = std::array<ADtype,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
@@ -829,10 +831,15 @@ void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
         //std::cout << "Energy ext" << soln_ext[iquad][nstate-1] << std::endl;
 
         // Evaluate physical convective flux, physical dissipative flux, and source term
+
+        //std::cout <<"evaluating numerical fluxes" <<std::endl;
         conv_num_flux_dot_n[iquad] = conv_num_flux->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
 
         conv_phys_flux_int[iquad] = pde_physics->convective_flux (soln_int[iquad]);
         conv_phys_flux_ext[iquad] = pde_physics->convective_flux (soln_ext[iquad]);
+
+       // std::cout <<"done evaluating numerical fluxes" <<std::endl;
+
 
         diss_soln_num_flux[iquad] = diss_num_flux->evaluate_solution_flux(soln_int[iquad], soln_ext[iquad], normal_int);
 

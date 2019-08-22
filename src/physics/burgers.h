@@ -29,8 +29,12 @@ template <int dim, int nstate, typename real>
 class Burgers : public PhysicsBase <dim, nstate, real>
 {
 public:
+    /// Turns on convective part of the Burgers problem.
+    /** Without the nonlinear convection, it's simply diffusion */
     const bool hasConvection;
+    /// Turns on diffusive part of the Burgers problem.
     const bool hasDiffusion;
+
     /// Constructor
     Burgers (const bool convection = true, const bool diffusion = true)
         : hasConvection(convection), hasDiffusion(diffusion)

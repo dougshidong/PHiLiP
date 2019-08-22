@@ -10,6 +10,8 @@ add_subdirectory(convection_diffusion_implicit)
 add_subdirectory(advection_vector_implicit)
 add_subdirectory(burgers_inviscid_implicit)
 add_subdirectory(burgers_split_stability)
+add_subdirectory(euler_split_inviscid_taylor_green_vortex)
+add_subdirectory(advection_explicit_periodic)
 
 add_subdirectory(euler_implicit)
 

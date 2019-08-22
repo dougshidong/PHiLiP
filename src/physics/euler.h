@@ -156,15 +156,9 @@ public:
         const std::array<real,nstate> &conservative_soln) const;
 
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
-           		const std::array<real,nstate> &soln_const, const std::array<real,nstate> &soln_loop) const
-    		{
-        	std::array<real,nstate> arr_avg;
-        		for (int i = 0 ; i < nstate; ++i)
-        		{
-        			arr_avg[i] = (soln_const[i] + soln_loop[i])/2.;
-        		}
-        		return convective_flux(arr_avg);
-    		};
+           		const std::array<real,nstate> &soln_const, const std::array<real,nstate> &soln_loop) const;
+
+
 
     /// Convective flux Jacobian: \f$ \frac{\partial \mathbf{F}_{conv}}{\partial w} \cdot \mathbf{n} \f$
     dealii::Tensor<2,nstate,real> convective_flux_directional_jacobian (
@@ -241,6 +235,20 @@ public:
     /// Given density and pressure, returns NON-DIMENSIONALIZED temperature using free-stream non-dimensionalization
     /** See the book I do like CFD, sec 4.14.2 */
     real compute_temperature_from_density_pressure ( const real density, const real pressure ) const;
+
+    ///These functions are only relevant to the split form. The Euler split form is that of Kennedy & Gruber.
+    /** Refer to Gassner's paper for more information:  */
+    real compute_mean_density(const std::array<real,nstate> &soln_const,
+    						  const std::array<real,nstate> &soln_loop) const;
+
+    real compute_mean_pressure(const std::array<real,nstate> &soln_const,
+        					   const std::array<real,nstate> &soln_loop) const;
+
+    dealii::Tensor<1,dim,real> compute_mean_velocities(const std::array<real,nstate> &soln_const,
+        						  	  	  	  	  	   const std::array<real,nstate> &soln_loop) const;
+
+    real compute_mean_specific_energy(const std::array<real,nstate> &soln_const,
+        						  const std::array<real,nstate> &soln_loop) const;
 
     void boundary_face_values (
         const int /*boundary_type*/,

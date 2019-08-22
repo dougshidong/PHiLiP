@@ -1,3 +1,4 @@
+#include <deal.II/base/mpi.h>
 #include <deal.II/base/tensor.h>
 
 #include "parameters/all_parameters.h"
@@ -230,8 +231,9 @@ int test_convective_numerical_flux_consistency (const PHiLiP::Parameters::AllPar
     return 0;
 }
 
-int main (int /*argc*/, char * /*argv*/[])
+int main (int argc, char * argv[])
 {
+    dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
     const std::vector<PDEType> pde_type {
         PDEType::advection,
         PDEType::diffusion,

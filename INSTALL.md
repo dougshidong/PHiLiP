@@ -1,8 +1,10 @@
 ## deal.II
 
-This is the main library being used by this code.
+This is the main library being used by this code. Most of the packages are readily available through apt. p4est might need to be installed from source since the apt version is lower than what is required by deal.II.
 
-The deal.II library has been setup with the following options
+There is an [example script](install_dealii.sh) for what has been used to install deal.II. You may need to provide the path such as `-DTRILINOS_DIR` if CMake does not find the package on its own.
+
+The deal.II library has been setup with the following options:
 
 ~~~~
   deal.II configuration:

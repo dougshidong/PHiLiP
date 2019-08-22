@@ -13,9 +13,4 @@ add_subdirectory(burgers_split_stability)
 add_subdirectory(euler_split_inviscid_taylor_green_vortex)
 add_subdirectory(advection_explicit_periodic)
 
-add_subdirectory(euler_implicit)
-
 add_subdirectory(euler_integration)
-#add_subdirectory(euler_gaussian_bump)
-#add_subdirectory(euler_vortex)
-#add_subdirectory(euler_cylinder)

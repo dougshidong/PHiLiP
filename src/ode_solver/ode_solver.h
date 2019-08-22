@@ -1,11 +1,9 @@
 #ifndef __ODESOLVER_H__
 #define __ODESOLVER_H__
 
-#include <deal.II/lac/vector.h>
+#include <deal.II/base/conditional_ostream.h>
 
-#include <deal.II/lac/trilinos_sparse_matrix.h>
-#include <deal.II/lac/trilinos_precondition.h>
-#include <deal.II/lac/trilinos_solver.h>
+#include <deal.II/lac/vector.h>
 
 #include "parameters/all_parameters.h"
 #include "dg/dg.h"
@@ -27,12 +25,7 @@ public:
     ODESolver() = delete; ///< Constructor
     ODESolver(int ode_solver_type); ///< Constructor
     /// Constructor
-    ODESolver(std::shared_ptr< DGBase<dim, real> > dg_input)
-    :
-    current_time(0.0),
-    dg(dg_input),
-    all_parameters(dg->all_parameters)
-    {};
+    ODESolver(std::shared_ptr< DGBase<dim, real> > dg_input);
     virtual ~ODESolver() {}; ///< Destructor
     
 
@@ -41,6 +34,9 @@ public:
     /// Evaluate steady state solution
     int steady_state ();
 
+    void initialize_steady_polynomial_ramping (const unsigned int global_final_poly_degree);
+
+
     /// Virtual function to advance solution to time+dt
     int advance_solution_time (double time_advance);
 
@@ -48,6 +44,7 @@ public:
     virtual void allocate_ode_system () = 0;
 
     double residual_norm; ///< Current residual norm. Only makes sense for steady state
+    double residual_norm_decrease; ///< Current residual norm normalized by initial residual. Only makes sense for steady state
 
     unsigned int current_iteration; ///< Current iteration.
 
@@ -63,22 +60,17 @@ protected:
     void compute_time_step();
 
     /// Solution update given by the ODE solver
-    dealii::Vector<real> solution_update;
+    dealii::LinearAlgebra::distributed::Vector<double> solution_update;
 
-    std::vector<dealii::Vector<real>> rk_stage;
-
-    /// Solution vector.
-    /** Currently not used. Might make it a vector pointing to dg->solution */
-    dealii::Vector<real> solution;
-
-    /// Right hand side vector.
-    /** Currently not used. Might make it a vector pointing to dg->right_hand_side */
-    dealii::Vector<real> right_hand_side;
+    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;
 
     /// Smart pointer to DGBase
     std::shared_ptr<DGBase<dim,real>> dg;
 
     const Parameters::AllParameters *const all_parameters;
+
+    const MPI_Comm mpi_communicator;
+    dealii::ConditionalOStream pcout;
 
 
 }; // end of ODESolver class
@@ -116,6 +108,7 @@ public:
     void allocate_ode_system ();
 protected:
     void step_in_time(real dt);
+    using ODESolver<dim,real>::pcout;
 
 }; // end of Implicit_ODESolver class
 
@@ -138,6 +131,7 @@ public:
 
 protected:
     void step_in_time(real dt);
+    using ODESolver<dim,real>::pcout;
 }; // end of Explicit_ODESolver class
 
 /// Creates and assemble Explicit_ODESolver or Implicit_ODESolver as ODESolver based on input.

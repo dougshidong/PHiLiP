@@ -2,6 +2,8 @@
 
 #include <deal.II/grid/grid_out.h>
 
+#include <deal.II/distributed/solution_transfer.h>
+
 #include "tests.h"
 #include "grid_study.h"
 #include "euler_gaussian_bump.h"
@@ -15,8 +17,9 @@ namespace Tests {
 using AllParam = Parameters::AllParameters;
 
 TestsBase::TestsBase(Parameters::AllParameters const *const parameters_input)
-    :
-    all_parameters(parameters_input)
+    : all_parameters(parameters_input)
+    , mpi_communicator(MPI_COMM_WORLD)
+    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {}
 
 std::vector<int> TestsBase::get_number_1d_cells(const int n_grids) const
@@ -25,11 +28,23 @@ std::vector<int> TestsBase::get_number_1d_cells(const int n_grids) const
     Parameters::ManufacturedConvergenceStudyParam param = all_parameters->manufactured_convergence_study_param;
     n_1d_cells[0] = param.initial_grid_size;
     for (int igrid=1;igrid<n_grids;++igrid) {
-        n_1d_cells[igrid] = n_1d_cells[igrid-1]*param.grid_progression + param.grid_progression_add;
+        n_1d_cells[igrid] = static_cast<int>(n_1d_cells[igrid-1]*param.grid_progression) + param.grid_progression_add;
     }
     return n_1d_cells;
 
 }
+
+//template<int dim, int nstate>
+// void TestsBase::globally_refine_and_interpolate(DGBase<dim, double> &dg) const
+//{
+//    dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
+//    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+//    solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
+//    grid.refine_global (1);
+//    dg->allocate_system ();
+//    solution_transfer.interpolate(old_solution, dg->solution);
+//    solution_transfer.clear();
+//}
 
 template<int dim, int nstate>
 std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
@@ -46,7 +61,7 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
     } else if(test_type == Test_enum::euler_vortex) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerVortex<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_entropy_waves) {
-        if constexpr (nstate==PHILIP_DIM+2) return std::make_unique<EulerEntropyWaves<dim,nstate>>(parameters_input);
+        if constexpr (dim>=2 && nstate==PHILIP_DIM+2) return std::make_unique<EulerEntropyWaves<dim,nstate>>(parameters_input);
     } else {
         std::cout << "Invalid test." << std::endl;
     }

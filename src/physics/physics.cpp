@@ -148,7 +148,7 @@ std::vector<std::string> PhysicsBase<dim,nstate,real> ::post_get_names () const
 {
     std::vector<std::string> names;
     for (unsigned int s=0; s<nstate; ++s) {
-        std::string varname = "u" + dealii::Utilities::int_to_string(s,1);
+        std::string varname = "state" + dealii::Utilities::int_to_string(s,1);
         names.push_back(varname);
     }
     return names;
@@ -158,9 +158,10 @@ template <int dim, int nstate, typename real>
 std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> PhysicsBase<dim,nstate,real>
 ::post_get_data_component_interpretation () const
 {
-    std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> interpretation;
+    namespace DCI = dealii::DataComponentInterpretation;
+    std::vector<DCI::DataComponentInterpretation> interpretation;
     for (unsigned int s=0; s<nstate; ++s) {
-        interpretation.push_back (dealii::DataComponentInterpretation::component_is_scalar);
+        interpretation.push_back (DCI::component_is_scalar);
     }
     return interpretation;
 }

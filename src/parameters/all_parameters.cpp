@@ -1,3 +1,6 @@
+#include <deal.II/base/mpi.h>
+#include <deal.II/base/utilities.h>
+
 #include "parameters/all_parameters.h"
 
 namespace PHiLiP {
@@ -8,10 +11,13 @@ AllParameters::AllParameters ()
     , ode_solver_param(ODESolverParam())
     , linear_solver_param(LinearSolverParam())
     , euler_param(EulerParam())
+    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 { }
 void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 {
-    std::cout << "Declaring inputs." << std::endl;
+    const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
+    pcout << "Declaring inputs." << std::endl;
     prm.declare_entry("dimension", "1",
                       dealii::Patterns::Integer(),
                       "Number of dimensions");
@@ -68,10 +74,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  burgers_inviscid | "
                       "  euler>.");
     prm.declare_entry("conv_num_flux", "lax_friedrichs",
-                      dealii::Patterns::Selection(" lax_friedrichs | "
-                    		  	  	  	  	  	  " split_form | "),
+                      dealii::Patterns::Selection("lax_friedrichs | roe | split_form"),
                       "Convective numerical flux. "
-                      "Choices are <lax_friedrichs|split_form>.");
+                      "Choices are <lax_friedrichs | roe | split_form>.");
+
     prm.declare_entry("diss_num_flux", "symm_internal_penalty",
                       dealii::Patterns::Selection("symm_internal_penalty"),
                       "Dissipative numerical flux. "
@@ -83,12 +89,12 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     Parameters::EulerParam::declare_parameters (prm);
 
-    std::cout << "Done declaring inputs." << std::endl;
+    pcout << "Done declaring inputs." << std::endl;
 }
 
 void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 {
-    std::cout << "Parsing main input..." << std::endl;
+    pcout << "Parsing main input..." << std::endl;
 
     dimension                   = prm.get_integer("dimension");
 
@@ -129,25 +135,26 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
     if (conv_num_flux_string == "lax_friedrichs") conv_num_flux_type = lax_friedrichs;
-    else if (conv_num_flux_string == "split_form") conv_num_flux_type = split_form;
+    if (conv_num_flux_string == "split_form") conv_num_flux_type = split_form;
+    if (conv_num_flux_string == "roe") conv_num_flux_type = roe;
 
     const std::string diss_num_flux_string = prm.get("diss_num_flux");
     if (diss_num_flux_string == "symm_internal_penalty") diss_num_flux_type = symm_internal_penalty;
 
 
-    std::cout << "Parsing linear solver subsection..." << std::endl;
+    pcout << "Parsing linear solver subsection..." << std::endl;
     linear_solver_param.parse_parameters (prm);
 
-    std::cout << "Parsing ODE solver subsection..." << std::endl;
+    pcout << "Parsing ODE solver subsection..." << std::endl;
     ode_solver_param.parse_parameters (prm);
 
-    std::cout << "Parsing manufactured convergence study subsection..." << std::endl;
+    pcout << "Parsing manufactured convergence study subsection..." << std::endl;
     manufactured_convergence_study_param.parse_parameters (prm);
 
-    std::cout << "Parsing euler subsection..." << std::endl;
+    pcout << "Parsing euler subsection..." << std::endl;
     euler_param.parse_parameters (prm);
 
-    std::cout << "Done parsing." << std::endl;
+    pcout << "Done parsing." << std::endl;
 }
 
 } // Parameters namespace

@@ -1,0 +1,18 @@
+cmake \
+../ \
+-DCMAKE_INSTALL_PREFIX=/home/ddong/Libraries/dealii/install \
+-DDEAL_II_COMPONENT_DOCUMENTATION=ON \
+-DDEAL_II_WITH_MPI=ON \
+-DCMAKE_CXX_COMPILER=mpicxx \
+-DCMAKE_CXX_GLAFS=-march=native \
+-DCMAKE_C_COMPILER=mpicc \
+-DCMAKE_Fortran_COMPILER= \
+-DDEAL_II_ALLOW_BUNDLED=ON \
+-DDEAL_II_WITH_GMSH=ON \
+-DDEAL_II_WITH_CXX17=ON \
+-DDEAL_II_WITH_OPENCASCADE=ON \
+-DDEAL_II_WITH_METIS=ON \
+-DDEAL_II_WITH_TRILINOS=ON \
+-DDEAL_II_WITH_P4EST=ON \
+-DP4EST_DIR=/home/ddong/Libraries/p4est/install \
+#-DTRILINOS_DIR=/home/ddong/Libraries/Trilinos/install-dealii

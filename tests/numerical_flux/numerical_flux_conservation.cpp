@@ -1,3 +1,4 @@
+#include <deal.II/base/mpi.h>
 #include <deal.II/base/tensor.h>
 
 #include "parameters/all_parameters.h"
@@ -10,30 +11,7 @@ using ConvType = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;
 using DissType = PHiLiP::Parameters::AllParameters::DissipativeNumericalFlux;
 
 
-const double TOLERANCE = 1E-12;
-
-template<int dim, int nstate>
-void set_solution (
-    std::array<double, nstate>               &soln_int, 
-    std::array<double, nstate>               &soln_ext,
-    std::array<dealii::Tensor<1,dim,double>, nstate> &soln_grad_int,
-    std::array<dealii::Tensor<1,dim,double>, nstate> &soln_grad_ext,
-    dealii::Tensor<1,dim,double>                     &normal_int)
-{
-    for (int d=0; d<dim; d++) {
-        normal_int[d] = 1;
-    }
-
-    for (int s=0; s<nstate; s++) {
-        soln_int[s] = exp(s+exp(1));
-        soln_ext[s] = sin(s-atan(1));
-
-        for (int d=0; d<dim; d++) {
-            soln_grad_int[s][d] = d*exp(s+d*exp(1));
-            soln_grad_ext[s][d] = sin(d*s-atan(1))/(d+0.1);
-        }
-    }
-}
+#define TOLERANCE 1E-12
 
 template<int dim, int nstate>
 void compare_array ( const std::array<double, nstate> &array1, const std::array<double, nstate> &array2, double scale2)
@@ -128,7 +106,7 @@ int test_dissipative_numerical_flux_consistency (const PHiLiP::Parameters::AllPa
     dealii::Point<dim> point_1;
     dealii::Point<dim> point_2;
     for(int d=0; d<dim; d++) {
-        point_1[d] = 0;
+        point_1[d] = 0.9;
         point_2[d] = 1;
     }
     for(int s=0; s<nstate; s++) {
@@ -183,11 +161,10 @@ int test_convective_numerical_flux_conservation (const PHiLiP::Parameters::AllPa
     dealii::Tensor<1,dim,double> normal_int;
     std::array<double, nstate> soln_int, soln_ext;
     std::array<dealii::Tensor<1,dim,double>, nstate> soln_grad_int, soln_grad_ext;
-    //set_solution<dim,nstate> (soln_int, soln_ext, soln_grad_int, soln_grad_ext, normal_int);
     dealii::Point<dim> point_1;
     dealii::Point<dim> point_2;
     for(int d=0; d<dim; d++) {
-        point_1[d] = 0;
+        point_1[d] = 0.9;
         point_2[d] = 1;
     }
     for(int s=0; s<nstate; s++) {
@@ -221,11 +198,10 @@ int test_convective_numerical_flux_consistency (const PHiLiP::Parameters::AllPar
     dealii::Tensor<1,dim,double> normal_int;
     std::array<double, nstate> soln_int, soln_ext;
     std::array<dealii::Tensor<1,dim,double>, nstate> soln_grad_int, soln_grad_ext;
-    //set_solution<dim,nstate> (soln_int, soln_ext, soln_grad_int, soln_grad_ext, normal_int);
     dealii::Point<dim> point_1;
     dealii::Point<dim> point_2;
     for(int d=0; d<dim; d++) {
-        point_1[d] = 0;
+        point_1[d] = 0.9;
         point_2[d] = 1;
     }
     for(int s=0; s<nstate; s++) {
@@ -255,8 +231,9 @@ int test_convective_numerical_flux_consistency (const PHiLiP::Parameters::AllPar
     return 0;
 }
 
-int main (int /*argc*/, char * /*argv*/[])
+int main (int argc, char * argv[])
 {
+    dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
     const std::vector<PDEType> pde_type {
         PDEType::advection,
         PDEType::diffusion,
@@ -267,19 +244,27 @@ int main (int /*argc*/, char * /*argv*/[])
     };
 
     std::vector<ConvType> conv_type {
-        ConvType::lax_friedrichs
+        ConvType::lax_friedrichs,
+        ConvType::roe
     };
     std::vector<DissType> diss_type {
         DissType::symm_internal_penalty
     };
 
     int success = 0;
+
+    dealii::ParameterHandler parameter_handler;
+    PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler);
     PHiLiP::Parameters::AllParameters all_parameters;
+    all_parameters.parse_parameters (parameter_handler);
+
     for (auto pde = pde_type.begin(); pde != pde_type.end() && success == 0; pde++) {
 
         all_parameters.pde_type = *pde;
 
         for (auto conv = conv_type.begin(); conv != conv_type.end() && success == 0; conv++) {
+
+            if((*conv == ConvType::roe) && (*pde!=PDEType::euler)) continue;
 
             all_parameters.conv_num_flux_type = *conv;
 

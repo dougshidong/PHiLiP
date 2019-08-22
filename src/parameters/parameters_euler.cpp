@@ -13,7 +13,7 @@ void EulerParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("reference_length", "1.0",
                           dealii::Patterns::Double(),
                           "Reference length for non-dimensionalization.");
-        prm.declare_entry("mach_infinity", "1.0",
+        prm.declare_entry("mach_infinity", "0.5",
                           dealii::Patterns::Double(1e-15, 10),
                           "Farfield Mach number");
         prm.declare_entry("gamma_gas", "1.4",

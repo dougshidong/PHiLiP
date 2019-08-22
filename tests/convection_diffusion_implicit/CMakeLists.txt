@@ -16,7 +16,7 @@ add_test(
 
 configure_file(3d_convection_diffusion_implicit.prm 3d_convection_diffusion_implicit.prm COPYONLY)
 add_test(
-  NAME 3D_CONVECTION_DIFFUSION_IMPLICIT_MANUFACTURED_SOLUTION
-  COMMAND ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3d_convection_diffusion_implicit.prm
+  NAME MPI_3D_CONVECTION_DIFFUSION_IMPLICIT_MANUFACTURED_SOLUTION
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3d_convection_diffusion_implicit.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )

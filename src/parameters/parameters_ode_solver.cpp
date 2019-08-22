@@ -14,6 +14,10 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           "State whether output from ODE solver should be printed. "
                           "Choices are <quiet|verbose>.");
 
+        prm.declare_entry("output_solution_every_x_steps", "-1",
+                          dealii::Patterns::Integer(-1,dealii::Patterns::Integer::max_int_value),
+                          "Outputs the solution every x steps in .vtk file");
+
         prm.declare_entry("ode_solver_type", "implicit",
                           dealii::Patterns::Selection("explicit|implicit"),
                           "Explicit or implicit solver"
@@ -30,10 +34,10 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           "Time step used in ODE solver.");
         prm.declare_entry("time_step_factor_residual", "0.0",
                           dealii::Patterns::Double(0,dealii::Patterns::Double::max_double_value),
-                          "Multiplies initial time-step by time_step_factor_residual*(-log10(residual_norm)).");
+                          "Multiplies initial time-step by time_step_factor_residual*(-log10(residual_norm_decrease)).");
         prm.declare_entry("time_step_factor_residual_exp", "1.0",
                           dealii::Patterns::Double(0,dealii::Patterns::Double::max_double_value),
-                          "Scales initial time step by pow(time_step_factor_residual*(-log10(residual_norm)),time_step_factor_residual_exp).");
+                          "Scales initial time step by pow(time_step_factor_residual*(-log10(residual_norm_decrease)),time_step_factor_residual_exp).");
 
         prm.declare_entry("print_iteration_modulo", "1",
                           dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
@@ -50,6 +54,8 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         const std::string output_string = prm.get("ode_output");
         if (output_string == "quiet")   ode_output = OutputEnum::quiet;
         if (output_string == "verbose") ode_output = OutputEnum::verbose;
+
+        output_solution_every_x_steps = prm.get_integer("output_solution_every_x_steps");
 
         const std::string solver_string = prm.get("ode_solver_type");
         if (solver_string == "explicit") ode_solver_type = ODESolverEnum::explicit_solver;

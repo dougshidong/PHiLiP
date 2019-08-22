@@ -1,6 +1,7 @@
 #ifndef __ALL_PARAMETERS_H__
 #define __ALL_PARAMETERS_H__
 
+#include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/parameter_handler.h>
 #include "parameters.h"
 #include "parameters/parameters_ode_solver.h"
@@ -81,8 +82,10 @@ public:
     /// Store the PDE type to be solved
     PartialDifferentialEquation pde_type;
 
-    /// Currently only Lax-Friedrichs can be used as an input parameter
-    enum ConvectiveNumericalFlux { lax_friedrichs, split_form };
+
+    /// Currently only Lax-Friedrichs, roe, and split_form can be used as an input parameter
+    enum ConvectiveNumericalFlux { lax_friedrichs, roe, split_form};
+
     /// Store convective flux type
     ConvectiveNumericalFlux conv_num_flux_type;
 
@@ -105,6 +108,9 @@ public:
 
     //FunctionParser<dim> initial_conditions;
     //BoundaryConditions  boundary_conditions[max_n_boundaries];
+protected:
+    dealii::ConditionalOStream pcout;
+
 };  
 
 } // Parameters namespace

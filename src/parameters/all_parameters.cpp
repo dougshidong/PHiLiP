@@ -64,7 +64,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                           " convection_diffusion | "
                           " advection_vector | "
                           " burgers_inviscid | "
-                          " euler"),
+                          " euler"
+                    	  " mhd"),
                       "The PDE we want to solve. "
                       "Choices are " 
                       " <advection | " 
@@ -72,7 +73,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  convection_diffusion | "
                       "  advection_vector | "
                       "  burgers_inviscid | "
-                      "  euler>.");
+                      "  euler | "
+				      "  mhd>.");
     prm.declare_entry("conv_num_flux", "lax_friedrichs",
                       dealii::Patterns::Selection("lax_friedrichs | roe | split_form"),
                       "Convective numerical flux. "

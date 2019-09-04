@@ -64,7 +64,8 @@ public:
         convection_diffusion,
         advection_vector,
         burgers_inviscid,
-        euler};
+        euler,
+		mhd};
 
     /// Possible boundary types, NOT IMPLEMENTED YET
     enum BoundaryType { 

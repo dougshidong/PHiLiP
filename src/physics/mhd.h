@@ -77,7 +77,7 @@ class MHD : public PhysicsBase <dim, nstate, real>
 {
 public:
     /// Constructor
-    MHD (const double ref_length, const double gamma_gas, const double mach_inf, const double angle_of_attack, const double side_slip_angle)
+    MHD (const double gamma_gas)
     : gam(gamma_gas)
     , gamm1(gam-1.0)
     {

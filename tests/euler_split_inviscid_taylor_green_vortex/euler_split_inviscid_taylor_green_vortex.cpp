@@ -11,6 +11,9 @@
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/grid_in.h>
 
+#include <deal.II/fe/mapping_q.h>
+
+
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
 #include "numerical_flux/numerical_flux.h"
@@ -41,15 +44,19 @@ public:
 
 
 private:
-	double compute_kinetic_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg);
+	double compute_kinetic_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg, unsigned int poly_degree);
 	double compute_quadrature_kinetic_energy(std::array<double,nstate> soln_at_q);
     const PHiLiP::Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
+    const MPI_Comm mpi_communicator;
+    dealii::ConditionalOStream pcout;
 };
 
 template <int dim, int nstate>
 EulerTaylorGreen<dim, nstate>::EulerTaylorGreen(const PHiLiP::Parameters::AllParameters *const parameters_input)
 :
 all_parameters(parameters_input)
+, mpi_communicator(MPI_COMM_WORLD)
+, pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {}
 
 template <int dim, int nstate>
@@ -64,13 +71,16 @@ double EulerTaylorGreen<dim,nstate>::compute_quadrature_kinetic_energy(std::arra
 }
 
 template<int dim, int nstate>
-double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg)
+double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg, unsigned int poly_degree)
 {
 	// Overintegrate the error to make sure there is not integration error in the error estimate
 	int overintegrate = 10 ;//10;
-	dealii::QGauss<dim> quad_extra(dg->fe_system.tensor_degree()+overintegrate);
-	dealii::FEValues<dim,dim> fe_values_extra(dg->mapping, dg->fe_system, quad_extra,
-							dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+	dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
+	            dealii::FEValues<dim,dim> fe_values_extra(dealii::MappingQ<dim>(dg->max_degree+overintegrate), dg->fe_collection[poly_degree], quad_extra,
+	            dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+//	dealii::QGauss<dim> quad_extra(dg->fe_system.tensor_degree()+overintegrate);
+//	dealii::FEValues<dim,dim> fe_values_extra(dg->mapping, dg->fe_system, quad_extra,
+//							dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
 	const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
 	std::array<double,nstate> soln_at_q;
 
@@ -115,7 +125,8 @@ double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(std::shared_ptr < P
 template <int dim, int nstate>
 int EulerTaylorGreen<dim, nstate>::run_test()
 {
-	dealii::Triangulation<dim> grid;
+	//dealii::Triangulation<dim> grid;
+	dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator);
 
 	double left = 0.0;
 	double right = 2 * dealii::numbers::PI;
@@ -189,7 +200,7 @@ int EulerTaylorGreen<dim, nstate>::run_test()
 	for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
 	{
 		ode_solver->advance_solution_time(dt);
-		double current_energy = compute_kinetic_energy(dg);
+		double current_energy = compute_kinetic_energy(dg,poly_degree);
 		std::cout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
 		myfile << i * dt << " " << current_energy << std::endl;
 

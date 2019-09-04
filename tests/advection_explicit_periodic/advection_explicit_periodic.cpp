@@ -42,19 +42,24 @@ public:
 
 private:
     const PHiLiP::Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
+    const MPI_Comm mpi_communicator;
+    dealii::ConditionalOStream pcout;
 };
 
 template <int dim, int nstate>
 AdvectionPeriodic<dim, nstate>::AdvectionPeriodic(const PHiLiP::Parameters::AllParameters *const parameters_input)
 :
 all_parameters(parameters_input)
+, mpi_communicator(MPI_COMM_WORLD)
+, pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {}
 
 
 template <int dim, int nstate>
 int AdvectionPeriodic<dim, nstate>::run_test()
 {
-	dealii::Triangulation<dim> grid;
+	//dealii::Triangulation<dim> grid;
+	dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator);
 
 	double left = 0.0;
 	double right = 2.0;

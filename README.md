@@ -20,12 +20,12 @@ Please consult the [installation instructions](INSTALL.md) for details concernin
 
 ### Build using CMake
 
-An out-of-source build must be performed using the [sample scripts](cmake/run) by executing the
-appropriate bash script. For example, to configure for the debug build:
+This must be build out-of-source. An in-source build is likely to fail. For example, to configure for the debug build:
 ```sh
-$ ROOT$ mkdir build
-$ ROOT$ cd build
-$ ROOT$ cmake -DDEAL_II_DIR=/path_to_dealii_install/ ../
+$ ROOT$ export PHILIP_DIR=/path_to_PHiLiP/
+$ ROOT$ mkdir build_debug
+$ ROOT$ cd build_debug
+$ ROOT$ cmake -DDEAL_II_DIR=/path_to_dealii_install/ $PHILIP_DIR
 ```
 
 ### Compile using Make

@@ -4,7 +4,6 @@
 #include "viscous_numerical_flux.h"
 #include "split_form_numerical_flux.h"
 
-
 namespace PHiLiP {
 namespace NumericalFlux {
 

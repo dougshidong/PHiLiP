@@ -249,7 +249,7 @@ protected:
     std::tuple< dealii::hp::MappingCollection<dim>, dealii::hp::FECollection<dim>,
                 dealii::hp::QCollection<dim>, dealii::hp::QCollection<dim-1>, dealii::hp::QCollection<1>,
                 dealii::hp::FECollection<dim> >
-                create_collection_tuple(const unsigned int max_degree, const int nstate) const;
+                create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const;
 
     /// Evaluate the integral over the cell volume
     virtual void assemble_volume_terms_implicit(

@@ -95,7 +95,7 @@ DGBase<dim,real>::DGBase( // @suppress("Class members should be properly initial
     const int nstate_input,
     const Parameters::AllParameters *const parameters_input,
     const unsigned int max_degree_input)
-    : DGBase<dim,real>(nstate_input, parameters_input, max_degree_input, this->create_collection_tuple(max_degree_input, nstate_input))
+    : DGBase<dim,real>(nstate_input, parameters_input, max_degree_input, this->create_collection_tuple(max_degree_input, nstate_input, parameters_input))
 { }
 
 template <int dim, typename real>
@@ -128,7 +128,7 @@ template <int dim, typename real>
 std::tuple< dealii::hp::MappingCollection<dim>, dealii::hp::FECollection<dim>,
             dealii::hp::QCollection<dim>, dealii::hp::QCollection<dim-1>, dealii::hp::QCollection<1>,
             dealii::hp::FECollection<dim> >
-DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const int nstate) const
+DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const
 {
     dealii::hp::MappingCollection<dim> mapping_coll;
     dealii::hp::FECollection<dim>      fe_coll;
@@ -149,11 +149,11 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
 
         //
 
-        const dealii::Quadrature<1>     oned_quad(degree+1);
-        const dealii::Quadrature<dim>   volume_quad(degree+1);
-        const dealii::Quadrature<dim-1> face_quad(degree+1);
+        dealii::Quadrature<1>     oned_quad(degree+1);
+        dealii::Quadrature<dim>   volume_quad(degree+1);
+        dealii::Quadrature<dim-1> face_quad(degree+1); //removed const
 
-        if (all_parameters->use_collocated_nodes)
+        if (parameters_input->use_collocated_nodes)
         	{
         		dealii::QGaussLobatto<1> oned_quad_Gauss_Lobatto (degree+1);
         		dealii::QGaussLobatto<dim> vol_quad_Gauss_Lobatto (degree+1);
@@ -600,8 +600,6 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     //data_out.add_data_vector (solution, solution_names, dealii::DataOut<dim>::type_dof_data, data_component_interpretation);
 
     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
-    dealii::DataOut<dim> data_out;
-    data_out.attach_dof_handler (dof_handler);
     data_out.add_data_vector (solution, *post_processor);
 
     dealii::Vector<float> subdomain(triangulation->n_active_cells());

@@ -69,7 +69,7 @@ int ODESolver<dim,real>::steady_state ()
     update_norm = 1; // Always do at least 1 iteration
     this->current_iteration = 0;
 
-    this->dg->output_results_vtk(this->current_iteration);
+    if (ode_param.output_solution_every_x_steps >= 0) this->dg->output_results_vtk(this->current_iteration);
 
     pcout << " Evaluating right-hand side and setting system_matrix to Jacobian before starting iterations... " << std::endl;
     this->dg->assemble_residual ();

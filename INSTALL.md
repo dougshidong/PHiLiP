@@ -41,7 +41,7 @@ However, you can manually launch this program through the command line and chang
 
 Running ctest might take a while so, you may want to [request a computational node](https://docs.computecanada.ca/wiki/Running_jobs) before running
 ~~~~
-ctest -E MPI_2D_ADVECTION_EXPLICIT_MANUFACTURED_SOLUTION
+ctest
 ~~~~
 Note that you want to request at least as many processes as MPIMAX.
 

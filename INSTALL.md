@@ -2,8 +2,27 @@
 
 This section is aimed McGill's group who use Compute Canada's Beluga cluster.
 
-The deal.II library is already installed in `/project/rrg-nadaraja-ac/Libraries/dealii/install`. Therefore, simply put the following line in your .bashrc and source it.
+The deal.II library is already installed in `/project/rrg-nadaraja-ac/Libraries/dealii/install`. The required modules were installed by Bart Oldeman from Compute Canada's team through modules. Therefore, simply put the following line in your .bashrc and source it.
 ~~~~
+module purge
+module load gcc/7.3.0
+module load trilinos/12.12.1
+export TRILINOS_DIR=$EBROOTTRILINOS
+module load metis/5.1.0
+module load muparser/2.2.6
+module load boost-mpi/1.68.0
+module load p4est/2.0
+module load petsc/3.10.2
+export P4EST_DIR=$EBROOTP4EST
+module load slepc/3.10.2
+module load gmsh/4.0.7
+module load gsl/2.5
+module load cmake/3.12.3
+module load netcdf-mpi
+export METIS_DIR=$EBROOTMETIS
+export GSL_DIR=$EBROOTGSL
+export P4EST_DIR=$EBROOTP4EST
+
 export DEAL_II_DIR=/project/rrg-nadaraja-ac/Libraries/dealii/install
 ~~~~
 

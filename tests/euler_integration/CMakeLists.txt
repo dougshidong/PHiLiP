@@ -58,7 +58,7 @@ add_test(
 # configure_file(2d_euler_vortex.prm 2d_euler_vortex.prm COPYONLY)
 # add_test(
 #   NAME 2D_EULER_INTEGRATION_VORTEX
-#   COMMAND ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_vortex.prm
+#   mpirun -n 1 COMMAND ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_vortex.prm
 #   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 # )
 
@@ -66,13 +66,13 @@ add_test(
 #configure_file(2d_euler_entropy_waves.prm 2d_euler_entropy_waves.prm COPYONLY)
 #add_test(
 #  NAME 2D_EULER_INTEGRATION_ENTROPY_WAVES
-#  COMMAND ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_entropy_waves.prm
+#  mpirun -n 1 COMMAND ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_entropy_waves.prm
 #  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 #)
 
 #configure_file(3d_euler_laxfriedrichs_manufactured.prm 3d_euler_laxfriedrichs_manufactured.prm COPYONLY)
 #add_test(
 #  NAME 3D_EULER_LAXFRIEDRICHS_MANUFACTURED_SOLUTION
-#  COMMAND ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3d_euler_laxfriedrichs_manufactured.prm
+#  mpirun -n 1 COMMAND ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3d_euler_laxfriedrichs_manufactured.prm
 #  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 #)

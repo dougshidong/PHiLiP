@@ -23,7 +23,7 @@ foreach(dim RANGE 1 3)
 
     add_test(
       NAME ${TEST_TARGET}
-      COMMAND ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
+      COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
 
@@ -57,7 +57,7 @@ foreach(dim RANGE 1 3)
 
     add_test(
       NAME ${TEST_TARGET}
-      COMMAND ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
+      COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
 
@@ -91,7 +91,7 @@ foreach(dim RANGE 1 3)
 
     add_test(
       NAME ${TEST_TARGET}
-      COMMAND ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
+      COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
 

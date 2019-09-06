@@ -18,7 +18,7 @@ or
 git clone https://github.com/insertyourgithubname/PHiLiP
 ~~~~
 
-Afterwards, you can build the code and run its tests using
+Afterwards, you can build the code:
 ~~~~
 cd PHiLiP
 mkdir build_release
@@ -27,7 +27,6 @@ cd build_release
 cmake ../ -DCMAKE_BUILD_TYPE=Release -DMPIMAX=8
 make -j 6
 ~~~~
-
 Note that `CMAKE_BUILD_TYPE` defaults to `Debug` if left unspecified and `MPIMAX` defaults to 4 if left unspecified.  
 It is recommended to use the `Release` build most of the time for performance and switch to `Debug` as needed.
 The value of `MPIMAX` will determine the default number of processors `ctest` will use for the MPI jobs. You will still be able to run those tests with more than the speficied `MPIMAX` processors. For example,
@@ -36,9 +35,23 @@ ctest -R MPI_2D_EULER_INTEGRATION_CYLINDER -V
 ~~~~
 will launch 
 ~~~~
-/cvmfs/soft.computecanada.ca/easybuild/software/2017/avx512/Compiler/gcc7.3/openmpi/3.1.2/bin/mpirun "-np" "4" "/home/ddong/projects/rrg-nadaraja-ac/ddong/PHiLiP/build_release/bin/PHiLiP_2D" "-i" "/home/ddong/projects/rrg-nadaraja-ac/ddong/PHiLiP/build_release/tests/euler_integration/2d_euler_cylinder.prm"
+/cvmfs/soft.computecanada.ca/easybuild/software/2017/avx512/Compiler/gcc7.3/openmpi/3.1.2/bin/mpirun "-np" "8" "/home/ddong/projects/rrg-nadaraja-ac/ddong/PHiLiP/build_release/bin/PHiLiP_2D" "-i" "/home/ddong/projects/rrg-nadaraja-ac/ddong/PHiLiP/build_release/tests/euler_integration/2d_euler_cylinder.prm"
 ~~~~
-However, you can manually launch this program through the command line and changing the "4" to whatever number you want.
+However, you can manually launch this program through the command line and changing the "8" to whatever number you want.
+
+Running ctest might take a while so, you may want to [request a computational node](https://docs.computecanada.ca/wiki/Running_jobs) before running
+~~~~
+ctest -E MPI_2D_ADVECTION_EXPLICIT_MANUFACTURED_SOLUTION
+~~~~
+Note that you want to request at least as many processes as MPIMAX.
+
+Unless you absolutely want to run a steady explicit case, I would suggest disabling the MPI_2D_ADVECTION_EXPLICIT_MANUFACTURED_SOLUTION test through
+~~~~
+ctest -E MPI_2D_ADVECTION_EXPLICIT_MANUFACTURED_SOLUTION
+~~~~
+since it takes a very long time.
+
+If you have any questions, feel free to contact me.
 
 ## deal.II
 

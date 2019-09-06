@@ -21,7 +21,7 @@ subsection ODE solver
   # Simply do 20 explicit time steps and compare with exact solution
   set nonlinear_max_iterations = 1000
 
-  set output_solution_every_x_steps = 1
+  #set output_solution_every_x_steps = 1
 
   set initial_time_step = 0.0001
 

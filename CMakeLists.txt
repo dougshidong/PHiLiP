@@ -16,7 +16,7 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(CLEAN_UP_FILES ./bin/* ./CMakeCache.txt)
 
 # Find deal.ii library
-find_package(deal.II 9.1.1 QUIET
+find_package(deal.II 9.0.1 QUIET
   HINTS ${DEAL_II_DIR} ../ ../../ $ENV{DEAL_II_DIR}
   )
 IF(NOT ${deal.II_FOUND})
@@ -43,16 +43,16 @@ IF(NOT ${DEAL_II_WITH_METIS})
 ENDIF()
 
 # Use ld.gold for faster linking
-option(USE_LD_GOLD "Use GNU gold linker" ON)
-if(USE_LD_GOLD AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
-  execute_process(COMMAND ${CMAKE_C_COMPILER} -fuse-ld=gold -Wl,--version OUTPUT_VARIABLE stdout ERROR_QUIET)
-  if("${stdout}" MATCHES "GNU gold")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-ld=gold")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fuse-ld=gold")
-  else()
-    message(WARNING "GNU gold linker isn't available, using the default system linker.")
-  endif()
-endif()
+# option(USE_LD_GOLD "Use GNU gold linker" ON)
+# if(USE_LD_GOLD AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+#   execute_process(COMMAND ${CMAKE_C_COMPILER} -fuse-ld=gold -Wl,--version OUTPUT_VARIABLE stdout ERROR_QUIET)
+#   if("${stdout}" MATCHES "GNU gold")
+#     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-ld=gold")
+#     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fuse-ld=gold")
+#   else()
+#     message(WARNING "GNU gold linker isn't available, using the default system linker.")
+#   endif()
+# endif()
 
 add_custom_target(1D COMMAND ${CMAKE_COMMAND} -E echo "Makes all 1D executables, including tests. Allows ctest -R 1D")
 add_custom_target(2D COMMAND ${CMAKE_COMMAND} -E echo "Makes all 2D executables, including tests. Allows ctest -R 2D")

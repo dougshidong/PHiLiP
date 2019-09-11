@@ -390,6 +390,9 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW)
 			} else if (current_face->at_boundary() && current_cell->has_periodic_neighbor(iface)){
 
 				neighbor_cell = current_cell->periodic_neighbor(iface);
+				//std::cout << "cell " << current_cell->index() << " at boundary" <<std::endl;
+				//std::cout << "periodic neighbour on face " << iface << " is " << neighbor_cell->index() << std::endl;
+
 
 				if (!current_cell->periodic_neighbor_is_coarser(iface) &&
 					(neighbor_cell->index() > current_cell->index() ||
@@ -400,7 +403,7 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW)
 					 n_face_visited++;
 					Assert (current_cell->periodic_neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
 
-					auto neighbor_cell = current_cell->periodic_neighbor(iface);
+
 					// Corresponding face of the neighbor.
 					// e.g. The 4th face of the current cell might correspond to the 3rd face of the neighbor
 					const unsigned int neighbor_face_no = current_cell->periodic_neighbor_of_periodic_neighbor(iface);
@@ -674,7 +677,7 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     data_out.add_data_vector (active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
 
-    assemble_residual (false);
+    //assemble_residual (false);
     std::vector<std::string> residual_names;
     for(int s=0;s<nstate;++s) {
         std::string varname = "residual" + dealii::Utilities::int_to_string(s,1);

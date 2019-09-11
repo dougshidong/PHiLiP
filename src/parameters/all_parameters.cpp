@@ -64,7 +64,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                           " convection_diffusion | "
                           " advection_vector | "
                           " burgers_inviscid | "
-                          " euler"
+                          " euler |"
                     	  " mhd"),
                       "The PDE we want to solve. "
                       "Choices are " 

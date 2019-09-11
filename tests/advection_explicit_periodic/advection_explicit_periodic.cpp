@@ -111,7 +111,7 @@ int AdvectionPeriodic<dim, nstate>::run_test()
 	std::string variables = "x,y";
 	std::map<std::string,double> constants;
 	constants["pi"] = dealii::numbers::PI;
-	std::string expression = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) ) )";
+	std::string expression = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) ) )";//"sin(pi*x)*sin(pi*y)";
 	initial_condition.initialize(variables,
 	                             expression,
 	                             constants);
@@ -119,7 +119,7 @@ int AdvectionPeriodic<dim, nstate>::run_test()
 	// Create ODE solver using the factory and providing the DG object
 	std::shared_ptr<PHiLiP::ODE::ODESolver<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
-	double finalTime = 5.;
+	double finalTime = 1.5;
 
 	//double dt = all_parameters->ode_solver_param.initial_time_step;
 	ode_solver->advance_solution_time(finalTime);

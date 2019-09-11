@@ -218,6 +218,19 @@ int main (int argc, char * argv[])
 	//parse parameters first
 	feenableexcept(FE_INVALID | FE_OVERFLOW); // catch nan
 	dealii::deallog.depth_console(99);
+		dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
+		const int n_mpi = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
+		const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+		dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
+		pcout << "Starting program with " << n_mpi << " processors..." << std::endl;
+		if ((PHILIP_DIM==1) && !(n_mpi==1)) {
+			std::cout << "********************************************************" << std::endl;
+			std::cout << "Can't use mpirun -np X, where X>1, for 1D." << std::endl
+					  << "Currently using " << n_mpi << " processors." << std::endl
+					  << "Aborting..." << std::endl;
+			std::cout << "********************************************************" << std::endl;
+			std::abort();
+		}
 	int test_error = 1;
 	try
 	{
@@ -235,7 +248,6 @@ int main (int argc, char * argv[])
 
         std::cout << "Starting program..." << std::endl;
 
-		dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
 		using namespace PHiLiP;
 		//const Parameters::AllParameters parameters_input;
 		EulerTaylorGreen<PHILIP_DIM, PHILIP_DIM+2> euler_test(&all_parameters);

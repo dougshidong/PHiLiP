@@ -53,8 +53,12 @@ public:
         euler_cylinder,
         euler_vortex,
         euler_entropy_waves,
+		euler_split_taylor_green,
         numerical_flux_convervation,
-        jacobian_regression};
+        jacobian_regression,
+    	burgers_split_form,
+    	advection_periodicity,
+    	};
     TestType test_type;
 
     /// Currently allows to solve advection, diffusion, convection-diffusion

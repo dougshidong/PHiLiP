@@ -61,6 +61,8 @@ public:
      *  DGBase cannot use nstate as a compile-time known.  */
     const unsigned int max_degree;
 
+
+
     /// Pointer to all parameters
     const Parameters::AllParameters *const all_parameters;
 
@@ -368,6 +370,8 @@ public:
     ~DGWeak();
 
 private:
+
+
     /// Contains the physics of the PDE
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<real> > > pde_physics;
     /// Convective numerical flux

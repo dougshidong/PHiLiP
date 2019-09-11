@@ -75,13 +75,13 @@ std::array<real, nstate> LaxFriedrichs<dim,nstate,real>
     
     RealArrayVector flux_avg = array_average<nstate, dealii::Tensor<1,dim,real>> (conv_phys_flux_int, conv_phys_flux_ext);
 
-    //const real conv_max_eig_int = pde_physics->max_convective_eigenvalue(soln_int);
-    //const real conv_max_eig_ext = pde_physics->max_convective_eigenvalue(soln_ext);
-    //const real conv_max_eig = std::max(conv_max_eig_int, conv_max_eig_ext);
+    const real conv_max_eig_int = pde_physics->max_convective_eigenvalue(soln_int);
+    const real conv_max_eig_ext = pde_physics->max_convective_eigenvalue(soln_ext);
+    const real conv_max_eig = std::max(conv_max_eig_int, conv_max_eig_ext);
     // Scalar dissipation
     std::array<real, nstate> numerical_flux_dot_n;
     for (int s=0; s<nstate; s++) {
-        numerical_flux_dot_n[s] = flux_avg[s]*normal_int /*- 0.5 * conv_max_eig * (soln_ext[s]-soln_int[s])*/;
+        numerical_flux_dot_n[s] = flux_avg[s]*normal_int - 0.5 * conv_max_eig * (soln_ext[s]-soln_int[s]);
     }
 
     return numerical_flux_dot_n;

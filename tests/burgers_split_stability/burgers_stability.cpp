@@ -65,6 +65,10 @@ double BurgersEnergyStability<dim, nstate>::compute_energy(std::shared_ptr < PHi
 template <int dim, int nstate>
 int BurgersEnergyStability<dim, nstate>::run_test()
 {
+//	dealii::Triangulation<dim> grid(
+//	                typename dealii::Triangulation<dim>::MeshSmoothing(
+//	                    dealii::Triangulation<dim>::smoothing_on_refinement |
+//	                    dealii::Triangulation<dim>::smoothing_on_coarsening));
 	dealii::Triangulation<dim> grid;
 
 	double left = 0.0;
@@ -74,8 +78,9 @@ int BurgersEnergyStability<dim, nstate>::run_test()
 	unsigned int poly_degree = 7;
 	dealii::GridGenerator::hyper_cube(grid, left, right, colorize);
 	grid.refine_global(n_refinements);
-
+	std::cout << "Grid generated and refined" << std::endl;
 	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree);
+	std::cout << "dg created" <<std::endl;
 	dg->set_triangulation(&grid);
 	dg->allocate_system ();
 
@@ -95,33 +100,34 @@ int BurgersEnergyStability<dim, nstate>::run_test()
 	double finalTime = 3.;
 
 	double dt = all_parameters->ode_solver_param.initial_time_step;
+	(void) dt;
 
 	//need to call ode_solver before calculating energy because mass matrix isn't allocated yet.
 
-	ode_solver->advance_solution_time(0.000001);
-	double initial_energy = compute_energy(dg);
+	//ode_solver->advance_solution_time(0.000001);
+	//double initial_energy = compute_energy(dg);
 
 	//currently the only way to calculate energy at each time-step is to advance solution by dt instead of finaltime
 	//this causes some issues with outputs (only one file is output, which is overwritten at each time step)
 	//also the ode solver output doesn't make sense (says "iteration 1 out of 1")
 	//but it works. I'll keep it for now and need to modify the output functions later to account for this.
-	std::ofstream myfile ("energy_plot.gpl" , std::ios::trunc);
+	//std::ofstream myfile ("energy_plot.gpl" , std::ios::trunc);
 
-	for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
-	{
-		ode_solver->advance_solution_time(dt);
-		double current_energy = compute_energy(dg);
-		std::cout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
-		myfile << i * dt << " " << current_energy << std::endl;
-		if (current_energy - initial_energy >= 0.001)
-		{
-			return 1;
-		}
-	}
-	myfile.close();
+//	for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
+//	{
+//		ode_solver->advance_solution_time(dt);
+//		double current_energy = compute_energy(dg);
+//		std::cout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
+//		myfile << i * dt << " " << current_energy << std::endl;
+//		if (current_energy - initial_energy >= 0.001)
+//		{
+//			return 1;
+//		}
+//	}
+//	myfile.close();
 
 
-	//ode_solver->advance_solution_time(finalTime);
+	ode_solver->advance_solution_time(finalTime);
 
 	return 0; //need to change
 }
@@ -130,7 +136,22 @@ int main (int argc, char * argv[])
 {
 	//parse parameters first
 	feenableexcept(FE_INVALID | FE_OVERFLOW); // catch nan
+
 	dealii::deallog.depth_console(99);
+	dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
+	const int n_mpi = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
+	const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+	dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
+	pcout << "Starting program with " << n_mpi << " processors..." << std::endl;
+	if ((PHILIP_DIM==1) && !(n_mpi==1)) {
+		std::cout << "********************************************************" << std::endl;
+		std::cout << "Can't use mpirun -np X, where X>1, for 1D." << std::endl
+				  << "Currently using " << n_mpi << " processors." << std::endl
+				  << "Aborting..." << std::endl;
+		std::cout << "********************************************************" << std::endl;
+		std::abort();
+	}
+
 	int test_error = 1;
 	try
 	{
@@ -148,10 +169,10 @@ int main (int argc, char * argv[])
 
         std::cout << "Starting program..." << std::endl;
 
-		dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
-		using namespace PHiLiP;
+		//using namespace PHiLiP;
 		//const Parameters::AllParameters parameters_input;
-		BurgersEnergyStability<PHILIP_DIM, 1> burgers_test(&all_parameters);
+		BurgersEnergyStability<PHILIP_DIM, PHILIP_DIM> burgers_test(&all_parameters);
+		std::cout << "Running test" <<std::endl;
 		int i = burgers_test.run_test();
 		return i;
 	}

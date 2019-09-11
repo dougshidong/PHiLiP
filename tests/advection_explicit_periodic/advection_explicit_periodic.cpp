@@ -58,8 +58,16 @@ all_parameters(parameters_input)
 template <int dim, int nstate>
 int AdvectionPeriodic<dim, nstate>::run_test()
 {
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+            dealii::Triangulation<dim> grid(
+                typename dealii::Triangulation<dim>::MeshSmoothing(
+                    dealii::Triangulation<dim>::smoothing_on_refinement |
+                    dealii::Triangulation<dim>::smoothing_on_coarsening));
+#else
+            dealii::parallel::distributed::Triangulation<dim> grid(
+                this->mpi_communicator);
+#endif
 	//dealii::Triangulation<dim> grid;
-	dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator);
 
 	double left = 0.0;
 	double right = 2.0;
@@ -68,7 +76,7 @@ int AdvectionPeriodic<dim, nstate>::run_test()
 	unsigned int poly_degree = 2;
 	dealii::GridGenerator::hyper_cube(grid, left, right, colorize);
 
-	std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
+	std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
 		dealii::GridTools::collect_periodic_faces(grid,0,1,0,matched_pairs);
 		dealii::GridTools::collect_periodic_faces(grid,2,3,1,matched_pairs);
 		//dealii::GridTools::collect_periodic_faces(grid,4,5,2,matched_pairs);
@@ -79,6 +87,24 @@ int AdvectionPeriodic<dim, nstate>::run_test()
 	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree);
 	dg->set_triangulation(&grid);
 	dg->allocate_system ();
+
+//	for (auto current_cell = dg->dof_handler.begin_active(); current_cell != dg->dof_handler.end(); ++current_cell) {
+//		 if (!current_cell->is_locally_owned()) continue;
+//
+//		 dg->fe_values_volume.reinit(current_cell);
+//		 int cell_index = current_cell->index();
+//		 std::cout << "cell number " << cell_index << std::endl;
+//		 for (unsigned int face_no = 0; face_no < dealii::GeometryInfo<PHILIP_DIM>::faces_per_cell; ++face_no)
+//		 {
+//			 if (current_cell->face(face_no)->at_boundary())
+//		     {
+//				 std::cout << "face " << face_no << " is at boundary" << std::endl;
+//		         typename dealii::DoFHandler<PHILIP_DIM>::active_cell_iterator neighbor = current_cell->neighbor_or_periodic_neighbor(face_no);
+//		         std::cout << "the neighbor is " << neighbor->index() << std::endl;
+//		     }
+//		 }
+//
+//	}
 
 	std::cout << "Implement initial conditions" << std::endl;
 	dealii::FunctionParser<2> initial_condition;
@@ -106,6 +132,19 @@ int main (int argc, char * argv[])
 	//parse parameters first
 	feenableexcept(FE_INVALID | FE_OVERFLOW); // catch nan
 	dealii::deallog.depth_console(99);
+		dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
+		const int n_mpi = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
+		const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+		dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
+		pcout << "Starting program with " << n_mpi << " processors..." << std::endl;
+		if ((PHILIP_DIM==1) && !(n_mpi==1)) {
+			std::cout << "********************************************************" << std::endl;
+			std::cout << "Can't use mpirun -np X, where X>1, for 1D." << std::endl
+					  << "Currently using " << n_mpi << " processors." << std::endl
+					  << "Aborting..." << std::endl;
+			std::cout << "********************************************************" << std::endl;
+			std::abort();
+		}
 	int test_error = 1;
 	try
 	{
@@ -123,7 +162,6 @@ int main (int argc, char * argv[])
 
         std::cout << "Starting program..." << std::endl;
 
-		dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
 		using namespace PHiLiP;
 		//const Parameters::AllParameters parameters_input;
 		AdvectionPeriodic<PHILIP_DIM, 1> advection_test(&all_parameters);

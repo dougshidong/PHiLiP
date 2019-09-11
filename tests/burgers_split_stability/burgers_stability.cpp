@@ -100,34 +100,35 @@ int BurgersEnergyStability<dim, nstate>::run_test()
 	double finalTime = 3.;
 
 	double dt = all_parameters->ode_solver_param.initial_time_step;
-	(void) dt;
+	//(void) dt;
 
 	//need to call ode_solver before calculating energy because mass matrix isn't allocated yet.
 
-	//ode_solver->advance_solution_time(0.000001);
-	//double initial_energy = compute_energy(dg);
+	ode_solver->advance_solution_time(0.000001);
+	double initial_energy = compute_energy(dg);
 
 	//currently the only way to calculate energy at each time-step is to advance solution by dt instead of finaltime
 	//this causes some issues with outputs (only one file is output, which is overwritten at each time step)
 	//also the ode solver output doesn't make sense (says "iteration 1 out of 1")
 	//but it works. I'll keep it for now and need to modify the output functions later to account for this.
-	//std::ofstream myfile ("energy_plot.gpl" , std::ios::trunc);
+	std::ofstream myfile ("energy_plot.gpl" , std::ios::trunc);
 
-//	for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
-//	{
-//		ode_solver->advance_solution_time(dt);
-//		double current_energy = compute_energy(dg);
-//		std::cout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
-//		myfile << i * dt << " " << current_energy << std::endl;
-//		if (current_energy - initial_energy >= 0.001)
-//		{
-//			return 1;
-//		}
-//	}
-//	myfile.close();
+	for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
+	{
+		ode_solver->advance_solution_time(dt);
+		double current_energy = compute_energy(dg);
+		std::cout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
+		myfile << i * dt << " " << current_energy << std::endl;
+		if (current_energy - initial_energy >= 0.001)
+		{
+			return 1;
+			break;
+		}
+	}
+	myfile.close();
 
 
-	ode_solver->advance_solution_time(finalTime);
+	//ode_solver->advance_solution_time(finalTime);
 
 	return 0; //need to change
 }

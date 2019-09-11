@@ -2,11 +2,11 @@
 # Number of dimensions
 set dimension = 2
 
-set use_weak_form = false
+set use_weak_form = true
 
-set use_collocated_nodes = true
+set use_collocated_nodes = false
 
-set use_split_form = true
+set use_split_form = false
 
 set use_periodic_bc = true
 
@@ -21,7 +21,7 @@ subsection ODE solver
   
   set nonlinear_max_iterations = 500
 
-  set print_iteration_modulo = 10
+  set print_iteration_modulo = 100
 
   set ode_solver_type = explicit
 

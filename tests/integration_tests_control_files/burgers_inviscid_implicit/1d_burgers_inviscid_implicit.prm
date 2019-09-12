@@ -5,7 +5,7 @@ set dimension = 1
 
 # The PDE we want to solve. Choices are
 # <diffusion|diffusion|convection_diffusion>.
-set pde_type  = burgers_inviscid
+set pde_type  = burgers_inviscid 
 
 subsection ODE solver
   # Maximum nonlinear solver iterations

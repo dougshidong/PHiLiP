@@ -1,6 +1,7 @@
 set(FLUX_SOURCE
     viscous_numerical_flux.cpp
     numerical_flux.cpp
+    split_form_numerical_flux.cpp
     )
 
 foreach(dim RANGE 1 3)

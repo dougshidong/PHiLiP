@@ -44,6 +44,10 @@ public:
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
         const std::array<real,nstate> &solution) const = 0;
 
+    /// Convective Numerical Split Flux for split form
+    virtual std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
+            const std::array<real,nstate> &soln_const, const std::array<real,nstate> &soln_loop) const = 0;
+
     /// Spectral radius of convective term Jacobian.
     /// Used for scalar dissipation
     virtual std::array<real,nstate> convective_eigenvalues (
@@ -114,9 +118,6 @@ protected:
      */
     dealii::Tensor<2,dim,double> diffusion_tensor;
 };
-
-
-
 } // Physics namespace
 } // PHiLiP namespace
 

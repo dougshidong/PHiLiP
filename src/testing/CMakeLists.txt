@@ -1,6 +1,7 @@
 set(TESTS_SOURCE
     tests.cpp
     grid_study.cpp
+    burgers_stability.cpp
     euler_gaussian_bump.cpp
     euler_cylinder.cpp
     euler_vortex.cpp
@@ -26,7 +27,7 @@ foreach(dim RANGE 1 3)
     # Setup target with deal.II
     DEAL_II_SETUP_TARGET(${TestsLib})
 
-    unset(Testsib)
+    unset(TestsLib)
     unset(DiscontinuousGalerkinLib)
     unset(ODESolverLib)
     unset(NumericalFluxLib)

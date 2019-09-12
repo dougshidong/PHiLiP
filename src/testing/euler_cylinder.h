@@ -16,8 +16,6 @@ template <int dim, int nstate>
 class EulerCylinder: public TestsBase
 {
 public:
-    /// Constructor. Deleted the default constructor since it should not be used
-    EulerCylinder () = delete;
     /// Constructor.
     /** Simply calls the TestsBase constructor to set its parameters = parameters_input
      */
@@ -39,7 +37,7 @@ public:
      *  
      *  Want to see entropy go to 0.
      */
-    int run_test () const;
+    int run_test () const override;
 
 };
 

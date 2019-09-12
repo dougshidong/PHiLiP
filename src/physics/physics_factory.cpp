@@ -5,6 +5,7 @@
 #include "convection_diffusion.h"
 #include "burgers.h"
 #include "euler.h"
+//#include "mhd.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -35,7 +36,9 @@ PhysicsFactory<dim,nstate,real>
                                                                ,parameters_input->euler_param.side_slip_angle);
         }
 
-    }
+    } //else if (pde_type == PDE_enum::mhd) {
+        //if constexpr (nstate == 2*dim + 2) return std::make_shared < MHD<dim,nstate,real> > ();
+   // }
     std::cout << "Can't create PhysicsBase, invalid PDE type: " << pde_type << std::endl;
     assert(0==1 && "Can't create PhysicsBase, invalid PDE type");
     return nullptr;

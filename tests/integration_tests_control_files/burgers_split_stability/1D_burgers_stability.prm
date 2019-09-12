@@ -1,5 +1,5 @@
-# -------------------
-# Number of dimensions
+set test_type = burgers_energy_stability
+
 set dimension = 1
 
 set use_weak_form = false
@@ -10,7 +10,6 @@ set use_split_form = true
 
 set use_periodic_bc = true
 
-# The PDE we want to solve
 set pde_type = burgers_inviscid
 
 set conv_num_flux = split_form

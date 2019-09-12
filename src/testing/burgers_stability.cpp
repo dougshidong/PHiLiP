@@ -11,48 +11,23 @@
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/grid_in.h>
 
+#include "burgers_stability.h"
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
-#include "numerical_flux/numerical_flux.h"
-#include "physics/physics_factory.h"
-#include "physics/physics.h"
 #include "dg/dg.h"
 #include "ode_solver/ode_solver.h"
 
-#include<fenv.h>
 
-//using PDEType  = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
-//using ConvType = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;
-//using DissType = PHiLiP::Parameters::AllParameters::DissipativeNumericalFlux;
-//
-//
-//const double TOLERANCE = 1E-12;
-
-
-template <int dim, int nstate>
-class BurgersEnergyStability
-{
-public:
-	BurgersEnergyStability() = delete;
-	BurgersEnergyStability(const PHiLiP::Parameters::AllParameters *const parameters_input);
-	int run_test();
-
-
-
-
-private:
-	double compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg);
-    const PHiLiP::Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
-};
+namespace PHiLiP {
+namespace Tests {
 
 template <int dim, int nstate>
 BurgersEnergyStability<dim, nstate>::BurgersEnergyStability(const PHiLiP::Parameters::AllParameters *const parameters_input)
-:
-all_parameters(parameters_input)
+: TestsBase::TestsBase(parameters_input)
 {}
 
 template<int dim, int nstate>
-double BurgersEnergyStability<dim, nstate>::compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg)
+double BurgersEnergyStability<dim, nstate>::compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const
 {
 	double energy = 0.0;
 	for (unsigned int i = 0; i < dg->solution.size(); ++i)
@@ -63,8 +38,9 @@ double BurgersEnergyStability<dim, nstate>::compute_energy(std::shared_ptr < PHi
 }
 
 template <int dim, int nstate>
-int BurgersEnergyStability<dim, nstate>::run_test()
+int BurgersEnergyStability<dim, nstate>::run_test() const
 {
+    pcout << " Running Burgers energy stability. " << std::endl;
 //	dealii::Triangulation<dim> grid(
 //	                typename dealii::Triangulation<dim>::MeshSmoothing(
 //	                    dealii::Triangulation<dim>::smoothing_on_refinement |
@@ -78,13 +54,13 @@ int BurgersEnergyStability<dim, nstate>::run_test()
 	unsigned int poly_degree = 7;
 	dealii::GridGenerator::hyper_cube(grid, left, right, colorize);
 	grid.refine_global(n_refinements);
-	std::cout << "Grid generated and refined" << std::endl;
+	pcout << "Grid generated and refined" << std::endl;
 	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree);
-	std::cout << "dg created" <<std::endl;
+	pcout << "dg created" <<std::endl;
 	dg->set_triangulation(&grid);
 	dg->allocate_system ();
 
-	std::cout << "Implement initial conditions" << std::endl;
+	pcout << "Implement initial conditions" << std::endl;
 	dealii::FunctionParser<1> initial_condition;
 	std::string variables = "x";
 	std::map<std::string,double> constants;
@@ -117,7 +93,7 @@ int BurgersEnergyStability<dim, nstate>::run_test()
 	{
 		ode_solver->advance_solution_time(dt);
 		double current_energy = compute_energy(dg);
-		std::cout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
+		pcout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
 		myfile << i * dt << " " << current_energy << std::endl;
 		if (current_energy - initial_energy >= 0.001)
 		{
@@ -132,81 +108,8 @@ int BurgersEnergyStability<dim, nstate>::run_test()
 
 	return 0; //need to change
 }
-
-int main (int argc, char * argv[])
-{
-	//parse parameters first
-	feenableexcept(FE_INVALID | FE_OVERFLOW); // catch nan
-
-	dealii::deallog.depth_console(99);
-	dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
-	const int n_mpi = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
-	const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
-	dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
-	pcout << "Starting program with " << n_mpi << " processors..." << std::endl;
-	if ((PHILIP_DIM==1) && !(n_mpi==1)) {
-		std::cout << "********************************************************" << std::endl;
-		std::cout << "Can't use mpirun -np X, where X>1, for 1D." << std::endl
-				  << "Currently using " << n_mpi << " processors." << std::endl
-				  << "Aborting..." << std::endl;
-		std::cout << "********************************************************" << std::endl;
-		std::abort();
-	}
-
-	int test_error = 1;
-	try
-	{
-        // Declare possible inputs
-        dealii::ParameterHandler parameter_handler;
-        PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler);
-        PHiLiP::Parameters::parse_command_line (argc, argv, parameter_handler);
-
-        // Read inputs from parameter file and set those values in AllParameters object
-        PHiLiP::Parameters::AllParameters all_parameters;
-        std::cout << "Reading input..." << std::endl;
-        all_parameters.parse_parameters (parameter_handler);
-
-        AssertDimension(all_parameters.dimension, PHILIP_DIM);
-
-        std::cout << "Starting program..." << std::endl;
-
-		//using namespace PHiLiP;
-		//const Parameters::AllParameters parameters_input;
-		BurgersEnergyStability<PHILIP_DIM, PHILIP_DIM> burgers_test(&all_parameters);
-		std::cout << "Running test" <<std::endl;
-		int i = burgers_test.run_test();
-		return i;
-	}
-	catch (std::exception &exc)
-	{
-		std::cerr << std::endl << std::endl
-				  << "----------------------------------------------------"
-				  << std::endl
-				  << "Exception on processing: " << std::endl
-	          	  << exc.what() << std::endl
-	          	  << "Aborting!" << std::endl
-	          	  << "----------------------------------------------------"
-	          	  << std::endl;
-		return 1;
-	}
-
-	catch (...)
-	{
-	    std::cerr << std::endl
-	              << std::endl
-	              << "----------------------------------------------------"
-	              << std::endl
-	              << "Unknown exception!" << std::endl
-	              << "Aborting!" << std::endl
-	              << "----------------------------------------------------"
-	              << std::endl;
-	    return 1;
-	}
-	std::cout << "End of program." << std::endl;
-	return test_error;
-}
-
-
-
-
-
+#if PHILIP_DIM==1
+    template class BurgersEnergyStability<PHILIP_DIM,PHILIP_DIM>;
+#endif
+} // Tests namespace
+} // PHiLiP namespace

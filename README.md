@@ -65,8 +65,42 @@ Additional useful commands are:
 ```sh
 ROOT$ ctest -N (List the tests that would be run but not actually run them)
 ROOT$ ctest -R <regex> (Run tests matching regular expression)
+ROOT$ ctest -E <regex> (Exclude tests matching regular expression)
 ROOT$ ctest -V (Enable verbose output from tests)
 ```
+
+## Debugging
+
+Here is a quickstart guide to debugging. It is highly suggested to use gdb and/or valgrind when the program crashes unexpectedly.
+The first step is to compile the program in `DEBUG` mode through `CMAKE_BUILD_TYPE=Debug`.
+
+If ctest fails, using `ctest -V -R failing_test_name` will show the command being run.
+
+For a serial run, you may simply use gdb as intended
+```sh
+ROOT$ gdb --args commmand_to_launch_test 
+GDB$ run (Executes the program. Can re-launch the program if you forgot to put breakpoints.)
+```
+For example `--args /home/ddong/Codes/PHiLiP_temp/PHiLiP/build_debug/bin/PHiLiP_2D "-i" "/home/ddong/Codes/PHiLiP_temp/PHiLiP/build_de    bug/tests/adv    ection_implicit/2d_advection_implicit_strong.prm`.
+
+
+Additional useful commands are:
+```sh
+GDB$ break dg.cpp:89 (Add a breakpoint in a filename at a line number. Those breakpoints can be added before launching the program.)
+GDB$ continue (Continue the program until the next breakpoint or to the end)
+GDB$ step (Execute the next step of instructions. It will go into the functions being called)
+GDB$ next (Execute the next line of code in the function. Will NOT go into the functions being called)
+GDB$ quit
+```
+
+### Parallel debugging
+
+If the error only occurs when using parallelism, you can use the following
+
+```sh
+mpirun -np 2 xterm -hold -e gdb -ex 'break MPI_Abort' -ex run --args /home/ddong/Codes/PHiLiP_temp/PHiLiP/build_debug/bin/PHiLiP_2D "-i" "/home/ddong/Codes/PHiLiP_temp/PHiLiP/build_de    bug/tests/advection_implicit/2d_advection_implicit_strong.prm"
+```
+
 
 # License
 

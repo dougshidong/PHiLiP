@@ -227,8 +227,8 @@ int GridStudy<dim,nstate>
             }
 
             // Show mesh if in 2D
-            std::string gridname = "grid-"+std::to_string(igrid)+".eps";
-            if (dim == 2) print_mesh_info (grid, gridname);
+            //std::string gridname = "grid-"+std::to_string(igrid)+".eps";
+            //if (dim == 2) print_mesh_info (grid, gridname);
 
             using ADtype = Sacado::Fad::DFad<double>;
 

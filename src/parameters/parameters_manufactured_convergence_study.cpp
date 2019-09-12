@@ -24,7 +24,7 @@ void ManufacturedConvergenceStudyParam::declare_parameters (dealii::ParameterHan
                           dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                           "Prefix of Gmsh grids xxxx#.msh used in the grid convergence if read_grid is chosen as the grid_type. ");
 
-        prm.declare_entry("output_meshes", "true",
+        prm.declare_entry("output_meshes", "false",
                           dealii::Patterns::Bool(),
                           "Writes out meshes used for the simulation."
                           "Output will be Gmsh grids named grid-#.msh");

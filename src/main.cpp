@@ -7,8 +7,7 @@
 #include <iostream>
 #include <fstream>
 
-#include "tests/tests.h"
-#include "tests/grid_study.h"
+#include "testing/tests.h"
 #include "ode_solver/ode_solver.h"
 #include "parameters/all_parameters.h"
 

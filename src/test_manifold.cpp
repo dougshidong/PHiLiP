@@ -44,8 +44,8 @@
 namespace Step10
 {
     using namespace dealii;
-  	
-  	// Description of the upper face of the square
+      
+      // Description of the upper face of the square
     class UpperManifold: public ChartManifold<2,2,2> {
     public:
         virtual Point<2>
@@ -92,7 +92,7 @@ namespace Step10
     void compute_area ()
     {
         const double exact_bump_integral = 0.02215567313631895;
-  			
+              
         // The case p=1, is trivial: no bending!
         for (unsigned int degree=1; degree<6; ++degree) {
             std::cout << "Degree = " << degree << std::endl;
@@ -133,7 +133,7 @@ namespace Step10
                 std::string name = "grid";
                 data_out.add_data_vector (dummy, name);
 
-                std::ostringstream ss;	
+                std::ostringstream ss;    
                 ss <<"grid_p" << degree << "_ref" << refinement << ".vtk";
                 std::ofstream output (ss.str().c_str());
 

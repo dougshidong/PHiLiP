@@ -2,10 +2,8 @@ CMakeCache.txt
 CMakeFiles
 CMakeScripts
 *.cmake
-
-build*
+build/*
 TAGS
-
 Testing
 Makefile
 cmake_install.cmake
@@ -20,3 +18,4 @@ doc/html/**
 *.swp
 *.swo
 *.vtk
+build*/

@@ -25,6 +25,19 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     prm.declare_entry("use_weak_form", "true",
                       dealii::Patterns::Bool(),
                       "Use weak form by default. If false, use strong form.");
+
+    prm.declare_entry("use_collocated_nodes", "false",
+                      dealii::Patterns::Bool(),
+                      "Use Gauss-Legendre by default. Otherwise, use Gauss-Lobatto to collocate.");
+
+    prm.declare_entry("use_split_form", "false",
+                      dealii::Patterns::Bool(),
+                      "Use original form by defualt. Otherwise, split the fluxes.");
+
+    prm.declare_entry("use_periodic_bc", "false",
+                      dealii::Patterns::Bool(),
+                      "Use other boundary conditions by default. Otherwise use periodic (for 1d burgers only");
+
     prm.declare_entry("test_type", "run_control",
                       dealii::Patterns::Selection(
                       " run_control | "
@@ -51,7 +64,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                           " convection_diffusion | "
                           " advection_vector | "
                           " burgers_inviscid | "
-                          " euler"),
+                          " euler |"
+                          " mhd"),
                       "The PDE we want to solve. "
                       "Choices are " 
                       " <advection | " 
@@ -59,11 +73,13 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  convection_diffusion | "
                       "  advection_vector | "
                       "  burgers_inviscid | "
-                      "  euler>.");
+                      "  euler | "
+                      "  mhd>.");
     prm.declare_entry("conv_num_flux", "lax_friedrichs",
-                      dealii::Patterns::Selection("lax_friedrichs | roe"),
+                      dealii::Patterns::Selection("lax_friedrichs | roe | split_form"),
                       "Convective numerical flux. "
-                      "Choices are <lax_friedrichs | roe>.");
+                      "Choices are <lax_friedrichs | roe | split_form>.");
+
     prm.declare_entry("diss_num_flux", "symm_internal_penalty",
                       dealii::Patterns::Selection("symm_internal_penalty"),
                       "Dissipative numerical flux. "
@@ -113,10 +129,15 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
         pde_type = euler;
         nstate = dimension+2;
     }
+
     use_weak_form = prm.get_bool("use_weak_form");
+    use_collocated_nodes = prm.get_bool("use_collocated_nodes");
+    use_split_form = prm.get_bool("use_split_form");
+    use_periodic_bc = prm.get_bool("use_periodic_bc");
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
     if (conv_num_flux_string == "lax_friedrichs") conv_num_flux_type = lax_friedrichs;
+    if (conv_num_flux_string == "split_form") conv_num_flux_type = split_form;
     if (conv_num_flux_string == "roe") conv_num_flux_type = roe;
 
     const std::string diss_num_flux_string = prm.get("diss_num_flux");

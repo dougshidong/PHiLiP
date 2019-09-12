@@ -107,11 +107,11 @@ inline real EulerVortexFunction<dim,real>
 
 
     // Philip's isentropic vortex
-	const double r2 = (std::pow(x,2.0)+std::pow(y,2.0))/(variance);
+    const double r2 = (std::pow(x,2.0)+std::pow(y,2.0))/(variance);
     const double density  = euler_physics.density_inf;
-	const double vel_x    = euler_physics.velocities_inf[0] - y*vortex_strength/(variance)*exp(-0.5*r2);
-	const double vel_y    = euler_physics.velocities_inf[1] + x*vortex_strength/(variance)*exp(-0.5*r2);
-	const double pressure = euler_physics.pressure_inf  - euler_physics.density_inf*(vortex_strength*vortex_strength)/(2*variance)*exp(-r2);
+    const double vel_x    = euler_physics.velocities_inf[0] - y*vortex_strength/(variance)*exp(-0.5*r2);
+    const double vel_y    = euler_physics.velocities_inf[1] + x*vortex_strength/(variance)*exp(-0.5*r2);
+    const double pressure = euler_physics.pressure_inf  - euler_physics.density_inf*(vortex_strength*vortex_strength)/(2*variance)*exp(-r2);
 
     const std::array<double, 4> primitive_values = {density, vel_x, vel_y, pressure};
     const std::array<double, 4> conservative_values = euler_physics.convert_primitive_to_conservative(primitive_values);

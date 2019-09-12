@@ -169,8 +169,7 @@ int EulerCylinder<dim,nstate>
         half_cylinder(grid, n_cells_circle, n_cells_radial);
         // Assign BC
         for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
-            if (!cell->is_locally_owned()) continue;
-            // Set a dummy boundary ID
+            //if (!cell->is_locally_owned()) continue;
             for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
                 if (cell->face(face)->at_boundary()) {
                     unsigned int current_id = cell->face(face)->boundary_id();

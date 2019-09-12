@@ -339,14 +339,28 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW)
             // Neighbor cell is NOT coarser
             // Therefore, they have the same coarseness, and we need to choose one of them to do the work
             } else if (
-                !current_cell->neighbor_is_coarser(iface) &&
-                    // Cell with lower index does work
-                    (neighbor_cell->index() > current_cell->index() || 
-                    // If both cells have same index
-                    // See https://www.dealii.org/developer/doxygen/deal.II/classTriaAccessorBase.html#a695efcbe84fefef3e4c93ee7bdb446ad
-                    // then cell at the lower level does the work
-                        (neighbor_cell->index() == current_cell->index() && current_cell->level() < neighbor_cell->level())
-                    ) )
+                (   !(current_cell->neighbor_is_coarser(iface))
+                    // In the case the neighbor is a ghost cell, we let the processor with the lower rank do the work on that face
+                    // We cannot use the cell->index() because the index is relative to the distributed triangulation
+                    // Therefore, the cell index of a ghost cell might be different to the physical cell index even if they refer to the same cell
+                 && neighbor_cell->is_ghost()
+                 && current_cell->subdomain_id() < neighbor_cell->subdomain_id()
+                )
+                ||
+                (   !(current_cell->neighbor_is_coarser(iface))
+                    // In the case the neighbor is a local cell, we let the cell with the lower index do the work on that face
+                 && neighbor_cell->is_locally_owned()
+                 &&
+                    (  // Cell with lower index does work
+                       current_cell->index() < neighbor_cell->index()
+                     ||
+                       // If both cells have same index
+                       // See https://www.dealii.org/developer/doxygen/deal.II/classTriaAccessorBase.html#a695efcbe84fefef3e4c93ee7bdb446ad
+                       // then cell at the lower level does the work
+                       (neighbor_cell->index() == current_cell->index() && current_cell->level() < neighbor_cell->level())
+                    )
+                )
+            )
             {
                 n_face_visited++;
                 Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());

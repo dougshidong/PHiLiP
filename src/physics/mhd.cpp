@@ -1,4 +1,4 @@
- #include <cmath>
+#include <cmath>
 #include <vector>
 
 #include <Sacado.hpp>
@@ -7,48 +7,28 @@
 #include <deal.II/differentiation/ad/sacado_product_types.h>
 
 #include "physics.h"
-#include "euler.h"
+#include "mhd.h"
 
 
 namespace PHiLiP {
 namespace Physics {
 
 template <int dim, int nstate, typename real>
-std::array<real,nstate> Euler<dim,nstate,real>
+std::array<real,nstate> MHD<dim,nstate,real>
 ::source_term (
-    const dealii::Point<dim,double> &pos,
+    const dealii::Point<dim,double> &/*pos*/,
     const std::array<real,nstate> &/*conservative_soln*/) const
 {
-    std::array<real,nstate> manufactured_solution;
-    for (int s=0; s<nstate; s++) {
-        manufactured_solution[s] = this->manufactured_solution_function.value (pos, s);
-    }
-    std::vector<dealii::Tensor<1,dim,real>> manufactured_solution_gradient_dealii(nstate);
-    this->manufactured_solution_function.vector_gradient (pos, manufactured_solution_gradient_dealii);
-    std::array<dealii::Tensor<1,nstate,real>,dim> manufactured_solution_gradient;
-    for (int d=0;d<dim;d++) {
-        for (int s=0; s<nstate; s++) {
-            manufactured_solution_gradient[d][s] = manufactured_solution_gradient_dealii[s][d];
-        }
-    }
-
-    dealii::Tensor<1,nstate,real> convective_flux_divergence;
-    for (int d=0;d<dim;d++) {
-        dealii::Tensor<1,dim,real> normal;
-        normal[d] = 1.0;
-        const dealii::Tensor<2,nstate,real> jacobian = convective_flux_directional_jacobian(manufactured_solution, normal);
-        convective_flux_divergence += jacobian*manufactured_solution_gradient[d];
-    }
     std::array<real,nstate> source_term;
     for (int s=0; s<nstate; s++) {
-        source_term[s] = convective_flux_divergence[s];
+        source_term[s] = 0;
     }
 
     return source_term;
 }
 
 template <int dim, int nstate, typename real>
-inline std::array<real,nstate> Euler<dim,nstate,real>
+inline std::array<real,nstate> MHD<dim,nstate,real>
 ::convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const
 {
     std::array<real, nstate> primitive_soln;
@@ -66,7 +46,7 @@ inline std::array<real,nstate> Euler<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-inline std::array<real,nstate> Euler<dim,nstate,real>
+inline std::array<real,nstate> MHD<dim,nstate,real>
 ::convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const
 {
 
@@ -84,14 +64,14 @@ inline std::array<real,nstate> Euler<dim,nstate,real>
 }
 
 //template <int dim, int nstate, typename real>
-//inline dealii::Tensor<1,dim,double> Euler<dim,nstate,real>::compute_velocities_inf() const
+//inline dealii::Tensor<1,dim,double> MHD<dim,nstate,real>::compute_velocities_inf() const
 //{
 //    dealii::Tensor<1,dim,double> velocities;
 //    return velocities;
 //}
 
 template <int dim, int nstate, typename real>
-inline dealii::Tensor<1,dim,real> Euler<dim,nstate,real>
+inline dealii::Tensor<1,dim,real> MHD<dim,nstate,real>
 ::compute_velocities ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real density = conservative_soln[0];
@@ -101,7 +81,7 @@ inline dealii::Tensor<1,dim,real> Euler<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-inline real Euler<dim,nstate,real>
+inline real MHD<dim,nstate,real>
 ::compute_velocity_squared ( const dealii::Tensor<1,dim,real> &velocities ) const
 {
     real vel2 = 0.0;
@@ -110,7 +90,7 @@ inline real Euler<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-inline dealii::Tensor<1,dim,real> Euler<dim,nstate,real>
+inline dealii::Tensor<1,dim,real> MHD<dim,nstate,real>
 ::extract_velocities_from_primitive ( const std::array<real,nstate> &primitive_soln ) const
 {
     dealii::Tensor<1,dim,real> velocities;
@@ -119,7 +99,7 @@ inline dealii::Tensor<1,dim,real> Euler<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-inline real Euler<dim,nstate,real>
+inline real MHD<dim,nstate,real>
 ::compute_total_energy ( const std::array<real,nstate> &primitive_soln ) const
 {
     const real density = primitive_soln[0];
@@ -132,7 +112,7 @@ inline real Euler<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-inline real Euler<dim,nstate,real>
+inline real MHD<dim,nstate,real>
 ::compute_entropy_measure ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real density = conservative_soln[0];
@@ -143,7 +123,7 @@ inline real Euler<dim,nstate,real>
 
 
 template <int dim, int nstate, typename real>
-inline real Euler<dim,nstate,real>
+inline real MHD<dim,nstate,real>
 ::compute_specific_enthalpy ( const std::array<real,nstate> &conservative_soln, const real pressure ) const
 {
     const real density = conservative_soln[0];
@@ -153,7 +133,7 @@ inline real Euler<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-inline real Euler<dim,nstate,real>
+inline real MHD<dim,nstate,real>
 ::compute_dimensional_temperature ( const std::array<real,nstate> &primitive_soln ) const
 {
     const real density = primitive_soln[0];
@@ -163,7 +143,7 @@ inline real Euler<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-inline real Euler<dim,nstate,real>
+inline real MHD<dim,nstate,real>
 ::compute_temperature ( const std::array<real,nstate> &primitive_soln ) const
 {
     const real dimensional_temperature = compute_dimensional_temperature(primitive_soln);
@@ -172,14 +152,14 @@ inline real Euler<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-inline real Euler<dim,nstate,real>
+inline real MHD<dim,nstate,real>
 ::compute_density_from_pressure_temperature ( const real pressure, const real temperature ) const
 {
     const real density = gam*pressure/temperature * mach_inf_sqr;
     return density;
 }
 template <int dim, int nstate, typename real>
-inline real Euler<dim,nstate,real>
+inline real MHD<dim,nstate,real>
 ::compute_temperature_from_density_pressure ( const real density, const real pressure ) const
 {
     const real temperature = gam*pressure/density * mach_inf_sqr;
@@ -188,7 +168,7 @@ inline real Euler<dim,nstate,real>
 
 
 template <int dim, int nstate, typename real>
-inline real Euler<dim,nstate,real>
+inline real MHD<dim,nstate,real>
 ::compute_pressure ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real density = conservative_soln[0];
@@ -218,7 +198,7 @@ inline real Euler<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-inline real Euler<dim,nstate,real>
+inline real MHD<dim,nstate,real>
 ::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
     real density = conservative_soln[0];
@@ -236,7 +216,7 @@ inline real Euler<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-inline real Euler<dim,nstate,real>
+inline real MHD<dim,nstate,real>
 ::compute_sound ( const real density, const real pressure ) const
 {
     assert(density > 0);
@@ -245,7 +225,7 @@ inline real Euler<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-inline real Euler<dim,nstate,real>
+inline real MHD<dim,nstate,real>
 ::compute_mach_number ( const std::array<real,nstate> &conservative_soln ) const
 {
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
@@ -255,10 +235,20 @@ inline real Euler<dim,nstate,real>
     return mach_number;
 }
 
+template <int dim, int nstate, typename real>
+inline real MHD<dim,nstate,real>
+::compute_magnetic_energy (const std::array<real,nstate> &conservative_soln) const
+{
+    const real magnetic_energy = 0;
+    for (int i = 1; i <= 3; ++i)
+        magnetic_energy += 1./2. * (conservative_soln[nstate - i] * conservative_soln[nstate - i] );
+}
+
+
 // Split form functions:
 
 template <int dim, int nstate, typename real>
-inline real Euler<dim,nstate,real>::
+inline real MHD<dim,nstate,real>::
 compute_mean_density(const std::array<real,nstate> &soln_const,
                           const std::array<real,nstate> &soln_loop) const
 {
@@ -266,7 +256,7 @@ compute_mean_density(const std::array<real,nstate> &soln_const,
 }
 
 template <int dim, int nstate, typename real>
-inline real Euler<dim,nstate,real>::
+inline real MHD<dim,nstate,real>::
 compute_mean_pressure(const std::array<real,nstate> &soln_const,
                       const std::array<real,nstate> &soln_loop) const
 {
@@ -276,7 +266,7 @@ compute_mean_pressure(const std::array<real,nstate> &soln_const,
 }
 
 template <int dim, int nstate, typename real>
-inline dealii::Tensor<1,dim,real> Euler<dim,nstate,real>::
+inline dealii::Tensor<1,dim,real> MHD<dim,nstate,real>::
 compute_mean_velocities(const std::array<real,nstate> &soln_const,
                         const std::array<real,nstate> &soln_loop) const
 {
@@ -286,7 +276,7 @@ compute_mean_velocities(const std::array<real,nstate> &soln_const,
 }
 
 template <int dim, int nstate, typename real>
-inline real Euler<dim,nstate,real>::
+inline real MHD<dim,nstate,real>::
 compute_mean_specific_energy(const std::array<real,nstate> &soln_const,
                              const std::array<real,nstate> &soln_loop) const
 {
@@ -295,7 +285,7 @@ compute_mean_specific_energy(const std::array<real,nstate> &soln_const,
 
 
 template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
+std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim,nstate,real>
 ::convective_flux (const std::array<real,nstate> &conservative_soln) const
 {
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
@@ -304,6 +294,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
     const real specific_total_energy = conservative_soln[nstate-1]/conservative_soln[0];
     const real specific_total_enthalpy = specific_total_energy + pressure/density;
+    const real magnetic_energy = compute_magnetic_energy(conservative_soln);
 
     for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
         // Density equation
@@ -312,15 +303,15 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
         for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
             conv_flux[1+velocity_dim][flux_dim] = density*vel[flux_dim]*vel[velocity_dim];
         }
-        conv_flux[1+flux_dim][flux_dim] += pressure; // Add diagonal of pressure
+        conv_flux[1+flux_dim][flux_dim] += pressure + magnetic_energy; // Add diagonal of pressure and magnetic energy
         // Energy equation
-        conv_flux[nstate-1][flux_dim] = density*vel[flux_dim]*specific_total_enthalpy;
+        conv_flux[nstate-4][flux_dim] = density*vel[flux_dim]*specific_total_enthalpy;
     }
     return conv_flux;
 }
 
 template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
+std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim, nstate, real>
 ::convective_numerical_split_flux(const std::array<real,nstate> &soln_const,
                                   const std::array<real,nstate> &soln_loop) const
 {
@@ -347,7 +338,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
 }
 
 template <int dim, int nstate, typename real>
-std::array<real,nstate> Euler<dim,nstate,real>
+std::array<real,nstate> MHD<dim,nstate,real>
 ::convective_normal_flux (const std::array<real,nstate> &conservative_soln, const dealii::Tensor<1,dim,real> &normal) const
 {
     std::array<real, nstate> conv_normal_flux;
@@ -371,7 +362,7 @@ std::array<real,nstate> Euler<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-dealii::Tensor<2,nstate,real> Euler<dim,nstate,real>
+dealii::Tensor<2,nstate,real> MHD<dim,nstate,real>
 ::convective_flux_directional_jacobian (
     const std::array<real,nstate> &conservative_soln,
     const dealii::Tensor<1,dim,real> &normal) const
@@ -416,7 +407,7 @@ dealii::Tensor<2,nstate,real> Euler<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-std::array<real,nstate> Euler<dim,nstate,real>
+std::array<real,nstate> MHD<dim,nstate,real>
 ::convective_eigenvalues (
     const std::array<real,nstate> &conservative_soln,
     const dealii::Tensor<1,dim,real> &normal) const
@@ -435,7 +426,7 @@ std::array<real,nstate> Euler<dim,nstate,real>
     return eig;
 }
 template <int dim, int nstate, typename real>
-real Euler<dim,nstate,real>
+real MHD<dim,nstate,real>
 ::max_convective_eigenvalue (const std::array<real,nstate> &conservative_soln) const
 {
     //std::cout << "going to calculate max eig" << std::endl;
@@ -459,7 +450,7 @@ real Euler<dim,nstate,real>
 
 
 template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
+std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim,nstate,real>
 ::dissipative_flux (
     const std::array<real,nstate> &/*conservative_soln*/,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/) const
@@ -473,7 +464,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-void Euler<dim,nstate,real>
+void MHD<dim,nstate,real>
 ::boundary_face_values (
    const int boundary_type,
    const dealii::Point<dim, double> &pos,
@@ -540,7 +531,7 @@ void Euler<dim,nstate,real>
         // “High-order accurate implementation of solid wall boundary conditions in curved geometries,”
         // Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
         const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(soln_int);
-        
+
         // Copy density and pressure
         std::array<real,nstate> primitive_boundary_values;
         primitive_boundary_values[0] = primitive_interior_values[0];
@@ -560,7 +551,7 @@ void Euler<dim,nstate,real>
         // Carlson 2011, sec. 2.4
 
         const real back_pressure = 0.99; // Make it as an input later on
-        
+
         const real mach_int = compute_mach_number(soln_int);
         const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(soln_int);
         const real pressure_int = primitive_interior_values[nstate-1];
@@ -636,7 +627,7 @@ void Euler<dim,nstate,real>
             //std::cout << " pressure_bc " << pressure_bc << "pressure_inf" << pressure_inf << std::endl;
             //std::cout << " temperature_bc " << temperature_bc << "temperature_inf" << temperature_inf << std::endl;
             //
-   
+
             const real density_bc  = compute_density_from_pressure_temperature(pressure_bc, temperature_bc);
             std::array<real,nstate> primitive_boundary_values;
             primitive_boundary_values[0] = density_bc;
@@ -660,7 +651,7 @@ void Euler<dim,nstate,real>
             const real density_bc  = compute_density_from_pressure_temperature(pressure_bc, temperature_bc);
             const real sound_bc = sqrt(gam * pressure_bc / density_bc);
             const real velocity_magnitude_bc = mach_inf * sound_bc;
-   
+
             // Assign primitive boundary values
             std::array<real,nstate> primitive_boundary_values;
             primitive_boundary_values[0] = density_bc;
@@ -693,7 +684,7 @@ void Euler<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
-dealii::Vector<double> Euler<dim,nstate,real>::post_compute_derived_quantities_vector (
+dealii::Vector<double> MHD<dim,nstate,real>::post_compute_derived_quantities_vector (
     const dealii::Vector<double>              &uh,
     const std::vector<dealii::Tensor<1,dim> > &duh,
     const std::vector<dealii::Tensor<2,dim> > &dduh,
@@ -744,7 +735,7 @@ dealii::Vector<double> Euler<dim,nstate,real>::post_compute_derived_quantities_v
 }
 
 template <int dim, int nstate, typename real>
-std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Euler<dim,nstate,real>
+std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> MHD<dim,nstate,real>
 ::post_get_data_component_interpretation () const
 {
     namespace DCI = dealii::DataComponentInterpretation;
@@ -771,7 +762,7 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Eu
 
 
 template <int dim, int nstate, typename real>
-std::vector<std::string> Euler<dim,nstate,real> ::post_get_names () const
+std::vector<std::string> MHD<dim,nstate,real> ::post_get_names () const
 {
     std::vector<std::string> names = PhysicsBase<dim,nstate,real>::post_get_names ();
     names.push_back ("density");
@@ -791,7 +782,7 @@ std::vector<std::string> Euler<dim,nstate,real> ::post_get_names () const
 }
 
 template <int dim, int nstate, typename real>
-dealii::UpdateFlags Euler<dim,nstate,real>
+dealii::UpdateFlags MHD<dim,nstate,real>
 ::post_get_needed_update_flags () const
 {
     //return update_values | update_gradients;
@@ -799,11 +790,8 @@ dealii::UpdateFlags Euler<dim,nstate,real>
 }
 
 // Instantiate explicitly
-
-template class Euler < PHILIP_DIM, PHILIP_DIM+2, double >;
-template class Euler < PHILIP_DIM, PHILIP_DIM+2, Sacado::Fad::DFad<double>  >;
+template class MHD < PHILIP_DIM, 2*PHILIP_DIM+2, double >;
+template class MHD < PHILIP_DIM, 2*PHILIP_DIM+2, Sacado::Fad::DFad<double>  >;
 
 } // Physics namespace
 } // PHiLiP namespace
-
-

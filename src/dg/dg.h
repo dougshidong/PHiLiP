@@ -357,7 +357,7 @@ private:
                 dealii::hp::QCollection<dim>, dealii::hp::QCollection<dim-1>, dealii::hp::QCollection<1>,
                 dealii::hp::FECollection<dim> >;
     /// Used in the delegated constructor
-    CollectionTuple create_collection_tuple(const unsigned int max_degree, const int nstate) const;
+    CollectionTuple create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const;
 
 }; // end of DGBase class
 
@@ -376,6 +376,8 @@ public:
     ~DGWeak(); ///< Destructor
 
 private:
+
+
     /// Contains the physics of the PDE
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<real> > > pde_physics;
     /// Convective numerical flux
@@ -467,13 +469,13 @@ private:
     /// Dissipative numerical flux
     NumericalFlux::NumericalFluxDissipative<dim, nstate, Sacado::Fad::DFad<real> > *diss_num_flux;
 
+
     /// Contains the physics of the PDE
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, real > > pde_physics_double;
     /// Convective numerical flux
     NumericalFlux::NumericalFluxConvective<dim, nstate, real > *conv_num_flux_double;
     /// Dissipative numerical flux
     NumericalFlux::NumericalFluxDissipative<dim, nstate, real > *diss_num_flux_double;
-
 
     /// Evaluate the integral over the cell volume
     /** Compute both the right-hand side and the block of the Jacobian */

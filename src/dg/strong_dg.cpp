@@ -50,6 +50,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_implicit(
     const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
     dealii::Vector<real> &local_rhs_int_cell)
 {
+
     using ADtype = Sacado::Fad::DFad<real>;
     using ADArray = std::array<ADtype,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
@@ -98,6 +99,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_implicit(
         // Evaluate physical convective flux and source term
         conv_phys_flux_at_q[iquad] = pde_physics->convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = pde_physics->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
+
         if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
             source_at_q[iquad] = pde_physics->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad]);
         }
@@ -108,12 +110,17 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_implicit(
     // Since we have nodal values of the flux, we use the Lagrange polynomials to obtain the gradients at the quadrature points.
     const dealii::FEValues<dim,dim> &fe_values_lagrange = this->fe_values_collection_volume_lagrange.get_present_fe_values();
     std::vector<ADArray> flux_divergence(n_quad_pts);
+
+    std::array<std::array<std::vector<ADtype>,nstate>,dim> f;
+    std::array<std::array<std::vector<ADtype>,nstate>,dim> g;
+
     for (int istate = 0; istate<nstate; ++istate) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             flux_divergence[iquad][istate] = 0.0;
             for ( unsigned int flux_basis = 0; flux_basis < n_quad_pts; ++flux_basis ) {
                 flux_divergence[iquad][istate] += conv_phys_flux_at_q[flux_basis][istate] * fe_values_lagrange.shape_grad(flux_basis,iquad);
             }
+
         }
     }
 
@@ -129,6 +136,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_implicit(
 
         ADtype rhs = 0;
 
+
         const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(itest).first;
 
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
@@ -136,6 +144,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_implicit(
             // Convective
             // Now minus such 2 integrations by parts
             assert(JxW[iquad] - fe_values_lagrange.JxW(iquad) < 1e-14);
+
             rhs = rhs - fe_values_vol.shape_value_component(itest,iquad,istate) * flux_divergence[iquad][istate] * JxW[iquad];
 
             //// Diffusive
@@ -470,6 +479,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
     const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
     dealii::Vector<real> &local_rhs_int_cell)
 {
+    //std::cout << "assembling cell terms" << std::endl;
     using ADtype = Sacado::Fad::DFad<real>;
     using ADArray = std::array<ADtype,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
@@ -532,7 +542,14 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             flux_divergence[iquad][istate] = 0.0;
             for ( unsigned int flux_basis = 0; flux_basis < n_quad_pts; ++flux_basis ) {
-                flux_divergence[iquad][istate] += conv_phys_flux_at_q[flux_basis][istate] * fe_values_lagrange.shape_grad(flux_basis,iquad);
+                if (this->all_parameters->use_split_form == true)
+                {
+                    flux_divergence[iquad][istate] += 2* pde_physics->convective_numerical_split_flux(soln_at_q[iquad],soln_at_q[flux_basis])[istate] *  fe_values_lagrange.shape_grad(flux_basis,iquad);
+                }
+                else
+                {
+                    flux_divergence[iquad][istate] += conv_phys_flux_at_q[flux_basis][istate] * fe_values_lagrange.shape_grad(flux_basis,iquad);
+                }
             }
         }
     }
@@ -556,6 +573,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
             // Convective
             // Now minus such 2 integrations by parts
             assert(JxW[iquad] - fe_values_lagrange.JxW(iquad) < 1e-14);
+
             rhs = rhs - fe_values_vol.shape_value_component(itest,iquad,istate) * flux_divergence[iquad][istate] * JxW[iquad];
 
             //// Diffusive
@@ -720,6 +738,7 @@ void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
     dealii::Vector<real>          &local_rhs_int_cell,
     dealii::Vector<real>          &local_rhs_ext_cell)
 {
+    //std::cout << "assembling face terms" << std::endl;
     using ADtype = Sacado::Fad::DFad<real>;
     using ADArray = std::array<ADtype,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
@@ -808,10 +827,15 @@ void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
         //std::cout << "Energy ext" << soln_ext[iquad][nstate-1] << std::endl;
 
         // Evaluate physical convective flux, physical dissipative flux, and source term
+
+        //std::cout <<"evaluating numerical fluxes" <<std::endl;
         conv_num_flux_dot_n[iquad] = conv_num_flux->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
 
         conv_phys_flux_int[iquad] = pde_physics->convective_flux (soln_int[iquad]);
         conv_phys_flux_ext[iquad] = pde_physics->convective_flux (soln_ext[iquad]);
+
+       // std::cout <<"done evaluating numerical fluxes" <<std::endl;
+
 
         diss_soln_num_flux[iquad] = diss_num_flux->evaluate_solution_flux(soln_int[iquad], soln_ext[iquad], normal_int);
 

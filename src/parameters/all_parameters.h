@@ -35,6 +35,14 @@ public:
     /// Flag to use weak or strong form of DG
     bool use_weak_form;
 
+    /// Flag to use Gauss-Lobatto Nodes;
+    bool use_collocated_nodes;
+
+    /// Flag to use split form.
+    bool use_split_form;
+
+    bool use_periodic_bc;
+
     /// Number of state variables. Will depend on PDE
     int nstate;
 
@@ -45,8 +53,12 @@ public:
         euler_cylinder,
         euler_vortex,
         euler_entropy_waves,
+        euler_split_taylor_green,
         numerical_flux_convervation,
-        jacobian_regression};
+        jacobian_regression,
+        burgers_split_form,
+        advection_periodicity,
+        };
     TestType test_type;
 
     /// Currently allows to solve advection, diffusion, convection-diffusion
@@ -56,7 +68,8 @@ public:
         convection_diffusion,
         advection_vector,
         burgers_inviscid,
-        euler};
+        euler,
+        mhd};
 
     /// Possible boundary types, NOT IMPLEMENTED YET
     enum BoundaryType { 
@@ -74,8 +87,10 @@ public:
     /// Store the PDE type to be solved
     PartialDifferentialEquation pde_type;
 
-    /// Currently only Lax-Friedrichs and roe can be used as an input parameter
-    enum ConvectiveNumericalFlux { lax_friedrichs, roe };
+
+    /// Currently only Lax-Friedrichs, roe, and split_form can be used as an input parameter
+    enum ConvectiveNumericalFlux { lax_friedrichs, roe, split_form};
+
     /// Store convective flux type
     ConvectiveNumericalFlux conv_num_flux_type;
 

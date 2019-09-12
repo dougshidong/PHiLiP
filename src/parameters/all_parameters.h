@@ -49,6 +49,7 @@ public:
     /// Currently allows to solve advection, diffusion, convection-diffusion
     enum TestType { 
         run_control,
+        burgers_energy_stability,
         euler_gaussian_bump,
         euler_cylinder,
         euler_vortex,

@@ -1,6 +1,7 @@
 set(TESTS_SOURCE
     tests.cpp
     grid_study.cpp
+    burgers_stability.cpp
     euler_gaussian_bump.cpp
     euler_cylinder.cpp
     euler_vortex.cpp

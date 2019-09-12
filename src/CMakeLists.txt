@@ -11,7 +11,7 @@ add_subdirectory(dg)
 add_subdirectory(ode_solver)
 add_subdirectory(post_processor)
 
-add_subdirectory(tests)
+add_subdirectory(testing)
 
 foreach(dim RANGE 1 3)
 

@@ -36,7 +36,7 @@ foreach(dim RANGE 2 2)
     
     configure_file(2D_advection_explicit_periodic.prm 2D_advection_explicit_periodic.prm COPYONLY)
     add_test(
-      NAME ${TEST_TARGET}
+      NAME ${TEST_TARGET}_LONG
       COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET} -i ${CMAKE_CURRENT_BINARY_DIR}/2D_advection_explicit_periodic.prm
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )

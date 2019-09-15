@@ -16,7 +16,7 @@ add_test(
 
 configure_file(2d_advection_explicit.prm 2d_advection_explicit.prm COPYONLY)
 add_test(
-  NAME MPI_2D_ADVECTION_EXPLICIT_MANUFACTURED_SOLUTION
+  NAME MPI_2D_ADVECTION_EXPLICIT_MANUFACTURED_SOLUTION_LONG
   COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_advection_explicit.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
@@ -52,7 +52,7 @@ add_test(
 
 configure_file(3d_advection_implicit_strong.prm 3d_advection_implicit_strong.prm COPYONLY)
 add_test(
-  NAME MPI_3D_ADVECTION_IMPLICIT_MANUFACTURED_SOLUTION_STRONG
+  NAME MPI_3D_ADVECTION_IMPLICIT_MANUFACTURED_SOLUTION_STRONG_MEDIUM
   COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3d_advection_implicit_strong.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )

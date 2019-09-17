@@ -5,8 +5,10 @@
 
 ## Code Description
 - Code uses deal.II library as the backbone (https://www.dealii.org/)
-- Supported Partial Differential Equations: Convection-diffusion, Euler, TODO: Navier-Stokes.
-- Supported convective numerical fluxes: Lax-Friedrichs, Roe (Harten's entropy fix) for Euler
+- Math supporting this code can be viewed in this **very rough draft in progress** [Overleaf document](https://www.overleaf.com/read/mytvbbbbyqnj).
+- Supports weak and strong (InProgress) form of discontinuous Galerkin (DG), and flux reconstruction (FR) (InProgress)
+- Supported Partial Differential Equations: Linear advection, diffusion, convection-diffusion, Burgers, Euler, TODO: Navier-Stokes.
+- Supported convective numerical fluxes: Lax-Friedrichs, Roe (Harten's entropy fix) for Euler, InProgress: Split-Form
 - Supported diffusive numerical fluxes: Symmetric Interior Penalty
 - Supported elements: LINEs, QUADs, HEXs
 - Supported refinements: h (size) or p (order).
@@ -95,11 +97,11 @@ GDB$ quit
 
 ### Parallel debugging
 
-If the error only occurs when using parallelism, you can use the following
-
+If the error only occurs when using parallelism, you can use the following example command
 ```sh
 mpirun -np 2 xterm -hold -e gdb -ex 'break MPI_Abort' -ex run --args /home/ddong/Codes/PHiLiP_temp/PHiLiP/build_debug/bin/PHiLiP_2D "-i" "/home/ddong/Codes/PHiLiP_temp/PHiLiP/build_de    bug/tests/advection_implicit/2d_advection_implicit_strong.prm"
 ```
+This launches 2 xterm processes, each of which will launch gdb processes that will run the code and will have a breakpoint when MPI_Abort is encountered.
 
 
 # License

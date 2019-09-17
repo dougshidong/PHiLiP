@@ -16,7 +16,7 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(CLEAN_UP_FILES ./bin/* ./CMakeCache.txt)
 
 # Find deal.ii library
-find_package(deal.II 9.1.1 QUIET
+find_package(deal.II 9.0.1 QUIET
   HINTS ${DEAL_II_DIR} ../ ../../ $ENV{DEAL_II_DIR}
   )
 IF(NOT ${deal.II_FOUND})
@@ -43,7 +43,7 @@ IF(NOT ${DEAL_II_WITH_METIS})
 ENDIF()
 
 # Use ld.gold for faster linking
-option(USE_LD_GOLD "Use GNU gold linker" ON)
+option(USE_LD_GOLD "Use GNU gold linker" OFF)
 if(USE_LD_GOLD AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
   execute_process(COMMAND ${CMAKE_C_COMPILER} -fuse-ld=gold -Wl,--version OUTPUT_VARIABLE stdout ERROR_QUIET)
   if("${stdout}" MATCHES "GNU gold")

@@ -49,16 +49,17 @@ public:
     /// Currently allows to solve advection, diffusion, convection-diffusion
     enum TestType { 
         run_control,
+        burgers_energy_stability,
         euler_gaussian_bump,
         euler_cylinder,
         euler_vortex,
         euler_entropy_waves,
-		euler_split_taylor_green,
+        euler_split_taylor_green,
         numerical_flux_convervation,
         jacobian_regression,
-    	burgers_split_form,
-    	advection_periodicity,
-    	};
+        burgers_split_form,
+        advection_periodicity,
+        };
     TestType test_type;
 
     /// Currently allows to solve advection, diffusion, convection-diffusion
@@ -69,7 +70,7 @@ public:
         advection_vector,
         burgers_inviscid,
         euler,
-		mhd};
+        mhd};
 
     /// Possible boundary types, NOT IMPLEMENTED YET
     enum BoundaryType { 

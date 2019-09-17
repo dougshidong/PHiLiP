@@ -36,23 +36,6 @@ template <int dim, int nstate> PhysicsPostprocessor<dim,nstate>
     : physics(Physics::PhysicsFactory<dim,nstate,double>::create_Physics(parameters_input))
 { }
 
-//template <int dim, int nstate> void PhysicsPostprocessor<dim,nstate>
-//::compute_derived_quantities_vector (const std::vector<dealii::Vector<double> >              &uh,
-//                                     const std::vector<std::vector<dealii::Tensor<1,dim> > > &duh,
-//                                     const std::vector<std::vector<dealii::Tensor<2,dim> > > &dduh,
-//                                     const std::vector<dealii::Point<dim> >                  &normals,
-//                                     const std::vector<dealii::Point<dim> >                  &evaluation_points,
-//                                     std::vector<dealii::Vector<double> >                    &computed_quantities) const
-//{
-//    const unsigned int n_quadrature_points = uh.size();
-//    Assert (computed_quantities.size() == n_quadrature_points, dealii::ExcInternalError());
-//    //Assert (uh[0].size() == dim+2, dealii::ExcInternalError());
-//    for (unsigned int q=0; q<n_quadrature_points; ++q)
-//    {
-//        computed_quantities[q] = this->physics->post_compute_derived_quantities_vector(uh[q], duh[q], dduh[q], normals[q], evaluation_points[q]);
-//    }
-//}
-
 template <int dim, int nstate> void PhysicsPostprocessor<dim,nstate>
 ::evaluate_vector_field (const dealii::DataPostprocessorInputs::Vector<dim> &inputs, std::vector<dealii::Vector<double>> &computed_quantities) const
 {

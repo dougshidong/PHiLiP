@@ -36,7 +36,7 @@ NumericalFluxFactory<dim, nstate, real>
         if constexpr (dim+2==nstate) return new Roe<dim, nstate, real>(physics_input);
     }
     else if (conv_num_flux_type == AllParam::split_form) {
-    	return new SplitFormNumFlux<dim, nstate, real>(physics_input);
+        return new SplitFormNumFlux<dim, nstate, real>(physics_input);
     }
 
     std::cout << "Invalid numerical flux" << std::endl;
@@ -147,27 +147,27 @@ std::array<real, nstate> Roe<dim,nstate,real>
     eig_R[2] = std::abs(normal_vel_R+sound_R);
 
     // Harten's entropy fix
-	for(int e=0;e<3;e++) {
+    for(int e=0;e<3;e++) {
         const real eps = std::max(std::abs(eig_ravg[e]-eig_L[e]), std::abs(eig_R[e]-eig_ravg[e]));
-		if(std::abs(eig_ravg[e]) < eps) {
+        if(std::abs(eig_ravg[e]) < eps) {
             eig_ravg[e] = 0.5*(eig_ravg[e]*eig_ravg[e]/eps + eps);
         }
-	}
+    }
 
     // Physical fluxes
     const std::array<real,nstate> normal_flux_int = euler_physics->convective_normal_flux (soln_int, normal_int);
     const std::array<real,nstate> normal_flux_ext = euler_physics->convective_normal_flux (soln_ext, normal_int);
 
-	const real dVn = normal_vel_R-normal_vel_L;
+    const real dVn = normal_vel_R-normal_vel_L;
     const real dp = pressure_R - pressure_L;
     const real drho = density_R - density_L;
 
-	// Product of eigenvalues and wave strengths
-	real coeff[4];
-	coeff[0] = eig_ravg[0]*(dp-density_ravg*sound_ravg*dVn)/(2.0*sound2_ravg);
-	coeff[1] = eig_ravg[1]*(drho - dp/sound2_ravg);
-	coeff[2] = eig_ravg[1]*density_ravg;
-	coeff[3] = eig_ravg[2]*(dp+density_ravg*sound_ravg*dVn)/(2.0*sound2_ravg);
+    // Product of eigenvalues and wave strengths
+    real coeff[4];
+    coeff[0] = eig_ravg[0]*(dp-density_ravg*sound_ravg*dVn)/(2.0*sound2_ravg);
+    coeff[1] = eig_ravg[1]*(drho - dp/sound2_ravg);
+    coeff[2] = eig_ravg[1]*density_ravg;
+    coeff[3] = eig_ravg[2]*(dp+density_ravg*sound_ravg*dVn)/(2.0*sound2_ravg);
 
     // Evaluate |A_Roe| * (W_R - W_L)
     std::array<real,nstate> AdW;
@@ -187,7 +187,7 @@ std::array<real, nstate> Roe<dim,nstate,real>
     AdW[nstate-1] += coeff[1] * vel2_ravg * 0.5;
 
     AdW[0] += coeff[2] * 0.0;
-	const dealii::Tensor<1,dim,real> dvel = velocities_R - velocities_L;
+    const dealii::Tensor<1,dim,real> dvel = velocities_R - velocities_L;
     for (int d=0;d<dim;d++) {
         AdW[1+d] += coeff[2] * (dvel[d] - dVn*normal_int[d]);
     }

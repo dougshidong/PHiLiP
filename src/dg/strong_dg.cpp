@@ -479,7 +479,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
     const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
     dealii::Vector<real> &local_rhs_int_cell)
 {
-	//std::cout << "assembling cell terms" << std::endl;
+    //std::cout << "assembling cell terms" << std::endl;
     using ADtype = Sacado::Fad::DFad<real>;
     using ADArray = std::array<ADtype,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
@@ -542,14 +542,14 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             flux_divergence[iquad][istate] = 0.0;
             for ( unsigned int flux_basis = 0; flux_basis < n_quad_pts; ++flux_basis ) {
-            	if (this->all_parameters->use_split_form == true)
-            	{
-            		flux_divergence[iquad][istate] += 2* pde_physics->convective_numerical_split_flux(soln_at_q[iquad],soln_at_q[flux_basis])[istate] *  fe_values_lagrange.shape_grad(flux_basis,iquad);
-            	}
-            	else
-            	{
+                if (this->all_parameters->use_split_form == true)
+                {
+                    flux_divergence[iquad][istate] += 2* pde_physics->convective_numerical_split_flux(soln_at_q[iquad],soln_at_q[flux_basis])[istate] *  fe_values_lagrange.shape_grad(flux_basis,iquad);
+                }
+                else
+                {
                     flux_divergence[iquad][istate] += conv_phys_flux_at_q[flux_basis][istate] * fe_values_lagrange.shape_grad(flux_basis,iquad);
-            	}
+                }
             }
         }
     }
@@ -738,7 +738,7 @@ void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
     dealii::Vector<real>          &local_rhs_int_cell,
     dealii::Vector<real>          &local_rhs_ext_cell)
 {
-	//std::cout << "assembling face terms" << std::endl;
+    //std::cout << "assembling face terms" << std::endl;
     using ADtype = Sacado::Fad::DFad<real>;
     using ADArray = std::array<ADtype,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;

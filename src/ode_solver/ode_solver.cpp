@@ -69,7 +69,7 @@ int ODESolver<dim,real>::steady_state ()
     update_norm = 1; // Always do at least 1 iteration
     this->current_iteration = 0;
 
-    this->dg->output_results_vtk(this->current_iteration);
+    if (ode_param.output_solution_every_x_steps >= 0) this->dg->output_results_vtk(this->current_iteration);
 
     pcout << " Evaluating right-hand side and setting system_matrix to Jacobian before starting iterations... " << std::endl;
     this->dg->assemble_residual ();
@@ -97,8 +97,8 @@ int ODESolver<dim,real>::steady_state ()
 
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
             (this->current_iteration%ode_param.print_iteration_modulo) == 0 ) {
-		pcout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
-	}
+        pcout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
+    }
 
         this->dg->assemble_residual ();
         this->residual_norm = this->dg->get_residual_l2norm();
@@ -147,25 +147,25 @@ int ODESolver<dim,real>::advance_solution_time (double time_advance)
     {
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
             (this->current_iteration%ode_param.print_iteration_modulo) == 0 ) {
-		pcout << " ********************************************************** "
-			  << std::endl
-			  << " Iteration: " << this->current_iteration + 1
-			  << " out of: " << number_of_time_steps
-			  << std::endl;
-	}
+        pcout << " ********************************************************** "
+              << std::endl
+              << " Iteration: " << this->current_iteration + 1
+              << " out of: " << number_of_time_steps
+              << std::endl;
+    }
         dg->assemble_residual(false);
 
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
             (this->current_iteration%ode_param.print_iteration_modulo) == 0 ) {
-		pcout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
-	}
+        pcout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
+    }
 
         step_in_time(constant_time_step);
 
 
    if (this->current_iteration%ode_param.print_iteration_modulo == 0) {
-		this->dg->output_results_vtk(this->current_iteration);
-	}
+        this->dg->output_results_vtk(this->current_iteration);
+    }
         ++(this->current_iteration);
 
 
@@ -190,7 +190,7 @@ void Implicit_ODESolver<dim,real>::step_in_time (real dt)
 
     if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
         (this->current_iteration%ode_param.print_iteration_modulo) == 0 ) {
-	    pcout << " Evaluating system update... " << std::endl;
+        pcout << " Evaluating system update... " << std::endl;
     }
 
     solve_linear (

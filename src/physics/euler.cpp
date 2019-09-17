@@ -199,8 +199,8 @@ inline real Euler<dim,nstate,real>
 
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
    // std::cout << "vel1 " << vel[0] << std::endl
-   // 					 << vel[1] << std::endl
-//						 << vel[2] <<std::endl;
+   //                      << vel[1] << std::endl
+//                         << vel[2] <<std::endl;
 
     const real vel2 = compute_velocity_squared(vel);
     //std::cout << "vel ^2 " << vel2 <<std::endl;
@@ -260,37 +260,37 @@ inline real Euler<dim,nstate,real>
 template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>::
 compute_mean_density(const std::array<real,nstate> &soln_const,
-						  const std::array<real,nstate> &soln_loop) const
+                          const std::array<real,nstate> &soln_loop) const
 {
-	return (soln_const[0] + soln_loop[0])/2.;
+    return (soln_const[0] + soln_loop[0])/2.;
 }
 
 template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>::
 compute_mean_pressure(const std::array<real,nstate> &soln_const,
-    				  const std::array<real,nstate> &soln_loop) const
+                      const std::array<real,nstate> &soln_loop) const
 {
-	real pressure_const = compute_pressure(soln_const);
-	real pressure_loop = compute_pressure(soln_loop);
-	return (pressure_const + pressure_loop)/2.;
+    real pressure_const = compute_pressure(soln_const);
+    real pressure_loop = compute_pressure(soln_loop);
+    return (pressure_const + pressure_loop)/2.;
 }
 
 template <int dim, int nstate, typename real>
 inline dealii::Tensor<1,dim,real> Euler<dim,nstate,real>::
 compute_mean_velocities(const std::array<real,nstate> &soln_const,
-    				    const std::array<real,nstate> &soln_loop) const
+                        const std::array<real,nstate> &soln_loop) const
 {
-	dealii::Tensor<1,dim,real> vel_const = compute_velocities(soln_const);
-	dealii::Tensor<1,dim,real> vel_loop = compute_velocities(soln_loop);
-	return (vel_const + vel_loop)/2.;
+    dealii::Tensor<1,dim,real> vel_const = compute_velocities(soln_const);
+    dealii::Tensor<1,dim,real> vel_loop = compute_velocities(soln_loop);
+    return (vel_const + vel_loop)/2.;
 }
 
 template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>::
 compute_mean_specific_energy(const std::array<real,nstate> &soln_const,
-    						 const std::array<real,nstate> &soln_loop) const
+                             const std::array<real,nstate> &soln_loop) const
 {
-	return ((soln_const[nstate-1]/soln_const[0]) + (soln_loop[nstate-1]/soln_loop[0]))/2.;
+    return ((soln_const[nstate-1]/soln_const[0]) + (soln_loop[nstate-1]/soln_loop[0]))/2.;
 }
 
 
@@ -322,28 +322,28 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
 template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
 ::convective_numerical_split_flux(const std::array<real,nstate> &soln_const,
-								  const std::array<real,nstate> &soln_loop) const
+                                  const std::array<real,nstate> &soln_loop) const
 {
-	std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
-	const real mean_density = compute_mean_density(soln_const, soln_loop);
-	const real mean_pressure = compute_mean_pressure(soln_const, soln_loop);
-	const dealii::Tensor<1,dim,real> mean_velocities = compute_mean_velocities(soln_const,soln_loop);
-	const real mean_specific_energy = compute_mean_specific_energy(soln_const, soln_loop);
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+    const real mean_density = compute_mean_density(soln_const, soln_loop);
+    const real mean_pressure = compute_mean_pressure(soln_const, soln_loop);
+    const dealii::Tensor<1,dim,real> mean_velocities = compute_mean_velocities(soln_const,soln_loop);
+    const real mean_specific_energy = compute_mean_specific_energy(soln_const, soln_loop);
 
-	for (int flux_dim = 0; flux_dim < dim; ++flux_dim)
-	{
-		// Density equation
-		conv_num_split_flux[0][flux_dim] = mean_density * mean_velocities[flux_dim];//conservative_soln[1+flux_dim];
-		// Momentum equation
-		for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
-			conv_num_split_flux[1+velocity_dim][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_velocities[velocity_dim];
-		}
-		conv_num_split_flux[1+flux_dim][flux_dim] += mean_pressure; // Add diagonal of pressure
-		// Energy equation
-		conv_num_split_flux[nstate-1][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_specific_energy + mean_pressure * mean_velocities[flux_dim];
-	}
+    for (int flux_dim = 0; flux_dim < dim; ++flux_dim)
+    {
+        // Density equation
+        conv_num_split_flux[0][flux_dim] = mean_density * mean_velocities[flux_dim];//conservative_soln[1+flux_dim];
+        // Momentum equation
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+            conv_num_split_flux[1+velocity_dim][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_velocities[velocity_dim];
+        }
+        conv_num_split_flux[1+flux_dim][flux_dim] += mean_pressure; // Add diagonal of pressure
+        // Energy equation
+        conv_num_split_flux[nstate-1][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_specific_energy + mean_pressure * mean_velocities[flux_dim];
+    }
 
-	return conv_num_split_flux;
+    return conv_num_split_flux;
 }
 
 template <int dim, int nstate, typename real>
@@ -438,21 +438,21 @@ template <int dim, int nstate, typename real>
 real Euler<dim,nstate,real>
 ::max_convective_eigenvalue (const std::array<real,nstate> &conservative_soln) const
 {
-	//std::cout << "going to calculate max eig" << std::endl;
+    //std::cout << "going to calculate max eig" << std::endl;
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
-	//std::cout << "velocities calculated" << std::endl;
+    //std::cout << "velocities calculated" << std::endl;
 
     const real sound = compute_sound (conservative_soln);
-	//std::cout << "sound calculated" << std::endl;
+    //std::cout << "sound calculated" << std::endl;
 
     /*const*/ real vel2 = compute_velocity_squared(vel);
-	//std::cout << "vel2 calculated" << std::endl;
+    //std::cout << "vel2 calculated" << std::endl;
 
-	if (vel2 < 0.0001)
-		vel2 = 0.0001;
+    if (vel2 < 0.0001)
+        vel2 = 0.0001;
 
     const real max_eig = sqrt(vel2) + sound;
-	//std::cout << "max eig calculated" << std::endl;
+    //std::cout << "max eig calculated" << std::endl;
 
     return max_eig;
 }

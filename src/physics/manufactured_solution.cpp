@@ -397,6 +397,26 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionFunction<dim,real
         hessian[2][2] = poly_max*poly_max*pow(point[2] + 0.5, poly_max-2);
     }
 #endif
+#ifdef POLY_SOLUTION
+    if (dim==1) {
+        const double x = point[0];
+        hessian[0][0] = - 2.0 -6*x + 12*x*x - 20*x*x*x + 30*x*x*x*x - 2.500*sin(50*x);
+    }
+    if (dim==2) {
+        double x = point[0];
+        hessian[0][0] = - 2.0 -6*x + 12*x*x - 20*x*x*x + 30*x*x*x*x - 2.500*sin(50*x);
+        x = point[1];
+        hessian[1][1] = - 2.0 -6*x + 12*x*x - 20*x*x*x + 30*x*x*x*x - 2.500*sin(50*x);
+    }
+    if (dim==3) {
+        double x = point[0];
+        hessian[0][0] = - 2.0 -6*x + 12*x*x - 20*x*x*x + 30*x*x*x*x - 2.500*sin(50*x);
+        x = point[1];
+        hessian[1][1] = - 2.0 -6*x + 12*x*x - 20*x*x*x + 30*x*x*x*x - 2.500*sin(50*x);
+        x = point[2];
+        hessian[2][2] = - 2.0 -6*x + 12*x*x - 20*x*x*x + 30*x*x*x*x - 2.500*sin(50*x);
+    }
+#endif
     return hessian;
 }
 

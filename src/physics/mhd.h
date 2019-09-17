@@ -100,7 +100,7 @@ public:
         const std::array<real,nstate> &conservative_soln) const;
 
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
-           		const std::array<real,nstate> &soln_const, const std::array<real,nstate> &soln_loop) const;
+                   const std::array<real,nstate> &soln_const, const std::array<real,nstate> &soln_loop) const;
 
 
     std::array<real,nstate> convective_normal_flux (const std::array<real,nstate> &conservative_soln, const dealii::Tensor<1,dim,real> &normal) const;
@@ -196,16 +196,16 @@ public:
     ///These functions are only relevant to the split form. The Euler split form is that of Kennedy & Gruber.
     /** Refer to Gassner's paper for more information:  */
     real compute_mean_density(const std::array<real,nstate> &soln_const,
-    						  const std::array<real,nstate> &soln_loop) const;
+                              const std::array<real,nstate> &soln_loop) const;
 
     real compute_mean_pressure(const std::array<real,nstate> &soln_const,
-        					   const std::array<real,nstate> &soln_loop) const;
+                               const std::array<real,nstate> &soln_loop) const;
 
     dealii::Tensor<1,dim,real> compute_mean_velocities(const std::array<real,nstate> &soln_const,
-        						  	  	  	  	  	   const std::array<real,nstate> &soln_loop) const;
+                                                                 const std::array<real,nstate> &soln_loop) const;
 
     real compute_mean_specific_energy(const std::array<real,nstate> &soln_const,
-        						  const std::array<real,nstate> &soln_loop) const;
+                                  const std::array<real,nstate> &soln_loop) const;
 
     void boundary_face_values (
         const int /*boundary_type*/,

@@ -48,13 +48,6 @@ DGFactory<dim,real>
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
 
     PDE_enum pde_type = parameters_input->pde_type;
-    //if (pde_type == PDE_enum::advection) {
-    //    return new DG<dim,1,real>(parameters_input, degree);
-    //} else if (pde_type == PDE_enum::diffusion) {
-    //    return new DG<dim,1,real>(parameters_input, degree);
-    //} else if (pde_type == PDE_enum::convection_diffusion) {
-    //    return new DG<dim,1,real>(parameters_input, degree);
-    //}
     if (parameters_input->use_weak_form) {
         if (pde_type == PDE_enum::advection) {
             return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree);
@@ -105,11 +98,11 @@ DGBase<dim,real>::DGBase( // @suppress("Class members should be properly initial
     std::tuple< dealii::hp::MappingCollection<dim>, dealii::hp::FECollection<dim>,
                 dealii::hp::QCollection<dim>, dealii::hp::QCollection<dim-1>, dealii::hp::QCollection<1>,
                 dealii::hp::FECollection<dim> > collection_tuple)
-    : nstate(nstate_input)
+    : all_parameters(parameters_input)
+    , nstate(nstate_input)
     , max_degree(max_degree_input)
-    , all_parameters(parameters_input)
-    , fe_collection(std::get<1>(collection_tuple))
     , mapping_collection(std::get<0>(collection_tuple))
+    , fe_collection(std::get<1>(collection_tuple))
     , volume_quadrature_collection(std::get<2>(collection_tuple))
     , face_quadrature_collection(std::get<3>(collection_tuple))
     , oned_quadrature_collection(std::get<4>(collection_tuple))
@@ -154,34 +147,34 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
         dealii::Quadrature<dim-1> face_quad(degree+1); //removed const
 
         if (parameters_input->use_collocated_nodes)
-        	{
-        		dealii::QGaussLobatto<1> oned_quad_Gauss_Lobatto (degree+1);
-        		dealii::QGaussLobatto<dim> vol_quad_Gauss_Lobatto (degree+1);
-        		oned_quad = oned_quad_Gauss_Lobatto;
-        		volume_quad = vol_quad_Gauss_Lobatto;
+            {
+                dealii::QGaussLobatto<1> oned_quad_Gauss_Lobatto (degree+1);
+                dealii::QGaussLobatto<dim> vol_quad_Gauss_Lobatto (degree+1);
+                oned_quad = oned_quad_Gauss_Lobatto;
+                volume_quad = vol_quad_Gauss_Lobatto;
 
-        		if(dim == 1)
-        		{
-        			dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
-        			face_quad = face_quad_Gauss_Legendre;
-        		}
-        		else
-        		{
-        			dealii::QGaussLobatto<dim-1> face_quad_Gauss_Lobatto (degree+1);
-        			face_quad = face_quad_Gauss_Lobatto;
-        		}
+                if(dim == 1)
+                {
+                    dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
+                    face_quad = face_quad_Gauss_Legendre;
+                }
+                else
+                {
+                    dealii::QGaussLobatto<dim-1> face_quad_Gauss_Lobatto (degree+1);
+                    face_quad = face_quad_Gauss_Lobatto;
+                }
 
 
-        	}
-        	else
-        	{
-        		dealii::QGauss<1> oned_quad_Gauss_Legendre (degree+1);
-        		dealii::QGauss<dim> vol_quad_Gauss_Legendre (degree+1);
-        		dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
-        		oned_quad = oned_quad_Gauss_Legendre;
-        		volume_quad = vol_quad_Gauss_Legendre;
-        		face_quad = face_quad_Gauss_Legendre;
-        	}
+            }
+            else
+            {
+                dealii::QGauss<1> oned_quad_Gauss_Legendre (degree+1);
+                dealii::QGauss<dim> vol_quad_Gauss_Legendre (degree+1);
+                dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
+                oned_quad = oned_quad_Gauss_Legendre;
+                volume_quad = vol_quad_Gauss_Legendre;
+                face_quad = face_quad_Gauss_Legendre;
+            }
         //
 
 
@@ -296,174 +289,171 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW)
                 fe_values_collection_face_int.reinit (current_cell, iface, fe_index_curr_cell, fe_index_curr_cell, fe_index_curr_cell);
 
                 if(current_face->at_boundary() && all_parameters->use_periodic_bc == true && dim == 1) //using periodic BCs (for 1d)
-				{
-                	int cell_index  = current_cell->index();
-					//int cell_index = current_cell->index();
-					if (cell_index == 0 && iface == 0)
-					{
-						fe_values_collection_face_int.reinit(current_cell, iface, fe_index_curr_cell, fe_index_curr_cell, fe_index_curr_cell);
-						neighbor_cell = dof_handler.begin_active();
-						for (unsigned int i = 0 ; i < triangulation->n_active_cells() - 1; ++i)
-						{
-							++neighbor_cell;
-						}
-						neighbor_cell->get_dof_indices(neighbor_dofs_indices);
-	                 	const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
-
-						fe_values_collection_face_ext.reinit(neighbor_cell,(iface == 1) ? 0 : 1,fe_index_neigh_cell,fe_index_neigh_cell,fe_index_neigh_cell);
-
-					}
-					else if (cell_index == (int) triangulation->n_active_cells() - 1 && iface == 1)
-					{
-						fe_values_collection_face_int.reinit(current_cell, iface, fe_index_curr_cell, fe_index_curr_cell, fe_index_curr_cell);
-						neighbor_cell = dof_handler.begin_active();
-						neighbor_cell->get_dof_indices(neighbor_dofs_indices);
-	                 	const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
-						fe_values_collection_face_ext.reinit(neighbor_cell,(iface == 1) ? 0 : 1, fe_index_neigh_cell, fe_index_neigh_cell, fe_index_neigh_cell); //not sure how changing the face number would work in dim!=1-dimensions.
-					}
-
-					//std::cout << "cell " << current_cell->index() << "'s " << iface << "th face has neighbour: " << neighbor_cell->index() << std::endl;
-                	const int neighbor_face_no = (iface ==1) ? 0:1;
-                	const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
-
-
-                	const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
-                	const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
-
-                	const dealii::FESystem<dim,dim> &neigh_fe_ref = fe_collection[fe_index_neigh_cell];
-                	const unsigned int neigh_cell_degree = neigh_fe_ref.tensor_degree();
-                	const unsigned int n_dofs_neigh_cell = neigh_fe_ref.n_dofs_per_cell();
-
-					dealii::Vector<double> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
-
-
-                	const unsigned int normal_direction1 = dealii::GeometryInfo<dim>::unit_normal_direction[iface];
-					const unsigned int normal_direction2 = dealii::GeometryInfo<dim>::unit_normal_direction[neighbor_face_no];
-					const unsigned int deg1sq = (curr_cell_degree == 0) ? 1 : curr_cell_degree * (curr_cell_degree+1);
-					const unsigned int deg2sq = (neigh_cell_degree == 0) ? 1 : neigh_cell_degree * (neigh_cell_degree+1);
-
-					//const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction1) / current_face->number_of_children();
-					const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction1);
-					const real vol_div_facearea2 = neighbor_cell->extent_in_direction(normal_direction2);
-
-					const real penalty1 = deg1sq / vol_div_facearea1;
-					const real penalty2 = deg2sq / vol_div_facearea2;
-
-					real penalty = 0.5 * ( penalty1 + penalty2 );
-
-					if ( compute_dRdW ) {
-						assemble_face_term_implicit (
-													fe_values_face_int, fe_values_face_ext,
-													penalty,
-													current_dofs_indices, neighbor_dofs_indices,
-													current_cell_rhs, neighbor_cell_rhs);
-					} else {
-						assemble_face_term_explicit (
-													fe_values_face_int, fe_values_face_ext,
-													penalty,
-													current_dofs_indices, neighbor_dofs_indices,
-													current_cell_rhs, neighbor_cell_rhs);
-					}
-
-				}
-
-                else
                 {
-                	const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
-					const unsigned int deg1sq = (curr_cell_degree == 0) ? 1 : curr_cell_degree * (curr_cell_degree+1);
-					const unsigned int normal_direction = dealii::GeometryInfo<dim>::unit_normal_direction[iface];
-					const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction);
+                    int cell_index  = current_cell->index();
+                    //int cell_index = current_cell->index();
+                    if (cell_index == 0 && iface == 0)
+                    {
+                        fe_values_collection_face_int.reinit(current_cell, iface, fe_index_curr_cell, fe_index_curr_cell, fe_index_curr_cell);
+                        neighbor_cell = dof_handler.begin_active();
+                        for (unsigned int i = 0 ; i < triangulation->n_active_cells() - 1; ++i)
+                        {
+                            ++neighbor_cell;
+                        }
+                        neighbor_cell->get_dof_indices(neighbor_dofs_indices);
+                         const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
 
-					real penalty = deg1sq / vol_div_facearea1;
+                        fe_values_collection_face_ext.reinit(neighbor_cell,(iface == 1) ? 0 : 1,fe_index_neigh_cell,fe_index_neigh_cell,fe_index_neigh_cell);
 
-					const unsigned int boundary_id = current_face->boundary_id();
-					// Need to somehow get boundary type from the mesh
-					if ( compute_dRdW ) {
-						assemble_boundary_term_implicit (boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
-					} else {
-						assemble_boundary_term_explicit (boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
-					}
+                    }
+                    else if (cell_index == (int) triangulation->n_active_cells() - 1 && iface == 1)
+                    {
+                        fe_values_collection_face_int.reinit(current_cell, iface, fe_index_curr_cell, fe_index_curr_cell, fe_index_curr_cell);
+                        neighbor_cell = dof_handler.begin_active();
+                        neighbor_cell->get_dof_indices(neighbor_dofs_indices);
+                         const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
+                        fe_values_collection_face_ext.reinit(neighbor_cell,(iface == 1) ? 0 : 1, fe_index_neigh_cell, fe_index_neigh_cell, fe_index_neigh_cell); //not sure how changing the face number would work in dim!=1-dimensions.
+                    }
+
+                    //std::cout << "cell " << current_cell->index() << "'s " << iface << "th face has neighbour: " << neighbor_cell->index() << std::endl;
+                    const int neighbor_face_no = (iface ==1) ? 0:1;
+                    const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
+
+
+                    const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
+                    const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
+
+                    const dealii::FESystem<dim,dim> &neigh_fe_ref = fe_collection[fe_index_neigh_cell];
+                    const unsigned int neigh_cell_degree = neigh_fe_ref.tensor_degree();
+                    const unsigned int n_dofs_neigh_cell = neigh_fe_ref.n_dofs_per_cell();
+
+                    dealii::Vector<double> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
+
+
+                    const unsigned int normal_direction1 = dealii::GeometryInfo<dim>::unit_normal_direction[iface];
+                    const unsigned int normal_direction2 = dealii::GeometryInfo<dim>::unit_normal_direction[neighbor_face_no];
+                    const unsigned int deg1sq = (curr_cell_degree == 0) ? 1 : curr_cell_degree * (curr_cell_degree+1);
+                    const unsigned int deg2sq = (neigh_cell_degree == 0) ? 1 : neigh_cell_degree * (neigh_cell_degree+1);
+
+                    //const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction1) / current_face->number_of_children();
+                    const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction1);
+                    const real vol_div_facearea2 = neighbor_cell->extent_in_direction(normal_direction2);
+
+                    const real penalty1 = deg1sq / vol_div_facearea1;
+                    const real penalty2 = deg2sq / vol_div_facearea2;
+
+                    real penalty = 0.5 * ( penalty1 + penalty2 );
+
+                    if ( compute_dRdW ) {
+                        assemble_face_term_implicit (
+                                                    fe_values_face_int, fe_values_face_ext,
+                                                    penalty,
+                                                    current_dofs_indices, neighbor_dofs_indices,
+                                                    current_cell_rhs, neighbor_cell_rhs);
+                    } else {
+                        assemble_face_term_explicit (
+                                                    fe_values_face_int, fe_values_face_ext,
+                                                    penalty,
+                                                    current_dofs_indices, neighbor_dofs_indices,
+                                                    current_cell_rhs, neighbor_cell_rhs);
+                    }
+
+                } else {
+                    const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
+                    const unsigned int deg1sq = (curr_cell_degree == 0) ? 1 : curr_cell_degree * (curr_cell_degree+1);
+                    const unsigned int normal_direction = dealii::GeometryInfo<dim>::unit_normal_direction[iface];
+                    const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction);
+
+                    real penalty = deg1sq / vol_div_facearea1;
+
+                    const unsigned int boundary_id = current_face->boundary_id();
+                    // Need to somehow get boundary type from the mesh
+                    if ( compute_dRdW ) {
+                        assemble_boundary_term_implicit (boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
+                    } else {
+                        assemble_boundary_term_explicit (boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
+                    }
                 }
 
-				//CASE 1.5: periodic boundary conditions
-				//note that periodicity is not adapted for hp adaptivity yet. this needs to be figured out in the future
-			} else if (current_face->at_boundary() && current_cell->has_periodic_neighbor(iface)){
+                //CASE 1.5: periodic boundary conditions
+                //note that periodicity is not adapted for hp adaptivity yet. this needs to be figured out in the future
+            } else if (current_face->at_boundary() && current_cell->has_periodic_neighbor(iface)){
 
-				neighbor_cell = current_cell->periodic_neighbor(iface);
-				//std::cout << "cell " << current_cell->index() << " at boundary" <<std::endl;
-				//std::cout << "periodic neighbour on face " << iface << " is " << neighbor_cell->index() << std::endl;
-
-
-				if (!current_cell->periodic_neighbor_is_coarser(iface) &&
-					(neighbor_cell->index() > current_cell->index() ||
-					 (neighbor_cell->index() == current_cell->index() && current_cell->level() < neighbor_cell->level())
-					)
-				   )
-				{
-					 n_face_visited++;
-					Assert (current_cell->periodic_neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
+                neighbor_cell = current_cell->periodic_neighbor(iface);
+                //std::cout << "cell " << current_cell->index() << " at boundary" <<std::endl;
+                //std::cout << "periodic neighbour on face " << iface << " is " << neighbor_cell->index() << std::endl;
 
 
-					// Corresponding face of the neighbor.
-					// e.g. The 4th face of the current cell might correspond to the 3rd face of the neighbor
-					const unsigned int neighbor_face_no = current_cell->periodic_neighbor_of_periodic_neighbor(iface);
+                if (!current_cell->periodic_neighbor_is_coarser(iface) &&
+                    (neighbor_cell->index() > current_cell->index() ||
+                     (neighbor_cell->index() == current_cell->index() && current_cell->level() < neighbor_cell->level())
+                    )
+                   )
+                {
+                     n_face_visited++;
+                    Assert (current_cell->periodic_neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
 
-					// Get information about neighbor cell
-					const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
-					const dealii::FESystem<dim,dim> &neigh_fe_ref = fe_collection[fe_index_neigh_cell];
-					const unsigned int neigh_cell_degree = neigh_fe_ref.tensor_degree();
-					const unsigned int n_dofs_neigh_cell = neigh_fe_ref.n_dofs_per_cell();
 
-					// Local rhs contribution from neighbor
-					dealii::Vector<double> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
+                    // Corresponding face of the neighbor.
+                    // e.g. The 4th face of the current cell might correspond to the 3rd face of the neighbor
+                    const unsigned int neighbor_face_no = current_cell->periodic_neighbor_of_periodic_neighbor(iface);
 
-					// Obtain the mapping from local dof indices to global dof indices for neighbor cell
-					neighbor_dofs_indices.resize(n_dofs_neigh_cell);
-					neighbor_cell->get_dof_indices (neighbor_dofs_indices);
+                    // Get information about neighbor cell
+                    const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
+                    const dealii::FESystem<dim,dim> &neigh_fe_ref = fe_collection[fe_index_neigh_cell];
+                    const unsigned int neigh_cell_degree = neigh_fe_ref.tensor_degree();
+                    const unsigned int n_dofs_neigh_cell = neigh_fe_ref.n_dofs_per_cell();
 
-					fe_values_collection_face_int.reinit (current_cell, iface, fe_index_curr_cell, fe_index_curr_cell, fe_index_curr_cell);
-					const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
-					fe_values_collection_face_ext.reinit (neighbor_cell, neighbor_face_no, fe_index_neigh_cell, fe_index_neigh_cell, fe_index_neigh_cell);
-					const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
+                    // Local rhs contribution from neighbor
+                    dealii::Vector<double> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
 
-					const unsigned int normal_direction1 = dealii::GeometryInfo<dim>::unit_normal_direction[iface];
-					const unsigned int normal_direction2 = dealii::GeometryInfo<dim>::unit_normal_direction[neighbor_face_no];
-					const unsigned int deg1sq = (curr_cell_degree == 0) ? 1 : curr_cell_degree * (curr_cell_degree+1);
-					const unsigned int deg2sq = (neigh_cell_degree == 0) ? 1 : neigh_cell_degree * (neigh_cell_degree+1);
+                    // Obtain the mapping from local dof indices to global dof indices for neighbor cell
+                    neighbor_dofs_indices.resize(n_dofs_neigh_cell);
+                    neighbor_cell->get_dof_indices (neighbor_dofs_indices);
 
-					//const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction1) / current_face->number_of_children();
-					const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction1);
-					const real vol_div_facearea2 = neighbor_cell->extent_in_direction(normal_direction2);
+                    fe_values_collection_face_int.reinit (current_cell, iface, fe_index_curr_cell, fe_index_curr_cell, fe_index_curr_cell);
+                    const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
+                    fe_values_collection_face_ext.reinit (neighbor_cell, neighbor_face_no, fe_index_neigh_cell, fe_index_neigh_cell, fe_index_neigh_cell);
+                    const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
 
-					const real penalty1 = deg1sq / vol_div_facearea1;
-					const real penalty2 = deg2sq / vol_div_facearea2;
+                    const unsigned int normal_direction1 = dealii::GeometryInfo<dim>::unit_normal_direction[iface];
+                    const unsigned int normal_direction2 = dealii::GeometryInfo<dim>::unit_normal_direction[neighbor_face_no];
+                    const unsigned int deg1sq = (curr_cell_degree == 0) ? 1 : curr_cell_degree * (curr_cell_degree+1);
+                    const unsigned int deg2sq = (neigh_cell_degree == 0) ? 1 : neigh_cell_degree * (neigh_cell_degree+1);
 
-					real penalty = 0.5 * ( penalty1 + penalty2 );
-					//penalty = 1;//99;
+                    //const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction1) / current_face->number_of_children();
+                    const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction1);
+                    const real vol_div_facearea2 = neighbor_cell->extent_in_direction(normal_direction2);
 
-					if ( compute_dRdW ) {
-						assemble_face_term_implicit (
-								fe_values_face_int, fe_values_face_ext,
-								penalty,
-								current_dofs_indices, neighbor_dofs_indices,
-								current_cell_rhs, neighbor_cell_rhs);
-					} else {
-						assemble_face_term_explicit (
-								fe_values_face_int, fe_values_face_ext,
-								penalty,
-								current_dofs_indices, neighbor_dofs_indices,
-								current_cell_rhs, neighbor_cell_rhs);
-					}
+                    const real penalty1 = deg1sq / vol_div_facearea1;
+                    const real penalty2 = deg2sq / vol_div_facearea2;
 
-					// Add local contribution from neighbor cell to global vector
-					for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
-						right_hand_side(neighbor_dofs_indices[i]) += neighbor_cell_rhs(i);
-					}
-				}
-				else
-				{
-					//do nothing
-				}
+                    real penalty = 0.5 * ( penalty1 + penalty2 );
+                    //penalty = 1;//99;
+
+                    if ( compute_dRdW ) {
+                        assemble_face_term_implicit (
+                                fe_values_face_int, fe_values_face_ext,
+                                penalty,
+                                current_dofs_indices, neighbor_dofs_indices,
+                                current_cell_rhs, neighbor_cell_rhs);
+                    } else {
+                        assemble_face_term_explicit (
+                                fe_values_face_int, fe_values_face_ext,
+                                penalty,
+                                current_dofs_indices, neighbor_dofs_indices,
+                                current_cell_rhs, neighbor_cell_rhs);
+                    }
+
+                    // Add local contribution from neighbor cell to global vector
+                    for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
+                        right_hand_side(neighbor_dofs_indices[i]) += neighbor_cell_rhs(i);
+                    }
+                }
+                else
+                {
+                    //do nothing
+                }
 
 
             // Case 2:
@@ -538,15 +528,29 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW)
             // Case 3:
             // Neighbor cell is NOT coarser
             // Therefore, they have the same coarseness, and we need to choose one of them to do the work
-            } else if ( //added a criteria for periodicity
-                (!current_cell->neighbor_is_coarser(iface))  &&
-                    // Cell with lower index does work
-                    (neighbor_cell->index() > current_cell->index() || 
-                    // If both cells have same index
-                    // See https://www.dealii.org/developer/doxygen/deal.II/classTriaAccessorBase.html#a695efcbe84fefef3e4c93ee7bdb446ad
-                    // then cell at the lower level does the work
-                        (neighbor_cell->index() == current_cell->index() && current_cell->level() < neighbor_cell->level())
-                    ) )
+            } else if (
+                (   !(current_cell->neighbor_is_coarser(iface))
+                    // In the case the neighbor is a ghost cell, we let the processor with the lower rank do the work on that face
+                    // We cannot use the cell->index() because the index is relative to the distributed triangulation
+                    // Therefore, the cell index of a ghost cell might be different to the physical cell index even if they refer to the same cell
+                 && neighbor_cell->is_ghost()
+                 && current_cell->subdomain_id() < neighbor_cell->subdomain_id()
+                )
+                ||
+                (   !(current_cell->neighbor_is_coarser(iface))
+                    // In the case the neighbor is a local cell, we let the cell with the lower index do the work on that face
+                 && neighbor_cell->is_locally_owned()
+                 &&
+                    (  // Cell with lower index does work
+                       current_cell->index() < neighbor_cell->index()
+                     ||
+                       // If both cells have same index
+                       // See https://www.dealii.org/developer/doxygen/deal.II/classTriaAccessorBase.html#a695efcbe84fefef3e4c93ee7bdb446ad
+                       // then cell at the lower level does the work
+                       (neighbor_cell->index() == current_cell->index() && current_cell->level() < neighbor_cell->level())
+                    )
+                )
+            )
             {
                 n_face_visited++;
                 Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
@@ -669,8 +673,8 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
 
 //    int index = 0;
 //    for (auto current_cell_poly = cell_poly_degree.begin(); current_cell_poly != cell_poly_degree.end(); ++current_cell_poly) {
-//    	current_cell_poly[index] = fe_collection[active_fe_indices_dealiivector[index]].tensor_degree();
-//    	index++;
+//        current_cell_poly[index] = fe_collection[active_fe_indices_dealiivector[index]].tensor_degree();
+//        index++;
 //    }
 //    //using DVTenum = dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType;
 //    data_out.add_data_vector (cell_poly_degree, "PolynomialDegree", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);

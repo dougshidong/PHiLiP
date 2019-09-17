@@ -26,17 +26,15 @@ public:
     /// Physics that the post-processor will use to evaluate derived data types
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, double > > physics;
 
-    // virtual void compute_derived_quantities_vector (
-    //     const std::vector<dealii::Vector<double> >              &uh,
-    //     const std::vector<std::vector<dealii::Tensor<1,dim> > > &duh,
-    //     const std::vector<std::vector<dealii::Tensor<2,dim> > > &dduh,
-    //     const std::vector<dealii::Point<dim> >                  &normals,
-    //     const std::vector<dealii::Point<dim> >                  &evaluation_points,
-    //     std::vector<dealii::Vector<double> >                    &computed_quantities) const;
+    /// Queries the Physics to output data of a vector-valued problem.
     virtual void evaluate_vector_field (const dealii::DataPostprocessorInputs::Vector<dim> &inputs, std::vector<dealii::Vector<double>> &computed_quantities) const override;
+    /// Queries the Physics to output data of a scalar-valued problem.
     virtual void evaluate_scalar_field (const dealii::DataPostprocessorInputs::Scalar<dim> &inputs, std::vector<dealii::Vector<double>> &computed_quantities) const override;
+    /// Queries the Physics for the names of output data variables.
     virtual std::vector<std::string> get_names () const override;
+    /// Queries the Physics for the type (scalar/vector) of output data variables.
     virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> get_data_component_interpretation () const override;
+    /// Queries the Physics for the required update flags to evaluate output data.
     virtual dealii::UpdateFlags get_needed_update_flags () const override;
 };
 

@@ -29,8 +29,12 @@ template <int dim, int nstate, typename real>
 class Burgers : public PhysicsBase <dim, nstate, real>
 {
 public:
+    /// Turns on convective part of the Burgers problem.
+    /** Without the nonlinear convection, it's simply diffusion */
     const bool hasConvection;
+    /// Turns on diffusive part of the Burgers problem.
     const bool hasDiffusion;
+
     /// Constructor
     Burgers (const bool convection = true, const bool diffusion = true)
         : hasConvection(convection), hasDiffusion(diffusion)
@@ -45,8 +49,8 @@ public:
 
     /// Convective split flux
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
-        		const std::array<real,nstate> &soln_const,
-				const std::array<real,nstate> & soln_loop) const;
+                const std::array<real,nstate> &soln_const,
+                const std::array<real,nstate> & soln_loop) const;
 
     /// Spectral radius of convective term Jacobian is 'c'
     std::array<real,nstate> convective_eigenvalues (

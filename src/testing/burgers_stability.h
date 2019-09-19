@@ -12,7 +12,7 @@ template <int dim, int nstate>
 class BurgersEnergyStability: public TestsBase
 {
 public:
-	BurgersEnergyStability(const PHiLiP::Parameters::AllParameters *const parameters_input);
+	BurgersEnergyStability(const Parameters::AllParameters *const parameters_input);
     int run_test () const override;
 private:
 	double compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const;

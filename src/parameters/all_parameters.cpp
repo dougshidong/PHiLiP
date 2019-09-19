@@ -47,7 +47,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler_vortex | "
                       " euler_entropy_waves | "
                       " numerical_flux_convervation | "
-                      " jacobian_regression "),
+                      " jacobian_regression |"
+                      " advection_periodicity |"
+                      " euler_split_taylor_green"),
                       "The type of test we want to solve. "
                       "Choices are (only run control has been coded up for now)" 
                       " <run_control | " 
@@ -57,7 +59,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_vortex | "
                       "  euler_entropy_waves | "
                       "  numerical_flux_convervation | "
-                      "  jacobian_regression>.");
+                      "  jacobian_regression |"
+					  "  euler_split_taylor_green |"
+					  "  advection_periodicity >.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -111,6 +115,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "euler_entropy_waves") { test_type = euler_entropy_waves; }
     else if (test_string == "numerical_flux_convervation") { test_type = numerical_flux_convervation; }
     else if (test_string == "jacobian_regression") { test_type = jacobian_regression; }
+    else if (test_string == "advection_periodicity") {test_type = advection_periodicity; }
+    else if (test_string == "euler_split_taylor_green") {test_type = euler_split_taylor_green;}
 
     const std::string pde_string = prm.get("pde_type");
     if (pde_string == "advection") {

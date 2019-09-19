@@ -2,6 +2,8 @@
 # Number of dimensions
 set dimension = 3
 
+set test_type = euler_split_taylor_green
+
 set use_weak_form = false
 
 set use_collocated_nodes = true

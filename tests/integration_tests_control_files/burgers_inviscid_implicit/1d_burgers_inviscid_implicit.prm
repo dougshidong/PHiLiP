@@ -9,6 +9,8 @@ set pde_type  = burgers_inviscid
 
 set use_weak_form = true
 
+set use_collocated_nodes = false
+
 subsection ODE solver
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations            = 500

@@ -9,7 +9,7 @@ set conv_num_flux  = lax_friedrichs
 
 #set use_split_form = true
 
-#set use_collocated_nodes = true
+set use_collocated_nodes = false
 
 set use_weak_form = true
 

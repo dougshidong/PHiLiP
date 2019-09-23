@@ -19,12 +19,19 @@
 
 namespace PHiLiP {
 
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    template <int dim> using Triangulation = dealii::Triangulation<dim>;
+#else
+    template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+#endif
+
 
 template <int dim, int nstate, typename real>
 DGStrong<dim,nstate,real>::DGStrong(
     const Parameters::AllParameters *const parameters_input,
-    const unsigned int degree)
-    : DGBase<dim,real>::DGBase(nstate, parameters_input, degree) // Use DGBase constructor
+    const unsigned int degree,
+    Triangulation *const triangulation_input)
+    : DGBase<dim,real>::DGBase(nstate, parameters_input, degree, triangulation_input) // Use DGBase constructor
 {
     using ADtype = Sacado::Fad::DFad<real>;
     pde_physics = Physics::PhysicsFactory<dim,nstate,ADtype> ::create_Physics(parameters_input);
@@ -48,7 +55,8 @@ template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_volume_terms_implicit(
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
-    dealii::Vector<real> &local_rhs_int_cell)
+    dealii::Vector<real> &local_rhs_int_cell,
+    const dealii::FEValues<dim,dim> &fe_values_lagrange)
 {
 
     using ADtype = Sacado::Fad::DFad<real>;
@@ -108,7 +116,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_implicit(
 
     // Evaluate flux divergence by interpolating the flux
     // Since we have nodal values of the flux, we use the Lagrange polynomials to obtain the gradients at the quadrature points.
-    const dealii::FEValues<dim,dim> &fe_values_lagrange = this->fe_values_collection_volume_lagrange.get_present_fe_values();
+    //const dealii::FEValues<dim,dim> &fe_values_lagrange = this->fe_values_collection_volume_lagrange.get_present_fe_values();
     std::vector<ADArray> flux_divergence(n_quad_pts);
 
     std::array<std::array<std::vector<ADtype>,nstate>,dim> f;
@@ -477,7 +485,8 @@ template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
-    dealii::Vector<real> &local_rhs_int_cell)
+    dealii::Vector<real> &local_rhs_int_cell,
+    const dealii::FEValues<dim,dim> &fe_values_lagrange)
 {
     //std::cout << "assembling cell terms" << std::endl;
     using ADtype = Sacado::Fad::DFad<real>;
@@ -536,7 +545,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
 
     // Evaluate flux divergence by interpolating the flux
     // Since we have nodal values of the flux, we use the Lagrange polynomials to obtain the gradients at the quadrature points.
-    const dealii::FEValues<dim,dim> &fe_values_lagrange = this->fe_values_collection_volume_lagrange.get_present_fe_values();
+    //const dealii::FEValues<dim,dim> &fe_values_lagrange = this->fe_values_collection_volume_lagrange.get_present_fe_values();
     std::vector<ADArray> flux_divergence(n_quad_pts);
     for (int istate = 0; istate<nstate; ++istate) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {

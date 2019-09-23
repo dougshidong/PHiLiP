@@ -55,9 +55,8 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
 	dealii::GridGenerator::hyper_cube(grid, left, right, colorize);
 	grid.refine_global(n_refinements);
 	pcout << "Grid generated and refined" << std::endl;
-	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree);
+	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, &grid);
 	pcout << "dg created" <<std::endl;
-	dg->set_triangulation(&grid);
 	dg->allocate_system ();
 
 	pcout << "Implement initial conditions" << std::endl;

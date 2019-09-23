@@ -9,6 +9,7 @@
 #include <deal.II/fe/fe_dgq.h>
 #include <deal.II/fe/fe_dgp.h>
 #include <deal.II/fe/fe_system.h>
+#include <deal.II/fe/mapping_fe_field.h> 
 
 
 #include <deal.II/dofs/dof_handler.h>
@@ -28,7 +29,21 @@
 #include "numerical_flux/numerical_flux.h"
 #include "parameters/all_parameters.h"
 
+// Template specialization of MappingFEField
+//extern template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<PHILIP_DIM> >;
 namespace PHiLiP {
+
+//#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+//    using Triangulation = dealii::Triangulation<dim>;
+//#else
+//    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+//#endif
+//namespace PHiLiP {
+//#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+//    template <int dim> using Triangulation = dealii::Triangulation<dim>;
+//#else
+//    template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+//#endif
 
 /// DGBase is independent of the number of state variables.
 /**  This base class allows the use of arrays to efficiently allocate the data structures
@@ -50,6 +65,11 @@ namespace PHiLiP {
 template <int dim, typename real>
 class DGBase 
 {
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    using Triangulation = dealii::Triangulation<dim>;
+#else
+    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+#endif
 public:
     const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
 
@@ -70,7 +90,23 @@ public:
      *
      *  Passes create_collection_tuple() to the delegated constructor.
      */
-    DGBase(const int nstate_input, const Parameters::AllParameters *const parameters_input, const unsigned int max_degree);
+    DGBase(const int nstate_input,
+           const Parameters::AllParameters *const parameters_input,
+           const unsigned int max_degree,
+           Triangulation *const triangulation_input);
+
+
+    /// Makes for cleaner doxygen documentation
+    using MassiveCollectionTuple = std::tuple<
+        //dealii::hp::MappingCollection<dim>, // Mapping
+        dealii::hp::FECollection<dim>, // Solution FE
+        //dealii::hp::FECollection<dim>, // Grid FE
+        //dealii::FESystem<dim>, // Grid FE // Can't just return FESystem. For some reason the copy constructor is deleted
+        dealii::FE_Q<dim>, // Grid FE
+        dealii::hp::QCollection<dim>,  // Volume quadrature
+        dealii::hp::QCollection<dim-1>, // Face quadrature
+        dealii::hp::QCollection<1>, // 1D quadrature for strong form
+        dealii::hp::FECollection<dim> >;  // Lagrange polynomials for strong form
 
     /// Delegated constructor that initializes collections.
     /** Since a function is used to generate multiple different objects, a delegated
@@ -80,20 +116,20 @@ public:
     DGBase( const int nstate_input,
             const Parameters::AllParameters *const parameters_input,
             const unsigned int max_degree_input,
-            const std::tuple< dealii::hp::MappingCollection<dim>, dealii::hp::FECollection<dim>,
-                              dealii::hp::QCollection<dim>, dealii::hp::QCollection<dim-1>, dealii::hp::QCollection<1>,
-                              dealii::hp::FECollection<dim> > collection_tuple);
+            Triangulation *const triangulation_input,
+            const MassiveCollectionTuple collection_tuple);
 
     virtual ~DGBase(); ///< Destructor.
 
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    using Triangulation = dealii::Triangulation<dim>;
-#else
-    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-#endif
-    Triangulation *triangulation; ///< Mesh
+    Triangulation *const triangulation; ///< Mesh
     /// Sets the triangulation for 2D and 3D. Should be done before allocate system
-    void set_triangulation(Triangulation *triangulation_input);
+    //void set_triangulation(Triangulation *triangulation_input);
+
+    /// Refers to a collection Mappings, which represents the high-order grid.
+    /** Since we are interested in performing mesh movement for optimization purposes,
+     *  this is not a constant member variables.
+     */
+    dealii::hp::MappingCollection<dim> mapping_collection;
 
     void set_all_cells_fe_degree ( const unsigned int degree );
 
@@ -123,16 +159,6 @@ public:
 
     unsigned int n_dofs() const; ///< Number of degrees of freedom
 
-
-    /// Degrees of freedom handler
-    /*  Allows us to iterate over the finite elements' degrees of freedom.
-     *  Note that since we are not using FESystem, we need to multiply
-     *  the index by a factor of "nstate"
-     *
-     *  Must be defined after fe_dg since it is a subscriptor of fe_dg.
-     *  Destructor are called in reverse order in which they appear in class definition. 
-     */ 
-    dealii::hp::DoFHandler<dim> dof_handler;
 
     /// Sparsity pattern used on the system_matrix
     /** Not sure we need to store it.  */
@@ -183,11 +209,18 @@ public:
     dealii::IndexSet locally_owned_dofs; ///< Locally own degrees of freedom
     dealii::IndexSet ghost_dofs; ///< Locally relevant ghost degrees of freedom
     dealii::IndexSet locally_relevant_dofs; ///< Union of locally owned degrees of freedom and relevant ghost degrees of freedom
+
+    dealii::IndexSet locally_owned_dofs_grid; ///< Locally own degrees of freedom for the grid
+    dealii::IndexSet ghost_dofs_grid; ///< Locally relevant ghost degrees of freedom for the grid
+    dealii::IndexSet locally_relevant_dofs_grid; ///< Union of locally owned degrees of freedom and relevant ghost degrees of freedom for the grid
     /// Current modal coefficients of the solution
     /** Note that the current processor has read-access to all locally_relevant_dofs
      *  and has write-access to all locally_owned_dofs
      */
     dealii::LinearAlgebra::distributed::Vector<double> solution;
+
+    /// Current nodal coefficients of the high-order grid.
+    dealii::LinearAlgebra::distributed::Vector<double> high_order_grid;
 
     void initialize_manufactured_solution (); ///< Virtual function defined in DG
 
@@ -228,14 +261,17 @@ public:
     //void assemble_residual_dRdW ();
     void assemble_residual (const bool compute_dRdW=false);
 
-    /// Mapping is currently MappingQ.
-    /**  Refer to deal.II documentation for the various mapping types */
-    //const dealii::MappingQ<dim> mapping;
-    const dealii::hp::MappingCollection<dim> mapping_collection;
-
-    /// Finite Element Collection for p-finite-element
+    /// Finite Element Collection for p-finite-element to represent the solution
     /** This is a collection of FESystems */
     const dealii::hp::FECollection<dim>    fe_collection;
+
+    /// Finite Element Collection to represent the high-order grid
+    /** This is a collection of FESystems.
+     *  Unfortunately, deal.II doesn't have a working hp Mapping FE field.
+     *  Therefore, every grid/cell will use the maximal polynomial mapping regardless of the solution order.
+     */
+    //const dealii::hp::FECollection<dim>    fe_collection_grid;
+    const dealii::FESystem<dim>    fe_grid;
 
     dealii::hp::QCollection<dim>     volume_quadrature_collection;
     dealii::hp::QCollection<dim-1>   face_quadrature_collection;
@@ -250,7 +286,8 @@ protected:
     virtual void assemble_volume_terms_implicit(
         const dealii::FEValues<dim,dim> &fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        dealii::Vector<real> &current_cell_rhs) = 0;
+        dealii::Vector<real> &current_cell_rhs,
+        const dealii::FEValues<dim,dim> &fe_values_lagrange) = 0;
     /// Evaluate the integral over the cell edges that are on domain boundaries
     /** Compute both the right-hand side and the block of the Jacobian */
     virtual void assemble_boundary_term_implicit(
@@ -276,7 +313,8 @@ protected:
     virtual void assemble_volume_terms_explicit(
         const dealii::FEValues<dim,dim> &fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        dealii::Vector<real> &current_cell_rhs) = 0;
+        dealii::Vector<real> &current_cell_rhs,
+        const dealii::FEValues<dim,dim> &fe_values_lagrange) = 0;
     /// Evaluate the integral over the cell edges that are on domain boundaries
     virtual void assemble_boundary_term_explicit(
         const unsigned int boundary_id,
@@ -323,13 +361,6 @@ protected:
     // // const dealii::QGaussLobatto<dim>   volume_quadrature;
     // // const dealii::QGaussLobatto<dim-1> face_quadrature;
 
-    /// Create mapping collection for initializer list
-    dealii::hp::MappingCollection<dim> create_mapping_collection(const unsigned int max_degree) const;
-
-    /// Create FECollection for initializer list
-    dealii::hp::FECollection<dim> create_fe_collection(const unsigned int max_degree) const;
-
-
     /// Update flags needed at volume points.
     const dealii::UpdateFlags volume_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values;
     /// Update flags needed at face points.
@@ -338,26 +369,42 @@ protected:
     /** NOTE: With hp-adaptation, might need to query neighbor's quadrature points depending on the order of the cells. */
     const dealii::UpdateFlags neighbor_face_update_flags = dealii::update_values | dealii::update_gradients;
 
-    dealii::hp::FEValues<dim,dim>        fe_values_collection_volume;   ///< FEValues of volume.
-    dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_int; ///< FEValues of interior face.
-    dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_ext; ///< FEValues of exterior face.
-    dealii::hp::FESubfaceValues<dim,dim> fe_values_collection_subface;  ///< FEValues of subface.
 
     /// Lagrange basis used in strong form
     /** This is a collection of scalar Lagrange bases */
     const dealii::hp::FECollection<dim>  fe_collection_lagrange;
-    dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange;
+    //dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange;
+
+
+public:
+    /// Degrees of freedom handler
+    /*  Allows us to iterate over the finite elements' degrees of freedom.
+     *  Note that since we are not using FESystem, we need to multiply
+     *  the index by a factor of "nstate"
+     *
+     *  Must be defined after fe_dg since it is a subscriptor of fe_dg.
+     *  Destructor are called in reverse order in which they appear in class definition. 
+     */ 
+    dealii::hp::DoFHandler<dim> dof_handler;
+
+    /// Degrees of freedom handler for the high-order grid
+    dealii::DoFHandler<dim> dof_handler_grid;
+
+protected:
+    /// Main underlying mapping responsible for all mapping evaluations
+    //dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim> > high_order_grid_mapping;
+    dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim> > high_order_grid_mapping;
 
     MPI_Comm mpi_communicator; ///< MPI communicator
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 private:
 
-    /// Makes for cleaner doxygen documentation
-    using CollectionTuple = std::tuple< dealii::hp::MappingCollection<dim>, dealii::hp::FECollection<dim>,
-                dealii::hp::QCollection<dim>, dealii::hp::QCollection<dim-1>, dealii::hp::QCollection<1>,
-                dealii::hp::FECollection<dim> >;
     /// Used in the delegated constructor
-    CollectionTuple create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const;
+    /** The main reason we use this weird function is because all of the above objects
+     *  need to be looped with the various p-orders. This function allows us to do this in a
+     *  single function instead of having like 6 different functions to initialize each of them.
+     */
+    MassiveCollectionTuple create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const;
 
 }; // end of DGBase class
 
@@ -367,11 +414,17 @@ private:
 template <int dim, int nstate, typename real>
 class DGWeak : public DGBase<dim, real>
 {
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    using Triangulation = dealii::Triangulation<dim>;
+#else
+    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+#endif
 public:
     /// Constructor
     DGWeak(
         const Parameters::AllParameters *const parameters_input, 
-        const unsigned int degree);
+        const unsigned int degree,
+        Triangulation *const triangulation_input);
 
     ~DGWeak(); ///< Destructor
 
@@ -397,7 +450,8 @@ private:
     void assemble_volume_terms_implicit(
         const dealii::FEValues<dim,dim> &fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        dealii::Vector<real> &current_cell_rhs);
+        dealii::Vector<real> &current_cell_rhs,
+        const dealii::FEValues<dim,dim> &fe_values_lagrange);
     /// Evaluate the integral over the cell edges that are on domain boundaries
     /** Compute both the right-hand side and the block of the Jacobian */
     void assemble_boundary_term_implicit(
@@ -423,7 +477,8 @@ private:
     void assemble_volume_terms_explicit(
         const dealii::FEValues<dim,dim> &fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        dealii::Vector<real> &current_cell_rhs);
+        dealii::Vector<real> &current_cell_rhs, 
+        const dealii::FEValues<dim,dim> &fe_values_lagrange);
     /// Evaluate the integral over the cell edges that are on domain boundaries
     void assemble_boundary_term_explicit(
         const unsigned int boundary_id,
@@ -452,11 +507,17 @@ private:
 template <int dim, int nstate, typename real>
 class DGStrong : public DGBase<dim, real>
 {
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    using Triangulation = dealii::Triangulation<dim>;
+#else
+    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+#endif
 public:
     /// Constructor
     DGStrong(
         const Parameters::AllParameters *const parameters_input, 
-        const unsigned int degree);
+        const unsigned int degree,
+        Triangulation *const triangulation_input);
 
     /// Destructor
     ~DGStrong();
@@ -482,7 +543,8 @@ private:
     void assemble_volume_terms_implicit(
         const dealii::FEValues<dim,dim> &fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        dealii::Vector<real> &current_cell_rhs);
+        dealii::Vector<real> &current_cell_rhs,
+        const dealii::FEValues<dim,dim> &fe_values_lagrange);
     /// Evaluate the integral over the cell edges that are on domain boundaries
     /** Compute both the right-hand side and the block of the Jacobian */
     void assemble_boundary_term_implicit(
@@ -508,7 +570,8 @@ private:
     void assemble_volume_terms_explicit(
         const dealii::FEValues<dim,dim> &fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        dealii::Vector<real> &current_cell_rhs);
+        dealii::Vector<real> &current_cell_rhs,
+        const dealii::FEValues<dim,dim> &fe_values_lagrange);
     /// Evaluate the integral over the cell edges that are on domain boundaries
     void assemble_boundary_term_explicit(
         const unsigned int boundary_id,
@@ -538,13 +601,19 @@ private:
 template <int dim, typename real>
 class DGFactory
 {
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    using Triangulation = dealii::Triangulation<dim>;
+#else
+    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+#endif
 public:
     /// Creates a derived object DG, but returns it as DGBase.
     /** That way, the caller is agnostic to the number of state variables */
     static std::shared_ptr< DGBase<dim,real> >
         create_discontinuous_galerkin(
         const Parameters::AllParameters *const parameters_input, 
-        const unsigned int degree);
+        const unsigned int degree,
+        Triangulation *const triangulation_input);
 };
 
 } // PHiLiP namespace

@@ -18,43 +18,32 @@
 #include "physics/physics.h"
 #include "dg/dg.h"
 #include "ode_solver/ode_solver.h"
+#include "advection_explicit_periodic.h"
 
 #include<fenv.h>
 
-template <int dim, int nstate>
-class AdvectionPeriodic
-{
-public:
-	AdvectionPeriodic() = delete;
-	AdvectionPeriodic(const PHiLiP::Parameters::AllParameters *const parameters_input);
-	int run_test();
-
-private:
-    const PHiLiP::Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
-    const MPI_Comm mpi_communicator;
-    dealii::ConditionalOStream pcout;
-};
-
+namespace PHiLiP {
+namespace Tests {
 template <int dim, int nstate>
 AdvectionPeriodic<dim, nstate>::AdvectionPeriodic(const PHiLiP::Parameters::AllParameters *const parameters_input)
 :
-all_parameters(parameters_input)
+TestsBase::TestsBase(parameters_input)
 , mpi_communicator(MPI_COMM_WORLD)
 , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {}
 
 
 template <int dim, int nstate>
-int AdvectionPeriodic<dim, nstate>::run_test()
+int AdvectionPeriodic<dim, nstate>::run_test() const
 {
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-            dealii::Triangulation<dim> grid(
-                typename dealii::Triangulation<dim>::MeshSmoothing(
-                    dealii::Triangulation<dim>::smoothing_on_refinement |
-                    dealii::Triangulation<dim>::smoothing_on_coarsening));
+			dealii::Triangulation<dim> grid(
+				typename dealii::Triangulation<dim>::MeshSmoothing(
+					dealii::Triangulation<dim>::smoothing_on_refinement |
+					dealii::Triangulation<dim>::smoothing_on_coarsening));
 #else
-            dealii::parallel::distributed::Triangulation<dim> grid(
-                this->mpi_communicator);
+			dealii::parallel::distributed::Triangulation<dim> grid(
+				this->mpi_communicator);
 #endif
 
 	double left = 0.0;
@@ -101,8 +90,8 @@ int AdvectionPeriodic<dim, nstate>::run_test()
 	constants["pi"] = dealii::numbers::PI;
 	std::string expression = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) ) )";//"sin(pi*x)*sin(pi*y)";
 	initial_condition.initialize(variables,
-	                             expression,
-	                             constants);
+								 expression,
+								 constants);
 	dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
 	// Create ODE solver using the factory and providing the DG object
 	std::shared_ptr<PHiLiP::ODE::ODESolver<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
@@ -115,75 +104,84 @@ int AdvectionPeriodic<dim, nstate>::run_test()
 	return 0; //need to change
 }
 
-int main (int argc, char * argv[])
-{
-	//parse parameters first
-	feenableexcept(FE_INVALID | FE_OVERFLOW); // catch nan
-	dealii::deallog.depth_console(99);
-		dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
-		const int n_mpi = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
-		const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
-		dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
-		pcout << "Starting program with " << n_mpi << " processors..." << std::endl;
-		if ((PHILIP_DIM==1) && !(n_mpi==1)) {
-			std::cout << "********************************************************" << std::endl;
-			std::cout << "Can't use mpirun -np X, where X>1, for 1D." << std::endl
-					  << "Currently using " << n_mpi << " processors." << std::endl
-					  << "Aborting..." << std::endl;
-			std::cout << "********************************************************" << std::endl;
-			std::abort();
-		}
-	int test_error = 1;
-	try
-	{
-        // Declare possible inputs
-        dealii::ParameterHandler parameter_handler;
-        PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler);
-        PHiLiP::Parameters::parse_command_line (argc, argv, parameter_handler);
+//int main (int argc, char * argv[])
+//{
+//	//parse parameters first
+//	feenableexcept(FE_INVALID | FE_OVERFLOW); // catch nan
+//	dealii::deallog.depth_console(99);
+//		dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
+//		const int n_mpi = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
+//		const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+//		dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
+//		pcout << "Starting program with " << n_mpi << " processors..." << std::endl;
+//		if ((PHILIP_DIM==1) && !(n_mpi==1)) {
+//			std::cout << "********************************************************" << std::endl;
+//			std::cout << "Can't use mpirun -np X, where X>1, for 1D." << std::endl
+//					  << "Currently using " << n_mpi << " processors." << std::endl
+//					  << "Aborting..." << std::endl;
+//			std::cout << "********************************************************" << std::endl;
+//			std::abort();
+//		}
+//	int test_error = 1;
+//	try
+//	{
+//		// Declare possible inputs
+//		dealii::ParameterHandler parameter_handler;
+//		PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler);
+//		PHiLiP::Parameters::parse_command_line (argc, argv, parameter_handler);
+//
+//		// Read inputs from parameter file and set those values in AllParameters object
+//		PHiLiP::Parameters::AllParameters all_parameters;
+//		std::cout << "Reading input..." << std::endl;
+//		all_parameters.parse_parameters (parameter_handler);
+//
+//		AssertDimension(all_parameters.dimension, PHILIP_DIM);
+//
+//		std::cout << "Starting program..." << std::endl;
+//
+//		using namespace PHiLiP;
+//		//const Parameters::AllParameters parameters_input;
+//		AdvectionPeriodic<PHILIP_DIM, 1> advection_test(&all_parameters);
+//		int i = advection_test.run_test();
+//		return i;
+//	}
+//	catch (std::exception &exc)
+//	{
+//		std::cerr << std::endl << std::endl
+//				  << "----------------------------------------------------"
+//				  << std::endl
+//				  << "Exception on processing: " << std::endl
+//				  << exc.what() << std::endl
+//				  << "Aborting!" << std::endl
+//				  << "----------------------------------------------------"
+//				  << std::endl;
+//		return 1;
+//	}
+//
+//	catch (...)
+//	{
+//		std::cerr << std::endl
+//				  << std::endl
+//				  << "----------------------------------------------------"
+//				  << std::endl
+//				  << "Unknown exception!" << std::endl
+//				  << "Aborting!" << std::endl
+//				  << "----------------------------------------------------"
+//				  << std::endl;
+//		return 1;
+//	}
+//	std::cout << "End of program." << std::endl;
+//	return test_error;
+//}
 
-        // Read inputs from parameter file and set those values in AllParameters object
-        PHiLiP::Parameters::AllParameters all_parameters;
-        std::cout << "Reading input..." << std::endl;
-        all_parameters.parse_parameters (parameter_handler);
+#if PHILIP_DIM==2
+    template class AdvectionPeriodic <PHILIP_DIM,1>;
+#endif
 
-        AssertDimension(all_parameters.dimension, PHILIP_DIM);
+} //Tests namespace
+} //PHiLiP namespace
 
-        std::cout << "Starting program..." << std::endl;
 
-		using namespace PHiLiP;
-		//const Parameters::AllParameters parameters_input;
-		AdvectionPeriodic<PHILIP_DIM, 1> advection_test(&all_parameters);
-		int i = advection_test.run_test();
-		return i;
-	}
-	catch (std::exception &exc)
-	{
-		std::cerr << std::endl << std::endl
-				  << "----------------------------------------------------"
-				  << std::endl
-				  << "Exception on processing: " << std::endl
-	          	  << exc.what() << std::endl
-	          	  << "Aborting!" << std::endl
-	          	  << "----------------------------------------------------"
-	          	  << std::endl;
-		return 1;
-	}
-
-	catch (...)
-	{
-	    std::cerr << std::endl
-	              << std::endl
-	              << "----------------------------------------------------"
-	              << std::endl
-	              << "Unknown exception!" << std::endl
-	              << "Aborting!" << std::endl
-	              << "----------------------------------------------------"
-	              << std::endl;
-	    return 1;
-	}
-	std::cout << "End of program." << std::endl;
-	return test_error;
-}
 
 
 

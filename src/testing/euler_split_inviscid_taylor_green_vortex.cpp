@@ -1,77 +1,29 @@
-#include <deal.II/base/tensor.h>
-#include <deal.II/base/function.h>
-#include <deal.II/numerics/data_out.h>
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/numerics/solution_transfer.h>
-#include <deal.II/base/numbers.h>
-#include <deal.II/base/function_parser.h>
-#include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/grid_refinement.h>
-#include <deal.II/grid/grid_tools.h>
-#include <deal.II/grid/grid_out.h>
-#include <deal.II/grid/grid_in.h>
+#include "euler_split_inviscid_taylor_green_vortex.h"
 
-#include <deal.II/fe/mapping_q.h>
-
-
-#include "parameters/all_parameters.h"
-#include "parameters/parameters.h"
-#include "numerical_flux/numerical_flux.h"
-#include "physics/physics_factory.h"
-#include "physics/physics.h"
-#include "dg/dg.h"
-#include "ode_solver/ode_solver.h"
-
-#include<fenv.h>
-
-//using PDEType  = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
-//using ConvType = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;
-//using DissType = PHiLiP::Parameters::AllParameters::DissipativeNumericalFlux;
-//
-//
-//const double TOLERANCE = 1E-12;
-
+namespace PHiLiP {
+namespace Tests {
 
 template <int dim, int nstate>
-class EulerTaylorGreen
-{
-public:
-	EulerTaylorGreen() = delete;
-	EulerTaylorGreen(const PHiLiP::Parameters::AllParameters *const parameters_input);
-	int run_test();
-
-
-
-
-private:
-	double compute_kinetic_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg, unsigned int poly_degree);
-	double compute_quadrature_kinetic_energy(std::array<double,nstate> soln_at_q);
-    const PHiLiP::Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
-    const MPI_Comm mpi_communicator;
-    dealii::ConditionalOStream pcout;
-};
-
-template <int dim, int nstate>
-EulerTaylorGreen<dim, nstate>::EulerTaylorGreen(const PHiLiP::Parameters::AllParameters *const parameters_input)
+EulerTaylorGreen<dim, nstate>::EulerTaylorGreen(const Parameters::AllParameters *const parameters_input)
 :
-all_parameters(parameters_input)
+TestsBase::TestsBase(parameters_input)
 , mpi_communicator(MPI_COMM_WORLD)
 , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {}
 
-template <int dim, int nstate>
-double EulerTaylorGreen<dim,nstate>::compute_quadrature_kinetic_energy(std::array<double,nstate> soln_at_q)
-{
-	const double density = soln_at_q[0];
-
-	const double quad_kin_energ =  0.5*(soln_at_q[1]*soln_at_q[1] +
-										soln_at_q[2]*soln_at_q[2] +
-										soln_at_q[3]*soln_at_q[3] )/density;
-	return quad_kin_energ;
-}
+//template <int dim, int nstate>
+//double EulerTaylorGreen<dim,nstate>::compute_quadrature_kinetic_energy(std::array<double,nstate> soln_at_q) const
+//{
+//	const double density = soln_at_q[0];
+//
+//	const double quad_kin_energ =  0.5*(soln_at_q[1]*soln_at_q[1] +
+//										soln_at_q[2]*soln_at_q[2] +
+//										soln_at_q[3]*soln_at_q[3] )/density;
+//	return quad_kin_energ;
+//}
 
 template<int dim, int nstate>
-double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg, unsigned int poly_degree)
+double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const
 {
 	// Overintegrate the error to make sure there is not integration error in the error estimate
 	int overintegrate = 10 ;//10;
@@ -114,7 +66,14 @@ double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(std::shared_ptr < P
 	        	const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
 	            soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
 	        }
-	        const double quadrature_kinetic_energy = compute_quadrature_kinetic_energy(soln_at_q);
+
+	        const double density = soln_at_q[0];
+
+	        const double quadrature_kinetic_energy =  0.5*(soln_at_q[1]*soln_at_q[1] +
+	        										soln_at_q[2]*soln_at_q[2] +
+	        										soln_at_q[3]*soln_at_q[3] )/density;
+
+	        //const double quadrature_kinetic_energy = compute_quadrature_kinetic_energy(soln_at_q);
 
 	        total_kinetic_energy += quadrature_kinetic_energy * fe_values_extra.JxW(iquad);
         }
@@ -123,7 +82,7 @@ double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(std::shared_ptr < P
 }
 
 template <int dim, int nstate>
-int EulerTaylorGreen<dim, nstate>::run_test()
+int EulerTaylorGreen<dim, nstate>::run_test() const
 {
 	//dealii::Triangulation<dim> grid;
 	dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator);
@@ -143,7 +102,7 @@ int EulerTaylorGreen<dim, nstate>::run_test()
 
 	grid.refine_global(n_refinements);
 
-	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree);
+	std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree);
 	dg->set_triangulation(&grid);
 	dg->allocate_system ();
 
@@ -172,7 +131,7 @@ int EulerTaylorGreen<dim, nstate>::run_test()
 	// Create ODE solver using the factory and providing the DG object
 
 	std::cout << "creating ODE solver" << std::endl;
-	std::shared_ptr<PHiLiP::ODE::ODESolver<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+	std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 	std::cout << "ODE solver successfully created" << std::endl;
 	double finalTime = 14.;
 	double dt = all_parameters->ode_solver_param.initial_time_step;
@@ -213,77 +172,82 @@ int EulerTaylorGreen<dim, nstate>::run_test()
 	return 0; //need to change
 }
 
-int main (int argc, char * argv[])
-{
-	//parse parameters first
-	feenableexcept(FE_INVALID | FE_OVERFLOW); // catch nan
-	dealii::deallog.depth_console(99);
-		dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
-		const int n_mpi = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
-		const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
-		dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
-		pcout << "Starting program with " << n_mpi << " processors..." << std::endl;
-		if ((PHILIP_DIM==1) && !(n_mpi==1)) {
-			std::cout << "********************************************************" << std::endl;
-			std::cout << "Can't use mpirun -np X, where X>1, for 1D." << std::endl
-					  << "Currently using " << n_mpi << " processors." << std::endl
-					  << "Aborting..." << std::endl;
-			std::cout << "********************************************************" << std::endl;
-			std::abort();
-		}
-	int test_error = 1;
-	try
-	{
-        // Declare possible inputs
-        dealii::ParameterHandler parameter_handler;
-        PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler);
-        PHiLiP::Parameters::parse_command_line (argc, argv, parameter_handler);
+//int main (int argc, char * argv[])
+//{
+//	//parse parameters first
+//	feenableexcept(FE_INVALID | FE_OVERFLOW); // catch nan
+//	dealii::deallog.depth_console(99);
+//		dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
+//		const int n_mpi = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
+//		const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+//		dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
+//		pcout << "Starting program with " << n_mpi << " processors..." << std::endl;
+//		if ((PHILIP_DIM==1) && !(n_mpi==1)) {
+//			std::cout << "********************************************************" << std::endl;
+//			std::cout << "Can't use mpirun -np X, where X>1, for 1D." << std::endl
+//					  << "Currently using " << n_mpi << " processors." << std::endl
+//					  << "Aborting..." << std::endl;
+//			std::cout << "********************************************************" << std::endl;
+//			std::abort();
+//		}
+//	int test_error = 1;
+//	try
+//	{
+//        // Declare possible inputs
+//        dealii::ParameterHandler parameter_handler;
+//        Parameters::AllParameters::declare_parameters (parameter_handler);
+//        Parameters::parse_command_line (argc, argv, parameter_handler);
+//
+//        // Read inputs from parameter file and set those values in AllParameters object
+//        Parameters::AllParameters all_parameters;
+//        std::cout << "Reading input..." << std::endl;
+//        all_parameters.parse_parameters (parameter_handler);
+//
+//        AssertDimension(all_parameters.dimension, PHILIP_DIM);
+//
+//        std::cout << "Starting program..." << std::endl;
+//
+//		using namespace PHiLiP;
+//		//const Parameters::AllParameters parameters_input;
+//		EulerTaylorGreen<PHILIP_DIM, PHILIP_DIM+2> euler_test(&all_parameters);
+//		int i = euler_test.run_test();
+//		return i;
+//	}
+//	catch (std::exception &exc)
+//	{
+//		std::cerr << std::endl << std::endl
+//				  << "----------------------------------------------------"
+//				  << std::endl
+//				  << "Exception on processing: " << std::endl
+//	          	  << exc.what() << std::endl
+//	          	  << "Aborting!" << std::endl
+//	          	  << "----------------------------------------------------"
+//	          	  << std::endl;
+//		return 1;
+//	}
+//
+//	catch (...)
+//	{
+//	    std::cerr << std::endl
+//	              << std::endl
+//	              << "----------------------------------------------------"
+//	              << std::endl
+//	              << "Unknown exception!" << std::endl
+//	              << "Aborting!" << std::endl
+//	              << "----------------------------------------------------"
+//	              << std::endl;
+//	    return 1;
+//	}
+//	std::cout << "End of program." << std::endl;
+//	return test_error;
+//}
 
-        // Read inputs from parameter file and set those values in AllParameters object
-        PHiLiP::Parameters::AllParameters all_parameters;
-        std::cout << "Reading input..." << std::endl;
-        all_parameters.parse_parameters (parameter_handler);
+#if PHILIP_DIM==3
+    template class EulerTaylorGreen <PHILIP_DIM,PHILIP_DIM+2>;
+#endif
 
-        AssertDimension(all_parameters.dimension, PHILIP_DIM);
-
-        std::cout << "Starting program..." << std::endl;
-
-		using namespace PHiLiP;
-		//const Parameters::AllParameters parameters_input;
-		EulerTaylorGreen<PHILIP_DIM, PHILIP_DIM+2> euler_test(&all_parameters);
-		int i = euler_test.run_test();
-		return i;
-	}
-	catch (std::exception &exc)
-	{
-		std::cerr << std::endl << std::endl
-				  << "----------------------------------------------------"
-				  << std::endl
-				  << "Exception on processing: " << std::endl
-	          	  << exc.what() << std::endl
-	          	  << "Aborting!" << std::endl
-	          	  << "----------------------------------------------------"
-	          	  << std::endl;
-		return 1;
-	}
-
-	catch (...)
-	{
-	    std::cerr << std::endl
-	              << std::endl
-	              << "----------------------------------------------------"
-	              << std::endl
-	              << "Unknown exception!" << std::endl
-	              << "Aborting!" << std::endl
-	              << "----------------------------------------------------"
-	              << std::endl;
-	    return 1;
-	}
-	std::cout << "End of program." << std::endl;
-	return test_error;
 }
-
-
+}
 
 
 

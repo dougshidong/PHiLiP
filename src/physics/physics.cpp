@@ -184,6 +184,8 @@ template class PhysicsBase < PHILIP_DIM, 4, double >;
 template class PhysicsBase < PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
 template class PhysicsBase < PHILIP_DIM, 5, double >;
 template class PhysicsBase < PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
+template class PhysicsBase < PHILIP_DIM, 8, double >;
+template class PhysicsBase < PHILIP_DIM, 8, Sacado::Fad::DFad<double> >;
 
 } // Physics namespace
 } // PHiLiP namespace

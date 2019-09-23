@@ -143,8 +143,7 @@ int EulerTaylorGreen<dim, nstate>::run_test()
 
 	grid.refine_global(n_refinements);
 
-	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree);
-	dg->set_triangulation(&grid);
+	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, &grid);
 	dg->allocate_system ();
 
 	std::cout << "Implement initial conditions" << std::endl;

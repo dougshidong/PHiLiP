@@ -230,8 +230,7 @@ int EulerVortex<dim,nstate>
             if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, grid, keep_boundary);
 
             // Create DG object using the factory
-            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree);
-            dg->set_triangulation(&grid);
+            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
             dg->allocate_system ();
 
             // Initialize solution with vortex function at time t=0

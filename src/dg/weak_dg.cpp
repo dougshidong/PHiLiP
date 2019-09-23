@@ -17,11 +17,18 @@
 
 namespace PHiLiP {
 
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    template <int dim> using Triangulation = dealii::Triangulation<dim>;
+#else
+    template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+#endif
+
 template <int dim, int nstate, typename real>
 DGWeak<dim,nstate,real>::DGWeak(
     const Parameters::AllParameters *const parameters_input,
-    const unsigned int degree)
-    : DGBase<dim,real>::DGBase(nstate, parameters_input, degree) // Use DGBase constructor
+    const unsigned int degree,
+    Triangulation *const triangulation_input)
+    : DGBase<dim,real>::DGBase(nstate, parameters_input, degree, triangulation_input) // Use DGBase constructor
 {
     using ADtype = Sacado::Fad::DFad<real>;
     pde_physics = Physics::PhysicsFactory<dim,nstate,ADtype> ::create_Physics(parameters_input);
@@ -45,7 +52,8 @@ template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_volume_terms_implicit(
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
-    dealii::Vector<real> &local_rhs_int_cell)
+    dealii::Vector<real> &local_rhs_int_cell,
+    const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/)
 {
     using ADtype = Sacado::Fad::DFad<real>;
     using ADArray = std::array<ADtype,nstate>;
@@ -431,7 +439,8 @@ template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
-    dealii::Vector<real> &local_rhs_int_cell)
+    dealii::Vector<real> &local_rhs_int_cell,
+    const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/)
 {
     using doubleArray = std::array<real,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,real>, nstate >;

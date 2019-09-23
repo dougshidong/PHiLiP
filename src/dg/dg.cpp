@@ -25,17 +25,156 @@
 //#include <deal.II/fe/mapping_q1.h> // Might need mapping_q
 #include <deal.II/fe/mapping_q.h> // Might need mapping_q
 #include <deal.II/fe/mapping_manifold.h> 
+#include <deal.II/fe/mapping_fe_field.h> 
 
 // Finally, we take our exact solution from the library as well as volume_quadrature
 // and additional tools.
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/data_out_dof_data.h>
+#include <deal.II/numerics/vector_tools.h>
+#include <deal.II/numerics/vector_tools.templates.h>
 
 
 #include "dg.h"
 #include "post_processor/physics_post_processor.h"
 
+//template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<PHILIP_DIM> >;
 namespace PHiLiP {
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    template <int dim> using Triangulation = dealii::Triangulation<dim>;
+#else
+    template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+#endif
+
+//template <int dim,
+//          int spacedim = dim,
+//          typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>
+//         >
+//void
+//get_position_vector2(const dealii::hp::DoFHandler<dim,spacedim> &dh, VectorType &vector)
+//{
+//    AssertDimension(vector.size(), dh.n_dofs());
+//    const dealii::hp::FECollection<dim, spacedim> &fe_coll = dh.get_fe_collection();
+//
+//    dealii::hp::MappingCollection<dim,spacedim> mapping_coll;
+//    dealii::hp::QCollection<dim>                quad_coll;
+//    for (int i=0; i<fe_coll.size(); i++) {
+//        const dealii::FiniteElement<dim,spacedim> finite_element = fe_coll[i];
+//
+//        Assert(finite_element.is_primitive(), ExcMessage("FE is not Primitive! This won't work."));
+//        assert(finite_element.has_support_points());
+//        AssertDimension(finite_element.dofs_per_cell, finite_element.get_unit_support_points().size());
+//
+//        const dealii::Quadrature<dim>             quadrature(finite_element.get_unit_support_points());
+//        const dealii::MappingQ<dim, spacedim>     mapping(finite_element.degree);
+//
+//        mapping_coll.push_back(mapping);
+//        quad_coll.push_back(quadrature);
+//    }
+//
+//    dealii::hp::FEValues<dim,dim> fe_values_coll (mapping_coll, fe_coll, quadrature_coll, update_quadrature_points);
+//
+//    // Construct default fe_mask;
+//    const ComponentMask fe_mask(//mask.size() ? mask :
+//                    ComponentMask(fe_coll.get_nonzero_components(0).size(), true));
+//
+//    AssertDimension(fe_mask.size(), fe_coll.get_nonzero_components(0).size());
+//
+//    std::vector<unsigned int> fe_to_real(fe_mask.size(),
+//                                         numbers::invalid_unsigned_int);
+//    unsigned int              size = 0;
+//    for (unsigned int i = 0; i < fe_mask.size(); ++i) {
+//        if (fe_mask[i]) fe_to_real[i] = size++;
+//    }
+//    Assert(size == spacedim,
+//           ExcMessage("The Component Mask you provided is invalid. It has to select exactly spacedim entries."));
+//
+//    std::vector<types::global_dof_index> dof_indices(fe_coll[fe_coll.size()-1].dofs_per_cell);
+//    for (const auto &cell : dh.active_cell_iterators()) {
+//        if (cell->is_locally_owned()) {
+//            const unsigned int fe_index = cell->active_fe_index();
+//            fe_values_coll.reinit (cell, fe_index, fe_index, fe_index);
+//            dof_indices.resize(fe_coll[fe_index].dofs_per_cell);
+//            cell->get_dof_indices(dof_indices);
+//            const std::vector<Point<spacedim>> &points = fe_v.get_quadrature_points();
+//            for (unsigned int q = 0; q < points.size(); ++q) {
+//
+//                const unsigned int comp = fe_coll.system_to_component_index(q).first;
+//                if (fe_mask[comp]) {
+//                    dealii::internal::ElementAccess<VectorType>::
+//                        set(points[q][fe_to_real[comp]], dof_indices[q], vector);
+//                }
+//            }
+//        }
+//    }
+//}
+
+//template <int dim,
+//          int spacedim = dim,
+//          typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>
+//         >
+//void
+//get_position_vector2(const dealii::hp::DoFHandler<dim,spacedim> &dof_handler, VectorType &vector)
+//{
+//    AssertDimension(vector.size(), dof_handler.n_dofs());
+//    const dealii::hp::FECollection<dim, spacedim> &fe_coll = dof_handler.get_fe_collection();
+//
+//    dealii::hp::MappingCollection<dim,spacedim> mapping_coll;
+//    dealii::hp::QCollection<dim>                quad_coll;
+//    for (unsigned int i=0; i<fe_coll.size(); i++) {
+//        const dealii::FESystem<dim,dim> &finite_element = fe_coll[i];
+//
+//        Assert(finite_element.is_primitive(), ExcMessage("FE is not Primitive! This won't work."));
+//        assert(finite_element.has_support_points());
+//        AssertDimension(finite_element.dofs_per_cell, finite_element.get_unit_support_points().size());
+//
+//        const dealii::Quadrature<dim>             quadrature(finite_element.get_unit_support_points());
+//        const dealii::MappingQ<dim, spacedim>     mapping(finite_element.degree);
+//
+//        mapping_coll.push_back(mapping);
+//        quad_coll.push_back(quadrature);
+//    }
+//
+//    dealii::hp::FEValues<dim,dim> fe_values_coll (mapping_coll, fe_coll, quad_coll, dealii::update_quadrature_points);
+//
+//    // Construct default fe_mask;
+//    const dealii::ComponentMask fe_mask(//mask.size() ? mask :
+//                    dealii::ComponentMask(fe_coll[0].get_nonzero_components(0).size(), true));
+//
+//    AssertDimension(fe_mask.size(), fe_coll[0].get_nonzero_components(0).size());
+//
+//    std::vector<unsigned int> fe_to_real(fe_mask.size(),
+//                                         dealii::numbers::invalid_unsigned_int);
+//    unsigned int              size = 0;
+//    for (unsigned int i = 0; i < fe_mask.size(); ++i) {
+//        if (fe_mask[i]) fe_to_real[i] = size++;
+//    }
+//    Assert(size == spacedim,
+//           ExcMessage("The Component Mask you provided is invalid. It has to select exactly spacedim entries."));
+//
+//    std::vector<dealii::types::global_dof_index> dof_indices(fe_coll[fe_coll.size()-1].dofs_per_cell);
+//    for (const auto &cell : dof_handler.active_cell_iterators()) {
+//        if (cell->is_locally_owned()) {
+//            const unsigned int fe_index = cell->active_fe_index();
+//            fe_values_coll.reinit (cell, fe_index, fe_index, fe_index);
+//            const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_coll.get_present_fe_values();
+//
+//            dof_indices.resize(fe_coll[fe_index].dofs_per_cell);
+//            cell->get_dof_indices(dof_indices);
+//
+//            const std::vector<dealii::Point<spacedim>> &points = fe_values_volume.get_quadrature_points();
+//            for (unsigned int q = 0; q < points.size(); ++q) {
+//
+//                const unsigned int comp = fe_values_volume.get_fe().system_to_component_index(q).first;
+//                if (fe_mask[comp]) {
+//                    dealii::internal::ElementAccess<VectorType>::
+//                        set(points[q][fe_to_real[comp]], dof_indices[q], vector);
+//                }
+//            }
+//        }
+//    }
+//}
+
 
 // DGFactory ***********************************************************************
 template <int dim, typename real>
@@ -43,38 +182,39 @@ std::shared_ptr< DGBase<dim,real> >
 DGFactory<dim,real>
 ::create_discontinuous_galerkin(
     const Parameters::AllParameters *const parameters_input,
-    const unsigned int degree)
+    const unsigned int degree,
+    Triangulation *const triangulation_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
 
     PDE_enum pde_type = parameters_input->pde_type;
     if (parameters_input->use_weak_form) {
         if (pde_type == PDE_enum::advection) {
-            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree);
+            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree, triangulation_input);
         } else if (pde_type == PDE_enum::advection_vector) {
-            return std::make_shared< DGWeak<dim,2,real> >(parameters_input, degree);
+            return std::make_shared< DGWeak<dim,2,real> >(parameters_input, degree, triangulation_input);
         } else if (pde_type == PDE_enum::diffusion) {
-            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree);
+            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree, triangulation_input);
         } else if (pde_type == PDE_enum::convection_diffusion) {
-            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree);
+            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree, triangulation_input);
         } else if (pde_type == PDE_enum::burgers_inviscid) {
-            return std::make_shared< DGWeak<dim,dim,real> >(parameters_input, degree);
+            return std::make_shared< DGWeak<dim,dim,real> >(parameters_input, degree, triangulation_input);
         } else if (pde_type == PDE_enum::euler) {
-            return std::make_shared< DGWeak<dim,dim+2,real> >(parameters_input, degree);
+            return std::make_shared< DGWeak<dim,dim+2,real> >(parameters_input, degree, triangulation_input);
         }
     } else {
         if (pde_type == PDE_enum::advection) {
-            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree);
+            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree, triangulation_input);
         } else if (pde_type == PDE_enum::advection_vector) {
-            return std::make_shared< DGStrong<dim,2,real> >(parameters_input, degree);
+            return std::make_shared< DGStrong<dim,2,real> >(parameters_input, degree, triangulation_input);
         } else if (pde_type == PDE_enum::diffusion) {
-            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree);
+            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree, triangulation_input);
         } else if (pde_type == PDE_enum::convection_diffusion) {
-            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree);
+            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree, triangulation_input);
         } else if (pde_type == PDE_enum::burgers_inviscid) {
-            return std::make_shared< DGStrong<dim,dim,real> >(parameters_input, degree);
+            return std::make_shared< DGStrong<dim,dim,real> >(parameters_input, degree, triangulation_input);
         } else if (pde_type == PDE_enum::euler) {
-            return std::make_shared< DGStrong<dim,dim+2,real> >(parameters_input, degree);
+            return std::make_shared< DGStrong<dim,dim+2,real> >(parameters_input, degree, triangulation_input);
         }
     }
     std::cout << "Can't create DGBase in create_discontinuous_galerkin(). Invalid PDE type: " << pde_type << std::endl;
@@ -86,8 +226,9 @@ template <int dim, typename real>
 DGBase<dim,real>::DGBase( // @suppress("Class members should be properly initialized")
     const int nstate_input,
     const Parameters::AllParameters *const parameters_input,
-    const unsigned int max_degree_input)
-    : DGBase<dim,real>(nstate_input, parameters_input, max_degree_input, this->create_collection_tuple(max_degree_input, nstate_input, parameters_input))
+    const unsigned int max_degree_input,
+    Triangulation *const triangulation_input)
+    : DGBase<dim,real>(nstate_input, parameters_input, max_degree_input, triangulation_input, this->create_collection_tuple(max_degree_input, nstate_input, parameters_input))
 { }
 
 template <int dim, typename real>
@@ -95,35 +236,53 @@ DGBase<dim,real>::DGBase( // @suppress("Class members should be properly initial
     const int nstate_input,
     const Parameters::AllParameters *const parameters_input,
     const unsigned int max_degree_input,
-    std::tuple< dealii::hp::MappingCollection<dim>, dealii::hp::FECollection<dim>,
-                dealii::hp::QCollection<dim>, dealii::hp::QCollection<dim-1>, dealii::hp::QCollection<1>,
-                dealii::hp::FECollection<dim> > collection_tuple)
+    Triangulation *const triangulation_input,
+    const MassiveCollectionTuple collection_tuple)
     : all_parameters(parameters_input)
     , nstate(nstate_input)
     , max_degree(max_degree_input)
-    , mapping_collection(std::get<0>(collection_tuple))
-    , fe_collection(std::get<1>(collection_tuple))
+    , triangulation(triangulation_input)
+    //, mapping_collection(std::get<0>(collection_tuple))
+    , fe_collection(std::get<0>(collection_tuple))
+    , fe_grid(std::get<1>(collection_tuple),dim)
     , volume_quadrature_collection(std::get<2>(collection_tuple))
     , face_quadrature_collection(std::get<3>(collection_tuple))
     , oned_quadrature_collection(std::get<4>(collection_tuple))
-    , fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, this->volume_update_flags)
-    , fe_values_collection_face_int (mapping_collection, fe_collection, face_quadrature_collection, this->face_update_flags)
-    , fe_values_collection_face_ext (mapping_collection, fe_collection, face_quadrature_collection, this->neighbor_face_update_flags)
-    , fe_values_collection_subface (mapping_collection, fe_collection, face_quadrature_collection, this->face_update_flags)
     , fe_collection_lagrange(std::get<5>(collection_tuple))
-    , fe_values_collection_volume_lagrange (mapping_collection, fe_collection_lagrange, volume_quadrature_collection, this->volume_update_flags)
+    , dof_handler(*triangulation)
+    , dof_handler_grid(*triangulation)
+    , high_order_grid_mapping(dof_handler_grid, high_order_grid)
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
-{}
+{ 
 
-template <int dim, typename real>
-std::tuple< dealii::hp::MappingCollection<dim>, dealii::hp::FECollection<dim>,
-            dealii::hp::QCollection<dim>, dealii::hp::QCollection<dim-1>, dealii::hp::QCollection<1>,
-            dealii::hp::FECollection<dim> >
+    dof_handler.initialize(*triangulation, fe_collection);
+    dof_handler_grid.initialize(*triangulation, fe_grid);
+    int minimum_degree = (all_parameters->use_collocated_nodes==true) ?  1 :  0;
+    for (unsigned int degree=minimum_degree; degree<=max_degree; ++degree) {
+        mapping_collection.push_back(high_order_grid_mapping); // Can't just return FESystem. For some reason the copy constructor is deleted
+    }
+
+    set_all_cells_fe_degree (fe_collection.size()-1); // Always sets it to the maximum degree
+
+}
+
+template <int dim, typename real> 
+std::tuple<
+        //dealii::hp::MappingCollection<dim>, // Mapping
+        dealii::hp::FECollection<dim>, // Solution FE
+        //dealii::hp::FECollection<dim>, // Grid FE
+        dealii::FE_Q<dim>, // Grid FE
+        dealii::hp::QCollection<dim>,  // Volume quadrature
+        dealii::hp::QCollection<dim-1>, // Face quadrature
+        dealii::hp::QCollection<1>, // 1D quadrature for strong form
+        dealii::hp::FECollection<dim> >   // Lagrange polynomials for strong form
 DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const
 {
-    dealii::hp::MappingCollection<dim> mapping_coll;
+    //dealii::hp::MappingCollection<dim> mapping_coll;
     dealii::hp::FECollection<dim>      fe_coll;
+    //dealii::hp::FECollection<dim>      fe_coll_grid;
+    const dealii::FE_Q<dim> feq_grid(max_degree+1); // The grid must be at least p1. A p0 solution required a p1 grid.
     dealii::hp::QCollection<dim>       volume_quad_coll;
     dealii::hp::QCollection<dim-1>     face_quad_coll;
     dealii::hp::QCollection<1>         oned_quad_coll;
@@ -133,14 +292,19 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
     for (unsigned int degree=minimum_degree; degree<=max_degree; ++degree) {
         //const dealii::MappingQ<dim,dim> mapping(degree, true);
         //const dealii::MappingQ<dim,dim> mapping(degree+1, true);
-        const dealii::MappingManifold<dim,dim> mapping;
-        mapping_coll.push_back(mapping);
+        //const dealii::MappingManifold<dim,dim> mapping;
+        //mapping_coll.push_back(mapping);
+        //mapping_coll.push_back(high_order_grid_mapping); // Can't just return FESystem. For some reason the copy constructor is deleted
 
+        // Solution FECollection
         const dealii::FE_DGQ<dim> fe_dg(degree);
         const dealii::FESystem<dim,dim> fe_system(fe_dg, nstate);
         fe_coll.push_back (fe_system);
 
-        //
+        //// Grid FECollection uses Lagrange polynomials
+        //const dealii::FE_Q<dim> fe_q(degree+1); // The grid must be at least p1. A p0 solution required a p1 grid.
+        //const dealii::FESystem<dim,dim> fe_system_q(fe_q, dim);
+        //fe_coll_grid.push_back (fe_system_q);
 
         dealii::Quadrature<1>     oned_quad(degree+1);
         dealii::Quadrature<dim>   volume_quad(degree+1);
@@ -185,7 +349,7 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
         dealii::FE_DGQArbitraryNodes<dim,dim> lagrange_poly(oned_quad);
         fe_coll_lagr.push_back (lagrange_poly);
     }
-    return std::make_tuple(mapping_coll, fe_coll, volume_quad_coll, face_quad_coll, oned_quad_coll, fe_coll_lagr);
+    return std::make_tuple(fe_coll, feq_grid, volume_quad_coll, face_quad_coll, oned_quad_coll, fe_coll_lagr);
 }
 
 
@@ -197,6 +361,11 @@ void DGBase<dim,real>::set_all_cells_fe_degree ( const unsigned int degree )
     {
         if (cell->is_locally_owned()) cell->set_future_fe_index (degree);
     }
+
+    //for (auto cell = dof_handler_grid.begin_active(); cell != dof_handler_grid.end(); ++cell)
+    //{
+    //    if (cell->is_locally_owned()) cell->set_future_fe_index (degree);
+    //}
     triangulation->execute_coarsening_and_refinement();
 }
 
@@ -207,24 +376,24 @@ template <int dim, typename real>
 DGBase<dim,real>::~DGBase () 
 { 
     dof_handler.clear ();
+    dof_handler_grid.clear ();
 }
 
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    template <int dim> using Triangulation = dealii::Triangulation<dim>;
-#else
-    template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-#endif
-template <int dim, typename real>
-void DGBase<dim,real>::set_triangulation(Triangulation *triangulation_input)
-{ 
-    dof_handler.clear();
-    triangulation = triangulation_input;
-    dof_handler.initialize(*triangulation, fe_collection);
-
-    set_all_cells_fe_degree (fe_collection.size()-1); // Always sets it to the maximum degree
-
-    //set_all_cells_fe_degree ( max_degree-min_degree);
-}
+// template <int dim, typename real>
+// void DGBase<dim,real>::set_triangulation(Triangulation *triangulation_input)
+// { 
+//     // dof_handler.clear();
+//     // dof_handler_grid.clear();
+// 
+//     // triangulation = triangulation_input;
+// 
+//     // dof_handler.initialize(*triangulation, fe_collection);
+//     // dof_handler_grid.initialize(*triangulation, fe_grid);
+// 
+//     //set_all_cells_fe_degree (fe_collection.size()-1); // Always sets it to the maximum degree
+// 
+//     //set_all_cells_fe_degree ( max_degree-min_degree);
+// }
 
 
 template <int dim, typename real>
@@ -238,6 +407,13 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW)
     const unsigned int max_dofs_per_cell = dof_handler.get_fe_collection().max_dofs_per_cell();
     std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
     std::vector<dealii::types::global_dof_index> neighbor_dofs_indices(max_dofs_per_cell);
+
+    dealii::hp::FEValues<dim,dim>        fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.
+    dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_int (mapping_collection, fe_collection, face_quadrature_collection, this->face_update_flags); ///< FEValues of interior face.
+    dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_ext (mapping_collection, fe_collection, face_quadrature_collection, this->neighbor_face_update_flags); ///< FEValues of exterior face.
+    dealii::hp::FESubfaceValues<dim,dim> fe_values_collection_subface (mapping_collection, fe_collection, face_quadrature_collection, this->face_update_flags); ///< FEValues of subface.
+
+    dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange (mapping_collection, fe_collection_lagrange, volume_quadrature_collection, this->volume_update_flags);
 
     unsigned int n_cell_visited = 0;
     unsigned int n_face_visited = 0;
@@ -264,13 +440,12 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW)
         fe_values_collection_volume.reinit (current_cell, fe_index_curr_cell, fe_index_curr_cell, fe_index_curr_cell);
         const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
 
-        if (!(all_parameters->use_weak_form)) {
-            fe_values_collection_volume_lagrange.reinit (current_cell, fe_index_curr_cell, fe_index_curr_cell, fe_index_curr_cell);
-        }
+        if (!(all_parameters->use_weak_form)) fe_values_collection_volume_lagrange.reinit (current_cell, fe_index_curr_cell, fe_index_curr_cell, fe_index_curr_cell);
+        const dealii::FEValues<dim,dim> &fe_values_lagrange = fe_values_collection_volume_lagrange.get_present_fe_values();
         if ( compute_dRdW ) {
-            assemble_volume_terms_implicit (fe_values_volume, current_dofs_indices, current_cell_rhs);
+            assemble_volume_terms_implicit (fe_values_volume, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
         } else {
-            assemble_volume_terms_explicit (fe_values_volume, current_dofs_indices, current_cell_rhs);
+            assemble_volume_terms_explicit (fe_values_volume, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
         }
 
         for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
@@ -692,15 +867,16 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     data_out.add_data_vector (right_hand_side, residual_names, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
 
 
+    const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
     data_out.build_patches (mapping_collection[mapping_collection.size()-1]);
     std::string filename = "solution-" + dealii::Utilities::int_to_string(dim, 1) +"D-";
     filename += dealii::Utilities::int_to_string(cycle, 4) + ".";
-    filename += dealii::Utilities::int_to_string(triangulation->locally_owned_subdomain(), 4);
+    filename += dealii::Utilities::int_to_string(iproc, 4);
     filename += ".vtu";
     std::ofstream output(filename);
     data_out.write_vtu(output);
 
-    if (dealii::Utilities::MPI::this_mpi_process(mpi_communicator) == 0) {
+    if (iproc == 0) {
         std::vector<std::string> filenames;
         for (unsigned int iproc = 0; iproc < dealii::Utilities::MPI::n_mpi_processes(mpi_communicator); ++iproc) {
             std::string fn = "solution-" + dealii::Utilities::int_to_string(dim, 1) +"D-";
@@ -717,7 +893,6 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
 
 }
 
-
 template <int dim, typename real>
 void DGBase<dim,real>::allocate_system ()
 {
@@ -726,6 +901,29 @@ void DGBase<dim,real>::allocate_system ()
     // system matrices and vectors.
 
     dof_handler.distribute_dofs(fe_collection);
+    dof_handler_grid.distribute_dofs(fe_grid);
+
+    // High order grid initialization
+    locally_owned_dofs_grid = dof_handler_grid.locally_owned_dofs();
+    dealii::DoFTools::extract_locally_relevant_dofs(dof_handler_grid, ghost_dofs_grid);
+    locally_relevant_dofs_grid = ghost_dofs_grid;
+    ghost_dofs_grid.subtract_set(locally_owned_dofs_grid);
+    high_order_grid.reinit(locally_owned_dofs_grid, ghost_dofs_grid, mpi_communicator);
+
+    //dealii::VectorTools::get_position_vector2(dof_handler_grid, high_order_grid);
+    //get_position_vector2(dof_handler_grid, high_order_grid);
+    dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<real>, dealii::DoFHandler<dim> > map(dof_handler_grid, high_order_grid);
+    //int minimum_degree = (all_parameters->use_collocated_nodes==true) ?  1 :  0;
+    ////int current_fe_index = 0;
+    //for (unsigned int degree=minimum_degree; degree<=max_degree; ++degree) {
+    //    mapping_collection.push_back(map);
+    //    //if(current_fe_index <= mapping_collection.size()) {
+    //    //    mapping_collection.push_back(map);
+    //    //} else {
+    //    //    mapping_collection[current_fe_index] = map;
+    //    //}
+    //    //current_fe_index++;
+    //}
 
     // Solution and RHS
     locally_owned_dofs = dof_handler.locally_owned_dofs();
@@ -796,6 +994,7 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
     //}
     //pcout << "AFter reinit" << std::endl;
 
+    dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.
     for (auto cell = dof_handler.begin_active(); cell!=dof_handler.end(); ++cell) {
 
         if (!cell->is_locally_owned()) continue;

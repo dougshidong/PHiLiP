@@ -189,8 +189,7 @@ int EulerCylinder<dim,nstate>
         }
 
         // Create DG object
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree);
-        dg->set_triangulation(&grid);
+        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
 
 
         // Initialize coarse grid solution with free-stream

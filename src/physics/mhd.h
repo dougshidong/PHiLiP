@@ -81,7 +81,7 @@ public:
     : gam(gamma_gas)
     , gamm1(gam-1.0)
     {
-        static_assert(nstate==2*dim+2, "Physics::MHD() should be created with nstate=dim+2");
+        static_assert(nstate==8, "Physics::MHD() should be created with nstate=8");
 
     };
     /// Destructor
@@ -92,6 +92,8 @@ public:
     const double gam;
     /// Gamma-1.0 used often
     const double gamm1;
+
+   // double mach_inf_sqr = 1;
 
     std::array<real,nstate> manufactured_solution (const dealii::Point<dim,double> &pos) const;
 
@@ -207,24 +209,24 @@ public:
     real compute_mean_specific_energy(const std::array<real,nstate> &soln_const,
                                   const std::array<real,nstate> &soln_loop) const;
 
-    void boundary_face_values (
-        const int /*boundary_type*/,
-        const dealii::Point<dim, double> &/*pos*/,
-        const dealii::Tensor<1,dim,real> &/*normal*/,
-        const std::array<real,nstate> &/*soln_int*/,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
-        std::array<real,nstate> &/*soln_bc*/,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
-
-    virtual dealii::Vector<double> post_compute_derived_quantities_vector (
-        const dealii::Vector<double>      &uh,
-        const std::vector<dealii::Tensor<1,dim> > &duh,
-        const std::vector<dealii::Tensor<2,dim> > &dduh,
-        const dealii::Tensor<1,dim>                  &normals,
-        const dealii::Point<dim>                  &evaluation_points) const;
-    virtual std::vector<std::string> post_get_names () const;
-    virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const;
-    virtual dealii::UpdateFlags post_get_needed_update_flags () const;
+//    void boundary_face_values (
+//        const int /*boundary_type*/,
+//        const dealii::Point<dim, double> &/*pos*/,
+//        const dealii::Tensor<1,dim,real> &/*normal*/,
+//        const std::array<real,nstate> &/*soln_int*/,
+//        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
+//        std::array<real,nstate> &/*soln_bc*/,
+//        std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
+//
+//    virtual dealii::Vector<double> post_compute_derived_quantities_vector (
+//        const dealii::Vector<double>      &uh,
+//        const std::vector<dealii::Tensor<1,dim> > &duh,
+//        const std::vector<dealii::Tensor<2,dim> > &dduh,
+//        const dealii::Tensor<1,dim>                  &normals,
+//        const dealii::Point<dim>                  &evaluation_points) const;
+//    virtual std::vector<std::string> post_get_names () const;
+//    virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const;
+//    virtual dealii::UpdateFlags post_get_needed_update_flags () const;
 protected:
 
 

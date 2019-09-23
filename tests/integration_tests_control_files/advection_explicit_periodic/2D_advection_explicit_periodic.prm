@@ -1,4 +1,7 @@
 # -------------------
+
+set test_type = advection_periodicity
+
 # Number of dimensions
 set dimension = 2
 

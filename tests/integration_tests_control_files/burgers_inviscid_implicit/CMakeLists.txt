@@ -7,6 +7,14 @@ add_test(
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
+configure_file(1d_burgers_inviscid_implicit_collocated.prm 1d_burgers_inviscid_implicit_collocated.prm COPYONLY)
+add_test(
+	NAME 1D_BURGERS_INVISCID_IMPLICIT_COLLOCATED_MANUFACTURED_SOLUTION
+  COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_inviscid_implicit_collocated.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
+
 # configure_file(2d_burgers_inviscid_implicit.prm 2d_burgers_inviscid_implicit.prm COPYONLY)
 # add_test(
 #   NAME MPI_2D_BURGERS_INVISCID_IMPLICIT_MANUFACTURED_SOLUTION

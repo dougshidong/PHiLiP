@@ -365,6 +365,7 @@ int main (int argc, char * argv[])
             grid.refine_global (1);
             high_order_grid.allocate();
             solution_transfer.interpolate(high_order_grid.nodes);
+            high_order_grid.nodes.update_ghost_values();
 
             const unsigned int n_dofs = high_order_grid.dof_handler_grid.n_dofs();
 
@@ -375,11 +376,11 @@ int main (int argc, char * argv[])
             //dealii::Mapping<dim> mapping = high_order_grid.get_MappingFEField();
 
 
-            std::ofstream out_before("before_move_grid-" + std::to_string(poly_degree) + "-" + std::to_string(igrid) + ".eps");
-            dealii::GridOut grid_out_before;
-            dealii::GridOut::OutputFormat out_format = dealii::GridOut::OutputFormat::eps;
+            //std::ofstream out_before("before_move_grid-" + std::to_string(poly_degree) + "-" + std::to_string(igrid) + ".eps");
+            //dealii::GridOut grid_out_before;
+            //dealii::GridOut::OutputFormat out_format = dealii::GridOut::OutputFormat::eps;
 
-            const dealii::Mapping<dim,dim> *const base_mapping = &mapping;
+            //const dealii::Mapping<dim,dim> *const base_mapping = &mapping;
 
             dealii::DataOut<dim> data_out;
             data_out.attach_dof_handler(high_order_grid.dof_handler_grid);
@@ -402,13 +403,38 @@ int main (int argc, char * argv[])
                 Assert(false, dealii::ExcNotImplemented());
             }
             data_out.add_data_vector(high_order_grid.nodes, solution_names);
-            std::ofstream output("grid-" + std::to_string(poly_degree) + "-" + std::to_string(igrid) + ".vtk");
-            data_out.build_patches(mapping, poly_degree+1, dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells);
-            data_out.write_vtk(output);
+            //std::ofstream output("grid-" + std::to_string(poly_degree) + "-" + std::to_string(igrid) + ".vtk");
+            //data_out.build_patches(mapping, poly_degree+1, dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells);
+            //data_out.write_vtk(output);
+
+            const int iproc = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+            //data_out.build_patches (mapping_collection[mapping_collection.size()-1]);
+            data_out.build_patches(mapping, poly_degree, dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells);
+            std::string filename = "solution-" + dealii::Utilities::int_to_string(poly_degree, 1) +"D-";
+            filename += dealii::Utilities::int_to_string(igrid, 4) + ".";
+            filename += dealii::Utilities::int_to_string(iproc, 4);
+            filename += ".vtu";
+            std::ofstream output(filename);
+            data_out.write_vtu(output);
+
+            if (iproc == 0) {
+                std::vector<std::string> filenames;
+                for (unsigned int iproc = 0; iproc < dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD); ++iproc) {
+                    std::string fn = "solution-" + dealii::Utilities::int_to_string(poly_degree, 1) +"D-";
+                    fn += dealii::Utilities::int_to_string(igrid, 4) + ".";
+                    fn += dealii::Utilities::int_to_string(iproc, 4);
+                    fn += ".vtu";
+                    filenames.push_back(fn);
+                }
+                std::string master_fn = "solution-" + dealii::Utilities::int_to_string(poly_degree, 1) +"D-";
+                master_fn += dealii::Utilities::int_to_string(igrid, 4) + ".pvtu";
+                std::ofstream master_output(master_fn);
+                data_out.write_pvtu_record(master_output, filenames);
+            }
 
 
 
-            grid_out_before.write(grid, out_before, out_format, base_mapping);
+            ////grid_out_before.write(grid, out_before, out_format, base_mapping);
             //grid_out_before.write(grid, out_before, out_format);
             //for (auto cell = high_order_grid.dof_handler_grid.begin_active(); cell!=high_order_grid.dof_handler_grid.end(); ++cell) {
 
@@ -475,9 +501,9 @@ int main (int argc, char * argv[])
                 volume += cell_volume;
             }
             const double volume_mpi_sum = dealii::Utilities::MPI::sum(volume, MPI_COMM_WORLD);
-            std::ofstream out("grid-" + std::to_string(poly_degree) + "-" + std::to_string(igrid) + ".eps");
-            dealii::GridOut grid_out;
-            grid_out.write(grid, out, out_format, base_mapping);
+            //std::ofstream out("grid-" + std::to_string(poly_degree) + "-" + std::to_string(igrid) + ".eps");
+            //dealii::GridOut grid_out;
+            //grid_out.write(grid, out, out_format, base_mapping);
             //grid_out.write(grid, out, out_format);
 
             // Convergence table

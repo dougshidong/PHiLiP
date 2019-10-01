@@ -20,6 +20,13 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {
+    allocate();
+}
+
+template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+void 
+HighOrderGrid<dim,real,VectorType,DoFHandlerType>::allocate() 
+{
     dof_handler_grid.initialize(*triangulation, fe_system);
     dof_handler_grid.distribute_dofs(fe_system);
 
@@ -28,7 +35,6 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
     locally_relevant_dofs_grid = ghost_dofs_grid;
     ghost_dofs_grid.subtract_set(locally_owned_dofs_grid);
     nodes.reinit(locally_owned_dofs_grid, ghost_dofs_grid, mpi_communicator);
-
 }
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
@@ -41,6 +47,9 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::get_MappingFEField() {
 
     return mapping;
 }
+
+
+
 
 //template class HighOrderGrid<PHILIP_DIM, double>;
 template class HighOrderGrid<PHILIP_DIM, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;

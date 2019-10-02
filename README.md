@@ -70,6 +70,7 @@ ROOT$ ctest -R <regex> (Run tests matching regular expression)
 ROOT$ ctest -E <regex> (Exclude tests matching regular expression)
 ROOT$ ctest -V (Enable verbose output from tests)
 ```
+Note that running `ctest` in `Debug` will take forever since some integration tests fully solve nonlinear problems with multiple orders and multiple meshes. It is suggested to perform `ctest` in `Release` mode, and only use `Debug` mode for debugging purposes.
 
 ## Debugging
 

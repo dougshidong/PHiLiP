@@ -10,7 +10,7 @@
 - Supported Partial Differential Equations: Linear advection, diffusion, convection-diffusion, Burgers, Euler, TODO: Navier-Stokes.
 - Supported convective numerical fluxes: Lax-Friedrichs, Roe (Harten's entropy fix) for Euler, InProgress: Split-Form
 - Supported diffusive numerical fluxes: Symmetric Interior Penalty
-- Supported elements: LINEs, QUADs, HEXs
+- Supported elements: LINEs, QUADs, HEXs since it uses deal.II
 - Supported refinements: h (size) or p (order).
 
 ## Building/Running the Code

@@ -99,7 +99,7 @@ GDB$ quit
 
 If the error only occurs when using parallelism, you can use the following example command
 ```sh
-mpirun -np 2 xterm -hold -e gdb -ex 'break MPI_Abort' -ex run --args /home/ddong/Codes/PHiLiP_temp/PHiLiP/build_debug/bin/PHiLiP_2D "-i" "/home/ddong/Codes/PHiLiP_temp/PHiLiP/build_de    bug/tests/advection_implicit/2d_advection_implicit_strong.prm"
+mpirun -np 2 xterm -hold -e gdb -ex 'break MPI_Abort' -ex run --args /home/ddong/Codes/PHiLiP_temp/PHiLiP/build_debug/bin/PHiLiP_2D "-i" "/home/ddong/Codes/PHiLiP_temp/PHiLiP/build_debug/tests/advection_implicit/2d_advection_implicit_strong.prm"
 ```
 This launches 2 xterm processes, each of which will launch gdb processes that will run the code and will have a breakpoint when MPI_Abort is encountered.
 

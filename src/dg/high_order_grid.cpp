@@ -15,8 +15,10 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
     : all_parameters(parameters_input)
     , max_degree(max_degree)
     , triangulation(triangulation_input)
+    , dof_handler_grid(*triangulation)
     , fe_q(max_degree) // The grid must be at least p1. A p0 solution required a p1 grid.
     , fe_system(dealii::FESystem<dim>(fe_q,dim)) // The grid must be at least p1. A p0 solution required a p1 grid.
+    , solution_transfer(dof_handler_grid)
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {
@@ -49,6 +51,20 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::get_MappingFEField() {
 }
 
 
+template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::prepare_for_coarsening_and_refinement() {
+
+    old_nodes = nodes;
+    old_nodes.update_ghost_values();
+    solution_transfer.prepare_for_coarsening_and_refinement(old_nodes);
+}
+
+template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::execute_coarsening_and_refinement() {
+    allocate();
+    solution_transfer.interpolate(nodes);
+    nodes.update_ghost_values();
+}
 
 
 //template class HighOrderGrid<PHILIP_DIM, double>;

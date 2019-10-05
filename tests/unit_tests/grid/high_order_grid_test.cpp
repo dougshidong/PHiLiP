@@ -94,7 +94,8 @@ int main (int argc, char * argv[])
 
 
         HighOrderGrid<dim,double> high_order_grid(&all_parameters, poly_degree, &grid);
-        dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> mapping = high_order_grid.get_MappingFEField();
+        //std::shared_ptr < dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> > mapping = (high_order_grid.mapping_fe_field);
+        auto mapping = (high_order_grid.mapping_fe_field);
         grid.reset_all_manifolds();
 
         dealii::ConvergenceTable convergence_table;
@@ -138,7 +139,7 @@ int main (int argc, char * argv[])
             data_out.add_data_vector(high_order_grid.nodes, solution_names);
 
             const int iproc = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
-            data_out.build_patches(mapping, poly_degree, dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells);
+            data_out.build_patches(*mapping, poly_degree, dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells);
             std::string filename = "solution-" + dealii::Utilities::int_to_string(dim, 1) +"D-";
             filename += "Degree" + dealii::Utilities::int_to_string(poly_degree, 2) + ".";
             filename += dealii::Utilities::int_to_string(igrid, 4) + ".";
@@ -197,7 +198,7 @@ int main (int argc, char * argv[])
             const unsigned int n_quad_pts_1D = poly_degree+1+overintegrate;
             dealii::QGauss<dim> quadrature(n_quad_pts_1D);
             const unsigned int n_quad_pts = quadrature.size();
-            dealii::FEValues<dim,dim> fe_values(mapping, high_order_grid.fe_system, quadrature,
+            dealii::FEValues<dim,dim> fe_values(*mapping, high_order_grid.fe_system, quadrature,
                 dealii::update_jacobians
                 | dealii::update_JxW_values
                 | dealii::update_quadrature_points);

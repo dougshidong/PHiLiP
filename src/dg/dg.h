@@ -25,6 +25,7 @@
 
 #include <Sacado.hpp>
 
+#include "dg/high_order_grid.h"
 #include "physics/physics.h"
 #include "numerical_flux/numerical_flux.h"
 #include "parameters/all_parameters.h"
@@ -100,9 +101,6 @@ public:
     using MassiveCollectionTuple = std::tuple<
         //dealii::hp::MappingCollection<dim>, // Mapping
         dealii::hp::FECollection<dim>, // Solution FE
-        //dealii::hp::FECollection<dim>, // Grid FE
-        //dealii::FESystem<dim>, // Grid FE // Can't just return FESystem. For some reason the copy constructor is deleted
-        dealii::FE_Q<dim>, // Grid FE
         dealii::hp::QCollection<dim>,  // Volume quadrature
         dealii::hp::QCollection<dim-1>, // Face quadrature
         dealii::hp::QCollection<1>, // 1D quadrature for strong form
@@ -129,7 +127,7 @@ public:
     /** Since we are interested in performing mesh movement for optimization purposes,
      *  this is not a constant member variables.
      */
-    dealii::hp::MappingCollection<dim> mapping_collection;
+    //dealii::hp::MappingCollection<dim> mapping_collection;
 
     void set_all_cells_fe_degree ( const unsigned int degree );
 
@@ -219,9 +217,6 @@ public:
      */
     dealii::LinearAlgebra::distributed::Vector<double> solution;
 
-    /// Current nodal coefficients of the high-order grid.
-    dealii::LinearAlgebra::distributed::Vector<double> high_order_grid;
-
     void initialize_manufactured_solution (); ///< Virtual function defined in DG
 
     void output_results_vtk (const unsigned int ith_grid); ///< Output solution
@@ -271,13 +266,30 @@ public:
      *  Therefore, every grid/cell will use the maximal polynomial mapping regardless of the solution order.
      */
     //const dealii::hp::FECollection<dim>    fe_collection_grid;
-    const dealii::FESystem<dim>    fe_grid;
+    //const dealii::FESystem<dim>    fe_grid;
 
     dealii::hp::QCollection<dim>     volume_quadrature_collection;
     dealii::hp::QCollection<dim-1>   face_quadrature_collection;
     dealii::hp::QCollection<1>       oned_quadrature_collection;
 
+protected:
+    /// Lagrange basis used in strong form
+    /** This is a collection of scalar Lagrange bases */
+    const dealii::hp::FECollection<dim>  fe_collection_lagrange;
 
+public:
+    /// Degrees of freedom handler
+    /*  Allows us to iterate over the finite elements' degrees of freedom.
+     *  Note that since we are not using FESystem, we need to multiply
+     *  the index by a factor of "nstate"
+     *
+     *  Must be defined after fe_dg since it is a subscriptor of fe_dg.
+     *  Destructor are called in reverse order in which they appear in class definition. 
+     */ 
+    dealii::hp::DoFHandler<dim> dof_handler;
+
+    /// High order grid that will provide the MappingFEField
+    HighOrderGrid<dim,real> high_order_grid;
 
 protected:
 
@@ -370,31 +382,8 @@ protected:
     const dealii::UpdateFlags neighbor_face_update_flags = dealii::update_values | dealii::update_gradients;
 
 
-    /// Lagrange basis used in strong form
-    /** This is a collection of scalar Lagrange bases */
-    const dealii::hp::FECollection<dim>  fe_collection_lagrange;
-    //dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange;
-
-
-public:
-    /// Degrees of freedom handler
-    /*  Allows us to iterate over the finite elements' degrees of freedom.
-     *  Note that since we are not using FESystem, we need to multiply
-     *  the index by a factor of "nstate"
-     *
-     *  Must be defined after fe_dg since it is a subscriptor of fe_dg.
-     *  Destructor are called in reverse order in which they appear in class definition. 
-     */ 
-    dealii::hp::DoFHandler<dim> dof_handler;
-
-    /// Degrees of freedom handler for the high-order grid
-    dealii::DoFHandler<dim> dof_handler_grid;
 
 protected:
-    /// Main underlying mapping responsible for all mapping evaluations
-    //dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim> > high_order_grid_mapping;
-    dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim> > high_order_grid_mapping;
-
     MPI_Comm mpi_communicator; ///< MPI communicator
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 private:

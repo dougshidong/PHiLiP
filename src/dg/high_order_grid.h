@@ -8,6 +8,7 @@
 
 #include <deal.II/dofs/dof_handler.h>
 
+#include <deal.II/numerics/solution_transfer.h>
 #include <deal.II/distributed/solution_transfer.h>
 
 #include <deal.II/lac/vector.h>
@@ -22,10 +23,24 @@ namespace PHiLiP {
  *  nodes vector. The dof_handler_grid is used to access and loop through those nodes.
  *  This will especially be useful when performing shape optimization, where the surface and volume 
  *  nodes will need to be displaced.
+ *  Note that there are a lot of pre-processor statements, and that is because the SolutionTransfer class
+ *  and the Vector class act quite differently between serial and parallel implementation. Hopefully,
+ *  deal.II will change this one day such that we have one interface for both.
  */
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
+#else
 template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
+#endif
 class HighOrderGrid
 {
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    using Vector = dealii::Vector<double>;
+    using SolutionTransfer = dealii::SolutionTransfer<dim, dealii::Vector<double>, dealii::DoFHandler<dim>>;
+#else
+    using Vector = dealii::LinearAlgebra::distributed::Vector<double>;
+    using SolutionTransfer = dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>>;
+#endif
 public:
     /// Principal constructor that will call delegated constructor.
     HighOrderGrid(const Parameters::AllParameters *const parameters_input, const unsigned int max_degree, dealii::Triangulation<dim> *const triangulation_input);
@@ -35,6 +50,9 @@ public:
 
     /// Return a MappingFEField that corresponds to the current node locations
     dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> get_MappingFEField();
+
+    /// Return a MappingFEField that corresponds to the current node locations
+    void update_MappingFEField();
 
     const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
 
@@ -47,13 +65,13 @@ public:
     dealii::DoFHandler<dim> dof_handler_grid;
 
     /// Current nodal coefficients of the high-order grid.
-    dealii::LinearAlgebra::distributed::Vector<double> nodes;
+    Vector nodes;
 
     /// List of surface points
-    dealii::LinearAlgebra::distributed::Vector<double> surface_nodes;
+    Vector surface_nodes;
 
     /// RBF mesh deformation  -  To be done
-    void deform_mesh(dealii::LinearAlgebra::distributed::Vector<double> surface_displacements);
+    void deform_mesh(Vector surface_displacements);
 
     /// Evaluate cell metric Jacobian
     /** The metric Jacobian is given by the gradient of the physical location
@@ -84,18 +102,26 @@ public:
     /// Using system of polynomials to represent the x, y, and z directions.
     const dealii::FESystem<dim> fe_system;
 
+
+    /** MappingFEField that will provide the polynomial-based grid.
+     *  It is a shared smart pointer because the constructor requires the dof_handler_grid to be properly initialized.
+     *  See discussion in the following thread:
+     *  https://stackoverflow.com/questions/7557153/defining-an-object-without-calling-its-constructor-in-c
+     */
+    std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field;
+
     dealii::IndexSet locally_owned_dofs_grid; ///< Locally own degrees of freedom for the grid
     dealii::IndexSet ghost_dofs_grid; ///< Locally relevant ghost degrees of freedom for the grid
     dealii::IndexSet locally_relevant_dofs_grid; ///< Union of locally owned degrees of freedom and relevant ghost degrees of freedom for the grid
 protected:
 
     /// Used for the SolutionTransfer when performing grid adaptation.
-    dealii::LinearAlgebra::distributed::Vector<double> old_nodes;
+    Vector old_nodes;
 
     /** Transfers the coarse curved curve onto the fine curved grid.
      *  Used in prepare_for_coarsening_and_refinement() and execute_coarsening_and_refinement()
      */
-    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer;
+    SolutionTransfer solution_transfer;
 
     MPI_Comm mpi_communicator; ///< MPI communicator
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0

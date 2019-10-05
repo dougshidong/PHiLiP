@@ -191,7 +191,7 @@ int EulerGaussianBump<dim,nstate>
         //n_subdivisions[1] = n_1d_cells[0]; // y-direction
         //n_subdivisions[0] = 4*n_subdivisions[1]; // x-direction
         n_subdivisions[1] = n_1d_cells[0]; // y-direction
-        n_subdivisions[0] = 3*n_subdivisions[1]; // x-direction
+        n_subdivisions[0] = 9*n_subdivisions[1]; // x-direction
         dealii::Point<2> p1(-1.5,0.0), p2(1.5,y_height);
         const bool colorize = true;
         dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator,
@@ -224,7 +224,6 @@ int EulerGaussianBump<dim,nstate>
         // Create DG object
         std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
 
-
         // Initialize coarse grid solution with free-stream
         dg->allocate_system ();
         dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
@@ -240,7 +239,9 @@ int EulerGaussianBump<dim,nstate>
                 dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
                 dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
                 solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
+                dg->high_order_grid.prepare_for_coarsening_and_refinement();
                 grid.refine_global (1);
+                dg->high_order_grid.execute_coarsening_and_refinement();
                 dg->allocate_system ();
                 dg->solution.zero_out_ghosts();
                 solution_transfer.interpolate(dg->solution);
@@ -346,12 +347,13 @@ int EulerGaussianBump<dim,nstate>
 
         const double last_slope = log(entropy_error[n_grids-1]/entropy_error[n_grids-2])
                                   / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
-        double before_last_slope = last_slope;
-        if ( n_grids > 2 ) {
-        before_last_slope = log(entropy_error[n_grids-2]/entropy_error[n_grids-3])
-                            / log(grid_size[n_grids-2]/grid_size[n_grids-3]);
-        }
-        const double slope_avg = 0.5*(before_last_slope+last_slope);
+        //double before_last_slope = last_slope;
+        //if ( n_grids > 2 ) {
+        //    before_last_slope = log(entropy_error[n_grids-2]/entropy_error[n_grids-3])
+        //                        / log(grid_size[n_grids-2]/grid_size[n_grids-3]);
+        //}
+        //const double slope_avg = 0.5*(before_last_slope+last_slope);
+        const double slope_avg = last_slope;
         const double slope_diff = slope_avg-expected_slope;
 
         double slope_deficit_tolerance = -std::abs(manu_grid_conv_param.slope_deficit_tolerance);

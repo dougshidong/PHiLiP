@@ -581,8 +581,6 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
 
             // Convective
             // Now minus such 2 integrations by parts
-            assert(JxW[iquad] - fe_values_lagrange.JxW(iquad) < 1e-14);
-
             rhs = rhs - fe_values_vol.shape_value_component(itest,iquad,istate) * flux_divergence[iquad][istate] * JxW[iquad];
 
             //// Diffusive

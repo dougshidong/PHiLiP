@@ -5,7 +5,7 @@
 #include "convection_diffusion.h"
 #include "burgers.h"
 #include "euler.h"
-//#include "mhd.h"
+#include "mhd.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -36,9 +36,9 @@ PhysicsFactory<dim,nstate,real>
                                                                ,parameters_input->euler_param.side_slip_angle);
         }
 
-    } //else if (pde_type == PDE_enum::mhd) {
-        //if constexpr (nstate == 2*dim + 2) return std::make_shared < MHD<dim,nstate,real> > ();
-   // }
+    } else if (pde_type == PDE_enum::mhd) {
+        if constexpr (nstate == 8) return std::make_shared < MHD<dim,nstate,real> > (parameters_input->euler_param.gamma_gas);
+    }
     std::cout << "Can't create PhysicsBase, invalid PDE type: " << pde_type << std::endl;
     assert(0==1 && "Can't create PhysicsBase, invalid PDE type");
     return nullptr;
@@ -54,6 +54,8 @@ template class PhysicsFactory<PHILIP_DIM, 4, double>;
 template class PhysicsFactory<PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
 template class PhysicsFactory<PHILIP_DIM, 5, double>;
 template class PhysicsFactory<PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
+template class PhysicsFactory<PHILIP_DIM, 8, double>;
+template class PhysicsFactory<PHILIP_DIM, 8, Sacado::Fad::DFad<double> >;
 
 
 } // Physics namespace

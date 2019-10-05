@@ -148,6 +148,66 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
     dealii::hp::QCollection<1>         oned_quad_coll;
 
     dealii::hp::FECollection<dim>      fe_coll_lagr;
+
+    // for p=0, we use a p=1 FE for collocation, since there's no p=0 quadrature for Gauss Lobatto
+    if (parameters_input->use_collocated_nodes==true)
+    {
+    	int degree = 1;
+		//const dealii::MappingQ<dim,dim> mapping(degree, true);
+		//const dealii::MappingQ<dim,dim> mapping(degree+1, true);
+		//const dealii::MappingManifold<dim,dim> mapping;
+		//mapping_coll.push_back(mapping);
+
+		const dealii::FE_DGQ<dim> fe_dg(degree);
+		const dealii::FESystem<dim,dim> fe_system(fe_dg, nstate);
+		fe_coll.push_back (fe_system);
+
+		//
+
+		dealii::Quadrature<1>     oned_quad(degree+1);
+		dealii::Quadrature<dim>   volume_quad(degree+1);
+		dealii::Quadrature<dim-1> face_quad(degree+1); //removed const
+
+		if (parameters_input->use_collocated_nodes)
+			{
+				dealii::QGaussLobatto<1> oned_quad_Gauss_Lobatto (degree+1);
+				dealii::QGaussLobatto<dim> vol_quad_Gauss_Lobatto (degree+1);
+				oned_quad = oned_quad_Gauss_Lobatto;
+				volume_quad = vol_quad_Gauss_Lobatto;
+
+				if(dim == 1)
+				{
+					dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
+					face_quad = face_quad_Gauss_Legendre;
+				}
+				else
+				{
+					dealii::QGaussLobatto<dim-1> face_quad_Gauss_Lobatto (degree+1);
+					face_quad = face_quad_Gauss_Lobatto;
+				}
+
+
+			}
+			else
+			{
+				dealii::QGauss<1> oned_quad_Gauss_Legendre (degree+1);
+				dealii::QGauss<dim> vol_quad_Gauss_Legendre (degree+1);
+				dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
+				oned_quad = oned_quad_Gauss_Legendre;
+				volume_quad = vol_quad_Gauss_Legendre;
+				face_quad = face_quad_Gauss_Legendre;
+			}
+		//
+
+
+		volume_quad_coll.push_back (volume_quad);
+		face_quad_coll.push_back (face_quad);
+		oned_quad_coll.push_back (oned_quad);
+
+		dealii::FE_DGQArbitraryNodes<dim,dim> lagrange_poly(oned_quad);
+		fe_coll_lagr.push_back (lagrange_poly);
+    }
+
     int minimum_degree = (parameters_input->use_collocated_nodes==true) ?  1 :  0;
     for (unsigned int degree=minimum_degree; degree<=max_degree; ++degree) {
         //const dealii::MappingQ<dim,dim> mapping(degree, true);

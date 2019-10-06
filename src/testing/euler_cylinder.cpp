@@ -75,6 +75,27 @@ void half_cylinder(dealii::parallel::distributed::Triangulation<2> & tria,
 
     tria.set_all_manifold_ids(0);
     tria.set_manifold(0, dealii::SphericalManifold<2>(center));
+
+    // Assign BC
+    for (auto cell = tria.begin_active(); cell != tria.end(); ++cell) {
+        //if (!cell->is_locally_owned()) continue;
+        for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+            if (cell->face(face)->at_boundary()) {
+                unsigned int current_id = cell->face(face)->boundary_id();
+                if (current_id == 0) {
+                    cell->face(face)->set_boundary_id (1004); // x_left, Farfield
+                } else if (current_id == 1) {
+                    cell->face(face)->set_boundary_id (1001); // x_right, Symmetry/Wall
+                } else if (current_id == 2) {
+                    cell->face(face)->set_boundary_id (1001); // y_bottom, Symmetry/Wall
+                } else if (current_id == 3) {
+                    cell->face(face)->set_boundary_id (1001); // y_top, Wall
+                } else {
+                    std::abort();
+                }
+            }
+        }
+    }
 }
 
 
@@ -165,35 +186,14 @@ int EulerCylinder<dim,nstate>
                 dealii::Triangulation<dim>::smoothing_on_coarsening));
 
         const unsigned int n_cells_circle = n_1d_cells[0];
-        const unsigned int n_cells_radial = 3*n_cells_circle;
+        const unsigned int n_cells_radial = 2*n_cells_circle;
         half_cylinder(grid, n_cells_circle, n_cells_radial);
-        // Assign BC
-        for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
-            //if (!cell->is_locally_owned()) continue;
-            for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-                if (cell->face(face)->at_boundary()) {
-                    unsigned int current_id = cell->face(face)->boundary_id();
-                    if (current_id == 0) {
-                        cell->face(face)->set_boundary_id (1004); // x_left, Farfield
-                    } else if (current_id == 1) {
-                        cell->face(face)->set_boundary_id (1001); // x_right, Symmetry/Wall
-                    } else if (current_id == 2) {
-                        cell->face(face)->set_boundary_id (1001); // y_bottom, Symmetry/Wall
-                    } else if (current_id == 3) {
-                        cell->face(face)->set_boundary_id (1001); // y_top, Wall
-                    } else {
-                        std::abort();
-                    }
-                }
-            }
-        }
 
         // Create DG object
         std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
 
-
-        // Initialize coarse grid solution with free-stream
         dg->allocate_system ();
+        // Initialize coarse grid solution with free-stream
         dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
         // Create ODE solver and ramp up the solution from p0
@@ -201,6 +201,7 @@ int EulerCylinder<dim,nstate>
         ode_solver->initialize_steady_polynomial_ramping(poly_degree);
 
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
+
             // Interpolate solution from previous grid
             if (igrid>0) {
                 dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);

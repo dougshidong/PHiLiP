@@ -2,7 +2,7 @@
 
 [![Documentation](https://codedocs.xyz/dougshidong/PHiLiP.svg)](https://codedocs.xyz/dougshidong/PHiLiP/)
 
-The [P]arallel [Hi]gh-Order [Li]brary for [P]DEs uses Discontinuous Galerkin methods to solve convection-diffusion problems.
+The [P]arallel [Hi]gh-Order [Li]brary for [P]DEs (PHiLiP) uses Discontinuous Galerkin methods to solve convection-diffusion problems.
 
 The math supporting this code can be viewed in this **very rough draft in progress** [Overleaf document](https://www.overleaf.com/read/mytvbbbbyqnj).
 

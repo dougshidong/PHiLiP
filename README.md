@@ -1,11 +1,14 @@
-# Discontinuous Galerkin Solver
+# Parallel High-Order Library for PDEs
 
 [![Documentation](https://codedocs.xyz/dougshidong/PHiLiP.svg)](https://codedocs.xyz/dougshidong/PHiLiP/)
 
+The [P]arallel [Hi]gh-Order [Li]brary for [P]DEs uses Discontinuous Galerkin methods to solve convection-diffusion problems.
+
+The math supporting this code can be viewed in this **very rough draft in progress** [Overleaf document](https://www.overleaf.com/read/mytvbbbbyqnj).
 
 ## Code Description
 - Code uses deal.II library as the backbone (https://www.dealii.org/)
-- Math supporting this code can be viewed in this **very rough draft in progress** [Overleaf document](https://www.overleaf.com/read/mytvbbbbyqnj).
+- Parallelized through MPI
 - Supports weak and strong (InProgress) form of discontinuous Galerkin (DG), and flux reconstruction (FR) (InProgress)
 - Supported Partial Differential Equations: Linear advection, diffusion, convection-diffusion, Burgers, Euler, TODO: Navier-Stokes.
 - Supported convective numerical fluxes: Lax-Friedrichs, Roe (Harten's entropy fix) for Euler, InProgress: Split-Form

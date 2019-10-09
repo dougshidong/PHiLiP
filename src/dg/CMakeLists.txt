@@ -1,6 +1,7 @@
 set(DG_SOURCE
     high_order_grid.cpp
     dg.cpp
+    drdx.cpp
     weak_dg.cpp
     strong_dg.cpp
     )

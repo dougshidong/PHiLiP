@@ -119,6 +119,13 @@ DGBase<dim,real>::DGBase(
     , face_quadrature_collection(std::get<2>(collection_tuple))
     , oned_quadrature_collection(std::get<3>(collection_tuple))
     , fe_collection_lagrange(std::get<4>(collection_tuple))
+
+//for flux points
+    , fe_collection_flux(std::get<5>(collection_tuple))
+    , volume_quadrature_collection_flux(std::get<6>(collection_tuple))
+    , face_quadrature_collection_flux(std::get<7>(collection_tuple))
+    , oned_quadrature_collection_flux(std::get<8>(collection_tuple))
+
     , dof_handler(*triangulation)
     , high_order_grid(all_parameters, max_degree_input+1, triangulation)
     , mpi_communicator(MPI_COMM_WORLD)
@@ -138,7 +145,11 @@ std::tuple<
         dealii::hp::QCollection<dim>,  // Volume quadrature
         dealii::hp::QCollection<dim-1>, // Face quadrature
         dealii::hp::QCollection<1>, // 1D quadrature for strong form
-        dealii::hp::FECollection<dim> >   // Lagrange polynomials for strong form
+        dealii::hp::FECollection<dim>,   // Lagrange polynomials for strong form
+        dealii::hp::FECollection<dim>, //Flux FE
+        dealii::hp::QCollection<dim>, //Flux Volume Quadrature
+        dealii::hp::QCollection<dim-1>, //Flux Face Quadrature
+        dealii::hp::QCollection<1> > //Flux 1D Quadrature For Strong Form
 DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const
 {
     //dealii::hp::MappingCollection<dim> mapping_coll;
@@ -148,6 +159,12 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
     dealii::hp::QCollection<1>         oned_quad_coll;
 
     dealii::hp::FECollection<dim>      fe_coll_lagr;
+
+    //for flux points
+    dealii::hp::FECollection<dim>      fe_coll_flux;
+    dealii::hp::QCollection<dim>       volume_quad_coll_flux;
+    dealii::hp::QCollection<dim-1>     face_quad_coll_flux;
+    dealii::hp::QCollection<1>         oned_quad_coll_flux;
 
     // for p=0, we use a p=1 FE for collocation, since there's no p=0 quadrature for Gauss Lobatto
     if (parameters_input->use_collocated_nodes==true)
@@ -256,7 +273,72 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
         dealii::FE_DGQArbitraryNodes<dim,dim> lagrange_poly(oned_quad);
         fe_coll_lagr.push_back (lagrange_poly);
     }
-    return std::make_tuple(fe_coll, volume_quad_coll, face_quad_coll, oned_quad_coll, fe_coll_lagr);
+
+    minimum_degree = 0;
+    if (parameters_input->use_weak_form==false){
+    for (unsigned int degree=(minimum_degree+1); degree<=(max_degree +1); ++degree) {
+        //const dealii::MappingQ<dim,dim> mapping(degree, true);
+        //const dealii::MappingQ<dim,dim> mapping(degree+1, true);
+       // const dealii::MappingManifold<dim,dim> mapping;
+       // mapping_coll_flux.push_back(mapping);
+
+        const dealii::FE_DGQ<dim> fe_dg_flux(degree);
+        const dealii::FESystem<dim,dim> fe_system_flux(fe_dg_flux, nstate);
+        fe_coll_flux.push_back (fe_system_flux);
+
+        //
+
+//for flux points
+        dealii::Quadrature<1>     oned_quad_flux(degree+1);
+        dealii::Quadrature<dim>   volume_quad_flux(degree+1);
+        dealii::Quadrature<dim-1> face_quad_flux(degree+1); //removed const
+
+
+        if (parameters_input->use_collocated_nodes)
+            {
+                dealii::QGaussLobatto<1> oned_quad_Gauss_Lobatto (degree+1);
+                dealii::QGaussLobatto<dim> vol_quad_Gauss_Lobatto (degree+1);
+                oned_quad_flux = oned_quad_Gauss_Lobatto;
+                volume_quad_flux = vol_quad_Gauss_Lobatto;
+
+                if(dim == 1)
+                {
+                    dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
+                    face_quad_flux = face_quad_Gauss_Legendre;
+                }
+                else
+                {
+                    dealii::QGaussLobatto<dim-1> face_quad_Gauss_Lobatto (degree+1);
+                    face_quad_flux = face_quad_Gauss_Lobatto;
+                }
+
+
+            }
+            else
+            {
+                //for flux points
+                dealii::QGauss<1> oned_quad_Gauss_Legendre_flux (degree+1);
+                dealii::QGauss<dim> vol_quad_Gauss_Legendre_flux (degree+1);
+                dealii::QGauss<dim-1> face_quad_Gauss_Legendre_flux (degree+1);
+                oned_quad_flux = oned_quad_Gauss_Legendre_flux;
+                volume_quad_flux = vol_quad_Gauss_Legendre_flux;
+                face_quad_flux = face_quad_Gauss_Legendre_flux;
+
+            }
+        //
+
+
+        //for flux points
+        volume_quad_coll_flux.push_back (volume_quad_flux);
+        face_quad_coll_flux.push_back (face_quad_flux);
+        oned_quad_coll_flux.push_back (oned_quad_flux);
+
+      //  dealii::FE_DGQArbitraryNodes<dim,dim> lagrange_poly(oned_quad_flux);
+      //  fe_coll_lagr_flux.push_back (lagrange_poly);
+
+    }
+    }
+    return std::make_tuple(fe_coll, volume_quad_coll, face_quad_coll, oned_quad_coll, fe_coll_lagr, fe_coll_flux, volume_quad_coll_flux, face_quad_coll_flux, oned_quad_coll_flux);
 }
 
 
@@ -321,6 +403,14 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW)
 
     dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange (mapping_collection, fe_collection_lagrange, volume_quadrature_collection, this->volume_update_flags);
 
+    dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_flux (mapping_collection, DGBase<dim,real>::fe_collection_flux, DGBase<dim,real>::volume_quadrature_collection_flux, this->volume_update_flags); ///< FEValues of volume.
+    dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_int_flux (mapping_collection, DGBase<dim,real>::fe_collection_flux, DGBase<dim,real>::face_quadrature_collection_flux, this->face_update_flags); ///< FEValues of interior face.
+    dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_ext_flux (mapping_collection, DGBase<dim,real>::fe_collection_flux, DGBase<dim,real>::face_quadrature_collection_flux, this->neighbor_face_update_flags); ///< FEValues of exterior face.
+    dealii::hp::FESubfaceValues<dim,dim> fe_values_collection_subface_flux (mapping_collection, DGBase<dim,real>::fe_collection_flux, DGBase<dim,real>::face_quadrature_collection_flux, this->face_update_flags); ///< FEValues of subface.
+
+//solution basis functions evaluated at flux volume nodes
+    dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_soln_flux (mapping_collection, DGBase<dim,real>::fe_collection, DGBase<dim,real>::volume_quadrature_collection_flux, this->volume_update_flags); ///< FEValues of volume.
+
     unsigned int n_cell_visited = 0;
     unsigned int n_face_visited = 0;
 
@@ -352,11 +442,20 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW)
         dealii::TriaIterator<dealii::CellAccessor<dim,dim>> cell_iterator = static_cast<dealii::TriaIterator<dealii::CellAccessor<dim,dim>> > (current_cell);
         //if (!(all_parameters->use_weak_form)) fe_values_collection_volume_lagrange.reinit (current_cell, quad_index, mapping_index, fe_index_curr_cell);
         fe_values_collection_volume_lagrange.reinit (cell_iterator, quad_index, mapping_index, fe_index_curr_cell);
+
+        fe_values_collection_volume_flux.reinit (cell_iterator, quad_index, mapping_index, fe_index_curr_cell);
+
+        const dealii::FEValues<dim,dim> &fe_values_volume_flux = fe_values_collection_volume_flux.get_present_fe_values();
+
+        fe_values_collection_volume_soln_flux.reinit (cell_iterator, quad_index, mapping_index, fe_index_curr_cell);
+
+        const dealii::FEValues<dim,dim> &fe_values_volume_soln_flux = fe_values_collection_volume_soln_flux.get_present_fe_values();
+
         const dealii::FEValues<dim,dim> &fe_values_lagrange = fe_values_collection_volume_lagrange.get_present_fe_values();
         if ( compute_dRdW ) {
-            assemble_volume_terms_implicit (fe_values_volume, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
+            assemble_volume_terms_implicit (fe_values_volume, fe_values_volume_flux, fe_values_volume_soln_flux, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
         } else {
-            assemble_volume_terms_explicit (fe_values_volume, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
+            assemble_volume_terms_explicit (fe_values_volume, fe_values_volume_flux, fe_values_volume_soln_flux, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
         }
 
         for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {

@@ -51,6 +51,8 @@ DGWeak<dim,nstate,real>::~DGWeak ()
 template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_volume_terms_implicit(
     const dealii::FEValues<dim,dim> &fe_values_vol,
+    const dealii::FEValues<dim,dim> &/*fe_values_vol_flux*/,
+    const dealii::FEValues<dim,dim> &/*fe_values_vol_soln_flux*/,
     const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
     dealii::Vector<real> &local_rhs_int_cell,
     const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/)
@@ -438,6 +440,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term_implicit(
 template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
     const dealii::FEValues<dim,dim> &fe_values_vol,
+    const dealii::FEValues<dim,dim> &/*fe_values_vol_flux*/,
+    const dealii::FEValues<dim,dim> &/*fe_values_vol_soln_flux*/,
     const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
     dealii::Vector<real> &local_rhs_int_cell,
     const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/)

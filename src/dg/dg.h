@@ -104,7 +104,11 @@ public:
         dealii::hp::QCollection<dim>,  // Volume quadrature
         dealii::hp::QCollection<dim-1>, // Face quadrature
         dealii::hp::QCollection<1>, // 1D quadrature for strong form
-        dealii::hp::FECollection<dim> >;  // Lagrange polynomials for strong form
+        dealii::hp::FECollection<dim>, // Lagrange polynomials for strong form
+        dealii::hp::FECollection<dim>, //Flux FE
+        dealii::hp::QCollection<dim>, //Flux Volume Quadrature 
+        dealii::hp::QCollection<dim-1>, //Flux Face Quadrature         
+        dealii::hp::QCollection<1> >;  //Flux 1D quadrature for Strong Form
 
     /// Delegated constructor that initializes collections.
     /** Since a function is used to generate multiple different objects, a delegated
@@ -254,7 +258,7 @@ public:
      *    
      */
     //void assemble_residual_dRdW ();
-    void assemble_residual (const bool compute_dRdW=false);
+    virtual void assemble_residual (const bool compute_dRdW=false);
 
     /// Finite Element Collection for p-finite-element to represent the solution
     /** This is a collection of FESystems */
@@ -272,12 +276,19 @@ public:
     dealii::hp::QCollection<dim-1>   face_quadrature_collection;
     dealii::hp::QCollection<1>       oned_quadrature_collection;
 
+
 protected:
     /// Lagrange basis used in strong form
     /** This is a collection of scalar Lagrange bases */
     const dealii::hp::FECollection<dim>  fe_collection_lagrange;
 
 public:
+    //for flux points
+    const dealii::hp::FECollection<dim>    fe_collection_flux;
+    dealii::hp::QCollection<dim>     volume_quadrature_collection_flux;
+    dealii::hp::QCollection<dim-1>   face_quadrature_collection_flux;
+    dealii::hp::QCollection<1>       oned_quadrature_collection_flux;
+
     /// Degrees of freedom handler
     /*  Allows us to iterate over the finite elements' degrees of freedom.
      *  Note that since we are not using FESystem, we need to multiply
@@ -297,6 +308,8 @@ protected:
     /** Compute both the right-hand side and the block of the Jacobian */
     virtual void assemble_volume_terms_implicit(
         const dealii::FEValues<dim,dim> &fe_values_volume,
+        const dealii::FEValues<dim,dim> &fe_values_volume_flux,
+        const dealii::FEValues<dim,dim> &fe_values_volume_soln_flux,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs,
         const dealii::FEValues<dim,dim> &fe_values_lagrange) = 0;
@@ -324,6 +337,8 @@ protected:
     /// Evaluate the integral over the cell volume
     virtual void assemble_volume_terms_explicit(
         const dealii::FEValues<dim,dim> &fe_values_volume,
+        const dealii::FEValues<dim,dim> &fe_values_volume_flux,
+        const dealii::FEValues<dim,dim> &fe_values_volume_soln_flux,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs,
         const dealii::FEValues<dim,dim> &fe_values_lagrange) = 0;
@@ -434,10 +449,13 @@ private:
     /// Dissipative numerical flux
     NumericalFlux::NumericalFluxDissipative<dim, nstate, real > *diss_num_flux_double;
 
+
     /// Evaluate the integral over the cell volume
     /** Compute both the right-hand side and the block of the Jacobian */
     void assemble_volume_terms_implicit(
         const dealii::FEValues<dim,dim> &fe_values_volume,
+        const dealii::FEValues<dim,dim> &fe_values_volume_flux,
+        const dealii::FEValues<dim,dim> &fe_values_volume_soln_flux,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs,
         const dealii::FEValues<dim,dim> &fe_values_lagrange);
@@ -465,6 +483,8 @@ private:
     /// Evaluate the integral over the cell volume
     void assemble_volume_terms_explicit(
         const dealii::FEValues<dim,dim> &fe_values_volume,
+        const dealii::FEValues<dim,dim> &fe_values_volume_flux,
+        const dealii::FEValues<dim,dim> &fe_values_volume_soln_flux,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs, 
         const dealii::FEValues<dim,dim> &fe_values_lagrange);
@@ -508,6 +528,11 @@ public:
         const unsigned int degree,
         Triangulation *const triangulation_input);
 
+    std::vector<dealii::LinearAlgebra::distributed::Vector<real>> auxiliary_solution;///< modal coefficients of the auxiliary equation for convection-diffusion type problems
+    std::vector<dealii::LinearAlgebra::distributed::Vector<real>> auxiliary_RHS;///< modal coefficients of the auxiliary equation for convection-diffusion type problems
+
+    dealii::TrilinosWrappers::SparseMatrix global_inverse_mass_matrix;
+
     /// Destructor
     ~DGStrong();
 
@@ -527,10 +552,39 @@ private:
     /// Dissipative numerical flux
     NumericalFlux::NumericalFluxDissipative<dim, nstate, real > *diss_num_flux_double;
 
+    //for strong form RHS
+    void assemble_residual (const bool compute_dRdW=false);
+    //projection operator/divergence operator for nonlinear flux
+    void get_projection_operator(const dealii::FEValues<dim,dim> &fe_values_volume,
+    unsigned int n_quad_pts, unsigned int n_dofs_cell,
+    dealii::FullMatrix<real> &projection_matrix);
+
+    /// Evaluate the auxiliary equation volume integrals
+    void assemble_volume_terms_auxiliary_equation(
+        const dealii::FEValues<dim,dim> &fe_values_volume,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        std::vector<dealii::Tensor<1,dim,real>> &current_cell_rhs_aux);
+    /// Evaluate the auxiliary eqn face integral
+    void assemble_boundary_term_auxiliary_equation(
+        const unsigned int boundary_id,
+        const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        std::vector<dealii::Tensor<1,dim,real>> &current_cell_rhs_aux);
+    /// Evaluate the integral over the internal cell edges auxiliary equation
+    void assemble_face_term_auxiliary(
+        const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
+        const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
+        std::vector<dealii::Tensor<1,dim,real>>          &current_cell_rhs_aux,
+        std::vector<dealii::Tensor<1,dim,real>>          &neighbor_cell_rhs);
+
     /// Evaluate the integral over the cell volume
     /** Compute both the right-hand side and the block of the Jacobian */
     void assemble_volume_terms_implicit(
         const dealii::FEValues<dim,dim> &fe_values_volume,
+        const dealii::FEValues<dim,dim> &fe_values_volume_flux,
+        const dealii::FEValues<dim,dim> &fe_values_volume_soln_flux,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs,
         const dealii::FEValues<dim,dim> &fe_values_lagrange);
@@ -558,6 +612,8 @@ private:
     /// Evaluate the integral over the cell volume
     void assemble_volume_terms_explicit(
         const dealii::FEValues<dim,dim> &fe_values_volume,
+        const dealii::FEValues<dim,dim> &fe_values_volume_flux,
+        const dealii::FEValues<dim,dim> &fe_values_volume_soln_flux,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs,
         const dealii::FEValues<dim,dim> &fe_values_lagrange);

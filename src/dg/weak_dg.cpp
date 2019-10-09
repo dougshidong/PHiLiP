@@ -46,6 +46,9 @@ DGWeak<dim,nstate,real>::~DGWeak ()
     pcout << "Destructing DGWeak..." << std::endl;
     delete conv_num_flux;
     delete diss_num_flux;
+
+    delete conv_num_flux_double;
+    delete diss_num_flux_double;
 }
 
 template <int dim, int nstate, typename real>

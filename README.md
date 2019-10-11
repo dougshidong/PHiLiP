@@ -55,6 +55,8 @@ The html documentation can be accessed by pointing a browser at `ROOT/doc/html/i
 
 ## Testing
 
+A list of currently known failing tests is kept in the [GitHub issues](https://github.com/dougshidong/PHiLiP/issues?q=is%3Aissue+is%3Aopen+label%3Atestfail) with `testfail` tags.
+
 Testing can be performed using CMake's `ctest` functionality. After successfully compiling the project, all tests can be
 run by executing:
 ```sh
@@ -87,7 +89,7 @@ For a serial run, you may simply use gdb as intended
 ROOT$ gdb --args commmand_to_launch_test 
 GDB$ run (Executes the program. Can re-launch the program if you forgot to put breakpoints.)
 ```
-For example `--args /home/ddong/Codes/PHiLiP_temp/PHiLiP/build_debug/bin/PHiLiP_2D "-i" "/home/ddong/Codes/PHiLiP_temp/PHiLiP/build_de    bug/tests/adv    ection_implicit/2d_advection_implicit_strong.prm`.
+For example `--args /home/ddong/Codes/PHiLiP_temp/PHiLiP/build_debug/bin/PHiLiP_2D "-i" "/home/ddong/Codes/PHiLiP_temp/PHiLiP/build_debug/tests/advection_implicit/2d_advection_implicit_strong.prm`.
 
 
 Additional useful commands are:

@@ -60,7 +60,7 @@ A list of currently known failing tests is kept in the [GitHub issues](https://g
 Testing can be performed using CMake's `ctest` functionality. After successfully compiling the project, all tests can be
 run by executing:
 ```sh
-$ ROOT$ make test (which is equivalent to ROOT$ make test)
+$ ROOT$ ctest (which is equivalent to ROOT$ make test)
 ```
 
 An alternative make target is provided to run tests with --output-on-failure:

@@ -266,6 +266,15 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_auxiliary_equation(
         {
             local_auxiliary_RHS[itest][iDim] += rhs[iDim].val(); 
         }
+
+    #if 0
+        if (this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::implicit_solver) {
+            for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
+                residual_derivatives[idof] = rhs.fastAccessDx(idof);
+            }
+            this->system_matrix.add(cell_dofs_indices[itest], cell_dofs_indices, residual_derivatives);
+        }
+        #endif
     }
 }
 /**************************************************************************************/
@@ -1688,7 +1697,7 @@ void DGStrong<dim,nstate,real>::assemble_residual (const bool compute_dRdW)
         }
     }
 
-    if (DGBase<dim,real>::all_parameters->pde_type == 1 || DGBase<dim,real>::all_parameters->pde_type == 2)
+    if (DGBase<dim,real>::all_parameters->pde_type == 1 || DGBase<dim,real>::all_parameters->pde_type == 2)//1 is diffusion, 2 is convection-diffusion
     {
 
     for (auto current_cell = DGBase<dim,real>::dof_handler.begin_active(); current_cell != DGBase<dim,real>::dof_handler.end(); ++current_cell) {

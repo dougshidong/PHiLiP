@@ -533,6 +533,11 @@ public:
 
     dealii::TrilinosWrappers::SparseMatrix global_inverse_mass_matrix;
 
+    //projection operator/divergence operator for nonlinear flux
+    void get_projection_operator(const dealii::FEValues<dim,dim> &fe_values_volume,
+    unsigned int n_quad_pts, unsigned int n_dofs_cell,
+    dealii::FullMatrix<real> &projection_matrix);
+
     /// Destructor
     ~DGStrong();
 
@@ -555,9 +560,9 @@ private:
     //for strong form RHS
     void assemble_residual (const bool compute_dRdW=false);
     //projection operator/divergence operator for nonlinear flux
-    void get_projection_operator(const dealii::FEValues<dim,dim> &fe_values_volume,
-    unsigned int n_quad_pts, unsigned int n_dofs_cell,
-    dealii::FullMatrix<real> &projection_matrix);
+//    void get_projection_operator(const dealii::FEValues<dim,dim> &fe_values_volume,
+ //   unsigned int n_quad_pts, unsigned int n_dofs_cell,
+ //   dealii::FullMatrix<real> &projection_matrix);
 
     /// Evaluate the auxiliary equation volume integrals
     void assemble_volume_terms_auxiliary_equation(

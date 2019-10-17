@@ -275,7 +275,6 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
     }
 
     minimum_degree = 0;
-    if (parameters_input->use_weak_form==false){
     for (unsigned int degree=(minimum_degree+1); degree<=(max_degree +1); ++degree) {
         //const dealii::MappingQ<dim,dim> mapping(degree, true);
         //const dealii::MappingQ<dim,dim> mapping(degree+1, true);
@@ -336,7 +335,6 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
       //  dealii::FE_DGQArbitraryNodes<dim,dim> lagrange_poly(oned_quad_flux);
       //  fe_coll_lagr_flux.push_back (lagrange_poly);
 
-    }
     }
     return std::make_tuple(fe_coll, volume_quad_coll, face_quad_coll, oned_quad_coll, fe_coll_lagr, fe_coll_flux, volume_quad_coll_flux, face_quad_coll_flux, oned_quad_coll_flux);
 }

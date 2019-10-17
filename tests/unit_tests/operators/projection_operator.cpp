@@ -130,7 +130,7 @@ int main (int /*argc*/, char * /*argv*/[])
     std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1) << std::scientific;
     const int dim = PHILIP_DIM;
     const int nstate = dim;
-    const unsigned int n_grids = 6;
+    const unsigned int n_grids = 3;
     std::array<double,n_grids> grid_size;
     std::array<double,n_grids> grid_size_flux;
     std::array<double,n_grids> l2_error_poly;

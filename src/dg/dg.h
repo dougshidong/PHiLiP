@@ -405,7 +405,7 @@ protected:
     const dealii::UpdateFlags face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_normal_vectors;
     /// Update flags needed at neighbor' face points. 
     /** NOTE: With hp-adaptation, might need to query neighbor's quadrature points depending on the order of the cells. */
-    const dealii::UpdateFlags neighbor_face_update_flags = dealii::update_values | dealii::update_gradients;
+    const dealii::UpdateFlags neighbor_face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values;
 
 
 

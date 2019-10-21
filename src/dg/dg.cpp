@@ -520,6 +520,7 @@ void DGBase<dim,real>::assemble_cell_residual (
         } else if (current_face->has_children()) {
 
             Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
+            Assert (current_cell->neighbor(iface)->has_children(), dealii::ExcInternalError());
 
             // Obtain cell neighbour
             const unsigned int neighbor_iface = current_cell->neighbor_face_no(iface);
@@ -530,6 +531,7 @@ void DGBase<dim,real>::assemble_cell_residual (
                 auto neighbor_cell = current_cell->neighbor_child_on_subface (iface, subface_no);
                 // Since the neighbor cell is finer than the current cell, it should not have more children
                 Assert (!neighbor_cell->has_children(), dealii::ExcInternalError());
+                Assert (neighbor_cell->neighbor(neighbor_iface) == current_cell, dealii::ExcInternalError());
 
                 const int i_fele_n = neighbor_cell->active_fe_index(), i_quad_n = i_fele_n, i_mapp_n = 0;
 
@@ -739,9 +741,9 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
 
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
     //data_out.build_patches (mapping_collection[mapping_collection.size()-1]);
-    data_out.build_patches(*(high_order_grid.mapping_fe_field), max_degree, dealii::DataOut<dim, dealii::hp::DoFHandler<dim>>::CurvedCellRegion::curved_inner_cells);
+    data_out.build_patches(*(high_order_grid.mapping_fe_field), max_degree, dealii::DataOut<dim, dealii::hp::DoFHandler<dim>>::CurvedCellRegion::no_curved_cells);
     //data_out.build_patches(*(high_order_grid.mapping_fe_field), fe_collection.size(), dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells);
-    std::string filename = "solution-" + dealii::Utilities::int_to_string(dim, 1) +"D-";
+    std::string filename = "solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
     filename += dealii::Utilities::int_to_string(cycle, 4) + ".";
     filename += dealii::Utilities::int_to_string(iproc, 4);
     filename += ".vtu";
@@ -751,13 +753,13 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     if (iproc == 0) {
         std::vector<std::string> filenames;
         for (unsigned int iproc = 0; iproc < dealii::Utilities::MPI::n_mpi_processes(mpi_communicator); ++iproc) {
-            std::string fn = "solution-" + dealii::Utilities::int_to_string(dim, 1) +"D-";
+            std::string fn = "solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
             fn += dealii::Utilities::int_to_string(cycle, 4) + ".";
             fn += dealii::Utilities::int_to_string(iproc, 4);
             fn += ".vtu";
             filenames.push_back(fn);
         }
-        std::string master_fn = "solution-" + dealii::Utilities::int_to_string(dim, 1) +"D-";
+        std::string master_fn = "solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
         master_fn += dealii::Utilities::int_to_string(cycle, 4) + ".pvtu";
         std::ofstream master_output(master_fn);
         data_out.write_pvtu_record(master_output, filenames);

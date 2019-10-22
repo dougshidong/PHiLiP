@@ -21,7 +21,9 @@ foreach(dim RANGE 2 3)
     target_link_libraries(${TEST_TARGET} ${ParametersLib})
     target_link_libraries(${TEST_TARGET} ${DiscontinuousGalerkinLib})
     # Setup target with deal.II
-    DEAL_II_SETUP_TARGET(${TEST_TARGET})
+    if (NOT DOC_ONLY)
+        DEAL_II_SETUP_TARGET(${TEST_TARGET})
+    endif()
 
     add_test(
       NAME ${TEST_TARGET}
@@ -58,7 +60,9 @@ foreach(dim RANGE 2 3)
     target_link_libraries(${TEST_TARGET} ${ParametersLib})
     target_link_libraries(${TEST_TARGET} ${DiscontinuousGalerkinLib})
     # Setup target with deal.II
-    DEAL_II_SETUP_TARGET(${TEST_TARGET})
+    if (NOT DOC_ONLY)
+        DEAL_II_SETUP_TARGET(${TEST_TARGET})
+    endif()
 
     add_test(
       NAME ${TEST_TARGET}
@@ -94,7 +98,9 @@ string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
 target_link_libraries(${TEST_TARGET} ${ParametersLib})
 target_link_libraries(${TEST_TARGET} ${DiscontinuousGalerkinLib})
 # Setup target with deal.II
-DEAL_II_SETUP_TARGET(${TEST_TARGET})
+if (NOT DOC_ONLY)
+    DEAL_II_SETUP_TARGET(${TEST_TARGET})
+endif()
 
 add_test(
   NAME ${TEST_TARGET}

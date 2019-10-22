@@ -30,8 +30,6 @@
 #include "dg/dg.h"
 #include "ode_solver/ode_solver.h"
 
-//#include "template_instantiator.h"
-
 
 namespace PHiLiP {
 namespace Tests {

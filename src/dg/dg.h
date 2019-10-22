@@ -67,8 +67,16 @@ template <int dim, typename real>
 class DGBase 
 {
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    /** Triangulation to store the grid.
+     *  In 1D, dealii::Triangulation<dim> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
+     */
     using Triangulation = dealii::Triangulation<dim>;
 #else
+    /** Triangulation to store the grid.
+     *  In 1D, dealii::Triangulation<dim> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
+     */
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
 #endif
 public:
@@ -294,8 +302,11 @@ public:
     //const dealii::hp::FECollection<dim>    fe_collection_grid;
     //const dealii::FESystem<dim>    fe_grid;
 
+    /// Quadrature used to evaluate volume integrals.
     dealii::hp::QCollection<dim>     volume_quadrature_collection;
+    /// Quadrature used to evaluate face integrals.
     dealii::hp::QCollection<dim-1>   face_quadrature_collection;
+    /// 1D quadrature to generate Lagrange polynomials for the sake of flux interpolation.
     dealii::hp::QCollection<1>       oned_quadrature_collection;
 
 protected:
@@ -452,21 +463,28 @@ template <int dim, int nstate, typename real>
 class DGWeak : public DGBase<dim, real>
 {
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    /** Triangulation to store the grid.
+     *  In 1D, dealii::Triangulation<dim> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
+     */
     using Triangulation = dealii::Triangulation<dim>;
 #else
+    /** Triangulation to store the grid.
+     *  In 1D, dealii::Triangulation<dim> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
+     */
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
 #endif
 public:
-    /// Constructor
+    /// Constructor.
     DGWeak(
         const Parameters::AllParameters *const parameters_input, 
         const unsigned int degree,
         Triangulation *const triangulation_input);
 
-    ~DGWeak(); ///< Destructor
+    ~DGWeak(); ///< Destructor.
 
 private:
-
 
     /// Contains the physics of the PDE
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<real> > > pde_physics;
@@ -545,8 +563,16 @@ template <int dim, int nstate, typename real>
 class DGStrong : public DGBase<dim, real>
 {
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    /** Triangulation to store the grid.
+     *  In 1D, dealii::Triangulation<dim> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
+     */
     using Triangulation = dealii::Triangulation<dim>;
 #else
+    /** Triangulation to store the grid.
+     *  In 1D, dealii::Triangulation<dim> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
+     */
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
 #endif
 public:
@@ -639,8 +665,16 @@ template <int dim, typename real>
 class DGFactory
 {
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    /** Triangulation to store the grid.
+     *  In 1D, dealii::Triangulation<dim> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
+     */
     using Triangulation = dealii::Triangulation<dim>;
 #else
+    /** Triangulation to store the grid.
+     *  In 1D, dealii::Triangulation<dim> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
+     */
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
 #endif
 public:

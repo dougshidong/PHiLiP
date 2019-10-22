@@ -22,6 +22,8 @@ public:
     /// Constructor. Deleted the default constructor since it should not be used
     TestsBase () = delete;
     /// Constructor.
+    /** @param[in] parameters_input Input parameters.
+     */
     TestsBase(const Parameters::AllParameters *const parameters_input);
 
     /// Destructor.
@@ -33,10 +35,16 @@ public:
      */
     virtual int run_test() const = 0;
 protected:
-    const MPI_Comm mpi_communicator;
+    const MPI_Comm mpi_communicator; ///< MPI communicator.
+    /// ConditionalOStream.
+    /** Used as std::cout, but only prints if mpi_rank == 0
+     */
     dealii::ConditionalOStream pcout;
 
     /// Evaluates the number of cells to generate the grids for 1D grid based on input file.
+    /** @param[in]  ngrids Number of grid sequences to generate.
+     *  \return            Vector of 1D grid sizes
+     */
     std::vector<int> get_number_1d_cells(const int ngrids) const;
 
     // /// Evaluates the number of cells to generate the grids for 1D grid based on input file.
@@ -54,9 +62,15 @@ public:
      *
      *  TestBase test = TestFactory::create_test<3,5>(parameters_input)
      */
+    /** @param[in] parameters_input Input parameters.
+     *  \return                     Smart pointer to the test
+     */
     static std::unique_ptr< TestsBase > create_test(const Parameters::AllParameters *const parameters_input);
 
     /// Selects the actual test such as grid convergence, numerical flux conversation, etc.
+    /** @param[in] parameters_input Input parameters.
+     *  \return                     Smart pointer to the test
+     */
     static std::unique_ptr< TestsBase > select_test(const Parameters::AllParameters *const parameters_input);
 };
 

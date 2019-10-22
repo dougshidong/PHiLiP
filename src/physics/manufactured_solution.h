@@ -15,6 +15,9 @@
 namespace PHiLiP {
 
 
+/// Manufactured solution used for grid studies to check convergence orders.
+/** This class also provides derivatives necessary to evaluate source terms.
+ */
 template <int dim, typename real>
 class ManufacturedSolutionFunction : public dealii::Function<dim,real>
 {
@@ -70,6 +73,7 @@ public:
     /// Uses finite-difference to evaluate the hessian
     dealii::SymmetricTensor<2,dim,real> hessian_fd (const dealii::Point<dim> &point, const unsigned int istate = 0) const;
 
+    /// Same as Function::values() except it returns it into a std::vector format.
     std::vector<real> stdvector_values (const dealii::Point<dim> &point) const;
 
     // Virtual functions inherited from dealii::Function
@@ -107,9 +111,13 @@ public:
     //                                   std::vector<std::vector<Tensor<1,dim, real> > > &gradients) const;
 
 private:
+    //@{
+    /** Constants used to manufactured solution.
+     */
     std::vector<real> base_values;
     std::vector<real> amplitudes;
     std::vector<dealii::Tensor<1,dim,real>> frequencies;
+    //@}
 };
 
 }

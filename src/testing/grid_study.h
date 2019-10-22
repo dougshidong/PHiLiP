@@ -45,7 +45,14 @@ protected:
      */
     static dealii::Point<dim> warp (const dealii::Point<dim> &p);
 
+    /// Initialize the solution with the exact solution
+    /** This is not an issue since the discretized solution will not be the exact solution.
+     *  Therefore, the residual does not start at 0.
+     */
     void initialize_perturbed_solution(DGBase<dim,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &physics) const;
+    /// L2-Integral of the solution over the entire domain.
+    /** Used to evaluate error of a functional.
+     */
     double integrate_solution_over_domain(DGBase<dim,double> &dg) const;
 };
 

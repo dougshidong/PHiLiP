@@ -8,17 +8,20 @@
 namespace PHiLiP {
 namespace Tests {
 
+/// Linear advection through periodic boundary conditions.
 template <int dim, int nstate>
 class AdvectionPeriodic: public TestsBase
 {
 public:
-	AdvectionPeriodic() = delete;
+    /// Constructor.
 	AdvectionPeriodic(const Parameters::AllParameters *const parameters_input);
+
+    /// Currently passes no matter what.
+    /** Since it is linear advection, the exact solution about time T is known. Convergence orders can/should be checked.
+     *  TO BE FIXED.
+     */
     int run_test () const override;
 private:
-    //const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
-    const MPI_Comm mpi_communicator;
-    dealii::ConditionalOStream pcout;
 };
 
 } // End of Tests namespace

@@ -125,7 +125,7 @@ int main (int argc, char * argv[])
 
             high_order_grid.prepare_for_coarsening_and_refinement();
             grid.repartition();
-            high_order_grid.execute_coarsening_and_refinement();
+            high_order_grid.execute_coarsening_and_refinement(true);
 
             const unsigned int n_dofs = high_order_grid.dof_handler_grid.n_dofs();
 

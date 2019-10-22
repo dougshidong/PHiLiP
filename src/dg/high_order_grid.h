@@ -39,10 +39,25 @@ template <int dim = PHILIP_DIM, typename real = double, typename VectorType = de
 class HighOrderGrid
 {
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    /** Vector class used to store the solution.
+     *  In 1D dealii::Vector<double> is used.
+     *  In 2D, 3D, dealii::LinearAlgebra::distributed::Vector<double> is used.
+     */
     using Vector = dealii::Vector<double>;
+    /** In 1D SolutionTransfer = dealii::SolutionTransfer<dim, dealii::Vector<double>, dealii::DoFHandler<dim>> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> is used.
+     */
     using SolutionTransfer = dealii::SolutionTransfer<dim, dealii::Vector<double>, dealii::DoFHandler<dim>>;
 #else
+    /** Vector class used to store the solution.
+     *  In 1D dealii::Vector<double> is used.
+     *  In 2D, 3D, dealii::LinearAlgebra::distributed::Vector<double> is used.
+     */
     using Vector = dealii::LinearAlgebra::distributed::Vector<double>;
+    /// SolutionTransfer class used during refinement.
+    /** In 1D SolutionTransfer = dealii::SolutionTransfer<dim, dealii::Vector<double>, dealii::DoFHandler<dim>> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> is used.
+     */
     using SolutionTransfer = dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>>;
 #endif
 public:
@@ -146,26 +161,24 @@ public:
     //void deform_mesh(Vector surface_displacements);
     void deform_mesh(std::vector<real> local_surface_displacements);
 
-    /// Evaluate cell metric Jacobian
-    /** The metric Jacobian is given by the gradient of the physical location
-     *  with respect to the reference locations
-     *  \f[ J_{ij} = \frac{
-     *      (  \mathbf{F}_{conv}( u ) 
-     *          + \mathbf{F}_{diss}( u, \boldsymbol{\nabla}(u) )
-     *      = s(\mathbf{x})
-     *  \f]
-     */ 
-    //dealii::Tensor<2,dim,real> cell_jacobian (const typename dealii::Triangulation<dim,spacedim>::cell_iterator &cell, const dealii::Point<dim> &point) const override
-    //{
-    //}
-    //
+    // /// Evaluate cell metric Jacobian
+    // /** The metric Jacobian is given by the gradient of the physical location
+    //  *  with respect to the reference locations
+    //  */ 
+    //  dealii::Tensor<2,dim,real> cell_jacobian (const typename dealii::Triangulation<dim,spacedim>::cell_iterator &cell, const dealii::Point<dim> &point) const override
+    //  {
+    //  }
 
 
     /// Prepares the solution transfer such that the curved refined grid is on top of the curved coarse grid.
     /** This function needs to be called before dealii::Triangulation::execute_coarsening_and_refinement() or dealii::Triangulation::refine_global()
+     *  and this->execute_coarsening_and_refinement().
      */
     void prepare_for_coarsening_and_refinement();
-
+    /// Executes the solution transfer such that the curved refined grid is on top of the curved coarse grid.
+    /** This function needs to be after this->prepare_for_coarsening_and_refinement() and 
+     *  dealii::Triangulation::execute_coarsening_and_refinement() or dealii::Triangulation::refine_global().
+     */
     void execute_coarsening_and_refinement(const bool output_mesh = false);
 
     /// Use Lagrange polynomial to represent the spatial location.
@@ -176,8 +189,8 @@ public:
 
     /// MappingFEField that will provide the polynomial-based grid.
     /** It is a shared smart pointer because the constructor requires the dof_handler_grid to be properly initialized.
-     *  See discussion in the following thread:
-     *  https://stackoverflow.com/questions/7557153/defining-an-object-without-calling-its-constructor-in-c
+     *  See discussion in the following 
+     *  <a href=" https://stackoverflow.com/questions/7557153/defining-an-object-without-calling-its-constructor-in-c">thread</a>.
      */
     std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field;
 
@@ -185,7 +198,7 @@ public:
     dealii::IndexSet ghost_dofs_grid; ///< Locally relevant ghost degrees of freedom for the grid
     dealii::IndexSet locally_relevant_dofs_grid; ///< Union of locally owned degrees of freedom and relevant ghost degrees of freedom for the grid
 protected:
-    int nth_refinement;
+    int nth_refinement; ///< Used to name the various files outputted.
 
     /// Used for the SolutionTransfer when performing grid adaptation.
     Vector old_nodes;
@@ -198,14 +211,19 @@ protected:
     MPI_Comm mpi_communicator; ///< MPI communicator
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
+    /// Evaluate the determinant of a matrix given in the format of a std::array<dealii::Tensor<1,dim,real2>,dim>.
+    /** The indices of the array represent the matrix rows, and the indices of the Tensor represents its columns.
+     */
     template <typename real2>
     real2 determinant(const std::array< dealii::Tensor<1,dim,real2>, dim > jacobian) const;
 
+    /// A stripped down copy of dealii::VectorTools::get_position_vector()
     void get_position_vector(const DoFHandlerType &dh, VectorType &vector, const dealii::ComponentMask &mask);
 
 
 };
 
+/// Postprocessor used to output the grid.
 template <int dim>
 class GridPostprocessor : public dealii::DataPostprocessor<dim>
 {
@@ -213,13 +231,13 @@ public:
     // /// Constructor
     // GridPostprocessor();
 
-    /// Queries the Physics to output data of a vector-valued problem.
+    /// Evaluates the values of interest to output.
     virtual void evaluate_vector_field (const dealii::DataPostprocessorInputs::Vector<dim> &inputs, std::vector<dealii::Vector<double>> &computed_quantities) const override;
-    /// Queries the Physics for the names of output data variables.
+    /// Returns the names associated with the output data.
     virtual std::vector<std::string> get_names () const override;
-    /// Queries the Physics for the type (scalar/vector) of output data variables.
+    /// Returns the DCI associated with the output data.
     virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> get_data_component_interpretation () const override;
-    /// Queries the Physics for the required update flags to evaluate output data.
+    /// Returns the update flags required to evaluate the output data.
     virtual dealii::UpdateFlags get_needed_update_flags () const override;
 };
 

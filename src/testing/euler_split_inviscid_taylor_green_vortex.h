@@ -38,20 +38,33 @@
 namespace PHiLiP {
 namespace Tests {
 
+/// Euler Taylor Green Vortex
+/** Ensure that the kinetic energy is bounded.
+ *  Gassner 2016.
+ */
 template <int dim, int nstate>
 class EulerTaylorGreen : public TestsBase
 {
 public:
-	EulerTaylorGreen() = delete;
+    /// Constructor.
+    /** Simply calls the TestsBase constructor to set its parameters = parameters_input
+     */
 	EulerTaylorGreen(const Parameters::AllParameters *const parameters_input);
+
+/// Ensure that the kinetic energy is bounded.
+/*  If the kinetic energy increases about its initial value, then the test should fail.
+ *  CURRENTLY PASSES NO MATTER WHAT. TO BE FIXED.
+ *  Gassner 2016.
+ */
 	int run_test() const override;
 
 private:
+    /// Computes an integral of the kinetic energy (density * velocity squared) in the entire domain.
+    /** Overintegration of kinetic energy.
+     */
 	double compute_kinetic_energy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const;
 	//double compute_quadrature_kinetic_energy(std::array<double,nstate> soln_at_q) const ;
     //const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
-    const MPI_Comm mpi_communicator;
-    dealii::ConditionalOStream pcout;
 };
 
 

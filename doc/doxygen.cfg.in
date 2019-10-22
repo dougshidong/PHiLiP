@@ -50,7 +50,7 @@ LOOKUP_CACHE_SIZE      = 0
 #---------------------------------------------------------------------------
 # Build related configuration options
 #---------------------------------------------------------------------------
-EXTRACT_ALL            = YES
+EXTRACT_ALL            = NO
 EXTRACT_PRIVATE        = YES
 EXTRACT_PACKAGE        = NO
 EXTRACT_STATIC         = YES
@@ -109,7 +109,7 @@ FILE_PATTERNS          = *.cpp \
                          *.h.in \
                          *.dox \
 #                         *.md \ # doxygen was given errors for relative paths in markdown files.
-                         *.mk
+#                         *.mk
 RECURSIVE              = YES
 EXCLUDE                = @PROJECT_SOURCE_DIR@/README.md
 EXCLUDE_SYMLINKS       = NO

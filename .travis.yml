@@ -1,1 +1,36 @@
+os: linux
+dist: bionic
 language: c++
+
+install:
+- chmod u+x ci/travis-ci.sh
+
+stages:
+- doc
+#- build and test
+#- deploy
+
+jobs:
+  include:
+#  - stage: build and test
+#    env: TITLE="Build CCORE (Linux)."
+#    script: ./ci/travis-ci.sh BUILD_CCORE
+#  - state: build and test
+#    env: TITLE="Run C/C++ static code analyser."
+#    script: ./ci/travis-ci.sh ANALYSE_CCORE
+#  - stage: build and test
+#    env: TITLE="Run unit-tests for CCORE."
+#    script: ./ci/travis-ci.sh UT_CCORE
+#  - stage: build and test
+#    env: TITLE="Run memory leak analyser (valgrind) for CCORE."
+#    script: ./ci/travis-ci.sh VALGRIND_CCORE
+#  - stage: build and test
+#    env: TITLE="PyClustering unit and integration testing."
+#    script: ./ci/travis-ci.sh TEST_PYCLUSTERING
+#  - stage: build and test
+#    os: osx
+#    env: TITLE="Build CCORE (MacOS) and intergration testing."
+#    script: ./ci/travis-ci.sh BUILD_TEST_CCORE_MACOS
+  - stage: doc
+    env: TITLE="Build documentation."
+    script: ./ci/travis-ci.sh DOCUMENTATION

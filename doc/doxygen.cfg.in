@@ -4,9 +4,9 @@
 # Project related configuration options
 #---------------------------------------------------------------------------
 DOXYFILE_ENCODING      = UTF-8
-PROJECT_NAME           = "@CMAKE_PROJECT_NAME@"
+PROJECT_NAME           = "[P]arallel [Hi]gh-order [Li]brary for [P]DEs"
 PROJECT_NUMBER         = "@PHiLiP_VERSION@"
-PROJECT_BRIEF          = "(P)arallel (Hi)gh-order (Li)brary for PDEs"
+PROJECT_BRIEF          = "Parallel High-Order Library for PDEs through hp-adaptive Discontinuous Galerkin methods"
 PROJECT_LOGO           =
 OUTPUT_DIRECTORY       =
 CREATE_SUBDIRS         = NO

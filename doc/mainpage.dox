@@ -2,12 +2,7 @@
 
 \mainpage
 
-These pages serve as the main programmer's reference manual for PHiLiP and were automatically generated from the
-source using Doxygen.
-
-
-A good place to start is the <a href="gettingstartedpages.html">Getting Started page</a>, which provides a getting started
-file which contains detailed instructions for building your understanding of the implementation.
+These pages serve as the main programmer's reference manual for PHiLiP and were automatically generated from the source using Doxygen.
 
 The <a href="https://github.com/dougshidong/PHiLiP/tree/master">project home</a> contains
 additional information relating to the code functionality and status.

@@ -29,7 +29,9 @@ class ConvectionDiffusion : public PhysicsBase <dim, nstate, real>
 {
 public:
     const bool hasConvection; ///< Turns ON/OFF convection term.
+
     const bool hasDiffusion; ///< Turns ON/OFF diffusion term.
+
     /// Constructor
     ConvectionDiffusion (const bool convection = true, const bool diffusion = true)
         : hasConvection(convection), hasDiffusion(diffusion)

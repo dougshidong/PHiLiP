@@ -16,6 +16,16 @@ The math supporting this code can be viewed in this **very rough draft in progre
 - Supported elements: LINEs, QUADs, HEXs since it uses deal.II
 - Supported refinements: h (size) or p (order).
 
+## Documentation
+
+The code itself is documented using Doxygen, and the latest documentation is hosted on [codedocs.xyz](https://codedocs.xyz/dougshidong/PHiLiP/). 
+
+Since deal.II is heavily used, their [documentation](https://www.dealii.org/developer/doxygen/deal.II/index.html) is probably the most useful.
+
+Another great ressource is the [deal.II Google Groups](https://groups.google.com/forum/#!forum/dealii), where developers are actively answering questions.
+
+Finally, I am also always available to answer questions regarding the code by e-mail at doug.shi-dong@mail.mcgill.ca
+
 ## Building/Running the Code
 
 The code has been succesfully built in the following environments:

@@ -1,5 +1,4 @@
 # CodeDocs.xyz Configuration File
 
-EXCLUDE_PATTERNS = */deprecated/*
-DOXYFILE = doc/doxygen.cfg.in
+DOXYFILE = doc/doxygen_codedocs.cfg
 

@@ -8,22 +8,26 @@
 namespace PHiLiP {
 namespace Postprocess {
 
-/// Create the post-processor with the correct template parameter 
+/// Postprocessor factory.
 template <int dim>
 class PostprocessorFactory
 {
 public:
+    /// Create the post-processor with the correct template parameters.
     static std::unique_ptr< dealii::DataPostprocessor<dim> > create_Postprocessor(const Parameters::AllParameters *const parameters_input);
 };
 
+/// Postprocessor to output solution and other values computed by associated physics.
+/** The functions in this class will call the Physics functions to query data.
+ */
 template <int dim, int nstate>
 class PhysicsPostprocessor : public dealii::DataPostprocessor<dim>
 {
 public:
-    /// Constructor
+    /// Constructor.
     PhysicsPostprocessor (const Parameters::AllParameters *const parameters_input);
 
-    /// Physics that the post-processor will use to evaluate derived data types
+    /// Physics that the post-processor will use to evaluate derived data types.
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, double > > physics;
 
     /// Queries the Physics to output data of a vector-valued problem.

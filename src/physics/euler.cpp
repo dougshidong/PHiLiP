@@ -258,39 +258,67 @@ inline real Euler<dim,nstate,real>
 // Split form functions:
 
 template <int dim, int nstate, typename real>
-inline real Euler<dim,nstate,real>::
-compute_mean_density(const std::array<real,nstate> &soln_const,
-                          const std::array<real,nstate> &soln_loop) const
+std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
+::convective_numerical_split_flux(const std::array<real,nstate> &conservative_soln1,
+                                  const std::array<real,nstate> &conservative_soln2) const
 {
-    return (soln_const[0] + soln_loop[0])/2.;
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+    const real mean_density = compute_mean_density(conservative_soln1, conservative_soln2);
+    const real mean_pressure = compute_mean_pressure(conservative_soln1, conservative_soln2);
+    const dealii::Tensor<1,dim,real> mean_velocities = compute_mean_velocities(conservative_soln1,conservative_soln2);
+    const real mean_specific_energy = compute_mean_specific_energy(conservative_soln1, conservative_soln2);
+
+    for (int flux_dim = 0; flux_dim < dim; ++flux_dim)
+    {
+        // Density equation
+        conv_num_split_flux[0][flux_dim] = mean_density * mean_velocities[flux_dim];//conservative_soln[1+flux_dim];
+        // Momentum equation
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+            conv_num_split_flux[1+velocity_dim][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_velocities[velocity_dim];
+        }
+        conv_num_split_flux[1+flux_dim][flux_dim] += mean_pressure; // Add diagonal of pressure
+        // Energy equation
+        conv_num_split_flux[nstate-1][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_specific_energy + mean_pressure * mean_velocities[flux_dim];
+    }
+
+    return conv_num_split_flux;
+}
+
+
+template <int dim, int nstate, typename real>
+inline real Euler<dim,nstate,real>::
+compute_mean_density(const std::array<real,nstate> &conservative_soln1,
+                          const std::array<real,nstate> &conservative_soln2) const
+{
+    return (conservative_soln1[0] + conservative_soln2[0])/2.;
 }
 
 template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>::
-compute_mean_pressure(const std::array<real,nstate> &soln_const,
-                      const std::array<real,nstate> &soln_loop) const
+compute_mean_pressure(const std::array<real,nstate> &conservative_soln1,
+                      const std::array<real,nstate> &conservative_soln2) const
 {
-    real pressure_const = compute_pressure(soln_const);
-    real pressure_loop = compute_pressure(soln_loop);
-    return (pressure_const + pressure_loop)/2.;
+    real pressure_1 = compute_pressure(conservative_soln1);
+    real pressure_2 = compute_pressure(conservative_soln2);
+    return (pressure_1 + pressure_2)/2.;
 }
 
 template <int dim, int nstate, typename real>
 inline dealii::Tensor<1,dim,real> Euler<dim,nstate,real>::
-compute_mean_velocities(const std::array<real,nstate> &soln_const,
-                        const std::array<real,nstate> &soln_loop) const
+compute_mean_velocities(const std::array<real,nstate> &conservative_soln1,
+                        const std::array<real,nstate> &conservative_soln2) const
 {
-    dealii::Tensor<1,dim,real> vel_const = compute_velocities(soln_const);
-    dealii::Tensor<1,dim,real> vel_loop = compute_velocities(soln_loop);
-    return (vel_const + vel_loop)/2.;
+    dealii::Tensor<1,dim,real> vel_1 = compute_velocities(conservative_soln1);
+    dealii::Tensor<1,dim,real> vel_2 = compute_velocities(conservative_soln2);
+    return (vel_1 + vel_2)/2.;
 }
 
 template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>::
-compute_mean_specific_energy(const std::array<real,nstate> &soln_const,
-                             const std::array<real,nstate> &soln_loop) const
+compute_mean_specific_energy(const std::array<real,nstate> &conservative_soln1,
+                             const std::array<real,nstate> &conservative_soln2) const
 {
-    return ((soln_const[nstate-1]/soln_const[0]) + (soln_loop[nstate-1]/soln_loop[0]))/2.;
+    return ((conservative_soln1[nstate-1]/conservative_soln1[0]) + (conservative_soln2[nstate-1]/conservative_soln2[0]))/2.;
 }
 
 
@@ -317,33 +345,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
         conv_flux[nstate-1][flux_dim] = density*vel[flux_dim]*specific_total_enthalpy;
     }
     return conv_flux;
-}
-
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
-::convective_numerical_split_flux(const std::array<real,nstate> &soln_const,
-                                  const std::array<real,nstate> &soln_loop) const
-{
-    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
-    const real mean_density = compute_mean_density(soln_const, soln_loop);
-    const real mean_pressure = compute_mean_pressure(soln_const, soln_loop);
-    const dealii::Tensor<1,dim,real> mean_velocities = compute_mean_velocities(soln_const,soln_loop);
-    const real mean_specific_energy = compute_mean_specific_energy(soln_const, soln_loop);
-
-    for (int flux_dim = 0; flux_dim < dim; ++flux_dim)
-    {
-        // Density equation
-        conv_num_split_flux[0][flux_dim] = mean_density * mean_velocities[flux_dim];//conservative_soln[1+flux_dim];
-        // Momentum equation
-        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
-            conv_num_split_flux[1+velocity_dim][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_velocities[velocity_dim];
-        }
-        conv_num_split_flux[1+flux_dim][flux_dim] += mean_pressure; // Add diagonal of pressure
-        // Energy equation
-        conv_num_split_flux[nstate-1][flux_dim] = mean_density*mean_velocities[flux_dim]*mean_specific_energy + mean_pressure * mean_velocities[flux_dim];
-    }
-
-    return conv_num_split_flux;
 }
 
 template <int dim, int nstate, typename real>

@@ -13,24 +13,30 @@ namespace Parameters {
 class LinearSolverParam
 {
 public:
-    LinearSolverParam (); ///< Constructor
-    enum LinearSolverEnum { direct, gmres }; ///< Types of linear solvers available
+    LinearSolverParam (); ///< Constructor.
+    /// Types of linear solvers available.
+    enum LinearSolverEnum {
+        direct, /// LU.
+        gmres   /// GMRES.
+    };
 
     /// Can either be verbose or quiet.
     /** Verbose will print the full dense matrix. Will not work for large matrices
      */
-    OutputEnum linear_solver_output;
-    LinearSolverEnum linear_solver_type;
+    OutputEnum linear_solver_output; ///< quiet or verbose.
+    LinearSolverEnum linear_solver_type; ///< direct or gmres.
 
     // GMRES options
     double ilut_drop; ///< Threshold to drop terms close to zero.
+    //@{
     /// Add to the diagonal.
-    /** For some reason it helps some problems.
+    /** Based on deal.II doc it helps some problems?
      *  From what I have seen, it doesn't help ours.
      */
     double ilut_rtol, ilut_atol; 
-    /// ILU fill-in
-    int ilut_fill;
+    //@}
+
+    int ilut_fill; ///< ILU fill-in
 
     double linear_residual; ///< Tolerance for linear residual.
     int max_iterations; ///< Maximum number of linear iteration.

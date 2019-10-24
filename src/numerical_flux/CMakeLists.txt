@@ -15,7 +15,9 @@ foreach(dim RANGE 1 3)
     string(CONCAT PhysicsLib Physics_${dim}D)
     target_link_libraries(${NumericalFluxLib} ${PhysicsLib})
     # Setup target with deal.II
-    DEAL_II_SETUP_TARGET(${NumericalFluxLib})
+    if(NOT DOC_ONLY)
+        DEAL_II_SETUP_TARGET(${NumericalFluxLib})
+    endif()
 
 
     unset(NumericalFluxLib)

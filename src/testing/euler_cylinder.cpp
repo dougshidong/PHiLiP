@@ -28,8 +28,6 @@
 #include "dg/dg.h"
 #include "ode_solver/ode_solver.h"
 
-//#include "template_instantiator.h"
-
 
 namespace PHiLiP {
 namespace Tests {
@@ -99,12 +97,17 @@ void half_cylinder(dealii::parallel::distributed::Triangulation<2> & tria,
 }
 
 
+/// Function used to evaluate farfield conservative solution
 template <int dim, int nstate>
 class FreeStreamInitialConditions : public dealii::Function<dim>
 {
 public:
-    std::array<double,nstate> far_field_conservative;
+    /// Farfield conservative solution
+    std::array<double,nstate> farfield_conservative;
 
+    /// Constructor.
+    /** Evaluates the primary farfield solution and converts it into the store farfield_conservative solution
+     */
     FreeStreamInitialConditions (const Physics::Euler<dim,nstate,double> euler_physics)
     : dealii::Function<dim,double>(nstate)
     {
@@ -114,14 +117,13 @@ public:
         primitive_boundary_values[0] = density_bc;
         for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = euler_physics.velocities_inf[d]; }
         primitive_boundary_values[nstate-1] = pressure_bc;
-        far_field_conservative = euler_physics.convert_primitive_to_conservative(primitive_boundary_values);
+        farfield_conservative = euler_physics.convert_primitive_to_conservative(primitive_boundary_values);
     }
-
-    ~FreeStreamInitialConditions() {};
   
+    /// Returns the istate-th farfield conservative value
     double value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const
     {
-        return far_field_conservative[istate];
+        return farfield_conservative[istate];
     }
 };
 template class FreeStreamInitialConditions <PHILIP_DIM, PHILIP_DIM+2>;
@@ -182,8 +184,8 @@ int EulerCylinder<dim,nstate>
         // Generate grid and mapping
         dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator,
             typename dealii::Triangulation<dim>::MeshSmoothing(
-                dealii::Triangulation<dim>::smoothing_on_refinement |
-                dealii::Triangulation<dim>::smoothing_on_coarsening));
+                dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_refinement |
+                dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_coarsening));
 
         const unsigned int n_cells_circle = n_1d_cells[0];
         const unsigned int n_cells_radial = 2*n_cells_circle;
@@ -200,6 +202,7 @@ int EulerCylinder<dim,nstate>
         std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
         ode_solver->initialize_steady_polynomial_ramping(poly_degree);
 
+        dealii::Vector<float> estimated_error_per_cell(grid.n_active_cells());
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
 
             // Interpolate solution from previous grid
@@ -208,7 +211,13 @@ int EulerCylinder<dim,nstate>
                 dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
                 solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
                 dg->high_order_grid.prepare_for_coarsening_and_refinement();
+
                 grid.refine_global (1);
+                //dealii::GridRefinement::refine_and_coarsen_fixed_number(grid,
+                //                                estimated_error_per_cell,
+                //                                0.3,
+                //                                0.03);
+                //grid.execute_coarsening_and_refinement();
                 dg->high_order_grid.execute_coarsening_and_refinement();
                 dg->allocate_system ();
                 dg->solution.zero_out_ghosts();
@@ -236,43 +245,56 @@ int EulerCylinder<dim,nstate>
             // Solve the steady state problem
             ode_solver->steady_state();
 
+            const auto mapping = (*(dg->high_order_grid.mapping_fe_field));
+            dealii::hp::MappingCollection<dim> mapping_collection(mapping);
+            dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, dealii::update_values | dealii::update_JxW_values); ///< FEValues of volume.
             // Overintegrate the error to make sure there is not integration error in the error estimate
-            int overintegrate = 10;
-            dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
-            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid.mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
-                    dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
-            const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
+            //int overintegrate = 0;
+            //dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
+            //dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid.mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
+            //        dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             std::array<double,nstate> soln_at_q;
 
             double l2error = 0;
             double area = 0;
             const double exact_area = (std::pow(outer_radius+inner_radius, 2.0) - std::pow(inner_radius,2.0))*dealii::numbers::PI / 2.0;
 
-            std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
 
             const double entropy_inf = euler_physics_double.entropy_inf;
 
+            estimated_error_per_cell.reinit(grid.n_active_cells());
             // Integrate solution error and output error
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
 
                 if (!cell->is_locally_owned()) continue;
 
-                fe_values_extra.reinit (cell);
+                const int i_fele = cell->active_fe_index();
+                const int i_quad = i_fele;
+                const int i_mapp = 0;
+
+                fe_values_collection_volume.reinit (cell, i_quad, i_mapp, i_fele);
+                const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
+
+                //fe_values_volume.reinit (cell);
+                std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_volume.dofs_per_cell);
                 cell->get_dof_indices (dofs_indices);
 
-                for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                double cell_l2error = 0;
+                for (unsigned int iquad=0; iquad<fe_values_volume.n_quadrature_points; ++iquad) {
 
                     std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
-                    for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
-                        const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
-                        soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
+                    for (unsigned int idof=0; idof<fe_values_volume.dofs_per_cell; ++idof) {
+                        const unsigned int istate = fe_values_volume.get_fe().system_to_component_index(idof).first;
+                        soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_volume.shape_value_component(idof, iquad, istate);
                     }
                     const double entropy = euler_physics_double.compute_entropy_measure(soln_at_q);
 
                     const double uexact = entropy_inf;
-                    l2error += pow(entropy - uexact, 2) * fe_values_extra.JxW(iquad);
+                    cell_l2error += pow(entropy - uexact, 2) * fe_values_volume.JxW(iquad);
+                    estimated_error_per_cell[cell->active_cell_index()] = cell_l2error;
+                    l2error += cell_l2error;
 
-                    area += fe_values_extra.JxW(iquad);
+                    area += fe_values_volume.JxW(iquad);
                 }
             }
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));

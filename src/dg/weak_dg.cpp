@@ -46,6 +46,9 @@ DGWeak<dim,nstate,real>::~DGWeak ()
     pcout << "Destructing DGWeak..." << std::endl;
     delete conv_num_flux;
     delete diss_num_flux;
+
+    delete conv_num_flux_double;
+    delete diss_num_flux_double;
 }
 
 template <int dim, int nstate, typename real>
@@ -293,8 +296,10 @@ void DGWeak<dim,nstate,real>::assemble_face_term_implicit(
     AssertDimension (n_dofs_ext, dof_indices_ext.size());
 
     // Jacobian and normal should always be consistent between two elements
-    // even for non-conforming meshes?
-    const std::vector<real> &JxW_int = fe_values_int.get_JxW_values ();
+    // In the case of the non-conforming mesh, we should be using the Jacobian
+    // of the smaller face since it would be "half" of the larger one.
+    // However, their curvature should match.
+    const std::vector<real> &JxW_ext = fe_values_ext.get_JxW_values ();
     const std::vector<dealii::Tensor<1,dim> > &normals_int = fe_values_int.get_normal_vectors ();
 
     // AD variable
@@ -387,11 +392,16 @@ void DGWeak<dim,nstate,real>::assemble_face_term_implicit(
         const unsigned int istate = fe_values_int.get_fe().system_to_component_index(itest_int).first;
 
         for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+            //std::cout << "quadpts: " << fe_values_int.quadrature_point(iquad) << " other " << fe_values_ext.quadrature_point(iquad) << std::endl;
+            //std::cout << "Jxw: " << JxW_int[iquad] << " other " << JxW_ext[iquad] << std::endl;
+            Assert( ( fe_values_int.quadrature_point(iquad).distance(fe_values_ext.quadrature_point(iquad)) < 1e-12 )
+                    , dealii::ExcMessage("Quadrature point should be at the same location.") );
+            //Assert( JxW_int[iquad] == JxW_ext[iquad], dealii::ExcMessage("JxW should be the same at interface.") );
             // Convection
-            rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * conv_num_flux_dot_n[iquad][istate] * JxW_int[iquad];
+            rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * conv_num_flux_dot_n[iquad][istate] * JxW_ext[iquad];
             // Diffusive
-            rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW_int[iquad];
-            rhs = rhs + fe_values_int.shape_grad_component(itest_int,iquad,istate) * diss_flux_jump_int[iquad][istate] * JxW_int[iquad];
+            rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW_ext[iquad];
+            rhs = rhs + fe_values_int.shape_grad_component(itest_int,iquad,istate) * diss_flux_jump_int[iquad][istate] * JxW_ext[iquad];
         }
 
         local_rhs_int_cell(itest_int) += rhs.val();
@@ -414,10 +424,10 @@ void DGWeak<dim,nstate,real>::assemble_face_term_implicit(
 
         for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
             // Convection
-            rhs = rhs - fe_values_ext.shape_value_component(itest_ext,iquad,istate) * (-conv_num_flux_dot_n[iquad][istate]) * JxW_int[iquad];
+            rhs = rhs - fe_values_ext.shape_value_component(itest_ext,iquad,istate) * (-conv_num_flux_dot_n[iquad][istate]) * JxW_ext[iquad];
             // Diffusive
-            rhs = rhs - fe_values_ext.shape_value_component(itest_ext,iquad,istate) * (-diss_auxi_num_flux_dot_n[iquad][istate]) * JxW_int[iquad];
-            rhs = rhs + fe_values_ext.shape_grad_component(itest_ext,iquad,istate) * diss_flux_jump_ext[iquad][istate] * JxW_int[iquad];
+            rhs = rhs - fe_values_ext.shape_value_component(itest_ext,iquad,istate) * (-diss_auxi_num_flux_dot_n[iquad][istate]) * JxW_ext[iquad];
+            rhs = rhs + fe_values_ext.shape_grad_component(itest_ext,iquad,istate) * diss_flux_jump_ext[iquad][istate] * JxW_ext[iquad];
         }
 
         local_rhs_ext_cell(itest_ext) += rhs.val();
@@ -655,8 +665,10 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
     AssertDimension (n_dofs_ext, dof_indices_ext.size());
 
     // Jacobian and normal should always be consistent between two elements
-    // even for non-conforming meshes?
-    const std::vector<real> &JxW_int = fe_values_int.get_JxW_values ();
+    // In the case of the non-conforming mesh, we should be using the Jacobian
+    // of the smaller face since it would be "half" of the larger one.
+    // However, their curvature should match.
+    const std::vector<real> &JxW_ext = fe_values_ext.get_JxW_values ();
     const std::vector<dealii::Tensor<1,dim> > &normals_int = fe_values_int.get_normal_vectors ();
 
     // AD variable
@@ -734,10 +746,10 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
 
         for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
             // Convection
-            rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * conv_num_flux_dot_n[iquad][istate] * JxW_int[iquad];
+            rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * conv_num_flux_dot_n[iquad][istate] * JxW_ext[iquad];
             // Diffusive
-            rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW_int[iquad];
-            rhs = rhs + fe_values_int.shape_grad_component(itest_int,iquad,istate) * diss_flux_jump_int[iquad][istate] * JxW_int[iquad];
+            rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW_ext[iquad];
+            rhs = rhs + fe_values_int.shape_grad_component(itest_int,iquad,istate) * diss_flux_jump_int[iquad][istate] * JxW_ext[iquad];
         }
 
         local_rhs_int_cell(itest_int) += rhs;
@@ -750,10 +762,10 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
 
         for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
             // Convection
-            rhs = rhs - fe_values_ext.shape_value_component(itest_ext,iquad,istate) * (-conv_num_flux_dot_n[iquad][istate]) * JxW_int[iquad];
+            rhs = rhs - fe_values_ext.shape_value_component(itest_ext,iquad,istate) * (-conv_num_flux_dot_n[iquad][istate]) * JxW_ext[iquad];
             // Diffusive
-            rhs = rhs - fe_values_ext.shape_value_component(itest_ext,iquad,istate) * (-diss_auxi_num_flux_dot_n[iquad][istate]) * JxW_int[iquad];
-            rhs = rhs + fe_values_ext.shape_grad_component(itest_ext,iquad,istate) * diss_flux_jump_ext[iquad][istate] * JxW_int[iquad];
+            rhs = rhs - fe_values_ext.shape_value_component(itest_ext,iquad,istate) * (-diss_auxi_num_flux_dot_n[iquad][istate]) * JxW_ext[iquad];
+            rhs = rhs + fe_values_ext.shape_grad_component(itest_ext,iquad,istate) * diss_flux_jump_ext[iquad][istate] * JxW_ext[iquad];
         }
 
         local_rhs_ext_cell(itest_ext) += rhs;

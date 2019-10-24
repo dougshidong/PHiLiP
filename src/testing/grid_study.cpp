@@ -9,6 +9,7 @@
 #include <deal.II/grid/tria.h>
 
 #include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/grid_refinement.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/grid_in.h>
@@ -26,8 +27,6 @@
 #include "physics/manufactured_solution.h"
 #include "dg/dg.h"
 #include "ode_solver/ode_solver.h"
-
-//#include "template_instantiator.h"
 
 
 namespace PHiLiP {
@@ -167,38 +166,75 @@ int GridStudy<dim,nstate>
 
         dealii::ConvergenceTable convergence_table;
 
-        for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
-            // Note that Triangulation must be declared before DG
-            // DG will be destructed before Triangulation
-            // thus removing any dependence of Triangulation and allowing Triangulation to be destructed
-            // Otherwise, a Subscriptor error will occur
+        // Note that Triangulation must be declared before DG
+        // DG will be destructed before Triangulation
+        // thus removing any dependence of Triangulation and allowing Triangulation to be destructed
+        // Otherwise, a Subscriptor error will occur
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-            dealii::Triangulation<dim> grid(
-                typename dealii::Triangulation<dim>::MeshSmoothing(
-                    dealii::Triangulation<dim>::smoothing_on_refinement |
-                    dealii::Triangulation<dim>::smoothing_on_coarsening));
+        dealii::Triangulation<dim> grid(
+            typename dealii::Triangulation<dim>::MeshSmoothing(
+                dealii::Triangulation<dim>::smoothing_on_refinement |
+                dealii::Triangulation<dim>::smoothing_on_coarsening));
 #else
-            dealii::parallel::distributed::Triangulation<dim> grid(
-                this->mpi_communicator,
-                typename dealii::Triangulation<dim>::MeshSmoothing(
-                    dealii::Triangulation<dim>::smoothing_on_refinement |
-                    dealii::Triangulation<dim>::smoothing_on_coarsening));
+        dealii::parallel::distributed::Triangulation<dim> grid(
+            this->mpi_communicator,
+            typename dealii::Triangulation<dim>::MeshSmoothing(
+                dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_refinement));
+                //dealii::Triangulation<dim>::smoothing_on_refinement |
+                //dealii::Triangulation<dim>::smoothing_on_coarsening));
 #endif
-
-            // Generate hypercube
-            if ( manu_grid_conv_param.grid_type == GridEnum::hypercube || manu_grid_conv_param.grid_type == GridEnum::sinehypercube ) {
-
-                dealii::GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid]);
-                for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
-                    // Set a dummy boundary ID
-                    cell->set_material_id(9002);
-                    for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-                        if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
-                    }
+        dealii::Vector<float> estimated_error_per_cell;
+        for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
+            grid.clear();
+            dealii::GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid]);
+            for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
+                // Set a dummy boundary ID
+                cell->set_material_id(9002);
+                for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+                    if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
                 }
-                // Warp grid if requested in input file
-                if (manu_grid_conv_param.grid_type == GridEnum::sinehypercube) dealii::GridTools::transform (&warp, grid);
             }
+            // Warp grid if requested in input file
+            if (manu_grid_conv_param.grid_type == GridEnum::sinehypercube) dealii::GridTools::transform (&warp, grid);
+
+            // // Generate hypercube
+            // if ( igrid==0 && (manu_grid_conv_param.grid_type == GridEnum::hypercube || manu_grid_conv_param.grid_type == GridEnum::sinehypercube ) ) {
+
+            //     grid.clear();
+            //     dealii::GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid]);
+            //     for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
+            //         // Set a dummy boundary ID
+            //         cell->set_material_id(9002);
+            //         for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+            //             if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
+            //         }
+            //     }
+            //     // Warp grid if requested in input file
+            //     if (manu_grid_conv_param.grid_type == GridEnum::sinehypercube) dealii::GridTools::transform (&warp, grid);
+            // } else {
+            //     dealii::GridRefinement::refine_and_coarsen_fixed_number(grid,
+            //                                     estimated_error_per_cell,
+            //                                     0.3,
+            //                                     0.03);
+            //     grid.execute_coarsening_and_refinement();
+            // }
+
+            //for (int i=0; i<5;i++) {
+            //    int icell = 0;
+            //    for (auto cell = grid.begin_active(grid.n_levels()-1); cell!=grid.end(); ++cell) {
+            //        if (!cell->is_locally_owned()) continue;
+            //        icell++;
+            //        if (icell < 2) {
+            //            cell->set_refine_flag();
+            //        }
+            //        //else if (icell%2 == 0) {
+            //        //    cell->set_refine_flag();
+            //        //} else if (icell%3 == 0) {
+            //        //    //cell->set_coarsen_flag();
+            //        //}
+            //    }
+            //    grid.execute_coarsening_and_refinement();
+            //}
 
             // Distort grid by random amount if requested
             const double random_factor = manu_grid_conv_param.random_distortion;
@@ -258,7 +294,7 @@ int GridStudy<dim,nstate>
 
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;
-            dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
+            dealii::QGauss<dim> quad_extra(dg->max_degree+overintegrate);
             //dealii::MappingQ<dim,dim> mappingq(dg->max_degree+1);
             dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid.mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
@@ -270,6 +306,7 @@ int GridStudy<dim,nstate>
             // Integrate solution error and output error
 
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
+            estimated_error_per_cell.reinit(grid.n_active_cells());
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
 
                 if (!cell->is_locally_owned()) continue;
@@ -277,6 +314,7 @@ int GridStudy<dim,nstate>
                 fe_values_extra.reinit (cell);
                 cell->get_dof_indices (dofs_indices);
 
+                double cell_l2error = 0;
                 for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
                     std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
@@ -289,9 +327,13 @@ int GridStudy<dim,nstate>
 
                     for (int istate=0; istate<nstate; ++istate) {
                         const double uexact = physics_double->manufactured_solution_function.value(qpoint, istate);
-                        l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
+                        //l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
+
+                        cell_l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
                     }
                 }
+                estimated_error_per_cell[cell->active_cell_index()] = cell_l2error;
+                l2error += cell_l2error;
 
             }
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));

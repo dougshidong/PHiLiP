@@ -30,10 +30,10 @@ virtual std::array<real, nstate> evaluate_auxiliary_flux (
     const real &penalty,
     const bool on_boundary = false) const = 0;
 
-dealii::Tensor<1,dim, dealii::Tensor<1,nstate,real>> diffusion_matrix_int;
-dealii::Tensor<1,dim, dealii::Tensor<1,nstate,real>> diffusion_matrix_int_transpose;
-dealii::Tensor<1,dim, dealii::Tensor<1,nstate,real>> diffusion_matrix_ext;
-dealii::Tensor<1,dim, dealii::Tensor<1,nstate,real>> diffusion_matrix_ext_transpose;
+// dealii::Tensor<1,dim, dealii::Tensor<1,nstate,real>> diffusion_matrix_int;
+// dealii::Tensor<1,dim, dealii::Tensor<1,nstate,real>> diffusion_matrix_int_transpose;
+// dealii::Tensor<1,dim, dealii::Tensor<1,nstate,real>> diffusion_matrix_ext;
+// dealii::Tensor<1,dim, dealii::Tensor<1,nstate,real>> diffusion_matrix_ext_transpose;
 
 };
 
@@ -74,7 +74,7 @@ std::array<real, nstate> evaluate_auxiliary_flux (
     const bool on_boundary = false) const;
     
 protected:
-const std::shared_ptr < Physics::PhysicsBase<dim, nstate, real> > pde_physics;
+const std::shared_ptr < Physics::PhysicsBase<dim, nstate, real> > pde_physics; ///< Associated physics.
 
 };
 

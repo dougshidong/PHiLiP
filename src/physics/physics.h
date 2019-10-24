@@ -49,7 +49,8 @@ public:
             const std::array<real,nstate> &soln_const, const std::array<real,nstate> &soln_loop) const = 0;
 
     /// Spectral radius of convective term Jacobian.
-    /// Used for scalar dissipation
+    /** Used for scalar dissipation
+     */
     virtual std::array<real,nstate> convective_eigenvalues (
         const std::array<real,nstate> &/*solution*/,
         const dealii::Tensor<1,dim,real> &/*normal*/) const = 0;
@@ -63,7 +64,8 @@ public:
     //     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_grad) const = 0;
 
     /// Dissipative fluxes that will be differentiated once in space.
-    /// Evaluates the dissipative flux through the linearization F = A(u)*grad(u).
+    /** Evaluates the dissipative flux through the linearization F = A(u)*grad(u).
+     */
     std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux_A_gradu (
         const real scaling,
         const std::array<real,nstate> &solution,
@@ -90,27 +92,45 @@ public:
         std::array<real,nstate> &/*soln_bc*/,
         std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
 
+    /// Returns current vector solution to be used by PhysicsPostprocessor to output current solution.
+    /** The implementation in this Physics base class simply returns the stored solution.
+     */
     virtual dealii::Vector<double> post_compute_derived_quantities_vector (
-        const dealii::Vector<double>      &uh,
-        const std::vector<dealii::Tensor<1,dim> > &duh,
-        const std::vector<dealii::Tensor<2,dim> > &dduh,
-        const dealii::Tensor<1,dim>                  &normals,
-        const dealii::Point<dim>                  &evaluation_points) const;
+        const dealii::Vector<double>              &uh,
+        const std::vector<dealii::Tensor<1,dim> > &/*duh*/,
+        const std::vector<dealii::Tensor<2,dim> > &/*dduh*/,
+        const dealii::Tensor<1,dim>               &/*normals*/,
+        const dealii::Point<dim>                  &/*evaluation_points*/) const;
 
+    /// Returns current scalar solution to be used by PhysicsPostprocessor to output current solution.
+    /** The implementation in this Physics base class simply returns the stored solution.
+     */
     virtual dealii::Vector<double> post_compute_derived_quantities_scalar (
         const double              &uh,
         const dealii::Tensor<1,dim> &/*duh*/,
         const dealii::Tensor<2,dim> &/*dduh*/,
         const dealii::Tensor<1,dim> &/*normals*/,
         const dealii::Point<dim>    &/*evaluation_points*/) const;
+    /// Returns names of the solution to be used by PhysicsPostprocessor to output current solution.
+    /** The implementation in this Physics base class simply returns "state0, state1, etc.".
+     */
     virtual std::vector<std::string> post_get_names () const;
+    /// Returns DataComponentInterpretation of the solution to be used by PhysicsPostprocessor to output current solution.
+    /** Treats every solution state as an independent scalar.
+     */
     virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const;
+    /// Returns required update flags of the solution to be used by PhysicsPostprocessor to output current solution.
+    /** Only update the solution at the output points.
+     */
     virtual dealii::UpdateFlags post_get_needed_update_flags () const;
 protected:
 
-    /// Some constants used to define manufactured solution
+    //@{
+    /** Velocity constants used to define convection-diffusion type of manufactured solution
+     */
     double velo_x, velo_y, velo_z;
-    double diff_coeff;
+    //@}
+    double diff_coeff; ///< Diffusion constant used to define convection-diffusion type of manufactured solution
 
     /// Anisotropic diffusion matrix
     /** As long as the diagonal components are positive and diagonally dominant

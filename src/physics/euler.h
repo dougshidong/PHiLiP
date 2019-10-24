@@ -119,46 +119,49 @@ public:
     ~Euler ()
     {};
 
-    const double ref_length;
-    /// Constant heat capacity ratio of air
-    const double gam;
-    /// Gamma-1.0 used often
-    const double gamm1;
+    const double ref_length; ///< Reference length.
+    const double gam; ///< Constant heat capacity ratio of fluid.
+    const double gamm1; ///< Constant heat capacity ratio (Gamma-1.0) used often.
 
     /// Non-dimensionalized density* at infinity. density* = density/density_ref
     /// Choose density_ref = density(inf)
     /// density*(inf) = density(inf) / density_ref = density(inf)/density(inf) = 1.0
     const double density_inf;
 
-    const double mach_inf;
-    const double mach_inf_sqr;
+    const double mach_inf; ///< Farfield Mach number.
+    const double mach_inf_sqr; ///< Farfield Mach number squared.
+    /// Angle of attack.
+    /** Mandatory for 2D simulations.
+     */
     const double angle_of_attack;
+    /// Sideslip angle.
+    /** Mandatory for 2D and 3D simulations.
+     */
     const double side_slip_angle;
 
 
-    const double sound_inf; /// Non-dimensionalized sound* at infinity
-    const double pressure_inf; /// Non-dimensionalized pressure* at infinity
-    const double entropy_inf; /// Entropy measure at infinity
-    double temperature_inf; /// Non-dimensionalized temperature* at infinity. Should equal 1/density*(inf)
+    const double sound_inf; ///< Non-dimensionalized sound* at infinity
+    const double pressure_inf; ///< Non-dimensionalized pressure* at infinity
+    const double entropy_inf; ///< Entropy measure at infinity
+    double temperature_inf; ///< Non-dimensionalized temperature* at infinity. Should equal 1/density*(inf)
 
     //const double internal_energy_inf;
+    /// Non-dimensionalized Velocity vector at farfield
+    /** Evaluated using mach_number, angle_of_attack, and side_slip_angle.
+     */
     dealii::Tensor<1,dim,double> velocities_inf; // should be const
 
 
-    dealii::Tensor<1,dim,double> compute_velocities_inf() const;
+    // dealii::Tensor<1,dim,double> compute_velocities_inf() const;
 
-
-
-    std::array<real,nstate> manufactured_solution (const dealii::Point<dim,double> &pos) const;
+    // std::array<real,nstate> manufactured_solution (const dealii::Point<dim,double> &pos) const;
 
     /// Convective flux: \f$ \mathbf{F}_{conv} \f$
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
         const std::array<real,nstate> &conservative_soln) const;
 
-    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
-                   const std::array<real,nstate> &soln_const, const std::array<real,nstate> &soln_loop) const;
 
-
+    /// Convective normal flux: \f$ \mathbf{F}_{conv} \cdot \hat{n} \f$
     std::array<real,nstate> convective_normal_flux (const std::array<real,nstate> &conservative_soln, const dealii::Tensor<1,dim,real> &normal) const;
 
     /// Convective flux Jacobian: \f$ \frac{\partial \mathbf{F}_{conv}}{\partial w} \cdot \mathbf{n} \f$
@@ -218,6 +221,9 @@ public:
     /// Given primitive variables, returns velocities.
     dealii::Tensor<1,dim,real> extract_velocities_from_primitive ( const std::array<real,nstate> &primitive_soln ) const;
     /// Given primitive variables, returns total energy
+    /** @param[in] primitive_soln    Primitive solution (density, momentum, energy)
+     *  \return                      Entropy measure
+     */
     real compute_total_energy ( const std::array<real,nstate> &primitive_soln ) const;
 
     /// Evaluate entropy from conservative variables
@@ -225,6 +231,9 @@ public:
      *  Used to check entropy convergence
      *  See discussion in
      *  https://physics.stackexchange.com/questions/116779/entropy-is-constant-how-to-express-this-equation-in-terms-of-pressure-and-densi?answertab=votes#tab-top
+     *
+     *  @param[in] conservative_soln Conservative solution (density, momentum, energy)
+     *  \return                      Entropy measure
      */
     real compute_entropy_measure ( const std::array<real,nstate> &conservative_soln ) const;
 
@@ -246,19 +255,39 @@ public:
     /** See the book I do like CFD, sec 4.14.2 */
     real compute_temperature_from_density_pressure ( const real density, const real pressure ) const;
 
-    ///These functions are only relevant to the split form. The Euler split form is that of Kennedy & Gruber.
-    /** Refer to Gassner's paper for more information:  */
-    real compute_mean_density(const std::array<real,nstate> &soln_const,
-                              const std::array<real,nstate> &soln_loop) const;
+    /// The Euler split form is that of Kennedy & Gruber.
+    /** Refer to Gassner's paper (2016) Eq. 3.10 for more information:  */
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
 
-    real compute_mean_pressure(const std::array<real,nstate> &soln_const,
-                               const std::array<real,nstate> &soln_loop) const;
+    /// Mean density given two sets of conservative solutions.
+    /** Used in the implementation of the split form.
+     */
+    real compute_mean_density(
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &convervative_soln2) const;
 
-    dealii::Tensor<1,dim,real> compute_mean_velocities(const std::array<real,nstate> &soln_const,
-                                                                 const std::array<real,nstate> &soln_loop) const;
+    /// Mean pressure given two sets of conservative solutions.
+    /** Used in the implementation of the split form.
+     */
+    real compute_mean_pressure(
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &convervative_soln2) const;
 
-    real compute_mean_specific_energy(const std::array<real,nstate> &soln_const,
-                                  const std::array<real,nstate> &soln_loop) const;
+    /// Mean velocities given two sets of conservative solutions.
+    /** Used in the implementation of the split form.
+     */
+    dealii::Tensor<1,dim,real> compute_mean_velocities(
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &convervative_soln2) const;
+
+    /// Mean specific energy given two sets of conservative solutions.
+    /** Used in the implementation of the split form.
+     */
+    real compute_mean_specific_energy(
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &convervative_soln2) const;
 
     void boundary_face_values (
         const int /*boundary_type*/,

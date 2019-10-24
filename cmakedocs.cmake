@@ -15,48 +15,18 @@ set(MPIMAX 4 CACHE STRING "Default number of processors used in ctest mpirun -np
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(CLEAN_UP_FILES ./bin/* ./CMakeCache.txt)
 
-option(DOC_ONLY "Only generate code for documentation sake. Not compilable." OFF)
-if(NOT DOC_ONLY)
-    # Find deal.ii library
-    find_package(deal.II 9.0.1 QUIET
-      HINTS ${DEAL_II_DIR} ../ ../../ $ENV{DEAL_II_DIR}
-      )
-    IF(NOT ${deal.II_FOUND})
-      message(FATAL_ERROR "\n"
-        "*** Could not locate a (sufficiently recent) version of deal.II. ***\n\n"
-        "You may want to either pass a flag -DDEAL_II_DIR=/path/to/deal.II to cmake\n"
-        "or set an environment variable \"DEAL_II_DIR\" that contains this path."
-        )
-    ENDIF()
-    DEAL_II_INITIALIZE_CACHED_VARIABLES()
-    
-    # Make sure deal.II has the proper external dependencies
-    IF(NOT ${DEAL_II_WITH_MPI})
-      message(FATAL_ERROR "\n" "*** deal.II needs to be configured with -DDEAL_II_WITH_MPI=ON ***\n\n")
-    ENDIF()
-    IF(NOT ${DEAL_II_WITH_TRILINOS})
-      message(FATAL_ERROR "\n" "*** deal.II needs to be configured with -DDEAL_II_WITH_TRILINOS=ON ***\n\n")
-    ENDIF()
-    IF(NOT ${DEAL_II_WITH_P4EST})
-      message(FATAL_ERROR "\n" "*** deal.II needs to be configured with -DDEAL_II_WITH_P4EST=ON ***\n\n")
-    ENDIF()
-    IF(NOT ${DEAL_II_WITH_METIS})
-      message(FATAL_ERROR "\n" "*** deal.II needs to be configured with -DDEAL_II_WITH_METIS=ON ***\n\n")
-    ENDIF()
-    
-    # Use ld.gold for faster linking
-    option(USE_LD_GOLD "Use GNU gold linker" OFF)
-    if(USE_LD_GOLD AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
-      execute_process(COMMAND ${CMAKE_C_COMPILER} -fuse-ld=gold -Wl,--version OUTPUT_VARIABLE stdout ERROR_QUIET)
-      if("${stdout}" MATCHES "GNU gold")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-ld=gold")
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fuse-ld=gold")
-      else()
-        message(WARNING "GNU gold linker isn't available, using the default system linker.")
-      endif()
-    endif()
-endif() # DOC_ONLY
-    
+# Use ld.gold for faster linking
+option(USE_LD_GOLD "Use GNU gold linker" OFF)
+if(USE_LD_GOLD AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+  execute_process(COMMAND ${CMAKE_C_COMPILER} -fuse-ld=gold -Wl,--version OUTPUT_VARIABLE stdout ERROR_QUIET)
+  if("${stdout}" MATCHES "GNU gold")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-ld=gold")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fuse-ld=gold")
+  else()
+    message(WARNING "GNU gold linker isn't available, using the default system linker.")
+  endif()
+endif()
+
 add_custom_target(1D COMMAND ${CMAKE_COMMAND} -E echo "Makes all 1D executables, including tests. Allows ctest -R 1D")
 add_custom_target(2D COMMAND ${CMAKE_COMMAND} -E echo "Makes all 2D executables, including tests. Allows ctest -R 2D")
 add_custom_target(3D COMMAND ${CMAKE_COMMAND} -E echo "Makes all 3D executables, including tests. Allows ctest -R 3D")

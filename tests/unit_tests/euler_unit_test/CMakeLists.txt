@@ -2,6 +2,7 @@ set(TEST_SRC
     euler_convert_primitive_conservative.cpp
     )
 
+if(NOT DOC_ONLY)
 foreach(dim RANGE 1 3)
 
     # Output executable
@@ -99,3 +100,4 @@ foreach(dim RANGE 1 3)
     unset(PhysicsLib)
 
 endforeach()
+endif()

@@ -24,7 +24,9 @@ foreach(dim RANGE 1 3)
     target_link_libraries(${TEST_TARGET} ${PhysicsLib})
     target_link_libraries(${TEST_TARGET} ${NumericalFluxLib})
     # Setup target with deal.II
-    DEAL_II_SETUP_TARGET(${TEST_TARGET})
+    if(NOT DOC_ONLY)
+        DEAL_II_SETUP_TARGET(${TEST_TARGET})
+    endif()
 
     add_test(
       NAME ${TEST_TARGET}

@@ -19,3 +19,5 @@ doc/html/**
 *.swo
 *.vtk
 build*/
+.vscode/settings.json
+src/.vscode/settings.json

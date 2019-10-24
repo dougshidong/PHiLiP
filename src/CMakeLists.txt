@@ -10,6 +10,7 @@ add_subdirectory(numerical_flux)
 add_subdirectory(dg)
 add_subdirectory(ode_solver)
 add_subdirectory(post_processor)
+add_subdirectory(functional)
 
 add_subdirectory(testing)
 
@@ -28,10 +29,12 @@ foreach(dim RANGE 1 3)
 #    string(CONCAT ODESolverLib ODESolver_${dim}D)
 #    string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
 #    string(CONCAT NumericalFluxLib NumericalFlux_${dim}D)
+#    string(CONCAT FunctionalLib Functional_${dim}D)
 #    target_link_libraries(${PHiLiPLib} ${ParameterLib})
 #    target_link_libraries(${PHiLiPLib} ${ODESolverLib})
 #    target_link_libraries(${PHiLiPLib} ${DiscontinuousGalerkinLib})
 #    target_link_libraries(${PHiLiPLib} ${NumericalFluxLib})
+#    target_link_libraries(${PHiLiPLib} ${FunctionalLib})
 #    # Setup target with deal.II
 #    DEAL_II_SETUP_TARGET(${PHiLiPLib})
 #

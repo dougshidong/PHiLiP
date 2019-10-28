@@ -41,7 +41,7 @@ set(TEST_SRC
     RBF_mesh_movement.cpp
     )
 
-foreach(dim RANGE 2 3)
+foreach(dim RANGE 1 3)
 
     # Output executable
     string(CONCAT TEST_TARGET ${dim}D_RBF_mesh_movement)

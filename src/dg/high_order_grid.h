@@ -36,6 +36,7 @@ template <int dim = PHILIP_DIM, typename real = double, typename VectorType = de
 #else
 template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
 #endif
+//template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
 class HighOrderGrid
 {
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
@@ -100,10 +101,29 @@ public:
      *  point.
      */
     std::vector<real> local_surface_nodes;
+
+    /// List of all surface nodes
+    /** Same as local_surface_nodes except that it stores a global vector of all the
+     *  surface nodes that will be needed to evaluate the A matrix in the RBF 
+     *  deformation dxv = A * coeff = A * (Minv*dxs)
+     */
+    std::vector<real> all_surface_nodes;
+
     /// List of surface node indices
     std::vector<unsigned int> locally_owned_surface_nodes_indices;
     /// List of surface node boundary IDs, corresponding to locally_owned_surface_nodes_indices
     std::vector<unsigned int> locally_owned_surface_nodes_boundary_id;
+
+    /// Update list of surface indices (locally_owned_surface_nodes_indices and locally_owned_surface_nodes_boundary_id)
+    void update_surface_indices();
+    /// Update list of surface nodes (all_surface_nodes).
+    void update_surface_nodes();
+
+    unsigned int n_surface_nodes; ///< Total number of surface nodes
+
+    /// RBF mesh deformation  -  To be done
+    //void deform_mesh(Vector surface_displacements);
+    void deform_mesh(std::vector<real> local_surface_displacements);
 
     void test_jacobian(); ///< Test metric Jacobian
 
@@ -146,20 +166,8 @@ public:
      */
 	void evaluate_lagrange_to_bernstein_operator(const unsigned int order);
 
-    /// Update surface indices
-    void update_surface_indices();
-    /// Update surface indices
-    void update_surface_nodes();
-
     void output_results_vtk (const unsigned int cycle) const; ///< Output mesh with metric informations
 
-    /// List of all surface nodes
-    std::vector<real> all_surface_nodes;
-    unsigned int n_surface_nodes; ///< Total number of surface nodes
-
-    /// RBF mesh deformation  -  To be done
-    //void deform_mesh(Vector surface_displacements);
-    void deform_mesh(std::vector<real> local_surface_displacements);
 
     // /// Evaluate cell metric Jacobian
     // /** The metric Jacobian is given by the gradient of the physical location

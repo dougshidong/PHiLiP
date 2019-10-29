@@ -27,6 +27,23 @@
 #include <deal.II/optimization/solver_bfgs.h>
 
 #include "high_order_grid.h"
+
+#include <deal.II/grid/grid_tools.h>
+#include <deal.II/lac/sparsity_tools.h>
+#include <deal.II/lac/sparse_matrix.h>
+#include <deal.II/lac/dynamic_sparsity_pattern.h>
+#include <deal.II/lac/solver_cg.h>
+#include <deal.II/lac/precondition.h>
+#include <deal.II/lac/precondition_block.h>
+
+#include <deal.II/lac/affine_constraints.h>
+#include <deal.II/lac/trilinos_precondition.h>
+#include <deal.II/lac/trilinos_solver.h>
+//#include <deal.II/lac/petsc_sparse_matrix.h>
+//#include <deal.II/lac/petsc_vector.h>
+//#include <deal.II/lac/petsc_precondition.h>
+//#include <deal.II/lac/petsc_solver.h>
+
 namespace PHiLiP {
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
@@ -952,8 +969,8 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices()
     // Use unordered sets which uses hashmap.
     // Has an average complexity of O(1) (worst case O(n)) for finding and inserting
     // Overall algorithm average will be O(n), worst case O(n^2)
-    std::unordered_set<unsigned int> locally_owned_dofs(locally_owned_dofs_grid.begin(), locally_owned_dofs_grid.end());
-    std::unordered_set<unsigned int> surface_dof_indices_temp;
+    std::unordered_set<dealii::types::global_dof_index> locally_owned_dofs(locally_owned_dofs_grid.begin(), locally_owned_dofs_grid.end());
+    std::unordered_set<dealii::types::global_dof_index> surface_dof_indices_temp;
     for (auto cell = dof_handler_grid.begin_active(); cell!=dof_handler_grid.end(); ++cell) {
 
         if (!cell->is_locally_owned()) continue;
@@ -973,14 +990,18 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices()
                 // The 5th dof of that face might correspond to the 24th dof on the cell
                 unsigned int idof_cell = fe_system.face_to_cell_index(idof_face, iface);
 
-                const unsigned int global_idof_index = dof_indices[idof_cell];
+                const dealii::types::global_dof_index global_idof_index = dof_indices[idof_cell];
 
                 // If dof is not already in our hashmap, then insert it into our set of surface indices.
                 // Even though the set is unique, we are really only creating a vector of indices and boundary ID,
                 // and therefore can't just insert.
                 // However, do not add if it is not locally owned, it will get picked up by another processor
-                if (   ( surface_dof_indices_temp.find(global_idof_index) == surface_dof_indices_temp.end() )
-                    && ( locally_owned_dofs.find(global_idof_index) != locally_owned_dofs.end() ) ) {
+                
+
+                // For linear elasticity, need access to locally RELEVANT nodes. Not just the locally owned ones.
+                //if (   ( surface_dof_indices_temp.find(global_idof_index) == surface_dof_indices_temp.end() )
+                //    && ( locally_owned_dofs.find(global_idof_index) != locally_owned_dofs.end() ) ) {
+                if ( surface_dof_indices_temp.find(global_idof_index) == surface_dof_indices_temp.end() ) {
                         surface_dof_indices_temp.insert(global_idof_index);
                         locally_owned_surface_nodes_indices.push_back(global_idof_index);
                         locally_owned_surface_nodes_boundary_id.push_back(boundary_id);
@@ -1223,285 +1244,297 @@ dealii::UpdateFlags GridPostprocessor<dim>::get_needed_update_flags () const
     return dealii::update_values | dealii::update_gradients;
 }
 
-//namespace Step18
-//{
-//    using namespace dealii;
-//    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-//    class LinearElasticity
-//    {
-//      public:
-//        LinearElasticity<dim>::LinearElasticity(
-//            const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
-//            const std::vector<types::global_dof_index> boundary_ids,
-//            const std::vector<types::global_dof_index> boundary_displacements);
-//        ~LinearElasticity();
-//        void run();
-//      private:
-//        void setup_system();
-//        void assemble_system();
-//        void solve_timestep();
-//        unsigned int solve_linear_problem();
-//        void move_mesh();
-//        void setup_quadrature_point_history();
-//        const dealii::Triangulation<dim> &triangulation;
-//        FESystem<dim> fe;
-//        DoFHandler<dim> dof_handler;
-//        AffineConstraints<double> all_constraints;
-//        AffineConstraints<double> dirichlet_boundary_constraints;
-//        const QGauss<dim> quadrature_formula;
-//        PETScWrappers::MPI::SparseMatrix system_matrix;
-//        PETScWrappers::MPI::Vector system_rhs;
-//
-//        Vector<double> displacement_solution;
-//
-//        std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field;
-//
-//        const std::vector<types::global_dof_index> boundary_ids;
-//        const std::vector<types::global_dof_index> boundary_displacements;
-//
-//        MPI_Comm mpi_communicator;
-//        const unsigned int n_mpi_processes;
-//        const unsigned int this_mpi_process;
-//        ConditionalOStream pcout;
-//        std::vector<types::global_dof_index> local_dofs_per_process;
-//        IndexSet locally_owned_dofs;
-//        IndexSet locally_relevant_dofs;
-//        unsigned int n_local_cells;
-//    };
-//    template <int dim>
-//    LinearElasticity<dim>::LinearElasticity(
-//        const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
-//        const std::vector<types::global_dof_index> boundary_ids,
-//        const std::vector<double> boundary_displacements)
-//      : triangulation(*(high_order_grid.triangulation))
-//      , fe(FE_Q<dim>(high_order_grid.max_degree), dim)
-//      , mapping_fe_field(mapping)
-//      , dof_handler(triangulation)
-//      , quadrature_formula(fe.degree + 1)
-//      , mpi_communicator(MPI_COMM_WORLD)
-//      , n_mpi_processes(Utilities::MPI::n_mpi_processes(mpi_communicator))
-//      , this_mpi_process(Utilities::MPI::this_mpi_process(mpi_communicator))
-//      , pcout(std::cout, this_mpi_process == 0)
-//      , n_local_cells(numbers::invalid_unsigned_int)
-//      , boundary_ids(boundary_ids)
-//      , boundary_displacements(boundary_displacements)
-//    { }
-//    template <int dim> LinearElasticity<dim>::~LinearElasticity() { dof_handler.clear(); }
-//    template <int dim>
-//    void LinearElasticity<dim>::run()
-//    {
-//        setup_system();
-//        solve_timestep();
-//        move_mesh();
-//        pcout << std::endl;
-//    }
-//    template <int dim>
-//    void LinearElasticity<dim>::setup_system()
-//    {
-//        dof_handler.distribute_dofs(fe);
-//        locally_owned_dofs = dof_handler.locally_owned_dofs();
-//        DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
-//        n_local_cells = GridTools::count_cells_with_subdomain_association(triangulation, triangulation.locally_owned_subdomain());
-//        local_dofs_per_process = dof_handler.n_locally_owned_dofs_per_processor();
-//
-//        system_rhs.reinit(locally_owned_dofs, mpi_communicator);
-//        displacement_solution.reinit(locally_owned_dofs, mpi_communicator);
-//
-//        // Set the hanging node constraints
-//        all_constraints.clear();
-//        DoFTools::make_hanging_node_constraints(dof_handler, all_constraints);
-//        all_constraints.close();
-//
-//        // Set the Dirichlet BC constraint
-//        // Only add Dirichlet BC there is currently no constraint.
-//        // If there is another constraint, it's because it's a hanging node.
-//        // In that case, we choose to satisfy the regularity properties of the element and ignoring the Dirichlet BC.
-//        auto iglobal_row = boundary_ids.begin(), iglobal_end = boundary_ids.end();
-//        auto dirichlet_value = boundary_displacements.begin();
-//        for (; iglobal_row != iglobal_end; ++iglobal_row,++dirichlet_value) {
-//            if (!locally_owned_dofs.is_element(*iglobal_row)) continue;
-//            if (!all_constraints.is_constrained(*iglobal_row)) {
-//                Assert(all_constraints.can_store_line(*iglobal_row), dealii::ExcInternalError);
-//                all_constraints.add_line(*iglobal_row);
-//                all_constraints.set_inhomogeneity(*iglobal_row, *dirichlet_value);
-//            }
-//        }
-//        //dirichlet_boundary_constraints.reinit(locally_relevant_dofs);
-//        //for (; iglobal_row != iglobal_end; ++iglobal_row,++dirichlet_value) {
-//        //    dirichlet_boundary_constraints.add_line(*iglobal_row);
-//        //    dirichlet_boundary_constraints.set_inhomogeneity(*iglobal_row, *dirichlet_value);
-//        //}
-//
-//
-//
-//        DynamicSparsityPattern sparsity_pattern(locally_relevant_dofs);
-//        DoFTools::make_sparsity_pattern(dof_handler,
-//                                        sparsity_pattern,
-//                                        all_constraints,
-//                                        /*keep constrained dofs*/ false);
-//        SparsityTools::distribute_sparsity_pattern(sparsity_pattern,
-//                                                   local_dofs_per_process,
-//                                                   mpi_communicator,
-//                                                   locally_relevant_dofs);
-//        system_matrix.reinit(locally_owned_dofs,
-//                             locally_owned_dofs,
-//                             sparsity_pattern,
-//                             mpi_communicator);
-//        //displacement_solution.reinit(dof_handler.n_dofs());
-//
-//        {
-//            pcout << "    Number of active cells: " << triangulation.n_active_cells() << " (by partition:";
-//            for (unsigned int p = 0; p < n_mpi_processes; ++p) {
-//                pcout << (p == 0 ? ' ' : '+') << (GridTools::count_cells_with_subdomain_association(triangulation, p));
-//            }
-//            pcout << ")" << std::endl;
-//            pcout << "    Number of degrees of freedom: " << dof_handler.n_dofs() << " (by partition:";
-//            for (unsigned int p = 0; p < n_mpi_processes; ++p) {
-//              pcout << (p == 0 ? ' ' : '+') << (DoFTools::count_dofs_with_subdomain_association(dof_handler, p));
-//            }
-//            pcout << ")" << std::endl;
-//        }
-//    }
-//    template <int dim>
-//    void LinearElasticity<dim>::assemble_system()
-//    {
-//        system_rhs    = 0;
-//        system_matrix = 0;
-//        FEValues<dim> fe_values(
-//            mapping,
-//            fe,
-//            quadrature_formula,
-//            update_values | update_gradients |
-//            update_quadrature_points | update_JxW_values);
-//        const unsigned int dofs_per_cell = fe.dofs_per_cell;
-//        const unsigned int n_q_points    = quadrature_formula.size();
-//        std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
-//        FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
-//        Vector<double>     cell_rhs(dofs_per_cell);
-//
-//        dealii::Functions::ZeroFunction<dim>(dim) body_force;
-//        std::vector<double> lambda_values(n_q_points);
-//        std::vector<double> mu_values(n_q_points);
-//
-//        for (const auto &cell : dof_handler.active_cell_iterators()) {
-//            if (!cell->is_locally_owned()) continue;
-//
-//            cell_matrix = 0;
-//            cell_rhs    = 0;
-//            fe_values.reinit(cell);
-//
-//            lambda.value_list(fe_values.get_quadrature_points(), lambda_values);
-//            mu.value_list(fe_values.get_quadrature_points(), mu_values);
-//
-//            for (unsigned int itest = 0; itest < dofs_per_cell; ++itest) {
-//
-//                const unsigned int component_test = fe.system_to_component_index(itest).first;
-//
-//                for (unsigned int itrial = 0; itrial < dofs_per_cell; ++itrial) {
-//
-//                    const unsigned int component_trial = fe.system_to_component_index(itrial).first;
-//
-//                    for (unsigned int q_point = 0; q_point < n_q_points; ++q_point) {
-//
-//                        const SymmetricTensor<2, dim> grad_basis_i_grad_u
-//                        cell_matrix(itest, itrial) += 
-//                        double value = lame_lambda_values[q_point]
-//                            * fe_values.shape_grad(itest, q_point)[component_test]
-//                            * fe_values.shape_grad(itrial, q_point)[component_trial];
-//                        value += lame_mu_values[q_point]
-//                            * fe_values.shape_grad(itest, q_point)[component_trial] *
-//                            * fe_values.shape_grad(itrial, q_point)[component_test];
-//                        if (component_test == component_trial) {
-//                            value += lame_mu_values[q_point] *
-//                                * fe_values.shape_grad(itest, q_point) *
-//                                * fe_values.shape_grad(itrial, q_point);
-//                        }
-//                        value *= fe_values.JxW(q_point);
-//
-//                        cell_matrix(itest, itrial) += value;
-//                    }
-//                }
-//            }
-//            body_force.vector_value_list(fe_values.get_quadrature_points(), body_force_values);
-//            for (unsigned int itest = 0; itest < dofs_per_cell; ++itest) {
-//                const unsigned int component_test = fe.system_to_component_index(itest).first;
-//                for (unsigned int q_point = 0; q_point < n_q_points; ++q_point) {
-//                    cell_rhs(itest) += body_force_values[q_point](component_test) * fe_values.shape_value(itest, q_point)
-//                    cell_rhs(itest) *= fe_values.JxW(q_point);
-//                }
-//            }
-//            cell->get_dof_indices(local_dof_indices);
-//            //all_constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, system_matrix, system_rhs);
-//            const use_inhomogeneities_for_rhs = false;
-//            all_constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, system_matrix, system_rhs, use_inhomogeneities_for_rhs);
-//        } // active cell loop
-//        system_matrix.compress(VectorOperation::add);
-//        system_rhs.compress(VectorOperation::add);
-//        //const int static_boundary_id = 0;
-//        //const int moving_boundary_id = 1;
-//        //// Apply boundary conditions
-//        //VectorTools::interpolate_boundary_values(
-//        //    dof_handler,
-//        //    static_boundary_id,
-//        //    Functions::ZeroFunction<dim>(dim),
-//        //    boundary_displacements);
-//        //FEValuesExtractors::Scalar z_component(dim - 1);
-//        //VectorTools::interpolate_boundary_values(
-//        //  dof_handler,
-//        //  moving_boundary_id,
-//        //  IncrementalBoundaryValues<dim>(present_time, present_timestep),
-//        //  boundary_displacements,
-//        //  fe.component_mask(z_component));
-//        //PETScWrappers::MPI::Vector tmp(locally_owned_dofs, mpi_communicator);
-//        //MatrixTools::apply_boundary_values(boundary_displacements, system_matrix, tmp, system_rhs, false);
-//        //displacement_solution = tmp;
-//    }
-//    template <int dim>
-//    void LinearElasticity<dim>::solve_timestep()
-//    {
-//        pcout << "    Assembling system..." << std::flush;
-//        assemble_system();
-//        pcout << " norm of rhs is " << system_rhs.l2_norm() << std::endl;
-//        const unsigned int n_iterations = solve_linear_problem();
-//        pcout << "    Solver converged in " << n_iterations << " iterations." << std::endl;
-//    }
-//    template <int dim>
-//    unsigned int LinearElasticity<dim>::solve_linear_problem()
-//    {
-//        all_constraints.set_zero(displacement_solution);
-//        PETScWrappers::MPI::Vector distributed_incremental_displacement(locally_owned_dofs, mpi_communicator);
-//        distributed_incremental_displacement = displacement_solution;
-//        SolverControl solver_control(dof_handler.n_dofs(),
-//                                     1e-16 * system_rhs.l2_norm());
-//        PETScWrappers::SolverCG cg(solver_control, mpi_communicator);
-//        PETScWrappers::PreconditionBlockJacobi preconditioner(system_matrix);
-//        cg.solve(system_matrix,
-//                 distributed_incremental_displacement,
-//                 system_rhs,
-//                 preconditioner);
-//        displacement_solution = distributed_incremental_displacement;
-//        all_constraints.distribute(displacement_solution);
-//        return solver_control.last_step();
-//    }
-//    template <int dim>
-//    void LinearElasticity<dim>::move_mesh()
-//    {
-//        pcout << "    Moving mesh..." << std::endl;
-//        std::vector<bool> vertex_touched(triangulation.n_vertices(), false);
-//        for (auto &cell : dof_handler.active_cell_iterators()) {
-//            for (unsigned int v = 0; v < GeometryInfo<dim>::vertices_per_cell; ++v) {
-//                if (vertex_touched[cell->vertex_index(v)] == false) {
-//                    vertex_touched[cell->vertex_index(v)] = true;
-//                    Point<dim> vertex_displacement;
-//                    for (unsigned int d = 0; d < dim; ++d) {
-//                        vertex_displacement[d] = displacement_solution(cell->vertex_dof_index(v, d));
-//                    }
-//                    cell->vertex(v) += vertex_displacement;
-//                }
-//            }
-//        }
-//    }
-//}
+namespace MeshMover
+{
+    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    LinearElasticity<dim,real,VectorType,DoFHandlerType>::LinearElasticity(
+        const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
+        const std::vector<dealii::types::global_dof_index> boundary_ids,
+        const std::vector<double> boundary_displacements)
+      : triangulation(*(high_order_grid.triangulation))
+      , fe(dealii::FE_Q<dim>(high_order_grid.max_degree), dim)
+      , mapping_fe_field(high_order_grid.mapping_fe_field)
+      , dof_handler(triangulation)
+      , quadrature_formula(fe.degree + 1)
+      , mpi_communicator(MPI_COMM_WORLD)
+      , n_mpi_processes(dealii::Utilities::MPI::n_mpi_processes(mpi_communicator))
+      , this_mpi_process(dealii::Utilities::MPI::this_mpi_process(mpi_communicator))
+      , pcout(std::cout, this_mpi_process == 0)
+      , boundary_ids(boundary_ids)
+      , boundary_displacements(boundary_displacements)
+    { }
+    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    LinearElasticity<dim,real,VectorType,DoFHandlerType>::~LinearElasticity() { dof_handler.clear(); }
+    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    VectorType LinearElasticity<dim,real,VectorType,DoFHandlerType>::get_volume_displacements()
+    {
+        setup_system();
+        solve_timestep();
+        //move_mesh();
+        return displacement_solution;
+        pcout << std::endl;
+    }
+    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    void LinearElasticity<dim,real,VectorType,DoFHandlerType>::setup_system()
+    {
+        dof_handler.distribute_dofs(fe);
+        locally_owned_dofs = dof_handler.locally_owned_dofs();
+        dealii::DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
+        local_dofs_per_process = dof_handler.compute_n_locally_owned_dofs_per_processor();
+
+        system_rhs.reinit(locally_owned_dofs, mpi_communicator);
+        if constexpr (dim == 1) {
+            displacement_solution.reinit(dof_handler.n_dofs());
+        }
+        if constexpr (dim != 1) {
+            displacement_solution.reinit(locally_owned_dofs, mpi_communicator);
+        }
+
+        // Set the hanging node constraints
+        all_constraints.clear();
+        all_constraints.reinit(locally_relevant_dofs);
+        dealii::DoFTools::make_hanging_node_constraints(dof_handler, all_constraints);
+
+        // Set the Dirichlet BC constraint
+        // Only add Dirichlet BC there is currently no constraint.
+        // If there is another constraint, it's because it's a hanging node.
+        // In that case, we choose to satisfy the regularity properties of the element and ignoring the Dirichlet BC.
+        auto iglobal_row = boundary_ids.begin(), iglobal_end = boundary_ids.end();
+        auto dirichlet_value = boundary_displacements.begin();
+        for (; iglobal_row != iglobal_end; ++iglobal_row,++dirichlet_value) {
+            //if (!locally_owned_dofs.is_element(*iglobal_row)) continue;
+            if (!all_constraints.is_constrained(*iglobal_row)) {
+                Assert(all_constraints.can_store_line(*iglobal_row), dealii::ExcInternalError());
+                std::cout << *iglobal_row << std::endl;
+                all_constraints.add_line(*iglobal_row);
+                all_constraints.set_inhomogeneity(*iglobal_row, *dirichlet_value);
+            }
+        }
+        all_constraints.close();
+        const std::vector<dealii::IndexSet> &temp_locally_owned_dofs =
+        dof_handler.compute_locally_owned_dofs_per_processor();
+        dealii::IndexSet temp_locally_active_dofs;
+        dealii::DoFTools::extract_locally_active_dofs(dof_handler, temp_locally_active_dofs);
+        AssertThrow(all_constraints.is_consistent_in_parallel(temp_locally_owned_dofs,
+                    temp_locally_active_dofs,
+                    mpi_communicator,
+                    /*verbose*/ true),
+                    dealii::ExcInternalError());
+
+        //dirichlet_boundary_constraints.reinit(locally_relevant_dofs);
+        //for (; iglobal_row != iglobal_end; ++iglobal_row,++dirichlet_value) {
+        //    dirichlet_boundary_constraints.add_line(*iglobal_row);
+        //    dirichlet_boundary_constraints.set_inhomogeneity(*iglobal_row, *dirichlet_value);
+        //}
+
+
+
+        dealii::DynamicSparsityPattern sparsity_pattern(locally_relevant_dofs);
+        dealii::DoFTools::make_sparsity_pattern(dof_handler,
+                                        sparsity_pattern,
+                                        all_constraints,
+                                        /*keep constrained dofs*/ false);
+        dealii::SparsityTools::distribute_sparsity_pattern(sparsity_pattern,
+                                                   local_dofs_per_process,
+                                                   mpi_communicator,
+                                                   locally_relevant_dofs);
+        system_matrix.reinit(locally_owned_dofs,
+                             locally_owned_dofs,
+                             sparsity_pattern,
+                             mpi_communicator);
+        //displacement_solution.reinit(dof_handler.n_dofs());
+
+        {
+            pcout << "    Number of active cells: " << triangulation.n_active_cells() << " (by partition:";
+            for (unsigned int p = 0; p < n_mpi_processes; ++p) {
+                if (p==this_mpi_process) std::cout << (p == 0 ? ' ' : '+') << (dealii::GridTools::count_cells_with_subdomain_association(triangulation, p));
+            }
+            pcout << ")" << std::endl;
+            pcout << "    Number of degrees of freedom: " << dof_handler.n_dofs() << std::endl;
+        }
+    }
+    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    void LinearElasticity<dim,real,VectorType,DoFHandlerType>::assemble_system()
+    {
+        system_rhs    = 0;
+        system_matrix = 0;
+        dealii::FEValues<dim> fe_values(
+            *mapping_fe_field,
+            fe,
+            quadrature_formula,
+            dealii::update_values | dealii::update_gradients |
+            dealii::update_quadrature_points | dealii::update_JxW_values);
+        const unsigned int dofs_per_cell = fe.dofs_per_cell;
+        const unsigned int n_q_points    = quadrature_formula.size();
+        std::vector<dealii::types::global_dof_index> local_dof_indices(dofs_per_cell);
+        dealii::FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
+        dealii::Vector<double>     cell_rhs(dofs_per_cell);
+
+        std::vector<double> lame_lambda_values(n_q_points, 1.0);
+        std::vector<double> lame_mu_values(n_q_points, 1.0);
+
+        dealii::Functions::ZeroFunction<dim> body_force(dim);
+        std::vector<dealii::Vector<double>> body_force_values(n_q_points,dealii::Vector<double>(dim));
+
+        for (const auto &cell : dof_handler.active_cell_iterators()) {
+            if (!cell->is_locally_owned()) continue;
+
+            cell_matrix = 0;
+            cell_rhs    = 0;
+            fe_values.reinit(cell);
+
+            //lame_lambda.value_list(fe_values.get_quadrature_points(), lame_lambda_values);
+            //lame_mu.value_list(fe_values.get_quadrature_points(), lame_mu_values);
+
+            for (unsigned int itest = 0; itest < dofs_per_cell; ++itest) {
+
+                const unsigned int component_test = fe.system_to_component_index(itest).first;
+
+                for (unsigned int itrial = 0; itrial < dofs_per_cell; ++itrial) {
+
+                    const unsigned int component_trial = fe.system_to_component_index(itrial).first;
+
+                    for (unsigned int q_point = 0; q_point < n_q_points; ++q_point) {
+
+                        //const SymmetricTensor<2, dim> grad_basis_i_grad_u
+                        //cell_matrix(itest, itrial) += 
+                        double value = lame_lambda_values[q_point]
+                            * fe_values.shape_grad_component(itest, q_point, component_test)
+                            * fe_values.shape_grad_component(itrial, q_point, component_trial);
+                        value += lame_mu_values[q_point]
+                            * fe_values.shape_grad_component(itest, q_point, component_trial)
+                            * fe_values.shape_grad_component(itrial, q_point, component_test);
+                        if (component_test == component_trial) {
+                            value += lame_mu_values[q_point]
+                                * fe_values.shape_grad_component(itest, q_point, component_test)
+                                * fe_values.shape_grad_component(itrial, q_point, component_trial);
+                        }
+                        value *= fe_values.JxW(q_point);
+
+                        cell_matrix(itest, itrial) += value;
+                    }
+                }
+            }
+            body_force.vector_value_list(fe_values.get_quadrature_points(), body_force_values);
+            for (unsigned int itest = 0; itest < dofs_per_cell; ++itest) {
+                const unsigned int component_test = fe.system_to_component_index(itest).first;
+                for (unsigned int q_point = 0; q_point < n_q_points; ++q_point) {
+                    cell_rhs(itest) += body_force_values[q_point][component_test] * fe_values.shape_value(itest, q_point);
+                    cell_rhs(itest) *= fe_values.JxW(q_point);
+                }
+            }
+            cell->get_dof_indices(local_dof_indices);
+            //all_constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, system_matrix, system_rhs);
+            const bool use_inhomogeneities_for_rhs = false;
+            all_constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, system_matrix, system_rhs, use_inhomogeneities_for_rhs);
+        } // active cell loop
+        system_matrix.compress(dealii::VectorOperation::add);
+        system_rhs.compress(dealii::VectorOperation::add);
+        //const int static_boundary_id = 0;
+        //const int moving_boundary_id = 1;
+        //// Apply boundary conditions
+        //VectorTools::interpolate_boundary_values(
+        //    dof_handler,
+        //    static_boundary_id,
+        //    Functions::ZeroFunction<dim>(dim),
+        //    boundary_displacements);
+        //FEValuesExtractors::Scalar z_component(dim - 1);
+        //VectorTools::interpolate_boundary_values(
+        //  dof_handler,
+        //  moving_boundary_id,
+        //  IncrementalBoundaryValues<dim>(present_time, present_timestep),
+        //  boundary_displacements,
+        //  fe.component_mask(z_component));
+        //dealii::PETScWrappers::MPI::Vector tmp(locally_owned_dofs, mpi_communicator);
+        //MatrixTools::apply_boundary_values(boundary_displacements, system_matrix, tmp, system_rhs, false);
+        //displacement_solution = tmp;
+    }
+    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    void LinearElasticity<dim,real,VectorType,DoFHandlerType>::solve_timestep()
+    {
+        pcout << "    Assembling system..." << std::flush;
+        assemble_system();
+        pcout << " norm of rhs is " << system_rhs.l2_norm() << std::endl;
+        const unsigned int n_iterations = solve_linear_problem();
+        pcout << "    Solver converged in " << n_iterations << " iterations." << std::endl;
+    }
+    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    unsigned int LinearElasticity<dim,real,VectorType,DoFHandlerType>::solve_linear_problem()
+    {
+        dealii::TrilinosWrappers::MPI::Vector trilinos_solution(system_rhs);
+        trilinos_solution.add(0.5);
+
+        all_constraints.set_zero(trilinos_solution);
+
+        dealii::FullMatrix<double> fullA(system_matrix.m());
+        fullA.copy_from(system_matrix);
+        pcout<<"Dense matrix:"<<std::endl;
+        if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), 3, true, 10, "0", 1., 0.);
+        trilinos_solution.print(std::cout, 3);
+        system_rhs.print(std::cout, 3);
+
+        // dealii::SolverControl solver_control(
+        //     dof_handler.n_dofs(),
+        //     1e-16 * system_rhs.l2_norm(),
+        //     true, true);
+        // dealii::TrilinosWrappers::SolverCG cg(solver_control);
+        // ////dealii::TrilinosWrappers::PreconditionAMG preconditioner;
+        // ////dealii::TrilinosWrappers::PreconditionAMG::AdditionalData additional_data;
+        // //
+        // //dealii::TrilinosWrappers::PreconditionIdentity preconditioner;
+        // //dealii::TrilinosWrappers::PreconditionIdentity::AdditionalData additional_data;
+        // //preconditioner.initialize(system_matrix, additional_data);
+        // //
+        // dealii::TrilinosWrappers::PreconditionJacobi preconditioner;
+        // preconditioner.initialize(system_matrix);
+        // cg.solve(system_matrix, trilinos_solution, system_rhs, preconditioner);
+
+
+        dealii::SolverControl                        solver_control(dof_handler.n_dofs(), 1e-16 * system_rhs.l2_norm());
+        dealii::SolverCG<dealii::TrilinosWrappers::MPI::Vector> solver(solver_control);
+        dealii::TrilinosWrappers::PreconditionAMG       precondition;
+        precondition.initialize(system_matrix);
+        solver.solve(system_matrix, trilinos_solution, system_rhs, precondition);
+
+        //dealii::SolverControl solver_control(1, 0);
+        //dealii::TrilinosWrappers::SolverDirect::AdditionalData data(false);
+        //dealii::TrilinosWrappers::SolverDirect direct(solver_control, data);
+        //direct.solve(system_matrix, trilinos_solution, system_rhs);
+
+        all_constraints.distribute(trilinos_solution);
+        if constexpr(dim==1) {
+            displacement_solution = trilinos_solution;
+        } else {
+            dealii::LinearAlgebra::ReadWriteVector<double> rw_vector;
+            rw_vector.reinit(trilinos_solution);
+            displacement_solution.import(rw_vector, dealii::VectorOperation::add);
+        }
+        return solver_control.last_step();
+    }
+    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    void LinearElasticity<dim,real,VectorType,DoFHandlerType>::move_mesh()
+    {
+        pcout << "    Moving mesh..." << std::endl;
+        std::vector<bool> vertex_touched(triangulation.n_vertices(), false);
+        for (auto &cell : dof_handler.active_cell_iterators()) {
+            for (unsigned int v = 0; v < dealii::GeometryInfo<dim>::vertices_per_cell; ++v) {
+                if (vertex_touched[cell->vertex_index(v)] == false) {
+                    vertex_touched[cell->vertex_index(v)] = true;
+                    dealii::Point<dim> vertex_displacement;
+                    for (unsigned int d = 0; d < dim; ++d) {
+                        vertex_displacement[d] = displacement_solution(cell->vertex_dof_index(v, d));
+                    }
+                    cell->vertex(v) += vertex_displacement;
+                }
+            }
+        }
+    }
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+template class LinearElasticity<PHILIP_DIM, double, dealii::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
+#else
+template class LinearElasticity<PHILIP_DIM, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
+#endif
+}
 
 //template class HighOrderGrid<PHILIP_DIM, double>;
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D

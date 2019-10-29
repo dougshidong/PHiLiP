@@ -19,6 +19,9 @@
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/data_out_dof_data.h>
 
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+#include <deal.II/lac/trilinos_vector.h>
+
 namespace PHiLiP {
 
 /** This HighOrderGrid class basically contains all the different part necessary to generate
@@ -101,6 +104,10 @@ public:
      *  point.
      */
     std::vector<real> local_surface_nodes;
+    /// List of surface node indices
+    std::vector<dealii::types::global_dof_index> locally_owned_surface_nodes_indices;
+    /// List of surface node boundary IDs, corresponding to locally_owned_surface_nodes_indices
+    std::vector<dealii::types::global_dof_index> locally_owned_surface_nodes_boundary_id;
 
     /// List of all surface nodes
     /** Same as local_surface_nodes except that it stores a global vector of all the
@@ -109,10 +116,6 @@ public:
      */
     std::vector<real> all_surface_nodes;
 
-    /// List of surface node indices
-    std::vector<unsigned int> locally_owned_surface_nodes_indices;
-    /// List of surface node boundary IDs, corresponding to locally_owned_surface_nodes_indices
-    std::vector<unsigned int> locally_owned_surface_nodes_boundary_id;
 
     /// Update list of surface indices (locally_owned_surface_nodes_indices and locally_owned_surface_nodes_boundary_id)
     void update_surface_indices();
@@ -248,6 +251,55 @@ public:
     /// Returns the update flags required to evaluate the output data.
     virtual dealii::UpdateFlags get_needed_update_flags () const override;
 };
+
+namespace MeshMover
+{
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
+#else
+    template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
+#endif
+    class LinearElasticity
+    {
+      public:
+        LinearElasticity(
+            const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
+            const std::vector<dealii::types::global_dof_index> boundary_ids,
+            const std::vector<double> boundary_displacements);
+        ~LinearElasticity();
+        VectorType get_volume_displacements();
+      private:
+        void setup_system();
+        void assemble_system();
+        void solve_timestep();
+        unsigned int solve_linear_problem();
+        void move_mesh();
+        void setup_quadrature_point_history();
+        const dealii::Triangulation<dim> &triangulation;
+        dealii::FESystem<dim> fe;
+        std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field;
+        DoFHandlerType dof_handler;
+        const dealii::QGauss<dim> quadrature_formula;
+        dealii::TrilinosWrappers::SparseMatrix system_matrix;
+        dealii::TrilinosWrappers::MPI::Vector system_rhs;
+        VectorType displacement_solution;
+
+        dealii::AffineConstraints<double> all_constraints;
+        dealii::AffineConstraints<double> dirichlet_boundary_constraints;
+
+        MPI_Comm mpi_communicator;
+        const unsigned int n_mpi_processes;
+        const unsigned int this_mpi_process;
+        dealii::ConditionalOStream pcout;
+        std::vector<dealii::types::global_dof_index> local_dofs_per_process;
+        dealii::IndexSet locally_owned_dofs;
+        dealii::IndexSet locally_relevant_dofs;
+
+        const std::vector<dealii::types::global_dof_index> boundary_ids;
+        const std::vector<double> boundary_displacements;
+
+    };
+} // namespace MeshMover
 
 } // namespace PHiLiP
 

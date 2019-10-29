@@ -4,6 +4,8 @@
 
 #include <deal.II/dofs/dof_tools.h>
 
+#include <deal.II/lac/vector.h>
+
 #include <deal.II/distributed/tria.h>
 #include <deal.II/distributed/solution_transfer.h>
 #include <deal.II/grid/grid_generator.h>
@@ -42,7 +44,7 @@ int main (int argc, char * argv[])
 
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
 
-    const int poly_degree = 4;
+    const int poly_degree = 1;
     const unsigned int n_grids = 3;
     //const std::vector<int> n_1d_cells = {2,4,8,16};
 
@@ -73,23 +75,58 @@ int main (int argc, char * argv[])
 
     for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
 
-        high_order_grid.prepare_for_coarsening_and_refinement();
-        grid.refine_global (1);
-        high_order_grid.execute_coarsening_and_refinement();
+        if (igrid>0) {
+            high_order_grid.prepare_for_coarsening_and_refinement();
+            grid.refine_global (1);
+            high_order_grid.execute_coarsening_and_refinement(true);
+        }
 
 #if PHILIP_DIM!=1
         high_order_grid.prepare_for_coarsening_and_refinement();
         grid.repartition();
-        high_order_grid.execute_coarsening_and_refinement(true);
+        high_order_grid.execute_coarsening_and_refinement();
 #endif
 
-        for (auto node1 = high_order_grid.all_surface_nodes.begin(); node1 != high_order_grid.all_surface_nodes.end(); node1+=dim) {
+        std::vector<double> surface_displacements(high_order_grid.local_surface_nodes.size());
+        auto disp = surface_displacements.begin();
+        auto node = high_order_grid.local_surface_nodes.begin();
+        auto node_end = high_order_grid.local_surface_nodes.end();
+        for (;node != node_end; node+=dim, disp+=dim) {
             std::array<double, dim> point;
             for (int d=0;d<dim;++d) {
-                point[d] = *(node1+d);
+                point[d] = *(node+d);
+                *(disp+d) = 0.0;
             }
-            //double displacement = amplitude * std::sin(2.0*dealii::numbers::PI*
+            const double amplitude = 0.1;
+            double x_displacement = amplitude;
+            x_displacement *= point[0];
+            if(dim>=2) x_displacement *= std::sin(2.0*dealii::numbers::PI*point[1]);
+            if(dim>=3) x_displacement *= std::sin(2.0*dealii::numbers::PI*point[2]);
+            *(disp+0) = x_displacement;
+            *(disp+0) = 1*point[0];
         }
+
+        disp = surface_displacements.begin();
+        node = high_order_grid.local_surface_nodes.begin();
+        for (;node != node_end; node+=dim, disp+=dim) {
+            dealii::Point<dim> point, dx;
+            for (int d=0;d<dim;++d) {
+                point[d] = *(node+d);
+                dx[d] = *(disp+d);
+            }
+            std::cout << "point: " << point << " dx: " << dx << std::endl;
+        }
+
+#if PHILIP_DIM==1
+        using VectorType = dealii::Vector<double>;
+#else
+        using VectorType = dealii::LinearAlgebra::distributed::Vector<double>;
+#endif
+        MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
+            meshmover(high_order_grid, high_order_grid.locally_owned_surface_nodes_indices, surface_displacements);
+        VectorType volume_displacements = meshmover.get_volume_displacements();
+        high_order_grid.nodes += volume_displacements;
+
     }
 
     //output_grid("before", poly_degree, high_order_grid);

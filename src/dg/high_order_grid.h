@@ -105,9 +105,21 @@ public:
      */
     std::vector<real> local_surface_nodes;
     /// List of surface node indices
-    std::vector<dealii::types::global_dof_index> locally_owned_surface_nodes_indices;
-    /// List of surface node boundary IDs, corresponding to locally_owned_surface_nodes_indices
-    std::vector<dealii::types::global_dof_index> locally_owned_surface_nodes_boundary_id;
+    std::vector<dealii::types::global_dof_index> locally_relevant_surface_nodes_indices;
+    /// List of surface node boundary IDs, corresponding to locally_relevant_surface_nodes_indices
+    std::vector<dealii::types::global_dof_index> locally_relevant_surface_nodes_boundary_id;
+
+    // /// List of cells associated with locally_relevant_surface_nodes_indices
+    // std::vector<dealii::types::global_dof_index> locally_relevant_surface_nodes_cells;
+    // /// List of points associated with locally_relevant_surface_nodes_indices
+    // std::vector<dealii::types::global_dof_index> locally_relevant_surface_nodes_points;
+    // /// List of direction associated with locally_relevant_surface_nodes_indices
+    // std::vector<dealii::types::global_dof_index> locally_relevant_surface_nodes_direction;
+
+    std::vector<dealii::Point<dim>> locally_relevant_surface_points;
+    std::map<dealii::types::global_dof_index, std::pair<unsigned int, unsigned int>> global_index_to_point_and_axis;
+    std::map<std::pair<unsigned int, unsigned int>, dealii::types::global_dof_index> point_and_axis_to_global_index;
+
 
     /// List of all surface nodes
     /** Same as local_surface_nodes except that it stores a global vector of all the
@@ -117,7 +129,7 @@ public:
     std::vector<real> all_surface_nodes;
 
 
-    /// Update list of surface indices (locally_owned_surface_nodes_indices and locally_owned_surface_nodes_boundary_id)
+    /// Update list of surface indices (locally_relevant_surface_nodes_indices and locally_relevant_surface_nodes_boundary_id)
     void update_surface_indices();
     /// Update list of surface nodes (all_surface_nodes).
     void update_surface_nodes();
@@ -208,8 +220,9 @@ public:
     dealii::IndexSet locally_owned_dofs_grid; ///< Locally own degrees of freedom for the grid
     dealii::IndexSet ghost_dofs_grid; ///< Locally relevant ghost degrees of freedom for the grid
     dealii::IndexSet locally_relevant_dofs_grid; ///< Union of locally owned degrees of freedom and relevant ghost degrees of freedom for the grid
+
+    static unsigned int nth_refinement; ///< Used to name the various files outputted.
 protected:
-    int nth_refinement; ///< Used to name the various files outputted.
 
     /// Used for the SolutionTransfer when performing grid adaptation.
     Vector old_nodes;
@@ -231,8 +244,14 @@ protected:
     /// A stripped down copy of dealii::VectorTools::get_position_vector()
     void get_position_vector(const DoFHandlerType &dh, VectorType &vector, const dealii::ComponentMask &mask);
 
-
 };
+//#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+//template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
+//unsigned int HighOrderGrid<dim,real,VectorType,DoFHandlerType>::nth_refinement=0;
+//#else
+//template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
+//unsigned int HighOrderGrid<dim,real,VectorType,DoFHandlerType>::nth_refinement=0;
+//#endif
 
 /// Postprocessor used to output the grid.
 template <int dim>

@@ -46,6 +46,9 @@
 
 namespace PHiLiP {
 
+template <int dim, typename real, typename VectorType, typename DoFHandlerType>
+unsigned int HighOrderGrid<dim,real,VectorType,DoFHandlerType>::nth_refinement=0;
+
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
 HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
         const Parameters::AllParameters *const parameters_input,
@@ -62,10 +65,10 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {
     Assert(max_degree > 0, dealii::ExcMessage("Grid must be at least order 1."));
-    nth_refinement = 0;
     allocate();
     const dealii::ComponentMask mask(dim, true);
     get_position_vector(dof_handler_grid, nodes, mask);
+    nodes.print(std::cout);
     nodes.update_ghost_values();
     update_surface_indices();
     update_surface_nodes();
@@ -80,7 +83,7 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
 
     auto cell = dof_handler_grid.begin_active();
     auto endcell = dof_handler_grid.end();
-    std::cout << "Disabled check_valid_cells. Took too much time due to shape_grad()." << std::endl;
+    pcout << "Disabled check_valid_cells. Took too much time due to shape_grad()." << std::endl;
     for (; cell!=endcell; ++cell) {
         if (!cell->is_locally_owned())  continue;
         const bool is_invalid_cell = check_valid_cell(cell);
@@ -143,8 +146,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>
     for (unsigned int i = 0; i < fe_mask.size(); ++i) {
         if (fe_mask[i]) fe_to_real[i] = size++;
     }
-    Assert(size == dim, dealii::ExcMessage(
-        "The Component Mask you provided is invalid. It has to select exactly dim entries."));
+    Assert(size == dim, dealii::ExcMessage("The Component Mask you provided is invalid. It has to select exactly dim entries."));
   
     const dealii::Quadrature<dim> quad(fe.get_unit_support_points());
   
@@ -160,12 +162,19 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>
             fe_v.reinit(cell);
             cell->get_dof_indices(dofs);
             const std::vector<dealii::Point<dim>> &points = fe_v.get_quadrature_points();
+            std::cout << "Cell: " << cell->active_cell_index() << std::endl;
             for (unsigned int q = 0; q < points.size(); ++q) {
+                std::cout << "Quad Point: " << q << " location: " << points[q] << std::endl;
                 const unsigned int comp = fe.system_to_component_index(q).first;
+                std::cout << "Setting dof " << dofs[q] << " component: " << fe_to_real[comp] << " to value " << points[q][fe_to_real[comp]] << std::endl;
                 if (fe_mask[comp]) ::dealii::internal::ElementAccess<VectorType>::set(points[q][fe_to_real[comp]], dofs[q], vector);
-              }
+            }
         }
+        vector.print(std::cout);
     }
+    std::cout<<"vec being "<<std::endl;
+    vector.print(std::cout);
+    std::cout<<"vec end"<<std::endl;
 }
 
 
@@ -779,7 +788,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::execute_coarsening_and_r
 
     auto cell = dof_handler_grid.begin_active();
     auto endcell = dof_handler_grid.end();
-    std::cout << "Disabled check_valid_cells. Took too much time due to shape_grad()." << std::endl;
+    pcout << "Disabled check_valid_cells. Took too much time due to shape_grad()." << std::endl;
     for (; cell!=endcell; ++cell) {
         if (!cell->is_locally_owned())  continue;
         const bool is_invalid_cell = check_valid_cell(cell);
@@ -913,14 +922,26 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_nodes() {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &n_mpi);
 
-    const unsigned int n_local_surface_nodes = locally_owned_surface_nodes_indices.size();
+    const unsigned int n_local_surface_nodes = locally_relevant_surface_nodes_indices.size();
     // Copy local surface node locations
     local_surface_nodes.clear();
     local_surface_nodes.resize(n_local_surface_nodes);
     unsigned int i = 0;
-    for (auto index = locally_owned_surface_nodes_indices.begin(); index != locally_owned_surface_nodes_indices.end(); index++) {
+    for (auto index = locally_relevant_surface_nodes_indices.begin(); index != locally_relevant_surface_nodes_indices.end(); index++) {
         local_surface_nodes[i++] = nodes[*index];
     }
+    //auto node = local_surface_nodes.begin();
+    //auto node_end = local_surface_nodes.end();
+    //auto index = locally_relevant_surface_nodes_indices.begin();
+    //for (;node != node_end; node+=dim, index+=dim) {
+    //    dealii::Point<dim> point, id;
+    //    for (int d=0;d<dim;++d) {
+    //        point[d] = *(node+d);
+    //        id[d] = *(index+d);
+    //    }
+    //    if (point[0] > 0.99) std::cout << "index: " << id << " point: " << point << std::endl;
+    //}
+
     std::vector<unsigned int> n_local_surface_nodes_per_mpi(n_mpi);
     MPI_Allgather(&n_local_surface_nodes, 1, MPI::UNSIGNED, &(n_local_surface_nodes_per_mpi[0]), 1, MPI::UNSIGNED, MPI_COMM_WORLD);
     n_surface_nodes = 0;
@@ -960,7 +981,12 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_nodes() {
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
 void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices() {
-    locally_owned_surface_nodes_indices.clear();
+    locally_relevant_surface_nodes_indices.clear();
+    local_surface_nodes.clear();
+    locally_relevant_surface_nodes_boundary_id.clear();
+    locally_relevant_surface_points.clear();
+    global_index_to_point_and_axis.clear();
+    point_and_axis_to_global_index.clear();
 
     const unsigned int dofs_per_cell = fe_system.n_dofs_per_cell();
     const unsigned int dofs_per_face = fe_system.n_dofs_per_face();
@@ -969,7 +995,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices()
     // Use unordered sets which uses hashmap.
     // Has an average complexity of O(1) (worst case O(n)) for finding and inserting
     // Overall algorithm average will be O(n), worst case O(n^2)
-    std::unordered_set<dealii::types::global_dof_index> locally_owned_dofs(locally_owned_dofs_grid.begin(), locally_owned_dofs_grid.end());
+    std::unordered_set<dealii::types::global_dof_index> locally_relevant_dofs(locally_relevant_dofs_grid.begin(), locally_relevant_dofs_grid.end());
     std::unordered_set<dealii::types::global_dof_index> surface_dof_indices_temp;
     for (auto cell = dof_handler_grid.begin_active(); cell!=dof_handler_grid.end(); ++cell) {
 
@@ -977,6 +1003,10 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices()
         if (!cell->at_boundary()) continue;
 
         cell->get_dof_indices(dof_indices);
+
+        // Each time a new shape_within_base is found, add it to the list of points.
+        std::unordered_set<dealii::types::global_dof_index> shape_within_base_found;
+        std::map<unsigned int, unsigned int> shape_function_within_base_to_point_index;
 
         for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
             const auto face = cell->face(iface);
@@ -1002,15 +1032,54 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices()
                 //if (   ( surface_dof_indices_temp.find(global_idof_index) == surface_dof_indices_temp.end() )
                 //    && ( locally_owned_dofs.find(global_idof_index) != locally_owned_dofs.end() ) ) {
                 if ( surface_dof_indices_temp.find(global_idof_index) == surface_dof_indices_temp.end() ) {
-                        surface_dof_indices_temp.insert(global_idof_index);
-                        locally_owned_surface_nodes_indices.push_back(global_idof_index);
-                        locally_owned_surface_nodes_boundary_id.push_back(boundary_id);
+                    surface_dof_indices_temp.insert(global_idof_index);
+                    locally_relevant_surface_nodes_indices.push_back(global_idof_index);
+                    locally_relevant_surface_nodes_boundary_id.push_back(boundary_id);
+                    // Refer to the nonmenclature of
+                    // https://www.dealii.org/current/doxygen/deal.II/classFiniteElement.html#ae2ea16b60a6fc644a9bc7097703a53e8
+                    const unsigned int i = idof_cell;
+                    const unsigned int component = fe_system.system_to_component_index(i).first;
+                    const unsigned int shape_within_base = fe_system.system_to_component_index(i).second;
+                    //const unsigned int base = fe_system.system_to_base_index(i).first.first;
+                    //const unsigned int multiplicity = fe_system.system_to_base_index(i).first.second;
+                    //const unsigned int within_base_  = fe_system.system_to_base_index(i).second; // same as above
+                    // std::cout << " idof_cell " << idof_cell
+                    //           << " component " << component
+                    //           << " shape_within_base " << shape_within_base
+                    //           << " base " << base
+                    //           << " multiplicity " << multiplicity
+                    //           << " within_base_ " << within_base_
+                    //           << " idofcell? " << fe_system.component_to_system_index(component, shape_within_base)
+                    //           <<std::endl;
+                    if ( shape_within_base_found.find(shape_within_base) == shape_within_base_found.end() ) {
+                        // If the point does not exist, add it to the list of points.
+                        shape_within_base_found.insert(shape_within_base);
+
+                        dealii::Point<dim> point;
+                        point[component] = nodes[global_idof_index];
+                        locally_relevant_surface_points.push_back(point);
+                        const unsigned int point_index = locally_relevant_surface_points.size()-1;
+                        shape_function_within_base_to_point_index[shape_within_base] = point_index;
+
+                        global_index_to_point_and_axis[global_idof_index] = std::make_pair(point_index, component);
+                        point_and_axis_to_global_index[std::make_pair(point_index, component)] = global_idof_index;
+                    } else {
+                        // The point has already been visited.
+                        // Simply complete its entries.
+                        const unsigned int point_index = shape_function_within_base_to_point_index[shape_within_base];
+                        locally_relevant_surface_points[point_index][component] = nodes[global_idof_index];
+
+                        global_index_to_point_and_axis[global_idof_index] = std::make_pair(point_index, component);
+                        point_and_axis_to_global_index[std::make_pair(point_index, component)] = global_idof_index;
+                    }
+                    //std::cout << fe_system.component_to_system_index(component, idof_cell) << " is equal to idof_cell: " << base << std::endl;
                 }
             }
 
         }
 
     }
+    std::cout << "I own " << locally_relevant_surface_nodes_indices.size() << " surface nodes" << std::endl;
 
 }
 
@@ -1145,9 +1214,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::output_results_vtk (cons
 
     const dealii::Mapping<dim> &mapping = (*(mapping_fe_field));
     const int n_subdivisions = max_degree;;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
-    std::cout << "before build" << std::endl;
     data_out.build_patches(mapping, n_subdivisions, curved);
-    std::cout << "afer build" << std::endl;
     const bool write_higher_order_cells = (dim>1) ? true : false; 
     dealii::DataOutBase::VtkFlags vtkflags(0.0,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
     data_out.set_flags(vtkflags);
@@ -1268,11 +1335,13 @@ namespace MeshMover
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
     VectorType LinearElasticity<dim,real,VectorType,DoFHandlerType>::get_volume_displacements()
     {
+        pcout << std::endl << "Solving linear elasticity problem for volume displacements..." << std::endl;
         setup_system();
         solve_timestep();
+        // displacement_solution = 0;
+        // all_constraints.distribute(displacement_solution);
         //move_mesh();
         return displacement_solution;
-        pcout << std::endl;
     }
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
     void LinearElasticity<dim,real,VectorType,DoFHandlerType>::setup_system()
@@ -1303,11 +1372,12 @@ namespace MeshMover
         auto dirichlet_value = boundary_displacements.begin();
         for (; iglobal_row != iglobal_end; ++iglobal_row,++dirichlet_value) {
             //if (!locally_owned_dofs.is_element(*iglobal_row)) continue;
+            std::cout << "dof" << *iglobal_row << " value " << *dirichlet_value << std::endl;
             if (!all_constraints.is_constrained(*iglobal_row)) {
                 Assert(all_constraints.can_store_line(*iglobal_row), dealii::ExcInternalError());
-                std::cout << *iglobal_row << std::endl;
                 all_constraints.add_line(*iglobal_row);
                 all_constraints.set_inhomogeneity(*iglobal_row, *dirichlet_value);
+                std::cout << "dof" << *iglobal_row << " value " << *dirichlet_value << std::endl;
             }
         }
         all_constraints.close();
@@ -1370,8 +1440,17 @@ namespace MeshMover
         dealii::FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
         dealii::Vector<double>     cell_rhs(dofs_per_cell);
 
-        std::vector<double> lame_lambda_values(n_q_points, 1.0);
-        std::vector<double> lame_mu_values(n_q_points, 1.0);
+        std::vector<double> youngs_modulus(n_q_points, 1.0);
+        std::vector<double> poissons_ratio(n_q_points, 0.4);
+
+        std::vector<double> lame_lambda_values(n_q_points);
+        std::vector<double> lame_mu_values(n_q_points);
+        for (unsigned int iquad = 0; iquad < n_q_points; ++iquad) {
+            const double E = youngs_modulus[iquad];
+            const double nu = poissons_ratio[iquad];
+            lame_lambda_values[iquad] = E*nu/((1.0+nu)*(1-2.0*nu));
+            lame_mu_values[iquad] = 0.5*E/(1.0+nu);
+        }
 
         dealii::Functions::ZeroFunction<dim> body_force(dim);
         std::vector<dealii::Vector<double>> body_force_values(n_q_points,dealii::Vector<double>(dim));
@@ -1462,16 +1541,15 @@ namespace MeshMover
     unsigned int LinearElasticity<dim,real,VectorType,DoFHandlerType>::solve_linear_problem()
     {
         dealii::TrilinosWrappers::MPI::Vector trilinos_solution(system_rhs);
-        trilinos_solution.add(0.5);
 
         all_constraints.set_zero(trilinos_solution);
 
-        dealii::FullMatrix<double> fullA(system_matrix.m());
-        fullA.copy_from(system_matrix);
-        pcout<<"Dense matrix:"<<std::endl;
-        if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), 3, true, 10, "0", 1., 0.);
-        trilinos_solution.print(std::cout, 3);
-        system_rhs.print(std::cout, 3);
+        //   dealii::FullMatrix<double> fullA(system_matrix.m());
+        //   fullA.copy_from(system_matrix);
+        //   pcout<<"Dense matrix:"<<std::endl;
+        //   if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), 3, true, 10, "0", 1., 0.);
+        //   trilinos_solution.print(std::cout, 3);
+        //   system_rhs.print(std::cout, 3);
 
         // dealii::SolverControl solver_control(
         //     dof_handler.n_dofs(),

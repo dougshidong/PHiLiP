@@ -68,7 +68,6 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
     allocate();
     const dealii::ComponentMask mask(dim, true);
     get_position_vector(dof_handler_grid, nodes, mask);
-    nodes.print(std::cout);
     nodes.update_ghost_values();
     update_surface_indices();
     update_surface_nodes();
@@ -162,19 +161,12 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>
             fe_v.reinit(cell);
             cell->get_dof_indices(dofs);
             const std::vector<dealii::Point<dim>> &points = fe_v.get_quadrature_points();
-            std::cout << "Cell: " << cell->active_cell_index() << std::endl;
             for (unsigned int q = 0; q < points.size(); ++q) {
-                std::cout << "Quad Point: " << q << " location: " << points[q] << std::endl;
                 const unsigned int comp = fe.system_to_component_index(q).first;
-                std::cout << "Setting dof " << dofs[q] << " component: " << fe_to_real[comp] << " to value " << points[q][fe_to_real[comp]] << std::endl;
                 if (fe_mask[comp]) ::dealii::internal::ElementAccess<VectorType>::set(points[q][fe_to_real[comp]], dofs[q], vector);
             }
         }
-        vector.print(std::cout);
     }
-    std::cout<<"vec being "<<std::endl;
-    vector.print(std::cout);
-    std::cout<<"vec end"<<std::endl;
 }
 
 
@@ -313,9 +305,9 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::evaluate_lagrange_to_ber
         }
     }
     lagrange_to_bernstein_operator.reinit(n_lagrange_pts, n_bernstein);
-    std::cout << "Careful, about to invert a " << n_lagrange_pts << " x " << n_lagrange_pts << " dense matrix..." << std::endl;
+    pcout << "Careful, about to invert a " << n_lagrange_pts << " x " << n_lagrange_pts << " dense matrix..." << std::endl;
     lagrange_to_bernstein_operator.invert(bernstein_to_lagrange);
-    std::cout << "Done inverting a " << n_lagrange_pts << " x " << n_lagrange_pts << " dense matrix..." << std::endl;
+    pcout << "Done inverting a " << n_lagrange_pts << " x " << n_lagrange_pts << " dense matrix..." << std::endl;
 }
 
 
@@ -1079,8 +1071,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices()
         }
 
     }
-    std::cout << "I own " << locally_relevant_surface_nodes_indices.size() << " surface nodes" << std::endl;
-
+    //std::cout << "I own " << locally_relevant_surface_nodes_indices.size() << " surface nodes" << std::endl;
 }
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
@@ -1372,12 +1363,10 @@ namespace MeshMover
         auto dirichlet_value = boundary_displacements.begin();
         for (; iglobal_row != iglobal_end; ++iglobal_row,++dirichlet_value) {
             //if (!locally_owned_dofs.is_element(*iglobal_row)) continue;
-            std::cout << "dof" << *iglobal_row << " value " << *dirichlet_value << std::endl;
             if (!all_constraints.is_constrained(*iglobal_row)) {
                 Assert(all_constraints.can_store_line(*iglobal_row), dealii::ExcInternalError());
                 all_constraints.add_line(*iglobal_row);
                 all_constraints.set_inhomogeneity(*iglobal_row, *dirichlet_value);
-                std::cout << "dof" << *iglobal_row << " value " << *dirichlet_value << std::endl;
             }
         }
         all_constraints.close();
@@ -1412,16 +1401,9 @@ namespace MeshMover
                              locally_owned_dofs,
                              sparsity_pattern,
                              mpi_communicator);
-        //displacement_solution.reinit(dof_handler.n_dofs());
 
-        {
-            pcout << "    Number of active cells: " << triangulation.n_active_cells() << " (by partition:";
-            for (unsigned int p = 0; p < n_mpi_processes; ++p) {
-                if (p==this_mpi_process) std::cout << (p == 0 ? ' ' : '+') << (dealii::GridTools::count_cells_with_subdomain_association(triangulation, p));
-            }
-            pcout << ")" << std::endl;
-            pcout << "    Number of degrees of freedom: " << dof_handler.n_dofs() << std::endl;
-        }
+        pcout << "    Number of active cells: " << triangulation.n_active_cells() << std::endl;
+        pcout << "    Number of degrees of freedom: " << dof_handler.n_dofs() << std::endl;
     }
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
     void LinearElasticity<dim,real,VectorType,DoFHandlerType>::assemble_system()
@@ -1568,9 +1550,9 @@ namespace MeshMover
         // cg.solve(system_matrix, trilinos_solution, system_rhs, preconditioner);
 
 
-        dealii::SolverControl                        solver_control(dof_handler.n_dofs(), 1e-16 * system_rhs.l2_norm());
+        dealii::SolverControl                        solver_control(500, 1e-12 * system_rhs.l2_norm());
         dealii::SolverCG<dealii::TrilinosWrappers::MPI::Vector> solver(solver_control);
-        dealii::TrilinosWrappers::PreconditionAMG       precondition;
+        dealii::TrilinosWrappers::PreconditionJacobi      precondition;
         precondition.initialize(system_matrix);
         solver.solve(system_matrix, trilinos_solution, system_rhs, precondition);
 

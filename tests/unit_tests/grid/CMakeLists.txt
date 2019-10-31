@@ -64,9 +64,15 @@ foreach(dim RANGE 1 3)
         DEAL_II_SETUP_TARGET(${TEST_TARGET})
     endif()
 
+    if (dim EQUAL 1)
+        set (NMPI 1)
+    else()
+        set (NMPI ${MPIMAX})
+    endif()
+
     add_test(
       NAME ${TEST_TARGET}
-      COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
+      COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
 

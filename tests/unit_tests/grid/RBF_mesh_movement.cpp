@@ -45,8 +45,11 @@ int main (int argc, char * argv[])
     const unsigned int n_grids = 3;
     const unsigned int p_start = 1;
     const unsigned int p_end = 4;
-    std::vector<int> fail_conv_poly;
-    std::vector<double> fail_conv_slop;
+    const double amplitude = 0.1;
+    const double exact_area = dim>1 ? 1.0 : (amplitude+1.0);
+    const double area_tolerance = 1e-12;
+    std::vector<int> fail_poly;
+    std::vector<double> fail_area;
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
 
     for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
@@ -101,7 +104,6 @@ int main (int argc, char * argv[])
             auto point = high_order_grid.locally_relevant_surface_points.begin();
             auto point_end = high_order_grid.locally_relevant_surface_points.end();
             for (;point != point_end; ++point, ++disp) {
-                const double amplitude = 0.1;
                 (*disp) = 0.0;
                 (*disp)[0] = amplitude;
                 (*disp)[0] *= (*point)[0];
@@ -124,26 +126,32 @@ int main (int argc, char * argv[])
                         const dealii::types::global_dof_index global_index = high_order_grid.point_and_axis_to_global_index[point_axis];
                         surface_node_global_indices[inode] = global_index;
                         surface_node_displacements[inode] = point_displacements[ipoint][d];
-                        //std::cout << surface_node_global_indices[inode] << " " << surface_node_displacements[inode] << std::endl;
+#ifndef NDEBUG
                         std::vector<dealii::types::global_dof_index>::iterator it 
                             = std::find(high_order_grid.locally_relevant_surface_nodes_indices.begin(),
                                         high_order_grid.locally_relevant_surface_nodes_indices.end(),
                                         global_index);
                         int index = std::distance(high_order_grid.locally_relevant_surface_nodes_indices.begin(), it);
-                        std::cout << surface_node_global_indices[inode] << " " << high_order_grid.locally_relevant_surface_points[ipoint][d] << " ?= " << high_order_grid.local_surface_nodes[index] << std::endl;
+                        const double val1 = high_order_grid.locally_relevant_surface_points[ipoint][d];
+                        const double val2 = high_order_grid.local_surface_nodes[index];
+                        const double abs_err = std::abs(val1-val2);
+                        Assert(abs_err < 1e-10,
+                            dealii::ExcMessage("val1 ("+std::to_string(val1)+")"
+                                              +" should equal val2("+std::to_string(val2)+")"));
+#endif
                         inode++;
                     }
                 }
             }
 
-            std::cout << "Points old" << std::endl;
-            for (unsigned int ipoint=0; ipoint<point_displacements.size(); ++ipoint) {
-                std::cout << high_order_grid.locally_relevant_surface_points[ipoint] << std::endl;
-            }
-            std::cout << "Points new" << std::endl;
-            for (unsigned int ipoint=0; ipoint<point_displacements.size(); ++ipoint) {
-                std::cout << high_order_grid.locally_relevant_surface_points[ipoint]+point_displacements[ipoint] << std::endl;
-            }
+            // std::cout << "Points old" << std::endl;
+            // for (unsigned int ipoint=0; ipoint<point_displacements.size(); ++ipoint) {
+            //     std::cout << high_order_grid.locally_relevant_surface_points[ipoint] << std::endl;
+            // }
+            // std::cout << "Points new" << std::endl;
+            // for (unsigned int ipoint=0; ipoint<point_displacements.size(); ++ipoint) {
+            //     std::cout << high_order_grid.locally_relevant_surface_points[ipoint]+point_displacements[ipoint] << std::endl;
+            // }
 
 #if PHILIP_DIM==1
             using VectorType = dealii::Vector<double>;
@@ -169,8 +177,8 @@ int main (int argc, char * argv[])
                     area += fe_values_extra.JxW(iquad);
                 }
             }
-            const double exact_area = 1.0;
             const double area_mpi_sum = dealii::Utilities::MPI::sum(area, MPI_COMM_WORLD);
+            const double area_error = std::abs(exact_area-area_mpi_sum);
 
             const double dx = 1.0/pow(high_order_grid.dof_handler_grid.n_dofs(),(1.0/dim));
             grid_size[igrid] = dx;
@@ -178,30 +186,17 @@ int main (int argc, char * argv[])
             convergence_table.add_value("cells", grid.n_active_cells());
             convergence_table.add_value("DoFs", high_order_grid.dof_handler_grid.n_dofs());
             convergence_table.add_value("dx", dx);
-            convergence_table.add_value("area_error", std::abs(area_mpi_sum-exact_area));
+            convergence_table.add_value("area_error", area_error);
 
-            const double expected_slope = poly_degree+1;
-            const double last_slope = log(area_error[n_grids-1]/area_error[n_grids-2])
-                                      / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
-            double before_last_slope = last_slope;
-            if ( n_grids > 2 ) {
-                before_last_slope = log(area_error[n_grids-2]/area_error[n_grids-3])
-                                    / log(grid_size[n_grids-2]/grid_size[n_grids-3]);
-            }
-            const double slope_avg = 0.5*(before_last_slope+last_slope);
-            const double slope_diff = slope_avg-expected_slope;
-
-            double slope_deficit_tolerance = -0.1;
-
-            if (slope_diff < slope_deficit_tolerance) {
+            if (area_error > area_tolerance) {
                 pcout << std::endl
-                     << "Convergence order not achieved. Average last 2 slopes of "
-                     << slope_avg << " instead of expected "
-                     << expected_slope << " within a tolerance of "
-                     << slope_deficit_tolerance
+                     << "Integrated area not accurate.. Estimated area is "
+                     << area_mpi_sum << " instead of expected "
+                     << exact_area << " within a tolerance of "
+                     << area_tolerance
                      << std::endl;
-                fail_conv_poly.push_back(poly_degree);
-                fail_conv_slop.push_back(slope_avg);
+                fail_poly.push_back(poly_degree);
+                fail_area.push_back(area_mpi_sum);
             }
 
         }
@@ -215,18 +210,16 @@ int main (int argc, char * argv[])
 
         convergence_table_vector.push_back(convergence_table);
 
-        int n_fail_poly = fail_conv_poly.size();
+        int n_fail_poly = fail_poly.size();
         if (n_fail_poly > 0) {
             for (int ifail=0; ifail < n_fail_poly; ++ifail) {
-                const double expected_slope = fail_conv_poly[ifail]+1;
-                const double slope_deficit_tolerance = -0.1;
                 pcout << std::endl
                      << "Convergence order not achieved for polynomial p = "
-                     << fail_conv_poly[ifail]
-                     << ". Slope of "
-                     << fail_conv_slop[ifail] << " instead of expected "
-                     << expected_slope << " within a tolerance of "
-                     << slope_deficit_tolerance
+                     << fail_poly[ifail]
+                     << ". Area of "
+                     << fail_area[ifail] << " instead of expected "
+                     << exact_area << " within a tolerance of "
+                     << area_tolerance
                      << std::endl;
             }
         }
@@ -240,18 +233,16 @@ int main (int argc, char * argv[])
         if (pcout.is_active()) conv->write_text(pcout.get_stream());
         pcout << " ********************************************" << std::endl;
     }
-    int n_fail_poly = fail_conv_poly.size();
+    int n_fail_poly = fail_poly.size();
     if (n_fail_poly > 0) {
         for (int ifail=0; ifail < n_fail_poly; ++ifail) {
-            const double expected_slope = fail_conv_poly[ifail]+1;
-            const double slope_deficit_tolerance = -0.1;
             pcout << std::endl
                  << "Convergence order not achieved for polynomial p = "
-                 << fail_conv_poly[ifail]
-                 << ". Slope of "
-                 << fail_conv_slop[ifail] << " instead of expected "
-                 << expected_slope << " within a tolerance of "
-                 << slope_deficit_tolerance
+                 << fail_poly[ifail]
+                 << ". Area of "
+                 << fail_area[ifail] << " instead of expected "
+                 << exact_area << " within a tolerance of "
+                 << area_tolerance
                  << std::endl;
         }
     }

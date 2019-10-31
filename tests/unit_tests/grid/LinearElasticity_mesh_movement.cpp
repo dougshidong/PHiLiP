@@ -26,6 +26,8 @@
 #include "dg/high_order_grid.h"
 #include "parameters/all_parameters.h"
 
+/** Tests the mesh movement by moving the mesh and integrating its volume.
+ */
 int main (int argc, char * argv[])
 {
     const int dim = PHILIP_DIM;

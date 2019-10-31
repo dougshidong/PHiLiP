@@ -38,13 +38,13 @@ foreach(dim RANGE 2 3)
 endforeach()
 
 set(TEST_SRC
-    RBF_mesh_movement.cpp
+    LinearElasticity_mesh_movement.cpp
     )
 
 foreach(dim RANGE 1 3)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_RBF_mesh_movement)
+    string(CONCAT TEST_TARGET ${dim}D_LinearElasticity_mesh_movement)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
@@ -70,8 +70,14 @@ foreach(dim RANGE 1 3)
         set (NMPI ${MPIMAX})
     endif()
 
+    if (dim EQUAL 3)
+        set (LENGTH LONG)
+    else()
+        set (LENGTH SHORT)
+    endif()
+
     add_test(
-      NAME ${TEST_TARGET}
+      NAME ${TEST_TARGET}_${LENGTH}
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )

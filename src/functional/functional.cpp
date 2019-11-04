@@ -20,7 +20,7 @@
 namespace PHiLiP {
 
 template <int dim, int nstate, typename real>
-real Functional<dim,nstate, real>::evaluate_function(
+real Functional<dim, nstate, real>::evaluate_function(
     DGBase<dim,real> &dg, 
     const Physics::PhysicsBase<dim,nstate,real> &physics)
 {
@@ -40,7 +40,7 @@ real Functional<dim,nstate, real>::evaluate_function(
     dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg.fe_collection, dg.face_quadrature_collection,   this->face_update_flags);
 
     dg.solution.update_ghost_values();
-    for(auto cell = dg.dof_handler.begin_active(); cell != dg.dof_handler.end(); cell++){
+    for(auto cell = dg.dof_handler.begin_active(); cell != dg.dof_handler.end(); ++cell){
         if(!cell->is_locally_owned()) continue;
 
         // setting up the volume integration
@@ -64,7 +64,7 @@ real Functional<dim,nstate, real>::evaluate_function(
 
         // getting solution values
         local_solution.resize(n_dofs_curr_cell);
-        for(unsigned int idof = 0; idof < n_dofs_curr_cell; idof++){
+        for(unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof){
             local_solution[idof] = dg.solution[current_dofs_indices[idof]];
         }
 
@@ -72,7 +72,7 @@ real Functional<dim,nstate, real>::evaluate_function(
         local_sum += this->evaluate_cell_volume(physics, fe_values_volume, local_solution);
 
         // next looping over the faces of the cell checking for boundary elements
-        for(unsigned int iface = 0; iface < dealii::GeometryInfo<dim>::faces_per_cell; iface++){
+        for(unsigned int iface = 0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface){
             auto face = cell->face(iface);
             
             if(face->at_boundary()){
@@ -91,9 +91,9 @@ real Functional<dim,nstate, real>::evaluate_function(
 }
 
 template <int dim, int nstate, typename real>
-dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate, real>::evaluate_dIdw(
+dealii::LinearAlgebra::distributed::Vector<real> Functional<dim, nstate, real>::evaluate_dIdw(
     DGBase<dim,real> &dg, 
-    const Physics::PhysicsBase<dim,nstate,real> &physics)
+    const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> &physics)
 {
     // for the AD'd return variable
     using ADType = Sacado::Fad::DFad<real>;
@@ -122,7 +122,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate, real>::e
     dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg.fe_collection, dg.face_quadrature_collection,   this->face_update_flags);
 
     dg.solution.update_ghost_values();
-    for(auto cell = dg.dof_handler.begin_active(); cell != dg.dof_handler.end(); cell++){
+    for(auto cell = dg.dof_handler.begin_active(); cell != dg.dof_handler.end(); ++cell){
         if(!cell->is_locally_owned()) continue;
 
         // setting up the volume integration
@@ -143,7 +143,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate, real>::e
 
         // getting their values and setting up 
         local_solution.resize(n_dofs_curr_cell);
-        for(unsigned int idof = 0; idof < n_dofs_curr_cell; idof++){
+        for(unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof){
             local_solution[idof] = dg.solution[current_dofs_indices[idof]];
             local_solution[idof].diff(idof, n_dofs_curr_cell);
         }
@@ -152,7 +152,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate, real>::e
         local_sum = this->evaluate_cell_volume(physics, fe_values_volume, local_solution);
 
         // next looping over the faces of the cell checking for boundary elements
-        for(unsigned int iface = 0; iface < dealii::GeometryInfo<dim>::faces_per_cell; iface++){
+        for(unsigned int iface = 0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface){
             auto face = cell->face(iface);
             
             if(face->at_boundary()){
@@ -168,8 +168,8 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate, real>::e
 
         // now getting the values and adding them to the derivaitve vector
         local_dIdw.resize(n_dofs_curr_cell);
-        for(unsigned int idof = 0; idof < n_dofs_curr_cell; idof++){
-            local_dIdw[idof] = local_sum.fastAccessDx(idof);
+        for(unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof){
+            local_dIdw[idof] = local_sum.dx(idof);
         }
         dIdw.add(current_dofs_indices, local_dIdw);
     }

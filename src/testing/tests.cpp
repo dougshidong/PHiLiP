@@ -8,6 +8,7 @@
 #include "grid_study.h"
 #include "burgers_stability.h"
 #include "euler_gaussian_bump.h"
+#include "euler_gaussian_bump_adjoint.h"
 #include "euler_cylinder.h"
 #include "euler_vortex.h"
 #include "euler_entropy_waves.h"
@@ -71,7 +72,9 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
         if constexpr (dim>=2 && nstate==PHILIP_DIM+2) return std::make_unique<EulerEntropyWaves<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_split_taylor_green) {
     	if constexpr (dim==3 && nstate == dim+2) return std::make_unique<EulerTaylorGreen<dim,nstate>>(parameters_input);
-    } else {
+    } else if(test_type == Test_enum::euler_gaussian_bump_adjoint){
+        if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerGaussianBumpAdjoint<dim,nstate>>(parameters_input);
+    }else{
         std::cout << "Invalid test." << std::endl;
     }
 

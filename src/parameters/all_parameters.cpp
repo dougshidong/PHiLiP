@@ -43,6 +43,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " run_control | "
                       " burgers_energy_stability | "
                       " euler_gaussian_bump | "
+                      " euler_gaussian_bump_adjoint | "
                       " euler_cylinder | "
                       " euler_vortex | "
                       " euler_entropy_waves | "
@@ -110,6 +111,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (test_string == "run_control") { test_type = run_control; }
     else if (test_string == "burgers_energy_stability") { test_type = burgers_energy_stability; }
     else if (test_string == "euler_gaussian_bump") { test_type = euler_gaussian_bump; }
+    else if (test_string == "euler_gaussian_bump_adjoint") {test_type = euler_gaussian_bump_adjoint;}
     else if (test_string == "euler_cylinder") { test_type = euler_cylinder; }
     else if (test_string == "euler_vortex") { test_type = euler_vortex; }
     else if (test_string == "euler_entropy_waves") { test_type = euler_entropy_waves; }
@@ -117,7 +119,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "jacobian_regression") { test_type = jacobian_regression; }
     else if (test_string == "advection_periodicity") {test_type = advection_periodicity; }
     else if (test_string == "euler_split_taylor_green") {test_type = euler_split_taylor_green;}
-
+    
     const std::string pde_string = prm.get("pde_type");
     if (pde_string == "advection") {
         pde_type = advection;

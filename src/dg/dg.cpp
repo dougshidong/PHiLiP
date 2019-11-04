@@ -55,6 +55,7 @@ DGFactory<dim,real>
 ::create_discontinuous_galerkin(
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
+    const unsigned int max_degree_input,
     Triangulation *const triangulation_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
@@ -62,35 +63,46 @@ DGFactory<dim,real>
     PDE_enum pde_type = parameters_input->pde_type;
     if (parameters_input->use_weak_form) {
         if (pde_type == PDE_enum::advection) {
-            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree, triangulation_input);
+            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree, max_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::advection_vector) {
-            return std::make_shared< DGWeak<dim,2,real> >(parameters_input, degree, triangulation_input);
+            return std::make_shared< DGWeak<dim,2,real> >(parameters_input, degree, max_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::diffusion) {
-            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree, triangulation_input);
+            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree, max_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::convection_diffusion) {
-            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree, triangulation_input);
+            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree, max_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::burgers_inviscid) {
-            return std::make_shared< DGWeak<dim,dim,real> >(parameters_input, degree, triangulation_input);
+            return std::make_shared< DGWeak<dim,dim,real> >(parameters_input, degree, max_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::euler) {
-            return std::make_shared< DGWeak<dim,dim+2,real> >(parameters_input, degree, triangulation_input);
+            return std::make_shared< DGWeak<dim,dim+2,real> >(parameters_input, degree, max_degree_input, triangulation_input);
         }
     } else {
         if (pde_type == PDE_enum::advection) {
-            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree, triangulation_input);
+            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree, max_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::advection_vector) {
-            return std::make_shared< DGStrong<dim,2,real> >(parameters_input, degree, triangulation_input);
+            return std::make_shared< DGStrong<dim,2,real> >(parameters_input, degree, max_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::diffusion) {
-            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree, triangulation_input);
+            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree, max_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::convection_diffusion) {
-            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree, triangulation_input);
+            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree, max_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::burgers_inviscid) {
-            return std::make_shared< DGStrong<dim,dim,real> >(parameters_input, degree, triangulation_input);
+            return std::make_shared< DGStrong<dim,dim,real> >(parameters_input, degree, max_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::euler) {
-            return std::make_shared< DGStrong<dim,dim+2,real> >(parameters_input, degree, triangulation_input);
+            return std::make_shared< DGStrong<dim,dim+2,real> >(parameters_input, degree, max_degree_input, triangulation_input);
         }
     }
     std::cout << "Can't create DGBase in create_discontinuous_galerkin(). Invalid PDE type: " << pde_type << std::endl;
     return nullptr;
+}
+
+template <int dim, typename real>
+std::shared_ptr< DGBase<dim,real> >
+DGFactory<dim,real>
+::create_discontinuous_galerkin(
+    const Parameters::AllParameters *const parameters_input,
+    const unsigned int degree,
+    Triangulation *const triangulation_input)
+{
+    return create_discontinuous_galerkin(parameters_input, degree, degree, triangulation_input);
 }
 
 // DGBase ***************************************************************************
@@ -98,15 +110,17 @@ template <int dim, typename real>
 DGBase<dim,real>::DGBase(
     const int nstate_input,
     const Parameters::AllParameters *const parameters_input,
+    const unsigned int degree,
     const unsigned int max_degree_input,
     Triangulation *const triangulation_input)
-    : DGBase<dim,real>(nstate_input, parameters_input, max_degree_input, triangulation_input, this->create_collection_tuple(max_degree_input, nstate_input, parameters_input))
+    : DGBase<dim,real>(nstate_input, parameters_input, degree, max_degree_input, triangulation_input, this->create_collection_tuple(max_degree_input, nstate_input, parameters_input))
 { }
 
 template <int dim, typename real>
 DGBase<dim,real>::DGBase( 
     const int nstate_input,
     const Parameters::AllParameters *const parameters_input,
+    const unsigned int degree,
     const unsigned int max_degree_input,
     Triangulation *const triangulation_input,
     const MassiveCollectionTuple collection_tuple)
@@ -127,7 +141,7 @@ DGBase<dim,real>::DGBase(
 
     dof_handler.initialize(*triangulation, fe_collection);
 
-    set_all_cells_fe_degree (fe_collection.size()-1); // Always sets it to the maximum degree
+    set_all_cells_fe_degree(degree); 
 
 }
 

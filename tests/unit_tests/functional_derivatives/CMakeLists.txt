@@ -2,7 +2,7 @@ set(TEST_SRC
     functional_dw_finiteDifferences.cpp
     )
 
-foreach(dim RANGE 1 3)
+foreach(dim RANGE 2 3)
     # Output executable
     string(CONCAT TEST_TARGET ${dim}D_functional_dw_finiteDifferences)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")

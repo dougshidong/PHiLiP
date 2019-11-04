@@ -38,38 +38,37 @@ public:
 
     dealii::LinearAlgebra::distributed::Vector<real> evaluate_dIdw(
         DGBase<dim,real> &dg, 
-        const Physics::PhysicsBase<dim,nstate,real> &physics);
+        const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> &physics);
 
     virtual real evaluate_cell_volume(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
-        const dealii::FEValues<dim,dim> &fe_values_volume,
-        std::vector<real> local_solution)=0;
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &/*physics*/,
+        const dealii::FEValues<dim,dim> &/*fe_values_volume*/,
+        std::vector<real> /*local_solution*/){return (real) 0.0;}
     
     virtual Sacado::Fad::DFad<real> evaluate_cell_volume(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
-        const dealii::FEValues<dim,dim> &fe_values_volume,
-        std::vector<Sacado::Fad::DFad<real>> local_solution)=0;
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> &/*physics*/,
+        const dealii::FEValues<dim,dim> &/*fe_values_volume*/,
+        std::vector<Sacado::Fad::DFad<real>> /*local_solution*/){return (Sacado::Fad::DFad<real>) 0.0;}
 
     virtual real evaluate_cell_boundary(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
-        const unsigned int boundary_id,
-        const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
-        std::vector<real> local_solution)=0;
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &/*physics*/,
+        const unsigned int /*boundary_id*/,
+        const dealii::FEFaceValues<dim,dim> &/*fe_values_boundary*/,
+        std::vector<real> /*local_solution*/){return (real) 0.0;}
 
     virtual Sacado::Fad::DFad<real> evaluate_cell_boundary(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
-        const unsigned int boundary_id,
-        const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
-        std::vector<Sacado::Fad::DFad<real>> local_solution)=0;
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> &/*physics*/,
+        const unsigned int /*boundary_id*/,
+        const dealii::FEFaceValues<dim,dim> &/*fe_values_boundary*/,
+        std::vector<Sacado::Fad::DFad<real>> /*local_solution*/){return (Sacado::Fad::DFad<real>) 0.0;}
 
 protected:
     // Update flags needed at volume points.
     const dealii::UpdateFlags volume_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values;
-    //d Update flags needed at face points.
+    // Update flags needed at face points.
     const dealii::UpdateFlags face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_normal_vectors;
 
 }; // Functional class
-
 
 } // PHiLiP namespace
 

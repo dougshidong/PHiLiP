@@ -53,7 +53,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
 	public:
 		template <typename real2>
 		real2 evaluate_cell_volume(
-			const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+			const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
 			const dealii::FEValues<dim,dim> &fe_values_volume,
 			std::vector<real2> local_solution)
 		{
@@ -74,7 +74,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
 				const dealii::Point<dim> qpoint = (fe_values_volume.quadrature_point(iquad));
 
 				for (int istate=0; istate<nstate; ++istate) {
-					const double uexact = physics.manufactured_solution_function.value(qpoint, istate);
+					const real2 uexact = physics.manufactured_solution_function.value(qpoint, istate);
 					l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_volume.JxW(iquad);
 				}
 			}
@@ -91,25 +91,12 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
 			return evaluate_cell_volume<>(physics, fe_values_volume, local_solution);
 		}
 		Sacado::Fad::DFad<real> evaluate_cell_volume(
-			const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+			const PHiLiP::Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> &physics,
 			const dealii::FEValues<dim,dim> &fe_values_volume,
 			std::vector<Sacado::Fad::DFad<real>> local_solution) override
 		{
 			return evaluate_cell_volume<>(physics, fe_values_volume, local_solution);
 		}
-
-		// empty volume terms
-		real evaluate_cell_boundary(
-        	const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &,
-        	const unsigned int ,
-        	const dealii::FEFaceValues<dim,dim> &,
-        	std::vector<real>) override {return (real)0.0;};
-
-		Sacado::Fad::DFad<real> evaluate_cell_boundary(
-        	const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &,
-        	const unsigned int ,
-        	const dealii::FEFaceValues<dim,dim> &,
-        	std::vector<Sacado::Fad::DFad<real>> ) override {return (Sacado::Fad::DFad<real>) 0.0;};
 
 		dealii::LinearAlgebra::distributed::Vector<real> evaluate_dIdw_finiteDifferences(
 			PHiLiP::DGBase<dim,real> &dg, 
@@ -255,23 +242,24 @@ int main(int argc, char *argv[])
 	pcout << "dg allocated" << std::endl;
 
 	// manufactured solution function
-	std::shared_ptr <PHiLiP::Physics::PhysicsBase<dim,nstate,double>> physics = PHiLiP::Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&all_parameters);
+	std::shared_ptr <PHiLiP::Physics::PhysicsBase<dim,nstate,double>> physics_double = PHiLiP::Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&all_parameters);
+	std::shared_ptr <PHiLiP::Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<double>>> physics_adtype = PHiLiP::Physics::PhysicsFactory<dim, nstate, Sacado::Fad::DFad<double>>::create_Physics(&all_parameters);
 	pcout << "Physics created" << std::endl;
 	
 	// performing the interpolation for the intial conditions
-	initialize_perturbed_solution(*dg, *physics);
+	initialize_perturbed_solution(*dg, *physics_double);
 	pcout << "solution initialized" << std::endl;
 
 	L2_Norm_Functional<dim,nstate,double> l2norm;
-	double l2error_mpi_sum2 = std::sqrt(l2norm.evaluate_function(*dg, *physics));
+	double l2error_mpi_sum2 = std::sqrt(l2norm.evaluate_function(*dg, *physics_double));
 	pcout << std::endl << "Overall error: " << l2error_mpi_sum2 << std::endl;
 
 	// evaluating the derivative (using SACADO)
-	dealii::LinearAlgebra::distributed::Vector<double> dIdw = l2norm.evaluate_dIdw(*dg, *physics);
+	dealii::LinearAlgebra::distributed::Vector<double> dIdw = l2norm.evaluate_dIdw(*dg, *physics_adtype);
 	// dIdw.print(std::cout);
 
 	// evaluating the derivative (using finite differneces)
-	dealii::LinearAlgebra::distributed::Vector<double> dIdw_FD = l2norm.evaluate_dIdw_finiteDifferences(*dg, *physics, STEPSIZE);
+	dealii::LinearAlgebra::distributed::Vector<double> dIdw_FD = l2norm.evaluate_dIdw_finiteDifferences(*dg, *physics_double, STEPSIZE);
 	// dIdw_FD.print(std::cout);
 
 	// comparing the results and checking its within the specified tolerance

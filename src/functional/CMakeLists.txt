@@ -1,5 +1,6 @@
 SET(SOURCE
     functional.cpp
+    adjoint.cpp
     )
 
 foreach(dim RANGE 1 3)
@@ -11,8 +12,12 @@ foreach(dim RANGE 1 3)
     # Library dependency
     string(CONCAT PhysicsLib Physics_${dim}D)
     string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
-    target_link_libraries(${TestsLib} ${PhysicsLib})
-    target_link_libraries(${TestsLib} ${DiscontinuousGalerkinLib})
+    string(CONCAT LinearSolverLib LinearSolver)
+    string(CONCAT PostprocessingLib Postprocessing_${dim}D)
+    target_link_libraries(${FunctionalLib} ${PhysicsLib})
+    target_link_libraries(${FunctionalLib} ${LinearSolverLib})
+    target_link_libraries(${FunctionalLib} ${DiscontinuousGalerkinLib})
+    target_link_libraries(${FunctionalLib} ${PostprocessingLib})
 
     # Setup target with deal.II
     DEAL_II_SETUP_TARGET(${FunctionalLib})
@@ -21,5 +26,7 @@ foreach(dim RANGE 1 3)
     unset(FunctionalLib)
     unset(DiscontinuousGalerkinLib)
     unset(PhysicsLib)
+    unset(LinearSolverLib)
+    unset(PostprocessingLib)
 
 endforeach()

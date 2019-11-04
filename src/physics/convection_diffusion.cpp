@@ -77,6 +77,19 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,rea
 }
 
 template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,real>
+::convective_numerical_split_flux (
+    const std::array<real,nstate> &soln1,
+    const std::array<real,nstate> &soln2) const
+{
+    std::array<real,nstate> arr_avg;
+    for (int i = 0 ; i < nstate; ++i) {
+        arr_avg[i] = (soln1[i] + soln2[i])/2.;
+    }
+    return convective_flux(arr_avg);
+}
+
+template <int dim, int nstate, typename real>
 dealii::Tensor<1,dim,real> ConvectionDiffusion<dim,nstate,real>
 ::advection_speed () const
 {

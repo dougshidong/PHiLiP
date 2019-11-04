@@ -48,12 +48,9 @@ namespace Step10
       // Description of the upper face of the square
     class UpperManifold: public ChartManifold<2,2,2> {
     public:
-        virtual Point<2>
-        pull_back(const Point<2> &space_point) const;
-        virtual Point<2>
-        push_forward(const Point<2> &chart_point) const;
-        
-        virtual std::unique_ptr<Manifold<2,2> > clone() const;
+        virtual Point<2> pull_back(const Point<2> &space_point) const; ///< See dealii::Manifold::pull_back().
+        virtual Point<2> push_forward(const Point<2> &chart_point) const; ///< See dealii::Manifold::pull_forward().
+        virtual std::unique_ptr<Manifold<2,2> > clone() const; ///< See dealii::Manifold::clone().
     };
   
     Point<2> UpperManifold::pull_back(const Point<2> &space_point) const {

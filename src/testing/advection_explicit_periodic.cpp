@@ -28,8 +28,6 @@ template <int dim, int nstate>
 AdvectionPeriodic<dim, nstate>::AdvectionPeriodic(const PHiLiP::Parameters::AllParameters *const parameters_input)
 :
 TestsBase::TestsBase(parameters_input)
-, mpi_communicator(MPI_COMM_WORLD)
-, pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {}
 
 

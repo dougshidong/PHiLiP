@@ -7,8 +7,6 @@ template <int dim, int nstate>
 EulerTaylorGreen<dim, nstate>::EulerTaylorGreen(const Parameters::AllParameters *const parameters_input)
 :
 TestsBase::TestsBase(parameters_input)
-, mpi_communicator(MPI_COMM_WORLD)
-, pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {}
 
 //template <int dim, int nstate>
@@ -85,7 +83,7 @@ template <int dim, int nstate>
 int EulerTaylorGreen<dim, nstate>::run_test() const
 {
 	//dealii::Triangulation<dim> grid;
-	dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator);
+	dealii::parallel::distributed::Triangulation<dim> grid(mpi_communicator);
 
 	double left = 0.0;
 	double right = 2 * dealii::numbers::PI;

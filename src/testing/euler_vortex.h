@@ -29,15 +29,12 @@ public:
         const real vortex_strength,
         const real vortex_stddev_decay);
 
-    const Physics::Euler<dim, dim+2, real> euler_physics;
-    const real vortex_characteristic_length; // R
-    const dealii::Point<dim> initial_vortex_center; // x_c, y_c
-    const real vortex_strength; // beta
-    const real vortex_stddev_decay; // sigma
+    const Physics::Euler<dim, dim+2, real> euler_physics; ///< Euler physics.
+    const real vortex_characteristic_length; ///< R
+    const dealii::Point<dim> initial_vortex_center; ///< x_c, y_c
+    const real vortex_strength; ///< beta
+    const real vortex_stddev_decay; ///< sigma
 
-    /// Destructor
-    ~EulerVortexFunction() {};
-  
     /// Manufactured solution exact value
     /** \code
      *  u[s] = A[s]*sin(freq[s][0]*x)*sin(freq[s][1]*y)*sin(freq[s][2]*z);
@@ -46,6 +43,7 @@ public:
     real value (const dealii::Point<dim> &point, const unsigned int istate = 0) const;
 
 private:
+    /// Exact solution using the current \p time provided by the dealii::Function class
     dealii::Point<dim> advected_location(const dealii::Point<dim> old_location) const;
 
 };
@@ -61,8 +59,6 @@ public:
     /** Simply calls the TestsBase constructor to set its parameters = parameters_input
      */
     EulerVortex(const Parameters::AllParameters *const parameters_input);
-
-    ~EulerVortex() {}; ///< Destructor.
 
     /// Manufactured grid convergence
     /** Will run the a grid convergence test for various p

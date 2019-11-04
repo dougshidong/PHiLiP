@@ -11,13 +11,14 @@
 namespace PHiLiP {
 namespace Tests {
 
+/// Gaussian bump manifold.
 class BumpManifold: public dealii::ChartManifold<2,2,2> {
 public:
-    virtual dealii::Point<2> pull_back(const dealii::Point<2> &space_point) const override;
-    virtual dealii::Point<2> push_forward(const dealii::Point<2> &chart_point) const override;
-    virtual dealii::DerivativeForm<1,2,2> push_forward_gradient(const dealii::Point<2> &chart_point) const override;
+    virtual dealii::Point<2> pull_back(const dealii::Point<2> &space_point) const override; ///< See dealii::Manifold.
+    virtual dealii::Point<2> push_forward(const dealii::Point<2> &chart_point) const override; ///< See dealii::Manifold.
+    virtual dealii::DerivativeForm<1,2,2> push_forward_gradient(const dealii::Point<2> &chart_point) const override; ///< See dealii::Manifold.
     
-    virtual std::unique_ptr<dealii::Manifold<2,2> > clone() const override;
+    virtual std::unique_ptr<dealii::Manifold<2,2> > clone() const override; ///< See dealii::Manifold.
 };
 
 /// Performs grid convergence for various polynomial degrees.
@@ -32,9 +33,7 @@ public:
      */
     EulerGaussianBump(const Parameters::AllParameters *const parameters_input);
 
-    ~EulerGaussianBump() {}; ///< Destructor.
-
-    // Warp grid into Gaussian bump
+    /// Warp grid into Gaussian bump
     static dealii::Point<dim> warp (const dealii::Point<dim> &p);
 
     /// Grid convergence on Euler Gaussian Bump
@@ -52,7 +51,8 @@ public:
 
 protected:
 
-    double integrate_entropy_over_domain(DGBase<dim,double> &dg) const;
+    //  // Integrate entropy over the entire domain to use as a functional.
+    //  double integrate_entropy_over_domain(DGBase<dim,double> &dg) const;
 };
 
 

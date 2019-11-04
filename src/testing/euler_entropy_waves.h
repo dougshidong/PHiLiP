@@ -9,7 +9,9 @@
 namespace PHiLiP {
 namespace Tests {
 
-// Masatsuka2018 section 6.3 & section 7.13.3
+/// Exact entropy waves solution.
+/** Masatsuka2018 section 6.3 & section 7.13.3
+ */
 template <int dim, typename real>
 class EulerEntropyWavesFunction : public dealii::Function<dim,real>
 {
@@ -21,10 +23,10 @@ public:
      */
     EulerEntropyWavesFunction (const Physics::Euler<dim, dim+2, real> euler_physics, const real dimensional_density_inf);
 
-    const Physics::Euler<dim, dim+2, real> euler_physics;
+    const Physics::Euler<dim, dim+2, real> euler_physics; ///< Euler physics.
 
-    const real dimensional_density_inf;
-    real Q_inf;
+    const real dimensional_density_inf; ///< Dimensional density at infinity.
+    real Q_inf; ///< Velocity at infinity.
 
     /// Destructor
     ~EulerEntropyWavesFunction() {};
@@ -54,6 +56,7 @@ public:
     real value (const dealii::Point<dim> &point, const unsigned int istate = 0) const;
 
 private:
+    /// Exact solution using the current \p time provided by the dealii::Function class
     dealii::Point<2> advected_location(const dealii::Point<2> old_location) const;
 
 };
@@ -69,8 +72,6 @@ public:
     /** Simply calls the TestsBase constructor to set its parameters = parameters_input
      */
     EulerEntropyWaves(const Parameters::AllParameters *const parameters_input);
-
-    ~EulerEntropyWaves() {}; ///< Destructor.
 
     /// Manufactured grid convergence
     /** Will run the a grid convergence test for various p

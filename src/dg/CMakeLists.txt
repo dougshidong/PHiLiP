@@ -1,6 +1,7 @@
 set(DG_SOURCE
     high_order_grid.cpp
     dg.cpp
+    drdx.cpp
     weak_dg.cpp
     strong_dg.cpp
     )
@@ -20,7 +21,9 @@ foreach(dim RANGE 1 3)
     target_link_libraries(${DiscontinuousGalerkinLib} ${NumericalFluxLib})
     target_link_libraries(${DiscontinuousGalerkinLib} ${PhysicsLib})
     # Setup target with deal.II
-    DEAL_II_SETUP_TARGET(${DiscontinuousGalerkinLib})
+    if(NOT DOC_ONLY)
+        DEAL_II_SETUP_TARGET(${DiscontinuousGalerkinLib})
+    endif()
 
     unset(DiscontinuousGalerkinLib)
     unset(NumericalFluxLib)

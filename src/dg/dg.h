@@ -67,8 +67,16 @@ template <int dim, typename real>
 class DGBase 
 {
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    /** Triangulation to store the grid.
+     *  In 1D, dealii::Triangulation<dim> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
+     */
     using Triangulation = dealii::Triangulation<dim>;
 #else
+    /** Triangulation to store the grid.
+     *  In 1D, dealii::Triangulation<dim> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
+     */
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
 #endif
 public:
@@ -217,6 +225,16 @@ public:
      */
     dealii::LinearAlgebra::distributed::Vector<double> solution;
 
+    /// Evaluate SparsityPattern of dRdX
+    /*  Where R represents the residual and X represents the grid degrees of freedom stored as high_order_grid.nodes.
+     */
+    dealii::SparsityPattern get_dRdX_sparsity_pattern ();
+
+    /// Evaluate dRdX using finite-differences
+    /*  Where R represents the residual and X represents the grid degrees of freedom stored as high_order_grid.nodes.
+     */
+    dealii::TrilinosWrappers::SparseMatrix get_dRdX_finite_differences (dealii::SparsityPattern dRdX_sparsity_pattern);
+
     void initialize_manufactured_solution (); ///< Virtual function defined in DG
 
     void output_results_vtk (const unsigned int ith_grid); ///< Output solution
@@ -256,6 +274,22 @@ public:
     //void assemble_residual_dRdW ();
     void assemble_residual (const bool compute_dRdW=false);
 
+    /// Used in assemble_residual(). 
+    /** IMPORTANT: This does not fully compute the cell residual since it might not
+     *  perform the work on all the faces.
+     *  All the active cells must be traversed to ensure that the right hand side is correct.
+     */
+    template<typename DoFCellAccessorType>
+    void assemble_cell_residual (
+        const DoFCellAccessorType &current_cell,
+        const bool compute_dRdW,
+        dealii::hp::FEValues<dim,dim>        &fe_values_collection_volume,
+        dealii::hp::FEFaceValues<dim,dim>    &fe_values_collection_face_int,
+        dealii::hp::FEFaceValues<dim,dim>    &fe_values_collection_face_ext,
+        dealii::hp::FESubfaceValues<dim,dim> &fe_values_collection_subface,
+        dealii::hp::FEValues<dim,dim>        &fe_values_collection_volume_lagrange,
+        dealii::LinearAlgebra::distributed::Vector<double> &rhs);
+
     /// Finite Element Collection for p-finite-element to represent the solution
     /** This is a collection of FESystems */
     const dealii::hp::FECollection<dim>    fe_collection;
@@ -268,8 +302,11 @@ public:
     //const dealii::hp::FECollection<dim>    fe_collection_grid;
     //const dealii::FESystem<dim>    fe_grid;
 
+    /// Quadrature used to evaluate volume integrals.
     dealii::hp::QCollection<dim>     volume_quadrature_collection;
+    /// Quadrature used to evaluate face integrals.
     dealii::hp::QCollection<dim-1>   face_quadrature_collection;
+    /// 1D quadrature to generate Lagrange polynomials for the sake of flux interpolation.
     dealii::hp::QCollection<1>       oned_quadrature_collection;
 
 protected:
@@ -379,7 +416,7 @@ protected:
     const dealii::UpdateFlags face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_normal_vectors;
     /// Update flags needed at neighbor' face points. 
     /** NOTE: With hp-adaptation, might need to query neighbor's quadrature points depending on the order of the cells. */
-    const dealii::UpdateFlags neighbor_face_update_flags = dealii::update_values | dealii::update_gradients;
+    const dealii::UpdateFlags neighbor_face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values;
 
 
 
@@ -387,6 +424,28 @@ protected:
     MPI_Comm mpi_communicator; ///< MPI communicator
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 private:
+
+    /// Evaluate the average penalty term at the face
+    /** For a cell with solution of degree p, and Hausdorff measure h,
+     *  which represents the element dimension orthogonal to the face,
+     *  the penalty term is given by p*(p+1)/h .
+     */
+    template<typename DoFCellAccessorType>
+    real evaluate_penalty_scaling (
+        const DoFCellAccessorType &cell,
+        const int iface,
+        const dealii::hp::FECollection<dim> fe_collection) const;
+
+    /// In the case that two cells have the same coarseness, this function decides if the current cell should perform the work.
+    /** In the case the neighbor is a ghost cell, we let the processor with the lower rank do the work on that face.
+     *  We cannot use the cell->index() because the index is relative to the distributed triangulation.
+     *  Therefore, the cell index of a ghost cell might be different to the physical cell index even if they refer to the same cell.
+     *
+     *  For a locally owned neighbor cell, cell with lower index does work or if both cells have same index, then cell at the lower level does the work
+     *  See https://www.dealii.org/developer/doxygen/deal.II/classTriaAccessorBase.html#a695efcbe84fefef3e4c93ee7bdb446ad
+     */
+    template<typename DoFCellAccessorType1, typename DoFCellAccessorType2>
+    bool current_cell_should_do_the_work (const DoFCellAccessorType1 &current_cell, const DoFCellAccessorType2 &neighbor_cell) const;
 
     /// Used in the delegated constructor
     /** The main reason we use this weird function is because all of the above objects
@@ -404,21 +463,28 @@ template <int dim, int nstate, typename real>
 class DGWeak : public DGBase<dim, real>
 {
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    /** Triangulation to store the grid.
+     *  In 1D, dealii::Triangulation<dim> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
+     */
     using Triangulation = dealii::Triangulation<dim>;
 #else
+    /** Triangulation to store the grid.
+     *  In 1D, dealii::Triangulation<dim> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
+     */
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
 #endif
 public:
-    /// Constructor
+    /// Constructor.
     DGWeak(
         const Parameters::AllParameters *const parameters_input, 
         const unsigned int degree,
         Triangulation *const triangulation_input);
 
-    ~DGWeak(); ///< Destructor
+    ~DGWeak(); ///< Destructor.
 
 private:
-
 
     /// Contains the physics of the PDE
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<real> > > pde_physics;
@@ -497,8 +563,16 @@ template <int dim, int nstate, typename real>
 class DGStrong : public DGBase<dim, real>
 {
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    /** Triangulation to store the grid.
+     *  In 1D, dealii::Triangulation<dim> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
+     */
     using Triangulation = dealii::Triangulation<dim>;
 #else
+    /** Triangulation to store the grid.
+     *  In 1D, dealii::Triangulation<dim> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
+     */
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
 #endif
 public:
@@ -591,8 +665,16 @@ template <int dim, typename real>
 class DGFactory
 {
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    /** Triangulation to store the grid.
+     *  In 1D, dealii::Triangulation<dim> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
+     */
     using Triangulation = dealii::Triangulation<dim>;
 #else
+    /** Triangulation to store the grid.
+     *  In 1D, dealii::Triangulation<dim> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
+     */
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
 #endif
 public:

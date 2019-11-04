@@ -12,6 +12,8 @@ set(ParameterLib ParametersLibrary)
 add_library(${ParameterLib} STATIC ${SOURCE})
 
 # Setup target with deal.II
-DEAL_II_SETUP_TARGET(${ParameterLib})
+if(NOT DOC_ONLY)
+    DEAL_II_SETUP_TARGET(${ParameterLib})
+endif()
 
 unset(ParameterLib)

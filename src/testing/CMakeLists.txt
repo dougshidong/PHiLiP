@@ -32,7 +32,9 @@ foreach(dim RANGE 1 3)
     target_link_libraries(${TestsLib} ${ODESolverLib})
     target_link_libraries(${TestsLib} ${LinearSolverLib})
     # Setup target with deal.II
-    DEAL_II_SETUP_TARGET(${TestsLib})
+    if(NOT DOC_ONLY)
+        DEAL_II_SETUP_TARGET(${TestsLib})
+    endif()
 
     unset(TestsLib)
     unset(DiscontinuousGalerkinLib)

@@ -25,18 +25,21 @@
 #include "dg/dg.h"
 #include "ode_solver/ode_solver.h"
 
-//#include "template_instantiator.h"
-
 
 namespace PHiLiP {
 namespace Tests {
 
+/// Function used to evaluate farfield conservative solution
 template <int dim, int nstate>
 class FreeStreamInitialConditions : public dealii::Function<dim>
 {
 public:
-    std::array<double,nstate> far_field_conservative;
+    /// Farfield conservative solution
+    std::array<double,nstate> farfield_conservative;
 
+    /// Constructor.
+    /** Evaluates the primary farfield solution and converts it into the store farfield_conservative solution
+     */
     FreeStreamInitialConditions (const Physics::Euler<dim,nstate,double> euler_physics)
     : dealii::Function<dim,double>(nstate)
     {
@@ -46,14 +49,13 @@ public:
         primitive_boundary_values[0] = density_bc;
         for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = euler_physics.velocities_inf[d]; }
         primitive_boundary_values[nstate-1] = pressure_bc;
-        far_field_conservative = euler_physics.convert_primitive_to_conservative(primitive_boundary_values);
+        farfield_conservative = euler_physics.convert_primitive_to_conservative(primitive_boundary_values);
     }
-
-    ~FreeStreamInitialConditions() {};
   
+    /// Returns the istate-th farfield conservative value
     double value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const
     {
-        return far_field_conservative[istate];
+        return farfield_conservative[istate];
     }
 };
 template class FreeStreamInitialConditions <PHILIP_DIM, PHILIP_DIM+2>;
@@ -167,7 +169,7 @@ int EulerGaussianBump<dim,nstate>
     FreeStreamInitialConditions<dim,nstate> initial_conditions(euler_physics_double);
     pcout << "Farfield conditions: "<< std::endl;
     for (int s=0;s<nstate;s++) {
-        pcout << initial_conditions.far_field_conservative[s] << std::endl;
+        pcout << initial_conditions.farfield_conservative[s] << std::endl;
     }
 
     std::vector<int> fail_conv_poly;

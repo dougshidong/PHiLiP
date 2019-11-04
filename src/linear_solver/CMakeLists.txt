@@ -9,7 +9,9 @@ add_library(${LinearSolverLib} STATIC ${SOURCE})
 target_compile_definitions(${LinearSolverLib} PRIVATE PHILIP_DIM=${dim})
 
 # Setup target with deal.II
-DEAL_II_SETUP_TARGET(${LinearSolverLib})
+if(NOT DOC_ONLY)
+    DEAL_II_SETUP_TARGET(${LinearSolverLib})
+endif()
 
 unset(LinearSolverLib)
 

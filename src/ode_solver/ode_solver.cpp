@@ -61,6 +61,7 @@ template <int dim, typename real>
 int ODESolver<dim,real>::steady_state ()
 {
     Parameters::ODESolverParam ode_param = ODESolver<dim,real>::all_parameters->ode_solver_param;
+    if (ode_param.output_solution_every_x_steps >= 0) this->dg->output_results_vtk(this->current_iteration);
     pcout << " Performing steady state analysis... " << std::endl;
     allocate_ode_system ();
 
@@ -68,8 +69,6 @@ int ODESolver<dim,real>::steady_state ()
     this->residual_norm_decrease = 1; // Always do at least 1 iteration
     update_norm = 1; // Always do at least 1 iteration
     this->current_iteration = 0;
-
-    if (ode_param.output_solution_every_x_steps >= 0) this->dg->output_results_vtk(this->current_iteration);
 
     pcout << " Evaluating right-hand side and setting system_matrix to Jacobian before starting iterations... " << std::endl;
     this->dg->assemble_residual ();

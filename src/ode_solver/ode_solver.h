@@ -22,17 +22,24 @@ template <int dim, typename real>
 class ODESolver
 {
 public:
-    ODESolver(int ode_solver_type); ///< Constructor
-    ODESolver(std::shared_ptr< DGBase<dim, real> > dg_input); ///< Constructor
-    virtual ~ODESolver() {}; ///< Destructor
+    ODESolver(int ode_solver_type); ///< Constructor.
+    ODESolver(std::shared_ptr< DGBase<dim, real> > dg_input); ///< Constructor.
+    virtual ~ODESolver() {}; ///< Destructor.
 
     /// Useful for accurate time-stepping.
     /** This variable will change when advance_solution_time() or step_in_time() is called. */
     double current_time;
 
-    /// Evaluate steady state solution
+    /// Evaluate steady state solution.
     int steady_state ();
 
+    /// Ramps up the solution from p0 all the way up to the given global_final_poly_degree.
+    /** This first interpolates the current solution to the P0 space as an initial solution.
+     *  The P0 is then solved, interpolated to P1, and the process is repeated until the
+     *  desired polynomial is solved.
+     *
+     *  This is mainly usely for grid studies.
+     */
     void initialize_steady_polynomial_ramping (const unsigned int global_final_poly_degree);
 
 
@@ -48,8 +55,8 @@ public:
     unsigned int current_iteration; ///< Current iteration.
 
 protected:
-    double update_norm;
-    double initial_residual_norm;
+    double update_norm; ///< Norm of the solution update.
+    double initial_residual_norm; ///< Initial residual norm.
 
     /// Virtual function to evaluate solution update
     virtual void step_in_time(real dt) = 0;
@@ -61,15 +68,19 @@ protected:
     /// Solution update given by the ODE solver
     dealii::LinearAlgebra::distributed::Vector<double> solution_update;
 
+    /// Stores the various RK stages.
+    /** Currently hard-coded to RK4.
+     */
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;
 
     /// Smart pointer to DGBase
     std::shared_ptr<DGBase<dim,real>> dg;
 
+    /// Input parameters.
     const Parameters::AllParameters *const all_parameters;
 
-    const MPI_Comm mpi_communicator;
-    dealii::ConditionalOStream pcout;
+    const MPI_Comm mpi_communicator; ///< MPI communicator.
+    dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
 
 }; // end of ODESolver class
@@ -104,10 +115,15 @@ public:
     ODESolver<dim,real>::ODESolver(dg_input)
     {};
     ~Implicit_ODESolver() {}; ///< Destructor.
+    /// Allocates ODE system based on given DGBase.
+    /** Basically allocates solution vector and asks DGBase to evaluate the mass matrix.
+     */
     void allocate_ode_system ();
 protected:
+    /// Advances the solution in time by \p dt.
     void step_in_time(real dt);
-    using ODESolver<dim,real>::pcout;
+
+    using ODESolver<dim,real>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
 }; // end of Implicit_ODESolver class
 
@@ -121,16 +137,20 @@ class Explicit_ODESolver
     : public ODESolver<dim, real>
 {
 public:
-    Explicit_ODESolver() = delete;
+    /// Constructor.
     Explicit_ODESolver(std::shared_ptr<DGBase<dim, real>> dg_input)
     : ODESolver<dim,real>::ODESolver(dg_input) 
     {};
+    /// Destructor.
     ~Explicit_ODESolver() {};
+    /// Allocates ODE system based on given DGBase.
+    /** Basically allocates rk-stages and solution vector and asks DGBase to evaluate the inverse mass matrix.
+     */
     void allocate_ode_system ();
 
 protected:
-    void step_in_time(real dt);
-    using ODESolver<dim,real>::pcout;
+    void step_in_time(real dt); ///< Advances the solution in time by \p dt.
+    using ODESolver<dim,real>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 }; // end of Explicit_ODESolver class
 
 /// Creates and assemble Explicit_ODESolver or Implicit_ODESolver as ODESolver based on input.
@@ -138,8 +158,11 @@ template <int dim, typename real>
 class ODESolverFactory
 {
 public:
+    /// Creates the ODE solver given a DGBase.
+    /** The input parameters are copied from the DGBase since they should be consistent
+     */
     static std::shared_ptr<ODESolver<dim,real>> create_ODESolver(std::shared_ptr< DGBase<dim, real> > dg_input);
-    static std::shared_ptr<ODESolver<dim,real>> create_ODESolver(Parameters::ODESolverParam::ODESolverEnum ode_solver_type);
+    // static std::shared_ptr<ODESolver<dim,real>> create_ODESolver(Parameters::ODESolverParam::ODESolverEnum ode_solver_type);
 };
 
 

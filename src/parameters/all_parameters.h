@@ -41,6 +41,9 @@ public:
     /// Flag to use split form.
     bool use_split_form;
 
+    /// Flag to use periodic BC.
+    /** Not fully tested.
+     */
     bool use_periodic_bc;
 
     /// Number of state variables. Will depend on PDE
@@ -61,7 +64,7 @@ public:
         burgers_split_form,
         advection_periodicity,
         };
-    TestType test_type;
+    TestType test_type; ///< Selected TestType from the input file.
 
     /// Currently allows to solve advection, diffusion, convection-diffusion
     enum PartialDifferentialEquation { 
@@ -116,7 +119,7 @@ public:
     //FunctionParser<dim> initial_conditions;
     //BoundaryConditions  boundary_conditions[max_n_boundaries];
 protected:
-    dealii::ConditionalOStream pcout;
+    dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
 };  
 

@@ -20,6 +20,12 @@
 
 namespace PHiLiP {
 
+// for storing the current state in the adjoint
+enum AdjointEnum {
+    coarse,
+    fine,
+};
+
 // Adjoint class
 template <int dim, int nstate, typename real>
 class Adjoint
@@ -30,11 +36,6 @@ class Adjoint
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
 #endif
 public:
-    // for storing the current state in the adjoint
-    enum AdjointEnum {
-        coarse,
-        fine,
-    };
 
     //constructor
     Adjoint(
@@ -91,6 +92,9 @@ public:
     // dual weighted residual (always fine due to galerkin orthogonality)
     dealii::Vector<real> dual_weighted_residual_fine;
     
+    // stores the original FE_index distribution
+    dealii::Vector<real> coarse_fe_index;
+
     // adjoint state for conversion tracking
     AdjointEnum adjoint_state;
 

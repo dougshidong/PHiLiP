@@ -28,8 +28,9 @@ DGWeak<dim,nstate,real>::DGWeak(
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
     const unsigned int max_degree_input,
+    const unsigned int grid_degree_input,
     Triangulation *const triangulation_input)
-    : DGBase<dim,real>::DGBase(nstate, parameters_input, degree, max_degree_input, triangulation_input) // Use DGBase constructor
+    : DGBase<dim,real>::DGBase(nstate, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input) // Use DGBase constructor
 {
     using ADtype = Sacado::Fad::DFad<real>;
     pde_physics = Physics::PhysicsFactory<dim,nstate,ADtype> ::create_Physics(parameters_input);

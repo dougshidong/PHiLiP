@@ -56,6 +56,7 @@ DGFactory<dim,real>
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
     const unsigned int max_degree_input,
+    const unsigned int grid_degree_input,
     Triangulation *const triangulation_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
@@ -63,35 +64,47 @@ DGFactory<dim,real>
     PDE_enum pde_type = parameters_input->pde_type;
     if (parameters_input->use_weak_form) {
         if (pde_type == PDE_enum::advection) {
-            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree, max_degree_input, triangulation_input);
+            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::advection_vector) {
-            return std::make_shared< DGWeak<dim,2,real> >(parameters_input, degree, max_degree_input, triangulation_input);
+            return std::make_shared< DGWeak<dim,2,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::diffusion) {
-            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree, max_degree_input, triangulation_input);
+            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::convection_diffusion) {
-            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree, max_degree_input, triangulation_input);
+            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::burgers_inviscid) {
-            return std::make_shared< DGWeak<dim,dim,real> >(parameters_input, degree, max_degree_input, triangulation_input);
+            return std::make_shared< DGWeak<dim,dim,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::euler) {
-            return std::make_shared< DGWeak<dim,dim+2,real> >(parameters_input, degree, max_degree_input, triangulation_input);
+            return std::make_shared< DGWeak<dim,dim+2,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         }
     } else {
         if (pde_type == PDE_enum::advection) {
-            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree, max_degree_input, triangulation_input);
+            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::advection_vector) {
-            return std::make_shared< DGStrong<dim,2,real> >(parameters_input, degree, max_degree_input, triangulation_input);
+            return std::make_shared< DGStrong<dim,2,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::diffusion) {
-            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree, max_degree_input, triangulation_input);
+            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::convection_diffusion) {
-            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree, max_degree_input, triangulation_input);
+            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::burgers_inviscid) {
-            return std::make_shared< DGStrong<dim,dim,real> >(parameters_input, degree, max_degree_input, triangulation_input);
+            return std::make_shared< DGStrong<dim,dim,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::euler) {
-            return std::make_shared< DGStrong<dim,dim+2,real> >(parameters_input, degree, max_degree_input, triangulation_input);
+            return std::make_shared< DGStrong<dim,dim+2,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         }
     }
     std::cout << "Can't create DGBase in create_discontinuous_galerkin(). Invalid PDE type: " << pde_type << std::endl;
     return nullptr;
+}
+
+template <int dim, typename real>
+std::shared_ptr< DGBase<dim,real> >
+DGFactory<dim,real>
+::create_discontinuous_galerkin(
+    const Parameters::AllParameters *const parameters_input,
+    const unsigned int degree,
+    const unsigned int max_degree_input,
+    Triangulation *const triangulation_input)
+{
+    return create_discontinuous_galerkin(parameters_input, degree, max_degree_input, degree+1, triangulation_input);
 }
 
 template <int dim, typename real>
@@ -112,8 +125,9 @@ DGBase<dim,real>::DGBase(
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
     const unsigned int max_degree_input,
+    const unsigned int grid_degree_input,
     Triangulation *const triangulation_input)
-    : DGBase<dim,real>(nstate_input, parameters_input, degree, max_degree_input, triangulation_input, this->create_collection_tuple(max_degree_input, nstate_input, parameters_input))
+    : DGBase<dim,real>(nstate_input, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input, this->create_collection_tuple(max_degree_input, nstate_input, parameters_input))
 { }
 
 template <int dim, typename real>
@@ -122,6 +136,7 @@ DGBase<dim,real>::DGBase(
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
     const unsigned int max_degree_input,
+    const unsigned int grid_degree_input,
     Triangulation *const triangulation_input,
     const MassiveCollectionTuple collection_tuple)
     : all_parameters(parameters_input)
@@ -134,7 +149,7 @@ DGBase<dim,real>::DGBase(
     , oned_quadrature_collection(std::get<3>(collection_tuple))
     , fe_collection_lagrange(std::get<4>(collection_tuple))
     , dof_handler(*triangulation)
-    , high_order_grid(all_parameters, max_degree_input+1, triangulation)
+    , high_order_grid(all_parameters, grid_degree_input, triangulation)
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 { 

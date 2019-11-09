@@ -103,6 +103,7 @@ public:
            const Parameters::AllParameters *const parameters_input,
            const unsigned int degree,
            const unsigned int max_degree_input,
+           const unsigned int grid_degree_input,
            Triangulation *const triangulation_input);
 
 
@@ -124,6 +125,7 @@ public:
             const Parameters::AllParameters *const parameters_input,
             const unsigned int degree,
             const unsigned int max_degree_input,
+            const unsigned int grid_degree_input,
             Triangulation *const triangulation_input,
             const MassiveCollectionTuple collection_tuple);
 
@@ -483,6 +485,7 @@ public:
         const Parameters::AllParameters *const parameters_input, 
         const unsigned int degree,
         const unsigned int max_degree_input,
+        const unsigned int grid_degree_input,
         Triangulation *const triangulation_input);
 
     ~DGWeak(); ///< Destructor.
@@ -584,6 +587,7 @@ public:
         const Parameters::AllParameters *const parameters_input, 
         const unsigned int degree,
         const unsigned int max_degree_input,
+        const unsigned int grid_degree_input,
         Triangulation *const triangulation_input);
 
     /// Destructor
@@ -684,6 +688,15 @@ class DGFactory
 public:
     /// Creates a derived object DG, but returns it as DGBase.
     /** That way, the caller is agnostic to the number of state variables */
+    static std::shared_ptr< DGBase<dim,real> >
+        create_discontinuous_galerkin(
+        const Parameters::AllParameters *const parameters_input, 
+        const unsigned int degree,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input,
+        Triangulation *const triangulation_input);
+
+    // calls the above dg factory with grid_degree_input = degree + 1
     static std::shared_ptr< DGBase<dim,real> >
         create_discontinuous_galerkin(
         const Parameters::AllParameters *const parameters_input, 

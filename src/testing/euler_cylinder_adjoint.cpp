@@ -261,6 +261,9 @@ int EulerCylinderAdjoint<dim,nstate>
         // setting up the target functional (error reduction)
         L2normError<dim, nstate, double> L2normFunctional;
 
+        // initializing an adjoint for this case (destructing each loop to get updated DOF_handler)
+        Adjoint<dim, nstate, double> adjoint(*dg, L2normFunctional, euler_physics_adtype);
+
         dealii::Vector<float> estimated_error_per_cell(grid.n_active_cells());
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
 
@@ -367,8 +370,8 @@ int EulerCylinderAdjoint<dim,nstate>
             const double l2error_functional = L2normFunctional.evaluate_function(*dg, euler_physics_double);
             pcout << "Error computed by original loop: " << l2error_mpi_sum << std::endl << "Error computed by the functional: " << std::sqrt(l2error_functional) << std::endl; 
 
-            // initializing an adjoint for this case (destructing each loop to get updated DOF_handler)
-            Adjoint<dim, nstate, double> adjoint(*dg, L2normFunctional, euler_physics_adtype);
+            // reinitializing the adjoint with the current values (from references)
+            adjoint.reinit();
 
             // evaluating the derivatives and the adjoint on the fine grid
             adjoint.convert_to_state(AdjointEnum::fine); // will do this automatically, but I prefer to repeat explicitly

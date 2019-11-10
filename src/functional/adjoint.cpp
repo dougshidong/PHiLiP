@@ -36,7 +36,6 @@ Adjoint<dim, nstate, real>::Adjoint(
     functional(_functional),
     physics(_physics),
     triangulation(dg.triangulation),
-    solution_transfer(dg.dof_handler),
     solution_coarse(dg.solution),
     adjoint_state(AdjointEnum::coarse),
     mpi_communicator(MPI_COMM_WORLD),
@@ -54,6 +53,31 @@ Adjoint<dim, nstate, real>::Adjoint(
 // destructor
 template <int dim, int nstate, typename real>
 Adjoint<dim, nstate, real>::~Adjoint(){}
+
+template <int dim, int nstate, typename real>
+void Adjoint<dim, nstate, real>::reinit()
+{
+    // assuming that all pointers are still valid
+    // reinitilizing all variables after triangulation in the constructor
+    solution_coarse = dg.solution;
+    adjoint_state = AdjointEnum::coarse;
+
+    // storing the original FE degree distribution
+    coarse_fe_index.reinit(dg.triangulation->n_active_cells());
+
+    // looping over the cells
+    for(auto cell = dg.dof_handler.begin_active(); cell != dg.dof_handler.end(); ++cell)
+        if(cell->is_locally_owned())
+            coarse_fe_index[cell->active_cell_index()] = cell->active_fe_index();
+
+    // for remaining, clearing the values
+    dIdw_fine      = dealii::LinearAlgebra::distributed::Vector<real>();
+    dIdw_coarse    = dealii::LinearAlgebra::distributed::Vector<real>();
+    adjoint_fine   = dealii::LinearAlgebra::distributed::Vector<real>();
+    adjoint_coarse = dealii::LinearAlgebra::distributed::Vector<real>();
+
+    dual_weighted_residual_fine = dealii::Vector<real>();
+}
 
 template <int dim, int nstate, typename real>
 void Adjoint<dim, nstate, real>::convert_to_state(AdjointEnum state)
@@ -79,16 +103,22 @@ void Adjoint<dim, nstate, real>::coarse_to_fine()
 
     // dealii::LinearAlgebra::distributed::Vector<double> solution_coarse(dg.solution);
     solution_coarse.update_ghost_values();
-
-    // dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg.dof_handler);
+    
+    // Solution Transfer to fine grid
+    dealii::parallel::distributed::SolutionTransfer< 
+        dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim> 
+        > solution_transfer(dg.dof_handler);
     solution_transfer.prepare_for_coarsening_and_refinement(solution_coarse);
 
+    dg.high_order_grid.prepare_for_coarsening_and_refinement();
     dg.triangulation->prepare_coarsening_and_refinement();
+
     for (auto cell = dg.dof_handler.begin_active(); cell != dg.dof_handler.end(); ++cell)
         if (cell->is_locally_owned()) 
             cell->set_future_fe_index(cell->active_fe_index()+1);
 
     dg.triangulation->execute_coarsening_and_refinement();
+    dg.high_order_grid.execute_coarsening_and_refinement();
 
     dg.allocate_system();
     dg.solution.zero_out_ghosts();
@@ -103,12 +133,15 @@ void Adjoint<dim, nstate, real>::coarse_to_fine()
 template <int dim, int nstate, typename real>
 void Adjoint<dim, nstate, real>::fine_to_coarse()
 {
+    dg.high_order_grid.prepare_for_coarsening_and_refinement();
     dg.triangulation->prepare_coarsening_and_refinement();
+
     for (auto cell = dg.dof_handler.begin_active(); cell != dg.dof_handler.end(); ++cell)
         if (cell->is_locally_owned()) 
             cell->set_future_fe_index(coarse_fe_index[cell->active_cell_index()]);
 
     dg.triangulation->execute_coarsening_and_refinement();
+    dg.high_order_grid.execute_coarsening_and_refinement();
 
     dg.allocate_system();
     dg.solution.zero_out_ghosts();
@@ -283,7 +316,12 @@ void Adjoint<dim,nstate,real>::output_results_vtk(const unsigned int cycle)
             fn += ".vtu";
             filenames.push_back(fn);
         }
-        std::string master_fn = "adjoint-" + dealii::Utilities::int_to_string(dim, 1) +"D-";
+        std::string master_fn = "adjoint-";
+        if(adjoint_state == AdjointEnum::fine)
+            master_fn += "fine-";
+        else if(adjoint_state == AdjointEnum::coarse)
+            master_fn += "coarse-";
+        master_fn += dealii::Utilities::int_to_string(dim, 1) +"D-";
         master_fn += dealii::Utilities::int_to_string(cycle, 4) + ".pvtu";
         std::ofstream master_output(master_fn);
         data_out.write_pvtu_record(master_output, filenames);

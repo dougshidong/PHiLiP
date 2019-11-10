@@ -46,6 +46,10 @@ public:
     //destructor
     ~Adjoint();
 
+    // reinitialize with the same object pointers
+    void reinit();
+    // to reinitialize with other pointers, just create a new class
+
     // for conversions between states
     void convert_to_state(AdjointEnum state);
 
@@ -75,10 +79,6 @@ public:
     
     // fine grid triangulation
     Triangulation *const triangulation;
-    // Solution Transfer to fine grid
-    dealii::parallel::distributed::SolutionTransfer< 
-        dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim> 
-        > solution_transfer;
     // original solution
     dealii::LinearAlgebra::distributed::Vector<real> solution_coarse;
     // functional derivative (fine grid)

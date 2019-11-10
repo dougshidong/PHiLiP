@@ -10,6 +10,7 @@
 #include "euler_gaussian_bump.h"
 #include "euler_gaussian_bump_adjoint.h"
 #include "euler_cylinder.h"
+#include "euler_cylinder_adjoint.h"
 #include "euler_vortex.h"
 #include "euler_entropy_waves.h"
 #include "advection_explicit_periodic.h"
@@ -64,17 +65,19 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
         if constexpr (dim == 2 && nstate == 1) return std::make_unique<AdvectionPeriodic<dim,nstate>> (parameters_input);
     } else if(test_type == Test_enum::euler_gaussian_bump) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerGaussianBump<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::euler_gaussian_bump_adjoint){
+        if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerGaussianBumpAdjoint<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_cylinder) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerCylinder<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::euler_cylinder_adjoint) {
+        if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerCylinderAdjoint<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_vortex) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerVortex<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_entropy_waves) {
         if constexpr (dim>=2 && nstate==PHILIP_DIM+2) return std::make_unique<EulerEntropyWaves<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_split_taylor_green) {
     	if constexpr (dim==3 && nstate == dim+2) return std::make_unique<EulerTaylorGreen<dim,nstate>>(parameters_input);
-    } else if(test_type == Test_enum::euler_gaussian_bump_adjoint){
-        if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerGaussianBumpAdjoint<dim,nstate>>(parameters_input);
-    }else{
+    } else{
         std::cout << "Invalid test." << std::endl;
     }
 

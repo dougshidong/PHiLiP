@@ -56,6 +56,7 @@ public:
         euler_gaussian_bump,
         euler_gaussian_bump_adjoint,
         euler_cylinder,
+        euler_cylinder_adjoint,
         euler_vortex,
         euler_entropy_waves,
         euler_split_taylor_green,

@@ -70,6 +70,8 @@ add_test(
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
+# Adjoint test cases
+
 configure_file(2d_euler_gaussian_bump_adjoint.prm 2d_euler_gaussian_bump_adjoint.prm COPYONLY)
 add_test(
   NAME MPI_2D_EULER_INTEGRATION_GAUSSIAN_BUMP_ADJOINT_LONG
@@ -78,6 +80,14 @@ add_test(
   #COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_gaussian_bump_adjoint.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+
+configure_file(2d_euler_cylinder_adjoint.prm 2d_euler_cylinder_adjoint.prm COPYONLY)
+add_test(
+  NAME MPI_2D_EULER_INTEGRATION_CYLINDER_ADJOINT_LONG
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_cylinder_adjoint.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
 
 # Vortex test case takes wayyy too much time. It works, so uncomment below if you want to wait.
 # configure_file(2d_euler_vortex.prm 2d_euler_vortex.prm COPYONLY)

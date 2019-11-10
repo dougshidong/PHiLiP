@@ -5,6 +5,7 @@ set(TESTS_SOURCE
     euler_gaussian_bump.cpp
     euler_gaussian_bump_adjoint.cpp
     euler_cylinder.cpp
+    euler_cylinder_adjoint.cpp
     euler_vortex.cpp
     euler_entropy_waves.cpp
     advection_explicit_periodic.cpp

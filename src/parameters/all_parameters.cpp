@@ -45,6 +45,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler_gaussian_bump | "
                       " euler_gaussian_bump_adjoint | "
                       " euler_cylinder | "
+                      " euler_cylinder_adjoint | "
                       " euler_vortex | "
                       " euler_entropy_waves | "
                       " numerical_flux_convervation | "
@@ -56,7 +57,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " <run_control | " 
                       "  burgers_energy_stability | "
                       "  euler_gaussian_bump | "
+                      "  euler_gaussian_bump_adjoint | "
                       "  euler_cylinder | "
+                      "  euler_cylinder_adjoint "
                       "  euler_vortex | "
                       "  euler_entropy_waves | "
                       "  numerical_flux_convervation | "
@@ -113,6 +116,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "euler_gaussian_bump") { test_type = euler_gaussian_bump; }
     else if (test_string == "euler_gaussian_bump_adjoint") {test_type = euler_gaussian_bump_adjoint;}
     else if (test_string == "euler_cylinder") { test_type = euler_cylinder; }
+    else if (test_string == "euler_cylinder_adjoint") { test_type = euler_cylinder_adjoint; }
     else if (test_string == "euler_vortex") { test_type = euler_vortex; }
     else if (test_string == "euler_entropy_waves") { test_type = euler_entropy_waves; }
     else if (test_string == "numerical_flux_convervation") { test_type = numerical_flux_convervation; }

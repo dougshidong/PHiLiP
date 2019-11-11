@@ -42,6 +42,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Selection(
                       " run_control | "
                       " burgers_energy_stability | "
+                      " diffusion_exact_adjoint | "
                       " euler_gaussian_bump | "
                       " euler_gaussian_bump_adjoint | "
                       " euler_cylinder | "
@@ -56,6 +57,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Choices are (only run control has been coded up for now)" 
                       " <run_control | " 
                       "  burgers_energy_stability | "
+                      "  diffusion_exact_adjoint | "
                       "  euler_gaussian_bump | "
                       "  euler_gaussian_bump_adjoint | "
                       "  euler_cylinder | "
@@ -113,6 +115,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     const std::string test_string = prm.get("test_type");
     if (test_string == "run_control") { test_type = run_control; }
     else if (test_string == "burgers_energy_stability") { test_type = burgers_energy_stability; }
+    else if (test_string == "diffusion_exact_adjoint") {test_type = diffusion_exact_adjoint; }
     else if (test_string == "euler_gaussian_bump") { test_type = euler_gaussian_bump; }
     else if (test_string == "euler_gaussian_bump_adjoint") {test_type = euler_gaussian_bump_adjoint;}
     else if (test_string == "euler_cylinder") { test_type = euler_cylinder; }

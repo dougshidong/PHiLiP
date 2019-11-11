@@ -53,7 +53,7 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
     update_surface_indices();
     update_surface_nodes();
     mapping_fe_field = std::make_shared< dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> > (dof_handler_grid,nodes,mask);
-    output_results_vtk(nth_refinement++);
+    // output_results_vtk(nth_refinement++);
 
     // Used to check Jacobian validity
     const unsigned int exact_jacobian_order = (max_degree-1) * dim;

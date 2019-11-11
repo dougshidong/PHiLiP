@@ -261,7 +261,7 @@ int EulerCylinderAdjoint<dim,nstate>
         // setting up the target functional (error reduction)
         L2normError<dim, nstate, double> L2normFunctional;
 
-        // initializing an adjoint for this case (destructing each loop to get updated DOF_handler)
+        // initializing an adjoint for this case
         Adjoint<dim, nstate, double> adjoint(*dg, L2normFunctional, euler_physics_adtype);
 
         dealii::Vector<float> estimated_error_per_cell(grid.n_active_cells());

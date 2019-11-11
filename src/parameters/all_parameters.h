@@ -53,6 +53,7 @@ public:
     enum TestType { 
         run_control,
         burgers_energy_stability,
+        diffusion_exact_adjoint,
         euler_gaussian_bump,
         euler_gaussian_bump_adjoint,
         euler_cylinder,

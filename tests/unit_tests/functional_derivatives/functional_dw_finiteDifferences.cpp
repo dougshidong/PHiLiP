@@ -64,7 +64,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
 			real2 l2error = 0;
 
 			// looping over the quadrature points
-			for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+			for(unsigned int iquad=0; iquad<n_quad_pts; ++iquad){
 				std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
 				for (unsigned int idof=0; idof<fe_values_volume.dofs_per_cell; ++idof) {
 					const unsigned int istate = fe_values_volume.get_fe().system_to_component_index(idof).first;
@@ -128,7 +128,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
 			dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg.fe_collection, dg.face_quadrature_collection,   this->face_update_flags);
 
 			dg.solution.update_ghost_values();
-			for(auto cell = dg.dof_handler.begin_active(); cell != dg.dof_handler.end(); cell++){
+			for(auto cell = dg.dof_handler.begin_active(); cell != dg.dof_handler.end(); ++cell){
 				if(!cell->is_locally_owned()) continue;
 
 				// setting up the volume integration
@@ -149,7 +149,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
 
 				// copying values for initial solution
 				local_solution.resize(n_dofs_curr_cell);
-				for(unsigned int idof = 0; idof < n_dofs_curr_cell; idof++){
+				for(unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof){
 					local_solution[idof] = dg.solution[current_dofs_indices[idof]];
 				}
 
@@ -158,9 +158,9 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
 
 				// now looping over all the DOFs in this cell and taking the FD
 				local_dIdw.resize(n_dofs_curr_cell);
-				for(unsigned int idof = 0; idof < n_dofs_curr_cell; idof++){
+				for(unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof){
 					// for each dof copying the solution
-					for(unsigned int idof2 = 0; idof2 < n_dofs_curr_cell; idof2++){
+					for(unsigned int idof2 = 0; idof2 < n_dofs_curr_cell; ++idof2){
 						local_solution[idof2] = dg.solution[current_dofs_indices[idof2]];
 					}
 					local_solution[idof] += STEPSIZE;

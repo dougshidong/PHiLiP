@@ -773,6 +773,26 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
         local_rhs_ext_cell(itest_ext) += rhs;
     }
 }
+
+template <int dim, int nstate, typename real>
+void DGWeak<dim,nstate,real>::set_physics(
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, real > >pde_physics_double_input)
+{
+    pde_physics_double = pde_physics_double_input;
+    conv_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_convective_numerical_flux (DGBase<dim,real>::all_parameters->conv_num_flux_type, pde_physics_double);
+    diss_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_dissipative_numerical_flux (DGBase<dim,real>::all_parameters->diss_num_flux_type, pde_physics_double);
+
+}
+
+template <int dim, int nstate, typename real>
+void DGWeak<dim,nstate,real>::set_physics(
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<real> > >pde_physics_input)
+{
+    pde_physics = pde_physics_input;
+    conv_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, Sacado::Fad::DFad<real>> ::create_convective_numerical_flux (DGBase<dim,real>::all_parameters->conv_num_flux_type, pde_physics);
+    diss_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, Sacado::Fad::DFad<real>> ::create_dissipative_numerical_flux (DGBase<dim,real>::all_parameters->diss_num_flux_type, pde_physics);
+}
+
 template class DGWeak <PHILIP_DIM, 1, double>;
 template class DGWeak <PHILIP_DIM, 2, double>;
 template class DGWeak <PHILIP_DIM, 3, double>;

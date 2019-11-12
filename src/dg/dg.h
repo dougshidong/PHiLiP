@@ -331,7 +331,6 @@ public:
 
     /// High order grid that will provide the MappingFEField
     HighOrderGrid<dim,real> high_order_grid;
-
 protected:
 
     /// Evaluate the integral over the cell volume.
@@ -560,6 +559,10 @@ private:
     using DGBase<dim,real>::mpi_communicator; ///< MPI communicator
     using DGBase<dim,real>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
+public:
+    /// Change the physics object
+    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<real> > >pde_physics_input);
+    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, real > >pde_physics_double_input);
 }; // end of DGWeak class
 
 /// DGStrong class templated on the number of state variables
@@ -664,6 +667,10 @@ private:
     using DGBase<dim,real>::mpi_communicator; ///< MPI communicator
     using DGBase<dim,real>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
+public:
+    /// Change the physics object
+    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<real> > >pde_physics_input);
+    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, real > >pde_physics_double_input);
 }; // end of DGStrong class
 
 /// This class creates a new DGBase object

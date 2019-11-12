@@ -7,11 +7,13 @@
 #include "dg/dg.h"
 #include "physics/physics.h"
 #include "physics/convection_diffusion.h"
+#include "physics/manufactured_solution.h"
 #include "parameters/all_parameters.h"
+#include "functional/functional.h"
 
 namespace PHiLiP {
 namespace Tests {
-#include "physics/convection_diffusion.h"
+
 /* Test to compare adjoint discrete and continuous adjoints for diffusion in 1D
  *
  * Based on idea from:
@@ -24,8 +26,14 @@ namespace Tests {
  * 
  * L = d^2/dx^2 = L^* (directly from integration by parts)
  * 
- * To be consistent with the paper, f and g correspond to source/functional weight terms
- *  f(x) = x^3 (1-x)^3,  g(x) = sin(pi*x) and u(0)=u(1)=0 (Dirichlet BC)
+ * Similar terms chosen to in paper, except using them for the manufactured solution instead of the source
+ *  u(x) = x^3 (1-x)^3,  v(x) = sin(pi*x) and hence u(0)=u(1)=0 (Dirichlet BC)
+ * 
+ * Source term:
+ *  f(x) = -30x^3+60x63-36x^2+6x
+ *  g(x) = -pi^2 * sin(pi*x)
+ * 
+ * In higher dimensions, product is taken for this term in each dim
  * 
  * Steps:
  *  1. Solve for u and v both directly for primal problems
@@ -34,44 +42,115 @@ namespace Tests {
  *  4. Compare (using L2 norm) with the primal solution of the opposing case
  */
 
+// manufactured solution for u
+template <int dim, typename real>
+class ManufacturedSolutionU : public ManufacturedSolutionFunction <dim, real>
+{
+    // overriding the function for the value and gradient
+    real value (const dealii::Point<dim> &pos, const unsigned int istate = 0) const override;
+
+    // Gradient of the manufactured solution
+    dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim> &pos, const unsigned int istate = 0) const override;
+};
+
+// manufactured solution for v
+template <int dim, typename real>
+class ManufacturedSolutionV : public ManufacturedSolutionFunction <dim, real>
+{
+    // overriding the function for the value and gradient
+    real value (const dealii::Point<dim> &pos, const unsigned int istate = 0) const override;
+
+    // Gradient of the manufactured solution
+    dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim> &pos, const unsigned int istate = 0) const override;
+};
+
 // parent class to add the objective function directly to physics as a virtual class
 template <int dim, int nstate, typename real>
 class diffusion_objective : public Physics::ConvectionDiffusion <dim, nstate, real>
 {
 public:
+    // constructor
+    diffusion_objective(const bool convection = true, const bool diffusion = true): 
+        Physics::ConvectionDiffusion<dim,nstate,real>::ConvectionDiffusion(convection, diffusion){}
+
     // defnined directly as part of the physics to make passing to the functional simpler
-    real objetive_function(
+    virtual real objective_function(
         const dealii::Point<dim,double> &pos) const = 0;
 };
 
+//physics for the u variable
 template <int dim, int nstate, typename real>
 class diffusion_u : public diffusion_objective <dim, nstate, real>
 {
 public:
+    // constructor
+    diffusion_u(const bool convection = true, const bool diffusion = true): 
+        diffusion_objective<dim,nstate,real>::diffusion_objective(convection, diffusion)
+    {
+        Physics::PhysicsBase<dim,nstate,real>::manufactured_solution_function = ManufacturedSolutionU<dim,real>();
+    }
+
     // source term = f
     std::array<real,nstate> source_term (
-    const dealii::Point<dim,double> &pos,
-    const std::array<real,nstate> &/*solution*/) const override;
+        const dealii::Point<dim,double> &pos,
+        const std::array<real,nstate> &/*solution*/) const override;
 
     // objective function = g
     real objective_function(
         const dealii::Point<dim,double> &pos) const override;
 };
 
+// physics for the v variable
 template <int dim, int nstate, typename real>
 class diffusion_v : public diffusion_objective <dim, nstate, real>
 {
 public:
+    // constructor
+    diffusion_v(const bool convection = true, const bool diffusion = true): 
+        diffusion_objective<dim,nstate,real>::diffusion_objective(convection, diffusion)
+    {
+            Physics::PhysicsBase<dim,nstate,real>::manufactured_solution_function = ManufacturedSolutionV<dim,real>();
+    }
+
     // source term = g
     std::array<real,nstate> source_term (
-    const dealii::Point<dim,double> &pos,
-    const std::array<real,nstate> &/*solution*/) const override;
+        const dealii::Point<dim,double> &pos,
+        const std::array<real,nstate> &/*solution*/) const override;
 
     // objective function = f
     real objective_function(
         const dealii::Point<dim,double> &pos) const override;
 };
 
+// Functional that performs the inner product over the entire domain 
+template <int dim, int nstate, typename real>
+class DiffusionFunctional : public Functional<dim, nstate, real>
+{
+    public:
+        template <typename real2>
+        real2 evaluate_cell_volume(
+            const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+			const dealii::FEValues<dim,dim> &fe_values_volume,
+			std::vector<real2> local_solution);
+
+    	// non-template functions to override the template classes
+		real evaluate_cell_volume(
+			const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+			const dealii::FEValues<dim,dim> &fe_values_volume,
+			std::vector<real> local_solution) override
+		{
+			return evaluate_cell_volume<>(physics, fe_values_volume, local_solution);
+		}
+		Sacado::Fad::DFad<real> evaluate_cell_volume(
+			const PHiLiP::Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> &physics,
+			const dealii::FEValues<dim,dim> &fe_values_volume,
+			std::vector<Sacado::Fad::DFad<real>> local_solution) override
+		{
+			return evaluate_cell_volume<>(physics, fe_values_volume, local_solution);
+		}
+};
+
+// test case
 template <int dim, int nstate>
 class DiffusionExactAdjoint : public TestsBase
 {

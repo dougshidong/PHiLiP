@@ -39,3 +39,29 @@ message("Adding executable " ${SMALL_TEST} " with files " ${SMALL_TEST_SRC} "\n"
 
 unset(SMALL_TEST)
 unset(TARGET ${SMALL_TEST})
+
+set(SMALL_TEST step_17)
+set(TARGET ${SMALL_TEST})
+set(SMALL_TEST_SRC 
+    step_17.cpp)
+add_executable(${SMALL_TEST} ${SMALL_TEST_SRC})
+target_link_libraries(${SMALL_TEST} mpi )
+if(NOT DOC_ONLY)
+    DEAL_II_SETUP_TARGET(${SMALL_TEST})
+endif()
+message("Adding executable " ${SMALL_TEST} " with files " ${SMALL_TEST_SRC} "\n")
+unset(SMALL_TEST)
+unset(TARGET ${SMALL_TEST})
+
+set(SMALL_TEST step_42)
+set(TARGET ${SMALL_TEST})
+set(SMALL_TEST_SRC 
+    step_42.cpp)
+add_executable(${SMALL_TEST} ${SMALL_TEST_SRC})
+target_link_libraries(${SMALL_TEST} mpi )
+if(NOT DOC_ONLY)
+    DEAL_II_SETUP_TARGET(${SMALL_TEST})
+endif()
+message("Adding executable " ${SMALL_TEST} " with files " ${SMALL_TEST_SRC} "\n")
+unset(SMALL_TEST)
+unset(TARGET ${SMALL_TEST})

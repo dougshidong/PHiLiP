@@ -21,10 +21,10 @@ std::array<real,nstate> Euler<dim,nstate,real>
 {
     std::array<real,nstate> manufactured_solution;
     for (int s=0; s<nstate; s++) {
-        manufactured_solution[s] = this->manufactured_solution_function.value (pos, s);
+        manufactured_solution[s] = this->manufactured_solution_function->value (pos, s);
     }
     std::vector<dealii::Tensor<1,dim,real>> manufactured_solution_gradient_dealii(nstate);
-    this->manufactured_solution_function.vector_gradient (pos, manufactured_solution_gradient_dealii);
+    this->manufactured_solution_function->vector_gradient (pos, manufactured_solution_gradient_dealii);
     std::array<dealii::Tensor<1,nstate,real>,dim> manufactured_solution_gradient;
     for (int d=0;d<dim;d++) {
         for (int s=0; s<nstate; s++) {
@@ -493,8 +493,8 @@ void Euler<dim,nstate,real>
         std::array<real,nstate> conservative_boundary_values;
         std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
         for (int s=0; s<nstate; s++) {
-            conservative_boundary_values[s] = this->manufactured_solution_function.value (pos, s);
-            boundary_gradients[s] = this->manufactured_solution_function.gradient (pos, s);
+            conservative_boundary_values[s] = this->manufactured_solution_function->value (pos, s);
+            boundary_gradients[s] = this->manufactured_solution_function->gradient (pos, s);
         }
         std::array<real,nstate> primitive_boundary_values = convert_conservative_to_primitive(conservative_boundary_values);
         for (int istate=0; istate<nstate; ++istate) {

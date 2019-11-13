@@ -22,8 +22,8 @@ void Burgers<dim,nstate,real>
     std::array<real,nstate> boundary_values;
     std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
     for (int i=0; i<nstate; i++) {
-        boundary_values[i] = this->manufactured_solution_function.value (pos, i);
-        boundary_gradients[i] = this->manufactured_solution_function.gradient (pos, i);
+        boundary_values[i] = this->manufactured_solution_function->value (pos, i);
+        boundary_gradients[i] = this->manufactured_solution_function->gradient (pos, i);
     }
 
     for (int istate=0; istate<nstate; ++istate) {
@@ -154,19 +154,19 @@ std::array<real,nstate> Burgers<dim,nstate,real>
     // }
     for (int istate=0; istate<nstate; istate++) {
         source[istate] = 0.0;
-        dealii::Tensor<1,dim,real> manufactured_gradient = this->manufactured_solution_function.gradient (pos, istate);
-        dealii::SymmetricTensor<2,dim,real> manufactured_hessian = this->manufactured_solution_function.hessian (pos, istate);
+        dealii::Tensor<1,dim,real> manufactured_gradient = this->manufactured_solution_function->gradient (pos, istate);
+        dealii::SymmetricTensor<2,dim,real> manufactured_hessian = this->manufactured_solution_function->hessian (pos, istate);
         for (int d=0;d<dim;++d) {
-            real manufactured_solution = this->manufactured_solution_function.value (pos, d);
+            real manufactured_solution = this->manufactured_solution_function->value (pos, d);
             source[istate] += 0.5*manufactured_solution*manufactured_gradient[d];
         }
         source[istate] += -diff_coeff*scalar_product((this->diffusion_tensor),manufactured_hessian);
     }
     for (int istate=0; istate<nstate; istate++) {
-        real manufactured_solution = this->manufactured_solution_function.value (pos, istate);
+        real manufactured_solution = this->manufactured_solution_function->value (pos, istate);
         real divergence = 0.0;
         for (int d=0;d<dim;++d) {
-            dealii::Tensor<1,dim,real> manufactured_gradient = this->manufactured_solution_function.gradient (pos, d);
+            dealii::Tensor<1,dim,real> manufactured_gradient = this->manufactured_solution_function->gradient (pos, d);
             divergence += manufactured_gradient[d];
         }
         source[istate] += 0.5*manufactured_solution*divergence;

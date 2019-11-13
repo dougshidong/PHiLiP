@@ -44,7 +44,7 @@ int main (int /*argc*/, char * /*argv*/[])
             const dealii::Point<dim,double> vertex = cell->vertex(v);
 
             for (int s=0; s<nstate; s++) {
-                soln[s] = euler_physics.manufactured_solution_function.value(vertex, s);
+                soln[s] = euler_physics.manufactured_solution_function->value(vertex, s);
             }
             for (int d=0; d<dim; d++) {
 

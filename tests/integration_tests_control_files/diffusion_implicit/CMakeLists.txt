@@ -26,3 +26,17 @@ add_test(
   COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_diffusion_exact_adjoint.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+
+configure_file(2d_diffusion_exact_adjoint.prm 2d_diffusion_exact_adjoint.prm COPYONLY)
+add_test(
+  NAME 2D_DIFFUSION_EXACT_ADJOINT
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_diffusion_exact_adjoint.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
+configure_file(3d_diffusion_exact_adjoint.prm 3d_diffusion_exact_adjoint.prm COPYONLY)
+add_test(
+  NAME 3D_DIFFUSION_EXACT_ADJOINT
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3d_diffusion_exact_adjoint.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)

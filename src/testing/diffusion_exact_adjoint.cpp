@@ -31,9 +31,7 @@
 
 namespace PHiLiP {
 namespace Tests {
-// need to build my own physics classes to override the source term in dg
-// would be nice if there was a way to pass this directly to the dg class
-// (otherwise this would need to be added to the physics enum)
+// built own physics classes here for one time use and added a function to pass them directly to dg weak
 
 // manufactured solution in u
 template <int dim, typename real>
@@ -88,8 +86,8 @@ dealii::Tensor<1,dim,real> ManufacturedSolutionV<dim,real>::gradient(const deali
     dealii::Tensor<1,dim,real> gradient;
 
     for(unsigned int d=0; d<dim; ++d){
-        // double x = pos[d];
-        gradient[d] = pi*this->value(pos,istate);
+        double x = pos[d];
+        gradient[d] = pi*std::cos(pi*x)*this->value(pos,istate)/std::sin(pi*x);
     }
 
     return gradient;
@@ -217,7 +215,7 @@ DiffusionExactAdjoint<dim, nstate>::DiffusionExactAdjoint(const Parameters::AllP
 template <int dim, int nstate>
 int DiffusionExactAdjoint<dim,nstate>::run_test() const
 {
-    std::cout << "Running diffusion exact adjoint test case." << std::endl;
+    pcout << "Running diffusion exact adjoint test case." << std::endl;
 
     // getting the problem parameters
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
@@ -242,7 +240,7 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
         convection = false;
         diffusion  = true;
     }else{
-        std::cout << "Can't run diffusion_exact_adjoint test case with other PDE types." << std::endl;
+        pcout << "Can't run diffusion_exact_adjoint test case with other PDE types." << std::endl;
     }
 
     // creating the physics objects
@@ -271,7 +269,7 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
 
     for(unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree){
-        std::cout << "Starting polynomial order: " << poly_degree << std::endl;
+        pcout << "Starting polynomial order: " << poly_degree << std::endl;
 
         // grid_study refines P0 additinoally here (unused in current param file)
         std::vector<double> soln_error(n_grids);
@@ -282,11 +280,19 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
 
         dealii::ConvergenceTable convergence_table;
 
-        // constructing the grid (non-distrbuted type for 1D)
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
         dealii::Triangulation<dim> grid(
             typename dealii::Triangulation<dim>::MeshSmoothing(
                 dealii::Triangulation<dim>::smoothing_on_refinement |
                 dealii::Triangulation<dim>::smoothing_on_coarsening));
+#else
+        dealii::parallel::distributed::Triangulation<dim> grid(
+            this->mpi_communicator,
+            typename dealii::Triangulation<dim>::MeshSmoothing(
+                dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_refinement));
+                //dealii::Triangulation<dim>::smoothing_on_refinement |
+                //dealii::Triangulation<dim>::smoothing_on_coarsening));
+#endif
 
         // dimensions of the mesh
         const double left  = 0.0;
@@ -329,35 +335,18 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             ode_solver_u->steady_state();
             ode_solver_v->steady_state();
 
-            // outputing the solutions obtained
-            const std::string filename_u = "sol-u-" + std::to_string(igrid) + ".gnuplot";
-            std::ofstream gnuplot_output_u(filename_u);
-            dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> data_out_u;
-            data_out_u.attach_dof_handler(dg_u->dof_handler);
-            data_out_u.add_data_vector(dg_u->solution, "u");
-            data_out_u.build_patches();
-            data_out_u.write_gnuplot(gnuplot_output_u);
-
-            const std::string filename_v = "sol-v-" + std::to_string(igrid) + ".gnuplot";
-            std::ofstream gnuplot_output_v(filename_v);
-            dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> data_out_v;
-            data_out_v.attach_dof_handler(dg_v->dof_handler);
-            data_out_v.add_data_vector(dg_v->solution, "u");
-            data_out_v.build_patches();
-            data_out_v.write_gnuplot(gnuplot_output_v);
-
             // evaluating functionals from both methods
             double val1 = diffusion_functional.evaluate_function(*dg_u, *physics_u_double);
             double val2 = diffusion_functional.evaluate_function(*dg_v, *physics_v_double);
 
             // comparison betweent the values, add these to the convergence table
-            std::cout << std::endl << "Val1 = " << val1 << "\tVal2 = " << val2 << std::endl << std::endl; 
+            pcout << std::endl << "Val1 = " << val1 << "\tVal2 = " << val2 << std::endl << std::endl; 
 
             // evaluating the error of this measure
             double error_val1 = std::abs(val1-exact_val);
             double error_val2 = std::abs(val2-exact_val);
 
-            std::cout << std::endl << "error_val1 = " << error_val1 << "\terror_val2 = " << error_val2 << std::endl << std::endl; 
+            pcout << std::endl << "error_val1 = " << error_val1 << "\terror_val2 = " << error_val2 << std::endl << std::endl; 
 
             // // Initializing the adjoints for each problem
             Adjoint<dim, nstate, double> adj_u(*dg_u, diffusion_functional, *physics_u_adtype.get());
@@ -401,8 +390,6 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
 
                     const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
 
-                    std::cout << "value of nstate is " << nstate << std::endl;
-
                     for (int istate = 0; istate < nstate; ++istate){
                         // adjoint should convert to the manufactured solution of the opposing case
                         const double adj_exact_u = physics_v_double->manufactured_solution_function->value(qpoint, istate);
@@ -411,17 +398,40 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
                         cell_l2error_u += std::pow(adj_at_q_u[istate] - adj_exact_u, 2) * fe_values_extra.JxW(iquad);
                         cell_l2error_v += std::pow(adj_at_q_v[istate] - adj_exact_v, 2) * fe_values_extra.JxW(iquad);
 
-                        std::cout << "Adjoint value is = " << adj_at_q_u[istate] << std::endl << "and the exact value is = " << adj_exact_u << std::endl;
+                        // std::cout << "Adjoint value is = " << adj_at_q_u[istate] << std::endl << "and the exact value is = " << adj_exact_u << std::endl;
                     }
                 }
 
-                std::cout << "Cell value is (for u) = " << cell_l2error_u << std::endl;
+                // std::cout << "Cell value is (for u) = " << cell_l2error_u << std::endl;
 
                 l2error_adj_u += cell_l2error_u;
                 l2error_adj_v += cell_l2error_v;
             }
             const double l2error_adj_u_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error_adj_u, mpi_communicator));
             const double l2error_adj_v_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error_adj_v, mpi_communicator));
+
+            // outputing the solutions obtained
+            if(dim == 1){
+                const std::string filename_u = "sol-u-" + std::to_string(igrid) + ".gnuplot";
+                std::ofstream gnuplot_output_u(filename_u);
+                dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> data_out_u;
+                data_out_u.attach_dof_handler(dg_u->dof_handler);
+                data_out_u.add_data_vector(dg_u->solution, "u");
+                data_out_u.build_patches();
+                data_out_u.write_gnuplot(gnuplot_output_u);
+
+                const std::string filename_v = "sol-v-" + std::to_string(igrid) + ".gnuplot";
+                std::ofstream gnuplot_output_v(filename_v);
+                dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> data_out_v;
+                data_out_v.attach_dof_handler(dg_v->dof_handler);
+                data_out_v.add_data_vector(dg_v->solution, "u");
+                data_out_v.build_patches();
+                data_out_v.write_gnuplot(gnuplot_output_v);
+            }else{
+                // outputing the adjoint
+                adj_u.output_results_vtk(10*poly_degree + igrid);
+                adj_v.output_results_vtk(100 + 10*poly_degree + igrid);
+            }
 
             // adding terms to the convergence table
             const int n_dofs = dg_u->dof_handler.n_dofs();
@@ -486,9 +496,7 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
     return 0;
 }
 
-#if PHILIP_DIM==1
-    template class DiffusionExactAdjoint <PHILIP_DIM,PHILIP_DIM>;
-#endif
+template class DiffusionExactAdjoint <PHILIP_DIM,1>;
 
 } // Tests namespace
 } // PHiLiP namespace

@@ -11,8 +11,13 @@ set dimension = 2
 # <diffusion|diffusion|convection_diffusion>.
 set pde_type  = diffusion
 
+subsection linear solver
+set linear_solver_type = direct
+#set linear_solver_output = verbose
+end
+
 subsection ODE solver
-  # set ode_output                          = verbose
+  set ode_output                          = quiet
 
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations            = 500

@@ -10,8 +10,13 @@ set dimension = 1
 # <diffusion|diffusion|convection_diffusion>.
 set pde_type  = diffusion
 
+subsection linear solver
+set linear_solver_type = direct
+#set linear_solver_output = verbose
+end
+
 subsection ODE solver
-  # set ode_output                          = verbose
+  set ode_output                          = quiet
 
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations            = 500
@@ -34,7 +39,7 @@ subsection manufactured solution convergence study
   set degree_start      = 1
 
   # Last degree used for convergence study
-  set degree_end        = 3
+  set degree_end        = 5
 
   # Initial grid of size (initial_grid_size)^dim
   set initial_grid_size = 3
@@ -44,5 +49,5 @@ subsection manufactured solution convergence study
   set grid_progression  = 1.5
 
   # Number of grids in grid study
-  set number_of_grids   = 6
+  set number_of_grids   = 9
 end

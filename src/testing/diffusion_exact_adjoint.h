@@ -29,11 +29,11 @@ namespace Tests {
  * Similar terms chosen to in paper, except using them for the manufactured solution instead of the source
  *  u(x) = x^3 (1-x)^3,  v(x) = sin(pi*x) and hence u(0)=u(1)=0 (Dirichlet BC)
  * 
- * Source term:
+ * Source term in 1D:
  *  f(x) = -30x^3+60x63-36x^2+6x
  *  g(x) = -pi^2 * sin(pi*x)
  * 
- * In higher dimensions, product is taken for this term in each dim
+ * In higher dimensions, obtained by taking \nabla u(x)*u(y)*u(z)
  * 
  * Steps:
  *  1. Solve for u and v both directly for primal problems
@@ -42,7 +42,9 @@ namespace Tests {
  *  4. Compare (using L2 norm) with the primal solution of the opposing case
  *
  * Analytic value of the functional was found to be
- * J = [144*(10 - pi^2)/pi^5]^dim
+ *  1D: J =                             [144*(10 - pi^2)/pi^5]
+ *  2D: J = 2*[-144*(10 - pi^2)/pi^7]  *[144*(10 - pi^2)/pi^5]
+ *  2D: J = 3*[-144*(10 - pi^2)/pi^7]^2*[144*(10 - pi^2)/pi^5]
  */
 
 // manufactured solution for u
@@ -200,6 +202,9 @@ public:
      */
     int run_test() const;
 };
+
+// for evaluating error slopes
+double eval_avg_slope(std::vector<double> error, std::vector<double> grid_size, unsigned int n_grids);
 
 } // Tests namespace
 } // PHiLiP namespace

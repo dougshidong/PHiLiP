@@ -16,7 +16,7 @@ namespace Physics {
 template <int dim, int nstate, typename real>
 std::array<real,nstate> Euler<dim,nstate,real>
 ::source_term (
-    const dealii::Point<dim,double> &pos,
+    const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &/*conservative_soln*/) const
 {
     std::array<real,nstate> manufactured_solution;
@@ -477,7 +477,7 @@ template <int dim, int nstate, typename real>
 void Euler<dim,nstate,real>
 ::boundary_face_values (
    const int boundary_type,
-   const dealii::Point<dim, double> &pos,
+   const dealii::Point<dim, real> &pos,
    const dealii::Tensor<1,dim,real> &normal_int,
    const std::array<real,nstate> &soln_int,
    const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,

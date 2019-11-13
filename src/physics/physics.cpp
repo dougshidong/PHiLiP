@@ -13,8 +13,8 @@ namespace PHiLiP {
 namespace Physics {
 
 template <int dim, int nstate, typename real>
-PhysicsBase<dim,nstate,real>::PhysicsBase() 
-    : manufactured_solution_function(nstate)
+PhysicsBase<dim,nstate,real>::PhysicsBase() :
+    manufactured_solution_function(std::shared_ptr< ManufacturedSolutionFunction<dim,real> >(new ManufacturedSolutionFunction<dim,real>(nstate)))
 {
     const double pi = atan(1)*4.0;
     const double ee = exp(1);
@@ -77,8 +77,8 @@ void PhysicsBase<dim,nstate,real>
     std::array<real,nstate> boundary_values;
     std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
     for (int s=0; s<nstate; s++) {
-        boundary_values[s] = this->manufactured_solution_function.value (pos, s);
-        boundary_gradients[s] = this->manufactured_solution_function.gradient (pos, s);
+        boundary_values[s] = this->manufactured_solution_function->value (pos, s);
+        boundary_gradients[s] = this->manufactured_solution_function->gradient (pos, s);
     }
 
     for (int istate=0; istate<nstate; ++istate) {

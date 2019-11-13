@@ -54,10 +54,10 @@ int test_dissipative_numerical_flux_conservation (const PHiLiP::Parameters::AllP
         point_2[d] = 1;
     }
     for(int s=0; s<nstate; s++) {
-        soln_int[s] = pde_physics->manufactured_solution_function.value(point_1,s);
-        soln_ext[s] = pde_physics->manufactured_solution_function.value(point_2,s);
-        soln_grad_int[s] = pde_physics->manufactured_solution_function.gradient(point_1,s);
-        soln_grad_ext[s] = pde_physics->manufactured_solution_function.gradient(point_2,s);
+        soln_int[s] = pde_physics->manufactured_solution_function->value(point_1,s);
+        soln_ext[s] = pde_physics->manufactured_solution_function->value(point_2,s);
+        soln_grad_int[s] = pde_physics->manufactured_solution_function->gradient(point_1,s);
+        soln_grad_ext[s] = pde_physics->manufactured_solution_function->gradient(point_2,s);
     }
 
     NumericalFlux::NumericalFluxDissipative<dim, nstate, double> *diss_num_flux = 
@@ -110,9 +110,9 @@ int test_dissipative_numerical_flux_consistency (const PHiLiP::Parameters::AllPa
         point_2[d] = 1;
     }
     for(int s=0; s<nstate; s++) {
-        soln_int[s] = pde_physics->manufactured_solution_function.value(point_1,s);
+        soln_int[s] = pde_physics->manufactured_solution_function->value(point_1,s);
         soln_ext[s] = soln_int[s];
-        soln_grad_int[s] = pde_physics->manufactured_solution_function.gradient(point_1,s);
+        soln_grad_int[s] = pde_physics->manufactured_solution_function->gradient(point_1,s);
         soln_grad_ext[s] = soln_grad_int[s];
     }
 
@@ -168,9 +168,9 @@ int test_convective_numerical_flux_conservation (const PHiLiP::Parameters::AllPa
         point_2[d] = 1;
     }
     for(int s=0; s<nstate; s++) {
-        soln_int[s] = pde_physics->manufactured_solution_function.value(point_1,s);
+        soln_int[s] = pde_physics->manufactured_solution_function->value(point_1,s);
         soln_ext[s] = soln_int[s];
-        soln_grad_int[s] = pde_physics->manufactured_solution_function.gradient(point_1,s);
+        soln_grad_int[s] = pde_physics->manufactured_solution_function->gradient(point_1,s);
         soln_grad_ext[s] = soln_grad_int[s];
     }
 
@@ -205,9 +205,9 @@ int test_convective_numerical_flux_consistency (const PHiLiP::Parameters::AllPar
         point_2[d] = 1;
     }
     for(int s=0; s<nstate; s++) {
-        soln_int[s] = pde_physics->manufactured_solution_function.value(point_1,s);
+        soln_int[s] = pde_physics->manufactured_solution_function->value(point_1,s);
         soln_ext[s] = soln_int[s];
-        soln_grad_int[s] = pde_physics->manufactured_solution_function.gradient(point_1,s);
+        soln_grad_int[s] = pde_physics->manufactured_solution_function->gradient(point_1,s);
         soln_grad_ext[s] = soln_grad_int[s];
     }
 

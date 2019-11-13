@@ -30,8 +30,8 @@ void ConvectionDiffusion<dim,nstate,real>
     std::array<real,nstate> boundary_values;
     std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
     for (int i=0; i<nstate; i++) {
-        boundary_values[i] = this->manufactured_solution_function.value (pos, i);
-        boundary_gradients[i] = this->manufactured_solution_function.gradient (pos, i);
+        boundary_values[i] = this->manufactured_solution_function->value (pos, i);
+        boundary_gradients[i] = this->manufactured_solution_function->gradient (pos, i);
     }
 
     for (int istate=0; istate<nstate; ++istate) {
@@ -166,7 +166,7 @@ std::array<real,nstate> ConvectionDiffusion<dim,nstate,real>
     const real diff_coeff = diffusion_coefficient();
 
     for (int istate=0; istate<nstate; istate++) {
-        dealii::Tensor<1,dim,real> manufactured_gradient = this->manufactured_solution_function.gradient (pos, istate);
+        dealii::Tensor<1,dim,real> manufactured_gradient = this->manufactured_solution_function->gradient (pos, istate);
             // dealii::Tensor<1,dim,real> manufactured_gradient_fd = this->manufactured_solution_function.gradient_fd (pos, istate);
             // std::cout<<"FD" <<std::endl;
             // std::cout<<manufactured_gradient_fd <<std::endl;
@@ -174,7 +174,7 @@ std::array<real,nstate> ConvectionDiffusion<dim,nstate,real>
             // std::cout<<manufactured_gradient <<std::endl;
             // std::cout<<"DIFF" <<std::endl;
             // std::cout<<manufactured_gradient - manufactured_gradient_fd <<std::endl;
-        dealii::SymmetricTensor<2,dim,real> manufactured_hessian = this->manufactured_solution_function.hessian (pos, istate);
+        dealii::SymmetricTensor<2,dim,real> manufactured_hessian = this->manufactured_solution_function->hessian (pos, istate);
             // dealii::SymmetricTensor<2,dim,real> manufactured_hessian_fd = this->manufactured_solution_function.hessian_fd (pos, istate);
             // std::cout<<"FD" <<std::endl;
             // std::cout<<manufactured_hessian_fd <<std::endl;

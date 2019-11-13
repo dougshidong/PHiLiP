@@ -39,7 +39,7 @@ namespace Tests {
 template <int dim, typename real>
 real ManufacturedSolutionU<dim,real>::value(const dealii::Point<dim> &pos, const unsigned int /*istate*/) const
 {
-    double val = 1;
+    real val = 1;
 
     for(unsigned int d=0; d<dim; ++d){
         double x = pos[d];
@@ -69,7 +69,7 @@ real ManufacturedSolutionV<dim,real>::value(const dealii::Point<dim> &pos, const
 {
     const double pi = std::acos(-1);
 
-    double val = 1;
+    real val = 1;
 
     for(unsigned int d=0; d<dim; ++d){
         double x = pos[d];
@@ -104,7 +104,7 @@ std::array<real,nstate> diffusion_u<dim,nstate,real>::source_term (
     std::array<real,nstate> source;
 
     for (int istate=0; istate<nstate; istate++) {
-        double val = 1;
+        real val = 1;
 
         for(unsigned int d=0; d<dim; ++d){
             double x = pos[d];
@@ -123,7 +123,7 @@ real diffusion_u<dim,nstate,real>::objective_function (
 {
     const double pi = std::acos(-1);
 
-    double val = 1;
+    real val = 1;
 
     for(unsigned int d=0; d<dim; ++d){
         double x = pos[d];
@@ -143,7 +143,7 @@ std::array<real,nstate> diffusion_v<dim,nstate,real>::source_term (
     std::array<real,nstate> source;
 
     for (int istate=0; istate<nstate; istate++) {
-        double val = 1;
+        real val = 1;
 
         for(unsigned int d=0; d<dim; ++d){
             double x = pos[d];
@@ -160,7 +160,7 @@ template <int dim, int nstate, typename real>
 real diffusion_v<dim,nstate,real>::objective_function (
     const dealii::Point<dim,double> &pos) const
 {
-    double val = 1;
+    real val = 1;
 
     for(unsigned int d=0; d<dim; ++d){
         double x = pos[d];
@@ -223,7 +223,9 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
     using GridEnum = ManParam::GridEnum;
     using PdeEnum = Parameters::AllParameters::PartialDifferentialEquation;
-    const Parameters::AllParameters param = *(TestsBase::all_parameters);
+    Parameters::AllParameters param = *(TestsBase::all_parameters);
+
+    param.manufactured_convergence_study_param.use_manufactured_source_term = true;
 
     Assert(dim == param.dimension, dealii::ExcDimensionMismatch(dim, param.dimension));
 
@@ -255,10 +257,10 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
           = std::make_shared< diffusion_u<dim, nstate, ADtype> >(convection, diffusion);
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, ADtype> > physics_v_adtype 
           = std::make_shared< diffusion_v<dim, nstate, ADtype> >(convection, diffusion);
-
+ 
     // functional for computations
     DiffusionFunctional<dim,nstate,double> diffusion_functional;
-    
+
     // checks 
     std::vector<int> fail_conv_poly;
     std::vector<double>  failt_conv_slope;
@@ -337,18 +339,18 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             data_out_v.attach_dof_handler(dg_v->dof_handler);
             data_out_v.add_data_vector(dg_v->solution, "u");
             data_out_v.build_patches();
-            data_out_u.write_gnuplot(gnuplot_output_v);
+            data_out_v.write_gnuplot(gnuplot_output_v);
 
             // evaluating functionals from both methods
             double val1 = diffusion_functional.evaluate_function(*dg_u, *physics_u_double);
             double val2 = diffusion_functional.evaluate_function(*dg_v, *physics_v_double);
 
+            // comparison betweent the values, add these to the convergence table
             std::cout << std::endl << "Val1 = " << val1 << "\tVal2 = " << val2 << std::endl << std::endl; 
-            
+
         }
 
     }
-
 
     return 0;
 }

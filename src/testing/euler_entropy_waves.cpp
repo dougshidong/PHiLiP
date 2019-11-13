@@ -249,7 +249,7 @@ int EulerEntropyWaves<dim,nstate>
                     //std::cout << "uexact[1] " << uexact[1] << std::endl;
 
                     for (int istate=0; istate<nstate; ++istate) {
-                        const double uexact = physics->manufactured_solution_function.value(qpoint, istate);
+                        const double uexact = physics->manufactured_solution_function->value(qpoint, istate);
                         l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
                     }
                 }

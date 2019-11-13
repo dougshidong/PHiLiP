@@ -74,7 +74,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
 				const dealii::Point<dim> qpoint = (fe_values_volume.quadrature_point(iquad));
 
 				for (int istate=0; istate<nstate; ++istate) {
-					const real2 uexact = physics.manufactured_solution_function.value(qpoint, istate);
+					const real2 uexact = physics.manufactured_solution_function->value(qpoint, istate);
 					l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_volume.JxW(iquad);
 				}
 			}
@@ -186,7 +186,7 @@ void initialize_perturbed_solution(PHiLiP::DGBase<dim,double> &dg, const PHiLiP:
 {
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
-    dealii::VectorTools::interpolate(dg.dof_handler, physics.manufactured_solution_function, solution_no_ghost);
+    dealii::VectorTools::interpolate(dg.dof_handler, *physics.manufactured_solution_function, solution_no_ghost);
     dg.solution = solution_no_ghost;
 }
 

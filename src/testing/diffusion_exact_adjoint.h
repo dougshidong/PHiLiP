@@ -46,6 +46,10 @@ namespace Tests {
 template <int dim, typename real>
 class ManufacturedSolutionU : public ManufacturedSolutionFunction <dim, real>
 {
+public:
+    // constructor
+    ManufacturedSolutionU(){}
+
     // overriding the function for the value and gradient
     real value (const dealii::Point<dim> &pos, const unsigned int istate = 0) const override;
 
@@ -57,6 +61,10 @@ class ManufacturedSolutionU : public ManufacturedSolutionFunction <dim, real>
 template <int dim, typename real>
 class ManufacturedSolutionV : public ManufacturedSolutionFunction <dim, real>
 {
+public:
+    // constructor
+    ManufacturedSolutionV(){}
+
     // overriding the function for the value and gradient
     real value (const dealii::Point<dim> &pos, const unsigned int istate = 0) const override;
 
@@ -87,7 +95,8 @@ public:
     diffusion_u(const bool convection = true, const bool diffusion = true): 
         diffusion_objective<dim,nstate,real>::diffusion_objective(convection, diffusion)
     {
-        Physics::PhysicsBase<dim,nstate,real>::manufactured_solution_function = ManufacturedSolutionU<dim,real>();
+        this->manufactured_solution_function 
+            = std::shared_ptr< ManufacturedSolutionU<dim,real> >(new ManufacturedSolutionU<dim,real>());
     }
 
     // source term = f
@@ -109,7 +118,8 @@ public:
     diffusion_v(const bool convection = true, const bool diffusion = true): 
         diffusion_objective<dim,nstate,real>::diffusion_objective(convection, diffusion)
     {
-            Physics::PhysicsBase<dim,nstate,real>::manufactured_solution_function = ManufacturedSolutionV<dim,real>();
+        this->manufactured_solution_function 
+            = std::shared_ptr< ManufacturedSolutionV<dim,real> >(new ManufacturedSolutionV<dim,real>());
     }
 
     // source term = g

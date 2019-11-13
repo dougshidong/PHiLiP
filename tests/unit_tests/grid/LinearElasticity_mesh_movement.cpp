@@ -27,6 +27,8 @@
 #include "parameters/all_parameters.h"
 
 /** Tests the mesh movement by moving the mesh and integrating its volume.
+ *  Furthermore, it checks that the surface displacements resulting from the mesh movement
+ *  are consistent with the prescribed surface displacements.
  */
 int main (int argc, char * argv[])
 {
@@ -44,9 +46,10 @@ int main (int argc, char * argv[])
     Parameters::AllParameters all_parameters;
     all_parameters.parse_parameters (parameter_handler);
 
+    const int initial_n_cells = 3;
     const unsigned int n_grids = 3;
-    const unsigned int p_start = 1;
-    const unsigned int p_end = 4;
+    const unsigned int p_start = 2;
+    const unsigned int p_end = 3;
     const double amplitude = 0.1;
     const double exact_area = dim>1 ? 1.0 : (amplitude+1.0);
     const double area_tolerance = 1e-12;
@@ -74,8 +77,7 @@ int main (int argc, char * argv[])
                     dealii::Triangulation<dim>::smoothing_on_refinement |
                     dealii::Triangulation<dim>::smoothing_on_coarsening));
 #endif
-            const int n_cells = 2;
-            dealii::GridGenerator::subdivided_hyper_cube(grid, n_cells);
+            dealii::GridGenerator::subdivided_hyper_cube(grid, initial_n_cells);
 
 
             HighOrderGrid<dim,double> high_order_grid(&all_parameters, poly_degree, &grid);
@@ -163,9 +165,56 @@ int main (int argc, char * argv[])
             MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
                 meshmover(high_order_grid, surface_node_global_indices, surface_node_displacements);
             VectorType volume_displacements = meshmover.get_volume_displacements();
+
+            dealii::IndexSet locally_owned_dofs = high_order_grid.dof_handler_grid.locally_owned_dofs();
+            dealii::IndexSet locally_relevant_dofs;
+            dealii::DoFTools::extract_locally_relevant_dofs(high_order_grid.dof_handler_grid, locally_relevant_dofs);
+            auto index = surface_node_global_indices.begin();
+            auto index_end = surface_node_global_indices.end();
+            auto prescribed_surface_dx = surface_node_displacements.begin();
+            bool error = false;
+            for (; index != index_end; ++index, ++prescribed_surface_dx) {
+                // Note that LinearElasticity returns a non-ghosted vector since it uses Trilinos.
+                // As a result, we do not have access to the volume displacements that would typically
+                // be ghost elements. We therefore have to update the actual nodes after having 
+                // moved them using the locally owned volume displacements.
+                //if (locally_relevant_dofs.is_element(*index)) {
+                if (locally_owned_dofs.is_element(*index)) {
+                    const double computed_surface_dx = volume_displacements[*index];
+                    const double surface_displacement_error = std::abs(computed_surface_dx - *prescribed_surface_dx);
+                    if (surface_displacement_error > 1e-10) {
+                        std::cout << "Processor " << mpi_rank
+                                  << " Surface DoF with global index: " << *index
+                                  << " has a computed displacement of " << computed_surface_dx
+                                  << " instead of the prescribed displacement of " << *prescribed_surface_dx
+                                  << std::endl;
+                        error = true;
+                    }
+                }
+            }
+            //index = surface_node_global_indices.begin();
+            //prescribed_surface_dx = surface_node_displacements.begin();
+            //for (; index != index_end; ++index, ++prescribed_surface_dx) {
+            //    if (locally_relevant_dofs.is_element(*index)) {
+            //        const double computed_surface_dx = volume_displacements[*index];
+            //            std::cout << "DoF with global index: " << *index
+            //                      << " has a computed displacement of " << computed_surface_dx
+            //                      << " instead of the prescribed displacement of " << *prescribed_surface_dx
+            //                      << std::endl;
+            //    }
+            //}
+            bool inconsistent_disp = true;
+            MPI_Allreduce(&error, &inconsistent_disp, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
+            if (inconsistent_disp) {
+                std::cout << "Proc: " << mpi_rank << " inconsistent? " << error << std::endl;
+                return 1;
+            }
             high_order_grid.nodes += volume_displacements;
+            high_order_grid.nodes.update_ghost_values();
 
             high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
+
+
 
             const int overintegrate = 10;
             dealii::QGauss<dim> quad_extra(high_order_grid.max_degree+1+overintegrate);
@@ -179,6 +228,7 @@ int main (int argc, char * argv[])
                     area += fe_values_extra.JxW(iquad);
                 }
             }
+
             const double area_mpi_sum = dealii::Utilities::MPI::sum(area, MPI_COMM_WORLD);
             const double area_error = std::abs(exact_area-area_mpi_sum);
 

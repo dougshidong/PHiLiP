@@ -12,7 +12,7 @@ template <int dim, int nstate, typename real>
 void Burgers<dim,nstate,real>
 ::boundary_face_values (
    const int /*boundary_type*/,
-   const dealii::Point<dim, double> &pos,
+   const dealii::Point<dim, real> &pos,
    const dealii::Tensor<1,dim,real> &normal_int,
    const std::array<real,nstate> &soln_int,
    const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
@@ -137,7 +137,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>
 template <int dim, int nstate, typename real>
 std::array<real,nstate> Burgers<dim,nstate,real>
 ::source_term (
-    const dealii::Point<dim,double> &pos,
+    const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &/*solution*/) const
 {
     std::array<real,nstate> source;
@@ -175,8 +175,8 @@ std::array<real,nstate> Burgers<dim,nstate,real>
     // for (int istate=0; istate<nstate; istate++) {
     //     source[istate] = 0.0;
     //     for (int d=0;d<dim;++d) {
-    //         dealii::Point<dim,double> posp = pos;
-    //         dealii::Point<dim,double> posm = pos;
+    //         dealii::Point<dim,real> posp = pos;
+    //         dealii::Point<dim,real> posm = pos;
     //         posp[d] += 1e-8;
     //         posm[d] -= 1e-8;
     //         std::array<real,nstate> solp,solm;

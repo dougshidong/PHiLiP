@@ -24,8 +24,8 @@ bool isfinite(Sacado::Fad::DFad<double> value)
 template <int dim, typename real>
 ManufacturedSolutionFunction<dim,real>
 ::ManufacturedSolutionFunction (const unsigned int nstate)
-    :
-    dealii::Function<dim,real>(nstate)
+    : dealii::Function<dim,real>(nstate)
+    , nstate(nstate)
     , base_values(nstate)
     , amplitudes(nstate)
     , frequencies(nstate)
@@ -34,7 +34,7 @@ ManufacturedSolutionFunction<dim,real>
     const double pi = atan(1)*4.0;
     //const double ee = exp(1);
 
-    for (int s=0; s<(int)nstate; s++) {
+    for (unsigned int s=0; s<nstate; s++) {
         base_values[s] = 1+(s+1.0)/nstate;
         base_values[nstate-1] = 10;
         amplitudes[s] = 0.2*base_values[s]*sin((static_cast<double>(nstate)-s)/nstate);
@@ -47,7 +47,7 @@ ManufacturedSolutionFunction<dim,real>
 
 template <int dim, typename real>
 inline real ManufacturedSolutionFunction<dim,real>
-::value (const dealii::Point<dim> &point, const unsigned int istate) const
+::value (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     real value = amplitudes[istate];
     for (int d=0; d<dim; d++) {
@@ -90,7 +90,7 @@ inline real ManufacturedSolutionFunction<dim,real>
 #ifdef POLY_SOLUTION
     value = 0.0;
     for (int d=0; d<dim; d++) {
-        const double x = point[d];
+        const real x = point[d];
         value += 1.0 + x - x*x - x*x*x + x*x*x*x - x*x*x*x*x + x*x*x*x*x*x + 0.001*sin(50*x);
     }
 #endif
@@ -101,7 +101,7 @@ inline real ManufacturedSolutionFunction<dim,real>
 
 template <int dim, typename real>
 inline dealii::Tensor<1,dim,real> ManufacturedSolutionFunction<dim,real>
-::gradient (const dealii::Point<dim> &point, const unsigned int istate) const
+::gradient (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::Tensor<1,dim,real> gradient;
     for (int dim_deri=0; dim_deri<dim; dim_deri++) {
@@ -207,17 +207,17 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionFunction<dim,real>
 #endif
 #ifdef POLY_SOLUTION
     if (dim==1) {
-        const double x = point[0];
+        const real x = point[0];
         gradient[0] = 1.0 - 2*x -3*x*x + 4*x*x*x - 5*x*x*x*x + 6*x*x*x*x*x + 0.050*cos(50*x);
     }
     if (dim==2) {
-        double x = point[0];
+        real x = point[0];
         gradient[0] = 1.0 - 2*x -3*x*x + 4*x*x*x - 5*x*x*x*x + 6*x*x*x*x*x + 0.050*cos(50*x);
         x = point[1];
         gradient[1] = 1.0 - 2*x -3*x*x + 4*x*x*x - 5*x*x*x*x + 6*x*x*x*x*x + 0.050*cos(50*x);
     }
     if (dim==3) {
-        double x = point[0];
+        real x = point[0];
         gradient[0] = 1.0 - 2*x -3*x*x + 4*x*x*x - 5*x*x*x*x + 6*x*x*x*x*x;
         x = point[1];
         gradient[1] = 1.0 - 2*x -3*x*x + 4*x*x*x - 5*x*x*x*x + 6*x*x*x*x*x;
@@ -229,13 +229,13 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionFunction<dim,real>
 }
 template <int dim, typename real>
 inline dealii::Tensor<1,dim,real> ManufacturedSolutionFunction<dim,real>
-::gradient_fd (const dealii::Point<dim> &point, const unsigned int istate) const
+::gradient_fd (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::Tensor<1,dim,real> gradient;
     const double eps=1e-6;
     for (int dim_deri=0; dim_deri<dim; dim_deri++) {
-        dealii::Point<dim> pert_p = point;
-        dealii::Point<dim> pert_m = point;
+        dealii::Point<dim,real> pert_p = point;
+        dealii::Point<dim,real> pert_m = point;
         pert_p[dim_deri] += eps;
         pert_m[dim_deri] -= eps;
         const real value_p = value(pert_p,istate);
@@ -247,7 +247,7 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionFunction<dim,real>
 
 template <int dim, typename real>
 inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionFunction<dim,real>
-::hessian (const dealii::Point<dim> &point, const unsigned int istate) const
+::hessian (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::SymmetricTensor<2,dim,real> hessian;
     // Hard-coded is much more readable than the dimensionally generic one
@@ -399,17 +399,17 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionFunction<dim,real
 #endif
 #ifdef POLY_SOLUTION
     if (dim==1) {
-        const double x = point[0];
+        const real x = point[0];
         hessian[0][0] = - 2.0 -6*x + 12*x*x - 20*x*x*x + 30*x*x*x*x - 2.500*sin(50*x);
     }
     if (dim==2) {
-        double x = point[0];
+        real x = point[0];
         hessian[0][0] = - 2.0 -6*x + 12*x*x - 20*x*x*x + 30*x*x*x*x - 2.500*sin(50*x);
         x = point[1];
         hessian[1][1] = - 2.0 -6*x + 12*x*x - 20*x*x*x + 30*x*x*x*x - 2.500*sin(50*x);
     }
     if (dim==3) {
-        double x = point[0];
+        real x = point[0];
         hessian[0][0] = - 2.0 -6*x + 12*x*x - 20*x*x*x + 30*x*x*x*x - 2.500*sin(50*x);
         x = point[1];
         hessian[1][1] = - 2.0 -6*x + 12*x*x - 20*x*x*x + 30*x*x*x*x - 2.500*sin(50*x);
@@ -422,16 +422,16 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionFunction<dim,real
 
 template <int dim, typename real>
 inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionFunction<dim,real>
-::hessian_fd (const dealii::Point<dim> &point, const unsigned int istate) const
+::hessian_fd (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::SymmetricTensor<2,dim,real> hessian;
     const double eps=1e-4;
     for (int d1=0; d1<dim; d1++) {
         for (int d2=d1; d2<dim; d2++) {
-            dealii::Point<dim> pert_p_p = point;
-            dealii::Point<dim> pert_p_m = point;
-            dealii::Point<dim> pert_m_p = point;
-            dealii::Point<dim> pert_m_m = point;
+            dealii::Point<dim,real> pert_p_p = point;
+            dealii::Point<dim,real> pert_p_m = point;
+            dealii::Point<dim,real> pert_m_p = point;
+            dealii::Point<dim,real> pert_m_m = point;
 
             pert_p_p[d1] += (+eps); pert_p_p[d2] += (+eps);
             pert_p_m[d1] += (+eps); pert_p_m[d2] += (-eps);
@@ -450,12 +450,22 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionFunction<dim,real
 }
 
 template <int dim, typename real>
-inline std::vector<real> ManufacturedSolutionFunction<dim,real>
-::stdvector_values (const dealii::Point<dim> &point) const
+void ManufacturedSolutionFunction<dim,real>
+::vector_gradient (
+    const dealii::Point<dim,real> &p,
+    std::vector<dealii::Tensor<1,dim, real> > &gradients) const
 {
-    const int nstate = this->n_components;
+    for (unsigned int i = 0; i < nstate; ++i)
+        gradients[i] = gradient(p, i);
+}
+
+
+template <int dim, typename real>
+inline std::vector<real> ManufacturedSolutionFunction<dim,real>
+::stdvector_values (const dealii::Point<dim,real> &point) const
+{
     std::vector<real> values(nstate);
-    for (int s=0; s<nstate; s++) { values[s] = value(point, s); }
+    for (unsigned int s=0; s<nstate; s++) { values[s] = value(point, s); }
     return values;
 }
 

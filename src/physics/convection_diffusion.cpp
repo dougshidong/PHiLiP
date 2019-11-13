@@ -20,7 +20,7 @@ template <int dim, int nstate, typename real>
 void ConvectionDiffusion<dim,nstate,real>
 ::boundary_face_values (
    const int /*boundary_type*/,
-   const dealii::Point<dim, double> &pos,
+   const dealii::Point<dim, real> &pos,
    const dealii::Tensor<1,dim,real> &normal_int,
    const std::array<real,nstate> &soln_int,
    const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
@@ -158,7 +158,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,rea
 template <int dim, int nstate, typename real>
 std::array<real,nstate> ConvectionDiffusion<dim,nstate,real>
 ::source_term (
-    const dealii::Point<dim,double> &pos,
+    const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &/*solution*/) const
 {
     std::array<real,nstate> source;

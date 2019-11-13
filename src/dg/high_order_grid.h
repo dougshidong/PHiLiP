@@ -23,6 +23,11 @@
 #include <deal.II/lac/trilinos_vector.h>
 
 namespace PHiLiP {
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    template <int dim> using Triangulation = dealii::Triangulation<dim>;
+#else
+    template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+#endif
 
 /** This HighOrderGrid class basically contains all the different part necessary to generate
  *  a dealii::MappingFEField that corresponds to the current Triangulation and attached Manifold.
@@ -66,7 +71,7 @@ class HighOrderGrid
 #endif
 public:
     /// Principal constructor that will call delegated constructor.
-    HighOrderGrid(const Parameters::AllParameters *const parameters_input, const unsigned int max_degree, dealii::Triangulation<dim> *const triangulation_input);
+    HighOrderGrid(const Parameters::AllParameters *const parameters_input, const unsigned int max_degree, Triangulation<dim> *const triangulation_input);
 
     /// Needed to allocate the correct number of nodes when initializing and after the mesh is refined
     void allocate();
@@ -82,7 +87,7 @@ public:
     /// Maximum degree of the geometry polynomial representing the grid.
     const unsigned int max_degree;
 
-    dealii::Triangulation<dim> *triangulation; ///< Mesh
+    Triangulation<dim> *triangulation; ///< Mesh
 
     /// Degrees of freedom handler for the high-order grid
     dealii::DoFHandler<dim> dof_handler_grid;
@@ -294,7 +299,7 @@ namespace MeshMover
         unsigned int solve_linear_problem();
         void move_mesh();
         void setup_quadrature_point_history();
-        const dealii::Triangulation<dim> &triangulation;
+        const Triangulation<dim> &triangulation;
         dealii::FESystem<dim> fe;
         std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field;
         DoFHandlerType dof_handler;

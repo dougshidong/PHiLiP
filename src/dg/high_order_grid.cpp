@@ -53,7 +53,7 @@ template <int dim, typename real, typename VectorType , typename DoFHandlerType>
 HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
         const Parameters::AllParameters *const parameters_input,
         const unsigned int max_degree,
-        dealii::Triangulation<dim> *const triangulation_input)
+        Triangulation<dim> *const triangulation_input)
     : all_parameters(parameters_input)
     , max_degree(max_degree)
     , triangulation(triangulation_input)
@@ -105,8 +105,8 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::allocate()
     dof_handler_grid.distribute_dofs(fe_system);
 
     locally_owned_dofs_grid = dof_handler_grid.locally_owned_dofs();
-    dealii::DoFTools::extract_locally_relevant_dofs(dof_handler_grid, ghost_dofs_grid);
-    locally_relevant_dofs_grid = ghost_dofs_grid;
+    dealii::DoFTools::extract_locally_relevant_dofs(dof_handler_grid, locally_relevant_dofs_grid);
+    ghost_dofs_grid = locally_relevant_dofs_grid;
     ghost_dofs_grid.subtract_set(locally_owned_dofs_grid);
 #if PHILIP_DIM == 1
     nodes.reinit(dof_handler_grid.n_dofs());
@@ -847,7 +847,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::deform_mesh(std::vector<
     if (rank == n_mpi-1) my_rows.add_range(n_rows_per_mpi*(rank+1), n_rows_per_mpi*(rank+1)+rows_leftover);
     MPI_Barrier(MPI_COMM_WORLD);
     //std::cout << "Rank: " << rank << "range: "<< my_rows.print(std::cout) << std::endl << std::endl;
-    my_rows.print(std::cout);
+    //my_rows.print(std::cout);
     MPI_Barrier(MPI_COMM_WORLD);
 
     dealii::TrilinosWrappers::SparseMatrix M;
@@ -1332,6 +1332,7 @@ namespace MeshMover
         // displacement_solution = 0;
         // all_constraints.distribute(displacement_solution);
         //move_mesh();
+        displacement_solution.update_ghost_values();
         return displacement_solution;
     }
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
@@ -1340,6 +1341,9 @@ namespace MeshMover
         dof_handler.distribute_dofs(fe);
         locally_owned_dofs = dof_handler.locally_owned_dofs();
         dealii::DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
+        dealii::IndexSet ghost_dofs = locally_relevant_dofs;
+        ghost_dofs.subtract_set(locally_owned_dofs);
+        //ghost_dofs.print(std::cout);
         local_dofs_per_process = dof_handler.compute_n_locally_owned_dofs_per_processor();
 
         system_rhs.reinit(locally_owned_dofs, mpi_communicator);
@@ -1347,7 +1351,7 @@ namespace MeshMover
             displacement_solution.reinit(dof_handler.n_dofs());
         }
         if constexpr (dim != 1) {
-            displacement_solution.reinit(locally_owned_dofs, mpi_communicator);
+            displacement_solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
         }
 
         // Set the hanging node constraints
@@ -1367,6 +1371,7 @@ namespace MeshMover
                 Assert(all_constraints.can_store_line(*iglobal_row), dealii::ExcInternalError());
                 all_constraints.add_line(*iglobal_row);
                 all_constraints.set_inhomogeneity(*iglobal_row, *dirichlet_value);
+                //std::cout << "Proc: " << this_mpi_process << " Contraint: " << *iglobal_row << " value: " << *dirichlet_value << std::endl;
             }
         }
         all_constraints.close();
@@ -1530,8 +1535,8 @@ namespace MeshMover
         //   fullA.copy_from(system_matrix);
         //   pcout<<"Dense matrix:"<<std::endl;
         //   if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), 3, true, 10, "0", 1., 0.);
-        //   trilinos_solution.print(std::cout, 3);
-        //   system_rhs.print(std::cout, 3);
+        //   //trilinos_solution.print(std::cout, 4);
+        //   system_rhs.print(std::cout, 4);
 
         // dealii::SolverControl solver_control(
         //     dof_handler.n_dofs(),
@@ -1567,7 +1572,7 @@ namespace MeshMover
         } else {
             dealii::LinearAlgebra::ReadWriteVector<double> rw_vector;
             rw_vector.reinit(trilinos_solution);
-            displacement_solution.import(rw_vector, dealii::VectorOperation::add);
+            displacement_solution.import(rw_vector, dealii::VectorOperation::insert);
         }
         return solver_control.last_step();
     }

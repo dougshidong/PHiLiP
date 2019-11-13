@@ -40,6 +40,9 @@ namespace Tests {
  *  2. Perform functional evaluation from both cases (direct way) and check they are within tolerance
  *  3. Evaluate the discrete adjoint for both using PHiLiP::Adjoint class
  *  4. Compare (using L2 norm) with the primal solution of the opposing case
+ *
+ * Analytic value of the functional was found to be
+ * J = [144*(10 - pi^2)/pi^5]^dim
  */
 
 // manufactured solution for u
@@ -78,8 +81,25 @@ class diffusion_objective : public Physics::ConvectionDiffusion <dim, nstate, re
 {
 public:
     // constructor
-    diffusion_objective(const bool convection = true, const bool diffusion = true): 
-        Physics::ConvectionDiffusion<dim,nstate,real>::ConvectionDiffusion(convection, diffusion){}
+    diffusion_objective(const bool convection = false, const bool diffusion = true): 
+        Physics::ConvectionDiffusion<dim,nstate,real>::ConvectionDiffusion(convection, diffusion)
+        {
+            // negative one is used so that the problem becomes \del u(x) = f(x)
+            Physics::ConvectionDiffusion<dim,nstate,real>::diff_coeff = -1.0;
+            Physics::ConvectionDiffusion<dim,nstate,real>::diffusion_tensor[0][0] = 1;
+            if (dim>=2) {
+                Physics::ConvectionDiffusion<dim,nstate,real>::diffusion_tensor[0][1] = 0.0;
+                Physics::ConvectionDiffusion<dim,nstate,real>::diffusion_tensor[1][0] = 0.0;
+                Physics::ConvectionDiffusion<dim,nstate,real>::diffusion_tensor[1][1] = 1.0;
+            }
+            if (dim>=3) {
+                Physics::ConvectionDiffusion<dim,nstate,real>::diffusion_tensor[0][2] = 0.0;
+                Physics::ConvectionDiffusion<dim,nstate,real>::diffusion_tensor[1][2] = 0.0;
+                Physics::ConvectionDiffusion<dim,nstate,real>::diffusion_tensor[2][0] = 0.0;
+                Physics::ConvectionDiffusion<dim,nstate,real>::diffusion_tensor[2][1] = 0.0;
+                Physics::ConvectionDiffusion<dim,nstate,real>::diffusion_tensor[2][2] = 1.0;
+            }
+        }
 
     // defnined directly as part of the physics to make passing to the functional simpler
     virtual real objective_function(
@@ -92,7 +112,7 @@ class diffusion_u : public diffusion_objective <dim, nstate, real>
 {
 public:
     // constructor
-    diffusion_u(const bool convection = true, const bool diffusion = true): 
+    diffusion_u(const bool convection = false, const bool diffusion = true): 
         diffusion_objective<dim,nstate,real>::diffusion_objective(convection, diffusion)
     {
         this->manufactured_solution_function 
@@ -115,7 +135,7 @@ class diffusion_v : public diffusion_objective <dim, nstate, real>
 {
 public:
     // constructor
-    diffusion_v(const bool convection = true, const bool diffusion = true): 
+    diffusion_v(const bool convection = false, const bool diffusion = true): 
         diffusion_objective<dim,nstate,real>::diffusion_objective(convection, diffusion)
     {
         this->manufactured_solution_function 

@@ -57,7 +57,7 @@ dealii::Tensor<1,dim,real> ManufacturedSolutionU<dim,real>::gradient(const deali
 
     for(unsigned int d=0; d<dim; ++d){
         double x = pos[d];
-        gradient[d] = (((-6.0*x+15.0)*x-12.0)*x+3.0)*x*x*this->value(pos,istate)/(((-30.0*x+60.0)*x-36.0)*x+6.0)*x;
+        gradient[d] = -3*std::pow(x-1,2)*std::pow(x,2)*(2*x-1)*this->value(pos,istate)/(std::pow(x,3)*std::pow(1-x,3));
     }
 
     return gradient;
@@ -89,7 +89,7 @@ dealii::Tensor<1,dim,real> ManufacturedSolutionV<dim,real>::gradient(const deali
 
     for(unsigned int d=0; d<dim; ++d){
         // double x = pos[d];
-        gradient[d] = -pi*pi*this->value(pos,istate);
+        gradient[d] = pi*this->value(pos,istate);
     }
 
     return gradient;
@@ -261,6 +261,10 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
     // functional for computations
     DiffusionFunctional<dim,nstate,double> diffusion_functional;
 
+    // exact value to be used in checks below
+    const double pi = std::acos(-1);
+    double exact_val = std::pow(144*(std::pow(pi,2)-10)/std::pow(pi,5), dim);
+
     // checks 
     std::vector<int> fail_conv_poly;
     std::vector<double>  failt_conv_slope;
@@ -325,6 +329,7 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             ode_solver_u->steady_state();
             ode_solver_v->steady_state();
 
+            // outputing the solutions obtained
             const std::string filename_u = "sol-u-" + std::to_string(igrid) + ".gnuplot";
             std::ofstream gnuplot_output_u(filename_u);
             dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> data_out_u;
@@ -348,8 +353,134 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             // comparison betweent the values, add these to the convergence table
             std::cout << std::endl << "Val1 = " << val1 << "\tVal2 = " << val2 << std::endl << std::endl; 
 
+            // evaluating the error of this measure
+            double error_val1 = std::abs(val1-exact_val);
+            double error_val2 = std::abs(val2-exact_val);
+
+            std::cout << std::endl << "error_val1 = " << error_val1 << "\terror_val2 = " << error_val2 << std::endl << std::endl; 
+
+            // // Initializing the adjoints for each problem
+            Adjoint<dim, nstate, double> adj_u(*dg_u, diffusion_functional, *physics_u_adtype.get());
+            Adjoint<dim, nstate, double> adj_v(*dg_v, diffusion_functional, *physics_v_adtype.get());
+
+            // solving for each coarse adjoint
+            dealii::LinearAlgebra::distributed::Vector<double> adjoint_u = adj_u.coarse_grid_adjoint();
+            dealii::LinearAlgebra::distributed::Vector<double> adjoint_v = adj_v.coarse_grid_adjoint();
+
+            // using overintegration for estimating the error in the adjoint
+            int overintegrate = 10;
+            dealii::QGauss<dim> quad_extra(poly_degree+overintegrate);
+            dealii::FEValues<dim,dim> fe_values_extra(*(dg_u->high_order_grid.mapping_fe_field), dg_u->fe_collection[poly_degree], quad_extra, 
+                    dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+            const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
+            std::array<double,nstate> adj_at_q_u;
+            std::array<double,nstate> adj_at_q_v;
+
+            // evaluate the error in the adjoints compared to the opposing manufactured solutions
+            double l2error_adj_u = 0;
+            double l2error_adj_v = 0;
+
+            std::vector<dealii::types::global_dof_index> dofs_indices(fe_values_extra.dofs_per_cell);
+            for(auto cell = dg_u->dof_handler.begin_active(); cell != dg_u->dof_handler.end(); ++cell){
+                if(!cell->is_locally_owned()) continue;
+
+                fe_values_extra.reinit (cell);
+                cell->get_dof_indices(dofs_indices);
+
+                double cell_l2error_u = 0;
+                double cell_l2error_v = 0;
+                for(unsigned int iquad = 0; iquad < n_quad_pts; ++iquad){
+                    std::fill(adj_at_q_u.begin(), adj_at_q_u.end(), 0);
+                    std::fill(adj_at_q_v.begin(), adj_at_q_v.end(), 0);
+
+                    for (unsigned int idof = 0; idof < fe_values_extra.dofs_per_cell; ++idof) {
+                        const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
+                        adj_at_q_u[istate] += adjoint_u[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
+                        adj_at_q_v[istate] += adjoint_v[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
+                    }
+
+                    const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
+
+                    std::cout << "value of nstate is " << nstate << std::endl;
+
+                    for (int istate = 0; istate < nstate; ++istate){
+                        // adjoint should convert to the manufactured solution of the opposing case
+                        const double adj_exact_u = physics_v_double->manufactured_solution_function->value(qpoint, istate);
+                        const double adj_exact_v = physics_u_double->manufactured_solution_function->value(qpoint, istate);
+
+                        cell_l2error_u += std::pow(adj_at_q_u[istate] - adj_exact_u, 2) * fe_values_extra.JxW(iquad);
+                        cell_l2error_v += std::pow(adj_at_q_v[istate] - adj_exact_v, 2) * fe_values_extra.JxW(iquad);
+
+                        std::cout << "Adjoint value is = " << adj_at_q_u[istate] << std::endl << "and the exact value is = " << adj_exact_u << std::endl;
+                    }
+                }
+
+                std::cout << "Cell value is (for u) = " << cell_l2error_u << std::endl;
+
+                l2error_adj_u += cell_l2error_u;
+                l2error_adj_v += cell_l2error_v;
+            }
+            const double l2error_adj_u_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error_adj_u, mpi_communicator));
+            const double l2error_adj_v_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error_adj_v, mpi_communicator));
+
+            // adding terms to the convergence table
+            const int n_dofs = dg_u->dof_handler.n_dofs();
+            const double dx = 1.0/pow(n_dofs,(1.0/dim));
+
+            // this is meaningless because the u solution is converging at O(h^p) hopefully so it doesn't indicate anything
+            // // taking the difference with the corresponding (exact adjoint) solution
+            // adjoint_u -= dg_v->solution;
+            // adjoint_v -= dg_u->solution;
+
+            // // evaliating the l2 norms
+            // double l2val1 = adjoint_u.l2_norm();
+            // double l2val2 = adjoint_v.l2_norm();
+
+            // // comparison between the 2 norms, add these to the convergence table
+            // std::cout << std::endl << "l2_Val1 = " << l2val1 << "\tl2_Val2 = " << l2val2 << std::endl << std::endl; 
+
+            // // more cells leading to higher error
+            // l2val1 *= dx;
+            // l2val2 *= dx;
+
+            convergence_table.add_value("p", poly_degree);
+            convergence_table.add_value("cells", grid.n_global_active_cells());
+            convergence_table.add_value("DoFs", n_dofs);
+            convergence_table.add_value("dx", dx);
+            convergence_table.add_value("soln_u_val", val1);
+            convergence_table.add_value("soln_v_val", val2);
+            convergence_table.add_value("adj_u_L2_err", l2error_adj_u_mpi_sum);
+            convergence_table.add_value("adj_v_L2_err", l2error_adj_v_mpi_sum);
+            convergence_table.add_value("soln_u_err", error_val1);
+            convergence_table.add_value("soln_v_err", error_val2);
         }
 
+        // obtaining the convergence rates
+        convergence_table.evaluate_convergence_rates("adj_u_L2_err", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+        convergence_table.evaluate_convergence_rates("adj_v_L2_err", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+        convergence_table.evaluate_convergence_rates("soln_u_err", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+        convergence_table.evaluate_convergence_rates("soln_v_err", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+        convergence_table.set_scientific("dx",true);
+        convergence_table.set_scientific("soln_u_val",true);
+        convergence_table.set_scientific("soln_v_val",true);
+        convergence_table.set_scientific("adj_u_L2_err",true);
+        convergence_table.set_scientific("adj_v_L2_err",true);
+        convergence_table.set_scientific("soln_u_err",true);
+        convergence_table.set_scientific("soln_v_err",true);
+
+        // adding it to the final list
+        convergence_table_vector.push_back(convergence_table);
+
+        // add checks on the expected slope and count the errors
+    }
+
+    pcout << std::endl << std::endl << std::endl << std::endl;
+    pcout << " ********************************************" << std::endl;
+    pcout << " Convergence summary" << std::endl;
+    pcout << " ********************************************" << std::endl;
+    for (auto conv = convergence_table_vector.begin(); conv!=convergence_table_vector.end(); conv++) {
+        if (pcout.is_active()) conv->write_text(pcout.get_stream());
+        pcout << " ********************************************" << std::endl;
     }
 
     return 0;

@@ -96,12 +96,8 @@ int ODESolver<dim,real>::steady_state ()
 
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
             (this->current_iteration%ode_param.print_iteration_modulo) == 0 ) {
-        pcout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
-    }
-
-        this->dg->assemble_residual ();
-        this->residual_norm = this->dg->get_residual_l2norm();
-        this->residual_norm_decrease = this->residual_norm / this->initial_residual_norm;
+            pcout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
+        }
 
         double dt = ode_param.initial_time_step;
         dt *= pow((1.0-std::log10(this->residual_norm_decrease)*ode_param.time_step_factor_residual), ode_param.time_step_factor_residual_exp);
@@ -110,6 +106,10 @@ int ODESolver<dim,real>::steady_state ()
         pcout << "Time step = " << dt << std::endl;
 
         step_in_time(dt);
+
+        this->dg->assemble_residual ();
+        this->residual_norm = this->dg->get_residual_l2norm();
+        this->residual_norm_decrease = this->residual_norm / this->initial_residual_norm;
 
         ++(this->current_iteration);
 

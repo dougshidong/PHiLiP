@@ -12,8 +12,8 @@ set dimension = 2
 set pde_type  = diffusion
 
 subsection linear solver
-set linear_solver_type = direct
-#set linear_solver_output = verbose
+  set linear_solver_type = direct
+#  set linear_solver_output = verbose
 end
 
 subsection ODE solver
@@ -21,6 +21,8 @@ subsection ODE solver
 
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations            = 500
+
+  set initial_time_step = 10e50
 
   # Nonlinear solver residual tolerance
   set nonlinear_steady_residual_tolerance = 1e-12
@@ -50,5 +52,5 @@ subsection manufactured solution convergence study
   set grid_progression  = 1.5
 
   # Number of grids in grid study
-  set number_of_grids   = 5
+  set number_of_grids   = 8
 end

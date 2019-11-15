@@ -13,6 +13,7 @@
 #include <deal.II/grid/grid_in.h>
 
 #include <deal.II/numerics/vector_tools.h>
+#include <deal.II/numerics/data_out.h>
 
 #include <deal.II/fe/fe_values.h>
 #include <deal.II/fe/mapping_q.h>
@@ -28,6 +29,8 @@
 
 #include "functional/functional.h"
 #include "functional/adjoint.h"
+
+#include "post_processor/physics_post_processor.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -127,8 +130,8 @@ dealii::Tensor<1,dim,real> ManufacturedSolutionV<dim,real>::gradient(const deali
         double x = pos[0], y = pos[1];
         gradient[0] = (pi*std::cos(pi*x))
                     * (   std::sin(pi*y));
-        gradient[1] = (   std::cos(pi*x))
-                    * (pi*std::sin(pi*y));
+        gradient[1] = (   std::sin(pi*x))
+                    * (pi*std::cos(pi*y));
     }else if(dim == 3){
         double x = pos[0], y = pos[1], z = pos[2];
         gradient[0] = (pi*std::cos(pi*x))
@@ -406,6 +409,12 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
         std::vector<double> adj_error_u(n_grids);
         std::vector<double> adj_error_v(n_grids);
         
+        // for outputing cell-wise erorr distribution
+        dealii::Vector<double> cellError_soln_u;
+        dealii::Vector<double> cellError_soln_v;
+        dealii::Vector<double> cellError_adj_u;
+        dealii::Vector<double> cellError_adj_v;
+
         const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids);
 
         dealii::ConvergenceTable convergence_table;
@@ -483,6 +492,7 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             Adjoint<dim, nstate, double> adj_v(*dg_v, diffusion_functional, *physics_v_adtype.get());
 
             // solving for each coarse adjoint
+            pcout << "Solving for the discrete adjoints." << std::endl;
             dealii::LinearAlgebra::distributed::Vector<double> adjoint_u = adj_u.coarse_grid_adjoint();
             dealii::LinearAlgebra::distributed::Vector<double> adjoint_v = adj_v.coarse_grid_adjoint();
 
@@ -506,6 +516,12 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             std::array<double,nstate> soln_at_q_v;
             std::array<double,nstate> adj_at_q_u;
             std::array<double,nstate> adj_at_q_v;
+
+            // reinit vectors for error distribution
+            cellError_soln_u.reinit(grid.n_active_cells());
+            cellError_soln_v.reinit(grid.n_active_cells());
+            cellError_adj_u.reinit(grid.n_active_cells());
+            cellError_adj_v.reinit(grid.n_active_cells());
 
             std::vector<dealii::types::global_dof_index> dofs_indices(fe_values_extra.dofs_per_cell);
             for(auto cell = dg_u->dof_handler.begin_active(); cell != dg_u->dof_handler.end(); ++cell){
@@ -552,6 +568,13 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
 
                 // std::cout << "Cell value is (for u) = " << cell_l2error_adj_u << std::endl;
 
+                // Storing the cell-wise error terms
+                cellError_soln_u[cell->active_cell_index()] = cell_l2error_soln_u;
+                cellError_soln_v[cell->active_cell_index()] = cell_l2error_soln_v;
+                cellError_adj_u[cell->active_cell_index()]  = cell_l2error_adj_u;
+                cellError_adj_v[cell->active_cell_index()]  = cell_l2error_adj_v;
+
+                // Adding contributions to the global error
                 l2error_soln_u += cell_l2error_soln_u;
                 l2error_soln_v += cell_l2error_soln_v;
                 l2error_adj_u += cell_l2error_adj_u;
@@ -580,9 +603,114 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
                 data_out_v.build_patches();
                 data_out_v.write_gnuplot(gnuplot_output_v);
             }else{
-                // outputing the adjoint
-                adj_u.output_results_vtk(10*poly_degree + igrid);
-                adj_v.output_results_vtk(100 + 10*poly_degree + igrid);
+                pcout << "Outputting the results" << std::endl;
+                // // outputing the adjoint
+                // adj_u.output_results_vtk(10*poly_degree + igrid);
+                // adj_v.output_results_vtk(100 + 10*poly_degree + igrid);
+
+                // // initializing vectors for source terms and manufactured solution
+                // dealii::LinearAlgebra::distributed::Vector<double> source_u;    source_u.reinit(dg_u->solution);
+                // dealii::LinearAlgebra::distributed::Vector<double> source_v;    source_v.reinit(dg_u->solution);
+                // dealii::LinearAlgebra::distributed::Vector<double> manu_u;      manu_u.reinit(dg_u->solution);
+                // dealii::LinearAlgebra::distributed::Vector<double> manu_v;      manu_v.reinit(dg_u->solution);
+                // need to add a dof-wise loop to output these quantities. Haven't figured out how yet that doesn't rely on interpolation of a dealii::Function
+
+                // setting up dataout and outputing results
+                dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> data_out;
+                data_out.attach_dof_handler(dg_u->dof_handler);
+
+                // // can't use this post processor as it gives them the same name
+                // const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor_u = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
+                // const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor_v = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
+                // data_out.add_data_vector(dg_u->solution, *post_processor_u);
+                // data_out.add_data_vector(dg_v->solution, *post_processor_v);
+
+                dealii::Vector<float> subdomain(dg_u->triangulation->n_active_cells());
+                for (unsigned int i = 0; i < subdomain.size(); ++i) {
+                    subdomain(i) = dg_u->triangulation->locally_owned_subdomain();
+                }
+                data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+
+                std::vector<unsigned int> active_fe_indices;
+                dg_u->dof_handler.get_active_fe_indices(active_fe_indices);
+                dealii::Vector<double> active_fe_indices_dealiivector(active_fe_indices.begin(), active_fe_indices.end());
+                dealii::Vector<double> cell_poly_degree = active_fe_indices_dealiivector;
+
+                data_out.add_data_vector(active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+
+                std::vector<std::string> solution_names_u;
+                std::vector<std::string> solution_names_v;
+                std::vector<std::string> residual_names_u;
+                std::vector<std::string> residual_names_v;
+                std::vector<std::string> dIdw_names_u;
+                std::vector<std::string> dIdw_names_v;
+                std::vector<std::string> adjoint_names_u;
+                std::vector<std::string> adjoint_names_v;
+                for(int s=0;s<nstate;++s) {
+                    std::string varname0_u = "state" + dealii::Utilities::int_to_string(s,1) + "_u";
+                    std::string varname0_v = "state" + dealii::Utilities::int_to_string(s,1) + "_v";
+                    std::string varname1_u = "residual" + dealii::Utilities::int_to_string(s,1) + "_u";
+                    std::string varname1_v = "residual" + dealii::Utilities::int_to_string(s,1) + "_v";
+                    std::string varname2_u = "dIdw" + dealii::Utilities::int_to_string(s,1) + "_u";
+                    std::string varname2_v = "dIdw" + dealii::Utilities::int_to_string(s,1) + "_v";
+                    std::string varname3_u = "psi" + dealii::Utilities::int_to_string(s,1) + "_u";
+                    std::string varname3_v = "psi" + dealii::Utilities::int_to_string(s,1) + "_v";
+        
+                    solution_names_u.push_back(varname0_u);
+                    solution_names_v.push_back(varname0_v);
+                    residual_names_u.push_back(varname1_u);
+                    residual_names_v.push_back(varname1_v);
+                    dIdw_names_u.push_back(varname2_u);
+                    dIdw_names_v.push_back(varname2_v);
+                    adjoint_names_u.push_back(varname3_u);
+                    adjoint_names_v.push_back(varname3_v);
+                }
+
+                data_out.add_data_vector(dg_u->solution, solution_names_u, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+                data_out.add_data_vector(dg_v->solution, solution_names_v, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+                data_out.add_data_vector(dg_u->right_hand_side, residual_names_u, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+                data_out.add_data_vector(dg_v->right_hand_side, residual_names_v, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+                data_out.add_data_vector(adj_u.dIdw_coarse, dIdw_names_u, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+                data_out.add_data_vector(adj_v.dIdw_coarse, dIdw_names_v, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+                data_out.add_data_vector(adj_u.adjoint_coarse, adjoint_names_u, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+                data_out.add_data_vector(adj_v.adjoint_coarse, adjoint_names_v, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+
+                data_out.add_data_vector(cellError_soln_u, "soln_u_err", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+                data_out.add_data_vector(cellError_soln_v, "soln_v_err", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+                data_out.add_data_vector(cellError_adj_u, "adj_u_err", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+                data_out.add_data_vector(cellError_adj_v, "adj_v_err", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+
+                const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
+                data_out.build_patches();
+
+                // creating the files
+                std::string filename = "diffusion_exact_adjoint-" ;
+                filename += dealii::Utilities::int_to_string(dim, 1) + "D-";
+                filename += dealii::Utilities::int_to_string(poly_degree, 1) + "P-";
+                filename += dealii::Utilities::int_to_string(igrid, 4) + ".";
+                filename += dealii::Utilities::int_to_string(iproc, 4);
+                filename += ".vtu";
+                std::ofstream output(filename);
+                data_out.write_vtu(output);
+
+                if (iproc == 0) {
+                    std::vector<std::string> filenames;
+                    for (unsigned int iproc = 0; iproc < dealii::Utilities::MPI::n_mpi_processes(mpi_communicator); ++iproc) {
+                        std::string fn = "diffusion_exact_adjoint-";
+                        fn += dealii::Utilities::int_to_string(dim, 1) + "D-";
+                        fn += dealii::Utilities::int_to_string(poly_degree, 1) + "P-";
+                        fn += dealii::Utilities::int_to_string(igrid, 4) + ".";
+                        fn += dealii::Utilities::int_to_string(iproc, 4);
+                        fn += ".vtu";
+                        filenames.push_back(fn);
+                    }
+                    std::string master_fn = "diffusion_exact_adjoint-";
+                    master_fn += dealii::Utilities::int_to_string(dim, 1) +"D-";
+                    master_fn += dealii::Utilities::int_to_string(poly_degree, 1) +"P-";
+                    master_fn += dealii::Utilities::int_to_string(igrid, 4) + ".pvtu";
+                    std::ofstream master_output(master_fn);
+                    data_out.write_pvtu_record(master_output, filenames);
+                }
             }
 
             // adding terms to the convergence table

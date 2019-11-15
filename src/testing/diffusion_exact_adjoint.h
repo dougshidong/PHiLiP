@@ -44,7 +44,7 @@ namespace Tests {
  * Analytic value of the functional was found to be
  *  1D: J =                             [144*(10 - pi^2)/pi^5]
  *  2D: J = 2*[-144*(10 - pi^2)/pi^7]  *[144*(10 - pi^2)/pi^5]
- *  2D: J = 3*[-144*(10 - pi^2)/pi^7]^2*[144*(10 - pi^2)/pi^5]
+ *  3D: J = 3*[-144*(10 - pi^2)/pi^7]^2*[144*(10 - pi^2)/pi^5]
  */
 
 // manufactured solution for u

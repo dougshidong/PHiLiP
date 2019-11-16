@@ -21,8 +21,6 @@ subsection ODE solver
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations            = 500
 
-  set initial_time_step = 10e50
-
   # Nonlinear solver residual tolerance
   set nonlinear_steady_residual_tolerance = 1e-12
 

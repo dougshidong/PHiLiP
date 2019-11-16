@@ -17,12 +17,10 @@ subsection linear solver
 end
 
 subsection ODE solver
-  set ode_output                          = quiet
+  set ode_output                          = verbose
 
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations            = 500
-
-  set initial_time_step = 10e50
 
   # Nonlinear solver residual tolerance
   set nonlinear_steady_residual_tolerance = 1e-12

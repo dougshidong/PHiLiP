@@ -90,7 +90,7 @@ int ODESolver<dim,real>::steady_state ()
         }
         pcout << " ********************************************************** "
                   << std::endl
-                  << " Nonlinear iteration: " << this->current_iteration + 1
+                  << " Nonlinear iteration: " << this->current_iteration
                   << " residual norm: " << this->residual_norm
                   << std::endl;
 
@@ -121,6 +121,17 @@ int ODESolver<dim,real>::steady_state ()
             }
         }
     }
+
+    pcout << " ********************************************************** "
+          << std::endl
+          << " ODESolver steady_state stopped at"
+          << std::endl
+          << " Nonlinear iteration: " << this->current_iteration
+          << " residual norm: " << this->residual_norm
+          << std::endl
+          << " ********************************************************** "
+          << std::endl;
+
     return 1;
 }
 
@@ -162,7 +173,7 @@ int ODESolver<dim,real>::advance_solution_time (double time_advance)
         step_in_time(constant_time_step);
 
 
-   if (this->current_iteration%ode_param.print_iteration_modulo == 0) {
+    if (this->current_iteration%ode_param.print_iteration_modulo == 0) {
         this->dg->output_results_vtk(this->current_iteration);
     }
         ++(this->current_iteration);

@@ -125,8 +125,6 @@ void Adjoint<dim, nstate, real>::coarse_to_fine()
     solution_transfer.interpolate(dg.solution);
     dg.solution.update_ghost_values();
 
-    dg.assemble_residual(true);
-
     adjoint_state = AdjointEnum::fine;
 }
 
@@ -148,8 +146,6 @@ void Adjoint<dim, nstate, real>::fine_to_coarse()
 
     dg.solution = solution_coarse;
 
-    dg.assemble_residual(true);
-
     adjoint_state = AdjointEnum::coarse;
 }
 
@@ -163,6 +159,9 @@ dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nstate, real>::fin
 
     adjoint_fine.reinit(dg.solution);
     
+    dg.assemble_residual(true);
+    dg.system_matrix *= -1.0;
+
     dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose;
     Epetra_CrsMatrix *system_matrix_transpose_tril;
 
@@ -184,6 +183,9 @@ dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nstate, real>::coa
     dIdw_coarse = functional.evaluate_dIdw(dg, physics);
 
     adjoint_coarse.reinit(dg.solution);
+
+    dg.assemble_residual(true);
+    dg.system_matrix *= -1.0;
 
     dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose;
     Epetra_CrsMatrix *system_matrix_transpose_tril;

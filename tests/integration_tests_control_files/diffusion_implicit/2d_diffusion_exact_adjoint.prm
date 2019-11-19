@@ -12,8 +12,15 @@ set dimension = 2
 set pde_type  = diffusion
 
 subsection linear solver
-  set linear_solver_type = direct
-#  set linear_solver_output = verbose
+#set linear_solver_type = direct
+  subsection gmres options
+    set linear_residual_tolerance = 1e-12
+    set max_iterations = 2000
+    set restart_number = 50
+    set ilut_fill = 2
+    set ilut_drop = 1e-2
+  end 
+#set linear_solver_output = verbose
 end
 
 subsection ODE solver

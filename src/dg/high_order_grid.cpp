@@ -71,8 +71,8 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
     nodes.update_ghost_values();
     update_surface_indices();
     update_surface_nodes();
-    mapping_fe_field = std::make_shared< dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> > (dof_handler_grid,nodes,mask);
-    // output_results_vtk(nth_refinement++);
+    update_mapping_fe_field();
+    output_results_vtk(nth_refinement++);
 
     // Used to check Jacobian validity
     const unsigned int exact_jacobian_order = (max_degree-1) * dim;
@@ -82,7 +82,7 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
 
     auto cell = dof_handler_grid.begin_active();
     auto endcell = dof_handler_grid.end();
-    pcout << "Disabled check_valid_cells. Took too much time due to shape_grad()." << std::endl;
+    // pcout << "Disabled check_valid_cells. Took too much time due to shape_grad()." << std::endl;
     for (; cell!=endcell; ++cell) {
         if (!cell->is_locally_owned())  continue;
         const bool is_invalid_cell = check_valid_cell(cell);
@@ -95,6 +95,12 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
             // if (fixed_invalid_cell) std::cout << "Fixed it." << std::endl;
         }
     }
+}
+
+template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_mapping_fe_field() {
+    const dealii::ComponentMask mask(dim, true);
+    mapping_fe_field = std::make_shared< dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> > (dof_handler_grid,nodes,mask);
 }
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
@@ -305,9 +311,9 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::evaluate_lagrange_to_ber
         }
     }
     lagrange_to_bernstein_operator.reinit(n_lagrange_pts, n_bernstein);
-    pcout << "Careful, about to invert a " << n_lagrange_pts << " x " << n_lagrange_pts << " dense matrix..." << std::endl;
+    if (n_lagrange_pts > 1000) pcout << "Careful, about to invert a " << n_lagrange_pts << " x " << n_lagrange_pts << " dense matrix..." << std::endl;
     lagrange_to_bernstein_operator.invert(bernstein_to_lagrange);
-    pcout << "Done inverting a " << n_lagrange_pts << " x " << n_lagrange_pts << " dense matrix..." << std::endl;
+    if (n_lagrange_pts > 1000) pcout << "Done inverting a " << n_lagrange_pts << " x " << n_lagrange_pts << " dense matrix..." << std::endl;
 }
 
 
@@ -775,12 +781,12 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::execute_coarsening_and_r
 
     update_surface_indices();
     update_surface_nodes();
-    mapping_fe_field = std::make_shared< dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> > (dof_handler_grid,nodes);
+    update_mapping_fe_field();
     if (output_mesh) output_results_vtk(nth_refinement++);
 
     auto cell = dof_handler_grid.begin_active();
     auto endcell = dof_handler_grid.end();
-    pcout << "Disabled check_valid_cells. Took too much time due to shape_grad()." << std::endl;
+    // pcout << "Disabled check_valid_cells. Took too much time due to shape_grad()." << std::endl;
     for (; cell!=endcell; ++cell) {
         if (!cell->is_locally_owned())  continue;
         const bool is_invalid_cell = check_valid_cell(cell);

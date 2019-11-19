@@ -350,11 +350,17 @@ template <int dim, typename real>
 template<typename DoFCellAccessorType1, typename DoFCellAccessorType2>
 bool DGBase<dim,real>::current_cell_should_do_the_work (const DoFCellAccessorType1 &current_cell, const DoFCellAccessorType2 &neighbor_cell) const
 {
-    if (neighbor_cell->is_ghost()) {
+    if (neighbor_cell->has_children()) {
+    // Only happens in 1D where neither faces have children, but neighbor has some children
+    // Can't do the computation now since we need to query the children's DoF
+        AssertDimension(dim,1);
+        return false;
+    } else if (neighbor_cell->is_ghost()) {
     // In the case the neighbor is a ghost cell, we let the processor with the lower rank do the work on that face
     // We cannot use the cell->index() because the index is relative to the distributed triangulation
     // Therefore, the cell index of a ghost cell might be different to the physical cell index even if they refer to the same cell
         return (current_cell->subdomain_id() < neighbor_cell->subdomain_id());
+        //return true;
     } else {
     // Locally owned neighbor cell
         Assert(neighbor_cell->is_locally_owned(), dealii::ExcMessage("If not ghost, neighbor should be locally owned.")); 
@@ -489,7 +495,7 @@ void DGBase<dim,real>::assemble_cell_residual (
                         dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
                     const dealii::Quadrature<dim> quadrature_ext =
                         dealii::QProjector<dim>::project_to_face(used_face_quadrature,neighbor_iface);
-                    assemble_face_term_dRdX (   iface,
+                    assemble_face_term_dRdX (   iface, neighbor_iface,
                                                 fe_values_face_int, fe_values_face_ext,
                                                 penalty,
                                                 fe_collection[i_fele], fe_collection[i_fele_n],
@@ -587,7 +593,7 @@ void DGBase<dim,real>::assemble_cell_residual (
                         dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
                     const dealii::Quadrature<dim> quadrature_ext =
                         dealii::QProjector<dim>::project_to_face(used_face_quadrature,neighbor_iface);
-                    assemble_face_term_dRdX (   iface,
+                    assemble_face_term_dRdX (   iface, neighbor_iface,
                                                 fe_values_face_int, fe_values_face_ext,
                                                 penalty,
                                                 fe_collection[i_fele], fe_collection[i_fele_n],
@@ -616,7 +622,8 @@ void DGBase<dim,real>::assemble_cell_residual (
         // Case 2:
         // Neighbour is finer occurs if the face has children
         // In this case, we loop over the current large face's subfaces and visit multiple neighbors
-        } else if (current_face->has_children()) {
+        } else if (current_cell->face(iface)->has_children()) {
+        //} else if ( (current_cell->level() > current_cell->neighbor(iface)->level()) ) {
 
 //            Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
 //            Assert (current_cell->neighbor(iface)->has_children(), dealii::ExcInternalError());
@@ -666,7 +673,7 @@ void DGBase<dim,real>::assemble_cell_residual (
 //                        dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
 //                    const dealii::Quadrature<dim> quadrature_ext =
 //                        dealii::QProjector<dim>::project_to_face(used_face_quadrature,neighbor_iface);
-//                    assemble_face_term_dRdX (   iface,
+//                    assemble_face_term_dRdX (   iface, neighbor_iface,
 //                                                fe_values_face_int, fe_values_face_ext,
 //                                                penalty,
 //                                                fe_collection[i_fele], fe_collection[i_fele_n],
@@ -688,75 +695,9 @@ void DGBase<dim,real>::assemble_cell_residual (
 //                }
 //            }
 
-        // Case 3:
-        // Neighbor cell is NOT coarser
-        // Therefore, they have the same coarseness, and we need to choose one of them to do the work
-        } else if ( !(current_cell->neighbor_is_coarser(iface)) && current_cell_should_do_the_work(current_cell, current_cell->neighbor(iface)) ) {
-            Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
-
-            const auto neighbor_cell = current_cell->neighbor_or_periodic_neighbor(iface);
-            // Corresponding face of the neighbor.
-            // e.g. The 4th face of the current cell might correspond to the 3rd face of the neighbor
-            const unsigned int neighbor_iface = current_cell->neighbor_of_neighbor(iface);
-
-            // Get information about neighbor cell
-            const unsigned int n_dofs_neigh_cell = fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
-
-            // Local rhs contribution from neighbor
-            dealii::Vector<real> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
-
-            // Obtain the mapping from local dof indices to global dof indices for neighbor cell
-            neighbor_dofs_indices.resize(n_dofs_neigh_cell);
-            neighbor_cell->get_dof_indices (neighbor_dofs_indices);
-
-            fe_values_collection_face_int.reinit (current_cell, iface, i_quad, i_mapp, i_fele);
-            const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
-
-            const int i_fele_n = neighbor_cell->active_fe_index(), i_quad_n = i_fele_n, i_mapp_n = 0;
-            fe_values_collection_face_ext.reinit (neighbor_cell, neighbor_iface, i_quad_n, i_mapp_n, i_fele_n);
-            const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
-
-            const real penalty1 = evaluate_penalty_scaling (current_cell, iface, fe_collection);
-            const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
-            const real penalty = 0.5 * (penalty1 + penalty2);
-
-            if ( compute_dRdW ) {
-                assemble_face_term_implicit (
-                        fe_values_face_int, fe_values_face_ext,
-                        penalty,
-                        current_dofs_indices, neighbor_dofs_indices,
-                        current_cell_rhs, neighbor_cell_rhs);
-            }
-            if ( compute_dRdX ) {
-                const auto metric_neighbor_cell = current_metric_cell->neighbor_or_periodic_neighbor(iface);
-                metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
-                const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
-                const dealii::Quadrature<dim> quadrature_int =
-                    dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
-                const dealii::Quadrature<dim> quadrature_ext =
-                    dealii::QProjector<dim>::project_to_face(used_face_quadrature,neighbor_iface);
-                assemble_face_term_dRdX (   iface,
-                                            fe_values_face_int, fe_values_face_ext,
-                                            penalty,
-                                            fe_collection[i_fele], fe_collection[i_fele_n],
-                                            quadrature_int, quadrature_ext,
-                                            current_metric_dofs_indices, neighbor_metric_dofs_indices,
-                                            current_dofs_indices, neighbor_dofs_indices,
-                                            current_cell_rhs, neighbor_cell_rhs);
-            }
-            if ( !compute_dRdX && !compute_dRdW ) {
-                assemble_face_term_explicit (
-                        fe_values_face_int, fe_values_face_ext,
-                        penalty,
-                        current_dofs_indices, neighbor_dofs_indices,
-                        current_cell_rhs, neighbor_cell_rhs);
-            }
-
-            // Add local contribution from neighbor cell to global vector
-            for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
-                rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
-            }
-        } else if (current_cell->neighbor(iface)->level() < current_cell->level()) {
+        //} else if (current_cell->neighbor(iface)->level() < current_cell->level()) {
+        } else if (current_cell->neighbor(iface)->face(current_cell->neighbor_face_no(iface))->has_children()) {
+        //} else if (current_cell->neighbor(iface)->level() < current_cell->level()) {
             // Case 4: Neighbor is coarser
             // Do nothing.
             // The face contribution from the current cell will appear then the coarse neighbor checks for subfaces
@@ -767,7 +708,6 @@ void DGBase<dim,real>::assemble_cell_residual (
             // Obtain cell neighbour
             const auto neighbor_cell = current_cell->neighbor(iface);
             const unsigned int neighbor_iface = current_cell->neighbor_face_no(iface);
-            Assert (neighbor_cell->neighbor(neighbor_iface) == current_cell, dealii::ExcInternalError());
 
             // Find corresponding subface
             unsigned int i_subface = 0;
@@ -815,7 +755,7 @@ void DGBase<dim,real>::assemble_cell_residual (
                     dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
                 const dealii::Quadrature<dim> quadrature_ext =
                     dealii::QProjector<dim>::project_to_subface(used_face_quadrature,neighbor_iface,i_subface, dealii::RefinementCase<dim-1>::isotropic_refinement);
-                assemble_face_term_dRdX (   iface,
+                assemble_face_term_dRdX (   iface, neighbor_iface,
                                             fe_values_face_int, fe_values_face_ext,
                                             penalty,
                                             fe_collection[i_fele], fe_collection[i_fele_n],
@@ -831,6 +771,76 @@ void DGBase<dim,real>::assemble_cell_residual (
                     current_dofs_indices, neighbor_dofs_indices,
                     current_cell_rhs, neighbor_cell_rhs);
             }
+            // Add local contribution from neighbor cell to global vector
+            for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
+                rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
+            }
+        // Case 3:
+        // Neighbor cell is NOT coarser
+        // Therefore, they have the same coarseness, and we need to choose one of them to do the work
+        //} else if ( !(current_cell->neighbor_is_coarser(iface)) && current_cell_should_do_the_work(current_cell, current_cell->neighbor(iface)) ) {
+        } else if ( current_cell_should_do_the_work(current_cell, current_cell->neighbor(iface)) ) {
+        //} else if ( (current_cell->level() == current_cell->neighbor(iface)->level()) && current_cell_should_do_the_work(current_cell, current_cell->neighbor(iface)) ) {
+            Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
+
+            const auto neighbor_cell = current_cell->neighbor_or_periodic_neighbor(iface);
+            // Corresponding face of the neighbor.
+            // e.g. The 4th face of the current cell might correspond to the 3rd face of the neighbor
+            const unsigned int neighbor_iface = current_cell->neighbor_of_neighbor(iface);
+
+            // Get information about neighbor cell
+            const unsigned int n_dofs_neigh_cell = fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
+
+            // Local rhs contribution from neighbor
+            dealii::Vector<real> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
+
+            // Obtain the mapping from local dof indices to global dof indices for neighbor cell
+            neighbor_dofs_indices.resize(n_dofs_neigh_cell);
+            neighbor_cell->get_dof_indices (neighbor_dofs_indices);
+
+            fe_values_collection_face_int.reinit (current_cell, iface, i_quad, i_mapp, i_fele);
+            const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
+
+            const int i_fele_n = neighbor_cell->active_fe_index(), i_quad_n = i_fele_n, i_mapp_n = 0;
+            fe_values_collection_face_ext.reinit (neighbor_cell, neighbor_iface, i_quad_n, i_mapp_n, i_fele_n);
+            const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
+
+            const real penalty1 = evaluate_penalty_scaling (current_cell, iface, fe_collection);
+            const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
+            const real penalty = 0.5 * (penalty1 + penalty2);
+
+            if ( compute_dRdW ) {
+                assemble_face_term_implicit (
+                        fe_values_face_int, fe_values_face_ext,
+                        penalty,
+                        current_dofs_indices, neighbor_dofs_indices,
+                        current_cell_rhs, neighbor_cell_rhs);
+            }
+            if ( compute_dRdX ) {
+                const auto metric_neighbor_cell = current_metric_cell->neighbor_or_periodic_neighbor(iface);
+                metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
+                const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
+                const dealii::Quadrature<dim> quadrature_int =
+                    dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
+                const dealii::Quadrature<dim> quadrature_ext =
+                    dealii::QProjector<dim>::project_to_face(used_face_quadrature,neighbor_iface);
+                assemble_face_term_dRdX (   iface, neighbor_iface,
+                                            fe_values_face_int, fe_values_face_ext,
+                                            penalty,
+                                            fe_collection[i_fele], fe_collection[i_fele_n],
+                                            quadrature_int, quadrature_ext,
+                                            current_metric_dofs_indices, neighbor_metric_dofs_indices,
+                                            current_dofs_indices, neighbor_dofs_indices,
+                                            current_cell_rhs, neighbor_cell_rhs);
+            }
+            if ( !compute_dRdX && !compute_dRdW ) {
+                assemble_face_term_explicit (
+                        fe_values_face_int, fe_values_face_ext,
+                        penalty,
+                        current_dofs_indices, neighbor_dofs_indices,
+                        current_cell_rhs, neighbor_cell_rhs);
+            }
+
             // Add local contribution from neighbor cell to global vector
             for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
                 rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
@@ -861,7 +871,9 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
     //dealii::hp::MappingCollection<dim> mapping_collection(*(high_order_grid.mapping_fe_field));
     //const dealii::MappingManifold<dim,dim> mapping;
     //const dealii::MappingQ<dim,dim> mapping(max_degree+1);
+
     const auto mapping = (*(high_order_grid.mapping_fe_field));
+
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
     dealii::hp::FEValues<dim,dim>        fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.
@@ -893,6 +905,9 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
 
     right_hand_side.compress(dealii::VectorOperation::add);
     if ( compute_dRdW ) system_matrix.compress(dealii::VectorOperation::add);
+    if ( compute_dRdX ) dRdXv.compress(dealii::VectorOperation::add);
+    //if ( compute_dRdW ) system_matrix.compress(dealii::VectorOperation::insert);
+    //system_matrix.print(std::cout);
 
 } // end of assemble_system_explicit ()
 
@@ -1030,6 +1045,12 @@ void DGBase<dim,real>::allocate_system ()
     sparsity_pattern.copy_from(dsp);
 
     system_matrix.reinit(locally_owned_dofs, sparsity_pattern, mpi_communicator);
+
+    // dRdXv matrix allocation
+    dealii::SparsityPattern dRdXv_sparsity_pattern = get_dRdX_sparsity_pattern ();
+    const dealii::IndexSet &row_parallel_partitioning = locally_owned_dofs;
+    const dealii::IndexSet &col_parallel_partitioning = high_order_grid.locally_owned_dofs_grid;
+    dRdXv.reinit(row_parallel_partitioning, col_parallel_partitioning, dRdXv_sparsity_pattern, MPI_COMM_WORLD);
 }
 
 template <int dim, typename real>

@@ -975,9 +975,22 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
 
 
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
-    //data_out.build_patches (mapping_collection[mapping_collection.size()-1]);
-    data_out.build_patches(*(high_order_grid.mapping_fe_field), max_degree, dealii::DataOut<dim, dealii::hp::DoFHandler<dim>>::CurvedCellRegion::no_curved_cells);
-    //data_out.build_patches(*(high_order_grid.mapping_fe_field), fe_collection.size(), dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells);
+    // //data_out.build_patches (mapping_collection[mapping_collection.size()-1]);
+    // data_out.build_patches(*(high_order_grid.mapping_fe_field), max_degree, dealii::DataOut<dim, dealii::hp::DoFHandler<dim>>::CurvedCellRegion::no_curved_cells);
+    // //data_out.build_patches(*(high_order_grid.mapping_fe_field), fe_collection.size(), dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells);
+
+    typename dealii::DataOut<dim,dealii::hp::DoFHandler<dim>>::CurvedCellRegion curved = dealii::DataOut<dim,dealii::hp::DoFHandler<dim>>::CurvedCellRegion::curved_inner_cells;
+    //typename dealii::DataOut<dim>::CurvedCellRegion curved = dealii::DataOut<dim>::CurvedCellRegion::curved_boundary;
+    //typename dealii::DataOut<dim>::CurvedCellRegion curved = dealii::DataOut<dim>::CurvedCellRegion::no_curved_cells;
+
+    const dealii::Mapping<dim> &mapping = (*(high_order_grid.mapping_fe_field));
+    const int n_subdivisions = max_degree;;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
+    data_out.build_patches(mapping, n_subdivisions, curved);
+    const bool write_higher_order_cells = (dim>1) ? true : false; 
+    dealii::DataOutBase::VtkFlags vtkflags(0.0,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
+    data_out.set_flags(vtkflags);
+
+
     std::string filename = "solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
     filename += dealii::Utilities::int_to_string(cycle, 4) + ".";
     filename += dealii::Utilities::int_to_string(iproc, 4);

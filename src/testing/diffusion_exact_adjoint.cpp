@@ -38,19 +38,19 @@ namespace Tests {
 
 // manufactured solution in u
 template <int dim, typename real>
-real ManufacturedSolutionU<dim,real>::value(const dealii::Point<dim> &pos, const unsigned int /*istate*/) const
+real ManufacturedSolutionU<dim,real>::value(const dealii::Point<dim,real> &pos, const unsigned int /*istate*/) const
 {
     real val = 0;
 
     if(dim == 1){
-        double x = pos[0];
+        real x = pos[0];
         val = (-1.0*std::pow(x,6)+3.0*std::pow(x,5)-3.0*std::pow(x,4)+std::pow(x,3));
     }else if(dim == 2){
-        double x = pos[0], y = pos[1];
+        real x = pos[0], y = pos[1];
         val = (-1.0*std::pow(x,6)+3.0*std::pow(x,5)-3.0*std::pow(x,4)+std::pow(x,3))
             * (-1.0*std::pow(y,6)+3.0*std::pow(y,5)-3.0*std::pow(y,4)+std::pow(y,3));
     }else if(dim == 3){
-        double x = pos[0], y = pos[1], z = pos[2];
+        real x = pos[0], y = pos[1], z = pos[2];
         val = (-1.0*std::pow(x,6)+3.0*std::pow(x,5)-3.0*std::pow(x,4)+std::pow(x,3))
             * (-1.0*std::pow(y,6)+3.0*std::pow(y,5)-3.0*std::pow(y,4)+std::pow(y,3))
             * (-1.0*std::pow(z,6)+3.0*std::pow(z,5)-3.0*std::pow(z,4)+std::pow(z,3));
@@ -61,21 +61,21 @@ real ManufacturedSolutionU<dim,real>::value(const dealii::Point<dim> &pos, const
 
 // gradient of the solution in u
 template <int dim, typename real>
-dealii::Tensor<1,dim,real> ManufacturedSolutionU<dim,real>::gradient(const dealii::Point<dim> &pos, const unsigned int /*istate*/) const
+dealii::Tensor<1,dim,real> ManufacturedSolutionU<dim,real>::gradient(const dealii::Point<dim,real> &pos, const unsigned int /*istate*/) const
 {
     dealii::Tensor<1,dim,real> gradient;
 
     if(dim == 1){
-        double x = pos[0];
+        real x = pos[0];
         gradient[0] = (-6.0*std::pow(x,5)+15.0*std::pow(x,4)-12.0*std::pow(x,3)+3.0*std::pow(x,2));
     }else if(dim == 2){
-        double x = pos[0], y = pos[1];
+        real x = pos[0], y = pos[1];
         gradient[0] = (-6.0*std::pow(x,5)+15.0*std::pow(x,4)-12.0*std::pow(x,3)+3.0*std::pow(x,2))
                     * (-1.0*std::pow(y,6)+ 3.0*std::pow(y,5)- 3.0*std::pow(y,4)+    std::pow(y,3));
         gradient[1] = (-1.0*std::pow(x,6)+ 3.0*std::pow(x,5)- 3.0*std::pow(x,4)+    std::pow(x,3))
                     * (-6.0*std::pow(y,5)+15.0*std::pow(y,4)-12.0*std::pow(y,3)+3.0*std::pow(y,2));
     }else if(dim == 3){
-        double x = pos[0], y = pos[1], z = pos[2];
+        real x = pos[0], y = pos[1], z = pos[2];
         gradient[0] = (-6.0*std::pow(x,5)+15.0*std::pow(x,4)-12.0*std::pow(x,3)+3.0*std::pow(x,2))
                     * (-1.0*std::pow(y,6)+ 3.0*std::pow(y,5)- 3.0*std::pow(y,4)+    std::pow(y,3))
                     * (-1.0*std::pow(z,6)+ 3.0*std::pow(z,5)- 3.0*std::pow(z,4)+    std::pow(z,3));
@@ -92,21 +92,21 @@ dealii::Tensor<1,dim,real> ManufacturedSolutionU<dim,real>::gradient(const deali
 
 // manufactured solution in v
 template <int dim, typename real>
-real ManufacturedSolutionV<dim,real>::value(const dealii::Point<dim> &pos, const unsigned int /*istate*/) const
+real ManufacturedSolutionV<dim,real>::value(const dealii::Point<dim,real> &pos, const unsigned int /*istate*/) const
 {
     const double pi = std::acos(-1);
 
     real val = 0;
 
     if(dim == 1){
-        double x = pos[0];
+        real x = pos[0];
         val = (std::sin(pi*x));
     }else if(dim == 2){
-        double x = pos[0], y = pos[1];
+        real x = pos[0], y = pos[1];
         val = (std::sin(pi*x))
             * (std::sin(pi*y));
     }else if(dim == 3){
-        double x = pos[0], y = pos[1], z = pos[2];
+        real x = pos[0], y = pos[1], z = pos[2];
         val = (std::sin(pi*x))
             * (std::sin(pi*y))
             * (std::sin(pi*z));
@@ -117,23 +117,23 @@ real ManufacturedSolutionV<dim,real>::value(const dealii::Point<dim> &pos, const
 
 // gradient of the solution in v
 template <int dim, typename real>
-dealii::Tensor<1,dim,real> ManufacturedSolutionV<dim,real>::gradient(const dealii::Point<dim> &pos, const unsigned int /*istate*/) const
+dealii::Tensor<1,dim,real> ManufacturedSolutionV<dim,real>::gradient(const dealii::Point<dim,real> &pos, const unsigned int /*istate*/) const
 {
     const double pi = std::acos(-1);
 
     dealii::Tensor<1,dim,real> gradient;
 
     if(dim == 1){
-        double x = pos[0];
+        real x = pos[0];
         gradient[0] = pi*std::cos(pi*x);
     }else if(dim == 2){
-        double x = pos[0], y = pos[1];
+        real x = pos[0], y = pos[1];
         gradient[0] = (pi*std::cos(pi*x))
                     * (   std::sin(pi*y));
         gradient[1] = (   std::sin(pi*x))
                     * (pi*std::cos(pi*y));
     }else if(dim == 3){
-        double x = pos[0], y = pos[1], z = pos[2];
+        real x = pos[0], y = pos[1], z = pos[2];
         gradient[0] = (pi*std::cos(pi*x))
                     * (   std::sin(pi*y))
                     * (   std::sin(pi*z));
@@ -151,24 +151,24 @@ dealii::Tensor<1,dim,real> ManufacturedSolutionV<dim,real>::gradient(const deali
 /* Defining the physics objects to be used  */
 template <int dim, int nstate, typename real>
 std::array<real,nstate> diffusion_u<dim,nstate,real>::source_term (
-    const dealii::Point<dim,double> &pos,
+    const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &/*solution*/) const
 {
     std::array<real,nstate> source;
 
-    double val = 0;
+    real val = 0;
 
     if(dim == 1){
-        double x = pos[0];
+        real x = pos[0];
         val = (-30.0*std::pow(x,4)+60.0*std::pow(x,3)-36.0*std::pow(x,2)+6.0*x);
     }else if(dim == 2){
-        double x = pos[0], y = pos[1];
+        real x = pos[0], y = pos[1];
         val = (-30.0*std::pow(x,4)+60.0*std::pow(x,3)-36.0*std::pow(x,2)+6.0*x)
             * ( -1.0*std::pow(y,6)+ 3.0*std::pow(y,5)- 3.0*std::pow(y,4)+    std::pow(y,3))
             + ( -1.0*std::pow(x,6)+ 3.0*std::pow(x,5)- 3.0*std::pow(x,4)+    std::pow(x,3))
             * (-30.0*std::pow(y,4)+60.0*std::pow(y,3)-36.0*std::pow(y,2)+6.0*y);
     }else if(dim == 3){
-        double x = pos[0], y = pos[1], z = pos[2];
+        real x = pos[0], y = pos[1], z = pos[2];
         val = (-30.0*std::pow(x,4)+60.0*std::pow(x,3)-36.0*std::pow(x,2)+6.0*x)
             * ( -1.0*std::pow(y,6)+ 3.0*std::pow(y,5)- 3.0*std::pow(y,4)+    std::pow(y,3))
             * ( -1.0*std::pow(z,6)+ 3.0*std::pow(z,5)- 3.0*std::pow(z,4)+    std::pow(z,3))
@@ -188,23 +188,23 @@ std::array<real,nstate> diffusion_u<dim,nstate,real>::source_term (
 
 template <int dim, int nstate, typename real>
 real diffusion_u<dim,nstate,real>::objective_function (
-    const dealii::Point<dim,double> &pos) const
+    const dealii::Point<dim,real> &pos) const
 {
     const double pi = std::acos(-1);
 
     real val = 0;
 
     if(dim == 1){
-        double x = pos[0];
+        real x = pos[0];
         val = -pi*pi*std::sin(pi*x);
     }else if(dim == 2){
-        double x = pos[0], y = pos[1];
+        real x = pos[0], y = pos[1];
         val = -pi*pi*std::sin(pi*x)
             *        std::sin(pi*y)
             +        std::sin(pi*x)
             * -pi*pi*std::sin(pi*y);
     }else if(dim == 3){
-        double x = pos[0], y = pos[1], z = pos[2];
+        real x = pos[0], y = pos[1], z = pos[2];
         val = -pi*pi*std::sin(pi*x)
             *        std::sin(pi*y)
             *        std::sin(pi*z)
@@ -221,26 +221,26 @@ real diffusion_u<dim,nstate,real>::objective_function (
 
 template <int dim, int nstate, typename real>
 std::array<real,nstate> diffusion_v<dim,nstate,real>::source_term (
-    const dealii::Point<dim,double> &pos,
+    const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &/*solution*/) const
 {
     const double pi = std::acos(-1);
 
     std::array<real,nstate> source;
 
-    double val = 0;
+    real val = 0;
 
     if(dim == 1){
-        double x = pos[0];
+        real x = pos[0];
         val = -pi*pi*std::sin(pi*x);
     }else if(dim == 2){
-        double x = pos[0], y = pos[1];
+        real x = pos[0], y = pos[1];
         val = -pi*pi*std::sin(pi*x)
             *        std::sin(pi*y)
             +        std::sin(pi*x)
             * -pi*pi*std::sin(pi*y);
     }else if(dim == 3){
-        double x = pos[0], y = pos[1], z = pos[2];
+        real x = pos[0], y = pos[1], z = pos[2];
         val = -pi*pi*std::sin(pi*x)
             *        std::sin(pi*y)
             *        std::sin(pi*z)
@@ -260,21 +260,21 @@ std::array<real,nstate> diffusion_v<dim,nstate,real>::source_term (
 
 template <int dim, int nstate, typename real>
 real diffusion_v<dim,nstate,real>::objective_function (
-    const dealii::Point<dim,double> &pos) const
+    const dealii::Point<dim,real> &pos) const
 {
     real val = 0;
 
     if(dim == 1){
-        double x = pos[0];
+        real x = pos[0];
         val = (-30.0*std::pow(x,4)+60.0*std::pow(x,3)-36.0*std::pow(x,2)+6.0*x);
     }else if(dim == 2){
-        double x = pos[0], y = pos[1];
+        real x = pos[0], y = pos[1];
         val = (-30.0*std::pow(x,4)+60.0*std::pow(x,3)-36.0*std::pow(x,2)+6.0*x)
             * ( -1.0*std::pow(y,6)+ 3.0*std::pow(y,5)- 3.0*std::pow(y,4)+    std::pow(y,3))
             + ( -1.0*std::pow(x,6)+ 3.0*std::pow(x,5)- 3.0*std::pow(x,4)+    std::pow(x,3))
             * (-30.0*std::pow(y,4)+60.0*std::pow(y,3)-36.0*std::pow(y,2)+6.0*y);
     }else if(dim == 3){
-        double x = pos[0], y = pos[1], z = pos[2];
+        real x = pos[0], y = pos[1], z = pos[2];
         val = (-30.0*std::pow(x,4)+60.0*std::pow(x,3)-36.0*std::pow(x,2)+6.0*x)
             * ( -1.0*std::pow(y,6)+ 3.0*std::pow(y,5)- 3.0*std::pow(y,4)+    std::pow(y,3))
             * ( -1.0*std::pow(z,6)+ 3.0*std::pow(z,5)- 3.0*std::pow(z,4)+    std::pow(z,3))
@@ -314,10 +314,14 @@ real2 DiffusionFunctional<dim,nstate,real>::evaluate_cell_volume(
             soln_at_q[istate] += local_solution[idof] * fe_values_volume.shape_value_component(idof, iquad, istate);
         }
 
-        const dealii::Point<dim> qpoint = (fe_values_volume.quadrature_point(iquad));
+        const dealii::Point<dim,double> qpoint_double = (fe_values_volume.quadrature_point(iquad));
+        dealii::Point<dim,real2> qpoint_real2;
+        for (int d=0;d<dim;++d) {
+            qpoint_real2[d] = qpoint_double[d];
+        }
 
         // evaluating the associated objective function weighting at the quadrature point
-        real2 objective_value = diff_physics.objective_function(qpoint);
+        real2 objective_value = diff_physics.objective_function(qpoint_real2);
 
         // integrating over the domain (adding istate loop but should always be 1)
         for (int istate=0; istate<nstate; ++istate) {
@@ -548,7 +552,7 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
                         adj_at_q_v[istate]  += adjoint_v[dofs_indices[idof]]      * fe_values_extra.shape_value_component(idof, iquad, istate);
                     }
 
-                    const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
+                    const dealii::Point<dim,double> qpoint = (fe_values_extra.quadrature_point(iquad));
 
                     for (int istate = 0; istate < nstate; ++istate){
                         const double soln_exact_u = physics_u_double->manufactured_solution_function->value(qpoint, istate);

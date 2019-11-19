@@ -51,30 +51,38 @@ namespace Tests {
 template <int dim, typename real>
 class ManufacturedSolutionU : public ManufacturedSolutionFunction <dim, real>
 {
+protected:
+    using dealii::Function<dim,real>::value;
+    using dealii::Function<dim,real>::gradient;
+    using dealii::Function<dim,real>::vector_gradient;
 public:
     // constructor
     ManufacturedSolutionU(){}
 
     // overriding the function for the value and gradient
-    real value (const dealii::Point<dim> &pos, const unsigned int istate = 0) const override;
+    real value (const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
 
     // Gradient of the manufactured solution
-    dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim> &pos, const unsigned int istate = 0) const override;
+    dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
 };
 
 // manufactured solution for v
 template <int dim, typename real>
 class ManufacturedSolutionV : public ManufacturedSolutionFunction <dim, real>
 {
+protected:
+    using dealii::Function<dim,real>::value;
+    using dealii::Function<dim,real>::gradient;
+    using dealii::Function<dim,real>::vector_gradient;
 public:
     // constructor
     ManufacturedSolutionV(){}
 
     // overriding the function for the value and gradient
-    real value (const dealii::Point<dim> &pos, const unsigned int istate = 0) const override;
+    real value (const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
 
     // Gradient of the manufactured solution
-    dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim> &pos, const unsigned int istate = 0) const override;
+    dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
 };
 
 // parent class to add the objective function directly to physics as a virtual class
@@ -105,7 +113,7 @@ public:
 
     // defnined directly as part of the physics to make passing to the functional simpler
     virtual real objective_function(
-        const dealii::Point<dim,double> &pos) const = 0;
+        const dealii::Point<dim,real> &pos) const = 0;
 };
 
 //physics for the u variable
@@ -123,12 +131,12 @@ public:
 
     // source term = f
     std::array<real,nstate> source_term (
-        const dealii::Point<dim,double> &pos,
+        const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &/*solution*/) const override;
 
     // objective function = g
     real objective_function(
-        const dealii::Point<dim,double> &pos) const override;
+        const dealii::Point<dim,real> &pos) const override;
 };
 
 // physics for the v variable
@@ -146,12 +154,12 @@ public:
 
     // source term = g
     std::array<real,nstate> source_term (
-        const dealii::Point<dim,double> &pos,
+        const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &/*solution*/) const override;
 
     // objective function = f
     real objective_function(
-        const dealii::Point<dim,double> &pos) const override;
+        const dealii::Point<dim,real> &pos) const override;
 };
 
 // Functional that performs the inner product over the entire domain 

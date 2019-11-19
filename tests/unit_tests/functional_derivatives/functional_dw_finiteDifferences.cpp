@@ -71,10 +71,14 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
 					soln_at_q[istate] += local_solution[idof] * fe_values_volume.shape_value_component(idof, iquad, istate);
 				}
 			
-				const dealii::Point<dim> qpoint = (fe_values_volume.quadrature_point(iquad));
+				const dealii::Point<dim,double> qpoint_double = (fe_values_volume.quadrature_point(iquad));
+				dealii::Point<dim,real2> qpoint_real2;
+                for (int d=0;d<dim;++d) {
+                    qpoint_real2[d] = qpoint_double[d];
+                }
 
 				for (int istate=0; istate<nstate; ++istate) {
-					const real2 uexact = physics.manufactured_solution_function->value(qpoint, istate);
+					const real2 uexact = physics.manufactured_solution_function->value(qpoint_real2, istate);
 					l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_volume.JxW(iquad);
 				}
 			}

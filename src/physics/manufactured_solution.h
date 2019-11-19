@@ -33,12 +33,12 @@ protected:
     using dealii::Function<dim,real>::vector_gradient;
 
 public:
+    const unsigned int nstate; ///< Corresponds to n_components in the dealii::Function
     /// Constructor that initializes base_values, amplitudes, frequencies.
     /** Calls the Function(const unsigned int n_components) constructor in deal.II
      *  This sets the public attribute n_components = nstate, which can then be accessed
      *  by all the other functions
      */
-    const unsigned int nstate;
     ManufacturedSolutionFunction (const unsigned int nstate = 1);
 
     /// Destructor

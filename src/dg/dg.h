@@ -188,6 +188,10 @@ public:
     /// respect to the solution
     dealii::TrilinosWrappers::SparseMatrix system_matrix;
 
+    /// System matrix corresponding to the derivative of the right_hand_side with
+    /// respect to the volume nodes Xv
+    dealii::TrilinosWrappers::SparseMatrix dRdXv;
+
     /// Residual of the current solution
     /** Weak form.
      * 
@@ -372,6 +376,7 @@ protected:
      *  This adds the contribution to both cell's residual and effectively 
      *  computes 4 block contributions to dRdX blocks. */
     virtual void assemble_face_term_dRdX(
+        const unsigned int interior_face_number,
         const unsigned int exterior_face_number,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
@@ -592,6 +597,7 @@ private:
      *  This adds the contribution to both cell's residual and effectively 
      *  computes 4 block contributions to dRdX blocks. */
     void assemble_face_term_dRdX(
+        const unsigned int interior_face_number,
         const unsigned int exterior_face_number,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
@@ -745,6 +751,7 @@ private:
      *  This adds the contribution to both cell's residual and effectively 
      *  computes 4 block contributions to dRdX blocks. */
     void assemble_face_term_dRdX(
+        const unsigned int interior_face_number,
         const unsigned int exterior_face_number,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,

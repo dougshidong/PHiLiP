@@ -33,6 +33,29 @@ int test (
     // Assemble Jacobian
     std::shared_ptr < DGBase<PHILIP_DIM, double> > dg = DGFactory<PHILIP_DIM,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, &grid);
     dg->allocate_system ();
+    const int n_refine = 2;
+    for (int i=0; i<n_refine;i++) {
+        dg->high_order_grid.prepare_for_coarsening_and_refinement();
+        grid.prepare_coarsening_and_refinement();
+        unsigned int icell = 0;
+        for (auto cell = grid.begin_active(); cell!=grid.end(); ++cell) {
+            if (!cell->is_locally_owned()) continue;
+            icell++;
+            if (icell < grid.n_active_cells()/2) {
+                cell->set_refine_flag();
+            }
+            //else if (icell%2 == 0) {
+            //    cell->set_refine_flag();
+            //} else if (icell%3 == 0) {
+            //    //cell->set_coarsen_flag();
+            //}
+        }
+        grid.execute_coarsening_and_refinement();
+        bool mesh_out = (i==n_refine-1);
+        dg->high_order_grid.execute_coarsening_and_refinement(mesh_out);
+    }
+    std::cout << "Poly degree " << poly_degree << " ncells " << grid.n_active_cells() << " ndofs: " << dg->dof_handler.n_dofs() << std::endl;
+    dg->allocate_system ();
 
     // Initialize solution with something
     std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&all_parameters);
@@ -43,21 +66,21 @@ int test (
 
     bool compute_dRdW, compute_dRdX;
 
-    std::cout << "*******************************************************************************" << std::endl;
+    // std::cout << "*******************************************************************************" << std::endl;
     compute_dRdW = false; compute_dRdX = false;
     dg->assemble_residual(compute_dRdW, compute_dRdX);
     dealii::LinearAlgebra::distributed::Vector<double> rhs_only(dg->right_hand_side);
-    std::cout << "*******************************************************************************" << std::endl;
+    // std::cout << "*******************************************************************************" << std::endl;
 
     compute_dRdW = true; compute_dRdX = false;
     dg->assemble_residual(compute_dRdW, compute_dRdX);
     dealii::LinearAlgebra::distributed::Vector<double> rhs_dRdW(dg->right_hand_side);
-    std::cout << "*******************************************************************************" << std::endl;
+    // std::cout << "*******************************************************************************" << std::endl;
 
     compute_dRdW = false; compute_dRdX = true;
     dg->assemble_residual(compute_dRdW, compute_dRdX);
     dealii::LinearAlgebra::distributed::Vector<double> rhs_dRdX(dg->right_hand_side);
-    std::cout << "*******************************************************************************" << std::endl;
+    // std::cout << "*******************************************************************************" << std::endl;
 
     const double norm_rhs_only = rhs_only.l2_norm();
     rhs_only -= rhs_dRdW;
@@ -68,11 +91,11 @@ int test (
     const double dRdW_vs_dRdX_rel_diff2 = rhs_dRdW.l2_norm() / norm_rhs_dRdW;
 
     const double tol = 1e-11;
+    std::cout << "Error: rhs_vs_dRdW_rel_diff1 : " << rhs_vs_dRdW_rel_diff1 << " dRdW_vs_dRdX_rel_diff2: " << dRdW_vs_dRdX_rel_diff2 << std::endl;
+    std::cout << "Error: rhs_vs_dRdW_rel_diff1 : " << rhs_vs_dRdW_rel_diff1 << " dRdW_vs_dRdX_rel_diff2: " << dRdW_vs_dRdX_rel_diff2 << std::endl;
     if (rhs_vs_dRdW_rel_diff1 > tol) {
-        std::cout << "Error: rhs_vs_dRdW_rel_diff1 : " << rhs_vs_dRdW_rel_diff1 << " dRdW_vs_dRdX_rel_diff2: " << dRdW_vs_dRdX_rel_diff2 << std::endl;
         return 1;
     } if (dRdW_vs_dRdX_rel_diff2 > tol) {
-        std::cout << "Error: rhs_vs_dRdW_rel_diff1 : " << rhs_vs_dRdW_rel_diff1 << " dRdW_vs_dRdX_rel_diff2: " << dRdW_vs_dRdX_rel_diff2 << std::endl;
         return 1;
     }
 
@@ -94,23 +117,38 @@ int main (int argc, char * argv[])
     Parameters::AllParameters all_parameters;
     all_parameters.parse_parameters (parameter_handler);
     std::vector<PDEType> pde_type {
-        PDEType::advection,
         PDEType::diffusion,
+        PDEType::advection,
         PDEType::convection_diffusion,
         PDEType::advection_vector,
         PDEType::euler
     };
+    std::vector<std::string> pde_name {
+        " PDEType::diffusion "
+        , " PDEType::advection "
+        , " PDEType::convection_diffusion "
+        , " PDEType::advection_vector "
+        , " PDEType::euler "
+    };
 
+    int ipde = -1;
     for (auto pde = pde_type.begin(); pde != pde_type.end() && error == 0; pde++) {
+        ipde++;
         for (unsigned int poly_degree=1; poly_degree<3 && error == 0; ++poly_degree) {
-            for (unsigned int igrid=2; igrid<5 && error == 0; ++igrid) {
-                std::cout << "Poly degree " << poly_degree << " ncells " << std::pow(igrid,dim) << std::endl;
+            for (unsigned int igrid=2; igrid<4 && error == 0; ++igrid) {
+                std::cout << "Using " << pde_name[ipde] << std::endl;
                 all_parameters.pde_type = *pde;
                 // Generate grids
 #if PHILIP_DIM==1
-                dealii::Triangulation<dim> grid;
+                dealii::Triangulation<dim> grid(
+                    typename dealii::Triangulation<dim>::MeshSmoothing(
+                        dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_refinement |
+                        dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_coarsening));
 #else
-                dealii::parallel::distributed::Triangulation<dim> grid(MPI_COMM_WORLD);
+                dealii::parallel::distributed::Triangulation<dim> grid(MPI_COMM_WORLD,
+                    typename dealii::Triangulation<dim>::MeshSmoothing(
+                        dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_refinement |
+                        dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_coarsening));
 #endif
                 dealii::GridGenerator::subdivided_hyper_cube(grid, igrid);
 

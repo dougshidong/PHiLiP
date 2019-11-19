@@ -73,14 +73,17 @@ public:
     /// Principal constructor that will call delegated constructor.
     HighOrderGrid(const Parameters::AllParameters *const parameters_input, const unsigned int max_degree, Triangulation<dim> *const triangulation_input);
 
+    /// Update the MappingFEField
+    /** Note that this rarely needs to be called since MappingFEField stores a
+     *  pointer to the DoFHandler and to the node Vector.
+     */
+    void update_mapping_fe_field();
+
     /// Needed to allocate the correct number of nodes when initializing and after the mesh is refined
     void allocate();
 
     /// Return a MappingFEField that corresponds to the current node locations
     dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> get_MappingFEField();
-
-    /// Return a MappingFEField that corresponds to the current node locations
-    void update_MappingFEField();
 
     const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
 

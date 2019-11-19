@@ -2,7 +2,7 @@ set(TEST_SRC
     dRdX_fd_vs_ad.cpp
     )
 
-foreach(dim RANGE 1 3)
+foreach(dim RANGE 1 2)
 
     # Output executable
     string(CONCAT TEST_TARGET ${dim}D_dRdX_fd_vs_ad)
@@ -25,9 +25,14 @@ foreach(dim RANGE 1 3)
         DEAL_II_SETUP_TARGET(${TEST_TARGET})
     endif()
 
+    if (dim EQUAL 1) 
+        set(NMPI 1)
+    else()
+        set(NMPI ${MPIMAX})
+    endif()
     add_test(
       NAME ${TEST_TARGET}
-      COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
+      COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
 
@@ -42,7 +47,7 @@ set(TEST_SRC
     compare_rhs.cpp
     )
 
-foreach(dim RANGE 1 3)
+foreach(dim RANGE 1 2)
 
     # Output executable
     string(CONCAT TEST_TARGET ${dim}D_compare_rhs)
@@ -65,9 +70,15 @@ foreach(dim RANGE 1 3)
         DEAL_II_SETUP_TARGET(${TEST_TARGET})
     endif()
 
+    if (dim EQUAL 1) 
+        set(NMPI 1)
+    else ()
+        set(NMPI ${MPIMAX})
+    endif()
+
     add_test(
       NAME ${TEST_TARGET}
-      COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
+      COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
 

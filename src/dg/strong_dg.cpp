@@ -80,6 +80,7 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_dRdX(
 
 template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_face_term_dRdX(
+    const unsigned int ,//interior_face_number,
     const unsigned int ,//exterior_face_number,
     const dealii::FEFaceValuesBase<dim,dim>     &,//&fe_values_int,
     const dealii::FEFaceValuesBase<dim,dim>     &,//&fe_values_ext,

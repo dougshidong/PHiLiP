@@ -20,7 +20,9 @@ foreach(dim RANGE 1 3)
     target_link_libraries(${FunctionalLib} ${PostprocessingLib})
 
     # Setup target with deal.II
-    DEAL_II_SETUP_TARGET(${FunctionalLib})
+    if(NOT DOC_ONLY)
+        DEAL_II_SETUP_TARGET(${FunctionalLib})
+    endif()
 
     # Setup target with deal.II
     unset(FunctionalLib)

@@ -292,41 +292,23 @@ real diffusion_v<dim,nstate,real>::objective_function (
 // Funcitonal that performs the inner product over the entire domain 
 template <int dim, int nstate, typename real>
 template <typename real2>
-real2 DiffusionFunctional<dim,nstate,real>::evaluate_cell_volume(
+real2 DiffusionFunctional<dim,nstate,real>::evaluate_volume_integrand(
     const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
-    const dealii::FEValues<dim,dim> &fe_values_volume,
-    std::vector<real2> local_solution)
+    const dealii::Point<dim,real2> &phys_coord,
+    const std::array<real2,nstate> &soln_at_q,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/)
 {
-    unsigned int n_quad_pts = fe_values_volume.n_quadrature_points;
-
-    std::array<real2,nstate> soln_at_q;
-
     real2 val = 0;
 
     // casting our physics object into a diffusion_objective object 
     const diffusion_objective<dim,nstate,real2>& diff_physics = dynamic_cast<const diffusion_objective<dim,nstate,real2>&>(physics);
     
-    // looping over the quadrature points
-    for(unsigned int iquad=0; iquad<n_quad_pts; ++iquad){
-        std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
-        for (unsigned int idof=0; idof<fe_values_volume.dofs_per_cell; ++idof) {
-            const unsigned int istate = fe_values_volume.get_fe().system_to_component_index(idof).first;
-            soln_at_q[istate] += local_solution[idof] * fe_values_volume.shape_value_component(idof, iquad, istate);
-        }
+    // evaluating the associated objective function weighting at the quadrature point
+    real2 objective_value = diff_physics.objective_function(phys_coord);
 
-        const dealii::Point<dim,double> qpoint_double = (fe_values_volume.quadrature_point(iquad));
-        dealii::Point<dim,real2> qpoint_real2;
-        for (int d=0;d<dim;++d) {
-            qpoint_real2[d] = qpoint_double[d];
-        }
-
-        // evaluating the associated objective function weighting at the quadrature point
-        real2 objective_value = diff_physics.objective_function(qpoint_real2);
-
-        // integrating over the domain (adding istate loop but should always be 1)
-        for (int istate=0; istate<nstate; ++istate) {
-            val += soln_at_q[istate] * objective_value * fe_values_volume.JxW(iquad);
-        }
+    // integrating over the domain (adding istate loop but should always be 1)
+    for (int istate=0; istate<nstate; ++istate) {
+        val += soln_at_q[istate] * objective_value;
     }
 
     return val;
@@ -380,9 +362,6 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
           = std::make_shared< diffusion_u<dim, nstate, ADtype> >(convection, diffusion);
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, ADtype> > physics_v_adtype 
           = std::make_shared< diffusion_v<dim, nstate, ADtype> >(convection, diffusion);
- 
-    // functional for computations
-    DiffusionFunctional<dim,nstate,double> diffusion_functional;
 
     // exact value to be used in checks below
     const double pi = std::acos(-1);
@@ -478,9 +457,13 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             ode_solver_u->steady_state();
             ode_solver_v->steady_state();
 
+            // functional for computations
+            DiffusionFunctional<dim,nstate,double> diffusion_functional_u(dg_u,true,false);
+            DiffusionFunctional<dim,nstate,double> diffusion_functional_v(dg_v,true,false);
+
             // evaluating functionals from both methods
-            double functional_val_u = diffusion_functional.evaluate_function(*dg_u, *physics_u_double);
-            double functional_val_v = diffusion_functional.evaluate_function(*dg_v, *physics_v_double);
+            double functional_val_u = diffusion_functional_u.evaluate_functional(*physics_u_adtype,false,false);
+            double functional_val_v = diffusion_functional_v.evaluate_functional(*physics_v_adtype,false,false);
 
             // comparison betweent the values, add these to the convergence table
             pcout << std::endl << "Val1 = " << functional_val_u << "\tVal2 = " << functional_val_v << std::endl << std::endl; 
@@ -492,8 +475,8 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             pcout << std::endl << "error_val1 = " << error_functional_u << "\terror_val2 = " << error_functional_v << std::endl << std::endl; 
 
             // // Initializing the adjoints for each problem
-            Adjoint<dim, nstate, double> adj_u(*dg_u, diffusion_functional, *physics_u_adtype.get());
-            Adjoint<dim, nstate, double> adj_v(*dg_v, diffusion_functional, *physics_v_adtype.get());
+            Adjoint<dim, nstate, double> adj_u(*dg_u, diffusion_functional_u, *physics_u_adtype.get());
+            Adjoint<dim, nstate, double> adj_v(*dg_v, diffusion_functional_v, *physics_v_adtype.get());
 
             // solving for each coarse adjoint
             pcout << "Solving for the discrete adjoints." << std::endl;

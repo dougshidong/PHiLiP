@@ -4,7 +4,7 @@ set(TESTS_SOURCE
     burgers_stability.cpp
     diffusion_exact_adjoint.cpp
     euler_gaussian_bump.cpp
-    euler_gaussian_bump_adjoint.cpp
+#euler_gaussian_bump_adjoint.cpp
     euler_cylinder.cpp
     euler_cylinder_adjoint.cpp
     euler_vortex.cpp

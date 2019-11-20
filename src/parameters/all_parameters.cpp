@@ -38,6 +38,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Use other boundary conditions by default. Otherwise use periodic (for 1d burgers only");
 
+    prm.declare_entry("use_projected_flux", "true",
+                      dealii::Patterns::Bool(),
+                      "Use projected nonlinear flux to p+1 by default. If false, use unprojected nonlinear flux.");
+
     prm.declare_entry("test_type", "run_control",
                       dealii::Patterns::Selection(
                       " run_control | "
@@ -49,6 +53,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " numerical_flux_convervation | "
                       " jacobian_regression |"
                       " advection_periodicity |"
+                      " convection_diffusion_periodicity |"
                       " euler_split_taylor_green"),
                       "The type of test we want to solve. "
                       "Choices are (only run control has been coded up for now)" 
@@ -60,8 +65,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_entropy_waves | "
                       "  numerical_flux_convervation | "
                       "  jacobian_regression |"
-					  "  euler_split_taylor_green |"
-					  "  advection_periodicity >.");
+		      "  euler_split_taylor_green |"
+                      " convection_diffusion_periodicity |"
+		      "  advection_periodicity >.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -85,6 +91,16 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Selection("lax_friedrichs | roe | split_form"),
                       "Convective numerical flux. "
                       "Choices are <lax_friedrichs | roe | split_form>.");
+
+    prm.declare_entry("flux_reconstruction", "cDG",
+                      dealii::Patterns::Selection("cDG | cSD | cHU | cNegative | cNegative2 | cPlus"),
+                      "Flux Reconstruction. "
+                      "Choices are <cDG | cSD | cHU | cNegative | cNegative2 | cPlus>.");
+
+    prm.declare_entry("flux_reconstruction_aux", "kDG",
+                      dealii::Patterns::Selection("kDG | kSD | kHU | kNegative | kNegative2 | kPlus"),
+                      "Flux Reconstruction for Auxiliary Equation. "
+                      "Choices are <kDG | kSD | kHU | kNegative | kNegative2 | kPlus>.");
 
     prm.declare_entry("diss_num_flux", "symm_internal_penalty",
                       dealii::Patterns::Selection("symm_internal_penalty"),
@@ -116,6 +132,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "numerical_flux_convervation") { test_type = numerical_flux_convervation; }
     else if (test_string == "jacobian_regression") { test_type = jacobian_regression; }
     else if (test_string == "advection_periodicity") {test_type = advection_periodicity; }
+    else if (test_string == "convection_diffusion_periodicity") {test_type = convection_diffusion_periodicity; }
     else if (test_string == "euler_split_taylor_green") {test_type = euler_split_taylor_green;}
 
     const std::string pde_string = prm.get("pde_type");
@@ -143,11 +160,28 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_collocated_nodes = prm.get_bool("use_collocated_nodes");
     use_split_form = prm.get_bool("use_split_form");
     use_periodic_bc = prm.get_bool("use_periodic_bc");
+    use_projected_flux = prm.get_bool("use_projected_flux");
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
     if (conv_num_flux_string == "lax_friedrichs") conv_num_flux_type = lax_friedrichs;
     if (conv_num_flux_string == "split_form") conv_num_flux_type = split_form;
     if (conv_num_flux_string == "roe") conv_num_flux_type = roe;
+
+    const std::string flux_reconstruction_string = prm.get("flux_reconstruction");
+    if (flux_reconstruction_string == "cDG") flux_reconstruction_type = cDG;
+    if (flux_reconstruction_string == "cSD") flux_reconstruction_type = cSD;
+    if (flux_reconstruction_string == "cHU") flux_reconstruction_type = cHU;
+    if (flux_reconstruction_string == "cNegative") flux_reconstruction_type = cNegative;
+    if (flux_reconstruction_string == "cNegative2") flux_reconstruction_type = cNegative2;
+    if (flux_reconstruction_string == "cPlus") flux_reconstruction_type = cPlus;
+
+    const std::string flux_reconstruction_aux_string = prm.get("flux_reconstruction_aux");
+    if (flux_reconstruction_aux_string == "kDG") flux_reconstruction_aux_type = kDG;
+    if (flux_reconstruction_aux_string == "kSD") flux_reconstruction_aux_type = kSD;
+    if (flux_reconstruction_aux_string == "kHU") flux_reconstruction_aux_type = kHU;
+    if (flux_reconstruction_aux_string == "kNegative") flux_reconstruction_aux_type = kNegative;
+    if (flux_reconstruction_aux_string == "kNegative2") flux_reconstruction_aux_type = kNegative2;
+    if (flux_reconstruction_aux_string == "kPlus") flux_reconstruction_aux_type = kPlus;
 
     const std::string diss_num_flux_string = prm.get("diss_num_flux");
     if (diss_num_flux_string == "symm_internal_penalty") diss_num_flux_type = symm_internal_penalty;

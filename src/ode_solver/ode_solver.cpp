@@ -161,6 +161,13 @@ int ODESolver<dim,real>::advance_solution_time (double time_advance)
     }
 
         step_in_time(constant_time_step);
+        const double update_norm = this->solution_update.l2_norm();
+//std::cout << update_norm << std::endl;
+       // if (isnan(update_norm) || isinf(update_norm)) throw;
+        //if (isnan(update_norm) || isinf(update_norm)) throw;
+        if (update_norm >1e5) throw 20;
+//std::cout << "ok " << std::endl;
+
 
 
    if (this->current_iteration%ode_param.print_iteration_modulo == 0) {
@@ -209,9 +216,10 @@ void Explicit_ODESolver<dim,real>::step_in_time (real dt)
 {
     // this->dg->assemble_residual (); // Not needed since it is called in the base class for time step
     this->current_time += dt;
-    const int rk_order = 1;
+    const int rk_order = 3;
     if (rk_order == 1) {
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
+
         this->update_norm = this->solution_update.l2_norm();
         this->dg->solution.add(dt,this->solution_update);
     } else if (rk_order == 3) {
@@ -222,6 +230,7 @@ void Explicit_ODESolver<dim,real>::step_in_time (real dt)
         pcout<< "Stage 1... " << std::flush;
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
 
+
         this->rk_stage[1] = this->rk_stage[0];
         this->rk_stage[1].add(dt,this->solution_update);
 
@@ -231,6 +240,7 @@ void Explicit_ODESolver<dim,real>::step_in_time (real dt)
         pcout<< "2... " << std::flush;
         this->dg->assemble_residual ();
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
+
 
         this->rk_stage[2] = this->rk_stage[0];
         this->rk_stage[2] *= 0.75;
@@ -243,6 +253,7 @@ void Explicit_ODESolver<dim,real>::step_in_time (real dt)
         pcout<< "3... " << std::flush;
         this->dg->assemble_residual ();
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
+
 
         this->rk_stage[3] = this->rk_stage[0];
         this->rk_stage[3] *= 1.0/3.0;
@@ -260,7 +271,15 @@ void Explicit_ODESolver<dim,real>::allocate_ode_system ()
 {
     const bool do_inverse_mass_matrix = true;
     this->solution_update.reinit(this->dg->right_hand_side);
-    this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
+
+    if ((this->all_parameters->pde_type == 1 || this->all_parameters->pde_type == 2) && (this->all_parameters->use_weak_form == false))//1 is diffusion, 2 is convection-diffusion
+        this->dg->evaluate_mass_matrices(true);
+    else
+        this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
+
+    if(this->all_parameters->use_weak_form == false)
+        this->dg->build_global_projection_operator();
+
 
     this->rk_stage.resize(4);
     for (int i=0; i<4; i++) {
@@ -272,7 +291,13 @@ void Implicit_ODESolver<dim,real>::allocate_ode_system ()
 {
     const bool do_inverse_mass_matrix = false;
     this->solution_update.reinit(this->dg->right_hand_side);
-    this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
+    if ((this->all_parameters->pde_type == 1 || this->all_parameters->pde_type == 2) && (this->all_parameters->use_weak_form == false))//1 is diffusion, 2 is convection-diffusion
+        this->dg->evaluate_mass_matrices(true);
+    else
+        this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
+
+    if(this->all_parameters->use_weak_form == false)
+        this->dg->build_global_projection_operator();
 }
 
 //template <int dim, typename real>

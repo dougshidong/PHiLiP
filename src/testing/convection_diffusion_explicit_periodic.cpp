@@ -19,14 +19,14 @@
 #include "physics/physics.h"
 #include "dg/dg.h"
 #include "ode_solver/ode_solver.h"
-#include "advection_explicit_periodic.h"
+#include "convection_diffusion_explicit_periodic.h"
 
 #include<fenv.h>
 
 namespace PHiLiP {
 namespace Tests {
 template <int dim, int nstate>
-AdvectionPeriodic<dim, nstate>::AdvectionPeriodic(const PHiLiP::Parameters::AllParameters *const parameters_input)
+ConvectionDiffusionPeriodic<dim, nstate>::ConvectionDiffusionPeriodic(const PHiLiP::Parameters::AllParameters *const parameters_input)
 :
 TestsBase::TestsBase(parameters_input)
 , mpi_communicator(MPI_COMM_WORLD)
@@ -35,27 +35,20 @@ TestsBase::TestsBase(parameters_input)
 
 
 template <int dim, int nstate>
-int AdvectionPeriodic<dim, nstate>::run_test() const
+int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
 {
-#if 0
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-			dealii::Triangulation<dim> grid(
-				typename dealii::Triangulation<dim>::MeshSmoothing(
-					dealii::Triangulation<dim>::smoothing_on_refinement |
-					dealii::Triangulation<dim>::smoothing_on_coarsening));
-#else
-			dealii::parallel::distributed::Triangulation<dim> grid(
-				this->mpi_communicator);
-#endif
-#endif
 
-    const unsigned int n_grids = 9;
+    PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
+
+    const unsigned int n_grids = 6;
     std::array<double,n_grids> grid_size;
     std::array<double,n_grids> soln_error;
    // std::array<double,n_grids> output_error;
     using ADtype = double;
     using ADArray = std::array<ADtype,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
+    using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
+    using FR_Aux_enum = Parameters::AllParameters::Flux_Reconstruction_Aux;
 
 #if 0
     std::vector<int> n_1d_cells(n_grids);
@@ -64,16 +57,47 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
         n_1d_cells[igrid] = static_cast<int>(n_1d_cells[igrid-1]*1.5) + 2;
     }
 #endif
-	double left = 0.0;
-	double right = 2.0;
+	double left = -1.0;
+	double right = 1.0;
+        if(dim==1 || dim == 2){
+	    left = 0.0;
+            const double pi = atan(1)*4.0;
+	    right = 2.0 * pi;
+        }
 	const bool colorize = true;
 //	int n_refinements = 6;
 	unsigned int n_refinements = n_grids;
-	unsigned int poly_degree = 2;
-//	dealii::GridGenerator::hyper_cube(grid, left, right, colorize);
-
         dealii::ConvergenceTable convergence_table;
+        std::array<FR_enum, 4> FR_arr_c;
+        std::array<FR_Aux_enum, 4> FR_arr_k;
+        FR_arr_c[0] = FR_enum::cDG;
+        FR_arr_c[1] = FR_enum::cDG;
+        FR_arr_c[2] = FR_enum::cPlus;
+        FR_arr_c[3] = FR_enum::cPlus;
+        FR_arr_k[0] = FR_Aux_enum::kDG;
+        FR_arr_k[1] = FR_Aux_enum::kPlus;
+        FR_arr_k[2] = FR_Aux_enum::kDG;
+        FR_arr_k[3] = FR_Aux_enum::kPlus;
+        std::vector<std::string> FR_arr_string_c;
+        std::vector<std::string> FR_arr_string_k;
+        FR_arr_string_c.push_back("cDG");
+        FR_arr_string_c.push_back("cDG");
+        FR_arr_string_c.push_back("cPlus");
+        FR_arr_string_c.push_back("cPlus");
+        FR_arr_string_k.push_back("kDG");
+        FR_arr_string_k.push_back("kPlus");
+        FR_arr_string_k.push_back("kDG");
+        FR_arr_string_k.push_back("kPlus");
         const unsigned int igrid_start = 5;
+//	unsigned int poly_degree = 2;
+//	dealii::GridGenerator::hyper_cube(grid, left, right, colorize);
+    for(unsigned int poly_degree = 2; poly_degree<4; poly_degree++){
+
+    for(unsigned int corr_iter=0; corr_iter<4; corr_iter++){
+    
+        all_parameters_new.flux_reconstruction_type = FR_arr_c[corr_iter];
+        all_parameters_new.flux_reconstruction_aux_type = FR_arr_k[corr_iter];
+
 
     for(unsigned int igrid=igrid_start; igrid<n_refinements; ++igrid){
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
@@ -93,33 +117,37 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 	std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
 		dealii::GridTools::collect_periodic_faces(grid,0,1,0,matched_pairs);
                 if(dim == 2)
-		dealii::GridTools::collect_periodic_faces(grid,2,3,1,matched_pairs);
+		    dealii::GridTools::collect_periodic_faces(grid,2,3,1,matched_pairs);
                 if(dim==3)
-		dealii::GridTools::collect_periodic_faces(grid,4,5,2,matched_pairs);
+		    dealii::GridTools::collect_periodic_faces(grid,4,5,2,matched_pairs);
 		grid.add_periodicity(matched_pairs);
 #endif
 	grid.refine_global(igrid);
 
-	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, &grid);
-	dg->allocate_system ();
+//	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, &grid);
+	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, &grid);
 
-//	for (auto current_cell = dg->dof_handler.begin_active(); current_cell != dg->dof_handler.end(); ++current_cell) {
-//		 if (!current_cell->is_locally_owned()) continue;
-//
-//		 dg->fe_values_volume.reinit(current_cell);
-//		 int cell_index = current_cell->index();
-//		 std::cout << "cell number " << cell_index << std::endl;
-//		 for (unsigned int face_no = 0; face_no < dealii::GeometryInfo<PHILIP_DIM>::faces_per_cell; ++face_no)
-//		 {
-//			 if (current_cell->face(face_no)->at_boundary())
-//		     {
-//				 std::cout << "face " << face_no << " is at boundary" << std::endl;
-//		         typename dealii::DoFHandler<PHILIP_DIM>::active_cell_iterator neighbor = current_cell->neighbor_or_periodic_neighbor(face_no);
-//		         std::cout << "the neighbor is " << neighbor->index() << std::endl;
-//		     }
-//		 }
-//
-//	}
+	double finalTime = 2.0;
+    //    finalTime=0.0001;
+       // finalTime=1.0;
+//#if 0
+        //Loop for tau test case IP stability
+        unsigned int itau = 0;
+        unsigned int jiteration = 0;
+        double penalty =0.0;
+        if(poly_degree == 2){
+            penalty = 14.0;
+        }
+        if(poly_degree == 3){
+            penalty = 29.0;
+        }
+        double dtau =1.0;
+
+//itau=2;
+        while (itau < 3){
+//#endif
+
+	dg->allocate_system ();
 
 	std::cout << "Implement initial conditions" << std::endl;
 	dealii::FunctionParser<dim> initial_condition;
@@ -134,17 +162,18 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 	constants["pi"] = dealii::numbers::PI;
 	std::string expression;
         if (dim == 3)
-	    expression = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) + 20*(z-1)*(z-1) ) )";//"sin(pi*x)*sin(pi*y)";
+	    expression = "sin(pi*x)*sin(pi*y)*sin(pi*z)";
         if (dim == 2)
-	    expression = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) ) )";//"sin(pi*x)*sin(pi*y)";
+	    //expression = "sin(pi*x)*sin(pi*y)";
+	    expression = "sin(x)*sin(y)";
         if(dim==1)
-	    expression = "exp( -( 20*(x-1)*(x-1) ) )";//"sin(pi*x)*sin(pi*y)";
+	    expression = "sin(x) + cos(x)";
 	initial_condition.initialize(variables,
 								 expression,
 								 constants);
-//	dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
+	dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
 	
-//#if 0
+#if 0
 //if use legendre poly to interpolate IC
                 const unsigned int n_quad_pts1      = dg->volume_quadrature_collection[2].size();
                 const unsigned int n_dofs_cell1     =dg->fe_collection[2].dofs_per_cell;
@@ -178,19 +207,124 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 
 
 }
-//#endif
+#endif
 	
 	
 	// Create ODE solver using the factory and providing the DG object
 	std::shared_ptr<PHiLiP::ODE::ODESolver<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
-	double finalTime = 1.5;
-finalTime=1e-20;
-finalTime=10.0;
-finalTime = 1.0;
 
+        dg->penalty = penalty;
 	//double dt = all_parameters->ode_solver_param.initial_time_step;
-	ode_solver->advance_solution_time(finalTime);
+        try {
+            ode_solver->advance_solution_time(finalTime);
+    
+//#if 0
+        //get max u(x,y,t)
+        double max_u = 0.0;
+            const unsigned int n_quad_pts1      = dg->volume_quadrature_collection[poly_degree].size();
+            const unsigned int n_dofs_cell1     =dg->fe_collection[poly_degree].dofs_per_cell;
+            dealii::FullMatrix<double> Chi_operator(n_quad_pts1, n_dofs_cell1);
+            for(int istate=0; istate<nstate; istate++){
+                for (unsigned int itest=0; itest<n_dofs_cell1; ++itest) {
+                    for (unsigned int iquad=0; iquad<n_quad_pts1; ++iquad) {
+                        const dealii::Point<dim> qpoint  = dg->volume_quadrature_collection[poly_degree].point(iquad);
+                        Chi_operator[iquad][itest] = dg->fe_collection[poly_degree].shape_value_component(itest,qpoint,istate);
+                    }
+                }
+            }
+            const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
+            std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
+            for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell) {
+                if (!current_cell->is_locally_owned()) continue;
+	
+                std::vector<double> soln_at_q_init(n_quad_pts1);
+                current_dofs_indices.resize(n_dofs_cell1);
+                current_cell->get_dof_indices (current_dofs_indices);
+                for(unsigned int iquad=0; iquad<n_quad_pts1; iquad++){
+                    soln_at_q_init[iquad] = 0.0;
+                    for(unsigned int idof=0; idof<n_dofs_cell1; idof++){
+                        soln_at_q_init[iquad] +=Chi_operator[iquad][idof] * dg->solution[current_dofs_indices[idof]];
+                    }   
+                    if (soln_at_q_init[iquad] > max_u)
+                        max_u = soln_at_q_init[iquad];
+                }
+            }
+    
+        printf("max u %g, penalty %g iteration %d i iteration %d\n",max_u, penalty, jiteration, itau);
+        fflush(stdout);
+        double abs_max_u = dealii::Utilities::MPI::max(max_u,mpi_communicator);
+        printf("abs max u %g\n",abs_max_u);
+        fflush(stdout);
+        std::cout << "for c: " << FR_arr_string_c[corr_iter]
+                << " , for k: " << FR_arr_string_k[corr_iter]
+                 << std::endl;
+        if(abs_max_u > 2.0){//unstable
+          //  dg->penalty += dtau;
+            penalty += dtau;
+            jiteration++;
+            if (poly_degree == 2 && penalty >16.0){
+               // all_parameters->ode_solver_param.initial_time_step /= 10.0;
+                all_parameters_new.ode_solver_param.initial_time_step /= 10.0;
+                penalty = 13.0;
+                jiteration--;
+            }
+            if (poly_degree == 3 && penalty >31.0){
+               // all_parameters->ode_solver_param.initial_time_step /= 10.0;
+                all_parameters_new.ode_solver_param.initial_time_step /= 10.0;
+                penalty = 28.0;
+                jiteration--;
+            }
+        
+        }
+        else{//it's stable
+         //   dg->penalty -= dtau;
+            penalty -= dtau;
+            dtau /=10.0;
+            itau++;
+            if (jiteration == 0){
+                dtau *= 10.0;
+                itau--;
+            }
+        }
+
+        } catch(int e) {//unstable
+            std::cout << "caught error " << std::endl;
+            penalty += dtau;
+            jiteration++;
+        printf("penalty %g iteration %d i iteration %d\n",penalty, jiteration, itau);
+        fflush(stdout);
+            if (poly_degree == 2 && penalty >16.0){
+               // all_parameters->ode_solver_param.initial_time_step /= 10.0;
+                all_parameters_new.ode_solver_param.initial_time_step /= 10.0;
+            }
+            if (poly_degree == 3 && penalty >31.0){
+               // all_parameters->ode_solver_param.initial_time_step /= 10.0;
+                all_parameters_new.ode_solver_param.initial_time_step /= 10.0;
+            }
+        } catch( ... ) {//unstable
+            std::cout << "caught error " << std::endl;
+            penalty += dtau;
+            jiteration++;
+            if (poly_degree == 2 && penalty >16.0){
+               // all_parameters->ode_solver_param.initial_time_step /= 10.0;
+                all_parameters_new.ode_solver_param.initial_time_step /= 10.0;
+            }
+            if (poly_degree == 3 && penalty >31.0){
+               // all_parameters->ode_solver_param.initial_time_step /= 10.0;
+                all_parameters_new.ode_solver_param.initial_time_step /= 10.0;
+            }
+        }
+        }//end of tau loop
+
+        printf(" iterations %d with penalty %g for poly %d with time step %g\n",jiteration, dg->penalty,
+        poly_degree, all_parameters_new.ode_solver_param.initial_time_step);
+       // poly_degree, all_parameters->ode_solver_param.initial_time_step);
+        fflush(stdout); 
+        std::cout << "for c: " << FR_arr_string_c[corr_iter]
+                << " , for k: " << FR_arr_string_k[corr_iter]
+                 << std::endl;
+//#endif
 
 //output results
             const unsigned int n_global_active_cells = grid.n_global_active_cells();
@@ -198,7 +332,7 @@ finalTime = 1.0;
             pcout << "Dimension: " << dim
                  << "\t Polynomial degree p: " << poly_degree
                  << std::endl
-                 << "Grid number: " << igrid+1 << "/" << n_grids
+                 << "Grid number: " << igrid << "/" << n_grids
                  << ". Number of active cells: " << n_global_active_cells
                  << ". Number of degrees of freedom: " << n_dofs
                  << std::endl;
@@ -217,6 +351,10 @@ finalTime = 1.0;
 
             // Integrate solution error and output error
 
+           // const double pi = atan(1)*4.0;
+            //const double dif_coef = 0.1*pi/exp(1);
+           // const double dif_coef = 0.1;
+            const double dif_coef = 0.5;
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
 
@@ -237,33 +375,13 @@ finalTime = 1.0;
                     const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
                     double uexact=1.0;
                     for(int idim=0; idim<dim; idim++){
-                    //    double speed=0.0;
-#if 0
-                        if(idim==0){
-                        //if(istate==0){
-                            speed =1.1;
-                        }
-                        else if (idim==1){
-                        //else if (istate==1){
-                            speed = -atan(1) * 4.0 / exp(1);
-                        }
-#endif
-                     //   speed=1.0;
-#if 0
-                        printf(" q point %g speed %g idim %d\n",qpoint[idim],speed,idim);
-                        fflush(stdout);
-#endif
-#if 0
-                        if(qpoint[idim]+speed*finalTime>2)
-                        uexact *= exp(-(20 * (qpoint[idim] - speed*finalTime - 2 -1) * (qpoint[idim] - speed*finalTime -1)));
-                        else
-                        uexact *= exp(-(20 * (qpoint[idim] - speed*finalTime -1) * (qpoint[idim] - speed*finalTime -1)));
-#endif
-                        uexact *= exp(-(20 * (qpoint[idim] - 1) * (qpoint[idim] - 1)));
-                        //uexact *= exp(-(20 * (qpoint[idim] - finalTime  - 1) * (qpoint[idim] - finalTime - 1)));
-                        //uexact *= exp(-(20 * (qpoint[istate] - speed*finalTime -1) * (qpoint[istate] - speed*finalTime -1)));
+                       // uexact *= sin(pi*qpoint[idim]);;
+                        uexact *= sin(qpoint[idim]);;
                     }
-                        //std::cout << uexact - soln_at_q[istate] << std::endl;
+                       // uexact *= exp(- 2 * dif_coef * pow(pi,dim) * finalTime);;
+                        uexact *= exp(- 2 * dif_coef * finalTime);;
+                        if(dim==1)
+                            uexact=exp(-dif_coef*finalTime)*(sin(qpoint[0])+cos(qpoint[0]));
                         l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
                     }
                 }
@@ -271,7 +389,6 @@ finalTime = 1.0;
             }
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
 
-           // double solution_integral = integrate_solution_over_domain(*dg);
 
             // Convergence table
             const double dx = 1.0/pow(n_dofs,(1.0/dim));
@@ -285,13 +402,19 @@ finalTime = 1.0;
             convergence_table.add_value("DoFs", n_dofs);
             convergence_table.add_value("dx", dx);
             convergence_table.add_value("soln_L2_error", l2error_mpi_sum);
+            convergence_table.add_value("c correction", FR_arr_string_c[corr_iter]);
+            convergence_table.add_value("k correction", FR_arr_string_k[corr_iter]);
+            convergence_table.add_value("Tau Penalty", penalty);
+            convergence_table.add_value("jIterations", jiteration);
+           // convergence_table.add_value("Time step", all_parameters->ode_solver_param.initial_time_step);
+            convergence_table.add_value("Time step", all_parameters_new.ode_solver_param.initial_time_step);
  //           convergence_table.add_value("output_error", output_error[igrid]);
 //#endif
 
 
             pcout << " Grid size h: " << dx 
                  << " L2-soln_error: " << l2error_mpi_sum
-                 << " Residual: " << ode_solver->residual_norm
+                // << " Residual: " << ode_solver->residual_norm
                  << std::endl;
 
 #if 0
@@ -323,7 +446,24 @@ finalTime = 1.0;
 #endif
             }
 
-    }
+    }//end of grid loop
+
+    }//end of correction iteration loop
+    
+        pcout << " ********************************************"
+             << std::endl
+             << " Results for Tau min for dif poly/c/k " 
+             << std::endl
+             << " ********************************************"
+             << std::endl;
+        convergence_table.evaluate_convergence_rates("soln_L2_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+        convergence_table.set_scientific("dx", true);
+        convergence_table.set_scientific("soln_L2_error", true);
+            convergence_table.set_scientific("Tau Penalty", true);
+            convergence_table.set_scientific("jIterations", true);
+            convergence_table.set_scientific("Time step",true);
+        if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
+    if( n_refinements > igrid_start +1){
         pcout << " ********************************************"
              << std::endl
              << " Convergence rates for p = " << poly_degree
@@ -336,6 +476,9 @@ finalTime = 1.0;
         convergence_table.set_scientific("soln_L2_error", true);
         convergence_table.set_scientific("output_error", true);
         if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
+    }
+
+    }//end of poly_degree loop
 
        // convergence_table_vector.push_back(convergence_table);
 
@@ -412,7 +555,7 @@ finalTime = 1.0;
 //	return test_error;
 //}
 
-    template class AdvectionPeriodic <PHILIP_DIM,1>;
+    template class ConvectionDiffusionPeriodic <PHILIP_DIM,1>;
 
 } //Tests namespace
 } //PHiLiP namespace

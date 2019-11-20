@@ -7,6 +7,7 @@ set(TESTS_SOURCE
     euler_vortex.cpp
     euler_entropy_waves.cpp
     advection_explicit_periodic.cpp
+    convection_diffusion_explicit_periodic.cpp
     euler_split_inviscid_taylor_green_vortex.cpp
 )
 

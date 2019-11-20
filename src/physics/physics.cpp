@@ -21,7 +21,10 @@ PhysicsBase<dim,nstate,real>::PhysicsBase()
 
     // Some constants used to define manufactured solution
     velo_x = 1.1; velo_y = -pi/ee; velo_z = ee/pi;
+    //velo_x = 2.0; velo_y = 2.0; velo_z = ee/pi;
     diff_coeff = 0.1*pi/ee;
+    diff_coeff = 0.1;
+    diff_coeff = 0.5;
 
     // Anisotropic diffusion matrix
     //A11 =   9; A12 =  -2; A13 =  -6;
@@ -55,9 +58,9 @@ PhysicsBase<dim,nstate,real>::PhysicsBase()
         diffusion_tensor[1][2] = -5;
         diffusion_tensor[2][2] = 18;
     }
-    //for (int i=0;i<dim;i++)
-    //    for (int j=0;j<dim;j++)
-    //        diffusion_tensor[i][j] = (i==j) ? 1.0 : 0.0;
+    for (int i=0;i<dim;i++)
+        for (int j=0;j<dim;j++)
+            diffusion_tensor[i][j] = (i==j) ? 1.0 : 0.0;
 }
 
 template <int dim, int nstate, typename real>

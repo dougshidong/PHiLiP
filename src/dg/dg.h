@@ -79,6 +79,9 @@ public:
      *  DGBase cannot use nstate as a compile-time known.  */
     const int nstate;
 
+    //for IP test case
+    double penalty;
+
     /// Maximum degree used for p-refinement.
     /** This is known through the constructor parameters.
      *  DGBase cannot use nstate as a compile-time known.  */
@@ -161,6 +164,25 @@ public:
 
     unsigned int n_dofs() const; ///< Number of degrees of freedom
 
+    //Build and store global projection operators
+    void build_global_projection_operator ();
+    void get_projection_operator(const dealii::FEValues<dim,dim> &fe_values_volume,
+                                unsigned int n_quad_pts, unsigned int n_dofs_cell,
+                                dealii::FullMatrix<real> &projection_matrix);
+    std::vector<std::array<unsigned int,4>> dif_order_cells;
+    //std::vector<dealii::FullMatrix<real>> global_projection_operator;
+   // dealii::FullMatrix<real> global_projection_operator;
+    std::vector<std::vector<real>> global_projection_operator;
+
+    //For Flux Reconstruction
+    void get_K_operator_FR(const dealii::hp::FECollection<dim> fe_collection,
+                             const unsigned int fe_index_curr_cell, 
+                           const dealii::FEValues<dim,dim> &fe_values_volume,
+                           unsigned int n_quad_pts, unsigned int n_dofs_cell,
+                           const unsigned int curr_cell_degree, dealii::FullMatrix<real> &K_operator,
+                            dealii::FullMatrix<real> &K_operator_aux /*std::string correction*/);
+    double factorial_DG(double n);
+
 
     /// Sparsity pattern used on the system_matrix
     /** Not sure we need to store it.  */
@@ -176,6 +198,8 @@ public:
     /// Global inverser mass matrix
     /** Should be block diagonal where each block contains the inverse mass matrix of each cell.  */
     dealii::TrilinosWrappers::SparseMatrix global_inverse_mass_matrix;
+    //(M+K)^{-1}
+    dealii::TrilinosWrappers::SparseMatrix global_inverse_mass_correction_matrix;
     /// System matrix corresponding to the derivative of the right_hand_side with
     /// respect to the solution
     dealii::TrilinosWrappers::SparseMatrix system_matrix;
@@ -207,6 +231,10 @@ public:
      * 
      */
     dealii::LinearAlgebra::distributed::Vector<double> right_hand_side;
+#if 0
+//split the right hand side for face and stiffness
+    dealii::LinearAlgebra::distributed::Vector<double> right_hand_side_face;//for FR this is face rhs and right_hand_side is for volume only
+#endif
 
     dealii::IndexSet locally_owned_dofs; ///< Locally own degrees of freedom
     dealii::IndexSet ghost_dofs; ///< Locally relevant ghost degrees of freedom
@@ -389,6 +417,7 @@ protected:
     // // const dealii::QGaussLobatto<dim-1> face_quadrature;
 
     /// Update flags needed at volume points.
+   // const dealii::UpdateFlags volume_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values;
     const dealii::UpdateFlags volume_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values;
     /// Update flags needed at face points.
     const dealii::UpdateFlags face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_normal_vectors;

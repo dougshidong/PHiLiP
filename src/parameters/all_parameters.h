@@ -43,6 +43,9 @@ public:
 
     bool use_periodic_bc;
 
+    /// Flag to use Projected (p+1) nonlinear flux.
+    bool use_projected_flux;
+
     /// Number of state variables. Will depend on PDE
     int nstate;
 
@@ -59,6 +62,7 @@ public:
         jacobian_regression,
         burgers_split_form,
         advection_periodicity,
+        convection_diffusion_periodicity,
         };
     TestType test_type;
 
@@ -94,6 +98,18 @@ public:
 
     /// Store convective flux type
     ConvectiveNumericalFlux conv_num_flux_type;
+
+    /// Flag to use Flux Reconstruction
+    enum Flux_Reconstruction {cDG, cSD, cHU, cNegative, cNegative2, cPlus};
+
+    /// Store convective flux type
+    Flux_Reconstruction flux_reconstruction_type;
+
+    /// Flag to use Flux Reconstruction
+    enum Flux_Reconstruction_Aux {kDG, kSD, kHU, kNegative, kNegative2, kPlus};
+
+    /// Store convective flux type
+    Flux_Reconstruction_Aux flux_reconstruction_aux_type;
 
     /// Currently only symmetric internal penalty can be used as an input parameter
     enum DissipativeNumericalFlux { symm_internal_penalty };

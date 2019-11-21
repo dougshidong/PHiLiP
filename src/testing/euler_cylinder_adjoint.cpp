@@ -360,7 +360,7 @@ int EulerCylinderAdjoint<dim,nstate>
                     area += fe_values_volume.JxW(iquad);
                 }
 
-                estimated_error_per_cell[cell->active_cell_index()] = cell_l2error;
+                // estimated_error_per_cell[cell->active_cell_index()] = cell_l2error;
                 l2error += cell_l2error;
             }
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));

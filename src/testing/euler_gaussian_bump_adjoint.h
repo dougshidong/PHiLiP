@@ -65,5 +65,4 @@ protected:
 
 } // Tests namespace
 } // PHiLiP namespace
-#endif
-
+#endif //__EULER_GAUSSIAN_BUMP_ADJOINT_H__

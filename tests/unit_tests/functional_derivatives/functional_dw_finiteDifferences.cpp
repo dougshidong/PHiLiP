@@ -76,6 +76,51 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
 			return l2error;
 		}
 
+        template <typename real2>
+        real2 evaluate_cell_boundary(
+            const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
+            const unsigned int /*boundary_id*/,
+            const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
+            std::vector<real2> local_solution)
+        {
+            real2 boundary_integral = 0;
+            const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
+            const unsigned int n_quad = fe_values_boundary.n_quadrature_points;
+            std::array<real2,nstate> soln_at_q;
+            for (unsigned int iquad=0;iquad<n_quad;++iquad) {
+                soln_at_q.fill(0.0);
+                for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+                    const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
+                    soln_at_q[istate]      += local_solution[idof] * fe_values_boundary.shape_value_component(idof, iquad, istate);
+                }
+                for (int s=0;s<nstate;++s) {
+                    boundary_integral += soln_at_q[s] * fe_values_boundary.JxW(iquad);
+                }
+            }
+            return boundary_integral;
+        }
+
+        using ADtype = Sacado::Fad::DFad<double>;
+
+        real evaluate_cell_boundary(
+            const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+            const unsigned int boundary_id,
+            const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
+            std::vector<real> local_solution) override
+        {
+            return evaluate_cell_boundary<>(physics, boundary_id, fe_values_boundary, local_solution);
+        }
+
+
+        ADtype evaluate_cell_boundary(
+            const PHiLiP::Physics::PhysicsBase<dim,nstate,ADtype> &physics,
+            const unsigned int boundary_id,
+            const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
+            std::vector<ADtype> local_solution) override
+        {
+            return evaluate_cell_boundary<>(physics, boundary_id, fe_values_boundary, local_solution);
+        }
+
     	// non-template functions to override the template classes
 		real evaluate_volume_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
@@ -85,7 +130,6 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
 		{
 			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
 		}
-        using ADtype = Sacado::Fad::DFad<real>;
 		ADtype evaluate_volume_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,ADtype> &physics,
             const dealii::Point<dim,ADtype> &phys_coord,
@@ -93,116 +137,6 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
             const std::array<dealii::Tensor<1,dim,ADtype>,nstate> &soln_grad_at_q) override
 		{
 			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
-		}
-
-		dealii::LinearAlgebra::distributed::Vector<real> evaluate_dIdw_finiteDifferences(
-			PHiLiP::DGBase<dim,real> &dg, 
-			const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
-			const double STEPSIZE)
-		{
-			// for taking the local derivatives
-			double local_sum_old;
-			double local_sum_new;
-
-			// vector for storing the derivatives with respect to each DOF
-			dealii::LinearAlgebra::distributed::Vector<real> dIdw;
-		
-			// allocating the vector
-			dealii::IndexSet locally_owned_dofs = dg.dof_handler.locally_owned_dofs();
-			dIdw.reinit(locally_owned_dofs, MPI_COMM_WORLD);
-
-			// setup it mostly the same as evaluating the value (with exception that local solution is also AD)
-			const unsigned int max_dofs_per_cell = dg.dof_handler.get_fe_collection().max_dofs_per_cell();
-			std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
-			std::vector<dealii::types::global_dof_index> neighbor_dofs_indices(max_dofs_per_cell);
-			std::vector<real> soln_coeff(max_dofs_per_cell); // for obtaining the local derivatives (to be copied back afterwards)
-			std::vector<real> local_dIdw(max_dofs_per_cell);
-
-			const auto mapping = (*(dg.high_order_grid.mapping_fe_field));
-			dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-
-			dealii::hp::FEValues<dim,dim>     fe_values_collection_volume(mapping_collection, dg.fe_collection, dg.volume_quadrature_collection, this->volume_update_flags);
-			dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg.fe_collection, dg.face_quadrature_collection,   this->face_update_flags);
-
-			dg.solution.update_ghost_values();
-            auto metric_cell = dg.high_order_grid.dof_handler_grid.begin_active();
-            auto cell = dg.dof_handler.begin_active();
-            for( ; cell != dg.dof_handler.end(); ++cell, ++metric_cell) {
-				if(!cell->is_locally_owned()) continue;
-
-				// // setting up the volume integration
-				// const unsigned int mapping_index = 0; // *** ask doug if this will ever be 
-				// const unsigned int fe_index_curr_cell = cell->active_fe_index();
-				// const unsigned int quad_index = fe_index_curr_cell;
-				// const dealii::FESystem<dim,dim> &current_fe_ref = dg.fe_collection[fe_index_curr_cell];
-				// //const unsigned int curr_cell_degree = current_fe_ref.tensor_degree();
-				// const unsigned int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
-
-				// // reinitialize the volume integration
-				// fe_values_collection_volume.reinit(cell, quad_index, mapping_index, fe_index_curr_cell);
-				// const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
-
-				// // getting the indices
-				// current_dofs_indices.resize(n_dofs_curr_cell);
-				// cell->get_dof_indices(current_dofs_indices);
-
-				// // copying values for initial solution
-				// soln_coeff.resize(n_dofs_curr_cell);
-				// for(unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof){
-				// 	soln_coeff[idof] = dg.solution[current_dofs_indices[idof]];
-				// }
-
-                // setting up the volume integration
-                const unsigned int i_fele = cell->active_fe_index();
-                const unsigned int i_quad = i_fele;
-
-                // Get solution coefficients
-                const dealii::FESystem<dim,dim> &fe_solution = dg.fe_collection[i_fele];
-                const unsigned int n_soln_dofs_cell = fe_solution.n_dofs_per_cell();
-                current_dofs_indices.resize(n_soln_dofs_cell);
-                cell->get_dof_indices(current_dofs_indices);
-                soln_coeff.resize(n_soln_dofs_cell);
-                for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof) {
-                    soln_coeff[idof] = dg.solution[current_dofs_indices[idof]];
-                }
-
-                // Get metric coefficients
-                const dealii::FESystem<dim,dim> &fe_metric = dg.high_order_grid.fe_system;
-                const unsigned int n_metric_dofs_cell = fe_metric.dofs_per_cell;
-                std::vector<dealii::types::global_dof_index> cell_metric_dofs_indices(n_metric_dofs_cell);
-                metric_cell->get_dof_indices (cell_metric_dofs_indices);
-                std::vector<real> coords_coeff(n_metric_dofs_cell);
-                for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-                    coords_coeff[idof] = dg.high_order_grid.nodes[cell_metric_dofs_indices[idof]];
-                }
-
-                const dealii::Quadrature<dim> &volume_quadrature = dg.volume_quadrature_collection[i_quad];
-
-				// adding the contribution from the current volume, also need to pass the solution vector on these points
-				//local_sum_old = this->evaluate_volume_integrand(physics, fe_values_volume, soln_coeff);
-                local_sum_old = this->evaluate_volume_cell_functional(physics, soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
-
-				// now looping over all the DOFs in this cell and taking the FD
-				local_dIdw.resize(n_soln_dofs_cell);
-				for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof){
-					// for each dof copying the solution
-					for(unsigned int idof2 = 0; idof2 < n_soln_dofs_cell; ++idof2){
-						soln_coeff[idof2] = dg.solution[current_dofs_indices[idof2]];
-					}
-					soln_coeff[idof] += STEPSIZE;
-
-					// then peturb the idof'th value
-					// local_sum_new = this->evaluate_volume_integrand(physics, fe_values_volume, soln_coeff);
-                    local_sum_new = this->evaluate_volume_cell_functional(physics, soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
-					local_dIdw[idof] = (local_sum_new-local_sum_old)/STEPSIZE;
-				}
-
-				dIdw.add(current_dofs_indices, local_dIdw);
-			}
-			// compress before the return
-			dIdw.compress(dealii::VectorOperation::add);
-			
-			return dIdw;
 		}
 
 };
@@ -237,7 +171,6 @@ int main(int argc, char *argv[])
 
 	// polynomial order and mesh size
 	const unsigned poly_degree = 1;
-	int n_refinements = 5;
 
 	// creating the grid
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
@@ -253,12 +186,17 @@ int main(int argc, char *argv[])
 	 		dealii::Triangulation<dim>::smoothing_on_coarsening));
 #endif
 
+    const unsigned int n_refinements = 2;
 	double left = 0.0;
 	double right = 2.0;
 	const bool colorize = true;
 
 	dealii::GridGenerator::hyper_cube(grid, left, right, colorize);
-	grid.refine_global(n_refinements);
+    grid.refine_global(n_refinements);
+    const double random_factor = 0.2;
+    const bool keep_boundary = false;
+    if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, grid, keep_boundary);
+
 	pcout << "Grid generated and refined" << std::endl;
 
 	// creating the dg
@@ -268,9 +206,29 @@ int main(int argc, char *argv[])
 	dg->allocate_system();
 	pcout << "dg allocated" << std::endl;
 
+    const int n_refine = 2;
+    for (int i=0; i<n_refine;i++) {
+        dg->high_order_grid.prepare_for_coarsening_and_refinement();
+        grid.prepare_coarsening_and_refinement();
+        unsigned int icell = 0;
+        for (auto cell = grid.begin_active(); cell!=grid.end(); ++cell) {
+            icell++;
+            if (!cell->is_locally_owned()) continue;
+            if (icell < grid.n_global_active_cells()/2) {
+                cell->set_refine_flag();
+            }
+        }
+        grid.execute_coarsening_and_refinement();
+        bool mesh_out = (i==n_refine-1);
+        dg->high_order_grid.execute_coarsening_and_refinement(mesh_out);
+    }
+    dg->allocate_system ();
+
 	// manufactured solution function
+    using ADtype = Sacado::Fad::DFad<double>;
 	std::shared_ptr <PHiLiP::Physics::PhysicsBase<dim,nstate,double>> physics_double = PHiLiP::Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&all_parameters);
-	std::shared_ptr <PHiLiP::Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<double>>> physics_adtype = PHiLiP::Physics::PhysicsFactory<dim, nstate, Sacado::Fad::DFad<double>>::create_Physics(&all_parameters);
+	std::shared_ptr <PHiLiP::Physics::PhysicsBase<dim,nstate,ADtype>> physics_adtype
+        = PHiLiP::Physics::PhysicsFactory<dim, nstate, ADtype>::create_Physics(&all_parameters);
 	pcout << "Physics created" << std::endl;
 	
 	// performing the interpolation for the intial conditions
@@ -279,15 +237,15 @@ int main(int argc, char *argv[])
 
 	L2_Norm_Functional<dim,nstate,double> l2norm(dg,true,false);
 	double l2error_mpi_sum2 = std::sqrt(l2norm.evaluate_functional(*physics_adtype,true,false));
-	pcout << std::endl << "Overall error: " << l2error_mpi_sum2 << std::endl;
+	pcout << std::endl << "Overall error (its ok that it's high since we have extraneous boundary terms): " << l2error_mpi_sum2 << std::endl;
 
 	// evaluating the derivative (using SACADO)
-	pcout << std::endl << "Starting AD: " << std::endl;
+	pcout << std::endl << "Starting AD... " << std::endl;
 	dealii::LinearAlgebra::distributed::Vector<double> dIdw = l2norm.dIdw;
 	// dIdw.print(std::cout);
 
 	// evaluating the derivative (using finite differneces)
-	pcout << std::endl << "Starting FD: " << std::endl;
+	pcout << std::endl << "Starting FD... " << std::endl;
 	dealii::LinearAlgebra::distributed::Vector<double> dIdw_FD = l2norm.evaluate_dIdw_finiteDifferences(*dg, *physics_double, STEPSIZE);
 	// dIdw_FD.print(std::cout);
 

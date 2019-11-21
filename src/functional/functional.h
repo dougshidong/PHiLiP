@@ -110,6 +110,13 @@ public:
 
     /// Vector for storing the derivatives with respect to each solution DoF
     dealii::LinearAlgebra::distributed::Vector<real> dIdw;
+    /// Vector for storing the derivatives with respect to each grid DoF
+    dealii::LinearAlgebra::distributed::Vector<real> dIdX;
+
+    dealii::LinearAlgebra::distributed::Vector<real> evaluate_dIdw_finiteDifferences(
+        DGBase<dim,real> &dg, 
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+        const double stepsize);
     
     // /// Virtual function for computation of cell volume functional term
     // /** Used only in the computation of evaluate_function(). If not overriden returns 0. */

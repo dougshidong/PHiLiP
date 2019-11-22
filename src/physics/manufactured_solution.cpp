@@ -19,12 +19,17 @@ template <int dim, typename real>
 inline real ManufacturedSolutionSine<dim,real>
 ::value (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
+    std::cout << "for state #" << istate << std::endl;
     real value = this->amplitudes[istate];
+    std::cout << "Amplitude is " << value << std::endl;
     for (int d=0; d<dim; d++) {
         value *= sin( this->frequencies[istate][d] * point[d] );
         assert(isfinite(value));
     }
     value += this->base_values[istate];
+
+    std::cout << "test_value" << std::endl;
+    std::cout << value << std::endl;
     return value;
 }
 
@@ -98,15 +103,15 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionSine<dim,real>
 ::gradient (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::Tensor<1,dim,real> gradient;
-    // for (int dim_deri=0; dim_deri<dim; dim_deri++) {
-    //     gradient[dim_deri] = amplitudes[istate] * frequencies[istate][dim_deri];
-    //     for (int dim_trig=0; dim_trig<dim; dim_trig++) {
-    //         const real angle = frequencies[istate][dim_trig] * point[dim_trig];
-    //         if (dim_deri == dim_trig) gradient[dim_deri] *= cos( angle );
-    //         if (dim_deri != dim_trig) gradient[dim_deri] *= sin( angle );
-    //     }
-    //     assert(isfinite(gradient[dim_deri]));
-    // }
+    for (int dim_deri=0; dim_deri<dim; dim_deri++) {
+        gradient[dim_deri] = this->amplitudes[istate] * this->frequencies[istate][dim_deri];
+        for (int dim_trig=0; dim_trig<dim; dim_trig++) {
+            const real angle = this->frequencies[istate][dim_trig] * point[dim_trig];
+            if (dim_deri == dim_trig) gradient[dim_deri] *= cos( angle );
+            if (dim_deri != dim_trig) gradient[dim_deri] *= sin( angle );
+        }
+        assert(isfinite(gradient[dim_deri]));
+    }
     // Hard-coded is much more readable than the dimensionally generic one
     const real A = this->amplitudes[istate];
     const dealii::Tensor<1,dim,real> f = this->frequencies[istate];
@@ -128,6 +133,9 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionSine<dim,real>
         gradient[1] = A*f[1]*sin(fx)*cos(fy)*sin(fz);
         gradient[2] = A*f[2]*sin(fx)*sin(fy)*cos(fz);
     }
+
+    std::cout << "test_grad" << std::endl;
+    std::cout << gradient << std::endl;
     return gradient;
 }
 
@@ -291,6 +299,9 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionSine<dim,real>
         hessian[2][1] =  A*f[2]*f[1]*sin(fx)*cos(fy)*cos(fz);
         hessian[2][2] = -A*f[2]*f[2]*sin(fx)*sin(fy)*sin(fz);
     }
+    std::cout << "test_hes" << std::endl;
+    std::cout << hessian << std::endl;
+
     return hessian;
 }
 
@@ -478,10 +489,15 @@ ManufacturedSolutionFunction<dim,real>
         base_values[s] = 1+(s+1.0)/nstate;
         base_values[nstate-1] = 10;
         amplitudes[s] = 0.2*base_values[s]*sin((static_cast<double>(nstate)-s)/nstate);
+        std::cout << "Amplitude [" << s << "] is " << amplitudes[s] << std::endl;
         for (int d=0; d<dim; d++) {
             //frequencies[s][d] = 2.0 + sin(0.1+s*0.5+d*0.2) *  pi / 2.0;
             frequencies[s][d] = 2.0 + sin(0.1+s*0.5+d*0.2) *  pi / 2.0;
+            std::cout << "frequencies["<<s<<"]["<<d<<"]: " << frequencies[s][d] << std::endl;
         }
+    std::cout << "amplitudes["<<s<<"]: " << amplitudes[s] << std::endl;
+    std::cout << "base_values["<<s<<"]: " << base_values[s] << std::endl;
+    
     }
 }
 
@@ -554,12 +570,10 @@ inline std::vector<real> ManufacturedSolutionFunction<dim,real>
 
 template <int dim, typename real>
 std::shared_ptr< ManufacturedSolutionFunction<dim,real> > 
-ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(Parameters::AllParameters const *const param)
+ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(Parameters::AllParameters const *const param, int nstate)
 {
     using ManufacturedSolutionEnum = Parameters::ManufacturedConvergenceStudyParam::ManufacturedSolutionType;
     ManufacturedSolutionEnum solution_type = param->manufactured_convergence_study_param.manufactured_solution_type;
-
-    int nstate = param->nstate;
 
     if(solution_type == ManufacturedSolutionEnum::sine_solution){
         return std::make_shared<ManufacturedSolutionSine<dim,real>>(nstate);
@@ -574,7 +588,8 @@ ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(Parameters::A
     }else if(solution_type == ManufacturedSolutionEnum::even_poly_solution){
         return std::make_shared<ManufacturedSolutionEvenPoly<dim,real>>(nstate);
     }else{
-        std::cout << "Invalid Manufactured Solution." << std::endl;
+        std::cout << "Invalid Manufactured Solution. Using default (exp_solution)" << std::endl;
+        return std::make_shared<ManufacturedSolutionExp<dim,real>>(nstate);
     }
 
     return nullptr;

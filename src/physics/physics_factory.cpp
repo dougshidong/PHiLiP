@@ -22,7 +22,7 @@ PhysicsFactory<dim,nstate,real>
 
     // generating the manufactured solution from the manufactured solution factory
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> >  manufactured_solution_function 
-        = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(parameters_input);
+        = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(parameters_input, nstate);
 
     if (pde_type == PDE_enum::advection || pde_type == PDE_enum::advection_vector) {
         if constexpr (nstate<=2) return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(true,false,manufactured_solution_function);

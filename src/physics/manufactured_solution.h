@@ -282,7 +282,7 @@ template <int dim, typename real>
 class ManufacturedSolutionFactory
 {
 public:
-    static std::shared_ptr< ManufacturedSolutionFunction<dim,real> > create_ManufacturedSolution(Parameters::AllParameters const *const param);
+    static std::shared_ptr< ManufacturedSolutionFunction<dim,real> > create_ManufacturedSolution(Parameters::AllParameters const *const param, int nstate);
 
 };
 

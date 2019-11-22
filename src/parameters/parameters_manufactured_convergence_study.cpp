@@ -14,7 +14,7 @@ void ManufacturedConvergenceStudyParam::declare_parameters (dealii::ParameterHan
                           dealii::Patterns::Bool(),
                           "Uses non-zero source term based on the manufactured solution and the PDE.");
 
-        prm.declare_entry("manufactured_solution_type","sine_solution",
+        prm.declare_entry("manufactured_solution_type","exp_solution",
                           dealii::Patterns::Selection(
                           " sine_solution | "
                           " cosine_solution | "

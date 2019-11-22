@@ -41,6 +41,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     prm.declare_entry("test_type", "run_control",
                       dealii::Patterns::Selection(
                       " run_control | "
+                      " advection_diffusion_shock | "
                       " burgers_energy_stability | "
                       " diffusion_exact_adjoint | "
                       " euler_gaussian_bump | "
@@ -56,6 +57,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "The type of test we want to solve. "
                       "Choices are (only run control has been coded up for now)" 
                       " <run_control | " 
+                      "  advection_diffusion_shock | "
                       "  burgers_energy_stability | "
                       "  diffusion_exact_adjoint | "
                       "  euler_gaussian_bump | "
@@ -114,6 +116,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     const std::string test_string = prm.get("test_type");
     if (test_string == "run_control") { test_type = run_control; }
+    else if (test_string == "advection_diffusion_shock") {test_type = advection_diffusion_shock; }
     else if (test_string == "burgers_energy_stability") { test_type = burgers_energy_stability; }
     else if (test_string == "diffusion_exact_adjoint") {test_type = diffusion_exact_adjoint; }
     else if (test_string == "euler_gaussian_bump") { test_type = euler_gaussian_bump; }

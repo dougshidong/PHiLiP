@@ -77,8 +77,9 @@ class Euler : public PhysicsBase <dim, nstate, real>
 {
 public:
     /// Constructor
-    Euler (const double ref_length, const double gamma_gas, const double mach_inf, const double angle_of_attack, const double side_slip_angle)
-    : ref_length(ref_length)
+    Euler(const double ref_length, const double gamma_gas, const double mach_inf, const double angle_of_attack, const double side_slip_angle, std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr)
+    : PhysicsBase<dim,nstate,real>(manufactured_solution_function)
+    , ref_length(ref_length)
     , gam(gamma_gas)
     , gamm1(gam-1.0)
     , density_inf(1.0)

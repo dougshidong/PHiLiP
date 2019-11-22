@@ -20,6 +20,15 @@ namespace Tests{
 template <int dim, typename real>
 class ManufacturedSolutionShocked : public ManufacturedSolutionFunction<dim,real>
 {
+// We want the Point to be templated on the type,
+// however, dealii does not template that part of the Function.
+// Therefore, we end up overloading the functions and need to "import"
+// those non-overloaded functions to avoid the warning -Woverloaded-virtual
+// See: https://stackoverflow.com/questions/18515183/c-overloaded-virtual-function-warning-by-clang
+protected:
+    using dealii::Function<dim,real>::value;
+    using dealii::Function<dim,real>::gradient;
+    using dealii::Function<dim,real>::hessian;
 public:
     // constructor
     ManufacturedSolutionShocked(const unsigned int /*nstate*/)
@@ -43,13 +52,13 @@ public:
     }
 
     // overriding the function value
-    real value(const dealii::Point<dim> &pos, const unsigned int istate = 0) const override;
+    real value(const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
 
     // overriding the gradient
-    dealii::Tensor<1,dim,real>gradient(const dealii::Point<dim> &pos, const unsigned int istate = 0) const override;
+    dealii::Tensor<1,dim,real>gradient(const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
 
     // overriding the hessian
-    dealii::SymmetricTensor<2,dim,real> hessian(const dealii::Point<dim> &pos, const unsigned int istate = 0) const override;
+    dealii::SymmetricTensor<2,dim,real> hessian(const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
 
 private:
     std::vector<unsigned int> n_shocks; // number of shocks

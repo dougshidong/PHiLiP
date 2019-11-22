@@ -69,7 +69,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  numerical_flux_convervation | "
                       "  jacobian_regression |"
 					  "  euler_split_taylor_green |"
-					  "  advection_periodicity >.");
+					  "  advection_periodicity>.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -89,6 +89,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  burgers_inviscid | "
                       "  euler | "
                       "  mhd>.");
+    
     prm.declare_entry("conv_num_flux", "lax_friedrichs",
                       dealii::Patterns::Selection("lax_friedrichs | roe | split_form"),
                       "Convective numerical flux. "
@@ -115,20 +116,20 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     dimension                   = prm.get_integer("dimension");
 
     const std::string test_string = prm.get("test_type");
-    if (test_string == "run_control") { test_type = run_control; }
-    else if (test_string == "advection_diffusion_shock") {test_type = advection_diffusion_shock; }
-    else if (test_string == "burgers_energy_stability") { test_type = burgers_energy_stability; }
-    else if (test_string == "diffusion_exact_adjoint") {test_type = diffusion_exact_adjoint; }
-    else if (test_string == "euler_gaussian_bump") { test_type = euler_gaussian_bump; }
-    else if (test_string == "euler_gaussian_bump_adjoint") {test_type = euler_gaussian_bump_adjoint;}
-    else if (test_string == "euler_cylinder") { test_type = euler_cylinder; }
-    else if (test_string == "euler_cylinder_adjoint") { test_type = euler_cylinder_adjoint; }
-    else if (test_string == "euler_vortex") { test_type = euler_vortex; }
-    else if (test_string == "euler_entropy_waves") { test_type = euler_entropy_waves; }
+    if (test_string == "run_control")                      { test_type = run_control; }
+    else if (test_string == "advection_diffusion_shock")   { test_type = advection_diffusion_shock; }
+    else if (test_string == "burgers_energy_stability")    { test_type = burgers_energy_stability; }
+    else if (test_string == "diffusion_exact_adjoint")     { test_type = diffusion_exact_adjoint; }
+    else if (test_string == "euler_gaussian_bump")         { test_type = euler_gaussian_bump; }
+    else if (test_string == "euler_gaussian_bump_adjoint") { test_type = euler_gaussian_bump_adjoint; }
+    else if (test_string == "euler_cylinder")              { test_type = euler_cylinder; }
+    else if (test_string == "euler_cylinder_adjoint")      { test_type = euler_cylinder_adjoint; }
+    else if (test_string == "euler_vortex")                { test_type = euler_vortex; }
+    else if (test_string == "euler_entropy_waves")         { test_type = euler_entropy_waves; }
     else if (test_string == "numerical_flux_convervation") { test_type = numerical_flux_convervation; }
-    else if (test_string == "jacobian_regression") { test_type = jacobian_regression; }
-    else if (test_string == "advection_periodicity") {test_type = advection_periodicity; }
-    else if (test_string == "euler_split_taylor_green") {test_type = euler_split_taylor_green;}
+    else if (test_string == "jacobian_regression")         { test_type = jacobian_regression; }
+    else if (test_string == "advection_periodicity")       { test_type = advection_periodicity; }
+    else if (test_string == "euler_split_taylor_green")    { test_type = euler_split_taylor_green; }
     
     const std::string pde_string = prm.get("pde_type");
     if (pde_string == "advection") {
@@ -158,8 +159,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
     if (conv_num_flux_string == "lax_friedrichs") conv_num_flux_type = lax_friedrichs;
-    if (conv_num_flux_string == "split_form") conv_num_flux_type = split_form;
-    if (conv_num_flux_string == "roe") conv_num_flux_type = roe;
+    if (conv_num_flux_string == "split_form")     conv_num_flux_type = split_form;
+    if (conv_num_flux_string == "roe")            conv_num_flux_type = roe;
 
     const std::string diss_num_flux_string = prm.get("diss_num_flux");
     if (diss_num_flux_string == "symm_internal_penalty") diss_num_flux_type = symm_internal_penalty;

@@ -33,8 +33,8 @@ public:
     const bool hasDiffusion; ///< Turns ON/OFF diffusion term.
 
     /// Constructor
-    ConvectionDiffusion (const bool convection = true, const bool diffusion = true)
-        : hasConvection(convection), hasDiffusion(diffusion)
+    ConvectionDiffusion (const bool convection = true, const bool diffusion = true, std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr)
+        : PhysicsBase<dim,nstate,real>(manufactured_solution_function), hasConvection(convection), hasDiffusion(diffusion)
     {
         static_assert(nstate<=2, "Physics::ConvectionDiffusion() should be created with nstate<=2");
     };

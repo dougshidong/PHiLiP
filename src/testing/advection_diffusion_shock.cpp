@@ -39,12 +39,12 @@ namespace Tests {
 // n_shocks as an array
 
 template <int dim, typename real>
-real ManufacturedSolutionShocked<dim,real>::value(const dealii::Point<dim>  &pos, const unsigned int /*istate*/) const
+real ManufacturedSolutionShocked<dim,real>::value(const dealii::Point<dim,real>  &pos, const unsigned int /*istate*/) const
 {
     real val = 1;
 
     for(unsigned int i = 0; i < dim; ++i){
-        double x = pos[i];
+        real x = pos[i];
         real val_dim = 0;
         for(unsigned int j = 0; j < n_shocks[i]; ++j){
             // taking the product of function in each direction
@@ -57,7 +57,7 @@ real ManufacturedSolutionShocked<dim,real>::value(const dealii::Point<dim>  &pos
 }
 
 template <int dim, typename real>
-dealii::Tensor<1,dim,real> ManufacturedSolutionShocked<dim,real>::gradient(const dealii::Point<dim> &pos, const unsigned int /*istate*/) const
+dealii::Tensor<1,dim,real> ManufacturedSolutionShocked<dim,real>::gradient(const dealii::Point<dim,real> &pos, const unsigned int /*istate*/) const
 {
     dealii::Tensor<1,dim,real> grad;
 
@@ -65,7 +65,7 @@ dealii::Tensor<1,dim,real> ManufacturedSolutionShocked<dim,real>::gradient(const
         // taking the k^th derivative
         real grad_dim = 1;
         for(unsigned int i = 0; i < dim; ++i){
-            double x = pos[i];
+            real x = pos[i];
             real val_dim = 0;
             for(unsigned int j = 0; j < n_shocks[i]; ++j){
                 if(i==k){
@@ -86,7 +86,7 @@ dealii::Tensor<1,dim,real> ManufacturedSolutionShocked<dim,real>::gradient(const
 }
 
 template <int dim, typename real>
-dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionShocked<dim,real>::hessian(const dealii::Point<dim> &pos, const unsigned int /*istate*/) const
+dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionShocked<dim,real>::hessian(const dealii::Point<dim,real> &pos, const unsigned int /*istate*/) const
 {
     dealii::SymmetricTensor<2,dim,real> hes;
 
@@ -96,7 +96,7 @@ dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionShocked<dim,real>::hessi
             // taking the k2^th derivative
             real hes_dim = 1;
             for(unsigned int i = 0; i < dim; ++i){
-                double x = pos[i];
+                real x = pos[i];
                 real val_dim = 0;
                 for(unsigned int j = 0; j < n_shocks[i]; ++j){
                     if(i == k1 && i == k2){

@@ -54,16 +54,45 @@ class ManufacturedSolutionU : public ManufacturedSolutionFunction <dim, real>
 protected:
     using dealii::Function<dim,real>::value;
     using dealii::Function<dim,real>::gradient;
-    using dealii::Function<dim,real>::vector_gradient;
+    using dealii::Function<dim,real>::hessian;
 public:
     // constructor
     ManufacturedSolutionU(){}
 
     // overriding the function for the value and gradient
-    real value (const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
+    real value(const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
 
     // Gradient of the manufactured solution
-    dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
+    dealii::Tensor<1,dim,real> gradient(const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
+
+    inline dealii::SymmetricTensor<2,dim,real> hessian(const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const override
+    {
+        dealii::SymmetricTensor<2,dim,real> hessian;
+        if (dim==1) {
+            hessian[0][0] = 0;
+        }
+        if (dim==2) {
+            hessian[0][0] = 0;
+            hessian[0][1] = 0;
+
+            hessian[1][0] = 0;
+            hessian[1][1] = 0;
+        }
+        if (dim==3) {
+            hessian[0][0] = 0;
+            hessian[0][1] = 0;
+            hessian[0][2] = 0;
+            
+            hessian[1][0] = 0;
+            hessian[1][1] = 0;
+            hessian[1][2] = 0;
+            
+            hessian[2][0] = 0;
+            hessian[2][1] = 0;
+            hessian[2][2] = 0;
+        }
+        return hessian;
+    }
 };
 
 // manufactured solution for v
@@ -73,16 +102,45 @@ class ManufacturedSolutionV : public ManufacturedSolutionFunction <dim, real>
 protected:
     using dealii::Function<dim,real>::value;
     using dealii::Function<dim,real>::gradient;
-    using dealii::Function<dim,real>::vector_gradient;
+    using dealii::Function<dim,real>::hessian;
 public:
     // constructor
     ManufacturedSolutionV(){}
 
     // overriding the function for the value and gradient
-    real value (const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
+    real value(const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
 
     // Gradient of the manufactured solution
-    dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
+    dealii::Tensor<1,dim,real> gradient(const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
+
+    inline dealii::SymmetricTensor<2,dim,real> hessian(const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const override
+    {
+        dealii::SymmetricTensor<2,dim,real> hessian;
+        if (dim==1) {
+            hessian[0][0] = 0;
+        }
+        if (dim==2) {
+            hessian[0][0] = 0;
+            hessian[0][1] = 0;
+
+            hessian[1][0] = 0;
+            hessian[1][1] = 0;
+        }
+        if (dim==3) {
+            hessian[0][0] = 0;
+            hessian[0][1] = 0;
+            hessian[0][2] = 0;
+            
+            hessian[1][0] = 0;
+            hessian[1][1] = 0;
+            hessian[1][2] = 0;
+            
+            hessian[2][0] = 0;
+            hessian[2][1] = 0;
+            hessian[2][2] = 0;
+        }
+        return hessian;
+    }
 };
 
 // parent class to add the objective function directly to physics as a virtual class

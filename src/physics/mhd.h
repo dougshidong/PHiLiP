@@ -77,8 +77,9 @@ class MHD : public PhysicsBase <dim, nstate, real>
 {
 public:
     /// Constructor
-    MHD (const double gamma_gas)
-    : gam(gamma_gas)
+    MHD(const double gamma_gas, std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr)
+    : PhysicsBase<dim,nstate,real>(manufactured_solution_function)
+    , gam(gamma_gas)
     , gamm1(gam-1.0)
     {
         static_assert(nstate==8, "Physics::MHD() should be created with nstate=8");

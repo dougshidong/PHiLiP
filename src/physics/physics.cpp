@@ -13,9 +13,14 @@ namespace PHiLiP {
 namespace Physics {
 
 template <int dim, int nstate, typename real>
-PhysicsBase<dim,nstate,real>::PhysicsBase() :
-    manufactured_solution_function(std::shared_ptr< ManufacturedSolutionFunction<dim,real> >(new ManufacturedSolutionFunction<dim,real>(nstate)))
+PhysicsBase<dim,nstate,real>::PhysicsBase(std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input):
+    manufactured_solution_function(manufactured_solution_function_input)
 {
+    // if provided with a null ptr, give it the default manufactured solution
+    // currently only necessary for the unit test
+    if(!manufactured_solution_function)
+        manufactured_solution_function = std::make_shared<ManufacturedSolutionSine<dim,real>>(nstate);
+
     const double pi = atan(1)*4.0;
     const double ee = exp(1);
 

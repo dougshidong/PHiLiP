@@ -36,8 +36,8 @@ public:
     const bool hasDiffusion;
 
     /// Constructor
-    Burgers (const bool convection = true, const bool diffusion = true)
-        : hasConvection(convection), hasDiffusion(diffusion)
+    Burgers(const bool convection = true, const bool diffusion = true, std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr)
+        : PhysicsBase<dim,nstate,real>(manufactured_solution_function), hasConvection(convection), hasDiffusion(diffusion)
     {
         static_assert(nstate==dim, "Physics::Burgers() should be created with nstate==dim");
     };

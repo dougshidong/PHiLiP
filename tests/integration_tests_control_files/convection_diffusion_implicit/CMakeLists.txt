@@ -29,12 +29,12 @@ add_test(
 )
 
 # for the shock case
-configure_file(1d_advection_diffusion_shock.prm 1d_advection_diffusion_shock.prm COPYONLY)
-add_test(
-  NAME 1D_ADVECTION_DIFFUSION_SHOCK
-  COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_advection_diffusion_shock.prm
-  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
+# configure_file(1d_advection_diffusion_shock.prm 1d_advection_diffusion_shock.prm COPYONLY)
+# add_test(
+#   NAME 1D_ADVECTION_DIFFUSION_SHOCK
+#   COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_advection_diffusion_shock.prm
+#   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+# )
 
 configure_file(2d_advection_diffusion_shock.prm 2d_advection_diffusion_shock.prm COPYONLY)
 add_test(
@@ -43,9 +43,9 @@ add_test(
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
-configure_file(3d_advection_diffusion_shock.prm 3d_advection_diffusion_shock.prm COPYONLY)
-add_test(
-  NAME 3D_ADVECTION_DIFFUSION_SHOCK
-  COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3d_advection_diffusion_shock.prm
-  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
+# configure_file(3d_advection_diffusion_shock.prm 3d_advection_diffusion_shock.prm COPYONLY)
+# add_test(
+#   NAME 3D_ADVECTION_DIFFUSION_SHOCK
+#   COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3d_advection_diffusion_shock.prm
+#   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+# )

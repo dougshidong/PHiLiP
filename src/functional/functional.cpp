@@ -11,6 +11,8 @@
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_values.h>
 
+#include <deal.II/dofs/dof_tools.h>
+
 //#include "dg/high_order_grid.h"
 #include "physics/physics.h"
 #include "dg/dg.h"
@@ -227,10 +229,14 @@ real Functional<dim, nstate, real>::evaluate_functional(
         dealii::IndexSet locally_owned_dofs = dg->dof_handler.locally_owned_dofs();
         dIdw.reinit(locally_owned_dofs, MPI_COMM_WORLD);
     }
-    if (compute_dIdW) {
+    if (compute_dIdX) {
         // allocating the vector
         dealii::IndexSet locally_owned_dofs = dg->high_order_grid.dof_handler_grid.locally_owned_dofs();
-        dIdX.reinit(locally_owned_dofs, MPI_COMM_WORLD);
+        dealii::IndexSet locally_relevant_dofs, ghost_dofs;
+        dealii::DoFTools::extract_locally_relevant_dofs(dg->high_order_grid.dof_handler_grid, locally_relevant_dofs);
+        ghost_dofs = locally_relevant_dofs;
+        ghost_dofs.subtract_set(locally_owned_dofs);
+        dIdX.reinit(locally_owned_dofs, ghost_dofs, MPI_COMM_WORLD);
     }
 
     dg->solution.update_ghost_values();
@@ -311,16 +317,18 @@ real Functional<dim, nstate, real>::evaluate_functional(
             dIdw.add(cell_soln_dofs_indices, local_dIdw);
         }
         if (compute_dIdX) {
-            local_dIdw.resize(n_soln_dofs_cell);
+            local_dIdX.resize(n_metric_dofs_cell);
             for(unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof){
                 local_dIdX[idof] = volume_local_sum.dx(iderivative++);
             }
             dIdX.add(cell_metric_dofs_indices, local_dIdX);
         }
+        AssertDimension(iderivative, n_total_indep);
     }
     dealii::Utilities::MPI::sum(local_functional, MPI_COMM_WORLD);
     // compress before the return
     if (compute_dIdW) dIdw.compress(dealii::VectorOperation::add);
+    if (compute_dIdX) dIdX.compress(dealii::VectorOperation::add);
 
     return local_functional;
 }
@@ -444,6 +452,130 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
     dIdw.compress(dealii::VectorOperation::add);
     
     return dIdw;
+}
+
+template <int dim, int nstate, typename real>
+dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::evaluate_dIdX_finiteDifferences(
+    PHiLiP::DGBase<dim,real> &dg, 
+    const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+    const double stepsize)
+{
+    // for taking the local derivatives
+    double local_sum_old;
+    double local_sum_new;
+
+    // vector for storing the derivatives with respect to each DOF
+    dealii::LinearAlgebra::distributed::Vector<real> dIdX_FD;
+
+    // allocating the vector
+    dealii::IndexSet locally_owned_dofs = dg.high_order_grid.dof_handler_grid.locally_owned_dofs();
+    dealii::IndexSet locally_relevant_dofs, ghost_dofs;
+    dealii::DoFTools::extract_locally_relevant_dofs(dg.high_order_grid.dof_handler_grid, locally_relevant_dofs);
+    ghost_dofs = locally_relevant_dofs;
+    ghost_dofs.subtract_set(locally_owned_dofs);
+    dIdX_FD.reinit(locally_owned_dofs, ghost_dofs, MPI_COMM_WORLD);
+
+    // setup it mostly the same as evaluating the value (with exception that local solution is also AD)
+    const unsigned int max_dofs_per_cell = dg.dof_handler.get_fe_collection().max_dofs_per_cell();
+    std::vector<dealii::types::global_dof_index> cell_soln_dofs_indices(max_dofs_per_cell);
+    std::vector<dealii::types::global_dof_index> neighbor_dofs_indices(max_dofs_per_cell);
+    std::vector<real> soln_coeff(max_dofs_per_cell); // for obtaining the local derivatives (to be copied back afterwards)
+    std::vector<real> local_dIdX(max_dofs_per_cell);
+
+    const auto mapping = (*(dg.high_order_grid.mapping_fe_field));
+    dealii::hp::MappingCollection<dim> mapping_collection(mapping);
+
+    dealii::hp::FEValues<dim,dim>     fe_values_collection_volume(mapping_collection, dg.fe_collection, dg.volume_quadrature_collection, this->volume_update_flags);
+    dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg.fe_collection, dg.face_quadrature_collection,   this->face_update_flags);
+
+    dg.solution.update_ghost_values();
+    auto metric_cell = dg.high_order_grid.dof_handler_grid.begin_active();
+    auto cell = dg.dof_handler.begin_active();
+    for( ; cell != dg.dof_handler.end(); ++cell, ++metric_cell) {
+        if(!cell->is_locally_owned()) continue;
+
+        // setting up the volume integration
+        const unsigned int i_mapp = 0;
+        const unsigned int i_fele = cell->active_fe_index();
+        const unsigned int i_quad = i_fele;
+
+        // Get solution coefficients
+        const dealii::FESystem<dim,dim> &fe_solution = dg.fe_collection[i_fele];
+        const unsigned int n_soln_dofs_cell = fe_solution.n_dofs_per_cell();
+        cell_soln_dofs_indices.resize(n_soln_dofs_cell);
+        cell->get_dof_indices(cell_soln_dofs_indices);
+        soln_coeff.resize(n_soln_dofs_cell);
+        for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof) {
+            soln_coeff[idof] = dg.solution[cell_soln_dofs_indices[idof]];
+        }
+
+        // Get metric coefficients
+        const dealii::FESystem<dim,dim> &fe_metric = dg.high_order_grid.fe_system;
+        const unsigned int n_metric_dofs_cell = fe_metric.dofs_per_cell;
+        std::vector<dealii::types::global_dof_index> cell_metric_dofs_indices(n_metric_dofs_cell);
+        metric_cell->get_dof_indices (cell_metric_dofs_indices);
+        std::vector<real> coords_coeff(n_metric_dofs_cell);
+        for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
+            coords_coeff[idof] = dg.high_order_grid.nodes[cell_metric_dofs_indices[idof]];
+        }
+
+        const dealii::Quadrature<dim> &volume_quadrature = dg.volume_quadrature_collection[i_quad];
+
+        // adding the contribution from the current volume, also need to pass the solution vector on these points
+        //local_sum_old = this->evaluate_volume_integrand(physics, fe_values_volume, soln_coeff);
+        local_sum_old = this->evaluate_volume_cell_functional(physics, soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
+
+        // Next looping over the faces of the cell checking for boundary elements
+        for(unsigned int iface = 0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface){
+            auto face = cell->face(iface);
+            
+            if(face->at_boundary()){
+                fe_values_collection_face.reinit(cell, iface, i_quad, i_mapp, i_fele);
+                const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
+
+                const unsigned int boundary_id = face->boundary_id();
+
+                local_sum_old += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff);
+            }
+
+        }
+
+        // now looping over all the DOFs in this cell and taking the FD
+        local_dIdX.resize(n_metric_dofs_cell);
+        for(unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof){
+            // for each dof copying the solution
+            for(unsigned int idof2 = 0; idof2 < n_metric_dofs_cell; ++idof2){
+                coords_coeff[idof2] = dg.high_order_grid.nodes[cell_metric_dofs_indices[idof2]];
+            }
+            coords_coeff[idof] += stepsize;
+
+            // then peturb the idof'th value
+            local_sum_new = this->evaluate_volume_cell_functional(physics, soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
+
+            // Next looping over the faces of the cell checking for boundary elements
+            for(unsigned int iface = 0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface){
+                auto face = cell->face(iface);
+                
+                if(face->at_boundary()){
+                    fe_values_collection_face.reinit(cell, iface, i_quad, i_mapp, i_fele);
+                    const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
+
+                    const unsigned int boundary_id = face->boundary_id();
+
+                    local_sum_new += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff);
+                }
+
+            }
+
+            local_dIdX[idof] = (local_sum_new-local_sum_old)/stepsize;
+        }
+
+        dIdX_FD.add(cell_metric_dofs_indices, local_dIdX);
+    }
+    // compress before the return
+    dIdX_FD.compress(dealii::VectorOperation::add);
+    
+    return dIdX_FD;
 }
 
 

@@ -44,7 +44,7 @@
 #include "dg/dg.h"
 #include "functional/functional.h"
 
-const double STEPSIZE = 1e-6;
+const double STEPSIZE = 1e-7;
 const double TOLERANCE = 1e-6;
 
 template <int dim, int nstate, typename real>
@@ -235,26 +235,36 @@ int main(int argc, char *argv[])
 	initialize_perturbed_solution(*dg, *physics_double);
 	pcout << "solution initialized" << std::endl;
 
-	L2_Norm_Functional<dim,nstate,double> l2norm(dg,true,false);
-	double l2error_mpi_sum2 = std::sqrt(l2norm.evaluate_functional(*physics_adtype,true,false));
-	pcout << std::endl << "Overall error (its ok that it's high since we have extraneous boundary terms): " << l2error_mpi_sum2 << std::endl;
-
 	// evaluating the derivative (using SACADO)
 	pcout << std::endl << "Starting AD... " << std::endl;
-	dealii::LinearAlgebra::distributed::Vector<double> dIdw = l2norm.dIdw;
-	// dIdw.print(std::cout);
+	L2_Norm_Functional<dim,nstate,double> l2norm(dg,true,false);
+	double l2error_mpi_sum2 = std::sqrt(l2norm.evaluate_functional(*physics_adtype,true,true));
 
-	// evaluating the derivative (using finite differneces)
-	pcout << std::endl << "Starting FD... " << std::endl;
+	dealii::LinearAlgebra::distributed::Vector<double> dIdw = l2norm.dIdw;
+	dealii::LinearAlgebra::distributed::Vector<double> dIdX = l2norm.dIdX;
+
+	pcout << std::endl << "Overall error (its ok that it's high since we have extraneous boundary terms): " << l2error_mpi_sum2 << std::endl;
+
+	// evaluating the derivative (using finite differences)
+	pcout << std::endl << "Starting FD dIdW... " << std::endl;
 	dealii::LinearAlgebra::distributed::Vector<double> dIdw_FD = l2norm.evaluate_dIdw_finiteDifferences(*dg, *physics_double, STEPSIZE);
 	// dIdw_FD.print(std::cout);
 
-	// comparing the results and checking its within the specified tolerance
-	dealii::LinearAlgebra::distributed::Vector<double> dIdw_differnece = dIdw;
-	dIdw_differnece -= dIdw_FD;
-	double difference_L2_norm = dIdw_differnece.l2_norm();
-	pcout << "L2 norm of the difference is " << difference_L2_norm << std::endl;
+	pcout << std::endl << "Starting FD dIdX... " << std::endl;
+	dealii::LinearAlgebra::distributed::Vector<double> dIdX_FD = l2norm.evaluate_dIdX_finiteDifferences(*dg, *physics_double, STEPSIZE);
 
-	fail_bool = difference_L2_norm > TOLERANCE;
+	// comparing the results and checking its within the specified tolerance
+	dealii::LinearAlgebra::distributed::Vector<double> dIdw_difference = dIdw;
+	dIdw_difference -= dIdw_FD;
+	double dIdW_L2_diff = dIdw_difference.l2_norm();
+	pcout << "L2 norm of FD-AD dIdW: " << dIdW_L2_diff << std::endl;
+
+	// comparing the results and checking its within the specified tolerance
+	dealii::LinearAlgebra::distributed::Vector<double> dIdX_difference = dIdX;
+	dIdX_difference -= dIdX_FD;
+	double dIdX_L2_diff = dIdX_difference.l2_norm();
+	pcout << "L2 norm of FD-AD dIdX: " << dIdX_L2_diff << std::endl;
+
+	fail_bool = dIdW_L2_diff > TOLERANCE || dIdX_L2_diff > TOLERANCE;
 	return fail_bool;
 }

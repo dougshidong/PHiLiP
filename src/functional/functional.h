@@ -117,6 +117,11 @@ public:
         DGBase<dim,real> &dg, 
         const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
         const double stepsize);
+
+    dealii::LinearAlgebra::distributed::Vector<real> evaluate_dIdX_finiteDifferences(
+        DGBase<dim,real> &dg, 
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+        const double stepsize);
     
     // /// Virtual function for computation of cell volume functional term
     // /** Used only in the computation of evaluate_function(). If not overriden returns 0. */

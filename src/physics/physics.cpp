@@ -60,9 +60,9 @@ PhysicsBase<dim,nstate,real>::PhysicsBase(std::shared_ptr< ManufacturedSolutionF
         diffusion_tensor[1][2] = -5;
         diffusion_tensor[2][2] = 18;
     }
-    for (int i=0;i<dim;i++)
-       for (int j=0;j<dim;j++)
-           diffusion_tensor[i][j] = (i==j) ? 1.0 : 0.0;
+    // for (int i=0;i<dim;i++)
+    //    for (int j=0;j<dim;j++)
+    //        diffusion_tensor[i][j] = (i==j) ? 1.0 : 0.0;
 }
 
 template <int dim, int nstate, typename real>

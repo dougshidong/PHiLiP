@@ -279,6 +279,44 @@ public:
 };
 
 template <int dim, typename real>
+class ManufacturedSolutionAtan
+    : public ManufacturedSolutionFunction<dim, real>
+{
+public:
+    ManufacturedSolutionAtan(const unsigned int nstate = 1)
+        :   ManufacturedSolutionFunction<dim,real>(nstate)
+    {
+        n_shocks.resize(dim);
+        S_j.resize(dim);
+        x_j.resize(dim);
+
+        for(unsigned int i = 0; i<dim; ++i){
+            n_shocks[i] = 2;
+
+            S_j[i].resize(n_shocks[i]);
+            x_j[i].resize(n_shocks[i]);
+
+            S_j[i][0] =  10;
+            S_j[i][1] = -10;
+
+            x_j[i][0] = -1/sqrt(2);
+            x_j[i][1] =  1/sqrt(2);
+        }
+    }
+
+    real value (const dealii::Point<dim> &point, const unsigned int istate = 0) const override;
+
+    dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim> &point, const unsigned int istate = 0) const override;
+
+    dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim> &point, const unsigned int istate = 0) const override;
+
+private:
+    std::vector<unsigned int> n_shocks; // number of shocks
+    std::vector<std::vector<real>> S_j; // shock strengths
+    std::vector<std::vector<real>> x_j; // shock positions
+};
+
+template <int dim, typename real>
 class ManufacturedSolutionFactory
 {
 public:

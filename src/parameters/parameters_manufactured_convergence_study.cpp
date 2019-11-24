@@ -20,8 +20,9 @@ void ManufacturedConvergenceStudyParam::declare_parameters (dealii::ParameterHan
                           " cosine_solution | "
                           " additive_solution | "
                           " exp_solution | "
-                          " poly_solution"
-                          " even_poly_solution"
+                          " poly_solution | "
+                          " even_poly_solution | "
+                          " atan_solution"
                           ),
                           "The manufactured solution we want to use (if use_manufactured_source_term==true). "
                           "Choices are "
@@ -29,8 +30,9 @@ void ManufacturedConvergenceStudyParam::declare_parameters (dealii::ParameterHan
                           "  cosine_solution | "
                           "  additive_solution | "
                           "  exp_solution | "
-                          "  poly_solution"
-                          "  even_poly_solution>.");
+                          "  poly_solution | "
+                          "  even_poly_solution | "
+                          "  atan_solution>.");
 
         prm.declare_entry("grid_type", "hypercube",
                           dealii::Patterns::Selection("hypercube|sinehypercube|read_grid"),
@@ -94,6 +96,7 @@ void ManufacturedConvergenceStudyParam ::parse_parameters (dealii::ParameterHand
         else if(manufactured_solution_string == "exp_solution")       {manufactured_solution_type = exp_solution;} 
         else if(manufactured_solution_string == "poly_solution")      {manufactured_solution_type = poly_solution;} 
         else if(manufactured_solution_string == "even_poly_solution") {manufactured_solution_type = even_poly_solution;} 
+        else if(manufactured_solution_string == "atan_solution")      {manufactured_solution_type = atan_solution;}
 
         const std::string grid_string = prm.get("grid_type");
         if (grid_string == "hypercube") grid_type = GridEnum::hypercube;

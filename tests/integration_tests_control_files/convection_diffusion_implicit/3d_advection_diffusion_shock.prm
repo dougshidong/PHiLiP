@@ -1,8 +1,5 @@
 # Listing of Parameters
 # ---------------------
-
-set test_type = advection_diffusion_shock
-
 # Number of dimensions
 set dimension = 3
 
@@ -26,6 +23,8 @@ end
 
 subsection manufactured solution convergence study
   set use_manufactured_source_term = true
+  set manufactured_solution_type = atan_solution
+
   # Last degree used for convergence study
   set degree_end        = 3
 

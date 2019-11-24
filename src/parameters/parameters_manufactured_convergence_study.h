@@ -24,6 +24,7 @@ public:
         exp_solution,
         poly_solution,
         even_poly_solution,
+        atan_solution,
         };
     ManufacturedSolutionType manufactured_solution_type; ///< Selected ManufacturedSolutionType from the input file
 

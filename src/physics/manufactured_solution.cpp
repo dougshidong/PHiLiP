@@ -19,17 +19,12 @@ template <int dim, typename real>
 inline real ManufacturedSolutionSine<dim,real>
 ::value (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
-    std::cout << "for state #" << istate << std::endl;
     real value = this->amplitudes[istate];
-    std::cout << "Amplitude is " << value << std::endl;
     for (int d=0; d<dim; d++) {
         value *= sin( this->frequencies[istate][d] * point[d] );
         assert(isfinite(value));
     }
     value += this->base_values[istate];
-
-    std::cout << "test_value" << std::endl;
-    std::cout << value << std::endl;
     return value;
 }
 
@@ -99,6 +94,25 @@ inline real ManufacturedSolutionPoly<dim,real>
 }
 
 template <int dim, typename real>
+real ManufacturedSolutionAtan<dim,real>
+::value(const dealii::Point<dim>  &pos, const unsigned int /*istate*/) const
+{
+    real val = 1;
+
+    for(unsigned int i = 0; i < dim; ++i){
+        double x = pos[i];
+        real val_dim = 0;
+        for(unsigned int j = 0; j < n_shocks[i]; ++j){
+            // taking the product of function in each direction
+            val_dim += atan(S_j[i][j]*(x-x_j[i][j]));
+        }
+        val *= val_dim;
+    }
+
+    return val;
+}
+
+template <int dim, typename real>
 inline dealii::Tensor<1,dim,real> ManufacturedSolutionSine<dim,real>
 ::gradient (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
@@ -133,9 +147,6 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionSine<dim,real>
         gradient[1] = A*f[1]*sin(fx)*cos(fy)*sin(fz);
         gradient[2] = A*f[2]*sin(fx)*sin(fy)*cos(fz);
     }
-
-    std::cout << "test_grad" << std::endl;
-    std::cout << gradient << std::endl;
     return gradient;
 }
 
@@ -263,6 +274,36 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionPoly<dim,real>
 }
 
 template <int dim, typename real>
+dealii::Tensor<1,dim,real> ManufacturedSolutionAtan<dim,real>
+::gradient(const dealii::Point<dim> &pos, const unsigned int /*istate*/) const
+{
+    dealii::Tensor<1,dim,real> grad;
+
+    for(unsigned int k = 0; k < dim; ++k){
+        // taking the k^th derivative
+        real grad_dim = 1;
+        for(unsigned int i = 0; i < dim; ++i){
+            double x = pos[i];
+            real val_dim = 0;
+            for(unsigned int j = 0; j < n_shocks[i]; ++j){
+                if(i==k){
+                    // taking the derivative dimension
+                    real coeff = S_j[i][j]*(x-x_j[i][j]);
+                    val_dim += S_j[i][j]/(pow(coeff,2)+1);
+                }else{
+                    // value product unaffected
+                    val_dim += atan(S_j[i][j]*(x-x_j[i][j]));
+                }
+            }
+            grad_dim *= val_dim;
+        }
+        grad[k] = grad_dim;
+    }
+
+    return grad;
+}
+
+template <int dim, typename real>
 inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionSine<dim,real>
 ::hessian (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
@@ -299,9 +340,6 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionSine<dim,real>
         hessian[2][1] =  A*f[2]*f[1]*sin(fx)*cos(fy)*cos(fz);
         hessian[2][2] = -A*f[2]*f[2]*sin(fx)*sin(fy)*sin(fz);
     }
-    std::cout << "test_hes" << std::endl;
-    std::cout << hessian << std::endl;
-
     return hessian;
 }
 
@@ -473,6 +511,43 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionPoly<dim,real>
 }
 
 template <int dim, typename real>
+dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionAtan<dim,real>
+::hessian(const dealii::Point<dim> &pos, const unsigned int /*istate*/) const
+{
+    dealii::SymmetricTensor<2,dim,real> hes;
+
+    for(unsigned int k1 = 0; k1 < dim; ++k1){
+        // taking the k1^th derivative
+        for(unsigned int k2 = 0; k2 < dim; ++k2){
+            // taking the k2^th derivative
+            real hes_dim = 1;
+            for(unsigned int i = 0; i < dim; ++i){
+                double x = pos[i];
+                real val_dim = 0;
+                for(unsigned int j = 0; j < n_shocks[i]; ++j){
+                    if(i == k1 && i == k2){
+                        // taking the second derivative in this dim
+                        real coeff = S_j[i][j]*(x-x_j[i][j]);
+                        val_dim += -2.0*pow(S_j[i][j],2)*coeff/pow(pow(coeff,2)+1,2);
+                    }else if(i == k1 || i == k2){
+                        // taking the first derivative in this dim
+                        real coeff = S_j[i][j]*(x-x_j[i][j]);
+                        val_dim += S_j[i][j]/(pow(coeff,2)+1);
+                    }else{
+                        // taking the value in this dim
+                        val_dim += atan(S_j[i][j]*(x-x_j[i][j]));
+                    }
+                }
+                hes_dim *= val_dim;
+            }
+            hes[k1][k2] = hes_dim;
+        }
+    }
+
+    return hes;
+}
+
+template <int dim, typename real>
 ManufacturedSolutionFunction<dim,real>
 ::ManufacturedSolutionFunction (const unsigned int nstate)
     :
@@ -489,14 +564,10 @@ ManufacturedSolutionFunction<dim,real>
         base_values[s] = 1+(s+1.0)/nstate;
         base_values[nstate-1] = 10;
         amplitudes[s] = 0.2*base_values[s]*sin((static_cast<double>(nstate)-s)/nstate);
-        std::cout << "Amplitude [" << s << "] is " << amplitudes[s] << std::endl;
         for (int d=0; d<dim; d++) {
             //frequencies[s][d] = 2.0 + sin(0.1+s*0.5+d*0.2) *  pi / 2.0;
             frequencies[s][d] = 2.0 + sin(0.1+s*0.5+d*0.2) *  pi / 2.0;
-            std::cout << "frequencies["<<s<<"]["<<d<<"]: " << frequencies[s][d] << std::endl;
         }
-    std::cout << "amplitudes["<<s<<"]: " << amplitudes[s] << std::endl;
-    std::cout << "base_values["<<s<<"]: " << base_values[s] << std::endl;
     
     }
 }
@@ -587,9 +658,10 @@ ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(Parameters::A
         return std::make_shared<ManufacturedSolutionPoly<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::even_poly_solution){
         return std::make_shared<ManufacturedSolutionEvenPoly<dim,real>>(nstate);
+    }else if(solution_type == ManufacturedSolutionEnum::atan_solution){
+        return std::make_shared<ManufacturedSolutionAtan<dim,real>>(nstate);
     }else{
-        std::cout << "Invalid Manufactured Solution. Using default (exp_solution)" << std::endl;
-        return std::make_shared<ManufacturedSolutionExp<dim,real>>(nstate);
+        std::cout << "Invalid Manufactured Solution." << std::endl;
     }
 
     return nullptr;
@@ -607,6 +679,8 @@ template class ManufacturedSolutionPoly<PHILIP_DIM,double>;
 template class ManufacturedSolutionPoly<PHILIP_DIM,Sacado::Fad::DFad<double>>;
 template class ManufacturedSolutionEvenPoly<PHILIP_DIM,double>;
 template class ManufacturedSolutionEvenPoly<PHILIP_DIM,Sacado::Fad::DFad<double>>;
+template class ManufacturedSolutionAtan<PHILIP_DIM,double>;
+template class ManufacturedSolutionAtan<PHILIP_DIM,Sacado::Fad::DFad<double>>;
 
 template class ManufacturedSolutionFunction<PHILIP_DIM,double>;
 template class ManufacturedSolutionFunction<PHILIP_DIM,Sacado::Fad::DFad<double>>;

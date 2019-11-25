@@ -95,12 +95,12 @@ inline real ManufacturedSolutionPoly<dim,real>
 
 template <int dim, typename real>
 real ManufacturedSolutionAtan<dim,real>
-::value(const dealii::Point<dim>  &pos, const unsigned int /*istate*/) const
+::value(const dealii::Point<dim,real>  &pos, const unsigned int /*istate*/) const
 {
     real val = 1;
 
     for(unsigned int i = 0; i < dim; ++i){
-        double x = pos[i];
+        real x = pos[i];
         real val_dim = 0;
         for(unsigned int j = 0; j < n_shocks[i]; ++j){
             // taking the product of function in each direction
@@ -275,7 +275,7 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionPoly<dim,real>
 
 template <int dim, typename real>
 dealii::Tensor<1,dim,real> ManufacturedSolutionAtan<dim,real>
-::gradient(const dealii::Point<dim> &pos, const unsigned int /*istate*/) const
+::gradient(const dealii::Point<dim,real> &pos, const unsigned int /*istate*/) const
 {
     dealii::Tensor<1,dim,real> grad;
 
@@ -283,7 +283,7 @@ dealii::Tensor<1,dim,real> ManufacturedSolutionAtan<dim,real>
         // taking the k^th derivative
         real grad_dim = 1;
         for(unsigned int i = 0; i < dim; ++i){
-            double x = pos[i];
+            real x = pos[i];
             real val_dim = 0;
             for(unsigned int j = 0; j < n_shocks[i]; ++j){
                 if(i==k){
@@ -512,7 +512,7 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionPoly<dim,real>
 
 template <int dim, typename real>
 dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionAtan<dim,real>
-::hessian(const dealii::Point<dim> &pos, const unsigned int /*istate*/) const
+::hessian(const dealii::Point<dim,real> &pos, const unsigned int /*istate*/) const
 {
     dealii::SymmetricTensor<2,dim,real> hes;
 
@@ -522,7 +522,7 @@ dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionAtan<dim,real>
             // taking the k2^th derivative
             real hes_dim = 1;
             for(unsigned int i = 0; i < dim; ++i){
-                double x = pos[i];
+                real x = pos[i];
                 real val_dim = 0;
                 for(unsigned int j = 0; j < n_shocks[i]; ++j){
                     if(i == k1 && i == k2){

@@ -154,8 +154,12 @@ dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nstate, real>::fin
 {
     convert_to_state(AdjointEnum::fine);
 
-    dIdw_fine.reinit(dg.solution);
-    dIdw_fine = functional.evaluate_dIdw(dg, physics);
+    // dIdw_fine.reinit(dg.solution);
+    // dIdw_fine = functional.evaluate_dIdw(dg, physics);
+    const bool compute_dIdW = true, compute_dIdX = false;
+    const real functional_value = functional.evaluate_functional(physics,compute_dIdW,compute_dIdX);
+    (void) functional_value;
+    dIdw_fine = functional.dIdw;
 
     adjoint_fine.reinit(dg.solution);
     
@@ -180,7 +184,11 @@ dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nstate, real>::coa
     convert_to_state(AdjointEnum::coarse);
 
     dIdw_coarse.reinit(dg.solution);
-    dIdw_coarse = functional.evaluate_dIdw(dg, physics);
+    //dIdw_coarse = functional.evaluate_dIdw(dg, physics);
+    const bool compute_dIdW = true, compute_dIdX = false;
+    const real functional_value = functional.evaluate_functional(physics,compute_dIdW,compute_dIdX);
+    (void) functional_value;
+    dIdw_coarse = functional.dIdw;
 
     adjoint_coarse.reinit(dg.solution);
 

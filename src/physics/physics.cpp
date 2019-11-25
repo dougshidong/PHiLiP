@@ -67,7 +67,7 @@ template <int dim, int nstate, typename real>
 void PhysicsBase<dim,nstate,real>
 ::boundary_face_values (
    const int /*boundary_type*/,
-   const dealii::Point<dim, double> &pos,
+   const dealii::Point<dim, real> &pos,
    const dealii::Tensor<1,dim,real> &normal_int,
    const std::array<real,nstate> &soln_int,
    const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,

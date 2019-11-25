@@ -51,30 +51,38 @@ namespace Tests {
 template <int dim, typename real>
 class ManufacturedSolutionU : public ManufacturedSolutionFunction <dim, real>
 {
+protected:
+    using dealii::Function<dim,real>::value;
+    using dealii::Function<dim,real>::gradient;
+    using dealii::Function<dim,real>::vector_gradient;
 public:
     // constructor
     ManufacturedSolutionU(){}
 
     // overriding the function for the value and gradient
-    real value (const dealii::Point<dim> &pos, const unsigned int istate = 0) const override;
+    real value (const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
 
     // Gradient of the manufactured solution
-    dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim> &pos, const unsigned int istate = 0) const override;
+    dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
 };
 
 // manufactured solution for v
 template <int dim, typename real>
 class ManufacturedSolutionV : public ManufacturedSolutionFunction <dim, real>
 {
+protected:
+    using dealii::Function<dim,real>::value;
+    using dealii::Function<dim,real>::gradient;
+    using dealii::Function<dim,real>::vector_gradient;
 public:
     // constructor
     ManufacturedSolutionV(){}
 
     // overriding the function for the value and gradient
-    real value (const dealii::Point<dim> &pos, const unsigned int istate = 0) const override;
+    real value (const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
 
     // Gradient of the manufactured solution
-    dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim> &pos, const unsigned int istate = 0) const override;
+    dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
 };
 
 // parent class to add the objective function directly to physics as a virtual class
@@ -105,7 +113,7 @@ public:
 
     // defnined directly as part of the physics to make passing to the functional simpler
     virtual real objective_function(
-        const dealii::Point<dim,double> &pos) const = 0;
+        const dealii::Point<dim,real> &pos) const = 0;
 };
 
 //physics for the u variable
@@ -123,12 +131,12 @@ public:
 
     // source term = f
     std::array<real,nstate> source_term (
-        const dealii::Point<dim,double> &pos,
+        const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &/*solution*/) const override;
 
     // objective function = g
     real objective_function(
-        const dealii::Point<dim,double> &pos) const override;
+        const dealii::Point<dim,real> &pos) const override;
 };
 
 // physics for the v variable
@@ -146,12 +154,12 @@ public:
 
     // source term = g
     std::array<real,nstate> source_term (
-        const dealii::Point<dim,double> &pos,
+        const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &/*solution*/) const override;
 
     // objective function = f
     real objective_function(
-        const dealii::Point<dim,double> &pos) const override;
+        const dealii::Point<dim,real> &pos) const override;
 };
 
 // Functional that performs the inner product over the entire domain 
@@ -159,26 +167,37 @@ template <int dim, int nstate, typename real>
 class DiffusionFunctional : public Functional<dim, nstate, real>
 {
     public:
+        /// Constructor
+        DiffusionFunctional(
+            std::shared_ptr<PHiLiP::DGBase<dim,real>> dg_input,
+            const bool uses_solution_values = true,
+            const bool uses_solution_gradient = false)
+        : PHiLiP::Functional<dim,nstate,real>(dg_input,uses_solution_values,uses_solution_gradient)
+        {}
         template <typename real2>
-        real2 evaluate_cell_volume(
+        real2 evaluate_volume_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
-			const dealii::FEValues<dim,dim> &fe_values_volume,
-			std::vector<real2> local_solution);
+            const dealii::Point<dim,real2> &phys_coord,
+            const std::array<real2,nstate> &soln_at_q,
+            const std::array<dealii::Tensor<1,dim,real2>,nstate> &soln_grad_at_q);
 
     	// non-template functions to override the template classes
-		real evaluate_cell_volume(
-			const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
-			const dealii::FEValues<dim,dim> &fe_values_volume,
-			std::vector<real> local_solution) override
+		real evaluate_volume_integrand(
+            const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+            const dealii::Point<dim,real> &phys_coord,
+            const std::array<real,nstate> &soln_at_q,
+            const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) override
 		{
-			return evaluate_cell_volume<>(physics, fe_values_volume, local_solution);
+			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
 		}
-		Sacado::Fad::DFad<real> evaluate_cell_volume(
-			const PHiLiP::Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> &physics,
-			const dealii::FEValues<dim,dim> &fe_values_volume,
-			std::vector<Sacado::Fad::DFad<real>> local_solution) override
+        using ADtype = Sacado::Fad::DFad<real>;
+		ADtype evaluate_volume_integrand(
+            const PHiLiP::Physics::PhysicsBase<dim,nstate,ADtype> &physics,
+            const dealii::Point<dim,ADtype> &phys_coord,
+            const std::array<ADtype,nstate> &soln_at_q,
+            const std::array<dealii::Tensor<1,dim,ADtype>,nstate> &soln_grad_at_q) override
 		{
-			return evaluate_cell_volume<>(physics, fe_values_volume, local_solution);
+			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
 		}
 };
 

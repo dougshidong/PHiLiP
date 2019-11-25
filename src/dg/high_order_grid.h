@@ -19,7 +19,15 @@
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/data_out_dof_data.h>
 
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+#include <deal.II/lac/trilinos_vector.h>
+
 namespace PHiLiP {
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    template <int dim> using Triangulation = dealii::Triangulation<dim>;
+#else
+    template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+#endif
 
 /** This HighOrderGrid class basically contains all the different part necessary to generate
  *  a dealii::MappingFEField that corresponds to the current Triangulation and attached Manifold.
@@ -36,6 +44,7 @@ template <int dim = PHILIP_DIM, typename real = double, typename VectorType = de
 #else
 template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
 #endif
+//template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
 class HighOrderGrid
 {
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
@@ -62,7 +71,13 @@ class HighOrderGrid
 #endif
 public:
     /// Principal constructor that will call delegated constructor.
-    HighOrderGrid(const Parameters::AllParameters *const parameters_input, const unsigned int max_degree, dealii::Triangulation<dim> *const triangulation_input);
+    HighOrderGrid(const Parameters::AllParameters *const parameters_input, const unsigned int max_degree, Triangulation<dim> *const triangulation_input);
+
+    /// Update the MappingFEField
+    /** Note that this rarely needs to be called since MappingFEField stores a
+     *  pointer to the DoFHandler and to the node Vector.
+     */
+    void update_mapping_fe_field();
 
     /// Needed to allocate the correct number of nodes when initializing and after the mesh is refined
     void allocate();
@@ -70,15 +85,12 @@ public:
     /// Return a MappingFEField that corresponds to the current node locations
     dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> get_MappingFEField();
 
-    /// Return a MappingFEField that corresponds to the current node locations
-    void update_MappingFEField();
-
     const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
 
     /// Maximum degree of the geometry polynomial representing the grid.
     const unsigned int max_degree;
 
-    dealii::Triangulation<dim> *triangulation; ///< Mesh
+    Triangulation<dim> *triangulation; ///< Mesh
 
     /// Degrees of freedom handler for the high-order grid
     dealii::DoFHandler<dim> dof_handler_grid;
@@ -101,9 +113,40 @@ public:
      */
     std::vector<real> local_surface_nodes;
     /// List of surface node indices
-    std::vector<unsigned int> locally_owned_surface_nodes_indices;
-    /// List of surface node boundary IDs, corresponding to locally_owned_surface_nodes_indices
-    std::vector<unsigned int> locally_owned_surface_nodes_boundary_id;
+    std::vector<dealii::types::global_dof_index> locally_relevant_surface_nodes_indices;
+    /// List of surface node boundary IDs, corresponding to locally_relevant_surface_nodes_indices
+    std::vector<dealii::types::global_dof_index> locally_relevant_surface_nodes_boundary_id;
+
+    // /// List of cells associated with locally_relevant_surface_nodes_indices
+    // std::vector<dealii::types::global_dof_index> locally_relevant_surface_nodes_cells;
+    // /// List of points associated with locally_relevant_surface_nodes_indices
+    // std::vector<dealii::types::global_dof_index> locally_relevant_surface_nodes_points;
+    // /// List of direction associated with locally_relevant_surface_nodes_indices
+    // std::vector<dealii::types::global_dof_index> locally_relevant_surface_nodes_direction;
+
+    std::vector<dealii::Point<dim>> locally_relevant_surface_points;
+    std::map<dealii::types::global_dof_index, std::pair<unsigned int, unsigned int>> global_index_to_point_and_axis;
+    std::map<std::pair<unsigned int, unsigned int>, dealii::types::global_dof_index> point_and_axis_to_global_index;
+
+
+    /// List of all surface nodes
+    /** Same as local_surface_nodes except that it stores a global vector of all the
+     *  surface nodes that will be needed to evaluate the A matrix in the RBF 
+     *  deformation dxv = A * coeff = A * (Minv*dxs)
+     */
+    std::vector<real> all_surface_nodes;
+
+
+    /// Update list of surface indices (locally_relevant_surface_nodes_indices and locally_relevant_surface_nodes_boundary_id)
+    void update_surface_indices();
+    /// Update list of surface nodes (all_surface_nodes).
+    void update_surface_nodes();
+
+    unsigned int n_surface_nodes; ///< Total number of surface nodes
+
+    /// RBF mesh deformation  -  To be done
+    //void deform_mesh(Vector surface_displacements);
+    void deform_mesh(std::vector<real> local_surface_displacements);
 
     void test_jacobian(); ///< Test metric Jacobian
 
@@ -146,20 +189,8 @@ public:
      */
 	void evaluate_lagrange_to_bernstein_operator(const unsigned int order);
 
-    /// Update surface indices
-    void update_surface_indices();
-    /// Update surface indices
-    void update_surface_nodes();
-
     void output_results_vtk (const unsigned int cycle) const; ///< Output mesh with metric informations
 
-    /// List of all surface nodes
-    std::vector<real> all_surface_nodes;
-    unsigned int n_surface_nodes; ///< Total number of surface nodes
-
-    /// RBF mesh deformation  -  To be done
-    //void deform_mesh(Vector surface_displacements);
-    void deform_mesh(std::vector<real> local_surface_displacements);
 
     // /// Evaluate cell metric Jacobian
     // /** The metric Jacobian is given by the gradient of the physical location
@@ -197,8 +228,9 @@ public:
     dealii::IndexSet locally_owned_dofs_grid; ///< Locally own degrees of freedom for the grid
     dealii::IndexSet ghost_dofs_grid; ///< Locally relevant ghost degrees of freedom for the grid
     dealii::IndexSet locally_relevant_dofs_grid; ///< Union of locally owned degrees of freedom and relevant ghost degrees of freedom for the grid
+
+    static unsigned int nth_refinement; ///< Used to name the various files outputted.
 protected:
-    int nth_refinement; ///< Used to name the various files outputted.
 
     /// Used for the SolutionTransfer when performing grid adaptation.
     Vector old_nodes;
@@ -220,8 +252,14 @@ protected:
     /// A stripped down copy of dealii::VectorTools::get_position_vector()
     void get_position_vector(const DoFHandlerType &dh, VectorType &vector, const dealii::ComponentMask &mask);
 
-
 };
+//#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+//template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
+//unsigned int HighOrderGrid<dim,real,VectorType,DoFHandlerType>::nth_refinement=0;
+//#else
+//template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
+//unsigned int HighOrderGrid<dim,real,VectorType,DoFHandlerType>::nth_refinement=0;
+//#endif
 
 /// Postprocessor used to output the grid.
 template <int dim>
@@ -240,6 +278,55 @@ public:
     /// Returns the update flags required to evaluate the output data.
     virtual dealii::UpdateFlags get_needed_update_flags () const override;
 };
+
+namespace MeshMover
+{
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
+#else
+    template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
+#endif
+    class LinearElasticity
+    {
+      public:
+        LinearElasticity(
+            const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
+            const std::vector<dealii::types::global_dof_index> boundary_ids,
+            const std::vector<double> boundary_displacements);
+        ~LinearElasticity();
+        VectorType get_volume_displacements();
+      private:
+        void setup_system();
+        void assemble_system();
+        void solve_timestep();
+        unsigned int solve_linear_problem();
+        void move_mesh();
+        void setup_quadrature_point_history();
+        const Triangulation<dim> &triangulation;
+        dealii::FESystem<dim> fe;
+        std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field;
+        DoFHandlerType dof_handler;
+        const dealii::QGauss<dim> quadrature_formula;
+        dealii::TrilinosWrappers::SparseMatrix system_matrix;
+        dealii::TrilinosWrappers::MPI::Vector system_rhs;
+        VectorType displacement_solution;
+
+        dealii::AffineConstraints<double> all_constraints;
+        dealii::AffineConstraints<double> dirichlet_boundary_constraints;
+
+        MPI_Comm mpi_communicator;
+        const unsigned int n_mpi_processes;
+        const unsigned int this_mpi_process;
+        dealii::ConditionalOStream pcout;
+        std::vector<dealii::types::global_dof_index> local_dofs_per_process;
+        dealii::IndexSet locally_owned_dofs;
+        dealii::IndexSet locally_relevant_dofs;
+
+        const std::vector<dealii::types::global_dof_index> boundary_ids;
+        const std::vector<double> boundary_displacements;
+
+    };
+} // namespace MeshMover
 
 } // namespace PHiLiP
 

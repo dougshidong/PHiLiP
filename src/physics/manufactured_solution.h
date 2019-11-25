@@ -21,7 +21,19 @@ namespace PHiLiP {
 template <int dim, typename real>
 class ManufacturedSolutionFunction : public dealii::Function<dim,real>
 {
+// We want the Point to be templated on the type,
+// however, dealii does not template that part of the Function.
+// Therefore, we end up overloading the functions and need to "import"
+// those non-overloaded functions to avoid the warning -Woverloaded-virtual
+// See: https://stackoverflow.com/questions/18515183/c-overloaded-virtual-function-warning-by-clang
+protected:
+    using dealii::Function<dim,real>::value;
+    using dealii::Function<dim,real>::gradient;
+    using dealii::Function<dim,real>::hessian;
+    using dealii::Function<dim,real>::vector_gradient;
+
 public:
+    const unsigned int nstate; ///< Corresponds to n_components in the dealii::Function
     /// Constructor that initializes base_values, amplitudes, frequencies.
     /** Calls the Function(const unsigned int n_components) constructor in deal.II
      *  This sets the public attribute n_components = nstate, which can then be accessed
@@ -37,7 +49,7 @@ public:
      *  u[s] = A[s]*sin(freq[s][0]*x)*sin(freq[s][1]*y)*sin(freq[s][2]*z);
      *  \endcode
      */
-    real value (const dealii::Point<dim> &point, const unsigned int istate = 0) const;
+    virtual real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 
     /// Gradient of the exact manufactured solution
     /** \code
@@ -46,10 +58,10 @@ public:
      *  grad_u[s][2] = A[s]*freq[s][2]*sin(freq[s][0]*x)*sin(freq[s][1]*y)*cos(freq[s][2]*z);
      *  \endcode
      */
-    dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim> &point, const unsigned int istate = 0) const;
+    virtual dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 
     /// Uses finite-difference to evaluate the gradient
-    dealii::Tensor<1,dim,real> gradient_fd (const dealii::Point<dim> &point, const unsigned int istate = 0) const;
+    dealii::Tensor<1,dim,real> gradient_fd (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 
     /// Hessian of the exact manufactured solution
     /** \code
@@ -68,46 +80,47 @@ public:
      *
      *  Note that this term is symmetric since \f$\frac{\partial u }{\partial x \partial y} = \frac{\partial u }{\partial y \partial x} \f$
      */
-    dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim> &point, const unsigned int istate = 0) const;
+    virtual dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 
     /// Uses finite-difference to evaluate the hessian
-    dealii::SymmetricTensor<2,dim,real> hessian_fd (const dealii::Point<dim> &point, const unsigned int istate = 0) const;
+    dealii::SymmetricTensor<2,dim,real> hessian_fd (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 
     /// Same as Function::values() except it returns it into a std::vector format.
-    std::vector<real> stdvector_values (const dealii::Point<dim> &point) const;
+    std::vector<real> stdvector_values (const dealii::Point<dim,real> &point) const;
+
+  
+    void vector_gradient (const dealii::Point<dim,real> &p,
+                          std::vector<dealii::Tensor<1,dim, real> > &gradients) const;
 
     // Virtual functions inherited from dealii::Function
     //
-    // virtual real value (const Point<dim> &p,
+    // virtual real value (const Point<dim,real> &p,
     //                               const unsigned int  component = 0) const;
   
-    // virtual void vector_value (const Point<dim> &p,
+    // virtual void vector_value (const Point<dim,real> &p,
     //                           Vector<real> &values) const;
   
-    // virtual void value_list (const std::vector<Point<dim> > &points,
+    // virtual void value_list (const std::vector<Point<dim,real> > &points,
     //                         std::vector<real> &values,
     //                         const unsigned int              component = 0) const;
   
-    // virtual void vector_value_list (const std::vector<Point<dim> > &points,
+    // virtual void vector_value_list (const std::vector<Point<dim,real> > &points,
     //                                std::vector<Vector<real> > &values) const;
   
-    // virtual void vector_values (const std::vector<Point<dim> > &points,
+    // virtual void vector_values (const std::vector<Point<dim,real> > &points,
     //                            std::vector<std::vector<real> > &values) const;
   
-    // virtual Tensor<1,dim, real> gradient (const Point<dim> &p,
+    // virtual Tensor<1,dim, real> gradient (const Point<dim,real> &p,
     //                                                 const unsigned int  component = 0) const;
   
-    // virtual void vector_gradient (const Point<dim> &p,
-    //                              std::vector<Tensor<1,dim, real> > &gradients) const;
-  
-    // virtual void gradient_list (const std::vector<Point<dim> > &points,
+    // virtual void gradient_list (const std::vector<Point<dim,real> > &points,
     //                            std::vector<Tensor<1,dim, real> > &gradients,
     //                            const unsigned int              component = 0) const;
   
-    // virtual void vector_gradients (const std::vector<Point<dim> > &points,
+    // virtual void vector_gradients (const std::vector<Point<dim,real> > &points,
     //                               std::vector<std::vector<Tensor<1,dim, real> > > &gradients) const;
   
-    // virtual void vector_gradient_list (const std::vector<Point<dim> > &points,
+    // virtual void vector_gradient_list (const std::vector<Point<dim,real> > &points,
     //                                   std::vector<std::vector<Tensor<1,dim, real> > > &gradients) const;
 
 private:

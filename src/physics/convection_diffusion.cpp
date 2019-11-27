@@ -189,9 +189,11 @@ std::array<real,nstate> ConvectionDiffusion<dim,nstate,real>
 }
 
 template class ConvectionDiffusion < PHILIP_DIM, 1, double >;
-template class ConvectionDiffusion < PHILIP_DIM, 1, Sacado::Fad::DFad<double>  >;
 template class ConvectionDiffusion < PHILIP_DIM, 2, double >;
+template class ConvectionDiffusion < PHILIP_DIM, 1, Sacado::Fad::DFad<double>  >;
 template class ConvectionDiffusion < PHILIP_DIM, 2, Sacado::Fad::DFad<double>  >;
+template class ConvectionDiffusion < PHILIP_DIM, 1, Sacado::Fad::DFad<Sacado::Fad::DFad<double>>  >;
+template class ConvectionDiffusion < PHILIP_DIM, 2, Sacado::Fad::DFad<Sacado::Fad::DFad<double>>  >;
 
 } // Physics namespace
 } // PHiLiP namespace

@@ -803,6 +803,7 @@ dealii::UpdateFlags Euler<dim,nstate,real>
 
 template class Euler < PHILIP_DIM, PHILIP_DIM+2, double >;
 template class Euler < PHILIP_DIM, PHILIP_DIM+2, Sacado::Fad::DFad<double>  >;
+template class Euler < PHILIP_DIM, PHILIP_DIM+2, Sacado::Fad::DFad<Sacado::Fad::DFad<double>>  >;
 
 } // Physics namespace
 } // PHiLiP namespace

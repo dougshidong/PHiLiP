@@ -233,6 +233,9 @@ public:
      */
     dealii::LinearAlgebra::distributed::Vector<double> solution;
 
+    /// Current optimization dual variables corresponding to the residual constraints
+    dealii::LinearAlgebra::distributed::Vector<double> dual;
+
     /// Evaluate SparsityPattern of dRdX
     /*  Where R represents the residual and X represents the grid degrees of freedom stored as high_order_grid.nodes.
      */
@@ -376,6 +379,49 @@ protected:
      *  This adds the contribution to both cell's residual and effectively 
      *  computes 4 block contributions to dRdX blocks. */
     virtual void assemble_face_term_dRdX(
+        const unsigned int interior_face_number,
+        const unsigned int exterior_face_number,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe_int,
+        const dealii::FESystem<dim,dim> &fe_ext,
+        const dealii::Quadrature<dim> &face_quadrature_int,
+        const dealii::Quadrature<dim> &face_quadrature_ext,
+        const std::vector<dealii::types::global_dof_index> &interior_cell_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &exterior_cell_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
+        dealii::Vector<real>          &local_rhs_int_cell,
+        dealii::Vector<real>          &local_rhs_ext_cell) = 0;
+
+    /// Evaluate the integral over the cell volume.
+    /** Compute both the right-hand side and the Hessians d2RdX2, d2RdW2, d2RdWdX */
+    virtual void assemble_volume_terms_hessian(
+        const dealii::FEValues<dim,dim> &fe_values_volume,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs,
+        const dealii::FEValues<dim,dim> &fe_values_lagrange) = 0;
+    /// Evaluate the integral over the cell edges that are on domain boundaries
+    /** Compute both the right-hand side and the Hessians d2RdX2, d2RdW2, d2RdWdX */
+    virtual void assemble_boundary_term_hessian(
+        const unsigned int face_number,
+        const unsigned int boundary_id,
+        const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim-1> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs) = 0;
+    /// Evaluate the integral over the internal cell edges
+    /** Compute both the right-hand side and the block of the Jacobian.
+     *  This adds the contribution to both cell's residual and effectively 
+     *  computes the block contributions to the Hessians d2RdX2, d2RdW2, d2RdWdX */
+    virtual void assemble_face_term_hessian(
         const unsigned int interior_face_number,
         const unsigned int exterior_face_number,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
@@ -613,6 +659,49 @@ private:
         dealii::Vector<real>          &local_rhs_int_cell,
         dealii::Vector<real>          &local_rhs_ext_cell);
 
+    /// Evaluate the integral over the cell volume.
+    /** Compute both the right-hand side and the Hessians d2RdX2, d2RdW2, d2RdWdX */
+    virtual void assemble_volume_terms_hessian(
+        const dealii::FEValues<dim,dim> &fe_values_volume,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs,
+        const dealii::FEValues<dim,dim> &fe_values_lagrange);
+    /// Evaluate the integral over the cell edges that are on domain boundaries
+    /** Compute both the right-hand side and the Hessians d2RdX2, d2RdW2, d2RdWdX */
+    virtual void assemble_boundary_term_hessian(
+        const unsigned int face_number,
+        const unsigned int boundary_id,
+        const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim-1> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs);
+    /// Evaluate the integral over the internal cell edges
+    /** Compute both the right-hand side and the block of the Jacobian.
+     *  This adds the contribution to both cell's residual and effectively 
+     *  computes the block contributions to the Hessians d2RdX2, d2RdW2, d2RdWdX */
+    virtual void assemble_face_term_hessian(
+        const unsigned int interior_face_number,
+        const unsigned int exterior_face_number,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe_int,
+        const dealii::FESystem<dim,dim> &fe_ext,
+        const dealii::Quadrature<dim> &face_quadrature_int,
+        const dealii::Quadrature<dim> &face_quadrature_ext,
+        const std::vector<dealii::types::global_dof_index> &interior_cell_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &exterior_cell_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
+        dealii::Vector<real>          &local_rhs_int_cell,
+        dealii::Vector<real>          &local_rhs_ext_cell);
+
     /// Evaluate the integral over the cell edges that are on domain boundaries
     /** Compute both the right-hand side and the block of the Jacobian */
     void assemble_boundary_term_implicit(
@@ -751,6 +840,49 @@ private:
      *  This adds the contribution to both cell's residual and effectively 
      *  computes 4 block contributions to dRdX blocks. */
     void assemble_face_term_dRdX(
+        const unsigned int interior_face_number,
+        const unsigned int exterior_face_number,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe_int,
+        const dealii::FESystem<dim,dim> &fe_ext,
+        const dealii::Quadrature<dim> &face_quadrature_int,
+        const dealii::Quadrature<dim> &face_quadrature_ext,
+        const std::vector<dealii::types::global_dof_index> &interior_cell_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &exterior_cell_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
+        dealii::Vector<real>          &local_rhs_int_cell,
+        dealii::Vector<real>          &local_rhs_ext_cell);
+
+    /// Evaluate the integral over the cell volume.
+    /** Compute both the right-hand side and the Hessians d2RdX2, d2RdW2, d2RdWdX */
+    virtual void assemble_volume_terms_hessian(
+        const dealii::FEValues<dim,dim> &fe_values_volume,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs,
+        const dealii::FEValues<dim,dim> &fe_values_lagrange);
+    /// Evaluate the integral over the cell edges that are on domain boundaries
+    /** Compute both the right-hand side and the Hessians d2RdX2, d2RdW2, d2RdWdX */
+    virtual void assemble_boundary_term_hessian(
+        const unsigned int face_number,
+        const unsigned int boundary_id,
+        const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim-1> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs);
+    /// Evaluate the integral over the internal cell edges
+    /** Compute both the right-hand side and the block of the Jacobian.
+     *  This adds the contribution to both cell's residual and effectively 
+     *  computes the block contributions to the Hessians d2RdX2, d2RdW2, d2RdWdX */
+    virtual void assemble_face_term_hessian(
         const unsigned int interior_face_number,
         const unsigned int exterior_face_number,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,

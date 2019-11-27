@@ -792,6 +792,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim,nstate,real>
 // Instantiate explicitly
 template class MHD < PHILIP_DIM, 8, double >;
 template class MHD < PHILIP_DIM, 8, Sacado::Fad::DFad<double>  >;
+template class MHD < PHILIP_DIM, 8, Sacado::Fad::DFad<Sacado::Fad::DFad<double>>  >;
 
 } // Physics namespace
 } // PHiLiP namespace

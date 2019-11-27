@@ -2,6 +2,10 @@ os: linux
 dist: bionic
 language: c++
 
+branches:
+  only:
+  - master
+
 install:
 - chmod u+x ci/travis-ci.sh
 

@@ -471,5 +471,6 @@ inline std::vector<real> ManufacturedSolutionFunction<dim,real>
 
 template class ManufacturedSolutionFunction<PHILIP_DIM,double>;
 template class ManufacturedSolutionFunction<PHILIP_DIM,Sacado::Fad::DFad<double>>;
+template class ManufacturedSolutionFunction<PHILIP_DIM,Sacado::Fad::DFad<Sacado::Fad::DFad<double>>>;
 
 }

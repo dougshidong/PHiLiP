@@ -98,6 +98,48 @@ void DGStrong<dim,nstate,real>::assemble_face_term_dRdX(
 { }
 
 template <int dim, int nstate, typename real>
+void DGStrong<dim,nstate,real>::assemble_volume_terms_hessian(
+    const dealii::FEValues<dim,dim> &,//&fe_values_vol,
+    const dealii::FESystem<dim,dim> &,//&fe,
+    const dealii::Quadrature<dim> &,//&quadrature,
+    const std::vector<dealii::types::global_dof_index> &,//&cell_metric_dofs_indices,
+    const std::vector<dealii::types::global_dof_index> &,//&cell_dofs_indices,
+    dealii::Vector<real> &,//&local_rhs_int_cell,
+    const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/)
+{ }
+template <int dim, int nstate, typename real>
+void DGStrong<dim,nstate,real>::assemble_boundary_term_hessian(
+    const unsigned int ,//face_number,
+    const unsigned int ,//boundary_id,
+    const dealii::FEFaceValuesBase<dim,dim> &,//fe_values_boundary,
+    const real ,//penalty,
+    const dealii::FESystem<dim,dim> &,//fe,
+    const dealii::Quadrature<dim-1> &,//quadrature,
+    const std::vector<dealii::types::global_dof_index> &,//cell_metric_dofs_indices,
+    const std::vector<dealii::types::global_dof_index> &,//dof_indices_int,
+    dealii::Vector<real> &)//local_rhs_int_cell)
+{ }
+
+template <int dim, int nstate, typename real>
+void DGStrong<dim,nstate,real>::assemble_face_term_hessian(
+    const unsigned int ,//interior_face_number,
+    const unsigned int ,//exterior_face_number,
+    const dealii::FEFaceValuesBase<dim,dim>     &,//&fe_values_int,
+    const dealii::FEFaceValuesBase<dim,dim>     &,//&fe_values_ext,
+    const real ,//penalty,
+    const dealii::FESystem<dim,dim> &,//fe_int,
+    const dealii::FESystem<dim,dim> &,//fe_ext,
+    const dealii::Quadrature<dim> &,//face_quadrature_int,
+    const dealii::Quadrature<dim> &,//face_quadrature_ext,
+    const std::vector<dealii::types::global_dof_index> &,//interior_cell_metric_dofs_indices,
+    const std::vector<dealii::types::global_dof_index> &,//exterior_cell_metric_dofs_indices,
+    const std::vector<dealii::types::global_dof_index> &,//&dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &,//&dof_indices_ext,
+    dealii::Vector<real>          &,//&local_rhs_int_cell,
+    dealii::Vector<real>          &)//&local_rhs_ext_cell)
+{ }
+
+template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_volume_terms_implicit(
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const dealii::FESystem<dim,dim> &,//fe,

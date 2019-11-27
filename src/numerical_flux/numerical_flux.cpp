@@ -211,41 +211,57 @@ std::array<real, nstate> Roe<dim,nstate,real>
 
 // Instantiation
 template class NumericalFluxConvective<PHILIP_DIM, 1, double>;
-template class NumericalFluxConvective<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
 template class NumericalFluxConvective<PHILIP_DIM, 2, double>;
-template class NumericalFluxConvective<PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
 template class NumericalFluxConvective<PHILIP_DIM, 3, double>;
-template class NumericalFluxConvective<PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
 template class NumericalFluxConvective<PHILIP_DIM, 4, double>;
-template class NumericalFluxConvective<PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
 template class NumericalFluxConvective<PHILIP_DIM, 5, double>;
+template class NumericalFluxConvective<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
+template class NumericalFluxConvective<PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
+template class NumericalFluxConvective<PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
+template class NumericalFluxConvective<PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
 template class NumericalFluxConvective<PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
+template class NumericalFluxConvective<PHILIP_DIM, 1, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class NumericalFluxConvective<PHILIP_DIM, 2, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class NumericalFluxConvective<PHILIP_DIM, 3, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class NumericalFluxConvective<PHILIP_DIM, 4, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class NumericalFluxConvective<PHILIP_DIM, 5, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
 
 template class LaxFriedrichs<PHILIP_DIM, 1, double>;
-template class LaxFriedrichs<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
 template class LaxFriedrichs<PHILIP_DIM, 2, double>;
-template class LaxFriedrichs<PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
 template class LaxFriedrichs<PHILIP_DIM, 3, double>;
-template class LaxFriedrichs<PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
 template class LaxFriedrichs<PHILIP_DIM, 4, double>;
-template class LaxFriedrichs<PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
 template class LaxFriedrichs<PHILIP_DIM, 5, double>;
+template class LaxFriedrichs<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
+template class LaxFriedrichs<PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
+template class LaxFriedrichs<PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
+template class LaxFriedrichs<PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
 template class LaxFriedrichs<PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
+template class LaxFriedrichs<PHILIP_DIM, 1, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class LaxFriedrichs<PHILIP_DIM, 2, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class LaxFriedrichs<PHILIP_DIM, 3, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class LaxFriedrichs<PHILIP_DIM, 4, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class LaxFriedrichs<PHILIP_DIM, 5, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
 
 template class Roe<PHILIP_DIM, PHILIP_DIM+2, double>;
 template class Roe<PHILIP_DIM, PHILIP_DIM+2, Sacado::Fad::DFad<double> >;
+template class Roe<PHILIP_DIM, PHILIP_DIM+2, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
 
 
 template class NumericalFluxFactory<PHILIP_DIM, 1, double>;
-template class NumericalFluxFactory<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
 template class NumericalFluxFactory<PHILIP_DIM, 2, double>;
-template class NumericalFluxFactory<PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
 template class NumericalFluxFactory<PHILIP_DIM, 3, double>;
-template class NumericalFluxFactory<PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
 template class NumericalFluxFactory<PHILIP_DIM, 4, double>;
-template class NumericalFluxFactory<PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
 template class NumericalFluxFactory<PHILIP_DIM, 5, double>;
+template class NumericalFluxFactory<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
+template class NumericalFluxFactory<PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
+template class NumericalFluxFactory<PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
+template class NumericalFluxFactory<PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
 template class NumericalFluxFactory<PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
+template class NumericalFluxFactory<PHILIP_DIM, 1, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class NumericalFluxFactory<PHILIP_DIM, 2, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class NumericalFluxFactory<PHILIP_DIM, 3, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class NumericalFluxFactory<PHILIP_DIM, 4, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class NumericalFluxFactory<PHILIP_DIM, 5, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
 
 
 } // NumericalFlux namespace

@@ -101,6 +101,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
         }
 
         using ADtype = Sacado::Fad::DFad<double>;
+        using ADADtype = Sacado::Fad::DFad<ADtype>;
 
         real evaluate_cell_boundary(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
@@ -112,11 +113,11 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
         }
 
 
-        ADtype evaluate_cell_boundary(
-            const PHiLiP::Physics::PhysicsBase<dim,nstate,ADtype> &physics,
+        ADADtype evaluate_cell_boundary(
+            const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADtype> &physics,
             const unsigned int boundary_id,
             const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
-            std::vector<ADtype> local_solution) override
+            std::vector<ADADtype> local_solution) override
         {
             return evaluate_cell_boundary<>(physics, boundary_id, fe_values_boundary, local_solution);
         }
@@ -130,11 +131,11 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
 		{
 			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
 		}
-		ADtype evaluate_volume_integrand(
-            const PHiLiP::Physics::PhysicsBase<dim,nstate,ADtype> &physics,
-            const dealii::Point<dim,ADtype> &phys_coord,
-            const std::array<ADtype,nstate> &soln_at_q,
-            const std::array<dealii::Tensor<1,dim,ADtype>,nstate> &soln_grad_at_q) override
+		ADADtype evaluate_volume_integrand(
+            const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADtype> &physics,
+            const dealii::Point<dim,ADADtype> &phys_coord,
+            const std::array<ADADtype,nstate> &soln_at_q,
+            const std::array<dealii::Tensor<1,dim,ADADtype>,nstate> &soln_grad_at_q) override
 		{
 			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
 		}
@@ -227,8 +228,6 @@ int main(int argc, char *argv[])
 	// manufactured solution function
     using ADtype = Sacado::Fad::DFad<double>;
 	std::shared_ptr <PHiLiP::Physics::PhysicsBase<dim,nstate,double>> physics_double = PHiLiP::Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&all_parameters);
-	std::shared_ptr <PHiLiP::Physics::PhysicsBase<dim,nstate,ADtype>> physics_adtype
-        = PHiLiP::Physics::PhysicsFactory<dim, nstate, ADtype>::create_Physics(&all_parameters);
 	pcout << "Physics created" << std::endl;
 	
 	// performing the interpolation for the intial conditions
@@ -238,7 +237,7 @@ int main(int argc, char *argv[])
 	// evaluating the derivative (using SACADO)
 	pcout << std::endl << "Starting AD... " << std::endl;
 	L2_Norm_Functional<dim,nstate,double> l2norm(dg,true,false);
-	double l2error_mpi_sum2 = std::sqrt(l2norm.evaluate_functional(*physics_adtype,true,true));
+	double l2error_mpi_sum2 = std::sqrt(l2norm.evaluate_functional(true,true));
 
 	dealii::LinearAlgebra::distributed::Vector<double> dIdw = l2norm.dIdw;
 	dealii::LinearAlgebra::distributed::Vector<double> dIdX = l2norm.dIdX;

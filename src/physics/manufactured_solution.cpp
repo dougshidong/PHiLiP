@@ -16,9 +16,19 @@ template class dealii::Function<PHILIP_DIM,Sacado::Fad::DFad<double>>;
 
 namespace PHiLiP {
 
+bool isfinite(double value)
+{
+    return std::isfinite(static_cast<double>(value));
+}
+
 bool isfinite(Sacado::Fad::DFad<double> value)
 {
     return std::isfinite(static_cast<double>(value.val()));
+}
+
+bool isfinite(Sacado::Fad::DFad<Sacado::Fad::DFad<double>> value)
+{
+    return std::isfinite(static_cast<double>(value.val().val()));
 }
 
 template <int dim, typename real>

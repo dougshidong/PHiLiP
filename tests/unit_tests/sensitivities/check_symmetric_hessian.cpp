@@ -1,3 +1,5 @@
+#include <Epetra_RowMatrixTransposer.h>
+
 #include <deal.II/base/tensor.h>
 #include <deal.II/grid/tria.h>
 #include <deal.II/grid/grid_generator.h>
@@ -74,17 +76,6 @@ int test (
     dealii::LinearAlgebra::distributed::Vector<double> rhs_only(dg->right_hand_side);
     // pcout << "*******************************************************************************" << std::endl;
 
-    pcout << "Evaluating RHS with dRdW..." << std::endl;
-    compute_dRdW = true; compute_dRdX = false, compute_d2R = false;
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
-    dealii::LinearAlgebra::distributed::Vector<double> rhs_dRdW(dg->right_hand_side);
-    // pcout << "*******************************************************************************" << std::endl;
-
-    pcout << "Evaluating RHS with dRdX..." << std::endl;
-    compute_dRdW = false; compute_dRdX = true, compute_d2R = false;
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
-    dealii::LinearAlgebra::distributed::Vector<double> rhs_dRdX(dg->right_hand_side);
-    // pcout << "*******************************************************************************" << std::endl;
 
     pcout << "Evaluating RHS with d2R..." << std::endl;
     compute_dRdW = false; compute_dRdX = false, compute_d2R = true;
@@ -94,27 +85,59 @@ int test (
     dealii::LinearAlgebra::distributed::Vector<double> rhs_d2R(dg->right_hand_side);
     // pcout << "*******************************************************************************" << std::endl;
 
-    const double norm_rhs_only = rhs_only.l2_norm();
+    dealii::TrilinosWrappers::SparseMatrix d2RdWdW_transpose;
+    {
+        Epetra_CrsMatrix *transpose_CrsMatrix;
+        Epetra_RowMatrixTransposer epmt(const_cast<Epetra_CrsMatrix *>(&dg->d2RdWdW.trilinos_matrix()));
+        epmt.CreateTranspose(false, transpose_CrsMatrix);
+        d2RdWdW_transpose.reinit(*transpose_CrsMatrix);
+        d2RdWdW_transpose.add(-1.0,dg->d2RdWdW);
+    }
 
-    rhs_dRdW -= rhs_only;
-    const double dRdW_vs_rhs_rel_diff1 = rhs_dRdW.l2_norm() / norm_rhs_only;
-    rhs_dRdX -= rhs_only;
-    const double dRdX_vs_rhs_rel_diff2 = rhs_dRdX.l2_norm() / norm_rhs_only;
-    rhs_d2R -= rhs_only;
-    const double d2R_vs_rhs_rel_diff2 = rhs_d2R.l2_norm() / norm_rhs_only;
+    dealii::TrilinosWrappers::SparseMatrix d2RdXdX_transpose;
+    {
+        Epetra_CrsMatrix *transpose_CrsMatrix;
+        Epetra_RowMatrixTransposer epmt(const_cast<Epetra_CrsMatrix *>(&dg->d2RdXdX.trilinos_matrix()));
+        epmt.CreateTranspose(false, transpose_CrsMatrix);
+        d2RdXdX_transpose.reinit(*transpose_CrsMatrix);
+        d2RdXdX_transpose.add(-1.0,dg->d2RdXdX);
+    }
+
+    // {
+    //     dealii::FullMatrix<double> fullA(dg->d2RdWdW.m());
+    //     fullA.copy_from(dg->d2RdWdW);
+    //     pcout<<"d2RdWdW:"<<std::endl;
+    //     if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), 3, true, 10, "0", 1., 0.);
+    // }
+
+    // {
+    //     dealii::FullMatrix<double> fullA(dg->d2RdXdX.m());
+    //     fullA.copy_from(dg->d2RdXdX);
+    //     pcout<<"d2RdXdX:"<<std::endl;
+    //     if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), 3, true, 10, "0", 1., 0.);
+    // }
+
+    pcout << "dg->d2RdWdW.frobenius_norm()  " << dg->d2RdWdW.frobenius_norm() << std::endl;
+    pcout << "dg->d2RdXdX.frobenius_norm()  " << dg->d2RdXdX.frobenius_norm() << std::endl;
+
+    const double d2RdWdW_norm = dg->d2RdWdW.frobenius_norm();
+    const double d2RdWdW_abs_diff = d2RdWdW_transpose.frobenius_norm();
+    const double d2RdWdW_rel_diff = d2RdWdW_abs_diff / d2RdWdW_norm;
+
+    const double d2RdXdX_norm = dg->d2RdXdX.frobenius_norm();
+    const double d2RdXdX_abs_diff = d2RdXdX_transpose.frobenius_norm();
+    const double d2RdXdX_rel_diff = d2RdXdX_abs_diff / d2RdXdX_norm;
 
     const double tol = 1e-11;
-    pcout << "Error: dRdW_vs_rhs_rel_diff1: " << dRdW_vs_rhs_rel_diff1
-                    << " dRdX_vs_rhs_rel_diff2: " << dRdX_vs_rhs_rel_diff2
-                    << " d2R_vs_rhs_rel_diff2: " << d2R_vs_rhs_rel_diff2
+    pcout << "Error: "
+                    << " d2RdWdW_abs_diff: " << d2RdWdW_abs_diff
+                    << " d2RdWdW_rel_diff: " << d2RdWdW_rel_diff
+                    << std::endl
+                    << " d2RdXdX_abs_diff: " << d2RdXdX_abs_diff
+                    << " d2RdXdX_rel_diff: " << d2RdXdX_rel_diff
                     << std::endl;
-    if (dRdW_vs_rhs_rel_diff1 > tol) {
-        return 1;
-    } if (dRdX_vs_rhs_rel_diff2 > tol) {
-        return 1;
-    } if (d2R_vs_rhs_rel_diff2 > tol) {
-        return 1;
-    }
+    if (d2RdWdW_abs_diff > tol && d2RdWdW_rel_diff > tol) return 1;
+    if (d2RdXdX_abs_diff > tol && d2RdXdX_rel_diff > tol) return 1;
 
     return 0;
 }
@@ -192,6 +215,8 @@ int main (int argc, char * argv[])
             }
         }
     }
+
+    if (error != 0) pcout << "Found a non-symmetric Hessian." << std::endl;
 
     return error;
 }

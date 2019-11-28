@@ -198,7 +198,8 @@ template <int dim, int nstate, typename real>
 real Functional<dim, nstate, real>::evaluate_functional(
     const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> &physics,
     const bool compute_dIdW,
-    const bool compute_dIdX)
+    const bool compute_dIdX,
+    const bool )//compute_d2I)
 {
     // for the AD'd return variable
     using ADType = Sacado::Fad::DFad<real>;

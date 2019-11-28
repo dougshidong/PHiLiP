@@ -192,6 +192,18 @@ public:
     /// respect to the volume nodes Xv
     dealii::TrilinosWrappers::SparseMatrix dRdXv;
 
+    /// System matrix corresponding to the second derivatives of the right_hand_side with
+    /// respect to the solution
+    dealii::TrilinosWrappers::SparseMatrix d2RdWdW;
+
+    /// System matrix corresponding to the second derivatives of the right_hand_side with
+    /// respect to the volume nodes
+    dealii::TrilinosWrappers::SparseMatrix d2RdXdX;
+    //
+    /// System matrix corresponding to the mixed second derivatives of the right_hand_side with
+    /// respect to the solution and the volume nodes
+    dealii::TrilinosWrappers::SparseMatrix d2RdWdX;
+
     /// Residual of the current solution
     /** Weak form.
      * 
@@ -233,13 +245,36 @@ public:
      */
     dealii::LinearAlgebra::distributed::Vector<double> solution;
 
-    /// Current optimization dual variables corresponding to the residual constraints
-    dealii::LinearAlgebra::distributed::Vector<double> dual;
+    /// Current optimization dual variables corresponding to the residual constraints also known as the adjoint
+    dealii::LinearAlgebra::distributed::Vector<real> dual;
+
+    /// Sets the stored dual variables used to compute the dual dotted with the residual Hessians
+    void set_dual(const dealii::LinearAlgebra::distributed::Vector<real> &dual_input);
 
     /// Evaluate SparsityPattern of dRdX
     /*  Where R represents the residual and X represents the grid degrees of freedom stored as high_order_grid.nodes.
      */
     dealii::SparsityPattern get_dRdX_sparsity_pattern ();
+
+    /// Evaluate SparsityPattern of dRdW
+    /*  Where R represents the residual and W represents the solution degrees of freedom.
+     */
+    dealii::SparsityPattern get_dRdW_sparsity_pattern ();
+
+    /// Evaluate SparsityPattern of the residual Hessian dual.d2RdWdW
+    /*  Where R represents the residual and W represents the solution degrees of freedom.
+     */
+    dealii::SparsityPattern get_d2RdWdW_sparsity_pattern ();
+
+    /// Evaluate SparsityPattern of the residual Hessian dual.d2RdXdX
+    /*  Where R represents the residual and X represents the grid degrees of freedom stored as high_order_grid.nodes.
+     */
+    dealii::SparsityPattern get_d2RdXdX_sparsity_pattern ();
+
+    /// Evaluate SparsityPattern of the residual Hessian dual.d2RdXdW
+    /*  Where R represents the residual, W the solution DoF, and X represents the grid degrees of freedom stored as high_order_grid.nodes.
+     */
+    dealii::SparsityPattern get_d2RdWdX_sparsity_pattern ();
 
     /// Evaluate dRdX using finite-differences
     /*  Where R represents the residual and X represents the grid degrees of freedom stored as high_order_grid.nodes.
@@ -283,7 +318,7 @@ public:
      *    
      */
     //void assemble_residual_dRdW ();
-    void assemble_residual (const bool compute_dRdW=false, const bool compute_dRdX=false);
+    void assemble_residual (const bool compute_dRdW=false, const bool compute_dRdX=false, const bool compute_d2R=false);
 
     /// Used in assemble_residual(). 
     /** IMPORTANT: This does not fully compute the cell residual since it might not
@@ -294,7 +329,7 @@ public:
     void assemble_cell_residual (
         const DoFCellAccessorType1 &current_cell,
         const DoFCellAccessorType2 &current_metric_cell,
-        const bool compute_dRdW, const bool compute_dRdX,
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
         dealii::hp::FEValues<dim,dim>        &fe_values_collection_volume,
         dealii::hp::FEFaceValues<dim,dim>    &fe_values_collection_face_int,
         dealii::hp::FEFaceValues<dim,dim>    &fe_values_collection_face_ext,
@@ -388,15 +423,15 @@ protected:
         const dealii::FESystem<dim,dim> &fe_ext,
         const dealii::Quadrature<dim> &face_quadrature_int,
         const dealii::Quadrature<dim> &face_quadrature_ext,
-        const std::vector<dealii::types::global_dof_index> &interior_cell_metric_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &exterior_cell_metric_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &dof_indices_int,
-        const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
         dealii::Vector<real>          &local_rhs_int_cell,
         dealii::Vector<real>          &local_rhs_ext_cell) = 0;
 
     /// Evaluate the integral over the cell volume.
-    /** Compute both the right-hand side and the Hessians d2RdX2, d2RdW2, d2RdWdX */
+    /** Compute both the right-hand side and the Hessians dual.d2RdX2, dual.d2RdW2, dual.d2RdWdX */
     virtual void assemble_volume_terms_hessian(
         const dealii::FEValues<dim,dim> &fe_values_volume,
         const dealii::FESystem<dim,dim> &fe,
@@ -406,7 +441,7 @@ protected:
         dealii::Vector<real> &current_cell_rhs,
         const dealii::FEValues<dim,dim> &fe_values_lagrange) = 0;
     /// Evaluate the integral over the cell edges that are on domain boundaries
-    /** Compute both the right-hand side and the Hessians d2RdX2, d2RdW2, d2RdWdX */
+    /** Compute both the right-hand side and the Hessians dual.d2RdX2, dual.d2RdW2, dual.d2RdWdX */
     virtual void assemble_boundary_term_hessian(
         const unsigned int face_number,
         const unsigned int boundary_id,
@@ -420,7 +455,7 @@ protected:
     /// Evaluate the integral over the internal cell edges
     /** Compute both the right-hand side and the block of the Jacobian.
      *  This adds the contribution to both cell's residual and effectively 
-     *  computes the block contributions to the Hessians d2RdX2, d2RdW2, d2RdWdX */
+     *  computes the block contributions to the Hessians dual.d2RdX2, dual.d2RdW2, dual.d2RdWdX */
     virtual void assemble_face_term_hessian(
         const unsigned int interior_face_number,
         const unsigned int exterior_face_number,
@@ -431,10 +466,10 @@ protected:
         const dealii::FESystem<dim,dim> &fe_ext,
         const dealii::Quadrature<dim> &face_quadrature_int,
         const dealii::Quadrature<dim> &face_quadrature_ext,
-        const std::vector<dealii::types::global_dof_index> &interior_cell_metric_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &exterior_cell_metric_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &dof_indices_int,
-        const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
         dealii::Vector<real>          &local_rhs_int_cell,
         dealii::Vector<real>          &local_rhs_ext_cell) = 0;
 
@@ -591,12 +626,21 @@ public:
 
 private:
 
+    using ADtype = Sacado::Fad::DFad<real>;
+    using ADADtype = Sacado::Fad::DFad<ADtype>;
     /// Contains the physics of the PDE
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<real> > > pde_physics;
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, ADtype > > pde_physics;
     /// Convective numerical flux
-    NumericalFlux::NumericalFluxConvective<dim, nstate, Sacado::Fad::DFad<real> > *conv_num_flux;
+    NumericalFlux::NumericalFluxConvective<dim, nstate, ADtype > *conv_num_flux;
     /// Dissipative numerical flux
-    NumericalFlux::NumericalFluxDissipative<dim, nstate, Sacado::Fad::DFad<real> > *diss_num_flux;
+    NumericalFlux::NumericalFluxDissipative<dim, nstate, ADtype > *diss_num_flux;
+
+    /// Contains the physics of the PDE
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, ADADtype > > pde_physics_fad_fad;
+    /// Convective numerical flux
+    NumericalFlux::NumericalFluxConvective<dim, nstate, ADADtype > *conv_num_flux_fad_fad;
+    /// Dissipative numerical flux
+    NumericalFlux::NumericalFluxDissipative<dim, nstate, ADADtype > *diss_num_flux_fad_fad;
 
     /// Contains the physics of the PDE
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, real > > pde_physics_double;
@@ -652,10 +696,10 @@ private:
         const dealii::FESystem<dim,dim> &fe_ext,
         const dealii::Quadrature<dim> &face_quadrature_int,
         const dealii::Quadrature<dim> &face_quadrature_ext,
-        const std::vector<dealii::types::global_dof_index> &interior_cell_metric_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &exterior_cell_metric_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &dof_indices_int,
-        const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
         dealii::Vector<real>          &local_rhs_int_cell,
         dealii::Vector<real>          &local_rhs_ext_cell);
 
@@ -695,10 +739,10 @@ private:
         const dealii::FESystem<dim,dim> &fe_ext,
         const dealii::Quadrature<dim> &face_quadrature_int,
         const dealii::Quadrature<dim> &face_quadrature_ext,
-        const std::vector<dealii::types::global_dof_index> &interior_cell_metric_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &exterior_cell_metric_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &dof_indices_int,
-        const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
         dealii::Vector<real>          &local_rhs_int_cell,
         dealii::Vector<real>          &local_rhs_ext_cell);
 
@@ -849,10 +893,10 @@ private:
         const dealii::FESystem<dim,dim> &fe_ext,
         const dealii::Quadrature<dim> &face_quadrature_int,
         const dealii::Quadrature<dim> &face_quadrature_ext,
-        const std::vector<dealii::types::global_dof_index> &interior_cell_metric_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &exterior_cell_metric_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &dof_indices_int,
-        const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
         dealii::Vector<real>          &local_rhs_int_cell,
         dealii::Vector<real>          &local_rhs_ext_cell);
 
@@ -892,10 +936,10 @@ private:
         const dealii::FESystem<dim,dim> &fe_ext,
         const dealii::Quadrature<dim> &face_quadrature_int,
         const dealii::Quadrature<dim> &face_quadrature_ext,
-        const std::vector<dealii::types::global_dof_index> &interior_cell_metric_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &exterior_cell_metric_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &dof_indices_int,
-        const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
         dealii::Vector<real>          &local_rhs_int_cell,
         dealii::Vector<real>          &local_rhs_ext_cell);
 

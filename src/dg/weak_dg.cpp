@@ -37,14 +37,19 @@ DGWeak<dim,nstate,real>::DGWeak(
     Triangulation *const triangulation_input)
     : DGBase<dim,real>::DGBase(nstate, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input) // Use DGBase constructor
 {
+    pde_physics_double = Physics::PhysicsFactory<dim,nstate,real> ::create_Physics(parameters_input);
+    conv_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_convective_numerical_flux (parameters_input->conv_num_flux_type, pde_physics_double);
+    diss_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_dissipative_numerical_flux (parameters_input->diss_num_flux_type, pde_physics_double);
+
     using ADtype = Sacado::Fad::DFad<real>;
     pde_physics = Physics::PhysicsFactory<dim,nstate,ADtype> ::create_Physics(parameters_input);
     conv_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, ADtype> ::create_convective_numerical_flux (parameters_input->conv_num_flux_type, pde_physics);
     diss_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, ADtype> ::create_dissipative_numerical_flux (parameters_input->diss_num_flux_type, pde_physics);
 
-    pde_physics_double = Physics::PhysicsFactory<dim,nstate,real> ::create_Physics(parameters_input);
-    conv_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_convective_numerical_flux (parameters_input->conv_num_flux_type, pde_physics_double);
-    diss_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_dissipative_numerical_flux (parameters_input->diss_num_flux_type, pde_physics_double);
+    using ADADtype = Sacado::Fad::DFad<ADtype>;
+    pde_physics_fad_fad = Physics::PhysicsFactory<dim,nstate,ADADtype> ::create_Physics(parameters_input);
+    conv_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, ADADtype> ::create_convective_numerical_flux (parameters_input->conv_num_flux_type, pde_physics_fad_fad);
+    diss_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, ADADtype> ::create_dissipative_numerical_flux (parameters_input->diss_num_flux_type, pde_physics_fad_fad);
 }
 // Destructor
 template <int dim, int nstate, typename real>
@@ -91,8 +96,8 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_dRdX(
     const dealii::FEValues<dim,dim> &,//fe_values_vol,
     const dealii::FESystem<dim,dim> &fe,
     const dealii::Quadrature<dim> &quadrature,
-    const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
-    const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
+    const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
     dealii::Vector<real> &local_rhs_int_cell,
     const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/)
 {
@@ -101,19 +106,19 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_dRdX(
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
 
     const unsigned int n_quad_pts      = quadrature.size();
-    const unsigned int n_dofs_cell     = fe.dofs_per_cell;
+    const unsigned int n_soln_dofs_int     = fe.dofs_per_cell;
 
-    AssertDimension (n_dofs_cell, cell_dofs_indices.size());
+    AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
 
     const std::vector<dealii::Point<dim>> &points = quadrature.get_points ();
 
     const dealii::FESystem<dim> &fe_metric = this->high_order_grid.fe_system;
-    const unsigned int n_metric_dofs_cell = fe_metric.dofs_per_cell;
-    std::vector< ADtype > coords_coeff(n_metric_dofs_cell);
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+    std::vector< ADtype > coords_coeff(n_metric_dofs);
 
-    const unsigned int n_total_indep = n_metric_dofs_cell;
-    for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-        coords_coeff[idof] = this->high_order_grid.nodes[cell_metric_dofs_indices[idof]];
+    const unsigned int n_total_indep = n_metric_dofs;
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        coords_coeff[idof] = this->high_order_grid.nodes[metric_dof_indices_int[idof]];
         coords_coeff[idof].diff(idof, n_total_indep);
     }
     std::vector<dealii::Tensor<2,dim,ADtype>> metric_jacobian = evaluate_metric_jacobian ( points, coords_coeff, fe_metric);
@@ -160,14 +165,14 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_dRdX(
     std::vector< std::array<ADtype,nstate> > source_at_q(n_quad_pts);
 
     // AD variable
-    std::vector< ADtype > soln_coeff(n_dofs_cell);
-    for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-        soln_coeff[idof] = DGBase<dim,real>::solution(cell_dofs_indices[idof]);
+    std::vector< ADtype > soln_coeff(n_soln_dofs_int);
+    for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+        soln_coeff[idof] = DGBase<dim,real>::solution(soln_dof_indices_int[idof]);
     }
 
     const std::vector<dealii::Point<dim,double>> &unit_quad_pts = quadrature.get_points();
-    dealii::FullMatrix<ADtype> interpolation_operator(n_dofs_cell,n_quad_pts);
-    for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+    dealii::FullMatrix<ADtype> interpolation_operator(n_soln_dofs_int,n_quad_pts);
+    for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             interpolation_operator[idof][iquad] = fe.shape_value(idof,unit_quad_pts[iquad]);
         }
@@ -176,9 +181,9 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_dRdX(
     // Need a contiguous 2d-array structure
     std::array<dealii::FullMatrix<ADtype>,dim> gradient_operator;
     for (int d=0;d<dim;++d) {
-        gradient_operator[d].reinit(n_dofs_cell, n_quad_pts);
+        gradient_operator[d].reinit(n_soln_dofs_int, n_quad_pts);
     }
-    for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+    for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             const dealii::Tensor<1,dim,ADtype> phys_shape_grad = dealii::contract<1,0>(jac_inv_tran[iquad], fe.shape_grad(idof,points[iquad]));
             for (int d=0;d<dim;++d) {
@@ -193,7 +198,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_dRdX(
             soln_at_q[iquad][istate]      = 0;
             soln_grad_at_q[iquad][istate] = 0;
         }
-        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+        for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
             const unsigned int istate = fe.system_to_component_index(idof).first;
             soln_at_q[iquad][istate]      += soln_coeff[idof] * interpolation_operator[idof][iquad];
             for (int d=0;d<dim;++d) {
@@ -206,7 +211,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_dRdX(
         if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
             dealii::Point<dim,ADtype> ad_point;
             for (int d=0;d<dim;++d) { ad_point[d] = 0.0;}
-            for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
+            for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
                 const int iaxis = fe_metric.system_to_component_index(idof).first;
                 ad_point[iaxis] += coords_coeff[idof] * fe_metric.shape_value(idof,unit_quad_pts[iquad]);
             }
@@ -222,8 +227,8 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_dRdX(
     // rhs = - \divergence( Fconv + Fdiss ) + source 
     // Since we have done an integration by parts, the volume term resulting from the divergence of Fconv and Fdiss
     // is negative. Therefore, negative of negative means we add that volume term to the right-hand-side
-    std::vector<real> residual_derivatives(n_metric_dofs_cell);
-    for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+    std::vector<real> residual_derivatives(n_metric_dofs);
+    for (unsigned int itest=0; itest<n_soln_dofs_int; ++itest) {
 
         ADtype rhs = 0;
 
@@ -248,10 +253,10 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_dRdX(
 
         local_rhs_int_cell(itest) += rhs.val();
 
-        for (unsigned int inode = 0; inode < n_metric_dofs_cell; ++inode) {
+        for (unsigned int inode = 0; inode < n_metric_dofs; ++inode) {
             residual_derivatives[inode] = rhs.fastAccessDx(inode);
         }
-        this->dRdXv.add(cell_dofs_indices[itest], cell_metric_dofs_indices, residual_derivatives);
+        this->dRdXv.add(soln_dof_indices_int[itest], metric_dof_indices_int, residual_derivatives);
     }
 
 }
@@ -265,18 +270,18 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_dRdX(
     const real penalty,
     const dealii::FESystem<dim,dim> &fe,
     const dealii::Quadrature<dim-1> &quadrature,
-    const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
-    const std::vector<dealii::types::global_dof_index> &dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
     dealii::Vector<real> &local_rhs_int_cell)
 {
     using ADtype = Sacado::Fad::DFad<real>;
     using ADArray = std::array<ADtype,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
 
-    const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
+    const unsigned int n_soln_dofs_int = fe_values_boundary.dofs_per_cell;
     const unsigned int n_quad_pts = fe_values_boundary.n_quadrature_points;
 
-    AssertDimension (n_dofs_cell, dof_indices_int.size());
+    AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
 
     //const std::vector<real> &JxW = fe_values_boundary.get_JxW_values ();
     std::vector<dealii::Tensor<1,dim,ADtype>> normals(n_quad_pts);
@@ -292,12 +297,12 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_dRdX(
     //const std::vector<dealii::Point<dim>> &fevaluespoints = fe_values_boundary.get_quadrature_points();
 
     const dealii::FESystem<dim> &fe_metric = this->high_order_grid.fe_system;
-    const unsigned int n_metric_dofs_cell = fe_metric.dofs_per_cell;
-    std::vector< ADtype > coords_coeff(n_metric_dofs_cell);
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+    std::vector< ADtype > coords_coeff(n_metric_dofs);
 
-    const unsigned int n_total_indep = n_metric_dofs_cell;
-    for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-        coords_coeff[idof] = this->high_order_grid.nodes[cell_metric_dofs_indices[idof]];
+    const unsigned int n_total_indep = n_metric_dofs;
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        coords_coeff[idof] = this->high_order_grid.nodes[metric_dof_indices_int[idof]];
         coords_coeff[idof].diff(idof, n_total_indep);
     }
     std::vector<dealii::Tensor<2,dim,ADtype>> metric_jacobian = evaluate_metric_jacobian (unit_quad_pts, coords_coeff, fe_metric);
@@ -317,7 +322,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_dRdX(
     //}
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         for (int d=0;d<dim;++d) { real_quad_pts[iquad][d] = 0;}
-        for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
+        for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
             const int iaxis = fe_metric.system_to_component_index(idof).first;
             real_quad_pts[iquad][iaxis] += coords_coeff[idof] * fe_metric.shape_value(idof,unit_quad_pts[iquad]);
         }
@@ -352,22 +357,22 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_dRdX(
     std::vector<ADArray> diss_auxi_num_flux_dot_n(n_quad_pts); // sigma*
 
     // AD variable
-    std::vector< ADtype > soln_coeff_int(n_dofs_cell);
-    for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-        soln_coeff_int[idof] = DGBase<dim,real>::solution(dof_indices_int[idof]);
+    std::vector< ADtype > soln_coeff_int(n_soln_dofs_int);
+    for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+        soln_coeff_int[idof] = DGBase<dim,real>::solution(soln_dof_indices_int[idof]);
     }
 
-    dealii::FullMatrix<ADtype> interpolation_operator(n_dofs_cell,n_quad_pts);
-    for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+    dealii::FullMatrix<ADtype> interpolation_operator(n_soln_dofs_int,n_quad_pts);
+    for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             interpolation_operator[idof][iquad] = fe.shape_value(idof,unit_quad_pts[iquad]);
         }
     }
     std::array<dealii::FullMatrix<ADtype>,dim> gradient_operator;
     for (int d=0;d<dim;++d) {
-        gradient_operator[d].reinit(n_dofs_cell, n_quad_pts);
+        gradient_operator[d].reinit(n_soln_dofs_int, n_quad_pts);
     }
-    for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+    for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             const dealii::Tensor<1,dim,ADtype> phys_shape_grad = dealii::contract<1,0>(jac_inv_tran[iquad], fe.shape_grad(idof,unit_quad_pts[iquad]));
             for (int d=0;d<dim;++d) {
@@ -380,7 +385,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_dRdX(
     // for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
     //     std::array< ADtype, nstate > their_soln_int;
     //     std::array< dealii::Tensor<1,dim,ADtype>, nstate > their_soln_grad_int;
-    //     for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+    //     for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
     //         const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
     //         their_soln_int[istate] += soln_coeff_int[idof] * fe_values_boundary.shape_value_component(idof,iquad,istate);
     //         their_soln_grad_int[istate] += soln_coeff_int[idof] * fe_values_boundary.shape_grad_component(idof, iquad, istate);
@@ -407,7 +412,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_dRdX(
             soln_int[istate]      = 0;
             soln_grad_int[istate] = 0;
         }
-        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+        for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
             const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
             soln_int[istate] += soln_coeff_int[idof] * interpolation_operator[idof][iquad];
             for (int d=0;d<dim;++d) {
@@ -460,8 +465,8 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_dRdX(
     // }
 
     // Applying convection boundary condition
-    std::vector<real> residual_derivatives(n_metric_dofs_cell);
-    for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+    std::vector<real> residual_derivatives(n_metric_dofs);
+    for (unsigned int itest=0; itest<n_soln_dofs_int; ++itest) {
 
         ADtype rhs = 0.0;
 
@@ -484,10 +489,10 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_dRdX(
 
         local_rhs_int_cell(itest) += rhs.val();
 
-        for (unsigned int inode = 0; inode < n_metric_dofs_cell; ++inode) {
+        for (unsigned int inode = 0; inode < n_metric_dofs; ++inode) {
             residual_derivatives[inode] = rhs.fastAccessDx(inode);
         }
-        this->dRdXv.add(dof_indices_int[itest], cell_metric_dofs_indices, residual_derivatives);
+        this->dRdXv.add(soln_dof_indices_int[itest], metric_dof_indices_int, residual_derivatives);
 
     }
 }
@@ -503,10 +508,10 @@ void DGWeak<dim,nstate,real>::assemble_face_term_dRdX(
     const dealii::FESystem<dim,dim> &fe_ext,
     const dealii::Quadrature<dim> &face_quadrature_int,
     const dealii::Quadrature<dim> &face_quadrature_ext,
-    const std::vector<dealii::types::global_dof_index> &interior_cell_metric_dofs_indices,
-    const std::vector<dealii::types::global_dof_index> &exterior_cell_metric_dofs_indices,
-    const std::vector<dealii::types::global_dof_index> &dof_indices_int,
-    const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
+    const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
+    const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
     dealii::Vector<real>          &local_rhs_int_cell,
     dealii::Vector<real>          &local_rhs_ext_cell)
 {
@@ -520,18 +525,18 @@ void DGWeak<dim,nstate,real>::assemble_face_term_dRdX(
     const unsigned int n_face_quad_pts = unit_quad_pts_int.size();
 
     const dealii::FESystem<dim> &fe_metric = this->high_order_grid.fe_system;
-    const unsigned int n_metric_dofs_cell = fe_metric.dofs_per_cell;
-    std::vector< ADtype > coords_coeff_int(n_metric_dofs_cell);
-    std::vector< ADtype > coords_coeff_ext(n_metric_dofs_cell);
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+    std::vector< ADtype > coords_coeff_int(n_metric_dofs);
+    std::vector< ADtype > coords_coeff_ext(n_metric_dofs);
 
-    const unsigned int n_total_indep = 2*n_metric_dofs_cell;
-    for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-        coords_coeff_int[idof] = this->high_order_grid.nodes[interior_cell_metric_dofs_indices[idof]];
+    const unsigned int n_total_indep = 2*n_metric_dofs;
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        coords_coeff_int[idof] = this->high_order_grid.nodes[metric_dof_indices_int[idof]];
         coords_coeff_int[idof].diff(idof, n_total_indep);
     }
-    for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-        coords_coeff_ext[idof] = this->high_order_grid.nodes[exterior_cell_metric_dofs_indices[idof]];
-        coords_coeff_ext[idof].diff(n_metric_dofs_cell+idof, n_total_indep);
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        coords_coeff_ext[idof] = this->high_order_grid.nodes[metric_dof_indices_ext[idof]];
+        coords_coeff_ext[idof].diff(n_metric_dofs+idof, n_total_indep);
     }
     // Use the metric Jacobian from the interior cell
     std::vector<dealii::Tensor<2,dim,ADtype>> metric_jac_int = evaluate_metric_jacobian (unit_quad_pts_int, coords_coeff_int, fe_metric);
@@ -546,23 +551,23 @@ void DGWeak<dim,nstate,real>::assemble_face_term_dRdX(
     // Might want to use the maximum n_quad_pts1 and n_quad_pts2
     //const unsigned int n_face_quad_pts = fe_values_ext.n_quadrature_points;
 
-    const unsigned int n_dofs_int = fe_int.dofs_per_cell;
-    const unsigned int n_dofs_ext = fe_ext.dofs_per_cell;
+    const unsigned int n_soln_dofs_int = fe_int.dofs_per_cell;
+    const unsigned int n_soln_dofs_ext = fe_ext.dofs_per_cell;
 
-    AssertDimension (n_dofs_int, dof_indices_int.size());
-    AssertDimension (n_dofs_ext, dof_indices_ext.size());
+    AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
+    AssertDimension (n_soln_dofs_ext, soln_dof_indices_ext.size());
 
 
     // AD variable
-    std::vector<ADtype> soln_coeff_int_ad(n_dofs_int);
-    std::vector<ADtype> soln_coeff_ext_ad(n_dofs_ext);
+    std::vector<ADtype> soln_coeff_int(n_soln_dofs_int);
+    std::vector<ADtype> soln_coeff_ext(n_soln_dofs_ext);
 
 
     // Jacobian blocks
-    std::vector<real> dR1_dW1(n_dofs_int);
-    std::vector<real> dR1_dW2(n_dofs_ext);
-    std::vector<real> dR2_dW1(n_dofs_int);
-    std::vector<real> dR2_dW2(n_dofs_ext);
+    std::vector<real> dR1_dW1(n_soln_dofs_int);
+    std::vector<real> dR1_dW2(n_soln_dofs_ext);
+    std::vector<real> dR2_dW1(n_soln_dofs_int);
+    std::vector<real> dR2_dW2(n_soln_dofs_ext);
 
 
     // Interpolate solution to the face quadrature points
@@ -579,19 +584,19 @@ void DGWeak<dim,nstate,real>::assemble_face_term_dRdX(
     ADArrayTensor1 diss_flux_jump_int; // u*-u_int
     ADArrayTensor1 diss_flux_jump_ext; // u*-u_ext
     // AD variable
-    for (unsigned int idof = 0; idof < n_dofs_int; ++idof) {
-        soln_coeff_int_ad[idof] = DGBase<dim,real>::solution(dof_indices_int[idof]);
+    for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+        soln_coeff_int[idof] = DGBase<dim,real>::solution(soln_dof_indices_int[idof]);
     }
-    for (unsigned int idof = 0; idof < n_dofs_ext; ++idof) {
-        soln_coeff_ext_ad[idof] = DGBase<dim,real>::solution(dof_indices_ext[idof]);
+    for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
+        soln_coeff_ext[idof] = DGBase<dim,real>::solution(soln_dof_indices_ext[idof]);
     }
 
-    std::vector<ADtype> interpolation_operator_int(n_dofs_int);
-    std::vector<ADtype> interpolation_operator_ext(n_dofs_ext);
+    std::vector<ADtype> interpolation_operator_int(n_soln_dofs_int);
+    std::vector<ADtype> interpolation_operator_ext(n_soln_dofs_ext);
     std::array<std::vector<ADtype>,dim> gradient_operator_int, gradient_operator_ext;
     for (int d=0;d<dim;++d) {
-        gradient_operator_int[d].resize(n_dofs_int);
-        gradient_operator_ext[d].resize(n_dofs_ext);
+        gradient_operator_int[d].resize(n_soln_dofs_int);
+        gradient_operator_ext[d].resize(n_soln_dofs_ext);
     }
 
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
@@ -636,14 +641,14 @@ void DGWeak<dim,nstate,real>::assemble_face_term_dRdX(
                 dealii::ExcMessage("Inconsistent surface Jacobians. J1: " + std::to_string(surface_jac_det_int.val())
                 + " J2: " + std::to_string(surface_jac_det_ext.val())));
 
-        for (unsigned int idof=0; idof<n_dofs_int; ++idof) {
+        for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
             interpolation_operator_int[idof] = fe_int.shape_value(idof,unit_quad_pts_int[iquad]);
             const dealii::Tensor<1,dim,ADtype> phys_shape_grad = dealii::contract<1,0>(jac_inv_tran_int, fe_int.shape_grad(idof,unit_quad_pts_int[iquad]));
             for (int d=0;d<dim;++d) {
                 gradient_operator_int[d][idof] = phys_shape_grad[d];
             }
         }
-        for (unsigned int idof=0; idof<n_dofs_ext; ++idof) {
+        for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
             interpolation_operator_ext[idof] = fe_ext.shape_value(idof,unit_quad_pts_ext[iquad]);
             const dealii::Tensor<1,dim,ADtype> phys_shape_grad = dealii::contract<1,0>(jac_inv_tran_ext, fe_ext.shape_grad(idof,unit_quad_pts_ext[iquad]));
             for (int d=0;d<dim;++d) {
@@ -659,18 +664,18 @@ void DGWeak<dim,nstate,real>::assemble_face_term_dRdX(
         }
 
         // Interpolate solution to face
-        for (unsigned int idof=0; idof<n_dofs_int; ++idof) {
+        for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
             const unsigned int istate = fe_int.system_to_component_index(idof).first;
-            soln_int[istate]      += soln_coeff_int_ad[idof] * interpolation_operator_int[idof];
+            soln_int[istate]      += soln_coeff_int[idof] * interpolation_operator_int[idof];
             for (int d=0;d<dim;++d) {
-                soln_grad_int[istate][d] += soln_coeff_int_ad[idof] * gradient_operator_int[d][idof];
+                soln_grad_int[istate][d] += soln_coeff_int[idof] * gradient_operator_int[d][idof];
             }
         }
-        for (unsigned int idof=0; idof<n_dofs_ext; ++idof) {
+        for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
             const unsigned int istate = fe_ext.system_to_component_index(idof).first;
-            soln_ext[istate]      += soln_coeff_ext_ad[idof] * interpolation_operator_ext[idof];
+            soln_ext[istate]      += soln_coeff_ext[idof] * interpolation_operator_ext[idof];
             for (int d=0;d<dim;++d) {
-                soln_grad_ext[istate][d] += soln_coeff_ext_ad[idof] * gradient_operator_ext[d][idof];
+                soln_grad_ext[istate][d] += soln_coeff_ext[idof] * gradient_operator_ext[d][idof];
             }
         }
 
@@ -692,13 +697,13 @@ void DGWeak<dim,nstate,real>::assemble_face_term_dRdX(
             normal_normalized_int, penalty);
 
         // From test functions associated with interior cell point of view
-        std::vector<real> residual_derivatives(n_metric_dofs_cell);
+        std::vector<real> residual_derivatives(n_metric_dofs);
         // Jacobian blocks
-        std::vector<real> dR1_dX1(n_metric_dofs_cell);
-        std::vector<real> dR1_dX2(n_metric_dofs_cell);
-        std::vector<real> dR2_dX1(n_metric_dofs_cell);
-        std::vector<real> dR2_dX2(n_metric_dofs_cell);
-        for (unsigned int itest_int=0; itest_int<n_dofs_int; ++itest_int) {
+        std::vector<real> dR1_dX1(n_metric_dofs);
+        std::vector<real> dR1_dX2(n_metric_dofs);
+        std::vector<real> dR2_dX1(n_metric_dofs);
+        std::vector<real> dR2_dX2(n_metric_dofs);
+        for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
             ADtype rhs = 0.0;
             const unsigned int istate = fe_int.system_to_component_index(itest_int).first;
 
@@ -713,18 +718,18 @@ void DGWeak<dim,nstate,real>::assemble_face_term_dRdX(
 
             local_rhs_int_cell(itest_int) += rhs.val();
 
-            for (unsigned int inode = 0; inode < n_metric_dofs_cell; ++inode) {
+            for (unsigned int inode = 0; inode < n_metric_dofs; ++inode) {
                 dR1_dX1[inode] = rhs.fastAccessDx(inode);
             }
-            for (unsigned int inode = 0; inode < n_metric_dofs_cell; ++inode) {
-                dR1_dX2[inode] = rhs.fastAccessDx(n_metric_dofs_cell+inode);
+            for (unsigned int inode = 0; inode < n_metric_dofs; ++inode) {
+                dR1_dX2[inode] = rhs.fastAccessDx(n_metric_dofs+inode);
             }
-            this->dRdXv.add(dof_indices_int[itest_int], interior_cell_metric_dofs_indices, dR1_dX1);
-            this->dRdXv.add(dof_indices_int[itest_int], exterior_cell_metric_dofs_indices, dR1_dX2);
+            this->dRdXv.add(soln_dof_indices_int[itest_int], metric_dof_indices_int, dR1_dX1);
+            this->dRdXv.add(soln_dof_indices_int[itest_int], metric_dof_indices_ext, dR1_dX2);
         }
 
         // From test functions associated with neighbour cell point of view
-        for (unsigned int itest_ext=0; itest_ext<n_dofs_ext; ++itest_ext) {
+        for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
             ADtype rhs = 0.0;
             const unsigned int istate = fe_ext.system_to_component_index(itest_ext).first;
 
@@ -740,14 +745,14 @@ void DGWeak<dim,nstate,real>::assemble_face_term_dRdX(
             local_rhs_ext_cell(itest_ext) += rhs.val();
 
 
-            for (unsigned int inode = 0; inode < n_metric_dofs_cell; ++inode) {
+            for (unsigned int inode = 0; inode < n_metric_dofs; ++inode) {
                 dR2_dX1[inode] = rhs.fastAccessDx(inode);
             }
-            for (unsigned int inode = 0; inode < n_metric_dofs_cell; ++inode) {
-                dR2_dX2[inode] = rhs.fastAccessDx(n_metric_dofs_cell+inode);
+            for (unsigned int inode = 0; inode < n_metric_dofs; ++inode) {
+                dR2_dX2[inode] = rhs.fastAccessDx(n_metric_dofs+inode);
             }
-            this->dRdXv.add(dof_indices_ext[itest_ext], interior_cell_metric_dofs_indices, dR2_dX1);
-            this->dRdXv.add(dof_indices_ext[itest_ext], exterior_cell_metric_dofs_indices, dR2_dX2);
+            this->dRdXv.add(soln_dof_indices_ext[itest_ext], metric_dof_indices_int, dR2_dX1);
+            this->dRdXv.add(soln_dof_indices_ext[itest_ext], metric_dof_indices_ext, dR2_dX2);
         }
     } // Quadrature point loop
 }
@@ -757,8 +762,8 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_implicit(
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const dealii::FESystem<dim,dim> &,//fe,
     const dealii::Quadrature<dim> &,//quadrature,
-    const std::vector<dealii::types::global_dof_index> &,//cell_metric_dofs_indices,
-    const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
+    const std::vector<dealii::types::global_dof_index> &,//metric_dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
     dealii::Vector<real> &local_rhs_int_cell,
     const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/)
 {
@@ -767,13 +772,13 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_implicit(
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
 
     const unsigned int n_quad_pts      = fe_values_vol.n_quadrature_points;
-    const unsigned int n_dofs_cell     = fe_values_vol.dofs_per_cell;
+    const unsigned int n_soln_dofs_int     = fe_values_vol.dofs_per_cell;
 
-    AssertDimension (n_dofs_cell, cell_dofs_indices.size());
+    AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
 
     const std::vector<real> &JxW = fe_values_vol.get_JxW_values ();
 
-    std::vector<real> residual_derivatives(n_dofs_cell);
+    std::vector<real> residual_derivatives(n_soln_dofs_int);
 
     std::vector< ADArray > soln_at_q(n_quad_pts);
     std::vector< ADArrayTensor1 > soln_grad_at_q(n_quad_pts); // Tensor initialize with zeros
@@ -784,10 +789,10 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_implicit(
 
 
     // AD variable
-    std::vector< ADtype > soln_coeff(n_dofs_cell);
-    for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-        soln_coeff[idof] = DGBase<dim,real>::solution(cell_dofs_indices[idof]);
-        soln_coeff[idof].diff(idof, n_dofs_cell);
+    std::vector< ADtype > soln_coeff(n_soln_dofs_int);
+    for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+        soln_coeff[idof] = DGBase<dim,real>::solution(soln_dof_indices_int[idof]);
+        soln_coeff[idof].diff(idof, n_soln_dofs_int);
     }
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         for (int istate=0; istate<nstate; istate++) { 
@@ -798,7 +803,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_implicit(
     }
     // Interpolate solution to face
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+        for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
               const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(idof).first;
               soln_at_q[iquad][istate]      += soln_coeff[idof] * fe_values_vol.shape_value_component(idof, iquad, istate);
               soln_grad_at_q[iquad][istate] += soln_coeff[idof] * fe_values_vol.shape_grad_component(idof, iquad, istate);
@@ -825,7 +830,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_implicit(
     // rhs = - \divergence( Fconv + Fdiss ) + source 
     // Since we have done an integration by parts, the volume term resulting from the divergence of Fconv and Fdiss
     // is negative. Therefore, negative of negative means we add that volume term to the right-hand-side
-    for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+    for (unsigned int itest=0; itest<n_soln_dofs_int; ++itest) {
 
         ADtype rhs = 0;
 
@@ -847,11 +852,11 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_implicit(
         local_rhs_int_cell(itest) += rhs.val();
 
         if (this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::implicit_solver) {
-            for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
+            for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
                 //residual_derivatives[idof] = rhs.fastAccessDx(idof);
                 residual_derivatives[idof] = rhs.fastAccessDx(idof);
             }
-            this->system_matrix.add(cell_dofs_indices[itest], cell_dofs_indices, residual_derivatives);
+            this->system_matrix.add(soln_dof_indices_int[itest], soln_dof_indices_int, residual_derivatives);
         }
     }
 }
@@ -862,22 +867,22 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_implicit(
     const unsigned int boundary_id,
     const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
     const real penalty,
-    const std::vector<dealii::types::global_dof_index> &dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
     dealii::Vector<real> &local_rhs_int_cell)
 {
     using ADtype = Sacado::Fad::DFad<real>;
     using ADArray = std::array<ADtype,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
 
-    const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
+    const unsigned int n_soln_dofs_int = fe_values_boundary.dofs_per_cell;
     const unsigned int n_face_quad_pts = fe_values_boundary.n_quadrature_points;
 
-    AssertDimension (n_dofs_cell, dof_indices_int.size());
+    AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
 
     const std::vector<real> &JxW = fe_values_boundary.get_JxW_values ();
     const std::vector<dealii::Tensor<1,dim>> &normals = fe_values_boundary.get_normal_vectors ();
 
-    std::vector<real> residual_derivatives(n_dofs_cell);
+    std::vector<real> residual_derivatives(n_soln_dofs_int);
 
     std::vector<ADArray> soln_int(n_face_quad_pts);
     std::vector<ADArray> soln_ext(n_face_quad_pts);
@@ -891,10 +896,10 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_implicit(
     std::vector<ADArray> diss_auxi_num_flux_dot_n(n_face_quad_pts); // sigma*
 
     // AD variable
-    std::vector< ADtype > soln_coeff_int(n_dofs_cell);
-    const unsigned int n_total_indep = n_dofs_cell;
-    for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-        soln_coeff_int[idof] = DGBase<dim,real>::solution(dof_indices_int[idof]);
+    std::vector< ADtype > soln_coeff_int(n_soln_dofs_int);
+    const unsigned int n_total_indep = n_soln_dofs_int;
+    for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+        soln_coeff_int[idof] = DGBase<dim,real>::solution(soln_dof_indices_int[idof]);
         soln_coeff_int[idof].diff(idof, n_total_indep);
     }
 
@@ -919,7 +924,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_implicit(
 
         const dealii::Tensor<1,dim,ADtype> normal_int = normals[iquad];
 
-        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+        for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
             const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
             soln_int[iquad][istate]      += soln_coeff_int[idof] * fe_values_boundary.shape_value_component(idof, iquad, istate);
             soln_grad_int[iquad][istate] += soln_coeff_int[idof] * fe_values_boundary.shape_grad_component(idof, iquad, istate);
@@ -966,7 +971,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_implicit(
     // }
 
     // Applying convection boundary condition
-    for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+    for (unsigned int itest=0; itest<n_soln_dofs_int; ++itest) {
 
         ADtype rhs = 0.0;
 
@@ -992,11 +997,11 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_implicit(
         local_rhs_int_cell(itest) += rhs.val();
 
         if (this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::implicit_solver) {
-            for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
+            for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
                 //residual_derivatives[idof] = rhs.fastAccessDx(idof);
                 residual_derivatives[idof] = rhs.fastAccessDx(idof);
             }
-            this->system_matrix.add(dof_indices_int[itest], dof_indices_int, residual_derivatives);
+            this->system_matrix.add(soln_dof_indices_int[itest], soln_dof_indices_int, residual_derivatives);
         }
     }
 }
@@ -1006,8 +1011,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term_implicit(
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
     const real penalty,
-    const std::vector<dealii::types::global_dof_index> &dof_indices_int,
-    const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
+    const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
     dealii::Vector<real>          &local_rhs_int_cell,
     dealii::Vector<real>          &local_rhs_ext_cell)
 {
@@ -1019,11 +1024,11 @@ void DGWeak<dim,nstate,real>::assemble_face_term_implicit(
     // Might want to use the maximum n_quad_pts1 and n_quad_pts2
     const unsigned int n_face_quad_pts = fe_values_ext.n_quadrature_points;
 
-    const unsigned int n_dofs_int = fe_values_int.dofs_per_cell;
-    const unsigned int n_dofs_ext = fe_values_ext.dofs_per_cell;
+    const unsigned int n_soln_dofs_int = fe_values_int.dofs_per_cell;
+    const unsigned int n_soln_dofs_ext = fe_values_ext.dofs_per_cell;
 
-    AssertDimension (n_dofs_int, dof_indices_int.size());
-    AssertDimension (n_dofs_ext, dof_indices_ext.size());
+    AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
+    AssertDimension (n_soln_dofs_ext, soln_dof_indices_ext.size());
 
     // Jacobian and normal should always be consistent between two elements
     // In the case of the non-conforming mesh, we should be using the Jacobian
@@ -1033,15 +1038,15 @@ void DGWeak<dim,nstate,real>::assemble_face_term_implicit(
     const std::vector<dealii::Tensor<1,dim> > &normals_int = fe_values_int.get_normal_vectors ();
 
     // AD variable
-    std::vector<ADtype> soln_coeff_int_ad(n_dofs_int);
-    std::vector<ADtype> soln_coeff_ext_ad(n_dofs_ext);
+    std::vector<ADtype> soln_coeff_int(n_soln_dofs_int);
+    std::vector<ADtype> soln_coeff_ext(n_soln_dofs_ext);
 
 
     // Jacobian blocks
-    std::vector<real> dR1_dW1(n_dofs_int);
-    std::vector<real> dR1_dW2(n_dofs_ext);
-    std::vector<real> dR2_dW1(n_dofs_int);
-    std::vector<real> dR2_dW2(n_dofs_ext);
+    std::vector<real> dR1_dW1(n_soln_dofs_int);
+    std::vector<real> dR1_dW2(n_soln_dofs_ext);
+    std::vector<real> dR2_dW1(n_soln_dofs_int);
+    std::vector<real> dR2_dW2(n_soln_dofs_ext);
 
     std::vector<ADArray> conv_num_flux_dot_n(n_face_quad_pts);
 
@@ -1058,14 +1063,14 @@ void DGWeak<dim,nstate,real>::assemble_face_term_implicit(
     std::vector<ADArrayTensor1> diss_flux_jump_int(n_face_quad_pts); // u*-u_int
     std::vector<ADArrayTensor1> diss_flux_jump_ext(n_face_quad_pts); // u*-u_ext
     // AD variable
-    const unsigned int n_total_indep = n_dofs_int + n_dofs_ext;
-    for (unsigned int idof = 0; idof < n_dofs_int; ++idof) {
-        soln_coeff_int_ad[idof] = DGBase<dim,real>::solution(dof_indices_int[idof]);
-        soln_coeff_int_ad[idof].diff(idof, n_total_indep);
+    const unsigned int n_total_indep = n_soln_dofs_int + n_soln_dofs_ext;
+    for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+        soln_coeff_int[idof] = DGBase<dim,real>::solution(soln_dof_indices_int[idof]);
+        soln_coeff_int[idof].diff(idof, n_total_indep);
     }
-    for (unsigned int idof = 0; idof < n_dofs_ext; ++idof) {
-        soln_coeff_ext_ad[idof] = DGBase<dim,real>::solution(dof_indices_ext[idof]);
-        soln_coeff_ext_ad[idof].diff(idof+n_dofs_int, n_total_indep);
+    for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
+        soln_coeff_ext[idof] = DGBase<dim,real>::solution(soln_dof_indices_ext[idof]);
+        soln_coeff_ext[idof].diff(idof+n_soln_dofs_int, n_total_indep);
     }
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
         for (int istate=0; istate<nstate; istate++) { 
@@ -1081,15 +1086,15 @@ void DGWeak<dim,nstate,real>::assemble_face_term_implicit(
         const dealii::Tensor<1,dim,ADtype> normal_ext = -normal_int;
 
         // Interpolate solution to face
-        for (unsigned int idof=0; idof<n_dofs_int; ++idof) {
+        for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
             const unsigned int istate = fe_values_int.get_fe().system_to_component_index(idof).first;
-            soln_int[iquad][istate]      += soln_coeff_int_ad[idof] * fe_values_int.shape_value_component(idof, iquad, istate);
-            soln_grad_int[iquad][istate] += soln_coeff_int_ad[idof] * fe_values_int.shape_grad_component(idof, iquad, istate);
+            soln_int[iquad][istate]      += soln_coeff_int[idof] * fe_values_int.shape_value_component(idof, iquad, istate);
+            soln_grad_int[iquad][istate] += soln_coeff_int[idof] * fe_values_int.shape_grad_component(idof, iquad, istate);
         }
-        for (unsigned int idof=0; idof<n_dofs_ext; ++idof) {
+        for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
             const unsigned int istate = fe_values_ext.get_fe().system_to_component_index(idof).first;
-            soln_ext[iquad][istate]      += soln_coeff_ext_ad[idof] * fe_values_ext.shape_value_component(idof, iquad, istate);
-            soln_grad_ext[iquad][istate] += soln_coeff_ext_ad[idof] * fe_values_ext.shape_grad_component(idof, iquad, istate);
+            soln_ext[iquad][istate]      += soln_coeff_ext[idof] * fe_values_ext.shape_value_component(idof, iquad, istate);
+            soln_grad_ext[iquad][istate] += soln_coeff_ext[idof] * fe_values_ext.shape_grad_component(idof, iquad, istate);
         }
         //std::cout << "Density int" << soln_int[iquad][0] << std::endl;
         //if(nstate>1) std::cout << "Momentum int" << soln_int[iquad][1] << std::endl;
@@ -1117,7 +1122,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_implicit(
     }
 
     // From test functions associated with interior cell point of view
-    for (unsigned int itest_int=0; itest_int<n_dofs_int; ++itest_int) {
+    for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
         ADtype rhs = 0.0;
         const unsigned int istate = fe_values_int.get_fe().system_to_component_index(itest_int).first;
 
@@ -1136,19 +1141,19 @@ void DGWeak<dim,nstate,real>::assemble_face_term_implicit(
 
         local_rhs_int_cell(itest_int) += rhs.val();
         if (this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::implicit_solver) {
-            for (unsigned int idof = 0; idof < n_dofs_int; ++idof) {
+            for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
                 dR1_dW1[idof] = rhs.fastAccessDx(idof);
             }
-            for (unsigned int idof = 0; idof < n_dofs_ext; ++idof) {
-                dR1_dW2[idof] = rhs.fastAccessDx(n_dofs_int+idof);
+            for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
+                dR1_dW2[idof] = rhs.fastAccessDx(n_soln_dofs_int+idof);
             }
-            this->system_matrix.add(dof_indices_int[itest_int], dof_indices_int, dR1_dW1);
-            this->system_matrix.add(dof_indices_int[itest_int], dof_indices_ext, dR1_dW2);
+            this->system_matrix.add(soln_dof_indices_int[itest_int], soln_dof_indices_int, dR1_dW1);
+            this->system_matrix.add(soln_dof_indices_int[itest_int], soln_dof_indices_ext, dR1_dW2);
         }
     }
 
     // From test functions associated with neighbour cell point of view
-    for (unsigned int itest_ext=0; itest_ext<n_dofs_ext; ++itest_ext) {
+    for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
         ADtype rhs = 0.0;
         const unsigned int istate = fe_values_int.get_fe().system_to_component_index(itest_ext).first;
 
@@ -1162,14 +1167,14 @@ void DGWeak<dim,nstate,real>::assemble_face_term_implicit(
 
         local_rhs_ext_cell(itest_ext) += rhs.val();
         if (this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::implicit_solver) {
-            for (unsigned int idof = 0; idof < n_dofs_int; ++idof) {
+            for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
                 dR2_dW1[idof] = rhs.fastAccessDx(idof);
             }
-            for (unsigned int idof = 0; idof < n_dofs_ext; ++idof) {
-                dR2_dW2[idof] = rhs.fastAccessDx(n_dofs_int+idof);
+            for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
+                dR2_dW2[idof] = rhs.fastAccessDx(n_soln_dofs_int+idof);
             }
-            this->system_matrix.add(dof_indices_ext[itest_ext], dof_indices_int, dR2_dW1);
-            this->system_matrix.add(dof_indices_ext[itest_ext], dof_indices_ext, dR2_dW2);
+            this->system_matrix.add(soln_dof_indices_ext[itest_ext], soln_dof_indices_int, dR2_dW1);
+            this->system_matrix.add(soln_dof_indices_ext[itest_ext], soln_dof_indices_ext, dR2_dW2);
         }
     }
 }
@@ -1178,7 +1183,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_implicit(
 template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
     const dealii::FEValues<dim,dim> &fe_values_vol,
-    const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
+    const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
     dealii::Vector<real> &local_rhs_int_cell,
     const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/)
 {
@@ -1186,9 +1191,9 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,real>, nstate >;
 
     const unsigned int n_quad_pts      = fe_values_vol.n_quadrature_points;
-    const unsigned int n_dofs_cell     = fe_values_vol.dofs_per_cell;
+    const unsigned int n_soln_dofs_int     = fe_values_vol.dofs_per_cell;
 
-    AssertDimension (n_dofs_cell, cell_dofs_indices.size());
+    AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
 
     const std::vector<real> &JxW = fe_values_vol.get_JxW_values ();
 
@@ -1201,9 +1206,9 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
 
 
     // AD variable
-    std::vector< real > soln_coeff(n_dofs_cell);
-    for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-        soln_coeff[idof] = DGBase<dim,real>::solution(cell_dofs_indices[idof]);
+    std::vector< real > soln_coeff(n_soln_dofs_int);
+    for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+        soln_coeff[idof] = DGBase<dim,real>::solution(soln_dof_indices_int[idof]);
     }
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         for (int istate=0; istate<nstate; istate++) { 
@@ -1214,7 +1219,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
     }
     // Interpolate solution to face
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+        for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
               const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(idof).first;
               soln_at_q[iquad][istate]      += soln_coeff[idof] * fe_values_vol.shape_value_component(idof, iquad, istate);
               soln_grad_at_q[iquad][istate] += soln_coeff[idof] * fe_values_vol.shape_grad_component(idof, iquad, istate);
@@ -1239,7 +1244,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
     // rhs = - \divergence( Fconv + Fdiss ) + source 
     // Since we have done an integration by parts, the volume term resulting from the divergence of Fconv and Fdiss
     // is negative. Therefore, negative of negative means we add that volume term to the right-hand-side
-    for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+    for (unsigned int itest=0; itest<n_soln_dofs_int; ++itest) {
 
         real rhs = 0;
 
@@ -1269,16 +1274,16 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_explicit(
     const unsigned int boundary_id,
     const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
     const real penalty,
-    const std::vector<dealii::types::global_dof_index> &dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
     dealii::Vector<real> &local_rhs_int_cell)
 {
     using doubleArray = std::array<real,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,real>, nstate >;
 
-    const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
+    const unsigned int n_soln_dofs_int = fe_values_boundary.dofs_per_cell;
     const unsigned int n_face_quad_pts = fe_values_boundary.n_quadrature_points;
 
-    AssertDimension (n_dofs_cell, dof_indices_int.size());
+    AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
 
     const std::vector<real> &JxW = fe_values_boundary.get_JxW_values ();
     const std::vector<dealii::Tensor<1,dim>> &normals = fe_values_boundary.get_normal_vectors ();
@@ -1296,9 +1301,9 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_explicit(
     std::vector<doubleArray> diss_auxi_num_flux_dot_n(n_face_quad_pts); // sigma*
 
     // AD variable
-    std::vector< real > soln_coeff_int(n_dofs_cell);
-    for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-        soln_coeff_int[idof] = DGBase<dim,real>::solution(dof_indices_int[idof]);
+    std::vector< real > soln_coeff_int(n_soln_dofs_int);
+    for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+        soln_coeff_int[idof] = DGBase<dim,real>::solution(soln_dof_indices_int[idof]);
     }
 
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
@@ -1314,7 +1319,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_explicit(
 
         const dealii::Tensor<1,dim,real> normal_int = normals[iquad];
 
-        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+        for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
             const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
             soln_int[iquad][istate]      += soln_coeff_int[idof] * fe_values_boundary.shape_value_component(idof, iquad, istate);
             soln_grad_int[iquad][istate] += soln_coeff_int[idof] * fe_values_boundary.shape_grad_component(idof, iquad, istate);
@@ -1352,7 +1357,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_explicit(
     }
 
     // Applying convection boundary condition
-    for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+    for (unsigned int itest=0; itest<n_soln_dofs_int; ++itest) {
 
         real rhs = 0.0;
 
@@ -1377,8 +1382,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
     const real penalty,
-    const std::vector<dealii::types::global_dof_index> &dof_indices_int,
-    const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
+    const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
     dealii::Vector<real>          &local_rhs_int_cell,
     dealii::Vector<real>          &local_rhs_ext_cell)
 {
@@ -1389,11 +1394,11 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
     // Might want to use the maximum n_quad_pts1 and n_quad_pts2
     const unsigned int n_face_quad_pts = fe_values_ext.n_quadrature_points;
 
-    const unsigned int n_dofs_int = fe_values_int.dofs_per_cell;
-    const unsigned int n_dofs_ext = fe_values_ext.dofs_per_cell;
+    const unsigned int n_soln_dofs_int = fe_values_int.dofs_per_cell;
+    const unsigned int n_soln_dofs_ext = fe_values_ext.dofs_per_cell;
 
-    AssertDimension (n_dofs_int, dof_indices_int.size());
-    AssertDimension (n_dofs_ext, dof_indices_ext.size());
+    AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
+    AssertDimension (n_soln_dofs_ext, soln_dof_indices_ext.size());
 
     // Jacobian and normal should always be consistent between two elements
     // In the case of the non-conforming mesh, we should be using the Jacobian
@@ -1403,8 +1408,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
     const std::vector<dealii::Tensor<1,dim> > &normals_int = fe_values_int.get_normal_vectors ();
 
     // AD variable
-    std::vector<real> soln_coeff_int_ad(n_dofs_int);
-    std::vector<real> soln_coeff_ext_ad(n_dofs_ext);
+    std::vector<real> soln_coeff_int(n_soln_dofs_int);
+    std::vector<real> soln_coeff_ext(n_soln_dofs_ext);
 
     std::vector<doubleArray> conv_num_flux_dot_n(n_face_quad_pts);
 
@@ -1421,11 +1426,11 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
     std::vector<doubleArrayTensor1> diss_flux_jump_int(n_face_quad_pts); // u*-u_int
     std::vector<doubleArrayTensor1> diss_flux_jump_ext(n_face_quad_pts); // u*-u_ext
     // AD variable
-    for (unsigned int idof = 0; idof < n_dofs_int; ++idof) {
-        soln_coeff_int_ad[idof] = DGBase<dim,real>::solution(dof_indices_int[idof]);
+    for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+        soln_coeff_int[idof] = DGBase<dim,real>::solution(soln_dof_indices_int[idof]);
     }
-    for (unsigned int idof = 0; idof < n_dofs_ext; ++idof) {
-        soln_coeff_ext_ad[idof] = DGBase<dim,real>::solution(dof_indices_ext[idof]);
+    for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
+        soln_coeff_ext[idof] = DGBase<dim,real>::solution(soln_dof_indices_ext[idof]);
     }
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
         for (int istate=0; istate<nstate; istate++) { 
@@ -1441,15 +1446,15 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
         const dealii::Tensor<1,dim,real> normal_ext = -normal_int;
 
         // Interpolate solution to face
-        for (unsigned int idof=0; idof<n_dofs_int; ++idof) {
+        for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
             const unsigned int istate = fe_values_int.get_fe().system_to_component_index(idof).first;
-            soln_int[iquad][istate]      += soln_coeff_int_ad[idof] * fe_values_int.shape_value_component(idof, iquad, istate);
-            soln_grad_int[iquad][istate] += soln_coeff_int_ad[idof] * fe_values_int.shape_grad_component(idof, iquad, istate);
+            soln_int[iquad][istate]      += soln_coeff_int[idof] * fe_values_int.shape_value_component(idof, iquad, istate);
+            soln_grad_int[iquad][istate] += soln_coeff_int[idof] * fe_values_int.shape_grad_component(idof, iquad, istate);
         }
-        for (unsigned int idof=0; idof<n_dofs_ext; ++idof) {
+        for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
             const unsigned int istate = fe_values_ext.get_fe().system_to_component_index(idof).first;
-            soln_ext[iquad][istate]      += soln_coeff_ext_ad[idof] * fe_values_ext.shape_value_component(idof, iquad, istate);
-            soln_grad_ext[iquad][istate] += soln_coeff_ext_ad[idof] * fe_values_ext.shape_grad_component(idof, iquad, istate);
+            soln_ext[iquad][istate]      += soln_coeff_ext[idof] * fe_values_ext.shape_value_component(idof, iquad, istate);
+            soln_grad_ext[iquad][istate] += soln_coeff_ext[idof] * fe_values_ext.shape_grad_component(idof, iquad, istate);
         }
 
         // Evaluate physical convective flux, physical dissipative flux, and source term
@@ -1471,7 +1476,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
     }
 
     // From test functions associated with interior cell point of view
-    for (unsigned int itest_int=0; itest_int<n_dofs_int; ++itest_int) {
+    for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
         real rhs = 0.0;
         const unsigned int istate = fe_values_int.get_fe().system_to_component_index(itest_int).first;
 
@@ -1487,7 +1492,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
     }
 
     // From test functions associated with neighbour cell point of view
-    for (unsigned int itest_ext=0; itest_ext<n_dofs_ext; ++itest_ext) {
+    for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
         real rhs = 0.0;
         const unsigned int istate = fe_values_int.get_fe().system_to_component_index(itest_ext).first;
 
@@ -1508,71 +1513,82 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_hessian(
     const dealii::FEValues<dim,dim> &,//fe_values_vol,
     const dealii::FESystem<dim,dim> &fe,
     const dealii::Quadrature<dim> &quadrature,
-    const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
-    const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
+    const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
     dealii::Vector<real> &local_rhs_int_cell,
     const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/)
 {
     using ADtype = Sacado::Fad::DFad<real>;
-    using ADArray = std::array<ADtype,nstate>;
-    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
+    using ADADtype = Sacado::Fad::DFad<ADtype>;
+    using ADArray = std::array<ADADtype,nstate>;
+    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADADtype>, nstate >;
 
     const unsigned int n_quad_pts      = quadrature.size();
-    const unsigned int n_dofs_cell     = fe.dofs_per_cell;
+    const unsigned int n_soln_dofs_int     = fe.dofs_per_cell;
 
-    AssertDimension (n_dofs_cell, cell_dofs_indices.size());
+    AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
 
     const std::vector<dealii::Point<dim>> &points = quadrature.get_points ();
 
     const dealii::FESystem<dim> &fe_metric = this->high_order_grid.fe_system;
-    const unsigned int n_metric_dofs_cell = fe_metric.dofs_per_cell;
-    std::vector< ADtype > coords_coeff(n_metric_dofs_cell);
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
 
-    const unsigned int n_total_indep = n_metric_dofs_cell;
-    for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-        coords_coeff[idof] = this->high_order_grid.nodes[cell_metric_dofs_indices[idof]];
-        coords_coeff[idof].diff(idof, n_total_indep);
+    std::vector< ADADtype > coords_coeff(n_metric_dofs);
+    std::vector< ADADtype > soln_coeff(n_soln_dofs_int);
+
+    const unsigned int n_total_indep = n_soln_dofs_int + n_metric_dofs;
+    unsigned int i_derivative = 0;
+    for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+        const real val = this->solution(soln_dof_indices_int[idof]);
+        soln_coeff[idof] = val;
+        soln_coeff[idof].diff(i_derivative, n_total_indep);
+        soln_coeff[idof].val() = val;
+        soln_coeff[idof].val().diff(i_derivative, n_total_indep);
+        i_derivative++;
     }
-    std::vector<dealii::Tensor<2,dim,ADtype>> metric_jacobian = evaluate_metric_jacobian ( points, coords_coeff, fe_metric);
-    std::vector<ADtype> jac_det(n_quad_pts);
-    std::vector<dealii::Tensor<2,dim,ADtype>> jac_inv_tran(n_quad_pts);
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        const real val = this->high_order_grid.nodes[metric_dof_indices_int[idof]];
+        coords_coeff[idof] = val;
+        coords_coeff[idof].diff(i_derivative, n_total_indep);
+        coords_coeff[idof].val() = val;
+        coords_coeff[idof].val().diff(i_derivative, n_total_indep);
+        i_derivative++;
+    }
+
+    std::vector<dealii::Tensor<2,dim,ADADtype>> metric_jacobian = evaluate_metric_jacobian ( points, coords_coeff, fe_metric);
+    std::vector<ADADtype> jac_det(n_quad_pts);
+    std::vector<dealii::Tensor<2,dim,ADADtype>> jac_inv_tran(n_quad_pts);
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        const ADtype jacobian_determinant = dealii::determinant(metric_jacobian[iquad]);
-        const dealii::Tensor<2,dim,ADtype> jacobian_transpose_inverse = dealii::transpose(dealii::invert(metric_jacobian[iquad]));
+        const ADADtype jacobian_determinant = dealii::determinant(metric_jacobian[iquad]);
+        const dealii::Tensor<2,dim,ADADtype> jacobian_transpose_inverse = dealii::transpose(dealii::invert(metric_jacobian[iquad]));
 
         jac_det[iquad] = jacobian_determinant;
         jac_inv_tran[iquad] = jacobian_transpose_inverse;
     }
 
-    std::vector< std::array<ADtype,nstate> > soln_at_q(n_quad_pts);
-    std::vector< std::array< dealii::Tensor<1,dim,ADtype>, nstate > > conv_phys_flux_at_q(n_quad_pts);
+    std::vector< std::array<ADADtype,nstate> > soln_at_q(n_quad_pts);
+    std::vector< std::array< dealii::Tensor<1,dim,ADADtype>, nstate > > conv_phys_flux_at_q(n_quad_pts);
 
     std::vector< ADArrayTensor1 > soln_grad_at_q(n_quad_pts); // Tensor initialize with zeros
     std::vector< ADArrayTensor1 > diss_phys_flux_at_q(n_quad_pts);
-    std::vector< std::array<ADtype,nstate> > source_at_q(n_quad_pts);
-
-    // AD variable
-    std::vector< ADtype > soln_coeff(n_dofs_cell);
-    for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-        soln_coeff[idof] = DGBase<dim,real>::solution(cell_dofs_indices[idof]);
-    }
+    std::vector< std::array<ADADtype,nstate> > source_at_q(n_quad_pts);
 
     const std::vector<dealii::Point<dim,double>> &unit_quad_pts = quadrature.get_points();
-    dealii::FullMatrix<ADtype> interpolation_operator(n_dofs_cell,n_quad_pts);
-    for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+    dealii::FullMatrix<ADADtype> interpolation_operator(n_soln_dofs_int,n_quad_pts);
+    for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             interpolation_operator[idof][iquad] = fe.shape_value(idof,unit_quad_pts[iquad]);
         }
     }
     // Might want to have the dimension as the innermost index
     // Need a contiguous 2d-array structure
-    std::array<dealii::FullMatrix<ADtype>,dim> gradient_operator;
+    std::array<dealii::FullMatrix<ADADtype>,dim> gradient_operator;
     for (int d=0;d<dim;++d) {
-        gradient_operator[d].reinit(n_dofs_cell, n_quad_pts);
+        gradient_operator[d].reinit(n_soln_dofs_int, n_quad_pts);
     }
-    for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+    for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-            const dealii::Tensor<1,dim,ADtype> phys_shape_grad = dealii::contract<1,0>(jac_inv_tran[iquad], fe.shape_grad(idof,points[iquad]));
+            const dealii::Tensor<1,dim,ADADtype> phys_shape_grad = dealii::contract<1,0>(jac_inv_tran[iquad], fe.shape_grad(idof,points[iquad]));
             for (int d=0;d<dim;++d) {
                 gradient_operator[d][idof][iquad] = phys_shape_grad[d];
             }
@@ -1585,24 +1601,24 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_hessian(
             soln_at_q[iquad][istate]      = 0;
             soln_grad_at_q[iquad][istate] = 0;
         }
-        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+        for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
             const unsigned int istate = fe.system_to_component_index(idof).first;
             soln_at_q[iquad][istate]      += soln_coeff[idof] * interpolation_operator[idof][iquad];
             for (int d=0;d<dim;++d) {
                 soln_grad_at_q[iquad][istate][d] += soln_coeff[idof] * gradient_operator[d][idof][iquad];
             }
         }
-        conv_phys_flux_at_q[iquad] = pde_physics->convective_flux (soln_at_q[iquad]);
-        diss_phys_flux_at_q[iquad] = pde_physics->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
+        conv_phys_flux_at_q[iquad] = pde_physics_fad_fad->convective_flux (soln_at_q[iquad]);
+        diss_phys_flux_at_q[iquad] = pde_physics_fad_fad->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
 
         if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
-            dealii::Point<dim,ADtype> ad_point;
+            dealii::Point<dim,ADADtype> ad_point;
             for (int d=0;d<dim;++d) { ad_point[d] = 0.0;}
-            for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
+            for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
                 const int iaxis = fe_metric.system_to_component_index(idof).first;
                 ad_point[iaxis] += coords_coeff[idof] * fe_metric.shape_value(idof,unit_quad_pts[iquad]);
             }
-            source_at_q[iquad] = pde_physics->source_term (ad_point, soln_at_q[iquad]);
+            source_at_q[iquad] = pde_physics_fad_fad->source_term (ad_point, soln_at_q[iquad]);
         }
     }
 
@@ -1614,16 +1630,16 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_hessian(
     // rhs = - \divergence( Fconv + Fdiss ) + source 
     // Since we have done an integration by parts, the volume term resulting from the divergence of Fconv and Fdiss
     // is negative. Therefore, negative of negative means we add that volume term to the right-hand-side
-    std::vector<real> residual_derivatives(n_metric_dofs_cell);
-    for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+    ADADtype dual_dot_residual = 0.0;
+    for (unsigned int itest=0; itest<n_soln_dofs_int; ++itest) {
 
-        ADtype rhs = 0;
+        ADADtype rhs = 0;
 
         const unsigned int istate = fe.system_to_component_index(itest).first;
 
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
-            const ADtype JxW_iquad = jac_det[iquad] * quadrature.weight(iquad);
+            const ADADtype JxW_iquad = jac_det[iquad] * quadrature.weight(iquad);
 
             for (int d=0;d<dim;++d) {
                 // Convective
@@ -1637,13 +1653,47 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_hessian(
                 rhs = rhs + interpolation_operator[itest][iquad]* source_at_q[iquad][istate] * JxW_iquad;
             }
         }
+        const unsigned int global_residual_row = soln_dof_indices_int[itest];
+        dual_dot_residual += this->dual[global_residual_row]*rhs;
 
-        local_rhs_int_cell(itest) += rhs.val();
+        local_rhs_int_cell(itest) += rhs.val().val();
 
-        for (unsigned int inode = 0; inode < n_metric_dofs_cell; ++inode) {
-            residual_derivatives[inode] = rhs.fastAccessDx(inode);
+    }
+
+    const unsigned int w_int_start = 0;
+    const unsigned int w_int_end   = w_int_start + n_soln_dofs_int;
+    const unsigned int x_int_start = w_int_end;
+
+    std::vector<real> dWidW(n_soln_dofs_int);
+    std::vector<real> dWidX(n_metric_dofs);
+    std::vector<real> dXidX(n_metric_dofs);
+    for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
+
+        const unsigned int i_dx = idof+w_int_start;
+        const ADtype dWi = dual_dot_residual.dx(i_dx);
+
+        for (unsigned int jdof=0; jdof<n_soln_dofs_int; ++jdof) {
+            const unsigned int j_dx = jdof+w_int_start;
+            dWidW[jdof] = dWi.dx(j_dx);
         }
-        this->dRdXv.add(cell_dofs_indices[itest], cell_metric_dofs_indices, residual_derivatives);
+        this->d2RdWdW.add(soln_dof_indices_int[idof], soln_dof_indices_int, dWidW);
+
+        for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+            const unsigned int j_dx = jdof+x_int_start;
+            dWidX[jdof] = dWi.dx(j_dx);
+        }
+        this->d2RdWdX.add(soln_dof_indices_int[idof], metric_dof_indices_int, dWidX);
+    }
+    for (unsigned int idof=0; idof<n_metric_dofs; ++idof) {
+
+        const unsigned int i_dx = idof+x_int_start;
+        const ADtype dXi = dual_dot_residual.dx(i_dx);
+
+        for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+            const unsigned int j_dx = jdof+x_int_start;
+            dXidX[jdof] = dXi.dx(j_dx);
+        }
+        this->d2RdXdX.add(metric_dof_indices_int[idof], metric_dof_indices_int, dXidX);
     }
 
 }
@@ -1657,72 +1707,78 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_hessian(
     const real penalty,
     const dealii::FESystem<dim,dim> &fe,
     const dealii::Quadrature<dim-1> &quadrature,
-    const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
-    const std::vector<dealii::types::global_dof_index> &dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
     dealii::Vector<real> &local_rhs_int_cell)
 {
     using ADtype = Sacado::Fad::DFad<real>;
-    using ADArray = std::array<ADtype,nstate>;
-    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
+    using ADADtype = Sacado::Fad::DFad<ADtype>;
+    using ADArray = std::array<ADADtype,nstate>;
+    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADADtype>, nstate >;
 
-    const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
+    const unsigned int n_soln_dofs_int = fe_values_boundary.dofs_per_cell;
     const unsigned int n_quad_pts = fe_values_boundary.n_quadrature_points;
 
-    AssertDimension (n_dofs_cell, dof_indices_int.size());
+    AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
 
     //const std::vector<real> &JxW = fe_values_boundary.get_JxW_values ();
-    std::vector<dealii::Tensor<1,dim,ADtype>> normals(n_quad_pts);
+    std::vector<dealii::Tensor<1,dim,ADADtype>> normals(n_quad_pts);
 
     const dealii::Quadrature<dim> face_quadrature = dealii::QProjector<dim>::project_to_face(quadrature,face_number);
-    //for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-    //    std::cout << "dim-1 weight: " << quadrature.weight(iquad) << " dim weight: " << face_quadrature.weight(iquad) << std::endl;
-    //}
 
     const std::vector<dealii::Point<dim,double>> &unit_quad_pts = face_quadrature.get_points();
-    std::vector<dealii::Point<dim,ADtype>> real_quad_pts(unit_quad_pts.size());
+    std::vector<dealii::Point<dim,ADADtype>> real_quad_pts(unit_quad_pts.size());
 
     //const std::vector<dealii::Point<dim>> &fevaluespoints = fe_values_boundary.get_quadrature_points();
 
     const dealii::FESystem<dim> &fe_metric = this->high_order_grid.fe_system;
-    const unsigned int n_metric_dofs_cell = fe_metric.dofs_per_cell;
-    std::vector< ADtype > coords_coeff(n_metric_dofs_cell);
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
 
-    const unsigned int n_total_indep = n_metric_dofs_cell;
-    for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-        coords_coeff[idof] = this->high_order_grid.nodes[cell_metric_dofs_indices[idof]];
-        coords_coeff[idof].diff(idof, n_total_indep);
+    std::vector< ADADtype > coords_coeff(n_metric_dofs);
+    std::vector< ADADtype > soln_coeff(n_soln_dofs_int);
+
+    const unsigned int n_total_indep = n_metric_dofs + n_soln_dofs_int;
+    unsigned int i_derivative = 0;
+    for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+        const real val = this->solution(soln_dof_indices_int[idof]);
+        soln_coeff[idof] = val;
+        soln_coeff[idof].diff(i_derivative, n_total_indep);
+        soln_coeff[idof].val() = val;
+        soln_coeff[idof].val().diff(i_derivative, n_total_indep);
+        i_derivative++;
     }
-    std::vector<dealii::Tensor<2,dim,ADtype>> metric_jacobian = evaluate_metric_jacobian (unit_quad_pts, coords_coeff, fe_metric);
-    std::vector<ADtype> jac_det(n_quad_pts);
-    std::vector<ADtype> surface_jac_det(n_quad_pts);
-    std::vector<dealii::Tensor<2,dim,ADtype>> jac_inv_tran(n_quad_pts);
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        const real val = this->high_order_grid.nodes[metric_dof_indices_int[idof]];
+        coords_coeff[idof] = val;
+        coords_coeff[idof].diff(i_derivative, n_total_indep);
+        coords_coeff[idof].val() = val;
+        coords_coeff[idof].val().diff(i_derivative, n_total_indep);
+        i_derivative++;
+    }
+    AssertDimension(i_derivative, n_total_indep);
 
-    const dealii::Tensor<1,dim,ADtype> unit_normal = dealii::GeometryInfo<dim>::unit_normal_vector[face_number];
-    //std::cout << "list of their JxW/weight: " << std::endl;
-    //for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-    //    std::cout << fe_values_boundary.JxW(iquad) / fe_values_boundary.get_quadrature().weight(iquad) << std::endl;
-    //}
+    std::vector<dealii::Tensor<2,dim,ADADtype>> metric_jacobian = evaluate_metric_jacobian (unit_quad_pts, coords_coeff, fe_metric);
+    std::vector<ADADtype> jac_det(n_quad_pts);
+    std::vector<ADADtype> surface_jac_det(n_quad_pts);
+    std::vector<dealii::Tensor<2,dim,ADADtype>> jac_inv_tran(n_quad_pts);
 
-    //std::cout << "list of their normals: " << std::endl;
-    //for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-    //    std::cout << fe_values_boundary.normal_vector(iquad) << std::endl;
-    //}
+    const dealii::Tensor<1,dim,ADADtype> unit_normal = dealii::GeometryInfo<dim>::unit_normal_vector[face_number];
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         for (int d=0;d<dim;++d) { real_quad_pts[iquad][d] = 0;}
-        for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
+        for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
             const int iaxis = fe_metric.system_to_component_index(idof).first;
             real_quad_pts[iquad][iaxis] += coords_coeff[idof] * fe_metric.shape_value(idof,unit_quad_pts[iquad]);
         }
 
-        const ADtype jacobian_determinant = dealii::determinant(metric_jacobian[iquad]);
-        const dealii::Tensor<2,dim,ADtype> jacobian_transpose_inverse = dealii::transpose(dealii::invert(metric_jacobian[iquad]));
+        const ADADtype jacobian_determinant = dealii::determinant(metric_jacobian[iquad]);
+        const dealii::Tensor<2,dim,ADADtype> jacobian_transpose_inverse = dealii::transpose(dealii::invert(metric_jacobian[iquad]));
 
 
         jac_det[iquad] = jacobian_determinant;
         jac_inv_tran[iquad] = jacobian_transpose_inverse;
 
-        const dealii::Tensor<1,dim,ADtype> normal = dealii::contract<1,0>(jacobian_transpose_inverse, unit_normal);
-        const ADtype area = normal.norm();
+        const dealii::Tensor<1,dim,ADADtype> normal = dealii::contract<1,0>(jacobian_transpose_inverse, unit_normal);
+        const ADADtype area = normal.norm();
 
         // Technically the normals have jac_det multiplied.
         // However, we use normalized normals by convention, so the the term
@@ -1730,10 +1786,10 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_hessian(
         normals[iquad] = normal / normal.norm();
         surface_jac_det[iquad] = normal.norm()*jac_det[iquad];
 
-        //std::cout << "my JxW/J" << surface_jac_det[iquad].val() << std::endl;
+        //std::cout << "my JxW/J" << surface_jac_det[iquad].val().val() << std::endl;
         //std::cout << "my normals again ";
         //for (int d=0;d<dim;++d) {
-        //    std::cout << normals[iquad][d].val() << " ";
+        //    std::cout << normals[iquad][d].val().val() << " ";
         //}
         //std::cout << std::endl;
     }
@@ -1743,25 +1799,19 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_hessian(
     std::vector<ADArrayTensor1> diss_flux_jump_int(n_quad_pts); // u*-u_int
     std::vector<ADArray> diss_auxi_num_flux_dot_n(n_quad_pts); // sigma*
 
-    // AD variable
-    std::vector< ADtype > soln_coeff_int(n_dofs_cell);
-    for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-        soln_coeff_int[idof] = DGBase<dim,real>::solution(dof_indices_int[idof]);
-    }
-
-    dealii::FullMatrix<ADtype> interpolation_operator(n_dofs_cell,n_quad_pts);
-    for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+    dealii::FullMatrix<ADADtype> interpolation_operator(n_soln_dofs_int,n_quad_pts);
+    for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             interpolation_operator[idof][iquad] = fe.shape_value(idof,unit_quad_pts[iquad]);
         }
     }
-    std::array<dealii::FullMatrix<ADtype>,dim> gradient_operator;
+    std::array<dealii::FullMatrix<ADADtype>,dim> gradient_operator;
     for (int d=0;d<dim;++d) {
-        gradient_operator[d].reinit(n_dofs_cell, n_quad_pts);
+        gradient_operator[d].reinit(n_soln_dofs_int, n_quad_pts);
     }
-    for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+    for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-            const dealii::Tensor<1,dim,ADtype> phys_shape_grad = dealii::contract<1,0>(jac_inv_tran[iquad], fe.shape_grad(idof,unit_quad_pts[iquad]));
+            const dealii::Tensor<1,dim,ADADtype> phys_shape_grad = dealii::contract<1,0>(jac_inv_tran[iquad], fe.shape_grad(idof,unit_quad_pts[iquad]));
             for (int d=0;d<dim;++d) {
                 gradient_operator[d][idof][iquad] = phys_shape_grad[d];
             }
@@ -1769,64 +1819,64 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_hessian(
     }
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
-        const dealii::Tensor<1,dim,ADtype> normal_int = normals[iquad];
+        const dealii::Tensor<1,dim,ADADtype> normal_int = normals[iquad];
 
-        std::array<ADtype,nstate> soln_int;
-        std::array<ADtype,nstate> soln_ext;
-        std::array< dealii::Tensor<1,dim,ADtype>, nstate > soln_grad_int;
-        std::array< dealii::Tensor<1,dim,ADtype>, nstate > soln_grad_ext;
+        std::array<ADADtype,nstate> soln_int;
+        std::array<ADADtype,nstate> soln_ext;
+        std::array< dealii::Tensor<1,dim,ADADtype>, nstate > soln_grad_int;
+        std::array< dealii::Tensor<1,dim,ADADtype>, nstate > soln_grad_ext;
         for (int istate=0; istate<nstate; istate++) { 
             soln_int[istate]      = 0;
             soln_grad_int[istate] = 0;
         }
-        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+        for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
             const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
-            soln_int[istate] += soln_coeff_int[idof] * interpolation_operator[idof][iquad];
+            soln_int[istate] += soln_coeff[idof] * interpolation_operator[idof][iquad];
             for (int d=0;d<dim;++d) {
-                soln_grad_int[istate][d] += soln_coeff_int[idof] * gradient_operator[d][idof][iquad];
+                soln_grad_int[istate][d] += soln_coeff[idof] * gradient_operator[d][idof][iquad];
             }
         }
 
-        pde_physics->boundary_face_values (boundary_id, real_quad_pts[iquad], normal_int, soln_int, soln_grad_int, soln_ext, soln_grad_ext);
+        pde_physics_fad_fad->boundary_face_values (boundary_id, real_quad_pts[iquad], normal_int, soln_int, soln_grad_int, soln_ext, soln_grad_ext);
 
         // Evaluate physical convective flux, physical dissipative flux
         // Following the the boundary treatment given by 
         //      Hartmann, R., Numerical Analysis of Higher Order Discontinuous Galerkin Finite Element Methods,
         //      Institute of Aerodynamics and Flow Technology, DLR (German Aerospace Center), 2008.
         //      Details given on page 93
-        //conv_num_flux_dot_n[iquad] = conv_num_flux->evaluate_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
+        //conv_num_flux_dot_n[iquad] = conv_num_flux_fad_fad->evaluate_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
 
         // So, I wasn't able to get Euler manufactured solutions to converge when F* = F*(Ubc, Ubc)
         // Changing it back to the standdard F* = F*(Uin, Ubc)
         // This is known not be adjoint consistent as per the paper above. Page 85, second to last paragraph.
         // Losing 2p+1 OOA on functionals for all PDEs.
-        conv_num_flux_dot_n[iquad] = conv_num_flux->evaluate_flux(soln_int, soln_ext, normal_int);
+        conv_num_flux_dot_n[iquad] = conv_num_flux_fad_fad->evaluate_flux(soln_int, soln_ext, normal_int);
         // Notice that the flux uses the solution given by the Dirichlet or Neumann boundary condition
-        diss_soln_num_flux[iquad] = diss_num_flux->evaluate_solution_flux(soln_ext, soln_ext, normal_int);
+        diss_soln_num_flux[iquad] = diss_num_flux_fad_fad->evaluate_solution_flux(soln_ext, soln_ext, normal_int);
 
         ADArrayTensor1 diss_soln_jump_int;
         for (int s=0; s<nstate; s++) {
             diss_soln_jump_int[s] = (diss_soln_num_flux[iquad][s] - soln_int[s]) * normal_int;
         }
-        diss_flux_jump_int[iquad] = pde_physics->dissipative_flux (soln_int, diss_soln_jump_int);
+        diss_flux_jump_int[iquad] = pde_physics_fad_fad->dissipative_flux (soln_int, diss_soln_jump_int);
 
-        diss_auxi_num_flux_dot_n[iquad] = diss_num_flux->evaluate_auxiliary_flux(
+        diss_auxi_num_flux_dot_n[iquad] = diss_num_flux_fad_fad->evaluate_auxiliary_flux(
             soln_int, soln_ext,
             soln_grad_int, soln_grad_ext,
             normal_int, penalty, true);
     }
 
     // Applying convection boundary condition
-    std::vector<real> residual_derivatives(n_metric_dofs_cell);
-    for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+    ADADtype dual_dot_residual = 0.0;
+    for (unsigned int itest=0; itest<n_soln_dofs_int; ++itest) {
 
-        ADtype rhs = 0.0;
+        ADADtype rhs = 0.0;
 
         const unsigned int istate = fe_values_boundary.get_fe().system_to_component_index(itest).first;
 
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
-            const ADtype JxW_iquad = surface_jac_det[iquad] * face_quadrature.weight(iquad);
+            const ADADtype JxW_iquad = surface_jac_det[iquad] * face_quadrature.weight(iquad);
             // Convection
             rhs = rhs - interpolation_operator[itest][iquad] * conv_num_flux_dot_n[iquad][istate] * JxW_iquad;
             // Diffusive
@@ -1835,15 +1885,48 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_hessian(
                 rhs = rhs + gradient_operator[d][itest][iquad] * diss_flux_jump_int[iquad][istate][d] * JxW_iquad;
             }
         }
+        const unsigned int global_residual_row = soln_dof_indices_int[itest];
+        dual_dot_residual += this->dual[global_residual_row]*rhs;
         // *******************
 
-        local_rhs_int_cell(itest) += rhs.val();
+        local_rhs_int_cell(itest) += rhs.val().val();
 
-        for (unsigned int inode = 0; inode < n_metric_dofs_cell; ++inode) {
-            residual_derivatives[inode] = rhs.fastAccessDx(inode);
+    }
+
+    const unsigned int w_int_start = 0;
+    const unsigned int w_int_end = n_soln_dofs_int;
+    const unsigned int x_int_start = w_int_end;
+
+    std::vector<real> dWidW(n_soln_dofs_int);
+    std::vector<real> dWidX(n_metric_dofs);
+    std::vector<real> dXidX(n_metric_dofs);
+    for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
+
+        const unsigned int i_dx = idof+w_int_start;
+        const ADtype dWi = dual_dot_residual.dx(i_dx);
+
+        for (unsigned int jdof=0; jdof<n_soln_dofs_int; ++jdof) {
+            const unsigned int j_dx = jdof+w_int_start;
+            dWidW[jdof] = dWi.dx(j_dx);
         }
-        this->dRdXv.add(dof_indices_int[itest], cell_metric_dofs_indices, residual_derivatives);
+        this->d2RdWdW.add(soln_dof_indices_int[idof], soln_dof_indices_int, dWidW);
 
+        for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+            const unsigned int j_dx = jdof+x_int_start;
+            dWidX[jdof] = dWi.dx(j_dx);
+        }
+        this->d2RdWdX.add(soln_dof_indices_int[idof], metric_dof_indices_int, dWidX);
+    }
+    for (unsigned int idof=0; idof<n_metric_dofs; ++idof) {
+
+        const unsigned int i_dx = idof+x_int_start;
+        const ADtype dXi = dual_dot_residual.dx(i_dx);
+
+        for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+            const unsigned int j_dx = jdof+x_int_start;
+            dXidX[jdof] = dXi.dx(j_dx);
+        }
+        this->d2RdXdX.add(metric_dof_indices_int[idof], metric_dof_indices_int, dXidX);
     }
 }
 
@@ -1858,16 +1941,17 @@ void DGWeak<dim,nstate,real>::assemble_face_term_hessian(
     const dealii::FESystem<dim,dim> &fe_ext,
     const dealii::Quadrature<dim> &face_quadrature_int,
     const dealii::Quadrature<dim> &face_quadrature_ext,
-    const std::vector<dealii::types::global_dof_index> &interior_cell_metric_dofs_indices,
-    const std::vector<dealii::types::global_dof_index> &exterior_cell_metric_dofs_indices,
-    const std::vector<dealii::types::global_dof_index> &dof_indices_int,
-    const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
+    const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
+    const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
     dealii::Vector<real>          &local_rhs_int_cell,
     dealii::Vector<real>          &local_rhs_ext_cell)
 {
     using ADtype = Sacado::Fad::DFad<real>;
-    using ADArray = std::array<ADtype,nstate>;
-    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
+    using ADADtype = Sacado::Fad::DFad<ADtype>;
+    using ADArray = std::array<ADADtype,nstate>;
+    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADADtype>, nstate >;
 
     const std::vector<dealii::Point<dim,double>> &unit_quad_pts_int = face_quadrature_int.get_points();
     const std::vector<dealii::Point<dim,double>> &unit_quad_pts_ext = face_quadrature_ext.get_points();
@@ -1875,49 +1959,73 @@ void DGWeak<dim,nstate,real>::assemble_face_term_hessian(
     const unsigned int n_face_quad_pts = unit_quad_pts_int.size();
 
     const dealii::FESystem<dim> &fe_metric = this->high_order_grid.fe_system;
-    const unsigned int n_metric_dofs_cell = fe_metric.dofs_per_cell;
-    std::vector< ADtype > coords_coeff_int(n_metric_dofs_cell);
-    std::vector< ADtype > coords_coeff_ext(n_metric_dofs_cell);
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+    const unsigned int n_soln_dofs_int = fe_int.dofs_per_cell;
+    const unsigned int n_soln_dofs_ext = fe_ext.dofs_per_cell;
 
-    const unsigned int n_total_indep = 2*n_metric_dofs_cell;
-    for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-        coords_coeff_int[idof] = this->high_order_grid.nodes[interior_cell_metric_dofs_indices[idof]];
-        coords_coeff_int[idof].diff(idof, n_total_indep);
+    AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
+    AssertDimension (n_soln_dofs_ext, soln_dof_indices_ext.size());
+
+    std::vector< ADADtype > coords_coeff_int(n_metric_dofs);
+    std::vector< ADADtype > coords_coeff_ext(n_metric_dofs);
+    std::vector< ADADtype > soln_coeff_int(n_soln_dofs_int);
+    std::vector< ADADtype > soln_coeff_ext(n_soln_dofs_ext);
+
+    const unsigned int n_total_indep = 2*n_metric_dofs + n_soln_dofs_int + n_soln_dofs_ext;
+    unsigned int i_derivative = 0;
+    for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+        const real val = this->solution(soln_dof_indices_int[idof]);
+        soln_coeff_int[idof] = val;
+        soln_coeff_int[idof].diff(i_derivative, n_total_indep);
+        soln_coeff_int[idof].val() = val;
+        soln_coeff_int[idof].val().diff(i_derivative, n_total_indep);
+        i_derivative++;
     }
-    for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-        coords_coeff_ext[idof] = this->high_order_grid.nodes[exterior_cell_metric_dofs_indices[idof]];
-        coords_coeff_ext[idof].diff(n_metric_dofs_cell+idof, n_total_indep);
+    for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
+        const real val = this->solution(soln_dof_indices_ext[idof]);
+        soln_coeff_ext[idof] = val;
+        soln_coeff_ext[idof].diff(i_derivative, n_total_indep);
+        soln_coeff_ext[idof].val() = val;
+        soln_coeff_ext[idof].val().diff(i_derivative, n_total_indep);
+        i_derivative++;
     }
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        const real val = this->high_order_grid.nodes[metric_dof_indices_int[idof]];
+        coords_coeff_int[idof] = val;
+        coords_coeff_int[idof].diff(i_derivative, n_total_indep);
+        coords_coeff_int[idof].val() = val;
+        coords_coeff_int[idof].val().diff(i_derivative, n_total_indep);
+        i_derivative++;
+    }
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        const real val = this->high_order_grid.nodes[metric_dof_indices_ext[idof]];
+        coords_coeff_ext[idof] = val;
+        coords_coeff_ext[idof].diff(i_derivative, n_total_indep);
+        coords_coeff_ext[idof].val() = val;
+        coords_coeff_ext[idof].val().diff(i_derivative, n_total_indep);
+        i_derivative++;
+    }
+    AssertDimension(i_derivative, n_total_indep);
     // Use the metric Jacobian from the interior cell
-    std::vector<dealii::Tensor<2,dim,ADtype>> metric_jac_int = evaluate_metric_jacobian (unit_quad_pts_int, coords_coeff_int, fe_metric);
-    std::vector<dealii::Tensor<2,dim,ADtype>> metric_jac_ext = evaluate_metric_jacobian (unit_quad_pts_ext, coords_coeff_ext, fe_metric);
-    std::vector<dealii::Tensor<2,dim,ADtype>> jac_inv_tran_int(n_face_quad_pts);
-    std::vector<dealii::Tensor<2,dim,ADtype>> jac_inv_tran_ext(n_face_quad_pts);
+    std::vector<dealii::Tensor<2,dim,ADADtype>> metric_jac_int = evaluate_metric_jacobian (unit_quad_pts_int, coords_coeff_int, fe_metric);
+    std::vector<dealii::Tensor<2,dim,ADADtype>> metric_jac_ext = evaluate_metric_jacobian (unit_quad_pts_ext, coords_coeff_ext, fe_metric);
+    std::vector<dealii::Tensor<2,dim,ADADtype>> jac_inv_tran_int(n_face_quad_pts);
+    std::vector<dealii::Tensor<2,dim,ADADtype>> jac_inv_tran_ext(n_face_quad_pts);
 
-    const dealii::Tensor<1,dim,ADtype> unit_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[interior_face_number];
-    const dealii::Tensor<1,dim,ADtype> unit_normal_ext = dealii::GeometryInfo<dim>::unit_normal_vector[exterior_face_number];
+    const dealii::Tensor<1,dim,ADADtype> unit_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[interior_face_number];
+    const dealii::Tensor<1,dim,ADADtype> unit_normal_ext = dealii::GeometryInfo<dim>::unit_normal_vector[exterior_face_number];
 
     // Use quadrature points of neighbor cell
     // Might want to use the maximum n_quad_pts1 and n_quad_pts2
     //const unsigned int n_face_quad_pts = fe_values_ext.n_quadrature_points;
 
-    const unsigned int n_dofs_int = fe_int.dofs_per_cell;
-    const unsigned int n_dofs_ext = fe_ext.dofs_per_cell;
-
-    AssertDimension (n_dofs_int, dof_indices_int.size());
-    AssertDimension (n_dofs_ext, dof_indices_ext.size());
-
-
-    // AD variable
-    std::vector<ADtype> soln_coeff_int_ad(n_dofs_int);
-    std::vector<ADtype> soln_coeff_ext_ad(n_dofs_ext);
 
 
     // Jacobian blocks
-    std::vector<real> dR1_dW1(n_dofs_int);
-    std::vector<real> dR1_dW2(n_dofs_ext);
-    std::vector<real> dR2_dW1(n_dofs_int);
-    std::vector<real> dR2_dW2(n_dofs_ext);
+    std::vector<real> dR1_dW1(n_soln_dofs_int);
+    std::vector<real> dR1_dW2(n_soln_dofs_ext);
+    std::vector<real> dR2_dW1(n_soln_dofs_int);
+    std::vector<real> dR2_dW2(n_soln_dofs_ext);
 
 
     // Interpolate solution to the face quadrature points
@@ -1933,74 +2041,68 @@ void DGWeak<dim,nstate,real>::assemble_face_term_hessian(
 
     ADArrayTensor1 diss_flux_jump_int; // u*-u_int
     ADArrayTensor1 diss_flux_jump_ext; // u*-u_ext
-    // AD variable
-    for (unsigned int idof = 0; idof < n_dofs_int; ++idof) {
-        soln_coeff_int_ad[idof] = DGBase<dim,real>::solution(dof_indices_int[idof]);
-    }
-    for (unsigned int idof = 0; idof < n_dofs_ext; ++idof) {
-        soln_coeff_ext_ad[idof] = DGBase<dim,real>::solution(dof_indices_ext[idof]);
-    }
 
-    std::vector<ADtype> interpolation_operator_int(n_dofs_int);
-    std::vector<ADtype> interpolation_operator_ext(n_dofs_ext);
-    std::array<std::vector<ADtype>,dim> gradient_operator_int, gradient_operator_ext;
+    std::vector<ADADtype> interpolation_operator_int(n_soln_dofs_int);
+    std::vector<ADADtype> interpolation_operator_ext(n_soln_dofs_ext);
+    std::array<std::vector<ADADtype>,dim> gradient_operator_int, gradient_operator_ext;
     for (int d=0;d<dim;++d) {
-        gradient_operator_int[d].resize(n_dofs_int);
-        gradient_operator_ext[d].resize(n_dofs_ext);
+        gradient_operator_int[d].resize(n_soln_dofs_int);
+        gradient_operator_ext[d].resize(n_soln_dofs_ext);
     }
 
+    ADADtype dual_dot_residual = 0.0;
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
-        const ADtype jacobian_determinant_int = dealii::determinant(metric_jac_int[iquad]);
-        const ADtype jacobian_determinant_ext = dealii::determinant(metric_jac_ext[iquad]);
+        const ADADtype jacobian_determinant_int = dealii::determinant(metric_jac_int[iquad]);
+        const ADADtype jacobian_determinant_ext = dealii::determinant(metric_jac_ext[iquad]);
 
-        const dealii::Tensor<2,dim,ADtype> jacobian_transpose_inverse_int = dealii::transpose(dealii::invert(metric_jac_int[iquad]));
-        const dealii::Tensor<2,dim,ADtype> jacobian_transpose_inverse_ext = dealii::transpose(dealii::invert(metric_jac_ext[iquad]));
+        const dealii::Tensor<2,dim,ADADtype> jacobian_transpose_inverse_int = dealii::transpose(dealii::invert(metric_jac_int[iquad]));
+        const dealii::Tensor<2,dim,ADADtype> jacobian_transpose_inverse_ext = dealii::transpose(dealii::invert(metric_jac_ext[iquad]));
 
-        const ADtype jac_det_int = jacobian_determinant_int;
-        const ADtype jac_det_ext = jacobian_determinant_ext;
+        const ADADtype jac_det_int = jacobian_determinant_int;
+        const ADADtype jac_det_ext = jacobian_determinant_ext;
 
-        const dealii::Tensor<2,dim,ADtype> jac_inv_tran_int = jacobian_transpose_inverse_int;
-        const dealii::Tensor<2,dim,ADtype> jac_inv_tran_ext = jacobian_transpose_inverse_ext;
+        const dealii::Tensor<2,dim,ADADtype> jac_inv_tran_int = jacobian_transpose_inverse_int;
+        const dealii::Tensor<2,dim,ADADtype> jac_inv_tran_ext = jacobian_transpose_inverse_ext;
 
-        const dealii::Tensor<1,dim,ADtype> normal_int = dealii::contract<1,0>(jacobian_transpose_inverse_int, unit_normal_int);
-        const dealii::Tensor<1,dim,ADtype> normal_ext = dealii::contract<1,0>(jacobian_transpose_inverse_ext, unit_normal_ext);
-        const ADtype area_int = normal_int.norm();
-        const ADtype area_ext = normal_ext.norm();
+        const dealii::Tensor<1,dim,ADADtype> normal_int = dealii::contract<1,0>(jacobian_transpose_inverse_int, unit_normal_int);
+        const dealii::Tensor<1,dim,ADADtype> normal_ext = dealii::contract<1,0>(jacobian_transpose_inverse_ext, unit_normal_ext);
+        const ADADtype area_int = normal_int.norm();
+        const ADADtype area_ext = normal_ext.norm();
 
         // Technically the normals have jac_det multiplied.
         // However, we use normalized normals by convention, so the the term
         // ends up appearing in the surface jacobian.
 
-        const dealii::Tensor<1,dim,ADtype> normal_normalized_int = normal_int / area_int;
-        const dealii::Tensor<1,dim,ADtype> normal_normalized_ext = -normal_normalized_int;//normal_ext / area_ext; Must use opposite normal to be consistent with explicit
-        const ADtype surface_jac_det_int = area_int*jac_det_int;
-        const ADtype surface_jac_det_ext = area_ext*jac_det_ext;
+        const dealii::Tensor<1,dim,ADADtype> normal_normalized_int = normal_int / area_int;
+        const dealii::Tensor<1,dim,ADADtype> normal_normalized_ext = -normal_normalized_int;//normal_ext / area_ext; Must use opposite normal to be consistent with explicit
+        const ADADtype surface_jac_det_int = area_int*jac_det_int;
+        const ADADtype surface_jac_det_ext = area_ext*jac_det_ext;
 
         for (int d=0;d<dim;++d) {
-            //Assert( std::abs(normal_int[d].val()+normal_ext[d].val()) < 1e-12,
+            //Assert( std::abs(normal_int[d].val().val()+normal_ext[d].val().val()) < 1e-12,
             //    dealii::ExcMessage("Inconsistent normals. Direction " + std::to_string(d)
-            //        + " N1: " + std::to_string(normal_int[d].val())
-            //        + " N2: " + std::to_string(normal_ext[d].val())));
-            Assert( std::abs(normal_normalized_int[d].val()+normal_normalized_ext[d].val()) < 1e-12,
+            //        + " N1: " + std::to_string(normal_int[d].val().val())
+            //        + " N2: " + std::to_string(normal_ext[d].val().val())));
+            Assert( std::abs(normal_normalized_int[d].val().val()+normal_normalized_ext[d].val().val()) < 1e-12,
                 dealii::ExcMessage("Inconsistent normals. Direction " + std::to_string(d)
-                    + " N1: " + std::to_string(normal_normalized_int[d].val())
-                    + " N2: " + std::to_string(normal_normalized_ext[d].val())));
+                    + " N1: " + std::to_string(normal_normalized_int[d].val().val())
+                    + " N2: " + std::to_string(normal_normalized_ext[d].val().val())));
         }
-        Assert( std::abs(surface_jac_det_ext.val()-surface_jac_det_int.val()) < 1e-12
-                || std::abs(surface_jac_det_ext.val()-std::pow(2,dim-1)*surface_jac_det_int.val()) < 1e-12 ,
-                dealii::ExcMessage("Inconsistent surface Jacobians. J1: " + std::to_string(surface_jac_det_int.val())
-                + " J2: " + std::to_string(surface_jac_det_ext.val())));
+        Assert( std::abs(surface_jac_det_ext.val().val()-surface_jac_det_int.val().val()) < 1e-12
+                || std::abs(surface_jac_det_ext.val().val()-std::pow(2,dim-1)*surface_jac_det_int.val().val()) < 1e-12 ,
+                dealii::ExcMessage("Inconsistent surface Jacobians. J1: " + std::to_string(surface_jac_det_int.val().val())
+                + " J2: " + std::to_string(surface_jac_det_ext.val().val())));
 
-        for (unsigned int idof=0; idof<n_dofs_int; ++idof) {
+        for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
             interpolation_operator_int[idof] = fe_int.shape_value(idof,unit_quad_pts_int[iquad]);
-            const dealii::Tensor<1,dim,ADtype> phys_shape_grad = dealii::contract<1,0>(jac_inv_tran_int, fe_int.shape_grad(idof,unit_quad_pts_int[iquad]));
+            const dealii::Tensor<1,dim,ADADtype> phys_shape_grad = dealii::contract<1,0>(jac_inv_tran_int, fe_int.shape_grad(idof,unit_quad_pts_int[iquad]));
             for (int d=0;d<dim;++d) {
                 gradient_operator_int[d][idof] = phys_shape_grad[d];
             }
         }
-        for (unsigned int idof=0; idof<n_dofs_ext; ++idof) {
+        for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
             interpolation_operator_ext[idof] = fe_ext.shape_value(idof,unit_quad_pts_ext[iquad]);
-            const dealii::Tensor<1,dim,ADtype> phys_shape_grad = dealii::contract<1,0>(jac_inv_tran_ext, fe_ext.shape_grad(idof,unit_quad_pts_ext[iquad]));
+            const dealii::Tensor<1,dim,ADADtype> phys_shape_grad = dealii::contract<1,0>(jac_inv_tran_ext, fe_ext.shape_grad(idof,unit_quad_pts_ext[iquad]));
             for (int d=0;d<dim;++d) {
                 gradient_operator_ext[d][idof] = phys_shape_grad[d];
             }
@@ -2014,50 +2116,44 @@ void DGWeak<dim,nstate,real>::assemble_face_term_hessian(
         }
 
         // Interpolate solution to face
-        for (unsigned int idof=0; idof<n_dofs_int; ++idof) {
+        for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
             const unsigned int istate = fe_int.system_to_component_index(idof).first;
-            soln_int[istate]      += soln_coeff_int_ad[idof] * interpolation_operator_int[idof];
+            soln_int[istate]      += soln_coeff_int[idof] * interpolation_operator_int[idof];
             for (int d=0;d<dim;++d) {
-                soln_grad_int[istate][d] += soln_coeff_int_ad[idof] * gradient_operator_int[d][idof];
+                soln_grad_int[istate][d] += soln_coeff_int[idof] * gradient_operator_int[d][idof];
             }
         }
-        for (unsigned int idof=0; idof<n_dofs_ext; ++idof) {
+        for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
             const unsigned int istate = fe_ext.system_to_component_index(idof).first;
-            soln_ext[istate]      += soln_coeff_ext_ad[idof] * interpolation_operator_ext[idof];
+            soln_ext[istate]      += soln_coeff_ext[idof] * interpolation_operator_ext[idof];
             for (int d=0;d<dim;++d) {
-                soln_grad_ext[istate][d] += soln_coeff_ext_ad[idof] * gradient_operator_ext[d][idof];
+                soln_grad_ext[istate][d] += soln_coeff_ext[idof] * gradient_operator_ext[d][idof];
             }
         }
 
         // Evaluate physical convective flux, physical dissipative flux, and source term
-        conv_num_flux_dot_n = conv_num_flux->evaluate_flux(soln_int, soln_ext, normal_normalized_int);
-        diss_soln_num_flux = diss_num_flux->evaluate_solution_flux(soln_int, soln_ext, normal_normalized_int);
+        conv_num_flux_dot_n = conv_num_flux_fad_fad->evaluate_flux(soln_int, soln_ext, normal_normalized_int);
+        diss_soln_num_flux = diss_num_flux_fad_fad->evaluate_solution_flux(soln_int, soln_ext, normal_normalized_int);
 
         ADArrayTensor1 diss_soln_jump_int, diss_soln_jump_ext;
         for (int s=0; s<nstate; s++) {
             diss_soln_jump_int[s] = (diss_soln_num_flux[s] - soln_int[s]) * normal_normalized_int;
             diss_soln_jump_ext[s] = (diss_soln_num_flux[s] - soln_ext[s]) * normal_normalized_ext;
         }
-        diss_flux_jump_int = pde_physics->dissipative_flux (soln_int, diss_soln_jump_int);
-        diss_flux_jump_ext = pde_physics->dissipative_flux (soln_ext, diss_soln_jump_ext);
+        diss_flux_jump_int = pde_physics_fad_fad->dissipative_flux (soln_int, diss_soln_jump_int);
+        diss_flux_jump_ext = pde_physics_fad_fad->dissipative_flux (soln_ext, diss_soln_jump_ext);
 
-        diss_auxi_num_flux_dot_n = diss_num_flux->evaluate_auxiliary_flux(
+        diss_auxi_num_flux_dot_n = diss_num_flux_fad_fad->evaluate_auxiliary_flux(
             soln_int, soln_ext,
             soln_grad_int, soln_grad_ext,
             normal_normalized_int, penalty);
 
         // From test functions associated with interior cell point of view
-        std::vector<real> residual_derivatives(n_metric_dofs_cell);
-        // Jacobian blocks
-        std::vector<real> dR1_dX1(n_metric_dofs_cell);
-        std::vector<real> dR1_dX2(n_metric_dofs_cell);
-        std::vector<real> dR2_dX1(n_metric_dofs_cell);
-        std::vector<real> dR2_dX2(n_metric_dofs_cell);
-        for (unsigned int itest_int=0; itest_int<n_dofs_int; ++itest_int) {
-            ADtype rhs = 0.0;
+        for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
+            ADADtype rhs = 0.0;
             const unsigned int istate = fe_int.system_to_component_index(itest_int).first;
 
-            const ADtype JxW_iquad = surface_jac_det_int * face_quadrature_int.weight(iquad);
+            const ADADtype JxW_iquad = surface_jac_det_int * face_quadrature_int.weight(iquad);
             // Convection
             rhs = rhs - interpolation_operator_int[itest_int] * conv_num_flux_dot_n[istate] * JxW_iquad;
             // Diffusive
@@ -2066,24 +2162,18 @@ void DGWeak<dim,nstate,real>::assemble_face_term_hessian(
                 rhs = rhs + gradient_operator_int[d][itest_int] * diss_flux_jump_int[istate][d] * JxW_iquad;
             }
 
-            local_rhs_int_cell(itest_int) += rhs.val();
+            local_rhs_int_cell(itest_int) += rhs.val().val();
 
-            for (unsigned int inode = 0; inode < n_metric_dofs_cell; ++inode) {
-                dR1_dX1[inode] = rhs.fastAccessDx(inode);
-            }
-            for (unsigned int inode = 0; inode < n_metric_dofs_cell; ++inode) {
-                dR1_dX2[inode] = rhs.fastAccessDx(n_metric_dofs_cell+inode);
-            }
-            this->dRdXv.add(dof_indices_int[itest_int], interior_cell_metric_dofs_indices, dR1_dX1);
-            this->dRdXv.add(dof_indices_int[itest_int], exterior_cell_metric_dofs_indices, dR1_dX2);
+            const unsigned int global_residual_row = soln_dof_indices_int[itest_int];
+            dual_dot_residual += this->dual[global_residual_row]*rhs;
         }
 
         // From test functions associated with neighbour cell point of view
-        for (unsigned int itest_ext=0; itest_ext<n_dofs_ext; ++itest_ext) {
-            ADtype rhs = 0.0;
+        for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
+            ADADtype rhs = 0.0;
             const unsigned int istate = fe_ext.system_to_component_index(itest_ext).first;
 
-            const ADtype JxW_iquad = surface_jac_det_int * face_quadrature_int.weight(iquad);
+            const ADADtype JxW_iquad = surface_jac_det_int * face_quadrature_int.weight(iquad);
             // Convection
             rhs = rhs - interpolation_operator_ext[itest_ext] * (-conv_num_flux_dot_n[istate]) * JxW_iquad;
             // Diffusive
@@ -2092,19 +2182,136 @@ void DGWeak<dim,nstate,real>::assemble_face_term_hessian(
                 rhs = rhs + gradient_operator_ext[d][itest_ext] * diss_flux_jump_ext[istate][d] * JxW_iquad;
             }
 
-            local_rhs_ext_cell(itest_ext) += rhs.val();
+            local_rhs_ext_cell(itest_ext) += rhs.val().val();
 
-
-            for (unsigned int inode = 0; inode < n_metric_dofs_cell; ++inode) {
-                dR2_dX1[inode] = rhs.fastAccessDx(inode);
-            }
-            for (unsigned int inode = 0; inode < n_metric_dofs_cell; ++inode) {
-                dR2_dX2[inode] = rhs.fastAccessDx(n_metric_dofs_cell+inode);
-            }
-            this->dRdXv.add(dof_indices_ext[itest_ext], interior_cell_metric_dofs_indices, dR2_dX1);
-            this->dRdXv.add(dof_indices_ext[itest_ext], exterior_cell_metric_dofs_indices, dR2_dX2);
+            const unsigned int global_residual_row = soln_dof_indices_ext[itest_ext];
+            dual_dot_residual += this->dual[global_residual_row]*rhs;
         }
     } // Quadrature point loop
+
+    // Current derivative order is: soln_int, soln_ext, metric_int, metric_ext
+    const unsigned int w_int_start = 0;
+    const unsigned int w_int_end   = w_int_start + n_soln_dofs_int;
+    const unsigned int w_ext_start = w_int_end;
+    const unsigned int w_ext_end   = w_ext_start + n_soln_dofs_ext;
+    const unsigned int x_int_start = w_ext_end;
+    const unsigned int x_int_end   = x_int_start + n_metric_dofs;
+    const unsigned int x_ext_start = x_int_end;
+    //const unsigned int x_ext_end   = x_ext_start + n_metric_dofs;
+
+    std::vector<real> dWidWint(n_soln_dofs_int);
+    std::vector<real> dWidWext(n_soln_dofs_ext);
+    std::vector<real> dWidX(n_metric_dofs);
+    std::vector<real> dXidX(n_metric_dofs);
+    // dWint
+    for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
+
+        const unsigned int i_dx = idof+w_int_start;
+        const ADtype dWi = dual_dot_residual.dx(i_dx);
+
+        // dWint_dWint
+        for (unsigned int jdof=0; jdof<n_soln_dofs_int; ++jdof) {
+            const unsigned int j_dx = jdof+w_int_start;
+            dWidWint[jdof] = dWi.dx(j_dx);
+        }
+        this->d2RdWdW.add(soln_dof_indices_int[idof], soln_dof_indices_int, dWidWint);
+
+        // dWint_dWext
+        for (unsigned int jdof=0; jdof<n_soln_dofs_ext; ++jdof) {
+            const unsigned int j_dx = jdof+w_ext_start;
+            dWidWext[jdof] = dWi.dx(j_dx);
+        }
+        this->d2RdWdW.add(soln_dof_indices_int[idof], soln_dof_indices_ext, dWidWext);
+
+        // dWint_dXint
+        for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+            const unsigned int j_dx = jdof+x_int_start;
+            dWidX[jdof] = dWi.dx(j_dx);
+        }
+        this->d2RdWdX.add(soln_dof_indices_int[idof], metric_dof_indices_int, dWidX);
+
+        // dWint_dXext
+        for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+            const unsigned int j_dx = jdof+x_ext_start;
+            dWidX[jdof] = dWi.dx(j_dx);
+        }
+        this->d2RdWdX.add(soln_dof_indices_int[idof], metric_dof_indices_ext, dWidX);
+    }
+    // dWext
+    for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
+
+        const unsigned int i_dx = idof+w_ext_start;
+        const ADtype dWi = dual_dot_residual.dx(i_dx);
+
+        // dWext_dWint
+        for (unsigned int jdof=0; jdof<n_soln_dofs_int; ++jdof) {
+            const unsigned int j_dx = jdof+w_int_start;
+            dWidWint[jdof] = dWi.dx(j_dx);
+        }
+        this->d2RdWdW.add(soln_dof_indices_ext[idof], soln_dof_indices_int, dWidWint);
+
+        // dWext_dWext
+        for (unsigned int jdof=0; jdof<n_soln_dofs_ext; ++jdof) {
+            const unsigned int j_dx = jdof+w_ext_start;
+            dWidWext[jdof] = dWi.dx(j_dx);
+        }
+        this->d2RdWdW.add(soln_dof_indices_ext[idof], soln_dof_indices_ext, dWidWext);
+
+        // dWext_dXint
+        for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+            const unsigned int j_dx = jdof+x_int_start;
+            dWidX[jdof] = dWi.dx(j_dx);
+        }
+        this->d2RdWdX.add(soln_dof_indices_ext[idof], metric_dof_indices_int, dWidX);
+
+        // dWext_dXext
+        for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+            const unsigned int j_dx = jdof+x_ext_start;
+            dWidX[jdof] = dWi.dx(j_dx);
+        }
+        this->d2RdWdX.add(soln_dof_indices_ext[idof], metric_dof_indices_ext, dWidX);
+    }
+
+    // dXint
+    for (unsigned int idof=0; idof<n_metric_dofs; ++idof) {
+
+        const unsigned int i_dx = idof+x_int_start;
+        const ADtype dWi = dual_dot_residual.dx(i_dx);
+
+        // dXint_dXint
+        for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+            const unsigned int j_dx = jdof+x_int_start;
+            dWidX[jdof] = dWi.dx(j_dx);
+        }
+        this->d2RdXdX.add(metric_dof_indices_int[idof], metric_dof_indices_int, dWidX);
+
+        // dXint_dXext
+        for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+            const unsigned int j_dx = jdof+x_ext_start;
+            dWidX[jdof] = dWi.dx(j_dx);
+        }
+        this->d2RdXdX.add(metric_dof_indices_int[idof], metric_dof_indices_ext, dWidX);
+    }
+    // dXext
+    for (unsigned int idof=0; idof<n_metric_dofs; ++idof) {
+
+        const unsigned int i_dx = idof+x_ext_start;
+        const ADtype dWi = dual_dot_residual.dx(i_dx);
+
+        // dXext_dXint
+        for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+            const unsigned int j_dx = jdof+x_int_start;
+            dWidX[jdof] = dWi.dx(j_dx);
+        }
+        this->d2RdXdX.add(metric_dof_indices_ext[idof], metric_dof_indices_int, dWidX);
+
+        // dXext_dXext
+        for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+            const unsigned int j_dx = jdof+x_ext_start;
+            dWidX[jdof] = dWi.dx(j_dx);
+        }
+        this->d2RdXdX.add(metric_dof_indices_ext[idof], metric_dof_indices_ext, dWidX);
+    }
 }
 
 template <int dim, int nstate, typename real>

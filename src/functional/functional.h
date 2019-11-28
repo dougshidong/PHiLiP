@@ -83,7 +83,10 @@ public:
      * 
      *  Calls the functions evaluate_volume_integrand() and evaluate_cell_boundary() to be overridden
      */
-    real evaluate_functional( const Physics::PhysicsBase<dim,nstate,ADType> &physics, const bool compute_dIdW = false, const bool compute_dIdX = false);
+    real evaluate_functional( const Physics::PhysicsBase<dim,nstate,ADType> &physics,
+        const bool compute_dIdW = false,
+        const bool compute_dIdX = false,
+        const bool compute_d2I = false);
 
     template <typename real2>
     real2 evaluate_volume_cell_functional(

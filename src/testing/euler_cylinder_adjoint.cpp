@@ -79,11 +79,12 @@ class L2normError : public Functional<dim, nstate, real>
 			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
 		}
         using ADtype = Sacado::Fad::DFad<real>;
-		ADtype evaluate_volume_integrand(
-            const PHiLiP::Physics::PhysicsBase<dim,nstate,ADtype> &physics,
-            const dealii::Point<dim,ADtype> &phys_coord,
-            const std::array<ADtype,nstate> &soln_at_q,
-            const std::array<dealii::Tensor<1,dim,ADtype>,nstate> &soln_grad_at_q) override
+        using ADADtype = Sacado::Fad::DFad<ADtype>;
+		ADADtype evaluate_volume_integrand(
+            const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADtype> &physics,
+            const dealii::Point<dim,ADADtype> &phys_coord,
+            const std::array<ADADtype,nstate> &soln_at_q,
+            const std::array<dealii::Tensor<1,dim,ADADtype>,nstate> &soln_grad_at_q) override
 		{
 			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
 		}
@@ -377,7 +378,7 @@ int EulerCylinderAdjoint<dim,nstate>
             const double area_mpi_sum = dealii::Utilities::MPI::sum(area, mpi_communicator);
 
             // computing using Functional for comparison
-            const double l2error_functional = L2normFunctional.evaluate_functional(euler_physics_adtype,false,false);
+            const double l2error_functional = L2normFunctional.evaluate_functional(false,false);
             pcout << "Error computed by original loop: " << l2error_mpi_sum << std::endl << "Error computed by the functional: " << std::sqrt(l2error_functional) << std::endl; 
 
             // reinitializing the adjoint with the current values (from references)

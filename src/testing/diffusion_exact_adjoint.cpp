@@ -301,7 +301,7 @@ real2 DiffusionFunctional<dim,nstate,real>::evaluate_volume_integrand(
     real2 val = 0;
 
     // casting our physics object into a diffusion_objective object 
-    const diffusion_objective<dim,nstate,real2>& diff_physics = dynamic_cast<const diffusion_objective<dim,nstate,real2>&>(physics);
+    const diffusion_objective<dim,nstate,real2> &diff_physics = dynamic_cast< const diffusion_objective<dim,nstate,real2> & >(physics);
     
     // evaluating the associated objective function weighting at the quadrature point
     real2 objective_value = diff_physics.objective_function(phys_coord);
@@ -362,6 +362,12 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
           = std::make_shared< diffusion_u<dim, nstate, ADtype> >(convection, diffusion);
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, ADtype> > physics_v_adtype 
           = std::make_shared< diffusion_v<dim, nstate, ADtype> >(convection, diffusion);
+
+    using ADADtype = Sacado::Fad::DFad<ADtype>;
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, ADADtype> > physics_u_adadtype 
+          = std::make_shared< diffusion_u<dim, nstate, ADADtype> >(convection, diffusion);
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, ADADtype> > physics_v_adadtype 
+          = std::make_shared< diffusion_v<dim, nstate, ADADtype> >(convection, diffusion);
 
     // exact value to be used in checks below
     const double pi = std::acos(-1);
@@ -443,8 +449,11 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             // now overriding the original physics on each
             dg_weak_u->set_physics(physics_u_double);
             dg_weak_u->set_physics(physics_u_adtype);
+            dg_weak_u->set_physics(physics_u_adadtype);
+
             dg_weak_v->set_physics(physics_v_double);
             dg_weak_v->set_physics(physics_v_adtype);
+            dg_weak_v->set_physics(physics_v_adadtype);
 
             dg_u->allocate_system();
             dg_v->allocate_system();
@@ -457,13 +466,15 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             ode_solver_u->steady_state();
             ode_solver_v->steady_state();
 
+            pcout << "Creating DiffusionFunctional... " << std::endl; 
             // functional for computations
-            DiffusionFunctional<dim,nstate,double> diffusion_functional_u(dg_u,true,false);
-            DiffusionFunctional<dim,nstate,double> diffusion_functional_v(dg_v,true,false);
+            DiffusionFunctional<dim,nstate,double> diffusion_functional_u(dg_u,physics_u_adadtype,true,false);
+            DiffusionFunctional<dim,nstate,double> diffusion_functional_v(dg_v,physics_v_adadtype,true,false);
 
+            pcout << "Evaluating functional... " << std::endl; 
             // evaluating functionals from both methods
-            double functional_val_u = diffusion_functional_u.evaluate_functional(*physics_u_adtype,false,false);
-            double functional_val_v = diffusion_functional_v.evaluate_functional(*physics_v_adtype,false,false);
+            double functional_val_u = diffusion_functional_u.evaluate_functional(false,false);
+            double functional_val_v = diffusion_functional_v.evaluate_functional(false,false);
 
             // comparison betweent the values, add these to the convergence table
             pcout << std::endl << "Val1 = " << functional_val_u << "\tVal2 = " << functional_val_v << std::endl << std::endl; 

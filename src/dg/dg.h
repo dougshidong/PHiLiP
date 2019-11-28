@@ -624,8 +624,6 @@ public:
 
     ~DGWeak(); ///< Destructor.
 
-private:
-
     using ADtype = Sacado::Fad::DFad<real>;
     using ADADtype = Sacado::Fad::DFad<ADtype>;
     /// Contains the physics of the PDE
@@ -648,6 +646,8 @@ private:
     NumericalFlux::NumericalFluxConvective<dim, nstate, real > *conv_num_flux_double;
     /// Dissipative numerical flux
     NumericalFlux::NumericalFluxDissipative<dim, nstate, real > *diss_num_flux_double;
+
+private:
 
     /// Evaluate the integral over the cell volume
     /** Compute both the right-hand side and the block of the Jacobian */
@@ -795,7 +795,8 @@ private:
 
 public:
     /// Change the physics object
-    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<real> > >pde_physics_input);
+    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, ADADtype > >pde_physics_input);
+    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, ADtype > >pde_physics_input);
     void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, real > >pde_physics_double_input);
 }; // end of DGWeak class
 

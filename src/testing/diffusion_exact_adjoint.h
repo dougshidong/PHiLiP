@@ -166,13 +166,15 @@ public:
 template <int dim, int nstate, typename real>
 class DiffusionFunctional : public Functional<dim, nstate, real>
 {
+    using ADtype = Sacado::Fad::DFad<real>;
+    using ADADtype = Sacado::Fad::DFad<ADtype>;
     public:
-        /// Constructor
         DiffusionFunctional(
             std::shared_ptr<PHiLiP::DGBase<dim,real>> dg_input,
+            std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nstate,ADADtype>> _physics_fad_fad,
             const bool uses_solution_values = true,
             const bool uses_solution_gradient = false)
-        : PHiLiP::Functional<dim,nstate,real>(dg_input,uses_solution_values,uses_solution_gradient)
+        : PHiLiP::Functional<dim,nstate,real>(dg_input,_physics_fad_fad,uses_solution_values,uses_solution_gradient)
         {}
         template <typename real2>
         real2 evaluate_volume_integrand(
@@ -190,12 +192,11 @@ class DiffusionFunctional : public Functional<dim, nstate, real>
 		{
 			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
 		}
-        using ADtype = Sacado::Fad::DFad<real>;
-		ADtype evaluate_volume_integrand(
-            const PHiLiP::Physics::PhysicsBase<dim,nstate,ADtype> &physics,
-            const dealii::Point<dim,ADtype> &phys_coord,
-            const std::array<ADtype,nstate> &soln_at_q,
-            const std::array<dealii::Tensor<1,dim,ADtype>,nstate> &soln_grad_at_q) override
+		ADADtype evaluate_volume_integrand(
+            const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADtype> &physics,
+            const dealii::Point<dim,ADADtype> &phys_coord,
+            const std::array<ADADtype,nstate> &soln_at_q,
+            const std::array<dealii::Tensor<1,dim,ADADtype>,nstate> &soln_grad_at_q) override
 		{
 			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
 		}

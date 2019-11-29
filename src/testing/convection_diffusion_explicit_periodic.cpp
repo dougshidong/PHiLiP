@@ -71,29 +71,30 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
         std::array<FR_enum, 4> FR_arr_c;
         std::array<FR_Aux_enum, 4> FR_arr_k;
         FR_arr_c[0] = FR_enum::cDG;
-        FR_arr_c[1] = FR_enum::cDG;
-        FR_arr_c[2] = FR_enum::cPlus;
-        FR_arr_c[3] = FR_enum::cPlus;
+       // FR_arr_c[1] = FR_enum::cDG;
+       // FR_arr_c[2] = FR_enum::cPlus;
+       // FR_arr_c[3] = FR_enum::cPlus;
         FR_arr_k[0] = FR_Aux_enum::kDG;
-        FR_arr_k[1] = FR_Aux_enum::kPlus;
-        FR_arr_k[2] = FR_Aux_enum::kDG;
-        FR_arr_k[3] = FR_Aux_enum::kPlus;
+       // FR_arr_k[1] = FR_Aux_enum::kPlus;
+       // FR_arr_k[2] = FR_Aux_enum::kDG;
+        //FR_arr_k[3] = FR_Aux_enum::kPlus;
         std::vector<std::string> FR_arr_string_c;
         std::vector<std::string> FR_arr_string_k;
+       // FR_arr_string_c.push_back("cDG");
         FR_arr_string_c.push_back("cDG");
-        FR_arr_string_c.push_back("cDG");
-        FR_arr_string_c.push_back("cPlus");
-        FR_arr_string_c.push_back("cPlus");
+       // FR_arr_string_c.push_back("cPlus");
+        //FR_arr_string_c.push_back("cPlus");
         FR_arr_string_k.push_back("kDG");
-        FR_arr_string_k.push_back("kPlus");
-        FR_arr_string_k.push_back("kDG");
-        FR_arr_string_k.push_back("kPlus");
+       // FR_arr_string_k.push_back("kPlus");
+        //FR_arr_string_k.push_back("kDG");
+       // FR_arr_string_k.push_back("kPlus");
         const unsigned int igrid_start = 5;
 //	unsigned int poly_degree = 2;
 //	dealii::GridGenerator::hyper_cube(grid, left, right, colorize);
-    for(unsigned int poly_degree = 2; poly_degree<4; poly_degree++){
+        double jac_scale =0.0;
+    for(unsigned int poly_degree = 3; poly_degree<4; poly_degree++){
 
-    for(unsigned int corr_iter=0; corr_iter<4; corr_iter++){
+    for(unsigned int corr_iter=0; corr_iter<1; corr_iter++){
     
         all_parameters_new.flux_reconstruction_type = FR_arr_c[corr_iter];
         all_parameters_new.flux_reconstruction_aux_type = FR_arr_k[corr_iter];
@@ -130,9 +131,11 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
 	double finalTime = 2.0;
     //    finalTime=0.0001;
        // finalTime=1.0;
+        finalTime = 0.000006;
+        finalTime = 0.02;
 //#if 0
         //Loop for tau test case IP stability
-        unsigned int itau = 0;
+        unsigned int itau = 1;
         unsigned int jiteration = 0;
         double penalty =0.0;
         if(poly_degree == 2){
@@ -140,10 +143,16 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
         }
         if(poly_degree == 3){
             penalty = 29.0;
+            penalty = 30.0;
         }
         double dtau =1.0;
+        dtau =0.1;
 
-//itau=2;
+jiteration =2;
+itau=2;
+penalty =30.56; 
+
+//penalty =1000.0; 
         while (itau < 3){
 //#endif
 
@@ -173,6 +182,63 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
 								 constants);
 	dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
 	
+            const unsigned int n_global_active_cells1 = grid.n_global_active_cells();
+	std::cout << "number of cells: " << n_global_active_cells1 << std::endl;
+
+//scale penalty term by the Jacobian for OOA
+        const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].n_dofs_per_cell();
+        dealii::FullMatrix<double> Jacobian_physical(n_dofs_cell);
+        const auto mapping = (*(dg->high_order_grid.mapping_fe_field));
+        dealii::hp::MappingCollection<dim> mapping_collection(mapping);
+        dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, dealii::update_JxW_values); ///< FEValues of volume.
+        for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell) {
+            if (!current_cell->is_locally_owned()) continue;
+            const unsigned int mapping_index = 0;
+            const unsigned int fe_index_curr_cell = current_cell->active_fe_index();
+            const unsigned int quad_index = fe_index_curr_cell;
+            const dealii::FESystem<dim,dim> &current_fe_ref = dg->fe_collection[poly_degree];
+            const unsigned int n_quad_pts = dg->volume_quadrature_collection[fe_index_curr_cell].size();
+            fe_values_collection_volume.reinit (current_cell, quad_index, mapping_index, fe_index_curr_cell);
+            const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
+            dealii::FullMatrix<double> Chi_operator(n_quad_pts, n_dofs_cell);
+            dealii::FullMatrix<double> Chi_operator_with_Jac(n_quad_pts, n_dofs_cell);
+            const std::vector<double> &JxW = fe_values_volume.get_JxW_values ();
+            const std::vector<double> &quad_weights = dg->volume_quadrature_collection[poly_degree].get_weights ();
+            for(int istate=0; istate<nstate; istate++){
+                for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+                    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                    const dealii::Point<dim> qpoint  = dg->volume_quadrature_collection[fe_index_curr_cell].point(iquad);
+                    Chi_operator[iquad][itest] = dg->fe_collection[fe_index_curr_cell].shape_value_component(itest,qpoint,istate);
+                    Chi_operator_with_Jac[iquad][itest] = dg->fe_collection[fe_index_curr_cell].shape_value_component(itest,qpoint,istate) * JxW[iquad] / quad_weights[iquad];
+                    }
+                }
+            }
+            dealii::FullMatrix<double> Chi_inv_operator(n_quad_pts, n_dofs_cell);
+            Chi_inv_operator.invert(Chi_operator);
+            Chi_inv_operator.mmult(Jacobian_physical, Chi_operator_with_Jac);//Chi^{-1}*Jm*Chi
+#if 0
+            printf("JAc physical each cell\n");
+            fflush(stdout);
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                for(unsigned int idof2=0; idof2<n_dofs_cell; idof2++){
+                    if(fabs(Jacobian_physical[idof][idof2])<1e-6)
+                        Jacobian_physical[idof][idof2]=0.0;
+                    printf("%g ",Jacobian_physical[idof][idof2]);
+                    fflush(stdout);
+                }
+                printf("\n");
+                fflush(stdout);
+            }
+#endif
+    }
+            if(igrid == 5){
+                jac_scale = Jacobian_physical[0][0]; 
+            }
+            else{
+                penalty *= jac_scale/Jacobian_physical[0][0]; 
+            }
+
+
 #if 0
 //if use legendre poly to interpolate IC
                 const unsigned int n_quad_pts1      = dg->volume_quadrature_collection[2].size();
@@ -303,9 +369,11 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
                 all_parameters_new.ode_solver_param.initial_time_step /= 10.0;
             }
         } catch( ... ) {//unstable
-            std::cout << "caught error " << std::endl;
+            std::cout << "caught error not where expected " << std::endl;
             penalty += dtau;
             jiteration++;
+        printf("penalty %g iteration %d i iteration %d\n",penalty, jiteration, itau);
+        fflush(stdout);
             if (poly_degree == 2 && penalty >16.0){
                // all_parameters->ode_solver_param.initial_time_step /= 10.0;
                 all_parameters_new.ode_solver_param.initial_time_step /= 10.0;

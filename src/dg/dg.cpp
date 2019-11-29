@@ -235,7 +235,7 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
 
         // Solution FECollection
         const dealii::FE_DGQ<dim> fe_dg(degree);
-        //const dealii::FE_DGQLegendre<dim> fe_dg(degree);
+       // const dealii::FE_DGQLegendre<dim> fe_dg(degree);
         //const dealii::FE_DGP<dim> fe_dg(degree);
         const dealii::FESystem<dim,dim> fe_system(fe_dg, nstate);
         fe_coll.push_back (fe_system);
@@ -295,7 +295,7 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
        // mapping_coll_flux.push_back(mapping);
 
         const dealii::FE_DGQ<dim> fe_dg_flux(degree);
-        //const dealii::FE_DGQLegendre<dim> fe_dg_flux(degree);
+       // const dealii::FE_DGQLegendre<dim> fe_dg_flux(degree);
         //const dealii::FE_DGP<dim> fe_dg_flux(degree);
         const dealii::FESystem<dim,dim> fe_system_flux(fe_dg_flux, nstate);
         fe_coll_flux.push_back (fe_system_flux);
@@ -1003,7 +1003,11 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
     mass_sparsity_pattern.copy_from(dsp);
     if (do_inverse_mass_matrix == true) {
         global_inverse_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
-        global_inverse_mass_correction_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
+
+        global_inverse_mass_correction_matrix.resize(dim);
+        for(int idim=0; idim<dim; idim++){
+            global_inverse_mass_correction_matrix[idim].reinit(locally_owned_dofs, mass_sparsity_pattern);
+        }
     } else {
         global_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
     }
@@ -1043,7 +1047,10 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
 
         dealii::FullMatrix<real> local_mass_matrix(n_dofs_cell);
 
-        dealii::FullMatrix<real> local_mass_correction_matrix(n_dofs_cell);
+        std::vector<dealii::FullMatrix<real>> local_mass_correction_matrix(dim);
+        for(int idim=0; idim<dim; idim++){
+            local_mass_correction_matrix[idim].reinit(n_dofs_cell, n_dofs_cell);
+        }
 
         fe_values_collection_volume.reinit (cell, quad_index, mapping_index, fe_index_curr_cell);
         const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
@@ -1071,14 +1078,23 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
 
         //For flux reconstruction
         dealii::FullMatrix<real> K_operator(n_dofs_cell);
-        dealii::FullMatrix<real> K_operator_aux(n_dofs_cell);
+        std::vector<dealii::FullMatrix<real>> K_operator_aux(dim);
+        for(int idim=0; idim<dim; idim++){
+            K_operator_aux[idim].reinit(n_dofs_cell, n_dofs_cell);
+        }
         const unsigned int curr_cell_degree = current_fe_ref.tensor_degree();
         get_K_operator_FR(fe_collection, fe_index_curr_cell, fe_values_volume, n_quad_pts, n_dofs_cell, curr_cell_degree, K_operator, K_operator_aux);
 
+        for(int idim=0; idim<dim; idim++){
+            for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+                for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
+                    local_mass_correction_matrix[idim][itest][itrial] = local_mass_matrix[itest][itrial] + K_operator_aux[idim][itest][itrial];
+                }
+            }
+        }
+
         for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
             for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
-                local_mass_correction_matrix[itest][itrial] = local_mass_matrix[itest][itrial] + K_operator_aux[itest][itrial];
-
                 local_mass_matrix[itest][itrial] = local_mass_matrix[itest][itrial] + K_operator[itest][itrial];
             }
         }
@@ -1091,9 +1107,11 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
             local_inverse_mass_matrix.invert(local_mass_matrix);
             global_inverse_mass_matrix.set (dofs_indices, local_inverse_mass_matrix);
 
+            for(int idim=0; idim<dim; idim++){
             dealii::FullMatrix<real> local_inverse_mass_correction_matrix(n_dofs_cell);
-            local_inverse_mass_correction_matrix.invert(local_mass_correction_matrix);
-            global_inverse_mass_correction_matrix.set (dofs_indices, local_inverse_mass_correction_matrix);
+            local_inverse_mass_correction_matrix.invert(local_mass_correction_matrix[idim]);
+            global_inverse_mass_correction_matrix[idim].set (dofs_indices, local_inverse_mass_correction_matrix);
+            }
         } else {
             global_mass_matrix.set (dofs_indices, local_mass_matrix);
         }
@@ -1102,7 +1120,9 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
     if (do_inverse_mass_matrix == true) {
         global_inverse_mass_matrix.compress(dealii::VectorOperation::insert);
 
-        global_inverse_mass_correction_matrix.compress(dealii::VectorOperation::insert);
+        for(int idim=0; idim<dim; idim++){
+        global_inverse_mass_correction_matrix[idim].compress(dealii::VectorOperation::insert);
+        }
     } else {
         global_mass_matrix.compress(dealii::VectorOperation::insert);
     }
@@ -1322,7 +1342,7 @@ void DGBase<dim,real>::get_K_operator_FR(
                  const dealii::FEValues<dim,dim> &fe_values_vol, unsigned int n_quad_pts,
                  unsigned int n_dofs_cell, const unsigned int curr_cell_degree,
                  dealii::FullMatrix<real> &K_operator,
-                 dealii::FullMatrix<real> &K_operator_aux/*, std::string correction*/)
+                 std::vector<dealii::FullMatrix<real>> &K_operator_aux/*, std::string correction*/)
 {
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     using FR_Aux_enum = Parameters::AllParameters::Flux_Reconstruction_Aux;
@@ -1481,7 +1501,10 @@ void DGBase<dim,real>::get_K_operator_FR(
     //        k=10000.0;
         }
         if(curr_cell_degree == 3)
+        {
             k = 3.67e-3;
+           // k=10000.0;
+        }
         if(curr_cell_degree == 4){
             k = 4.79e-5;
             k = 4.92e-5;//RK33
@@ -1493,6 +1516,8 @@ void DGBase<dim,real>::get_K_operator_FR(
     }
 
 #if 0
+printf("\n\n\n");
+fflush(stdout);
     printf("Hessian first\n");
     fflush(stdout);
     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
@@ -1595,22 +1620,32 @@ void DGBase<dim,real>::get_K_operator_FR(
 
         //include Jacobian dependence
         K_operator_no_Jac.mmult(K_operator,Jacobian_physical);//K*Chi^{-1}*Jm*Chi
-        K_operator_no_Jac_aux.mmult(K_operator_aux,Jacobian_physical);
+        K_operator_no_Jac_aux.mmult(K_operator_aux[0],Jacobian_physical);
 
     }
     else if(dim == 2){
         //build K matrix without Jac dependence
         dealii::FullMatrix<real> K_operator_no_Jac(n_dofs_cell);
-        dealii::FullMatrix<real> K_operator_no_Jac_aux(n_dofs_cell);
+        std::vector<dealii::FullMatrix<real>> K_operator_no_Jac_aux(dim);
+        for(int idim=0; idim<dim; idim++){
+            K_operator_no_Jac_aux[idim].reinit(n_dofs_cell, n_dofs_cell);
+        }
         for(unsigned int idof=0; idof<n_dofs_cell; idof++){
             for(unsigned int idof2=0; idof2<n_dofs_cell; idof2++){
                 K_operator_no_Jac[idof][idof2] = 0.0;
-                K_operator_no_Jac_aux[idof][idof2] = 0.0;
+                for(int idim=0; idim<dim; idim++){
+                    K_operator_no_Jac_aux[idim][idof][idof2] = 0.0;
+                }
             }
         }
 
         for(unsigned int v_deg=0; v_deg<=curr_cell_degree; v_deg++){
  
+#if 0
+            if(v_deg != 0){
+                v_deg=curr_cell_degree;
+            }
+#endif
             dealii::FullMatrix<real> derivative_p(n_quad_pts, n_dofs_cell);
             for(unsigned int idof=0; idof<n_dofs_cell; idof++){
                 for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
@@ -1645,7 +1680,7 @@ void DGBase<dim,real>::get_K_operator_FR(
     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
         for(unsigned int idof=0; idof<n_dofs_cell; idof++){
                // printf("%g ",temp_deriv_p[iquad][idof]);
-               if(derivative_p[iquad][idof]<1e-9)
+               if(fabs(derivative_p[iquad][idof])<1e-9)
                     derivative_p[iquad][idof]=0.0;
                 printf("%.12g ",derivative_p[iquad][idof]);
         fflush(stdout);
@@ -1658,8 +1693,6 @@ void DGBase<dim,real>::get_K_operator_FR(
     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
         for(unsigned int idof=0; idof<n_dofs_cell; idof++){
                // printf("%g ",temp_deriv_p[iquad][idof]);
-               if(temp_deriv_p[iquad][idof]<1e-9)
-                    temp_deriv_p[iquad][idof]=0.0;
                 printf("%g ",temp_deriv_p[iquad][idof]);
                 //printf("%g ",derivative_p[iquad][idof]);
         fflush(stdout);
@@ -1667,6 +1700,7 @@ void DGBase<dim,real>::get_K_operator_FR(
         printf("\n");
         fflush(stdout);
     } 
+#if 0
     printf("CHI INV\n");
     fflush(stdout);
     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
@@ -1677,6 +1711,7 @@ void DGBase<dim,real>::get_K_operator_FR(
         printf("\n");
         fflush(stdout);
     } 
+#endif
 #endif
 
             const double pfact = factorial_DG(curr_cell_degree);
@@ -1746,13 +1781,29 @@ void DGBase<dim,real>::get_K_operator_FR(
                 }
             }
 
+//#if 0
             derivative_p_temp.Tmmult(K_operator_temp, local_Mass_Matrix_no_Jac, false);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M
-            K_operator_temp.mmult(K_operator_no_Jac_aux, derivative_p, true);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
+            if (v_deg==0){
+                K_operator_temp.mmult(K_operator_no_Jac_aux[0], derivative_p, false);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
+            }
+            if(v_deg==curr_cell_degree){
+                K_operator_temp.mmult(K_operator_no_Jac_aux[1], derivative_p, false);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
+            }
+//#endif
+#if 0
            // derivative_p_temp.Tmmult(K_operator_no_Jac_aux, derivative_p, true);
+                dealii::FullMatrix<real> temp_mat(n_dofs_cell);
+                dealii::FullMatrix<real> temp_mat2(n_dofs_cell);
+                derivative_p_temp.TmTmult(temp_mat, Chi_operator);            
+                temp_mat.mmult(temp_mat2, Chi_operator);            
+                temp_mat2.mmult(K_operator_no_Jac_aux, derivative_p, true);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
+#endif
         }
         //Include Jac dependence
         K_operator_no_Jac.mmult(K_operator,Jacobian_physical);
-        K_operator_no_Jac_aux.mmult(K_operator_aux,Jacobian_physical);
+        for(int idim=0; idim<dim; idim++){
+            K_operator_no_Jac_aux[idim].mmult(K_operator_aux[idim],Jacobian_physical);
+        }
     }
     else{
         //build K matrix without Jac dependence
@@ -1821,12 +1872,13 @@ void DGBase<dim,real>::get_K_operator_FR(
 
                 derivative_p_temp.Tmmult(K_operator_temp, local_Mass_Matrix_no_Jac);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M
                 K_operator_temp.mmult(K_operator_no_Jac_aux, derivative_p, true);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
+    
                // derivative_p_temp.Tmmult(K_operator_no_Jac_aux, derivative_p, true);
             }
         }
         //Include Jac dependence
         K_operator_no_Jac.mmult(K_operator,Jacobian_physical);
-        K_operator_no_Jac_aux.mmult(K_operator_aux,Jacobian_physical);
+        K_operator_no_Jac_aux.mmult(K_operator_aux[0],Jacobian_physical);
     }
 
 }

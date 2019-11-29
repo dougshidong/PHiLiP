@@ -31,15 +31,18 @@ subsection ODE solver
   #set nonlinear_max_iterations            = 500
  # set nonlinear_steady_residual_tolerance = 1e-12
 
-  set print_iteration_modulo = 100
+  #set print_iteration_modulo = 100
+  set print_iteration_modulo = 1
 
   #set ode_solver_type = implicit
   set ode_solver_type = explicit
 
   #set initial_time_step = 0.1
   
-#  set initial_time_step = 0.000001
+  #set initial_time_step = 0.000001
   set initial_time_step = 0.0001
+  #set initial_time_step = 0.00001
+  #set initial_time_step = 0.001
 
   #set initial_time_step = 0.00003
  # set initial_time_step = 0.00001

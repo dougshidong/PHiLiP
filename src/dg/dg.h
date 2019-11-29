@@ -180,7 +180,8 @@ public:
                            const dealii::FEValues<dim,dim> &fe_values_volume,
                            unsigned int n_quad_pts, unsigned int n_dofs_cell,
                            const unsigned int curr_cell_degree, dealii::FullMatrix<real> &K_operator,
-                            dealii::FullMatrix<real> &K_operator_aux /*std::string correction*/);
+                           std::vector< dealii::FullMatrix<real>> &K_operator_aux /*std::string correction*/);
+                           // dealii::FullMatrix<real> &K_operator_aux /*std::string correction*/);
     double factorial_DG(double n);
 
 
@@ -199,7 +200,8 @@ public:
     /** Should be block diagonal where each block contains the inverse mass matrix of each cell.  */
     dealii::TrilinosWrappers::SparseMatrix global_inverse_mass_matrix;
     //(M+K)^{-1}
-    dealii::TrilinosWrappers::SparseMatrix global_inverse_mass_correction_matrix;
+   // dealii::TrilinosWrappers::SparseMatrix global_inverse_mass_correction_matrix;
+    std::vector<dealii::TrilinosWrappers::SparseMatrix> global_inverse_mass_correction_matrix;
     /// System matrix corresponding to the derivative of the right_hand_side with
     /// respect to the solution
     dealii::TrilinosWrappers::SparseMatrix system_matrix;

@@ -48,11 +48,6 @@ int test (
             if (icell < grid.n_active_cells()/2) {
                 cell->set_refine_flag();
             }
-            //else if (icell%2 == 0) {
-            //    cell->set_refine_flag();
-            //} else if (icell%3 == 0) {
-            //    //cell->set_coarsen_flag();
-            //}
         }
         grid.execute_coarsening_and_refinement();
         bool mesh_out = (i==n_refine-1);

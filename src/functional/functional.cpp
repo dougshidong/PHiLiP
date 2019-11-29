@@ -217,9 +217,6 @@ real Functional<dim, nstate, real>::evaluate_functional(
         cell_soln_dofs_indices.resize(n_soln_dofs_cell);
         soln_cell->get_dof_indices(cell_soln_dofs_indices);
         soln_coeff.resize(n_soln_dofs_cell);
-        for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof) {
-            soln_coeff[idof] = dg->solution[cell_soln_dofs_indices[idof]];
-        }
 
         // Get metric coefficients
         metric_cell->get_dof_indices (cell_metric_dofs_indices);
@@ -230,20 +227,34 @@ real Functional<dim, nstate, real>::evaluate_functional(
 
         // Setup automatic differentiation
         unsigned int n_total_indep = 0;
-        if (compute_dIdW) n_total_indep += n_soln_dofs_cell;
-        if (compute_dIdX) n_total_indep += n_metric_dofs_cell;
-        unsigned int iderivative = 0;
-        if (compute_dIdW) {
+        if (compute_dIdW || compute_d2I) n_total_indep += n_soln_dofs_cell;
+        if (compute_dIdX || compute_d2I) n_total_indep += n_metric_dofs_cell;
+        unsigned int i_derivative = 0;
+		for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof) {
+			const real val = dg->solution[cell_soln_dofs_indices[idof]];
+			soln_coeff[idof] = val;
+			if (compute_dIdW || compute_d2I) soln_coeff[idof].diff(i_derivative++, n_total_indep);
+		}
+		for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
+			const real val = dg->high_order_grid.nodes[cell_metric_dofs_indices[idof]];
+			coords_coeff[idof] = val;
+			if (compute_dIdX || compute_d2I) coords_coeff[idof].diff(i_derivative++, n_total_indep);
+        }
+        AssertDimension(i_derivative, n_total_indep);
+        if (compute_d2I) {
+			unsigned int i_derivative = 0;
             for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof) {
-                soln_coeff[idof].diff(iderivative++, n_total_indep);
-            }
-        }
-        if (compute_dIdX) {
+				const real val = dg->solution[cell_soln_dofs_indices[idof]];
+				soln_coeff[idof].val() = val;
+				soln_coeff[idof].val().diff(i_derivative++, n_total_indep);
+			}
             for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-                coords_coeff[idof].diff(iderivative++, n_total_indep);
+				const real val = dg->high_order_grid.nodes[cell_metric_dofs_indices[idof]];
+				coords_coeff[idof].val() = val;
+				coords_coeff[idof].val().diff(i_derivative++, n_total_indep);
             }
-        }
-        AssertDimension(iderivative, n_total_indep);
+		}
+        AssertDimension(i_derivative, n_total_indep);
 
         // Get quadrature point on reference cell
         const dealii::Quadrature<dim> &volume_quadrature = dg->volume_quadrature_collection[i_quad];
@@ -269,27 +280,67 @@ real Functional<dim, nstate, real>::evaluate_functional(
         local_functional += volume_local_sum.val().val();
         // now getting the values and adding them to the derivaitve vector
 
-        iderivative = 0;
+        i_derivative = 0;
         if (compute_dIdW) {
             local_dIdw.resize(n_soln_dofs_cell);
             for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof){
-                local_dIdw[idof] = volume_local_sum.dx(iderivative++).val();
+                local_dIdw[idof] = volume_local_sum.dx(i_derivative++).val();
             }
             dIdw.add(cell_soln_dofs_indices, local_dIdw);
         }
         if (compute_dIdX) {
             local_dIdX.resize(n_metric_dofs_cell);
             for(unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof){
-                local_dIdX[idof] = volume_local_sum.dx(iderivative++).val();
+                local_dIdX[idof] = volume_local_sum.dx(i_derivative++).val();
             }
             dIdX.add(cell_metric_dofs_indices, local_dIdX);
         }
-        AssertDimension(iderivative, n_total_indep);
+		if (compute_dIdW || compute_dIdX) AssertDimension(i_derivative, n_total_indep);
+        if (compute_d2I) {
+			std::vector<real> dWidW(n_soln_dofs_cell);
+			std::vector<real> dWidX(n_metric_dofs_cell);
+			std::vector<real> dXidX(n_metric_dofs_cell);
+
+
+			i_derivative = 0;
+			for (unsigned int idof=0; idof<n_soln_dofs_cell; ++idof) {
+
+				unsigned int j_derivative = 0;
+				const ADtype dWi = volume_local_sum.dx(i_derivative++);
+
+				for (unsigned int jdof=0; jdof<n_soln_dofs_cell; ++jdof) {
+					dWidW[jdof] = dWi.dx(j_derivative++);
+				}
+				d2IdWdW.add(cell_soln_dofs_indices[idof], cell_soln_dofs_indices, dWidW);
+
+				for (unsigned int jdof=0; jdof<n_metric_dofs_cell; ++jdof) {
+					dWidX[jdof] = dWi.dx(j_derivative++);
+				}
+				d2IdWdX.add(cell_soln_dofs_indices[idof], cell_metric_dofs_indices, dWidX);
+			}
+
+			for (unsigned int idof=0; idof<n_metric_dofs_cell; ++idof) {
+
+				const ADtype dXi = volume_local_sum.dx(i_derivative++);
+
+				unsigned int j_derivative = n_soln_dofs_cell;
+				for (unsigned int jdof=0; jdof<n_metric_dofs_cell; ++jdof) {
+					dXidX[jdof] = dXi.dx(j_derivative++);
+				}
+				d2IdXdX.add(cell_metric_dofs_indices[idof], cell_metric_dofs_indices, dXidX);
+			}
+        }
+        AssertDimension(i_derivative, n_total_indep);
     }
     dealii::Utilities::MPI::sum(local_functional, MPI_COMM_WORLD);
     // compress before the return
     if (compute_dIdW) dIdw.compress(dealii::VectorOperation::add);
     if (compute_dIdX) dIdX.compress(dealii::VectorOperation::add);
+    if (compute_d2I) {
+		d2IdWdW.compress(dealii::VectorOperation::add);
+		d2IdWdX.compress(dealii::VectorOperation::add);
+		d2IdXdX.compress(dealii::VectorOperation::add);
+	}
 
     return local_functional;
 }

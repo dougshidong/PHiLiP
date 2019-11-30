@@ -157,11 +157,7 @@ int main (int argc, char * argv[])
             //     std::cout << high_order_grid.locally_relevant_surface_points[ipoint]+point_displacements[ipoint] << std::endl;
             // }
 
-#if PHILIP_DIM==1
-            using VectorType = dealii::Vector<double>;
-#else
             using VectorType = dealii::LinearAlgebra::distributed::Vector<double>;
-#endif
             MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
                 meshmover(high_order_grid, surface_node_global_indices, surface_node_displacements);
             VectorType volume_displacements = meshmover.get_volume_displacements();

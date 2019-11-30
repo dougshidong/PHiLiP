@@ -46,6 +46,12 @@
 
 namespace PHiLiP {
 
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    template <int dim> using Triangulation = dealii::Triangulation<dim>;
+#else
+    template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+#endif
+
 template <int dim, typename real, typename VectorType, typename DoFHandlerType>
 unsigned int HighOrderGrid<dim,real,VectorType,DoFHandlerType>::nth_refinement=0;
 
@@ -53,7 +59,7 @@ template <int dim, typename real, typename VectorType , typename DoFHandlerType>
 HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
         const Parameters::AllParameters *const parameters_input,
         const unsigned int max_degree,
-        Triangulation<dim> *const triangulation_input)
+        Triangulation *const triangulation_input)
     : all_parameters(parameters_input)
     , max_degree(max_degree)
     , triangulation(triangulation_input)
@@ -114,11 +120,7 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::allocate()
     dealii::DoFTools::extract_locally_relevant_dofs(dof_handler_grid, locally_relevant_dofs_grid);
     ghost_dofs_grid = locally_relevant_dofs_grid;
     ghost_dofs_grid.subtract_set(locally_owned_dofs_grid);
-#if PHILIP_DIM == 1
-    nodes.reinit(dof_handler_grid.n_dofs());
-#else
     nodes.reinit(locally_owned_dofs_grid, ghost_dofs_grid, mpi_communicator);
-#endif
 }
 
 //template <int dim, typename real, typename VectorType , typename DoFHandlerType>
@@ -757,14 +759,14 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::prepare_for_coarsening_a
 
     old_nodes = nodes;
     old_nodes.update_ghost_values();
-    if constexpr (dim == 1) solution_transfer.clear();
+    if constexpr (PHILIP_DIM==1) solution_transfer.clear();
     solution_transfer.prepare_for_coarsening_and_refinement(old_nodes);
 }
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
 void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::execute_coarsening_and_refinement(const bool output_mesh) {
     allocate();
-    if constexpr(dim == 1) {
+    if constexpr(PHILIP_DIM==1) {
         solution_transfer.interpolate(old_nodes, nodes);
     } else {
         solution_transfer.interpolate(nodes);
@@ -1097,7 +1099,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::output_results_vtk (cons
 //         dof_handler_fine.distribute_dofs(fe_system_fine);
 // 
 //         VectorType nodes_fine;
-// #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+// #if PHILIP_DIM==31 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
 //         nodes_fine.reinit(dof_handler_fine.n_dofs());
 // #else
 //         dealii::IndexSet locally_owned_dofs_fine = dof_handler_fine.locally_owned_dofs();
@@ -1132,7 +1134,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::output_results_vtk (cons
 //         data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 // 
 //         VectorType jacobian_determinant;
-// #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+// #if PHILIP_DIM==31 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
 //         jacobian_determinant.reinit(dof_handler_fine.n_dofs());
 // #else
 //         jacobian_determinant.reinit(locally_owned_dofs_fine, ghost_dofs_fine, mpi_communicator);
@@ -1178,11 +1180,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::output_results_vtk (cons
     // data_out.add_data_vector (nodes, grid_post_processor);
 
     VectorType jacobian_determinant;
-#if PHILIP_DIM == 1
-    jacobian_determinant.reinit(dof_handler_grid.n_dofs());
-#else
     jacobian_determinant.reinit(locally_owned_dofs_grid, ghost_dofs_grid, mpi_communicator);
-#endif
     // const unsigned int n_dofs_per_cell = fe_system.n_dofs_per_cell();
     // std::vector<dealii::types::global_dof_index> dofs_indices(n_dofs_per_cell);
     // const std::vector< dealii::Point<dim> > &points = fe_system.get_unit_support_points();
@@ -1353,12 +1351,7 @@ namespace MeshMover
         local_dofs_per_process = dof_handler.compute_n_locally_owned_dofs_per_processor();
 
         system_rhs.reinit(locally_owned_dofs, mpi_communicator);
-        if constexpr (dim == 1) {
-            displacement_solution.reinit(dof_handler.n_dofs());
-        }
-        if constexpr (dim != 1) {
-            displacement_solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
-        }
+		displacement_solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
 
         // Set the hanging node constraints
         all_constraints.clear();
@@ -1573,13 +1566,9 @@ namespace MeshMover
         //direct.solve(system_matrix, trilinos_solution, system_rhs);
 
         all_constraints.distribute(trilinos_solution);
-        if constexpr(dim==1) {
-            displacement_solution = trilinos_solution;
-        } else {
-            dealii::LinearAlgebra::ReadWriteVector<double> rw_vector;
-            rw_vector.reinit(trilinos_solution);
-            displacement_solution.import(rw_vector, dealii::VectorOperation::insert);
-        }
+		dealii::LinearAlgebra::ReadWriteVector<double> rw_vector;
+		rw_vector.reinit(trilinos_solution);
+		displacement_solution.import(rw_vector, dealii::VectorOperation::insert);
         return solver_control.last_step();
     }
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
@@ -1600,18 +1589,7 @@ namespace MeshMover
             }
         }
     }
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template class LinearElasticity<PHILIP_DIM, double, dealii::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
-#else
 template class LinearElasticity<PHILIP_DIM, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
-#endif
 }
-
-//template class HighOrderGrid<PHILIP_DIM, double>;
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template class HighOrderGrid<PHILIP_DIM, double, dealii::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
-#else
 template class HighOrderGrid<PHILIP_DIM, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
-#endif
-//template class HighOrderGrid<PHILIP_DIM, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
 } // namespace PHiLiP

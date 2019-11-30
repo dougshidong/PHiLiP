@@ -77,11 +77,7 @@ int test (
     const double eps = 1e-6;
     PHiLiP::HighOrderGrid<dim,double> &high_order_grid = dg->high_order_grid;
 
-#if PHILIP_DIM==1
-    using nodeVector = dealii::Vector<double>;
-#else
     using nodeVector = dealii::LinearAlgebra::distributed::Vector<double>;
-#endif
     nodeVector old_nodes = high_order_grid.nodes;
     old_nodes.update_ghost_values();
 

@@ -23,11 +23,11 @@
 #include <deal.II/lac/trilinos_vector.h>
 
 namespace PHiLiP {
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    template <int dim> using Triangulation = dealii::Triangulation<dim>;
-#else
-    template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-#endif
+//#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+//    template <int dim> using Triangulation = dealii::Triangulation<dim>;
+//#else
+//    template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+//#endif
 
 /** This HighOrderGrid class basically contains all the different part necessary to generate
  *  a dealii::MappingFEField that corresponds to the current Triangulation and attached Manifold.
@@ -39,39 +39,28 @@ namespace PHiLiP {
  *  and the Vector class act quite differently between serial and parallel implementation. Hopefully,
  *  deal.II will change this one day such that we have one interface for both.
  */
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
-#else
 template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
-#endif
-//template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
 class HighOrderGrid
 {
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    /** Vector class used to store the solution.
-     *  In 1D dealii::Vector<double> is used.
-     *  In 2D, 3D, dealii::LinearAlgebra::distributed::Vector<double> is used.
-     */
-    using Vector = dealii::Vector<double>;
-    /** In 1D SolutionTransfer = dealii::SolutionTransfer<dim, dealii::Vector<double>, dealii::DoFHandler<dim>> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> is used.
-     */
-    using SolutionTransfer = dealii::SolutionTransfer<dim, dealii::Vector<double>, dealii::DoFHandler<dim>>;
-#else
-    /** Vector class used to store the solution.
-     *  In 1D dealii::Vector<double> is used.
-     *  In 2D, 3D, dealii::LinearAlgebra::distributed::Vector<double> is used.
-     */
     using Vector = dealii::LinearAlgebra::distributed::Vector<double>;
-    /// SolutionTransfer class used during refinement.
-    /** In 1D SolutionTransfer = dealii::SolutionTransfer<dim, dealii::Vector<double>, dealii::DoFHandler<dim>> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> is used.
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    /** Triangulation to store the grid.
+     *  In 1D, dealii::Triangulation<dim> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
      */
-    using SolutionTransfer = dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>>;
+    using Triangulation = dealii::Triangulation<dim>;
+    using SolutionTransfer = dealii::SolutionTransfer<dim, Vector, dealii::DoFHandler<dim>>;
+#else
+    /** Triangulation to store the grid.
+     *  In 1D, dealii::Triangulation<dim> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
+     */
+    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+    using SolutionTransfer = dealii::parallel::distributed::SolutionTransfer<dim, Vector, dealii::DoFHandler<dim>>;
 #endif
 public:
     /// Principal constructor that will call delegated constructor.
-    HighOrderGrid(const Parameters::AllParameters *const parameters_input, const unsigned int max_degree, Triangulation<dim> *const triangulation_input);
+    HighOrderGrid(const Parameters::AllParameters *const parameters_input, const unsigned int max_degree, Triangulation *const triangulation_input);
 
     /// Update the MappingFEField
     /** Note that this rarely needs to be called since MappingFEField stores a
@@ -90,7 +79,7 @@ public:
     /// Maximum degree of the geometry polynomial representing the grid.
     const unsigned int max_degree;
 
-    Triangulation<dim> *triangulation; ///< Mesh
+    Triangulation *triangulation; ///< Mesh
 
     /// Degrees of freedom handler for the high-order grid
     dealii::DoFHandler<dim> dof_handler_grid;
@@ -253,13 +242,6 @@ protected:
     void get_position_vector(const DoFHandlerType &dh, VectorType &vector, const dealii::ComponentMask &mask);
 
 };
-//#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-//template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
-//unsigned int HighOrderGrid<dim,real,VectorType,DoFHandlerType>::nth_refinement=0;
-//#else
-//template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
-//unsigned int HighOrderGrid<dim,real,VectorType,DoFHandlerType>::nth_refinement=0;
-//#endif
 
 /// Postprocessor used to output the grid.
 template <int dim>
@@ -281,13 +263,22 @@ public:
 
 namespace MeshMover
 {
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
-#else
     template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
-#endif
     class LinearElasticity
     {
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    /** Triangulation to store the grid.
+     *  In 1D, dealii::Triangulation<dim> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
+     */
+    using Triangulation = dealii::Triangulation<dim>;
+#else
+    /** Triangulation to store the grid.
+     *  In 1D, dealii::Triangulation<dim> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
+     */
+    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+#endif
       public:
         LinearElasticity(
             const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
@@ -302,7 +293,7 @@ namespace MeshMover
         unsigned int solve_linear_problem();
         void move_mesh();
         void setup_quadrature_point_history();
-        const Triangulation<dim> &triangulation;
+        const Triangulation &triangulation;
         dealii::FESystem<dim> fe;
         std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field;
         DoFHandlerType dof_handler;

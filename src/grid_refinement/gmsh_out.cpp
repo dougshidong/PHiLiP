@@ -1,3 +1,5 @@
+#include <float.h>
+
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/grid/tria.h>
 
@@ -38,7 +40,7 @@ namespace GridRefinement {
 template <int dim, typename real>
 void GmshOut<dim,real>::write_pos(
     const dealii::Triangulation<dim, dim> &tria,
-    // dealii::Vector<real>                    data,
+    dealii::Vector<real>                   data,
     std::ostream &                         out)
 {
     // get positions
@@ -108,26 +110,34 @@ void GmshOut<dim,real>::write_pos(
         // writing the data values
         // for now just putting 1.0
         // out << "1.0,2.0,3.0,4.0";
+        // for(unsigned int vertex = 0; vertex < dealii::GeometryInfo<dim>::vertices_per_cell; ++vertex)
+        // {
+        //     // Fix for the difference in numbering orders (CCW)
+        //     // DEALII: 2D=[[0,1],[2,3]], 3D=[[[0,1],[2,3]],[[4,5],[6,7]]]
+        //     // GMSH:   2D=[[0,1],[3,2]], 3D=[[[0,1],[3,2]],[[4,5],[7,6]]]
+        //     dealii::Point<dim> pos;
+        //     if((vertex+2)%4 == 0){ // (2,6) -> (3,7)
+        //         pos = cell->vertex(vertex+1);
+        //     }else if((vertex+1)%4 == 0){ // (3,7) -> (2,6)
+        //         pos = cell->vertex(vertex-1);
+        //     }else{
+        //         pos = cell->vertex(vertex);
+        //     }
+        //     // just going to assume the dim is 2 for now
+        //     if(vertex != 0){out << ",";} 
+        //     if(dim == 2){
+        //         double x = pos[0], y = pos[1];
+        //         double v = x*y+0.01;
+        //         out<<v;
+        //     }
+        // }
+
+        // getting the cellwise value
+        real v = data[cell->active_cell_index()];
         for(unsigned int vertex = 0; vertex < dealii::GeometryInfo<dim>::vertices_per_cell; ++vertex)
         {
-            // Fix for the difference in numbering orders (CCW)
-            // DEALII: 2D=[[0,1],[2,3]], 3D=[[[0,1],[2,3]],[[4,5],[6,7]]]
-            // GMSH:   2D=[[0,1],[3,2]], 3D=[[[0,1],[3,2]],[[4,5],[7,6]]]
-            dealii::Point<dim> pos;
-            if((vertex+2)%4 == 0){ // (2,6) -> (3,7)
-                pos = cell->vertex(vertex+1);
-            }else if((vertex+1)%4 == 0){ // (3,7) -> (2,6)
-                pos = cell->vertex(vertex-1);
-            }else{
-                pos = cell->vertex(vertex);
-            }
-            // just going to assume the dim is 2 for now
-            if(vertex != 0){out << ",";} 
-            if(dim == 2){
-                double x = pos[0], y = pos[1];
-                double v = x*y+0.01;
-                out<<v;
-            }
+            if(vertex != 0){out << ",";}
+            out << v;
         }
 
         out << "};" << '\n';
@@ -214,6 +224,7 @@ void GmshOut<dim,real>::write_geo_hyper_cube(
 }
 
 template class GmshOut <PHILIP_DIM, double>;
+template class GmshOut <PHILIP_DIM, float>;
 
 } // namespace GridRefinement
 

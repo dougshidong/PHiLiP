@@ -28,6 +28,7 @@
 #include "dg/dg.h"
 #include "ode_solver/ode_solver.h"
 
+#include "grid_refinement/gmsh_out.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -260,6 +261,17 @@ int GridStudy<dim,nstate>
                 grid_out.set_flags(msh_flags);
                 grid_out.write_msh(grid, outmesh);
             }
+
+            std::string write_posname = "grid-"+std::to_string(igrid)+".pos";
+            std::ofstream outpos(write_posname);
+            GridRefinement::GmshOut<dim,double>::write_pos(grid,outpos);
+
+            std::string write_geoname = "grid-"+std::to_string(igrid)+".geo";
+            std::ofstream outgeo(write_geoname);
+            GridRefinement::GmshOut<dim,double>::write_geo(write_posname,outgeo);
+
+            int a = std::system(("gmsh " + write_geoname).c_str());
+            pcout << "a" << a << std::endl;
 
             // Show mesh if in 2D
             //std::string gridname = "grid-"+std::to_string(igrid)+".eps";

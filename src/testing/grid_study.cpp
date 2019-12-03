@@ -262,17 +262,6 @@ int GridStudy<dim,nstate>
                 grid_out.write_msh(grid, outmesh);
             }
 
-            std::string write_posname = "grid-"+std::to_string(igrid)+".pos";
-            std::ofstream outpos(write_posname);
-            GridRefinement::GmshOut<dim,double>::write_pos(grid,outpos);
-
-            std::string write_geoname = "grid-"+std::to_string(igrid)+".geo";
-            std::ofstream outgeo(write_geoname);
-            GridRefinement::GmshOut<dim,double>::write_geo(write_posname,outgeo);
-
-            int a = std::system(("gmsh " + write_geoname).c_str());
-            pcout << "a" << a << std::endl;
-
             // Show mesh if in 2D
             //std::string gridname = "grid-"+std::to_string(igrid)+".eps";
             //if (dim == 2) print_mesh_info (grid, gridname);
@@ -351,6 +340,18 @@ int GridStudy<dim,nstate>
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
 
             double solution_integral = integrate_solution_over_domain(*dg);
+
+            std::string write_posname = "grid-"+std::to_string(igrid)+".pos";
+            std::ofstream outpos(write_posname);
+            // GridRefinement::GmshOut<dim,double>::write_pos(grid,estimated_error_per_cell,outpos);
+            GridRefinement::GmshOut<dim,float>::write_pos(grid,estimated_error_per_cell,outpos);
+
+            std::string write_geoname = "grid-"+std::to_string(igrid)+".geo";
+            std::ofstream outgeo(write_geoname);
+            GridRefinement::GmshOut<dim,double>::write_geo(write_posname,outgeo);
+
+            int a = std::system(("gmsh " + write_geoname).c_str());
+            pcout << "a" << a << std::endl;
 
             // Convergence table
             const double dx = 1.0/pow(n_dofs,(1.0/dim));

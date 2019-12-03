@@ -29,6 +29,7 @@
 #include "ode_solver/ode_solver.h"
 
 #include "grid_refinement/gmsh_out.h"
+#include "grid_refinement/size_field.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -341,10 +342,27 @@ int GridStudy<dim,nstate>
 
             double solution_integral = integrate_solution_over_domain(*dg);
 
+            // std::string write_posname = "grid-"+std::to_string(igrid)+".pos";
+            // std::ofstream outpos(write_posname);
+            // // GridRefinement::GmshOut<dim,double>::write_pos(grid,estimated_error_per_cell,outpos);
+            // GridRefinement::GmshOut<dim,float>::write_pos(grid,estimated_error_per_cell,outpos);
+
+            // building error based on exact hessian
+            double complexity = 4.0*(grid.n_active_cells());
+            dealii::Vector<double> h_field;
+            GridRefinement::SizeField<dim,double>::isotropic_uniform(
+                grid,
+                *(dg->high_order_grid.mapping_fe_field),
+                dg->fe_collection[poly_degree],
+                physics_double->manufactured_solution_function,
+                complexity,
+                h_field);
+
+            // now outputting this new field
             std::string write_posname = "grid-"+std::to_string(igrid)+".pos";
             std::ofstream outpos(write_posname);
             // GridRefinement::GmshOut<dim,double>::write_pos(grid,estimated_error_per_cell,outpos);
-            GridRefinement::GmshOut<dim,float>::write_pos(grid,estimated_error_per_cell,outpos);
+            GridRefinement::GmshOut<dim,double>::write_pos(grid,h_field,outpos);
 
             std::string write_geoname = "grid-"+std::to_string(igrid)+".geo";
             std::ofstream outgeo(write_geoname);

@@ -1,5 +1,6 @@
 set(GRID_REFINEMENT_SOURCE
     gmsh_out.cpp
+    size_field.cpp
     )
 
 # Output library

@@ -64,7 +64,7 @@ void GmshOut<dim,real>::write_pos(
     out << "// File contains n_vertices = " << n_vertices << '\n' << '\n';
 
     // write the "view" header
-    out << "View \"background mesh\" {"  << '\n';
+    out << "View \"background mesh\" {"  << '\n';   
 
     // writing the main body
     // SQ(x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4){v1,v2,v3,v4};
@@ -78,8 +78,7 @@ void GmshOut<dim,real>::write_pos(
             out << "SH(";
 
         // writing the coordinates
-        for(unsigned int vertex = 0; vertex < dealii::GeometryInfo<dim>::vertices_per_cell; ++vertex)
-        {
+        for(unsigned int vertex = 0; vertex < dealii::GeometryInfo<dim>::vertices_per_cell; ++vertex){
             // Fix for the difference in numbering orders (CCW)
             // DEALII: 2D=[[0,1],[2,3]], 3D=[[[0,1],[2,3]],[[4,5],[6,7]]]
             // GMSH:   2D=[[0,1],[3,2]], 3D=[[[0,1],[3,2]],[[4,5],[7,6]]]
@@ -134,8 +133,7 @@ void GmshOut<dim,real>::write_pos(
 
         // getting the cellwise value
         real v = data[cell->active_cell_index()];
-        for(unsigned int vertex = 0; vertex < dealii::GeometryInfo<dim>::vertices_per_cell; ++vertex)
-        {
+        for(unsigned int vertex = 0; vertex < dealii::GeometryInfo<dim>::vertices_per_cell; ++vertex){
             if(vertex != 0){out << ",";}
             out << v;
         }

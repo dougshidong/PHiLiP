@@ -133,9 +133,10 @@ void GmshOut<dim,real>::write_pos(
 
         // getting the cellwise value
         real v = data[cell->active_cell_index()];
+        real scale = 2; // field is being subdivided
         for(unsigned int vertex = 0; vertex < dealii::GeometryInfo<dim>::vertices_per_cell; ++vertex){
             if(vertex != 0){out << ",";}
-            out << v;
+            out << v*scale; 
         }
 
         out << "};" << '\n';
@@ -159,6 +160,11 @@ void GmshOut<dim,real>::write_geo(
         << " * MESH GEOMETRY FILE GENERATED    * " << '\n'
         << " * AUTOMATICALLY BY PHiLiP LIBRARY * " << '\n'
         << " ***********************************/" << '\n' << '\n';
+
+    // the background field should fully specify the mesh size
+    out << "Mesh.CharacteristicLengthFromPoints = 0;" << '\n'
+        << "Mesh.CharacteristicLengthFromCurvature = 0;" << '\n'
+        << "Mesh.CharacteristicLengthExtendFromBoundary = 0;" << '\n' << '\n';
 
     // writing the geometry of the part
     // TODO: read from a parameter list what shape (could be CAD)

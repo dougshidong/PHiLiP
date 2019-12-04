@@ -100,7 +100,7 @@ void SizeField<dim,real>::isotropic_uniform(
 
         // value of the B const
         for(unsigned int iquad=0; iquad<n_quad_pts; ++iquad)
-            integral_value += w * pow(B[cell->active_cell_index()], -2.0/3.0) * fe_values.JxW(iquad);
+            integral_value += w * pow(B[cell->active_cell_index()], 1.0/3.0) * fe_values.JxW(iquad);
     }
 
     // constant now known (since q and p are uniform, otherwise would be a function of p and w)
@@ -111,7 +111,7 @@ void SizeField<dim,real>::isotropic_uniform(
     for(cell = tria.begin_active(); cell!=endc; ++cell){
         if(!cell->is_locally_owned()) continue;
 
-        h_field[cell->active_cell_index()] = pow(beta, -0.5)*pow(B[cell->active_cell_index()], 1.0/3.0);
+        h_field[cell->active_cell_index()] = pow(beta*pow(B[cell->active_cell_index()], 1.0/3.0), -0.5);
     }
 }
 

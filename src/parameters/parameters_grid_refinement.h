@@ -40,9 +40,10 @@ public:
     // need to add: isotropy indicators AND smoothness indicator
 
     // double p; // polynomial order when fixed, should take this from the grid
-    double q; // for the Lq norm
+    double norm_Lq; // for the Lq norm
 
-    // double fixed_fraction;
+    double refinement_fraction;  // refinement fraction
+    double coarsening_fraction; // coarsening fraction
 
     GridRefinementParam(); ///< Constructor
 

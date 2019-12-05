@@ -43,14 +43,13 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " run_control | "
                       " burgers_energy_stability | "
                       " diffusion_exact_adjoint | "
+                      " optimization_inverse_manufactured | "
                       " euler_gaussian_bump | "
                       " euler_gaussian_bump_adjoint | "
                       " euler_cylinder | "
                       " euler_cylinder_adjoint | "
                       " euler_vortex | "
                       " euler_entropy_waves | "
-                      " numerical_flux_convervation | "
-                      " jacobian_regression |"
                       " advection_periodicity |"
                       " euler_split_taylor_green"),
                       "The type of test we want to solve. "
@@ -58,14 +57,14 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " <run_control | " 
                       "  burgers_energy_stability | "
                       "  diffusion_exact_adjoint | "
+                      "  optimization_inverse_manufactured | "
                       "  euler_gaussian_bump | "
                       "  euler_gaussian_bump_adjoint | "
                       "  euler_cylinder | "
                       "  euler_cylinder_adjoint "
                       "  euler_vortex | "
                       "  euler_entropy_waves | "
-                      "  numerical_flux_convervation | "
-                      "  jacobian_regression |"
+                      "  euler_cylinder_adjoint "
 					  "  euler_split_taylor_green |"
 					  "  advection_periodicity >.");
 
@@ -122,10 +121,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "euler_cylinder_adjoint") { test_type = euler_cylinder_adjoint; }
     else if (test_string == "euler_vortex") { test_type = euler_vortex; }
     else if (test_string == "euler_entropy_waves") { test_type = euler_entropy_waves; }
-    else if (test_string == "numerical_flux_convervation") { test_type = numerical_flux_convervation; }
-    else if (test_string == "jacobian_regression") { test_type = jacobian_regression; }
     else if (test_string == "advection_periodicity") {test_type = advection_periodicity; }
     else if (test_string == "euler_split_taylor_green") {test_type = euler_split_taylor_green;}
+    else if (test_string == "optimization_inverse_manufactured") {test_type = optimization_inverse_manufactured; }
     
     const std::string pde_string = prm.get("pde_type");
     if (pde_string == "advection") {

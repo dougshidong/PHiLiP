@@ -70,17 +70,19 @@ void SizeField<dim,real>::isotropic_uniform(
 
         // assuming in 2D for now
         if(dim == 2){
-            // A_1, A_2 are abs of eigenvalues
-            // TODO: for p=1 only
-            real A1 = 0.5*abs((H[0][0] + H[1][1]) + sqrt(pow(H[0][0] + H[1][1], 2) - 4.0*(H[0][0]*H[1][1] - H[0][1]*H[1][0])));
-            real A2 = 0.5*abs((H[0][0] + H[1][1]) - sqrt(pow(H[0][0] + H[1][1], 2) - 4.0*(H[0][0]*H[1][1] - H[0][1]*H[1][0])));
-            std::cout << "A1 = " << A1 << '\n'
-                      << "A2 = " << A2 << '\n';
-            B[cell->active_cell_index()] = pow(A1*A2, q/2);
+            // // A_1, A_2 are abs of eigenvalues
+            // // TODO: for p=1 only
+            // real A1 = 0.5*abs((H[0][0] + H[1][1]) + sqrt(pow(H[0][0] + H[1][1], 2) - 4.0*(H[0][0]*H[1][1] - H[0][1]*H[1][0])));
+            // real A2 = 0.5*abs((H[0][0] + H[1][1]) - sqrt(pow(H[0][0] + H[1][1], 2) - 4.0*(H[0][0]*H[1][1] - H[0][1]*H[1][0])));
+            // std::cout << "A1 = " << A1 << '\n'
+            //           << "A2 = " << A2 << '\n';
+            // B[cell->active_cell_index()] = pow(A1*A2, q/2);
+
+            // product of eigenvalues should just be the detemrinant
+            B[cell->active_cell_index()] = pow(abs(H[0][0]*H[1][1] - H[0][1]*H[1][0]), q/2);
             std::cout << "B[" << cell->active_cell_index() << "]=" << B[cell->active_cell_index()] << std::endl;
         }
     }
-
     // taking the integral over the domain (piecewise constant)
     dealii::QGauss<dim> quadrature(1);
     dealii::FEValues<dim,dim> fe_values(mapping, fe, quadrature, dealii::update_JxW_values);
@@ -91,6 +93,8 @@ void SizeField<dim,real>::isotropic_uniform(
     // complexity per cell (based on polynomial orer)
     real w = pow(p+1, dim);
 
+    real exponent = 2.0/((p+1)*q+2.0);
+
     // integral value
     real integral_value = 0;
     for(cell = tria.begin_active(); cell!=endc; ++cell){
@@ -100,18 +104,18 @@ void SizeField<dim,real>::isotropic_uniform(
 
         // value of the B const
         for(unsigned int iquad=0; iquad<n_quad_pts; ++iquad)
-            integral_value += w * pow(B[cell->active_cell_index()], 1.0/3.0) * fe_values.JxW(iquad);
+            integral_value += w * pow(B[cell->active_cell_index()], exponent) * fe_values.JxW(iquad);
     }
 
     // constant now known (since q and p are uniform, otherwise would be a function of p and w)
-    real beta = complexity/integral_value;
+    real K = complexity/integral_value;
 
     // looping over the elements to define the sizes
     h_field.reinit(tria.n_active_cells());
     for(cell = tria.begin_active(); cell!=endc; ++cell){
         if(!cell->is_locally_owned()) continue;
 
-        h_field[cell->active_cell_index()] = pow(beta*pow(B[cell->active_cell_index()], 1.0/3.0), -0.5);
+        h_field[cell->active_cell_index()] = pow(K*pow(B[cell->active_cell_index()], exponent), -1.0/dim);
     }
 }
 

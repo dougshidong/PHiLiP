@@ -7,6 +7,17 @@ set dimension = 2
 # <advection|diffusion|convection_diffusion>.
 set pde_type  = convection_diffusion
 
+subsection linear solver
+#set linear_solver_type = direct
+  subsection gmres options
+    set linear_residual_tolerance = 1e-4
+    set max_iterations = 2000
+    set restart_number = 50
+    set ilut_fill = 2
+    # set ilut_drop = 1e-4
+  end 
+end
+
 subsection ODE solver
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations            = 500
@@ -26,7 +37,7 @@ subsection manufactured solution convergence study
   set manufactured_solution_type = atan_solution
 
   # Last degree used for convergence study
-  set degree_end        = 3
+  set degree_end        = 1
 
   # Starting degree for convergence study
   set degree_start      = 1
@@ -39,6 +50,6 @@ subsection manufactured solution convergence study
   set initial_grid_size = 2
 
   # Number of grids in grid study
-  set number_of_grids   = 12
+  set number_of_grids   = 6
 end
 

@@ -187,80 +187,82 @@ int GridStudy<dim,nstate>
 #endif
         dealii::Vector<float> estimated_error_per_cell;
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
-            grid.clear();
-            dealii::GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid]);
-            for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
-                // Set a dummy boundary ID
-                cell->set_material_id(9002);
-                for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-                    if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
+            if(igrid == 0){
+                grid.clear();
+                dealii::GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid]);
+                for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
+                    // Set a dummy boundary ID
+                    cell->set_material_id(9002);
+                    for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+                        if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
+                    }
                 }
-            }
-            // Warp grid if requested in input file
-            if (manu_grid_conv_param.grid_type == GridEnum::sinehypercube) dealii::GridTools::transform (&warp, grid);
+                // Warp grid if requested in input file
+                if (manu_grid_conv_param.grid_type == GridEnum::sinehypercube) dealii::GridTools::transform (&warp, grid);
 
-            // // Generate hypercube
-            // if ( igrid==0 && (manu_grid_conv_param.grid_type == GridEnum::hypercube || manu_grid_conv_param.grid_type == GridEnum::sinehypercube ) ) {
+                // // Generate hypercube
+                // if ( igrid==0 && (manu_grid_conv_param.grid_type == GridEnum::hypercube || manu_grid_conv_param.grid_type == GridEnum::sinehypercube ) ) {
 
-            //     grid.clear();
-            //     dealii::GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid]);
-            //     for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
-            //         // Set a dummy boundary ID
-            //         cell->set_material_id(9002);
-            //         for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-            //             if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
-            //         }
-            //     }
-            //     // Warp grid if requested in input file
-            //     if (manu_grid_conv_param.grid_type == GridEnum::sinehypercube) dealii::GridTools::transform (&warp, grid);
-            // } else {
-            //     dealii::GridRefinement::refine_and_coarsen_fixed_number(grid,
-            //                                     estimated_error_per_cell,
-            //                                     0.3,
-            //                                     0.03);
-            //     grid.execute_coarsening_and_refinement();
-            // }
+                //     grid.clear();
+                //     dealii::GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid]);
+                //     for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
+                //         // Set a dummy boundary ID
+                //         cell->set_material_id(9002);
+                //         for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+                //             if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
+                //         }
+                //     }
+                //     // Warp grid if requested in input file
+                //     if (manu_grid_conv_param.grid_type == GridEnum::sinehypercube) dealii::GridTools::transform (&warp, grid);
+                // } else {
+                //     dealii::GridRefinement::refine_and_coarsen_fixed_number(grid,
+                //                                     estimated_error_per_cell,
+                //                                     0.3,
+                //                                     0.03);
+                //     grid.execute_coarsening_and_refinement();
+                // }
 
-            //for (int i=0; i<5;i++) {
-            //    int icell = 0;
-            //    for (auto cell = grid.begin_active(grid.n_levels()-1); cell!=grid.end(); ++cell) {
-            //        if (!cell->is_locally_owned()) continue;
-            //        icell++;
-            //        if (icell < 2) {
-            //            cell->set_refine_flag();
-            //        }
-            //        //else if (icell%2 == 0) {
-            //        //    cell->set_refine_flag();
-            //        //} else if (icell%3 == 0) {
-            //        //    //cell->set_coarsen_flag();
-            //        //}
-            //    }
-            //    grid.execute_coarsening_and_refinement();
-            //}
+                //for (int i=0; i<5;i++) {
+                //    int icell = 0;
+                //    for (auto cell = grid.begin_active(grid.n_levels()-1); cell!=grid.end(); ++cell) {
+                //        if (!cell->is_locally_owned()) continue;
+                //        icell++;
+                //        if (icell < 2) {
+                //            cell->set_refine_flag();
+                //        }
+                //        //else if (icell%2 == 0) {
+                //        //    cell->set_refine_flag();
+                //        //} else if (icell%3 == 0) {
+                //        //    //cell->set_coarsen_flag();
+                //        //}
+                //    }
+                //    grid.execute_coarsening_and_refinement();
+                //}
 
-            // Distort grid by random amount if requested
-            const double random_factor = manu_grid_conv_param.random_distortion;
-            const bool keep_boundary = true;
-            if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, grid, keep_boundary);
+                // Distort grid by random amount if requested
+                const double random_factor = manu_grid_conv_param.random_distortion;
+                const bool keep_boundary = true;
+                if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, grid, keep_boundary);
 
-            // Read grid if requested
-            if (manu_grid_conv_param.grid_type == GridEnum::read_grid) {
-                //std::string write_mshname = "grid-"+std::to_string(igrid)+".msh";
-                std::string read_mshname = manu_grid_conv_param.input_grids+std::to_string(igrid)+".msh";
-                pcout<<"Reading grid: " << read_mshname << std::endl;
-                std::ifstream inmesh(read_mshname);
-                dealii::GridIn<dim,dim> grid_in;
-                grid_in.attach_triangulation(grid);
-                grid_in.read_msh(inmesh);
-            }
-            // Output grid if requested
-            if (manu_grid_conv_param.output_meshes) {
-                std::string write_mshname = "grid-"+std::to_string(igrid)+".msh";
-                std::ofstream outmesh(write_mshname);
-                dealii::GridOutFlags::Msh msh_flags(true, true);
-                dealii::GridOut grid_out;
-                grid_out.set_flags(msh_flags);
-                grid_out.write_msh(grid, outmesh);
+                // Read grid if requested
+                if (manu_grid_conv_param.grid_type == GridEnum::read_grid) {
+                    //std::string write_mshname = "grid-"+std::to_string(igrid)+".msh";
+                    std::string read_mshname = manu_grid_conv_param.input_grids+std::to_string(igrid)+".msh";
+                    pcout<<"Reading grid: " << read_mshname << std::endl;
+                    std::ifstream inmesh(read_mshname);
+                    dealii::GridIn<dim,dim> grid_in;
+                    grid_in.attach_triangulation(grid);
+                    grid_in.read_msh(inmesh);
+                }
+                // Output grid if requested
+                if (manu_grid_conv_param.output_meshes) {
+                    std::string write_mshname = "grid-"+std::to_string(igrid)+".msh";
+                    std::ofstream outmesh(write_mshname);
+                    dealii::GridOutFlags::Msh msh_flags(true, true);
+                    dealii::GridOut grid_out;
+                    grid_out.set_flags(msh_flags);
+                    grid_out.write_msh(grid, outmesh);
+                }
             }
 
             // Show mesh if in 2D
@@ -348,7 +350,7 @@ int GridStudy<dim,nstate>
             // GridRefinement::GmshOut<dim,float>::write_pos(grid,estimated_error_per_cell,outpos);
 
             // building error based on exact hessian
-            double complexity = 4.0*(grid.n_active_cells());
+            double complexity = 4.0*grid.n_active_cells()*4;
             dealii::Vector<double> h_field;
             GridRefinement::SizeField<dim,double>::isotropic_uniform(
                 grid,
@@ -368,8 +370,16 @@ int GridStudy<dim,nstate>
             std::ofstream outgeo(write_geoname);
             GridRefinement::GmshOut<dim,double>::write_geo(write_posname,outgeo);
 
-            int a = std::system(("gmsh " + write_geoname).c_str());
+            std::string output_name = "grid-"+std::to_string(igrid)+".msh";
+            std::cout << "Command is: " << ("gmsh " + write_geoname + " -2 -o " + output_name).c_str() << '\n';
+            int a = std::system(("gmsh " + write_geoname + " -2 -o " + output_name).c_str());
             pcout << "a" << a << std::endl;
+
+            grid.clear();
+            dealii::GridIn<dim> gridin;
+            gridin.attach_triangulation(grid);
+            std::ifstream f(output_name);
+            gridin.read_msh(f);
 
             // Convergence table
             const double dx = 1.0/pow(n_dofs,(1.0/dim));

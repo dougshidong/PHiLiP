@@ -10,6 +10,8 @@
 
 #include "parameters/parameters_euler.h"
 
+#include "parameters/parameters_grid_refinement.h"
+
 namespace PHiLiP {
 namespace Parameters {
 
@@ -28,6 +30,8 @@ public:
     LinearSolverParam linear_solver_param;
     /// Contains parameters for the Euler equations non-dimensionalization
     EulerParam euler_param;
+    /// contains the parameters for grid refinement
+    GridRefinementParam grid_refinement_param;
 
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;

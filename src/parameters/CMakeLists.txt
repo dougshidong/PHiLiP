@@ -4,6 +4,7 @@ set(SOURCE
     parameters_linear_solver.cpp
     parameters_manufactured_convergence_study.cpp
     parameters_euler.cpp
+    parameters_grid_refinement.cpp
     all_parameters.cpp
     )
 

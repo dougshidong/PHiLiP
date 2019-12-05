@@ -11,6 +11,7 @@ set(TESTS_SOURCE
     euler_entropy_waves.cpp
     advection_explicit_periodic.cpp
     euler_split_inviscid_taylor_green_vortex.cpp
+	optimization_inverse_manufactured/optimization_inverse_manufactured.cpp
 )
 
 foreach(dim RANGE 1 3)

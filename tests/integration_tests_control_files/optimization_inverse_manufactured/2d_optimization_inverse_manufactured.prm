@@ -1,0 +1,46 @@
+# Listing of Parameters
+# ---------------------
+
+set test_type = optimization_inverse_manufactured
+
+# Number of dimensions
+set dimension = 2
+
+# The PDE we want to solve. Choices are
+# <advection|diffusion|convection_diffusion>.
+set pde_type  = euler
+
+set conv_num_flux = lax_friedrichs
+
+set use_weak_form = true
+
+subsection linear solver
+#set linear_solver_type = direct
+  subsection gmres options
+    set linear_residual_tolerance = 1e-2
+    set max_iterations = 2000
+    set restart_number = 50
+    set ilut_fill = 2
+    set ilut_drop = 1e-2
+  end 
+end
+
+subsection ODE solver
+  #set output_solution_every_x_steps = 1
+  # Maximum nonlinear solver iterations
+  set nonlinear_max_iterations            = 100
+
+  # Nonlinear solver residual tolerance
+  set nonlinear_steady_residual_tolerance = 5e-12
+
+  set initial_time_step = 0.01
+  set time_step_factor_residual = 50.0
+  set time_step_factor_residual_exp = 3.0
+
+  # Print every print_iteration_modulo iterations of the nonlinear solver
+  set print_iteration_modulo              = 1
+
+  # Explicit or implicit solverChoices are <explicit|implicit>.
+  set ode_solver_type                         = implicit
+end
+

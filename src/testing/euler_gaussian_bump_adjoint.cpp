@@ -407,14 +407,14 @@ int EulerGaussianBumpAdjoint<dim,nstate>
             adjoint.reinit();
 
             // evaluating the derivatives and the adjoint on the fine grid
-            adjoint.convert_to_state(AdjointEnum::fine); // will do this automatically, but I prefer to repeat explicitly
+            adjoint.convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::fine); // will do this automatically, but I prefer to repeat explicitly
             adjoint.fine_grid_adjoint();
             estimated_error_per_cell = adjoint.dual_weighted_residual(); // performing the error indicator computation
 
             // and outputing the fine properties
             adjoint.output_results_vtk(igrid);
 
-            adjoint.convert_to_state(AdjointEnum::coarse); // this one is necessary though
+            adjoint.convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::coarse); // this one is necessary though
             adjoint.coarse_grid_adjoint();
             adjoint.output_results_vtk(igrid);
 

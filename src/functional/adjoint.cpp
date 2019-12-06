@@ -37,7 +37,7 @@ Adjoint<dim, nstate, real>::Adjoint(
     physics(_physics),
     triangulation(dg->triangulation),
     solution_coarse(dg->solution),
-    adjoint_state(AdjointEnum::coarse),
+    adjoint_state(AdjointStateEnum::coarse),
     mpi_communicator(MPI_COMM_WORLD),
     pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {
@@ -60,7 +60,7 @@ void Adjoint<dim, nstate, real>::reinit()
     // assuming that all pointers are still valid
     // reinitilizing all variables after triangulation in the constructor
     solution_coarse = dg->solution;
-    adjoint_state = AdjointEnum::coarse;
+    adjoint_state = AdjointStateEnum::coarse;
 
     // storing the original FE degree distribution
     coarse_fe_index.reinit(dg->triangulation->n_active_cells());
@@ -80,17 +80,17 @@ void Adjoint<dim, nstate, real>::reinit()
 }
 
 template <int dim, int nstate, typename real>
-void Adjoint<dim, nstate, real>::convert_to_state(AdjointEnum state)
+void Adjoint<dim, nstate, real>::convert_to_state(AdjointStateEnum state)
 {   
     // checks if conversion is needed
     if(adjoint_state == state) 
         return;
 
     // then calls corresponding function for state conversions
-    if(adjoint_state == AdjointEnum::coarse && state == AdjointEnum::fine) 
+    if(adjoint_state == AdjointStateEnum::coarse && state == AdjointStateEnum::fine) 
         coarse_to_fine();
     
-    if(adjoint_state == AdjointEnum::fine && state == AdjointEnum::coarse)
+    if(adjoint_state == AdjointStateEnum::fine && state == AdjointStateEnum::coarse)
         fine_to_coarse();
 }
 
@@ -125,7 +125,7 @@ void Adjoint<dim, nstate, real>::coarse_to_fine()
     solution_transfer.interpolate(dg->solution);
     dg->solution.update_ghost_values();
 
-    adjoint_state = AdjointEnum::fine;
+    adjoint_state = AdjointStateEnum::fine;
 }
 
 template <int dim, int nstate, typename real>
@@ -146,13 +146,13 @@ void Adjoint<dim, nstate, real>::fine_to_coarse()
 
     dg->solution = solution_coarse;
 
-    adjoint_state = AdjointEnum::coarse;
+    adjoint_state = AdjointStateEnum::coarse;
 }
 
 template <int dim, int nstate, typename real>
 dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nstate, real>::fine_grid_adjoint()
 {
-    convert_to_state(AdjointEnum::fine);
+    convert_to_state(AdjointStateEnum::fine);
 
     // dIdw_fine.reinit(dg->solution);
     // dIdw_fine = functional.evaluate_dIdw(dg, physics);
@@ -181,7 +181,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nstate, real>::fin
 template <int dim, int nstate, typename real>
 dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nstate, real>::coarse_grid_adjoint()
 {
-    convert_to_state(AdjointEnum::coarse);
+    convert_to_state(AdjointStateEnum::coarse);
 
     dIdw_coarse.reinit(dg->solution);
     //dIdw_coarse = functional.evaluate_dIdw(dg, physics);
@@ -210,7 +210,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nstate, real>::coa
 template <int dim, int nstate, typename real>
 dealii::Vector<real> Adjoint<dim, nstate, real>::dual_weighted_residual()
 {
-    convert_to_state(AdjointEnum::fine);
+    convert_to_state(AdjointStateEnum::fine);
 
     // allocating 
     dual_weighted_residual_fine.reinit(dg->triangulation->n_active_cells());
@@ -285,12 +285,12 @@ void Adjoint<dim,nstate,real>::output_results_vtk(const unsigned int cycle)
     }
 
     // adding the data structures specific to this particular class, checking if currently fine or coarse
-    if(adjoint_state == AdjointEnum::fine){
+    if(adjoint_state == AdjointStateEnum::fine){
         data_out.add_data_vector(dIdw_fine, dIdw_names, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
         data_out.add_data_vector(adjoint_fine, adjoint_names, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
 
         data_out.add_data_vector(dual_weighted_residual_fine, "DWR", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
-    }else if(adjoint_state == AdjointEnum::coarse){
+    }else if(adjoint_state == AdjointStateEnum::coarse){
         data_out.add_data_vector(dIdw_coarse, dIdw_names, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
         data_out.add_data_vector(adjoint_coarse, adjoint_names, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
     }
@@ -301,9 +301,9 @@ void Adjoint<dim,nstate,real>::output_results_vtk(const unsigned int cycle)
     // data_out.build_patches(*(dg->high_order_grid.mapping_fe_field), dg->max_degree, dealii::DataOut<dim, dealii::hp::DoFHandler<dim>>::CurvedCellRegion::curved_inner_cells);
     //data_out.build_patches(*(high_order_grid.mapping_fe_field), fe_collection.size(), dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells);
     std::string filename = "adjoint-" ;
-    if(adjoint_state == AdjointEnum::fine)
+    if(adjoint_state == AdjointStateEnum::fine)
         filename += "fine-";
-    else if(adjoint_state == AdjointEnum::coarse)
+    else if(adjoint_state == AdjointStateEnum::coarse)
         filename += "coarse-";
     filename += dealii::Utilities::int_to_string(dim, 1) + "D-";
     filename += dealii::Utilities::int_to_string(cycle, 4) + ".";
@@ -316,9 +316,9 @@ void Adjoint<dim,nstate,real>::output_results_vtk(const unsigned int cycle)
         std::vector<std::string> filenames;
         for (unsigned int iproc = 0; iproc < dealii::Utilities::MPI::n_mpi_processes(mpi_communicator); ++iproc) {
             std::string fn = "adjoint-";
-            if(adjoint_state == AdjointEnum::fine)
+            if(adjoint_state == AdjointStateEnum::fine)
                 fn += "fine-";
-            else if(adjoint_state == AdjointEnum::coarse)
+            else if(adjoint_state == AdjointStateEnum::coarse)
                 fn += "coarse-";
             fn += dealii::Utilities::int_to_string(dim, 1) + "D-";
             fn += dealii::Utilities::int_to_string(cycle, 4) + ".";
@@ -327,9 +327,9 @@ void Adjoint<dim,nstate,real>::output_results_vtk(const unsigned int cycle)
             filenames.push_back(fn);
         }
         std::string master_fn = "adjoint-";
-        if(adjoint_state == AdjointEnum::fine)
+        if(adjoint_state == AdjointStateEnum::fine)
             master_fn += "fine-";
-        else if(adjoint_state == AdjointEnum::coarse)
+        else if(adjoint_state == AdjointStateEnum::coarse)
             master_fn += "coarse-";
         master_fn += dealii::Utilities::int_to_string(dim, 1) +"D-";
         master_fn += dealii::Utilities::int_to_string(cycle, 4) + ".pvtu";

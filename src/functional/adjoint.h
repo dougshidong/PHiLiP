@@ -20,12 +20,6 @@
 
 namespace PHiLiP {
 
-/// For storing the current state in the adjoint
-enum AdjointEnum {
-    coarse, ///< Initial state
-    fine,   ///< Refined state
-};
-
 /// Adjoint class
 /** 
   * This class computes the discrete adjoint of the system based on a functional of interest and
@@ -49,6 +43,12 @@ class Adjoint
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
 #endif
 public:
+
+    /// For storing the current state in the adjoint
+    enum AdjointStateEnum{
+        coarse, ///< Initial state
+        fine,   ///< Refined state
+    };
 
     /// Constructor
     /** Initializes the Adjoint as being in the AdjointEnum::coarse state.
@@ -74,7 +74,7 @@ public:
     /** Calls the functions coarse_to_fine() or fine_to_coarse()
      *  if the Adjoint::adjoint_state is different than the input \p state
      */
-    void convert_to_state(AdjointEnum state);
+    void convert_to_state(AdjointStateEnum state);
 
     /// Projects the problem to a p-enriched space
     /** Raises the FE_index on each cell and transfers the coarse 
@@ -152,7 +152,7 @@ public:
     dealii::Vector<real> coarse_fe_index;
 
     /// Current adjoint state
-    AdjointEnum adjoint_state;
+    AdjointStateEnum adjoint_state;
 
 protected:
     MPI_Comm mpi_communicator; ///< MPI communicator

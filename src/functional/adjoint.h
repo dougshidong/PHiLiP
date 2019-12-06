@@ -56,9 +56,9 @@ public:
      *  for the mesh for converting back to coarse state after refinement.
      */
     Adjoint(
-        DGBase<dim,real> &_dg,
-        Functional<dim, nstate, real> &_functional,
-        const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> &_physics);
+        std::shared_ptr< DGBase<dim,real> > _dg,
+        std::shared_ptr< Functional<dim, nstate, real> > _functional,
+        std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> > _physics);
 
     ///destructor
     ~Adjoint();
@@ -125,11 +125,11 @@ public:
     void output_results_vtk(const unsigned int cycle);
 
     /// DG class pointer
-    DGBase<dim,real> &dg;
+    std::shared_ptr< DGBase<dim,real> >dg;
     /// Functional class pointer
-    Functional<dim, nstate, real> &functional;
+    std::shared_ptr< Functional<dim, nstate, real> > functional;
     /// Problem physics (for calling the functional class) 
-    const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> &physics;
+    std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> > physics;
     
     /// Grid
     Triangulation *const triangulation;

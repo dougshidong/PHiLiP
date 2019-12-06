@@ -177,6 +177,7 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
 		//mapping_coll.push_back(mapping);
 
 		const dealii::FE_DGQ<dim> fe_dg(degree);
+                //const dealii::FE_DGQLegendre<dim> fe_dg(degree);
 		const dealii::FESystem<dim,dim> fe_system(fe_dg, nstate);
 		fe_coll.push_back (fe_system);
 
@@ -235,7 +236,7 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
 
         // Solution FECollection
         const dealii::FE_DGQ<dim> fe_dg(degree);
-       // const dealii::FE_DGQLegendre<dim> fe_dg(degree);
+        //const dealii::FE_DGQLegendre<dim> fe_dg(degree);
         //const dealii::FE_DGP<dim> fe_dg(degree);
         const dealii::FESystem<dim,dim> fe_system(fe_dg, nstate);
         fe_coll.push_back (fe_system);
@@ -295,7 +296,7 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
        // mapping_coll_flux.push_back(mapping);
 
         const dealii::FE_DGQ<dim> fe_dg_flux(degree);
-       // const dealii::FE_DGQLegendre<dim> fe_dg_flux(degree);
+        //const dealii::FE_DGQLegendre<dim> fe_dg_flux(degree);
         //const dealii::FE_DGP<dim> fe_dg_flux(degree);
         const dealii::FESystem<dim,dim> fe_system_flux(fe_dg_flux, nstate);
         fe_coll_flux.push_back (fe_system_flux);
@@ -1789,6 +1790,8 @@ fflush(stdout);
             if(v_deg==curr_cell_degree){
                 K_operator_temp.mmult(K_operator_no_Jac_aux[1], derivative_p, false);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
             }
+
+
 //#endif
 #if 0
            // derivative_p_temp.Tmmult(K_operator_no_Jac_aux, derivative_p, true);
@@ -1796,7 +1799,26 @@ fflush(stdout);
                 dealii::FullMatrix<real> temp_mat2(n_dofs_cell);
                 derivative_p_temp.TmTmult(temp_mat, Chi_operator);            
                 temp_mat.mmult(temp_mat2, Chi_operator);            
-                temp_mat2.mmult(K_operator_no_Jac_aux, derivative_p, true);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
+                temp_mat2.mmult(K_operator_no_Jac_aux[0], derivative_p, true);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
+
+
+#endif
+#if 0
+printf("\n\n\n");
+fflush(stdout);
+        printf("K oper after\n");
+fflush(stdout);
+        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+            for(unsigned int idof2=0; idof2<n_dofs_cell; idof2++){
+                if(fabs(K_operator_no_Jac_aux[0][idof][idof2])<1e-9)
+                    K_operator_no_Jac_aux[1][idof][idof2]=0.0;
+                printf("%g ",K_operator_no_Jac_aux[1][idof][idof2]);
+                fflush(stdout);
+            }
+            printf("\n");
+            fflush(stdout);
+        }
+
 #endif
         }
         //Include Jac dependence

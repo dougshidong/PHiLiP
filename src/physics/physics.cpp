@@ -21,7 +21,8 @@ PhysicsBase<dim,nstate,real>::PhysicsBase()
 
     // Some constants used to define manufactured solution
     velo_x = 1.1; velo_y = -pi/ee; velo_z = ee/pi;
-    //velo_x = 2.0; velo_y = 2.0; velo_z = ee/pi;
+    velo_x = 2.0; velo_y = 2.0; velo_z = ee/pi;
+   // velo_x = 8.0; velo_y = 8.0; velo_z = ee/pi;
     diff_coeff = 0.1*pi/ee;
     diff_coeff = 0.1;
     diff_coeff = 0.5;

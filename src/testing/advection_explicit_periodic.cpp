@@ -23,6 +23,9 @@
 
 #include<fenv.h>
 
+#include <deal.II/grid/manifold_lib.h>
+#include <fstream>
+
 namespace PHiLiP {
 namespace Tests {
 template <int dim, int nstate>
@@ -33,6 +36,16 @@ TestsBase::TestsBase(parameters_input)
 , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {}
 
+template<int dim, int nstate>
+double AdvectionPeriodic<dim, nstate>::compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const
+{
+	double energy = 0.0;
+	for (unsigned int i = 0; i < dg->solution.size(); ++i)
+	{
+		energy += dg->global_mass_matrix(i,i) * dg->solution(i) * dg->solution(i);
+	}
+	return energy;
+}
 
 template <int dim, int nstate>
 int AdvectionPeriodic<dim, nstate>::run_test() const
@@ -49,7 +62,9 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 #endif
 #endif
 
-    const unsigned int n_grids = 9;
+    PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
+
+    const unsigned int n_grids = 8;
     std::array<double,n_grids> grid_size;
     std::array<double,n_grids> soln_error;
    // std::array<double,n_grids> output_error;
@@ -64,8 +79,12 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
         n_1d_cells[igrid] = static_cast<int>(n_1d_cells[igrid-1]*1.5) + 2;
     }
 #endif
-	double left = 0.0;
-	double right = 2.0;
+//	double left = 0.0;
+//	double right = 2.0;
+//	double left = -1.0;
+//	double right = 1.0;
+	double left = 1.0;
+	double right = 3.0;
 	const bool colorize = true;
 //	int n_refinements = 6;
 	unsigned int n_refinements = n_grids;
@@ -88,6 +107,50 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 
 	dealii::GridGenerator::hyper_cube(grid, left, right, colorize);
 
+#if 0
+const dealii::Point<dim> center (1,0);
+const dealii::SphericalManifold<dim> manifold(center);
+//Triangulation<2> triangulation;
+dealii::GridGenerator::hyper_cube (grid, left, right, colorize);
+// again disable all manifolds for demonstration purposes
+grid.reset_all_manifolds();
+// reenable the manifold:
+grid.set_all_manifold_ids(0);
+grid.set_manifold (0, manifold);
+grid.refine_global (3);
+#endif
+
+
+//#if 0
+const dealii::Point<dim> center1(0,1);
+//const dealii::Point<dim> center1(4,1);
+const dealii::SphericalManifold<dim> m0(center1);
+dealii::GridGenerator::hyper_cube (grid, left, right, colorize);
+//dealii::GridGenerator::hyper_cube(tria,-1,1);
+//grid.set_all_manifold_ids(0);
+//grid.set_all_manifold_ids_on_boundary(0);
+//grid.set_all_manifold_ids_on_boundary(-1);
+grid.set_manifold(0, m0);
+#if 0
+for(int idim=0; idim<dim; idim++){
+grid.set_all_manifold_ids_on_boundary(2*(idim -1),2*(idim-1));
+grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
+}
+#endif
+//const dealii::Point<dim> center2(0,1);
+const dealii::Point<dim> center2(2,1);
+const dealii::SphericalManifold<dim> m02(center2);
+grid.set_manifold(1, m02);
+for(int idim=0; idim<dim; idim++){
+grid.set_all_manifold_ids_on_boundary(2*(idim -1),2*(idim-1));
+grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
+}
+//m0.copy_boundary_to_manifold_id(grid, false);
+//dealii::GridTools::regularize_corner_cells(grid);
+//grid.refine_global(4);
+
+//#endif
+
  #if PHILIP_DIM==1
 #else
 	std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
@@ -100,7 +163,23 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 #endif
 	grid.refine_global(igrid);
 
-	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, &grid);
+    if (igrid == 4){
+    all_parameters_new.ode_solver_param.initial_time_step = 4.0e-3;
+    }
+    if (igrid ==5){
+    all_parameters_new.ode_solver_param.initial_time_step = 1.0e-3;
+    }
+    if (igrid==6){
+    all_parameters_new.ode_solver_param.initial_time_step = 2.5e-4;
+    }
+    if (igrid==7){
+    all_parameters_new.ode_solver_param.initial_time_step = 6.25e-5;
+    }
+    if (igrid==8){
+    all_parameters_new.ode_solver_param.initial_time_step = 1.5625e-5;
+    }
+
+	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, &grid);
 	dg->allocate_system ();
 
 //	for (auto current_cell = dg->dof_handler.begin_active(); current_cell != dg->dof_handler.end(); ++current_cell) {
@@ -136,15 +215,16 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
         if (dim == 3)
 	    expression = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) + 20*(z-1)*(z-1) ) )";//"sin(pi*x)*sin(pi*y)";
         if (dim == 2)
-	    expression = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) ) )";//"sin(pi*x)*sin(pi*y)";
+	    //expression = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) ) )";//"sin(pi*x)*sin(pi*y)";
+	    expression = "exp( -( 20*(x-2)*(x-2) + 20*(y-2)*(y-2) ) )";//"sin(pi*x)*sin(pi*y)";
         if(dim==1)
 	    expression = "exp( -( 20*(x-1)*(x-1) ) )";//"sin(pi*x)*sin(pi*y)";
 	initial_condition.initialize(variables,
 								 expression,
 								 constants);
-//	dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
+	dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
 	
-//#if 0
+#if 0
 //if use legendre poly to interpolate IC
                 const unsigned int n_quad_pts1      = dg->volume_quadrature_collection[2].size();
                 const unsigned int n_dofs_cell1     =dg->fe_collection[2].dofs_per_cell;
@@ -178,7 +258,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 
 
 }
-//#endif
+#endif
 	
 	
 	// Create ODE solver using the factory and providing the DG object
@@ -187,9 +267,37 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 	double finalTime = 1.5;
 finalTime=1e-20;
 finalTime=10.0;
+finalTime = 2.0;
 finalTime = 1.0;
 
-	//double dt = all_parameters->ode_solver_param.initial_time_step;
+#if 0
+	//need to call ode_solver before calculating energy because mass matrix isn't allocated yet.
+
+	ode_solver->advance_solution_time(0.000001);
+	double initial_energy = compute_energy(dg);
+
+	//currently the only way to calculate energy at each time-step is to advance solution by dt instead of finaltime
+	//this causes some issues with outputs (only one file is output, which is overwritten at each time step)
+	//also the ode solver output doesn't make sense (says "iteration 1 out of 1")
+	//but it works. I'll keep it for now and need to modify the output functions later to account for this.
+	std::ofstream myfile ("energy_plot_CPlus.gpl" , std::ios::trunc);
+	double dt = all_parameters_new.ode_solver_param.initial_time_step;
+
+	for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
+	{
+		ode_solver->advance_solution_time(dt);
+		double current_energy = compute_energy(dg);
+		pcout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
+		myfile << i * dt << " " << current_energy << std::endl;
+		if (current_energy - initial_energy >= 0.001)
+		{
+			return 1;
+			break;
+		}
+	}
+	myfile.close();
+#endif
+
 	ode_solver->advance_solution_time(finalTime);
 
 //output results
@@ -259,7 +367,8 @@ finalTime = 1.0;
                         else
                         uexact *= exp(-(20 * (qpoint[idim] - speed*finalTime -1) * (qpoint[idim] - speed*finalTime -1)));
 #endif
-                        uexact *= exp(-(20 * (qpoint[idim] - 1) * (qpoint[idim] - 1)));
+                     //   uexact *= exp(-(20 * (qpoint[idim] - 1) * (qpoint[idim] - 1)));
+                        uexact *= exp(-(20 * (qpoint[idim] - 2) * (qpoint[idim] - 2)));
                         //uexact *= exp(-(20 * (qpoint[idim] - finalTime  - 1) * (qpoint[idim] - finalTime - 1)));
                         //uexact *= exp(-(20 * (qpoint[istate] - speed*finalTime -1) * (qpoint[istate] - speed*finalTime -1)));
                     }

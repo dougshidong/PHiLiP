@@ -19,6 +19,7 @@ private:
     //const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
     const MPI_Comm mpi_communicator;
     dealii::ConditionalOStream pcout;
+	double compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const;
 };
 
 } // End of Tests namespace

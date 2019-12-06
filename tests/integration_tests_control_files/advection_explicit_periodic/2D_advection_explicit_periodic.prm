@@ -6,6 +6,7 @@ set test_type = advection_periodicity
 set dimension = 2
 
 set use_weak_form = true
+#set use_weak_form = false
 
 set use_collocated_nodes = false
 
@@ -26,15 +27,17 @@ subsection ODE solver
 
   set ode_output = verbose
   
-  set nonlinear_max_iterations = 500
+ # set nonlinear_max_iterations = 500
+  set nonlinear_max_iterations = 50000
   set nonlinear_steady_residual_tolerance = 1e-12
 
   set print_iteration_modulo = 100
 
-  set ode_solver_type = implicit
- # set ode_solver_type = explicit
+  #set ode_solver_type = implicit
+  set ode_solver_type = explicit
 
- # set initial_time_step = 0.001
- # set initial_time_step = 0.0001
+  set initial_time_step = 0.001
+  #set initial_time_step = 0.00001
+  #set initial_time_step = 0.0001
 
 end

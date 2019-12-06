@@ -28,6 +28,7 @@
 #include "dg/dg.h"
 #include "ode_solver/ode_solver.h"
 
+#include "grid_refinement/grid_refinement.h"
 #include "grid_refinement/gmsh_out.h"
 #include "grid_refinement/size_field.h"
 
@@ -186,6 +187,7 @@ int GridStudy<dim,nstate>
                 //dealii::Triangulation<dim>::smoothing_on_coarsening));
 #endif
         dealii::Vector<float> estimated_error_per_cell;
+        dealii::Vector<double> estimated_error_per_cell_double;
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
             if(igrid == 0){
                 grid.clear();
@@ -311,6 +313,7 @@ int GridStudy<dim,nstate>
 
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
             estimated_error_per_cell.reinit(grid.n_active_cells());
+            estimated_error_per_cell_double.reinit(grid.n_active_cells());
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
 
                 if (!cell->is_locally_owned()) continue;
@@ -337,6 +340,7 @@ int GridStudy<dim,nstate>
                     }
                 }
                 estimated_error_per_cell[cell->active_cell_index()] = cell_l2error;
+                estimated_error_per_cell_double[cell->active_cell_index()] = cell_l2error;
                 l2error += cell_l2error;
 
             }
@@ -344,42 +348,18 @@ int GridStudy<dim,nstate>
 
             double solution_integral = integrate_solution_over_domain(*dg);
 
-            // std::string write_posname = "grid-"+std::to_string(igrid)+".pos";
-            // std::ofstream outpos(write_posname);
-            // // GridRefinement::GmshOut<dim,double>::write_pos(grid,estimated_error_per_cell,outpos);
-            // GridRefinement::GmshOut<dim,float>::write_pos(grid,estimated_error_per_cell,outpos);
+            dg->output_results_vtk(igrid);
 
-            // building error based on exact hessian
-            double complexity = 4.0*grid.n_active_cells()*4;
-            dealii::Vector<double> h_field;
-            GridRefinement::SizeField<dim,double>::isotropic_uniform(
-                grid,
-                *(dg->high_order_grid.mapping_fe_field),
-                dg->fe_collection[poly_degree],
-                physics_double->manufactured_solution_function,
-                complexity,
-                h_field);
-
-            // now outputting this new field
-            std::string write_posname = "grid-"+std::to_string(igrid)+".pos";
+            std::string write_posname = "error-"+std::to_string(igrid)+".pos";
             std::ofstream outpos(write_posname);
-            // GridRefinement::GmshOut<dim,double>::write_pos(grid,estimated_error_per_cell,outpos);
-            GridRefinement::GmshOut<dim,double>::write_pos(grid,h_field,outpos);
+            GridRefinement::GmshOut<dim,double>::write_pos(grid,estimated_error_per_cell_double,outpos);
 
-            std::string write_geoname = "grid-"+std::to_string(igrid)+".geo";
-            std::ofstream outgeo(write_geoname);
-            GridRefinement::GmshOut<dim,double>::write_geo(write_posname,outgeo);
+            std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  gr 
+                = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(&param,dg,physics_double);
 
-            std::string output_name = "grid-"+std::to_string(igrid)+".msh";
-            std::cout << "Command is: " << ("gmsh " + write_geoname + " -2 -o " + output_name).c_str() << '\n';
-            int a = std::system(("gmsh " + write_geoname + " -2 -o " + output_name).c_str());
-            pcout << "a" << a << std::endl;
+            gr->refine_grid();
 
-            grid.clear();
-            dealii::GridIn<dim> gridin;
-            gridin.attach_triangulation(grid);
-            std::ifstream f(output_name);
-            gridin.read_msh(f);
+            // dg->output_results_vtk(igrid);
 
             // Convergence table
             const double dx = 1.0/pow(n_dofs,(1.0/dim));

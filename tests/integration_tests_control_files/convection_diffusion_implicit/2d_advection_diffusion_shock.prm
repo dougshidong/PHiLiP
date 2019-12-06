@@ -32,6 +32,16 @@ subsection ODE solver
   set ode_solver_type                         = implicit
 end
 
+subsection grid refinement
+  set refinement_method   = continuous #uniform
+  set refinement_type     = h
+  set isotropic           = true
+  set error_indicator     = hessian_based #error_based
+  set norm_Lq             = 2.0
+  set refinement_fraction = 0.35
+  set coarsening_fraction = 0.03
+end
+
 subsection manufactured solution convergence study
   set use_manufactured_source_term = true
   set manufactured_solution_type = atan_solution

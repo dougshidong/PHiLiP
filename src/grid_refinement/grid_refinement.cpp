@@ -1,5 +1,8 @@
 #include <deal.II/grid/tria.h>
 
+#include <deal.II/grid/grid_out.h>
+#include <deal.II/grid/grid_in.h>
+
 #include "parameters/all_parameters.h"
 #include "parameters/parameters_grid_refinement.h"
 
@@ -23,7 +26,7 @@ namespace GridRefinement {
 template <int dim, int nstate, typename real>
 void GridRefinement_Uniform<dim,nstate,real>::refine_grid_h()
 {
-    this->tria->refine_global(1);
+    this->tria.refine_global(1);
 }
 template <int dim, int nstate, typename real>
 void GridRefinement_Uniform<dim,nstate,real>::refine_grid_p()
@@ -111,7 +114,44 @@ template <int dim, int nstate, typename real>
 void GridRefinement_Continuous_Error<dim,nstate,real>::refine_grid_hp(){}
 
 template <int dim, int nstate, typename real>
-void GridRefinement_Continuous_Hessian<dim,nstate,real>::refine_grid_h(){}
+void GridRefinement_Continuous_Hessian<dim,nstate,real>::refine_grid_h()
+{
+    std::cout << "calling the correct function?" << std::endl;
+
+    int igrid = 0;
+    int poly_degree = 1;
+
+    // building error based on exact hessian
+    double complexity = 4.0*this->tria.n_active_cells()*4;
+    dealii::Vector<double> h_field;
+    SizeField<dim,double>::isotropic_uniform(
+        this->tria,
+        *(this->dg->high_order_grid.mapping_fe_field),
+        this->dg->fe_collection[poly_degree],
+        this->physics->manufactured_solution_function,
+        complexity,
+        h_field);
+
+    // now outputting this new field
+    std::string write_posname = "grid-"+std::to_string(igrid)+".pos";
+    std::ofstream outpos(write_posname);
+    GmshOut<dim,double>::write_pos(this->tria,h_field,outpos);
+
+    std::string write_geoname = "grid-"+std::to_string(igrid)+".geo";
+    std::ofstream outgeo(write_geoname);
+    GmshOut<dim,double>::write_geo(write_posname,outgeo);
+
+    std::string output_name = "grid-"+std::to_string(igrid)+".msh";
+    std::cout << "Command is: " << ("gmsh " + write_geoname + " -2 -o " + output_name).c_str() << '\n';
+    int a = std::system(("gmsh " + write_geoname + " -2 -o " + output_name).c_str());
+    std::cout << "a" << a << std::endl;
+
+    this->tria.clear();
+    dealii::GridIn<dim> gridin;
+    gridin.attach_triangulation(this->tria);
+    std::ifstream f(output_name);
+    gridin.read_msh(f);
+}
 template <int dim, int nstate, typename real>
 void GridRefinement_Continuous_Hessian<dim,nstate,real>::refine_grid_p(){}
 template <int dim, int nstate, typename real>
@@ -135,27 +175,27 @@ void GridRefinement_Continuous_Adjoint<dim,nstate,real>::refine_grid_hp(){}
 template <int dim, int nstate, typename real>
 void GridRefinementBase<dim,nstate,real>::refine_grid()
 {
-    using RefinementMethodEnum = PHiLiP::Parameters::GridRefinementParam::RefinementMethod;
+    // using RefinementMethodEnum = PHiLiP::Parameters::GridRefinementParam::RefinementMethod;
     using RefinementTypeEnum   = PHiLiP::Parameters::GridRefinementParam::RefinementType;
-    RefinementMethodEnum refinement_method = this->grid_refinement_param.refinement_method;
+    // RefinementMethodEnum refinement_method = this->grid_refinement_param.refinement_method;
     RefinementTypeEnum   refinement_type   = this->grid_refinement_param.refinement_type;
 
-    // TODO: add solution transfer flag here
-    // add to constructor
-    // dealii::parallel::distributed::SolutionTransfer< 
-    //     dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim> 
-    //     > solution_transfer(dg->dof_handler);
-    if(true){
-        // TODO: check if this can be the same vector or most likely needs to be copied first
-        // solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
-    }
+    // // TODO: add solution transfer flag here
+    // // add to constructor
+    // // dealii::parallel::distributed::SolutionTransfer< 
+    // //     dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim> 
+    // //     > solution_transfer(dg->dof_handler);
+    // if(true){
+    //     // TODO: check if this can be the same vector or most likely needs to be copied first
+    //     // solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
+    // }
 
-    // TODO: prepare, only needed in cases where using the default DEALii refinements
-    if(refinement_method == RefinementMethodEnum::uniform || 
-       refinement_method == RefinementMethodEnum::fixed_fraction){
-        this->dg->high_order_grid.prepare_for_coarsening_and_refinement();
-        this->tria->prepare_coarsening_and_refinement();
-    }
+    // // TODO: prepare, only needed in cases where using the default DEALii refinements
+    // if(refinement_method == RefinementMethodEnum::uniform || 
+    //    refinement_method == RefinementMethodEnum::fixed_fraction){
+    //     this->dg->high_order_grid.prepare_for_coarsening_and_refinement();
+    //     this->tria.prepare_coarsening_and_refinement();
+    // }
 
     if(refinement_type == RefinementTypeEnum::h){
         refine_grid_h();
@@ -165,24 +205,24 @@ void GridRefinementBase<dim,nstate,real>::refine_grid()
         refine_grid_hp();
     }
 
-    // TODO: exectute
-    if(refinement_method == RefinementMethodEnum::uniform || 
-       refinement_method == RefinementMethodEnum::fixed_fraction){
-        this->tria->execute_coarsening_and_refinement(); // check if this one is necessary
-        this->dg->high_order_grid.execute_coarsening_and_refinement();
-    }
-    // TODO: complete the refinement
-    if(true){
-        this->dg->allocate_system();
-        this->dg->solution.zero_out_ghosts();
-        // solution_transfer.interpolate(dg->solution);
-        this->dg->solution.update_ghost_values();
-    }
+    // // TODO: exectute
+    // if(refinement_method == RefinementMethodEnum::uniform || 
+    //    refinement_method == RefinementMethodEnum::fixed_fraction){
+    //     this->tria.execute_coarsening_and_refinement(); // check if this one is necessary
+    //     this->dg->high_order_grid.execute_coarsening_and_refinement();
+    // }
+    // // TODO: complete the refinement
+    // if(true){
+    //     this->dg->allocate_system();
+    //     this->dg->solution.zero_out_ghosts();
+    //     // solution_transfer.interpolate(dg->solution);
+    //     this->dg->solution.update_ghost_values();
+    // }
 
-    // TODO: if reinit
-    if(true){
+    // // TODO: if reinit
+    // if(true){
 
-    }
+    // }
 }
 
 // constructors for GridRefinementBase
@@ -248,7 +288,7 @@ GridRefinementBase<dim,nstate,real>::GridRefinementBase(
         functional(functional_input),
         dg(dg_input),
         physics(physics_input),
-        tria(dg_input->triangulation){}
+        tria(*(dg_input->triangulation)){}
 
 // factory for different options, ensures that the provided 
 // values match with the selected refinement type

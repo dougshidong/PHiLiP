@@ -94,7 +94,7 @@ protected:
     // triangulation
     // dealii::Triangulation<dim, dim> &tria;
     // Triangulation &tria;
-    dealii::Triangulation<dim, dim>* const tria;
+    dealii::Triangulation<dim, dim> &tria;
 };
 
 template <int dim, int nstate, typename real>
@@ -115,7 +115,7 @@ public:
     void refine_grid_h()  override;
     void refine_grid_p()  override;
     void refine_grid_hp() override;    
-    virtual void error_indicator();
+    virtual void error_indicator() = 0;
 protected:
     dealii::Vector<real> indicator;
 };
@@ -233,6 +233,7 @@ public:
 template <int dim, int nstate, typename real>
 class GridRefinementFactory
 {
+public:
     // different factory calls have access to different Grid refinements
     // adjoint (dg + functional)
     static std::shared_ptr< GridRefinementBase<dim,nstate,real> > 

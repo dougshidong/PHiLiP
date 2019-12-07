@@ -81,13 +81,31 @@ template <int dim, int nstate, typename real>
 void GridRefinement_FixedFraction<dim,nstate,real>::refine_grid_p()
 {
     // TODO: call refine_grid_h, then loop over and replace any h refinement
-    //       flags with a prefinement
+    //       flags with a polynomial enrichment
+    refine_grid_h();
+    for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
+        if(cell->is_locally_owned())
+            if(cell->refine_flag_set()){
+                cell->clear_refine_flag();
+                cell->set_active_fe_index(cell->active_fe_index()+1);
+            }
+
 }
 template <int dim, int nstate, typename real>
 void GridRefinement_FixedFraction<dim,nstate,real>::refine_grid_hp()
 {
     // TODO: Same idea as above, except the switch in refine_grid_p
-    //       now has to meet some tolerance, e.g. smoothness
+    //       now has to meet some tolerance, e.g. smoothness, jump
+    // will need to implement the choice between different methods here
+    refine_grid_h();
+    smoothness_indicator();
+}
+
+template <int dim, int nstate, typename real>
+void GridRefinement_FixedFraction<dim,nstate,real>::smoothness_indicator()
+{
+    // reads the options and determines the proper smoothness indicator
+    
 }
 
 template <int dim, int nstate, typename real>
@@ -265,7 +283,8 @@ void GridRefinementBase<dim,nstate,real>::refine_grid()
     //     this->tria.prepare_coarsening_and_refinement();
     // }
 
-    if(refinement_method == RefinementMethodEnum::fixed_fraction){
+    if(refinement_method == RefinementMethodEnum::uniform 
+    || refinement_method == RefinementMethodEnum::fixed_fraction){
         this->dg->high_order_grid.prepare_for_coarsening_and_refinement();
     }
 
@@ -275,6 +294,10 @@ void GridRefinementBase<dim,nstate,real>::refine_grid()
         refine_grid_p();
     }else if(refinement_type == RefinementTypeEnum::hp){
         refine_grid_hp();
+    }
+
+    if(refinement_method == RefinementMethodEnum::uniform){
+        this->dg->high_order_grid.execute_coarsening_and_refinement();
     }
 
     if(refinement_method == RefinementMethodEnum::fixed_fraction){

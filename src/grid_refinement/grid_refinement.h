@@ -128,8 +128,10 @@ public:
     void refine_grid_p()  override;
     void refine_grid_hp() override;    
     virtual void error_indicator() = 0;
+    void smoothness_indicator();
 protected:
     dealii::Vector<real> indicator;
+    dealii::Vector<real> smoothness;
 };
 
 // TODO: check if I need to directly inherit GridRefinementBase as well
@@ -165,42 +167,6 @@ public:
     using GridRefinement_FixedFraction<dim,nstate,real>::GridRefinement_FixedFraction;
     void error_indicator() override;
 };
-
-// template <int dim, int nstate, typename real>
-// class GridRefinement_FixedFraction_Error : GridRefinementBase<dim,nstate,real>
-// {
-// public:
-//     void refine_grid_h()  override;
-//     void refine_grid_p()  override;
-//     void refine_grid_hp() override;
-// };
-
-// template <int dim, int nstate, typename real>
-// class GridRefinement_FixedFraction_Hessian : GridRefinementBase<dim,nstate,real>
-// {
-// public:
-//     void refine_grid_h()  override;
-//     void refine_grid_p()  override;
-//     void refine_grid_hp() override;
-// };
-
-// template <int dim, int nstate, typename real>
-// class GridRefinement_FixedFraction_Residual : GridRefinementBase<dim,nstate,real>
-// {
-// public:
-//     void refine_grid_h()  override;
-//     void refine_grid_p()  override;
-//     void refine_grid_hp() override;
-// };
-
-// template <int dim, int nstate, typename real>
-// class GridRefinement_FixedFraction_Adjoint : GridRefinementBase<dim,nstate,real>
-// {
-// public:
-//     void refine_grid_h()  override;
-//     void refine_grid_p()  override;
-//     void refine_grid_hp() override;
-// };
 
 template <int dim, int nstate, typename real>
 class GridRefinement_Continuous_Error : public GridRefinementBase<dim,nstate,real>
@@ -275,19 +241,6 @@ public:
         PHiLiP::Parameters::AllParameters const *const param,
         std::shared_ptr< PHiLiP::DGBase<dim, real> >   dg);
 
-    // cannot use either of these as they'd need a high_order_grid, object in dg        
-    // // physics + triangulation
-    // static std::shared_ptr< GridRefinementBase<dim,nstate,real> > 
-    // create_GridRefinement(
-    //     PHiLiP::Parameters::AllParameters const *const          param,
-    //     std::shared_ptr< PHiLiP::PhysicsBase<dim,nstate,real> > physics,
-    //     dealii::Triangulation<dim, dim> &                       tria);
-
-    // // triangulation
-    // static std::shared_ptr< GridRefinementBase<dim,nstate,real> > 
-    // create_GridRefinement(
-    //     PHiLiP::Parameters::AllParameters const *const param,
-    //     dealii::Triangulation<dim, dim> &              tria);
 };
 
 } // namespace GridRefinement

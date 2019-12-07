@@ -132,7 +132,7 @@ int GridRefinementStudy<dim,nstate>::run_test() const
         dealii::Vector<float> estimated_error_per_cell(grid.n_active_cells());
         for(unsigned int igrid = 0; igrid < refinement_steps; ++igrid){
             if(igrid > 0){
-                // grid_refinement->refine_grid();
+                grid_refinement->refine_grid();
                 dg->allocate_system();
             }
 

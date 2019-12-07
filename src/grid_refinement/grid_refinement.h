@@ -22,7 +22,19 @@ namespace GridRefinement {
 template <int dim, int nstate, typename real>
 class GridRefinementBase
 {
-
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    /** Triangulation to store the grid.
+     *  In 1D, dealii::Triangulation<dim> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
+     */
+    using Triangulation = dealii::Triangulation<dim>;
+#else
+    /** Triangulation to store the grid.
+     *  In 1D, dealii::Triangulation<dim> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
+     */
+    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+#endif
 public:
     // deleting the default constructor
     GridRefinementBase() = delete;
@@ -75,7 +87,7 @@ protected:
     // template <int dim, int nstate, typename real>
 
     // adj
-    std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real> > adj;
+    std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real> > adjoint;
 
     // Functional
     std::shared_ptr< PHiLiP::Functional<dim, nstate, real> > functional;
@@ -94,7 +106,7 @@ protected:
     // triangulation
     // dealii::Triangulation<dim, dim> &tria;
     // Triangulation &tria;
-    dealii::Triangulation<dim, dim> &tria;
+    Triangulation &tria;
 };
 
 template <int dim, int nstate, typename real>

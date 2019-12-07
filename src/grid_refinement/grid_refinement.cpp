@@ -2,6 +2,12 @@
 
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/grid_in.h>
+#include <deal.II/grid/grid_refinement.h>
+
+#include <deal.II/distributed/grid_refinement.h>
+
+#include <deal.II/base/quadrature_lib.h>
+#include <deal.II/fe/fe_values.h>
 
 #include "parameters/all_parameters.h"
 #include "parameters/parameters_grid_refinement.h"
@@ -21,6 +27,11 @@
 namespace PHiLiP {
 
 namespace GridRefinement {
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    template <int dim> using Triangulation = dealii::Triangulation<dim>;
+#else
+    template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+#endif
 
 // functions for the refinement calls for each of the classes
 template <int dim, int nstate, typename real>
@@ -31,7 +42,8 @@ void GridRefinement_Uniform<dim,nstate,real>::refine_grid_h()
 template <int dim, int nstate, typename real>
 void GridRefinement_Uniform<dim,nstate,real>::refine_grid_p()
 {
-    // TODO: add check on polynomial dergee
+    // TODO: add check on max polynomial dergee
+    // check dg->max_degree
     for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
         if(cell->is_locally_owned())
             cell->set_future_fe_index(cell->active_fe_index()+1);
@@ -45,16 +57,88 @@ void GridRefinement_Uniform<dim,nstate,real>::refine_grid_hp()
 }
 
 template <int dim, int nstate, typename real>
-void GridRefinement_FixedFraction<dim,nstate,real>::refine_grid_h(){}
+void GridRefinement_FixedFraction<dim,nstate,real>::refine_grid_h()
+{
+    // Compute the error indicator to define this->indicator
+    error_indicator();
+
+    // Performing the call for refinement
+#if PHILIP_DIM==1
+    dealii::GridRefinement::refine_and_coarsen_fixed_number(
+        this->tria,
+        this->indicator,
+        this->grid_refinement_param.refinement_fraction,
+        this->grid_refinement_param.coarsening_fraction);
+#else
+    dealii::parallel::distributed::GridRefinement::refine_and_coarsen_fixed_number(
+        this->tria,
+        this->indicator,
+        this->grid_refinement_param.refinement_fraction,
+        this->grid_refinement_param.coarsening_fraction);
+#endif
+}
 template <int dim, int nstate, typename real>
-void GridRefinement_FixedFraction<dim,nstate,real>::refine_grid_p(){}
+void GridRefinement_FixedFraction<dim,nstate,real>::refine_grid_p()
+{
+    // TODO: call refine_grid_h, then loop over and replace any h refinement
+    //       flags with a prefinement
+}
 template <int dim, int nstate, typename real>
-void GridRefinement_FixedFraction<dim,nstate,real>::refine_grid_hp(){}
+void GridRefinement_FixedFraction<dim,nstate,real>::refine_grid_hp()
+{
+    // TODO: Same idea as above, except the switch in refine_grid_p
+    //       now has to meet some tolerance, e.g. smoothness
+}
 
 template <int dim, int nstate, typename real>
 void GridRefinement_FixedFraction_Error<dim,nstate,real>::error_indicator()
 {
-    //TODO: use manufactured solution to measure the cell-wise error (overintegrate)
+    // TODO: update this to work with p-adaptive schemes
+    // see dg.cpp
+    // const auto mapping = (*(high_order_grid.mapping_fe_field));
+    // dealii::hp::MappingCollection<dim> mapping_collection(mapping);
+    // dealii::hp::FEValues<dim,dim> fe_values_collection(mapping_collection, fe_collection, this->dg->volume_quadrature_collection, this->dg->volume_update_flags);
+
+    // use manufactured solution to measure the cell-wise error (overintegrate)
+    int overintegrate = 10;
+    int poly_degree = 1; // need a way of determining the polynomial order more easily
+    dealii::QGauss<dim> quadrature(this->dg->max_degree+overintegrate);
+    dealii::FEValues<dim,dim> fe_values(*(this->dg->high_order_grid.mapping_fe_field), this->dg->fe_collection[poly_degree], quadrature, 
+        dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+
+    const unsigned int n_quad_pts = fe_values.n_quadrature_points;
+    std::array<double,nstate> soln_at_q;
+
+    // norm to use 
+    double norm_Lq = this->grid_refinement_param.norm_Lq;
+
+    // storing the result in 
+    std::vector<dealii::types::global_dof_index> dofs_indices(fe_values.dofs_per_cell);
+    this->indicator.reinit(this->tria.n_active_cells());
+    for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell){
+        if(!cell->is_locally_owned()) continue;
+
+        fe_values.reinit(cell);
+        cell->get_dof_indices(dofs_indices);
+
+        double cell_error = 0;
+        for(unsigned int iquad = 0; iquad < n_quad_pts; ++iquad){
+            std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
+            for(unsigned int idof = 0; idof < fe_values.dofs_per_cell; ++idof){
+                const unsigned int istate = fe_values.get_fe().system_to_component_index(idof).first;
+                soln_at_q[istate] += this->dg->solution[dofs_indices[idof]] * fe_values.shape_value_component(idof,iquad,istate);
+            }
+            
+            const dealii::Point<dim> qpoint = (fe_values.quadrature_point(iquad));
+
+            for(int istate = 0; istate < nstate; ++istate){
+                const double uexact = this->physics->manufactured_solution_function->value(qpoint,istate);
+                cell_error += pow(abs(soln_at_q[istate] - uexact), norm_Lq) * fe_values.JxW(iquad);
+            }
+        }
+        this->indicator[cell->active_cell_index()] = cell_error;
+    }
+
 }
 
 template <int dim, int nstate, typename real>
@@ -75,36 +159,20 @@ void GridRefinement_FixedFraction_Residual<dim,nstate,real>::error_indicator()
 template <int dim, int nstate, typename real>
 void GridRefinement_FixedFraction_Adjoint<dim,nstate,real>::error_indicator()
 {
-    // TODO: use the adjoint to obtain the DWR as the indicator
+    // reinitializing the error indicator vector
+    this->indicator(this->tria.n_active_cells());
+
+    // reinitializing the adjoint with current values
+    this->adjoint->reinit();
+
+    // evaluating the functional derivatives and adjoint
+    this->adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::fine);
+    this->adjoint->fine_grid_adjoint();
+    this->indicator = this->adjoint->dual_weighted_residual();
+
+    // return to the coarse grid
+    this->adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::coarse);
 }
-
-// template <int dim, int nstate, typename real>
-// void GridRefinement_FixedFraction_Error<dim,nstate,real>::refine_grid_h(){}
-// template <int dim, int nstate, typename real>
-// void GridRefinement_FixedFraction_Error<dim,nstate,real>::refine_grid_p(){}
-// template <int dim, int nstate, typename real>
-// void GridRefinement_FixedFraction_Error<dim,nstate,real>::refine_grid_hp(){}
-
-// template <int dim, int nstate, typename real>
-// void GridRefinement_FixedFraction_Hessian<dim,nstate,real>::refine_grid_h(){}
-// template <int dim, int nstate, typename real>
-// void GridRefinement_FixedFraction_Hessian<dim,nstate,real>::refine_grid_p(){}
-// template <int dim, int nstate, typename real>
-// void GridRefinement_FixedFraction_Hessian<dim,nstate,real>::refine_grid_hp(){}
-
-// template <int dim, int nstate, typename real>
-// void GridRefinement_FixedFraction_Residual<dim,nstate,real>::refine_grid_h(){}
-// template <int dim, int nstate, typename real>
-// void GridRefinement_FixedFraction_Residual<dim,nstate,real>::refine_grid_p(){}
-// template <int dim, int nstate, typename real>
-// void GridRefinement_FixedFraction_Residual<dim,nstate,real>::refine_grid_hp(){}
-
-// template <int dim, int nstate, typename real>
-// void GridRefinement_FixedFraction_Adjoint<dim,nstate,real>::refine_grid_h(){}
-// template <int dim, int nstate, typename real>
-// void GridRefinement_FixedFraction_Adjoint<dim,nstate,real>::refine_grid_p(){}
-// template <int dim, int nstate, typename real>
-// void GridRefinement_FixedFraction_Adjoint<dim,nstate,real>::refine_grid_hp(){}
 
 template <int dim, int nstate, typename real>
 void GridRefinement_Continuous_Error<dim,nstate,real>::refine_grid_h(){}
@@ -122,7 +190,7 @@ void GridRefinement_Continuous_Hessian<dim,nstate,real>::refine_grid_h()
     int poly_degree = 1;
 
     // building error based on exact hessian
-    double complexity = 4.0*this->tria.n_active_cells()*4;
+    double complexity = pow(poly_degree+1, dim)*this->tria.n_active_cells()*4;
     dealii::Vector<double> h_field;
     SizeField<dim,double>::isotropic_uniform(
         this->tria,
@@ -175,9 +243,9 @@ void GridRefinement_Continuous_Adjoint<dim,nstate,real>::refine_grid_hp(){}
 template <int dim, int nstate, typename real>
 void GridRefinementBase<dim,nstate,real>::refine_grid()
 {
-    // using RefinementMethodEnum = PHiLiP::Parameters::GridRefinementParam::RefinementMethod;
+    using RefinementMethodEnum = PHiLiP::Parameters::GridRefinementParam::RefinementMethod;
     using RefinementTypeEnum   = PHiLiP::Parameters::GridRefinementParam::RefinementType;
-    // RefinementMethodEnum refinement_method = this->grid_refinement_param.refinement_method;
+    RefinementMethodEnum refinement_method = this->grid_refinement_param.refinement_method;
     RefinementTypeEnum   refinement_type   = this->grid_refinement_param.refinement_type;
 
     // // TODO: add solution transfer flag here
@@ -197,6 +265,10 @@ void GridRefinementBase<dim,nstate,real>::refine_grid()
     //     this->tria.prepare_coarsening_and_refinement();
     // }
 
+    if(refinement_method == RefinementMethodEnum::fixed_fraction){
+        this->dg->high_order_grid.prepare_for_coarsening_and_refinement();
+    }
+
     if(refinement_type == RefinementTypeEnum::h){
         refine_grid_h();
     }else if(refinement_type == RefinementTypeEnum::p){
@@ -204,6 +276,19 @@ void GridRefinementBase<dim,nstate,real>::refine_grid()
     }else if(refinement_type == RefinementTypeEnum::hp){
         refine_grid_hp();
     }
+
+    if(refinement_method == RefinementMethodEnum::fixed_fraction){
+        this->tria.execute_coarsening_and_refinement();
+        this->dg->high_order_grid.execute_coarsening_and_refinement();
+    }
+
+    // reallocating
+    // this->dg->allocate_system();
+
+    // transfer the solution if desired
+    // this->dg->solution.zero_out_ghosts();
+    // solution_transfer.interpolate(dg->solution);
+    // this->dg->solution.update_ghost_values();
 
     // // TODO: exectute
     // if(refinement_method == RefinementMethodEnum::uniform || 
@@ -284,7 +369,7 @@ GridRefinementBase<dim,nstate,real>::GridRefinementBase(
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) :
         param(param_input),
         grid_refinement_param(param_input->grid_refinement_param),
-        adj(adj_input),
+        adjoint(adj_input),
         functional(functional_input),
         dg(dg_input),
         physics(physics_input),
@@ -389,30 +474,6 @@ GridRefinementFactory<dim,nstate,real>::create_GridRefinement(
 
     return nullptr;
 }
-
-// cannot use either of these as they'd need a high_order_grid, object in dg    
-// // physics + triangulation
-// template <int dim, int nstate, typename real>
-// static std::shared_ptr< GridRefinementBase<dim,nstate,real> > 
-// GridRefinementFactory<dim,nstate,real>::create_GridRefinement(
-//     PHiLiP::Parameters::AllParameters const *const          param,
-//     std::shared_ptr< PHiLiP::PhysicsBase<dim,nstate,real> > physics,
-//     dealii::Triangulation<dim, dim> &                       tria)
-// {
-//     return create_GridRefinement(param, tria);
-// }
-
-// // triangulation
-// template <int dim, int nstate, typename real>
-// static std::shared_ptr< GridRefinementBase<dim,nstate,real> > 
-// GridRefinementFactory<dim,nstate,real>::create_GridRefinement(
-//     PHiLiP::Parameters::AllParameters const *const param,
-//     dealii::Triangulation<dim, dim> &              tria)
-// {
-//     std::cout << "Invalid Grid refinement." << std::endl;
-
-//     return nullptr;
-// }
 
 // large amount of templating to be done, move to an .inst file and see if it can be reduced
 template class GridRefinementBase<PHILIP_DIM, 1, double>;

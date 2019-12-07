@@ -11,6 +11,10 @@ void GridRefinementParam::declare_parameters(dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("grid refinement");
     {
+        prm.declare_entry("refinement_steps", "3",
+                          dealii::Patterns::Integer(),
+                          "Number of iterations to be performed");
+
         prm.declare_entry("refinement_method", "uniform",
                            dealii::Patterns::Selection(
                           " uniform | "
@@ -71,6 +75,8 @@ void GridRefinementParam::parse_parameters(dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("grid refinement");
     {
+        refinement_steps = prm.get_integer("refinement_steps");
+
         const std::string refinement_method_string = prm.get("refinement_method");
         if(refinement_method_string == "uniform")            {refinement_method = RefinementMethod::uniform;}
         else if(refinement_method_string == "fixed_fraction"){refinement_method = RefinementMethod::fixed_fraction;}

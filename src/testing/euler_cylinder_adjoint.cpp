@@ -215,13 +215,13 @@ int EulerCylinderAdjoint<dim,nstate>
 
     const unsigned int n_grids_input       = manu_grid_conv_param.number_of_grids;
 
-    std::shared_ptr < Physics::PhysicsBase<dim,nstate,double> > physics_double 
+    std::shared_ptr< Physics::PhysicsBase<dim,nstate,double> > physics_double 
         = Physics::PhysicsFactory<dim,nstate,double>::create_Physics(&param);
 
     std::shared_ptr< Physics::Euler<dim,nstate,double> > euler_physics_double 
         = std::dynamic_pointer_cast< Physics::Euler<dim,nstate,double> >(physics_double);
 
-    std::shared_ptr < Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<double>> > euler_physics_adtype 
+    std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<double>> > euler_physics_adtype 
         = Physics::PhysicsFactory<dim,nstate,Sacado::Fad::DFad<double>>::create_Physics(&param);
 
     // Physics::Euler<dim,nstate,double> euler_physics_double

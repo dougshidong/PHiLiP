@@ -6,6 +6,7 @@
 
 #include "tests.h"
 #include "grid_study.h"
+#include "grid_refinement_study.h"
 #include "burgers_stability.h"
 #include "diffusion_exact_adjoint.h"
 #include "euler_gaussian_bump.h"
@@ -60,6 +61,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
 
     if(test_type == Test_enum::run_control) {
         return std::make_unique<GridStudy<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::grid_refinement_study) {
+        return std::make_unique<GridRefinementStudy<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::burgers_energy_stability) {
         if constexpr (dim==1 && nstate==1) return std::make_unique<BurgersEnergyStability<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::diffusion_exact_adjoint) {

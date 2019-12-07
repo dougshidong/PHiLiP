@@ -56,6 +56,7 @@ public:
     /// Currently allows to solve advection, diffusion, convection-diffusion
     enum TestType { 
         run_control,
+        grid_refinement_study,
         burgers_energy_stability,
         diffusion_exact_adjoint,
         euler_gaussian_bump,

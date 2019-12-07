@@ -1,6 +1,7 @@
 set(TESTS_SOURCE
     tests.cpp
     grid_study.cpp
+    grid_refinement_study.cpp
     burgers_stability.cpp
     diffusion_exact_adjoint.cpp
     euler_gaussian_bump.cpp

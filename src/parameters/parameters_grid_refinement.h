@@ -11,6 +11,8 @@ namespace Parameters {
 class GridRefinementParam
 {
 public:
+    unsigned int refinement_steps;
+
     // main set of parameters for deciding the method
 
     enum RefinementMethod{
@@ -42,7 +44,7 @@ public:
     // double p; // polynomial order when fixed, should take this from the grid
     double norm_Lq; // for the Lq norm
 
-    double refinement_fraction;  // refinement fraction
+    double refinement_fraction; // refinement fraction
     double coarsening_fraction; // coarsening fraction
 
     GridRefinementParam(); ///< Constructor

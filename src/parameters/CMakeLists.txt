@@ -3,6 +3,7 @@ set(SOURCE
     parameters_ode_solver.cpp
     parameters_linear_solver.cpp
     parameters_manufactured_convergence_study.cpp
+    parameters_manufactured_solution.cpp
     parameters_euler.cpp
     parameters_grid_refinement.cpp
     all_parameters.cpp

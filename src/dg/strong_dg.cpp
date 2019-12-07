@@ -157,7 +157,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_implicit(
         conv_phys_flux_at_q[iquad] = pde_physics->convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = pde_physics->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
 
-        if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
+        if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
             const dealii::Point<dim,real> real_quad_point = fe_values_vol.quadrature_point(iquad);
             dealii::Point<dim,ADtype> ad_point;
             for (int d=0;d<dim;++d) { ad_point[d] = real_quad_point[d]; }
@@ -212,7 +212,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_implicit(
             rhs = rhs + fe_values_vol.shape_grad_component(itest,iquad,istate) * diss_phys_flux_at_q[iquad][istate] * JxW[iquad];
             // Source
 
-            if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
+            if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
                 rhs = rhs + fe_values_vol.shape_value_component(itest,iquad,istate) * source_at_q[iquad][istate] * JxW[iquad];
             }
         }
@@ -590,7 +590,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
         // Evaluate physical convective flux and source term
         conv_phys_flux_at_q[iquad] = pde_physics_double->convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = pde_physics_double->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
-        if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
+        if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
             source_at_q[iquad] = pde_physics_double->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad]);
         }
     }
@@ -641,7 +641,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
             rhs = rhs + fe_values_vol.shape_grad_component(itest,iquad,istate) * diss_phys_flux_at_q[iquad][istate] * JxW[iquad];
             // Source
 
-            if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
+            if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
                 rhs = rhs + fe_values_vol.shape_value_component(itest,iquad,istate) * source_at_q[iquad][istate] * JxW[iquad];
             }
         }

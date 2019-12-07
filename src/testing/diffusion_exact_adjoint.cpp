@@ -330,7 +330,7 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
     using PdeEnum = Parameters::AllParameters::PartialDifferentialEquation;
     Parameters::AllParameters param = *(TestsBase::all_parameters);
 
-    param.manufactured_convergence_study_param.use_manufactured_source_term = true;
+    param.manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term = true;
 
     Assert(dim == param.dimension, dealii::ExcDimensionMismatch(dim, param.dimension));
 

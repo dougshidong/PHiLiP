@@ -2,6 +2,8 @@
 #define __PARAMETERS_MANUFACTURED_CONVERGENCE_STUDY_H__
 
 #include <deal.II/base/parameter_handler.h>
+
+#include "parameters/parameters_manufactured_solution.h"
 #include "parameters/parameters.h"
 
 namespace PHiLiP {
@@ -13,20 +15,7 @@ class ManufacturedConvergenceStudyParam
 public:
     ManufacturedConvergenceStudyParam (); ///< Constructor
 
-    /// Uses non-zero source term based on the manufactured solution and the PDE.
-    bool use_manufactured_source_term;
-    
-    /// Selects the manufactured solution to be used if use_manufactured_source_term=true
-    enum ManufacturedSolutionType{
-        sine_solution,
-        cosine_solution,
-        additive_solution,
-        exp_solution,
-        poly_solution,
-        even_poly_solution,
-        atan_solution,
-        };
-    ManufacturedSolutionType manufactured_solution_type; ///< Selected ManufacturedSolutionType from the input file
+    ManufacturedSolutionParam manufactured_solution_param;
 
     /// Types of grids that can be used for convergence study.
     /** Hypercube is simply a square from 0,1 in multiple dimensions.

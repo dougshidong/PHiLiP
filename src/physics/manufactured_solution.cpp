@@ -643,8 +643,8 @@ template <int dim, typename real>
 std::shared_ptr< ManufacturedSolutionFunction<dim,real> > 
 ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(Parameters::AllParameters const *const param, int nstate)
 {
-    using ManufacturedSolutionEnum = Parameters::ManufacturedConvergenceStudyParam::ManufacturedSolutionType;
-    ManufacturedSolutionEnum solution_type = param->manufactured_convergence_study_param.manufactured_solution_type;
+    using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
+    ManufacturedSolutionEnum solution_type = param->manufactured_convergence_study_param.manufactured_solution_param.manufactured_solution_type;
 
     if(solution_type == ManufacturedSolutionEnum::sine_solution){
         return std::make_shared<ManufacturedSolutionSine<dim,real>>(nstate);

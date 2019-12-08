@@ -1,7 +1,12 @@
 // includes
 #include <vector>
+#include <algorithm>
 
 #include <Sacado.hpp>
+
+#include <deal.II/base/function.h>
+#include <deal.II/base/symmetric_tensor.h>
+
 #include <deal.II/lac/la_parallel_vector.h>
 
 #include <deal.II/differentiation/ad/sacado_math.h>
@@ -31,6 +36,20 @@ FunctionalNormLpVolume<dim,nstate,real>::FunctionalNormLpVolume(
         normLp(_normLp) {}
 
 template <int dim, int nstate, typename real>
+template <typename real2>
+real2 FunctionalNormLpVolume<dim,nstate,real>::evaluate_volume_integrand(
+    const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
+    const dealii::Point<dim,real2> &                      /*phys_coord*/,
+    const std::array<real2,nstate> &                      soln_at_q,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/)
+{
+    real2 lpnorm_value = 0;
+    for(unsigned int istate = 0; istate < nstate; ++istate)
+        lpnorm_value += pow(abs(soln_at_q[istate]), this->normLp);
+    return lpnorm_value;
+}
+
+template <int dim, int nstate, typename real>
 FunctionalNormLpBoundary<dim,nstate,real>::FunctionalNormLpBoundary(
     const double                      _normLp,
     std::vector<unsigned int>         _boundary_vector,
@@ -42,28 +61,119 @@ FunctionalNormLpBoundary<dim,nstate,real>::FunctionalNormLpBoundary(
         boundary_vector(_boundary_vector) {}
 
 template <int dim, int nstate, typename real>
+template <typename real2>
+real2 FunctionalNormLpBoundary<dim,nstate,real>::evaluate_cell_boundary(
+    const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
+    const unsigned int                                    boundary_id,
+    const dealii::FEFaceValues<dim,dim> &                 fe_values_boundary,
+    std::vector<real2>                                    local_solution)
+{
+    real2 lpnorm_value = 0;
+    if( std::find(this->boundary_vector.begin(), this->boundary_vector.end(), boundary_id) == this->boundary_vector.end())
+        return lpnorm_value;
+
+    const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
+    const unsigned int n_quad      = fe_values_boundary.n_quadrature_points;
+
+    std::array<real2,nstate> soln_at_q;
+    for(unsigned int iquad = 0; iquad < n_quad; ++iquad){
+        soln_at_q.fill(0.0);
+        for(unsigned int idof = 0; idof < n_dofs_cell; ++idof){
+            const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
+            soln_at_q[istate] += local_solution[idof] * fe_values_boundary.shape_value_component(idof, iquad, istate);
+        }
+        for(int istate = 0; istate < nstate; ++istate)
+            lpnorm_value += pow(abs(soln_at_q[istate]), this->normLp) * fe_values_boundary.JxW(iquad);
+    }
+
+    return lpnorm_value;
+}
+
+template <int dim, int nstate, typename real>
 FunctionalWeightedVolumeIntegral<dim,nstate,real>::FunctionalWeightedVolumeIntegral(
-    std::shared_ptr<ManufacturedSolutionFunction<dim,real>> _weight_function,
-    const bool                                              _use_weight_function_laplacian,
-    std::shared_ptr<DGBase<dim,real>>                       _dg,
-    const bool                                              _uses_solution_values,
-    const bool                                              _uses_solution_gradient) : 
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real>>                    _weight_function_double,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,Sacado::Fad::DFad<real>>> _weight_function_adtype,
+    const bool                                                                 _use_weight_function_laplacian,
+    std::shared_ptr<DGBase<dim,real>>                                          _dg,
+    const bool                                                                 _uses_solution_values,
+    const bool                                                                 _uses_solution_gradient) : 
         Functional<dim,nstate,real>::Functional(_dg, _uses_solution_values, _uses_solution_gradient),
-        weight_function(_weight_function),
+        weight_function_double(_weight_function_double),
+        weight_function_adtype(_weight_function_adtype),
         use_weight_function_laplacian(_use_weight_function_laplacian) {}
 
 template <int dim, int nstate, typename real>
+template <typename real2>
+real2 FunctionalWeightedVolumeIntegral<dim,nstate,real>::evaluate_volume_integrand(
+    const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &  /*physics*/,
+    const dealii::Point<dim,real2> &                        /*phys_coord*/,
+    const std::array<real2,nstate> &                        soln_at_q,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &  /*soln_grad_at_q*/,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real2>> /*weight_function*/)
+{
+    real2 val = 0;
+
+    if(this->use_weight_function_laplacian){
+        for(unsigned int istate = 0; istate < nstate; ++istate)
+            val += soln_at_q[istate];// * dealii::trace(weight_function.get()->dealii::Function<dim,real2>::hessian(phys_coord, istate));
+    }else{
+        for(unsigned int istate = 0; istate < nstate; ++istate)
+            val += soln_at_q[istate];// * weight_function->value(phys_coord, istate);
+    }
+
+    return val;
+}
+
+template <int dim, int nstate, typename real>
 FunctionalWeightedBoundaryIntegral<dim,nstate,real>::FunctionalWeightedBoundaryIntegral(
-    std::shared_ptr<ManufacturedSolutionFunction<dim,real>> _weight_function,
-    const bool                                              _use_weight_function_laplacian,
-    std::vector<unsigned int>                               _boundary_vector,
-    std::shared_ptr<DGBase<dim,real>>                       _dg,
-    const bool                                              _uses_solution_values,
-    const bool                                              _uses_solution_gradient) : 
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real>>                    _weight_function_double,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,Sacado::Fad::DFad<real>>> _weight_function_adtype,
+    const bool                                                                 _use_weight_function_laplacian,
+    std::vector<unsigned int>                                                  _boundary_vector,
+    std::shared_ptr<DGBase<dim,real>>                                          _dg,
+    const bool                                                                 _uses_solution_values,
+    const bool                                                                 _uses_solution_gradient) : 
         Functional<dim,nstate,real>::Functional(_dg, _uses_solution_values, _uses_solution_gradient),
-        weight_function(_weight_function),
+        weight_function_double(_weight_function_double),
+        weight_function_adtype(_weight_function_adtype),
         use_weight_function_laplacian(_use_weight_function_laplacian),
         boundary_vector(_boundary_vector) {}
+
+template <int dim, int nstate, typename real>
+template <typename real2>
+real2 FunctionalWeightedBoundaryIntegral<dim,nstate,real>::evaluate_cell_boundary(
+    const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &   /*physics*/,
+    const unsigned int                                       boundary_id,
+    const dealii::FEFaceValues<dim,dim> &                    fe_values_boundary,
+    std::vector<real2>                                       local_solution,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real2>> /*weight_function*/)
+{
+    real2 val = 0;
+    if(std::find(this->boundary_vector.begin(), this->boundary_vector.end(), boundary_id) == this->boundary_vector.end())
+        return val;
+
+    const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
+    const unsigned int n_quad      = fe_values_boundary.n_quadrature_points;
+
+    std::array<real2,nstate> soln_at_q;
+    for(unsigned int iquad = 0; iquad < n_quad; ++iquad){
+        soln_at_q.fill(0.0);
+        for(unsigned int idof = 0; idof < n_dofs_cell; ++idof){
+            const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
+            soln_at_q[istate] += local_solution[idof] * fe_values_boundary.shape_value_component(idof, iquad, istate);
+        }
+        // const dealii::Point<dim>& qpoint = (fe_values_boundary.quadrature_point(iquad));
+        if(this->use_weight_function_laplacian){
+            for(unsigned int istate = 0; istate < nstate; ++istate)
+                val += soln_at_q[istate];// * dealii::trace(weight_function.get()->dealii::Function<dim,real2>::hessian(qpoint, istate)) * fe_values_boundary.JxW(iquad);
+        }else{
+            for(unsigned int istate = 0; istate < nstate; ++istate)
+                val += soln_at_q[istate];// * weight_function->value(qpoint, istate) * fe_values_boundary.JxW(iquad);
+        }
+    }
+
+    return val;
+}
 
 template <int dim, int nstate, typename real>
 Functional<dim,nstate,real>::Functional(
@@ -628,19 +738,31 @@ FunctionalFactory<dim,nstate,real>::create_Functional(
     PHiLiP::Parameters::AllParameters const *const param,
     std::shared_ptr< PHiLiP::DGBase<dim, real> >   dg)
 {
+    return FunctionalFactory<dim,nstate,real>::create_Functional(param->grid_refinement_study_param.functional_param, dg);
+}
+
+template <int dim, int nstate, typename real>
+std::shared_ptr< Functional<dim,nstate,real> >
+FunctionalFactory<dim,nstate,real>::create_Functional(
+    PHiLiP::Parameters::FunctionalParam          param,
+    std::shared_ptr< PHiLiP::DGBase<dim, real> > dg)
+{
+    using ADtype = Sacado::Fad::DFad<real>;
+
     using FunctionalTypeEnum       = Parameters::FunctionalParam::FunctionalType;
     using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
-    FunctionalTypeEnum functional_type = param->grid_refinement_study_param.functional_param.functional_type;
+    FunctionalTypeEnum functional_type = param.functional_type;
 
-    const double              normLp               = param->grid_refinement_study_param.functional_param.normLp;
+    const double              normLp               = param.normLp;
 
-    ManufacturedSolutionEnum  weight_function_type = param->grid_refinement_study_param.functional_param.weight_function_type;
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > weight_function 
+    ManufacturedSolutionEnum  weight_function_type = param.weight_function_type;
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > weight_function_double 
         = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(weight_function_type, nstate);
-    const bool use_weight_function_laplacian       = param->grid_refinement_study_param.functional_param.use_weight_function_laplacian;
+    std::shared_ptr< ManufacturedSolutionFunction<dim,ADtype> > weight_function_adtype 
+        = ManufacturedSolutionFactory<dim,ADtype>::create_ManufacturedSolution(weight_function_type, nstate);
+    const bool use_weight_function_laplacian       = param.use_weight_function_laplacian;
 
-    std::vector<unsigned int> boundary_vector      = param->grid_refinement_study_param.functional_param.boundary_vector;
-
+    std::vector<unsigned int> boundary_vector      = param.boundary_vector;
 
     if(functional_type == FunctionalTypeEnum::normLp_volume){
         return std::make_shared<FunctionalNormLpVolume<dim,nstate,real>>(
@@ -656,14 +778,16 @@ FunctionalFactory<dim,nstate,real>::create_Functional(
             false);
     }else if(functional_type == FunctionalTypeEnum::weighted_volume_integral){
         return std::make_shared<FunctionalWeightedVolumeIntegral<dim,nstate,real>>(
-            weight_function,
+            weight_function_double,
+            weight_function_adtype,
             use_weight_function_laplacian,
             dg,
             true,
             false);
     }else if(functional_type == FunctionalTypeEnum::weighted_boundary_integral){
         return std::make_shared<FunctionalWeightedBoundaryIntegral<dim,nstate,real>>(
-            weight_function,
+            weight_function_double,
+            weight_function_adtype,
             use_weight_function_laplacian,
             boundary_vector,
             dg,

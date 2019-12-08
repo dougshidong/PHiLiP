@@ -16,8 +16,10 @@ public:
     enum FunctionalType{
         normLp_volume,
         normLp_boundary,
-        weighted_volume_integral,
-        weighted_boundary_integral,
+        weighted_integral_volume,
+        weighted_integral_boundary,
+        error_normLp_volume,
+        error_normLp_boundary,
     };
     FunctionalType functional_type;
 

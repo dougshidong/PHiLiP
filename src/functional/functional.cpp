@@ -177,6 +177,75 @@ real2 FunctionalWeightedIntegralBoundary<dim,nstate,real>::evaluate_cell_boundar
 }
 
 template <int dim, int nstate, typename real>
+FunctionalErrorNormLpVolume<dim,nstate,real>::FunctionalErrorNormLpVolume(
+    const double                      _normLp,
+    std::shared_ptr<DGBase<dim,real>> _dg,
+    const bool                        _uses_solution_values,
+    const bool                        _uses_solution_gradient) : 
+        Functional<dim,nstate,real>::Functional(_dg, _uses_solution_values, _uses_solution_gradient),
+        normLp(_normLp) {}
+
+template <int dim, int nstate, typename real>
+template <typename real2>
+real2 FunctionalErrorNormLpVolume<dim,nstate,real>::evaluate_volume_integrand(
+    const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+    const dealii::Point<dim,real2> &                      phys_coord,
+    const std::array<real2,nstate> &                      soln_at_q,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/)
+{
+    real2 lpnorm_value = 0;
+    for(unsigned int istate = 0; istate < nstate; ++istate){
+        const real2 uexact = physics.manufactured_solution_function->value(phys_coord, istate);
+        lpnorm_value += pow(abs(soln_at_q[istate] - uexact), this->normLp);
+    }
+    return lpnorm_value;
+}
+
+template <int dim, int nstate, typename real>
+FunctionalErrorNormLpBoundary<dim,nstate,real>::FunctionalErrorNormLpBoundary(
+    const double                      _normLp,
+    std::vector<unsigned int>         _boundary_vector,
+    std::shared_ptr<DGBase<dim,real>> _dg,
+    const bool                        _uses_solution_values,
+    const bool                        _uses_solution_gradient) : 
+        Functional<dim,nstate,real>::Functional(_dg, _uses_solution_values, _uses_solution_gradient),
+        normLp(_normLp),
+        boundary_vector(_boundary_vector) {}
+
+template <int dim, int nstate, typename real>
+template <typename real2>
+real2 FunctionalErrorNormLpBoundary<dim,nstate,real>::evaluate_cell_boundary(
+    const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+    const unsigned int                                    boundary_id,
+    const dealii::FEFaceValues<dim,dim> &                 fe_values_boundary,
+    std::vector<real2>                                    local_solution)
+{
+    real2 lpnorm_value = 0;
+    if( std::find(this->boundary_vector.begin(), this->boundary_vector.end(), boundary_id) == this->boundary_vector.end())
+        return lpnorm_value;
+
+    const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
+    const unsigned int n_quad      = fe_values_boundary.n_quadrature_points;
+
+    std::array<real2,nstate> soln_at_q;
+    for(unsigned int iquad = 0; iquad < n_quad; ++iquad){
+        soln_at_q.fill(0.0);
+        for(unsigned int idof = 0; idof < n_dofs_cell; ++idof){
+            const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
+            soln_at_q[istate] += local_solution[idof] * fe_values_boundary.shape_value_component(idof, iquad, istate);
+        }
+        const dealii::Point<dim> &      qpoint_double = (fe_values_boundary.quadrature_point(iquad));
+        const dealii::Point<dim,real2> &qpoint        = dealii::Point<dim,real2>(qpoint_double); 
+        for(int istate = 0; istate < nstate; ++istate){
+            const real2 uexact = physics.manufactured_solution_function->value(qpoint, istate);
+            lpnorm_value += pow(abs(soln_at_q[istate] - uexact), this->normLp) * fe_values_boundary.JxW(iquad);
+        }
+    }
+
+    return lpnorm_value;
+}
+
+template <int dim, int nstate, typename real>
 Functional<dim,nstate,real>::Functional(
     std::shared_ptr<DGBase<dim,real>> _dg,
     const bool _uses_solution_values,
@@ -774,10 +843,11 @@ FunctionalFactory<dim,nstate,real>::create_Functional(
     }else if(functional_type == FunctionalTypeEnum::normLp_boundary){
         return std::make_shared<FunctionalNormLpBoundary<dim,nstate,real>>(
             normLp,
-            boundary_vector,dg,
+            boundary_vector,
+            dg,
             true,
             false);
-    }else if(functional_type == FunctionalTypeEnum::weighted_volume_integral){
+    }else if(functional_type == FunctionalTypeEnum::weighted_integral_volume){
         return std::make_shared<FunctionalWeightedIntegralVolume<dim,nstate,real>>(
             weight_function_double,
             weight_function_adtype,
@@ -785,11 +855,24 @@ FunctionalFactory<dim,nstate,real>::create_Functional(
             dg,
             true,
             false);
-    }else if(functional_type == FunctionalTypeEnum::weighted_boundary_integral){
+    }else if(functional_type == FunctionalTypeEnum::weighted_integral_boundary){
         return std::make_shared<FunctionalWeightedIntegralBoundary<dim,nstate,real>>(
             weight_function_double,
             weight_function_adtype,
             use_weight_function_laplacian,
+            boundary_vector,
+            dg,
+            true,
+            false);
+    }else if(functional_type == FunctionalTypeEnum::error_normLp_volume){
+        return std::make_shared<FunctionalErrorNormLpVolume<dim,nstate,real>>(
+            normLp,
+            dg,
+            true,
+            false);
+    }else if(functional_type == FunctionalTypeEnum::error_normLp_boundary){
+        return std::make_shared<FunctionalErrorNormLpBoundary<dim,nstate,real>>(
+            normLp,
             boundary_vector,
             dg,
             true,
@@ -824,6 +907,18 @@ template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 2, double>;
 template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 3, double>;
 template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 4, double>;
 template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 5, double>;
+
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 1, double>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 2, double>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 3, double>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 4, double>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 5, double>;
+
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 1, double>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 2, double>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 3, double>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 4, double>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 5, double>;
 
 template class Functional <PHILIP_DIM, 1, double>;
 template class Functional <PHILIP_DIM, 2, double>;

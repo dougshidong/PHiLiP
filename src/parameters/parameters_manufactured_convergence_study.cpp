@@ -66,7 +66,7 @@ void ManufacturedConvergenceStudyParam ::parse_parameters (dealii::ParameterHand
 {
     prm.enter_subsection("manufactured solution convergence study");
     {
-        manufactured_solution_param.parse_parameters (prm);
+        manufactured_solution_param.parse_parameters(prm);
 
         const std::string grid_string = prm.get("grid_type");
         if (grid_string == "hypercube") grid_type = GridEnum::hypercube;

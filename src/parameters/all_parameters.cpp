@@ -12,6 +12,7 @@ AllParameters::AllParameters ()
     , linear_solver_param(LinearSolverParam())
     , euler_param(EulerParam())
     , grid_refinement_param(GridRefinementParam())
+    , grid_refinement_study_param(GridRefinementStudyParam())
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 { }
 void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
@@ -107,6 +108,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     Parameters::EulerParam::declare_parameters (prm);
 
+    Parameters::GridRefinementStudyParam::declare_parameters (prm);
     Parameters::GridRefinementParam::declare_parameters (prm);
 
     pcout << "Done declaring inputs." << std::endl;
@@ -180,6 +182,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     pcout << "Parsing euler subsection..." << std::endl;
     euler_param.parse_parameters (prm);
+
+    pcout << "Parsing grid refinement study subsection..." << std::endl;
+    grid_refinement_study_param.parse_parameters (prm);
 
     pcout << "Parsing grid refinement subsection..." << std::endl;
     grid_refinement_param.parse_parameters (prm);

@@ -10,6 +10,7 @@
 
 #include "parameters/parameters_euler.h"
 
+#include "parameters/parameters_grid_refinement_study.h"
 #include "parameters/parameters_grid_refinement.h"
 
 namespace PHiLiP {
@@ -32,6 +33,8 @@ public:
     EulerParam euler_param;
     /// contains the parameters for grid refinement
     GridRefinementParam grid_refinement_param;
+    /// contains the parameters for grid refinement study
+    GridRefinementStudyParam grid_refinement_study_param;
 
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;

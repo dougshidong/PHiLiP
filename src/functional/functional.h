@@ -269,11 +269,11 @@ protected:
 };
 
 template <int dim, int nstate, typename real>
-class FunctionalWeightedVolumeIntegral : public Functional<dim,nstate,real>
+class FunctionalWeightedIntegralVolume : public Functional<dim,nstate,real>
 {
     using ADtype = Sacado::Fad::DFad<real>;
 public:
-    FunctionalWeightedVolumeIntegral(
+    FunctionalWeightedIntegralVolume(
         std::shared_ptr<ManufacturedSolutionFunction<dim,real>>   _weight_function_double,
         std::shared_ptr<ManufacturedSolutionFunction<dim,ADtype>> _weight_function_adtype,
         const bool                                                _use_weight_function_laplacian,
@@ -314,11 +314,11 @@ protected:
 };
 
 template <int dim, int nstate, typename real>
-class FunctionalWeightedBoundaryIntegral : public Functional<dim,nstate,real>
+class FunctionalWeightedIntegralBoundary : public Functional<dim,nstate,real>
 {
     using ADtype = Sacado::Fad::DFad<real>;
 public:
-    FunctionalWeightedBoundaryIntegral(
+    FunctionalWeightedIntegralBoundary(
         std::shared_ptr<ManufacturedSolutionFunction<dim,real>>   _weight_function_double,
         std::shared_ptr<ManufacturedSolutionFunction<dim,ADtype>> _weight_function_adtype,
         const bool                                                _use_weight_function_laplacian,

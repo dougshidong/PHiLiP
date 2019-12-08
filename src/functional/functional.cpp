@@ -90,7 +90,7 @@ real2 FunctionalNormLpBoundary<dim,nstate,real>::evaluate_cell_boundary(
 }
 
 template <int dim, int nstate, typename real>
-FunctionalWeightedVolumeIntegral<dim,nstate,real>::FunctionalWeightedVolumeIntegral(
+FunctionalWeightedIntegralVolume<dim,nstate,real>::FunctionalWeightedIntegralVolume(
     std::shared_ptr<ManufacturedSolutionFunction<dim,real>>                    _weight_function_double,
     std::shared_ptr<ManufacturedSolutionFunction<dim,Sacado::Fad::DFad<real>>> _weight_function_adtype,
     const bool                                                                 _use_weight_function_laplacian,
@@ -104,28 +104,28 @@ FunctionalWeightedVolumeIntegral<dim,nstate,real>::FunctionalWeightedVolumeInteg
 
 template <int dim, int nstate, typename real>
 template <typename real2>
-real2 FunctionalWeightedVolumeIntegral<dim,nstate,real>::evaluate_volume_integrand(
+real2 FunctionalWeightedIntegralVolume<dim,nstate,real>::evaluate_volume_integrand(
     const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &  /*physics*/,
-    const dealii::Point<dim,real2> &                        /*phys_coord*/,
+    const dealii::Point<dim,real2> &                        phys_coord,
     const std::array<real2,nstate> &                        soln_at_q,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &  /*soln_grad_at_q*/,
-    std::shared_ptr<ManufacturedSolutionFunction<dim,real2>> /*weight_function*/)
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real2>> weight_function)
 {
     real2 val = 0;
 
     if(this->use_weight_function_laplacian){
         for(unsigned int istate = 0; istate < nstate; ++istate)
-            val += soln_at_q[istate];// * dealii::trace(weight_function.get()->dealii::Function<dim,real2>::hessian(phys_coord, istate));
+            val += soln_at_q[istate] * dealii::trace(weight_function->hessian(phys_coord, istate));
     }else{
         for(unsigned int istate = 0; istate < nstate; ++istate)
-            val += soln_at_q[istate];// * weight_function->value(phys_coord, istate);
+            val += soln_at_q[istate] * weight_function->value(phys_coord, istate);
     }
 
     return val;
 }
 
 template <int dim, int nstate, typename real>
-FunctionalWeightedBoundaryIntegral<dim,nstate,real>::FunctionalWeightedBoundaryIntegral(
+FunctionalWeightedIntegralBoundary<dim,nstate,real>::FunctionalWeightedIntegralBoundary(
     std::shared_ptr<ManufacturedSolutionFunction<dim,real>>                    _weight_function_double,
     std::shared_ptr<ManufacturedSolutionFunction<dim,Sacado::Fad::DFad<real>>> _weight_function_adtype,
     const bool                                                                 _use_weight_function_laplacian,
@@ -141,12 +141,12 @@ FunctionalWeightedBoundaryIntegral<dim,nstate,real>::FunctionalWeightedBoundaryI
 
 template <int dim, int nstate, typename real>
 template <typename real2>
-real2 FunctionalWeightedBoundaryIntegral<dim,nstate,real>::evaluate_cell_boundary(
+real2 FunctionalWeightedIntegralBoundary<dim,nstate,real>::evaluate_cell_boundary(
     const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &   /*physics*/,
     const unsigned int                                       boundary_id,
     const dealii::FEFaceValues<dim,dim> &                    fe_values_boundary,
     std::vector<real2>                                       local_solution,
-    std::shared_ptr<ManufacturedSolutionFunction<dim,real2>> /*weight_function*/)
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real2>> weight_function)
 {
     real2 val = 0;
     if(std::find(this->boundary_vector.begin(), this->boundary_vector.end(), boundary_id) == this->boundary_vector.end())
@@ -162,13 +162,14 @@ real2 FunctionalWeightedBoundaryIntegral<dim,nstate,real>::evaluate_cell_boundar
             const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
             soln_at_q[istate] += local_solution[idof] * fe_values_boundary.shape_value_component(idof, iquad, istate);
         }
-        // const dealii::Point<dim>& qpoint = (fe_values_boundary.quadrature_point(iquad));
+        const dealii::Point<dim> &      qpoint_double = (fe_values_boundary.quadrature_point(iquad));
+        const dealii::Point<dim,real2> &qpoint        = dealii::Point<dim,real2>(qpoint_double); 
         if(this->use_weight_function_laplacian){
             for(unsigned int istate = 0; istate < nstate; ++istate)
-                val += soln_at_q[istate];// * dealii::trace(weight_function.get()->dealii::Function<dim,real2>::hessian(qpoint, istate)) * fe_values_boundary.JxW(iquad);
+                val += soln_at_q[istate] * dealii::trace(weight_function->hessian(qpoint, istate)) * fe_values_boundary.JxW(iquad);
         }else{
             for(unsigned int istate = 0; istate < nstate; ++istate)
-                val += soln_at_q[istate];// * weight_function->value(qpoint, istate) * fe_values_boundary.JxW(iquad);
+                val += soln_at_q[istate] * weight_function->value(qpoint, istate) * fe_values_boundary.JxW(iquad);
         }
     }
 
@@ -777,7 +778,7 @@ FunctionalFactory<dim,nstate,real>::create_Functional(
             true,
             false);
     }else if(functional_type == FunctionalTypeEnum::weighted_volume_integral){
-        return std::make_shared<FunctionalWeightedVolumeIntegral<dim,nstate,real>>(
+        return std::make_shared<FunctionalWeightedIntegralVolume<dim,nstate,real>>(
             weight_function_double,
             weight_function_adtype,
             use_weight_function_laplacian,
@@ -785,7 +786,7 @@ FunctionalFactory<dim,nstate,real>::create_Functional(
             true,
             false);
     }else if(functional_type == FunctionalTypeEnum::weighted_boundary_integral){
-        return std::make_shared<FunctionalWeightedBoundaryIntegral<dim,nstate,real>>(
+        return std::make_shared<FunctionalWeightedIntegralBoundary<dim,nstate,real>>(
             weight_function_double,
             weight_function_adtype,
             use_weight_function_laplacian,
@@ -799,6 +800,30 @@ FunctionalFactory<dim,nstate,real>::create_Functional(
 
     return nullptr;
 }
+
+template class FunctionalNormLpVolume <PHILIP_DIM, 1, double>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 2, double>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 3, double>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 4, double>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 5, double>;
+
+template class FunctionalNormLpBoundary <PHILIP_DIM, 1, double>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 2, double>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 3, double>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 4, double>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 5, double>;
+
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 1, double>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 2, double>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 3, double>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 4, double>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 5, double>;
+
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 1, double>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 2, double>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 3, double>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 4, double>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 5, double>;
 
 template class Functional <PHILIP_DIM, 1, double>;
 template class Functional <PHILIP_DIM, 2, double>;

@@ -31,6 +31,8 @@ public:
 
     std::vector<unsigned int> boundary_vector;
 
+    bool use_all_boundaries;
+
     FunctionalParam(); ///< Constructor
 
     /// Declares the possible variables and sets the defaults.

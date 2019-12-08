@@ -10,28 +10,28 @@ ManufacturedSolutionParam::ManufacturedSolutionParam() {}
 void ManufacturedSolutionParam::declare_parameters(dealii::ParameterHandler &prm)
 {
     prm.declare_entry("use_manufactured_source_term", "false",
-                        dealii::Patterns::Bool(),
-                        "Uses non-zero source term based on the manufactured solution and the PDE.");
+                      dealii::Patterns::Bool(),
+                      "Uses non-zero source term based on the manufactured solution and the PDE.");
 
     prm.declare_entry("manufactured_solution_type","exp_solution",
-                        dealii::Patterns::Selection(
-                        " sine_solution | "
-                        " cosine_solution | "
-                        " additive_solution | "
-                        " exp_solution | "
-                        " poly_solution | "
-                        " even_poly_solution | "
-                        " atan_solution"
-                        ),
-                        "The manufactured solution we want to use (if use_manufactured_source_term==true). "
-                        "Choices are "
-                        " <sine_solution | "
-                        "  cosine_solution | "
-                        "  additive_solution | "
-                        "  exp_solution | "
-                        "  poly_solution | "
-                        "  even_poly_solution | "
-                        "  atan_solution>.");
+                      dealii::Patterns::Selection(
+                      " sine_solution | "
+                      " cosine_solution | "
+                      " additive_solution | "
+                      " exp_solution | "
+                      " poly_solution | "
+                      " even_poly_solution | "
+                      " atan_solution"
+                      ),
+                      "The manufactured solution we want to use (if use_manufactured_source_term==true). "
+                      "Choices are "
+                      " <sine_solution | "
+                      "  cosine_solution | "
+                      "  additive_solution | "
+                      "  exp_solution | "
+                      "  poly_solution | "
+                      "  even_poly_solution | "
+                      "  atan_solution>.");
 }
 
 void ManufacturedSolutionParam::parse_parameters(dealii::ParameterHandler &prm)

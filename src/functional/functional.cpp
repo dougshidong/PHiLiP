@@ -53,12 +53,14 @@ template <int dim, int nstate, typename real>
 FunctionalNormLpBoundary<dim,nstate,real>::FunctionalNormLpBoundary(
     const double                      _normLp,
     std::vector<unsigned int>         _boundary_vector,
+    const bool                        _use_all_boundaries,
     std::shared_ptr<DGBase<dim,real>> _dg,
     const bool                        _uses_solution_values,
     const bool                        _uses_solution_gradient) : 
         Functional<dim,nstate,real>::Functional(_dg, _uses_solution_values, _uses_solution_gradient),
         normLp(_normLp),
-        boundary_vector(_boundary_vector) {}
+        boundary_vector(_boundary_vector),
+        use_all_boundaries(_use_all_boundaries) {}
 
 template <int dim, int nstate, typename real>
 template <typename real2>
@@ -69,7 +71,8 @@ real2 FunctionalNormLpBoundary<dim,nstate,real>::evaluate_cell_boundary(
     std::vector<real2>                                    local_solution)
 {
     real2 lpnorm_value = 0;
-    if( std::find(this->boundary_vector.begin(), this->boundary_vector.end(), boundary_id) == this->boundary_vector.end())
+    if(this->use_all_boundaries 
+    || std::find(this->boundary_vector.begin(), this->boundary_vector.end(), boundary_id) == this->boundary_vector.end())
         return lpnorm_value;
 
     const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
@@ -130,6 +133,7 @@ FunctionalWeightedIntegralBoundary<dim,nstate,real>::FunctionalWeightedIntegralB
     std::shared_ptr<ManufacturedSolutionFunction<dim,Sacado::Fad::DFad<real>>> _weight_function_adtype,
     const bool                                                                 _use_weight_function_laplacian,
     std::vector<unsigned int>                                                  _boundary_vector,
+    const bool                                                                 _use_all_boundaries,
     std::shared_ptr<DGBase<dim,real>>                                          _dg,
     const bool                                                                 _uses_solution_values,
     const bool                                                                 _uses_solution_gradient) : 
@@ -137,7 +141,8 @@ FunctionalWeightedIntegralBoundary<dim,nstate,real>::FunctionalWeightedIntegralB
         weight_function_double(_weight_function_double),
         weight_function_adtype(_weight_function_adtype),
         use_weight_function_laplacian(_use_weight_function_laplacian),
-        boundary_vector(_boundary_vector) {}
+        boundary_vector(_boundary_vector),
+        use_all_boundaries(_use_all_boundaries) {}
 
 template <int dim, int nstate, typename real>
 template <typename real2>
@@ -149,7 +154,8 @@ real2 FunctionalWeightedIntegralBoundary<dim,nstate,real>::evaluate_cell_boundar
     std::shared_ptr<ManufacturedSolutionFunction<dim,real2>> weight_function)
 {
     real2 val = 0;
-    if(std::find(this->boundary_vector.begin(), this->boundary_vector.end(), boundary_id) == this->boundary_vector.end())
+    if(this->use_all_boundaries
+    || std::find(this->boundary_vector.begin(), this->boundary_vector.end(), boundary_id) == this->boundary_vector.end())
         return val;
 
     const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
@@ -205,12 +211,14 @@ template <int dim, int nstate, typename real>
 FunctionalErrorNormLpBoundary<dim,nstate,real>::FunctionalErrorNormLpBoundary(
     const double                      _normLp,
     std::vector<unsigned int>         _boundary_vector,
+    const bool                        _use_all_boundaries,
     std::shared_ptr<DGBase<dim,real>> _dg,
     const bool                        _uses_solution_values,
     const bool                        _uses_solution_gradient) : 
         Functional<dim,nstate,real>::Functional(_dg, _uses_solution_values, _uses_solution_gradient),
         normLp(_normLp),
-        boundary_vector(_boundary_vector) {}
+        boundary_vector(_boundary_vector),
+        use_all_boundaries(_use_all_boundaries) {}
 
 template <int dim, int nstate, typename real>
 template <typename real2>
@@ -221,7 +229,8 @@ real2 FunctionalErrorNormLpBoundary<dim,nstate,real>::evaluate_cell_boundary(
     std::vector<real2>                                    local_solution)
 {
     real2 lpnorm_value = 0;
-    if( std::find(this->boundary_vector.begin(), this->boundary_vector.end(), boundary_id) == this->boundary_vector.end())
+    if(this->use_all_boundaries
+    || std::find(this->boundary_vector.begin(), this->boundary_vector.end(), boundary_id) == this->boundary_vector.end())
         return lpnorm_value;
 
     const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
@@ -823,7 +832,7 @@ FunctionalFactory<dim,nstate,real>::create_Functional(
     using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
     FunctionalTypeEnum functional_type = param.functional_type;
 
-    const double              normLp               = param.normLp;
+    const double normLp = param.normLp;
 
     ManufacturedSolutionEnum  weight_function_type = param.weight_function_type;
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > weight_function_double 
@@ -832,7 +841,8 @@ FunctionalFactory<dim,nstate,real>::create_Functional(
         = ManufacturedSolutionFactory<dim,ADtype>::create_ManufacturedSolution(weight_function_type, nstate);
     const bool use_weight_function_laplacian       = param.use_weight_function_laplacian;
 
-    std::vector<unsigned int> boundary_vector      = param.boundary_vector;
+    std::vector<unsigned int> boundary_vector    = param.boundary_vector;
+    const bool                use_all_boundaries = param.use_all_boundaries;
 
     if(functional_type == FunctionalTypeEnum::normLp_volume){
         return std::make_shared<FunctionalNormLpVolume<dim,nstate,real>>(
@@ -844,6 +854,7 @@ FunctionalFactory<dim,nstate,real>::create_Functional(
         return std::make_shared<FunctionalNormLpBoundary<dim,nstate,real>>(
             normLp,
             boundary_vector,
+            use_all_boundaries,
             dg,
             true,
             false);
@@ -861,6 +872,7 @@ FunctionalFactory<dim,nstate,real>::create_Functional(
             weight_function_adtype,
             use_weight_function_laplacian,
             boundary_vector,
+            use_all_boundaries,
             dg,
             true,
             false);
@@ -874,6 +886,7 @@ FunctionalFactory<dim,nstate,real>::create_Functional(
         return std::make_shared<FunctionalErrorNormLpBoundary<dim,nstate,real>>(
             normLp,
             boundary_vector,
+            use_all_boundaries,
             dg,
             true,
             false);

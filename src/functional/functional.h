@@ -234,6 +234,7 @@ public:
     FunctionalNormLpBoundary(
         const double                      _normLp,
         std::vector<unsigned int>         _boundary_vector,
+        const bool                        _use_all_boundaries,
         std::shared_ptr<DGBase<dim,real>> _dg,
         const bool                        _uses_solution_values   = true,
         const bool                        _uses_solution_gradient = false);
@@ -266,6 +267,7 @@ public:
 protected:
     const double              normLp;
     std::vector<unsigned int> boundary_vector;
+    const bool                use_all_boundaries;
 };
 
 template <int dim, int nstate, typename real>
@@ -323,6 +325,7 @@ public:
         std::shared_ptr<ManufacturedSolutionFunction<dim,ADtype>> _weight_function_adtype,
         const bool                                                _use_weight_function_laplacian,
         std::vector<unsigned int>                                 _boundary_vector,
+        const bool                                                _use_all_boundaries,
         std::shared_ptr<DGBase<dim,real>>                         _dg,
         const bool                                                _uses_solution_values   = true,
         const bool                                                _uses_solution_gradient = false);
@@ -358,6 +361,7 @@ protected:
     std::shared_ptr<ManufacturedSolutionFunction<dim,ADtype>> weight_function_adtype;
     const bool                                                use_weight_function_laplacian;
     std::vector<unsigned int>                                 boundary_vector;
+    const bool                                                use_all_boundaries;
 };
 
 template <int dim, int nstate, typename real>
@@ -408,6 +412,7 @@ public:
     FunctionalErrorNormLpBoundary(
         const double                      _normLp,
         std::vector<unsigned int>         _boundary_vector,
+        const bool                        _use_all_boundaries,
         std::shared_ptr<DGBase<dim,real>> _dg,
         const bool                        _uses_solution_values   = true,
         const bool                        _uses_solution_gradient = false);
@@ -440,6 +445,7 @@ public:
 protected:
     const double              normLp;
     std::vector<unsigned int> boundary_vector;
+    const bool                use_all_boundaries;
 };
 
 template <int dim, int nstate, typename real>

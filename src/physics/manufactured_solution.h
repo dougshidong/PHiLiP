@@ -328,8 +328,17 @@ private:
 template <int dim, typename real>
 class ManufacturedSolutionFactory
 {
+    using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
 public:
-    static std::shared_ptr< ManufacturedSolutionFunction<dim,real> > create_ManufacturedSolution(Parameters::AllParameters const *const param, int nstate);
+    static std::shared_ptr< ManufacturedSolutionFunction<dim,real> > 
+    create_ManufacturedSolution(
+        Parameters::AllParameters const *const param, 
+        int                                    nstate);
+
+    static std::shared_ptr< ManufacturedSolutionFunction<dim,real> >
+    create_ManufacturedSolution(
+        ManufacturedSolutionEnum solution_type,
+        int                      nstate);
 
 };
 

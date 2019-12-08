@@ -639,13 +639,26 @@ inline std::vector<real> ManufacturedSolutionFunction<dim,real>
     return values;
 }
 
+
+
 template <int dim, typename real>
 std::shared_ptr< ManufacturedSolutionFunction<dim,real> > 
-ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(Parameters::AllParameters const *const param, int nstate)
+ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(
+    Parameters::AllParameters const *const param, 
+    int                                    nstate)
 {
     using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
     ManufacturedSolutionEnum solution_type = param->manufactured_convergence_study_param.manufactured_solution_param.manufactured_solution_type;
 
+    return create_ManufacturedSolution(solution_type, nstate);
+}
+
+template <int dim, typename real>
+std::shared_ptr< ManufacturedSolutionFunction<dim,real> >
+ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(
+    Parameters::ManufacturedSolutionParam::ManufacturedSolutionType solution_type,
+    int                                                                     nstate)
+{
     if(solution_type == ManufacturedSolutionEnum::sine_solution){
         return std::make_shared<ManufacturedSolutionSine<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::cosine_solution){

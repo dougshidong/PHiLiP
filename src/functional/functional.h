@@ -186,6 +186,80 @@ protected:
 
 }; // Functional class
 
+template <int dim, int nstate, typename real>
+class FunctionalNormLpVolume : public Functional<dim,nstate,real>
+{
+public:
+    FunctionalNormLpVolume(
+        const double                      _normLp,
+        std::shared_ptr<DGBase<dim,real>> _dg,
+        const bool                        _uses_solution_values   = true,
+        const bool                        _uses_solution_gradient = false);
+
+protected:
+    const double normLp;
+};
+
+template <int dim, int nstate, typename real>
+class FunctionalNormLpBoundary : public Functional<dim,nstate,real>
+{
+public:
+    FunctionalNormLpBoundary(
+        const double                      _normLp,
+        std::vector<unsigned int>         _boundary_vector,
+        std::shared_ptr<DGBase<dim,real>> _dg,
+        const bool                        _uses_solution_values   = true,
+        const bool                        _uses_solution_gradient = false);
+
+protected:
+    const double              normLp;
+    std::vector<unsigned int> boundary_vector;
+};
+
+template <int dim, int nstate, typename real>
+class FunctionalWeightedVolumeIntegral : public Functional<dim,nstate,real>
+{
+public:
+    FunctionalWeightedVolumeIntegral(
+        std::shared_ptr<ManufacturedSolutionFunction<dim,real>> _weight_function,
+        const bool                                              _use_weight_function_laplacian,
+        std::shared_ptr<DGBase<dim,real>>                       _dg,
+        const bool                                              _uses_solution_values   = true,
+        const bool                                              _uses_solution_gradient = false);
+
+protected:
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real>> weight_function;
+    const bool                                              use_weight_function_laplacian;
+};
+
+template <int dim, int nstate, typename real>
+class FunctionalWeightedBoundaryIntegral : public Functional<dim,nstate,real>
+{
+public:
+    FunctionalWeightedBoundaryIntegral(
+        std::shared_ptr<ManufacturedSolutionFunction<dim,real>> _weight_function,
+        const bool                                              _use_weight_function_laplacian,
+        std::vector<unsigned int>                               _boundary_vector,
+        std::shared_ptr<DGBase<dim,real>>                       _dg,
+        const bool                                              _uses_solution_values   = true,
+        const bool                                              _uses_solution_gradient = false);
+
+protected:
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real>> weight_function;
+    const bool                                              use_weight_function_laplacian;
+    std::vector<unsigned int>                               boundary_vector;
+};
+
+template <int dim, int nstate, typename real>
+class FunctionalFactory
+{
+public:
+    static std::shared_ptr< Functional<dim,nstate,real> >
+    create_Functional(
+        PHiLiP::Parameters::AllParameters const *const param,
+        std::shared_ptr< PHiLiP::DGBase<dim, real> >   dg);
+};
+
 } // PHiLiP namespace
 
 #endif // __FUNCTIONAL_H__

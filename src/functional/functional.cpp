@@ -22,6 +22,50 @@
 namespace PHiLiP {
 
 template <int dim, int nstate, typename real>
+FunctionalNormLpVolume<dim,nstate,real>::FunctionalNormLpVolume(
+    const double                      _normLp,
+    std::shared_ptr<DGBase<dim,real>> _dg,
+    const bool                        _uses_solution_values,
+    const bool                        _uses_solution_gradient) : 
+        Functional<dim,nstate,real>::Functional(_dg, _uses_solution_values, _uses_solution_gradient),
+        normLp(_normLp) {}
+
+template <int dim, int nstate, typename real>
+FunctionalNormLpBoundary<dim,nstate,real>::FunctionalNormLpBoundary(
+    const double                      _normLp,
+    std::vector<unsigned int>         _boundary_vector,
+    std::shared_ptr<DGBase<dim,real>> _dg,
+    const bool                        _uses_solution_values,
+    const bool                        _uses_solution_gradient) : 
+        Functional<dim,nstate,real>::Functional(_dg, _uses_solution_values, _uses_solution_gradient),
+        normLp(_normLp),
+        boundary_vector(_boundary_vector) {}
+
+template <int dim, int nstate, typename real>
+FunctionalWeightedVolumeIntegral<dim,nstate,real>::FunctionalWeightedVolumeIntegral(
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real>> _weight_function,
+    const bool                                              _use_weight_function_laplacian,
+    std::shared_ptr<DGBase<dim,real>>                       _dg,
+    const bool                                              _uses_solution_values,
+    const bool                                              _uses_solution_gradient) : 
+        Functional<dim,nstate,real>::Functional(_dg, _uses_solution_values, _uses_solution_gradient),
+        weight_function(_weight_function),
+        use_weight_function_laplacian(_use_weight_function_laplacian) {}
+
+template <int dim, int nstate, typename real>
+FunctionalWeightedBoundaryIntegral<dim,nstate,real>::FunctionalWeightedBoundaryIntegral(
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real>> _weight_function,
+    const bool                                              _use_weight_function_laplacian,
+    std::vector<unsigned int>                               _boundary_vector,
+    std::shared_ptr<DGBase<dim,real>>                       _dg,
+    const bool                                              _uses_solution_values,
+    const bool                                              _uses_solution_gradient) : 
+        Functional<dim,nstate,real>::Functional(_dg, _uses_solution_values, _uses_solution_gradient),
+        weight_function(_weight_function),
+        use_weight_function_laplacian(_use_weight_function_laplacian),
+        boundary_vector(_boundary_vector) {}
+
+template <int dim, int nstate, typename real>
 Functional<dim,nstate,real>::Functional(
     std::shared_ptr<DGBase<dim,real>> _dg,
     const bool _uses_solution_values,
@@ -578,12 +622,70 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
     return dIdX_FD;
 }
 
+template <int dim, int nstate, typename real>
+std::shared_ptr< Functional<dim,nstate,real> >
+FunctionalFactory<dim,nstate,real>::create_Functional(
+    PHiLiP::Parameters::AllParameters const *const param,
+    std::shared_ptr< PHiLiP::DGBase<dim, real> >   dg)
+{
+    using FunctionalTypeEnum       = Parameters::FunctionalParam::FunctionalType;
+    using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
+    FunctionalTypeEnum functional_type = param->grid_refinement_study_param.functional_param.functional_type;
 
+    const double              normLp               = param->grid_refinement_study_param.functional_param.normLp;
+
+    ManufacturedSolutionEnum  weight_function_type = param->grid_refinement_study_param.functional_param.weight_function_type;
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > weight_function 
+        = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(weight_function_type, nstate);
+    const bool use_weight_function_laplacian       = param->grid_refinement_study_param.functional_param.use_weight_function_laplacian;
+
+    std::vector<unsigned int> boundary_vector      = param->grid_refinement_study_param.functional_param.boundary_vector;
+
+
+    if(functional_type == FunctionalTypeEnum::normLp_volume){
+        return std::make_shared<FunctionalNormLpVolume<dim,nstate,real>>(
+            normLp,
+            dg,
+            true,
+            false);
+    }else if(functional_type == FunctionalTypeEnum::normLp_boundary){
+        return std::make_shared<FunctionalNormLpBoundary<dim,nstate,real>>(
+            normLp,
+            boundary_vector,dg,
+            true,
+            false);
+    }else if(functional_type == FunctionalTypeEnum::weighted_volume_integral){
+        return std::make_shared<FunctionalWeightedVolumeIntegral<dim,nstate,real>>(
+            weight_function,
+            use_weight_function_laplacian,
+            dg,
+            true,
+            false);
+    }else if(functional_type == FunctionalTypeEnum::weighted_boundary_integral){
+        return std::make_shared<FunctionalWeightedBoundaryIntegral<dim,nstate,real>>(
+            weight_function,
+            use_weight_function_laplacian,
+            boundary_vector,
+            dg,
+            true,
+            false);
+    }else{
+        std::cout << "Invalid Functional." << std::endl;
+    }
+
+    return nullptr;
+}
 
 template class Functional <PHILIP_DIM, 1, double>;
 template class Functional <PHILIP_DIM, 2, double>;
 template class Functional <PHILIP_DIM, 3, double>;
 template class Functional <PHILIP_DIM, 4, double>;
 template class Functional <PHILIP_DIM, 5, double>;
+
+template class FunctionalFactory <PHILIP_DIM, 1, double>;
+template class FunctionalFactory <PHILIP_DIM, 2, double>;
+template class FunctionalFactory <PHILIP_DIM, 3, double>;
+template class FunctionalFactory <PHILIP_DIM, 4, double>;
+template class FunctionalFactory <PHILIP_DIM, 5, double>;
 
 } // PHiLiP namespace

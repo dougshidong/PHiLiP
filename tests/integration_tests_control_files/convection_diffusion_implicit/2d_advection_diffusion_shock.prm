@@ -6,6 +6,7 @@ set dimension = 2
 # The PDE we want to solve. Choices are
 # <advection|diffusion|convection_diffusion>.
 set pde_type  = convection_diffusion
+set test_type = grid_refinement_study
 
 subsection linear solver
 #set linear_solver_type = direct
@@ -32,34 +33,57 @@ subsection ODE solver
   set ode_solver_type                         = implicit
 end
 
-subsection grid refinement
-  set refinement_method   = continuous #uniform
-  set refinement_type     = h
-  set isotropic           = true
-  set error_indicator     = hessian_based #error_based
-  set norm_Lq             = 2.0
-  set refinement_fraction = 0.35
-  set coarsening_fraction = 0.03
+subsection grid refinement study
+  # polyonomial degrees
+  set poly_degree      = 1
+  set poly_degree_max  = 5
+  set poly_degree_grid = 2
+
+  # number of refinement steps
+  set refinement_steps = 6
+
+  # grid setup
+  set grid_type  = hypercube
+  #set input_grid = NaN
+  set grid_left  = 0.0
+  set grid_right = 1.0
+  set grid_size  = 4
+
+  # manufactured solution
+  #set use_manufactured_source_term = true
+  #set manufactured_solution_type   = atan_solution
+
+  # functional
+  subsection functional
+    # functional choice
+    set functional_type = error_normLp_volume
+
+    # Lp norm parameters
+    set normLp          = 2.0
+
+    # weighted integral parameters
+    set weight_function_type          = sine_solution
+    set use_weight_function_laplacian = true
+
+    # boundary functional parameters
+    set boundary_vector    = [0]
+    set use_all_boundaries = true
+  end
+
+  # grid refinement
+  subsection grid refinement
+    set refinement_method   = uniform #continuous #fixed_fraction # 
+    set refinement_type     = h
+    set isotropic           = true
+    set error_indicator     = error_based #hessian_based #error_based
+    set norm_Lq             = 2.0
+    set refinement_fraction = 0.3
+    set coarsening_fraction = 0.03
+  end
 end
 
 subsection manufactured solution convergence study
   set use_manufactured_source_term = true
-  set manufactured_solution_type = atan_solution
-
-  # Last degree used for convergence study
-  set degree_end        = 1
-
-  # Starting degree for convergence study
-  set degree_start      = 1
-
-  # Multiplier on grid size. nth-grid will be of size
-  # (initial_grid^grid_progression)^dim
-  set grid_progression  = 1.5
-
-  # Initial grid of size (initial_grid_size)^dim
-  set initial_grid_size = 2
-
-  # Number of grids in grid study
-  set number_of_grids   = 6
+  set manufactured_solution_type   = atan_solution
 end
 

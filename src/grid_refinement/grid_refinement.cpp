@@ -37,21 +37,19 @@ namespace GridRefinement {
 template <int dim, int nstate, typename real>
 void GridRefinement_Uniform<dim,nstate,real>::refine_grid_h()
 {
-    this->tria.refine_global(1);
+    this->tria->set_all_refine_flags();
 }
 template <int dim, int nstate, typename real>
 void GridRefinement_Uniform<dim,nstate,real>::refine_grid_p()
 {
-    // TODO: add check on max polynomial dergee
-    // check dg->max_degree
     for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
-        if(cell->is_locally_owned())
+        if(cell->is_locally_owned() && cell->active_fe_index()+1 <= this->dg->max_degree)
             cell->set_future_fe_index(cell->active_fe_index()+1);
+    
 }
 template <int dim, int nstate, typename real>
 void GridRefinement_Uniform<dim,nstate,real>::refine_grid_hp()
 {
-    // TODO: check if an execute statement needs to be added between these
     refine_grid_h();
     refine_grid_p();
 }
@@ -65,13 +63,13 @@ void GridRefinement_FixedFraction<dim,nstate,real>::refine_grid_h()
     // Performing the call for refinement
 #if PHILIP_DIM==1
     dealii::GridRefinement::refine_and_coarsen_fixed_number(
-        this->tria,
+        *(this->tria),
         this->indicator,
         this->grid_refinement_param.refinement_fraction,
         this->grid_refinement_param.coarsening_fraction);
 #else
     dealii::parallel::distributed::GridRefinement::refine_and_coarsen_fixed_number(
-        this->tria,
+        *(this->tria),
         this->indicator,
         this->grid_refinement_param.refinement_fraction,
         this->grid_refinement_param.coarsening_fraction);
@@ -132,7 +130,7 @@ void GridRefinement_FixedFraction_Error<dim,nstate,real>::error_indicator()
 
     // storing the result in 
     std::vector<dealii::types::global_dof_index> dofs_indices(fe_values.dofs_per_cell);
-    this->indicator.reinit(this->tria.n_active_cells());
+    this->indicator.reinit(this->tria->n_active_cells());
     for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell){
         if(!cell->is_locally_owned()) continue;
 
@@ -177,19 +175,19 @@ void GridRefinement_FixedFraction_Residual<dim,nstate,real>::error_indicator()
 template <int dim, int nstate, typename real>
 void GridRefinement_FixedFraction_Adjoint<dim,nstate,real>::error_indicator()
 {
-    // reinitializing the error indicator vector
-    this->indicator(this->tria.n_active_cells());
-
     // reinitializing the adjoint with current values
     this->adjoint->reinit();
 
     // evaluating the functional derivatives and adjoint
-    this->adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::fine);
+    this->adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,real>::AdjointStateEnum::fine);
     this->adjoint->fine_grid_adjoint();
+    
+    // reinitializing the error indicator vector
+    this->indicator.reinit(this->adjoint->dg->triangulation->n_active_cells());
     this->indicator = this->adjoint->dual_weighted_residual();
 
     // return to the coarse grid
-    this->adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::coarse);
+    this->adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,real>::AdjointStateEnum::coarse);
 }
 
 template <int dim, int nstate, typename real>
@@ -202,16 +200,14 @@ void GridRefinement_Continuous_Error<dim,nstate,real>::refine_grid_hp(){}
 template <int dim, int nstate, typename real>
 void GridRefinement_Continuous_Hessian<dim,nstate,real>::refine_grid_h()
 {
-    std::cout << "calling the correct function?" << std::endl;
-
     int igrid = 0;
     int poly_degree = 1;
 
     // building error based on exact hessian
-    double complexity = pow(poly_degree+1, dim)*this->tria.n_active_cells()*4;
+    double complexity = pow(poly_degree+1, dim)*this->tria->n_active_cells()*4;
     dealii::Vector<double> h_field;
     SizeField<dim,double>::isotropic_uniform(
-        this->tria,
+        *(this->tria),
         *(this->dg->high_order_grid.mapping_fe_field),
         this->dg->fe_collection[poly_degree],
         this->physics->manufactured_solution_function,
@@ -221,7 +217,7 @@ void GridRefinement_Continuous_Hessian<dim,nstate,real>::refine_grid_h()
     // now outputting this new field
     std::string write_posname = "grid-"+std::to_string(igrid)+".pos";
     std::ofstream outpos(write_posname);
-    GmshOut<dim,double>::write_pos(this->tria,h_field,outpos);
+    GmshOut<dim,double>::write_pos(*(this->tria),h_field,outpos);
 
     std::string write_geoname = "grid-"+std::to_string(igrid)+".geo";
     std::ofstream outgeo(write_geoname);
@@ -232,9 +228,9 @@ void GridRefinement_Continuous_Hessian<dim,nstate,real>::refine_grid_h()
     int a = std::system(("gmsh " + write_geoname + " -2 -o " + output_name).c_str());
     std::cout << "a" << a << std::endl;
 
-    this->tria.clear();
+    this->tria->clear();
     dealii::GridIn<dim> gridin;
-    gridin.attach_triangulation(this->tria);
+    gridin.attach_triangulation(*(this->tria));
     std::ifstream f(output_name);
     gridin.read_msh(f);
 }
@@ -261,9 +257,9 @@ void GridRefinement_Continuous_Adjoint<dim,nstate,real>::refine_grid_hp(){}
 template <int dim, int nstate, typename real>
 void GridRefinementBase<dim,nstate,real>::refine_grid()
 {
-    using RefinementMethodEnum = PHiLiP::Parameters::GridRefinementParam::RefinementMethod;
+    // using RefinementMethodEnum = PHiLiP::Parameters::GridRefinementParam::RefinementMethod;
     using RefinementTypeEnum   = PHiLiP::Parameters::GridRefinementParam::RefinementType;
-    RefinementMethodEnum refinement_method = this->grid_refinement_param.refinement_method;
+    // RefinementMethodEnum refinement_method = this->grid_refinement_param.refinement_method;
     RefinementTypeEnum   refinement_type   = this->grid_refinement_param.refinement_type;
 
     // // TODO: add solution transfer flag here
@@ -280,13 +276,17 @@ void GridRefinementBase<dim,nstate,real>::refine_grid()
     // if(refinement_method == RefinementMethodEnum::uniform || 
     //    refinement_method == RefinementMethodEnum::fixed_fraction){
     //     this->dg->high_order_grid.prepare_for_coarsening_and_refinement();
-    //     this->tria.prepare_coarsening_and_refinement();
+    //     this->tria->prepare_coarsening_and_refinement();
     // }
 
-    if(refinement_method == RefinementMethodEnum::uniform 
-    || refinement_method == RefinementMethodEnum::fixed_fraction){
-        this->dg->high_order_grid.prepare_for_coarsening_and_refinement();
-    }
+    // if(refinement_method == RefinementMethodEnum::uniform 
+    // || refinement_method == RefinementMethodEnum::fixed_fraction){
+    //     this->dg->high_order_grid.prepare_for_coarsening_and_refinement();
+    //     dg->triangulation->prepare_coarsening_and_refinement();
+    // }
+
+    this->dg->high_order_grid.prepare_for_coarsening_and_refinement();
+    this->dg->triangulation->prepare_coarsening_and_refinement();
 
     if(refinement_type == RefinementTypeEnum::h){
         refine_grid_h();
@@ -296,14 +296,18 @@ void GridRefinementBase<dim,nstate,real>::refine_grid()
         refine_grid_hp();
     }
 
-    if(refinement_method == RefinementMethodEnum::uniform){
-        this->dg->high_order_grid.execute_coarsening_and_refinement();
-    }
+    this->tria->execute_coarsening_and_refinement();
+    this->dg->high_order_grid.execute_coarsening_and_refinement();
 
-    if(refinement_method == RefinementMethodEnum::fixed_fraction){
-        this->tria.execute_coarsening_and_refinement();
-        this->dg->high_order_grid.execute_coarsening_and_refinement();
-    }
+    // if(refinement_method == RefinementMethodEnum::uniform){
+    //     this->tria->execute_coarsening_and_refinement();
+    //     this->dg->high_order_grid.execute_coarsening_and_refinement();
+    // }
+
+    // if(refinement_method == RefinementMethodEnum::fixed_fraction){
+    //     this->tria->execute_coarsening_and_refinement();
+    //     this->dg->high_order_grid.execute_coarsening_and_refinement();
+    // }
 
     // reallocating
     // this->dg->allocate_system();
@@ -316,7 +320,7 @@ void GridRefinementBase<dim,nstate,real>::refine_grid()
     // // TODO: exectute
     // if(refinement_method == RefinementMethodEnum::uniform || 
     //    refinement_method == RefinementMethodEnum::fixed_fraction){
-    //     this->tria.execute_coarsening_and_refinement(); // check if this one is necessary
+    //     this->tria->execute_coarsening_and_refinement(); // check if this one is necessary
     //     this->dg->high_order_grid.execute_coarsening_and_refinement();
     // }
     // // TODO: complete the refinement
@@ -391,12 +395,12 @@ GridRefinementBase<dim,nstate,real>::GridRefinementBase(
     std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg_input,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) :
         param(param_input),
-        grid_refinement_param(param_input->grid_refinement_param),
+        grid_refinement_param(param_input->grid_refinement_study_param.grid_refinement_param),
         adjoint(adj_input),
         functional(functional_input),
         dg(dg_input),
         physics(physics_input),
-        tria(*(dg_input->triangulation)){}
+        tria(dg_input->triangulation){}
 
 // factory for different options, ensures that the provided 
 // values match with the selected refinement type
@@ -412,8 +416,8 @@ GridRefinementFactory<dim,nstate,real>::create_GridRefinement(
     // all adjoint based methods should be constructed here
     using RefinementMethodEnum = PHiLiP::Parameters::GridRefinementParam::RefinementMethod;
     using ErrorIndicatorEnum   = PHiLiP::Parameters::GridRefinementParam::ErrorIndicator;
-    RefinementMethodEnum refinement_method = param->grid_refinement_param.refinement_method;
-    ErrorIndicatorEnum   error_indicator   = param->grid_refinement_param.error_indicator;
+    RefinementMethodEnum refinement_method = param->grid_refinement_study_param.grid_refinement_param.refinement_method;
+    ErrorIndicatorEnum   error_indicator   = param->grid_refinement_study_param.grid_refinement_param.error_indicator;
 
     if(refinement_method == RefinementMethodEnum::fixed_fraction &&
        error_indicator   == ErrorIndicatorEnum::adjoint_based){
@@ -450,8 +454,8 @@ GridRefinementFactory<dim,nstate,real>::create_GridRefinement(
     // hessian and error based
     using RefinementMethodEnum = PHiLiP::Parameters::GridRefinementParam::RefinementMethod;
     using ErrorIndicatorEnum   = PHiLiP::Parameters::GridRefinementParam::ErrorIndicator;
-    RefinementMethodEnum refinement_method = param->grid_refinement_param.refinement_method;
-    ErrorIndicatorEnum   error_indicator   = param->grid_refinement_param.error_indicator;
+    RefinementMethodEnum refinement_method = param->grid_refinement_study_param.grid_refinement_param.refinement_method;
+    ErrorIndicatorEnum   error_indicator   = param->grid_refinement_study_param.grid_refinement_param.error_indicator;
 
     if(refinement_method == RefinementMethodEnum::fixed_fraction &&
        error_indicator   == ErrorIndicatorEnum::hessian_based){
@@ -480,8 +484,8 @@ GridRefinementFactory<dim,nstate,real>::create_GridRefinement(
     // residual based or uniform
     using RefinementMethodEnum = PHiLiP::Parameters::GridRefinementParam::RefinementMethod;
     using ErrorIndicatorEnum   = PHiLiP::Parameters::GridRefinementParam::ErrorIndicator;
-    RefinementMethodEnum refinement_method = param->grid_refinement_param.refinement_method;
-    ErrorIndicatorEnum   error_indicator   = param->grid_refinement_param.error_indicator;
+    RefinementMethodEnum refinement_method = param->grid_refinement_study_param.grid_refinement_param.refinement_method;
+    ErrorIndicatorEnum   error_indicator   = param->grid_refinement_study_param.grid_refinement_param.error_indicator;
 
     if(refinement_method == RefinementMethodEnum::fixed_fraction &&
        error_indicator   == ErrorIndicatorEnum::residual_based){

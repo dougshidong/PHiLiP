@@ -125,7 +125,7 @@ public:
     void output_results_vtk(const unsigned int cycle);
 
     /// DG class pointer
-    std::shared_ptr< DGBase<dim,real> >dg;
+    std::shared_ptr< DGBase<dim,real> > dg;
     /// Functional class pointer
     std::shared_ptr< Functional<dim, nstate, real> > functional;
     /// Problem physics (for calling the functional class) 

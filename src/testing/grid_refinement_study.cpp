@@ -25,12 +25,19 @@
 
 #include "physics/physics_factory.h"
 #include "physics/manufactured_solution.h"
+
 #include "dg/dg.h"
+
 #include "ode_solver/ode_solver.h"
+
+#include "functional/functional.h"
+#include "functional/adjoint.h"
 
 #include "grid_refinement/grid_refinement.h"
 #include "grid_refinement/gmsh_out.h"
 #include "grid_refinement/size_field.h"
+
+
 
 namespace PHiLiP {
     
@@ -45,20 +52,21 @@ template <int dim, int nstate>
 int GridRefinementStudy<dim,nstate>::run_test() const
 {
     pcout << " Running Grid Refinement Study. " << std::endl;
-    const Parameters::AllParameters param = *(TestsBase::all_parameters);
+    const Parameters::AllParameters param           = *(TestsBase::all_parameters);
+    const Parameters::GridRefinementStudyParam grs_param = param.grid_refinement_study_param;
 
     using ADtype = Sacado::Fad::DFad<double>;
 
-    const unsigned int poly_degree      = 1;
-    const unsigned int poly_degree_max  = 1;
-    const unsigned int poly_degree_grid = 1+1;
+    const unsigned int poly_degree      = grs_param.poly_degree;
+    const unsigned int poly_degree_max  = grs_param.poly_degree_max;
+    const unsigned int poly_degree_grid = grs_param.poly_degree_grid;
 
-    const unsigned int grid_size = 2;
+    const unsigned int grid_size = grs_param.grid_size;
 
-    const unsigned int refinement_steps = 5;
+    const unsigned int refinement_steps = grs_param.refinement_steps;
 
-    const double left  = 0.0;
-    const double right = 1.0;
+    const double left  = grs_param.grid_left;
+    const double right = grs_param.grid_right;
 
     // creating the physics object
     std::shared_ptr< Physics::PhysicsBase<dim,nstate,double> > physics_double
@@ -78,9 +86,9 @@ int GridRefinementStudy<dim,nstate>::run_test() const
                 dealii::Triangulation<dim>::smoothing_on_coarsening));
 #else
         dealii::parallel::distributed::Triangulation<dim> grid(
-            this->mpi_communicator,
-            typename dealii::Triangulation<dim>::MeshSmoothing(
-                dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_refinement));
+            this->mpi_communicator);//,
+            // typename dealii::Triangulation<dim>::MeshSmoothing(
+            //     dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_refinement));
                 //dealii::Triangulation<dim>::smoothing_on_refinement |
                 //dealii::Triangulation<dim>::smoothing_on_coarsening));
 #endif
@@ -113,19 +121,17 @@ int GridRefinementStudy<dim,nstate>::run_test() const
         // ode_solver->steady_state();
         // ode_solver->initialize_steady_polynomial_ramping(poly_degree);
 
-        // // generate Functional
-        // std::shared_ptr< Functional<dim,nstate,double> > functional 
-        //     = std::make_shared< L2normError<dim,nstate,double> >(dg,true,false);
+        // generate Functional
+        std::shared_ptr< Functional<dim,nstate,double> > functional 
+            = FunctionalFactory<dim,nstate,double>::create_Functional(grs_param.functional_param, dg);
 
-        // // generate Adjoint
-        // Adjoint<dim,nstate,double> adjoint(
-        //     dg,
-        //     functional,
-        //     physics_adtype);
+        // generate Adjoint
+        std::shared_ptr< Adjoint<dim,nstate,double> > adjoint 
+            = std::make_shared< Adjoint<dim,nstate,double> >(dg, functional, physics_adtype);
 
         // generate the GridRefinement
         std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  grid_refinement 
-            = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(&param,dg,physics_double);
+            = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(&param,adjoint,physics_double);
 
         // starting the iterations
         dealii::ConvergenceTable convergence_table;
@@ -150,26 +156,38 @@ int GridRefinementStudy<dim,nstate>::run_test() const
 
             // TODO: computing necessary parameters
 
-            // // reinitializing the adjoint
-            // adjoint.reinit();
-            
-            // // evaluating the derivatives and the fine grid adjoint
-            // adjoint.convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::fine);
-            // adjoint.fine_grid_adjoint();
-            // estimated_error_per_cell.reinit(grid.n_active_cells());
-            // estimated_error_per_cell = adjoint.dual_weighted_residual();
-            // adjoint.output_results_vtk(igrid);
+            // computing the functional value
+            double functional_value = functional->evaluate_functional(*(physics_adtype));
 
-            // // and for the coarse grid
-            // adjoint.convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::coarse); // this one is necessary though
-            // adjoint.coarse_grid_adjoint();
-            // adjoint.output_results_vtk(igrid);
+            // reinitializing the adjoint
+            adjoint->reinit();
+
+            bool less_than_max = true;
+            for(auto cell = dg->dof_handler.begin_active(); cell != dg->dof_handler.end(); ++cell)
+                if(cell->is_locally_owned() && cell->active_fe_index()+1 > dg->max_degree)
+                    less_than_max = false;
+
+
+            // evaluating the derivatives and the fine grid adjoint
+            if(less_than_max){ // don't output if at max order (as p-enrichment will segfault)
+                adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::fine);
+                adjoint->fine_grid_adjoint();
+                estimated_error_per_cell.reinit(grid.n_active_cells());
+                estimated_error_per_cell = adjoint->dual_weighted_residual();
+                adjoint->output_results_vtk(igrid);
+            }
+
+            // and for the coarse grid
+            adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::coarse); // this one is necessary though
+            adjoint->coarse_grid_adjoint();
+            adjoint->output_results_vtk(igrid);
 
             // convergence table
             convergence_table.add_value("cells", n_global_active_cells);
             convergence_table.add_value("DoFs", n_dofs);
             // convergence_table.add_value("soln_L2_error", l2error_mpi_sum);
             // convergence_table.add_value("output_error", );
+            convergence_table.add_value("value", functional_value);
         }
 
         pcout << " ********************************************" << std::endl
@@ -179,6 +197,7 @@ int GridRefinementStudy<dim,nstate>::run_test() const
         // convergence_table.evaluate_convergence_rates("output_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         // convergence_table.set_scientific("soln_L2_error", true);
         // convergence_table.set_scientific("output_error", true);
+        convergence_table.set_scientific("value", true);
         if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
 
         convergence_table_vector.push_back(convergence_table);

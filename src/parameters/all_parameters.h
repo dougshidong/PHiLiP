@@ -31,8 +31,6 @@ public:
     LinearSolverParam linear_solver_param;
     /// Contains parameters for the Euler equations non-dimensionalization
     EulerParam euler_param;
-    /// contains the parameters for grid refinement
-    GridRefinementParam grid_refinement_param;
     /// contains the parameters for grid refinement study
     GridRefinementStudyParam grid_refinement_study_param;
 

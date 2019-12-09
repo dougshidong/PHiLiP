@@ -106,7 +106,7 @@ protected:
     // triangulation
     // dealii::Triangulation<dim, dim> &tria;
     // Triangulation &tria;
-    Triangulation &tria;
+    Triangulation *const tria;
 };
 
 template <int dim, int nstate, typename real>

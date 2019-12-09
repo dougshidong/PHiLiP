@@ -52,6 +52,10 @@ void GridRefinementStudyParam::declare_parameters(dealii::ParameterHandler &prm)
         prm.declare_entry("grid_right", "1.0",
                           dealii::Patterns::Double(),
                           "for grid_type hypercube, right bound of domain.");
+
+        prm.declare_entry("grid_size", "4",
+                          dealii::Patterns::Integer(),
+                          "Initial grid size (number of elements per side).");
     }
     prm.leave_subsection();
 }
@@ -78,6 +82,8 @@ void GridRefinementStudyParam::parse_parameters(dealii::ParameterHandler &prm)
 
         grid_left  = prm.get_double("grid_left");
         grid_right = prm.get_double("grid_right");
+
+        grid_size  = prm.get_integer("grid_size");
     }
     prm.leave_subsection();
 }

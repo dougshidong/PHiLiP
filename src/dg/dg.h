@@ -143,6 +143,12 @@ public:
 
     void set_all_cells_fe_degree ( const unsigned int degree );
 
+    /// Gets the maximum value of currently active FE degree
+    unsigned int get_max_fe_degree();
+
+    /// Gets the minimum value of currently active FE degree
+    unsigned int get_min_fe_degree();
+
     /// Allocates the system.
     /** Must be done after setting the mesh and before assembling the system. */
     virtual void allocate_system ();

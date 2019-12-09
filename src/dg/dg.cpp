@@ -303,7 +303,29 @@ void DGBase<dim,real>::set_all_cells_fe_degree ( const unsigned int degree )
     triangulation->execute_coarsening_and_refinement();
 }
 
+template <int dim, typename real>
+unsigned int DGBase<dim,real>::get_max_fe_degree()
+{
+    unsigned int max_fe_degree = 0;
 
+    for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell)
+        if(cell->is_locally_owned() && cell->active_fe_index() > max_fe_degree)
+            max_fe_degree = cell->active_fe_index();
+
+    return dealii::Utilities::MPI::max(max_fe_degree, MPI_COMM_WORLD);
+}
+
+template <int dim, typename real>
+unsigned int DGBase<dim,real>::get_min_fe_degree()
+{
+    unsigned int min_fe_degree = max_degree;
+
+    for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell)
+        if(cell->is_locally_owned() && cell->active_fe_index() < min_fe_degree)
+            min_fe_degree = cell->active_fe_index();
+
+    return dealii::Utilities::MPI::min(min_fe_degree, MPI_COMM_WORLD);
+}
 
 // Destructor
 template <int dim, typename real>

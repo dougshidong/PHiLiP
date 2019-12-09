@@ -33,6 +33,28 @@ namespace GridRefinement {
     template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
 #endif
 
+
+template <int dim, int nstate, typename real>
+void GridRefinement_Uniform<dim,nstate,real>::refine_grid()
+{
+    using RefinementTypeEnum = PHiLiP::Parameters::GridRefinementParam::RefinementType;
+    RefinementTypeEnum refinement_type = this->grid_refinement_param.refinement_type;
+
+    this->dg->high_order_grid.prepare_for_coarsening_and_refinement();
+    this->dg->triangulation->prepare_coarsening_and_refinement();
+
+    if(refinement_type == RefinementTypeEnum::h){
+        refine_grid_h();
+    }else if(refinement_type == RefinementTypeEnum::p){
+        refine_grid_p();
+    }else if(refinement_type == RefinementTypeEnum::hp){
+        refine_grid_hp();
+    }
+
+    this->tria->execute_coarsening_and_refinement();
+    this->dg->high_order_grid.execute_coarsening_and_refinement();
+}
+
 // functions for the refinement calls for each of the classes
 template <int dim, int nstate, typename real>
 void GridRefinement_Uniform<dim,nstate,real>::refine_grid_h()
@@ -55,11 +77,37 @@ void GridRefinement_Uniform<dim,nstate,real>::refine_grid_hp()
 }
 
 template <int dim, int nstate, typename real>
-void GridRefinement_FixedFraction<dim,nstate,real>::refine_grid_h()
+void GridRefinement_FixedFraction<dim,nstate,real>::refine_grid()
 {
-    // Compute the error indicator to define this->indicator
+    using RefinementTypeEnum = PHiLiP::Parameters::GridRefinementParam::RefinementType;
+    RefinementTypeEnum refinement_type = this->grid_refinement_param.refinement_type;
+
+    // compute the error indicator, stored in this->indicator
     error_indicator();
 
+    // computing the smoothness_indicator only for the hp case
+    if(refinement_type == RefinementTypeEnum::hp){
+
+    }
+
+    this->dg->high_order_grid.prepare_for_coarsening_and_refinement();
+    this->dg->triangulation->prepare_coarsening_and_refinement();
+
+    if(refinement_type == RefinementTypeEnum::h){
+        refine_grid_h();
+    }else if(refinement_type == RefinementTypeEnum::p){
+        refine_grid_p();
+    }else if(refinement_type == RefinementTypeEnum::hp){
+        refine_grid_hp();
+    }
+
+    this->tria->execute_coarsening_and_refinement();
+    this->dg->high_order_grid.execute_coarsening_and_refinement();
+}
+
+template <int dim, int nstate, typename real>
+void GridRefinement_FixedFraction<dim,nstate,real>::refine_grid_h()
+{
     // Performing the call for refinement
 #if PHILIP_DIM==1
     dealii::GridRefinement::refine_and_coarsen_fixed_number(
@@ -78,14 +126,14 @@ void GridRefinement_FixedFraction<dim,nstate,real>::refine_grid_h()
 template <int dim, int nstate, typename real>
 void GridRefinement_FixedFraction<dim,nstate,real>::refine_grid_p()
 {
-    // TODO: call refine_grid_h, then loop over and replace any h refinement
-    //       flags with a polynomial enrichment
+    // flags cells using refine_grid_h, then loop over and replace any h refinement flags with a polynomial enrichment
     refine_grid_h();
     for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
         if(cell->is_locally_owned())
             if(cell->refine_flag_set()){
                 cell->clear_refine_flag();
-                cell->set_active_fe_index(cell->active_fe_index()+1);
+                if(cell->active_fe_index()+1 <= this->dg->max_degree)
+                    cell->set_active_fe_index(cell->active_fe_index()+1);
             }
 
 }
@@ -95,8 +143,15 @@ void GridRefinement_FixedFraction<dim,nstate,real>::refine_grid_hp()
     // TODO: Same idea as above, except the switch in refine_grid_p
     //       now has to meet some tolerance, e.g. smoothness, jump
     // will need to implement the choice between different methods here
+    // will start with an h_refinement call and then looping over flags
     refine_grid_h();
-    smoothness_indicator();
+    for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
+        if(cell->is_locally_owned() && cell->active_fe_index()+1 <= this->dg->max_degree)
+            if(cell->refine_flag_set()){
+                // perform the h/p decision making
+                cell->clear_refine_flag();
+                cell->set_active_fe_index(cell->active_fe_index()+1);
+            }
 }
 
 template <int dim, int nstate, typename real>
@@ -109,7 +164,7 @@ void GridRefinement_FixedFraction<dim,nstate,real>::smoothness_indicator()
 template <int dim, int nstate, typename real>
 void GridRefinement_FixedFraction_Error<dim,nstate,real>::error_indicator()
 {
-    // TODO: update this to work with p-adaptive schemes
+    // TODO: update this to work with p-adaptive schemes (will need proper fe_values for each p)
     // see dg.cpp
     // const auto mapping = (*(high_order_grid.mapping_fe_field));
     // dealii::hp::MappingCollection<dim> mapping_collection(mapping);
@@ -191,33 +246,69 @@ void GridRefinement_FixedFraction_Adjoint<dim,nstate,real>::error_indicator()
 }
 
 template <int dim, int nstate, typename real>
-void GridRefinement_Continuous_Error<dim,nstate,real>::refine_grid_h(){}
-template <int dim, int nstate, typename real>
-void GridRefinement_Continuous_Error<dim,nstate,real>::refine_grid_p(){}
-template <int dim, int nstate, typename real>
-void GridRefinement_Continuous_Error<dim,nstate,real>::refine_grid_hp(){}
+void GridRefinement_Continuous<dim,nstate,real>::refine_grid()
+{
+    using RefinementTypeEnum = PHiLiP::Parameters::GridRefinementParam::RefinementType;
+    RefinementTypeEnum refinement_type = this->grid_refinement_param.refinement_type;
+
+    // store the previous solution space
+
+    // compute the necessary size fields
+    if(refinement_type == RefinementTypeEnum::h){
+        field_h();
+    }else if(refinement_type == RefinementTypeEnum::p){
+        field_p();
+    }else if(refinement_type == RefinementTypeEnum::hp){
+        field_hp();
+    }
+
+    // generate a new grid
+    if(refinement_type == RefinementTypeEnum::h){
+        refine_grid_h();
+    }else if(refinement_type == RefinementTypeEnum::p){
+        refine_grid_p();
+    }else if(refinement_type == RefinementTypeEnum::hp){
+        refine_grid_hp();
+    }
+
+    // interpolate the solution from the previous
+
+}
 
 template <int dim, int nstate, typename real>
-void GridRefinement_Continuous_Hessian<dim,nstate,real>::refine_grid_h()
+void GridRefinement_Continuous<dim,nstate,real>::refine_grid_h(){}
+template <int dim, int nstate, typename real>
+void GridRefinement_Continuous<dim,nstate,real>::refine_grid_p(){}
+template <int dim, int nstate, typename real>
+void GridRefinement_Continuous<dim,nstate,real>::refine_grid_hp(){}
+
+template <int dim, int nstate, typename real>
+void GridRefinement_Continuous_Error<dim,nstate,real>::field_h(){}
+template <int dim, int nstate, typename real>
+void GridRefinement_Continuous_Error<dim,nstate,real>::field_p(){}
+template <int dim, int nstate, typename real>
+void GridRefinement_Continuous_Error<dim,nstate,real>::field_hp(){}
+
+template <int dim, int nstate, typename real>
+void GridRefinement_Continuous_Hessian<dim,nstate,real>::field_h()
 {
     int igrid = 0;
     int poly_degree = 1;
 
     // building error based on exact hessian
     double complexity = pow(poly_degree+1, dim)*this->tria->n_active_cells()*4;
-    dealii::Vector<double> h_field;
     SizeField<dim,double>::isotropic_uniform(
         *(this->tria),
         *(this->dg->high_order_grid.mapping_fe_field),
         this->dg->fe_collection[poly_degree],
         this->physics->manufactured_solution_function,
         complexity,
-        h_field);
+        this->h_field);
 
     // now outputting this new field
     std::string write_posname = "grid-"+std::to_string(igrid)+".pos";
     std::ofstream outpos(write_posname);
-    GmshOut<dim,double>::write_pos(*(this->tria),h_field,outpos);
+    GmshOut<dim,double>::write_pos(*(this->tria),this->h_field,outpos);
 
     std::string write_geoname = "grid-"+std::to_string(igrid)+".geo";
     std::ofstream outgeo(write_geoname);
@@ -235,107 +326,23 @@ void GridRefinement_Continuous_Hessian<dim,nstate,real>::refine_grid_h()
     gridin.read_msh(f);
 }
 template <int dim, int nstate, typename real>
-void GridRefinement_Continuous_Hessian<dim,nstate,real>::refine_grid_p(){}
+void GridRefinement_Continuous_Hessian<dim,nstate,real>::field_p(){}
 template <int dim, int nstate, typename real>
-void GridRefinement_Continuous_Hessian<dim,nstate,real>::refine_grid_hp(){}
-
-template <int dim, int nstate, typename real>
-void GridRefinement_Continuous_Residual<dim,nstate,real>::refine_grid_h(){}
-template <int dim, int nstate, typename real>
-void GridRefinement_Continuous_Residual<dim,nstate,real>::refine_grid_p(){}
-template <int dim, int nstate, typename real>
-void GridRefinement_Continuous_Residual<dim,nstate,real>::refine_grid_hp(){}
+void GridRefinement_Continuous_Hessian<dim,nstate,real>::field_hp(){}
 
 template <int dim, int nstate, typename real>
-void GridRefinement_Continuous_Adjoint<dim,nstate,real>::refine_grid_h(){}
+void GridRefinement_Continuous_Residual<dim,nstate,real>::field_h(){}
 template <int dim, int nstate, typename real>
-void GridRefinement_Continuous_Adjoint<dim,nstate,real>::refine_grid_p(){}
+void GridRefinement_Continuous_Residual<dim,nstate,real>::field_p(){}
 template <int dim, int nstate, typename real>
-void GridRefinement_Continuous_Adjoint<dim,nstate,real>::refine_grid_hp(){}
+void GridRefinement_Continuous_Residual<dim,nstate,real>::field_hp(){}
 
-// central refine grid call
 template <int dim, int nstate, typename real>
-void GridRefinementBase<dim,nstate,real>::refine_grid()
-{
-    // using RefinementMethodEnum = PHiLiP::Parameters::GridRefinementParam::RefinementMethod;
-    using RefinementTypeEnum   = PHiLiP::Parameters::GridRefinementParam::RefinementType;
-    // RefinementMethodEnum refinement_method = this->grid_refinement_param.refinement_method;
-    RefinementTypeEnum   refinement_type   = this->grid_refinement_param.refinement_type;
-
-    // // TODO: add solution transfer flag here
-    // // add to constructor
-    // // dealii::parallel::distributed::SolutionTransfer< 
-    // //     dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim> 
-    // //     > solution_transfer(dg->dof_handler);
-    // if(true){
-    //     // TODO: check if this can be the same vector or most likely needs to be copied first
-    //     // solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
-    // }
-
-    // // TODO: prepare, only needed in cases where using the default DEALii refinements
-    // if(refinement_method == RefinementMethodEnum::uniform || 
-    //    refinement_method == RefinementMethodEnum::fixed_fraction){
-    //     this->dg->high_order_grid.prepare_for_coarsening_and_refinement();
-    //     this->tria->prepare_coarsening_and_refinement();
-    // }
-
-    // if(refinement_method == RefinementMethodEnum::uniform 
-    // || refinement_method == RefinementMethodEnum::fixed_fraction){
-    //     this->dg->high_order_grid.prepare_for_coarsening_and_refinement();
-    //     dg->triangulation->prepare_coarsening_and_refinement();
-    // }
-
-    this->dg->high_order_grid.prepare_for_coarsening_and_refinement();
-    this->dg->triangulation->prepare_coarsening_and_refinement();
-
-    if(refinement_type == RefinementTypeEnum::h){
-        refine_grid_h();
-    }else if(refinement_type == RefinementTypeEnum::p){
-        refine_grid_p();
-    }else if(refinement_type == RefinementTypeEnum::hp){
-        refine_grid_hp();
-    }
-
-    this->tria->execute_coarsening_and_refinement();
-    this->dg->high_order_grid.execute_coarsening_and_refinement();
-
-    // if(refinement_method == RefinementMethodEnum::uniform){
-    //     this->tria->execute_coarsening_and_refinement();
-    //     this->dg->high_order_grid.execute_coarsening_and_refinement();
-    // }
-
-    // if(refinement_method == RefinementMethodEnum::fixed_fraction){
-    //     this->tria->execute_coarsening_and_refinement();
-    //     this->dg->high_order_grid.execute_coarsening_and_refinement();
-    // }
-
-    // reallocating
-    // this->dg->allocate_system();
-
-    // transfer the solution if desired
-    // this->dg->solution.zero_out_ghosts();
-    // solution_transfer.interpolate(dg->solution);
-    // this->dg->solution.update_ghost_values();
-
-    // // TODO: exectute
-    // if(refinement_method == RefinementMethodEnum::uniform || 
-    //    refinement_method == RefinementMethodEnum::fixed_fraction){
-    //     this->tria->execute_coarsening_and_refinement(); // check if this one is necessary
-    //     this->dg->high_order_grid.execute_coarsening_and_refinement();
-    // }
-    // // TODO: complete the refinement
-    // if(true){
-    //     this->dg->allocate_system();
-    //     this->dg->solution.zero_out_ghosts();
-    //     // solution_transfer.interpolate(dg->solution);
-    //     this->dg->solution.update_ghost_values();
-    // }
-
-    // // TODO: if reinit
-    // if(true){
-
-    // }
-}
+void GridRefinement_Continuous_Adjoint<dim,nstate,real>::field_h(){}
+template <int dim, int nstate, typename real>
+void GridRefinement_Continuous_Adjoint<dim,nstate,real>::field_p(){}
+template <int dim, int nstate, typename real>
+void GridRefinement_Continuous_Adjoint<dim,nstate,real>::field_hp(){}
 
 // constructors for GridRefinementBase
 template <int dim, int nstate, typename real>

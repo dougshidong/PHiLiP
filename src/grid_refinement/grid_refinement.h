@@ -61,7 +61,7 @@ public:
         std::shared_ptr< PHiLiP::DGBase<dim, real> >   dg_input);
 
     // refine_grid is the main function
-    void refine_grid();
+    virtual void refine_grid()    = 0;
 
     // refine grid functions to be called
     virtual void refine_grid_h()  = 0;
@@ -114,6 +114,7 @@ class GridRefinement_Uniform : public GridRefinementBase<dim,nstate,real>
 {
 public:
     using GridRefinementBase<dim,nstate,real>::GridRefinementBase;
+    void refine_grid()    override;
     void refine_grid_h()  override;
     void refine_grid_p()  override;
     void refine_grid_hp() override;
@@ -124,6 +125,7 @@ class GridRefinement_FixedFraction : public GridRefinementBase<dim,nstate,real>
 {
 public:
     using GridRefinementBase<dim,nstate,real>::GridRefinementBase;
+    void refine_grid()    override;
     void refine_grid_h()  override;
     void refine_grid_p()  override;
     void refine_grid_hp() override;    
@@ -134,8 +136,6 @@ protected:
     dealii::Vector<real> smoothness;
 };
 
-// TODO: check if I need to directly inherit GridRefinementBase as well
-// TODO: Could these all also be made private (aka just remove the public)
 template <int dim, int nstate, typename real>
 class GridRefinement_FixedFraction_Error : public GridRefinement_FixedFraction<dim,nstate,real>
 {
@@ -169,43 +169,60 @@ public:
 };
 
 template <int dim, int nstate, typename real>
-class GridRefinement_Continuous_Error : public GridRefinementBase<dim,nstate,real>
+class GridRefinement_Continuous : public GridRefinementBase<dim,nstate,real>
 {
 public:
     using GridRefinementBase<dim,nstate,real>::GridRefinementBase;
+    void refine_grid()    override;
     void refine_grid_h()  override;
     void refine_grid_p()  override;
-    void refine_grid_hp() override;
+    void refine_grid_hp() override;    
+    virtual void field_h() = 0;
+    virtual void field_p() = 0;
+    virtual void field_hp() = 0;
+protected:
+    dealii::Vector<real> h_field;
+    dealii::Vector<real> p_field;
 };
 
 template <int dim, int nstate, typename real>
-class GridRefinement_Continuous_Hessian : public GridRefinementBase<dim,nstate,real>
+class GridRefinement_Continuous_Error : public GridRefinement_Continuous<dim,nstate,real>
 {
 public:
-    using GridRefinementBase<dim,nstate,real>::GridRefinementBase;
-    void refine_grid_h()  override;
-    void refine_grid_p()  override;
-    void refine_grid_hp() override;
+    using GridRefinement_Continuous<dim,nstate,real>::GridRefinement_Continuous;
+    void field_h()  override;
+    void field_p()  override;
+    void field_hp() override;
 };
 
 template <int dim, int nstate, typename real>
-class GridRefinement_Continuous_Residual : public GridRefinementBase<dim,nstate,real>
+class GridRefinement_Continuous_Hessian : public GridRefinement_Continuous<dim,nstate,real>
 {
 public:
-    using GridRefinementBase<dim,nstate,real>::GridRefinementBase;
-    void refine_grid_h()  override;
-    void refine_grid_p()  override;
-    void refine_grid_hp() override;
+    using GridRefinement_Continuous<dim,nstate,real>::GridRefinement_Continuous;
+    void field_h()  override;
+    void field_p()  override;
+    void field_hp() override;
 };
 
 template <int dim, int nstate, typename real>
-class GridRefinement_Continuous_Adjoint : public GridRefinementBase<dim,nstate,real>
+class GridRefinement_Continuous_Residual : public GridRefinement_Continuous<dim,nstate,real>
 {
 public:
-    using GridRefinementBase<dim,nstate,real>::GridRefinementBase;
-    void refine_grid_h()  override;
-    void refine_grid_p()  override;
-    void refine_grid_hp() override;
+    using GridRefinement_Continuous<dim,nstate,real>::GridRefinement_Continuous;
+    void field_h()  override;
+    void field_p()  override;
+    void field_hp() override;
+};
+
+template <int dim, int nstate, typename real>
+class GridRefinement_Continuous_Adjoint : public GridRefinement_Continuous<dim,nstate,real>
+{
+public:
+    using GridRefinement_Continuous<dim,nstate,real>::GridRefinement_Continuous;
+    void field_h()  override;
+    void field_p()  override;
+    void field_hp() override;
 };
 
 template <int dim, int nstate, typename real>

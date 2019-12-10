@@ -87,6 +87,9 @@ public:
      *  DGBase cannot use nstate as a compile-time known.  */
     const int nstate;
 
+    /// Initial polynomial degree assigned during constructor
+    const unsigned int initial_degree;
+
     /// Maximum degree used for p-refinement.
     /** This is known through the constructor parameters.
      *  DGBase cannot use nstate as a compile-time known.  */
@@ -130,6 +133,12 @@ public:
             const MassiveCollectionTuple collection_tuple);
 
     virtual ~DGBase(); ///< Destructor.
+
+    /// Reinitializes the DG object after a change of Triangulation
+    /** Calls respective function for high-order-grid and initializes dof_handler
+     *  again. Also resets all fe_degrees to intial_degree set during constructor.
+     */
+    void reinit();
 
     Triangulation *const triangulation; ///< Mesh
     /// Sets the triangulation for 2D and 3D. Should be done before allocate system

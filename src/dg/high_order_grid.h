@@ -73,6 +73,9 @@ public:
     /// Principal constructor that will call delegated constructor.
     HighOrderGrid(const Parameters::AllParameters *const parameters_input, const unsigned int max_degree, Triangulation<dim> *const triangulation_input);
 
+    /// Reinitialize high_order_grid after a change in triangulation
+    void reinit();
+
     /// Update the MappingFEField
     /** Note that this rarely needs to be called since MappingFEField stores a
      *  pointer to the DoFHandler and to the node Vector.

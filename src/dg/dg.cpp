@@ -143,6 +143,7 @@ DGBase<dim,real>::DGBase(
     const MassiveCollectionTuple collection_tuple)
     : all_parameters(parameters_input)
     , nstate(nstate_input)
+    , initial_degree(degree)
     , max_degree(max_degree_input)
     , triangulation(triangulation_input)
     , fe_collection(std::get<0>(collection_tuple))
@@ -160,6 +161,15 @@ DGBase<dim,real>::DGBase(
 
     set_all_cells_fe_degree(degree); 
 
+}
+
+template <int dim, typename real>
+void DGBase<dim,real>::reinit()
+{
+    high_order_grid.reinit();
+
+    dof_handler.initialize(*triangulation, fe_collection);
+    set_all_cells_fe_degree(initial_degree);
 }
 
 template <int dim, typename real> 

@@ -98,6 +98,39 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
 }
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::reinit(){
+    allocate();
+    const dealii::ComponentMask mask(dim, true);
+    get_position_vector(dof_handler_grid, nodes, mask);
+    nodes.update_ghost_values();
+    update_surface_indices();
+    update_surface_nodes();
+    update_mapping_fe_field();
+
+    // Used to check Jacobian validity
+    const unsigned int exact_jacobian_order = (max_degree-1) * dim;
+    const unsigned int min_jacobian_order = 1;
+    const unsigned int used_jacobian_order = std::max(exact_jacobian_order, min_jacobian_order);
+    evaluate_lagrange_to_bernstein_operator(used_jacobian_order);
+
+    auto cell = dof_handler_grid.begin_active();
+    auto endcell = dof_handler_grid.end();
+    // pcout << "Disabled check_valid_cells. Took too much time due to shape_grad()." << std::endl;
+    for (; cell!=endcell; ++cell) {
+        if (!cell->is_locally_owned())  continue;
+        const bool is_invalid_cell = check_valid_cell(cell);
+
+        if ( !is_invalid_cell ) {
+            std::cout << " Poly: " << max_degree
+                      << " Grid: " << nth_refinement
+                      << " Cell: " << cell->active_cell_index() << " has an invalid Jacobian." << std::endl;
+            // bool fixed_invalid_cell = fix_invalid_cell(cell);
+            // if (fixed_invalid_cell) std::cout << "Fixed it." << std::endl;
+        }
+    }
+}
+
+template <int dim, typename real, typename VectorType , typename DoFHandlerType>
 void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_mapping_fe_field() {
     const dealii::ComponentMask mask(dim, true);
     mapping_fe_field = std::make_shared< dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> > (dof_handler_grid,nodes,mask);

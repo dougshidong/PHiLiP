@@ -139,7 +139,7 @@ int GridRefinementStudy<dim,nstate>::run_test() const
         for(unsigned int igrid = 0; igrid < refinement_steps; ++igrid){
             if(igrid > 0){
                 grid_refinement->refine_grid();
-                dg->allocate_system();
+                // dg->allocate_system();
             }
 
             // outputting the grid information
@@ -152,7 +152,15 @@ int GridRefinementStudy<dim,nstate>::run_test() const
                  << std::endl;
 
             // solving the system
-            ode_solver->steady_state();
+            // option of whether to solve the problem or interpolate it from the manufactured solution
+            if(true){
+                ode_solver->steady_state();
+            }else{
+                dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
+                solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
+                dealii::VectorTools::interpolate(dg->dof_handler, *(physics_double->manufactured_solution_function), solution_no_ghost);
+                dg->solution = solution_no_ghost;
+            }
 
             // TODO: computing necessary parameters
 

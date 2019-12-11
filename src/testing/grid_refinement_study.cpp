@@ -139,7 +139,6 @@ int GridRefinementStudy<dim,nstate>::run_test() const
         for(unsigned int igrid = 0; igrid < refinement_steps; ++igrid){
             if(igrid > 0){
                 grid_refinement->refine_grid();
-                // dg->allocate_system();
             }
 
             // outputting the grid information
@@ -205,6 +204,7 @@ int GridRefinementStudy<dim,nstate>::run_test() const
         // convergence_table.evaluate_convergence_rates("output_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         // convergence_table.set_scientific("soln_L2_error", true);
         // convergence_table.set_scientific("output_error", true);
+        convergence_table.evaluate_convergence_rates("value", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.set_scientific("value", true);
         if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
 

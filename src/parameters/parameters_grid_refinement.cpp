@@ -67,6 +67,14 @@ void GridRefinementParam::declare_parameters(dealii::ParameterHandler &prm)
         prm.declare_entry("coarsening_fraction", "0.03",
                           dealii::Patterns::Double(0.0, 1.0),
                           "Fraction of elements to undergo coarsening for fixed_fraction method.");
+    
+        prm.declare_entry("complexity_scale", "2.0",
+                          dealii::Patterns::Double(),
+                          "Scaling factor multiplying previous complexity.");
+
+        prm.declare_entry("complexity_add", "0.0",
+                          dealii::Patterns::Double(),
+                          "Constant added to the complexity at each step.");
     }
     prm.leave_subsection();
 }
@@ -98,6 +106,9 @@ void GridRefinementParam::parse_parameters(dealii::ParameterHandler &prm)
         norm_Lq             = prm.get_double("norm_Lq");
         refinement_fraction = prm.get_double("refinement_fraction");
         coarsening_fraction = prm.get_double("coarsening_fraction");
+
+        complexity_scale = prm.get_double("complexity_scale");
+        complexity_add   = prm.get_double("complexity_add");
     }
     prm.leave_subsection();
 }

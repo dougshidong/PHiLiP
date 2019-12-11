@@ -47,6 +47,10 @@ public:
     double refinement_fraction; // refinement fraction
     double coarsening_fraction; // coarsening fraction
 
+    // new_complexity = (old_complexity * complexity_scale) + complexity_add
+    double complexity_scale; // multiplier to complexity
+    double complexity_add; // additive to complexity
+
     GridRefinementParam(); ///< Constructor
 
     /// Declares the possible variables and sets the defaults.

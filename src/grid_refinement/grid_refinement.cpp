@@ -82,6 +82,7 @@ void GridRefinement_Uniform<dim,nstate,real>::refine_grid_h()
 {
     this->tria->set_all_refine_flags();
 }
+
 template <int dim, int nstate, typename real>
 void GridRefinement_Uniform<dim,nstate,real>::refine_grid_p()
 {
@@ -90,6 +91,7 @@ void GridRefinement_Uniform<dim,nstate,real>::refine_grid_p()
             cell->set_future_fe_index(cell->active_fe_index()+1);
     
 }
+
 template <int dim, int nstate, typename real>
 void GridRefinement_Uniform<dim,nstate,real>::refine_grid_hp()
 {
@@ -134,6 +136,11 @@ void GridRefinement_FixedFraction<dim,nstate,real>::refine_grid()
         refine_grid_p();
     }else if(refinement_type == RefinementTypeEnum::hp){
         refine_grid_hp();
+    }
+
+    // check for anisotropic h-adaptation
+    if(!this->grid_refinement_param.isotropic){
+        anisotropic_h();
     }
 
     this->tria->execute_coarsening_and_refinement();
@@ -201,6 +208,150 @@ void GridRefinement_FixedFraction<dim,nstate,real>::smoothness_indicator()
 {
     // reads the options and determines the proper smoothness indicator
     
+}
+
+template <int dim, int nstate, typename real>
+void GridRefinement_FixedFraction<dim,nstate,real>::anisotropic_h()
+{
+    // based on dealii step-30
+    const dealii::UpdateFlags face_update_flags = 
+        dealii::update_values | 
+        dealii::update_gradients | 
+        dealii::update_quadrature_points | 
+        dealii::update_JxW_values | 
+        dealii::update_normal_vectors | 
+        dealii::update_jacobians;
+    const dealii::UpdateFlags neighbor_face_update_flags = 
+        dealii::update_values | 
+        dealii::update_gradients | 
+        dealii::update_quadrature_points | 
+        dealii::update_JxW_values;
+
+    const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid.mapping_fe_field));
+    const dealii::hp::FECollection<dim>      fe_collection(this->dg->fe_collection);
+    const dealii::hp::QCollection<dim-1>     face_quadrature_collection(this->dg->face_quadrature_collection);
+
+    dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face_int(
+        mapping_collection, 
+        fe_collection, 
+        face_quadrature_collection, 
+        face_update_flags);
+    dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face_ext(
+        mapping_collection, 
+        fe_collection, 
+        face_quadrature_collection, 
+        neighbor_face_update_flags);
+    dealii::hp::FESubfaceValues<dim,dim> fe_values_collection_subface(
+        mapping_collection,
+        fe_collection,
+        face_quadrature_collection,
+        face_update_flags);
+
+    const dealii::LinearAlgebra::distributed::Vector<real> solution(this->dg->solution);
+    solution.update_ghost_values();
+
+    real anisotropic_threshold_ratio = 3.0;
+
+    for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell){
+        if(!cell->is_locally_owned() || !cell->refine_flag_set()) continue;
+
+        dealii::Point<dim> jump;
+        dealii::Point<dim> area;
+
+        const unsigned int mapping_index = 0;
+        const unsigned int fe_index = cell->active_fe_index();
+        const unsigned int quad_index = fe_index; 
+
+        for(unsigned int iface = 0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface){
+            if(cell->face(iface)->at_boundary()) continue;
+
+            const auto face = cell->face(iface);
+            
+            Assert(cell->neighbor(iface).state() == dealii::IteratorState::valid,
+                   dealii::ExcInternalError());
+            const auto neig = cell->neighbor(iface);
+
+            if(face->has_children()){
+                unsigned int neig2 = cell->neighbor_face_no(iface);
+                for(unsigned int subface = 0; subface < face->number_of_children(); ++subface){
+                    const auto neig_child = cell->neighbor_child_on_subface(iface, subface);
+                    Assert(!neig_child->has_children(), dealii::ExcInternalError());
+
+                    fe_values_collection_subface.reinit(cell,iface,subface,quad_index,mapping_index,fe_index);
+                    const dealii::FESubfaceValues<dim,dim> &fe_int_subface = fe_values_collection_subface.get_present_fe_values();
+                    std::vector<real> u_face(fe_int_subface.n_quadrature_points);
+                    fe_int_subface.get_function_values(solution,u_face);
+
+                    fe_values_collection_face_ext.reinit(neig_child,neig2,quad_index,mapping_index,fe_index);
+                    const dealii::FEFaceValues<dim,dim> &fe_ext_face = fe_values_collection_face_ext.get_present_fe_values();
+                    std::vector<real> u_neig(fe_ext_face.n_quadrature_points);
+                    fe_ext_face.get_function_values(solution,u_neig);
+
+                    const std::vector<real> &JxW = fe_int_subface.get_JxW_values();
+                    for(unsigned int iquad = 0; iquad < fe_int_subface.n_quadrature_points; ++iquad){
+                        jump[iface/2] += abs(u_face[iquad] - u_neig[iquad]) * JxW[iquad];
+                        area[iface/2] += JxW[iquad];
+                    }
+                }
+            }else{
+                if(!cell->neighbor_is_coarser(iface)){
+                    unsigned int neig2 = cell->neighbor_of_neighbor(iface);
+
+                    fe_values_collection_face_int.reinit(cell,iface,quad_index,mapping_index,fe_index);
+                    const dealii::FEFaceValues<dim,dim> &fe_int_face = fe_values_collection_face_int.get_present_fe_values();
+                    std::vector<real> u_face(fe_int_face.n_quadrature_points);
+                    fe_int_face.get_function_values(solution,u_face);
+
+                    fe_values_collection_face_ext.reinit(neig,neig2,quad_index,mapping_index,fe_index);
+                    const dealii::FEFaceValues<dim,dim> &fe_ext_face = fe_values_collection_face_ext.get_present_fe_values();
+                    std::vector<real> u_neig(fe_ext_face.n_quadrature_points);
+                    fe_ext_face.get_function_values(solution,u_neig);
+
+                    const std::vector<real> &JxW = fe_int_face.get_JxW_values();
+                    for(unsigned int iquad = 0; iquad < fe_int_face.n_quadrature_points; ++iquad){
+                        jump[iface/2] += abs(u_face[iquad] - u_neig[iquad]) * JxW[iquad];
+                        area[iface/2] += JxW[iquad];
+                    }
+                }else{
+                    std::pair<unsigned int, unsigned int> neig_face_subface = cell->neighbor_of_coarser_neighbor(iface);
+                    Assert(neig_face_subface.first < dealii::GeometryInfo<dim>::faces_per_cell,
+                           dealii::ExcInternalError());
+                    Assert(neig_face_subface.second < neig->face(neig_face_subface.first)->number_of_children(),
+                           dealii::ExcInternalError());
+                    Assert(neig->neighbor_child_on_subface(neig_face_subface.first, neig_face_subface.second) == cell,
+                           dealii::ExcInternalError());
+
+                    fe_values_collection_face_int.reinit(cell,iface,quad_index,mapping_index,fe_index);
+                    const dealii::FEFaceValues<dim,dim> &fe_int_face = fe_values_collection_face_int.get_present_fe_values();
+                    std::vector<real> u_face(fe_int_face.n_quadrature_points);
+                    fe_int_face.get_function_values(solution,u_face);
+
+                    fe_values_collection_subface.reinit(neig,neig_face_subface.first,neig_face_subface.second,quad_index,mapping_index,fe_index);
+                    const dealii::FESubfaceValues<dim,dim> &fe_ext_subface = fe_values_collection_subface.get_present_fe_values();
+                    std::vector<real> u_neig(fe_ext_subface.n_quadrature_points);
+                    fe_ext_subface.get_function_values(solution,u_neig);
+
+                    const std::vector<real> &JxW = fe_int_face.get_JxW_values();
+                    for(unsigned int iquad = 0; iquad < fe_int_face.n_quadrature_points; ++iquad){
+                        jump[iface/2] += abs(u_face[iquad] - u_neig[iquad]) * JxW[iquad];
+                        area[iface/2] += JxW[iquad];
+                    }
+                }
+            }
+        }
+
+        std::array<real,dim> average_jumps;
+        real                 sum_of_average_jumps = 0.0;
+
+        for(unsigned int i = 0; i < dim; ++i){
+            average_jumps[i] = jump[i]/area[i];
+            sum_of_average_jumps += average_jumps[i];
+        }
+
+        for(unsigned int i = 0; i < dim; ++i)
+            if(average_jumps[i] > anisotropic_threshold_ratio * (sum_of_average_jumps - average_jumps[i]))
+                cell->set_refine_flag(dealii::RefinementCase<dim>::cut_axis(i));
+    }    
 }
 
 template <int dim, int nstate, typename real>
@@ -367,6 +518,18 @@ template <int dim, int nstate, typename real>
 void GridRefinement_Continuous<dim,nstate,real>::refine_grid_hp(){}
 
 template <int dim, int nstate, typename real>
+real GridRefinement_Continuous<dim,nstate,real>::current_complexity()
+{
+    real complexity_sum;
+
+    for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
+        if(cell->is_locally_owned())
+            complexity_sum += pow(cell->active_fe_index()+1, dim);
+
+    return dealii::Utilities::MPI::sum(complexity_sum, MPI_COMM_WORLD);
+}
+
+template <int dim, int nstate, typename real>
 void GridRefinement_Continuous_Error<dim,nstate,real>::field_h(){}
 template <int dim, int nstate, typename real>
 void GridRefinement_Continuous_Error<dim,nstate,real>::field_p(){}
@@ -377,26 +540,35 @@ template <int dim, int nstate, typename real>
 void GridRefinement_Continuous_Hessian<dim,nstate,real>::field_h()
 {
     int igrid = 0;
-    int poly_degree = 1;
 
-    // building error based on exact hessian
-    double complexity = pow(poly_degree+1, dim)*this->tria->n_active_cells()*4;
-    SizeField<dim,double>::isotropic_uniform(
-        *(this->tria),
-        *(this->dg->high_order_grid.mapping_fe_field),
-        this->dg->fe_collection[poly_degree],
-        this->physics->manufactured_solution_function,
-        complexity,
-        this->h_field);
+    // checking if the polynomial order is uniform
+    if(this->dg->get_min_fe_degree() == this->dg->get_max_fe_degree()){
+        int poly_degree = this->dg->get_min_fe_degree();
+
+        // building error based on exact hessian
+        real complexity = pow(poly_degree+1, dim)*this->tria->n_active_cells();
+        complexity *= this->grid_refinement_param.complexity_scale;
+        complexity += this->grid_refinement_param.complexity_add;
+
+        SizeField<dim,real>::isotropic_uniform(
+            *(this->tria),
+            *(this->dg->high_order_grid.mapping_fe_field),
+            this->dg->fe_collection[poly_degree],
+            this->physics->manufactured_solution_function,
+            complexity,
+            this->h_field);
+    }else{
+        // call the non-uniform hp-version without the p-update
+    }
 
     // now outputting this new field
     std::string write_posname = "grid-"+std::to_string(igrid)+".pos";
     std::ofstream outpos(write_posname);
-    GmshOut<dim,double>::write_pos(*(this->tria),this->h_field,outpos);
+    GmshOut<dim,real>::write_pos(*(this->tria),this->h_field,outpos);
 
     std::string write_geoname = "grid-"+std::to_string(igrid)+".geo";
     std::ofstream outgeo(write_geoname);
-    GmshOut<dim,double>::write_geo(write_posname,outgeo);
+    GmshOut<dim,real>::write_geo(write_posname,outgeo);
 
     std::string output_name = "grid-"+std::to_string(igrid)+".msh";
     std::cout << "Command is: " << ("gmsh " + write_geoname + " -2 -o " + output_name).c_str() << '\n';

@@ -131,6 +131,7 @@ public:
     void refine_grid_hp() override;    
     virtual void error_indicator() = 0;
     void smoothness_indicator();
+    void anisotropic_h();
 protected:
     dealii::Vector<real> indicator;
     dealii::Vector<real> smoothness;
@@ -180,6 +181,7 @@ public:
     virtual void field_h() = 0;
     virtual void field_p() = 0;
     virtual void field_hp() = 0;
+    real current_complexity();
 protected:
     dealii::Vector<real> h_field;
     dealii::Vector<real> p_field;

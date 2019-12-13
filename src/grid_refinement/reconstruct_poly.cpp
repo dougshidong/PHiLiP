@@ -4,6 +4,7 @@
 #include <deal.II/hp/q_collection.h>
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/lac/la_parallel_vector.h>
+#include <deal.II/base/tensor.h>
 #include <deal.II/base/polynomial.h>
 #include <deal.II/base/polynomial_space.h>
 #include <deal.II/grid/grid_tools.h>
@@ -17,14 +18,14 @@ namespace GridRefinement {
 // takes an input field and polynomial space and output the largest directional derivative and coresponding normal direction
 template <int dim, typename real>
 void ReconstructPoly<dim,real>::reconstruct_directional_derivative(
-    dealii::LinearAlgebra::distributed::Vector<real>&solution,              // approximation to be reconstructed
-    dealii::hp::DoFHandler<dim>&                     dof_handler,           // dof_handler
-    dealii::hp::MappingCollection<dim>&              mapping_collection,    // mapping collection
-    dealii::hp::FECollection<dim>&                   fe_collection,         // fe collection
-    dealii::hp::QCollection<dim>&                    quadrature_collection, // quadrature collection
-    dealii::UpdateFlags&                             update_flags,          // update flags for for volume fe
-    unsigned int                                     rel_order,             // order of the reconstruction
-    dealii::Vector<dealii::Tensor<1,dim,real>>&      A)                     // (output) holds the largest (scaled) derivative in each direction and then in each orthogonal plane
+    const dealii::LinearAlgebra::distributed::Vector<real>&solution,              // approximation to be reconstructed
+    const dealii::hp::DoFHandler<dim>&                     dof_handler,           // dof_handler
+    const dealii::hp::MappingCollection<dim>&              mapping_collection,    // mapping collection
+    const dealii::hp::FECollection<dim>&                   fe_collection,         // fe collection
+    const dealii::hp::QCollection<dim>&                    quadrature_collection, // quadrature collection
+    const dealii::UpdateFlags&                             update_flags,          // update flags for for volume fe
+    const unsigned int&                                    rel_order,             // order of the reconstruction
+    std::vector<dealii::Tensor<1,dim,real>>&               A)                     // (output) holds the largest (scaled) derivative in each direction and then in each orthogonal plane
 {
     const real pi = atan(1)*4.0;
 
@@ -39,8 +40,8 @@ void ReconstructPoly<dim,real>::reconstruct_directional_derivative(
         // getting the vector of polynomial coefficients from the p+1 expansion
         dealii::Vector<real> coeffs_non_hom = reconstruct_H1_norm(
             cell,
-            solution,
             poly_space,
+            solution,
             mapping_collection,
             fe_collection,
             quadrature_collection,
@@ -65,8 +66,8 @@ void ReconstructPoly<dim,real>::reconstruct_directional_derivative(
                 // for cross terms, in 1D no such terms. But, after expanding the n^th derivative with
                 // i, j partials in (x,y) we get 1/n! * (n \choose i, j) * i! j! = 1 on the x^i y^j term
                 // (the only one that will be remaining). Also generalizes to n-dimensions.
-                coeffs.pushback(coeffs_non_hom[i]);
-                indices.pushback(arr);
+                coeffs.push_back(coeffs_non_hom[i]);
+                indices.push_back(arr);
                 n_vec++;
             }
         }
@@ -90,15 +91,15 @@ void ReconstructPoly<dim,real>::reconstruct_directional_derivative(
             // see also dealii::eigenvectors(SymmetricTensor T)
             // https://www.dealii.org/current/doxygen/deal.II/symmetric__tensor_8h.html#a45c9cd0a3fecbd58ae133dfdd104f9f9
             //std::array< Number, 3 >
-            std::array<real,dim> eig = dealii::eigenvalues<real,dim>(hessian);
+            std::array<real,dim> eig = dealii::eigenvalues(hessian);
             
             for(int d = 0; d < dim; ++d)
                 A_cell[d] = eig[d];
         }else{
             // evaluating any point requires sum over power of the multindices
-            auto eval = [&](dealii::Tensor<1,dim,real>& point) -> real{
+            auto eval = [&](const dealii::Tensor<1,dim,real>& point) -> real{
                 real val = 0.0;
-                for(int i = 0; i < n_vec; ++i){
+                for(unsigned int i = 0; i < n_vec; ++i){
                     real val_coeff = coeffs[i];
                     for(int d = 0; d < dim; ++d)
                         val_coeff *= pow(point[d], indices[i][d]);
@@ -117,11 +118,14 @@ void ReconstructPoly<dim,real>::reconstruct_directional_derivative(
 
                 // using polar coordinates theta\in[0, \pi)
                 real r = 1.0, theta, val;
+                dealii::Tensor<1,dim,real> p_sample;
                 for(unsigned int i = 0; i < n_sample; ++i){
                     theta = i*pi/n_sample;
-                    dealii::Tensor<1,dim,real> p(r*cos(theta), r*sin(theta));
                     
-                    val = abs(eval(p));
+                    p_sample[0] = r*cos(theta);
+                    p_sample[1] = r*sin(theta);
+                    
+                    val = abs(eval(p_sample));
                     if(val > A_max){
                         A_max = val;
                         t_max = theta;
@@ -129,10 +133,12 @@ void ReconstructPoly<dim,real>::reconstruct_directional_derivative(
                 }
 
                 // Taking A_2 to be at an angle of 90 degrees relative to first
-                dealii::Tensor<1,dim,real> p(r*cos(t_max+pi/2.0), r*sin(t_max+pi/2.0));
+                dealii::Tensor<1,dim,real> p_2;
+                p_2[0] = r*cos(t_max+pi/2.0);
+                p_2[1] = r*sin(t_max+pi/2.0);
                 
                 A_cell[0] = A_max;
-                A_cell[1] = abs(eval(p));
+                A_cell[1] = abs(eval(p_2));
             }else if(dim == 3){
                 // using fibbonaci sphere algorithm, with ~ n^2/2 points compared to 2d for equal points in theta and phi as before
                 // https://stackoverflow.com/questions/9600801/evenly-distributing-n-points-on-a-sphere/26127012#26127012
@@ -147,7 +153,8 @@ void ReconstructPoly<dim,real>::reconstruct_directional_derivative(
                 real increment = pi * (3 - sqrt(5));
 
                 // spherical coordinates
-                real y, r, phi, x, z, val;
+                real y, r, phi, val;
+                dealii::Tensor<1,dim,real> p_sample;
                 for(unsigned int i = 0; i < n_sample_3d; ++i){
                     // calculation of the points 
                     y = (i*offset) - 1 + offset/2;
@@ -155,11 +162,14 @@ void ReconstructPoly<dim,real>::reconstruct_directional_derivative(
 
                     phi = remainder(i, 2*n_sample_3d) * increment;
 
-                    dealii::Tensor<1,dim,real> p(r*cos(phi),y,r*sin(phi));
-                    val = abs(eval(p));
+                    p_sample[0] = r*cos(phi);
+                    p_sample[1] = y;
+                    p_sample[2] = r*sin(phi);
+                    
+                    val = abs(eval(p_sample));
                     if(val > A_1){
                         A_1 = val;
-                        p_1 = p/p.norm();
+                        p_1 = p_sample/p_sample.norm();
                     }
                 }
 
@@ -168,27 +178,28 @@ void ReconstructPoly<dim,real>::reconstruct_directional_derivative(
                 dealii::Tensor<1,dim,real> v;
 
                 // checking if near the x-axis
-                dealii::Tensor<1,dim,real> px();
+                dealii::Tensor<1,dim,real> px;
                 px[0] = 1.0;
                 if(abs(px*p_1) < 1.0/sqrt(2.0)){ // if further apart than 45 degrees use x-axis
                     // using cross products to generate two vectors orthogonal to p_1
-                    u = cross_product_3d(p_1, px);
+                    u = dealii::cross_product_3d(p_1, px);
                 }else{ // if not, use the y axis instead
-                    dealii::Tensor<1,dim,real> py();
+                    dealii::Tensor<1,dim,real> py;
                     py[1] = 1.0;
-                    u = cross_product_3d(p_1, py);
+                    u = dealii::cross_product_3d(p_1, py);
                 }
                 // second orthogonal to form the basis
-                v = cross_product_3d(p_1, u);
+                v = dealii::cross_product_3d(p_1, u);
                 
                 // now performing the 2d analysis in the plane uv
                 real A_2 = 0.0, t_2 = 0.0;
 
                 // using polar coordinates theta\in[0, \pi)
                 real theta;
+                dealii::Tensor<1,dim,real> p_2;
                 for(unsigned int i = 0; i < n_sample; ++i){
                     theta = i*pi/n_sample;
-                    dealii::Tensor<1,dim,real> p_2 = r*cos(theta)*u + r*sin(theta)*v;
+                    p_2 = r*cos(theta)*u + r*sin(theta)*v;
                     
                     val = abs(eval(p_2));
                     if(val > A_2){
@@ -267,14 +278,13 @@ std::array<unsigned int, 3> ReconstructPoly<3,double>::compute_index(
 template <int dim, typename real>
 template <typename DoFCellAccessorType>
 dealii::Vector<real> ReconstructPoly<dim,real>::reconstruct_H1_norm(
-    DoFCellAccessorType &                             curr_cell,
-    dealii::PolynomialSpace<dim>                      ps,
-    dealii::LinearAlgebra::distributed::Vector<real> &solution,
-    unsigned int                                      order,
-    dealii::hp::MappingCollection<dim> &              mapping_collection,
-    dealii::hp::FECollection<dim> &                   fe_collection,
-    dealii::hp::QCollection<dim> &                    quadrature_collection,
-    dealii::UpdateFlags &                             update_flags)
+    const DoFCellAccessorType &                             curr_cell,
+    const dealii::PolynomialSpace<dim>                      ps,
+    const dealii::LinearAlgebra::distributed::Vector<real> &solution,
+    const dealii::hp::MappingCollection<dim> &              mapping_collection,
+    const dealii::hp::FECollection<dim> &                   fe_collection,
+    const dealii::hp::QCollection<dim> &                    quadrature_collection,
+    const dealii::UpdateFlags &                             update_flags)
 {
     const int nstate = 1;
 
@@ -282,13 +292,13 @@ dealii::Vector<real> ReconstructPoly<dim,real>::reconstruct_H1_norm(
     dealii::Point<dim,real> center_point = curr_cell->center();
 
     // things to be extracted
-    std::vector<std::array<real,nstate>>                  soln_at_q_vec;
-    std::vector<std::array<dealii::Tensor<1,dim>,nstate>> grad_at_q_vec; // for the H^1 norm
-    std::vector<dealii::Point<dim,real>>                  qpoint_vec;
-    std::vector<real>                                     JxW_vec;
+    std::vector<std::array<real,nstate>>                       soln_at_q_vec;
+    std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> grad_at_q_vec; // for the H^1 norm
+    std::vector<dealii::Point<dim,real>>                       qpoint_vec;
+    std::vector<real>                                          JxW_vec;
 
     // and keeping track of vector lengths
-    int n_vec = 0;
+    unsigned int n_vec = 0;
 
     // fe_values
     dealii::hp::FEValues<dim,dim> fe_values_collection(
@@ -298,7 +308,8 @@ dealii::Vector<real> ReconstructPoly<dim,real>::reconstruct_H1_norm(
         update_flags);
 
     // looping over the cell vector and extracting the soln, qpoint and JxW
-    std::vector<DoFCellAccessorType> cell_patch = dealii::GridTools::get_patch_around_cell(curr_cell);
+    // std::vector<DoFCellAccessorType> cell_patch = dealii::GridTools::get_patch_around_cell(curr_cell);
+    std::vector<DoFCellAccessorType> cell_patch = get_patch_around_dof_cell(curr_cell);
     for(auto cell : cell_patch){
         const unsigned int mapping_index = 0;
         const unsigned int fe_index = cell->active_fe_index();
@@ -314,12 +325,13 @@ dealii::Vector<real> ReconstructPoly<dim,real>::reconstruct_H1_norm(
         cell->get_dof_indices(dofs_indices);
 
         // looping over the quadrature points of this cell
-        std::array<real,nstate>                  soln_at_q;
-        std::array<dealii::Tensor<1,dim>,nstate> grad_at_q;
+        std::array<real,nstate>                       soln_at_q;
+        std::array<dealii::Tensor<1,dim,real>,nstate> grad_at_q; 
         for(unsigned int iquad = 0; iquad < n_quad; ++iquad){
             soln_at_q.fill(0.0);
-            grad_at_q.fill(0.0); // Tensor = 0 should asign 0 to all components
-
+            for(unsigned int istate = 0; istate < nstate; ++istate)
+                grad_at_q[istate] = 0.0;
+                        
             // looping over the DoFS to get the solution value
             for(unsigned int idof = 0; idof < n_dofs; ++idof){
                 const unsigned int istate = fe_values.get_fe().system_to_component_index(idof).first;
@@ -327,10 +339,14 @@ dealii::Vector<real> ReconstructPoly<dim,real>::reconstruct_H1_norm(
                 grad_at_q[istate] += solution[dofs_indices[idof]] * fe_values.shape_grad_component(idof, iquad, istate);
             }
 
+            // moving the reference point to the center of the curr_cell
+            dealii::Tensor<1,dim,real> tensor_q = fe_values.quadrature_point(iquad) - center_point;
+            dealii::Point<dim,real> point_q(tensor_q);
+
             // push back into the vectors
             soln_at_q_vec.push_back(soln_at_q);
             grad_at_q_vec.push_back(grad_at_q);
-            qpoint_vec.push_back(fe_values.quadrature_point(iquad) - center_point);
+            qpoint_vec.push_back(point_q);
             JxW_vec.push_back(fe_values.JxW(iquad));
             n_vec++;
         }
@@ -344,7 +360,7 @@ dealii::Vector<real> ReconstructPoly<dim,real>::reconstruct_H1_norm(
     dealii::Vector<real>     rhs(n_poly);
 
     // looping over to assemble the matrices
-    mat.fill(0.0);
+    mat = 0.0;
     for(unsigned int i_poly = 0; i_poly < n_poly; ++i_poly){
         for(unsigned int j_poly = 0; j_poly < n_poly; ++j_poly){
             // taking the inner product between \psi_i and \psi_j
@@ -356,11 +372,15 @@ dealii::Vector<real> ReconstructPoly<dim,real>::reconstruct_H1_norm(
                     *JxW_vec[i_vec]);
         }
 
-        // take inner product of \psi_i and u (soluition)
-        for(unsigned int i_vec = 0; i_vec < n_vec; ++i_vec)
-            rhs[i_poly] += ((ps.compute_value(i_poly, qpoint_vec[i_vec]) * soln_at_q_vec[i_vec])
-                           +(ps.compute_grad(i_poly, qpoint_vec[i_vec]) * grad_at_q_vec[i_vec]))
-                           *JxW_vec[i_vec];
+        // take inner product of \psi_i and u (solution)
+        // if multiple states, taking the 2 norm of the different states
+        // TODO: look into other possibilities
+        dealii::Vector<real> rhs_poly(nstate);
+        for(unsigned int istate = 0; istate < nstate; ++istate)
+            for(unsigned int i_vec = 0; i_vec < n_vec; ++i_vec)
+                rhs[i_poly] += ((ps.compute_value(i_poly, qpoint_vec[i_vec]) * soln_at_q_vec[i_vec][istate])
+                               +(ps.compute_grad(i_poly, qpoint_vec[i_vec]) * grad_at_q_vec[i_vec][istate]))
+                               *JxW_vec[i_vec];
     }
 
     // solving the system
@@ -371,6 +391,42 @@ dealii::Vector<real> ReconstructPoly<dim,real>::reconstruct_H1_norm(
 
     return coeffs;
 }
+
+// based on DEALII GridTools::get_patch_around_cell
+// https://www.dealii.org/current/doxygen/deal.II/grid__tools__dof__handlers_8cc_source.html#l01411
+// modified to work directly on the dof_handler accesor for hp-access rather than casting back and forth
+template <int dim, typename real>
+template <typename DoFCellAccessorType>
+std::vector<DoFCellAccessorType> ReconstructPoly<dim,real>::get_patch_around_dof_cell(
+    const DoFCellAccessorType &cell)
+{
+    std::vector<DoFCellAccessorType> patch;
+    patch.push_back(cell);
+
+    for(unsigned int iface = 0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface){
+        if(cell->neighbor(iface)->has_children() == false){ // case 1: coarse cell
+            patch.push_back(cell->neighbor(iface));
+        }else{ // has children cells
+            if(dim > 1){ // case 2: (2d/3d) get subface cells
+                for(unsigned int subface = 0; subface < cell->face(iface)->n_children(); ++subface)
+                    patch.push_back(cell->neighbor_child_on_subface(iface, subface));
+            }else{ // case 3: (1d) iterate over children to find one on boundary
+                DoFCellAccessorType neighbor = cell->neighbor(iface);
+
+                // looping over the children
+                while(neighbor->has_children())
+                    neighbor = neighbor->child(1-iface);
+
+                Assert(neighbor->neighbor(1-iface) == cell, dealii::ExcInternalError());
+                patch.push_back(neighbor);
+            }
+        }
+    }
+
+    return patch;
+}
+
+template class ReconstructPoly<PHILIP_DIM, double>;
 
 } // namespace GridRefinement
 

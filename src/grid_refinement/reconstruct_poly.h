@@ -15,15 +15,15 @@ template <int dim, typename real>
 class ReconstructPoly
 {
 public:
-    void reconstruct_directional_derivative(
-        dealii::LinearAlgebra::distributed::Vector<real>&solution,              // approximation to be reconstructed
-        dealii::hp::DoFHandler<dim>&                     dof_handler,           // dof_handler
-        dealii::hp::MappingCollection<dim>&              mapping_collection,    // mapping collection
-        dealii::hp::FECollection<dim>&                   fe_collection,         // fe collection
-        dealii::hp::QCollection<dim>&                    quadrature_collection, // quadrature collection
-        dealii::UpdateFlags&                             update_flags,          // update flags for for volume fe
-        unsigned int                                     rel_order,             // order of the reconstruction
-        dealii::Vector<dealii::Tensor<1,dim,real>>&      A);                    // (output) holds the largest (scaled) derivative in each direction and then in each orthogonal plane
+    static void reconstruct_directional_derivative(
+        const dealii::LinearAlgebra::distributed::Vector<real>&solution,              // approximation to be reconstructed
+        const dealii::hp::DoFHandler<dim>&                     dof_handler,           // dof_handler
+        const dealii::hp::MappingCollection<dim>&              mapping_collection,    // mapping collection
+        const dealii::hp::FECollection<dim>&                   fe_collection,         // fe collection
+        const dealii::hp::QCollection<dim>&                    quadrature_collection, // quadrature collection
+        const dealii::UpdateFlags&                             update_flags,          // update flags for for volume fe
+        const unsigned int&                                    rel_order,             // order of the reconstruction
+        std::vector<dealii::Tensor<1,dim,real>>&               A);                     // (output) holds the largest (scaled) derivative in each direction and then in each orthogonal plane
 
 private:
     static std::array<unsigned int, dim> compute_index(
@@ -32,14 +32,18 @@ private:
 
     template <typename DoFCellAccessorType>
     static dealii::Vector<real> reconstruct_H1_norm(
-        DoFCellAccessorType &                             curr_cell,
-        dealii::PolynomialSpace<dim>                      ps,
-        dealii::LinearAlgebra::distributed::Vector<real> &solution,
-        unsigned int                                      order,
-        dealii::hp::MappingCollection<dim> &              mapping_collection,
-        dealii::hp::FECollection<dim> &                   fe_collection,
-        dealii::hp::QCollection<dim> &                    quadrature_collection,
-        dealii::UpdateFlags &                             update_flags);
+        const DoFCellAccessorType &                             curr_cell,
+        const dealii::PolynomialSpace<dim>                      ps,
+        const dealii::LinearAlgebra::distributed::Vector<real> &solution,
+        const dealii::hp::MappingCollection<dim> &              mapping_collection,
+        const dealii::hp::FECollection<dim> &                   fe_collection,
+        const dealii::hp::QCollection<dim> &                    quadrature_collection,
+        const dealii::UpdateFlags &                             update_flags);
+
+    template <typename DoFCellAccessorType>
+    static std::vector<DoFCellAccessorType> get_patch_around_dof_cell(
+        const DoFCellAccessorType &cell);
+
 };
 
 } // namespace GridRefinement

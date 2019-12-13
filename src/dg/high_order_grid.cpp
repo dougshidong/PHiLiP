@@ -43,6 +43,7 @@
 //#include <deal.II/lac/petsc_vector.h>
 //#include <deal.II/lac/petsc_precondition.h>
 //#include <deal.II/lac/petsc_solver.h>
+#include <deal.II/dofs/dof_renumbering.h>
 
 namespace PHiLiP {
 
@@ -115,6 +116,8 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::allocate()
 {
     dof_handler_grid.initialize(*triangulation, fe_system);
     dof_handler_grid.distribute_dofs(fe_system);
+    dealii::DoFRenumbering::Cuthill_McKee(dof_handler_grid);
+
 
     locally_owned_dofs_grid = dof_handler_grid.locally_owned_dofs();
     dealii::DoFTools::extract_locally_relevant_dofs(dof_handler_grid, locally_relevant_dofs_grid);
@@ -1343,6 +1346,8 @@ namespace MeshMover
     void LinearElasticity<dim,real,VectorType,DoFHandlerType>::setup_system()
     {
         dof_handler.distribute_dofs(fe);
+		dealii::DoFRenumbering::Cuthill_McKee(dof_handler);
+
         locally_owned_dofs = dof_handler.locally_owned_dofs();
         dealii::DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
         dealii::IndexSet ghost_dofs = locally_relevant_dofs;

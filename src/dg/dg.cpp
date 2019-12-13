@@ -38,6 +38,8 @@
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/vector_tools.templates.h>
 
+#include <deal.II/dofs/dof_renumbering.h>
+
 
 #include "dg.h"
 #include "post_processor/physics_post_processor.h"
@@ -1137,6 +1139,8 @@ void DGBase<dim,real>::allocate_system ()
     // system matrices and vectors.
 
     dof_handler.distribute_dofs(fe_collection);
+    dealii::DoFRenumbering::Cuthill_McKee(dof_handler);
+	
 
     //dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> mapping = high_order_grid.get_MappingFEField();
     //dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> mapping = *(high_order_grid.mapping_fe_field);
@@ -1177,6 +1181,7 @@ void DGBase<dim,real>::allocate_system ()
     dealii::SparsityPattern dRdXv_sparsity_pattern = get_dRdX_sparsity_pattern ();
     const dealii::IndexSet &row_parallel_partitioning = locally_owned_dofs;
     const dealii::IndexSet &col_parallel_partitioning = high_order_grid.locally_owned_dofs_grid;
+    //const dealii::IndexSet &col_parallel_partitioning = high_order_grid.locally_relevant_dofs_grid;
     dRdXv.reinit(row_parallel_partitioning, col_parallel_partitioning, dRdXv_sparsity_pattern, MPI_COMM_WORLD);
 }
 

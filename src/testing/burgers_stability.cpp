@@ -1,3 +1,5 @@
+#include <fstream>
+
 #include <deal.II/base/tensor.h>
 #include <deal.II/base/function.h>
 #include <deal.II/numerics/data_out.h>

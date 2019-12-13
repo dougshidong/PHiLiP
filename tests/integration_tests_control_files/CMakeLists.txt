@@ -9,3 +9,5 @@ add_subdirectory(euler_split_inviscid_taylor_green_vortex)
 add_subdirectory(advection_explicit_periodic)
 
 add_subdirectory(euler_integration)
+
+add_subdirectory(optimization_inverse_manufactured)

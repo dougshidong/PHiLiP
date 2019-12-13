@@ -81,10 +81,10 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
         if constexpr (dim>=2 && nstate==PHILIP_DIM+2) return std::make_unique<EulerEntropyWaves<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_split_taylor_green) {
     	if constexpr (dim==3 && nstate == dim+2) return std::make_unique<EulerTaylorGreen<dim,nstate>>(parameters_input);
-//    } else if(test_type == Test_enum::optimization_inverse_manufactured) {
-//    	return std::make_unique<OptimizationInverseManufactured<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::optimization_inverse_manufactured) {
+    	return std::make_unique<OptimizationInverseManufactured<dim,nstate>>(parameters_input);
     } else{
-        std::cout << "Invalid test." << std::endl;
+        std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
     }
 
     return nullptr;

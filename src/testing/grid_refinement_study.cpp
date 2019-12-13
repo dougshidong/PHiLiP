@@ -162,6 +162,50 @@ int GridRefinementStudy<dim,nstate>::run_test() const
             }
 
             // TODO: computing necessary parameters
+            int overintegrate = 10;
+            dealii::QGauss<dim> quad_extra(dg->max_degree+overintegrate);
+            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid.mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
+                    dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+            const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
+            std::array<double,nstate> soln_at_q;
+
+            double linf_norm = 0.0;
+            double l2_norm = 0.0;
+
+            std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
+            for(auto cell = dg->dof_handler.begin_active(); cell < dg->dof_handler.end(); ++cell){
+                if(!cell->is_locally_owned()) continue;
+
+                fe_values_extra.reinit(cell);
+                cell->get_dof_indices(dofs_indices);
+
+                double cell_l2error = 0.0;
+                std::array<double,nstate> cell_linf;
+                std::fill(cell_linf.begin(), cell_linf.end(), 0);
+
+                for(unsigned int iquad = 0; iquad < n_quad_pts; ++iquad){
+                    std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
+                    for(unsigned int idof = 0; idof < fe_values_extra.dofs_per_cell; ++idof){
+                        const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
+                        soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
+                    }
+
+                    const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
+
+                    for(unsigned int istate = 0; istate < nstate; ++ istate){
+                        const double uexact = physics_double->manufactured_solution_function->value(qpoint, istate);
+                        cell_l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
+                        cell_linf[istate] = std::max(cell_linf[istate], abs(soln_at_q[istate]-uexact));
+                    }
+                }
+
+                l2_norm += cell_l2error;
+                for(unsigned int istate = 0; istate < nstate; ++ istate){
+                    linf_norm = std::max(linf_norm, cell_linf[istate]);
+                }
+            }
+            const double l2_norm_mpi = std::sqrt(dealii::Utilities::MPI::sum(l2_norm, mpi_communicator));
+            const double linf_norm_mpi = dealii::Utilities::MPI::max(linf_norm, mpi_communicator);
 
             // computing the functional value
             double functional_value = functional->evaluate_functional(*(physics_adtype));
@@ -195,6 +239,8 @@ int GridRefinementStudy<dim,nstate>::run_test() const
             // convergence_table.add_value("soln_L2_error", l2error_mpi_sum);
             // convergence_table.add_value("output_error", );
             convergence_table.add_value("value", functional_value);
+            convergence_table.add_value("l2_error", l2_norm_mpi);
+            convergence_table.add_value("linf_error", linf_norm_mpi);
         }
 
         pcout << " ********************************************" << std::endl
@@ -206,6 +252,10 @@ int GridRefinementStudy<dim,nstate>::run_test() const
         // convergence_table.set_scientific("output_error", true);
         convergence_table.evaluate_convergence_rates("value", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.set_scientific("value", true);
+        convergence_table.evaluate_convergence_rates("l2_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+        convergence_table.set_scientific("l2_error", true);
+        convergence_table.evaluate_convergence_rates("linf_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+        convergence_table.set_scientific("linf_error", true);
         if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
 
         convergence_table_vector.push_back(convergence_table);

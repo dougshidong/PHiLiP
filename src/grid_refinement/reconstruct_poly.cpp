@@ -36,7 +36,6 @@ void ReconstructPoly<dim,real>::reconstruct_directional_derivative(
         unsigned int order = cell->active_fe_index()+rel_order;
         dealii::PolynomialSpace<dim> poly_space(dealii::Polynomials::Monomial<double>::generate_complete_basis(order));
 
-
         // getting the vector of polynomial coefficients from the p+1 expansion
         dealii::Vector<real> coeffs_non_hom = reconstruct_H1_norm(
             cell,
@@ -47,7 +46,8 @@ void ReconstructPoly<dim,real>::reconstruct_directional_derivative(
             quadrature_collection,
             update_flags);
 
-        const unsigned int n_poly = poly_space.n();
+        const unsigned int n_poly   = poly_space.n();
+        const unsigned int n_degree = poly_space.degree();
 
         // assembling a vector of coefficients and indices
         std::vector<real>                          coeffs;
@@ -55,7 +55,7 @@ void ReconstructPoly<dim,real>::reconstruct_directional_derivative(
         unsigned int                               n_vec = 0;
 
         for(unsigned int i = 0; i < n_poly; ++i){
-            std::array<unsigned int, dim> arr = compute_index(i, order);
+            std::array<unsigned int, dim> arr = compute_index(i, n_degree);
 
             unsigned int sum = 0;
             for(int j = 0; j < dim; ++j)
@@ -90,11 +90,10 @@ void ReconstructPoly<dim,real>::reconstruct_directional_derivative(
 
             // see also dealii::eigenvectors(SymmetricTensor T)
             // https://www.dealii.org/current/doxygen/deal.II/symmetric__tensor_8h.html#a45c9cd0a3fecbd58ae133dfdd104f9f9
-            //std::array< Number, 3 >
             std::array<real,dim> eig = dealii::eigenvalues(hessian);
             
             for(int d = 0; d < dim; ++d)
-                A_cell[d] = eig[d];
+                A_cell[d] = abs(eig[d]);
         }else{
             // evaluating any point requires sum over power of the multindices
             auto eval = [&](const dealii::Tensor<1,dim,real>& point) -> real{
@@ -139,6 +138,8 @@ void ReconstructPoly<dim,real>::reconstruct_directional_derivative(
                 
                 A_cell[0] = A_max;
                 A_cell[1] = abs(eval(p_2));
+                                
+                std::cout << "A = [" << A_cell[0] << ", " << A_cell[1] << "]" << '\n';
             }else if(dim == 3){
                 // using fibbonaci sphere algorithm, with ~ n^2/2 points compared to 2d for equal points in theta and phi as before
                 // https://stackoverflow.com/questions/9600801/evenly-distributing-n-points-on-a-sphere/26127012#26127012
@@ -400,10 +401,17 @@ template <typename DoFCellAccessorType>
 std::vector<DoFCellAccessorType> ReconstructPoly<dim,real>::get_patch_around_dof_cell(
     const DoFCellAccessorType &cell)
 {
+    Assert(cell->is_locally_owned(), dealii::ExcInternalError());
+
     std::vector<DoFCellAccessorType> patch;
     patch.push_back(cell);
 
     for(unsigned int iface = 0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface){
+        if(cell->face(iface)->at_boundary()) continue;
+
+        Assert(cell->neighbor(iface).state() == dealii::IteratorState::valid,
+                   dealii::ExcInternalError());
+
         if(cell->neighbor(iface)->has_children() == false){ // case 1: coarse cell
             patch.push_back(cell->neighbor(iface));
         }else{ // has children cells

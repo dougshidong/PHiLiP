@@ -107,6 +107,31 @@ protected:
     // dealii::Triangulation<dim, dim> &tria;
     // Triangulation &tria;
     Triangulation *const tria;
+
+protected:
+    /// update flags needed at volume points
+    const dealii::UpdateFlags volume_update_flags = 
+        dealii::update_values | 
+        dealii::update_gradients | 
+        dealii::update_quadrature_points | 
+        dealii::update_JxW_values | 
+        dealii::update_inverse_jacobians;
+
+    /// update flags needed at face points
+    const dealii::UpdateFlags face_update_flags = 
+        dealii::update_values | 
+        dealii::update_gradients | 
+        dealii::update_quadrature_points | 
+        dealii::update_JxW_values | 
+        dealii::update_normal_vectors | 
+        dealii::update_jacobians;
+    
+    /// update flags needed at neighbor's face points
+    const dealii::UpdateFlags neighbor_face_update_flags = 
+        dealii::update_values | 
+        dealii::update_gradients | 
+        dealii::update_quadrature_points | 
+        dealii::update_JxW_values;
 };
 
 template <int dim, int nstate, typename real>

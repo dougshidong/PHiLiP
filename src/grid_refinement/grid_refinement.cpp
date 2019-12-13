@@ -1,3 +1,5 @@
+#include <vector>
+
 #include <deal.II/grid/tria.h>
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/grid_in.h>
@@ -24,6 +26,7 @@
 
 #include "grid_refinement/gmsh_out.h"
 #include "grid_refinement/size_field.h"
+#include "grid_refinement/reconstruct_poly.h"
 #include "grid_refinement.h"
 
 namespace PHiLiP {
@@ -47,11 +50,11 @@ void GridRefinement_Uniform<dim,nstate,real>::refine_grid()
     locally_owned_dofs = this->dg->dof_handler.locally_owned_dofs();
     dealii::DoFTools::extract_locally_relevant_dofs(this->dg->dof_handler, locally_relevant_dofs);
 
-    dealii::LinearAlgebra::distributed::Vector<double> solution_old(this->dg->solution);
+    dealii::LinearAlgebra::distributed::Vector<real> solution_old(this->dg->solution);
     solution_old.update_ghost_values();
 
     dealii::parallel::distributed::SolutionTransfer< 
-        dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim> 
+        dim, dealii::LinearAlgebra::distributed::Vector<real>, dealii::hp::DoFHandler<dim> 
         > solution_transfer(this->dg->dof_handler);
     solution_transfer.prepare_for_coarsening_and_refinement(solution_old);
 
@@ -409,7 +412,44 @@ template <int dim, int nstate, typename real>
 void GridRefinement_FixedFraction_Hessian<dim,nstate,real>::error_indicator()
 {
     // TODO: Feature based, should use the reconstructed next mode as an indication
-    // make a function to call that does this reconstruction? will be needed for other classes
+    // call to reconstruct poly
+    std::vector<dealii::Tensor<1,dim,real>> A(this->tria->n_active_cells());
+
+    // mapping
+    const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid.mapping_fe_field));
+
+    // using p+1 reconstruction
+    const unsigned int rel_order = 1;
+
+    // call to the function to reconstruct the derivatives onto A
+    PHiLiP::GridRefinement::ReconstructPoly<dim,real>::reconstruct_directional_derivative(
+        this->dg->solution,
+        this->dg->dof_handler,
+        mapping_collection,
+        this->dg->fe_collection,
+        this->dg->volume_quadrature_collection,
+        this->volume_update_flags,
+        rel_order,
+        A);
+
+    // looping over the vector and taking the product of the eigenvalues as the size measure
+    this->indicator.reinit(this->tria->n_active_cells());
+    for(auto cell = this->dg->dof_handler.begin_active(); cell < this->dg->dof_handler.end(); ++cell)
+        if(cell->is_locally_owned()){
+            // using an averaging scheme
+            // error indicator should relate to the cell-size to the power of p+1
+            // this->indicator[cell->active_cell_index()] = pow(cell->measure(), (cell->active_fe_index()+rel_order)/dim);
+            // for(unsigned int d = 0; d < dim; ++d)
+            //     this->indicator[cell->active_cell_index()] *= A[cell->active_cell_index()][d];
+
+            // using max value of the derivative
+            this->indicator[cell->active_cell_index()] = 0.0;
+            for(unsigned int d = 0; d < dim; ++d)
+                if(this->indicator[cell->active_cell_index()] < A[cell->active_cell_index()][d])
+                    this->indicator[cell->active_cell_index()] = A[cell->active_cell_index()][d];
+
+            this->indicator[cell->active_cell_index()] *= pow(cell->measure(), (cell->active_fe_index()+rel_order)/dim);
+        }
 }
 
 template <int dim, int nstate, typename real>
@@ -511,55 +551,9 @@ void GridRefinement_Continuous<dim,nstate,real>::refine_grid()
 }
 
 template <int dim, int nstate, typename real>
-void GridRefinement_Continuous<dim,nstate,real>::refine_grid_h(){}
-template <int dim, int nstate, typename real>
-void GridRefinement_Continuous<dim,nstate,real>::refine_grid_p(){}
-template <int dim, int nstate, typename real>
-void GridRefinement_Continuous<dim,nstate,real>::refine_grid_hp(){}
-
-template <int dim, int nstate, typename real>
-real GridRefinement_Continuous<dim,nstate,real>::current_complexity()
-{
-    real complexity_sum;
-
-    for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
-        if(cell->is_locally_owned())
-            complexity_sum += pow(cell->active_fe_index()+1, dim);
-
-    return dealii::Utilities::MPI::sum(complexity_sum, MPI_COMM_WORLD);
-}
-
-template <int dim, int nstate, typename real>
-void GridRefinement_Continuous_Error<dim,nstate,real>::field_h(){}
-template <int dim, int nstate, typename real>
-void GridRefinement_Continuous_Error<dim,nstate,real>::field_p(){}
-template <int dim, int nstate, typename real>
-void GridRefinement_Continuous_Error<dim,nstate,real>::field_hp(){}
-
-template <int dim, int nstate, typename real>
-void GridRefinement_Continuous_Hessian<dim,nstate,real>::field_h()
+void GridRefinement_Continuous<dim,nstate,real>::refine_grid_h()
 {
     int igrid = 0;
-
-    // checking if the polynomial order is uniform
-    if(this->dg->get_min_fe_degree() == this->dg->get_max_fe_degree()){
-        int poly_degree = this->dg->get_min_fe_degree();
-
-        // building error based on exact hessian
-        real complexity = pow(poly_degree+1, dim)*this->tria->n_active_cells();
-        complexity *= this->grid_refinement_param.complexity_scale;
-        complexity += this->grid_refinement_param.complexity_add;
-
-        SizeField<dim,real>::isotropic_uniform(
-            *(this->tria),
-            *(this->dg->high_order_grid.mapping_fe_field),
-            this->dg->fe_collection[poly_degree],
-            this->physics->manufactured_solution_function,
-            complexity,
-            this->h_field);
-    }else{
-        // call the non-uniform hp-version without the p-update
-    }
 
     // now outputting this new field
     std::string write_posname = "grid-"+std::to_string(igrid)+".pos";
@@ -580,6 +574,100 @@ void GridRefinement_Continuous_Hessian<dim,nstate,real>::field_h()
     gridin.attach_triangulation(*(this->tria));
     std::ifstream f(output_name);
     gridin.read_msh(f);
+}
+
+template <int dim, int nstate, typename real>
+void GridRefinement_Continuous<dim,nstate,real>::refine_grid_p()
+{
+    // physical grid stays the same, apply the update to the p_field
+    for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
+        if(cell->is_locally_owned())
+            cell->set_future_fe_index(round(p_field[cell->active_cell_index()]));
+}
+
+template <int dim, int nstate, typename real>
+void GridRefinement_Continuous<dim,nstate,real>::refine_grid_hp()
+{
+    // make a copy of the old grid and build a P1 continuous solution averaged at each of the nodes
+    // new P will be the weighted average of the integral over the new cell
+}
+
+template <int dim, int nstate, typename real>
+real GridRefinement_Continuous<dim,nstate,real>::current_complexity()
+{
+    real complexity_sum;
+
+    for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
+        if(cell->is_locally_owned())
+            complexity_sum += pow(cell->active_fe_index()+1, dim);
+
+    return dealii::Utilities::MPI::sum(complexity_sum, MPI_COMM_WORLD);
+}
+
+template <int dim, int nstate, typename real>
+void GridRefinement_Continuous_Error<dim,nstate,real>::field_h()
+{
+    // checking if the polynomial order is uniform
+    if(this->dg->get_min_fe_degree() == this->dg->get_max_fe_degree()){
+        int poly_degree = this->dg->get_min_fe_degree();
+
+        // building error based on exact hessian
+        real complexity = pow(poly_degree+1, dim)*this->tria->n_active_cells();
+        complexity *= this->grid_refinement_param.complexity_scale;
+        complexity += this->grid_refinement_param.complexity_add;
+
+        SizeField<dim,real>::isotropic_uniform(
+            *(this->tria),
+            *(this->dg->high_order_grid.mapping_fe_field),
+            this->dg->fe_collection[poly_degree],
+            this->physics->manufactured_solution_function,
+            complexity,
+            this->h_field);
+    }else{
+        // call the non-uniform hp-version without the p-update
+    }
+
+
+}
+
+template <int dim, int nstate, typename real>
+void GridRefinement_Continuous_Error<dim,nstate,real>::field_p(){}
+template <int dim, int nstate, typename real>
+void GridRefinement_Continuous_Error<dim,nstate,real>::field_hp(){}
+
+template <int dim, int nstate, typename real>
+void GridRefinement_Continuous_Hessian<dim,nstate,real>::field_h()
+{
+    // call to reconstruct poly
+    std::vector<dealii::Tensor<1,dim,real>> A(this->tria->n_active_cells());
+
+    // mapping
+    const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid.mapping_fe_field));
+
+    // call to the function to reconstruct the derivatives onto A
+    PHiLiP::GridRefinement::ReconstructPoly<dim,real>::reconstruct_directional_derivative(
+        this->dg->solution,
+        this->dg->dof_handler,
+        mapping_collection,
+        this->dg->fe_collection,
+        this->dg->volume_quadrature_collection,
+        this->volume_update_flags,
+        1, // p+1
+        A);
+
+    // vector to store the results
+    dealii::Vector<real> B(this->tria->n_active_cells());
+
+    // looping over the vector and taking the product of the eigenvalues as the size measure
+    for(auto cell = this->dg->dof_handler.begin_active(); cell < this->dg->dof_handler.end(); ++cell)
+        if(cell->is_locally_owned()){
+            B[cell->active_cell_index()] = 1.0;
+            for(unsigned int d = 0; d < dim; ++d)
+                B[cell->active_cell_index()] *= A[cell->active_cell_index()][d];
+        }
+
+    // TODO: perform the call to calculate the continuous size field
+
 }
 template <int dim, int nstate, typename real>
 void GridRefinement_Continuous_Hessian<dim,nstate,real>::field_p(){}

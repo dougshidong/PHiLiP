@@ -13,10 +13,6 @@
 #include "dg/dg.h"
 #include "functional/functional.h"
 
-#include <deal.II/lac/solver_control.h>
-#include <deal.II/lac/trilinos_precondition.h>
-#include <deal.II/lac/trilinos_solver.h>
-
 #include <deal.II/lac/full_matrix.h>
 
 #include <deal.II/lac/solver_bicgstab.h>
@@ -25,6 +21,8 @@
 #include <deal.II/lac/solver_minres.h>
 
 #include <deal.II/lac/block_sparsity_pattern.h>
+
+#include <deal.II/lac/precondition.h>
 
 #include <deal.II/lac/trilinos_block_sparse_matrix.h>
 #include <deal.II/lac/trilinos_precondition.h>
@@ -52,79 +50,6 @@ solve_linear (
     const PHiLiP::Parameters::LinearSolverParam &)//param)
 {
 
-    // if (pcout.is_active()) matrix_A.print(pcout.get_stream(), true);
-    // if (pcout.is_active()) solution.print(pcout.get_stream());
-
-    // PHiLiP::Parameters::LinearSolverParam::LinearSolverEnum direct_type = PHiLiP::Parameters::LinearSolverParam::LinearSolverEnum::direct;
-    // PHiLiP::Parameters::LinearSolverParam::LinearSolverEnum gmres_type = PHiLiP::Parameters::LinearSolverParam::LinearSolverEnum::gmres;
-
-    // if (param.linear_solver_output == PHiLiP::Parameters::OutputEnum::verbose) {
-    //     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
-    //     if (pcout.is_active()) right_hand_side.print(pcout.get_stream());
-    //     dealii::FullMatrix<double> fullA(matrix_A.m());
-    //     fullA.copy_from(matrix_A);
-    //     pcout<<"Dense matrix:"<<std::endl;
-    //     if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), 3, true, 10, "0", 1., 0.);
-    // }
-    // if (param.linear_solver_type == direct_type) {
-
-//  //       dealii::SolverControl solver_control(1, 0);
-//  //       dealii::TrilinosWrappers::SolverDirect::AdditionalData data(false);
-//  //       //dealii::TrilinosWrappers::SolverDirect::AdditionalData data(parameters.output == PHiLiP::Parameters::Solver::verbose);
-//  //       dealii::TrilinosWrappers::SolverDirect direct(solver_control, data);
-//
-//  //       direct.solve(matrix_A, solution, right_hand_side);
-//  //       return {solver_control.last_step(), solver_control.last_value()};
-    // } else if (param.linear_solver_type == gmres_type) {
-	// 	const std::vector<dealii::IndexSet> domain_indices = matrix_A.locally_owned_domain_indices();
-	// 	const std::vector<dealii::IndexSet> range_indices = matrix_A.locally_owned_range_indices();
-	// 	Epetra_Map domain_partitioner = domain_indices.make_trilinos_map();
-	// 	Epetra_Map range_partitioner = range_indices.make_trilinos_map();
-
-    //     Epetra_Vector x(View,
-    //                     domain_partitioner,
-    //                     solution.begin());
-    //     Epetra_Vector b(View,
-    //                     range_partitioner,
-    //                     right_hand_side.begin());
-    //     AztecOO solver;
-    //     solver.SetAztecOption( AZ_output, (param.linear_solver_output ? AZ_all : AZ_none));
-    //     solver.SetAztecOption(AZ_solver, AZ_gmres);
-    //     solver.SetAztecOption(AZ_kspace, param.restart_number);
-    //     solver.SetRHS(&b);
-    //     solver.SetLHS(&x);
-    //     solver.SetAztecOption(AZ_precond, AZ_dom_decomp);
-    //     solver.SetAztecOption(AZ_subdomain_solve, AZ_ilut);
-    //     solver.SetAztecOption(AZ_overlap, 0);
-    //     solver.SetAztecOption(AZ_reorder, 1); // RCM re-ordering
-  
-    //     const double 
-    //       ilut_drop = param.ilut_drop,
-    //       ilut_rtol = param.ilut_rtol,//0.0,//1.1,
-    //       ilut_atol = param.ilut_atol,//0.0,//1e-9,
-    //       linear_residual = param.linear_residual;//1e-4;
-    //     const int 
-    //       ilut_fill = param.ilut_fill,//1,
-    //       max_iterations = param.max_iterations;//200
-  
-    //     solver.SetAztecParam(AZ_drop, ilut_drop);
-    //     solver.SetAztecParam(AZ_ilut_fill, ilut_fill);
-    //     solver.SetAztecParam(AZ_athresh, ilut_atol);
-    //     solver.SetAztecParam(AZ_rthresh, ilut_rtol);
-    //     solver.SetUserMatrix(const_cast<Epetra_CrsMatrix *>(&matrix_A.trilinos_matrix()));
-    //     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
-    //     pcout << " Linear solver max its: " << max_iterations 
-    //           << " Linear residual tolerance: " << linear_residual << std::endl;
-    //     solver.Iterate(max_iterations,
-    //                    linear_residual);
-  
-    //     pcout << " Linear solver took " << solver.NumIters()
-    //           << " iterations resulting in a linear residual of " << solver.ScaledResidual() << std::endl
-    //           << " Current RHS norm: " << right_hand_side.l2_norm()
-    //           << " Newton update norm: " << solution.l2_norm() << std::endl;
-
-    //     return {solver.NumIters(), solver.TrueResidual()};
-    // }
     {
 		using trilinos_vector_type = dealii::TrilinosWrappers::MPI::Vector;
 		using vector_type = dealii::LinearAlgebra::distributed::Vector<double>;
@@ -133,21 +58,29 @@ solve_linear (
 		vector_type &_rhs1 = right_hand_side.block(0);
 		vector_type &_rhs2 = right_hand_side.block(1);
 
-		dealii::IndexSet locally_relevant = _rhs1.locally_owned_elements();
-		locally_relevant.add_indices(_rhs1.get_partitioner()->ghost_indices());
+		dealii::IndexSet rhs1_locally_owned = _rhs1.locally_owned_elements();
+		dealii::IndexSet rhs1_ghost = _rhs1.get_partitioner()->ghost_indices();
+		//rhs1_locally_relevant.add_indices(_rhs1.get_partitioner()->ghost_indices());
+		dealii::IndexSet rhs2_locally_owned = _rhs2.locally_owned_elements();
+		dealii::IndexSet rhs2_ghost = _rhs2.get_partitioner()->ghost_indices();
+		//rhs2_locally_relevant.add_indices(_rhs2.get_partitioner()->ghost_indices());
 
-		trilinos_vector_type rhs1;
-		trilinos_vector_type rhs2;
-		trilinos_vector_type soln1;
-		trilinos_vector_type soln2;
+		trilinos_vector_type rhs1(rhs1_locally_owned);
+		trilinos_vector_type rhs2(rhs2_locally_owned);
+		rhs1_locally_owned.print(std::cout);
+		std::cout << rhs1.size() << std::endl;
+		// trilinos_vector_type rhs1(rhs1_locally_owned, rhs1_ghost);
+		// trilinos_vector_type rhs2(rhs2_locally_owned, rhs2_ghost);
+		trilinos_vector_type soln1(_rhs1.locally_owned_elements());
+		trilinos_vector_type soln2(_rhs2.locally_owned_elements());
 
 		{
-			dealii::LinearAlgebra::ReadWriteVector<double> rw_vector;
+			dealii::LinearAlgebra::ReadWriteVector<double> rw_vector(rhs1_locally_owned);
 			rw_vector.import(_rhs1, dealii::VectorOperation::insert);
 			rhs1.import(rw_vector, dealii::VectorOperation::insert);
 		}
 		{
-			dealii::LinearAlgebra::ReadWriteVector<double> rw_vector;
+			dealii::LinearAlgebra::ReadWriteVector<double> rw_vector(rhs2_locally_owned);
 			rw_vector.import(_rhs2, dealii::VectorOperation::insert);
 			rhs2.import(rw_vector, dealii::VectorOperation::insert);
 		}
@@ -162,58 +95,59 @@ solve_linear (
 		const auto &L11 = matrix_A.block(0,0);
 		const auto &L12 = matrix_A.block(0,1);
 		const auto &L21 = matrix_A.block(1,0);
-		//const auto &L22 = matrix_A.block(1,1);
+		const auto &L22 = matrix_A.block(1,1);
 
 		const auto op_L11 = dealii::linear_operator<trilinos_vector_type,trilinos_vector_type,payload_type>(L11);
 		const auto op_L12 = dealii::linear_operator<trilinos_vector_type,trilinos_vector_type,payload_type>(L12);
 		const auto op_L21 = dealii::linear_operator<trilinos_vector_type,trilinos_vector_type,payload_type>(L21);
-		//const auto L22 = dealii::linear_operator<trilinos_vector_type>(matrix_A.block(1,1));
+		const auto op_L22 = dealii::linear_operator<trilinos_vector_type,trilinos_vector_type,payload_type>(L22);
 
-		dealii::ReductionControl reduction_control_L11(2000, 1.0e-18, 1.0e-10);
-		dealii::SolverMinRes<trilinos_vector_type> solver_L11(reduction_control_L11);
+		dealii::ReductionControl reduction_control_L11(2000, 1.0e-15, 1.0e-12);
+		dealii::SolverGMRES<trilinos_vector_type> solver_L11(reduction_control_L11);
 
-		dealii::TrilinosWrappers::PreconditionSSOR preconditioner_L11;
+		dealii::TrilinosWrappers::PreconditionILU preconditioner_L11;
+		//dealii::TrilinosWrappers::PreconditionIdentity preconditioner_L11;
 		preconditioner_L11.initialize(L11);
 		//const dealii::TrilinosWrappers::PreconditionBase &preconditioner_L11_base = preconditioner_L11;
-		const auto op_preconditioner_L11 = dealii::linear_operator<trilinos_vector_type,trilinos_vector_type,payload_type>(preconditioner_L11);
 
 		const auto op_L11_inv = dealii::inverse_operator(op_L11, solver_L11, preconditioner_L11);
-		const auto op_Schur = op_L21 * op_L11_inv * op_L12;
-		const auto op_approxSchur = op_L21 * op_preconditioner_L11 * op_L12;
+		const auto op_Schur = op_L22 - op_L21 * op_L11_inv * op_L12;
 
-		dealii::IterationNumberControl iteration_number_control_aS(30, 1.e-18);
-		dealii::SolverMinRes<trilinos_vector_type> solver_approxSchur(iteration_number_control_aS);
-		//const auto preconditioner_Schur = dealii::inverse_operator(op_approxSchur, solver_approxSchur, dealii::TrilinosWrappers::PreconditionIdentity());
-		const auto preconditioner_Schur = dealii::inverse_operator(op_approxSchur, solver_approxSchur);
+		const auto op_preconditioner_L11 = dealii::linear_operator<trilinos_vector_type,trilinos_vector_type,payload_type>(preconditioner_L11);
+		const auto op_approxSchur = op_L22 - op_L21 * op_preconditioner_L11 * op_L12;
 
-		//auto schur_rhs_expr = op_L11 * rhs1;
-		//auto schur_rhs_expr = op_L11_inv * rhs1;
-		//auto schur_rhs_expr = op_L21 * op_L11_inv * rhs1 - rhs2;
-		//trilinos_vector_type schur_rhs;
-		//schur_rhs_expr.apply(schur_rhs);
-		//const trilinos_vector_type schur_rhs = op_L21 * op_L11_inv * rhs1 - rhs2;
-        //Epetra_Vector x(View,
-        //                L21.trilinos_matrix().DomainMap(),
-        //                _rhs2.begin());
+		const trilinos_vector_type schur_rhs = rhs2 - op_L21 * op_L11_inv * rhs1;
+		std::cout << reduction_control_L11.last_step() << " GMRES iterations to solve L11inv*rhs1." << std::endl;
 
-		//std::cout << "vmult rhsdealii" << std::endl;
-        //Epetra_Vector b(View,
-        //                L21.trilinos_matrix().RangeMap(),
-        //                _rhs1.begin());
-		//L21.trilinos_matrix().Apply(b,x);
-		std::cout << "vmult rhstrilinos" << std::endl;
-		trilinos_vector_type schur_rhs;
-		L21.vmult(schur_rhs, rhs1);
-		//L21.vmult(schur_rhs, rhs1);
-		//const trilinos_vector_type schur_rhs = op_L21 * rhs1 - rhs2;
+		// Schur inverse preconditioner
+		// dealii::IterationNumberControl iteration_number_control_aS(300, 1.e-12);
+		// dealii::SolverGMRES<trilinos_vector_type> solver_approxSchur(iteration_number_control_aS);
+		// const auto preconditioner_Schur = dealii::inverse_operator(op_approxSchur, solver_approxSchur, dealii::PreconditionIdentity());
+		// //const auto preconditioner_Schur = dealii::PreconditionIdentity();
 
-		dealii::SolverControl solver_control_Schur(2000, 1.e-12);
-		dealii::SolverMinRes<trilinos_vector_type> solver_Schur(solver_control_Schur);
+		dealii::TrilinosWrappers::SparseMatrix approxSchur;
+		const auto L11_rows = L11.locally_owned_range_indices();
+		trilinos_vector_type L11_diag_inv(L11_rows);
+		for (auto row = L11_rows.begin(); row != L11_rows.end(); ++row) {
+			L11_diag_inv[*row] = 1.0/L11.diag_element(*row);
+		}
+		L21.mmult(approxSchur, L12, L11_diag_inv);
+		approxSchur *= -1.0;
+		approxSchur.add(1.0,L22);
+		dealii::TrilinosWrappers::PreconditionILU preconditioner_Schur;
+		const unsigned int ilu_fill = 20, overlap = 1;
+		const double ilu_atol = 1e-5, ilu_rtol = 1e-2;
+		preconditioner_Schur.initialize(approxSchur, dealii::TrilinosWrappers::PreconditionILU::AdditionalData(ilu_fill,ilu_atol,ilu_rtol,overlap));
+
+		// Schur inverse operator
+		dealii::SolverControl solver_control_Schur(2000, 1.e-15,true);
+		//dealii::ReductionControl solver_control_Schur(20000, 1.0e-15, 1.0e-12);
+		dealii::SolverGMRES<trilinos_vector_type> solver_Schur(solver_control_Schur,
+			dealii::SolverGMRES<trilinos_vector_type>::AdditionalData (2000, false, true, false) );
 		const auto op_Schur_inv = dealii::inverse_operator(op_Schur, solver_Schur, preconditioner_Schur);
+
 		soln2 = op_Schur_inv * schur_rhs;
-		std::cout << solver_control_Schur.last_step()
-					<< " CG Schur complement iterations to obtain convergence."
-					<< std::endl;
+		std::cout << solver_control_Schur.last_step() << " GMRES iterations to obtain convergence." << std::endl;
 		soln1 = op_L11_inv * (rhs1 - op_L12 * soln2);
 
 		{
@@ -226,6 +160,49 @@ solve_linear (
 			rw_vector.reinit(soln2);
 			solution.block(1).import(rw_vector, dealii::VectorOperation::insert);
 		}
+
+		
+		// int n_digits = 12;
+		// {
+		// 	dealii::FullMatrix<double> fullA(matrix_A.block(0,0).m(),matrix_A.block(0,0).n());
+		// 	fullA.copy_from(matrix_A.block(0,0));
+		// 	std::cout<<"Block 0,0 matrix:"<<std::endl;
+		// 	fullA.print_formatted(std::cout, n_digits, true, n_digits+7, "0", 1., 0.);
+		// }
+		// {
+		// 	dealii::FullMatrix<double> fullA(matrix_A.block(0,1).m(),matrix_A.block(0,1).n());
+		// 	fullA.copy_from(matrix_A.block(0,1));
+		// 	std::cout<<"Block 0,1 matrix:"<<std::endl;
+		// 	fullA.print_formatted(std::cout, n_digits, true, n_digits+7, "0", 1., 0.);
+		// }
+		// {
+		// 	dealii::FullMatrix<double> fullA(matrix_A.block(1,0).m(),matrix_A.block(1,0).n());
+		// 	fullA.copy_from(matrix_A.block(1,0));
+		// 	std::cout<<"Block 1,0 matrix:"<<std::endl;
+		// 	fullA.print_formatted(std::cout, n_digits, true, n_digits+7, "0", 1., 0.);
+		// }
+		// {
+		// 	dealii::FullMatrix<double> fullA(matrix_A.block(1,1).m(),matrix_A.block(1,1).n());
+		// 	fullA.copy_from(matrix_A.block(1,1));
+		// 	std::cout<<"Block 1,1 matrix:"<<std::endl;
+		// 	fullA.print_formatted(std::cout, n_digits, true, n_digits+7, "0", 1., 0.);
+		// }
+		// std::cout<<"rhs1:"<<std::endl;
+		// rhs1.print(std::cout, n_digits);
+		// std::cout<<"rhs2:"<<std::endl;
+		// rhs2.print(std::cout, n_digits);
+		// std::cout<<"soln1:"<<std::endl;
+		// soln1.print(std::cout, n_digits);
+		// std::cout<<"soln2:"<<std::endl;
+		// soln2.print(std::cout, n_digits);
+		
+		const trilinos_vector_type r1 = op_L11 * soln1 + op_L12 * soln2 - rhs1;
+		const trilinos_vector_type r2 = op_L21 * soln1 + op_L22 * soln2 - rhs2;
+
+		std::cout<<"r1 norm: "<<r1.l2_norm()<<std::endl;
+		//r1.print(std::cout, n_digits);
+		std::cout<<"r2 norm: "<<r2.l2_norm()<<std::endl;
+		//r2.print(std::cout, n_digits);
 
     }
     //{
@@ -362,7 +339,6 @@ int main(int argc, char *argv[])
 	// Initializing MPI
 	dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
 	const int this_mpi_process = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
-	const int n_mpi_processes = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
 	dealii::ConditionalOStream pcout(std::cout, this_mpi_process==0);
 
 	// Initializing parameter handling
@@ -544,12 +520,13 @@ int main(int argc, char *argv[])
 
     pcout << "kkt_hessian.frobenius_norm()  " << kkt_hessian.frobenius_norm() << std::endl;
 
-    if (n_mpi_processes == 1) {
-        dealii::FullMatrix<double> fullA(kkt_hessian.m());
-        fullA.copy_from(kkt_hessian);
-        pcout<<"d2IdWdW:"<<std::endl;
-        if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), 3, true, 10, "0", 1., 0.);
-    }
+	// const int n_mpi_processes = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
+    // if (n_mpi_processes == 1) {
+    //     dealii::FullMatrix<double> fullA(kkt_hessian.m());
+    //     fullA.copy_from(kkt_hessian);
+    //     pcout<<"d2IdWdW:"<<std::endl;
+    //     if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), 3, true, 10, "0", 1., 0.);
+    // }
 
     dealii::LinearAlgebra::distributed::BlockVector<double> block_vector(3);
 	block_vector.block(0) = dg->solution;
@@ -579,7 +556,15 @@ int main(int argc, char *argv[])
                     << std::endl;
     if (vector_abs_diff > tol && vector_rel_diff > tol) fail_bool = true;
 
-    dealii::deallog.depth_console(10);
+	const int n_mpi_processes = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
+    if (n_mpi_processes == 1) {
+        dealii::FullMatrix<double> fullA(kkt_hessian.m());
+        fullA.copy_from(kkt_hessian);
+		const int n_digits = 8;
+        if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), n_digits, true, n_digits+7, "0", 1., 0.);
+    }
+
+    dealii::deallog.depth_console(3);
     solve_linear (
         kkt_hessian,
         Hv, // b

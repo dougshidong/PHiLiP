@@ -1,5 +1,6 @@
 #include <vector>
 #include <iostream>
+#include <fstream>
 
 #include <Epetra_RowMatrixTransposer.h>
 

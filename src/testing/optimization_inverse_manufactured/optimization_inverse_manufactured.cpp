@@ -39,166 +39,81 @@
 namespace PHiLiP {
 namespace Tests {
 
-//template <int dim, int nstate, typename real>
-//class lL2normError : public Functional<dim, nstate, real>
-//{
-//    public:
-//        /// Constructor
-//        lL2normError(
-//            std::shared_ptr<PHiLiP::DGBase<dim,real>> dg_input,
-//            const bool uses_solution_values = true,
-//            const bool uses_solution_gradient = true)
-//        : PHiLiP::Functional<dim,nstate,real>(dg_input,uses_solution_values,uses_solution_gradient)
-//        {}
-//
-//        template <typename real2>
-//        real2 evaluate_volume_integrand(
-//            const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
-//            const dealii::Point<dim,real2> &/*phys_coord*/,
-//            const std::array<real2,nstate> &soln_at_q,
-//            const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/)
-//        {
-//
-//            real2 cell_l2error = 0;
-//
-//            const Physics::Euler<dim,nstate,real2>& euler_physics = dynamic_cast<const Physics::Euler<dim,nstate,real2>&>(physics);
-//
-//            const real2 entropy = euler_physics.compute_entropy_measure(soln_at_q);
-//
-//            const real2 uexact = euler_physics.entropy_inf;
-//            cell_l2error = pow(entropy - uexact, 2);
-//
-//            return cell_l2error;
-//        }
-//
-//    	// non-template functions to override the template classes
-//		real evaluate_volume_integrand(
-//            const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
-//            const dealii::Point<dim,real> &phys_coord,
-//            const std::array<real,nstate> &soln_at_q,
-//            const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) override
-//		{
-//			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
-//		}
-//        using ADtype = Sacado::Fad::DFad<real>;
-//        using ADADtype = Sacado::Fad::DFad<ADtype>;
-//		ADADtype evaluate_volume_integrand(
-//            const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADtype> &physics,
-//            const dealii::Point<dim,ADADtype> &phys_coord,
-//            const std::array<ADADtype,nstate> &soln_at_q,
-//            const std::array<dealii::Tensor<1,dim,ADADtype>,nstate> &soln_grad_at_q) override
-//		{
-//			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
-//		}
-//};
-//
-//dealii::Point<2> center_adjoint(0.0,0.0);
-//const double inner_radius_adjoint = 1, outer_radius_adjoint = inner_radius_adjoint*20;
-//
-//dealii::Point<2> warp_cylinder_adjoint (const dealii::Point<2> &p)//, const double inner_radius_adjoint, const double outer_radius_adjoint)
-//{
-//    const double rectangle_height = 1.0;
-//    //const double original_radius = std::abs(p[0]);
-//    const double angle = p[1]/rectangle_height * dealii::numbers::PI;
-//
-//    //const double radius = std::abs(p[0]);
-//
-//    const double power = 2.25;
-//    const double radius = outer_radius_adjoint*(inner_radius_adjoint/outer_radius_adjoint + pow(std::abs(p[0]), power));
-//
-//    dealii::Point<2> q = p;
-//    q[0] = -radius*cos(angle);
-//    q[1] = radius*sin(angle);
-//    return q;
-//}
-//
-//void target_shape(dealii::parallel::distributed::Triangulation<2> & tria,
-//                   const unsigned int n_cells_circle,
-//                   const unsigned int n_cells_radial)
-//{
-//    //const double pi = dealii::numbers::PI;
-//    //double inner_circumference = inner_radius_adjoint*pi;
-//    //double outer_circumference = outer_radius_adjoint*pi;
-//    //const double rectangle_height = inner_circumference;
-//    dealii::Point<2> p1(-1,0.0), p2(-0.0,1.0);
-//
-//    const bool colorize = true;
-//
-//    std::vector<unsigned int> n_subdivisions(2);
-//    n_subdivisions[0] = n_cells_radial;
-//    n_subdivisions[1] = n_cells_circle;
-//    dealii::GridGenerator::subdivided_hyper_rectangle (tria, n_subdivisions, p1, p2, colorize);
-//
-//    dealii::GridTools::transform (&warp_cylinder_adjoint, tria);
-//
-//    tria.set_all_manifold_ids(0);
-//    tria.set_manifold(0, dealii::SphericalManifold<2>(center_adjoint));
-//
-//    // Assign BC
-//    for (auto cell = tria.begin_active(); cell != tria.end(); ++cell) {
-//        //if (!cell->is_locally_owned()) continue;
-//        for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) {
-//            if (cell->face(face)->at_boundary()) {
-//                unsigned int current_id = cell->face(face)->boundary_id();
-//                if (current_id == 0) {
-//                    cell->face(face)->set_boundary_id (1004); // x_left, Farfield
-//                } else if (current_id == 1) {
-//                    cell->face(face)->set_boundary_id (1001); // x_right, Symmetry/Wall
-//                } else if (current_id == 2) {
-//                    cell->face(face)->set_boundary_id (1001); // y_bottom, Symmetry/Wall
-//                } else if (current_id == 3) {
-//                    cell->face(face)->set_boundary_id (1001); // y_top, Wall
-//                } else {
-//                    std::abort();
-//                }
-//            }
-//        }
-//    }
-//}
-//
-//
-///// Function used to evaluate farfield conservative solution
-//template <int dim, int nstate>
-//class FreeStreamInitialConditions_adjoint : public dealii::Function<dim>
-//{
-//public:
-//    /// Farfield conservative solution
-//    std::array<double,nstate> farfield_conservative;
-//
-//    /// Constructor.
-//    /** Evaluates the primary farfield solution and converts it into the store farfield_conservative solution
-//     */
-//    FreeStreamInitialConditions_adjoint (const Physics::Euler<dim,nstate,double> euler_physics)
-//    : dealii::Function<dim,double>(nstate)
-//    {
-//        const double density_bc = euler_physics.density_inf;
-//        const double pressure_bc = 1.0/(euler_physics.gam*euler_physics.mach_inf_sqr);
-//        std::array<double,nstate> primitive_boundary_values;
-//        primitive_boundary_values[0] = density_bc;
-//        for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = euler_physics.velocities_inf[d]; }
-//        primitive_boundary_values[nstate-1] = pressure_bc;
-//        farfield_conservative = euler_physics.convert_primitive_to_conservative(primitive_boundary_values);
-//    }
-//  
-//    /// Returns the istate-th farfield conservative value
-//    double value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const
-//    {
-//        return farfield_conservative[istate];
-//    }
-//};
-//template class FreeStreamInitialConditions_adjoint <PHILIP_DIM, PHILIP_DIM+2>;
-//
-//template <int dim, int nstate>
-//OptimizationInverseManufactured<dim,nstate>::OptimizationInverseManufactured(const Parameters::AllParameters *const parameters_input)
-//    :
-//    TestsBase::TestsBase(parameters_input)
-//{}
-//
-//template<int dim, int nstate>
-//int OptimizationInverseManufactured<dim,nstate>
-//::run_test () const
-//{
-//    pcout << " Running Euler cylinder adjoint entropy convergence. " << std::endl;
+template <int dim, int nstate, typename real>
+class VolumeL2normError : public Functional<dim, nstate, real>
+{
+public:
+	/// Constructor
+	VolumeL2normError(
+		std::shared_ptr<PHiLiP::DGBase<dim,real>> dg_input,
+		const bool uses_solution_values = true,
+		const bool uses_solution_gradient = true)
+	: PHiLiP::Functional<dim,nstate,real>(dg_input,uses_solution_values,uses_solution_gradient)
+	{}
+
+	template <typename real2>
+	real2 evaluate_volume_integrand(
+		const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+		const dealii::Point<dim,real2> &phys_coord,
+		const std::array<real2,nstate> &soln_at_q,
+		const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/)
+	{
+		real2 l2error = 0;
+		
+		for (int istate=0; istate<nstate; ++istate) {
+			const real2 uexact = physics.manufactured_solution_function->value(phys_coord, istate);
+			l2error += std::pow(soln_at_q[istate] - uexact, 2);
+		}
+
+		return l2error;
+	}
+
+	// non-template functions to override the template classes
+	real evaluate_volume_integrand(
+		const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+		const dealii::Point<dim,real> &phys_coord,
+		const std::array<real,nstate> &soln_at_q,
+		const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) override
+	{
+		return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
+	}
+	using ADtype = Sacado::Fad::DFad<real>;
+	using ADADtype = Sacado::Fad::DFad<ADtype>;
+	ADADtype evaluate_volume_integrand(
+		const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADtype> &physics,
+		const dealii::Point<dim,ADADtype> &phys_coord,
+		const std::array<ADADtype,nstate> &soln_at_q,
+		const std::array<dealii::Tensor<1,dim,ADADtype>,nstate> &soln_grad_at_q) override
+	{
+		return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
+	}
+};
+
+template <int dim, int nstate>
+dealii::Point<dim> warp (const dealii::Point<dim> &p)
+{
+    dealii::Point<dim> q = p;
+    if (dim == 1) {
+		q[dim-1] *= 1.5;
+	} else if (dim == 2) {
+		q[0] *= p[0]*std::sin(2.0*dealii::numbers::PI*p[1]);
+	} else if (dim == 3) {
+		q[0] *= p[0]*std::sin(2.0*dealii::numbers::PI*p[1]);
+		q[1] *= p[0]*std::sin(2.0*dealii::numbers::PI*p[1]);
+	}
+    return q;
+}
+template <int dim, int nstate>
+OptimizationInverseManufactured<dim,nstate>::OptimizationInverseManufactured(const Parameters::AllParameters *const parameters_input)
+    :
+    TestsBase::TestsBase(parameters_input)
+{}
+
+template<int dim, int nstate>
+int OptimizationInverseManufactured<dim,nstate>
+::run_test () const
+{
+	pcout << " Running optimization case... " << std::endl;
 //    static_assert(dim==2);
 //    using ManParam = Parameters::ManufacturedConvergenceStudyParam;
 //    using GridEnum = ManParam::GridEnum;
@@ -272,7 +187,7 @@ namespace Tests {
 //        ode_solver->initialize_steady_polynomial_ramping(poly_degree);
 //
 //        // setting up the target functional (error reduction)
-//        lL2normError<dim, nstate, double> L2normFunctional(dg,true,false);
+//        VolumeL2normError<dim, nstate, double> L2normFunctional(dg,true,false);
 //
 //        // initializing an adjoint for this case
 //        Adjoint<dim, nstate, double> adjoint(*dg, L2normFunctional, euler_physics_adtype);
@@ -498,7 +413,8 @@ namespace Tests {
 //        }
 //    }
 //    return n_fail_poly;
-//}
+	return 1;
+}
 
 template class OptimizationInverseManufactured <PHILIP_DIM,1>;
 template class OptimizationInverseManufactured <PHILIP_DIM,2>;

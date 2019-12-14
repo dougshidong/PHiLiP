@@ -1314,8 +1314,8 @@ namespace MeshMover
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
     LinearElasticity<dim,real,VectorType,DoFHandlerType>::LinearElasticity(
         const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
-        const std::vector<dealii::types::global_dof_index> boundary_ids,
-        const std::vector<double> boundary_displacements)
+        const std::vector<dealii::types::global_dof_index> &boundary_ids,
+        const std::vector<double> &boundary_displacements)
       : triangulation(*(high_order_grid.triangulation))
       , fe(dealii::FE_Q<dim>(high_order_grid.max_degree), dim)
       , mapping_fe_field(high_order_grid.mapping_fe_field)

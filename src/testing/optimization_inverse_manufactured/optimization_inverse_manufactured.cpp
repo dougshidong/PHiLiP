@@ -1,35 +1,20 @@
 #include <stdlib.h>
 #include <iostream>
 
-#include <deal.II/base/convergence_table.h>
-
-#include <deal.II/dofs/dof_tools.h>
-
-#include <deal.II/distributed/solution_transfer.h>
 #include <deal.II/distributed/tria.h>
-
-
 #include <deal.II/distributed/grid_refinement.h>
 
-#include <deal.II/grid/manifold_lib.h>
 #include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/grid_refinement.h>
 #include <deal.II/grid/grid_tools.h>
-#include <deal.II/grid/grid_out.h>
-#include <deal.II/grid/grid_in.h>
 
 #include <deal.II/numerics/vector_tools.h>
 
-#include <deal.II/fe/fe_values.h>
-
-#include <deal.II/fe/mapping_q.h>
-
-
 #include "optimization_inverse_manufactured.h"
 
-#include "physics/euler.h"
-#include "physics/manufactured_solution.h"
+#include "physics/physics_factory.h"
+#include "physics/physics.h"
 #include "dg/dg.h"
+#include "dg/high_order_grid.h"
 #include "ode_solver/ode_solver.h"
 
 #include "functional/functional.h"
@@ -109,311 +94,135 @@ OptimizationInverseManufactured<dim,nstate>::OptimizationInverseManufactured(con
     TestsBase::TestsBase(parameters_input)
 {}
 
+template <int dim, int nstate>
+void initialize_perturbed_solution(PHiLiP::DGBase<dim,double> &dg, const PHiLiP::Physics::PhysicsBase<dim,nstate,double> &physics)
+{
+    dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
+    solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
+    dealii::VectorTools::interpolate(dg.dof_handler, *physics.manufactured_solution_function, solution_no_ghost);
+    dg.solution = solution_no_ghost;
+}
+
 template<int dim, int nstate>
 int OptimizationInverseManufactured<dim,nstate>
 ::run_test () const
 {
+	const double amplitude = 0.1;
+    const int poly_degree = 1;
+    int fail_bool = false;
 	pcout << " Running optimization case... " << std::endl;
-//    static_assert(dim==2);
-//    using ManParam = Parameters::ManufacturedConvergenceStudyParam;
-//    using GridEnum = ManParam::GridEnum;
-//    const Parameters::AllParameters param = *(TestsBase::all_parameters);
-//
-//    Assert(dim == param.dimension, dealii::ExcDimensionMismatch(dim, param.dimension));
-//    Assert(param.pde_type == param.PartialDifferentialEquation::euler, dealii::ExcMessage("Can't run Euler case if PDE is not Euler"));
-//    //if (param.pde_type == param.PartialDifferentialEquation::euler) return 1;
-//
-//    ManParam manu_grid_conv_param = param.manufactured_convergence_study_param;
-//
-//    const unsigned int p_start             = manu_grid_conv_param.degree_start;
-//    const unsigned int p_end               = manu_grid_conv_param.degree_end;
-//
-//    const unsigned int n_grids_input       = manu_grid_conv_param.number_of_grids;
-//
-//    Physics::Euler<dim,nstate,double> euler_physics_double
-//        = Physics::Euler<dim, nstate, double>(
-//                param.euler_param.ref_length,
-//                param.euler_param.gamma_gas,
-//                param.euler_param.mach_inf,
-//                param.euler_param.angle_of_attack,
-//                param.euler_param.side_slip_angle);
-//
-//    Physics::Euler<dim,nstate,Sacado::Fad::DFad<double>> euler_physics_adtype
-//        = Physics::Euler<dim, nstate, Sacado::Fad::DFad<double>>(
-//            param.euler_param.ref_length,
-//            param.euler_param.gamma_gas,
-//            param.euler_param.mach_inf,
-//            param.euler_param.angle_of_attack,
-//            param.euler_param.side_slip_angle);
-//
-//    FreeStreamInitialConditions_adjoint<dim,nstate> initial_conditions(euler_physics_double);
-//
-//    std::vector<int> fail_conv_poly;
-//    std::vector<double> fail_conv_slop;
-//    std::vector<dealii::ConvergenceTable> convergence_table_vector;
-//
-//    for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
-//        
-//        // p0 tends to require a finer grid to reach asymptotic region
-//        unsigned int n_grids = n_grids_input;
-//        if (poly_degree <= 1) n_grids = n_grids_input;
-//
-//        std::vector<double> entropy_error(n_grids);
-//        std::vector<double> grid_size(n_grids);
-//
-//        const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids);
-//
-//        dealii::ConvergenceTable convergence_table;
-//
-//        // Generate grid and mapping
-//        dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator);//,
-//            // typename dealii::Triangulation<dim>::MeshSmoothing(
-//            //     dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_refinement |
-//            //     dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_coarsening));
-//
-//        const unsigned int n_cells_circle = n_1d_cells[0];
-//        const unsigned int n_cells_radial = 2*n_cells_circle;
-//        target_shape(grid, n_cells_circle, n_cells_radial);
-//
-//        // Create DG object, using max_poly = p+1 to allow for adjoint computation
-//        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, poly_degree+1, &grid);
-//
-//        dg->allocate_system ();
-//        // Initialize coarse grid solution with free-stream
-//        dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
-//
-//        // Create ODE solver and ramp up the solution from p0
-//        std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-//        ode_solver->initialize_steady_polynomial_ramping(poly_degree);
-//
-//        // setting up the target functional (error reduction)
-//        VolumeL2normError<dim, nstate, double> L2normFunctional(dg,true,false);
-//
-//        // initializing an adjoint for this case
-//        Adjoint<dim, nstate, double> adjoint(*dg, L2normFunctional, euler_physics_adtype);
-//
-//        dealii::Vector<float> estimated_error_per_cell(grid.n_active_cells());
-//        for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
-//
-//            // Interpolate solution from previous grid
-//            if (igrid>0) {
-//                dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
-//                dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
-//                solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
-//                dg->high_order_grid.prepare_for_coarsening_and_refinement();
-//
-//                // grid.refine_global (1);
-//                // dealii::GridRefinement::refine_and_coarsen_fixed_fraction(grid,
-//                // dealii::parallel::distributed::GridRefinement::refine_and_coarsen_fixed_fraction(grid,
-//                dealii::parallel::distributed::GridRefinement::refine_and_coarsen_fixed_number(grid,
-//                // dealii::GridRefinement::refine_and_coarsen_fixed_number(grid,
-//                                               estimated_error_per_cell,
-//                                               0.3,
-//                                               0.03);
-//                grid.execute_coarsening_and_refinement();
-//                dg->high_order_grid.execute_coarsening_and_refinement();
-//                dg->allocate_system ();
-//                dg->solution.zero_out_ghosts();
-//                solution_transfer.interpolate(dg->solution);
-//                dg->solution.update_ghost_values();
-//            }
-//
-//            // std::string filename = "grid_cylinder-" + dealii::Utilities::int_to_string(igrid, 1) + ".eps";
-//            // std::ofstream out (filename);
-//            // dealii::GridOut grid_out;
-//            // grid_out.write_eps (grid, out);
-//            // pcout << " Grid #" << igrid+1 << " . Number of cells: " << grid.n_global_active_cells() << std::endl;
-//            // pcout << " written to " << filename << std::endl << std::endl;
-//
-//
-//            const unsigned int n_global_active_cells = grid.n_global_active_cells();
-//            const unsigned int n_dofs = dg->dof_handler.n_dofs();
-//            pcout << "Dimension: " << dim << "\t Polynomial degree p: " << poly_degree << std::endl
-//                 << "Grid number: " << igrid+1 << "/" << n_grids
-//                 << ". Number of active cells: " << n_global_active_cells
-//                 << ". Number of degrees of freedom: " << n_dofs
-//                 << std::endl;
-//
-//            //ode_solver->initialize_steady_polynomial_ramping (poly_degree);
-//            // Solve the steady state problem
-//            ode_solver->steady_state();
-//
-//            const auto mapping = (*(dg->high_order_grid.mapping_fe_field));
-//            dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-//            dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, dealii::update_values | dealii::update_JxW_values); ///< FEValues of volume.
-//            // Overintegrate the error to make sure there is not integration error in the error estimate
-//            //int overintegrate = 0;
-//            //dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
-//            //dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid.mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
-//            //        dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
-//            std::array<double,nstate> soln_at_q;
-//
-//            double l2error = 0;
-//            double area = 0;
-//            const double exact_area = (std::pow(outer_radius_adjoint+inner_radius_adjoint, 2.0) - std::pow(inner_radius_adjoint,2.0))*dealii::numbers::PI / 2.0;
-//
-//
-//            const double entropy_inf = euler_physics_double.entropy_inf;
-//
-//            estimated_error_per_cell.reinit(grid.n_active_cells());
-//            // Integrate solution error and output error
-//            for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
-//
-//                if (!cell->is_locally_owned()) continue;
-//
-//                const int i_fele = cell->active_fe_index();
-//                const int i_quad = i_fele;
-//                const int i_mapp = 0;
-//
-//                fe_values_collection_volume.reinit (cell, i_quad, i_mapp, i_fele);
-//                const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
-//
-//                //fe_values_volume.reinit (cell);
-//                std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_volume.dofs_per_cell);
-//                cell->get_dof_indices (dofs_indices);
-//
-//                double cell_l2error = 0;
-//                for (unsigned int iquad=0; iquad<fe_values_volume.n_quadrature_points; ++iquad) {
-//
-//                    std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
-//                    for (unsigned int idof=0; idof<fe_values_volume.dofs_per_cell; ++idof) {
-//                        const unsigned int istate = fe_values_volume.get_fe().system_to_component_index(idof).first;
-//                        soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_volume.shape_value_component(idof, iquad, istate);
-//                    }
-//                    const double entropy = euler_physics_double.compute_entropy_measure(soln_at_q);
-//
-//                    const double uexact = entropy_inf;
-//                    cell_l2error += pow(entropy - uexact, 2) * fe_values_volume.JxW(iquad);
-//
-//                    area += fe_values_volume.JxW(iquad);
-//                }
-//
-//                estimated_error_per_cell[cell->active_cell_index()] = cell_l2error;
-//                l2error += cell_l2error;
-//            }
-//            const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
-//            const double area_mpi_sum = dealii::Utilities::MPI::sum(area, mpi_communicator);
-//
-//            // computing using Functional for comparison
-//            const double l2error_functional = L2normFunctional.evaluate_functional(false,false);
-//            pcout << "Error computed by original loop: " << l2error_mpi_sum << std::endl << "Error computed by the functional: " << std::sqrt(l2error_functional) << std::endl; 
-//
-//            // reinitializing the adjoint with the current values (from references)
-//            adjoint.reinit();
-//
-//            // evaluating the derivatives and the adjoint on the fine grid
-//            adjoint.convert_to_state(AdjointEnum::fine); // will do this automatically, but I prefer to repeat explicitly
-//            adjoint.fine_grid_adjoint();
-//            estimated_error_per_cell = adjoint.dual_weighted_residual(); // performing the error indicator computation
-//
-//            // and outputing the fine properties
-//            adjoint.output_results_vtk(igrid);
-//
-//            adjoint.convert_to_state(AdjointEnum::coarse); // this one is necessary though
-//            adjoint.coarse_grid_adjoint();
-//            adjoint.output_results_vtk(igrid);
-//
-//            // Convergence table
-//            const double dx = 1.0/pow(n_dofs,(1.0/dim));
-//            grid_size[igrid] = dx;
-//            entropy_error[igrid] = l2error_mpi_sum;
-//
-//            convergence_table.add_value("p", poly_degree);
-//            convergence_table.add_value("cells", n_global_active_cells);
-//            convergence_table.add_value("DoFs", n_dofs);
-//            convergence_table.add_value("dx", dx);
-//            convergence_table.add_value("L2_entropy_error", l2error_mpi_sum);
-//            convergence_table.add_value("area_error", std::abs(area_mpi_sum-exact_area));
-//
-//
-//            pcout << " Grid size h: " << dx 
-//                 << " L2-entropy_error: " << l2error_mpi_sum
-//                 << " Residual: " << ode_solver->residual_norm
-//                 << std::endl;
-//
-//            if (igrid > 0) {
-//                const double slope_soln_err = log(entropy_error[igrid]/entropy_error[igrid-1])
-//                                      / log(grid_size[igrid]/grid_size[igrid-1]);
-//                pcout << "From grid " << igrid-1
-//                     << "  to grid " << igrid
-//                     << "  dimension: " << dim
-//                     << "  polynomial degree p: " << poly_degree
-//                     << std::endl
-//                     << "  entropy_error1 " << entropy_error[igrid-1]
-//                     << "  entropy_error2 " << entropy_error[igrid]
-//                     << "  slope " << slope_soln_err
-//                     << std::endl;
-//            }
-//
-//            //output_results (igrid);
-//            dg->output_results_vtk(igrid+10);
-//        }
-//
-//        pcout << " ********************************************" << std::endl
-//             << " Convergence rates for p = " << poly_degree << std::endl
-//             << " ********************************************" << std::endl;
-//        convergence_table.evaluate_convergence_rates("L2_entropy_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-//        convergence_table.evaluate_convergence_rates("area_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-//        convergence_table.set_scientific("dx", true);
-//        convergence_table.set_scientific("L2_entropy_error", true);
-//        convergence_table.set_scientific("area_error", true);
-//        if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
-//
-//        convergence_table_vector.push_back(convergence_table);
-//
-//        const double expected_slope = poly_degree+1;
-//
-//        const double last_slope = log(entropy_error[n_grids-1]/entropy_error[n_grids-2])
-//                                  / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
-//        double before_last_slope = last_slope;
-//        if ( n_grids > 2 ) {
-//        before_last_slope = log(entropy_error[n_grids-2]/entropy_error[n_grids-3])
-//                            / log(grid_size[n_grids-2]/grid_size[n_grids-3]);
-//        }
-//        const double slope_avg = 0.5*(before_last_slope+last_slope);
-//        const double slope_diff = slope_avg-expected_slope;
-//
-//        double slope_deficit_tolerance = -std::abs(manu_grid_conv_param.slope_deficit_tolerance);
-//        if(poly_degree == 0) slope_deficit_tolerance *= 2; // Otherwise, grid sizes need to be much bigger for p=0
-//
-//        if (slope_diff < slope_deficit_tolerance) {
-//            pcout << std::endl
-//                 << "Convergence order not achieved. Average last 2 slopes of "
-//                 << slope_avg << " instead of expected "
-//                 << expected_slope << " within a tolerance of "
-//                 << slope_deficit_tolerance
-//                 << std::endl;
-//            // p=0 just requires too many meshes to get into the asymptotic region.
-//            if(poly_degree!=0) fail_conv_poly.push_back(poly_degree);
-//            if(poly_degree!=0) fail_conv_slop.push_back(slope_avg);
-//        }
-//
-//    }
-//    pcout << std::endl << std::endl << std::endl << std::endl;
-//    pcout << " ********************************************" << std::endl;
-//    pcout << " Convergence summary" << std::endl;
-//    pcout << " ********************************************" << std::endl;
-//    for (auto conv = convergence_table_vector.begin(); conv!=convergence_table_vector.end(); conv++) {
-//        if (pcout.is_active()) conv->write_text(pcout.get_stream());
-//        pcout << " ********************************************" << std::endl;
-//    }
-//    int n_fail_poly = fail_conv_poly.size();
-//    if (n_fail_poly > 0) {
-//        for (int ifail=0; ifail < n_fail_poly; ++ifail) {
-//            const double expected_slope = fail_conv_poly[ifail]+1;
-//            const double slope_deficit_tolerance = -0.1;
-//            pcout << std::endl
-//                 << "Convergence order not achieved for polynomial p = "
-//                 << fail_conv_poly[ifail]
-//                 << ". Slope of "
-//                 << fail_conv_slop[ifail] << " instead of expected "
-//                 << expected_slope << " within a tolerance of "
-//                 << slope_deficit_tolerance
-//                 << std::endl;
-//        }
-//    }
-//    return n_fail_poly;
-	return 1;
+
+	// Create target mesh
+	const unsigned int initial_n_cells = 10;
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    dealii::Triangulation<dim> grid(
+        typename dealii::Triangulation<dim>::MeshSmoothing(
+        dealii::Triangulation<dim>::smoothing_on_refinement |
+        dealii::Triangulation<dim>::smoothing_on_coarsening));
+#else
+	dealii::parallel::distributed::Triangulation<dim> grid( MPI_COMM_WORLD,
+        typename dealii::Triangulation<dim>::MeshSmoothing(
+        dealii::Triangulation<dim>::smoothing_on_refinement |
+        dealii::Triangulation<dim>::smoothing_on_coarsening));
+#endif
+	dealii::GridGenerator::subdivided_hyper_cube(grid, initial_n_cells);
+	for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
+		// Set a dummy boundary ID
+		cell->set_material_id(9002);
+		for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+			if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
+		}
+	}
+
+	HighOrderGrid<dim,double> high_order_grid(all_parameters, poly_degree, &grid);
+#if PHILIP_DIM!=1
+	high_order_grid.prepare_for_coarsening_and_refinement();
+	grid.repartition();
+	high_order_grid.execute_coarsening_and_refinement();
+	high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
+#endif
+
+	// Prescribe surface displacements
+	std::vector<dealii::Tensor<1,dim,double>> point_displacements(high_order_grid.locally_relevant_surface_points.size());
+	const unsigned int n_locally_relevant_surface_nodes = dim * high_order_grid.locally_relevant_surface_points.size();
+	std::vector<dealii::types::global_dof_index> surface_node_global_indices(n_locally_relevant_surface_nodes);
+	std::vector<double> surface_node_displacements(n_locally_relevant_surface_nodes);
+	{
+		auto displacement = point_displacements.begin();
+		auto point = high_order_grid.locally_relevant_surface_points.begin();
+		auto point_end = high_order_grid.locally_relevant_surface_points.end();
+		for (;point != point_end; ++point, ++displacement) {
+			(*displacement)[0] = amplitude * (*point)[0];
+			if(dim>=2) {
+				(*displacement)[0] *= std::sin(2.0*dealii::numbers::PI*(*point)[1]);
+			}
+			if(dim>=3) {
+				(*displacement)[0] *= std::sin(2.0*dealii::numbers::PI*(*point)[2]);
+			}
+		}
+		int inode = 0;
+		for (unsigned int ipoint=0; ipoint<point_displacements.size(); ++ipoint) {
+			for (unsigned int d=0;d<dim;++d) {
+				const std::pair<unsigned int, unsigned int> point_axis = std::make_pair(ipoint,d);
+				const dealii::types::global_dof_index global_index = high_order_grid.point_and_axis_to_global_index[point_axis];
+				surface_node_global_indices[inode] = global_index;
+				surface_node_displacements[inode] = point_displacements[ipoint][d];
+				inode++;
+			}
+		}
+	}
+	// Perform mesh movement
+	using VectorType = dealii::LinearAlgebra::distributed::Vector<double>;
+	MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
+		meshmover(high_order_grid, surface_node_global_indices, surface_node_displacements);
+	VectorType volume_displacements = meshmover.get_volume_displacements();
+
+	high_order_grid.nodes += volume_displacements;
+	high_order_grid.nodes.update_ghost_values();
+    high_order_grid.update_surface_indices();
+    high_order_grid.update_surface_nodes();
+	high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
+
+	// Get discrete solution on this target grid
+	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, &grid);
+    dg->allocate_system ();
+	std::shared_ptr <PHiLiP::Physics::PhysicsBase<dim,nstate,double>> physics_double = PHiLiP::Physics::PhysicsFactory<dim, nstate, double>::create_Physics(all_parameters);
+	initialize_perturbed_solution(*dg, *physics_double);
+	std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+	ode_solver->steady_state();
+
+	// Get back our square mesh through mesh deformation
+	{
+		auto displacement = point_displacements.begin();
+		auto point = high_order_grid.locally_relevant_surface_points.begin();
+		auto point_end = high_order_grid.locally_relevant_surface_points.end();
+		for (;point != point_end; ++point, ++displacement) {
+			if ((*point)[0] > 0.5 && (*point)[1] > 1e-10 && (*point)[1] < 1-1e-10) {
+				const double final_location = 1.0;
+				const double current_location = (*point)[0];
+				(*displacement)[0] = final_location - current_location;
+			}
+		}
+		int inode = 0;
+		for (unsigned int ipoint=0; ipoint<point_displacements.size(); ++ipoint) {
+			for (unsigned int d=0;d<dim;++d) {
+				const std::pair<unsigned int, unsigned int> point_axis = std::make_pair(ipoint,d);
+				const dealii::types::global_dof_index global_index = high_order_grid.point_and_axis_to_global_index[point_axis];
+				surface_node_global_indices[inode] = global_index;
+				surface_node_displacements[inode] = point_displacements[ipoint][d];
+				inode++;
+			}
+		}
+	}
+	volume_displacements = meshmover.get_volume_displacements();
+
+	high_order_grid.nodes += volume_displacements;
+	high_order_grid.nodes.update_ghost_values();
+    high_order_grid.update_surface_indices();
+    high_order_grid.update_surface_nodes();
+	high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
+
+    return fail_bool;
 }
 
 template class OptimizationInverseManufactured <PHILIP_DIM,1>;

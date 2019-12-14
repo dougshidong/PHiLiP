@@ -148,15 +148,6 @@ int main (int argc, char * argv[])
                 }
             }
 
-            // std::cout << "Points old" << std::endl;
-            // for (unsigned int ipoint=0; ipoint<point_displacements.size(); ++ipoint) {
-            //     std::cout << high_order_grid.locally_relevant_surface_points[ipoint] << std::endl;
-            // }
-            // std::cout << "Points new" << std::endl;
-            // for (unsigned int ipoint=0; ipoint<point_displacements.size(); ++ipoint) {
-            //     std::cout << high_order_grid.locally_relevant_surface_points[ipoint]+point_displacements[ipoint] << std::endl;
-            // }
-
             using VectorType = dealii::LinearAlgebra::distributed::Vector<double>;
             MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
                 meshmover(high_order_grid, surface_node_global_indices, surface_node_displacements);

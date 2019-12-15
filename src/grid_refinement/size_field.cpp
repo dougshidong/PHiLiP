@@ -1,6 +1,13 @@
 #include <iostream>
+#include <algorithm>
+#include <functional>
 
 #include <Sacado.hpp>
+
+#include <deal.II/hp/fe_collection.h>
+#include <deal.II/hp/fe_values.h>
+#include <deal.II/hp/mapping_collection.h>
+#include <deal.II/hp/q_collection.h>
 
 #include <deal.II/base/geometry_info.h>
 #include <deal.II/base/quadrature_lib.h>
@@ -118,6 +125,245 @@ void SizeField<dim,real>::isotropic_uniform(
         h_field[cell->active_cell_index()] = pow(K*pow(B[cell->active_cell_index()], exponent), -1.0/dim);
     }
 }
+
+template <int dim, typename real>
+void SizeField<dim,real>::isotropic_h(
+    real                                 complexity,            // (input) complexity target
+    dealii::Vector<real> &               B,                     // only one since p is constant
+    dealii::hp::DoFHandler<dim> &        dof_handler,           // dof_handler
+    dealii::hp::MappingCollection<dim> & mapping_collection,    // mapping collection
+    dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
+    dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
+    dealii::UpdateFlags &                update_flags,          // update flags for for volume fe
+    dealii::Vector<real> &               h_field,               // (output) size field
+    dealii::Vector<real> &               p_field)               // (input)  poly field
+{
+    // setting up lambda function which, given a constant for the size field, 
+    // updates the h distribution and outputs the new complexity
+    auto f = [&](real lam) -> real{
+        update_h_optimal(lam, B, dof_handler, h_field, p_field);
+        real current_complexity = evaluate_complexity(dof_handler, mapping_collection, fe_collection, quadrature_collection, update_flags, h_field, p_field);
+        return current_complexity - complexity;
+    };
+
+    // call to the optimization (bisection)
+    real a = 0;
+    real b = 1000;
+    real lam = bisection(f, a, b);
+
+    // final update with converged parameter
+    update_h_optimal(lam, B, dof_handler, h_field, p_field);
+}
+
+template <int dim, typename real>
+real SizeField<dim,real>::evaluate_complexity(
+    dealii::hp::DoFHandler<dim> &        dof_handler,           // dof_handler
+    dealii::hp::MappingCollection<dim> & mapping_collection,    // mapping collection
+    dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
+    dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
+    dealii::UpdateFlags &                update_flags,          // update flags for for volume fe
+    dealii::Vector<real> &               h_field,               // (output) size field
+    dealii::Vector<real> &               p_field)               // (input)  poly field    
+{
+    real complexity_sum = 0.0;
+
+    // fe_values
+    dealii::hp::FEValues<dim,dim> fe_values_collection(
+        mapping_collection,
+        fe_collection,
+        quadrature_collection,
+        update_flags);
+
+    // evaluate the complexity of a provided field
+    for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell){
+        if(!cell->is_locally_owned()) continue;
+
+        const unsigned int index = cell->active_cell_index();
+
+        const unsigned int mapping_index = 0;
+        const unsigned int fe_index = cell->active_fe_index();
+        const unsigned int quad_index = fe_index;
+
+        const unsigned int n_quad = quadrature_collection[quad_index].size();
+
+        fe_values_collection.reinit(cell, quad_index, mapping_index, fe_index); 
+        const dealii::FEValues<dim,dim> &fe_values = fe_values_collection.get_present_fe_values();
+
+        real JxW = 0;
+        for(unsigned int iquad = 0; iquad < n_quad; ++iquad)
+            JxW += fe_values.JxW(iquad);
+
+        complexity_sum += pow((p_field[index]+1)/h_field[index], dim) * JxW;
+    }
+
+    return dealii::Utilities::MPI::sum(complexity_sum, MPI_COMM_WORLD);
+}
+
+template <int dim, typename real>
+void SizeField<dim,real>::update_h_optimal(
+    real                          lam,         // (input) bisection parameter
+    dealii::Vector<real> &        B,           // constant for current p
+    dealii::hp::DoFHandler<dim> & dof_handler, // dof_handler
+    dealii::Vector<real> &        h_field,     // (output) size field
+    dealii::Vector<real> &        p_field)     // (input)  poly field
+{
+    real q = 2.0;
+
+    // looping over the cells and updating the values
+    for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell){
+        if(!cell->is_locally_owned()) continue;
+
+        const unsigned int index = cell->active_cell_index();
+
+        const real p = p_field[index];
+
+        const real exponent  = -1.0/(q*(p+1)+2.0);
+        const real component = q*(p+1.0)/(q*(p+1)+2.0) * B[index]/pow(p+1, dim);
+
+        h_field[index] = lam * pow(exponent, component);
+    }
+}
+
+template <int dim, typename real>
+void SizeField<dim,real>::isotropic_p(
+    dealii::Vector<real> &               Bm,                    // constant for p-1
+    dealii::Vector<real> &               B,                     // constant for p
+    dealii::Vector<real> &               Bp,                    // constant for p+1
+    dealii::hp::DoFHandler<dim> &        dof_handler,           // dof_handler
+    dealii::hp::MappingCollection<dim> & mapping_collection,    // mapping collection
+    dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
+    dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
+    dealii::UpdateFlags &                update_flags,          // update flags for for volume fe
+    dealii::Vector<real> &               h_field,               // (input) size field
+    dealii::Vector<real> &               p_field)               // (output) poly field
+{
+    (void)Bm;
+    (void)B;
+    (void)Bp;
+    (void)dof_handler;
+    (void)mapping_collection;
+    (void)fe_collection;
+    (void)quadrature_collection;
+    (void)update_flags;
+    (void)h_field;
+    (void)p_field;
+
+    // this is like its own thing, might have to do the integration or something
+    // because we can't adjust the local h to compensate for p increases, needs 
+    // to be adjusted as a global system
+
+    // maybe: start from current, check dofs/error and adjust to anything above/below the average
+    // refine progressively if complexity is below the limit
+    // coarsen progressively if above
+    // need some way of measuring when stability is reached. Maybe can be done as a bulk criterion
+}
+
+template <int dim, typename real>
+void SizeField<dim,real>::isotropic_hp(
+    real                                 complexity,            // complexity target
+    dealii::Vector<real> &               Bm,                    // constant for p-1
+    dealii::Vector<real> &               B,                     // constant for p
+    dealii::Vector<real> &               Bp,                    // constant for p+1
+    dealii::hp::DoFHandler<dim> &        dof_handler,           // dof_handler
+    dealii::hp::MappingCollection<dim> & mapping_collection,    // mapping collection
+    dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
+    dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
+    dealii::UpdateFlags &                update_flags,          // update flags for for volume fe
+    dealii::Vector<real> &               h_field,               // (output) size field
+    dealii::Vector<real> &               p_field)               // (output) poly field
+{
+    isotropic_h(
+        complexity,
+        B,
+        dof_handler,
+        mapping_collection,
+        fe_collection,
+        quadrature_collection,
+        update_flags,
+        h_field,
+        p_field);
+
+    real q = 1.0;
+
+    // two options here, either constant error (preferable) 
+    // or constant complexity target (Dolejsi)
+    for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell){
+        if(!cell->is_locally_owned()) continue;
+
+        unsigned int index = cell->active_cell_index();
+
+        // computing the reference error
+        real e_ref = pow(abs(B[index]), q) 
+                   * pow(h_field[index], dim*q*(p_field[index]+1)/2);
+        
+        // local complexity
+        real N_ref = pow((p_field[index]+1)/h_field[index], dim);
+
+        // constant error
+        // computing the error for increased/decreased p with the same local complexity
+        real h_m = (p_field[index])  /pow(N_ref, 1.0/dim);
+        real h_p = (p_field[index]+2)/pow(N_ref, 1.0/dim);
+
+        // computing the local error for each
+        real e_m = pow(abs(Bm[index]), q) 
+                 * pow(h_m, dim*q*(p_field[index]  )/2);
+        real e_p = pow(abs(Bp[index]), q) 
+                 * pow(h_p, dim*q*(p_field[index]+2)/2);
+        
+        // determining which is the smallest and adjusting
+        if(e_m < e_ref && e_m <= e_p){
+            h_field[index] = h_m;
+            p_field[index]--;
+        }else if(e_p < e_ref && e_p <= e_m){
+            h_field[index] = h_p;
+            p_field[index]++;
+        }// else, p stays the same
+    }
+
+    // either add a check here for which is obtained or add an output for the +/-
+    // only if another change needs to be made here
+}
+
+// functions for solving non-linear problems
+template <int dim, typename real>
+real SizeField<dim,real>::bisection(
+    std::function<real(real)> func,  
+    real                      lower_bound, 
+    real                      upper_bound)
+{
+    real f_lb = func(lower_bound);
+    real f_ub = func(upper_bound);
+
+    // f_ub is unused before being reset if not present here
+    AssertThrow(f_lb * f_ub < 0, dealii::ExcInternalError());
+
+    real x   = (lower_bound + upper_bound)/2.0;
+    real f_x = func(x);
+
+    real         tolerance = 1e-6;
+    unsigned int max_iter  = 1000;
+
+    unsigned int i = 0;
+    while(f_x > tolerance && i < max_iter){
+        if(f_x * f_lb < 0){
+            upper_bound = x;
+            f_ub        = f_x;
+        }else{
+            lower_bound = x;
+            f_lb        = f_x;
+        }
+
+        x   = (lower_bound + upper_bound)/2.0;
+        f_x = func(x);
+
+        i++;
+    }
+
+    Assert(i < max_iter, dealii::ExcInternalError());
+
+    return x;
+}
+
 
 template class SizeField <PHILIP_DIM, double>;
 // template class SizeField <PHILIP_DIM, float>; // manufactured solution isn't defined for this

@@ -217,19 +217,6 @@ template <int dim, int nstate, typename real>
 void GridRefinement_FixedFraction<dim,nstate,real>::anisotropic_h()
 {
     // based on dealii step-30
-    const dealii::UpdateFlags face_update_flags = 
-        dealii::update_values | 
-        dealii::update_gradients | 
-        dealii::update_quadrature_points | 
-        dealii::update_JxW_values | 
-        dealii::update_normal_vectors | 
-        dealii::update_jacobians;
-    const dealii::UpdateFlags neighbor_face_update_flags = 
-        dealii::update_values | 
-        dealii::update_gradients | 
-        dealii::update_quadrature_points | 
-        dealii::update_JxW_values;
-
     const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid.mapping_fe_field));
     const dealii::hp::FECollection<dim>      fe_collection(this->dg->fe_collection);
     const dealii::hp::QCollection<dim-1>     face_quadrature_collection(this->dg->face_quadrature_collection);
@@ -238,17 +225,17 @@ void GridRefinement_FixedFraction<dim,nstate,real>::anisotropic_h()
         mapping_collection, 
         fe_collection, 
         face_quadrature_collection, 
-        face_update_flags);
+        this->face_update_flags);
     dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face_ext(
         mapping_collection, 
         fe_collection, 
         face_quadrature_collection, 
-        neighbor_face_update_flags);
+        this->neighbor_face_update_flags);
     dealii::hp::FESubfaceValues<dim,dim> fe_values_collection_subface(
         mapping_collection,
         fe_collection,
         face_quadrature_collection,
-        face_update_flags);
+        this->face_update_flags);
 
     const dealii::LinearAlgebra::distributed::Vector<real> solution(this->dg->solution);
     solution.update_ghost_values();
@@ -597,37 +584,98 @@ real GridRefinement_Continuous<dim,nstate,real>::current_complexity()
 {
     real complexity_sum;
 
-    for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
-        if(cell->is_locally_owned())
-            complexity_sum += pow(cell->active_fe_index()+1, dim);
+    // two possible cases
+    if(this->dg->get_min_fe_degree() == this->dg->get_max_fe_degree()){
+        // case 1: isotropic p-order, complexity relates to total dof
+        unsigned int poly_degree = this->dg->get_min_fe_degree();
+        return pow(poly_degree+1, dim) * this->tria->n_global_active_cells(); //TODO: check how this behaves in MPI
+    }else{
+        // case 2: anisotropic p-order, complexity related to the local sizes
+        for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
+            if(cell->is_locally_owned())
+                complexity_sum += pow(cell->active_fe_index()+1, dim);
+    }
 
     return dealii::Utilities::MPI::sum(complexity_sum, MPI_COMM_WORLD);
 }
 
 template <int dim, int nstate, typename real>
+void GridRefinement_Continuous<dim,nstate,real>::get_current_field_h()
+{
+    // gets the current size and copy it into field_h
+    // for isotropic, sets the size to be the h = volume ^ (1/dim)
+    h_field.reinit(this->tria->n_active_cells());
+    for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
+        if(cell->is_locally_owned())
+            this->h_field[cell->active_cell_index()] = pow(cell->measure(), 1.0/dim);
+}
+
+template <int dim, int nstate, typename real>
+void GridRefinement_Continuous<dim,nstate,real>::get_current_field_p()
+{
+    // gets the current polynomiala distribution and copies it into field_p
+    p_field.reinit(this->tria->n_active_cells());
+    for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
+        if(cell->is_locally_owned())
+            this->p_field[cell->active_cell_index()] = cell->active_fe_index();
+}
+
+template <int dim, int nstate, typename real>
 void GridRefinement_Continuous_Error<dim,nstate,real>::field_h()
 {
-    // checking if the polynomial order is uniform
-    if(this->dg->get_min_fe_degree() == this->dg->get_max_fe_degree()){
-        int poly_degree = this->dg->get_min_fe_degree();
+    real q = 2.0;
 
-        // building error based on exact hessian
-        real complexity = pow(poly_degree+1, dim)*this->tria->n_active_cells();
-        complexity *= this->grid_refinement_param.complexity_scale;
-        complexity += this->grid_refinement_param.complexity_add;
+    dealii::Vector<real> B(this->tria->n_active_cells());
+    for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell){
+        if(!cell->is_locally_owned()) continue;
 
-        SizeField<dim,real>::isotropic_uniform(
-            *(this->tria),
-            *(this->dg->high_order_grid.mapping_fe_field),
-            this->dg->fe_collection[poly_degree],
-            this->physics->manufactured_solution_function,
-            complexity,
-            this->h_field);
-    }else{
-        // call the non-uniform hp-version without the p-update
+        // getting the central coordinate as average of vertices
+        dealii::Point<dim,real> center_point = cell->center();
+
+        // evaluating the Hessian at this point (using default state)
+        dealii::SymmetricTensor<2,dim,real> hessian = 
+            this->physics->manufactured_solution_function->hessian(center_point);
+
+        // assuming 2D for now
+        // TODO: check generalization of this for different dimensions with eigenvalues
+        if(dim == 2)
+            B[cell->active_cell_index()] = 
+                pow(abs(hessian[0][0]*hessian[1][1] - hessian[0][1]*hessian[1][0]), q/2);
     }
 
+    real complexity = GridRefinement_Continuous<dim,nstate,real>::current_complexity();
+    complexity *= this->grid_refinement_param.complexity_scale;
+    complexity += this->grid_refinement_param.complexity_add;
 
+    // checking if the polynomial order is uniform
+    if(this->dg->get_min_fe_degree() == this->dg->get_max_fe_degree()){
+        unsigned int poly_degree = this->dg->get_min_fe_degree();
+
+        // building error based on exact hessian
+        SizeField<dim,real>::isotropic_uniform(
+            complexity,
+            B,
+            this->dg->dof_handler,
+            this->h_field,
+            poly_degree);
+    }else{
+        // call the non-uniform hp-version without the p-update
+        GridRefinement_Continuous<dim,nstate,real>::get_current_field_p();
+
+        // mapping
+        const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid.mapping_fe_field));
+
+        SizeField<dim,real>::isotropic_h(
+            complexity,
+            B,
+            this->dg->dof_handler,
+            mapping_collection,
+            this->dg->fe_collection,
+            this->dg->volume_quadrature_collection,
+            this->volume_update_flags,
+            this->h_field,
+            this->p_field);
+    }
 }
 
 template <int dim, int nstate, typename real>
@@ -666,9 +714,40 @@ void GridRefinement_Continuous_Hessian<dim,nstate,real>::field_h()
                 B[cell->active_cell_index()] *= A[cell->active_cell_index()][d];
         }
 
+    // setting the current p-field
+    real complexity = GridRefinement_Continuous<dim,nstate,real>::current_complexity();
+    complexity *= this->grid_refinement_param.complexity_scale;
+    complexity += this->grid_refinement_param.complexity_add;
+
     // TODO: perform the call to calculate the continuous size field
 
+    // checking if the polynomial order is uniform
+    if(this->dg->get_min_fe_degree() == this->dg->get_max_fe_degree()){
+        unsigned int poly_degree = this->dg->get_min_fe_degree();
+
+        SizeField<dim,real>::isotropic_uniform(
+            complexity,
+            B,
+            this->dg->dof_handler,
+            this->h_field,
+            poly_degree);
+    }else{
+        // the case of non-uniform p
+        GridRefinement_Continuous<dim,nstate,real>::get_current_field_p();
+
+        SizeField<dim,real>::isotropic_h(
+            complexity,
+            B,
+            this->dg->dof_handler,
+            mapping_collection,
+            this->dg->fe_collection,
+            this->dg->volume_quadrature_collection,
+            this->volume_update_flags,
+            this->h_field,
+            this->p_field);
+    }
 }
+
 template <int dim, int nstate, typename real>
 void GridRefinement_Continuous_Hessian<dim,nstate,real>::field_p(){}
 template <int dim, int nstate, typename real>

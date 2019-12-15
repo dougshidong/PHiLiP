@@ -208,6 +208,8 @@ public:
     virtual void field_hp() = 0;
     real current_complexity();
 protected:
+    void get_current_field_h();
+    void get_current_field_p();
     dealii::Vector<real> h_field;
     dealii::Vector<real> p_field;
 };

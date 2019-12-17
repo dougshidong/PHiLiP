@@ -948,7 +948,7 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
     Assert( !(compute_dRdW && compute_dRdX)
         &&  !(compute_dRdW && compute_d2R)
         &&  !(compute_dRdX && compute_d2R)
-            , dealii::ExcInternalError());
+            , dealii::ExcMessage("Can only do one at a time compute_dRdW or compute_dRdX or compute_d2R"));
     if (compute_d2R) {
         //dual.reinit(locally_owned_dofs,mpi_communicator);
 

@@ -1,3 +1,5 @@
+#include <Epetra_RowMatrixTransposer.h>
+
 #include <stdlib.h>
 #include <iostream>
 
@@ -9,6 +11,9 @@
 
 #include <deal.II/numerics/vector_tools.h>
 
+#include <deal.II/lac/trilinos_block_sparse_matrix.h>
+#include <deal.II/lac/la_parallel_block_vector.h>
+
 #include "optimization_inverse_manufactured.h"
 
 #include "physics/physics_factory.h"
@@ -17,37 +22,48 @@
 #include "dg/high_order_grid.h"
 #include "ode_solver/ode_solver.h"
 
-#include "functional/functional.h"
+#include "functional/target_functional.h"
 #include "functional/adjoint.h"
 
 
 namespace PHiLiP {
 namespace Tests {
 
+dealii::TrilinosWrappers::SparseMatrix transpose_trilinos_matrix(dealii::TrilinosWrappers::SparseMatrix &input_matrix)
+{
+	Epetra_CrsMatrix *transpose_CrsMatrix;
+	Epetra_RowMatrixTransposer epmt(const_cast<Epetra_CrsMatrix *>(&input_matrix.trilinos_matrix()));
+	epmt.CreateTranspose(false, transpose_CrsMatrix);
+	dealii::TrilinosWrappers::SparseMatrix output_matrix;
+	output_matrix.reinit(*transpose_CrsMatrix);
+	return output_matrix;
+}
+
 template <int dim, int nstate, typename real>
-class VolumeL2normError : public Functional<dim, nstate, real>
+class InverseTarget : public TargetFunctional<dim, nstate, real>
 {
 public:
-	/// Constructor
-	VolumeL2normError(
-		std::shared_ptr<PHiLiP::DGBase<dim,real>> dg_input,
-		const bool uses_solution_values = true,
-		const bool uses_solution_gradient = true)
-	: PHiLiP::Functional<dim,nstate,real>(dg_input,uses_solution_values,uses_solution_gradient)
+    InverseTarget(
+        std::shared_ptr<DGBase<dim,real>> dg_input,
+		const dealii::LinearAlgebra::distributed::Vector<real> &target_solution,
+        const bool uses_solution_values = true,
+        const bool uses_solution_gradient = true)
+	: TargetFunctional<dim,nstate,real>(dg_input, target_solution, uses_solution_values, uses_solution_gradient)
 	{}
 
 	template <typename real2>
 	real2 evaluate_volume_integrand(
-		const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
-		const dealii::Point<dim,real2> &phys_coord,
+		const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
+		const dealii::Point<dim,real2> &/*phys_coord*/,
 		const std::array<real2,nstate> &soln_at_q,
-		const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/)
+        const std::array<real,nstate> &target_soln_at_q,
+		const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/,
+		const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*target_soln_grad_at_q*/)
 	{
 		real2 l2error = 0;
 		
 		for (int istate=0; istate<nstate; ++istate) {
-			const real2 uexact = physics.manufactured_solution_function->value(phys_coord, istate);
-			l2error += std::pow(soln_at_q[istate] - uexact, 2);
+			l2error += std::pow(soln_at_q[istate] - target_soln_at_q[istate], 2);
 		}
 
 		return l2error;
@@ -58,9 +74,11 @@ public:
 		const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
 		const dealii::Point<dim,real> &phys_coord,
 		const std::array<real,nstate> &soln_at_q,
-		const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) override
+        const std::array<real,nstate> &target_soln_at_q,
+		const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q,
+		const std::array<dealii::Tensor<1,dim,real>,nstate> &target_soln_grad_at_q) override
 	{
-		return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
+		return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, target_soln_at_q, soln_grad_at_q, target_soln_grad_at_q);
 	}
 	using ADtype = Sacado::Fad::DFad<real>;
 	using ADADtype = Sacado::Fad::DFad<ADtype>;
@@ -68,9 +86,11 @@ public:
 		const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADtype> &physics,
 		const dealii::Point<dim,ADADtype> &phys_coord,
 		const std::array<ADADtype,nstate> &soln_at_q,
-		const std::array<dealii::Tensor<1,dim,ADADtype>,nstate> &soln_grad_at_q) override
+        const std::array<real,nstate> &target_soln_at_q,
+		const std::array<dealii::Tensor<1,dim,ADADtype>,nstate> &soln_grad_at_q,
+        const std::array<dealii::Tensor<1,dim,ADADtype>,nstate> &target_soln_grad_at_q) override
 	{
-		return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
+		return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, target_soln_at_q, soln_grad_at_q, target_soln_grad_at_q);
 	}
 };
 
@@ -112,7 +132,9 @@ int OptimizationInverseManufactured<dim,nstate>
     int fail_bool = false;
 	pcout << " Running optimization case... " << std::endl;
 
+	// *****************************************************************************
 	// Create target mesh
+	// *****************************************************************************
 	const unsigned int initial_n_cells = 10;
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
     dealii::Triangulation<dim> grid(
@@ -134,7 +156,11 @@ int OptimizationInverseManufactured<dim,nstate>
 		}
 	}
 
-	HighOrderGrid<dim,double> high_order_grid(all_parameters, poly_degree, &grid);
+	// Create DG from which we'll modify the HighOrderGrid
+	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, &grid);
+    dg->allocate_system ();
+
+	HighOrderGrid<dim,double> &high_order_grid = dg->high_order_grid;
 #if PHILIP_DIM!=1
 	high_order_grid.prepare_for_coarsening_and_refinement();
 	grid.repartition();
@@ -142,7 +168,9 @@ int OptimizationInverseManufactured<dim,nstate>
 	high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
 #endif
 
+	// *****************************************************************************
 	// Prescribe surface displacements
+	// *****************************************************************************
 	std::vector<dealii::Tensor<1,dim,double>> point_displacements(high_order_grid.locally_relevant_surface_points.size());
 	const unsigned int n_locally_relevant_surface_nodes = dim * high_order_grid.locally_relevant_surface_points.size();
 	std::vector<dealii::types::global_dof_index> surface_node_global_indices(n_locally_relevant_surface_nodes);
@@ -171,7 +199,9 @@ int OptimizationInverseManufactured<dim,nstate>
 			}
 		}
 	}
+	// *****************************************************************************
 	// Perform mesh movement
+	// *****************************************************************************
 	using VectorType = dealii::LinearAlgebra::distributed::Vector<double>;
 	MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
 		meshmover(high_order_grid, surface_node_global_indices, surface_node_displacements);
@@ -184,14 +214,18 @@ int OptimizationInverseManufactured<dim,nstate>
 	high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
 
 	// Get discrete solution on this target grid
-	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, &grid);
-    dg->allocate_system ();
 	std::shared_ptr <PHiLiP::Physics::PhysicsBase<dim,nstate,double>> physics_double = PHiLiP::Physics::PhysicsFactory<dim, nstate, double>::create_Physics(all_parameters);
 	initialize_perturbed_solution(*dg, *physics_double);
 	std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 	ode_solver->steady_state();
 
+	// Save target solution and nodes
+	const auto target_solution = dg->solution;
+	const auto target_nodes    = high_order_grid.nodes;
+
+	// *****************************************************************************
 	// Get back our square mesh through mesh deformation
+	// *****************************************************************************
 	{
 		auto displacement = point_displacements.begin();
 		auto point = high_order_grid.locally_relevant_surface_points.begin();
@@ -222,6 +256,85 @@ int OptimizationInverseManufactured<dim,nstate>
     high_order_grid.update_surface_nodes();
 	high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
 
+	// Solve on this new grid
+	ode_solver->steady_state();
+
+	// Compute current error
+	auto error_vector = dg->solution;
+	error_vector -= target_solution;
+	const double l2_vector_error = error_vector.l2_norm();
+
+	InverseTarget<dim,nstate,double> inverse_target_functional(dg, target_solution, true, false);
+	bool compute_dIdW = false, compute_dIdX = false, compute_d2I = true;
+    const double current_l2_error = inverse_target_functional.evaluate_functional(compute_dIdW, compute_dIdX, compute_d2I);
+	pcout << "Vector l2_norm of the coefficients: " << l2_vector_error << std::endl;
+	pcout << "Functional l2_norm : " << current_l2_error << std::endl;
+
+
+	// Evaluate KKT right-hand side
+	compute_dIdW = false, compute_dIdX = false, compute_d2I = false;
+    (void) inverse_target_functional.evaluate_functional(compute_dIdW, compute_dIdX, compute_d2I);
+    bool compute_dRdW = false, compute_dRdX = false, compute_d2R = false;
+    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+
+    dealii::LinearAlgebra::distributed::BlockVector<double> kkt_rhs(3), kkt_soln(3);
+	kkt_rhs.block(0) = inverse_target_functional.dIdw;
+	kkt_rhs.block(1) = inverse_target_functional.dIdX;
+	kkt_rhs.block(2) = dg->right_hand_side;
+	kkt_rhs *= -1.0;
+	kkt_soln.reinit(kkt_rhs);
+
+    dg->set_dual(kkt_soln.block(2));
+
+	// Evaluate KKT system matrix
+    pcout << "Evaluating dIdW, dIdX, and d2I..." << std::endl;
+	compute_dIdW = true, compute_dIdX = true, compute_d2I = true;
+    (void) inverse_target_functional.evaluate_functional(compute_dIdW, compute_dIdX, compute_d2I);
+    pcout << "Evaluating dRdW..." << std::endl;
+    compute_dRdW = true; compute_dRdX = false, compute_d2R = false;
+    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+    pcout << "Evaluating dRdX..." << std::endl;
+    compute_dRdW = false; compute_dRdX = true, compute_d2R = false;
+    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+    pcout << "Evaluating residual 2nd order partials..." << std::endl;
+    compute_dRdW = false; compute_dRdX = false, compute_d2R = true;
+    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+
+	// Build required operators
+    dealii::TrilinosWrappers::SparsityPattern zero_sparsity_pattern(dg->locally_owned_dofs, MPI_COMM_WORLD, 0);
+	zero_sparsity_pattern.compress();
+	dealii::TrilinosWrappers::BlockSparseMatrix kkt_hessian;
+	kkt_hessian.reinit(3,3);
+    kkt_hessian.block(0, 0).copy_from( inverse_target_functional.d2IdWdW);
+    kkt_hessian.block(0, 1).copy_from( inverse_target_functional.d2IdWdX);
+    kkt_hessian.block(0, 2).copy_from( transpose_trilinos_matrix(dg->system_matrix));
+
+    kkt_hessian.block(1, 0).copy_from( transpose_trilinos_matrix(inverse_target_functional.d2IdWdX));
+    kkt_hessian.block(1, 1).copy_from( inverse_target_functional.d2IdXdX);
+    kkt_hessian.block(1, 2).copy_from( transpose_trilinos_matrix(dg->dRdXv));
+
+    kkt_hessian.block(2, 0).copy_from( dg->system_matrix);
+    kkt_hessian.block(2, 1).copy_from( dg->dRdXv);
+    kkt_hessian.block(2, 2).reinit(zero_sparsity_pattern);
+
+    kkt_hessian.collect_sizes();
+
+
+	pcout << std::endl << std::endl << std::endl << std::endl;
+	// Make sure that if the nodes are located at the target nodes, then we recover our target functional
+	high_order_grid.nodes = target_nodes;
+	high_order_grid.nodes.update_ghost_values();
+    high_order_grid.update_surface_indices();
+    high_order_grid.update_surface_nodes();
+	// Solve on this new grid
+	ode_solver->steady_state();
+    const double zero_l2_error = inverse_target_functional.evaluate_functional();
+	pcout << "Nodes at target nodes should have zero functional l2 error : " << zero_l2_error << std::endl;
+	if (zero_l2_error > 1e-10) return 1;
+
+	// *****************************************************************************
+	// Create functional to be minimized
+	// *****************************************************************************
     return fail_bool;
 }
 

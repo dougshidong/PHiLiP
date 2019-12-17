@@ -138,8 +138,6 @@ void ReconstructPoly<dim,real>::reconstruct_directional_derivative(
                 
                 A_cell[0] = A_max;
                 A_cell[1] = abs(eval(p_2));
-                                
-                std::cout << "A = [" << A_cell[0] << ", " << A_cell[1] << "]" << '\n';
             }else if(dim == 3){
                 // using fibbonaci sphere algorithm, with ~ n^2/2 points compared to 2d for equal points in theta and phi as before
                 // https://stackoverflow.com/questions/9600801/evenly-distributing-n-points-on-a-sphere/26127012#26127012

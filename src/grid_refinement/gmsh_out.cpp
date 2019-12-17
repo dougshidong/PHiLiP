@@ -133,7 +133,7 @@ void GmshOut<dim,real>::write_pos(
 
         // getting the cellwise value
         real v = data[cell->active_cell_index()];
-        real scale = 2; // field is being subdivided
+        real scale = 1; // no subdivision
         for(unsigned int vertex = 0; vertex < dealii::GeometryInfo<dim>::vertices_per_cell; ++vertex){
             if(vertex != 0){out << ",";}
             out << v*scale; 
@@ -166,6 +166,12 @@ void GmshOut<dim,real>::write_geo(
         << "Mesh.CharacteristicLengthFromCurvature = 0;" << '\n'
         << "Mesh.CharacteristicLengthExtendFromBoundary = 0;" << '\n' << '\n';
 
+    // default is the advancing delquad
+    // TODO: add parameter file for other options (and 3d)
+    out << "Mesh.Algorithm = 8;" << '\n'
+        << "Mesh.RecombinationAlgorithm = 3;" << '\n' 
+        << "Mesh.RecombineAll = 1;" << '\n' << '\n'; 
+
     // writing the geometry of the part
     // TODO: read from a parameter list what shape (could be CAD)
     write_geo_hyper_cube(0.0, 1.0, out);
@@ -177,15 +183,6 @@ void GmshOut<dim,real>::write_geo(
 
     // this line may be dependent on the name in the other file
     out << "Background Mesh View[0];" << '\n';
-
-    // always using surface{1}
-    out << "Recombine Surface{1};" << '\n';
-
-    // default is the advancing delquad
-    // TODO: add parameter file for other options (and 3d)
-    out << "Mesh.Algorithm = 8;" << '\n';
-
-    out << "Mesh.SubdivisionAlgorithm = 1;" << '\n'; 
 
     out << std::flush;
 }

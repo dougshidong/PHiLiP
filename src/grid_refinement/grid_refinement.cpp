@@ -1,4 +1,5 @@
 #include <vector>
+#include <unistd.h>
 
 #include <deal.II/grid/tria.h>
 #include <deal.II/grid/grid_out.h>
@@ -552,9 +553,8 @@ void GridRefinement_Continuous<dim,nstate,real>::refine_grid_h()
     GmshOut<dim,real>::write_geo(write_posname,outgeo);
 
     std::string output_name = "grid-"+std::to_string(igrid)+".msh";
-    std::cout << "Command is: " << ("gmsh " + write_geoname + " -2 -o " + output_name).c_str() << '\n';
-    int a = std::system(("gmsh " + write_geoname + " -2 -o " + output_name).c_str());
-    std::cout << "a" << a << std::endl;
+    std::cout << "Command is: " << ("/usr/local/include/gmsh-master/build/gmsh " + write_geoname + " -2 -o " + output_name).c_str() << '\n';
+    (void) std::system(("/usr/local/include/gmsh-master/build/gmsh " + write_geoname + " -2 -o " + output_name).c_str());
 
     this->tria->clear();
     dealii::GridIn<dim> gridin;

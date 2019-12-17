@@ -256,7 +256,7 @@ int GridRefinementStudy<dim,nstate>::run_test() const
         convergence_table.set_scientific("l2_error", true);
         convergence_table.evaluate_convergence_rates("linf_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.set_scientific("linf_error", true);
-        if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
+        if(pcout.is_active()) convergence_table.write_text(pcout.get_stream());
 
         convergence_table_vector.push_back(convergence_table);
     }
@@ -265,8 +265,8 @@ int GridRefinementStudy<dim,nstate>::run_test() const
           << " ********************************************" << std::endl
           << " Convergence summary" << std::endl
           << " ********************************************" << std::endl;
-    for (auto conv = convergence_table_vector.begin(); conv!=convergence_table_vector.end(); conv++) {
-        if (pcout.is_active()) conv->write_text(pcout.get_stream());
+    for(auto conv = convergence_table_vector.begin(); conv != convergence_table_vector.end(); ++conv){
+        if(pcout.is_active()) conv->write_text(pcout.get_stream());
         pcout << " ********************************************" << std::endl;
     }
 

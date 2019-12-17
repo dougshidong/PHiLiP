@@ -22,7 +22,8 @@ void ManufacturedSolutionParam::declare_parameters(dealii::ParameterHandler &prm
                       " poly_solution | "
                       " even_poly_solution | "
                       " atan_solution | "
-                      " boundary_layer_solution"
+                      " boundary_layer_solution | "
+                      " s_shock_solution"
                       ),
                       "The manufactured solution we want to use (if use_manufactured_source_term==true). "
                       "Choices are "
@@ -33,7 +34,8 @@ void ManufacturedSolutionParam::declare_parameters(dealii::ParameterHandler &prm
                       "  poly_solution | "
                       "  even_poly_solution | "
                       "  atan_solution | "
-                      "  boundary_layer_solution>.");
+                      "  boundary_layer_solution | "
+                      "  s_shock_solution>.");
 }
 
 void ManufacturedSolutionParam::parse_parameters(dealii::ParameterHandler &prm)
@@ -49,6 +51,7 @@ void ManufacturedSolutionParam::parse_parameters(dealii::ParameterHandler &prm)
     else if(manufactured_solution_string == "even_poly_solution")     {manufactured_solution_type = even_poly_solution;} 
     else if(manufactured_solution_string == "atan_solution")          {manufactured_solution_type = atan_solution;}
     else if(manufactured_solution_string == "boundary_layer_solution"){manufactured_solution_type = boundary_layer_solution;}
+    else if(manufactured_solution_string == "s_shock_solution")       {manufactured_solution_type = s_shock_solution;}
 }
 
 } // Parameters namespace

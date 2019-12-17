@@ -123,6 +123,18 @@ inline real ManufacturedSolutionBoundaryLayer<dim,real>
 }
 
 template <int dim, typename real>
+inline real ManufacturedSolutionSShock<dim,real>
+::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
+{
+    real val = 0.0;
+    if(dim==2){
+        const real x = point[0], y = point[1];
+        val = 0.75*tanh(2*(sin(5*y)-3*x));
+    }
+    return val;
+}
+
+template <int dim, typename real>
 inline dealii::Tensor<1,dim,real> ManufacturedSolutionSine<dim,real>
 ::gradient (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
@@ -336,6 +348,19 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionBoundaryLayer<dim,real>
         gradient[2] = (x + (exp(x/epsilon[istate][0])-1.0)               /(1.0-exp(1.0/epsilon[istate][0])))
                     * (y + (exp(y/epsilon[istate][1])-1.0)               /(1.0-exp(1.0/epsilon[istate][1])))
                     * (1 + (exp(z/epsilon[istate][2])/epsilon[istate][2])/(1.0-exp(1.0/epsilon[istate][2])));
+    }
+    return gradient;
+}
+
+template <int dim, typename real>
+inline dealii::Tensor<1,dim,real> ManufacturedSolutionSShock<dim,real>
+::gradient(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
+{
+    dealii::Tensor<1,dim,real> gradient;
+    if(dim == 2){
+        const real x = point[0], y = point[1];
+        gradient[0] = -4.5*pow(cosh(6*x-2*sin(5*y)),-2);  
+        gradient[1] =  7.5*pow(cosh(6*x-2*sin(5*y)),-2)*cos(5*y);
     }
     return gradient;
 }
@@ -634,6 +659,22 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionBoundaryLayer<dim
 }
 
 template <int dim, typename real>
+inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionSShock<dim,real>
+::hessian(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
+{
+    dealii::SymmetricTensor<2,dim,real> hessian;
+    if (dim==2) {
+        const real x = point[0], y = point[1];
+        hessian[0][0] =  54*tanh(6*x-2*sin(5*y))*pow(cosh(6*x-2*sin(5*y)),-2);
+        hessian[0][1] = -90*tanh(6*x-2*sin(5*y))*pow(cosh(6*x-2*sin(5*y)),-2)*cos(5*y);
+
+        hessian[1][0] = hessian[1][0];
+        hessian[1][1] = pow(cosh(6*x-2*sin(5*y)),-2)*(-37.5*sin(5*y)+150*pow(cos(5*y),2)*tanh(6*x-2*sin(5*y)));
+    }
+    return hessian;
+}
+
+template <int dim, typename real>
 ManufacturedSolutionFunction<dim,real>
 ::ManufacturedSolutionFunction (const unsigned int nstate)
     :
@@ -761,6 +802,8 @@ ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(
         return std::make_shared<ManufacturedSolutionAtan<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::boundary_layer_solution){
         return std::make_shared<ManufacturedSolutionBoundaryLayer<dim,real>>(nstate);
+    }else if(solution_type == ManufacturedSolutionEnum::s_shock_solution && dim == 2){
+        return std::make_shared<ManufacturedSolutionSShock<dim,real>>(nstate);
     }else{
         std::cout << "Invalid Manufactured Solution." << std::endl;
     }
@@ -784,6 +827,8 @@ template class ManufacturedSolutionAtan<PHILIP_DIM,double>;
 template class ManufacturedSolutionAtan<PHILIP_DIM,Sacado::Fad::DFad<double>>;
 template class ManufacturedSolutionBoundaryLayer<PHILIP_DIM,double>;
 template class ManufacturedSolutionBoundaryLayer<PHILIP_DIM,Sacado::Fad::DFad<double>>;
+template class ManufacturedSolutionSShock<PHILIP_DIM,double>;
+template class ManufacturedSolutionSShock<PHILIP_DIM,Sacado::Fad::DFad<double>>;
 
 template class ManufacturedSolutionFunction<PHILIP_DIM,double>;
 template class ManufacturedSolutionFunction<PHILIP_DIM,Sacado::Fad::DFad<double>>;

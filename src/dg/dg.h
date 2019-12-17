@@ -246,6 +246,9 @@ public:
     dealii::LinearAlgebra::distributed::Vector<double> solution;
 
     /// Current optimization dual variables corresponding to the residual constraints also known as the adjoint
+	/** This is used to evaluate the dot-product between the dual and the 2nd derivatives of the residual
+	 *  since storing the 2nd order partials of the residual is a very large 3rd order tensor.
+	 */
     dealii::LinearAlgebra::distributed::Vector<real> dual;
 
     /// Sets the stored dual variables used to compute the dual dotted with the residual Hessians

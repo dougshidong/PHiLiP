@@ -18,28 +18,59 @@
 #include "physics/physics_factory.h"
 #include "dg/dg.h"
 #include "dg/high_order_grid.h"
-#include "functional.h"
+#include "target_functional.h"
 
 namespace PHiLiP {
 
 template <int dim, int nstate, typename real>
-Functional<dim,nstate,real>::Functional(
+TargetFunctional<dim,nstate,real>::TargetFunctional(
     std::shared_ptr<DGBase<dim,real>> _dg,
     std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> > _physics_fad_fad,
     const bool _uses_solution_values,
     const bool _uses_solution_gradient)
     : dg(_dg)
+	, target_solution(dg->solution)
     , physics_fad_fad(_physics_fad_fad)
     , uses_solution_values(_uses_solution_values)
     , uses_solution_gradient(_uses_solution_gradient)
 { }
 
 template <int dim, int nstate, typename real>
-Functional<dim,nstate,real>::Functional(
+TargetFunctional<dim,nstate,real>::TargetFunctional(
     std::shared_ptr<DGBase<dim,real>> _dg,
     const bool _uses_solution_values,
     const bool _uses_solution_gradient)
     : dg(_dg)
+	, target_solution(dg->solution)
+    , uses_solution_values(_uses_solution_values)
+    , uses_solution_gradient(_uses_solution_gradient)
+{ 
+    using ADtype = Sacado::Fad::DFad<real>;
+    using ADADtype = Sacado::Fad::DFad<ADtype>;
+    physics_fad_fad = Physics::PhysicsFactory<dim,nstate,ADADtype>::create_Physics(dg->all_parameters);
+}
+template <int dim, int nstate, typename real>
+TargetFunctional<dim,nstate,real>::TargetFunctional(
+    std::shared_ptr<DGBase<dim,real>> _dg,
+    const dealii::LinearAlgebra::distributed::Vector<real> &target_solution,
+    std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> > _physics_fad_fad,
+    const bool _uses_solution_values,
+    const bool _uses_solution_gradient)
+    : dg(_dg)
+	, target_solution(target_solution)
+    , physics_fad_fad(_physics_fad_fad)
+    , uses_solution_values(_uses_solution_values)
+    , uses_solution_gradient(_uses_solution_gradient)
+{ }
+
+template <int dim, int nstate, typename real>
+TargetFunctional<dim,nstate,real>::TargetFunctional(
+    std::shared_ptr<DGBase<dim,real>> _dg,
+    const dealii::LinearAlgebra::distributed::Vector<real> &target_solution,
+    const bool _uses_solution_values,
+    const bool _uses_solution_gradient)
+    : dg(_dg)
+	, target_solution(target_solution)
     , uses_solution_values(_uses_solution_values)
     , uses_solution_gradient(_uses_solution_gradient)
 { 
@@ -51,9 +82,10 @@ Functional<dim,nstate,real>::Functional(
 
 template <int dim, int nstate, typename real>
 template <typename real2>
-real2 Functional<dim, nstate, real>::evaluate_volume_cell_functional(
+real2 TargetFunctional<dim, nstate, real>::evaluate_volume_cell_functional(
     const Physics::PhysicsBase<dim,nstate,real2> &physics,
     const std::vector< real2 > &soln_coeff,
+    const std::vector< real > &target_soln_coeff,
     const dealii::FESystem<dim> &fe_solution,
     const std::vector< real2 > &coords_coeff,
     const dealii::FESystem<dim> &fe_metric,
@@ -91,19 +123,24 @@ real2 Functional<dim, nstate, real>::evaluate_volume_cell_functional(
 
         // Evaluate the solution and gradient at the quadrature points
         std::array<real2, nstate> soln_at_q;
+        std::array<real, nstate> target_soln_at_q;
         soln_at_q.fill(0.0);
+        target_soln_at_q.fill(0.0);
         std::array< dealii::Tensor<1,dim,real2>, nstate > soln_grad_at_q;
+        std::array< dealii::Tensor<1,dim,real2>, nstate > target_soln_grad_at_q; // Target solution grad needs to be ADType since metric term involve mesh DoFs
         for (unsigned int idof=0; idof<n_soln_dofs_cell; ++idof) {
             const unsigned int istate = fe_solution.system_to_component_index(idof).first;
             if (uses_solution_values) {
                 soln_at_q[istate]  += soln_coeff[idof] * fe_solution.shape_value(idof,ref_point);
+                target_soln_at_q[istate]  += target_soln_coeff[idof] * fe_solution.shape_value(idof,ref_point);
             }
             if (uses_solution_gradient) {
                 const dealii::Tensor<1,dim,real2> phys_shape_grad = dealii::contract<1,0>(jacobian_transpose_inverse, fe_solution.shape_grad(idof,ref_point));
                 soln_grad_at_q[istate] += soln_coeff[idof] * phys_shape_grad;
+                target_soln_grad_at_q[istate] += target_soln_coeff[idof] * phys_shape_grad;
             }
         }
-        real2 volume_integrand = this->evaluate_volume_integrand(physics, phys_coord, soln_at_q, soln_grad_at_q);
+        real2 volume_integrand = this->evaluate_volume_integrand(physics, phys_coord, soln_at_q, target_soln_at_q, soln_grad_at_q, target_soln_grad_at_q);
 
         volume_local_sum += volume_integrand * jacobian_determinant * quad_weight;
     }
@@ -111,31 +148,33 @@ real2 Functional<dim, nstate, real>::evaluate_volume_cell_functional(
 }
 
 template <int dim, int nstate, typename real>
-real Functional<dim, nstate, real>::evaluate_volume_cell_functional(
+real TargetFunctional<dim, nstate, real>::evaluate_volume_cell_functional(
     const Physics::PhysicsBase<dim,nstate,real> &physics,
     const std::vector< real > &soln_coeff,
+    const std::vector< real > &target_soln_coeff,
     const dealii::FESystem<dim> &fe_solution,
     const std::vector< real > &coords_coeff,
     const dealii::FESystem<dim> &fe_metric,
     const dealii::Quadrature<dim> &volume_quadrature)
 {
-    return evaluate_volume_cell_functional<real>(physics, soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
+    return evaluate_volume_cell_functional<real>(physics, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 }
 
 template <int dim, int nstate, typename real>
-Sacado::Fad::DFad<Sacado::Fad::DFad<real>> Functional<dim, nstate, real>::evaluate_volume_cell_functional(
+Sacado::Fad::DFad<Sacado::Fad::DFad<real>> TargetFunctional<dim, nstate, real>::evaluate_volume_cell_functional(
     const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> &physics_fad_fad,
     const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &soln_coeff,
+    const std::vector< real > &target_soln_coeff,
     const dealii::FESystem<dim> &fe_solution,
     const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &coords_coeff,
     const dealii::FESystem<dim> &fe_metric,
     const dealii::Quadrature<dim> &volume_quadrature)
 {
-    return evaluate_volume_cell_functional<Sacado::Fad::DFad<Sacado::Fad::DFad<real>>>(physics_fad_fad, soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
+    return evaluate_volume_cell_functional<Sacado::Fad::DFad<Sacado::Fad::DFad<real>>>(physics_fad_fad, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 }
 
 template <int dim, int nstate, typename real>
-real Functional<dim, nstate, real>::evaluate_functional(
+real TargetFunctional<dim, nstate, real>::evaluate_functional(
     const bool compute_dIdW,
     const bool compute_dIdX,
     const bool compute_d2I)
@@ -154,6 +193,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
     const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
     std::vector<dealii::types::global_dof_index> cell_soln_dofs_indices(max_dofs_per_cell);
     std::vector<ADADtype> soln_coeff(max_dofs_per_cell); // for obtaining the local derivatives (to be copied back afterwards)
+    std::vector<real> target_soln_coeff(max_dofs_per_cell); // for obtaining the local derivatives (to be copied back afterwards)
     std::vector<real>   local_dIdw(max_dofs_per_cell);
 
     std::vector<real>   local_dIdX(n_metric_dofs_cell);
@@ -217,6 +257,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
         cell_soln_dofs_indices.resize(n_soln_dofs_cell);
         soln_cell->get_dof_indices(cell_soln_dofs_indices);
         soln_coeff.resize(n_soln_dofs_cell);
+        target_soln_coeff.resize(n_soln_dofs_cell);
 
         // Get metric coefficients
         metric_cell->get_dof_indices (cell_metric_dofs_indices);
@@ -234,6 +275,10 @@ real Functional<dim, nstate, real>::evaluate_functional(
 			const real val = dg->solution[cell_soln_dofs_indices[idof]];
 			soln_coeff[idof] = val;
 			if (compute_dIdW || compute_d2I) soln_coeff[idof].diff(i_derivative++, n_total_indep);
+		}
+		for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof) {
+			const real val = target_solution[cell_soln_dofs_indices[idof]];
+			target_soln_coeff[idof] = val;
 		}
 		for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
 			const real val = dg->high_order_grid.nodes[cell_metric_dofs_indices[idof]];
@@ -260,7 +305,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
         const dealii::Quadrature<dim> &volume_quadrature = dg->volume_quadrature_collection[i_quad];
 
         // Evaluate integral on the cell volume
-        ADADtype volume_local_sum = evaluate_volume_cell_functional(*physics_fad_fad, soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
+        ADADtype volume_local_sum = evaluate_volume_cell_functional(*physics_fad_fad, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 
         // next looping over the faces of the cell checking for boundary elements
         for(unsigned int iface = 0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface){
@@ -272,7 +317,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
 
                 const unsigned int boundary_id = face->boundary_id();
 
-                volume_local_sum += this->evaluate_cell_boundary(*physics_fad_fad, boundary_id, fe_values_face, soln_coeff);
+                volume_local_sum += this->evaluate_cell_boundary(*physics_fad_fad, boundary_id, fe_values_face, soln_coeff, target_soln_coeff);
             }
 
         }
@@ -346,7 +391,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
 }
 
 template <int dim, int nstate, typename real>
-dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::evaluate_dIdw_finiteDifferences(
+dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,real>::evaluate_dIdw_finiteDifferences(
     PHiLiP::DGBase<dim,real> &dg, 
     const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
     const double stepsize)
@@ -367,6 +412,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
     std::vector<dealii::types::global_dof_index> cell_soln_dofs_indices(max_dofs_per_cell);
     std::vector<dealii::types::global_dof_index> neighbor_dofs_indices(max_dofs_per_cell);
     std::vector<real> soln_coeff(max_dofs_per_cell); // for obtaining the local derivatives (to be copied back afterwards)
+    std::vector<real> target_soln_coeff(max_dofs_per_cell);
     std::vector<real> local_dIdw(max_dofs_per_cell);
 
     const auto mapping = (*(dg.high_order_grid.mapping_fe_field));
@@ -392,8 +438,10 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
         cell_soln_dofs_indices.resize(n_soln_dofs_cell);
         cell->get_dof_indices(cell_soln_dofs_indices);
         soln_coeff.resize(n_soln_dofs_cell);
+        target_soln_coeff.resize(n_soln_dofs_cell);
         for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof) {
             soln_coeff[idof] = dg.solution[cell_soln_dofs_indices[idof]];
+            target_soln_coeff[idof] = target_solution[cell_soln_dofs_indices[idof]];
         }
 
         // Get metric coefficients
@@ -410,7 +458,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
 
         // adding the contribution from the current volume, also need to pass the solution vector on these points
         //local_sum_old = this->evaluate_volume_integrand(physics, fe_values_volume, soln_coeff);
-        local_sum_old = this->evaluate_volume_cell_functional(physics, soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
+        local_sum_old = this->evaluate_volume_cell_functional(physics, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 
         // Next looping over the faces of the cell checking for boundary elements
         for(unsigned int iface = 0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface){
@@ -422,7 +470,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
 
                 const unsigned int boundary_id = face->boundary_id();
 
-                local_sum_old += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff);
+                local_sum_old += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff, target_soln_coeff);
             }
 
         }
@@ -438,7 +486,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
 
             // then peturb the idof'th value
             // local_sum_new = this->evaluate_volume_integrand(physics, fe_values_volume, soln_coeff);
-            local_sum_new = this->evaluate_volume_cell_functional(physics, soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
+            local_sum_new = this->evaluate_volume_cell_functional(physics, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 
             // Next looping over the faces of the cell checking for boundary elements
             for(unsigned int iface = 0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface){
@@ -450,7 +498,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
 
                     const unsigned int boundary_id = face->boundary_id();
 
-                    local_sum_new += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff);
+                    local_sum_new += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff, target_soln_coeff);
                 }
 
             }
@@ -467,7 +515,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
 }
 
 template <int dim, int nstate, typename real>
-dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::evaluate_dIdX_finiteDifferences(
+dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,real>::evaluate_dIdX_finiteDifferences(
     PHiLiP::DGBase<dim,real> &dg, 
     const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
     const double stepsize)
@@ -492,6 +540,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
     std::vector<dealii::types::global_dof_index> cell_soln_dofs_indices(max_dofs_per_cell);
     std::vector<dealii::types::global_dof_index> neighbor_dofs_indices(max_dofs_per_cell);
     std::vector<real> soln_coeff(max_dofs_per_cell); // for obtaining the local derivatives (to be copied back afterwards)
+    std::vector<real> target_soln_coeff(max_dofs_per_cell);
     std::vector<real> local_dIdX(max_dofs_per_cell);
 
     const auto mapping = (*(dg.high_order_grid.mapping_fe_field));
@@ -517,8 +566,10 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
         cell_soln_dofs_indices.resize(n_soln_dofs_cell);
         cell->get_dof_indices(cell_soln_dofs_indices);
         soln_coeff.resize(n_soln_dofs_cell);
+        target_soln_coeff.resize(n_soln_dofs_cell);
         for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof) {
             soln_coeff[idof] = dg.solution[cell_soln_dofs_indices[idof]];
+            target_soln_coeff[idof] = target_solution[cell_soln_dofs_indices[idof]];
         }
 
         // Get metric coefficients
@@ -535,7 +586,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
 
         // adding the contribution from the current volume, also need to pass the solution vector on these points
         //local_sum_old = this->evaluate_volume_integrand(physics, fe_values_volume, soln_coeff);
-        local_sum_old = this->evaluate_volume_cell_functional(physics, soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
+        local_sum_old = this->evaluate_volume_cell_functional(physics, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 
         // Next looping over the faces of the cell checking for boundary elements
         for(unsigned int iface = 0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface){
@@ -547,7 +598,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
 
                 const unsigned int boundary_id = face->boundary_id();
 
-                local_sum_old += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff);
+                local_sum_old += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff, target_soln_coeff);
             }
 
         }
@@ -562,7 +613,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
             coords_coeff[idof] += stepsize;
 
             // then peturb the idof'th value
-            local_sum_new = this->evaluate_volume_cell_functional(physics, soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
+            local_sum_new = this->evaluate_volume_cell_functional(physics, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 
             // Next looping over the faces of the cell checking for boundary elements
             for(unsigned int iface = 0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface){
@@ -574,7 +625,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
 
                     const unsigned int boundary_id = face->boundary_id();
 
-                    local_sum_new += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff);
+                    local_sum_new += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff, target_soln_coeff);
                 }
 
             }
@@ -590,10 +641,11 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
     return dIdX_FD;
 }
 
-template class Functional <PHILIP_DIM, 1, double>;
-template class Functional <PHILIP_DIM, 2, double>;
-template class Functional <PHILIP_DIM, 3, double>;
-template class Functional <PHILIP_DIM, 4, double>;
-template class Functional <PHILIP_DIM, 5, double>;
+template class TargetFunctional <PHILIP_DIM, 1, double>;
+template class TargetFunctional <PHILIP_DIM, 2, double>;
+template class TargetFunctional <PHILIP_DIM, 3, double>;
+template class TargetFunctional <PHILIP_DIM, 4, double>;
+template class TargetFunctional <PHILIP_DIM, 5, double>;
 
 } // PHiLiP namespace
+

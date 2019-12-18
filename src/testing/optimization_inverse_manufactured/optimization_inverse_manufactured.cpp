@@ -404,6 +404,7 @@ int OptimizationInverseManufactured<dim,nstate>
 	high_order_grid.nodes.update_ghost_values();
     high_order_grid.update_surface_indices();
     high_order_grid.update_surface_nodes();
+	dg->output_results_vtk(high_order_grid.nth_refinement);
 	high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
 
 	// Solve on this new grid
@@ -420,6 +421,11 @@ int OptimizationInverseManufactured<dim,nstate>
 	pcout << "Vector l2_norm of the coefficients: " << l2_vector_error << std::endl;
 	pcout << "Functional l2_norm : " << current_l2_error << std::endl;
 
+	pcout << "*************************************************************" << std::endl;
+	pcout << "Starting design... " << std::endl;
+	pcout << "Number of state variables: " << dg->dof_handler.n_dofs() << std::endl;
+	pcout << "Number of mesh nodes: " << high_order_grid.dof_handler_grid.n_dofs() << std::endl;
+	pcout << "Number of constraints: " << dg->dof_handler.n_dofs() << std::endl;
 
 	const unsigned int n_max_design = 10;
 	for (unsigned int i_design = 0; i_design < n_max_design; i_design++) {
@@ -436,9 +442,13 @@ int OptimizationInverseManufactured<dim,nstate>
 		kkt_rhs *= -1.0;
 
 		const double current_kkt_norm = kkt_rhs.l2_norm();
+		auto mesh_error = target_nodes;
+		mesh_error -= high_order_grid.nodes;
 		pcout << "*************************************************************" << std::endl;
 		pcout << "Design iteration " << i_design << std::endl;
 		pcout << "Current functional: " << current_functional << std::endl;
+		pcout << "Constraint satisfaction: " << dg->right_hand_side.l2_norm() << std::endl;
+		pcout << "l2norm(Current mesh - optimal mesh): " << mesh_error.l2_norm() << std::endl;
 		pcout << "Current KKT norm: " << current_kkt_norm << std::endl;
 
 		kkt_soln.reinit(kkt_rhs);
@@ -496,6 +506,7 @@ int OptimizationInverseManufactured<dim,nstate>
 		high_order_grid.nodes.update_ghost_values();
 		high_order_grid.update_surface_indices();
 		high_order_grid.update_surface_nodes();
+		dg->output_results_vtk(high_order_grid.nth_refinement);
 		high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
 	}
 

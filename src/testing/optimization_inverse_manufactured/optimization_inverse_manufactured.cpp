@@ -11,8 +11,23 @@
 
 #include <deal.II/numerics/vector_tools.h>
 
+#include <deal.II/lac/solver_bicgstab.h>
+#include <deal.II/lac/solver_cg.h>
+#include <deal.II/lac/solver_gmres.h>
+#include <deal.II/lac/solver_minres.h>
+
 #include <deal.II/lac/trilinos_block_sparse_matrix.h>
+#include <deal.II/lac/trilinos_precondition.h>
+#include <deal.II/lac/trilinos_solver.h>
+#include <deal.II/lac/trilinos_sparsity_pattern.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+
+#include <deal.II/lac/trilinos_parallel_block_vector.h>
 #include <deal.II/lac/la_parallel_block_vector.h>
+#include <deal.II/lac/read_write_vector.h>
+
+#include <deal.II/lac/packaged_operation.h>
+#include <deal.II/lac/trilinos_linear_operator.h>
 
 #include "optimization_inverse_manufactured.h"
 
@@ -25,6 +40,7 @@
 #include "functional/target_functional.h"
 #include "functional/adjoint.h"
 
+#include "linear_solver/linear_solver.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -37,6 +53,137 @@ dealii::TrilinosWrappers::SparseMatrix transpose_trilinos_matrix(dealii::Trilino
 	dealii::TrilinosWrappers::SparseMatrix output_matrix;
 	output_matrix.reinit(*transpose_CrsMatrix);
 	return output_matrix;
+}
+
+std::pair<unsigned int, double>
+apply_P4 (
+    dealii::TrilinosWrappers::BlockSparseMatrix &matrix_A,
+    dealii::LinearAlgebra::distributed::BlockVector<double> &right_hand_side,
+    dealii::LinearAlgebra::distributed::BlockVector<double> &solution,
+    const PHiLiP::Parameters::LinearSolverParam &param)
+{
+    dealii::deallog.depth_console(3);
+	using trilinos_vector_type = dealii::TrilinosWrappers::MPI::Vector;
+	using vector_type = dealii::LinearAlgebra::distributed::Vector<double>;
+	using matrix_type = dealii::TrilinosWrappers::SparseMatrix;
+	using payload_type = dealii::TrilinosWrappers::internal::LinearOperatorImplementation::TrilinosPayload;
+
+	vector_type &_rhs1 = right_hand_side.block(0);
+	vector_type &_rhs2 = right_hand_side.block(1);
+	vector_type &_rhs3 = right_hand_side.block(2);
+
+	dealii::IndexSet rhs1_locally_owned = _rhs1.locally_owned_elements();
+	dealii::IndexSet rhs1_ghost = _rhs1.get_partitioner()->ghost_indices();
+	dealii::IndexSet rhs2_locally_owned = _rhs2.locally_owned_elements();
+	dealii::IndexSet rhs2_ghost = _rhs2.get_partitioner()->ghost_indices();
+	dealii::IndexSet rhs3_locally_owned = _rhs3.locally_owned_elements();
+	dealii::IndexSet rhs3_ghost = _rhs3.get_partitioner()->ghost_indices();
+
+	trilinos_vector_type rhs1(rhs1_locally_owned);
+	trilinos_vector_type rhs2(rhs2_locally_owned);
+	trilinos_vector_type rhs3(rhs3_locally_owned);
+	trilinos_vector_type soln1(_rhs1.locally_owned_elements());
+	trilinos_vector_type soln2(_rhs2.locally_owned_elements());
+	trilinos_vector_type soln3(_rhs3.locally_owned_elements());
+
+	{
+		dealii::LinearAlgebra::ReadWriteVector<double> rw_vector(rhs1_locally_owned);
+		rw_vector.import(_rhs1, dealii::VectorOperation::insert);
+		rhs1.import(rw_vector, dealii::VectorOperation::insert);
+	}
+	{
+		dealii::LinearAlgebra::ReadWriteVector<double> rw_vector(rhs2_locally_owned);
+		rw_vector.import(_rhs2, dealii::VectorOperation::insert);
+		rhs2.import(rw_vector, dealii::VectorOperation::insert);
+	}
+	{
+		dealii::LinearAlgebra::ReadWriteVector<double> rw_vector(rhs3_locally_owned);
+		rw_vector.import(_rhs3, dealii::VectorOperation::insert);
+		rhs3.import(rw_vector, dealii::VectorOperation::insert);
+	}
+	auto &Wss = matrix_A.block(0,0);
+	auto &Wsd = matrix_A.block(0,1);
+	auto &AsT = matrix_A.block(0,2);
+	auto &Wds = matrix_A.block(1,0);
+	auto &Wdd = matrix_A.block(1,1);
+	auto &AdT = matrix_A.block(1,2);
+	auto &As  = matrix_A.block(2,0);
+	auto &Ad  = matrix_A.block(2,1);
+	auto &Zer = matrix_A.block(2,2);
+
+	(void) Wss;
+	(void) Wsd;
+	(void) AsT;
+	(void) Wds;
+	(void) Wdd;
+	(void) AdT;
+	(void) As ;
+	(void) Ad ;
+	(void) Zer;
+	(void) param;
+	(void) solution;
+
+	// // Block vector y
+
+    dealii::LinearAlgebra::distributed::BlockVector<double> Y;
+	Y.reinit(right_hand_side);
+	// y1
+	Y.block(0) = right_hand_side.block(2);
+
+	// As_inv y1
+	vector_type As_inv_y1;
+	As_inv_y1.reinit(solution.block(0));
+	solve_linear (As, Y.block(0), As_inv_y1, param);
+
+	// y3
+	Wss.vmult(Y.block(2), As_inv_y1);
+	Y.block(2) *= -1.0;
+	Y.block(2) += right_hand_side.block(0);
+
+	// AsT_inv y3
+	vector_type AsT_inv_y3;
+	AsT_inv_y3.reinit(solution.block(2));
+	solve_linear (AsT, Y.block(2), AsT_inv_y3, param);
+
+	// y2
+	AdT.vmult(Y.block(1), AsT_inv_y3);
+	Wds.vmult_add(Y.block(1), As_inv_y1);
+	Y.block(1) *= -1.0;
+	Y.block(1) += right_hand_side.block(1);
+
+	// Block vector p
+    dealii::LinearAlgebra::distributed::BlockVector<double> P;
+	P.reinit(right_hand_side);
+
+	// p2
+	P.block(1) = Y.block(1);
+
+	// As_inv_Ad_p2
+	vector_type Ad_p2, As_inv_Ad_p2;
+	Ad_p2.reinit(solution.block(0));
+	Ad.vmult(Ad_p2, P.block(1));
+
+	As_inv_Ad_p2.reinit(solution.block(0));
+	solve_linear(As, As_inv_Ad_p2, Ad_p2, param);
+
+	// p1
+	P.block(0) = As_inv_y1;
+	P.block(0) -= As_inv_Ad_p2;
+
+	// p3
+	vector_type p3_rhs;
+	p3_rhs.reinit(solution.block(2));
+
+	Wss.vmult(p3_rhs, As_inv_Ad_p2);
+	Wsd.vmult_add(p3_rhs, P.block(1));
+	p3_rhs *= -1.0;
+	p3_rhs += Y.block(2);
+
+	solve_linear(AsT, P.block(2), p3_rhs, param);
+
+	solution = P;
+
+    return {-1.0, -1.0};
 }
 
 template <int dim, int nstate, typename real>
@@ -231,11 +378,14 @@ int OptimizationInverseManufactured<dim,nstate>
 		auto point = high_order_grid.locally_relevant_surface_points.begin();
 		auto point_end = high_order_grid.locally_relevant_surface_points.end();
 		for (;point != point_end; ++point, ++displacement) {
-			if ((*point)[0] > 0.5 && (*point)[1] > 1e-10 && (*point)[1] < 1-1e-10) {
-				const double final_location = 1.0;
-				const double current_location = (*point)[0];
-				(*displacement)[0] = final_location - current_location;
-			}
+			// if ((*point)[0] > 0.5 && (*point)[1] > 1e-10 && (*point)[1] < 1-1e-10) {
+			// 	const double final_location = 1.0;
+			// 	const double current_location = (*point)[0];
+			// 	(*displacement)[0] = final_location - current_location;
+			// }
+
+			(*displacement)[0] = (*point)[0] * 0.5 - (*point)[0];
+			(*displacement)[1] = (*point)[1] * 0.9 - (*point)[1];
 		}
 		int inode = 0;
 		for (unsigned int ipoint=0; ipoint<point_displacements.size(); ++ipoint) {
@@ -271,53 +421,84 @@ int OptimizationInverseManufactured<dim,nstate>
 	pcout << "Functional l2_norm : " << current_l2_error << std::endl;
 
 
-	// Evaluate KKT right-hand side
-	compute_dIdW = false, compute_dIdX = false, compute_d2I = false;
-    (void) inverse_target_functional.evaluate_functional(compute_dIdW, compute_dIdX, compute_d2I);
-    bool compute_dRdW = false, compute_dRdX = false, compute_d2R = false;
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+	const unsigned int n_max_design = 10;
+	for (unsigned int i_design = 0; i_design < n_max_design; i_design++) {
+		// Evaluate KKT right-hand side
+		compute_dIdW = true, compute_dIdX = true, compute_d2I = true;
+		const double current_functional = inverse_target_functional.evaluate_functional(compute_dIdW, compute_dIdX, compute_d2I);
+		bool compute_dRdW = false, compute_dRdX = false, compute_d2R = false;
+		dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
 
-    dealii::LinearAlgebra::distributed::BlockVector<double> kkt_rhs(3), kkt_soln(3);
-	kkt_rhs.block(0) = inverse_target_functional.dIdw;
-	kkt_rhs.block(1) = inverse_target_functional.dIdX;
-	kkt_rhs.block(2) = dg->right_hand_side;
-	kkt_rhs *= -1.0;
-	kkt_soln.reinit(kkt_rhs);
+		dealii::LinearAlgebra::distributed::BlockVector<double> kkt_rhs(3), kkt_soln(3), p4inv_kkt_rhs(3);
+		kkt_rhs.block(0) = inverse_target_functional.dIdw;
+		kkt_rhs.block(1) = inverse_target_functional.dIdX;
+		kkt_rhs.block(2) = dg->right_hand_side;
+		kkt_rhs *= -1.0;
 
-    dg->set_dual(kkt_soln.block(2));
+		const double current_kkt_norm = kkt_rhs.l2_norm();
+		pcout << "*************************************************************" << std::endl;
+		pcout << "Design iteration " << i_design << std::endl;
+		pcout << "Current functional: " << current_functional << std::endl;
+		pcout << "Current KKT norm: " << current_kkt_norm << std::endl;
 
-	// Evaluate KKT system matrix
-    pcout << "Evaluating dIdW, dIdX, and d2I..." << std::endl;
-	compute_dIdW = true, compute_dIdX = true, compute_d2I = true;
-    (void) inverse_target_functional.evaluate_functional(compute_dIdW, compute_dIdX, compute_d2I);
-    pcout << "Evaluating dRdW..." << std::endl;
-    compute_dRdW = true; compute_dRdX = false, compute_d2R = false;
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
-    pcout << "Evaluating dRdX..." << std::endl;
-    compute_dRdW = false; compute_dRdX = true, compute_d2R = false;
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
-    pcout << "Evaluating residual 2nd order partials..." << std::endl;
-    compute_dRdW = false; compute_dRdX = false, compute_d2R = true;
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+		kkt_soln.reinit(kkt_rhs);
+		p4inv_kkt_rhs.reinit(kkt_rhs);
 
-	// Build required operators
-    dealii::TrilinosWrappers::SparsityPattern zero_sparsity_pattern(dg->locally_owned_dofs, MPI_COMM_WORLD, 0);
-	zero_sparsity_pattern.compress();
-	dealii::TrilinosWrappers::BlockSparseMatrix kkt_hessian;
-	kkt_hessian.reinit(3,3);
-    kkt_hessian.block(0, 0).copy_from( inverse_target_functional.d2IdWdW);
-    kkt_hessian.block(0, 1).copy_from( inverse_target_functional.d2IdWdX);
-    kkt_hessian.block(0, 2).copy_from( transpose_trilinos_matrix(dg->system_matrix));
+		dg->set_dual(kkt_soln.block(2));
 
-    kkt_hessian.block(1, 0).copy_from( transpose_trilinos_matrix(inverse_target_functional.d2IdWdX));
-    kkt_hessian.block(1, 1).copy_from( inverse_target_functional.d2IdXdX);
-    kkt_hessian.block(1, 2).copy_from( transpose_trilinos_matrix(dg->dRdXv));
+		// Evaluate KKT system matrix
+		pcout << "Evaluating dIdW, dIdX, and d2I..." << std::endl;
+		compute_dIdW = true, compute_dIdX = true, compute_d2I = true;
+		(void) inverse_target_functional.evaluate_functional(compute_dIdW, compute_dIdX, compute_d2I);
+		pcout << "Evaluating dRdW..." << std::endl;
+		compute_dRdW = true; compute_dRdX = false, compute_d2R = false;
+		dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+		pcout << "Evaluating dRdX..." << std::endl;
+		compute_dRdW = false; compute_dRdX = true, compute_d2R = false;
+		dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+		pcout << "Evaluating residual 2nd order partials..." << std::endl;
+		compute_dRdW = false; compute_dRdX = false, compute_d2R = true;
+		dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
 
-    kkt_hessian.block(2, 0).copy_from( dg->system_matrix);
-    kkt_hessian.block(2, 1).copy_from( dg->dRdXv);
-    kkt_hessian.block(2, 2).reinit(zero_sparsity_pattern);
+		// Build required operators
+		dealii::TrilinosWrappers::SparsityPattern zero_sparsity_pattern(dg->locally_owned_dofs, MPI_COMM_WORLD, 0);
+		zero_sparsity_pattern.compress();
+		dealii::TrilinosWrappers::BlockSparseMatrix kkt_system_matrix;
+		kkt_system_matrix.reinit(3,3);
+		kkt_system_matrix.block(0, 0).copy_from( inverse_target_functional.d2IdWdW);
+		kkt_system_matrix.block(0, 1).copy_from( inverse_target_functional.d2IdWdX);
+		kkt_system_matrix.block(0, 2).copy_from( transpose_trilinos_matrix(dg->system_matrix));
 
-    kkt_hessian.collect_sizes();
+		kkt_system_matrix.block(1, 0).copy_from( transpose_trilinos_matrix(inverse_target_functional.d2IdWdX));
+		kkt_system_matrix.block(1, 1).copy_from( inverse_target_functional.d2IdXdX);
+		kkt_system_matrix.block(1, 2).copy_from( transpose_trilinos_matrix(dg->dRdXv));
+
+		kkt_system_matrix.block(2, 0).copy_from( dg->system_matrix);
+		kkt_system_matrix.block(2, 1).copy_from( dg->dRdXv);
+		kkt_system_matrix.block(2, 2).reinit(zero_sparsity_pattern);
+
+		kkt_system_matrix.collect_sizes();
+
+		Parameters::LinearSolverParam linear_solver_param = all_parameters->linear_solver_param;
+		linear_solver_param.linear_residual = 1e-12;
+		apply_P4 (
+			kkt_system_matrix,  // A
+			kkt_rhs,            // b
+			p4inv_kkt_rhs,      // x
+			linear_solver_param);
+
+		kkt_soln = p4inv_kkt_rhs;
+		dg->solution += kkt_soln.block(0);
+		high_order_grid.nodes += kkt_soln.block(1);
+		dg->dual += kkt_soln.block(2);
+
+		high_order_grid.nodes = target_nodes;
+		high_order_grid.nodes.update_ghost_values();
+		high_order_grid.update_surface_indices();
+		high_order_grid.update_surface_nodes();
+		high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
+	}
+
 
 
 	pcout << std::endl << std::endl << std::endl << std::endl;

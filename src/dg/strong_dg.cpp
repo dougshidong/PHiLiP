@@ -1363,6 +1363,7 @@ void DGStrong<dim,nstate,real>::assemble_face_term_implicit(
         }
     }
 
+
     // From test functions associated with interior cell point of view
     for (unsigned int itest_int=0; itest_int<n_dofs_int; ++itest_int) {
         ADtype rhs = 0.0;
@@ -2111,6 +2112,33 @@ void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
             aux_soln_on_boundary_ext[iquad][s] = (aux_soln_ext[iquad][s]) * normal_ext;
         }
     }
+
+
+#if 0
+//Chi on the face
+
+    dealii::FullMatrix<real> Chi_operator(n_face_quad_pts, n_dofs_int);
+    for(int istate=0; istate<nstate; istate++){
+    for (unsigned int itest=0; itest<n_dofs_int; ++itest) {
+        for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+            Chi_operator[itest][iquad] = fe_values_int.shape_value_component(itest, iquad, istate);
+        }
+    }
+    }
+    printf("Chi on the Face\n");
+    fflush(stdout);
+    for (unsigned int itest=0; itest<n_dofs_int; ++itest) {
+        for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+           printf(" %g ",Chi_operator[itest][iquad]);
+            fflush(stdout);
+        }
+        printf("\n");
+        fflush(stdout);
+    }
+    printf("end chi on face\n");
+    fflush(stdout);
+#endif
+
 
     // From test functions associated with interior cell point of view
     for (unsigned int itest_int=0; itest_int<n_dofs_int; ++itest_int) {

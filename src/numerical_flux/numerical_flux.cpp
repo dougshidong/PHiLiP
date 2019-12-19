@@ -52,6 +52,9 @@ NumericalFluxFactory<dim, nstate, real>
     if(diss_num_flux_type == AllParam::symm_internal_penalty) {
         return new SymmetricInternalPenalty<dim, nstate, real>(physics_input);
     }
+    if(diss_num_flux_type == AllParam::BR2) {
+        return new BassiRebay2<dim, nstate, real>(physics_input);
+    }
 
     return nullptr;
 }

@@ -103,9 +103,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Choices are <kDG | kSD | kHU | kNegative | kNegative2 | kPlus>.");
 
     prm.declare_entry("diss_num_flux", "symm_internal_penalty",
-                      dealii::Patterns::Selection("symm_internal_penalty"),
+                      dealii::Patterns::Selection("symm_internal_penalty | BR2"),
                       "Dissipative numerical flux. "
-                      "Choices are <symm_internal_penalty>.");
+                      "Choices are <symm_internal_penalty | BR2>.");
 
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
@@ -185,6 +185,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     const std::string diss_num_flux_string = prm.get("diss_num_flux");
     if (diss_num_flux_string == "symm_internal_penalty") diss_num_flux_type = symm_internal_penalty;
+    if (diss_num_flux_string == "BR2") diss_num_flux_type = BR2;
 
 
     pcout << "Parsing linear solver subsection..." << std::endl;

@@ -112,7 +112,7 @@ public:
     Flux_Reconstruction_Aux flux_reconstruction_aux_type;
 
     /// Currently only symmetric internal penalty can be used as an input parameter
-    enum DissipativeNumericalFlux { symm_internal_penalty };
+    enum DissipativeNumericalFlux { symm_internal_penalty, BR2 };
     /// Store diffusive flux type
     DissipativeNumericalFlux diss_num_flux_type;
 

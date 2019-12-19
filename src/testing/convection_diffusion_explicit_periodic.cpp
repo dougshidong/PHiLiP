@@ -11,6 +11,7 @@
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/grid_in.h>
 #include <deal.II/base/convergence_table.h>
+#include <deal.II/grid/manifold_lib.h>
 
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
@@ -74,7 +75,7 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
        // FR_arr_c[1] = FR_enum::cDG;
        // FR_arr_c[2] = FR_enum::cPlus;
        // FR_arr_c[3] = FR_enum::cPlus;
-        FR_arr_k[0] = FR_Aux_enum::kDG;
+        FR_arr_k[0] = FR_Aux_enum::kPlus;
        // FR_arr_k[1] = FR_Aux_enum::kPlus;
        // FR_arr_k[2] = FR_Aux_enum::kDG;
         //FR_arr_k[3] = FR_Aux_enum::kPlus;
@@ -84,8 +85,8 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
         FR_arr_string_c.push_back("cDG");
        // FR_arr_string_c.push_back("cPlus");
         //FR_arr_string_c.push_back("cPlus");
-        FR_arr_string_k.push_back("kDG");
-       // FR_arr_string_k.push_back("kPlus");
+        //FR_arr_string_k.push_back("kDG");
+        FR_arr_string_k.push_back("kPlus");
         //FR_arr_string_k.push_back("kDG");
        // FR_arr_string_k.push_back("kPlus");
         const unsigned int igrid_start = 5;
@@ -113,6 +114,22 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
 
 	dealii::GridGenerator::hyper_cube(grid, left, right, colorize);
 
+//curvlinear mesh
+const double pi_mesh = atan(1)*4.0;
+const dealii::Point<dim> center1(-pi_mesh,pi_mesh);
+const dealii::SphericalManifold<dim> m0(center1);
+grid.set_manifold(0, m0);
+const dealii::Point<dim> center2(pi_mesh,pi_mesh);
+const dealii::SphericalManifold<dim> m02(center2);
+grid.set_manifold(1, m02);
+for(int idim=0; idim<dim; idim++){
+grid.set_all_manifold_ids_on_boundary(2*(idim -1),2*(idim-1));
+grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
+}
+//end curvilin mesh
+
+
+
  #if PHILIP_DIM==1
 #else
 	std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
@@ -133,6 +150,7 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
        // finalTime=1.0;
         finalTime = 0.000006;
         finalTime = 0.02;
+        finalTime = 0.002;
 //#if 0
         //Loop for tau test case IP stability
         unsigned int itau = 1;
@@ -151,6 +169,7 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
 jiteration =2;
 itau=2;
 penalty =30.56; 
+//penalty =15.28; 
 
 //penalty =1000.0; 
         while (itau < 3){

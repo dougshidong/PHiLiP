@@ -64,7 +64,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
 
-    const unsigned int n_grids = 8;
+    const unsigned int n_grids = 7;
     std::array<double,n_grids> grid_size;
     std::array<double,n_grids> soln_error;
    // std::array<double,n_grids> output_error;
@@ -85,6 +85,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 //	double right = 1.0;
 	double left = 1.0;
 	double right = 3.0;
+	//double right = 2.0;
 	const bool colorize = true;
 //	int n_refinements = 6;
 	unsigned int n_refinements = n_grids;
@@ -92,7 +93,9 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 //	dealii::GridGenerator::hyper_cube(grid, left, right, colorize);
 
         dealii::ConvergenceTable convergence_table;
-        const unsigned int igrid_start = 5;
+        const unsigned int igrid_start = 3;
+printf("NEW GRID\n");
+fflush(stdout);
 
     for(unsigned int igrid=igrid_start; igrid<n_refinements; ++igrid){
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
@@ -105,7 +108,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 				this->mpi_communicator);
 #endif
 
-	dealii::GridGenerator::hyper_cube(grid, left, right, colorize);
+//	dealii::GridGenerator::hyper_cube(grid, left, right, colorize);
 
 #if 0
 const dealii::Point<dim> center (1,0);
@@ -123,6 +126,7 @@ grid.refine_global (3);
 
 //#if 0
 const dealii::Point<dim> center1(0,1);
+//const dealii::Point<dim> center1(0.8,1.5);
 //const dealii::Point<dim> center1(4,1);
 const dealii::SphericalManifold<dim> m0(center1);
 dealii::GridGenerator::hyper_cube (grid, left, right, colorize);
@@ -139,6 +143,7 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 #endif
 //const dealii::Point<dim> center2(0,1);
 const dealii::Point<dim> center2(2,1);
+//const dealii::Point<dim> center2(1.8,1.5);
 const dealii::SphericalManifold<dim> m02(center2);
 grid.set_manifold(1, m02);
 for(int idim=0; idim<dim; idim++){
@@ -165,19 +170,56 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 
     if (igrid == 4){
     all_parameters_new.ode_solver_param.initial_time_step = 4.0e-3;
+    if(poly_degree==3 || poly_degree == 4){
+    all_parameters_new.ode_solver_param.initial_time_step = 1.0e-3;
+   // all_parameters_new.ode_solver_param.initial_time_step = 2.5e-4;
+    }
     }
     if (igrid ==5){
     all_parameters_new.ode_solver_param.initial_time_step = 1.0e-3;
+    if(poly_degree==3 || poly_degree == 4){
+    all_parameters_new.ode_solver_param.initial_time_step = 2.5e-4;
+    //all_parameters_new.ode_solver_param.initial_time_step = 1.0-5;
+    }
     }
     if (igrid==6){
     all_parameters_new.ode_solver_param.initial_time_step = 2.5e-4;
+    if(poly_degree==3 || poly_degree == 4){
+   // all_parameters_new.ode_solver_param.initial_time_step = 5.0e-6;
+    all_parameters_new.ode_solver_param.initial_time_step = 1.0e-5;
+    }
     }
     if (igrid==7){
-    all_parameters_new.ode_solver_param.initial_time_step = 6.25e-5;
+   // all_parameters_new.ode_solver_param.initial_time_step = 6.25e-5;
+    all_parameters_new.ode_solver_param.initial_time_step = 1.0e-5;
+    if(poly_degree==3 || poly_degree == 4){
+    //all_parameters_new.ode_solver_param.initial_time_step = 1.0-6;
+    all_parameters_new.ode_solver_param.initial_time_step = 5.0e-6;
+    }
     }
     if (igrid==8){
-    all_parameters_new.ode_solver_param.initial_time_step = 1.5625e-5;
+    all_parameters_new.ode_solver_param.initial_time_step = 2.5e-6;
+    if(poly_degree==3 || poly_degree == 4){
+    //all_parameters_new.ode_solver_param.initial_time_step = 1.0-6;
+    all_parameters_new.ode_solver_param.initial_time_step = 1.0e-6;
     }
+    }
+
+#if 0
+            const unsigned int n_global_active_cells2 = grid.n_global_active_cells();
+    if(poly_degree == 2)
+    all_parameters_new.ode_solver_param.initial_time_step = 0.512*2.0/n_global_active_cells2 ;
+    else
+    all_parameters_new.ode_solver_param.initial_time_step = 0.128*2.0/n_global_active_cells2 ;
+#endif
+//CFL number
+    const unsigned int n_global_active_cells2 = grid.n_global_active_cells();
+    double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
+    double delta_x = (right-left)/pow(n_dofs_cfl,(1.0/dim)); 
+   // all_parameters_new.ode_solver_param.initial_time_step =  delta_x /(2.0*(2.0*poly_degree+1)) ;
+    //all_parameters_new.ode_solver_param.initial_time_step =  delta_x /(1.0*(2.0*poly_degree+1)) ;
+    all_parameters_new.ode_solver_param.initial_time_step =  delta_x /(1.0*(2.0*poly_degree+1)) ;
+    all_parameters_new.ode_solver_param.initial_time_step *= 1e-3;  
 
 	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, &grid);
 	dg->allocate_system ();
@@ -216,7 +258,9 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 	    expression = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) + 20*(z-1)*(z-1) ) )";//"sin(pi*x)*sin(pi*y)";
         if (dim == 2)
 	    //expression = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) ) )";//"sin(pi*x)*sin(pi*y)";
-	    expression = "exp( -( 20*(x-2)*(x-2) + 20*(y-2)*(y-2) ) )";//"sin(pi*x)*sin(pi*y)";
+	 //   expression = "exp( -( 20*(x-2)*(x-2) + 20*(y-2)*(y-2) ) )";//"sin(pi*x)*sin(pi*y)";
+	    expression = "sin(pi*x)*sin(pi*y)";//"sin(pi*x)*sin(pi*y)";
+	    //expression = "exp( -( 20*(x-1.5)*(x-1.5) + 20*(y-1.5)*(y-1.5) ) )";//"sin(pi*x)*sin(pi*y)";
         if(dim==1)
 	    expression = "exp( -( 20*(x-1)*(x-1) ) )";//"sin(pi*x)*sin(pi*y)";
 	initial_condition.initialize(variables,
@@ -267,8 +311,16 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 	double finalTime = 1.5;
 finalTime=1e-20;
 finalTime=10.0;
-finalTime = 2.0;
 finalTime = 1.0;
+finalTime=2.0;
+finalTime = delta_x /(1.0*(2.0*poly_degree+1));
+finalTime =10 *1e-1* delta_x /(1.0*(2.0*poly_degree+1));
+finalTime =1/16;
+//finalTime=0.25;
+//finalTime =1/8;
+//finalTime = 0.5;
+//finalTime = 10.0;
+//finalTime = 1.0;
 
 #if 0
 	//need to call ode_solver before calculating energy because mass matrix isn't allocated yet.
@@ -325,6 +377,7 @@ finalTime = 1.0;
 
             // Integrate solution error and output error
 
+            const double pi = atan(1)*4.0;
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
 
@@ -368,7 +421,9 @@ finalTime = 1.0;
                         uexact *= exp(-(20 * (qpoint[idim] - speed*finalTime -1) * (qpoint[idim] - speed*finalTime -1)));
 #endif
                      //   uexact *= exp(-(20 * (qpoint[idim] - 1) * (qpoint[idim] - 1)));
-                        uexact *= exp(-(20 * (qpoint[idim] - 2) * (qpoint[idim] - 2)));
+                       // uexact *= exp(-(20 * (qpoint[idim] - 2) * (qpoint[idim] - 2)));//for grid 1-3
+                        uexact *= sin(pi*(qpoint[idim]-finalTime));//for grid 1-3
+                        //uexact *= exp(-(20 * (qpoint[idim] - 1.5) * (qpoint[idim] - 1.5)));//for grid 1-2
                         //uexact *= exp(-(20 * (qpoint[idim] - finalTime  - 1) * (qpoint[idim] - finalTime - 1)));
                         //uexact *= exp(-(20 * (qpoint[istate] - speed*finalTime -1) * (qpoint[istate] - speed*finalTime -1)));
                     }
@@ -525,10 +580,3 @@ finalTime = 1.0;
 
 } //Tests namespace
 } //PHiLiP namespace
-
-
-
-
-
-
-

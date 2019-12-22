@@ -1,6 +1,7 @@
 set(GRID_REFINEMENT_SOURCE
     grid_refinement.cpp
     gmsh_out.cpp
+    gnu_out.cpp
     size_field.cpp
     reconstruct_poly.cpp
     )

@@ -36,8 +36,7 @@
 #include "grid_refinement/grid_refinement.h"
 #include "grid_refinement/gmsh_out.h"
 #include "grid_refinement/size_field.h"
-
-
+#include "grid_refinement/gnu_out.h"
 
 namespace PHiLiP {
     
@@ -76,6 +75,9 @@ int GridRefinementStudy<dim,nstate>::run_test() const
 
     // for each of the runs, a seperate refinement table
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
+
+    // output for convergence figure
+    PHiLiP::GridRefinement::GnuFig<double> gf;
 
     // start of loop for each grid refinement run
     {
@@ -136,6 +138,11 @@ int GridRefinementStudy<dim,nstate>::run_test() const
         // starting the iterations
         dealii::ConvergenceTable convergence_table;
         dealii::Vector<float> estimated_error_per_cell(grid.n_active_cells());
+        
+        // for plotting the error convergence with gnuplot
+        std::vector<double> error;
+        std::vector<double> dofs;
+
         for(unsigned int igrid = 0; igrid < refinement_steps; ++igrid){
             if(igrid > 0){
                 grid_refinement->refine_grid();
@@ -241,6 +248,9 @@ int GridRefinementStudy<dim,nstate>::run_test() const
             convergence_table.add_value("value", functional_value);
             convergence_table.add_value("l2_error", l2_norm_mpi);
             convergence_table.add_value("linf_error", linf_norm_mpi);
+        
+            error.push_back(l2_norm_mpi);
+            dofs.push_back(n_dofs);
         }
 
         pcout << " ********************************************" << std::endl
@@ -259,6 +269,9 @@ int GridRefinementStudy<dim,nstate>::run_test() const
         if(pcout.is_active()) convergence_table.write_text(pcout.get_stream());
 
         convergence_table_vector.push_back(convergence_table);
+    
+        if(pcout.is_active()) 
+            gf.add_xy_data(dofs, error, "l2error");
     }
 
     pcout << std::endl << std::endl << std::endl << std::endl
@@ -268,6 +281,23 @@ int GridRefinementStudy<dim,nstate>::run_test() const
     for(auto conv = convergence_table_vector.begin(); conv != convergence_table_vector.end(); ++conv){
         if(pcout.is_active()) conv->write_text(pcout.get_stream());
         pcout << " ********************************************" << std::endl;
+    }
+
+    
+    if(pcout.is_active()){
+        // formatting for the figure and outputting .gp
+        gf.set_name("ErrorPlot");
+        gf.set_title("Error Convergence, |u|_2 vs. Dofs");
+        gf.set_x_label("# Dofs");
+        gf.set_y_label("L2 Error, |u|_2");
+        gf.set_grid(false);
+        gf.set_x_scale_log(true);
+        gf.set_y_scale_log(true);
+        gf.set_legend(true);
+        gf.write_gnuplot();
+
+        // performing plotting
+        gf.exec_gnuplot();
     }
 
     return 0;

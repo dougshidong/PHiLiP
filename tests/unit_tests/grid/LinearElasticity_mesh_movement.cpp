@@ -48,7 +48,7 @@ int main (int argc, char * argv[])
 
     const int initial_n_cells = 3;
     const unsigned int n_grids = 3;
-    const unsigned int p_start = 2;
+    const unsigned int p_start = 1;
     const unsigned int p_end = 3;
     const double amplitude = 0.1;
     const double exact_area = dim>1 ? 1.0 : (amplitude+1.0);
@@ -87,6 +87,27 @@ int main (int argc, char * argv[])
                 grid.refine_global (1);
                 high_order_grid.execute_coarsening_and_refinement();
             }
+			const int n_refine = 2;
+			for (int i=0; i<n_refine;i++) {
+				high_order_grid.prepare_for_coarsening_and_refinement();
+				grid.prepare_coarsening_and_refinement();
+				unsigned int icell = 0;
+				for (auto cell = grid.begin_active(); cell!=grid.end(); ++cell) {
+					if (!cell->is_locally_owned()) continue;
+					icell++;
+					if (icell > grid.n_active_cells()/2) {
+						cell->set_refine_flag();
+					}
+					//else if (icell%2 == 0) {
+					//    cell->set_refine_flag();
+					//} else if (icell%3 == 0) {
+					//    //cell->set_coarsen_flag();
+					//}
+				}
+				grid.execute_coarsening_and_refinement();
+				bool mesh_out = (i==n_refine-1);
+				high_order_grid.execute_coarsening_and_refinement(mesh_out);
+			}
             //const unsigned int n_cell_grid = grid.n_active_cells();
             //for (auto &cell: grid.active_cell_iterators()) {
             //    if (cell->active_cell_index()<n_cell_grid/2) cell->set_refine_flag();
@@ -169,7 +190,7 @@ int main (int argc, char * argv[])
                 if (locally_owned_dofs.is_element(*index)) {
                     const double computed_surface_dx = volume_displacements[*index];
                     const double surface_displacement_error = std::abs(computed_surface_dx - *prescribed_surface_dx);
-                    if (surface_displacement_error > 1e-10) {
+                    if (surface_displacement_error > 1e-10 && !meshmover.hanging_node_constraints.is_constrained(*index)) {
                         std::cout << "Processor " << mpi_rank
                                   << " Surface DoF with global index: " << *index
                                   << " has a computed displacement of " << computed_surface_dx
@@ -190,17 +211,17 @@ int main (int argc, char * argv[])
             //                      << std::endl;
             //    }
             //}
+            high_order_grid.nodes += volume_displacements;
+            high_order_grid.nodes.update_ghost_values();
+
+            high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
+
             bool inconsistent_disp = true;
             MPI_Allreduce(&error, &inconsistent_disp, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
             if (inconsistent_disp) {
                 std::cout << "Proc: " << mpi_rank << " inconsistent? " << error << std::endl;
                 return 1;
             }
-            high_order_grid.nodes += volume_displacements;
-            high_order_grid.nodes.update_ghost_values();
-
-            high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
-
 
 
             const int overintegrate = 10;

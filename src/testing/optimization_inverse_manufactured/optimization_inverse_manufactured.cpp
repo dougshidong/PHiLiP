@@ -55,6 +55,28 @@ dealii::TrilinosWrappers::SparseMatrix transpose_trilinos_matrix(dealii::Trilino
 	return output_matrix;
 }
 
+template<int dim, int nstate>
+dealii::LinearAlgebra::distributed::BlockVector<double> evaluate_kkt_rhs(DGBase<dim,double> &dg,
+																		 TargetFunctional<dim, nstate, double> &functional)
+{
+    if ( dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0 )
+		std::cout << "Evaluating KKT right-hand side: dIdW, dIdX, d2I, Residual..." << std::endl;
+	dealii::LinearAlgebra::distributed::BlockVector<double> kkt_rhs(3);
+
+	bool compute_dIdW = true, compute_dIdX = true, compute_d2I = true;
+	(void) functional.evaluate_functional(compute_dIdW, compute_dIdX, compute_d2I);
+
+	bool compute_dRdW = false, compute_dRdX = false, compute_d2R = false;
+	dg.assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+
+	kkt_rhs.block(0) = functional.dIdw;
+	kkt_rhs.block(1) = functional.dIdX;
+	kkt_rhs.block(2) = dg.right_hand_side;
+	kkt_rhs *= -1.0;
+
+	return kkt_rhs;
+}
+
 std::pair<unsigned int, double>
 apply_P4 (
     dealii::TrilinosWrappers::BlockSparseMatrix &matrix_A,
@@ -156,7 +178,9 @@ apply_P4 (
 	P.reinit(right_hand_side);
 
 	// p2
+	const double reduced_hessian_diagonal = 1000000;
 	P.block(1) = Y.block(1);
+	P.block(1) /= reduced_hessian_diagonal;
 
 	// As_inv_Ad_p2
 	vector_type Ad_p2, As_inv_Ad_p2;
@@ -212,6 +236,7 @@ public:
 		for (int istate=0; istate<nstate; ++istate) {
 			l2error += std::pow(soln_at_q[istate] - target_soln_at_q[istate], 2);
 		}
+		//std::cout << "l2error: " << l2error << std::endl;
 
 		return l2error;
 	}
@@ -378,14 +403,14 @@ int OptimizationInverseManufactured<dim,nstate>
 		auto point = high_order_grid.locally_relevant_surface_points.begin();
 		auto point_end = high_order_grid.locally_relevant_surface_points.end();
 		for (;point != point_end; ++point, ++displacement) {
-			// if ((*point)[0] > 0.5 && (*point)[1] > 1e-10 && (*point)[1] < 1-1e-10) {
-			// 	const double final_location = 1.0;
-			// 	const double current_location = (*point)[0];
-			// 	(*displacement)[0] = final_location - current_location;
-			// }
+			if ((*point)[0] > 0.5 && (*point)[1] > 1e-10 && (*point)[1] < 1-1e-10) {
+				const double final_location = 1.0;
+				const double current_location = (*point)[0];
+				(*displacement)[0] = final_location - current_location;
+			}
 
-			(*displacement)[0] = (*point)[0] * 0.5 - (*point)[0];
-			(*displacement)[1] = (*point)[1] * 0.9 - (*point)[1];
+			// (*displacement)[0] = (*point)[0] * 0.5 - (*point)[0];
+			// (*displacement)[1] = (*point)[1] * 0.9 - (*point)[1];
 		}
 		int inode = 0;
 		for (unsigned int ipoint=0; ipoint<point_displacements.size(); ++ipoint) {
@@ -427,41 +452,40 @@ int OptimizationInverseManufactured<dim,nstate>
 	pcout << "Number of mesh nodes: " << high_order_grid.dof_handler_grid.n_dofs() << std::endl;
 	pcout << "Number of constraints: " << dg->dof_handler.n_dofs() << std::endl;
 
-	const unsigned int n_max_design = 10;
-	for (unsigned int i_design = 0; i_design < n_max_design; i_design++) {
-		// Evaluate KKT right-hand side
-		compute_dIdW = true, compute_dIdX = true, compute_d2I = true;
-		const double current_functional = inverse_target_functional.evaluate_functional(compute_dIdW, compute_dIdX, compute_d2I);
-		bool compute_dRdW = false, compute_dRdX = false, compute_d2R = false;
-		dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+	dealii::LinearAlgebra::distributed::BlockVector<double> kkt_rhs(3);
+	kkt_rhs = evaluate_kkt_rhs(*dg, inverse_target_functional);
+	dealii::LinearAlgebra::distributed::BlockVector<double> kkt_soln(3), p4inv_kkt_rhs(3);
+	kkt_soln.reinit(kkt_rhs);
+	p4inv_kkt_rhs.reinit(kkt_rhs);
 
-		dealii::LinearAlgebra::distributed::BlockVector<double> kkt_rhs(3), kkt_soln(3), p4inv_kkt_rhs(3);
-		kkt_rhs.block(0) = inverse_target_functional.dIdw;
-		kkt_rhs.block(1) = inverse_target_functional.dIdX;
-		kkt_rhs.block(2) = dg->right_hand_side;
-		kkt_rhs *= -1.0;
+	auto mesh_error = target_nodes;
+	mesh_error -= high_order_grid.nodes;
 
-		const double current_kkt_norm = kkt_rhs.l2_norm();
-		auto mesh_error = target_nodes;
-		mesh_error -= high_order_grid.nodes;
-		pcout << "*************************************************************" << std::endl;
-		pcout << "Design iteration " << i_design << std::endl;
-		pcout << "Current functional: " << current_functional << std::endl;
-		pcout << "Constraint satisfaction: " << dg->right_hand_side.l2_norm() << std::endl;
-		pcout << "l2norm(Current mesh - optimal mesh): " << mesh_error.l2_norm() << std::endl;
-		pcout << "Current KKT norm: " << current_kkt_norm << std::endl;
+	double current_functional = inverse_target_functional.current_functional_value;
+	double current_kkt_norm = kkt_rhs.l2_norm();
+	double current_constraint_satisfaction = kkt_rhs.block(2).l2_norm();
+	double current_mesh_error = mesh_error.l2_norm();
+	pcout << "*************************************************************" << std::endl;
+	pcout << "Initial design " << std::endl;
+	pcout << "*************************************************************" << std::endl;
+	pcout << "Current functional: " << current_functional << std::endl;
+	pcout << "Constraint satisfaction: " << current_constraint_satisfaction << std::endl;
+	pcout << "l2norm(Current mesh - optimal mesh): " << current_mesh_error << std::endl;
+	pcout << "Current KKT norm: " << current_kkt_norm << std::endl;
 
-		kkt_soln.reinit(kkt_rhs);
-		p4inv_kkt_rhs.reinit(kkt_rhs);
+	const unsigned int n_max_design = 1000;
+	const double kkt_tolerance = 1e-10;
+	for (unsigned int i_design = 0; i_design < n_max_design && current_kkt_norm > kkt_tolerance; i_design++) {
 
+		// Set the Lagrange multipliers to the current KKT solution
 		dg->set_dual(kkt_soln.block(2));
 
+		// Evaluate KKT right-hand side
+		kkt_rhs = evaluate_kkt_rhs(*dg, inverse_target_functional);
+
 		// Evaluate KKT system matrix
-		pcout << "Evaluating dIdW, dIdX, and d2I..." << std::endl;
-		compute_dIdW = true, compute_dIdX = true, compute_d2I = true;
-		(void) inverse_target_functional.evaluate_functional(compute_dIdW, compute_dIdX, compute_d2I);
 		pcout << "Evaluating dRdW..." << std::endl;
-		compute_dRdW = true; compute_dRdX = false, compute_d2R = false;
+		bool compute_dRdW = true, compute_dRdX = false, compute_d2R = false;
 		dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
 		pcout << "Evaluating dRdX..." << std::endl;
 		compute_dRdW = false; compute_dRdX = true, compute_d2R = false;
@@ -498,19 +522,59 @@ int OptimizationInverseManufactured<dim,nstate>
 			linear_solver_param);
 
 		kkt_soln = p4inv_kkt_rhs;
-		dg->solution += kkt_soln.block(0);
-		high_order_grid.nodes += kkt_soln.block(1);
-		dg->dual += kkt_soln.block(2);
+		const auto old_solution = dg->solution;
+		const auto old_nodes = high_order_grid.nodes;
+		const auto old_dual = dg->dual;
+		auto dual_step = kkt_soln.block(2);
+		dual_step -= old_dual;
 
-		high_order_grid.nodes = target_nodes;
+		const auto old_functional = current_functional;
+
+		// Line search
+		double step_length = 1.0;
+		const unsigned int max_linesearch = 40;
+		unsigned int i_linesearch = 0;
+		for (; i_linesearch < max_linesearch; i_linesearch++) {
+
+			dg->solution.add(step_length, kkt_soln.block(0));
+			high_order_grid.nodes.add(step_length, kkt_soln.block(1));
+
+			current_functional = inverse_target_functional.evaluate_functional();
+
+			pcout << "Linesearch " << i_linesearch+1 << " Old functional = " << old_functional << " New functional = " << current_functional << std::endl;
+			if (current_functional < old_functional) {
+				break;
+			} else {
+				dg->solution = old_solution;
+				high_order_grid.nodes = old_nodes;
+				dg->dual = old_dual;
+				step_length *= 0.5;
+			}
+		}
+		dg->dual.add(step_length, dual_step);
+		if (i_linesearch == max_linesearch) return 1;
+
 		high_order_grid.nodes.update_ghost_values();
 		high_order_grid.update_surface_indices();
 		high_order_grid.update_surface_nodes();
+
+
 		dg->output_results_vtk(high_order_grid.nth_refinement);
 		high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
+
+		mesh_error = target_nodes;
+		mesh_error -= high_order_grid.nodes;
+		current_kkt_norm = kkt_rhs.l2_norm();
+		current_constraint_satisfaction = dg->right_hand_side.l2_norm();
+		current_mesh_error = mesh_error.l2_norm();
+		pcout << "*************************************************************" << std::endl;
+		pcout << "Design iteration " << i_design << std::endl;
+		pcout << "Current functional: " << current_functional << std::endl;
+		pcout << "Constraint satisfaction: " << current_constraint_satisfaction << std::endl;
+		pcout << "l2norm(Current mesh - optimal mesh): " << current_mesh_error << std::endl;
+		pcout << "Current KKT norm: " << current_kkt_norm << std::endl;
+
 	}
-
-
 
 	pcout << std::endl << std::endl << std::endl << std::endl;
 	// Make sure that if the nodes are located at the target nodes, then we recover our target functional
@@ -524,9 +588,7 @@ int OptimizationInverseManufactured<dim,nstate>
 	pcout << "Nodes at target nodes should have zero functional l2 error : " << zero_l2_error << std::endl;
 	if (zero_l2_error > 1e-10) return 1;
 
-	// *****************************************************************************
-	// Create functional to be minimized
-	// *****************************************************************************
+	if (current_kkt_norm > kkt_tolerance) return 1;
     return fail_bool;
 }
 

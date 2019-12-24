@@ -142,7 +142,10 @@ real2 TargetFunctional<dim, nstate, real>::evaluate_volume_cell_functional(
         }
         real2 volume_integrand = this->evaluate_volume_integrand(physics, phys_coord, soln_at_q, target_soln_at_q, soln_grad_at_q, target_soln_grad_at_q);
 
-        volume_local_sum += volume_integrand * jacobian_determinant * quad_weight;
+		(void) jacobian_determinant;
+		(void) quad_weight;
+		if (jacobian_determinant < 0) volume_local_sum += 1e200;
+        volume_local_sum += volume_integrand;// * jacobian_determinant * quad_weight;
     }
     return volume_local_sum;
 }
@@ -307,6 +310,8 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
         // Evaluate integral on the cell volume
         ADADtype volume_local_sum = evaluate_volume_cell_functional(*physics_fad_fad, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 
+        // std::cout << "volume_local_sum.val().val() : " <<  volume_local_sum.val().val() << std::endl;
+
         // next looping over the faces of the cell checking for boundary elements
         for(unsigned int iface = 0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface){
             auto face = soln_cell->face(iface);
@@ -377,7 +382,9 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
         }
         AssertDimension(i_derivative, n_total_indep);
     }
-    dealii::Utilities::MPI::sum(local_functional, MPI_COMM_WORLD);
+	//std::cout << local_functional << std::endl;
+    current_functional_value = dealii::Utilities::MPI::sum(local_functional, MPI_COMM_WORLD);
+	//std::cout << current_functional_value << std::endl;
     // compress before the return
     if (compute_dIdW) dIdw.compress(dealii::VectorOperation::add);
     if (compute_dIdX) dIdX.compress(dealii::VectorOperation::add);
@@ -387,7 +394,7 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
 		d2IdXdX.compress(dealii::VectorOperation::add);
 	}
 
-    return local_functional;
+    return current_functional_value;
 }
 
 template <int dim, int nstate, typename real>

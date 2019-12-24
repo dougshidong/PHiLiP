@@ -7,8 +7,8 @@
 
 //#define ADDITIVE_SOLUTION
 //#define COSINE_SOLUTION
-//#define EXP_SOLUTION
-#define ATAN_SOLUTION
+#define EXP_SOLUTION
+//#define ATAN_SOLUTION
 //#define EVENPOLY_SOLUTION
 //#define POLY_SOLUTION
 

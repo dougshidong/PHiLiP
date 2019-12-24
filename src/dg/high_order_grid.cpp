@@ -45,6 +45,8 @@
 //#include <deal.II/lac/petsc_solver.h>
 #include <deal.II/dofs/dof_renumbering.h>
 
+#include <deal.II/lac/constrained_linear_operator.h>
+
 namespace PHiLiP {
 
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
@@ -1346,7 +1348,7 @@ namespace MeshMover
     void LinearElasticity<dim,real,VectorType,DoFHandlerType>::setup_system()
     {
         dof_handler.distribute_dofs(fe);
-		dealii::DoFRenumbering::Cuthill_McKee(dof_handler);
+      dealii::DoFRenumbering::Cuthill_McKee(dof_handler);
 
         locally_owned_dofs = dof_handler.locally_owned_dofs();
         dealii::DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
@@ -1356,12 +1358,17 @@ namespace MeshMover
         local_dofs_per_process = dof_handler.compute_n_locally_owned_dofs_per_processor();
 
         system_rhs.reinit(locally_owned_dofs, mpi_communicator);
-		displacement_solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
+        system_rhs_unconstrained.reinit(locally_owned_dofs, mpi_communicator);
+      displacement_solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
 
         // Set the hanging node constraints
         all_constraints.clear();
         all_constraints.reinit(locally_relevant_dofs);
         dealii::DoFTools::make_hanging_node_constraints(dof_handler, all_constraints);
+
+        hanging_node_constraints.clear();
+        hanging_node_constraints.reinit(locally_relevant_dofs);
+        dealii::DoFTools::make_hanging_node_constraints(dof_handler, hanging_node_constraints);
 
         // Set the Dirichlet BC constraint
         // Only add Dirichlet BC there is currently no constraint.
@@ -1398,10 +1405,14 @@ namespace MeshMover
 
 
         dealii::DynamicSparsityPattern sparsity_pattern(locally_relevant_dofs);
+        // dealii::DoFTools::make_sparsity_pattern(dof_handler,
+        //                                 sparsity_pattern,
+        //                                 all_constraints,
+        //                                 /*keep constrained dofs*/ false);
         dealii::DoFTools::make_sparsity_pattern(dof_handler,
                                         sparsity_pattern,
                                         all_constraints,
-                                        /*keep constrained dofs*/ false);
+                                        /*keep constrained dofs*/ true);
         dealii::SparsityTools::distribute_sparsity_pattern(sparsity_pattern,
                                                    local_dofs_per_process,
                                                    mpi_communicator,
@@ -1410,6 +1421,10 @@ namespace MeshMover
                              locally_owned_dofs,
                              sparsity_pattern,
                              mpi_communicator);
+        system_matrix_unconstrained.reinit(locally_owned_dofs,
+                                 locally_owned_dofs,
+                                 sparsity_pattern,
+                                 mpi_communicator);
 
         pcout << "    Number of active cells: " << triangulation.n_active_cells() << std::endl;
         pcout << "    Number of degrees of freedom: " << dof_handler.n_dofs() << std::endl;
@@ -1419,6 +1434,8 @@ namespace MeshMover
     {
         system_rhs    = 0;
         system_matrix = 0;
+        system_rhs_unconstrained    = 0;
+        system_matrix_unconstrained = 0;
         dealii::FEValues<dim> fe_values(
             *mapping_fe_field,
             fe,
@@ -1497,9 +1514,42 @@ namespace MeshMover
             //all_constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, system_matrix, system_rhs);
             const bool use_inhomogeneities_for_rhs = false;
             all_constraints.distribute_local_to_global(cell_matrix, cell_rhs, local_dof_indices, system_matrix, system_rhs, use_inhomogeneities_for_rhs);
+         // Unconstrained system matrix and right-hand side
+         // std::cout << std::endl;
+         // for (auto const &value: local_dof_indices) {
+         //    std::cout << value << std::endl;
+         // }
+         // system_matrix.print(std::cout);
+         // system_matrix_unconstrained.print(std::cout);
+         //  cell_matrix.print(std::cout);
+         //  system_matrix_unconstrained.add(local_dof_indices, cell_matrix);
+         //  //system_matrix_unconstrained.add(local_dof_indices, local_dof_indices, cell_matrix);
+         //  system_rhs_unconstrained.add(local_dof_indices, cell_rhs);
+            //  // for (unsigned int itest = 0; itest < dofs_per_cell; ++itest) {
+         //  //    std::vector<double> row_values(dofs_per_cell);
+            //  //     for (unsigned int itrial = 0; itrial < dofs_per_cell; ++itrial) {
+         //  //       row_values[itrial] = cell_matrix[itest][itrial];
+         //  //    }
+         //  //    system_rhs_unconstrained.add(local_dof_indices[itest], cell_rhs);
+         //  // }
+            //  //  for (unsigned int itest = 0; itest < dofs_per_cell; ++itest) {
+            //  //      for (unsigned int itrial = 0; itrial < dofs_per_cell; ++itrial) {
+         //  //        system_matrix_unconstrained.add(local_dof_indices, local_dof_indices, cell_matrix);
+         //  //     }
+         //  //     system_rhs_unconstrained.add(local_dof_indices, cell_rhs);
+         //  //  }
+            for (unsigned int itest = 0; itest < dofs_per_cell; ++itest) {
+                for (unsigned int itrial = 0; itrial < dofs_per_cell; ++itrial) {
+               system_matrix_unconstrained.add(local_dof_indices[itest], local_dof_indices[itrial], cell_matrix(itest,itrial));
+            }
+         }
+         system_rhs_unconstrained.add(local_dof_indices, cell_rhs);
+
         } // active cell loop
         system_matrix.compress(dealii::VectorOperation::add);
         system_rhs.compress(dealii::VectorOperation::add);
+        system_matrix_unconstrained.compress(dealii::VectorOperation::add);
+        system_rhs_unconstrained.compress(dealii::VectorOperation::add);
         //const int static_boundary_id = 0;
         //const int moving_boundary_id = 1;
         //// Apply boundary conditions
@@ -1527,6 +1577,46 @@ namespace MeshMover
         pcout << " norm of rhs is " << system_rhs.l2_norm() << std::endl;
         const unsigned int n_iterations = solve_linear_problem();
         pcout << "    Solver converged in " << n_iterations << " iterations." << std::endl;
+    }
+    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    void LinearElasticity<dim,real,VectorType,DoFHandlerType>::evaluate_dXvdXs()
+    {
+        dealii::TrilinosWrappers::MPI::Vector trilinos_solution(system_rhs);
+
+        all_constraints.set_zero(trilinos_solution);
+
+        dealii::SolverControl solver_control(5000, 1e-12 * system_rhs.l2_norm());
+        dealii::SolverCG<dealii::TrilinosWrappers::MPI::Vector> solver(solver_control);
+        dealii::TrilinosWrappers::PreconditionJacobi      precondition;
+        //precondition.initialize(system_matrix);
+        //solver.solve(system_matrix, trilinos_solution, system_rhs, precondition);
+
+        //all_constraints.distribute(trilinos_solution);
+
+        using trilinos_vector_type = dealii::TrilinosWrappers::MPI::Vector;
+        using payload_type = dealii::TrilinosWrappers::internal::LinearOperatorImplementation::TrilinosPayload;
+        const auto op_a = dealii::linear_operator<trilinos_vector_type,trilinos_vector_type,payload_type>(system_matrix_unconstrained);
+        const auto op_amod = dealii::constrained_linear_operator(all_constraints, op_a);
+        const auto C    = distribute_constraints_linear_operator(all_constraints, op_a);
+        const auto Ct   = transpose_operator(C);
+        const auto Id_c = project_to_constrained_linear_operator(all_constraints, op_a);
+
+        dXvdXs.clear();
+        for (unsigned int row = 0; row < dof_handler.n_dofs(); row++) {
+            if (all_constraints.is_inhomogeneously_constrained(row)) {
+                precondition.initialize(system_matrix_unconstrained);
+                dealii::TrilinosWrappers::MPI::Vector unit_rhs, CtArhs, dXvdXs_i;
+                unit_rhs.reinit(trilinos_solution);
+                CtArhs.reinit(trilinos_solution);
+                if (locally_owned_dofs.is_element(row)) {
+                    unit_rhs[row] = 1.0;
+                }
+                CtArhs = Ct*op_a*unit_rhs;
+
+                dXvdXs_i.reinit(CtArhs);
+                solver.solve(op_amod, dXvdXs_i, CtArhs, precondition);
+            }
+        }
     }
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
     unsigned int LinearElasticity<dim,real,VectorType,DoFHandlerType>::solve_linear_problem()
@@ -1559,22 +1649,28 @@ namespace MeshMover
         // cg.solve(system_matrix, trilinos_solution, system_rhs, preconditioner);
 
 
-        dealii::SolverControl                        solver_control(500, 1e-12 * system_rhs.l2_norm());
+        dealii::SolverControl solver_control(5000, 1e-12 * system_rhs.l2_norm());
         dealii::SolverCG<dealii::TrilinosWrappers::MPI::Vector> solver(solver_control);
         dealii::TrilinosWrappers::PreconditionJacobi      precondition;
-        precondition.initialize(system_matrix);
-        solver.solve(system_matrix, trilinos_solution, system_rhs, precondition);
+        //precondition.initialize(system_matrix);
+        //solver.solve(system_matrix, trilinos_solution, system_rhs, precondition);
 
-        //dealii::SolverControl solver_control(1, 0);
-        //dealii::TrilinosWrappers::SolverDirect::AdditionalData data(false);
-        //dealii::TrilinosWrappers::SolverDirect direct(solver_control, data);
-        //direct.solve(system_matrix, trilinos_solution, system_rhs);
+        //all_constraints.distribute(trilinos_solution);
 
+        using trilinos_vector_type = dealii::TrilinosWrappers::MPI::Vector;
+        using payload_type = dealii::TrilinosWrappers::internal::LinearOperatorImplementation::TrilinosPayload;
+        const auto op_a = dealii::linear_operator<trilinos_vector_type,trilinos_vector_type,payload_type>(system_matrix_unconstrained);
+        const auto op_amod = dealii::constrained_linear_operator(all_constraints, op_a);
+        dealii::TrilinosWrappers::MPI::Vector rhs_mod
+            = dealii::constrained_right_hand_side(all_constraints, op_a, system_rhs_unconstrained);
+        precondition.initialize(system_matrix_unconstrained);
+        solver.solve(op_amod, trilinos_solution, rhs_mod, precondition);
         all_constraints.distribute(trilinos_solution);
-		dealii::LinearAlgebra::ReadWriteVector<double> rw_vector;
-		rw_vector.reinit(trilinos_solution);
-		displacement_solution.import(rw_vector, dealii::VectorOperation::insert);
-        return solver_control.last_step();
+
+        dealii::LinearAlgebra::ReadWriteVector<double> rw_vector;
+        rw_vector.reinit(trilinos_solution);
+        displacement_solution.import(rw_vector, dealii::VectorOperation::insert);
+          return solver_control.last_step();
     }
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
     void LinearElasticity<dim,real,VectorType,DoFHandlerType>::move_mesh()

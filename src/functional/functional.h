@@ -132,6 +132,9 @@ public:
     /// Vector for storing the derivatives with respect to each grid DoF
     dealii::LinearAlgebra::distributed::Vector<real> dIdX;
 
+	// Store the functional value from the last time evaluate_functional() was called.
+	real current_functional_value;
+
     /// Sparse matrix for storing the functional partial second derivatives.
     dealii::TrilinosWrappers::SparseMatrix d2IdWdW;
     /// Sparse matrix for storing the functional partial second derivatives.

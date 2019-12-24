@@ -286,6 +286,11 @@ namespace MeshMover
             const std::vector<double> &boundary_displacements);
         ~LinearElasticity();
         VectorType get_volume_displacements();
+
+		void evaluate_dXvdXs();
+
+        dealii::AffineConstraints<double> hanging_node_constraints;
+        std::vector<dealii::TrilinosWrappers::MPI::Vector> dXvdXs;
       private:
         void setup_system();
         void assemble_system();
@@ -300,6 +305,8 @@ namespace MeshMover
         const dealii::QGauss<dim> quadrature_formula;
         dealii::TrilinosWrappers::SparseMatrix system_matrix;
         dealii::TrilinosWrappers::MPI::Vector system_rhs;
+        dealii::TrilinosWrappers::SparseMatrix system_matrix_unconstrained;
+        dealii::TrilinosWrappers::MPI::Vector system_rhs_unconstrained;
         VectorType displacement_solution;
 
         dealii::AffineConstraints<double> all_constraints;

@@ -332,7 +332,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
         }
         AssertDimension(i_derivative, n_total_indep);
     }
-    dealii::Utilities::MPI::sum(local_functional, MPI_COMM_WORLD);
+    current_functional_value = dealii::Utilities::MPI::sum(local_functional, MPI_COMM_WORLD);
     // compress before the return
     if (compute_dIdW) dIdw.compress(dealii::VectorOperation::add);
     if (compute_dIdX) dIdX.compress(dealii::VectorOperation::add);
@@ -342,7 +342,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
 		d2IdXdX.compress(dealii::VectorOperation::add);
 	}
 
-    return local_functional;
+    return current_functional_value;
 }
 
 template <int dim, int nstate, typename real>

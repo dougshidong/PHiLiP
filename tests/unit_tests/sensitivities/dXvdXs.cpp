@@ -53,6 +53,7 @@ int main (int argc, char * argv[])
     const double amplitude = 0.1;
     const double exact_area = dim>1 ? 1.0 : (amplitude+1.0);
     const double area_tolerance = 1e-12;
+    const double fd_eps = 1e-8;
     std::vector<int> fail_poly;
     std::vector<double> fail_area;
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
@@ -149,8 +150,32 @@ int main (int argc, char * argv[])
                 meshmover(high_order_grid, surface_node_global_indices, surface_node_displacements);
             VectorType volume_displacements = meshmover.get_volume_displacements();
 
-            high_order_grid.nodes += volume_displacements;
-            high_order_grid.nodes.update_ghost_values();
+            std::vector<VectorType> dXvdXs_FD;
+            for (unsigned int inode = 0; inode < high_order_grid.dof_handler_grid.n_dofs(); inode++) {
+
+                unsigned int surface_index = 0;
+                double old_value;
+                bool restore_value = false;
+                if (high_order_grid.locally_relevant_dofs_grid.is_element(inode)) {
+                    for (; surface_index < surface_node_global_indices.size(); surface_index++) {
+                        const unsigned int inode_surface = surface_node_global_indices[surface_index];
+                        if (inode == inode_surface) {
+                            restore_value = true;
+
+                            old_value = surface_node_displacements[surface_index];
+                            surface_node_displacements[surface_index] = old_value + fd_eps;
+
+                            break;
+                        }
+                    }
+                }
+                MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
+                    meshmover_p(high_order_grid, surface_node_global_indices, surface_node_displacements);
+
+                VectorType volume_displacements_p = meshmover_p.get_volume_displacements();
+
+                if (restore_value) surface_node_displacements[surface_index] = old_value;
+            }
 
         }
 

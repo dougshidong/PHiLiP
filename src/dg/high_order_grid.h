@@ -93,6 +93,14 @@ public:
      */
     Vector nodes;
 
+
+    Vector surface_nodes;
+    using Vector_int = dealii::LinearAlgebra::distributed::Vector<double>;
+
+	dealii::IndexSet locally_owned_surface_nodes_indexset;
+	dealii::IndexSet ghost_surface_nodes_indexset;
+    Vector surface_indices;
+
     /// List of surface nodes.
     /** Note that this contains all \<dim\> directions.
      *  By convention, the DoF representing the z-direction follows the DoF representing
@@ -100,11 +108,38 @@ public:
      *  the integer division "idof_index / dim" gives the coordinates related to the same
      *  point.
      */
-    std::vector<real> local_surface_nodes;
+    std::vector<real> locally_relevant_surface_nodes;
+    /// List of all surface nodes
+    /** Same as locally_relevant_surface_nodes except that it stores a global vector of all the
+     *  surface nodes that will be needed to evaluate the A matrix in the RBF 
+     *  deformation dxv = A * coeff = A * (Minv*dxs)
+     */
+    std::vector<real> all_locally_relevant_surface_nodes;
+
     /// List of surface node indices
     std::vector<dealii::types::global_dof_index> locally_relevant_surface_nodes_indices;
     /// List of surface node boundary IDs, corresponding to locally_relevant_surface_nodes_indices
     std::vector<dealii::types::global_dof_index> locally_relevant_surface_nodes_boundary_id;
+
+    /// List of surface nodes.
+    /** Note that this contains all \<dim\> directions.
+     *  By convention, the DoF representing the z-direction follows the DoF representing
+     *  the y-direction, which follows the one representing the x-direction such that
+     *  the integer division "idof_index / dim" gives the coordinates related to the same
+     *  point.
+     */
+    std::vector<real> locally_owned_surface_nodes;
+    /// List of all surface nodes
+    /** Same as locally_owned_surface_nodes except that it stores a global vector of all the
+     *  surface nodes that will be needed to evaluate the A matrix in the RBF 
+     *  deformation dxv = A * coeff = A * (Minv*dxs)
+     */
+    std::vector<real> all_locally_owned_surface_nodes;
+    std::vector<unsigned int> all_locally_owned_surface_indices;
+    /// List of surface node indices
+    std::vector<dealii::types::global_dof_index> locally_owned_surface_nodes_indices;
+    /// List of surface node boundary IDs, corresponding to locally_owned_surface_nodes_indices
+    std::vector<dealii::types::global_dof_index> locally_owned_surface_nodes_boundary_id;
 
     // /// List of cells associated with locally_relevant_surface_nodes_indices
     // std::vector<dealii::types::global_dof_index> locally_relevant_surface_nodes_cells;
@@ -118,20 +153,9 @@ public:
     std::map<std::pair<unsigned int, unsigned int>, dealii::types::global_dof_index> point_and_axis_to_global_index;
 
 
-    /// List of all surface nodes
-    /** Same as local_surface_nodes except that it stores a global vector of all the
-     *  surface nodes that will be needed to evaluate the A matrix in the RBF 
-     *  deformation dxv = A * coeff = A * (Minv*dxs)
-     */
-    std::vector<real> all_surface_nodes;
 
-
-    /// Update list of surface indices (locally_relevant_surface_nodes_indices and locally_relevant_surface_nodes_boundary_id)
-    void update_surface_indices();
-    /// Update list of surface nodes (all_surface_nodes).
+    /// Update list of surface nodes (all_locally_relevant_surface_nodes).
     void update_surface_nodes();
-
-    unsigned int n_surface_nodes; ///< Total number of surface nodes
 
     /// RBF mesh deformation  -  To be done
     //void deform_mesh(Vector surface_displacements);
@@ -220,6 +244,10 @@ public:
 
     static unsigned int nth_refinement; ///< Used to name the various files outputted.
 protected:
+    int n_mpi;
+    int mpi_rank;
+    /// Update list of surface indices (locally_relevant_surface_nodes_indices and locally_relevant_surface_nodes_boundary_id)
+    void update_surface_indices();
 
     /// Used for the SolutionTransfer when performing grid adaptation.
     Vector old_nodes;

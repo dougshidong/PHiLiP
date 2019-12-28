@@ -381,7 +381,6 @@ int OptimizationInverseManufactured<dim,nstate>
 
 	high_order_grid.nodes += volume_displacements;
 	high_order_grid.nodes.update_ghost_values();
-    high_order_grid.update_surface_indices();
     high_order_grid.update_surface_nodes();
 	high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
 
@@ -427,7 +426,6 @@ int OptimizationInverseManufactured<dim,nstate>
 
 	high_order_grid.nodes += volume_displacements;
 	high_order_grid.nodes.update_ghost_values();
-    high_order_grid.update_surface_indices();
     high_order_grid.update_surface_nodes();
 	dg->output_results_vtk(high_order_grid.nth_refinement);
 	high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
@@ -494,6 +492,29 @@ int OptimizationInverseManufactured<dim,nstate>
 		compute_dRdW = false; compute_dRdX = false, compute_d2R = true;
 		dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
 
+        std::vector<dealii::types::global_dof_index> surface_node_global_indices(dim*high_order_grid.locally_relevant_surface_points.size());
+        std::vector<double> surface_node_displacements(dim*high_order_grid.locally_relevant_surface_points.size());
+        {
+            int inode = 0;
+            for (unsigned int ipoint=0; ipoint<point_displacements.size(); ++ipoint) {
+                for (unsigned int d=0;d<dim;++d) {
+                    const std::pair<unsigned int, unsigned int> point_axis = std::make_pair(ipoint,d);
+                    const dealii::types::global_dof_index global_index = high_order_grid.point_and_axis_to_global_index[point_axis];
+                    surface_node_global_indices[inode] = global_index;
+                    surface_node_displacements[inode] = point_displacements[ipoint][d];
+                    inode++;
+                }
+            }
+        }
+		using VectorType = dealii::LinearAlgebra::distributed::Vector<double>;
+		MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
+			meshmover(high_order_grid, surface_node_global_indices, surface_node_displacements);
+		VectorType volume_displacements = meshmover.get_volume_displacements();
+
+		// Analytical dXvdXs
+		meshmover.evaluate_dXvdXs();
+
+
 		// Build required operators
 		dealii::TrilinosWrappers::SparsityPattern zero_sparsity_pattern(dg->locally_owned_dofs, MPI_COMM_WORLD, 0);
 		zero_sparsity_pattern.compress();
@@ -555,7 +576,6 @@ int OptimizationInverseManufactured<dim,nstate>
 		if (i_linesearch == max_linesearch) return 1;
 
 		high_order_grid.nodes.update_ghost_values();
-		high_order_grid.update_surface_indices();
 		high_order_grid.update_surface_nodes();
 
 
@@ -580,7 +600,6 @@ int OptimizationInverseManufactured<dim,nstate>
 	// Make sure that if the nodes are located at the target nodes, then we recover our target functional
 	high_order_grid.nodes = target_nodes;
 	high_order_grid.nodes.update_ghost_values();
-    high_order_grid.update_surface_indices();
     high_order_grid.update_surface_nodes();
 	// Solve on this new grid
 	ode_solver->steady_state();

@@ -51,7 +51,7 @@ int main (int argc, char * argv[])
     const unsigned int p_start = 2;
     const unsigned int p_end = 3;
     const double amplitude = 0.1;
-    const double fd_eps = 1e-6;
+    const double fd_eps = 1e-0;
     std::vector<int> fail_poly;
     std::vector<double> fail_area;
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
@@ -126,6 +126,7 @@ int main (int argc, char * argv[])
                     (*disp)[0] *= std::sin(2.0*dealii::numbers::PI*(*point)[2]);
                 }
                 //(*disp)[0] *= 1*(*point)[0];
+                //(*disp)[0] *= 0;
             }
 
             std::vector<dealii::types::global_dof_index> surface_node_global_indices(dim*high_order_grid.locally_relevant_surface_points.size());
@@ -160,7 +161,7 @@ int main (int argc, char * argv[])
                 bool is_inhomogeneously_constrained = false;
 
                 unsigned int surface_index = 0;
-                double old_value;
+                double old_value = 0;
                 bool restore_value = false;
                 if (high_order_grid.locally_relevant_dofs_grid.is_element(inode)) {
                     for (; surface_index < surface_node_global_indices.size(); surface_index++) {
@@ -179,12 +180,37 @@ int main (int argc, char * argv[])
                 MPI_Allreduce(&is_locally_inhomogeneously_constrained, &is_inhomogeneously_constrained, 1, MPI::BOOL, MPI_LOR, MPI_COMM_WORLD);
                 if (!is_inhomogeneously_constrained) continue;
 
+                pcout << "Performing finite difference for node: " << inode << std::endl;
+
                 MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
                     meshmover_p(high_order_grid, surface_node_global_indices, surface_node_displacements);
 
                 VectorType volume_displacements_p = meshmover_p.get_volume_displacements();
-                volume_displacements_p.add(-1.0, volume_displacements);
-                volume_displacements_p /= fd_eps;
+
+                high_order_grid.nodes += volume_displacements_p;
+                high_order_grid.nodes.update_ghost_values();
+                high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
+                high_order_grid.nodes -= volume_displacements_p;
+                high_order_grid.nodes.update_ghost_values();
+                high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
+
+
+                bool central_fd = false;
+                VectorType volume_displacements_n;
+                double denom = fd_eps;
+                if (central_fd) {
+                    if (restore_value) surface_node_displacements[surface_index] = old_value - fd_eps;
+                    MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
+                        meshmover_n(high_order_grid, surface_node_global_indices, surface_node_displacements);
+
+                    volume_displacements_n = meshmover_n.get_volume_displacements();
+                    denom *= 2.0;
+                } else {
+                    volume_displacements_n = volume_displacements;
+                }
+
+                volume_displacements_p.add(-1.0, volume_displacements_n);
+                volume_displacements_p /= denom;
 
                 dXvdXs_FD.push_back(volume_displacements_p);
                 pcout << "Finite difference: " << std::endl;
@@ -202,11 +228,18 @@ int main (int argc, char * argv[])
                 pcout << "*********************************" << std::endl;
                 pcout << "L2-norm of difference: " << l2_error << std::endl;
                 pcout << "*********************************" << std::endl;
-                i_surface++;
 
-                if (l2_error > 1e-4) std::abort();
+                if (l2_error > 1e-4) {
+                    pcout << "Nodes: " << std::endl;
+                    high_order_grid.nodes.print(std::cout);
+                    pcout << "Error vector: " << std::endl;
+                    dXvdXs_FD[i_surface].print(std::cout,3,true,false);
+                    std::abort();
+                }
 
                 if (restore_value) surface_node_displacements[surface_index] = old_value;
+
+                i_surface++;
             }
 
         }

@@ -1359,7 +1359,7 @@ namespace MeshMover
 
         system_rhs.reinit(locally_owned_dofs, mpi_communicator);
         system_rhs_unconstrained.reinit(locally_owned_dofs, mpi_communicator);
-      displacement_solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
+        displacement_solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
 
         // Set the hanging node constraints
         all_constraints.clear();
@@ -1378,12 +1378,12 @@ namespace MeshMover
         auto dirichlet_value = boundary_displacements.begin();
         for (; iglobal_row != iglobal_end; ++iglobal_row,++dirichlet_value) {
             //if (!locally_owned_dofs.is_element(*iglobal_row)) continue;
-            if (!all_constraints.is_constrained(*iglobal_row)) {
+            //if (!all_constraints.is_constrained(*iglobal_row)) {
                 Assert(all_constraints.can_store_line(*iglobal_row), dealii::ExcInternalError());
                 all_constraints.add_line(*iglobal_row);
                 all_constraints.set_inhomogeneity(*iglobal_row, *dirichlet_value+1e-15);
                 //std::cout << "Proc: " << this_mpi_process << " Contraint: " << *iglobal_row << " value: " << *dirichlet_value << std::endl;
-            }
+            //}
         }
         all_constraints.close();
         const std::vector<dealii::IndexSet> &temp_locally_owned_dofs =
@@ -1705,6 +1705,24 @@ namespace MeshMover
             = dealii::constrained_right_hand_side(all_constraints, op_a, system_rhs_unconstrained);
         precondition.initialize(system_matrix_unconstrained);
         solver.solve(op_amod, trilinos_solution, rhs_mod, precondition);
+
+        
+        // Should be the same as distribute
+        // {
+        //     dealii::TrilinosWrappers::MPI::Vector trilinos_solution2(trilinos_solution);
+
+        //     const auto C    = distribute_constraints_linear_operator(all_constraints, op_a);
+        //     dealii::TrilinosWrappers::MPI::Vector inhomogeneity_vector(trilinos_solution);
+        //     for (unsigned int i=0; i<dof_handler.n_dofs(); i++) {
+        //         if (inhomogeneity_vector.in_local_range(i)) {
+        //             inhomogeneity_vector[i] = all_constraints.get_inhomogeneity(i);
+        //         }
+        //     }
+
+        //     trilinos_solution2 = C*trilinos_solution + inhomogeneity_vector;
+        //     trilinos_solution = trilinos_solution2;
+        // }
+
         all_constraints.distribute(trilinos_solution);
 
         dealii::LinearAlgebra::ReadWriteVector<double> rw_vector;

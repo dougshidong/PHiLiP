@@ -290,7 +290,8 @@ namespace MeshMover
 		void evaluate_dXvdXs();
 
         dealii::AffineConstraints<double> hanging_node_constraints;
-        std::vector<dealii::TrilinosWrappers::MPI::Vector> dXvdXs;
+        //std::vector<dealii::TrilinosWrappers::MPI::Vector> dXvdXs;
+        std::vector<dealii::LinearAlgebra::distributed::Vector<double>> dXvdXs;
       private:
         void setup_system();
         void assemble_system();

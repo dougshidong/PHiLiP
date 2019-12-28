@@ -51,9 +51,7 @@ int main (int argc, char * argv[])
     const unsigned int p_start = 2;
     const unsigned int p_end = 3;
     const double amplitude = 0.1;
-    const double exact_area = dim>1 ? 1.0 : (amplitude+1.0);
-    const double area_tolerance = 1e-12;
-    const double fd_eps = 1e-8;
+    const double fd_eps = 1e-6;
     std::vector<int> fail_poly;
     std::vector<double> fail_area;
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
@@ -150,8 +148,16 @@ int main (int argc, char * argv[])
                 meshmover(high_order_grid, surface_node_global_indices, surface_node_displacements);
             VectorType volume_displacements = meshmover.get_volume_displacements();
 
+            // Analytical dXvdXs
+            meshmover.evaluate_dXvdXs();
+            // Start finite difference
+            (void) fd_eps;
             std::vector<VectorType> dXvdXs_FD;
+            int i_surface = 0;
             for (unsigned int inode = 0; inode < high_order_grid.dof_handler_grid.n_dofs(); inode++) {
+
+                bool is_locally_inhomogeneously_constrained = false;
+                bool is_inhomogeneously_constrained = false;
 
                 unsigned int surface_index = 0;
                 double old_value;
@@ -165,14 +171,40 @@ int main (int argc, char * argv[])
                             old_value = surface_node_displacements[surface_index];
                             surface_node_displacements[surface_index] = old_value + fd_eps;
 
+                            is_locally_inhomogeneously_constrained = true;
                             break;
                         }
                     }
                 }
+                MPI_Allreduce(&is_locally_inhomogeneously_constrained, &is_inhomogeneously_constrained, 1, MPI::BOOL, MPI_LOR, MPI_COMM_WORLD);
+                if (!is_inhomogeneously_constrained) continue;
+
                 MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
                     meshmover_p(high_order_grid, surface_node_global_indices, surface_node_displacements);
 
                 VectorType volume_displacements_p = meshmover_p.get_volume_displacements();
+                volume_displacements_p.add(-1.0, volume_displacements);
+                volume_displacements_p /= fd_eps;
+
+                dXvdXs_FD.push_back(volume_displacements_p);
+                pcout << "Finite difference: " << std::endl;
+                dXvdXs_FD[i_surface].print(std::cout);
+                pcout << "Analytical difference: " << std::endl;
+                meshmover.dXvdXs[i_surface].print(std::cout);
+
+                if (high_order_grid.locally_owned_dofs_grid.is_element(inode)) {
+                    std::cout << "dXvdXs_FD: " << dXvdXs_FD[i_surface][inode] << " meshmover.dXvdXs " << meshmover.dXvdXs[i_surface][inode] << " should be 1" << std::endl;
+                }
+
+                dXvdXs_FD[i_surface].add(-1.0,meshmover.dXvdXs[i_surface]);
+
+                const double l2_error = dXvdXs_FD[i_surface].l2_norm();
+                pcout << "*********************************" << std::endl;
+                pcout << "L2-norm of difference: " << l2_error << std::endl;
+                pcout << "*********************************" << std::endl;
+                i_surface++;
+
+                if (l2_error > 1e-4) std::abort();
 
                 if (restore_value) surface_node_displacements[surface_index] = old_value;
             }

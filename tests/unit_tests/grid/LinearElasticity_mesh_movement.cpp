@@ -158,7 +158,7 @@ int main (int argc, char * argv[])
                                         global_index);
                         int index = std::distance(high_order_grid.locally_relevant_surface_nodes_indices.begin(), it);
                         const double val1 = high_order_grid.locally_relevant_surface_points[ipoint][d];
-                        const double val2 = high_order_grid.local_surface_nodes[index];
+                        const double val2 = high_order_grid.locally_relevant_surface_nodes[index];
                         const double abs_err = std::abs(val1-val2);
                         Assert(abs_err < 1e-10,
                             dealii::ExcMessage("val1 ("+std::to_string(val1)+")"

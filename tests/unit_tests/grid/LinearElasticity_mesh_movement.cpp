@@ -171,7 +171,7 @@ int main (int argc, char * argv[])
 
             using VectorType = dealii::LinearAlgebra::distributed::Vector<double>;
             MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
-                meshmover(high_order_grid, surface_node_global_indices, surface_node_displacements);
+                meshmover(high_order_grid, surface_node_global_indices, surface_node_displacements, high_order_grid.surface_indices, high_order_grid.surface_nodes);
             VectorType volume_displacements = meshmover.get_volume_displacements();
 
             dealii::IndexSet locally_owned_dofs = high_order_grid.dof_handler_grid.locally_owned_dofs();

@@ -146,7 +146,7 @@ int main (int argc, char * argv[])
 
             using VectorType = dealii::LinearAlgebra::distributed::Vector<double>;
             MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
-                meshmover(high_order_grid, surface_node_global_indices, surface_node_displacements);
+                meshmover(high_order_grid, surface_node_global_indices, surface_node_displacements, high_order_grid.surface_indices, high_order_grid.surface_nodes);
             VectorType volume_displacements = meshmover.get_volume_displacements();
 
             // Analytical dXvdXs
@@ -183,7 +183,7 @@ int main (int argc, char * argv[])
                 pcout << "Performing finite difference for node: " << inode << std::endl;
 
                 MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
-                    meshmover_p(high_order_grid, surface_node_global_indices, surface_node_displacements);
+                    meshmover_p(high_order_grid, surface_node_global_indices, surface_node_displacements, high_order_grid.surface_indices, high_order_grid.surface_nodes);
 
                 VectorType volume_displacements_p = meshmover_p.get_volume_displacements();
 
@@ -201,7 +201,7 @@ int main (int argc, char * argv[])
                 if (central_fd) {
                     if (restore_value) surface_node_displacements[surface_index] = old_value - fd_eps;
                     MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
-                        meshmover_n(high_order_grid, surface_node_global_indices, surface_node_displacements);
+                        meshmover_n(high_order_grid, surface_node_global_indices, surface_node_displacements, high_order_grid.surface_indices, high_order_grid.surface_nodes);
 
                     volume_displacements_n = meshmover_n.get_volume_displacements();
                     denom *= 2.0;

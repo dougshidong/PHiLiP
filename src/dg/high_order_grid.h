@@ -12,6 +12,7 @@
 #include <deal.II/distributed/solution_transfer.h>
 
 #include <deal.II/lac/vector.h>
+#include <deal.II/lac/la_parallel_vector.templates.h>
 
 #include "parameters/all_parameters.h"
 
@@ -95,11 +96,10 @@ public:
 
 
     Vector surface_nodes;
-    using Vector_int = dealii::LinearAlgebra::distributed::Vector<double>;
 
 	dealii::IndexSet locally_owned_surface_nodes_indexset;
 	dealii::IndexSet ghost_surface_nodes_indexset;
-    Vector surface_indices;
+    dealii::LinearAlgebra::distributed::Vector<int> surface_indices;
 
     /// List of surface nodes.
     /** Note that this contains all \<dim\> directions.
@@ -135,7 +135,7 @@ public:
      *  deformation dxv = A * coeff = A * (Minv*dxs)
      */
     std::vector<real> all_locally_owned_surface_nodes;
-    std::vector<unsigned int> all_locally_owned_surface_indices;
+    std::vector<dealii::types::global_dof_index> all_locally_owned_surface_indices;
     /// List of surface node indices
     std::vector<dealii::types::global_dof_index> locally_owned_surface_nodes_indices;
     /// List of surface node boundary IDs, corresponding to locally_owned_surface_nodes_indices
@@ -311,7 +311,9 @@ namespace MeshMover
         LinearElasticity(
             const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
             const std::vector<dealii::types::global_dof_index> &boundary_ids,
-            const std::vector<double> &boundary_displacements);
+            const std::vector<double> &boundary_displacements,
+			const dealii::LinearAlgebra::distributed::Vector<int> &boundary_ids_vector,
+			const dealii::LinearAlgebra::distributed::Vector<double> &boundary_displacements_vector);
         ~LinearElasticity();
         VectorType get_volume_displacements();
 
@@ -351,6 +353,9 @@ namespace MeshMover
 
         const std::vector<dealii::types::global_dof_index> &boundary_ids;
         const std::vector<double> &boundary_displacements;
+
+        const dealii::LinearAlgebra::distributed::Vector<int> &boundary_ids_vector;
+        const dealii::LinearAlgebra::distributed::Vector<double> &boundary_displacements_vector;
 
     };
 } // namespace MeshMover

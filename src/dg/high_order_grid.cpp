@@ -1085,17 +1085,6 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices()
                     const unsigned int i = idof_cell;
                     const unsigned int component = fe_system.system_to_component_index(i).first;
                     const unsigned int shape_within_base = fe_system.system_to_component_index(i).second;
-                    //const unsigned int base = fe_system.system_to_base_index(i).first.first;
-                    //const unsigned int multiplicity = fe_system.system_to_base_index(i).first.second;
-                    //const unsigned int within_base_  = fe_system.system_to_base_index(i).second; // same as above
-                    // std::cout << " idof_cell " << idof_cell
-                    //           << " component " << component
-                    //           << " shape_within_base " << shape_within_base
-                    //           << " base " << base
-                    //           << " multiplicity " << multiplicity
-                    //           << " within_base_ " << within_base_
-                    //           << " idofcell? " << fe_system.component_to_system_index(component, shape_within_base)
-                    //           <<std::endl;
                     unsigned int point_index = 0;
                     if ( shape_within_base_found.find(shape_within_base) == shape_within_base_found.end() ) {
                         // If the point does not exist, add it to the list of points.
@@ -1362,7 +1351,9 @@ namespace MeshMover
     LinearElasticity<dim,real,VectorType,DoFHandlerType>::LinearElasticity(
         const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
         const std::vector<dealii::types::global_dof_index> &boundary_ids,
-        const std::vector<double> &boundary_displacements)
+        const std::vector<double> &boundary_displacements,
+        const dealii::LinearAlgebra::distributed::Vector<int> &boundary_ids_vector,
+        const dealii::LinearAlgebra::distributed::Vector<double> &boundary_displacements_vector)
       : triangulation(*(high_order_grid.triangulation))
       , fe(dealii::FE_Q<dim>(high_order_grid.max_degree), dim)
       , mapping_fe_field(high_order_grid.mapping_fe_field)
@@ -1374,6 +1365,8 @@ namespace MeshMover
       , pcout(std::cout, this_mpi_process == 0)
       , boundary_ids(boundary_ids)
       , boundary_displacements(boundary_displacements)
+      , boundary_ids_vector(boundary_ids_vector)
+      , boundary_displacements_vector(boundary_displacements_vector)
     { }
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
     LinearElasticity<dim,real,VectorType,DoFHandlerType>::~LinearElasticity() { dof_handler.clear(); }

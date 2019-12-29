@@ -157,6 +157,8 @@ public:
     /// Update list of surface nodes (all_locally_relevant_surface_nodes).
     void update_surface_nodes();
 
+	VectorType transform_surface_nodes(std::function<dealii::Point<dim>(dealii::Point<dim>)> transformation) const;
+
     /// RBF mesh deformation  -  To be done
     //void deform_mesh(Vector surface_displacements);
     void deform_mesh(std::vector<real> local_surface_displacements);

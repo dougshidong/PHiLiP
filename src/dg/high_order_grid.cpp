@@ -997,31 +997,40 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_nodes() {
         const unsigned int n_surface_nodes = all_locally_owned_surface_nodes.size();
         ghost_surface_nodes_indexset.clear();
         ghost_surface_nodes_indexset.set_size(n_surface_nodes);
-        for (auto index = locally_relevant_surface_nodes_indices.begin(); index != locally_relevant_surface_nodes_indices.end(); index++) {
+        for (auto index = locally_relevant_surface_nodes_indices.begin(); index != locally_relevant_surface_nodes_indices.end(); ++index) {
             auto it = std::find (locally_owned_surface_nodes_indices.begin(), locally_owned_surface_nodes_indices.end(), *index);
-            if (it != locally_owned_surface_nodes_indices.end()) {
+            if (it == locally_owned_surface_nodes_indices.end()) {
+                // If not in locally_owned_surface_nodes_indexset then, it must be a ghost entry
+                bool found = false;
                 for (unsigned int i = 0; i < all_locally_owned_surface_indices.size(); i++) {
                     if (all_locally_owned_surface_indices[i] == *index) {
                         ghost_surface_nodes_indexset.add_index(i);
+                        found = true;
+                        break;
                     }
                 }
+                if (!found) std::abort();
             }
         }
     }
 
+    std::cout << "MPI " <<  mpi_rank << " ghosts: " << std::endl;
+    ghost_surface_nodes_indexset.print(std::cout);
     surface_nodes.reinit(locally_owned_surface_nodes_indexset, ghost_surface_nodes_indexset, MPI_COMM_WORLD);
     surface_indices.reinit(locally_owned_surface_nodes_indexset, ghost_surface_nodes_indexset, MPI_COMM_WORLD);
     unsigned int i = 0;
     auto index = surface_indices.begin();
+    AssertDimension(locally_owned_surface_nodes_indexset.n_elements(), locally_owned_surface_nodes.size());
+    AssertDimension(locally_owned_surface_nodes_indexset.n_elements(), locally_owned_surface_nodes_indices.size());
     for (auto node = surface_nodes.begin(); node != surface_nodes.end(); node++, index++, i++) {
-        *index = i;
         *node = locally_owned_surface_nodes[i];
+        *index = locally_owned_surface_nodes_indices[i];
     }
-    surface_nodes.update_ghost_values();
     surface_indices.update_ghost_values();
+    surface_indices.print(std::cout);
+    surface_nodes.update_ghost_values();
 
 }
-
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
 void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices() {
@@ -1119,6 +1128,32 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices()
 
     }
     //std::cout << "I own " << locally_relevant_surface_nodes_indices.size() << " surface nodes" << std::endl;
+}
+
+template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+VectorType HighOrderGrid<dim,real,VectorType,DoFHandlerType>::
+transform_surface_nodes(std::function<dealii::Point<dim>(dealii::Point<dim>)> transformation) const
+{
+    VectorType new_surface_nodes(surface_nodes);
+    auto index = surface_indices.begin();
+    auto node = surface_nodes.begin();
+    auto new_node = new_surface_nodes.begin();
+    for (; index != surface_indices.end(); ++index, ++node, ++new_node) {
+        const dealii::types::global_dof_index global_idof_index = *index;
+        //const std::pair<unsigned int, unsigned int> ipoint_component = global_index_to_point_and_axis[global_idof_index];
+        //const auto ipoint_component = global_index_to_point_and_axis.at(global_idof_index);
+        const std::pair<unsigned int, unsigned int> ipoint_component = global_index_to_point_and_axis.at(global_idof_index);
+        const unsigned int ipoint = ipoint_component.first;
+        const unsigned int component = ipoint_component.second;
+        dealii::Point<dim> point;
+        for (int d=0;d<dim;d++) {
+            point[d] = locally_relevant_surface_points[ipoint][d];
+        }
+        dealii::Point<dim> new_point = transformation(point);
+        *new_node = new_point[component];
+    }
+    new_surface_nodes.update_ghost_values();
+    return new_surface_nodes;
 }
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>

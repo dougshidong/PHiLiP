@@ -26,6 +26,20 @@
 #include "dg/high_order_grid.h"
 #include "parameters/all_parameters.h"
 
+template<int dim>
+dealii::Point<dim> initial_deformation(dealii::Point<dim> point) {
+    const double amplitude = 0.1;
+    dealii::Tensor<1,dim,double> disp;
+    disp[0] = amplitude;
+    disp[0] *= point[0];
+    if(dim>=2) {
+        disp[0] *= std::sin(2.0*dealii::numbers::PI*point[1]);
+    }
+    if(dim>=3) {
+        disp[0] *= std::sin(2.0*dealii::numbers::PI*point[2]);
+    }
+    return point + disp;
+}
 /** Tests the mesh movement by moving the mesh and integrating its volume.
  *  Furthermore, it checks that the surface displacements resulting from the mesh movement
  *  are consistent with the prescribed surface displacements.
@@ -37,6 +51,7 @@ int main (int argc, char * argv[])
 
     dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
     const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    const int n_mpi = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD); (void) n_mpi;
     dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
 
     using namespace PHiLiP;
@@ -46,11 +61,11 @@ int main (int argc, char * argv[])
     Parameters::AllParameters all_parameters;
     all_parameters.parse_parameters (parameter_handler);
 
+    const double amplitude = 0.1;
     const int initial_n_cells = 3;
     const unsigned int n_grids = 3;
     const unsigned int p_start = 2;
     const unsigned int p_end = 3;
-    const double amplitude = 0.1;
     const double fd_eps = 1e-0;
     std::vector<int> fail_poly;
     std::vector<double> fail_area;
@@ -129,6 +144,7 @@ int main (int argc, char * argv[])
                 //(*disp)[0] *= 0;
             }
 
+
             std::vector<dealii::types::global_dof_index> surface_node_global_indices(dim*high_order_grid.locally_relevant_surface_points.size());
             std::vector<double> surface_node_displacements(dim*high_order_grid.locally_relevant_surface_points.size());
             {
@@ -145,6 +161,64 @@ int main (int argc, char * argv[])
             }
 
             using VectorType = dealii::LinearAlgebra::distributed::Vector<double>;
+            std::function<dealii::Point<dim>(dealii::Point<dim>)> transformation = initial_deformation<dim>;
+            VectorType point_displacements_vector = high_order_grid.transform_surface_nodes(transformation);
+            point_displacements_vector -= high_order_grid.surface_nodes;
+            point_displacements_vector.update_ghost_values();
+
+            // Test surface indices match
+            for (int impi=0;impi<n_mpi;++impi) {
+                if (impi == mpi_rank) {
+                    std::vector<int> v1, v2;
+                    for (const auto &i: surface_node_global_indices) {
+                        v1.push_back(i);
+                    }
+
+                    const dealii::IndexSet owned = high_order_grid.surface_indices.locally_owned_elements();
+                    const dealii::IndexSet ghosted = high_order_grid.surface_indices.get_partitioner()->ghost_indices();
+                    for (unsigned int i=0; i<high_order_grid.surface_indices.size(); ++i) {
+                        if(owned.is_element(i) || ghosted.is_element(i)) {
+                            v2.push_back(high_order_grid.surface_indices[i]);
+                        }
+                    }
+                    std::sort(v1.begin(),v1.end());
+                    std::sort(v2.begin(),v2.end());
+                    assert(v1 == v2);
+                }
+            }
+            // Test surface indices match
+            for (int impi=0;impi<n_mpi;++impi) {
+                if (impi == mpi_rank) {
+                    std::vector<double> v1, v2;
+                    std::cout << "List " << std::endl;
+                    for (const auto &i: surface_node_displacements) {
+                        std::cout << i << std::endl;
+                        v1.push_back(i);
+                    }
+
+                    const dealii::IndexSet owned = point_displacements_vector.locally_owned_elements();
+                    const dealii::IndexSet ghosted = point_displacements_vector.get_partitioner()->ghost_indices();
+                    std::cout << "Vector " << std::endl;
+                    for (unsigned int i=0; i<point_displacements_vector.size(); ++i) {
+                        if(owned.is_element(i) || ghosted.is_element(i)) {
+                            v2.push_back(point_displacements_vector[i]);
+                            std::cout << point_displacements_vector[i] << std::endl;
+                        }
+                    }
+                    std::sort(v1.begin(),v1.end());
+                    std::sort(v2.begin(),v2.end());
+                    assert(v1.size() == v2.size());
+                    for (unsigned int i=0; i<v1.size(); ++i) {
+                        //double denom = 1e-15;
+                        //denom = std::max(std::abs(v1[i]), denom);
+                        //denom = std::max(std::abs(v2[i]), denom);
+                        //std::cout<< "asdasd" <<  ((v1[i] - v2[i])/denom) << std::endl;
+                        assert(std::abs(v1[i] - v2[i]) < 1e-12);
+                    }
+                }
+                MPI_Barrier(MPI_COMM_WORLD);
+            }
+
             MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
                 meshmover(high_order_grid, surface_node_global_indices, surface_node_displacements, high_order_grid.surface_indices, high_order_grid.surface_nodes);
             VectorType volume_displacements = meshmover.get_volume_displacements();

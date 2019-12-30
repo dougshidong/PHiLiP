@@ -556,7 +556,48 @@ int OptimizationInverseManufactured<dim,nstate>
 		inverse_target_functional.d2IdXdX.add(1.0,dg->d2RdXdX);
 
 		// Analytical dXvdXs
-		//meshmover.evaluate_dXvdXs();
+		meshmover.evaluate_dXvdXs();
+
+		dealii::TrilinosWrappers::SparseMatrix d2LdWdXs;
+        {
+            dealii::SparsityPattern sparsity_pattern_d2LdWdXs = dg->get_d2RdWdXs_sparsity_pattern ();
+            const dealii::IndexSet &row_parallel_partitioning_d2LdWdXs = dg->locally_owned_dofs;
+            const dealii::IndexSet &col_parallel_partitioning_d2LdWdXs = high_order_grid.surface_nodes.locally_owned_elements();
+            d2LdWdXs.reinit(row_parallel_partitioning_d2LdWdXs, col_parallel_partitioning_d2LdWdXs, sparsity_pattern_d2LdWdXs, mpi_communicator);
+        }
+		dealii::TrilinosWrappers::SparseMatrix dRdXs;
+        {
+            dealii::SparsityPattern sparsity_pattern_dRdXs = dg->get_dRdXs_sparsity_pattern ();
+            const dealii::IndexSet &row_parallel_partitioning_dRdXs = dg->locally_owned_dofs;
+            const dealii::IndexSet &col_parallel_partitioning_dRdXs = high_order_grid.surface_nodes.locally_owned_elements();
+            dRdXs.reinit(row_parallel_partitioning_dRdXs, col_parallel_partitioning_dRdXs, sparsity_pattern_dRdXs, mpi_communicator);
+        }
+
+		dealii::TrilinosWrappers::SparseMatrix d2LdXsdXs;
+        {
+            dealii::SparsityPattern sparsity_pattern_d2LdXsdXs = dg->get_d2RdXsdXs_sparsity_pattern ();
+            const dealii::IndexSet &row_parallel_partitioning_d2LdXsdXs = high_order_grid.surface_nodes.locally_owned_elements();
+            d2LdXsdXs.reinit(row_parallel_partitioning_d2LdXsdXs, sparsity_pattern_d2LdXsdXs, mpi_communicator);
+        }
+		for (unsigned int isurf = 0; isurf < high_order_grid.surface_nodes.size(); ++isurf) {
+			VectorType dLdWdXs_i(dg->solution);
+			inverse_target_functional.d2IdWdX.vmult(dLdWdXs_i,meshmover.dXvdXs[isurf]);
+			for (unsigned int irow = 0; irow < dg->dof_handler.n_dofs(); ++irow) {
+				if (dg->locally_owned_dofs.is_element(irow)) {
+					d2LdWdXs.add(irow, isurf, dLdWdXs_i[irow]);
+				}
+			}
+
+			VectorType dRdXs_i(dg->solution);
+			dg->dRdXv.vmult(dRdXs_i,meshmover.dXvdXs[isurf]);
+			for (unsigned int irow = 0; irow < dg->dof_handler.n_dofs(); ++irow) {
+				if (dg->locally_owned_dofs.is_element(irow)) {
+					dRdXs.add(irow, isurf, dRdXs_i[irow]);
+				}
+			}
+		}
+        d2LdWdXs.compress(dealii::VectorOperation::add);
+        dRdXs.compress(dealii::VectorOperation::add);
 
 
 		// Build required operators

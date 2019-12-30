@@ -12,7 +12,6 @@ dealii::SparsityPattern DGBase<dim,real>::get_d2RdWdX_sparsity_pattern ()
 {
     return get_dRdX_sparsity_pattern ();
 }
-
 template <int dim, typename real>
 dealii::SparsityPattern DGBase<dim,real>::get_dRdW_sparsity_pattern ()
 {
@@ -30,7 +29,6 @@ dealii::SparsityPattern DGBase<dim,real>::get_d2RdWdW_sparsity_pattern ()
 {
     return get_dRdW_sparsity_pattern();
 }
-
 template <int dim, typename real>
 dealii::SparsityPattern DGBase<dim,real>::get_d2RdXdX_sparsity_pattern ()
 {
@@ -120,6 +118,68 @@ dealii::SparsityPattern DGBase<dim,real>::get_dRdX_sparsity_pattern ()
                 }
             }
         } 
+    } // end of cell loop
+
+    dealii::SparsityTools::distribute_sparsity_pattern(dsp, dof_handler.compute_n_locally_owned_dofs_per_processor(), MPI_COMM_WORLD, locally_owned_dofs);
+    dealii::SparsityPattern sparsity_pattern;
+    sparsity_pattern.copy_from(dsp);
+
+    return sparsity_pattern;
+}
+
+template <int dim, typename real>
+dealii::SparsityPattern DGBase<dim,real>::get_d2RdWdXs_sparsity_pattern ()
+{
+    return get_dRdXs_sparsity_pattern ();
+}
+
+
+template <int dim, typename real>
+dealii::SparsityPattern DGBase<dim,real>::get_d2RdXsdXs_sparsity_pattern ()
+{
+    const auto &partitionner = high_order_grid.surface_indices.get_partitioner();
+    const dealii::IndexSet owned = partitionner->locally_owned_range();
+    dealii::DynamicSparsityPattern dsp(owned);
+
+    const unsigned n_cols = high_order_grid.surface_nodes.size();
+    std::vector<dealii::types::global_dof_index> node_indices(n_cols);
+    std::iota (std::begin(node_indices), std::end(node_indices), 0);
+    for (auto row = owned.begin(); row != owned.end(); ++row) {
+        dsp.add_entries(*row, node_indices.begin(), node_indices.end());
+    }
+
+    //dealii::SparsityTools::distribute_sparsity_pattern(dsp, high_order_grid.n_locally_owned_surface_nodes_per_mpi, mpi_communicator, locally_relevant_dofs);
+    dealii::SparsityTools::distribute_sparsity_pattern(dsp, high_order_grid.n_locally_owned_surface_nodes_per_mpi, mpi_communicator, owned);
+
+    dealii::SparsityPattern sparsity_pattern;
+    sparsity_pattern.copy_from(dsp);
+    return sparsity_pattern;
+}
+
+template <int dim, typename real>
+dealii::SparsityPattern DGBase<dim,real>::get_dRdXs_sparsity_pattern ()
+{
+    const unsigned n_residuals = dof_handler.n_dofs();
+    const unsigned n_nodes_coeff = high_order_grid.surface_nodes.size();
+    const unsigned int n_rows = n_residuals;
+    const unsigned int n_cols = n_nodes_coeff;
+
+    dealii::DynamicSparsityPattern dsp(n_rows, n_cols);
+
+    std::vector<dealii::types::global_dof_index> resi_indices;
+    std::vector<dealii::types::global_dof_index> node_indices(n_cols);
+    std::iota (std::begin(node_indices), std::end(node_indices), 0);
+    auto cell = dof_handler.begin_active();
+    for (; cell != dof_handler.end(); ++cell) {
+        if (!cell->is_locally_owned()) continue;
+
+        const unsigned int n_resi_cell = fe_collection[cell->active_fe_index()].n_dofs_per_cell();
+        resi_indices.resize(n_resi_cell);
+        cell->get_dof_indices (resi_indices);
+
+        for (auto resi_row = resi_indices.begin(); resi_row!=resi_indices.end(); ++resi_row) {
+            dsp.add_entries(*resi_row, node_indices.begin(), node_indices.end());
+        }
     } // end of cell loop
 
     dealii::SparsityTools::distribute_sparsity_pattern(dsp, dof_handler.compute_n_locally_owned_dofs_per_processor(), MPI_COMM_WORLD, locally_owned_dofs);

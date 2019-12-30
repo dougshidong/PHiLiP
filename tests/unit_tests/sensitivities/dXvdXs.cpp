@@ -284,6 +284,13 @@ int main (int argc, char * argv[])
                             << " should be 1" << std::endl;
                 }
 
+                //dealii::LinearAlgebra::ReadWriteVector<double> rw_vector;
+                //rw_vector.reinit(meshmover.dXvdXs[isurface]);
+                //dealii::LinearAlgebra::distributed::Vector<double> dXvdXs_i;
+                //dXvdXs_i.reinit(meshmover.displacement_solution);
+                //dXvdXs_i.import(rw_vector, dealii::VectorOperation::insert);
+                //dXvdXs_FD[isurface].add(-1.0,dXvdXs_i);
+
                 dXvdXs_FD[isurface].add(-1.0,meshmover.dXvdXs[isurface]);
 
                 const double l2_error = dXvdXs_FD[isurface].l2_norm();

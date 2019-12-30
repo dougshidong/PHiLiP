@@ -930,7 +930,8 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_nodes() {
             locally_owned_surface_nodes[i++] = nodes[*index];
         }
 
-        std::vector<unsigned int> n_locally_owned_surface_nodes_per_mpi(n_mpi);
+        n_locally_owned_surface_nodes_per_mpi.clear();
+        n_locally_owned_surface_nodes_per_mpi.resize(n_mpi);
         MPI_Allgather(&n_locally_owned_surface_nodes, 1, MPI::UNSIGNED, &(n_locally_owned_surface_nodes_per_mpi[0]), 1, MPI::UNSIGNED, MPI_COMM_WORLD);
 
         std::vector<std::vector<real>> vector_locally_owned_surface_nodes(n_mpi);
@@ -1677,6 +1678,7 @@ namespace MeshMover
                   << " DoF constrained: " << iconstraint
                   << "    Solver converged in " << solver_control.last_step() << " iterations." << std::endl;
 
+            //dXvdXs.push_back(dXvdXs_i_trilinos);
             dealii::LinearAlgebra::ReadWriteVector<double> rw_vector;
             rw_vector.reinit(dXvdXs_i_trilinos);
 

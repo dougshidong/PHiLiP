@@ -45,10 +45,14 @@
 namespace PHiLiP {
 namespace Tests {
 
+#define AMPLITUDE_OPT 0.1
+//#define HESSIAN_DIAG 1e7
+#define HESSIAN_DIAG 1e7
+
 template<int dim>
 dealii::Point<dim> reverse_deformation(dealii::Point<dim> point) {
     dealii::Point<dim> new_point = point;
-    const double amplitude = 0.1;
+    const double amplitude = AMPLITUDE_OPT;
 	double denom = amplitude;
     if(dim>=2) {
         denom *= std::sin(2.0*dealii::numbers::PI*point[1]);
@@ -62,7 +66,7 @@ dealii::Point<dim> reverse_deformation(dealii::Point<dim> point) {
 }
 template<int dim>
 dealii::Point<dim> target_deformation(dealii::Point<dim> point) {
-    const double amplitude = 0.1;
+    const double amplitude = AMPLITUDE_OPT;
     dealii::Tensor<1,dim,double> disp;
     disp[0] = amplitude;
     disp[0] *= point[0];
@@ -208,7 +212,7 @@ apply_P4 (
 	P.reinit(right_hand_side);
 
 	// p2
-	const double reduced_hessian_diagonal = 1000000;
+	const double reduced_hessian_diagonal = HESSIAN_DIAG;
 	P.block(1) = Y.block(1);
 	P.block(1) /= reduced_hessian_diagonal;
 
@@ -256,18 +260,13 @@ public:
 	real2 evaluate_volume_integrand(
 		const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
 		const dealii::Point<dim,real2> &/*phys_coord*/,
-		const std::array<real2,nstate> &soln_at_q,
-        const std::array<real,nstate> &target_soln_at_q,
+		const std::array<real2,nstate> &,//soln_at_q,
+        const std::array<real,nstate> &,//target_soln_at_q,
 		const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/,
 		const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*target_soln_grad_at_q*/)
 	{
 		real2 l2error = 0;
 		
-		for (int istate=0; istate<nstate; ++istate) {
-			l2error += std::pow(soln_at_q[istate] - target_soln_at_q[istate], 2);
-		}
-		//std::cout << "l2error: " << l2error << std::endl;
-
 		return l2error;
 	}
 
@@ -315,7 +314,7 @@ template<int dim, int nstate>
 int OptimizationInverseManufactured<dim,nstate>
 ::run_test () const
 {
-	const double amplitude = 0.1;
+	const double amplitude = AMPLITUDE_OPT;
     const int poly_degree = 1;
     int fail_bool = false;
 	pcout << " Running optimization case... " << std::endl;
@@ -388,11 +387,11 @@ int OptimizationInverseManufactured<dim,nstate>
 		}
 	}
 	// *****************************************************************************
-	// Perform mesh movement
+	// Obtain target grid
 	// *****************************************************************************
 	using VectorType = dealii::LinearAlgebra::distributed::Vector<double>;
-	std::function<dealii::Point<dim>(dealii::Point<dim>)> transformation = target_deformation<dim>;
-	VectorType surface_node_displacements_vector = high_order_grid.transform_surface_nodes(transformation);
+	std::function<dealii::Point<dim>(dealii::Point<dim>)> target_transformation = target_deformation<dim>;
+	VectorType surface_node_displacements_vector = high_order_grid.transform_surface_nodes(target_transformation);
 	surface_node_displacements_vector -= high_order_grid.surface_nodes;
 	surface_node_displacements_vector.update_ghost_values();
 
@@ -403,17 +402,32 @@ int OptimizationInverseManufactured<dim,nstate>
 	high_order_grid.nodes += volume_displacements;
 	high_order_grid.nodes.update_ghost_values();
     high_order_grid.update_surface_nodes();
-	high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
+	//{
+	//	std::function<dealii::Point<dim>(dealii::Point<dim>)> reverse_transformation = reverse_deformation<dim>;
+	//	surface_node_displacements_vector = high_order_grid.transform_surface_nodes(reverse_transformation);
+	//	surface_node_displacements_vector -= high_order_grid.surface_nodes;
+	//	surface_node_displacements_vector.update_ghost_values();
+	//	volume_displacements = meshmover.get_volume_displacements();
+	//}
+	//high_order_grid.nodes += volume_displacements;
+	//high_order_grid.nodes.update_ghost_values();
+    //high_order_grid.update_surface_nodes();
 
 	// Get discrete solution on this target grid
 	std::shared_ptr <PHiLiP::Physics::PhysicsBase<dim,nstate,double>> physics_double = PHiLiP::Physics::PhysicsFactory<dim, nstate, double>::create_Physics(all_parameters);
 	initialize_perturbed_solution(*dg, *physics_double);
+	dg->output_results_vtk(999);
+	high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
 	std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 	ode_solver->steady_state();
 
 	// Save target solution and nodes
 	const auto target_solution = dg->solution;
 	const auto target_nodes    = high_order_grid.nodes;
+
+	pcout << "Target grid: " << std::endl;
+	dg->output_results_vtk(9999);
+	high_order_grid.output_results_vtk(9999);
 
 	// *****************************************************************************
 	// Get back our square mesh through mesh deformation
@@ -443,17 +457,21 @@ int OptimizationInverseManufactured<dim,nstate>
 			}
 		}
 	}
-	std::function<dealii::Point<dim>(dealii::Point<dim>)> reverse_transformation = reverse_deformation<dim>;
-	surface_node_displacements_vector = high_order_grid.transform_surface_nodes(reverse_transformation);
-	surface_node_displacements_vector -= high_order_grid.surface_nodes;
-	surface_node_displacements_vector.update_ghost_values();
-	volume_displacements = meshmover.get_volume_displacements();
+
+	{
+		std::function<dealii::Point<dim>(dealii::Point<dim>)> reverse_transformation = reverse_deformation<dim>;
+		surface_node_displacements_vector = high_order_grid.transform_surface_nodes(reverse_transformation);
+		surface_node_displacements_vector -= high_order_grid.surface_nodes;
+		surface_node_displacements_vector.update_ghost_values();
+		volume_displacements = meshmover.get_volume_displacements();
+	}
 
 	high_order_grid.nodes += volume_displacements;
 	high_order_grid.nodes.update_ghost_values();
     high_order_grid.update_surface_nodes();
-	dg->output_results_vtk(high_order_grid.nth_refinement);
-	high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
+	pcout << "Initial grid: " << std::endl;
+	dg->output_results_vtk(9998);
+	high_order_grid.output_results_vtk(9998);
 
 	// Solve on this new grid
 	ode_solver->steady_state();
@@ -531,13 +549,9 @@ int OptimizationInverseManufactured<dim,nstate>
                 }
             }
         }
-		using VectorType = dealii::LinearAlgebra::distributed::Vector<double>;
-		MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
-			meshmover(high_order_grid, surface_node_displacements_vector);
-		VectorType volume_displacements = meshmover.get_volume_displacements();
 
 		// Analytical dXvdXs
-		meshmover.evaluate_dXvdXs();
+		// meshmover.evaluate_dXvdXs();
 
 
 		// Build required operators
@@ -580,6 +594,9 @@ int OptimizationInverseManufactured<dim,nstate>
 		double step_length = 1.0;
 		const unsigned int max_linesearch = 40;
 		unsigned int i_linesearch = 0;
+		pcout << "l2norm of dw no linesearch " << kkt_soln.block(0).l2_norm() << std::endl;
+		pcout << "l2norm of dx no linesearch " << kkt_soln.block(1).l2_norm() << std::endl;
+		pcout << "l2norm of dl no linesearch " << dual_step.l2_norm() << std::endl;
 		for (; i_linesearch < max_linesearch; i_linesearch++) {
 
 			dg->solution.add(step_length, kkt_soln.block(0));
@@ -587,7 +604,12 @@ int OptimizationInverseManufactured<dim,nstate>
 
 			current_functional = inverse_target_functional.evaluate_functional();
 
-			pcout << "Linesearch " << i_linesearch+1 << " Old functional = " << old_functional << " New functional = " << current_functional << std::endl;
+			pcout << "Linesearch " << i_linesearch+1
+				  << std::scientific << std::setprecision(15)
+				  << " step = " << step_length
+				  << " Old functional = " << old_functional
+				  << " New functional = " << current_functional << std::endl;
+			pcout << std::fixed << std::setprecision(6);
 			if (current_functional < old_functional) {
 				break;
 			} else {

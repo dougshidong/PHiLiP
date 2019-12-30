@@ -154,6 +154,32 @@ public:
         const dealii::FESystem<dim> &fe_metric,
         const dealii::Quadrature<dim> &volume_quadrature);
 
+    template <typename real2>
+    real2 evaluate_face_cell_functional(
+        const Physics::PhysicsBase<dim,nstate,real2> &physics,
+        const std::vector< real2 > &soln_coeff,
+        const std::vector< real > &target_soln_coeff,
+        const dealii::FESystem<dim> &fe_solution,
+        const std::vector< real2 > &coords_coeff,
+        const dealii::FESystem<dim> &fe_metric,
+        const dealii::Quadrature<dim> &volume_quadrature);
+    real evaluate_face_cell_functional(
+        const Physics::PhysicsBase<dim,nstate,real> &physics,
+        const std::vector< real > &soln_coeff,
+        const std::vector< real > &target_soln_coeff,
+        const dealii::FESystem<dim> &fe_solution,
+        const std::vector< real > &coords_coeff,
+        const dealii::FESystem<dim> &fe_metric,
+        const dealii::Quadrature<dim> &volume_quadrature);
+    ADADType evaluate_face_cell_functional(
+        const Physics::PhysicsBase<dim,nstate,ADADType> &physics,
+        const std::vector< ADADType > &soln_coeff,
+        const std::vector< real > &target_soln_coeff,
+        const dealii::FESystem<dim> &fe_solution,
+        const std::vector< ADADType > &coords_coeff,
+        const dealii::FESystem<dim> &fe_metric,
+        const dealii::Quadrature<dim> &volume_quadrature);
+
     /// Vector for storing the derivatives with respect to each solution DoF
     dealii::LinearAlgebra::distributed::Vector<real> dIdw;
     /// Vector for storing the derivatives with respect to each grid DoF
@@ -183,24 +209,73 @@ public:
     virtual real evaluate_volume_integrand(
         const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &/*physics*/,
         const dealii::Point<dim,real> &,//phys_coord,
-        const std::array<real,nstate> &,//soln_at_q,
-        const std::array<real,nstate> &,//target_soln_at_q,
+        const std::array<real,nstate> &soln_at_q,
+        const std::array<real,nstate> &target_soln_at_q,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &,//soln_grad_at_q,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &)//target_soln_grad_at_q)
     {
-        return (real) 0.0;//*phys_coord[0]+0.0*soln_at_q[0]; // Hopefully, multiplying by 0.0 will resize the return value by the correct number of derivatives.
+		real l2error = 0;
+		
+		for (int istate=0; istate<nstate; ++istate) {
+			l2error += std::pow(soln_at_q[istate] - target_soln_at_q[istate], 2);
+		}
+
+		return l2error;
     }
     /// Virtual function for Sacado computation of cell volume functional term and derivatives
     /** Used only in the computation of evaluate_dIdw(). If not overriden returns 0. */
     virtual ADADType evaluate_volume_integrand(
         const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADType> &/*physics*/,
         const dealii::Point<dim,ADADType> &,//phys_coord,
-        const std::array<ADADType,nstate> &,//soln_at_q,
-        const std::array<real,nstate> &,//target_soln_at_q,
+        const std::array<ADADType,nstate> &soln_at_q,
+        const std::array<real,nstate> &target_soln_at_q,
         const std::array<dealii::Tensor<1,dim,ADADType>,nstate> &,//soln_grad_at_q,
         const std::array<dealii::Tensor<1,dim,ADADType>,nstate> &)//target_soln_grad_at_q)
     {
-        return (real) 0.0;//*phys_coord[0]+0.0*soln_at_q[0]; // Hopefully, multiplying by 0.0 will resize the return value by the correct number of derivatives.
+		ADADType l2error = 0;
+		
+		for (int istate=0; istate<nstate; ++istate) {
+			l2error += std::pow(soln_at_q[istate] - target_soln_at_q[istate], 2);
+		}
+
+		return l2error;
+    }
+
+    /// Virtual function for computation of cell face functional term
+    /** Used only in the computation of evaluate_function(). If not overriden returns 0. */
+    virtual real evaluate_face_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &/*physics*/,
+        const dealii::Point<dim,real> &,//phys_coord,
+        const std::array<real,nstate> &soln_at_q,
+        const std::array<real,nstate> &target_soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &,//soln_grad_at_q,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &)//target_soln_grad_at_q)
+    {
+		real l2error = 0;
+		
+		for (int istate=0; istate<nstate; ++istate) {
+			l2error += std::pow(soln_at_q[istate] - target_soln_at_q[istate], 2);
+		}
+
+		return l2error;
+    }
+    /// Virtual function for Sacado computation of cell face functional term and derivatives
+    /** Used only in the computation of evaluate_dIdw(). If not overriden returns 0. */
+    virtual ADADType evaluate_face_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADType> &/*physics*/,
+        const dealii::Point<dim,ADADType> &,//phys_coord,
+        const std::array<ADADType,nstate> &soln_at_q,
+        const std::array<real,nstate> &target_soln_at_q,
+        const std::array<dealii::Tensor<1,dim,ADADType>,nstate> &,//soln_grad_at_q,
+        const std::array<dealii::Tensor<1,dim,ADADType>,nstate> &)//target_soln_grad_at_q)
+    {
+		ADADType l2error = 0;
+		
+		for (int istate=0; istate<nstate; ++istate) {
+			l2error += std::pow(soln_at_q[istate] - target_soln_at_q[istate], 2);
+		}
+
+		return l2error;
     }
 
     /// Virtual function for computation of cell boundary functional term

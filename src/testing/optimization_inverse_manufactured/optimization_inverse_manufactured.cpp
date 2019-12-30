@@ -45,6 +45,36 @@
 namespace PHiLiP {
 namespace Tests {
 
+template<int dim>
+dealii::Point<dim> reverse_deformation(dealii::Point<dim> point) {
+    dealii::Point<dim> new_point = point;
+    const double amplitude = 0.1;
+	double denom = amplitude;
+    if(dim>=2) {
+        denom *= std::sin(2.0*dealii::numbers::PI*point[1]);
+    }
+    if(dim>=3) {
+        denom *= std::sin(2.0*dealii::numbers::PI*point[2]);
+    }
+	denom += 1.0;
+	new_point[0] /= denom;
+    return new_point;
+}
+template<int dim>
+dealii::Point<dim> target_deformation(dealii::Point<dim> point) {
+    const double amplitude = 0.1;
+    dealii::Tensor<1,dim,double> disp;
+    disp[0] = amplitude;
+    disp[0] *= point[0];
+    if(dim>=2) {
+        disp[0] *= std::sin(2.0*dealii::numbers::PI*point[1]);
+    }
+    if(dim>=3) {
+        disp[0] *= std::sin(2.0*dealii::numbers::PI*point[2]);
+    }
+    return point + disp;
+}
+
 dealii::TrilinosWrappers::SparseMatrix transpose_trilinos_matrix(dealii::TrilinosWrappers::SparseMatrix &input_matrix)
 {
 	Epetra_CrsMatrix *transpose_CrsMatrix;
@@ -267,20 +297,6 @@ public:
 };
 
 template <int dim, int nstate>
-dealii::Point<dim> warp (const dealii::Point<dim> &p)
-{
-    dealii::Point<dim> q = p;
-    if (dim == 1) {
-		q[dim-1] *= 1.5;
-	} else if (dim == 2) {
-		q[0] *= p[0]*std::sin(2.0*dealii::numbers::PI*p[1]);
-	} else if (dim == 3) {
-		q[0] *= p[0]*std::sin(2.0*dealii::numbers::PI*p[1]);
-		q[1] *= p[0]*std::sin(2.0*dealii::numbers::PI*p[1]);
-	}
-    return q;
-}
-template <int dim, int nstate>
 OptimizationInverseManufactured<dim,nstate>::OptimizationInverseManufactured(const Parameters::AllParameters *const parameters_input)
     :
     TestsBase::TestsBase(parameters_input)
@@ -375,8 +391,13 @@ int OptimizationInverseManufactured<dim,nstate>
 	// Perform mesh movement
 	// *****************************************************************************
 	using VectorType = dealii::LinearAlgebra::distributed::Vector<double>;
+	std::function<dealii::Point<dim>(dealii::Point<dim>)> transformation = target_deformation<dim>;
+	VectorType surface_node_displacements_vector = high_order_grid.transform_surface_nodes(transformation);
+	surface_node_displacements_vector -= high_order_grid.surface_nodes;
+	surface_node_displacements_vector.update_ghost_values();
+
 	MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
-		meshmover(high_order_grid, surface_node_global_indices, surface_node_displacements, high_order_grid.surface_indices, high_order_grid.surface_nodes);
+		meshmover(high_order_grid, surface_node_displacements_vector);
 	VectorType volume_displacements = meshmover.get_volume_displacements();
 
 	high_order_grid.nodes += volume_displacements;
@@ -422,6 +443,10 @@ int OptimizationInverseManufactured<dim,nstate>
 			}
 		}
 	}
+	std::function<dealii::Point<dim>(dealii::Point<dim>)> reverse_transformation = reverse_deformation<dim>;
+	surface_node_displacements_vector = high_order_grid.transform_surface_nodes(reverse_transformation);
+	surface_node_displacements_vector -= high_order_grid.surface_nodes;
+	surface_node_displacements_vector.update_ghost_values();
 	volume_displacements = meshmover.get_volume_displacements();
 
 	high_order_grid.nodes += volume_displacements;
@@ -508,7 +533,7 @@ int OptimizationInverseManufactured<dim,nstate>
         }
 		using VectorType = dealii::LinearAlgebra::distributed::Vector<double>;
 		MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
-			meshmover(high_order_grid, surface_node_global_indices, surface_node_displacements, high_order_grid.surface_indices, high_order_grid.surface_nodes);
+			meshmover(high_order_grid, surface_node_displacements_vector);
 		VectorType volume_displacements = meshmover.get_volume_displacements();
 
 		// Analytical dXvdXs

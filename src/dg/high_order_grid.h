@@ -312,9 +312,6 @@ namespace MeshMover
       public:
         LinearElasticity(
             const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
-            const std::vector<dealii::types::global_dof_index> &boundary_ids,
-            const std::vector<double> &boundary_displacements,
-			const dealii::LinearAlgebra::distributed::Vector<int> &boundary_ids_vector,
 			const dealii::LinearAlgebra::distributed::Vector<double> &boundary_displacements_vector);
         ~LinearElasticity();
         VectorType get_volume_displacements();
@@ -352,9 +349,6 @@ namespace MeshMover
         std::vector<dealii::types::global_dof_index> local_dofs_per_process;
         dealii::IndexSet locally_owned_dofs;
         dealii::IndexSet locally_relevant_dofs;
-
-        const std::vector<dealii::types::global_dof_index> &boundary_ids;
-        const std::vector<double> &boundary_displacements;
 
         const dealii::LinearAlgebra::distributed::Vector<int> &boundary_ids_vector;
         const dealii::LinearAlgebra::distributed::Vector<double> &boundary_displacements_vector;

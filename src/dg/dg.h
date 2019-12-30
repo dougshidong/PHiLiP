@@ -279,6 +279,20 @@ public:
      */
     dealii::SparsityPattern get_d2RdWdX_sparsity_pattern ();
 
+    /// Evaluate SparsityPattern of dRdXs
+    /*  Where R represents the residual and Xs represents the grid surface degrees of freedom stored as high_order_grid.nodes.
+     */
+    dealii::SparsityPattern get_dRdXs_sparsity_pattern ();
+    /// Evaluate SparsityPattern of the residual Hessian dual.d2RdXsdXs
+    /*  Where R represents the residual and Xs represents the grid surface degrees of freedom stored as high_order_grid.nodes.
+     */
+    dealii::SparsityPattern get_d2RdXsdXs_sparsity_pattern ();
+
+    /// Evaluate SparsityPattern of the residual Hessian dual.d2RdXsdW
+    /*  Where R represents the residual, W the solution DoF, and Xs represents the grid surface degrees of freedom stored as high_order_grid.nodes.
+     */
+    dealii::SparsityPattern get_d2RdWdXs_sparsity_pattern ();
+
     /// Evaluate dRdX using finite-differences
     /*  Where R represents the residual and X represents the grid degrees of freedom stored as high_order_grid.nodes.
      */

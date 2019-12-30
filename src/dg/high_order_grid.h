@@ -101,6 +101,8 @@ public:
 	dealii::IndexSet ghost_surface_nodes_indexset;
     dealii::LinearAlgebra::distributed::Vector<int> surface_indices;
 
+	std::vector<unsigned int> n_locally_owned_surface_nodes_per_mpi;
+
     /// List of surface nodes.
     /** Note that this contains all \<dim\> directions.
      *  By convention, the DoF representing the z-direction follows the DoF representing
@@ -318,6 +320,7 @@ namespace MeshMover
 
 		void evaluate_dXvdXs();
 
+        VectorType displacement_solution;
         dealii::AffineConstraints<double> hanging_node_constraints;
         //std::vector<dealii::TrilinosWrappers::MPI::Vector> dXvdXs;
         std::vector<dealii::LinearAlgebra::distributed::Vector<double>> dXvdXs;
@@ -337,7 +340,6 @@ namespace MeshMover
         dealii::TrilinosWrappers::MPI::Vector system_rhs;
         dealii::TrilinosWrappers::SparseMatrix system_matrix_unconstrained;
         dealii::TrilinosWrappers::MPI::Vector system_rhs_unconstrained;
-        VectorType displacement_solution;
 
         dealii::AffineConstraints<double> all_constraints;
         dealii::AffineConstraints<double> dirichlet_boundary_constraints;

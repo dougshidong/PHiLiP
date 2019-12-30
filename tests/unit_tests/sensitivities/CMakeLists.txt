@@ -263,3 +263,22 @@ foreach(dim RANGE 1 2)
     unset(ParametersLib)
 
 endforeach()
+
+# This test currently fails.
+# For some reason the constrained_linear_operator or application of constraints only
+# works correctly in parallel as mentionned in commit 5410626f740a52be96b3df05b40da0d6efe3e391
+foreach(dim RANGE 2 2)
+
+    # Output executable
+    string(CONCAT TEST_TARGET ${dim}D_dXvdXs)
+
+    set(NMPI 1)
+    add_test(
+      NAME ${TEST_TARGET}_serial
+      COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
+      WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+    )
+
+    unset(TEST_TARGET)
+
+endforeach()

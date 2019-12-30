@@ -22,6 +22,9 @@ std::array<real,nstate> Euler<dim,nstate,real>
     std::array<real,nstate> manufactured_solution;
     for (int s=0; s<nstate; s++) {
         manufactured_solution[s] = this->manufactured_solution_function->value (pos, s);
+        if (s==0) {
+            assert(manufactured_solution[s] > 0);
+        }
     }
     std::vector<dealii::Tensor<1,dim,real>> manufactured_solution_gradient_dealii(nstate);
     this->manufactured_solution_function->vector_gradient (pos, manufactured_solution_gradient_dealii);
@@ -712,6 +715,7 @@ dealii::Vector<double> Euler<dim,nstate,real>::post_compute_derived_quantities_v
             conservative_soln[s] = uh(s);
         }
         const std::array<double, nstate> primitive_soln = convert_conservative_to_primitive(conservative_soln);
+        if (primitive_soln[0] < 0) std::cout << evaluation_points << std::endl;
 
         // Density
         computed_quantities(++current_data_index) = primitive_soln[0];
@@ -796,7 +800,9 @@ dealii::UpdateFlags Euler<dim,nstate,real>
 ::post_get_needed_update_flags () const
 {
     //return update_values | update_gradients;
-    return dealii::update_values;
+    return dealii::update_values
+           | dealii::update_quadrature_points
+           ;
 }
 
 // Instantiate explicitly

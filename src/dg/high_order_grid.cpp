@@ -1673,7 +1673,7 @@ namespace MeshMover
             dXvdXs_i_trilinos *= -1.0;
             dXvdXs_i_trilinos.add(unit_rhs);
 
-            pcout << "Inhomogeneous constraint " << iconstraint+1 << " out of " << n_dirichlet_constraints
+            pcout << "Surface Dirichlet constraint " << iconstraint+1 << " out of " << n_dirichlet_constraints
                   << " DoF constrained: " << iconstraint
                   << "    Solver converged in " << solver_control.last_step() << " iterations." << std::endl;
 

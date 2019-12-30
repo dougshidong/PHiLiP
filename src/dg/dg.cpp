@@ -1113,6 +1113,7 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     filename += ".vtu";
     std::ofstream output(filename);
     data_out.write_vtu(output);
+	std::cout << "Writing out file: " << filename << std::endl;
 
     if (iproc == 0) {
         std::vector<std::string> filenames;

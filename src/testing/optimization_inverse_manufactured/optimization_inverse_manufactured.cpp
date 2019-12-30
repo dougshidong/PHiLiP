@@ -550,8 +550,13 @@ int OptimizationInverseManufactured<dim,nstate>
             }
         }
 
+		// Form Lagrangian Hessian
+		inverse_target_functional.d2IdWdW.add(1.0,dg->d2RdWdW);
+		inverse_target_functional.d2IdWdX.add(1.0,dg->d2RdWdX);
+		inverse_target_functional.d2IdXdX.add(1.0,dg->d2RdXdX);
+
 		// Analytical dXvdXs
-		// meshmover.evaluate_dXvdXs();
+		//meshmover.evaluate_dXvdXs();
 
 
 		// Build required operators

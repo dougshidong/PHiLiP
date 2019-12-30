@@ -26,6 +26,21 @@
 #include "dg/high_order_grid.h"
 #include "parameters/all_parameters.h"
 
+template<int dim>
+dealii::Point<dim> deformation(dealii::Point<dim> point) {
+    const double amplitude = 0.1;
+    dealii::Tensor<1,dim,double> disp;
+    disp[0] = amplitude;
+    disp[0] *= point[0];
+    if(dim>=2) {
+        disp[0] *= std::sin(2.0*dealii::numbers::PI*point[1]);
+    }
+    if(dim>=3) {
+        disp[0] *= std::sin(2.0*dealii::numbers::PI*point[2]);
+    }
+    return point + disp;
+}
+
 /** Tests the mesh movement by moving the mesh and integrating its volume.
  *  Furthermore, it checks that the surface displacements resulting from the mesh movement
  *  are consistent with the prescribed surface displacements.
@@ -170,8 +185,13 @@ int main (int argc, char * argv[])
             }
 
             using VectorType = dealii::LinearAlgebra::distributed::Vector<double>;
+            std::function<dealii::Point<dim>(dealii::Point<dim>)> transformation = deformation<dim>;
+            VectorType surface_node_displacements_vector = high_order_grid.transform_surface_nodes(transformation);
+            surface_node_displacements_vector -= high_order_grid.surface_nodes;
+            surface_node_displacements_vector.update_ghost_values();
+
             MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
-                meshmover(high_order_grid, surface_node_global_indices, surface_node_displacements, high_order_grid.surface_indices, high_order_grid.surface_nodes);
+                meshmover(high_order_grid, surface_node_displacements_vector);
             VectorType volume_displacements = meshmover.get_volume_displacements();
 
             dealii::IndexSet locally_owned_dofs = high_order_grid.dof_handler_grid.locally_owned_dofs();

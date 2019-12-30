@@ -1014,8 +1014,6 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_nodes() {
         }
     }
 
-    std::cout << "MPI " <<  mpi_rank << " ghosts: " << std::endl;
-    ghost_surface_nodes_indexset.print(std::cout);
     surface_nodes.reinit(locally_owned_surface_nodes_indexset, ghost_surface_nodes_indexset, MPI_COMM_WORLD);
     surface_indices.reinit(locally_owned_surface_nodes_indexset, ghost_surface_nodes_indexset, MPI_COMM_WORLD);
     unsigned int i = 0;
@@ -1027,7 +1025,6 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_nodes() {
         *index = locally_owned_surface_nodes_indices[i];
     }
     surface_indices.update_ghost_values();
-    surface_indices.print(std::cout);
     surface_nodes.update_ghost_values();
 
 }
@@ -1385,9 +1382,6 @@ namespace MeshMover
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
     LinearElasticity<dim,real,VectorType,DoFHandlerType>::LinearElasticity(
         const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
-        const std::vector<dealii::types::global_dof_index> &boundary_ids,
-        const std::vector<double> &boundary_displacements,
-        const dealii::LinearAlgebra::distributed::Vector<int> &boundary_ids_vector,
         const dealii::LinearAlgebra::distributed::Vector<double> &boundary_displacements_vector)
       : triangulation(*(high_order_grid.triangulation))
       , fe(dealii::FE_Q<dim>(high_order_grid.max_degree), dim)
@@ -1398,11 +1392,11 @@ namespace MeshMover
       , n_mpi_processes(dealii::Utilities::MPI::n_mpi_processes(mpi_communicator))
       , this_mpi_process(dealii::Utilities::MPI::this_mpi_process(mpi_communicator))
       , pcout(std::cout, this_mpi_process == 0)
-      , boundary_ids(boundary_ids)
-      , boundary_displacements(boundary_displacements)
-      , boundary_ids_vector(boundary_ids_vector)
+      , boundary_ids_vector(high_order_grid.surface_indices)
       , boundary_displacements_vector(boundary_displacements_vector)
-    { }
+    { 
+        AssertDimension(boundary_displacements_vector.size(), boundary_ids_vector.size());
+    }
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
     LinearElasticity<dim,real,VectorType,DoFHandlerType>::~LinearElasticity() { dof_handler.clear(); }
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
@@ -1447,16 +1441,16 @@ namespace MeshMover
         // Only add Dirichlet BC there is currently no constraint.
         // If there is another constraint, it's because it's a hanging node.
         // In that case, we choose to satisfy the regularity properties of the element and ignoring the Dirichlet BC.
-        auto iglobal_row = boundary_ids.begin(), iglobal_end = boundary_ids.end();
-        auto dirichlet_value = boundary_displacements.begin();
-        for (; iglobal_row != iglobal_end; ++iglobal_row,++dirichlet_value) {
-            //if (!locally_owned_dofs.is_element(*iglobal_row)) continue;
-            //if (!all_constraints.is_constrained(*iglobal_row)) {
-                Assert(all_constraints.can_store_line(*iglobal_row), dealii::ExcInternalError());
-                all_constraints.add_line(*iglobal_row);
-                all_constraints.set_inhomogeneity(*iglobal_row, *dirichlet_value+1e-15);
-                //std::cout << "Proc: " << this_mpi_process << " Contraint: " << *iglobal_row << " value: " << *dirichlet_value << std::endl;
-            //}
+        const auto &partitionner = boundary_ids_vector.get_partitioner();
+        for (unsigned int isurf = 0; isurf < boundary_ids_vector.size(); ++isurf) {
+            const bool is_accessible = partitionner->in_local_range(isurf) || partitionner->is_ghost_entry(isurf);
+            if (is_accessible) {
+                const unsigned int iglobal_row = boundary_ids_vector[isurf];
+                const double dirichlet_value = boundary_displacements_vector[isurf];
+                Assert(all_constraints.can_store_line(iglobal_row), dealii::ExcInternalError());
+                all_constraints.add_line(iglobal_row);
+                all_constraints.set_inhomogeneity(iglobal_row, dirichlet_value+1e-15);
+            }
         }
         all_constraints.close();
         const std::vector<dealii::IndexSet> &temp_locally_owned_dofs =
@@ -1623,24 +1617,6 @@ namespace MeshMover
         system_rhs.compress(dealii::VectorOperation::add);
         system_matrix_unconstrained.compress(dealii::VectorOperation::add);
         system_rhs_unconstrained.compress(dealii::VectorOperation::add);
-        //const int static_boundary_id = 0;
-        //const int moving_boundary_id = 1;
-        //// Apply boundary conditions
-        //VectorTools::interpolate_boundary_values(
-        //    dof_handler,
-        //    static_boundary_id,
-        //    Functions::ZeroFunction<dim>(dim),
-        //    boundary_displacements);
-        //FEValuesExtractors::Scalar z_component(dim - 1);
-        //VectorTools::interpolate_boundary_values(
-        //  dof_handler,
-        //  moving_boundary_id,
-        //  IncrementalBoundaryValues<dim>(present_time, present_timestep),
-        //  boundary_displacements,
-        //  fe.component_mask(z_component));
-        //dealii::PETScWrappers::MPI::Vector tmp(locally_owned_dofs, mpi_communicator);
-        //MatrixTools::apply_boundary_values(boundary_displacements, system_matrix, tmp, system_rhs, false);
-        //displacement_solution = tmp;
     }
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
     void LinearElasticity<dim,real,VectorType,DoFHandlerType>::solve_timestep()
@@ -1661,6 +1637,7 @@ namespace MeshMover
         dealii::SolverControl solver_control(5000, 1e-12 * system_rhs.l2_norm());
         dealii::SolverCG<dealii::TrilinosWrappers::MPI::Vector> solver(solver_control);
         dealii::TrilinosWrappers::PreconditionJacobi      precondition;
+        precondition.initialize(system_matrix_unconstrained);
         //precondition.initialize(system_matrix);
         //solver.solve(system_matrix, trilinos_solution, system_rhs, precondition);
 
@@ -1674,62 +1651,95 @@ namespace MeshMover
         const auto Ct   = transpose_operator(C);
         const auto Id_c = project_to_constrained_linear_operator(all_constraints, op_a);
 
-        int n_inhomogeneous_constraints = 0;
-        for (unsigned int row = 0; row < dof_handler.n_dofs(); row++) {
-            bool is_locally_inhomogeneously_constrained = false;
-            bool is_inhomogeneously_constrained = false;
-            if (all_constraints.can_store_line(row)) {
-                if (all_constraints.is_inhomogeneously_constrained(row)) {
-                    is_locally_inhomogeneously_constrained = true;
-                }
-            }
-            MPI_Allreduce(&is_locally_inhomogeneously_constrained, &is_inhomogeneously_constrained, 1, MPI::BOOL, MPI_LOR, MPI_COMM_WORLD);
-            if (is_inhomogeneously_constrained) {
-                n_inhomogeneous_constraints++;
-            }
-        }
+        const unsigned int n_dirichlet_constraints = boundary_displacements_vector.size();
         dXvdXs.clear();
-        int i_inhomogeneous_constraints = 0;
-        for (unsigned int row = 0; row < dof_handler.n_dofs(); row++) {
-            bool is_locally_inhomogeneously_constrained = false;
-            bool is_inhomogeneously_constrained = false;
-            if (all_constraints.can_store_line(row)) {
-                if (all_constraints.is_inhomogeneously_constrained(row)) {
-                    is_locally_inhomogeneously_constrained = true;
-                }
+        for (unsigned int iconstraint = 0; iconstraint < n_dirichlet_constraints; iconstraint++) {
+
+            dealii::TrilinosWrappers::MPI::Vector unit_rhs, CtArhs, dXvdXs_i_trilinos, op_inv_CtArhs;
+            unit_rhs.reinit(trilinos_solution);
+            CtArhs.reinit(trilinos_solution);
+
+            if (boundary_ids_vector.locally_owned_elements().is_element(iconstraint)) {
+                const unsigned int constrained_row = boundary_ids_vector[iconstraint];
+                unit_rhs[constrained_row] = 1.0;
             }
-            MPI_Allreduce(&is_locally_inhomogeneously_constrained, &is_inhomogeneously_constrained, 1, MPI::BOOL, MPI_LOR, MPI_COMM_WORLD);
-            if (is_inhomogeneously_constrained) {
-                precondition.initialize(system_matrix_unconstrained);
-                dealii::TrilinosWrappers::MPI::Vector unit_rhs, CtArhs, dXvdXs_i_trilinos, op_inv_CtArhs;
-                unit_rhs.reinit(trilinos_solution);
-                CtArhs.reinit(trilinos_solution);
-                if (locally_owned_dofs.is_element(row)) {
-                    unit_rhs[row] = 1.0;
-                }
-                CtArhs = Ct*op_a*unit_rhs;
+            CtArhs = Ct*op_a*unit_rhs;
 
-                op_inv_CtArhs.reinit(CtArhs);
-                solver.solve(op_amod, op_inv_CtArhs, CtArhs, precondition);
+            op_inv_CtArhs.reinit(CtArhs);
+            solver.solve(op_amod, op_inv_CtArhs, CtArhs, precondition);
 
-                dXvdXs_i_trilinos.reinit(CtArhs);
-                dXvdXs_i_trilinos = C*op_inv_CtArhs;
-                dXvdXs_i_trilinos *= -1.0;
-                dXvdXs_i_trilinos.add(unit_rhs);
+            dXvdXs_i_trilinos.reinit(CtArhs);
+            dXvdXs_i_trilinos = C*op_inv_CtArhs;
+            dXvdXs_i_trilinos *= -1.0;
+            dXvdXs_i_trilinos.add(unit_rhs);
 
-                pcout << "Inhomogeneous constraint " << ++i_inhomogeneous_constraints << " out of " << n_inhomogeneous_constraints 
-                      << " DoF constrained: " << row
-                      << "    Solver converged in " << solver_control.last_step() << " iterations." << std::endl;
+            pcout << "Inhomogeneous constraint " << iconstraint+1 << " out of " << n_dirichlet_constraints
+                  << " DoF constrained: " << iconstraint
+                  << "    Solver converged in " << solver_control.last_step() << " iterations." << std::endl;
 
-                dealii::LinearAlgebra::ReadWriteVector<double> rw_vector;
-                rw_vector.reinit(dXvdXs_i_trilinos);
+            dealii::LinearAlgebra::ReadWriteVector<double> rw_vector;
+            rw_vector.reinit(dXvdXs_i_trilinos);
 
-                dealii::LinearAlgebra::distributed::Vector<double> dXvdXs_i;
-                dXvdXs_i.reinit(displacement_solution);
-                dXvdXs_i.import(rw_vector, dealii::VectorOperation::insert);
-                dXvdXs.push_back(dXvdXs_i);
-            }
+            dealii::LinearAlgebra::distributed::Vector<double> dXvdXs_i;
+            dXvdXs_i.reinit(displacement_solution);
+            dXvdXs_i.import(rw_vector, dealii::VectorOperation::insert);
+            dXvdXs.push_back(dXvdXs_i);
         }
+        // for (unsigned int row = 0; row < dof_handler.n_dofs(); row++) {
+        //     bool is_locally_inhomogeneously_constrained = false;
+        //     bool is_inhomogeneously_constrained = false;
+        //     if (all_constraints.can_store_line(row)) {
+        //         if (all_constraints.is_inhomogeneously_constrained(row)) {
+        //             is_locally_inhomogeneously_constrained = true;
+        //         }
+        //     }
+        //     MPI_Allreduce(&is_locally_inhomogeneously_constrained, &is_inhomogeneously_constrained, 1, MPI::BOOL, MPI_LOR, MPI_COMM_WORLD);
+        //     if (is_inhomogeneously_constrained) {
+        //         n_inhomogeneous_constraints++;
+        //     }
+        // }
+        // dXvdXs.clear();
+        // int i_inhomogeneous_constraints = 0;
+        // for (unsigned int row = 0; row < dof_handler.n_dofs(); row++) {
+        //     bool is_locally_inhomogeneously_constrained = false;
+        //     bool is_inhomogeneously_constrained = false;
+        //     if (all_constraints.can_store_line(row)) {
+        //         if (all_constraints.is_inhomogeneously_constrained(row)) {
+        //             is_locally_inhomogeneously_constrained = true;
+        //         }
+        //     }
+        //     MPI_Allreduce(&is_locally_inhomogeneously_constrained, &is_inhomogeneously_constrained, 1, MPI::BOOL, MPI_LOR, MPI_COMM_WORLD);
+        //     if (is_inhomogeneously_constrained) {
+        //         precondition.initialize(system_matrix_unconstrained);
+        //         dealii::TrilinosWrappers::MPI::Vector unit_rhs, CtArhs, dXvdXs_i_trilinos, op_inv_CtArhs;
+        //         unit_rhs.reinit(trilinos_solution);
+        //         CtArhs.reinit(trilinos_solution);
+        //         if (locally_owned_dofs.is_element(row)) {
+        //             unit_rhs[row] = 1.0;
+        //         }
+        //         CtArhs = Ct*op_a*unit_rhs;
+
+        //         op_inv_CtArhs.reinit(CtArhs);
+        //         solver.solve(op_amod, op_inv_CtArhs, CtArhs, precondition);
+
+        //         dXvdXs_i_trilinos.reinit(CtArhs);
+        //         dXvdXs_i_trilinos = C*op_inv_CtArhs;
+        //         dXvdXs_i_trilinos *= -1.0;
+        //         dXvdXs_i_trilinos.add(unit_rhs);
+
+        //         pcout << "Inhomogeneous constraint " << ++i_inhomogeneous_constraints << " out of " << n_inhomogeneous_constraints 
+        //               << " DoF constrained: " << row
+        //               << "    Solver converged in " << solver_control.last_step() << " iterations." << std::endl;
+
+        //         dealii::LinearAlgebra::ReadWriteVector<double> rw_vector;
+        //         rw_vector.reinit(dXvdXs_i_trilinos);
+
+        //         dealii::LinearAlgebra::distributed::Vector<double> dXvdXs_i;
+        //         dXvdXs_i.reinit(displacement_solution);
+        //         dXvdXs_i.import(rw_vector, dealii::VectorOperation::insert);
+        //         dXvdXs.push_back(dXvdXs_i);
+        //     }
+        // }
     }
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
     unsigned int LinearElasticity<dim,real,VectorType,DoFHandlerType>::solve_linear_problem()

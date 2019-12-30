@@ -162,9 +162,9 @@ int main (int argc, char * argv[])
 
             using VectorType = dealii::LinearAlgebra::distributed::Vector<double>;
             std::function<dealii::Point<dim>(dealii::Point<dim>)> transformation = initial_deformation<dim>;
-            VectorType point_displacements_vector = high_order_grid.transform_surface_nodes(transformation);
-            point_displacements_vector -= high_order_grid.surface_nodes;
-            point_displacements_vector.update_ghost_values();
+            VectorType surface_node_displacements_vector = high_order_grid.transform_surface_nodes(transformation);
+            surface_node_displacements_vector -= high_order_grid.surface_nodes;
+            surface_node_displacements_vector.update_ghost_values();
 
             // Test surface indices match
             for (int impi=0;impi<n_mpi;++impi) {
@@ -196,13 +196,13 @@ int main (int argc, char * argv[])
                         v1.push_back(i);
                     }
 
-                    const dealii::IndexSet owned = point_displacements_vector.locally_owned_elements();
-                    const dealii::IndexSet ghosted = point_displacements_vector.get_partitioner()->ghost_indices();
+                    const dealii::IndexSet owned = surface_node_displacements_vector.locally_owned_elements();
+                    const dealii::IndexSet ghosted = surface_node_displacements_vector.get_partitioner()->ghost_indices();
                     std::cout << "Vector " << std::endl;
-                    for (unsigned int i=0; i<point_displacements_vector.size(); ++i) {
+                    for (unsigned int i=0; i<surface_node_displacements_vector.size(); ++i) {
                         if(owned.is_element(i) || ghosted.is_element(i)) {
-                            v2.push_back(point_displacements_vector[i]);
-                            std::cout << point_displacements_vector[i] << std::endl;
+                            v2.push_back(surface_node_displacements_vector[i]);
+                            std::cout << surface_node_displacements_vector[i] << std::endl;
                         }
                     }
                     std::sort(v1.begin(),v1.end());
@@ -220,44 +220,28 @@ int main (int argc, char * argv[])
             }
 
             MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
-                meshmover(high_order_grid, surface_node_global_indices, surface_node_displacements, high_order_grid.surface_indices, high_order_grid.surface_nodes);
+                meshmover(high_order_grid, surface_node_displacements_vector);
             VectorType volume_displacements = meshmover.get_volume_displacements();
 
             // Analytical dXvdXs
             meshmover.evaluate_dXvdXs();
             // Start finite difference
-            (void) fd_eps;
             std::vector<VectorType> dXvdXs_FD;
-            int i_surface = 0;
-            for (unsigned int inode = 0; inode < high_order_grid.dof_handler_grid.n_dofs(); inode++) {
+            for (unsigned int isurface = 0; isurface < surface_node_displacements_vector.size(); isurface++) {
 
-                bool is_locally_inhomogeneously_constrained = false;
-                bool is_inhomogeneously_constrained = false;
-
-                unsigned int surface_index = 0;
+                bool iown = surface_node_displacements_vector.locally_owned_elements().is_element(isurface);
                 double old_value = 0;
-                bool restore_value = false;
-                if (high_order_grid.locally_relevant_dofs_grid.is_element(inode)) {
-                    for (; surface_index < surface_node_global_indices.size(); surface_index++) {
-                        const unsigned int inode_surface = surface_node_global_indices[surface_index];
-                        if (inode == inode_surface) {
-                            restore_value = true;
-
-                            old_value = surface_node_displacements[surface_index];
-                            surface_node_displacements[surface_index] = old_value + fd_eps;
-
-                            is_locally_inhomogeneously_constrained = true;
-                            break;
-                        }
-                    }
+                unsigned int corresponding_volume_dof = 999999999;
+                if (iown) {
+                    corresponding_volume_dof = high_order_grid.surface_indices[isurface];
+                    std::cout << "Performing finite difference for node: " << high_order_grid.surface_indices[isurface] << std::endl;
+                    old_value = surface_node_displacements_vector[isurface];
+                    surface_node_displacements_vector[isurface] = old_value + fd_eps;
                 }
-                MPI_Allreduce(&is_locally_inhomogeneously_constrained, &is_inhomogeneously_constrained, 1, MPI::BOOL, MPI_LOR, MPI_COMM_WORLD);
-                if (!is_inhomogeneously_constrained) continue;
-
-                pcout << "Performing finite difference for node: " << inode << std::endl;
+                surface_node_displacements_vector.update_ghost_values();
 
                 MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
-                    meshmover_p(high_order_grid, surface_node_global_indices, surface_node_displacements, high_order_grid.surface_indices, high_order_grid.surface_nodes);
+                    meshmover_p(high_order_grid, surface_node_displacements_vector);
 
                 VectorType volume_displacements_p = meshmover_p.get_volume_displacements();
 
@@ -273,9 +257,11 @@ int main (int argc, char * argv[])
                 VectorType volume_displacements_n;
                 double denom = fd_eps;
                 if (central_fd) {
-                    if (restore_value) surface_node_displacements[surface_index] = old_value - fd_eps;
+                    if (iown) surface_node_displacements_vector[isurface] = old_value - fd_eps;
+                    surface_node_displacements_vector.update_ghost_values();
+
                     MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
-                        meshmover_n(high_order_grid, surface_node_global_indices, surface_node_displacements, high_order_grid.surface_indices, high_order_grid.surface_nodes);
+                        meshmover_n(high_order_grid, surface_node_displacements_vector);
 
                     volume_displacements_n = meshmover_n.get_volume_displacements();
                     denom *= 2.0;
@@ -288,17 +274,19 @@ int main (int argc, char * argv[])
 
                 dXvdXs_FD.push_back(volume_displacements_p);
                 pcout << "Finite difference: " << std::endl;
-                dXvdXs_FD[i_surface].print(std::cout);
+                dXvdXs_FD[isurface].print(std::cout);
                 pcout << "Analytical difference: " << std::endl;
-                meshmover.dXvdXs[i_surface].print(std::cout);
+                meshmover.dXvdXs[isurface].print(std::cout);
 
-                if (high_order_grid.locally_owned_dofs_grid.is_element(inode)) {
-                    std::cout << "dXvdXs_FD: " << dXvdXs_FD[i_surface][inode] << " meshmover.dXvdXs " << meshmover.dXvdXs[i_surface][inode] << " should be 1" << std::endl;
+                if (iown) {
+                    std::cout << "dXvdXs_FD: " << dXvdXs_FD[isurface][corresponding_volume_dof]
+                            << " meshmover.dXvdXs " << meshmover.dXvdXs[isurface][corresponding_volume_dof]
+                            << " should be 1" << std::endl;
                 }
 
-                dXvdXs_FD[i_surface].add(-1.0,meshmover.dXvdXs[i_surface]);
+                dXvdXs_FD[isurface].add(-1.0,meshmover.dXvdXs[isurface]);
 
-                const double l2_error = dXvdXs_FD[i_surface].l2_norm();
+                const double l2_error = dXvdXs_FD[isurface].l2_norm();
                 pcout << "*********************************" << std::endl;
                 pcout << "L2-norm of difference: " << l2_error << std::endl;
                 pcout << "*********************************" << std::endl;
@@ -307,13 +295,12 @@ int main (int argc, char * argv[])
                     pcout << "Nodes: " << std::endl;
                     high_order_grid.nodes.print(std::cout);
                     pcout << "Error vector: " << std::endl;
-                    dXvdXs_FD[i_surface].print(std::cout,3,true,false);
+                    dXvdXs_FD[isurface].print(std::cout,3,true,false);
                     std::abort();
                 }
 
-                if (restore_value) surface_node_displacements[surface_index] = old_value;
-
-                i_surface++;
+                if (iown) surface_node_displacements_vector[isurface] = old_value;
+                surface_node_displacements_vector.update_ghost_values();
             }
 
         }

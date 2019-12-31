@@ -243,6 +243,7 @@ real2 TargetFunctional<dim, nstate, real>::evaluate_face_cell_functional(
 		(void) jacobian_determinant;
 		(void) quad_weight;
 		if (jacobian_determinant < 0) face_local_sum += 1e200;
+        //face_local_sum += face_integrand * jacobian_determinant * quad_weight;
         face_local_sum += face_integrand;// * jacobian_determinant * quad_weight;
     }
     return face_local_sum;

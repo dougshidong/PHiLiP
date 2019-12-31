@@ -47,7 +47,7 @@ namespace Tests {
 
 #define AMPLITUDE_OPT 0.1
 //#define HESSIAN_DIAG 1e7
-#define HESSIAN_DIAG 1e6
+#define HESSIAN_DIAG 1e4
 
 template<int dim>
 dealii::Point<dim> reverse_deformation(dealii::Point<dim> point) {
@@ -132,6 +132,7 @@ apply_P4 (
     dealii::LinearAlgebra::distributed::BlockVector<double> &solution,
     const PHiLiP::Parameters::LinearSolverParam &param)
 {
+	std::cout << "Applying P4" << std::endl;
     dealii::deallog.depth_console(3);
 	using trilinos_vector_type = dealii::TrilinosWrappers::MPI::Vector;
 	using vector_type = dealii::LinearAlgebra::distributed::Vector<double>;
@@ -236,7 +237,7 @@ apply_P4 (
 	Ad.vmult(Ad_p2, P.block(1));
 
 	As_inv_Ad_p2.reinit(solution.block(0));
-	solve_linear(As, As_inv_Ad_p2, Ad_p2, param);
+	solve_linear(As, Ad_p2, As_inv_Ad_p2, param);
 
 	// p1
 	P.block(0) = As_inv_y1;
@@ -247,14 +248,17 @@ apply_P4 (
 	p3_rhs.reinit(solution.block(2));
 
 	Wss.vmult(p3_rhs, As_inv_Ad_p2);
-	Wsd.vmult_add(p3_rhs, P.block(1));
 	p3_rhs *= -1.0;
+	Wsd.vmult_add(p3_rhs, P.block(1));
 	p3_rhs += Y.block(2);
 
-	solve_linear(AsT, P.block(2), p3_rhs, param);
+	//std::cout << "************* p3_rhs norm" << p3_rhs.l2_norm() << std::endl;
+	//solve_linear(AsT, P.block(2), p3_rhs, param);
+	solve_linear(AsT, p3_rhs, P.block(2), param);
 
 	solution = P;
 
+	std::cout << "Finished applying P4" << std::endl;
     return {-1.0, -1.0};
 }
 

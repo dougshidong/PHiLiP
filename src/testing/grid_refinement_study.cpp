@@ -62,7 +62,8 @@ int GridRefinementStudy<dim,nstate>::run_test() const
 
     const unsigned int grid_size = grs_param.grid_size;
 
-    const unsigned int refinement_steps = grs_param.refinement_steps;
+    const unsigned int num_refinements = grs_param.num_refinements;
+
 
     const double left  = grs_param.grid_left;
     const double right = grs_param.grid_right;
@@ -80,7 +81,12 @@ int GridRefinementStudy<dim,nstate>::run_test() const
     PHiLiP::GridRefinement::GnuFig<double> gf;
 
     // start of loop for each grid refinement run
-    {
+    for(unsigned int iref = 0; iref <  (num_refinements?num_refinements:1); ++iref){
+        // getting the parameters for this run
+        const Parameters::GridRefinementParam gr_param = grs_param.grid_refinement_param;
+        
+        const unsigned int refinement_steps = gr_param.refinement_steps;
+
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
         dealii::Triangulation<dim> grid(
             typename dealii::Triangulation<dim>::MeshSmoothing(
@@ -220,11 +226,7 @@ int GridRefinementStudy<dim,nstate>::run_test() const
             // reinitializing the adjoint
             adjoint->reinit();
 
-            bool less_than_max = true;
-            for(auto cell = dg->dof_handler.begin_active(); cell != dg->dof_handler.end(); ++cell)
-                if(cell->is_locally_owned() && cell->active_fe_index()+1 > dg->max_degree)
-                    less_than_max = false;
-
+            bool less_than_max = dg->get_max_fe_degree() + 1 > dg->max_degree;
 
             // evaluating the derivatives and the fine grid adjoint
             if(less_than_max){ // don't output if at max order (as p-enrichment will segfault)
@@ -271,7 +273,7 @@ int GridRefinementStudy<dim,nstate>::run_test() const
         convergence_table_vector.push_back(convergence_table);
     
         if(pcout.is_active()) 
-            gf.add_xy_data(dofs, error, "l2error");
+            gf.add_xy_data(dofs, error, "l2error_"+dealii::Utilities::int_to_string(iref,1));
     }
 
     pcout << std::endl << std::endl << std::endl << std::endl

@@ -1,3 +1,5 @@
+#include <array>
+
 #include "parameters_grid_refinement_study.h"
 
 #include "parameters/parameters_manufactured_convergence_study.h"
@@ -7,17 +9,32 @@ namespace PHiLiP {
 namespace Parameters {
 
 GridRefinementStudyParam::GridRefinementStudyParam() : 
-    functional_param(FunctionalParam()), 
-    grid_refinement_param(GridRefinementParam()),
-    manufactured_solution_param(ManufacturedSolutionParam()) {}
+    functional_param(FunctionalParam()),
+    manufactured_solution_param(ManufacturedSolutionParam()), 
+    grid_refinement_param(GridRefinementParam()) {}
 
 void GridRefinementStudyParam::declare_parameters(dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("grid refinement study");
     {
         Parameters::FunctionalParam::declare_parameters(prm);
-        Parameters::GridRefinementParam::declare_parameters(prm);
         Parameters::ManufacturedSolutionParam::declare_parameters(prm);
+
+        prm.enter_subsection("grid refinement");
+        {
+            Parameters::GridRefinementParam::declare_parameters(prm);
+        }
+        prm.leave_subsection();
+
+        // looping over the elements of the array to declare the different refinement
+        for(unsigned int i = 0; i < MAX_REFINEMENTS; ++i)
+        {
+            prm.enter_subsection("grid refinement [" + dealii::Utilities::int_to_string(i,1) + "]");
+            {
+                Parameters::GridRefinementParam::declare_parameters(prm);
+            }
+            prm.leave_subsection();
+        }
     
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(),
@@ -31,9 +48,9 @@ void GridRefinementStudyParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Integer(),
                           "Polynomial degree of the grid.");
 
-        prm.declare_entry("refinement_steps", "4",
-                          dealii::Patterns::Integer(),
-                          "Number of refinement steps to be performed.");
+        prm.declare_entry("num_refinements", "0",
+                          dealii::Patterns::Integer(0, MAX_REFINEMENTS),
+                          "Number of different refinements to be performed.");
 
         prm.declare_entry("grid_type", "hypercube",
                           dealii::Patterns::Selection("hypercube|sinehypercube|read_grid"),
@@ -65,14 +82,28 @@ void GridRefinementStudyParam::parse_parameters(dealii::ParameterHandler &prm)
     prm.enter_subsection("grid refinement study");
     {
         functional_param.parse_parameters(prm);
-        grid_refinement_param.parse_parameters(prm);
         manufactured_solution_param.parse_parameters(prm);
+
+        prm.enter_subsection("grid refinement");
+        {
+            grid_refinement_param.parse_parameters(prm);
+        }
+        prm.leave_subsection();
+
+        for(unsigned int i = 0; i < MAX_REFINEMENTS; ++i)
+        {
+            prm.enter_subsection("grid refinement [" + dealii::Utilities::int_to_string(i,1) + "]");
+            {
+                grid_refinement_param_vector[i].parse_parameters(prm);
+            }
+            prm.leave_subsection();
+        }
 
         poly_degree      = prm.get_integer("poly_degree");
         poly_degree_max  = prm.get_integer("poly_degree_max");
         poly_degree_grid = prm.get_integer("poly_degree_grid");
 
-        refinement_steps = prm.get_integer("refinement_steps");
+        num_refinements = prm.get_integer("num_refinements");
 
         const std::string grid_string = prm.get("grid_type");
         using GridEnum = Parameters::ManufacturedConvergenceStudyParam::GridEnum;

@@ -1,6 +1,8 @@
 #ifndef __PARAMETERS_GRID_REFINEMENT_STUDY_H__
 #define __PARAMETERS_GRID_REFINEMENT_STUDY_H__
 
+#include <array>
+
 #include <deal.II/base/parameter_handler.h>
 
 #include "parameters/parameters_functional.h"
@@ -15,21 +17,27 @@ namespace Parameters {
 
 class GridRefinementStudyParam
 {
+    // max number of different refinement procedures
+    static const unsigned int MAX_REFINEMENTS = 5;
+
 public:
     GridRefinementStudyParam(); ///< Constructor
 
     FunctionalParam functional_param;
-    
-    GridRefinementParam grid_refinement_param;
 
     ManufacturedSolutionParam manufactured_solution_param;
+
+    GridRefinementParam grid_refinement_param;
+
+    // array for refinement steps
+    std::array<GridRefinementParam, MAX_REFINEMENTS> grid_refinement_param_vector;
 
     unsigned int poly_degree;
     unsigned int poly_degree_max;
     unsigned int poly_degree_grid;
 
-    // eventually will either hold the number of steps or handled by the grid_refinement loop
-    unsigned int refinement_steps; 
+    // number of different refinement procedures stored, 0 indicates to use the default pathway
+    unsigned int num_refinements; 
 
     // simplified set of descriptors for the grid for now, replace by grin in param
     using GridEnum = Parameters::ManufacturedConvergenceStudyParam::GridEnum;

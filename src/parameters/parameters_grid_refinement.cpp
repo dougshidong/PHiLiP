@@ -9,8 +9,8 @@ GridRefinementParam::GridRefinementParam(){}
 
 void GridRefinementParam::declare_parameters(dealii::ParameterHandler &prm)
 {
-    prm.enter_subsection("grid refinement");
-    {
+    // prm.enter_subsection("grid refinement");
+    // {
         prm.declare_entry("refinement_steps", "3",
                           dealii::Patterns::Integer(),
                           "Number of iterations to be performed");
@@ -75,14 +75,14 @@ void GridRefinementParam::declare_parameters(dealii::ParameterHandler &prm)
         prm.declare_entry("complexity_add", "0.0",
                           dealii::Patterns::Double(),
                           "Constant added to the complexity at each step.");
-    }
-    prm.leave_subsection();
+    // }
+    // prm.leave_subsection();
 }
 
 void GridRefinementParam::parse_parameters(dealii::ParameterHandler &prm)
 {
-    prm.enter_subsection("grid refinement");
-    {
+    // prm.enter_subsection("grid refinement");
+    // {
         refinement_steps = prm.get_integer("refinement_steps");
 
         const std::string refinement_method_string = prm.get("refinement_method");
@@ -109,8 +109,8 @@ void GridRefinementParam::parse_parameters(dealii::ParameterHandler &prm)
 
         complexity_scale = prm.get_double("complexity_scale");
         complexity_add   = prm.get_double("complexity_add");
-    }
-    prm.leave_subsection();
+    // }
+    // prm.leave_subsection();
 }
 
 } // Parameters namespace

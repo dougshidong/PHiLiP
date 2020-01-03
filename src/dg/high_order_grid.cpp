@@ -1654,6 +1654,7 @@ namespace MeshMover
 
         const unsigned int n_dirichlet_constraints = boundary_displacements_vector.size();
         dXvdXs.clear();
+        pcout << "Solving for dXvdXs with " << n_dirichlet_constraints << "surface nodes..." << std::endl;
         for (unsigned int iconstraint = 0; iconstraint < n_dirichlet_constraints; iconstraint++) {
 
             dealii::TrilinosWrappers::MPI::Vector unit_rhs, CtArhs, dXvdXs_i_trilinos, op_inv_CtArhs;
@@ -1667,16 +1668,19 @@ namespace MeshMover
             CtArhs = Ct*op_a*unit_rhs;
 
             op_inv_CtArhs.reinit(CtArhs);
+
+            dealii::deallog.depth_console(0);
             solver.solve(op_amod, op_inv_CtArhs, CtArhs, precondition);
+
+            //pcout << "Surface Dirichlet constraint " << iconstraint+1 << " out of " << n_dirichlet_constraints
+            //      << " DoF constrained: " << iconstraint
+            //      << "    Solver converged in " << solver_control.last_step() << " iterations." << std::endl;
+
 
             dXvdXs_i_trilinos.reinit(CtArhs);
             dXvdXs_i_trilinos = C*op_inv_CtArhs;
             dXvdXs_i_trilinos *= -1.0;
             dXvdXs_i_trilinos.add(unit_rhs);
-
-            pcout << "Surface Dirichlet constraint " << iconstraint+1 << " out of " << n_dirichlet_constraints
-                  << " DoF constrained: " << iconstraint
-                  << "    Solver converged in " << solver_control.last_step() << " iterations." << std::endl;
 
             //dXvdXs.push_back(dXvdXs_i_trilinos);
             dealii::LinearAlgebra::ReadWriteVector<double> rw_vector;

@@ -63,6 +63,7 @@ public:
         euler_split_taylor_green,
         burgers_split_form,
 		optimization_inverse_manufactured,
+        euler_bump_optimization,
         advection_periodicity,
         };
     TestType test_type; ///< Selected TestType from the input file.

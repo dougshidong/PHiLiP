@@ -553,7 +553,8 @@ void GridRefinement_Continuous<dim,nstate,real>::refine_grid_h()
 
     std::string output_name = "grid-"+std::to_string(igrid)+".msh";
     std::cout << "Command is: " << ("/usr/local/include/gmsh-master/build/gmsh " + write_geoname + " -2 -o " + output_name).c_str() << '\n';
-    (void) std::system(("/usr/local/include/gmsh-master/build/gmsh " + write_geoname + " -2 -o " + output_name).c_str());
+    int ret = std::system(("/usr/local/include/gmsh-master/build/gmsh " + write_geoname + " -2 -o " + output_name).c_str());
+    (void) ret;
 
     this->tria->clear();
     dealii::GridIn<dim> gridin;
@@ -769,11 +770,11 @@ void GridRefinement_Continuous_Adjoint<dim,nstate,real>::field_hp(){}
 // constructors for GridRefinementBase
 template <int dim, int nstate, typename real>
 GridRefinementBase<dim,nstate,real>::GridRefinementBase(
-    PHiLiP::Parameters::AllParameters const *const                   param_input,
+    PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
     std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real> >            adj_input,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) : 
         GridRefinementBase<dim,nstate,real>(
-            param_input, 
+            gr_param_input, 
             adj_input, 
             adj_input->functional, 
             adj_input->dg, 
@@ -781,12 +782,12 @@ GridRefinementBase<dim,nstate,real>::GridRefinementBase(
 
 template <int dim, int nstate, typename real>
 GridRefinementBase<dim,nstate,real>::GridRefinementBase(
-    PHiLiP::Parameters::AllParameters const *const                   param_input,
+    PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
     std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg_input,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input,
     std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional_input) :
         GridRefinementBase<dim,nstate,real>(
-            param_input, 
+            gr_param_input, 
             nullptr, 
             functional_input, 
             dg_input, 
@@ -794,11 +795,11 @@ GridRefinementBase<dim,nstate,real>::GridRefinementBase(
 
 template <int dim, int nstate, typename real>
 GridRefinementBase<dim,nstate,real>::GridRefinementBase(
-    PHiLiP::Parameters::AllParameters const *const                   param_input,
+    PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
     std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg_input,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) : 
         GridRefinementBase<dim,nstate,real>(
-            param_input, 
+            gr_param_input, 
             nullptr, 
             nullptr, 
             dg_input, 
@@ -806,10 +807,10 @@ GridRefinementBase<dim,nstate,real>::GridRefinementBase(
 
 template <int dim, int nstate, typename real>
 GridRefinementBase<dim,nstate,real>::GridRefinementBase(
-    PHiLiP::Parameters::AllParameters const *const param_input,
+    PHiLiP::Parameters::GridRefinementParam        gr_param_input,
     std::shared_ptr< PHiLiP::DGBase<dim, real> >   dg_input) :
         GridRefinementBase<dim,nstate,real>(
-            param_input, 
+            gr_param_input, 
             nullptr, 
             nullptr, 
             dg_input, 
@@ -818,13 +819,12 @@ GridRefinementBase<dim,nstate,real>::GridRefinementBase(
 // main constructor is private for constructor delegation
 template <int dim, int nstate, typename real>
 GridRefinementBase<dim,nstate,real>::GridRefinementBase(
-    PHiLiP::Parameters::AllParameters const *const                   param_input,
+    PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
     std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real> >            adj_input,
     std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional_input,
     std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg_input,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) :
-        param(param_input),
-        grid_refinement_param(param_input->grid_refinement_study_param.grid_refinement_param),
+        grid_refinement_param(gr_param_input),
         adjoint(adj_input),
         functional(functional_input),
         dg(dg_input),
@@ -838,92 +838,92 @@ GridRefinementBase<dim,nstate,real>::GridRefinementBase(
 template <int dim, int nstate, typename real>
 std::shared_ptr< GridRefinementBase<dim,nstate,real> > 
 GridRefinementFactory<dim,nstate,real>::create_GridRefinement(
-    PHiLiP::Parameters::AllParameters const *const                   param,
+    PHiLiP::Parameters::GridRefinementParam                          gr_param,
     std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real> >            adj,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics)
 {
     // all adjoint based methods should be constructed here
     using RefinementMethodEnum = PHiLiP::Parameters::GridRefinementParam::RefinementMethod;
     using ErrorIndicatorEnum   = PHiLiP::Parameters::GridRefinementParam::ErrorIndicator;
-    RefinementMethodEnum refinement_method = param->grid_refinement_study_param.grid_refinement_param.refinement_method;
-    ErrorIndicatorEnum   error_indicator   = param->grid_refinement_study_param.grid_refinement_param.error_indicator;
+    RefinementMethodEnum refinement_method = gr_param.refinement_method;
+    ErrorIndicatorEnum   error_indicator   = gr_param.error_indicator;
 
     if(refinement_method == RefinementMethodEnum::fixed_fraction &&
        error_indicator   == ErrorIndicatorEnum::adjoint_based){
-        return std::make_shared< GridRefinement_FixedFraction_Adjoint<dim,nstate,real> >(param, adj, physics);
+        return std::make_shared< GridRefinement_FixedFraction_Adjoint<dim,nstate,real> >(gr_param, adj, physics);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::adjoint_based){
-        return std::make_shared< GridRefinement_Continuous_Adjoint<dim,nstate,real> >(param, adj, physics);
+        return std::make_shared< GridRefinement_Continuous_Adjoint<dim,nstate,real> >(gr_param, adj, physics);
     }
 
-    return create_GridRefinement(param, adj->dg, physics, adj->functional);
+    return create_GridRefinement(gr_param, adj->dg, physics, adj->functional);
 }
 
 // dg + physics + Functional
 template <int dim, int nstate, typename real>
 std::shared_ptr< GridRefinementBase<dim,nstate,real> > 
 GridRefinementFactory<dim,nstate,real>::create_GridRefinement(
-    PHiLiP::Parameters::AllParameters const *const                   param,
+    PHiLiP::Parameters::GridRefinementParam                          gr_param,
     std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics,
     std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         /*functional*/)
 {
     // currently nothing that uses only the functional directly
-    return create_GridRefinement(param, dg, physics);
+    return create_GridRefinement(gr_param, dg, physics);
 }
 
 // dg + physics
 template <int dim, int nstate, typename real>
 std::shared_ptr< GridRefinementBase<dim,nstate,real> > 
 GridRefinementFactory<dim,nstate,real>::create_GridRefinement(
-    PHiLiP::Parameters::AllParameters const *const                   param,
+    PHiLiP::Parameters::GridRefinementParam                          gr_param,
     std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics)
 {
     // hessian and error based
     using RefinementMethodEnum = PHiLiP::Parameters::GridRefinementParam::RefinementMethod;
     using ErrorIndicatorEnum   = PHiLiP::Parameters::GridRefinementParam::ErrorIndicator;
-    RefinementMethodEnum refinement_method = param->grid_refinement_study_param.grid_refinement_param.refinement_method;
-    ErrorIndicatorEnum   error_indicator   = param->grid_refinement_study_param.grid_refinement_param.error_indicator;
+    RefinementMethodEnum refinement_method = gr_param.refinement_method;
+    ErrorIndicatorEnum   error_indicator   = gr_param.error_indicator;
 
     if(refinement_method == RefinementMethodEnum::fixed_fraction &&
        error_indicator   == ErrorIndicatorEnum::hessian_based){
-        return std::make_shared< GridRefinement_FixedFraction_Hessian<dim,nstate,real> >(param, dg, physics);
+        return std::make_shared< GridRefinement_FixedFraction_Hessian<dim,nstate,real> >(gr_param, dg, physics);
     }else if(refinement_method == RefinementMethodEnum::fixed_fraction &&
              error_indicator   == ErrorIndicatorEnum::error_based){
-        return std::make_shared< GridRefinement_FixedFraction_Error<dim,nstate,real> >(param, dg, physics);
+        return std::make_shared< GridRefinement_FixedFraction_Error<dim,nstate,real> >(gr_param, dg, physics);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::hessian_based){
-        return std::make_shared< GridRefinement_Continuous_Hessian<dim,nstate,real> >(param, dg, physics);
+        return std::make_shared< GridRefinement_Continuous_Hessian<dim,nstate,real> >(gr_param, dg, physics);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::error_based){
-        return std::make_shared< GridRefinement_Continuous_Error<dim,nstate,real> >(param, dg, physics);
+        return std::make_shared< GridRefinement_Continuous_Error<dim,nstate,real> >(gr_param, dg, physics);
     }
 
-    return create_GridRefinement(param, dg);
+    return create_GridRefinement(gr_param, dg);
 }
 
 // dg
 template <int dim, int nstate, typename real>
 std::shared_ptr< GridRefinementBase<dim,nstate,real> > 
 GridRefinementFactory<dim,nstate,real>::create_GridRefinement(
-    PHiLiP::Parameters::AllParameters const *const param,
+    PHiLiP::Parameters::GridRefinementParam        gr_param,
     std::shared_ptr< PHiLiP::DGBase<dim, real> >   dg)
 {
     // residual based or uniform
     using RefinementMethodEnum = PHiLiP::Parameters::GridRefinementParam::RefinementMethod;
     using ErrorIndicatorEnum   = PHiLiP::Parameters::GridRefinementParam::ErrorIndicator;
-    RefinementMethodEnum refinement_method = param->grid_refinement_study_param.grid_refinement_param.refinement_method;
-    ErrorIndicatorEnum   error_indicator   = param->grid_refinement_study_param.grid_refinement_param.error_indicator;
+    RefinementMethodEnum refinement_method = gr_param.refinement_method;
+    ErrorIndicatorEnum   error_indicator   = gr_param.error_indicator;
 
     if(refinement_method == RefinementMethodEnum::fixed_fraction &&
        error_indicator   == ErrorIndicatorEnum::residual_based){
-        return std::make_shared< GridRefinement_FixedFraction_Residual<dim,nstate,real> >(param, dg);
+        return std::make_shared< GridRefinement_FixedFraction_Residual<dim,nstate,real> >(gr_param, dg);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::residual_based){
-        return std::make_shared< GridRefinement_Continuous_Residual<dim,nstate,real> >(param, dg);
+        return std::make_shared< GridRefinement_Continuous_Residual<dim,nstate,real> >(gr_param, dg);
     }else if(refinement_method == RefinementMethodEnum::uniform){
-        return std::make_shared< GridRefinement_Uniform<dim, nstate, real> >(param, dg);
+        return std::make_shared< GridRefinement_Uniform<dim, nstate, real> >(gr_param, dg);
     }
 
     std::cout << "Invalid GridRefinement." << std::endl;

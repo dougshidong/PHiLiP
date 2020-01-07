@@ -41,23 +41,24 @@ public:
 
     // constructor stores the parameters
     GridRefinementBase(
-        PHiLiP::Parameters::AllParameters const *const                   param_input,
+        PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
         std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real> >            adj_input,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input);
 
     GridRefinementBase(
-        PHiLiP::Parameters::AllParameters const *const                   param_input,
+        PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
         std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg_input,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input,
         std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional_input);
 
     GridRefinementBase(
-        PHiLiP::Parameters::AllParameters const *const                   param_input,
+        PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
         std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg_input,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input);
 
     GridRefinementBase(
-        PHiLiP::Parameters::AllParameters const *const param_input,
+        PHiLiP::Parameters::GridRefinementParam        gr_param_input,
+        // PHiLiP::Parameters::AllParameters const *const param_input,
         std::shared_ptr< PHiLiP::DGBase<dim, real> >   dg_input);
 
     // refine_grid is the main function
@@ -71,14 +72,13 @@ public:
 protected:
     // delegated constructor
     GridRefinementBase(
-        PHiLiP::Parameters::AllParameters const *const                   param_input,
+        PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
         std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real> >            adj_input,
         std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional_input,
         std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg_input,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input);
 
     // parameters
-    PHiLiP::Parameters::AllParameters const *const param;
     PHiLiP::Parameters::GridRefinementParam grid_refinement_param;
 
     // different things needed depending on the choice of refinement
@@ -262,14 +262,14 @@ public:
     // adjoint (dg + functional)
     static std::shared_ptr< GridRefinementBase<dim,nstate,real> > 
     create_GridRefinement(
-        PHiLiP::Parameters::AllParameters const *const                   param,
+        PHiLiP::Parameters::GridRefinementParam                          gr_param,
         std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real> >            adj,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input);
 
     // dg + physics + Functional
     static std::shared_ptr< GridRefinementBase<dim,nstate,real> > 
     create_GridRefinement(
-        PHiLiP::Parameters::AllParameters const *const                   param,
+        PHiLiP::Parameters::GridRefinementParam                          gr_param,
         std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics,
         std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional);
@@ -277,14 +277,14 @@ public:
     // dg + physics
     static std::shared_ptr< GridRefinementBase<dim,nstate,real> > 
     create_GridRefinement(
-        PHiLiP::Parameters::AllParameters const *const                   param,
+        PHiLiP::Parameters::GridRefinementParam                          gr_param,
         std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics);
 
     // dg 
     static std::shared_ptr< GridRefinementBase<dim,nstate,real> > 
     create_GridRefinement(
-        PHiLiP::Parameters::AllParameters const *const param,
+        PHiLiP::Parameters::GridRefinementParam        gr_param,
         std::shared_ptr< PHiLiP::DGBase<dim, real> >   dg);
 
 };

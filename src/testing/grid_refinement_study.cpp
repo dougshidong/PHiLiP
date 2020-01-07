@@ -139,7 +139,7 @@ int GridRefinementStudy<dim,nstate>::run_test() const
 
         // generate the GridRefinement
         std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  grid_refinement 
-            = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(&param,adjoint,physics_double);
+            = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(grs_param.grid_refinement_param,adjoint,physics_double);
 
         // starting the iterations
         dealii::ConvergenceTable convergence_table;
@@ -285,7 +285,6 @@ int GridRefinementStudy<dim,nstate>::run_test() const
         pcout << " ********************************************" << std::endl;
     }
 
-    
     if(pcout.is_active()){
         // formatting for the figure and outputting .gp
         gf.set_name("ErrorPlot");

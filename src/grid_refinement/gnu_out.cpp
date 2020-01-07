@@ -208,7 +208,8 @@ void GnuFig<real>::write_xy_data(
 template <typename real>
 void GnuFig<real>::exec_gnuplot()
 {
-    (void) std::system(("gnuplot \"" + name + ".gp\"").c_str());
+    int ret =  std::system(("gnuplot \"" + name + ".gp\"").c_str());
+    (void) ret;
 }
 
 template class GnuFig <double>;

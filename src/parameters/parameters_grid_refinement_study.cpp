@@ -10,8 +10,7 @@ namespace Parameters {
 
 GridRefinementStudyParam::GridRefinementStudyParam() : 
     functional_param(FunctionalParam()),
-    manufactured_solution_param(ManufacturedSolutionParam()), 
-    grid_refinement_param(GridRefinementParam()) {}
+    manufactured_solution_param(ManufacturedSolutionParam()) {}
 
 void GridRefinementStudyParam::declare_parameters(dealii::ParameterHandler &prm)
 {
@@ -84,13 +83,17 @@ void GridRefinementStudyParam::parse_parameters(dealii::ParameterHandler &prm)
         functional_param.parse_parameters(prm);
         manufactured_solution_param.parse_parameters(prm);
 
+        // default section gets written into vector pos 1 by default
         prm.enter_subsection("grid refinement");
         {
-            grid_refinement_param.parse_parameters(prm);
+            grid_refinement_param_vector[0].parse_parameters(prm);
         }
         prm.leave_subsection();
 
-        for(unsigned int i = 0; i < MAX_REFINEMENTS; ++i)
+        num_refinements = prm.get_integer("num_refinements");
+
+        // overwrite if num_refinements > 0
+        for(unsigned int i = 0; i < num_refinements; ++i)
         {
             prm.enter_subsection("grid refinement [" + dealii::Utilities::int_to_string(i,1) + "]");
             {
@@ -102,8 +105,6 @@ void GridRefinementStudyParam::parse_parameters(dealii::ParameterHandler &prm)
         poly_degree      = prm.get_integer("poly_degree");
         poly_degree_max  = prm.get_integer("poly_degree_max");
         poly_degree_grid = prm.get_integer("poly_degree_grid");
-
-        num_refinements = prm.get_integer("num_refinements");
 
         const std::string grid_string = prm.get("grid_type");
         using GridEnum = Parameters::ManufacturedConvergenceStudyParam::GridEnum;

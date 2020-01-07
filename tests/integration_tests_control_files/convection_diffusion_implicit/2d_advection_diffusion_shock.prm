@@ -5,7 +5,7 @@ set dimension = 2
 
 # The PDE we want to solve. Choices are
 # <advection|diffusion|convection_diffusion>.
-set pde_type  = convection_diffusion
+set pde_type  = advection #convection_diffusion
 set test_type = grid_refinement_study
 
 subsection linear solver
@@ -14,7 +14,7 @@ subsection linear solver
     set linear_residual_tolerance = 1e-4
     set max_iterations = 2000
     set restart_number = 50
-    set ilut_fill = 2
+    set ilut_fill = 1
     # set ilut_drop = 1e-4
   end 
 end
@@ -36,11 +36,8 @@ end
 subsection grid refinement study
   # polyonomial degrees
   set poly_degree      = 1
-  set poly_degree_max  = 5
-  set poly_degree_grid = 2
-
-  # number of refinement steps
-  set refinement_steps = 6
+  set poly_degree_max  = 4
+  set poly_degree_grid = 1
 
   # grid setup
   set grid_type  = hypercube
@@ -70,20 +67,32 @@ subsection grid refinement study
     set use_all_boundaries = true
   end
 
-  # grid refinement
-  subsection grid refinement
-    set refinement_method   = uniform
+  # number of refinements
+  set num_refinements = 2
+
+  # grid refinement - 0
+  subsection grid refinement [0]
+    set refinement_steps  = 3
+    set refinement_method = uniform
+  end
+
+  # grid refinement - 1
+  subsection grid refinement [1]
+    set refinement_steps    = 6
+    set refinement_method   = fixed_fraction
     set refinement_type     = h
     set isotropic           = true
     set error_indicator     = error_based
     set norm_Lq             = 2.0
     set refinement_fraction = 0.3
     set coarsening_fraction = 0.00
+    set complexity_scale    = 2.0
+    set complexity_add      = 0.0
   end
 end
 
 subsection manufactured solution convergence study
   set use_manufactured_source_term = true
-  set manufactured_solution_type   = atan_solution
+  set manufactured_solution_type   = atan_solution #boundary_layer_solution
 end
 

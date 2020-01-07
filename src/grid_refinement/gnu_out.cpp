@@ -170,8 +170,8 @@ void GnuFig<real>::write_gnuplot_body(
     out << "plot ";
 
     for(unsigned int i = 0; i < x_data_vec.size(); ++i){
-        if(i > 1)
-            out << "replot ";
+        if(i > 0)
+            out << ", \\" << '\n' << "     ";
         
         std::string dat_filename = name+ "_" + label_name_vec[i] + ".dat";
         std::ofstream dat_out(dat_filename);
@@ -183,9 +183,8 @@ void GnuFig<real>::write_gnuplot_body(
         if(legend)
             out << " title \"" << label_name_vec[i] << "\"";
 
-        out << '\n';
     }
-    out << '\n';
+    out << '\n' << '\n';
 }
 
 template <typename real>

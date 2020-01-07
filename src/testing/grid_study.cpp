@@ -355,7 +355,7 @@ int GridStudy<dim,nstate>
             GridRefinement::GmshOut<dim,double>::write_pos(grid,estimated_error_per_cell_double,outpos);
 
             std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  gr 
-                = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param,dg,physics_double);
+                = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);
 
             gr->refine_grid();
 

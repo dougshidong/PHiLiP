@@ -83,7 +83,7 @@ int GridRefinementStudy<dim,nstate>::run_test() const
     // start of loop for each grid refinement run
     for(unsigned int iref = 0; iref <  (num_refinements?num_refinements:1); ++iref){
         // getting the parameters for this run
-        const Parameters::GridRefinementParam gr_param = grs_param.grid_refinement_param;
+        const Parameters::GridRefinementParam gr_param = grs_param.grid_refinement_param_vector[iref];
         
         const unsigned int refinement_steps = gr_param.refinement_steps;
 
@@ -138,8 +138,8 @@ int GridRefinementStudy<dim,nstate>::run_test() const
             = std::make_shared< Adjoint<dim,nstate,double> >(dg, functional, physics_adtype);
 
         // generate the GridRefinement
-        std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  grid_refinement 
-            = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(grs_param.grid_refinement_param,adjoint,physics_double);
+        std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> > grid_refinement 
+            = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(gr_param,adjoint,physics_double);
 
         // starting the iterations
         dealii::ConvergenceTable convergence_table;
@@ -174,7 +174,7 @@ int GridRefinementStudy<dim,nstate>::run_test() const
                 dg->solution = solution_no_ghost;
             }
 
-            // TODO: computing necessary parameters
+            // TODO: computing necessary values
             int overintegrate = 10;
             dealii::QGauss<dim> quad_extra(dg->max_degree+overintegrate);
             dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid.mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
@@ -273,7 +273,7 @@ int GridRefinementStudy<dim,nstate>::run_test() const
         convergence_table_vector.push_back(convergence_table);
     
         if(pcout.is_active()) 
-            gf.add_xy_data(dofs, error, "l2error_"+dealii::Utilities::int_to_string(iref,1));
+            gf.add_xy_data(dofs, error, "l2error."+dealii::Utilities::int_to_string(iref,1));
     }
 
     pcout << std::endl << std::endl << std::endl << std::endl

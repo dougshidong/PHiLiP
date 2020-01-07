@@ -27,8 +27,6 @@ public:
 
     ManufacturedSolutionParam manufactured_solution_param;
 
-    GridRefinementParam grid_refinement_param;
-
     // array for refinement steps
     std::array<GridRefinementParam, MAX_REFINEMENTS> grid_refinement_param_vector;
 

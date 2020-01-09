@@ -152,8 +152,8 @@ void GmshOut<dim,real>::write_pos(
 // need to add a set of flags here describing what to write
 template <int dim, typename real>
 void GmshOut<dim,real>::write_geo(
-    std::string   posFile,
-    std::ostream &out)
+    std::vector<std::string> &posFile_vec,
+    std::ostream &            out)
 {
     // write header
     out << "/*********************************** " << '\n'
@@ -179,7 +179,11 @@ void GmshOut<dim,real>::write_geo(
     // writing the information about the recombination
     // TODO: read from a parameter list what schemes
     out << "// Merging the background mesh and recombine" << '\n';
-    out << "Merge \"" << posFile << "\";" << '\n';
+    for(unsigned int ifile = 0; ifile < posFile_vec.size(); ++ifile)
+        out << "Merge \"" << posFile_vec[ifile] << "\";" << '\n';
+
+    // combining the views
+    out << "Combine Views;" << '\n';
 
     // this line may be dependent on the name in the other file
     out << "Background Mesh View[0];" << '\n';

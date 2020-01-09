@@ -21,8 +21,8 @@ public:
 
     // writing the geo file
     static void write_geo(
-        std::string   posFile,
-        std::ostream &out);
+        std::vector<std::string> &posFile_vec,
+        std::ostream &            out);
 
 private:
     // writing the part of the geo file for a hyper cube

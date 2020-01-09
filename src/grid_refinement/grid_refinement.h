@@ -108,7 +108,13 @@ protected:
     // Triangulation &tria;
     Triangulation *const tria;
 
+    // iteration counter
+    int iteration;
+
 protected:
+    MPI_Comm mpi_communicator; ///< MPI communicator
+    dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
+
     /// update flags needed at volume points
     const dealii::UpdateFlags volume_update_flags = 
         dealii::update_values | 

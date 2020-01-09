@@ -77,6 +77,9 @@ void GridRefinement_Uniform<dim,nstate,real>::refine_grid()
     this->dg->solution.zero_out_ghosts();
     solution_transfer.interpolate(this->dg->solution);
     this->dg->solution.update_ghost_values();
+
+    // increase the count
+    this->iteration++;
 }
 
 // functions for the refinement calls for each of the classes
@@ -154,6 +157,9 @@ void GridRefinement_FixedFraction<dim,nstate,real>::refine_grid()
     this->dg->solution.zero_out_ghosts();
     solution_transfer.interpolate(this->dg->solution);
     this->dg->solution.update_ghost_values();
+
+    // increase the count
+    this->iteration++;
 }
 
 template <int dim, int nstate, typename real>
@@ -535,27 +541,48 @@ void GridRefinement_Continuous<dim,nstate,real>::refine_grid()
 
     // interpolate the solution from the previous solution space
     this->dg->allocate_system();
+
+    // increase the count
+    this->iteration++;
 }
 
 template <int dim, int nstate, typename real>
 void GridRefinement_Continuous<dim,nstate,real>::refine_grid_h()
 {
-    int igrid = 0;
-
+    const int iproc = dealii::Utilities::MPI::this_mpi_process(this->mpi_communicator);
+    
     // now outputting this new field
-    std::string write_posname = "grid-"+std::to_string(igrid)+".pos";
+    std::string write_posname = "grid-" + 
+                                dealii::Utilities::int_to_string(this->iteration, 4) + "." + 
+                                dealii::Utilities::int_to_string(iproc, 4) + ".pos";
     std::ofstream outpos(write_posname);
     GmshOut<dim,real>::write_pos(*(this->tria),this->h_field,outpos);
 
-    std::string write_geoname = "grid-"+std::to_string(igrid)+".geo";
-    std::ofstream outgeo(write_geoname);
-    GmshOut<dim,real>::write_geo(write_posname,outgeo);
+    // writing the geo file on the 1st processor and running
+    std::string output_name = "grid-" + 
+                              dealii::Utilities::int_to_string(this->iteration, 4) + ".msh";
+    if(iproc == 0){
+        // generating a vector of pos file names
+        std::vector<std::string> posname_vec;
+        for(unsigned int iproc = 0; iproc < dealii::Utilities::MPI::n_mpi_processes(this->mpi_communicator); ++iproc)
+            posname_vec.push_back("grid-" + 
+                                  dealii::Utilities::int_to_string(this->iteration, 4) + "." + 
+                                  dealii::Utilities::int_to_string(iproc, 4) + ".pos");
 
-    std::string output_name = "grid-"+std::to_string(igrid)+".msh";
-    std::cout << "Command is: " << ("/usr/local/include/gmsh-master/build/gmsh " + write_geoname + " -2 -o " + output_name).c_str() << '\n';
-    int ret = std::system(("/usr/local/include/gmsh-master/build/gmsh " + write_geoname + " -2 -o " + output_name).c_str());
-    (void) ret;
+        std::string write_geoname = "grid-" + 
+                                    dealii::Utilities::int_to_string(this->iteration, 4) + ".geo";
+        std::ofstream outgeo(write_geoname);
+        GmshOut<dim,real>::write_geo(posname_vec,outgeo);
 
+        std::cout << "Command is: " << ("/usr/local/include/gmsh-master/build/gmsh " + write_geoname + " -2 -o " + output_name).c_str() << '\n';
+        int ret = std::system(("/usr/local/include/gmsh-master/build/gmsh " + write_geoname + " -2 -o " + output_name).c_str());
+        (void) ret;
+    }
+
+    // barrier
+    MPI_Barrier(this->mpi_communicator);
+    
+    // loading the mesh on all processors
     this->tria->clear();
     dealii::GridIn<dim> gridin;
     gridin.attach_triangulation(*(this->tria));
@@ -586,11 +613,11 @@ real GridRefinement_Continuous<dim,nstate,real>::current_complexity()
 
     // two possible cases
     if(this->dg->get_min_fe_degree() == this->dg->get_max_fe_degree()){
-        // case 1: isotropic p-order, complexity relates to total dof
+        // case 1: uniform p-order, complexity relates to total dof
         unsigned int poly_degree = this->dg->get_min_fe_degree();
         return pow(poly_degree+1, dim) * this->tria->n_global_active_cells(); //TODO: check how this behaves in MPI
     }else{
-        // case 2: anisotropic p-order, complexity related to the local sizes
+        // case 2: non-uniform p-order, complexity related to the local sizes
         for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
             if(cell->is_locally_owned())
                 complexity_sum += pow(cell->active_fe_index()+1, dim);
@@ -829,7 +856,10 @@ GridRefinementBase<dim,nstate,real>::GridRefinementBase(
         functional(functional_input),
         dg(dg_input),
         physics(physics_input),
-        tria(dg_input->triangulation){}
+        tria(dg_input->triangulation),
+        iteration(0),
+        mpi_communicator(MPI_COMM_WORLD),
+        pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0){}
 
 // factory for different options, ensures that the provided 
 // values match with the selected refinement type

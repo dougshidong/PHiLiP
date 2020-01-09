@@ -68,17 +68,17 @@ subsection grid refinement study
   end
 
   # number of refinements
-  set num_refinements = 2
+  set num_refinements = 3
 
   # grid refinement - 0
   subsection grid refinement [0]
-    set refinement_steps  = 3
+    set refinement_steps  = 6 #4
     set refinement_method = uniform
   end
 
   # grid refinement - 1
   subsection grid refinement [1]
-    set refinement_steps    = 6
+    set refinement_steps    = 9 #7
     set refinement_method   = fixed_fraction
     set refinement_type     = h
     set isotropic           = true
@@ -86,6 +86,17 @@ subsection grid refinement study
     set norm_Lq             = 2.0
     set refinement_fraction = 0.3
     set coarsening_fraction = 0.00
+    set complexity_scale    = 2.0
+    set complexity_add      = 0.0
+  end
+
+  subsection grid refinement [2]
+    set refinement_steps    = 8 #6
+    set refinement_method   = continuous
+    set refinement_type     = h
+    set isotropic           = true
+    set error_indicator     = hessian_based
+    set norm_Lq             = 2.0
     set complexity_scale    = 2.0
     set complexity_add      = 0.0
   end

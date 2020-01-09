@@ -165,7 +165,7 @@ int GridRefinementStudy<dim,nstate>::run_test() const
 
             // solving the system
             // option of whether to solve the problem or interpolate it from the manufactured solution
-            if(true){
+            if(false){
                 ode_solver->steady_state();
             }else{
                 dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
@@ -226,7 +226,7 @@ int GridRefinementStudy<dim,nstate>::run_test() const
             // reinitializing the adjoint
             adjoint->reinit();
 
-            bool less_than_max = dg->get_max_fe_degree() + 1 > dg->max_degree;
+            bool less_than_max = dg->get_max_fe_degree() + 1 <= dg->max_degree;
 
             // evaluating the derivatives and the fine grid adjoint
             if(less_than_max){ // don't output if at max order (as p-enrichment will segfault)
@@ -234,13 +234,13 @@ int GridRefinementStudy<dim,nstate>::run_test() const
                 adjoint->fine_grid_adjoint();
                 estimated_error_per_cell.reinit(grid.n_active_cells());
                 estimated_error_per_cell = adjoint->dual_weighted_residual();
-                adjoint->output_results_vtk(igrid);
+                adjoint->output_results_vtk(iref*10+igrid);
             }
 
             // and for the coarse grid
             adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::coarse); // this one is necessary though
             adjoint->coarse_grid_adjoint();
-            adjoint->output_results_vtk(igrid);
+            adjoint->output_results_vtk(iref*10+igrid);
 
             // convergence table
             convergence_table.add_value("cells", n_global_active_cells);

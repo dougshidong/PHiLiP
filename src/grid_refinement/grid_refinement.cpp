@@ -361,7 +361,7 @@ void GridRefinement_FixedFraction_Error<dim,nstate,real>::error_indicator()
 
     // use manufactured solution to measure the cell-wise error (overintegrate)
     int overintegrate = 10;
-    int poly_degree = 1; // need a way of determining the polynomial order more easily
+    int poly_degree =  this->dg->get_max_fe_degree(); 
     dealii::QGauss<dim> quadrature(this->dg->max_degree+overintegrate);
     dealii::FEValues<dim,dim> fe_values(*(this->dg->high_order_grid.mapping_fe_field), this->dg->fe_collection[poly_degree], quadrature, 
         dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
@@ -878,6 +878,7 @@ GridRefinementFactory<dim,nstate,real>::create_GridRefinement(
     RefinementMethodEnum refinement_method = gr_param.refinement_method;
     ErrorIndicatorEnum   error_indicator   = gr_param.error_indicator;
 
+    // adjoint (dg + functional)
     if(refinement_method == RefinementMethodEnum::fixed_fraction &&
        error_indicator   == ErrorIndicatorEnum::adjoint_based){
         return std::make_shared< GridRefinement_FixedFraction_Adjoint<dim,nstate,real> >(gr_param, adj, physics);
@@ -885,6 +886,33 @@ GridRefinementFactory<dim,nstate,real>::create_GridRefinement(
              error_indicator   == ErrorIndicatorEnum::adjoint_based){
         return std::make_shared< GridRefinement_Continuous_Adjoint<dim,nstate,real> >(gr_param, adj, physics);
     }
+
+    // dg + physics
+    if(refinement_method == RefinementMethodEnum::fixed_fraction &&
+       error_indicator   == ErrorIndicatorEnum::hessian_based){
+        return std::make_shared< GridRefinement_FixedFraction_Hessian<dim,nstate,real> >(gr_param, adj, physics);
+    }else if(refinement_method == RefinementMethodEnum::fixed_fraction &&
+             error_indicator   == ErrorIndicatorEnum::error_based){
+        return std::make_shared< GridRefinement_FixedFraction_Error<dim,nstate,real> >(gr_param, adj, physics);
+    }else if(refinement_method == RefinementMethodEnum::continuous &&
+             error_indicator   == ErrorIndicatorEnum::hessian_based){
+        return std::make_shared< GridRefinement_Continuous_Hessian<dim,nstate,real> >(gr_param, adj, physics);
+    }else if(refinement_method == RefinementMethodEnum::continuous &&
+             error_indicator   == ErrorIndicatorEnum::error_based){
+        return std::make_shared< GridRefinement_Continuous_Error<dim,nstate,real> >(gr_param, adj, physics);
+    }
+
+    // dg
+    if(refinement_method == RefinementMethodEnum::fixed_fraction &&
+       error_indicator   == ErrorIndicatorEnum::residual_based){
+        return std::make_shared< GridRefinement_FixedFraction_Residual<dim,nstate,real> >(gr_param, adj, physics);
+    }else if(refinement_method == RefinementMethodEnum::continuous &&
+             error_indicator   == ErrorIndicatorEnum::residual_based){
+        return std::make_shared< GridRefinement_Continuous_Residual<dim,nstate,real> >(gr_param, adj, physics);
+    }else if(refinement_method == RefinementMethodEnum::uniform){
+        return std::make_shared< GridRefinement_Uniform<dim, nstate, real> >(gr_param, adj, physics);
+    }
+    
 
     return create_GridRefinement(gr_param, adj->dg, physics, adj->functional);
 }
@@ -896,9 +924,40 @@ GridRefinementFactory<dim,nstate,real>::create_GridRefinement(
     PHiLiP::Parameters::GridRefinementParam                          gr_param,
     std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics,
-    std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         /*functional*/)
+    std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional)
 {
-    // currently nothing that uses only the functional directly
+    // hessian and error based
+    using RefinementMethodEnum = PHiLiP::Parameters::GridRefinementParam::RefinementMethod;
+    using ErrorIndicatorEnum   = PHiLiP::Parameters::GridRefinementParam::ErrorIndicator;
+    RefinementMethodEnum refinement_method = gr_param.refinement_method;
+    ErrorIndicatorEnum   error_indicator   = gr_param.error_indicator;
+
+    // dg + physics
+    if(refinement_method == RefinementMethodEnum::fixed_fraction &&
+       error_indicator   == ErrorIndicatorEnum::hessian_based){
+        return std::make_shared< GridRefinement_FixedFraction_Hessian<dim,nstate,real> >(gr_param, dg, physics, functional);
+    }else if(refinement_method == RefinementMethodEnum::fixed_fraction &&
+             error_indicator   == ErrorIndicatorEnum::error_based){
+        return std::make_shared< GridRefinement_FixedFraction_Error<dim,nstate,real> >(gr_param, dg, physics, functional);
+    }else if(refinement_method == RefinementMethodEnum::continuous &&
+             error_indicator   == ErrorIndicatorEnum::hessian_based){
+        return std::make_shared< GridRefinement_Continuous_Hessian<dim,nstate,real> >(gr_param, dg, physics, functional);
+    }else if(refinement_method == RefinementMethodEnum::continuous &&
+             error_indicator   == ErrorIndicatorEnum::error_based){
+        return std::make_shared< GridRefinement_Continuous_Error<dim,nstate,real> >(gr_param, dg, physics, functional);
+    }
+
+    // dg
+    if(refinement_method == RefinementMethodEnum::fixed_fraction &&
+       error_indicator   == ErrorIndicatorEnum::residual_based){
+        return std::make_shared< GridRefinement_FixedFraction_Residual<dim,nstate,real> >(gr_param, dg, physics, functional);
+    }else if(refinement_method == RefinementMethodEnum::continuous &&
+             error_indicator   == ErrorIndicatorEnum::residual_based){
+        return std::make_shared< GridRefinement_Continuous_Residual<dim,nstate,real> >(gr_param, dg, physics, functional);
+    }else if(refinement_method == RefinementMethodEnum::uniform){
+        return std::make_shared< GridRefinement_Uniform<dim, nstate, real> >(gr_param, dg, physics, functional);
+    }
+
     return create_GridRefinement(gr_param, dg, physics);
 }
 
@@ -916,6 +975,7 @@ GridRefinementFactory<dim,nstate,real>::create_GridRefinement(
     RefinementMethodEnum refinement_method = gr_param.refinement_method;
     ErrorIndicatorEnum   error_indicator   = gr_param.error_indicator;
 
+    // dg + physics
     if(refinement_method == RefinementMethodEnum::fixed_fraction &&
        error_indicator   == ErrorIndicatorEnum::hessian_based){
         return std::make_shared< GridRefinement_FixedFraction_Hessian<dim,nstate,real> >(gr_param, dg, physics);
@@ -928,6 +988,17 @@ GridRefinementFactory<dim,nstate,real>::create_GridRefinement(
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::error_based){
         return std::make_shared< GridRefinement_Continuous_Error<dim,nstate,real> >(gr_param, dg, physics);
+    }
+
+    // dg
+    if(refinement_method == RefinementMethodEnum::fixed_fraction &&
+       error_indicator   == ErrorIndicatorEnum::residual_based){
+        return std::make_shared< GridRefinement_FixedFraction_Residual<dim,nstate,real> >(gr_param, dg, physics);
+    }else if(refinement_method == RefinementMethodEnum::continuous &&
+             error_indicator   == ErrorIndicatorEnum::residual_based){
+        return std::make_shared< GridRefinement_Continuous_Residual<dim,nstate,real> >(gr_param, dg, physics);
+    }else if(refinement_method == RefinementMethodEnum::uniform){
+        return std::make_shared< GridRefinement_Uniform<dim, nstate, real> >(gr_param, dg, physics);
     }
 
     return create_GridRefinement(gr_param, dg);

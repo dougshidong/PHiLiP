@@ -1,6 +1,8 @@
 #ifndef __FULL_SPACE_OPTIMIZATION_H__
 #define __FULL_SPACE_OPTIMIZATION_H__
 
+#include "dg/meshmover_linear_elasticity.hpp"
+
 #define HESSIAN_DIAG 1e0
 namespace PHiLiP {
 namespace Tests {
@@ -103,7 +105,7 @@ dealii::TrilinosWrappers::SparseMatrix transpose_trilinos_matrix(dealii::Trilino
 template<int dim, int nstate>
 dealii::LinearAlgebra::distributed::BlockVector<double> evaluate_kkt_rhs(DGBase<dim,double> &dg,
 																		 TargetFunctional<dim, nstate, double> &functional,
-																		 MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> &meshmover
+																		 PHiLiP::MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> &meshmover
 																		 )
 {
     if ( dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0 )

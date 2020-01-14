@@ -100,8 +100,8 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
             return boundary_integral;
         }
 
-        using ADtype = Sacado::Fad::DFad<double>;
-        using ADADtype = Sacado::Fad::DFad<ADtype>;
+        using ADtype = Sacado::Fad::DFad<double>; ///< Sacado AD type.
+        using ADADtype = Sacado::Fad::DFad<ADtype>; ///< Sacado AD type, allows second derivatives.
 
         real evaluate_cell_boundary(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,

@@ -86,167 +86,171 @@ dealii::Point<dim> target_deformation(dealii::Point<dim> point) {
     return point + disp;
 }
 
-class SplineY
-{
-private:
-    double getbij(const double x, const unsigned int i, const unsigned int j) const
-    {
-        if (j==0) {
-            if (knots[i] <= x && x < knots[i+1]) return 1;
-            else return 0;
-        }
+// class SplineY
+// {
+// private:
+//     double getbij(const double x, const unsigned int i, const unsigned int j) const
+//     {
+//         if (j==0) {
+//             if (knots[i] <= x && x < knots[i+1]) return 1;
+//             else return 0;
+//         }
+// 
+//         double h = getbij(x, i,   j-1);
+//         double k = getbij(x, i+1, j-1);
+// 
+//         double bij = 0;
+// 
+//         if (h!=0) bij += (x        - knots[i]) / (knots[i+j]   - knots[i]  ) * h;
+//         if (k!=0) bij += (knots[i+j+1] - x   ) / (knots[i+j+1] - knots[i+1]) * k;
+// 
+//         return bij;
+//     }
+// public:
+//     const unsigned int n_design;
+//     const unsigned int spline_degree;
+//     const unsigned int n_control_pts; // n_design + 2
+//     const unsigned int n_knots; // n_control_pts + spline_degree + 1;
+// 
+//     const double x_start, x_end;
+// 
+//     std::vector<double> knots;
+//     std::vector<double> control_pts;
+// 
+//     SplineY(const unsigned int n_design, const unsigned int spline_degree, const double x_start, const double x_end)
+//         : n_design(n_design)
+//         , spline_degree(spline_degree)
+//         , n_control_pts(n_design+2)
+//         , n_knots(n_control_pts + spline_degree + 1)
+//         , x_start(x_start)
+//         , x_end(x_end)
+//     {
+//         knots = getKnots(n_knots, spline_degree, x_start, x_end);
+//     };
+// 
+//     template<typename real>
+//     std::vector<real> evalSpline(const std::vector<real> &x) const
+//     {
+//         const unsigned int nx = x.size();
+//         std::vector<real> value(nx, 0);
+//         for (unsigned int ix = 0; ix < nx; ix++) {
+//             for (unsigned int ictl = 0; ictl < n_control_pts; ictl++) {
+//                 value[ix] += control_pts[ictl] * getbij(x[ix], ictl, spline_degree);
+//             }
+//         }
+//         return value;
+//     }
+//     template<typename real, typename MatrixType>
+//     MatrixType eval_dVal_dDesign(const std::vector<real> &x) const
+//     {
+//         const unsigned int nx = x.size();
+// 
+//         MatrixType dArea_dSpline = evalSplineDerivative(x);
+// 
+//         const unsigned int block_start_i = 0;
+//         const unsigned int block_start_j = 0;
+//         const unsigned int i_size = nx;
+//         const unsigned int j_size = n_design;
+//         return dArea_dSpline.block(block_start_i, block_start_j, i_size, j_size); // Do not return the endpoints
+//     }
+//     // now returns dSdCtl instead of dSdDesign (nctl = ndes+2)
+//     template<typename real, typename MatrixType>
+//     MatrixType evalSplineDerivative(const std::vector<real> &x) const
+//     {
+//         const int nx = x.size();
+//         MatrixType dSdCtl(nx, n_control_pts);
+//         dSdCtl.setZero();
+// 
+//         // Define Area at i+1/2
+//         for (int Si = 0; Si < nx; Si++) {
+//             //if (Si < n_elem) xh = x[Si] - dx[Si] / 2.0;
+//             //else xh = 1.0;
+//             const real xh = x[Si];
+//             for (int ictl = 0; ictl < n_control_pts; ictl++) {// Not including the inlet/outlet
+//                 dSdCtl(Si, ictl) += getbij(xh, ictl, spline_degree);
+//             }
+//         }
+//         return dSdCtl;
+//     }
+// 
+//     //std::vector<dreal> fit_bspline(
+//     //    const std::vector<double> &x,
+//     //    const std::vector<double> &dx,
+//     //    const std::vector<dreal> &area,
+//     //    const int n_control_pts,
+//     //    const int spline_degree)
+//     //{
+//     //    int n_face = x.size();
+//     //    // Get Knot Vector
+//     //    int nknots = n_control_pts + spline_degree + 1;
+//     //    std::vector<double> knots(nknots);
+//     //    const double x_start = 0.0;
+//     //    const double x_end = 1.0;
+//     //    knots = getKnots(nknots, spline_degree, x_start, x_end);
+// 
+//     //    VectorXd ctl_pts(n_control_pts), s_eig(n_face);
+//     //    MatrixXd A(n_face, n_control_pts);
+//     //    A.setZero();
+//     //    
+//     //    //double xend = 1.0;
+//     //    for (int iface = 0; iface < n_face; iface++) {
+//     //        //if (iface < n_elem) xh = x[iface] - dx[iface] / 2.0;
+//     //        //else xh = xend;
+//     //        const double xh = x[iface];
+//     //        s_eig(iface) = area[iface];
+//     //        for (int ictl = 0; ictl < n_control_pts; ictl++)
+//     //        {
+//     //            A(iface, ictl) = getbij(xh, ictl, spline_degree, knots);
+//     //        }
+//     //    }
+//     //    // Solve least square to fit bspline onto sine parametrization
+//     //    ctl_pts = A.jacobiSvd(ComputeThinU | ComputeThinV).solve(s_eig);
+//     //    
+//     //    std::vector<dreal> ctlpts(n_control_pts);
+//     //    for (int ictl = 0; ictl < n_control_pts; ictl++)
+//     //    {
+//     //        ctlpts[ictl] = ctl_pts(ictl);
+//     //    }
+//     //    //ctlpts[0] = area[0];
+//     //    //ctlpts[n_control_pts - 1] = area[n_elem];
+// 
+//     //    return ctlpts;
+//     //}
+// private:
+//     std::vector<double> getKnots(
+//         const unsigned int n_knots,
+//         const unsigned int spline_degree,
+//         const double grid_xstart,
+//         const double grid_xend) const
+//     {
+//         std::vector<double> knots(n_knots);
+//         const unsigned int nb_outer = 2 * (spline_degree + 1);
+//         const unsigned int nb_inner = n_knots - nb_outer;
+//         double eps = 2e-15; // Allow Spline Definition at End Point
+//         // Clamped Open-Ended
+//         for (unsigned int iknot = 0; iknot < spline_degree + 1; iknot++) {
+//             knots[iknot] = grid_xstart;
+//             knots[n_knots - iknot - 1] = grid_xend + eps;
+//         }
+//         // Uniform Knot Vector
+//         double knot_dx = (grid_xend + eps - grid_xstart) / (nb_inner + 1);
+//         for (unsigned int iknot = 1; iknot < nb_inner+1; iknot++) {
+//             knots[iknot + spline_degree] = iknot * knot_dx;
+//         }
+//         return knots;
+//     }
+// };
 
-        double h = getbij(x, i,   j-1);
-        double k = getbij(x, i+1, j-1);
 
-        double bij = 0;
-
-        if (h!=0) bij += (x        - knots[i]) / (knots[i+j]   - knots[i]  ) * h;
-        if (k!=0) bij += (knots[i+j+1] - x   ) / (knots[i+j+1] - knots[i+1]) * k;
-
-        return bij;
-    }
-public:
-    const unsigned int n_design;
-    const unsigned int spline_degree;
-    const unsigned int n_control_pts; // n_design + 2
-    const unsigned int n_knots; // n_control_pts + spline_degree + 1;
-
-    const double x_start, x_end;
-
-    std::vector<double> knots;
-    std::vector<double> control_pts;
-
-    SplineY(const unsigned int n_design, const unsigned int spline_degree, const double x_start, const double x_end)
-        : n_design(n_design)
-        , spline_degree(spline_degree)
-        , n_control_pts(n_design+2)
-        , n_knots(n_control_pts + spline_degree + 1)
-        , x_start(x_start)
-        , x_end(x_end)
-    {
-        knots = getKnots(n_knots, spline_degree, x_start, x_end);
-    };
-
-    template<typename real>
-    std::vector<real> evalSpline(const std::vector<real> &x) const
-    {
-        const unsigned int nx = x.size();
-        std::vector<real> value(nx, 0);
-        for (unsigned int ix = 0; ix < nx; ix++) {
-            for (unsigned int ictl = 0; ictl < n_control_pts; ictl++) {
-                value[ix] += control_pts[ictl] * getbij(x[ix], ictl, spline_degree);
-            }
-        }
-        return value;
-    }
-    template<typename real, typename MatrixType>
-    MatrixType eval_dVal_dDesign(const std::vector<real> &x) const
-    {
-        const unsigned int nx = x.size();
-
-        MatrixType dArea_dSpline = evalSplineDerivative(x);
-
-        const unsigned int block_start_i = 0;
-        const unsigned int block_start_j = 0;
-        const unsigned int i_size = nx;
-        const unsigned int j_size = n_design;
-        return dArea_dSpline.block(block_start_i, block_start_j, i_size, j_size); // Do not return the endpoints
-    }
-    // now returns dSdCtl instead of dSdDesign (nctl = ndes+2)
-    template<typename real, typename MatrixType>
-    MatrixType evalSplineDerivative(const std::vector<real> &x) const
-    {
-        const int nx = x.size();
-        MatrixType dSdCtl(nx, n_control_pts);
-        dSdCtl.setZero();
-
-        // Define Area at i+1/2
-        for (int Si = 0; Si < nx; Si++) {
-            //if (Si < n_elem) xh = x[Si] - dx[Si] / 2.0;
-            //else xh = 1.0;
-            const real xh = x[Si];
-            for (int ictl = 0; ictl < n_control_pts; ictl++) {// Not including the inlet/outlet
-                dSdCtl(Si, ictl) += getbij(xh, ictl, spline_degree);
-            }
-        }
-        return dSdCtl;
-    }
-
-    //std::vector<dreal> fit_bspline(
-    //    const std::vector<double> &x,
-    //    const std::vector<double> &dx,
-    //    const std::vector<dreal> &area,
-    //    const int n_control_pts,
-    //    const int spline_degree)
-    //{
-    //    int n_face = x.size();
-    //    // Get Knot Vector
-    //    int nknots = n_control_pts + spline_degree + 1;
-    //    std::vector<double> knots(nknots);
-    //    const double x_start = 0.0;
-    //    const double x_end = 1.0;
-    //    knots = getKnots(nknots, spline_degree, x_start, x_end);
-
-    //    VectorXd ctl_pts(n_control_pts), s_eig(n_face);
-    //    MatrixXd A(n_face, n_control_pts);
-    //    A.setZero();
-    //    
-    //    //double xend = 1.0;
-    //    for (int iface = 0; iface < n_face; iface++) {
-    //        //if (iface < n_elem) xh = x[iface] - dx[iface] / 2.0;
-    //        //else xh = xend;
-    //        const double xh = x[iface];
-    //        s_eig(iface) = area[iface];
-    //        for (int ictl = 0; ictl < n_control_pts; ictl++)
-    //        {
-    //            A(iface, ictl) = getbij(xh, ictl, spline_degree, knots);
-    //        }
-    //    }
-    //    // Solve least square to fit bspline onto sine parametrization
-    //    ctl_pts = A.jacobiSvd(ComputeThinU | ComputeThinV).solve(s_eig);
-    //    
-    //    std::vector<dreal> ctlpts(n_control_pts);
-    //    for (int ictl = 0; ictl < n_control_pts; ictl++)
-    //    {
-    //        ctlpts[ictl] = ctl_pts(ictl);
-    //    }
-    //    //ctlpts[0] = area[0];
-    //    //ctlpts[n_control_pts - 1] = area[n_elem];
-
-    //    return ctlpts;
-    //}
-private:
-    std::vector<double> getKnots(
-        const unsigned int n_knots,
-        const unsigned int spline_degree,
-        const double grid_xstart,
-        const double grid_xend) const
-    {
-        std::vector<double> knots(n_knots);
-        const unsigned int nb_outer = 2 * (spline_degree + 1);
-        const unsigned int nb_inner = n_knots - nb_outer;
-        double eps = 2e-15; // Allow Spline Definition at End Point
-        // Clamped Open-Ended
-        for (unsigned int iknot = 0; iknot < spline_degree + 1; iknot++) {
-            knots[iknot] = grid_xstart;
-            knots[n_knots - iknot - 1] = grid_xend + eps;
-        }
-        // Uniform Knot Vector
-        double knot_dx = (grid_xend + eps - grid_xstart) / (nb_inner + 1);
-        for (unsigned int iknot = 1; iknot < nb_inner+1; iknot++) {
-            knots[iknot + spline_degree] = iknot * knot_dx;
-        }
-        return knots;
-    }
-};
-
-
+/** Target boundary values.
+ *  Simply zero out the default volume contribution.
+ */
 template <int dim, int nstate, typename real>
-class InverseTarget : public TargetFunctional<dim, nstate, real>
+class BoundaryInverseTarget : public TargetFunctional<dim, nstate, real>
 {
 public:
-    InverseTarget(
+    /// Constructor
+    BoundaryInverseTarget(
         std::shared_ptr<DGBase<dim,real>> dg_input,
 		const dealii::LinearAlgebra::distributed::Vector<real> &target_solution,
         const bool uses_solution_values = true,
@@ -254,6 +258,7 @@ public:
 	: TargetFunctional<dim,nstate,real>(dg_input, target_solution, uses_solution_values, uses_solution_gradient)
 	{}
 
+    /// Zero out the default inverse target volume functional.
 	template <typename real2>
 	real2 evaluate_volume_integrand(
 		const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
@@ -268,7 +273,7 @@ public:
 		return l2error;
 	}
 
-	// non-template functions to override the template classes
+	/// non-template functions to override the template classes
 	real evaluate_volume_integrand(
 		const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
 		const dealii::Point<dim,real> &phys_coord,
@@ -279,15 +284,16 @@ public:
 	{
 		return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, target_soln_at_q, soln_grad_at_q, target_soln_grad_at_q);
 	}
-	using ADtype = Sacado::Fad::DFad<real>;
-	using ADADtype = Sacado::Fad::DFad<ADtype>;
-	ADADtype evaluate_volume_integrand(
-		const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADtype> &physics,
-		const dealii::Point<dim,ADADtype> &phys_coord,
-		const std::array<ADADtype,nstate> &soln_at_q,
+    using ADType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
+    using ADADType = Sacado::Fad::DFad<ADType>; ///< Sacado AD type that allows 2nd derivatives.
+	/// non-template functions to override the template classes
+	ADADType evaluate_volume_integrand(
+		const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADType> &physics,
+		const dealii::Point<dim,ADADType> &phys_coord,
+		const std::array<ADADType,nstate> &soln_at_q,
         const std::array<real,nstate> &target_soln_at_q,
-		const std::array<dealii::Tensor<1,dim,ADADtype>,nstate> &soln_grad_at_q,
-        const std::array<dealii::Tensor<1,dim,ADADtype>,nstate> &target_soln_grad_at_q) override
+		const std::array<dealii::Tensor<1,dim,ADADType>,nstate> &soln_grad_at_q,
+        const std::array<dealii::Tensor<1,dim,ADADType>,nstate> &target_soln_grad_at_q) override
 	{
 		return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, target_soln_at_q, soln_grad_at_q, target_soln_grad_at_q);
 	}
@@ -491,7 +497,7 @@ int OptimizationInverseManufactured<dim,nstate>
 	error_vector -= target_solution;
 	const double l2_vector_error = error_vector.l2_norm();
 
-	InverseTarget<dim,nstate,double> inverse_target_functional(dg, target_solution, true, false);
+	BoundaryInverseTarget<dim,nstate,double> inverse_target_functional(dg, target_solution, true, false);
 	bool compute_dIdW = false, compute_dIdX = false, compute_d2I = true;
     const double current_l2_error = inverse_target_functional.evaluate_functional(compute_dIdW, compute_dIdX, compute_d2I);
 	pcout << "Vector l2_norm of the coefficients: " << l2_vector_error << std::endl;

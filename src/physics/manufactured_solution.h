@@ -89,6 +89,7 @@ public:
     std::vector<real> stdvector_values (const dealii::Point<dim,real> &point) const;
 
   
+    /// See dealii::Function<dim,real>::vector_gradient
     void vector_gradient (const dealii::Point<dim,real> &p,
                           std::vector<dealii::Tensor<1,dim, real> > &gradients) const;
 

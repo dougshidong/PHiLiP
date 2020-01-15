@@ -75,27 +75,57 @@ namespace MeshMover
         // void move_mesh();
 
         const Triangulation &triangulation; ///< Triangulation on which this acts.
-        dealii::FESystem<dim> fe;
+        /// MappingFEField corresponding to curved mesh.
         std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field;
+        /// Same DoFHandler as the HighOrderGrid
         const DoFHandlerType &dof_handler;
+        /** Same FESystem as the HighOrderGrid.
+         *  For some reason, I can't make it a const reference.
+         *  Gives warning as error:
+         *  "a temporary bound to ... only persists until the constructor exits"
+         */
+        dealii::FESystem<dim> fe_system;
+        /// Integration strength of the mesh order plus one.
         const dealii::QGauss<dim> quadrature_formula;
-        dealii::TrilinosWrappers::SparseMatrix system_matrix;
-        dealii::TrilinosWrappers::MPI::Vector system_rhs;
+
+        /** System matrix corresponding to the unconstrained linearized elasticity problem.
+         */
         dealii::TrilinosWrappers::SparseMatrix system_matrix_unconstrained;
+        /** System right-hand side corresponding to the unconstrained linearized elasticity problem.
+         *  Note that no body forces are present and the right-hand side is therefore zero.
+         */
         dealii::TrilinosWrappers::MPI::Vector system_rhs_unconstrained;
 
+        /// System matrix corresponding to linearized elasticity problem.
+        dealii::TrilinosWrappers::SparseMatrix system_matrix;
+        /** System right-hand side corresponding to linearized elasticity problem.
+         *  Note that no body forces are present and the right-hand side is therefore zero.
+         *  However, Dirichlet boundary conditions may make some RHS entries non-zero,
+         *  depending on the method used to impose them.
+         */
+        dealii::TrilinosWrappers::MPI::Vector system_rhs;
+
+        /** AffineConstraints containing boundary and hanging node constraints.
+         */
         dealii::AffineConstraints<double> all_constraints;
+        /** AffineConstraints containing Dirichlet boundary conditions.
+         */
         dealii::AffineConstraints<double> dirichlet_boundary_constraints;
 
-        MPI_Comm mpi_communicator;
-        const unsigned int n_mpi_processes;
-        const unsigned int this_mpi_process;
-        dealii::ConditionalOStream pcout;
-        std::vector<dealii::types::global_dof_index> local_dofs_per_process;
-        dealii::IndexSet locally_owned_dofs;
-        dealii::IndexSet locally_relevant_dofs;
+        MPI_Comm mpi_communicator; ///< MPI communicator.
+        const unsigned int n_mpi_processes; ///< Number of MPI processes.
+        const unsigned int this_mpi_process; ///< MPI rank.
+        dealii::ConditionalOStream pcout; /// ConditionalOStream for output.
+        std::vector<dealii::types::global_dof_index> local_dofs_per_process; ///< List of number of DoFs per process.
+        dealii::IndexSet locally_owned_dofs; ///< Locally owned DoFs.
+        dealii::IndexSet locally_relevant_dofs; ///< Locally relevant DoFs.
 
+        /** Global index of boundary nodes that need to be constrained.
+         *  Note that typically all surface boundaries "need" to be constrained.
+         */
         const dealii::LinearAlgebra::distributed::Vector<int> &boundary_ids_vector;
+        /** Displacement of boundary nodes corresponding to boundary_ids_vector.
+         */
         const dealii::LinearAlgebra::distributed::Vector<double> &boundary_displacements_vector;
 
     };

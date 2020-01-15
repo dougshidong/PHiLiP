@@ -938,8 +938,8 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_nodes() {
             MPI_Bcast(&(vector_locally_owned_surface_indices[i_mpi][0]), n_locally_owned_surface_nodes_per_mpi[i_mpi], MPI::UNSIGNED, i_mpi, MPI_COMM_WORLD);
         }
 
-        all_locally_owned_surface_nodes = flatten(vector_locally_owned_surface_nodes);
-        all_locally_owned_surface_indices = flatten(vector_locally_owned_surface_indices);
+        all_surface_nodes = flatten(vector_locally_owned_surface_nodes);
+        all_surface_indices = flatten(vector_locally_owned_surface_indices);
 
         unsigned int low_range = 0;
         for (int i_mpi=0; i_mpi<mpi_rank; ++i_mpi) {
@@ -947,7 +947,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_nodes() {
         }
         const unsigned int high_range = low_range + n_locally_owned_surface_nodes_per_mpi[mpi_rank];
 
-        const unsigned int n_surface_nodes = all_locally_owned_surface_nodes.size();
+        const unsigned int n_surface_nodes = all_surface_nodes.size();
         locally_owned_surface_nodes_indexset.clear();
         locally_owned_surface_nodes_indexset.set_size(n_surface_nodes);
         locally_owned_surface_nodes_indexset.add_range(low_range, high_range);
@@ -982,7 +982,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_nodes() {
 
         all_locally_relevant_surface_nodes = flatten(vector_locally_relevant_surface_nodes);
 
-        const unsigned int n_surface_nodes = all_locally_owned_surface_nodes.size();
+        const unsigned int n_surface_nodes = all_surface_nodes.size();
         ghost_surface_nodes_indexset.clear();
         ghost_surface_nodes_indexset.set_size(n_surface_nodes);
         for (auto index = locally_relevant_surface_nodes_indices.begin(); index != locally_relevant_surface_nodes_indices.end(); ++index) {
@@ -990,8 +990,8 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_nodes() {
             if (it == locally_owned_surface_nodes_indices.end()) {
                 // If not in locally_owned_surface_nodes_indexset then, it must be a ghost entry
                 bool found = false;
-                for (unsigned int i = 0; i < all_locally_owned_surface_indices.size(); i++) {
-                    if (all_locally_owned_surface_indices[i] == *index) {
+                for (unsigned int i = 0; i < all_surface_indices.size(); i++) {
+                    if (all_surface_indices[i] == *index) {
                         ghost_surface_nodes_indexset.add_index(i);
                         found = true;
                         break;

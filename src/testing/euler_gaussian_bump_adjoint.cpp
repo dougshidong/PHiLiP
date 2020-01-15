@@ -95,10 +95,14 @@ namespace Tests {
 // 		}
 // };
 
+/** Boundary integral for the Euler Gaussian bump.
+ *  Pressure integral on the outlet.
+ */
 template <int dim, int nstate, typename real>
 class BoundaryIntegral : public PHiLiP::Functional<dim, nstate, real>
 {
 	public:
+        /// Templated function to evaluate exit pressure integral.
         template <typename real2>
         real2 evaluate_cell_boundary(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
@@ -175,12 +179,14 @@ class BoundaryIntegral : public PHiLiP::Functional<dim, nstate, real>
             return l2error;
         }
 
+        /// Corresponding non-templated function for evaluate_cell_boundary.
 		real evaluate_cell_boundary(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
             const unsigned int boundary_id,
             const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
             std::vector<real> local_solution) override {return evaluate_cell_boundary<>(physics, boundary_id, fe_values_boundary, local_solution);}
 
+        /// Corresponding non-templated function for evaluate_cell_boundary.
 		Sacado::Fad::DFad<real> evaluate_cell_boundary(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> &physics,
             const unsigned int boundary_id,
@@ -189,12 +195,15 @@ class BoundaryIntegral : public PHiLiP::Functional<dim, nstate, real>
 
 };
 
+/// Initial conditions to initialize our flow with.
 template <int dim, int nstate>
 class FreeStreamInitialConditions : public dealii::Function<dim>
 {
 public:
+    /// Conservative freestream variables.
     std::array<double,nstate> far_field_conservative;
 
+    /// Constructor
     FreeStreamInitialConditions (const Physics::Euler<dim,nstate,double> euler_physics)
     : dealii::Function<dim,double>(nstate)
     {
@@ -207,9 +216,11 @@ public:
         far_field_conservative = euler_physics.convert_primitive_to_conservative(primitive_boundary_values);
     }
 
+    /// Destructor
     ~FreeStreamInitialConditions() {};
   
-    double value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const
+    /// Corresponds to dealii::Function::value
+    double value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const override
     {
         return far_field_conservative[istate];
     }

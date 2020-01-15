@@ -21,10 +21,10 @@ namespace MeshMover {
         const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
         const dealii::LinearAlgebra::distributed::Vector<double> &boundary_displacements_vector)
       : triangulation(*(high_order_grid.triangulation))
-      , fe(dealii::FE_Q<dim>(high_order_grid.max_degree), dim)
       , mapping_fe_field(high_order_grid.mapping_fe_field)
       , dof_handler(high_order_grid.dof_handler_grid)
-      , quadrature_formula(fe.degree + 1)
+      , fe_system(high_order_grid.dof_handler_grid.get_fe(0))
+      , quadrature_formula(dof_handler.get_fe().degree + 1)
       , mpi_communicator(MPI_COMM_WORLD)
       , n_mpi_processes(dealii::Utilities::MPI::n_mpi_processes(mpi_communicator))
       , this_mpi_process(dealii::Utilities::MPI::this_mpi_process(mpi_communicator))
@@ -53,7 +53,7 @@ namespace MeshMover {
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
     void LinearElasticity<dim,real,VectorType,DoFHandlerType>::setup_system()
     {
-        //dof_handler.distribute_dofs(fe);
+        //dof_handler.distribute_dofs(fe_system);
         //dealii::DoFRenumbering::Cuthill_McKee(dof_handler);
 
         locally_owned_dofs = dof_handler.locally_owned_dofs();
@@ -144,11 +144,11 @@ namespace MeshMover {
         system_matrix_unconstrained = 0;
         dealii::FEValues<dim> fe_values(
             *mapping_fe_field,
-            fe,
+            fe_system,
             quadrature_formula,
             dealii::update_values | dealii::update_gradients |
             dealii::update_quadrature_points | dealii::update_JxW_values);
-        const unsigned int dofs_per_cell = fe.dofs_per_cell;
+        const unsigned int dofs_per_cell = fe_system.dofs_per_cell;
         const unsigned int n_q_points    = quadrature_formula.size();
         std::vector<dealii::types::global_dof_index> local_dof_indices(dofs_per_cell);
         dealii::FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
@@ -181,11 +181,11 @@ namespace MeshMover {
 
             for (unsigned int itest = 0; itest < dofs_per_cell; ++itest) {
 
-                const unsigned int component_test = fe.system_to_component_index(itest).first;
+                const unsigned int component_test = fe_system.system_to_component_index(itest).first;
 
                 for (unsigned int itrial = 0; itrial < dofs_per_cell; ++itrial) {
 
-                    const unsigned int component_trial = fe.system_to_component_index(itrial).first;
+                    const unsigned int component_trial = fe_system.system_to_component_index(itrial).first;
 
                     for (unsigned int q_point = 0; q_point < n_q_points; ++q_point) {
 
@@ -210,7 +210,7 @@ namespace MeshMover {
             }
             body_force.vector_value_list(fe_values.get_quadrature_points(), body_force_values);
             for (unsigned int itest = 0; itest < dofs_per_cell; ++itest) {
-                const unsigned int component_test = fe.system_to_component_index(itest).first;
+                const unsigned int component_test = fe_system.system_to_component_index(itest).first;
                 for (unsigned int q_point = 0; q_point < n_q_points; ++q_point) {
                     cell_rhs(itest) += body_force_values[q_point][component_test] * fe_values.shape_value(itest, q_point);
                     cell_rhs(itest) *= fe_values.JxW(q_point);

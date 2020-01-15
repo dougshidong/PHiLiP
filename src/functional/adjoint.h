@@ -26,7 +26,7 @@ enum AdjointEnum {
     fine,
 };
 
-// Adjoint class
+/// Adjoint class
 template <int dim, int nstate, typename real>
 class Adjoint
 {
@@ -37,65 +37,65 @@ class Adjoint
 #endif
 public:
 
-    //constructor
+    /// Constructor
     Adjoint(
         DGBase<dim,real> &_dg,
         Functional<dim, nstate, real> &_functional,
         const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> &_physics);
 
-    //destructor
+    /// Destructor
     ~Adjoint();
 
-    // reinitialize with the same object pointers
+    /// Reinitialize with the same object pointers
     void reinit();
     // to reinitialize with other pointers, just create a new class
 
-    // for conversions between states
+    /// for conversions between states
     void convert_to_state(AdjointEnum state);
 
-    // project to a p-enriched solution
+    /// project to a p-enriched solution
     void coarse_to_fine();
-    // return to teh original solution and DOF distribution
+    /// return to teh original solution and DOF distribution
     void fine_to_coarse();
 
-    // compute the fine grid adjoint
+    /// compute the fine grid adjoint
     dealii::LinearAlgebra::distributed::Vector<real> fine_grid_adjoint();
 
-    // compute the coarse grid adjoint
+    /// compute the coarse grid adjoint
     dealii::LinearAlgebra::distributed::Vector<real> coarse_grid_adjoint();
 
-    // compute the dual weighted residual
+    /// compute the dual weighted residual
     dealii::Vector<real> dual_weighted_residual();
 
-    // for outputs (copy mostly of the one in DGbase) - Leaving this out for now
+    /// for outputs (copy mostly of the one in DGbase) - Leaving this out for now
     void output_results_vtk(const unsigned int cycle);
 
-    // DG class 
+    /// DG class 
     DGBase<dim,real> &dg;
-    // Functional class
+    /// Functional class
     Functional<dim, nstate, real> &functional;
-    // physics for calling the functional class 
+    /// physics for calling the functional class 
     const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> &physics;
     
-    // fine grid triangulation
+    /// fine grid triangulation
     Triangulation *const triangulation;
-    // original solution
+    /// original solution
     dealii::LinearAlgebra::distributed::Vector<real> solution_coarse;
-    // functional derivative (fine grid)
+    /// functional derivative (fine grid)
     dealii::LinearAlgebra::distributed::Vector<real> dIdw_fine;
-    // functional derivative (coarse grid)
+    /// functional derivative (coarse grid)
     dealii::LinearAlgebra::distributed::Vector<real> dIdw_coarse;
-    // fine grid adjoint
+    /// fine grid adjoint
     dealii::LinearAlgebra::distributed::Vector<real> adjoint_fine;
-    // coarse grid adjoint
+    /// coarse grid adjoint
     dealii::LinearAlgebra::distributed::Vector<real> adjoint_coarse;
-    // dual weighted residual (always fine due to galerkin orthogonality)
+    /// dual weighted residual (always fine due to galerkin orthogonality)
     dealii::Vector<real> dual_weighted_residual_fine;
     
-    // stores the original FE_index distribution
+    /// stores the original FE_index distribution
     dealii::Vector<real> coarse_fe_index;
 
-    // adjoint state for conversion tracking
+    /// adjoint state for conversion tracking
     AdjointEnum adjoint_state;
 
 protected:

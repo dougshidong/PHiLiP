@@ -56,13 +56,13 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::vector_gradient;
 public:
-    // constructor
+    /// constructor
     ManufacturedSolutionU(){}
 
-    // overriding the function for the value and gradient
+    /// overriding the function for the value and gradient
     real value (const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
 
-    // Gradient of the manufactured solution
+    /// Gradient of the manufactured solution
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
 };
 
@@ -75,13 +75,13 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::vector_gradient;
 public:
-    // constructor
+    /// constructor
     ManufacturedSolutionV(){}
 
-    // overriding the function for the value and gradient
+    /// overriding the function for the value and gradient
     real value (const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
 
-    // Gradient of the manufactured solution
+    /// Gradient of the manufactured solution
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
 };
 
@@ -90,7 +90,7 @@ template <int dim, int nstate, typename real>
 class diffusion_objective : public Physics::ConvectionDiffusion <dim, nstate, real>
 {
 public:
-    // constructor
+    /// constructor
     diffusion_objective(const bool convection = false, const bool diffusion = true): 
         Physics::ConvectionDiffusion<dim,nstate,real>::ConvectionDiffusion(convection, diffusion)
         {
@@ -111,7 +111,7 @@ public:
             }
         }
 
-    // defnined directly as part of the physics to make passing to the functional simpler
+    /// defnined directly as part of the physics to make passing to the functional simpler
     virtual real objective_function(
         const dealii::Point<dim,real> &pos) const = 0;
 };
@@ -121,7 +121,7 @@ template <int dim, int nstate, typename real>
 class diffusion_u : public diffusion_objective <dim, nstate, real>
 {
 public:
-    // constructor
+    /// constructor
     diffusion_u(const bool convection = false, const bool diffusion = true): 
         diffusion_objective<dim,nstate,real>::diffusion_objective(convection, diffusion)
     {
@@ -129,12 +129,12 @@ public:
             = std::shared_ptr< ManufacturedSolutionU<dim,real> >(new ManufacturedSolutionU<dim,real>());
     }
 
-    // source term = f
+    /// source term = f
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &/*solution*/) const override;
 
-    // objective function = g
+    /// objective function = g
     real objective_function(
         const dealii::Point<dim,real> &pos) const override;
 };
@@ -144,7 +144,7 @@ template <int dim, int nstate, typename real>
 class diffusion_v : public diffusion_objective <dim, nstate, real>
 {
 public:
-    // constructor
+    /// constructor
     diffusion_v(const bool convection = false, const bool diffusion = true): 
         diffusion_objective<dim,nstate,real>::diffusion_objective(convection, diffusion)
     {
@@ -152,12 +152,12 @@ public:
             = std::shared_ptr< ManufacturedSolutionV<dim,real> >(new ManufacturedSolutionV<dim,real>());
     }
 
-    // source term = g
+    /// source term = g
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &/*solution*/) const override;
 
-    // objective function = f
+    /// objective function = f
     real objective_function(
         const dealii::Point<dim,real> &pos) const override;
 };
@@ -207,18 +207,18 @@ template <int dim, int nstate>
 class DiffusionExactAdjoint : public TestsBase
 {
 public: 
-    // deleting the default constructor
+    /// deleting the default constructor
     DiffusionExactAdjoint() = delete;
 
-    // Constructor to call the TestsBase constructor to set parameters = parameters_input
+    /// Constructor to call the TestsBase constructor to set parameters = parameters_input
     DiffusionExactAdjoint(const Parameters::AllParameters *const parameters_input);
 
-    // destructor 
+    /// destructor 
     ~DiffusionExactAdjoint(){};
 
-    // perform test described above
-    /* Ideally the results from both adjoints will converge to within a sufficient tolerance
-     * to be compared over a series of meshes to see if its atleast improving
+    /** perform test described above
+     *  Ideally the results from both adjoints will converge to within a sufficient tolerance
+     *  to be compared over a series of meshes to see if its atleast improving
      */
     int run_test() const;
 };

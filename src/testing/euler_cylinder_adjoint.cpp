@@ -37,6 +37,8 @@
 namespace PHiLiP {
 namespace Tests {
 
+/** L2 norm of entropy generated in the domain
+ */
 template <int dim, int nstate, typename real>
 class L2normError : public Functional<dim, nstate, real>
 {
@@ -49,6 +51,7 @@ class L2normError : public Functional<dim, nstate, real>
         : PHiLiP::Functional<dim,nstate,real>(dg_input,uses_solution_values,uses_solution_gradient)
         {}
 
+        /// Templated volume integrand of the functional, which is the point entropy generated squared.
         template <typename real2>
         real2 evaluate_volume_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
@@ -69,7 +72,7 @@ class L2normError : public Functional<dim, nstate, real>
             return cell_l2error;
         }
 
-    	// non-template functions to override the template classes
+    	/// non-template functions to override the template classes
 		real evaluate_volume_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
             const dealii::Point<dim,real> &phys_coord,
@@ -78,13 +81,16 @@ class L2normError : public Functional<dim, nstate, real>
 		{
 			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
 		}
-        using ADtype = Sacado::Fad::DFad<real>;
-        using ADADtype = Sacado::Fad::DFad<ADtype>;
-		ADADtype evaluate_volume_integrand(
-            const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADtype> &physics,
-            const dealii::Point<dim,ADADtype> &phys_coord,
-            const std::array<ADADtype,nstate> &soln_at_q,
-            const std::array<dealii::Tensor<1,dim,ADADtype>,nstate> &soln_grad_at_q) override
+
+        using ADType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
+        using ADADType = Sacado::Fad::DFad<ADType>; ///< Sacado AD type that allows 2nd derivatives.
+
+    	/// non-template functions to override the template classes
+		ADADType evaluate_volume_integrand(
+            const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADType> &physics,
+            const dealii::Point<dim,ADADType> &phys_coord,
+            const std::array<ADADType,nstate> &soln_at_q,
+            const std::array<dealii::Tensor<1,dim,ADADType>,nstate> &soln_grad_at_q) override
 		{
 			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
 		}

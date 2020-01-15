@@ -42,8 +42,8 @@ namespace PHiLiP {
 template <int dim, int nstate, typename real>
 class Functional 
 {
-    using ADType = Sacado::Fad::DFad<real>;
-    using ADADType = Sacado::Fad::DFad<ADType>;
+    using ADType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
+    using ADADType = Sacado::Fad::DFad<ADType>; ///< Sacado AD type that allows 2nd derivatives.
 private:
     /// Smart pointer to DGBase
     std::shared_ptr<DGBase<dim,real>> dg;
@@ -104,6 +104,7 @@ public:
         const bool compute_dIdX = false,
         const bool compute_d2I = false);
 
+    /// Templated function to evaluate a cell's volume functional.
     template <typename real2>
     real2 evaluate_volume_cell_functional(
         const Physics::PhysicsBase<dim,nstate,real2> &physics,
@@ -112,6 +113,7 @@ public:
         const std::vector< real2 > &coords_coeff,
         const dealii::FESystem<dim> &fe_metric,
         const dealii::Quadrature<dim> &volume_quadrature);
+    /// Corresponding real function to evaluate a cell's volume functional.
     real evaluate_volume_cell_functional(
         const Physics::PhysicsBase<dim,nstate,real> &physics,
         const std::vector< real > &soln_coeff,
@@ -119,6 +121,7 @@ public:
         const std::vector< real > &coords_coeff,
         const dealii::FESystem<dim> &fe_metric,
         const dealii::Quadrature<dim> &volume_quadrature);
+    /// Corresponding ADADType function to evaluate a cell's volume functional.
     ADADType evaluate_volume_cell_functional(
         const Physics::PhysicsBase<dim,nstate,ADADType> &physics,
         const std::vector< ADADType > &soln_coeff,
@@ -132,7 +135,7 @@ public:
     /// Vector for storing the derivatives with respect to each grid DoF
     dealii::LinearAlgebra::distributed::Vector<real> dIdX;
 
-	// Store the functional value from the last time evaluate_functional() was called.
+	/// Store the functional value from the last time evaluate_functional() was called.
 	real current_functional_value;
 
     /// Sparse matrix for storing the functional partial second derivatives.
@@ -142,11 +145,15 @@ public:
     /// Sparse matrix for storing the functional partial second derivatives.
     dealii::TrilinosWrappers::SparseMatrix d2IdXdX;
 
+    /** Finite difference evaluation of dIdW to verify against analytical.
+     */
     dealii::LinearAlgebra::distributed::Vector<real> evaluate_dIdw_finiteDifferences(
         DGBase<dim,real> &dg, 
         const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
         const double stepsize);
 
+    /** Finite difference evaluation of dIdX to verify against analytical.
+     */
     dealii::LinearAlgebra::distributed::Vector<real> evaluate_dIdX_finiteDifferences(
         DGBase<dim,real> &dg, 
         const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
@@ -205,9 +212,9 @@ public:
         std::vector<ADADType> /*local_solution*/){return (ADADType) 0.0;}
 
 protected:
-    // Update flags needed at volume points.
+    /// Update flags needed at volume points.
     const dealii::UpdateFlags volume_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values;
-    // Update flags needed at face points.
+    /// Update flags needed at face points.
     const dealii::UpdateFlags face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_normal_vectors;
 
     const bool uses_solution_values; ///< Will evaluate solution values at quadrature points

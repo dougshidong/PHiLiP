@@ -95,11 +95,20 @@ public:
     Vector nodes;
 
 
+    /** Distributed ghosted vector of surface nodes.
+     */
     Vector surface_nodes;
-
-	dealii::IndexSet locally_owned_surface_nodes_indexset;
-	dealii::IndexSet ghost_surface_nodes_indexset;
+    /** Distributed ghosted vector of surface indices.
+     *  Ordering matches the surface_nodes.
+     */
     dealii::LinearAlgebra::distributed::Vector<int> surface_indices;
+
+    /** Locally owned surface nodes dealii::IndexSet
+     */
+	dealii::IndexSet locally_owned_surface_nodes_indexset;
+    /** Ghost surface nodes dealii::IndexSet
+     */
+	dealii::IndexSet ghost_surface_nodes_indexset;
 
 	std::vector<unsigned int> n_locally_owned_surface_nodes_per_mpi;
 
@@ -136,8 +145,13 @@ public:
      *  surface nodes that will be needed to evaluate the A matrix in the RBF 
      *  deformation dxv = A * coeff = A * (Minv*dxs)
      */
-    std::vector<real> all_locally_owned_surface_nodes;
-    std::vector<dealii::types::global_dof_index> all_locally_owned_surface_indices;
+    std::vector<real> all_surface_nodes;
+    /** List of global surface node indices including those across different processors.
+     *  Ordering corresponds to all_surface_nodes.
+     *  TODO: Might want to make this a std::pair.
+     */
+    std::vector<dealii::types::global_dof_index> all_surface_indices;
+
     /// List of surface node indices
     std::vector<dealii::types::global_dof_index> locally_owned_surface_nodes_indices;
     /// List of surface node boundary IDs, corresponding to locally_owned_surface_nodes_indices

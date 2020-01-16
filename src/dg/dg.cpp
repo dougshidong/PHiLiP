@@ -329,9 +329,9 @@ DGBase<dim,real>::~DGBase ()
 // }
 
 template <int dim, typename real>
-template<typename DoFCellAccessorType1>
+template<typename DoFCellAccessorType>
 real DGBase<dim,real>::evaluate_penalty_scaling (
-    const DoFCellAccessorType1 &cell,
+    const DoFCellAccessorType &cell,
     const int iface,
     const dealii::hp::FECollection<dim> fe_collection) const
 {

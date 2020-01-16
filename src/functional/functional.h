@@ -50,24 +50,24 @@ private:
     /// Physics that should correspond to the one in DGBase
     std::shared_ptr<Physics::PhysicsBase<dim,nstate,ADADType>> physics_fad_fad;
 public:
-    /// Constructor
-    /** Since we don't have access to the Physics through DGBase, we recreate a Physics
+    /** Constructor
+     *  Since we don't have access to the Physics through DGBase, we recreate a Physics
      *  based on the parameter file of DGBase. However, this will not work if the
      *  physics have been overriden through DGWeak::set_physics() as seen in the
      *  diffusion_exact_adjoint test case.
      */
     Functional(
-        std::shared_ptr<DGBase<dim,real>> dg_input,
-        const bool uses_solution_values = true,
-        const bool uses_solution_gradient = true);
+        std::shared_ptr<PHiLiP::DGBase<dim,real>> _dg,
+        const bool _uses_solution_values = true,
+        const bool _uses_solution_gradient = true);
 
-    /// Constructor
-    /** Uses provided physics instead of creating a new one base on DGBase */
+    /** Constructor.
+     *  Uses provided physics instead of creating a new one base on DGBase */
     Functional(
-        std::shared_ptr<DGBase<dim,real>> dg_input,
-        std::shared_ptr<Physics::PhysicsBase<dim,nstate,ADADType>> _physics_fad_fad,
-        const bool uses_solution_values = true,
-        const bool uses_solution_gradient = true);
+        std::shared_ptr<PHiLiP::DGBase<dim,real>> _dg,
+        std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>> >> _physics_fad_fad,
+        const bool _uses_solution_values = true,
+        const bool _uses_solution_gradient = true);
 
     /// destructor
     ~Functional(){}
@@ -122,11 +122,11 @@ public:
         const dealii::FESystem<dim> &fe_metric,
         const dealii::Quadrature<dim> &volume_quadrature);
     /// Corresponding ADADType function to evaluate a cell's volume functional.
-    ADADType evaluate_volume_cell_functional(
-        const Physics::PhysicsBase<dim,nstate,ADADType> &physics,
-        const std::vector< ADADType > &soln_coeff,
+    Sacado::Fad::DFad<Sacado::Fad::DFad<real>> evaluate_volume_cell_functional(
+        const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> &physics_fad_fad,
+        const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &soln_coeff,
         const dealii::FESystem<dim> &fe_solution,
-        const std::vector< ADADType > &coords_coeff,
+        const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &coords_coeff,
         const dealii::FESystem<dim> &fe_metric,
         const dealii::Quadrature<dim> &volume_quadrature);
 

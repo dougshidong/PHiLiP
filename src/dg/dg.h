@@ -580,8 +580,8 @@ protected:
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 private:
 
-    /// Evaluate the average penalty term at the face
-    /** For a cell with solution of degree p, and Hausdorff measure h,
+    /** Evaluate the average penalty term at the face.
+     *  For a cell with solution of degree p, and Hausdorff measure h,
      *  which represents the element dimension orthogonal to the face,
      *  the penalty term is given by p*(p+1)/h .
      */
@@ -641,21 +641,21 @@ public:
 
     ~DGWeak(); ///< Destructor.
 
-    using ADtype = Sacado::Fad::DFad<real>;
-    using ADADtype = Sacado::Fad::DFad<ADtype>;
+    using ADType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
+    using ADADType = Sacado::Fad::DFad<Sacado::Fad::DFad<real>>; ///< Sacado AD type that allows 2nd derivatives.
     /// Contains the physics of the PDE
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, ADtype > > pde_physics;
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, ADType > > pde_physics;
     /// Convective numerical flux
-    NumericalFlux::NumericalFluxConvective<dim, nstate, ADtype > *conv_num_flux;
+    NumericalFlux::NumericalFluxConvective<dim, nstate, ADType > *conv_num_flux;
     /// Dissipative numerical flux
-    NumericalFlux::NumericalFluxDissipative<dim, nstate, ADtype > *diss_num_flux;
+    NumericalFlux::NumericalFluxDissipative<dim, nstate, ADType > *diss_num_flux;
 
     /// Contains the physics of the PDE
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, ADADtype > > pde_physics_fad_fad;
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, ADADType > > pde_physics_fad_fad;
     /// Convective numerical flux
-    NumericalFlux::NumericalFluxConvective<dim, nstate, ADADtype > *conv_num_flux_fad_fad;
+    NumericalFlux::NumericalFluxConvective<dim, nstate, ADADType > *conv_num_flux_fad_fad;
     /// Dissipative numerical flux
-    NumericalFlux::NumericalFluxDissipative<dim, nstate, ADADtype > *diss_num_flux_fad_fad;
+    NumericalFlux::NumericalFluxDissipative<dim, nstate, ADADType > *diss_num_flux_fad_fad;
 
     /// Contains the physics of the PDE
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, real > > pde_physics_double;
@@ -811,9 +811,13 @@ private:
     using DGBase<dim,real>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
 public:
+    /** Change the physics object.
+     *  Don't know why Doxygen won't allow the use of ADADType instead of the explicit nested Sacado AD type.
+     */
+    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > >pde_physics_input);
     /// Change the physics object
-    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, ADADtype > >pde_physics_input);
-    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, ADtype > >pde_physics_input);
+    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, ADType > >pde_physics_input);
+    /// Change the physics object
     void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, real > >pde_physics_double_input);
 }; // end of DGWeak class
 
@@ -1012,6 +1016,7 @@ private:
 public:
     /// Change the physics object
     void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<real> > >pde_physics_input);
+    /// Change the physics object
     void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, real > >pde_physics_double_input);
 }; // end of DGStrong class
 
@@ -1045,7 +1050,7 @@ public:
         const unsigned int grid_degree_input,
         Triangulation *const triangulation_input);
 
-    // calls the above dg factory with grid_degree_input = degree + 1
+    /// calls the above dg factory with grid_degree_input = degree + 1
     static std::shared_ptr< DGBase<dim,real> >
         create_discontinuous_galerkin(
         const Parameters::AllParameters *const parameters_input, 
@@ -1053,7 +1058,7 @@ public:
         const unsigned int max_degree_input,
         Triangulation *const triangulation_input);
 
-    // calls the above dg factory with max_degree_input = degree
+    /// calls the above dg factory with max_degree_input = degree
     static std::shared_ptr< DGBase<dim,real> >
         create_discontinuous_galerkin(
         const Parameters::AllParameters *const parameters_input, 

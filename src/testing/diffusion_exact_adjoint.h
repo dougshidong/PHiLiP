@@ -14,7 +14,7 @@
 namespace PHiLiP {
 namespace Tests {
 
-/* Test to compare adjoint discrete and continuous adjoints for diffusion in 1D
+/**Test to compare adjoint discrete and continuous adjoints for diffusion in 1D
  *
  * Based on idea from:
  * "Adjoint Recovery of Superconvergent Functionals from PDE Approximations", Pierce and Giles 1998
@@ -33,7 +33,7 @@ namespace Tests {
  *  f(x) = -30x^3+60x63-36x^2+6x
  *  g(x) = -pi^2 * sin(pi*x)
  * 
- * In higher dimensions, obtained by taking \nabla u(x)*u(y)*u(z)
+ * In higher dimensions, obtained by taking \f$ \nabla u(x)*u(y)*u(z) \f$
  * 
  * Steps:
  *  1. Solve for u and v both directly for primal problems
@@ -47,7 +47,7 @@ namespace Tests {
  *  3D: J = 3*[-144*(10 - pi^2)/pi^7]^2*[144*(10 - pi^2)/pi^5]
  */
 
-// manufactured solution for u
+/// manufactured solution for u
 template <int dim, typename real>
 class ManufacturedSolutionU : public ManufacturedSolutionFunction <dim, real>
 {
@@ -66,7 +66,7 @@ public:
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
 };
 
-// manufactured solution for v
+/// manufactured solution for v
 template <int dim, typename real>
 class ManufacturedSolutionV : public ManufacturedSolutionFunction <dim, real>
 {
@@ -85,7 +85,7 @@ public:
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
 };
 
-// parent class to add the objective function directly to physics as a virtual class
+/// parent class to add the objective function directly to physics as a virtual class
 template <int dim, int nstate, typename real>
 class diffusion_objective : public Physics::ConvectionDiffusion <dim, nstate, real>
 {
@@ -116,7 +116,7 @@ public:
         const dealii::Point<dim,real> &pos) const = 0;
 };
 
-//physics for the u variable
+///physics for the u variable
 template <int dim, int nstate, typename real>
 class diffusion_u : public diffusion_objective <dim, nstate, real>
 {
@@ -139,7 +139,7 @@ public:
         const dealii::Point<dim,real> &pos) const override;
 };
 
-// physics for the v variable
+/// physics for the v variable
 template <int dim, int nstate, typename real>
 class diffusion_v : public diffusion_objective <dim, nstate, real>
 {
@@ -162,28 +162,30 @@ public:
         const dealii::Point<dim,real> &pos) const override;
 };
 
-// Functional that performs the inner product over the entire domain 
+/// Functional that performs the inner product over the entire domain 
 template <int dim, int nstate, typename real>
 class DiffusionFunctional : public Functional<dim, nstate, real>
 {
-    using ADtype = Sacado::Fad::DFad<real>;
-    using ADADtype = Sacado::Fad::DFad<ADtype>;
+    using ADType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
+    using ADADType = Sacado::Fad::DFad<ADType>; ///< Sacado AD type that allows 2nd derivatives.
     public:
+        /// Constructor
         DiffusionFunctional(
             std::shared_ptr<PHiLiP::DGBase<dim,real>> dg_input,
-            std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nstate,ADADtype>> _physics_fad_fad,
+            std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nstate,ADADType>> _physics_fad_fad,
             const bool uses_solution_values = true,
             const bool uses_solution_gradient = false)
         : PHiLiP::Functional<dim,nstate,real>(dg_input,_physics_fad_fad,uses_solution_values,uses_solution_gradient)
         {}
         template <typename real2>
+        /// Templated volume integrand
         real2 evaluate_volume_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
             const dealii::Point<dim,real2> &phys_coord,
             const std::array<real2,nstate> &soln_at_q,
             const std::array<dealii::Tensor<1,dim,real2>,nstate> &soln_grad_at_q);
 
-    	// non-template functions to override the template classes
+    	/// Non-template functions to override the template classes
 		real evaluate_volume_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
             const dealii::Point<dim,real> &phys_coord,
@@ -192,17 +194,18 @@ class DiffusionFunctional : public Functional<dim, nstate, real>
 		{
 			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
 		}
-		ADADtype evaluate_volume_integrand(
-            const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADtype> &physics,
-            const dealii::Point<dim,ADADtype> &phys_coord,
-            const std::array<ADADtype,nstate> &soln_at_q,
-            const std::array<dealii::Tensor<1,dim,ADADtype>,nstate> &soln_grad_at_q) override
+    	/// Non-template functions to override the template classes
+		ADADType evaluate_volume_integrand(
+            const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADType> &physics,
+            const dealii::Point<dim,ADADType> &phys_coord,
+            const std::array<ADADType,nstate> &soln_at_q,
+            const std::array<dealii::Tensor<1,dim,ADADType>,nstate> &soln_grad_at_q) override
 		{
 			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
 		}
 };
 
-// test case
+/// test case
 template <int dim, int nstate>
 class DiffusionExactAdjoint : public TestsBase
 {

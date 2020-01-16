@@ -25,18 +25,6 @@ namespace PHiLiP {
 template <int dim, int nstate, typename real>
 Functional<dim,nstate,real>::Functional(
     std::shared_ptr<DGBase<dim,real>> _dg,
-    std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> > _physics_fad_fad,
-    const bool _uses_solution_values,
-    const bool _uses_solution_gradient)
-    : dg(_dg)
-    , physics_fad_fad(_physics_fad_fad)
-    , uses_solution_values(_uses_solution_values)
-    , uses_solution_gradient(_uses_solution_gradient)
-{ }
-
-template <int dim, int nstate, typename real>
-Functional<dim,nstate,real>::Functional(
-    std::shared_ptr<DGBase<dim,real>> _dg,
     const bool _uses_solution_values,
     const bool _uses_solution_gradient)
     : dg(_dg)
@@ -48,6 +36,17 @@ Functional<dim,nstate,real>::Functional(
     physics_fad_fad = Physics::PhysicsFactory<dim,nstate,ADADtype>::create_Physics(dg->all_parameters);
 }
 
+template <int dim, int nstate, typename real>
+Functional<dim,nstate,real>::Functional(
+    std::shared_ptr<PHiLiP::DGBase<dim,real>> _dg,
+    std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>> >> _physics_fad_fad,
+    const bool _uses_solution_values,
+    const bool _uses_solution_gradient)
+    : dg(_dg)
+    , physics_fad_fad(_physics_fad_fad)
+    , uses_solution_values(_uses_solution_values)
+    , uses_solution_gradient(_uses_solution_gradient)
+{ }
 
 template <int dim, int nstate, typename real>
 template <typename real2>

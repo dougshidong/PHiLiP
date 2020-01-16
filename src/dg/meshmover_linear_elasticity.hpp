@@ -9,6 +9,8 @@ namespace PHiLiP {
 
 namespace MeshMover
 {
+    /** Linear elasticity mesh movement based on the deal.II example step-8 and step-42.
+     */
     template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
     class LinearElasticity
     {
@@ -115,7 +117,7 @@ namespace MeshMover
         MPI_Comm mpi_communicator; ///< MPI communicator.
         const unsigned int n_mpi_processes; ///< Number of MPI processes.
         const unsigned int this_mpi_process; ///< MPI rank.
-        dealii::ConditionalOStream pcout; /// ConditionalOStream for output.
+        dealii::ConditionalOStream pcout; ///< ConditionalOStream for output.
         std::vector<dealii::types::global_dof_index> local_dofs_per_process; ///< List of number of DoFs per process.
         dealii::IndexSet locally_owned_dofs; ///< Locally owned DoFs.
         dealii::IndexSet locally_relevant_dofs; ///< Locally relevant DoFs.

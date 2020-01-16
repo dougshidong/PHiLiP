@@ -16,6 +16,7 @@
 const double STEPSIZE = 1e-7;
 const double TOLERANCE = 1e-6;
 
+/// L2 norm functional.
 template <int dim, int nstate, typename real>
 class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
 {
@@ -28,6 +29,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
         : PHiLiP::Functional<dim,nstate,real>(dg_input,uses_solution_values,uses_solution_gradient)
         {}
 
+        /// Templated volume integrand.
         template <typename real2>
 		real2 evaluate_volume_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,

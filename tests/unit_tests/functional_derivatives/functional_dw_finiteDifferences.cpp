@@ -59,6 +59,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
         : PHiLiP::Functional<dim,nstate,real>(dg_input,uses_solution_values,uses_solution_gradient)
         {}
 
+        /// Templated L2 norm integrand.
         template <typename real2>
 		real2 evaluate_volume_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
@@ -76,6 +77,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
 			return l2error;
 		}
 
+        /// Templated cell boundary integral.
         template <typename real2>
         real2 evaluate_cell_boundary(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
@@ -103,6 +105,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
         using ADtype = Sacado::Fad::DFad<double>; ///< Sacado AD type.
         using ADADtype = Sacado::Fad::DFad<ADtype>; ///< Sacado AD type, allows second derivatives.
 
+        /// Non-templated cell boundary integral.
         real evaluate_cell_boundary(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
             const unsigned int boundary_id,
@@ -112,7 +115,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
             return evaluate_cell_boundary<>(physics, boundary_id, fe_values_boundary, local_solution);
         }
 
-
+        /// Non-templated cell boundary integral.
         ADADtype evaluate_cell_boundary(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADtype> &physics,
             const unsigned int boundary_id,
@@ -122,7 +125,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
             return evaluate_cell_boundary<>(physics, boundary_id, fe_values_boundary, local_solution);
         }
 
-    	// non-template functions to override the template classes
+    	/// non-template functions to override the template classes
 		real evaluate_volume_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
             const dealii::Point<dim,real> &phys_coord,
@@ -131,6 +134,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
 		{
 			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
 		}
+    	/// non-template functions to override the template classes
 		ADADtype evaluate_volume_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADtype> &physics,
             const dealii::Point<dim,ADADtype> &phys_coord,

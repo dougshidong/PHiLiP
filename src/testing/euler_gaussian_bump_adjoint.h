@@ -11,12 +11,17 @@
 namespace PHiLiP {
 namespace Tests {
 
+/// Gaussian bump manifold.
 class BumpManifoldAdjoint: public dealii::ChartManifold<2,2,2> {
 public:
+    /// Corresponding dealii::ChartManifold::pull_back
     virtual dealii::Point<2> pull_back(const dealii::Point<2> &space_point) const override;
+    /// Corresponding dealii::ChartManifold::push_forward
     virtual dealii::Point<2> push_forward(const dealii::Point<2> &chart_point) const override;
+    /// Corresponding dealii::ChartManifold::push_forward_gradient
     virtual dealii::DerivativeForm<1,2,2> push_forward_gradient(const dealii::Point<2> &chart_point) const override;
     
+    /// Corresponding dealii::ChartManifold::clone
     virtual std::unique_ptr<dealii::Manifold<2,2> > clone() const override;
 };
 
@@ -34,7 +39,7 @@ public:
 
     ~EulerGaussianBumpAdjoint() {}; ///< Destructor.
 
-    // Warp grid into Gaussian bump
+    /// Warp grid into Gaussian bump
     static dealii::Point<dim> warp (const dealii::Point<dim> &p);
 
     /// Grid convergence on Euler Gaussian Bump
@@ -52,7 +57,8 @@ public:
 
 protected:
 
-    double integrate_entropy_over_domain(DGBase<dim,double> &dg) const;
+    // Not used?
+    // double integrate_entropy_over_domain(DGBase<dim,double> &dg) const;
 };
 
 

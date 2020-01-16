@@ -43,6 +43,7 @@ namespace PHiLiP {
 template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
 class HighOrderGrid
 {
+    /// Distributed vector of double.
     using Vector = dealii::LinearAlgebra::distributed::Vector<double>;
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
     /** Triangulation to store the grid.
@@ -50,6 +51,8 @@ class HighOrderGrid
      *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
      */
     using Triangulation = dealii::Triangulation<dim>;
+
+    /// SolutionTransfer using Vector
     using SolutionTransfer = dealii::SolutionTransfer<dim, Vector, dealii::DoFHandler<dim>>;
 #else
     /** Triangulation to store the grid.
@@ -57,6 +60,8 @@ class HighOrderGrid
      *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
      */
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+
+    /// SolutionTransfer using Vector
     using SolutionTransfer = dealii::parallel::distributed::SolutionTransfer<dim, Vector, dealii::DoFHandler<dim>>;
 #endif
 public:
@@ -110,6 +115,7 @@ public:
      */
 	dealii::IndexSet ghost_surface_nodes_indexset;
 
+    /** Number of locally_relevant_surface_nodes per process */
 	std::vector<unsigned int> n_locally_owned_surface_nodes_per_mpi;
 
     /// List of surface nodes.
@@ -164,8 +170,22 @@ public:
     // /// List of direction associated with locally_relevant_surface_nodes_indices
     // std::vector<dealii::types::global_dof_index> locally_relevant_surface_nodes_direction;
 
+    /// Locally relevant surface points.
+    /** Might be useful if the transformation operates on a Point.
+     *  TODO: However, might want to remove this and use the surface_nodes vector
+     *  for consistency and create a function to retrieve the Point.
+     */
     std::vector<dealii::Point<dim>> locally_relevant_surface_points;
+
+    /** Given a global DoF index, this will return the Point index
+     *  within the locally_relevant_surface_points and its component.
+     *  This is the inverse map of point_and_axis_to_global_index.
+     */
     std::map<dealii::types::global_dof_index, std::pair<unsigned int, unsigned int>> global_index_to_point_and_axis;
+    /** Given the Point index within the locally_relevant_surface_points and its component,
+     *  this will return the global DoF index.
+     *  This is the inverse map of global_index_to_point_and_axis.
+     */
     std::map<std::pair<unsigned int, unsigned int>, dealii::types::global_dof_index> point_and_axis_to_global_index;
 
 
@@ -173,6 +193,8 @@ public:
     /// Update list of surface nodes (all_locally_relevant_surface_nodes).
     void update_surface_nodes();
 
+    /** Transforms the surface_nodes vector using a std::function tranformation.
+     */
 	VectorType transform_surface_nodes(std::function<dealii::Point<dim>(dealii::Point<dim>)> transformation) const;
 
     /// RBF mesh deformation  -  To be done
@@ -262,8 +284,8 @@ public:
 
     static unsigned int nth_refinement; ///< Used to name the various files outputted.
 protected:
-    int n_mpi;
-    int mpi_rank;
+    int n_mpi; ///< Number of MPI processes.
+    int mpi_rank; ///< This processor's MPI rank.
     /// Update list of surface indices (locally_relevant_surface_nodes_indices and locally_relevant_surface_nodes_boundary_id)
     void update_surface_indices();
 

@@ -45,7 +45,7 @@
 #include "functional/target_functional.h"
 
 const double STEPSIZE = 1e-7;
-const double TOLERANCE = 1e-5;
+const double TOLERANCE = 1e-4;
 
 template <int dim, int nstate, typename real>
 class L2_Norm_Functional : public PHiLiP::TargetFunctional<dim, nstate, real>

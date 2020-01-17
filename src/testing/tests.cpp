@@ -7,12 +7,17 @@
 #include "tests.h"
 #include "grid_study.h"
 #include "burgers_stability.h"
+#include "diffusion_exact_adjoint.h"
 #include "euler_gaussian_bump.h"
+#include "euler_gaussian_bump_adjoint.h"
 #include "euler_cylinder.h"
+#include "euler_cylinder_adjoint.h"
 #include "euler_vortex.h"
 #include "euler_entropy_waves.h"
 #include "advection_explicit_periodic.h"
 #include "euler_split_inviscid_taylor_green_vortex.h"
+#include "optimization_inverse_manufactured/optimization_inverse_manufactured.h"
+#include "euler_bump_optimization.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -59,20 +64,30 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
         return std::make_unique<GridStudy<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::burgers_energy_stability) {
         if constexpr (dim==1 && nstate==1) return std::make_unique<BurgersEnergyStability<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::diffusion_exact_adjoint) {
+        if constexpr (dim>=1 && nstate==1) return std::make_unique<DiffusionExactAdjoint<dim,nstate>>(parameters_input);
     } else if (test_type == Test_enum::advection_periodicity){
         if constexpr (dim == 2 && nstate == 1) return std::make_unique<AdvectionPeriodic<dim,nstate>> (parameters_input);
     } else if(test_type == Test_enum::euler_gaussian_bump) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerGaussianBump<dim,nstate>>(parameters_input);
+    // } else if(test_type == Test_enum::euler_gaussian_bump_adjoint){
+    //     if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerGaussianBumpAdjoint<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_cylinder) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerCylinder<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::euler_cylinder_adjoint) {
+        if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerCylinderAdjoint<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_vortex) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerVortex<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_entropy_waves) {
         if constexpr (dim>=2 && nstate==PHILIP_DIM+2) return std::make_unique<EulerEntropyWaves<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_split_taylor_green) {
     	if constexpr (dim==3 && nstate == dim+2) return std::make_unique<EulerTaylorGreen<dim,nstate>>(parameters_input);
-    } else {
-        std::cout << "Invalid test." << std::endl;
+    } else if(test_type == Test_enum::optimization_inverse_manufactured) {
+    	return std::make_unique<OptimizationInverseManufactured<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::euler_bump_optimization) {
+        if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerBumpOptimization<dim,nstate>>(parameters_input);
+    } else{
+        std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
     }
 
     return nullptr;

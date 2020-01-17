@@ -53,14 +53,17 @@ public:
     enum TestType { 
         run_control,
         burgers_energy_stability,
+        diffusion_exact_adjoint,
         euler_gaussian_bump,
+        euler_gaussian_bump_adjoint,
         euler_cylinder,
+        euler_cylinder_adjoint,
         euler_vortex,
         euler_entropy_waves,
         euler_split_taylor_green,
-        numerical_flux_convervation,
-        jacobian_regression,
         burgers_split_form,
+		optimization_inverse_manufactured,
+        euler_bump_optimization,
         advection_periodicity,
         };
     TestType test_type; ///< Selected TestType from the input file.

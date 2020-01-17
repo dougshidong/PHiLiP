@@ -60,8 +60,8 @@ int main (int /*argc*/, char * /*argv*/[])
                 vertex_plus[d] = vertex[d] + perturbation;
                 vertex_mins[d] = vertex[d] - perturbation;
                 for (int s=0; s<nstate; s++) {
-                    soln_plus[s] = euler_physics.manufactured_solution_function.value(vertex_plus, s);
-                    soln_mins[s] = euler_physics.manufactured_solution_function.value(vertex_mins, s);
+                    soln_plus[s] = euler_physics.manufactured_solution_function->value(vertex_plus, s);
+                    soln_mins[s] = euler_physics.manufactured_solution_function->value(vertex_mins, s);
                 }
                 conv_flux_plus = euler_physics.convective_flux(soln_plus);
                 conv_flux_mins = euler_physics.convective_flux(soln_mins);

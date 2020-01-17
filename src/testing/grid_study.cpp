@@ -44,7 +44,7 @@ void GridStudy<dim,nstate>
 {
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
-    dealii::VectorTools::interpolate(dg.dof_handler, physics.manufactured_solution_function, solution_no_ghost);
+    dealii::VectorTools::interpolate(dg.dof_handler, *physics.manufactured_solution_function, solution_no_ghost);
     dg.solution = solution_no_ghost;
 }
 template <int dim, int nstate>
@@ -326,7 +326,7 @@ int GridStudy<dim,nstate>
                     const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
 
                     for (int istate=0; istate<nstate; ++istate) {
-                        const double uexact = physics_double->manufactured_solution_function.value(qpoint, istate);
+                        const double uexact = physics_double->manufactured_solution_function->value(qpoint, istate);
                         //l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
 
                         cell_l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);

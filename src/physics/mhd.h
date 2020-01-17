@@ -124,7 +124,7 @@ public:
 
     /// Source term is zero or depends on manufactured solution
     std::array<real,nstate> source_term (
-        const dealii::Point<dim,double> &pos,
+        const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &conservative_soln) const;
 
     /// Given conservative variables [density, [momentum], total energy],
@@ -228,7 +228,7 @@ public:
 
 //    void boundary_face_values (
 //        const int /*boundary_type*/,
-//        const dealii::Point<dim, double> &/*pos*/,
+//        const dealii::Point<dim, real> &/*pos*/,
 //        const dealii::Tensor<1,dim,real> &/*normal*/,
 //        const std::array<real,nstate> &/*soln_int*/,
 //        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,

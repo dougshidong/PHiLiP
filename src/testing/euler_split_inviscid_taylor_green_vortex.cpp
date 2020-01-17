@@ -1,3 +1,4 @@
+#include <fstream>
 #include "euler_split_inviscid_taylor_green_vortex.h"
 
 namespace PHiLiP {

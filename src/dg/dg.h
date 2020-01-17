@@ -101,7 +101,9 @@ public:
      */
     DGBase(const int nstate_input,
            const Parameters::AllParameters *const parameters_input,
-           const unsigned int max_degree,
+           const unsigned int degree,
+           const unsigned int max_degree_input,
+           const unsigned int grid_degree_input,
            Triangulation *const triangulation_input);
 
 
@@ -121,7 +123,9 @@ public:
      *  The tuple is built from create_collection_tuple(). */
     DGBase( const int nstate_input,
             const Parameters::AllParameters *const parameters_input,
+            const unsigned int degree,
             const unsigned int max_degree_input,
+            const unsigned int grid_degree_input,
             Triangulation *const triangulation_input,
             const MassiveCollectionTuple collection_tuple);
 
@@ -184,6 +188,22 @@ public:
     /// respect to the solution
     dealii::TrilinosWrappers::SparseMatrix system_matrix;
 
+    /// System matrix corresponding to the derivative of the right_hand_side with
+    /// respect to the volume nodes Xv
+    dealii::TrilinosWrappers::SparseMatrix dRdXv;
+
+    /// System matrix corresponding to the second derivatives of the right_hand_side with
+    /// respect to the solution
+    dealii::TrilinosWrappers::SparseMatrix d2RdWdW;
+
+    /// System matrix corresponding to the second derivatives of the right_hand_side with
+    /// respect to the volume nodes
+    dealii::TrilinosWrappers::SparseMatrix d2RdXdX;
+    //
+    /// System matrix corresponding to the mixed second derivatives of the right_hand_side with
+    /// respect to the solution and the volume nodes
+    dealii::TrilinosWrappers::SparseMatrix d2RdWdX;
+
     /// Residual of the current solution
     /** Weak form.
      * 
@@ -225,10 +245,53 @@ public:
      */
     dealii::LinearAlgebra::distributed::Vector<double> solution;
 
+    /// Current optimization dual variables corresponding to the residual constraints also known as the adjoint
+	/** This is used to evaluate the dot-product between the dual and the 2nd derivatives of the residual
+	 *  since storing the 2nd order partials of the residual is a very large 3rd order tensor.
+	 */
+    dealii::LinearAlgebra::distributed::Vector<real> dual;
+
+    /// Sets the stored dual variables used to compute the dual dotted with the residual Hessians
+    void set_dual(const dealii::LinearAlgebra::distributed::Vector<real> &dual_input);
+
     /// Evaluate SparsityPattern of dRdX
     /*  Where R represents the residual and X represents the grid degrees of freedom stored as high_order_grid.nodes.
      */
     dealii::SparsityPattern get_dRdX_sparsity_pattern ();
+
+    /// Evaluate SparsityPattern of dRdW
+    /*  Where R represents the residual and W represents the solution degrees of freedom.
+     */
+    dealii::SparsityPattern get_dRdW_sparsity_pattern ();
+
+    /// Evaluate SparsityPattern of the residual Hessian dual.d2RdWdW
+    /*  Where R represents the residual and W represents the solution degrees of freedom.
+     */
+    dealii::SparsityPattern get_d2RdWdW_sparsity_pattern ();
+
+    /// Evaluate SparsityPattern of the residual Hessian dual.d2RdXdX
+    /*  Where R represents the residual and X represents the grid degrees of freedom stored as high_order_grid.nodes.
+     */
+    dealii::SparsityPattern get_d2RdXdX_sparsity_pattern ();
+
+    /// Evaluate SparsityPattern of the residual Hessian dual.d2RdXdW
+    /*  Where R represents the residual, W the solution DoF, and X represents the grid degrees of freedom stored as high_order_grid.nodes.
+     */
+    dealii::SparsityPattern get_d2RdWdX_sparsity_pattern ();
+
+    /// Evaluate SparsityPattern of dRdXs
+    /*  Where R represents the residual and Xs represents the grid surface degrees of freedom stored as high_order_grid.nodes.
+     */
+    dealii::SparsityPattern get_dRdXs_sparsity_pattern ();
+    /// Evaluate SparsityPattern of the residual Hessian dual.d2RdXsdXs
+    /*  Where R represents the residual and Xs represents the grid surface degrees of freedom stored as high_order_grid.nodes.
+     */
+    dealii::SparsityPattern get_d2RdXsdXs_sparsity_pattern ();
+
+    /// Evaluate SparsityPattern of the residual Hessian dual.d2RdXsdW
+    /*  Where R represents the residual, W the solution DoF, and Xs represents the grid surface degrees of freedom stored as high_order_grid.nodes.
+     */
+    dealii::SparsityPattern get_d2RdWdXs_sparsity_pattern ();
 
     /// Evaluate dRdX using finite-differences
     /*  Where R represents the residual and X represents the grid degrees of freedom stored as high_order_grid.nodes.
@@ -272,17 +335,18 @@ public:
      *    
      */
     //void assemble_residual_dRdW ();
-    void assemble_residual (const bool compute_dRdW=false);
+    void assemble_residual (const bool compute_dRdW=false, const bool compute_dRdX=false, const bool compute_d2R=false);
 
     /// Used in assemble_residual(). 
     /** IMPORTANT: This does not fully compute the cell residual since it might not
      *  perform the work on all the faces.
      *  All the active cells must be traversed to ensure that the right hand side is correct.
      */
-    template<typename DoFCellAccessorType>
+    template<typename DoFCellAccessorType1, typename DoFCellAccessorType2>
     void assemble_cell_residual (
-        const DoFCellAccessorType &current_cell,
-        const bool compute_dRdW,
+        const DoFCellAccessorType1 &current_cell,
+        const DoFCellAccessorType2 &current_metric_cell,
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
         dealii::hp::FEValues<dim,dim>        &fe_values_collection_volume,
         dealii::hp::FEFaceValues<dim,dim>    &fe_values_collection_face_int,
         dealii::hp::FEFaceValues<dim,dim>    &fe_values_collection_face_ext,
@@ -327,21 +391,110 @@ public:
 
     /// High order grid that will provide the MappingFEField
     HighOrderGrid<dim,real> high_order_grid;
-
 protected:
 
     /// Evaluate the integral over the cell volume.
-    /** Compute both the right-hand side and the block of the Jacobian */
+    /** Compute both the right-hand side and the corresponding block of dRdW */
     virtual void assemble_volume_terms_implicit(
         const dealii::FEValues<dim,dim> &fe_values_volume,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs,
+        const dealii::FEValues<dim,dim> &fe_values_lagrange) = 0;
+
+    /// Evaluate the integral over the cell volume.
+    /** Compute both the right-hand side and the block of dRdX */
+    virtual void assemble_volume_terms_dRdX(
+        const dealii::FEValues<dim,dim> &fe_values_volume,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs,
         const dealii::FEValues<dim,dim> &fe_values_lagrange) = 0;
     /// Evaluate the integral over the cell edges that are on domain boundaries
+    /** Compute both the right-hand side and the corresponding dRdX block */
+    virtual void assemble_boundary_term_dRdX(
+        const unsigned int face_number,
+        const unsigned int boundary_id,
+        const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim-1> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs) = 0;
+    /// Evaluate the integral over the internal cell edges
+    /** Compute both the right-hand side and the block of the Jacobian.
+     *  This adds the contribution to both cell's residual and effectively 
+     *  computes 4 block contributions to dRdX blocks. */
+    virtual void assemble_face_term_dRdX(
+        const unsigned int interior_face_number,
+        const unsigned int exterior_face_number,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe_int,
+        const dealii::FESystem<dim,dim> &fe_ext,
+        const dealii::Quadrature<dim> &face_quadrature_int,
+        const dealii::Quadrature<dim> &face_quadrature_ext,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
+        dealii::Vector<real>          &local_rhs_int_cell,
+        dealii::Vector<real>          &local_rhs_ext_cell) = 0;
+
+    /// Evaluate the integral over the cell volume.
+    /** Compute both the right-hand side and the Hessians dual.d2RdX2, dual.d2RdW2, dual.d2RdWdX */
+    virtual void assemble_volume_terms_hessian(
+        const dealii::FEValues<dim,dim> &fe_values_volume,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs,
+        const dealii::FEValues<dim,dim> &fe_values_lagrange) = 0;
+    /// Evaluate the integral over the cell edges that are on domain boundaries
+    /** Compute both the right-hand side and the Hessians dual.d2RdX2, dual.d2RdW2, dual.d2RdWdX */
+    virtual void assemble_boundary_term_hessian(
+        const unsigned int face_number,
+        const unsigned int boundary_id,
+        const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim-1> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs) = 0;
+    /// Evaluate the integral over the internal cell edges
+    /** Compute both the right-hand side and the block of the Jacobian.
+     *  This adds the contribution to both cell's residual and effectively 
+     *  computes the block contributions to the Hessians dual.d2RdX2, dual.d2RdW2, dual.d2RdWdX */
+    virtual void assemble_face_term_hessian(
+        const unsigned int interior_face_number,
+        const unsigned int exterior_face_number,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe_int,
+        const dealii::FESystem<dim,dim> &fe_ext,
+        const dealii::Quadrature<dim> &face_quadrature_int,
+        const dealii::Quadrature<dim> &face_quadrature_ext,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
+        dealii::Vector<real>          &local_rhs_int_cell,
+        dealii::Vector<real>          &local_rhs_ext_cell) = 0;
+
+    /// Evaluate the integral over the cell edges that are on domain boundaries
     /** Compute both the right-hand side and the block of the Jacobian */
     virtual void assemble_boundary_term_implicit(
         const unsigned int boundary_id,
-        const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
+        const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs) = 0;
@@ -350,8 +503,8 @@ protected:
      *  This adds the contribution to both cell's residual and effectively 
      *  computes 4 block contributions to the Jacobian. */
     virtual void assemble_face_term_implicit(
-        const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
-        const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_int,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_ext,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
@@ -367,14 +520,14 @@ protected:
     /// Evaluate the integral over the cell edges that are on domain boundaries
     virtual void assemble_boundary_term_explicit(
         const unsigned int boundary_id,
-        const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
+        const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs) = 0;
     /// Evaluate the integral over the internal cell edges
     virtual void assemble_face_term_explicit(
-        const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
-        const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_int,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_ext,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
@@ -411,9 +564,11 @@ protected:
     // // const dealii::QGaussLobatto<dim-1> face_quadrature;
 
     /// Update flags needed at volume points.
-    const dealii::UpdateFlags volume_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values;
+    const dealii::UpdateFlags volume_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values
+        | dealii::update_inverse_jacobians;
     /// Update flags needed at face points.
-    const dealii::UpdateFlags face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_normal_vectors;
+    const dealii::UpdateFlags face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_normal_vectors
+        | dealii::update_jacobians;
     /// Update flags needed at neighbor' face points. 
     /** NOTE: With hp-adaptation, might need to query neighbor's quadrature points depending on the order of the cells. */
     const dealii::UpdateFlags neighbor_face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values;
@@ -425,8 +580,8 @@ protected:
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 private:
 
-    /// Evaluate the average penalty term at the face
-    /** For a cell with solution of degree p, and Hausdorff measure h,
+    /** Evaluate the average penalty term at the face.
+     *  For a cell with solution of degree p, and Hausdorff measure h,
      *  which represents the element dimension orthogonal to the face,
      *  the penalty term is given by p*(p+1)/h .
      */
@@ -480,18 +635,27 @@ public:
     DGWeak(
         const Parameters::AllParameters *const parameters_input, 
         const unsigned int degree,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input,
         Triangulation *const triangulation_input);
 
     ~DGWeak(); ///< Destructor.
 
-private:
+    using ADType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
+    using ADADType = Sacado::Fad::DFad<Sacado::Fad::DFad<real>>; ///< Sacado AD type that allows 2nd derivatives.
+    /// Contains the physics of the PDE
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, ADType > > pde_physics;
+    /// Convective numerical flux
+    NumericalFlux::NumericalFluxConvective<dim, nstate, ADType > *conv_num_flux;
+    /// Dissipative numerical flux
+    NumericalFlux::NumericalFluxDissipative<dim, nstate, ADType > *diss_num_flux;
 
     /// Contains the physics of the PDE
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<real> > > pde_physics;
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, ADADType > > pde_physics_fad_fad;
     /// Convective numerical flux
-    NumericalFlux::NumericalFluxConvective<dim, nstate, Sacado::Fad::DFad<real> > *conv_num_flux;
+    NumericalFlux::NumericalFluxConvective<dim, nstate, ADADType > *conv_num_flux_fad_fad;
     /// Dissipative numerical flux
-    NumericalFlux::NumericalFluxDissipative<dim, nstate, Sacado::Fad::DFad<real> > *diss_num_flux;
+    NumericalFlux::NumericalFluxDissipative<dim, nstate, ADADType > *diss_num_flux_fad_fad;
 
     /// Contains the physics of the PDE
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, real > > pde_physics_double;
@@ -500,18 +664,110 @@ private:
     /// Dissipative numerical flux
     NumericalFlux::NumericalFluxDissipative<dim, nstate, real > *diss_num_flux_double;
 
+private:
+
     /// Evaluate the integral over the cell volume
     /** Compute both the right-hand side and the block of the Jacobian */
     void assemble_volume_terms_implicit(
         const dealii::FEValues<dim,dim> &fe_values_volume,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs,
+        const dealii::FEValues<dim,dim> &fe_values_lagrange);
+
+    /// Evaluate the integral over the cell volume.
+    /** Compute both the right-hand side and the block of dRdX */
+    void assemble_volume_terms_dRdX(
+        const dealii::FEValues<dim,dim> &fe_values_volume,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs,
         const dealii::FEValues<dim,dim> &fe_values_lagrange);
     /// Evaluate the integral over the cell edges that are on domain boundaries
+    /** Compute both the right-hand side and the corresponding dRdX block */
+    void assemble_boundary_term_dRdX(
+        const unsigned int face_number,
+        const unsigned int boundary_id,
+        const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim-1> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs);
+    /// Evaluate the integral over the internal cell edges
+    /** Compute both the right-hand side and the block of the Jacobian.
+     *  This adds the contribution to both cell's residual and effectively 
+     *  computes 4 block contributions to dRdX blocks. */
+    void assemble_face_term_dRdX(
+        const unsigned int interior_face_number,
+        const unsigned int exterior_face_number,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe_int,
+        const dealii::FESystem<dim,dim> &fe_ext,
+        const dealii::Quadrature<dim> &face_quadrature_int,
+        const dealii::Quadrature<dim> &face_quadrature_ext,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
+        dealii::Vector<real>          &local_rhs_int_cell,
+        dealii::Vector<real>          &local_rhs_ext_cell);
+
+    /// Evaluate the integral over the cell volume.
+    /** Compute both the right-hand side and the Hessians d2RdX2, d2RdW2, d2RdWdX */
+    virtual void assemble_volume_terms_hessian(
+        const dealii::FEValues<dim,dim> &fe_values_volume,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs,
+        const dealii::FEValues<dim,dim> &fe_values_lagrange);
+    /// Evaluate the integral over the cell edges that are on domain boundaries
+    /** Compute both the right-hand side and the Hessians d2RdX2, d2RdW2, d2RdWdX */
+    virtual void assemble_boundary_term_hessian(
+        const unsigned int face_number,
+        const unsigned int boundary_id,
+        const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim-1> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs);
+    /// Evaluate the integral over the internal cell edges
+    /** Compute both the right-hand side and the block of the Jacobian.
+     *  This adds the contribution to both cell's residual and effectively 
+     *  computes the block contributions to the Hessians d2RdX2, d2RdW2, d2RdWdX */
+    virtual void assemble_face_term_hessian(
+        const unsigned int interior_face_number,
+        const unsigned int exterior_face_number,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe_int,
+        const dealii::FESystem<dim,dim> &fe_ext,
+        const dealii::Quadrature<dim> &face_quadrature_int,
+        const dealii::Quadrature<dim> &face_quadrature_ext,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
+        dealii::Vector<real>          &local_rhs_int_cell,
+        dealii::Vector<real>          &local_rhs_ext_cell);
+
+    /// Evaluate the integral over the cell edges that are on domain boundaries
     /** Compute both the right-hand side and the block of the Jacobian */
     void assemble_boundary_term_implicit(
         const unsigned int boundary_id,
-        const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
+        const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs);
@@ -520,8 +776,8 @@ private:
      *  This adds the contribution to both cell's residual and effectively 
      *  computes 4 block contributions to the Jacobian. */
     void assemble_face_term_implicit(
-        const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
-        const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_int,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_ext,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
@@ -537,14 +793,14 @@ private:
     /// Evaluate the integral over the cell edges that are on domain boundaries
     void assemble_boundary_term_explicit(
         const unsigned int boundary_id,
-        const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
+        const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs);
     /// Evaluate the integral over the internal cell edges
     void assemble_face_term_explicit(
-        const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
-        const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_int,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_ext,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
@@ -554,6 +810,15 @@ private:
     using DGBase<dim,real>::mpi_communicator; ///< MPI communicator
     using DGBase<dim,real>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
+public:
+    /** Change the physics object.
+     *  Don't know why Doxygen won't allow the use of ADADType instead of the explicit nested Sacado AD type.
+     */
+    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > >pde_physics_input);
+    /// Change the physics object
+    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, ADType > >pde_physics_input);
+    /// Change the physics object
+    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, real > >pde_physics_double_input);
 }; // end of DGWeak class
 
 /// DGStrong class templated on the number of state variables
@@ -580,6 +845,8 @@ public:
     DGStrong(
         const Parameters::AllParameters *const parameters_input, 
         const unsigned int degree,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input,
         Triangulation *const triangulation_input);
 
     /// Destructor
@@ -605,14 +872,104 @@ private:
     /** Compute both the right-hand side and the block of the Jacobian */
     void assemble_volume_terms_implicit(
         const dealii::FEValues<dim,dim> &fe_values_volume,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs,
+        const dealii::FEValues<dim,dim> &fe_values_lagrange);
+
+    /// Evaluate the integral over the cell volume.
+    /** Compute both the right-hand side and the block of dRdX */
+    void assemble_volume_terms_dRdX(
+        const dealii::FEValues<dim,dim> &fe_values_volume,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs,
         const dealii::FEValues<dim,dim> &fe_values_lagrange);
     /// Evaluate the integral over the cell edges that are on domain boundaries
+    /** Compute both the right-hand side and the corresponding dRdX block */
+    void assemble_boundary_term_dRdX(
+        const unsigned int face_number,
+        const unsigned int boundary_id,
+        const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim-1> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs);
+    /// Evaluate the integral over the internal cell edges
+    /** Compute both the right-hand side and the block of the Jacobian.
+     *  This adds the contribution to both cell's residual and effectively 
+     *  computes 4 block contributions to dRdX blocks. */
+    void assemble_face_term_dRdX(
+        const unsigned int interior_face_number,
+        const unsigned int exterior_face_number,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe_int,
+        const dealii::FESystem<dim,dim> &fe_ext,
+        const dealii::Quadrature<dim> &face_quadrature_int,
+        const dealii::Quadrature<dim> &face_quadrature_ext,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
+        dealii::Vector<real>          &local_rhs_int_cell,
+        dealii::Vector<real>          &local_rhs_ext_cell);
+
+    /// Evaluate the integral over the cell volume.
+    /** Compute both the right-hand side and the Hessians d2RdX2, d2RdW2, d2RdWdX */
+    virtual void assemble_volume_terms_hessian(
+        const dealii::FEValues<dim,dim> &fe_values_volume,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs,
+        const dealii::FEValues<dim,dim> &fe_values_lagrange);
+    /// Evaluate the integral over the cell edges that are on domain boundaries
+    /** Compute both the right-hand side and the Hessians d2RdX2, d2RdW2, d2RdWdX */
+    virtual void assemble_boundary_term_hessian(
+        const unsigned int face_number,
+        const unsigned int boundary_id,
+        const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim-1> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
+        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+        dealii::Vector<real> &current_cell_rhs);
+    /// Evaluate the integral over the internal cell edges
+    /** Compute both the right-hand side and the block of the Jacobian.
+     *  This adds the contribution to both cell's residual and effectively 
+     *  computes the block contributions to the Hessians d2RdX2, d2RdW2, d2RdWdX */
+    virtual void assemble_face_term_hessian(
+        const unsigned int interior_face_number,
+        const unsigned int exterior_face_number,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe_int,
+        const dealii::FESystem<dim,dim> &fe_ext,
+        const dealii::Quadrature<dim> &face_quadrature_int,
+        const dealii::Quadrature<dim> &face_quadrature_ext,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
+        dealii::Vector<real>          &local_rhs_int_cell,
+        dealii::Vector<real>          &local_rhs_ext_cell);
+
+    /// Evaluate the integral over the cell edges that are on domain boundaries
     /** Compute both the right-hand side and the block of the Jacobian */
     void assemble_boundary_term_implicit(
         const unsigned int boundary_id,
-        const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
+        const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs);
@@ -621,8 +978,8 @@ private:
      *  This adds the contribution to both cell's residual and effectively 
      *  computes 4 block contributions to the Jacobian. */
     void assemble_face_term_implicit(
-        const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
-        const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_int,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_ext,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
@@ -638,14 +995,14 @@ private:
     /// Evaluate the integral over the cell edges that are on domain boundaries
     void assemble_boundary_term_explicit(
         const unsigned int boundary_id,
-        const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
+        const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs);
     /// Evaluate the integral over the internal cell edges
     void assemble_face_term_explicit(
-        const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
-        const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_int,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_ext,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
@@ -656,6 +1013,11 @@ private:
     using DGBase<dim,real>::mpi_communicator; ///< MPI communicator
     using DGBase<dim,real>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
+public:
+    /// Change the physics object
+    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<real> > >pde_physics_input);
+    /// Change the physics object
+    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, real > >pde_physics_double_input);
 }; // end of DGStrong class
 
 /// This class creates a new DGBase object
@@ -680,6 +1042,23 @@ class DGFactory
 public:
     /// Creates a derived object DG, but returns it as DGBase.
     /** That way, the caller is agnostic to the number of state variables */
+    static std::shared_ptr< DGBase<dim,real> >
+        create_discontinuous_galerkin(
+        const Parameters::AllParameters *const parameters_input, 
+        const unsigned int degree,
+        const unsigned int max_degree_input,
+        const unsigned int grid_degree_input,
+        Triangulation *const triangulation_input);
+
+    /// calls the above dg factory with grid_degree_input = degree + 1
+    static std::shared_ptr< DGBase<dim,real> >
+        create_discontinuous_galerkin(
+        const Parameters::AllParameters *const parameters_input, 
+        const unsigned int degree,
+        const unsigned int max_degree_input,
+        Triangulation *const triangulation_input);
+
+    /// calls the above dg factory with max_degree_input = degree
     static std::shared_ptr< DGBase<dim,real> >
         create_discontinuous_galerkin(
         const Parameters::AllParameters *const parameters_input, 

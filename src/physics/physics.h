@@ -38,7 +38,7 @@ public:
     virtual ~PhysicsBase() = 0;
 
     /// Manufactured solution function
-    const ManufacturedSolutionFunction<dim,real> manufactured_solution_function;
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function;
 
     /// Convective fluxes that will be differentiated once in space.
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
@@ -79,13 +79,13 @@ public:
 
     /// Source term that does not require differentiation.
     virtual std::array<real,nstate> source_term (
-        const dealii::Point<dim,double> &pos,
+        const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &solution) const = 0;
 
     /// Evaluates boundary values and gradients on the other side of the face.
     virtual void boundary_face_values (
         const int /*boundary_type*/,
-        const dealii::Point<dim, double> &/*pos*/,
+        const dealii::Point<dim, real> &/*pos*/,
         const dealii::Tensor<1,dim,real> &/*normal*/,
         const std::array<real,nstate> &/*soln_int*/,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,

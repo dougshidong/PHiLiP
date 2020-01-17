@@ -17,10 +17,15 @@ int main (int argc, char *argv[])
 //#if !defined(__APPLE__)
 //    feenableexcept(FE_INVALID | FE_OVERFLOW); // catch nan
 //#endif
-    dealii::deallog.depth_console(99);
     dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
     const int n_mpi = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
     const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    if (n_mpi==1 || mpi_rank==0) {
+		dealii::deallog.depth_console(99);
+	} else {
+		dealii::deallog.depth_console(0);
+	}
+
     dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
     pcout << "Starting program with " << n_mpi << " processors..." << std::endl;
     if ((PHILIP_DIM==1) && !(n_mpi==1)) {

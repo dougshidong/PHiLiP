@@ -61,6 +61,9 @@ DGWeak<dim,nstate,real>::~DGWeak ()
 
     delete conv_num_flux_double;
     delete diss_num_flux_double;
+
+    delete conv_num_flux_fad_fad;
+    delete diss_num_flux_fad_fad;
 }
 
 template <int dim, typename real>

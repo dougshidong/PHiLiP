@@ -1,5 +1,3 @@
-#include <mpi.h>
-
 #include <deal.II/base/exceptions.h>
 
 // For metric Jacobian testing

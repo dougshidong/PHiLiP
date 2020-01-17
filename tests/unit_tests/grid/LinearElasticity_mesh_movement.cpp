@@ -68,7 +68,7 @@ int main (int argc, char * argv[])
     const unsigned int p_end = 3;
     const double amplitude = 0.1;
     const double exact_area = dim>1 ? 1.0 : (amplitude+1.0);
-    const double area_tolerance = 1e-12;
+    const double area_tolerance = 1e-3;
     std::vector<int> fail_poly;
     std::vector<double> fail_area;
     std::vector<dealii::ConvergenceTable> convergence_table_vector;

@@ -30,8 +30,10 @@ template <int dim, int nstate, typename real>
 DGStrong<dim,nstate,real>::DGStrong(
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
+    const unsigned int max_degree_input,
+    const unsigned int grid_degree_input,
     Triangulation *const triangulation_input)
-    : DGBase<dim,real>::DGBase(nstate, parameters_input, degree, triangulation_input) // Use DGBase constructor
+    : DGBase<dim,real>::DGBase(nstate, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input) // Use DGBase constructor
 {
     using ADtype = Sacado::Fad::DFad<real>;
     pde_physics = Physics::PhysicsFactory<dim,nstate,ADtype> ::create_Physics(parameters_input);
@@ -54,8 +56,95 @@ DGStrong<dim,nstate,real>::~DGStrong ()
 }
 
 template <int dim, int nstate, typename real>
+void DGStrong<dim,nstate,real>::assemble_volume_terms_dRdX(
+    const dealii::FEValues<dim,dim> &,//&fe_values_vol,
+    const dealii::FESystem<dim,dim> &,//&fe,
+    const dealii::Quadrature<dim> &,//&quadrature,
+    const std::vector<dealii::types::global_dof_index> &,//&cell_metric_dofs_indices,
+    const std::vector<dealii::types::global_dof_index> &,//&cell_dofs_indices,
+    dealii::Vector<real> &,//&local_rhs_int_cell,
+    const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/)
+{ }
+template <int dim, int nstate, typename real>
+void DGStrong<dim,nstate,real>::assemble_boundary_term_dRdX(
+    const unsigned int ,//face_number,
+    const unsigned int ,//boundary_id,
+    const dealii::FEFaceValuesBase<dim,dim> &,//fe_values_boundary,
+    const real ,//penalty,
+    const dealii::FESystem<dim,dim> &,//fe,
+    const dealii::Quadrature<dim-1> &,//quadrature,
+    const std::vector<dealii::types::global_dof_index> &,//cell_metric_dofs_indices,
+    const std::vector<dealii::types::global_dof_index> &,//dof_indices_int,
+    dealii::Vector<real> &)//local_rhs_int_cell)
+{ }
+
+template <int dim, int nstate, typename real>
+void DGStrong<dim,nstate,real>::assemble_face_term_dRdX(
+    const unsigned int ,//interior_face_number,
+    const unsigned int ,//exterior_face_number,
+    const dealii::FEFaceValuesBase<dim,dim>     &,//&fe_values_int,
+    const dealii::FEFaceValuesBase<dim,dim>     &,//&fe_values_ext,
+    const real ,//penalty,
+    const dealii::FESystem<dim,dim> &,//fe_int,
+    const dealii::FESystem<dim,dim> &,//fe_ext,
+    const dealii::Quadrature<dim> &,//face_quadrature_int,
+    const dealii::Quadrature<dim> &,//face_quadrature_ext,
+    const std::vector<dealii::types::global_dof_index> &,//interior_cell_metric_dofs_indices,
+    const std::vector<dealii::types::global_dof_index> &,//exterior_cell_metric_dofs_indices,
+    const std::vector<dealii::types::global_dof_index> &,//&dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &,//&dof_indices_ext,
+    dealii::Vector<real>          &,//&local_rhs_int_cell,
+    dealii::Vector<real>          &)//&local_rhs_ext_cell)
+{ }
+
+template <int dim, int nstate, typename real>
+void DGStrong<dim,nstate,real>::assemble_volume_terms_hessian(
+    const dealii::FEValues<dim,dim> &,//&fe_values_vol,
+    const dealii::FESystem<dim,dim> &,//&fe,
+    const dealii::Quadrature<dim> &,//&quadrature,
+    const std::vector<dealii::types::global_dof_index> &,//&cell_metric_dofs_indices,
+    const std::vector<dealii::types::global_dof_index> &,//&cell_dofs_indices,
+    dealii::Vector<real> &,//&local_rhs_int_cell,
+    const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/)
+{ }
+template <int dim, int nstate, typename real>
+void DGStrong<dim,nstate,real>::assemble_boundary_term_hessian(
+    const unsigned int ,//face_number,
+    const unsigned int ,//boundary_id,
+    const dealii::FEFaceValuesBase<dim,dim> &,//fe_values_boundary,
+    const real ,//penalty,
+    const dealii::FESystem<dim,dim> &,//fe,
+    const dealii::Quadrature<dim-1> &,//quadrature,
+    const std::vector<dealii::types::global_dof_index> &,//cell_metric_dofs_indices,
+    const std::vector<dealii::types::global_dof_index> &,//dof_indices_int,
+    dealii::Vector<real> &)//local_rhs_int_cell)
+{ }
+
+template <int dim, int nstate, typename real>
+void DGStrong<dim,nstate,real>::assemble_face_term_hessian(
+    const unsigned int ,//interior_face_number,
+    const unsigned int ,//exterior_face_number,
+    const dealii::FEFaceValuesBase<dim,dim>     &,//&fe_values_int,
+    const dealii::FEFaceValuesBase<dim,dim>     &,//&fe_values_ext,
+    const real ,//penalty,
+    const dealii::FESystem<dim,dim> &,//fe_int,
+    const dealii::FESystem<dim,dim> &,//fe_ext,
+    const dealii::Quadrature<dim> &,//face_quadrature_int,
+    const dealii::Quadrature<dim> &,//face_quadrature_ext,
+    const std::vector<dealii::types::global_dof_index> &,//interior_cell_metric_dofs_indices,
+    const std::vector<dealii::types::global_dof_index> &,//exterior_cell_metric_dofs_indices,
+    const std::vector<dealii::types::global_dof_index> &,//&dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &,//&dof_indices_ext,
+    dealii::Vector<real>          &,//&local_rhs_int_cell,
+    dealii::Vector<real>          &)//&local_rhs_ext_cell)
+{ }
+
+template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_volume_terms_implicit(
     const dealii::FEValues<dim,dim> &fe_values_vol,
+    const dealii::FESystem<dim,dim> &,//fe,
+    const dealii::Quadrature<dim> &,//quadrature,
+    const std::vector<dealii::types::global_dof_index> &,//cell_metric_dofs_indices,
     const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
     dealii::Vector<real> &local_rhs_int_cell,
     const dealii::FEValues<dim,dim> &fe_values_lagrange)
@@ -111,7 +200,10 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_implicit(
         diss_phys_flux_at_q[iquad] = pde_physics->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
 
         if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
-            source_at_q[iquad] = pde_physics->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad]);
+            const dealii::Point<dim,real> real_quad_point = fe_values_vol.quadrature_point(iquad);
+            dealii::Point<dim,ADtype> ad_point;
+            for (int d=0;d<dim;++d) { ad_point[d] = real_quad_point[d]; }
+            source_at_q[iquad] = pde_physics->source_term (ad_point, soln_at_q[iquad]);
         }
     }
 
@@ -183,7 +275,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_implicit(
 template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_boundary_term_implicit(
     const unsigned int boundary_id,
-    const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
+    const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
     const real penalty,
     const std::vector<dealii::types::global_dof_index> &dof_indices_int,
     dealii::Vector<real> &local_rhs_int_cell)
@@ -243,8 +335,10 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_implicit(
             soln_grad_int[iquad][istate] += soln_coeff_int[idof] * fe_values_boundary.shape_grad_component(idof, iquad, istate);
         }
 
-        const dealii::Point<dim, real> x_quad = quad_pts[iquad];
-        pde_physics->boundary_face_values (boundary_id, x_quad, normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
+        const dealii::Point<dim, real> real_quad_point = quad_pts[iquad];
+        dealii::Point<dim,ADtype> ad_point;
+        for (int d=0;d<dim;++d) { ad_point[d] = real_quad_point[d]; }
+        pde_physics->boundary_face_values (boundary_id, ad_point, normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
 
         //
         // Evaluate physical convective flux, physical dissipative flux
@@ -311,8 +405,8 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_implicit(
 
 template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_face_term_implicit(
-    const dealii::FEValuesBase<dim,dim>     &fe_values_int,
-    const dealii::FEFaceValues<dim,dim>     &fe_values_ext,
+    const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
+    const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
     const real penalty,
     const std::vector<dealii::types::global_dof_index> &dof_indices_int,
     const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
@@ -491,9 +585,9 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
     const dealii::FEValues<dim,dim> &fe_values_lagrange)
 {
     //std::cout << "assembling cell terms" << std::endl;
-    using ADtype = Sacado::Fad::DFad<real>;
-    using ADArray = std::array<ADtype,nstate>;
-    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
+    using realtype = real;
+    using realArray = std::array<realtype,nstate>;
+    using realArrayTensor1 = std::array< dealii::Tensor<1,dim,realtype>, nstate >;
 
     const unsigned int n_quad_pts      = fe_values_vol.n_quadrature_points;
     const unsigned int n_dofs_cell     = fe_values_vol.dofs_per_cell;
@@ -505,19 +599,18 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
 
     std::vector<real> residual_derivatives(n_dofs_cell);
 
-    std::vector< ADArray > soln_at_q(n_quad_pts);
-    std::vector< ADArrayTensor1 > soln_grad_at_q(n_quad_pts); // Tensor initialize with zeros
+    std::vector< realArray > soln_at_q(n_quad_pts);
+    std::vector< realArrayTensor1 > soln_grad_at_q(n_quad_pts); // Tensor initialize with zeros
 
-    std::vector< ADArrayTensor1 > conv_phys_flux_at_q(n_quad_pts);
-    std::vector< ADArrayTensor1 > diss_phys_flux_at_q(n_quad_pts);
-    std::vector< ADArray > source_at_q(n_quad_pts);
+    std::vector< realArrayTensor1 > conv_phys_flux_at_q(n_quad_pts);
+    std::vector< realArrayTensor1 > diss_phys_flux_at_q(n_quad_pts);
+    std::vector< realArray > source_at_q(n_quad_pts);
 
 
     // AD variable
-    std::vector< ADtype > soln_coeff(n_dofs_cell);
+    std::vector< realtype > soln_coeff(n_dofs_cell);
     for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
         soln_coeff[idof] = DGBase<dim,real>::solution(cell_dofs_indices[idof]);
-        soln_coeff[idof].diff(idof, n_dofs_cell);
     }
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         for (int istate=0; istate<nstate; istate++) { 
@@ -537,10 +630,10 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
         //if(nstate>1) std::cout << "Momentum " << soln_at_q[iquad][1] << std::endl;
         //std::cout << "Energy " << soln_at_q[iquad][nstate-1] << std::endl;
         // Evaluate physical convective flux and source term
-        conv_phys_flux_at_q[iquad] = pde_physics->convective_flux (soln_at_q[iquad]);
-        diss_phys_flux_at_q[iquad] = pde_physics->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
+        conv_phys_flux_at_q[iquad] = pde_physics_double->convective_flux (soln_at_q[iquad]);
+        diss_phys_flux_at_q[iquad] = pde_physics_double->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
         if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
-            source_at_q[iquad] = pde_physics->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad]);
+            source_at_q[iquad] = pde_physics_double->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad]);
         }
     }
 
@@ -548,14 +641,14 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
     // Evaluate flux divergence by interpolating the flux
     // Since we have nodal values of the flux, we use the Lagrange polynomials to obtain the gradients at the quadrature points.
     //const dealii::FEValues<dim,dim> &fe_values_lagrange = this->fe_values_collection_volume_lagrange.get_present_fe_values();
-    std::vector<ADArray> flux_divergence(n_quad_pts);
+    std::vector<realArray> flux_divergence(n_quad_pts);
     for (int istate = 0; istate<nstate; ++istate) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             flux_divergence[iquad][istate] = 0.0;
             for ( unsigned int flux_basis = 0; flux_basis < n_quad_pts; ++flux_basis ) {
                 if (this->all_parameters->use_split_form == true)
                 {
-                    flux_divergence[iquad][istate] += 2* pde_physics->convective_numerical_split_flux(soln_at_q[iquad],soln_at_q[flux_basis])[istate] *  fe_values_lagrange.shape_grad(flux_basis,iquad);
+                    flux_divergence[iquad][istate] += 2* pde_physics_double->convective_numerical_split_flux(soln_at_q[iquad],soln_at_q[flux_basis])[istate] *  fe_values_lagrange.shape_grad(flux_basis,iquad);
                 }
                 else
                 {
@@ -575,7 +668,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
     // is negative. Therefore, negative of negative means we add that volume term to the right-hand-side
     for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
 
-        ADtype rhs = 0;
+        realtype rhs = 0;
 
         const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(itest).first;
 
@@ -595,15 +688,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
             }
         }
 
-        local_rhs_int_cell(itest) += rhs.val();
-
-        if (this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::implicit_solver) {
-            for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-                //residual_derivatives[idof] = rhs.fastAccessDx(idof);
-                residual_derivatives[idof] = rhs.fastAccessDx(idof);
-            }
-            this->system_matrix.add(cell_dofs_indices[itest], cell_dofs_indices, residual_derivatives);
-        }
+        local_rhs_int_cell(itest) += rhs;
     }
 }
 
@@ -611,7 +696,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
 template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_boundary_term_explicit(
     const unsigned int boundary_id,
-    const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
+    const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
     const real penalty,
     const std::vector<dealii::types::global_dof_index> &dof_indices_int,
     dealii::Vector<real> &local_rhs_int_cell)
@@ -671,8 +756,10 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_explicit(
             soln_grad_int[iquad][istate] += soln_coeff_int[idof] * fe_values_boundary.shape_grad_component(idof, iquad, istate);
         }
 
-        const dealii::Point<dim, real> x_quad = quad_pts[iquad];
-        pde_physics->boundary_face_values (boundary_id, x_quad, normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
+        const dealii::Point<dim, real> real_quad_point = quad_pts[iquad];
+        dealii::Point<dim,ADtype> ad_point;
+        for (int d=0;d<dim;++d) { ad_point[d] = real_quad_point[d]; }
+        pde_physics->boundary_face_values (boundary_id, ad_point, normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
 
         //
         // Evaluate physical convective flux, physical dissipative flux
@@ -739,8 +826,8 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_explicit(
 
 template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
-    const dealii::FEValuesBase<dim,dim>     &fe_values_int,
-    const dealii::FEFaceValues<dim,dim>     &fe_values_ext,
+    const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
+    const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
     const real penalty,
     const std::vector<dealii::types::global_dof_index> &dof_indices_int,
     const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
@@ -916,6 +1003,26 @@ void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
         }
     }
 }
+
+template <int dim, int nstate, typename real>
+void DGStrong<dim,nstate,real>::set_physics(
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, real > >pde_physics_double_input)
+{
+    pde_physics_double = pde_physics_double_input;
+    conv_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_convective_numerical_flux (DGBase<dim,real>::all_parameters->conv_num_flux_type, pde_physics_double);
+    diss_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_dissipative_numerical_flux (DGBase<dim,real>::all_parameters->diss_num_flux_type, pde_physics_double);
+
+}
+
+template <int dim, int nstate, typename real>
+void DGStrong<dim,nstate,real>::set_physics(
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<real> > >pde_physics_input)
+{
+    pde_physics = pde_physics_input;
+    conv_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, Sacado::Fad::DFad<real>> ::create_convective_numerical_flux (DGBase<dim,real>::all_parameters->conv_num_flux_type, pde_physics);
+    diss_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, Sacado::Fad::DFad<real>> ::create_dissipative_numerical_flux (DGBase<dim,real>::all_parameters->diss_num_flux_type, pde_physics);
+}
+
 template class DGStrong <PHILIP_DIM, 1, double>;
 template class DGStrong <PHILIP_DIM, 2, double>;
 template class DGStrong <PHILIP_DIM, 3, double>;

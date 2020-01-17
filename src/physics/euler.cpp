@@ -16,15 +16,18 @@ namespace Physics {
 template <int dim, int nstate, typename real>
 std::array<real,nstate> Euler<dim,nstate,real>
 ::source_term (
-    const dealii::Point<dim,double> &pos,
+    const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &/*conservative_soln*/) const
 {
     std::array<real,nstate> manufactured_solution;
     for (int s=0; s<nstate; s++) {
-        manufactured_solution[s] = this->manufactured_solution_function.value (pos, s);
+        manufactured_solution[s] = this->manufactured_solution_function->value (pos, s);
+        if (s==0) {
+            assert(manufactured_solution[s] > 0);
+        }
     }
     std::vector<dealii::Tensor<1,dim,real>> manufactured_solution_gradient_dealii(nstate);
-    this->manufactured_solution_function.vector_gradient (pos, manufactured_solution_gradient_dealii);
+    this->manufactured_solution_function->vector_gradient (pos, manufactured_solution_gradient_dealii);
     std::array<dealii::Tensor<1,nstate,real>,dim> manufactured_solution_gradient;
     for (int d=0;d<dim;d++) {
         for (int s=0; s<nstate; s++) {
@@ -477,7 +480,7 @@ template <int dim, int nstate, typename real>
 void Euler<dim,nstate,real>
 ::boundary_face_values (
    const int boundary_type,
-   const dealii::Point<dim, double> &pos,
+   const dealii::Point<dim, real> &pos,
    const dealii::Tensor<1,dim,real> &normal_int,
    const std::array<real,nstate> &soln_int,
    const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
@@ -493,8 +496,8 @@ void Euler<dim,nstate,real>
         std::array<real,nstate> conservative_boundary_values;
         std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
         for (int s=0; s<nstate; s++) {
-            conservative_boundary_values[s] = this->manufactured_solution_function.value (pos, s);
-            boundary_gradients[s] = this->manufactured_solution_function.gradient (pos, s);
+            conservative_boundary_values[s] = this->manufactured_solution_function->value (pos, s);
+            boundary_gradients[s] = this->manufactured_solution_function->gradient (pos, s);
         }
         std::array<real,nstate> primitive_boundary_values = convert_conservative_to_primitive(conservative_boundary_values);
         for (int istate=0; istate<nstate; ++istate) {
@@ -712,6 +715,7 @@ dealii::Vector<double> Euler<dim,nstate,real>::post_compute_derived_quantities_v
             conservative_soln[s] = uh(s);
         }
         const std::array<double, nstate> primitive_soln = convert_conservative_to_primitive(conservative_soln);
+        if (primitive_soln[0] < 0) std::cout << evaluation_points << std::endl;
 
         // Density
         computed_quantities(++current_data_index) = primitive_soln[0];
@@ -796,13 +800,16 @@ dealii::UpdateFlags Euler<dim,nstate,real>
 ::post_get_needed_update_flags () const
 {
     //return update_values | update_gradients;
-    return dealii::update_values;
+    return dealii::update_values
+           | dealii::update_quadrature_points
+           ;
 }
 
 // Instantiate explicitly
 
 template class Euler < PHILIP_DIM, PHILIP_DIM+2, double >;
 template class Euler < PHILIP_DIM, PHILIP_DIM+2, Sacado::Fad::DFad<double>  >;
+template class Euler < PHILIP_DIM, PHILIP_DIM+2, Sacado::Fad::DFad<Sacado::Fad::DFad<double>>  >;
 
 } // Physics namespace
 } // PHiLiP namespace

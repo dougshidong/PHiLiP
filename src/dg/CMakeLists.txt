@@ -1,7 +1,9 @@
 set(DG_SOURCE
     high_order_grid.cpp
+    meshmover_linear_elasticity.cpp
     dg.cpp
     drdx.cpp
+    residual_sparsity_patterns.cpp
     weak_dg.cpp
     strong_dg.cpp
     )

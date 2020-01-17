@@ -1,5 +1,3 @@
-#include <mpi.h>
-
 #include <deal.II/base/exceptions.h>
 
 // For metric Jacobian testing
@@ -9,15 +7,10 @@
 #include <deal.II/dofs/dof_handler.h>
 // *****************
 
-#include <deal.II/fe/fe_q.h>
-#include <deal.II/fe/fe_bernstein.h>
-
 #include <deal.II/dofs/dof_tools.h>
 
-#include <deal.II/lac/sparsity_pattern.h>
-#include <deal.II/lac/trilinos_sparse_matrix.h>
-
-#include <deal.II/lac/lapack_full_matrix.h>
+#include <deal.II/fe/fe_q.h>
+#include <deal.II/fe/fe_bernstein.h>
 
 #include <deal.II/numerics/vector_tools.h>
 
@@ -26,14 +19,35 @@
 
 #include <deal.II/optimization/solver_bfgs.h>
 
+#include <deal.II/grid/grid_tools.h>
+
+#include <deal.II/lac/sparsity_tools.h>
+#include <deal.II/lac/sparse_matrix.h>
+#include <deal.II/lac/dynamic_sparsity_pattern.h>
+#include <deal.II/lac/sparsity_pattern.h>
+#include <deal.II/lac/lapack_full_matrix.h>
+
+#include <deal.II/dofs/dof_renumbering.h>
+
 #include "high_order_grid.h"
+
+
 namespace PHiLiP {
+
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    template <int dim> using Triangulation = dealii::Triangulation<dim>;
+#else
+    template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+#endif
+
+template <int dim, typename real, typename VectorType, typename DoFHandlerType>
+unsigned int HighOrderGrid<dim,real,VectorType,DoFHandlerType>::nth_refinement=0;
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
 HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
         const Parameters::AllParameters *const parameters_input,
         const unsigned int max_degree,
-        dealii::Triangulation<dim> *const triangulation_input)
+        Triangulation *const triangulation_input)
     : all_parameters(parameters_input)
     , max_degree(max_degree)
     , triangulation(triangulation_input)
@@ -44,15 +58,16 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &n_mpi);
+
     Assert(max_degree > 0, dealii::ExcMessage("Grid must be at least order 1."));
-    nth_refinement = 0;
     allocate();
     const dealii::ComponentMask mask(dim, true);
     get_position_vector(dof_handler_grid, nodes, mask);
     nodes.update_ghost_values();
-    update_surface_indices();
     update_surface_nodes();
-    mapping_fe_field = std::make_shared< dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> > (dof_handler_grid,nodes,mask);
+    update_mapping_fe_field();
     output_results_vtk(nth_refinement++);
 
     // Used to check Jacobian validity
@@ -63,7 +78,7 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
 
     auto cell = dof_handler_grid.begin_active();
     auto endcell = dof_handler_grid.end();
-    std::cout << "Disabled check_valid_cells. Took too much time due to shape_grad()." << std::endl;
+    // pcout << "Disabled check_valid_cells. Took too much time due to shape_grad()." << std::endl;
     for (; cell!=endcell; ++cell) {
         if (!cell->is_locally_owned())  continue;
         const bool is_invalid_cell = check_valid_cell(cell);
@@ -79,21 +94,25 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
 }
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_mapping_fe_field() {
+    const dealii::ComponentMask mask(dim, true);
+    mapping_fe_field = std::make_shared< dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> > (dof_handler_grid,nodes,mask);
+}
+
+template <int dim, typename real, typename VectorType , typename DoFHandlerType>
 void 
 HighOrderGrid<dim,real,VectorType,DoFHandlerType>::allocate() 
 {
     dof_handler_grid.initialize(*triangulation, fe_system);
     dof_handler_grid.distribute_dofs(fe_system);
+    dealii::DoFRenumbering::Cuthill_McKee(dof_handler_grid);
 
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    nodes.reinit(dof_handler_grid.n_dofs());
-#else
+
     locally_owned_dofs_grid = dof_handler_grid.locally_owned_dofs();
-    dealii::DoFTools::extract_locally_relevant_dofs(dof_handler_grid, ghost_dofs_grid);
-    locally_relevant_dofs_grid = ghost_dofs_grid;
+    dealii::DoFTools::extract_locally_relevant_dofs(dof_handler_grid, locally_relevant_dofs_grid);
+    ghost_dofs_grid = locally_relevant_dofs_grid;
     ghost_dofs_grid.subtract_set(locally_owned_dofs_grid);
     nodes.reinit(locally_owned_dofs_grid, ghost_dofs_grid, mpi_communicator);
-#endif
 }
 
 //template <int dim, typename real, typename VectorType , typename DoFHandlerType>
@@ -126,8 +145,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>
     for (unsigned int i = 0; i < fe_mask.size(); ++i) {
         if (fe_mask[i]) fe_to_real[i] = size++;
     }
-    Assert(size == dim, dealii::ExcMessage(
-        "The Component Mask you provided is invalid. It has to select exactly dim entries."));
+    Assert(size == dim, dealii::ExcMessage("The Component Mask you provided is invalid. It has to select exactly dim entries."));
   
     const dealii::Quadrature<dim> quad(fe.get_unit_support_points());
   
@@ -146,7 +164,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>
             for (unsigned int q = 0; q < points.size(); ++q) {
                 const unsigned int comp = fe.system_to_component_index(q).first;
                 if (fe_mask[comp]) ::dealii::internal::ElementAccess<VectorType>::set(points[q][fe_to_real[comp]], dofs[q], vector);
-              }
+            }
         }
     }
 }
@@ -287,9 +305,9 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::evaluate_lagrange_to_ber
         }
     }
     lagrange_to_bernstein_operator.reinit(n_lagrange_pts, n_bernstein);
-    std::cout << "Careful, about to invert a " << n_lagrange_pts << " x " << n_lagrange_pts << " dense matrix..." << std::endl;
+    if (n_lagrange_pts > 1000) pcout << "Careful, about to invert a " << n_lagrange_pts << " x " << n_lagrange_pts << " dense matrix..." << std::endl;
     lagrange_to_bernstein_operator.invert(bernstein_to_lagrange);
-    std::cout << "Done inverting a " << n_lagrange_pts << " x " << n_lagrange_pts << " dense matrix..." << std::endl;
+    if (n_lagrange_pts > 1000) pcout << "Done inverting a " << n_lagrange_pts << " x " << n_lagrange_pts << " dense matrix..." << std::endl;
 }
 
 
@@ -733,21 +751,18 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::prepare_for_coarsening_a
 
     old_nodes = nodes;
     old_nodes.update_ghost_values();
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    if constexpr (PHILIP_DIM==1) solution_transfer.clear();
     solution_transfer.prepare_for_coarsening_and_refinement(old_nodes);
-#else
-    solution_transfer.prepare_for_coarsening_and_refinement(old_nodes);
-#endif
 }
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
 void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::execute_coarsening_and_refinement(const bool output_mesh) {
     allocate();
-#if PHILIP_DIM==1
-    solution_transfer.interpolate(old_nodes, nodes);
-#else
-    solution_transfer.interpolate(nodes);
-#endif
+    if constexpr(PHILIP_DIM==1) {
+        solution_transfer.interpolate(old_nodes, nodes);
+    } else {
+        solution_transfer.interpolate(nodes);
+    }
     nodes.update_ghost_values();
 
     dealii::AffineConstraints<double> hanging_node_constraints;
@@ -758,14 +773,13 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::execute_coarsening_and_r
 
     nodes.update_ghost_values();
 
-    update_surface_indices();
     update_surface_nodes();
-    mapping_fe_field = std::make_shared< dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> > (dof_handler_grid,nodes);
+    update_mapping_fe_field();
     if (output_mesh) output_results_vtk(nth_refinement++);
 
     auto cell = dof_handler_grid.begin_active();
     auto endcell = dof_handler_grid.end();
-    std::cout << "Disabled check_valid_cells. Took too much time due to shape_grad()." << std::endl;
+    // pcout << "Disabled check_valid_cells. Took too much time due to shape_grad()." << std::endl;
     for (; cell!=endcell; ++cell) {
         if (!cell->is_locally_owned())  continue;
         const bool is_invalid_cell = check_valid_cell(cell);
@@ -783,22 +797,16 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::execute_coarsening_and_r
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
 void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::deform_mesh(std::vector<real> local_surface_displacements) {
-
-    int n_mpi;
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &n_mpi);
-
     (void) local_surface_displacements;
     // const unsigned int n_local_surface_disp = local_surface_displacements.size();
-    // Assert(n_local_surface_disp==local_surface_nodes.size(), dealii::ExcDimensionMismatch(n_local_surface_disp,local_surface_nodes.size()));
+    // Assert(n_local_surface_disp==locally_relevant_surface_nodes.size(), dealii::ExcDimensionMismatch(n_local_surface_disp,local_surface_nodes.size()));
 
-    const unsigned int n_surface_nodes = all_surface_nodes.size();
-    dealii::Vector<real> surface_displacements(n_surface_nodes);
-    Assert(surface_displacements.size() == all_surface_nodes.size(), dealii::ExcDimensionMismatch(surface_displacements.size(),all_surface_nodes.size()));
+    const unsigned int n_relevant_surface_nodes = all_locally_relevant_surface_nodes.size();
+    dealii::Vector<real> surface_displacements(n_relevant_surface_nodes);
+    Assert(surface_displacements.size() == all_locally_relevant_surface_nodes.size(), dealii::ExcDimensionMismatch(surface_displacements.size(),all_locally_relevant_surface_nodes.size()));
 
-    const unsigned int n_surface_points = n_surface_nodes / dim;
-    Assert( n_surface_nodes % dim == 0, dealii::ExcMessage("Surface nodes has incorrect size."));
+    const unsigned int n_surface_points = n_relevant_surface_nodes / dim;
+    Assert( n_relevant_surface_nodes % dim == 0, dealii::ExcMessage("Surface nodes has incorrect size."));
 
     (void) surface_displacements;
     const double support_radius = 1.0;
@@ -806,8 +814,8 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::deform_mesh(std::vector<
 
     dealii::SparsityPattern sparsity_pattern_M(n_surface_points, n_surface_points, n_surface_points);
     int row=0, col=0;
-    for (auto node1 = all_surface_nodes.begin(); node1 != all_surface_nodes.end(); node1+=dim) {
-        for (auto node2 = node1; node2 != all_surface_nodes.end(); node2+=dim) {
+    for (auto node1 = all_locally_relevant_surface_nodes.begin(); node1 != all_locally_relevant_surface_nodes.end(); node1+=dim) {
+        for (auto node2 = node1; node2 != all_locally_relevant_surface_nodes.end(); node2+=dim) {
             double distance2 = 0;
             // Evaluate the squared distance
             for (int d=0;d<dim;++d) {
@@ -828,18 +836,18 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::deform_mesh(std::vector<
     const int n_rows_per_mpi = n_surface_points / n_mpi;
     const int rows_leftover = n_surface_points - n_mpi * n_rows_per_mpi;
     dealii::IndexSet my_rows;
-    my_rows.add_range(n_rows_per_mpi*rank, n_rows_per_mpi*(rank+1)-1);
-    if (rank == n_mpi-1) my_rows.add_range(n_rows_per_mpi*(rank+1), n_rows_per_mpi*(rank+1)+rows_leftover);
+    my_rows.add_range(n_rows_per_mpi*mpi_rank, n_rows_per_mpi*(mpi_rank+1)-1);
+    if (mpi_rank == n_mpi-1) my_rows.add_range(n_rows_per_mpi*(mpi_rank+1), n_rows_per_mpi*(mpi_rank+1)+rows_leftover);
     MPI_Barrier(MPI_COMM_WORLD);
-    //std::cout << "Rank: " << rank << "range: "<< my_rows.print(std::cout) << std::endl << std::endl;
-    my_rows.print(std::cout);
+    //std::cout << "Rank: " << mpi_rank << "range: "<< my_rows.print(std::cout) << std::endl << std::endl;
+    //my_rows.print(std::cout);
     MPI_Barrier(MPI_COMM_WORLD);
 
     dealii::TrilinosWrappers::SparseMatrix M;
     M.reinit(my_rows, sparsity_pattern_M, MPI_COMM_WORLD);
     row=0; col=0;
-    for (auto node1 = all_surface_nodes.begin(); node1 != all_surface_nodes.end(); node1+=dim) {
-        for (auto node2 = node1; node2 != all_surface_nodes.end(); node2+=dim) {
+    for (auto node1 = all_locally_relevant_surface_nodes.begin(); node1 != all_locally_relevant_surface_nodes.end(); node1+=dim) {
+        for (auto node2 = node1; node2 != all_locally_relevant_surface_nodes.end(); node2+=dim) {
             double distance2 = 0;
             // Evaluate the squared distance
             for (int d=0;d<dim;++d) {
@@ -886,7 +894,7 @@ std::vector<T> flatten(const std::vector<std::vector<T>>& v) {
 //    std::vector<MPI_Request> request(n_mpi);
 //    for (int i_mpi=0; i_mpi<n_mpi; ++i_mpi) {
 //        all_local_entries[i_mpi].resize(n_local_entries_per_mpi[i_mpi]);
-//        if (i_mpi == rank) {
+//        if (i_mpi == mpi_rank) {
 //            all_local_entries[i_mpi] = local_entries;
 //        }
 //    }
@@ -894,59 +902,130 @@ std::vector<T> flatten(const std::vector<std::vector<T>>& v) {
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
 void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_nodes() {
-    int n_mpi;
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &n_mpi);
 
-    const unsigned int n_local_surface_nodes = locally_owned_surface_nodes_indices.size();
-    // Copy surface node locations
-    local_surface_nodes.clear();
-    local_surface_nodes.resize(n_local_surface_nodes);
-    unsigned int i = 0;
-    for (auto index = locally_owned_surface_nodes_indices.begin(); index != locally_owned_surface_nodes_indices.end(); index++) {
-        local_surface_nodes[i++] = nodes[*index];
-    }
-    std::vector<unsigned int> n_local_surface_nodes_per_mpi(n_mpi);
-    MPI_Allgather(&n_local_surface_nodes, 1, MPI::UNSIGNED, &(n_local_surface_nodes_per_mpi[0]), 1, MPI::UNSIGNED, MPI_COMM_WORLD);
-    n_surface_nodes = 0;
-    for (int i_mpi=0; i_mpi<n_mpi; ++i_mpi) {
-        n_surface_nodes += n_local_surface_nodes_per_mpi[i_mpi];
-    }
-    // There is a bug in n_surface_nodes,dof_handler_grid.n_boundary_dofs() as of dealii's commit f538a13de76f5c9fb0f8744e036ec57c81cf6c79
-    // Assert(n_surface_nodes == dof_handler_grid.n_boundary_dofs(), dealii::ExcDimensionMismatch(n_surface_nodes,dof_handler_grid.n_boundary_dofs()));
+    update_surface_indices();
 
-    std::vector<std::vector<real>> all_local_surface_nodes(n_mpi);
-    std::vector<MPI_Request> request(n_mpi);
-    for (int i_mpi=0; i_mpi<n_mpi; ++i_mpi) {
-        all_local_surface_nodes[i_mpi].resize(n_local_surface_nodes_per_mpi[i_mpi]);
-        if (i_mpi == rank) {
-            all_local_surface_nodes[i_mpi] = local_surface_nodes;
+    {
+        const unsigned int n_locally_owned_surface_nodes = locally_owned_surface_nodes_indices.size();
+        // Copy local surface node locations
+        locally_owned_surface_nodes.clear();
+        locally_owned_surface_nodes.resize(n_locally_owned_surface_nodes);
+        unsigned int i = 0;
+        for (auto index = locally_owned_surface_nodes_indices.begin(); index != locally_owned_surface_nodes_indices.end(); index++) {
+            locally_owned_surface_nodes[i++] = nodes[*index];
+        }
+
+        n_locally_owned_surface_nodes_per_mpi.clear();
+        n_locally_owned_surface_nodes_per_mpi.resize(n_mpi);
+        MPI_Allgather(&n_locally_owned_surface_nodes, 1, MPI::UNSIGNED, &(n_locally_owned_surface_nodes_per_mpi[0]), 1, MPI::UNSIGNED, MPI_COMM_WORLD);
+
+        std::vector<std::vector<real>> vector_locally_owned_surface_nodes(n_mpi);
+        std::vector<std::vector<unsigned int>> vector_locally_owned_surface_indices(n_mpi);
+        std::vector<MPI_Request> request(n_mpi);
+        for (int i_mpi=0; i_mpi<n_mpi; ++i_mpi) {
+            vector_locally_owned_surface_nodes[i_mpi].resize(n_locally_owned_surface_nodes_per_mpi[i_mpi]);
+            vector_locally_owned_surface_indices[i_mpi].resize(n_locally_owned_surface_nodes_per_mpi[i_mpi]);
+            if (i_mpi == mpi_rank) {
+                vector_locally_owned_surface_nodes[i_mpi] = locally_owned_surface_nodes;
+                vector_locally_owned_surface_indices[i_mpi] = locally_owned_surface_nodes_indices;
+            }
+        }
+
+        for (int i_mpi=0; i_mpi<n_mpi; ++i_mpi) {
+            MPI_Bcast(&(vector_locally_owned_surface_nodes[i_mpi][0]), n_locally_owned_surface_nodes_per_mpi[i_mpi], MPI_DOUBLE, i_mpi, MPI_COMM_WORLD);
+            MPI_Bcast(&(vector_locally_owned_surface_indices[i_mpi][0]), n_locally_owned_surface_nodes_per_mpi[i_mpi], MPI::UNSIGNED, i_mpi, MPI_COMM_WORLD);
+        }
+
+        all_surface_nodes = flatten(vector_locally_owned_surface_nodes);
+        all_surface_indices = flatten(vector_locally_owned_surface_indices);
+
+        unsigned int low_range = 0;
+        for (int i_mpi=0; i_mpi<mpi_rank; ++i_mpi) {
+            low_range += n_locally_owned_surface_nodes_per_mpi[i_mpi];
+        }
+        const unsigned int high_range = low_range + n_locally_owned_surface_nodes_per_mpi[mpi_rank];
+
+        const unsigned int n_surface_nodes = all_surface_nodes.size();
+        locally_owned_surface_nodes_indexset.clear();
+        locally_owned_surface_nodes_indexset.set_size(n_surface_nodes);
+        locally_owned_surface_nodes_indexset.add_range(low_range, high_range);
+
+    }
+
+    {
+        const unsigned int n_locally_relevant_surface_nodes = locally_relevant_surface_nodes_indices.size();
+        // Copy local surface node locations
+        locally_relevant_surface_nodes.clear();
+        locally_relevant_surface_nodes.resize(n_locally_relevant_surface_nodes);
+        unsigned int i = 0;
+        for (auto index = locally_relevant_surface_nodes_indices.begin(); index != locally_relevant_surface_nodes_indices.end(); index++) {
+            locally_relevant_surface_nodes[i++] = nodes[*index];
+        }
+
+        std::vector<unsigned int> n_locally_relevant_surface_nodes_per_mpi(n_mpi);
+        MPI_Allgather(&n_locally_relevant_surface_nodes, 1, MPI::UNSIGNED, &(n_locally_relevant_surface_nodes_per_mpi[0]), 1, MPI::UNSIGNED, MPI_COMM_WORLD);
+
+        std::vector<std::vector<real>> vector_locally_relevant_surface_nodes(n_mpi);
+        std::vector<MPI_Request> request(n_mpi);
+        for (int i_mpi=0; i_mpi<n_mpi; ++i_mpi) {
+            vector_locally_relevant_surface_nodes[i_mpi].resize(n_locally_relevant_surface_nodes_per_mpi[i_mpi]);
+            if (i_mpi == mpi_rank) {
+                vector_locally_relevant_surface_nodes[i_mpi] = locally_relevant_surface_nodes;
+            }
+        }
+
+        for (int i_mpi=0; i_mpi<n_mpi; ++i_mpi) {
+            MPI_Bcast(&(vector_locally_relevant_surface_nodes[i_mpi][0]), n_locally_relevant_surface_nodes_per_mpi[i_mpi], MPI_DOUBLE, i_mpi, MPI_COMM_WORLD);
+        }
+
+        all_locally_relevant_surface_nodes = flatten(vector_locally_relevant_surface_nodes);
+
+        const unsigned int n_surface_nodes = all_surface_nodes.size();
+        ghost_surface_nodes_indexset.clear();
+        ghost_surface_nodes_indexset.set_size(n_surface_nodes);
+        for (auto index = locally_relevant_surface_nodes_indices.begin(); index != locally_relevant_surface_nodes_indices.end(); ++index) {
+            auto it = std::find (locally_owned_surface_nodes_indices.begin(), locally_owned_surface_nodes_indices.end(), *index);
+            if (it == locally_owned_surface_nodes_indices.end()) {
+                // If not in locally_owned_surface_nodes_indexset then, it must be a ghost entry
+                bool found = false;
+                for (unsigned int i = 0; i < all_surface_indices.size(); i++) {
+                    if (all_surface_indices[i] == *index) {
+                        ghost_surface_nodes_indexset.add_index(i);
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) std::abort();
+            }
         }
     }
 
-    for (int i_mpi=0; i_mpi<n_mpi; ++i_mpi) {
-        MPI_Bcast(&(all_local_surface_nodes[i_mpi][0]), n_local_surface_nodes_per_mpi[i_mpi], MPI_DOUBLE, i_mpi, MPI_COMM_WORLD);
+    surface_nodes.reinit(locally_owned_surface_nodes_indexset, ghost_surface_nodes_indexset, MPI_COMM_WORLD);
+    surface_indices.reinit(locally_owned_surface_nodes_indexset, ghost_surface_nodes_indexset, MPI_COMM_WORLD);
+    unsigned int i = 0;
+    auto index = surface_indices.begin();
+    AssertDimension(locally_owned_surface_nodes_indexset.n_elements(), locally_owned_surface_nodes.size());
+    AssertDimension(locally_owned_surface_nodes_indexset.n_elements(), locally_owned_surface_nodes_indices.size());
+    for (auto node = surface_nodes.begin(); node != surface_nodes.end(); node++, index++, i++) {
+        *node = locally_owned_surface_nodes[i];
+        *index = locally_owned_surface_nodes_indices[i];
     }
+    surface_indices.update_ghost_values();
+    surface_nodes.update_ghost_values();
 
-    all_surface_nodes = flatten(all_local_surface_nodes);
-
-    // MPI_Barrier(MPI_COMM_WORLD);
-    // if (rank != 0) return;
-
-    // for (auto node = all_surface_nodes.begin(); node != all_surface_nodes.end(); node+=dim) {
-    //     for (int d=0;d<dim;++d) {
-    //         std::cout << *(node+d) << " ";
-    //     }
-    //     std::cout << std::endl;
-    // }
-    // std::cout << std::endl;
 }
-
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
 void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices() {
     locally_owned_surface_nodes_indices.clear();
+    locally_owned_surface_nodes.clear();
+    locally_owned_surface_nodes_boundary_id.clear();
+    locally_relevant_surface_nodes_indices.clear();
+    locally_relevant_surface_nodes.clear();
+    locally_relevant_surface_nodes_boundary_id.clear();
+    locally_relevant_surface_points.clear();
+    global_index_to_point_and_axis.clear();
+    point_and_axis_to_global_index.clear();
 
     const unsigned int dofs_per_cell = fe_system.n_dofs_per_cell();
     const unsigned int dofs_per_face = fe_system.n_dofs_per_face();
@@ -955,14 +1034,18 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices()
     // Use unordered sets which uses hashmap.
     // Has an average complexity of O(1) (worst case O(n)) for finding and inserting
     // Overall algorithm average will be O(n), worst case O(n^2)
-    std::unordered_set<unsigned int> locally_owned_dofs(locally_owned_dofs_grid.begin(), locally_owned_dofs_grid.end());
-    std::unordered_set<unsigned int> surface_dof_indices_temp;
+    std::unordered_set<dealii::types::global_dof_index> locally_relevant_surface_dof_indices_set;
+    std::unordered_set<dealii::types::global_dof_index> locally_owned_surface_dof_indices_set;
     for (auto cell = dof_handler_grid.begin_active(); cell!=dof_handler_grid.end(); ++cell) {
 
         if (!cell->is_locally_owned()) continue;
         if (!cell->at_boundary()) continue;
 
         cell->get_dof_indices(dof_indices);
+
+        // Each time a new shape_within_base is found, add it to the list of points.
+        std::unordered_set<dealii::types::global_dof_index> shape_within_base_found;
+        std::map<unsigned int, unsigned int> shape_function_within_base_to_point_index;
 
         for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
             const auto face = cell->face(iface);
@@ -976,24 +1059,84 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices()
                 // The 5th dof of that face might correspond to the 24th dof on the cell
                 unsigned int idof_cell = fe_system.face_to_cell_index(idof_face, iface);
 
-                const unsigned int global_idof_index = dof_indices[idof_cell];
+                const dealii::types::global_dof_index global_idof_index = dof_indices[idof_cell];
 
                 // If dof is not already in our hashmap, then insert it into our set of surface indices.
                 // Even though the set is unique, we are really only creating a vector of indices and boundary ID,
                 // and therefore can't just insert.
                 // However, do not add if it is not locally owned, it will get picked up by another processor
-                if (   ( surface_dof_indices_temp.find(global_idof_index) == surface_dof_indices_temp.end() )
-                    && ( locally_owned_dofs.find(global_idof_index) != locally_owned_dofs.end() ) ) {
-                        surface_dof_indices_temp.insert(global_idof_index);
+                
+
+                // For linear elasticity, need access to locally RELEVANT nodes. Not just the locally owned ones.
+                if ( locally_relevant_surface_dof_indices_set.find(global_idof_index) == locally_relevant_surface_dof_indices_set.end() ) {
+                    locally_relevant_surface_dof_indices_set.insert(global_idof_index);
+                    locally_relevant_surface_nodes_indices.push_back(global_idof_index);
+                    locally_relevant_surface_nodes_boundary_id.push_back(boundary_id);
+                    // Refer to the nonmenclature of
+                    // https://www.dealii.org/current/doxygen/deal.II/classFiniteElement.html#ae2ea16b60a6fc644a9bc7097703a53e8
+                    const unsigned int i = idof_cell;
+                    const unsigned int component = fe_system.system_to_component_index(i).first;
+                    const unsigned int shape_within_base = fe_system.system_to_component_index(i).second;
+                    unsigned int point_index = 0;
+                    if ( shape_within_base_found.find(shape_within_base) == shape_within_base_found.end() ) {
+                        // If the point does not exist, add it to the list of points.
+                        shape_within_base_found.insert(shape_within_base);
+
+                        dealii::Point<dim> point;
+                        point[component] = nodes[global_idof_index];
+                        locally_relevant_surface_points.push_back(point);
+                        point_index = locally_relevant_surface_points.size()-1;
+                        shape_function_within_base_to_point_index[shape_within_base] = point_index;
+                    } else {
+                        // The point has already been visited.
+                        // Simply complete its Point data entries.
+                        point_index = shape_function_within_base_to_point_index[shape_within_base];
+                        locally_relevant_surface_points[point_index][component] = nodes[global_idof_index];
+                    }
+
+                    global_index_to_point_and_axis[global_idof_index] = std::make_pair(point_index, component);
+                    point_and_axis_to_global_index[std::make_pair(point_index, component)] = global_idof_index;
+                }
+
+                if (locally_owned_dofs_grid.is_element(global_idof_index)) {
+                    if ( locally_owned_surface_dof_indices_set.find(global_idof_index) == locally_owned_surface_dof_indices_set.end() ) {
+                        locally_owned_surface_dof_indices_set.insert(global_idof_index);
                         locally_owned_surface_nodes_indices.push_back(global_idof_index);
                         locally_owned_surface_nodes_boundary_id.push_back(boundary_id);
+                    }
                 }
             }
 
         }
 
     }
+    //std::cout << "I own " << locally_relevant_surface_nodes_indices.size() << " surface nodes" << std::endl;
+}
 
+template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+VectorType HighOrderGrid<dim,real,VectorType,DoFHandlerType>::
+transform_surface_nodes(std::function<dealii::Point<dim>(dealii::Point<dim>)> transformation) const
+{
+    VectorType new_surface_nodes(surface_nodes);
+    auto index = surface_indices.begin();
+    auto node = surface_nodes.begin();
+    auto new_node = new_surface_nodes.begin();
+    for (; index != surface_indices.end(); ++index, ++node, ++new_node) {
+        const dealii::types::global_dof_index global_idof_index = *index;
+        //const std::pair<unsigned int, unsigned int> ipoint_component = global_index_to_point_and_axis[global_idof_index];
+        //const auto ipoint_component = global_index_to_point_and_axis.at(global_idof_index);
+        const std::pair<unsigned int, unsigned int> ipoint_component = global_index_to_point_and_axis.at(global_idof_index);
+        const unsigned int ipoint = ipoint_component.first;
+        const unsigned int component = ipoint_component.second;
+        dealii::Point<dim> point;
+        for (int d=0;d<dim;d++) {
+            point[d] = locally_relevant_surface_points[ipoint][d];
+        }
+        dealii::Point<dim> new_point = transformation(point);
+        *new_node = new_point[component];
+    }
+    new_surface_nodes.update_ghost_values();
+    return new_surface_nodes;
 }
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
@@ -1013,7 +1156,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::output_results_vtk (cons
 //         dof_handler_fine.distribute_dofs(fe_system_fine);
 // 
 //         VectorType nodes_fine;
-// #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+// #if PHILIP_DIM==31 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
 //         nodes_fine.reinit(dof_handler_fine.n_dofs());
 // #else
 //         dealii::IndexSet locally_owned_dofs_fine = dof_handler_fine.locally_owned_dofs();
@@ -1048,7 +1191,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::output_results_vtk (cons
 //         data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 // 
 //         VectorType jacobian_determinant;
-// #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+// #if PHILIP_DIM==31 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
 //         jacobian_determinant.reinit(dof_handler_fine.n_dofs());
 // #else
 //         jacobian_determinant.reinit(locally_owned_dofs_fine, ghost_dofs_fine, mpi_communicator);
@@ -1094,11 +1237,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::output_results_vtk (cons
     // data_out.add_data_vector (nodes, grid_post_processor);
 
     VectorType jacobian_determinant;
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    jacobian_determinant.reinit(dof_handler_grid.n_dofs());
-#else
     jacobian_determinant.reinit(locally_owned_dofs_grid, ghost_dofs_grid, mpi_communicator);
-#endif
     // const unsigned int n_dofs_per_cell = fe_system.n_dofs_per_cell();
     // std::vector<dealii::types::global_dof_index> dofs_indices(n_dofs_per_cell);
     // const std::vector< dealii::Point<dim> > &points = fe_system.get_unit_support_points();
@@ -1224,10 +1363,5 @@ dealii::UpdateFlags GridPostprocessor<dim>::get_needed_update_flags () const
     return dealii::update_values | dealii::update_gradients;
 }
 
-//template class HighOrderGrid<PHILIP_DIM, double>;
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template class HighOrderGrid<PHILIP_DIM, double, dealii::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
-#else
 template class HighOrderGrid<PHILIP_DIM, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
-#endif
 } // namespace PHiLiP

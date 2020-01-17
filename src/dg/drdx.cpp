@@ -1,50 +1,168 @@
+#include <deal.II/lac/dynamic_sparsity_pattern.h>
+#include <deal.II/lac/sparsity_tools.h>
+
 #include "dg.h"
 
 namespace PHiLiP {
 
-template <int dim, typename real>
-dealii::SparsityPattern DGBase<dim,real>::get_dRdX_sparsity_pattern () {
+// unsigned int color_sparsity_pattern(const dealii::SparsityPattern &sparsity_pattern, std::vector<unsigned int> &color_indices)
+// {
+//     // Make sure that ZOLTAN is actually
+//     // installed and detected
+// #ifndef DEAL_II_TRILINOS_WITH_ZOLTAN
+//     (void)sparsity_pattern;
+//     (void)color_indices;
+//     AssertThrow(false, dealii::ExcZOLTANNotInstalled());
+//     return 0;
+// #else
+//     // coloring algorithm is run in serial by each processor.
+//     std::unique_ptr<Zoltan> zz = std_cxx14::make_unique<Zoltan>(MPI_COMM_SELF);
+// 
+//     // Coloring parameters
+//     // DEBUG_LEVEL must precede all other calls
+//     zz->Set_Param("DEBUG_LEVEL", "0");               // level of debug info
+//     zz->Set_Param("COLORING_PROBLEM", "DISTANCE-1"); // Standard coloring
+//     zz->Set_Param("NUM_GID_ENTRIES", "1"); // 1 entry represents global ID
+//     zz->Set_Param("NUM_LID_ENTRIES", "1"); // 1 entry represents local ID
+//     zz->Set_Param("OBJ_WEIGHT_DIM", "0");  // object weights not used
+//     zz->Set_Param("RECOLORING_NUM_OF_ITERATIONS", "0");
+// 
+//     // Zoltan::Color function requires a non-const SparsityPattern object
+//     SparsityPattern graph;
+//     graph.copy_from(sparsity_pattern);
+// 
+//     // Set query functions required by coloring function
+//     zz->Set_Num_Obj_Fn(get_number_of_objects, &graph);
+//     zz->Set_Obj_List_Fn(get_object_list, &graph);
+//     zz->Set_Num_Edges_Multi_Fn(get_num_edges_list, &graph);
+//     zz->Set_Edge_List_Multi_Fn(get_edge_list, &graph);
+// 
+//     // Variables needed by coloring function
+//     int num_gid_entries = 1;
+//     const int num_objects = graph.n_rows();
+// 
+//     // Preallocate input variables. Element type fixed by ZOLTAN.
+//     std::vector<ZOLTAN_ID_TYPE> global_ids(num_objects);
+//     std::vector<int> color_exp(num_objects);
+// 
+//     // Set ids for which coloring needs to be done
+//     for (int i = 0; i < num_objects; i++)
+//       global_ids[i] = i;
+// 
+//     // Call ZOLTAN coloring algorithm
+//     int rc = zz->Color(num_gid_entries,
+//                        num_objects,
+//                        global_ids.data(),
+//                        color_exp.data());
+// 
+//     (void)rc;
+//     // Check for error code
+//     Assert(rc == ZOLTAN_OK, ExcInternalError());
+// 
+//     // Allocate and assign color indices
+//     color_indices.resize(num_objects);
+//     Assert(color_exp.size() == color_indices.size(),
+//            ExcDimensionMismatch(color_exp.size(), color_indices.size()));
+// 
+//     std::copy(color_exp.begin(), color_exp.end(), color_indices.begin());
+// 
+//     unsigned int n_colors =
+//       *(std::max_element(color_indices.begin(), color_indices.end()));
+//     return n_colors;
+//  #endif
+// }
 
-    const unsigned n_residuals = dof_handler.n_dofs();
-    const unsigned n_nodes_coeff = high_order_grid.dof_handler_grid.n_dofs();
-    const unsigned n_nodes_per_cell = high_order_grid.dof_handler_grid.get_fe_collection().max_dofs_per_cell();
-    dealii::SparsityPattern sparsity_pattern(n_residuals, n_nodes_coeff, n_nodes_per_cell);
 
-    std::vector<dealii::types::global_dof_index> resi_indices;
-    std::vector<dealii::types::global_dof_index> node_indices;
-    for (auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell) {
-        if (!cell->is_locally_owned()) continue;
-
-        const unsigned int level = cell->level();
-        const unsigned int index = cell->index();
-
-        const unsigned int n_resi_cell = fe_collection[cell->active_fe_index()].n_dofs_per_cell();
-        resi_indices.resize(n_resi_cell);
-        cell->get_dof_indices (resi_indices);
-
-        for (auto cell_grid = high_order_grid.dof_handler_grid.begin_active(); cell_grid != dof_handler.end(); ++cell_grid) {
-            // Brute force search for the same cell.
-            // There must be a better way
-            if (!cell_grid->is_locally_owned()) continue;
-            if (cell_grid->level() != level) continue;
-            if (cell_grid->index() != index) continue;
-
-            const unsigned int n_node_cell = high_order_grid.fe_system.n_dofs_per_cell();
-            node_indices.resize(n_node_cell);
-            cell_grid->get_dof_indices (node_indices);
-
-            for (auto resi_row = resi_indices.begin(); resi_row!=resi_indices.end(); ++resi_row) {
-                sparsity_pattern.add_entries(*resi_row, node_indices.begin(), node_indices.end());
-            }
-
-            break;
-        }
-
-    } // end of cell loop
-    sparsity_pattern.compress();
-
-    return sparsity_pattern;
-}
+// template <int dim, typename real>
+// dealii::SparsityPattern DGBase<dim,real>::get_dRdX_sparsity_pattern () {
+// 
+//     const unsigned n_residuals = dof_handler.n_dofs();
+//     const unsigned n_nodes_coeff = high_order_grid.dof_handler_grid.n_dofs();
+//     const unsigned int n_rows = n_residuals;
+//     const unsigned int n_cols = n_nodes_coeff;
+//     //const unsigned n_nodes_per_cell = high_order_grid.dof_handler_grid.get_fe_collection().max_dofs_per_cell();
+//     // const unsigned int max_neighbors = 2*dim*std::pow(2,dim-1);
+//     // const unsigned int max_entries_per_row = n_nodes_per_cell * (max_neighbors + 1);
+// 
+//     dealii::DynamicSparsityPattern dsp(n_rows, n_cols);
+// 
+//     const unsigned int n_node_cell = high_order_grid.fe_system.n_dofs_per_cell();
+//     std::vector<dealii::types::global_dof_index> resi_indices;
+//     std::vector<dealii::types::global_dof_index> node_indices(n_node_cell);
+//     auto cell = dof_handler.begin_active();
+//     auto metric_cell = high_order_grid.dof_handler_grid.begin_active();
+//     for (; cell != dof_handler.end(); ++cell, ++metric_cell) {
+//         if (!cell->is_locally_owned()) continue;
+// 
+//         const unsigned int n_resi_cell = fe_collection[cell->active_fe_index()].n_dofs_per_cell();
+//         resi_indices.resize(n_resi_cell);
+//         cell->get_dof_indices (resi_indices);
+// 
+//         metric_cell->get_dof_indices (node_indices);
+//         for (auto resi_row = resi_indices.begin(); resi_row!=resi_indices.end(); ++resi_row) {
+//             dsp.add_entries(*resi_row, node_indices.begin(), node_indices.end());
+//         }
+//         for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
+//             auto current_face = cell->face(iface);
+// 
+//             if (current_face->at_boundary()) {
+//             // Do nothing
+//             } else if (current_face->has_children()) {
+//             // Finer neighbor
+//             // Loop over them and add their DoF to dependencies
+//                 for (unsigned int subface_no=0; subface_no < current_face->number_of_children(); ++subface_no) {
+//                     const auto neighbor_metric_cell = metric_cell->neighbor_child_on_subface (iface, subface_no);
+//                     neighbor_metric_cell->get_dof_indices (node_indices);
+//                     for (auto resi_row = resi_indices.begin(); resi_row!=resi_indices.end(); ++resi_row) {
+//                         dsp.add_entries(*resi_row, node_indices.begin(), node_indices.end());
+//                     }
+//                 }
+//             } else if (cell->neighbor_is_coarser(iface)) {
+//             // Coarser neighbor
+//             // Add DoF of that neighbor.
+//                 const auto neighbor_metric_cell = metric_cell->neighbor (iface);
+//                 neighbor_metric_cell->get_dof_indices (node_indices);
+//                 for (auto resi_row = resi_indices.begin(); resi_row!=resi_indices.end(); ++resi_row) {
+//                     dsp.add_entries(*resi_row, node_indices.begin(), node_indices.end());
+//                 }
+//             } else {//if ( !(cell->neighbor_is_coarser(iface)) ) {A
+//             // Same level neighbor
+//             // Add DoF of that neighbor.
+//                 if (dim == 1 && cell->neighbor(iface)->has_children()) {
+//                     const auto coarse_unactive_neighbor = metric_cell->neighbor (iface);
+//                     for (unsigned int i_child=0; i_child < coarse_unactive_neighbor->n_children(); ++i_child) {
+//                         const auto neighbor_metric_cell = coarse_unactive_neighbor->child (i_child);
+//                         for (unsigned int iface_child=0; iface_child < dealii::GeometryInfo<dim>::faces_per_cell; ++iface_child) {
+//                             if (neighbor_metric_cell->neighbor(iface_child) == metric_cell) {
+//                                 neighbor_metric_cell->get_dof_indices (node_indices);
+//                                 for (auto resi_row = resi_indices.begin(); resi_row!=resi_indices.end(); ++resi_row) {
+//                                     dsp.add_entries(*resi_row, node_indices.begin(), node_indices.end());
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 } else {
+//                     const auto neighbor_metric_cell = metric_cell->neighbor (iface);
+//                     neighbor_metric_cell->get_dof_indices (node_indices);
+//                     for (auto resi_row = resi_indices.begin(); resi_row!=resi_indices.end(); ++resi_row) {
+//                         dsp.add_entries(*resi_row, node_indices.begin(), node_indices.end());
+//                     }
+//                 }
+//             }
+//             // else {
+//             //     std::cout << "Edge case I did not consider. Possibly periodic BC. " << std::endl;
+//             //     std::abort();
+//             // }
+//         } 
+//     } // end of cell loop
+// 
+//     dealii::SparsityTools::distribute_sparsity_pattern(dsp, dof_handler.compute_n_locally_owned_dofs_per_processor(), MPI_COMM_WORLD, locally_owned_dofs);
+//     dealii::SparsityPattern sparsity_pattern;
+//     sparsity_pattern.copy_from(dsp);
+//     //sparsity_pattern.compress();
+// 
+//     return sparsity_pattern;
+// }
 
 //template <int dim, typename real>
 //dealii::TrilinosWrappers::SparseMatrix DGBase<dim,real>::get_dRdX_finite_differences (dealii::SparsityPattern dRdX_sparsity_pattern) {
@@ -443,5 +561,6 @@ dealii::SparsityPattern DGBase<dim,real>::get_dRdX_sparsity_pattern () {
 //    return dRdX;
 //
 //}
+template class DGBase <PHILIP_DIM, double>;
 
 } // namespace PHiLiP

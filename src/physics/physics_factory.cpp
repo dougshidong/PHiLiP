@@ -45,17 +45,24 @@ PhysicsFactory<dim,nstate,real>
 }
 
 template class PhysicsFactory<PHILIP_DIM, 1, double>;
-template class PhysicsFactory<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
 template class PhysicsFactory<PHILIP_DIM, 2, double>;
-template class PhysicsFactory<PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
 template class PhysicsFactory<PHILIP_DIM, 3, double>;
-template class PhysicsFactory<PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
 template class PhysicsFactory<PHILIP_DIM, 4, double>;
-template class PhysicsFactory<PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
 template class PhysicsFactory<PHILIP_DIM, 5, double>;
-template class PhysicsFactory<PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
 template class PhysicsFactory<PHILIP_DIM, 8, double>;
+template class PhysicsFactory<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
+template class PhysicsFactory<PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
+template class PhysicsFactory<PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
+template class PhysicsFactory<PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
+template class PhysicsFactory<PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
 template class PhysicsFactory<PHILIP_DIM, 8, Sacado::Fad::DFad<double> >;
+template class PhysicsFactory<PHILIP_DIM, 1, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class PhysicsFactory<PHILIP_DIM, 2, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class PhysicsFactory<PHILIP_DIM, 3, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class PhysicsFactory<PHILIP_DIM, 4, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class PhysicsFactory<PHILIP_DIM, 5, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class PhysicsFactory<PHILIP_DIM, 8, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+
 
 
 } // Physics namespace

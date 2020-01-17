@@ -35,15 +35,20 @@ std::array<real, nstate> SplitFormNumFlux<dim,nstate,real>::evaluate_flux(
 	}
 
 template class SplitFormNumFlux<PHILIP_DIM, 1, double>;
-template class SplitFormNumFlux<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
 template class SplitFormNumFlux<PHILIP_DIM, 2, double>;
-template class SplitFormNumFlux<PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
 template class SplitFormNumFlux<PHILIP_DIM, 3, double>;
-template class SplitFormNumFlux<PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
 template class SplitFormNumFlux<PHILIP_DIM, 4, double>;
-template class SplitFormNumFlux<PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
 template class SplitFormNumFlux<PHILIP_DIM, 5, double>;
+template class SplitFormNumFlux<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
+template class SplitFormNumFlux<PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
+template class SplitFormNumFlux<PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
+template class SplitFormNumFlux<PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
 template class SplitFormNumFlux<PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
+template class SplitFormNumFlux<PHILIP_DIM, 1, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class SplitFormNumFlux<PHILIP_DIM, 2, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class SplitFormNumFlux<PHILIP_DIM, 3, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class SplitFormNumFlux<PHILIP_DIM, 4, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class SplitFormNumFlux<PHILIP_DIM, 5, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
 
 }
 }

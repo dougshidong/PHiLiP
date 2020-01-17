@@ -42,25 +42,31 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Selection(
                       " run_control | "
                       " burgers_energy_stability | "
+                      " diffusion_exact_adjoint | "
+                      " optimization_inverse_manufactured | "
                       " euler_gaussian_bump | "
+                      " euler_gaussian_bump_adjoint | "
                       " euler_cylinder | "
+                      " euler_cylinder_adjoint | "
                       " euler_vortex | "
                       " euler_entropy_waves | "
-                      " numerical_flux_convervation | "
-                      " jacobian_regression |"
+                      "  euler_bump_optimization | "
                       " advection_periodicity |"
                       " euler_split_taylor_green"),
                       "The type of test we want to solve. "
                       "Choices are (only run control has been coded up for now)" 
                       " <run_control | " 
                       "  burgers_energy_stability | "
+                      "  diffusion_exact_adjoint | "
+                      "  optimization_inverse_manufactured | "
                       "  euler_gaussian_bump | "
+                      "  euler_gaussian_bump_adjoint | "
                       "  euler_cylinder | "
                       "  euler_vortex | "
                       "  euler_entropy_waves | "
-                      "  numerical_flux_convervation | "
-                      "  jacobian_regression |"
+                      "  euler_cylinder_adjoint "
 					  "  euler_split_taylor_green |"
+                      "  euler_bump_optimization | "
 					  "  advection_periodicity >.");
 
     prm.declare_entry("pde_type", "advection",
@@ -109,15 +115,18 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     const std::string test_string = prm.get("test_type");
     if (test_string == "run_control") { test_type = run_control; }
     else if (test_string == "burgers_energy_stability") { test_type = burgers_energy_stability; }
+    else if (test_string == "diffusion_exact_adjoint") {test_type = diffusion_exact_adjoint; }
     else if (test_string == "euler_gaussian_bump") { test_type = euler_gaussian_bump; }
+    else if (test_string == "euler_gaussian_bump_adjoint") {test_type = euler_gaussian_bump_adjoint;}
     else if (test_string == "euler_cylinder") { test_type = euler_cylinder; }
+    else if (test_string == "euler_cylinder_adjoint") { test_type = euler_cylinder_adjoint; }
     else if (test_string == "euler_vortex") { test_type = euler_vortex; }
     else if (test_string == "euler_entropy_waves") { test_type = euler_entropy_waves; }
-    else if (test_string == "numerical_flux_convervation") { test_type = numerical_flux_convervation; }
-    else if (test_string == "jacobian_regression") { test_type = jacobian_regression; }
     else if (test_string == "advection_periodicity") {test_type = advection_periodicity; }
     else if (test_string == "euler_split_taylor_green") {test_type = euler_split_taylor_green;}
-
+    else if (test_string == "euler_bump_optimization") { test_type = euler_bump_optimization; }
+    else if (test_string == "optimization_inverse_manufactured") {test_type = optimization_inverse_manufactured; }
+    
     const std::string pde_string = prm.get("pde_type");
     if (pde_string == "advection") {
         pde_type = advection;

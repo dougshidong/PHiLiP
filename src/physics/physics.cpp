@@ -13,8 +13,8 @@ namespace PHiLiP {
 namespace Physics {
 
 template <int dim, int nstate, typename real>
-PhysicsBase<dim,nstate,real>::PhysicsBase() 
-    : manufactured_solution_function(nstate)
+PhysicsBase<dim,nstate,real>::PhysicsBase() :
+    manufactured_solution_function(std::shared_ptr< ManufacturedSolutionFunction<dim,real> >(new ManufacturedSolutionFunction<dim,real>(nstate)))
 {
     const double pi = atan(1)*4.0;
     const double ee = exp(1);
@@ -67,7 +67,7 @@ template <int dim, int nstate, typename real>
 void PhysicsBase<dim,nstate,real>
 ::boundary_face_values (
    const int /*boundary_type*/,
-   const dealii::Point<dim, double> &pos,
+   const dealii::Point<dim, real> &pos,
    const dealii::Tensor<1,dim,real> &normal_int,
    const std::array<real,nstate> &soln_int,
    const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
@@ -77,8 +77,8 @@ void PhysicsBase<dim,nstate,real>
     std::array<real,nstate> boundary_values;
     std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
     for (int s=0; s<nstate; s++) {
-        boundary_values[s] = this->manufactured_solution_function.value (pos, s);
-        boundary_gradients[s] = this->manufactured_solution_function.gradient (pos, s);
+        boundary_values[s] = this->manufactured_solution_function->value (pos, s);
+        boundary_gradients[s] = this->manufactured_solution_function->gradient (pos, s);
     }
 
     for (int istate=0; istate<nstate; ++istate) {
@@ -175,17 +175,25 @@ dealii::UpdateFlags PhysicsBase<dim,nstate,real>
 
 
 template class PhysicsBase < PHILIP_DIM, 1, double >;
-template class PhysicsBase < PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
 template class PhysicsBase < PHILIP_DIM, 2, double >;
-template class PhysicsBase < PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
 template class PhysicsBase < PHILIP_DIM, 3, double >;
-template class PhysicsBase < PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
 template class PhysicsBase < PHILIP_DIM, 4, double >;
-template class PhysicsBase < PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
 template class PhysicsBase < PHILIP_DIM, 5, double >;
-template class PhysicsBase < PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
 template class PhysicsBase < PHILIP_DIM, 8, double >;
+
+template class PhysicsBase < PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
+template class PhysicsBase < PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
+template class PhysicsBase < PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
+template class PhysicsBase < PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
+template class PhysicsBase < PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
 template class PhysicsBase < PHILIP_DIM, 8, Sacado::Fad::DFad<double> >;
+
+template class PhysicsBase < PHILIP_DIM, 1, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class PhysicsBase < PHILIP_DIM, 2, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class PhysicsBase < PHILIP_DIM, 3, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class PhysicsBase < PHILIP_DIM, 4, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class PhysicsBase < PHILIP_DIM, 5, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class PhysicsBase < PHILIP_DIM, 8, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
 
 } // Physics namespace
 } // PHiLiP namespace

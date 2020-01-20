@@ -18,7 +18,7 @@ namespace Parameters {
 class GridRefinementStudyParam
 {
     // max number of different refinement procedures
-    static const unsigned int MAX_REFINEMENTS = 5;
+    static const unsigned int MAX_REFINEMENTS = 10;
 
 public:
     GridRefinementStudyParam(); ///< Constructor

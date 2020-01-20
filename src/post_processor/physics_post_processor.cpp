@@ -89,9 +89,9 @@ dealii::UpdateFlags PhysicsPostprocessor<dim,nstate>::get_needed_update_flags ()
 
 template class PhysicsPostprocessor < PHILIP_DIM, 1 >;
 template class PhysicsPostprocessor < PHILIP_DIM, 2 >;
-template class PhysicsPostprocessor < PHILIP_DIM, PHILIP_DIM+2 >;
-//template class PhysicsPostprocessor < PHILIP_DIM, 4 >;
-//template class PhysicsPostprocessor < PHILIP_DIM, 5 >;
+template class PhysicsPostprocessor < PHILIP_DIM, 3 >;
+template class PhysicsPostprocessor < PHILIP_DIM, 4 >;
+template class PhysicsPostprocessor < PHILIP_DIM, 5 >;
 
 } // Postprocess namespace
 } // PHiLiP namespace

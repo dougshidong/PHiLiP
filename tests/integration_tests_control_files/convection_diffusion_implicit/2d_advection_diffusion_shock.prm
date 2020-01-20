@@ -59,12 +59,12 @@ subsection grid refinement study
     set normLp          = 2.0
 
     # weighted integral parameters
-    set weight_function_type          = sine_solution
-    set use_weight_function_laplacian = true
+    #set weight_function_type          = sine_solution
+    #set use_weight_function_laplacian = true
 
     # boundary functional parameters
-    set boundary_vector    = [0]
-    set use_all_boundaries = true
+    #set boundary_vector    = [0]
+    #set use_all_boundaries = true
   end
 
   # number of refinements
@@ -72,17 +72,17 @@ subsection grid refinement study
 
   # grid refinement - 0
   subsection grid refinement [0]
-    set refinement_steps  = 6 #4
+    set refinement_steps  = 6
     set refinement_method = uniform
   end
 
   # grid refinement - 1
   subsection grid refinement [1]
-    set refinement_steps    = 9 #7
+    set refinement_steps    = 9
     set refinement_method   = fixed_fraction
     set refinement_type     = h
     set isotropic           = true
-    set error_indicator     = error_based
+    set error_indicator     = hessian_based
     set norm_Lq             = 2.0
     set refinement_fraction = 0.3
     set coarsening_fraction = 0.00
@@ -91,7 +91,7 @@ subsection grid refinement study
   end
 
   subsection grid refinement [2]
-    set refinement_steps    = 8 #6
+    set refinement_steps    = 8
     set refinement_method   = continuous
     set refinement_type     = h
     set isotropic           = true
@@ -104,6 +104,6 @@ end
 
 subsection manufactured solution convergence study
   set use_manufactured_source_term = true
-  set manufactured_solution_type   = atan_solution #boundary_layer_solution
+  set manufactured_solution_type   = boundary_layer_solution
 end
 

@@ -242,6 +242,9 @@ int GridRefinementStudy<dim,nstate>::run_test() const
             adjoint->coarse_grid_adjoint();
             adjoint->output_results_vtk(iref*10+igrid);
 
+            // outputting the results from the grid refinement method
+            grid_refinement->output_results_vtk(iref);
+
             // convergence table
             convergence_table.add_value("cells", n_global_active_cells);
             convergence_table.add_value("DoFs", n_dofs);

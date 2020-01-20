@@ -61,14 +61,6 @@ public:
         // PHiLiP::Parameters::AllParameters const *const param_input,
         std::shared_ptr< PHiLiP::DGBase<dim, real> >   dg_input);
 
-    // refine_grid is the main function
-    virtual void refine_grid()    = 0;
-
-    // refine grid functions to be called
-    virtual void refine_grid_h()  = 0;
-    virtual void refine_grid_p()  = 0;
-    virtual void refine_grid_hp() = 0;
-
 protected:
     // delegated constructor
     GridRefinementBase(
@@ -77,6 +69,53 @@ protected:
         std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional_input,
         std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg_input,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input);
+
+public:
+    // refine_grid is the main function
+    virtual void refine_grid()    = 0;
+
+protected:
+    // refine grid functions to be called
+    virtual void refine_grid_h()  = 0;
+    virtual void refine_grid_p()  = 0;
+    virtual void refine_grid_hp() = 0;
+
+public:
+    // main output class
+    void output_results_vtk(const unsigned int iref);
+
+protected:
+    // helper output classes
+    void output_results_vtk_dg(
+        dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out,
+        std::shared_ptr< dealii::DataPostprocessor<dim> > &post_processor,
+        dealii::Vector<float> &                            subdomain,
+        std::vector<unsigned int> &                        active_fe_indices,
+        dealii::Vector<double> &                           cell_poly_degree,
+        std::vector<std::string> &                         residual_names);
+    void output_results_vtk_functional(
+        dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out);
+    void output_results_vtk_physics(
+        dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out);
+    void output_results_vtk_adjoint(
+        dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out,
+        std::vector<std::string> &                         dIdw_names_coarse,
+        std::vector<std::string> &                         adjoint_names_coarse,
+        std::vector<std::string> &                         dIdw_names_fine,
+        std::vector<std::string> &                         adjoint_names_fine);
+    void output_results_vtk_error(
+        dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out,
+        dealii::Vector<real> &                             l2_error_vec);  
+
+public:
+    // setting the size of the array used for referencing values in output_results_vtk_method 
+    const static unsigned int MAX_METHOD_VEC = 4;
+
+protected:
+    // refinement method dependent outputs (to be overrided in derived classes)
+    virtual void output_results_vtk_method(
+        dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out,
+        std::array<dealii::Vector<real>,MAX_METHOD_VEC> &  dat_vec_vec) = 0; 
 
     // parameters
     PHiLiP::Parameters::GridRefinementParam grid_refinement_param;
@@ -111,7 +150,6 @@ protected:
     // iteration counter
     int iteration;
 
-protected:
     MPI_Comm mpi_communicator; ///< MPI communicator
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
@@ -145,10 +183,15 @@ class GridRefinement_Uniform : public GridRefinementBase<dim,nstate,real>
 {
 public:
     using GridRefinementBase<dim,nstate,real>::GridRefinementBase;
+    using GridRefinementBase<dim,nstate,real>::MAX_METHOD_VEC;
     void refine_grid()    override;
+protected:
     void refine_grid_h()  override;
     void refine_grid_p()  override;
     void refine_grid_hp() override;
+    void output_results_vtk_method(
+        dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out,
+        std::array<dealii::Vector<real>,MAX_METHOD_VEC> &  dat_vec_vec) override;
 };
 
 template <int dim, int nstate, typename real>
@@ -156,10 +199,16 @@ class GridRefinement_FixedFraction : public GridRefinementBase<dim,nstate,real>
 {
 public:
     using GridRefinementBase<dim,nstate,real>::GridRefinementBase;
+    using GridRefinementBase<dim,nstate,real>::MAX_METHOD_VEC;
     void refine_grid()    override;
+protected:
     void refine_grid_h()  override;
     void refine_grid_p()  override;
-    void refine_grid_hp() override;    
+    void refine_grid_hp() override;   
+    void output_results_vtk_method(
+        dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out,
+        std::array<dealii::Vector<real>,MAX_METHOD_VEC> &  dat_vec_vec) override;
+
     virtual void error_indicator() = 0;
     void smoothness_indicator();
     void anisotropic_h();
@@ -205,15 +254,21 @@ class GridRefinement_Continuous : public GridRefinementBase<dim,nstate,real>
 {
 public:
     using GridRefinementBase<dim,nstate,real>::GridRefinementBase;
+    using GridRefinementBase<dim,nstate,real>::MAX_METHOD_VEC;
     void refine_grid()    override;
+protected:
     void refine_grid_h()  override;
     void refine_grid_p()  override;
     void refine_grid_hp() override;    
+    void output_results_vtk_method(
+        dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out,
+        std::array<dealii::Vector<real>,MAX_METHOD_VEC> &  dat_vec_vec) override;
+
+    void field();
     virtual void field_h() = 0;
     virtual void field_p() = 0;
     virtual void field_hp() = 0;
     real current_complexity();
-protected:
     void get_current_field_h();
     void get_current_field_p();
     dealii::Vector<real> h_field;

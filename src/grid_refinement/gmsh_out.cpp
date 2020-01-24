@@ -161,8 +161,8 @@ void GmshOut<dim,real>::write_geo(
         << " * AUTOMATICALLY BY PHiLiP LIBRARY * " << '\n'
         << " ***********************************/" << '\n' << '\n';
 
-    // the background field should fully specify the mesh size
-    out << "Mesh.CharacteristicLengthFromPoints = 0;" << '\n'
+    // the background field should fully specify the mesh size, points seem to fix some skewness
+    out << "Mesh.CharacteristicLengthFromPoints = 1;" << '\n'
         << "Mesh.CharacteristicLengthFromCurvature = 0;" << '\n'
         << "Mesh.CharacteristicLengthExtendFromBoundary = 0;" << '\n' << '\n';
 

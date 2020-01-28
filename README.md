@@ -159,7 +159,10 @@ will generate a `massif.out.#####` file that can be visualized using `massif-vis
 
 ## Contributing checklist
 
-1. A unit test, integration test, or regression test accompanies the feature. Tests longer than a few seconds should be tagged as with the suffix MEDIUM, and tests a minute or longer should be tagged with LONG.
+1. A unit test, integration test, or regression test accompanies the feature. 
+This test should automatically fail when the code is erroneously changed.
+This mean that we should not `return 0` or copy-paste the tested sections, since changes to the actual code will not affect the outcome of the test.
+Tests longer than a few seconds should be tagged as with the suffix MEDIUM, and tests a minute or longer should be tagged with LONG.
   * A unit test is often most appropriate, and is aimed at testing a single component of the code. See the test on [Euler's primitive to conservative conversion](https://github.com/dougshidong/PHiLiP/blob/master/tests/unit_tests/euler_unit_test/euler_convert_primitive_conservative.cpp)
   * An integration test runs the entire main program by taking an input file and calling PHiLiP_1/2/3D. It should be derived from the [`TestBase` class](https://github.com/dougshidong/PHiLiP/blob/master/src/testing/tests.h), and have a control file located in the [integration test directory](https://github.com/dougshidong/PHiLiP/tree/master/tests/integration_tests_control_files). Since integrations tests uses multiple components, they usually take longer. Furthermore, the cause of failure is sometimes less obvious. A good suggestion is to use an existing test control file, and only change 1 parameter to help pinpoint issues when it fails.
    * A regression test stores previously computed data to validate future results. Note that this type of test is rarely appropriate since valid changes in the code can fail this type of test. If implemented, a script/code should be made available such that newly computed results can replace the old results. See [file1](https://github.com/dougshidong/PHiLiP/blob/master/tests/unit_tests/regression/jacobian_matrix_regression.cpp) and [file2](https://github.com/dougshidong/PHiLiP/blob/master/tests/unit_tests/regression/matrix_data/copy_matrices.sh)

@@ -425,12 +425,18 @@ void DGBase<dim,real>::assemble_cell_residual (
     std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs_cell);
     std::vector<dealii::types::global_dof_index> neighbor_metric_dofs_indices(n_metric_dofs_cell);
     current_metric_cell->get_dof_indices (current_metric_dofs_indices);
-    if ( compute_dRdW ) {
-        assemble_volume_terms_implicit (fe_values_volume, current_fe_ref, volume_quadrature_collection[i_quad], current_metric_dofs_indices, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
-    } else if ( compute_dRdX ) {
-        assemble_volume_terms_dRdX (fe_values_volume, current_fe_ref, volume_quadrature_collection[i_quad], current_metric_dofs_indices, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
-    } else if ( compute_d2R ) {
-        assemble_volume_terms_hessian (fe_values_volume, current_fe_ref, volume_quadrature_collection[i_quad], current_metric_dofs_indices, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
+    if ( compute_dRdW || compute_dRdX || compute_d2R ) {
+        assemble_volume_terms_derivatives (
+            fe_values_volume, current_fe_ref, volume_quadrature_collection[i_quad],
+            current_metric_dofs_indices, current_dofs_indices,
+            current_cell_rhs, fe_values_lagrange,
+            compute_dRdW, compute_dRdX, compute_d2R);
+    //if ( compute_dRdW ) {
+    //    assemble_volume_terms_implicit (fe_values_volume, current_fe_ref, volume_quadrature_collection[i_quad], current_metric_dofs_indices, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
+    //} else if ( compute_dRdX ) {
+    //    assemble_volume_terms_dRdX (fe_values_volume, current_fe_ref, volume_quadrature_collection[i_quad], current_metric_dofs_indices, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
+    //} else if ( compute_d2R ) {
+    //    assemble_volume_terms_hessian (fe_values_volume, current_fe_ref, volume_quadrature_collection[i_quad], current_metric_dofs_indices, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
     } else {
         assemble_volume_terms_explicit (fe_values_volume, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
     }

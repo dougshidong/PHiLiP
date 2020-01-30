@@ -393,6 +393,17 @@ public:
     HighOrderGrid<dim,real> high_order_grid;
 protected:
 
+    /// Evaluate the integral over the cell volume and the specified derivatives.
+    /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
+    virtual void assemble_volume_terms_derivatives(
+        const dealii::FEValues<dim,dim> &,//fe_values_vol,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
+        dealii::Vector<real> &local_rhs_cell,
+        const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/,
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R) = 0;
     /// Evaluate the integral over the cell volume.
     /** Compute both the right-hand side and the corresponding block of dRdW */
     virtual void assemble_volume_terms_implicit(
@@ -666,6 +677,17 @@ public:
 
 private:
 
+    /// Evaluate the integral over the cell volume and the specified derivatives.
+    /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
+    virtual void assemble_volume_terms_derivatives(
+        const dealii::FEValues<dim,dim> &,//fe_values_vol,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
+        dealii::Vector<real> &local_rhs_cell,
+        const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/,
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
     /// Evaluate the integral over the cell volume
     /** Compute both the right-hand side and the block of the Jacobian */
     void assemble_volume_terms_implicit(
@@ -868,6 +890,17 @@ private:
     /// Dissipative numerical flux
     NumericalFlux::NumericalFluxDissipative<dim, nstate, real > *diss_num_flux_double;
 
+    /// Evaluate the integral over the cell volume and the specified derivatives.
+    /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
+    virtual void assemble_volume_terms_derivatives(
+        const dealii::FEValues<dim,dim> &,//fe_values_vol,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
+        dealii::Vector<real> &local_rhs_cell,
+        const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/,
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
     /// Evaluate the integral over the cell volume
     /** Compute both the right-hand side and the block of the Jacobian */
     void assemble_volume_terms_implicit(

@@ -138,6 +138,19 @@ void DGStrong<dim,nstate,real>::assemble_face_term_hessian(
     dealii::Vector<real>          &,//&local_rhs_int_cell,
     dealii::Vector<real>          &)//&local_rhs_ext_cell)
 { }
+template <int dim, int nstate, typename real>
+void DGStrong<dim,nstate,real>::assemble_volume_terms_derivatives(
+    const dealii::FEValues<dim,dim> &,//fe_values_vol,
+    const dealii::FESystem<dim,dim> &,//fe,
+    const dealii::Quadrature<dim> &,//quadrature,
+    const std::vector<dealii::types::global_dof_index> &,//metric_dof_indices,
+    const std::vector<dealii::types::global_dof_index> &,//soln_dof_indices,
+    dealii::Vector<real> &,//local_rhs_cell,
+    const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/,
+    const bool ,//compute_dRdW,
+    const bool ,//compute_dRdX,
+    const bool )//compute_d2R)
+{ }
 
 template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_volume_terms_implicit(

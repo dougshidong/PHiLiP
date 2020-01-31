@@ -71,7 +71,13 @@ foreach(dim RANGE 1 2)
     if (dim EQUAL 1) 
         set(NMPI 1)
     else()
-        set(NMPI ${MPIMAX})
+        # Only 4 cells, so more than that and we start having
+        # trouble with parallelism
+        if (${MPIMAX} GREATER 4)
+            set(NMPI 4)
+        else()
+            set(NMPI ${MPIMAX})
+        endif()
     endif()
     add_test(
       NAME ${TEST_TARGET}

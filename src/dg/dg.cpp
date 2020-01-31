@@ -985,6 +985,12 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
     right_hand_side = 0;
 
     if (compute_dRdW) system_matrix = 0;
+    if (compute_dRdW) dRdXv = 0;
+    if (compute_d2R) {
+        d2RdWdW = 0;
+        d2RdWdX = 0;
+        d2RdXdX = 0;
+    }
 
     //dealii::hp::MappingCollection<dim> mapping_collection(*(high_order_grid.mapping_fe_field));
     //const dealii::MappingManifold<dim,dim> mapping;

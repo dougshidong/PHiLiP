@@ -21,8 +21,41 @@ using PDEType  = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
 using ConvType = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;
 using DissType = PHiLiP::Parameters::AllParameters::DissipativeNumericalFlux;
 
-const double TOLERANCE = 1E-4;
+const double TOLERANCE = 1E-3;
+const double EPS = 1E-4;
 
+//    const unsigned int inode, const bool inode_relevant,
+//    const unsigned int jnode, const bool jnode_relevant,
+//    const int dipert,
+//    const int djpert,
+//    const double EPS,
+//    const PHiLiP::DGBase<PHILIP_DIM, double> &dg,
+//    )
+//{
+//    double old_inode, old_jnode;
+//    PHiLiP::HighOrderGrid<dim,double> &high_order_grid = dg->high_order_grid;
+//
+//    if (inode_relevant) {
+//        old_inode = high_order_grid.nodes(inode);
+//        high_order_grid.nodes(inode) = old_inode+dipert*EPS;
+//    }
+//    if (jnode_relevant) {
+//        old_jnode = high_order_grid.nodes(jnode);
+//        if (inode == jnode) {
+//            high_order_grid.nodes(jnode) += j*EPS;
+//        } else {
+//            high_order_grid.nodes(jnode) = old_jnode+djpert*EPS;
+//        }
+//    }
+//    dg->assemble_residual(false, false, false);
+//    perturbed_dual_dot_residual[ij] = dg->right_hand_side * dg->dual;
+//
+//    if (inode_relevant) {
+//        high_order_grid.nodes(inode) = old_inode;
+//    }
+//    if (jnode_relevant) {
+//        high_order_grid.nodes(jnode) = old_jnode;
+//    }
 /** This test checks that dRdX evaluated using automatic differentiation
  *  matches with the results obtained using finite-difference.
  */
@@ -70,6 +103,15 @@ int test (
     solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
     dealii::VectorTools::interpolate(dg->dof_handler, *(physics_double->manufactured_solution_function), solution_no_ghost);
     dg->solution = solution_no_ghost;
+    for (auto it = dg->solution.begin(); it != dg->solution.end(); ++it) {
+        // Interpolating the exact manufactured solution caused some problems at the boundary conditions.
+        // The manufactured solution is exactly equal to the manufactured_solution_function at the boundary,
+        // therefore, the finite difference will change whether the flow is incoming or outgoing.
+        // As a result, we would be differentiating at a non-differentiable point.
+        // Hence, we fix this issue by taking the second derivative at a non-exact solution.
+        (*it) += 1.0;
+    }
+    dg->solution.update_ghost_values();
     // Set dual to 1.0 so that every 2nd derivative of the residual is accounted for.
     for (auto it = dg->dual.begin(); it != dg->dual.end(); ++it) {
         (*it) = 1.0;
@@ -99,12 +141,11 @@ int test (
     double perturbed_dual_dot_residual_0 = dg->right_hand_side * dg->dual;
 
     pcout << "Evaluating FD..." << std::endl;
-    double eps = 1e-4;
     for (unsigned int inode = 0; inode<high_order_grid.dof_handler_grid.n_dofs(); ++inode) {
 
         if (inode % 1 == 0) pcout << "inode " << inode+1 << " out of " << high_order_grid.dof_handler_grid.n_dofs() << std::endl;
 
-        for (unsigned int jnode = 0; jnode<high_order_grid.dof_handler_grid.n_dofs(); ++jnode) {
+        for (unsigned int jnode = inode; jnode<high_order_grid.dof_handler_grid.n_dofs(); ++jnode) {
 
             const bool local_isnonzero = sparsity_pattern.exists(inode,jnode);
             bool global_isnonzero;
@@ -121,14 +162,14 @@ int test (
                 // +
                 if (inode_relevant) {
                     old_inode = high_order_grid.nodes[inode];
-                    high_order_grid.nodes(inode) = old_inode+eps;
+                    high_order_grid.nodes(inode) = old_inode+EPS;
                 }
                 dg->assemble_residual(false, false, false);
                 double perturbed_dual_dot_residual_p = dg->right_hand_side * dg->dual;
 
                 // -
                 if (inode_relevant) {
-                    high_order_grid.nodes(inode) = old_inode-eps;
+                    high_order_grid.nodes(inode) = old_inode-EPS;
                 }
                 dg->assemble_residual(false, false, false);
                 double perturbed_dual_dot_residual_m = dg->right_hand_side * dg->dual;
@@ -137,7 +178,7 @@ int test (
                 fd_entry += perturbed_dual_dot_residual_p;
                 fd_entry -= 2.0*perturbed_dual_dot_residual_0;
                 fd_entry += perturbed_dual_dot_residual_m;
-                fd_entry /= (eps*eps);
+                fd_entry /= (EPS*EPS);
 
                 // Reset node
                 if (inode_relevant) {
@@ -156,41 +197,41 @@ int test (
             //    // + +
             //    if (inode_relevant) {
             //        old_inode = high_order_grid.nodes[inode];
-            //        high_order_grid.nodes(inode) = old_inode+eps;
+            //        high_order_grid.nodes(inode) = old_inode+EPS;
             //    }
             //    if (jnode_relevant) {
             //        old_jnode = high_order_grid.nodes[jnode];
-            //        high_order_grid.nodes(jnode) = old_jnode+eps;
+            //        high_order_grid.nodes(jnode) = old_jnode+EPS;
             //    }
             //    dg->assemble_residual(false, false, false);
             //    double perturbed_dual_dot_residual_p_p = dg->right_hand_side * dg->dual;
 
             //    // + -
             //    if (inode_relevant) {
-            //        high_order_grid.nodes(inode) = old_inode+eps;
+            //        high_order_grid.nodes(inode) = old_inode+EPS;
             //    }
             //    if (jnode_relevant) {
-            //        high_order_grid.nodes(jnode) = old_jnode-eps;
+            //        high_order_grid.nodes(jnode) = old_jnode-EPS;
             //    }
             //    dg->assemble_residual(false, false, false);
             //    double perturbed_dual_dot_residual_p_m = dg->right_hand_side * dg->dual;
 
             //    // - +
             //    if (inode_relevant) {
-            //        high_order_grid.nodes(inode) = old_inode-eps;
+            //        high_order_grid.nodes(inode) = old_inode-EPS;
             //    }
             //    if (jnode_relevant) {
-            //        high_order_grid.nodes(jnode) = old_jnode+eps;
+            //        high_order_grid.nodes(jnode) = old_jnode+EPS;
             //    }
             //    dg->assemble_residual(false, false, false);
             //    double perturbed_dual_dot_residual_m_p = dg->right_hand_side * dg->dual;
 
             //    // - -
             //    if (inode_relevant) {
-            //        high_order_grid.nodes(inode) = old_inode-eps;
+            //        high_order_grid.nodes(inode) = old_inode-EPS;
             //    }
             //    if (jnode_relevant) {
-            //        high_order_grid.nodes(jnode) = old_jnode-eps;
+            //        high_order_grid.nodes(jnode) = old_jnode-EPS;
             //    }
             //    dg->assemble_residual(false, false, false);
             //    double perturbed_dual_dot_residual_m_m = dg->right_hand_side * dg->dual;
@@ -200,7 +241,7 @@ int test (
             //    fd_entry -= perturbed_dual_dot_residual_p_m;
             //    fd_entry -= perturbed_dual_dot_residual_m_p;
             //    fd_entry += perturbed_dual_dot_residual_m_m;
-            //    fd_entry /= (4.0*eps*eps);
+            //    fd_entry /= (4.0*EPS*EPS);
 
             //    // Reset node
             //    if (inode_relevant) {
@@ -241,101 +282,30 @@ int test (
                         int ij = (i+2)*5 + (j+2);
 
                         if (inode_relevant) {
-                            high_order_grid.nodes(inode) = old_inode+i*eps;
+                            high_order_grid.nodes(inode) = old_inode+i*EPS;
                         }
-                        if (inode == jnode) {
-                            high_order_grid.nodes(inode) += j*eps;
-                        } else if (jnode_relevant) {
-                            high_order_grid.nodes(jnode) = old_jnode+j*eps;
+                        if (jnode_relevant) {
+                            if (inode == jnode) {
+                                high_order_grid.nodes(jnode) += j*EPS;
+                            } else {
+                                high_order_grid.nodes(jnode) = old_jnode+j*EPS;
+                            }
                         }
                         dg->assemble_residual(false, false, false);
                         perturbed_dual_dot_residual[ij] = dg->right_hand_side * dg->dual;
+
+                        if (inode_relevant) {
+                            high_order_grid.nodes(inode) = old_inode;
+                        }
+                        if (jnode_relevant) {
+                            high_order_grid.nodes(jnode) = old_jnode;
+                        }
                     }
                 }
 
                 // http://www.holoborodko.com/pavel/2014/11/04/computing-mixed-derivatives-by-finite-differences/
                 double fd_entry = 0.0;
                 int i,j, ij;
-
-                i =  1; j =  1 ; ij = (i+2)*5 + (j+2);
-                fd_entry += perturbed_dual_dot_residual[ij];
-                i =  1; j = -1 ; ij = (i+2)*5 + (j+2);
-                fd_entry -= perturbed_dual_dot_residual[ij];
-                i = -1; j =  1 ; ij = (i+2)*5 + (j+2);
-                fd_entry -= perturbed_dual_dot_residual[ij];
-                i = -1; j = -1 ; ij = (i+2)*5 + (j+2);
-                fd_entry += perturbed_dual_dot_residual[ij];
-
-                fd_entry *= 8.0;
-
-                i =  1; j = -2 ; ij = (i+2)*5 + (j+2);
-                fd_entry += perturbed_dual_dot_residual[ij];
-                i =  2; j = -1 ; ij = (i+2)*5 + (j+2);
-                fd_entry += perturbed_dual_dot_residual[ij];
-                i = -2; j =  1 ; ij = (i+2)*5 + (j+2);
-                fd_entry += perturbed_dual_dot_residual[ij];
-                i = -1; j =  2 ; ij = (i+2)*5 + (j+2);
-                fd_entry += perturbed_dual_dot_residual[ij];
-
-                i = -1; j = -2 ; ij = (i+2)*5 + (j+2);
-                fd_entry -= perturbed_dual_dot_residual[ij];
-                i = -2; j = -1 ; ij = (i+2)*5 + (j+2);
-                fd_entry -= perturbed_dual_dot_residual[ij];
-                i =  2; j =  1 ; ij = (i+2)*5 + (j+2);
-                fd_entry -= perturbed_dual_dot_residual[ij];
-                i =  1; j =  2 ; ij = (i+2)*5 + (j+2);
-                fd_entry -= perturbed_dual_dot_residual[ij];
-
-                fd_entry *= 8.0;
-
-                i =  2; j =  2 ; ij = (i+2)*5 + (j+2);
-                fd_entry -= perturbed_dual_dot_residual[ij];
-                i =  2; j = -2 ; ij = (i+2)*5 + (j+2);
-                fd_entry += perturbed_dual_dot_residual[ij];
-                i = -2; j =  2 ; ij = (i+2)*5 + (j+2);
-                fd_entry += perturbed_dual_dot_residual[ij];
-                i = -2; j = -2 ; ij = (i+2)*5 + (j+2);
-                fd_entry -= perturbed_dual_dot_residual[ij];
-
-                fd_entry /= (144.0*eps*eps);
-
-                fd_entry = 0.0;
-
-                i =  0; j = -1 ; ij = (i+2)*5 + (j+2);
-                fd_entry += perturbed_dual_dot_residual[ij];
-                i =  0; j =  1 ; ij = (i+2)*5 + (j+2);
-                fd_entry += perturbed_dual_dot_residual[ij];
-                i = -1; j =  0 ; ij = (i+2)*5 + (j+2);
-                fd_entry += perturbed_dual_dot_residual[ij];
-                i =  1; j =  0 ; ij = (i+2)*5 + (j+2);
-                fd_entry += perturbed_dual_dot_residual[ij];
-
-                i =  1; j = -1 ; ij = (i+2)*5 + (j+2);
-                fd_entry -= perturbed_dual_dot_residual[ij];
-                i = -1; j =  1 ; ij = (i+2)*5 + (j+2);
-                fd_entry -= perturbed_dual_dot_residual[ij];
-
-                fd_entry *= 16.0;
-
-                i =  2; j =  0 ; ij = (i+2)*5 + (j+2);
-                fd_entry -= perturbed_dual_dot_residual[ij];
-                i = -2; j =  0 ; ij = (i+2)*5 + (j+2);
-                fd_entry -= perturbed_dual_dot_residual[ij];
-                i =  0; j =  2 ; ij = (i+2)*5 + (j+2);
-                fd_entry -= perturbed_dual_dot_residual[ij];
-                i =  0; j = -2 ; ij = (i+2)*5 + (j+2);
-                fd_entry -= perturbed_dual_dot_residual[ij];
-
-                i = -2; j =  2 ; ij = (i+2)*5 + (j+2);
-                fd_entry += perturbed_dual_dot_residual[ij];
-                i =  2; j = -2 ; ij = (i+2)*5 + (j+2);
-                fd_entry += perturbed_dual_dot_residual[ij];
-
-                i =  0; j =  0 ; ij = (i+2)*5 + (j+2);
-                fd_entry -= 30.0*perturbed_dual_dot_residual[ij];
-
-                fd_entry /= (24.0*eps*eps);
-
 
                 // http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/central-differences/#comment-5289
                 fd_entry = 0.0;
@@ -386,7 +356,7 @@ int test (
                 term[3] *= 74.0;
 
                 fd_entry = term[0] + term[1] + term[2] + term[3];
-                fd_entry /= (600.0*eps*eps);
+                fd_entry /= (600.0*EPS*EPS);
 
                 // Reset node
                 if (inode_relevant) {
@@ -402,11 +372,17 @@ int test (
                         d2RdXdX_fd.add(inode,jnode,fd_entry);
                     }
                 }
+                if (inode != jnode && dg->high_order_grid.locally_owned_dofs_grid.is_element(jnode) ) {
+                    if (std::abs(fd_entry) >= 1e-12) {
+                        d2RdXdX_fd.add(jnode,inode,fd_entry);
+                    }
+                }
             } // end of off-diagonal FD
         }
     }
     d2RdXdX_fd.compress(dealii::VectorOperation::add);
 
+    dg->assemble_residual(false, false, true);
     {
         const unsigned int n_digits = 5;
         const unsigned int n_spacing = 7+n_digits;
@@ -435,16 +411,20 @@ int test (
         if (pcout.is_active()) fullA.print_formatted(outfile, n_digits, true, n_spacing, "0", 1., 0.);
     }
 
+    const double ad_frob_norm = dg->d2RdXdX.frobenius_norm();
+    const double fd_frob_norm = d2RdXdX_fd.frobenius_norm();
+    const double frob_norm = std::max(ad_frob_norm, fd_frob_norm);
+
     pcout << "FD-norm = " << d2RdXdX_fd.frobenius_norm() << std::endl;
     pcout << "AD-norm = " << dg->d2RdXdX.frobenius_norm() << std::endl;
     d2RdXdX_fd.add(-1.0,dg->d2RdXdX);
 
-    const double diff_lone_norm = d2RdXdX_fd.l1_norm();
-    const double diff_linf_norm = d2RdXdX_fd.linfty_norm();
+    const double diff_lone_norm = d2RdXdX_fd.l1_norm() / frob_norm;
+    const double diff_linf_norm = d2RdXdX_fd.linfty_norm() / frob_norm;
     pcout << "(dRdX_FD - dRdX_AD) L1-norm = " << diff_lone_norm << std::endl;
     pcout << "(dRdX_FD - dRdX_AD) Linf-norm = " << diff_linf_norm << std::endl;
 
-    if (diff_lone_norm > TOLERANCE) 
+    //if (diff_lone_norm > TOLERANCE) 
     {
         const unsigned int n_digits = 5;
         const unsigned int n_spacing = 7+n_digits;
@@ -458,8 +438,8 @@ int test (
 
         if (pcout.is_active()) fullA.print_formatted(outfile, n_digits, true, n_spacing, "0", 1., 0.);
 
-        return 1;
     }
+    if (diff_lone_norm > TOLERANCE) return 1;
 
     return 0;
 }
@@ -481,25 +461,25 @@ int main (int argc, char * argv[])
     Parameters::AllParameters all_parameters;
     all_parameters.parse_parameters (parameter_handler);
     std::vector<PDEType> pde_type {
-        PDEType::diffusion
-        , PDEType::advection
-        // , PDEType::convection_diffusion
-        , PDEType::advection_vector
-        , PDEType::euler
+           PDEType::diffusion
+         , PDEType::advection
+         //, PDEType::convection_diffusion
+         //, PDEType::advection_vector
+         , PDEType::euler
     };
     std::vector<std::string> pde_name {
          " PDEType::diffusion "
         , " PDEType::advection "
-        // , " PDEType::convection_diffusion "
-        , " PDEType::advection_vector "
+        //, " PDEType::convection_diffusion "
+        //, " PDEType::advection_vector "
         , " PDEType::euler "
     };
 
     int ipde = -1;
     for (auto pde = pde_type.begin(); pde != pde_type.end() || error == 1; pde++) {
         ipde++;
-        for (unsigned int poly_degree=1; poly_degree<3; ++poly_degree) {
-            for (unsigned int igrid=2; igrid<4; ++igrid) {
+        for (unsigned int poly_degree=0; poly_degree<3; ++poly_degree) {
+            for (unsigned int igrid=2; igrid<3; ++igrid) {
                 pcout << "Using " << pde_name[ipde] << std::endl;
                 all_parameters.pde_type = *pde;
                 // Generate grids

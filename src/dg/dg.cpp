@@ -425,18 +425,18 @@ void DGBase<dim,real>::assemble_cell_residual (
     std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs_cell);
     std::vector<dealii::types::global_dof_index> neighbor_metric_dofs_indices(n_metric_dofs_cell);
     current_metric_cell->get_dof_indices (current_metric_dofs_indices);
-    //if ( compute_dRdW || compute_dRdX || compute_d2R ) {
-    //    assemble_volume_terms_derivatives (
-    //        fe_values_volume, current_fe_ref, volume_quadrature_collection[i_quad],
-    //        current_metric_dofs_indices, current_dofs_indices,
-    //        current_cell_rhs, fe_values_lagrange,
-    //        compute_dRdW, compute_dRdX, compute_d2R);
-    if ( compute_dRdW ) {
-        assemble_volume_terms_implicit (fe_values_volume, current_fe_ref, volume_quadrature_collection[i_quad], current_metric_dofs_indices, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
-    } else if ( compute_dRdX ) {
-        assemble_volume_terms_dRdX (fe_values_volume, current_fe_ref, volume_quadrature_collection[i_quad], current_metric_dofs_indices, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
-    } else if ( compute_d2R ) {
-        assemble_volume_terms_hessian (fe_values_volume, current_fe_ref, volume_quadrature_collection[i_quad], current_metric_dofs_indices, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
+    if ( compute_dRdW || compute_dRdX || compute_d2R ) {
+        assemble_volume_terms_derivatives (
+            fe_values_volume, current_fe_ref, volume_quadrature_collection[i_quad],
+            current_metric_dofs_indices, current_dofs_indices,
+            current_cell_rhs, fe_values_lagrange,
+            compute_dRdW, compute_dRdX, compute_d2R);
+    //if ( compute_dRdW ) {
+    //    assemble_volume_terms_implicit (fe_values_volume, current_fe_ref, volume_quadrature_collection[i_quad], current_metric_dofs_indices, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
+    //} else if ( compute_dRdX ) {
+    //    assemble_volume_terms_dRdX (fe_values_volume, current_fe_ref, volume_quadrature_collection[i_quad], current_metric_dofs_indices, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
+    //} else if ( compute_d2R ) {
+    //    assemble_volume_terms_hessian (fe_values_volume, current_fe_ref, volume_quadrature_collection[i_quad], current_metric_dofs_indices, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
     } else {
         assemble_volume_terms_explicit (fe_values_volume, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
     }
@@ -549,34 +549,41 @@ void DGBase<dim,real>::assemble_cell_residual (
                 const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
 
                 const unsigned int boundary_id = current_face->boundary_id();
-                // Need to somehow get boundary type from the mesh
-                if ( compute_dRdW ) {
-                    assemble_boundary_term_implicit (boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
+                //// Need to somehow get boundary type from the mesh
+                //if ( compute_dRdW ) {
+                //    assemble_boundary_term_implicit (boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
 
-                    // for (unsigned int iquad=0;iquad<face_quadrature_collection[i_quad].size();++iquad) {
-                    //     std::cout << "2d quad weight" << face_quadrature_collection[i_quad].weight(iquad) << std::endl;
-                    // }
-                } else if ( compute_dRdX ) {
-                    //const dealii::Quadrature<dim> face_quadrature = dealii::QProjector<dim>::project_to_face(face_quadrature_collection[i_quad],iface);
-                    const dealii::Quadrature<dim-1> face_quadrature = face_quadrature_collection[i_quad];
-                    // for (unsigned int iquad=0;iquad<face_quadrature.size();++iquad) {
-                    //     std::cout << "2d quad weight" << face_quadrature.weight(iquad) << std::endl;
-                    // }
-                    assemble_boundary_term_dRdX (
-                        iface, boundary_id, fe_values_face_int, penalty,
-                        current_fe_ref, face_quadrature,
-                        current_metric_dofs_indices, current_dofs_indices, current_cell_rhs);
+                //    // for (unsigned int iquad=0;iquad<face_quadrature_collection[i_quad].size();++iquad) {
+                //    //     std::cout << "2d quad weight" << face_quadrature_collection[i_quad].weight(iquad) << std::endl;
+                //    // }
+                //} else if ( compute_dRdX ) {
+                //    //const dealii::Quadrature<dim> face_quadrature = dealii::QProjector<dim>::project_to_face(face_quadrature_collection[i_quad],iface);
+                //    const dealii::Quadrature<dim-1> face_quadrature = face_quadrature_collection[i_quad];
+                //    // for (unsigned int iquad=0;iquad<face_quadrature.size();++iquad) {
+                //    //     std::cout << "2d quad weight" << face_quadrature.weight(iquad) << std::endl;
+                //    // }
+                //    assemble_boundary_term_dRdX (
+                //        iface, boundary_id, fe_values_face_int, penalty,
+                //        current_fe_ref, face_quadrature,
+                //        current_metric_dofs_indices, current_dofs_indices, current_cell_rhs);
     
-                } else if ( compute_d2R ) {
-                    //const dealii::Quadrature<dim> face_quadrature = dealii::QProjector<dim>::project_to_face(face_quadrature_collection[i_quad],iface);
+                //} else if ( compute_d2R ) {
+                //    //const dealii::Quadrature<dim> face_quadrature = dealii::QProjector<dim>::project_to_face(face_quadrature_collection[i_quad],iface);
+                //    const dealii::Quadrature<dim-1> face_quadrature = face_quadrature_collection[i_quad];
+                //    // for (unsigned int iquad=0;iquad<face_quadrature.size();++iquad) {
+                //    //     std::cout << "2d quad weight" << face_quadrature.weight(iquad) << std::endl;
+                //    // }
+                //    assemble_boundary_term_hessian (
+                //        iface, boundary_id, fe_values_face_int, penalty,
+                //        current_fe_ref, face_quadrature,
+                //        current_metric_dofs_indices, current_dofs_indices, current_cell_rhs);
+                if (compute_dRdW || compute_dRdX || compute_d2R) {
                     const dealii::Quadrature<dim-1> face_quadrature = face_quadrature_collection[i_quad];
-                    // for (unsigned int iquad=0;iquad<face_quadrature.size();++iquad) {
-                    //     std::cout << "2d quad weight" << face_quadrature.weight(iquad) << std::endl;
-                    // }
-                    assemble_boundary_term_hessian (
+                    assemble_boundary_term_derivatives (
                         iface, boundary_id, fe_values_face_int, penalty,
                         current_fe_ref, face_quadrature,
-                        current_metric_dofs_indices, current_dofs_indices, current_cell_rhs);
+                        current_metric_dofs_indices, current_dofs_indices, current_cell_rhs,
+                        compute_dRdW, compute_dRdX, compute_d2R);
     
                 } else {
                     assemble_boundary_term_explicit (boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);

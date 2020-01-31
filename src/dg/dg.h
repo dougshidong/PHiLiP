@@ -425,6 +425,20 @@ protected:
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs,
         const dealii::FEValues<dim,dim> &fe_values_lagrange) = 0;
+
+    /// Evaluate the integral over the cell edges that are on domain boundaries and the specified derivatives.
+    /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
+    virtual void assemble_boundary_term_derivatives(
+        const unsigned int face_number,
+        const unsigned int boundary_id,
+        const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim-1> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
+        dealii::Vector<real> &local_rhs_cell,
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R) = 0;
     /// Evaluate the integral over the cell edges that are on domain boundaries
     /** Compute both the right-hand side and the corresponding dRdX block */
     virtual void assemble_boundary_term_dRdX(
@@ -709,6 +723,19 @@ private:
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs,
         const dealii::FEValues<dim,dim> &fe_values_lagrange);
+    /// Evaluate the integral over the cell edges that are on domain boundaries and the specified derivatives.
+    /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
+    void assemble_boundary_term_derivatives(
+        const unsigned int face_number,
+        const unsigned int boundary_id,
+        const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim-1> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
+        dealii::Vector<real> &local_rhs_cell,
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
     /// Evaluate the integral over the cell edges that are on domain boundaries
     /** Compute both the right-hand side and the corresponding dRdX block */
     void assemble_boundary_term_dRdX(
@@ -922,6 +949,19 @@ private:
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs,
         const dealii::FEValues<dim,dim> &fe_values_lagrange);
+    /// Evaluate the integral over the cell edges that are on domain boundaries and the specified derivatives.
+    /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
+    void assemble_boundary_term_derivatives(
+        const unsigned int face_number,
+        const unsigned int boundary_id,
+        const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim-1> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
+        dealii::Vector<real> &local_rhs_cell,
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
     /// Evaluate the integral over the cell edges that are on domain boundaries
     /** Compute both the right-hand side and the corresponding dRdX block */
     void assemble_boundary_term_dRdX(

@@ -452,8 +452,9 @@ real Euler<dim,nstate,real>
     /*const*/ real vel2 = compute_velocity_squared(vel);
     //std::cout << "vel2 calculated" << std::endl;
 
-    if (vel2 < 0.0001)
-        vel2 = 0.0001;
+    // Why abtin, why?
+    //if (vel2 < 0.0001)
+    //    vel2 = 0.0001;
 
     const real max_eig = sqrt(vel2) + sound;
     //std::cout << "max eig calculated" << std::endl;

@@ -51,6 +51,8 @@ public:
     double complexity_scale; // multiplier to complexity
     double complexity_add; // additive to complexity
 
+    std::vector<double> complexity_vector; // vector of complexities
+
     GridRefinementParam(); ///< Constructor
 
     /// Declares the possible variables and sets the defaults.

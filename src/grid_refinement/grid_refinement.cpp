@@ -610,6 +610,9 @@ void GridRefinement_Continuous<dim,nstate,real>::field()
     using RefinementTypeEnum = PHiLiP::Parameters::GridRefinementParam::RefinementType;
     RefinementTypeEnum refinement_type = this->grid_refinement_param.refinement_type;
 
+    // updating the target complexity for this iteration
+    target_complexity();
+
     // compute the necessary size fields
     if(refinement_type == RefinementTypeEnum::h){
         field_h();
@@ -618,6 +621,22 @@ void GridRefinement_Continuous<dim,nstate,real>::field()
     }else if(refinement_type == RefinementTypeEnum::hp){
         field_hp();
     }
+}
+
+template <int dim, int nstate, typename real>
+void GridRefinement_Continuous<dim,nstate,real>::target_complexity()
+{
+    // if the complexity vector needs to be expanded
+    while(complexity_vector.size() <= this->iteration)
+        complexity_vector.push_back(
+            complexity_vector.back() 
+          * this->grid_refinement_param.complexity_scale 
+          + this->grid_refinement_param.complexity_add);
+
+    // copy the current iteration into the complexity target
+    complexity_target = complexity_vector[this->iteration];
+
+    std::cout << "Complexity target = " << complexity_target << std::endl;
 }
 
 template <int dim, int nstate, typename real>
@@ -684,17 +703,13 @@ void GridRefinement_Continuous_Error<dim,nstate,real>::field_h()
                 pow(abs(hessian[0][0]*hessian[1][1] - hessian[0][1]*hessian[1][0]), q/2);
     }
 
-    real complexity = GridRefinement_Continuous<dim,nstate,real>::current_complexity();
-    complexity *= this->grid_refinement_param.complexity_scale;
-    complexity += this->grid_refinement_param.complexity_add;
-
     // checking if the polynomial order is uniform
     if(this->dg->get_min_fe_degree() == this->dg->get_max_fe_degree()){
         unsigned int poly_degree = this->dg->get_min_fe_degree();
 
         // building error based on exact hessian
         SizeField<dim,real>::isotropic_uniform(
-            complexity,
+            this->complexity_target,
             B,
             this->dg->dof_handler,
             this->h_field,
@@ -707,7 +722,7 @@ void GridRefinement_Continuous_Error<dim,nstate,real>::field_h()
         const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid.mapping_fe_field));
 
         SizeField<dim,real>::isotropic_h(
-            complexity,
+            this->complexity_target,
             B,
             this->dg->dof_handler,
             mapping_collection,
@@ -756,9 +771,6 @@ void GridRefinement_Continuous_Hessian<dim,nstate,real>::field_h()
         }
 
     // setting the current p-field
-    real complexity = GridRefinement_Continuous<dim,nstate,real>::current_complexity();
-    complexity *= this->grid_refinement_param.complexity_scale;
-    complexity += this->grid_refinement_param.complexity_add;
 
     // TODO: perform the call to calculate the continuous size field
 
@@ -767,7 +779,7 @@ void GridRefinement_Continuous_Hessian<dim,nstate,real>::field_h()
         unsigned int poly_degree = this->dg->get_min_fe_degree();
 
         SizeField<dim,real>::isotropic_uniform(
-            complexity,
+            this->complexity_target,
             B,
             this->dg->dof_handler,
             this->h_field,
@@ -777,7 +789,7 @@ void GridRefinement_Continuous_Hessian<dim,nstate,real>::field_h()
         GridRefinement_Continuous<dim,nstate,real>::get_current_field_p();
 
         SizeField<dim,real>::isotropic_h(
-            complexity,
+            this->complexity_target,
             B,
             this->dg->dof_handler,
             mapping_collection,
@@ -1134,8 +1146,8 @@ GridRefinementBase<dim,nstate,real>::GridRefinementBase(
 
 template <int dim, int nstate, typename real>
 GridRefinementBase<dim,nstate,real>::GridRefinementBase(
-    PHiLiP::Parameters::GridRefinementParam        gr_param_input,
-    std::shared_ptr< PHiLiP::DGBase<dim, real> >   dg_input) :
+    PHiLiP::Parameters::GridRefinementParam      gr_param_input,
+    std::shared_ptr< PHiLiP::DGBase<dim, real> > dg_input) :
         GridRefinementBase<dim,nstate,real>(
             gr_param_input, 
             nullptr, 
@@ -1307,8 +1319,8 @@ GridRefinementFactory<dim,nstate,real>::create_GridRefinement(
 template <int dim, int nstate, typename real>
 std::shared_ptr< GridRefinementBase<dim,nstate,real> > 
 GridRefinementFactory<dim,nstate,real>::create_GridRefinement(
-    PHiLiP::Parameters::GridRefinementParam        gr_param,
-    std::shared_ptr< PHiLiP::DGBase<dim, real> >   dg)
+    PHiLiP::Parameters::GridRefinementParam      gr_param,
+    std::shared_ptr< PHiLiP::DGBase<dim, real> > dg)
 {
     // residual based or uniform
     using RefinementMethodEnum = PHiLiP::Parameters::GridRefinementParam::RefinementMethod;

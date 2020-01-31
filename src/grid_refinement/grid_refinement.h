@@ -13,7 +13,6 @@
 
 #include "physics/physics.h"
 
-
 namespace PHiLiP {
 
 namespace GridRefinement {
@@ -57,9 +56,9 @@ public:
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input);
 
     GridRefinementBase(
-        PHiLiP::Parameters::GridRefinementParam        gr_param_input,
+        PHiLiP::Parameters::GridRefinementParam      gr_param_input,
         // PHiLiP::Parameters::AllParameters const *const param_input,
-        std::shared_ptr< PHiLiP::DGBase<dim, real> >   dg_input);
+        std::shared_ptr< PHiLiP::DGBase<dim, real> > dg_input);
 
 protected:
     // delegated constructor
@@ -93,16 +92,20 @@ protected:
         std::vector<unsigned int> &                        active_fe_indices,
         dealii::Vector<double> &                           cell_poly_degree,
         std::vector<std::string> &                         residual_names);
+
     void output_results_vtk_functional(
         dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out);
+
     void output_results_vtk_physics(
         dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out);
+
     void output_results_vtk_adjoint(
         dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out,
         std::vector<std::string> &                         dIdw_names_coarse,
         std::vector<std::string> &                         adjoint_names_coarse,
         std::vector<std::string> &                         dIdw_names_fine,
         std::vector<std::string> &                         adjoint_names_fine);
+    
     void output_results_vtk_error(
         dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out,
         dealii::Vector<real> &                             l2_error_vec);  
@@ -120,11 +123,6 @@ protected:
     // parameters
     PHiLiP::Parameters::GridRefinementParam grid_refinement_param;
 
-    // different things needed depending on the choice of refinement
-    // these could be held here with nullptr or in the base class
-    // if I want these internal then this needs to be templated on
-    // template <int dim, int nstate, typename real>
-
     // adj
     std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real> > adjoint;
 
@@ -136,7 +134,6 @@ protected:
 
     // high order grid, not a pointer 
     // so needs to be manipulated through dg->high_order_grid
-    // fix this at some point
     // HighOrderGrid<dim,real> high_order_grid
     
     // physics
@@ -148,7 +145,7 @@ protected:
     Triangulation *const tria;
 
     // iteration counter
-    int iteration;
+    unsigned int iteration;
 
     MPI_Comm mpi_communicator; ///< MPI communicator
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
@@ -191,7 +188,7 @@ protected:
     void refine_grid_hp() override;
     void output_results_vtk_method(
         dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out,
-        std::array<dealii::Vector<real>,MAX_METHOD_VEC> &  dat_vec_vec) override;
+        std::array<dealii::Vector<real>,MAX_METHOD_VEC>   &dat_vec_vec) override;
 };
 
 template <int dim, int nstate, typename real>
@@ -207,7 +204,7 @@ protected:
     void refine_grid_hp() override;   
     void output_results_vtk_method(
         dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out,
-        std::array<dealii::Vector<real>,MAX_METHOD_VEC> &  dat_vec_vec) override;
+        std::array<dealii::Vector<real>,MAX_METHOD_VEC>   &dat_vec_vec) override;
 
     virtual void error_indicator() = 0;
     void smoothness_indicator();
@@ -253,6 +250,87 @@ template <int dim, int nstate, typename real>
 class GridRefinement_Continuous : public GridRefinementBase<dim,nstate,real>
 {
 public:
+    
+    // deleting the default constructor
+    GridRefinement_Continuous() = delete;
+
+    // overriding the other constructors to call this delegated constructors constructors
+    GridRefinement_Continuous(
+        PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
+        std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real> >            adj_input,
+        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) : 
+            GridRefinement_Continuous<dim,nstate,real>(
+                gr_param_input,
+                adj_input,
+                adj_input->functional, 
+                adj_input->dg, 
+                physics_input){}
+
+    GridRefinement_Continuous(
+        PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
+        std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg_input,
+        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input,
+        std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional_input) : 
+            GridRefinement_Continuous<dim,nstate,real>(
+                gr_param_input, 
+                nullptr, 
+                functional_input, 
+                dg_input, 
+                physics_input){}
+
+    GridRefinement_Continuous(
+        PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
+        std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg_input,
+        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) : 
+            GridRefinement_Continuous<dim,nstate,real>(
+                gr_param_input, 
+                nullptr, 
+                nullptr, 
+                dg_input, 
+                physics_input){}
+
+    GridRefinement_Continuous(
+        PHiLiP::Parameters::GridRefinementParam      gr_param_input,
+        // PHiLiP::Parameters::AllParameters const *const param_input,
+        std::shared_ptr< PHiLiP::DGBase<dim, real> > dg_input) :
+            GridRefinement_Continuous<dim,nstate,real>(
+                gr_param_input, 
+                nullptr, 
+                nullptr, 
+                dg_input, 
+                nullptr){}
+
+protected:
+    // delegated constructor
+    GridRefinement_Continuous(
+        PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
+        std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real> >            adj_input,
+        std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional_input,
+        std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg_input,
+        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) : 
+            GridRefinementBase<dim,nstate,real>(
+                gr_param_input,
+                adj_input,
+                functional_input,
+                dg_input,
+                physics_input)
+    {
+        // set the initial complexity
+        complexity_initial = current_complexity();
+
+        // copy the complexity vector (if any) from the parameters
+        complexity_vector = this->grid_refinement_param.complexity_vector;
+
+        // adds first element if none hav been yet
+        complexity_vector.push_back(
+            complexity_initial
+          * this->grid_refinement_param.complexity_scale 
+          + this->grid_refinement_param.complexity_add);
+
+        // set the intial target
+        target_complexity();
+    }
+
     using GridRefinementBase<dim,nstate,real>::GridRefinementBase;
     using GridRefinementBase<dim,nstate,real>::MAX_METHOD_VEC;
     void refine_grid()    override;
@@ -262,13 +340,20 @@ protected:
     void refine_grid_hp() override;    
     void output_results_vtk_method(
         dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out,
-        std::array<dealii::Vector<real>,MAX_METHOD_VEC> &  dat_vec_vec) override;
+        std::array<dealii::Vector<real>,MAX_METHOD_VEC>   &dat_vec_vec) override;
 
     void field();
     virtual void field_h() = 0;
     virtual void field_p() = 0;
     virtual void field_hp() = 0;
+    
     real current_complexity();
+    void target_complexity();
+
+    real              complexity_initial;
+    real              complexity_target;
+    std::vector<real> complexity_vector;
+
     void get_current_field_h();
     void get_current_field_p();
     dealii::Vector<real> h_field;
@@ -345,8 +430,8 @@ public:
     // dg 
     static std::shared_ptr< GridRefinementBase<dim,nstate,real> > 
     create_GridRefinement(
-        PHiLiP::Parameters::GridRefinementParam        gr_param,
-        std::shared_ptr< PHiLiP::DGBase<dim, real> >   dg);
+        PHiLiP::Parameters::GridRefinementParam      gr_param,
+        std::shared_ptr< PHiLiP::DGBase<dim, real> > dg);
 
 };
 

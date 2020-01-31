@@ -1,3 +1,8 @@
+#include <algorithm>
+#include <string>
+
+#include <deal.II/base/utilities.h>
+
 #include "parameters_grid_refinement.h"
 
 namespace PHiLiP {
@@ -75,6 +80,13 @@ void GridRefinementParam::declare_parameters(dealii::ParameterHandler &prm)
         prm.declare_entry("complexity_add", "0.0",
                           dealii::Patterns::Double(),
                           "Constant added to the complexity at each step.");
+
+        prm.declare_entry("complexity_vector", "[]",
+                          dealii::Patterns::Anything(),
+                          "Stores an initial vector of values for complexity targets. "
+                          "Will iterate over and then switch to scaling and adding. "
+                          "Formatted in square brackets and seperated by commas, eg. \"[1000,2000]\"");
+
     // }
     // prm.leave_subsection();
 }
@@ -82,7 +94,7 @@ void GridRefinementParam::declare_parameters(dealii::ParameterHandler &prm)
 void GridRefinementParam::parse_parameters(dealii::ParameterHandler &prm)
 {
     // prm.enter_subsection("grid refinement");
-    // {
+    {
         refinement_steps = prm.get_integer("refinement_steps");
 
         const std::string refinement_method_string = prm.get("refinement_method");
@@ -109,7 +121,19 @@ void GridRefinementParam::parse_parameters(dealii::ParameterHandler &prm)
 
         complexity_scale = prm.get_double("complexity_scale");
         complexity_add   = prm.get_double("complexity_add");
-    // }
+    
+        std::string complexity_string = prm.get("complexity_vector");
+        
+        // remove formatting
+        std::string removeChars = "[]";
+        for(unsigned int i = 0; i < removeChars.length(); ++i)
+            complexity_string.erase(std::remove(complexity_string.begin(), complexity_string.end(), removeChars.at(i)), complexity_string.end());
+        std::vector<std::string> complexity_string_vector = dealii::Utilities::split_string_list(complexity_string);
+    
+        // pushing into a vector
+        for(auto entry : complexity_string_vector)
+            complexity_vector.push_back(dealii::Utilities::string_to_int(entry));
+    }
     // prm.leave_subsection();
 }
 

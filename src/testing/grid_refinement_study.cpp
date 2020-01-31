@@ -165,7 +165,7 @@ int GridRefinementStudy<dim,nstate>::run_test() const
 
             // solving the system
             // option of whether to solve the problem or interpolate it from the manufactured solution
-            if(false){
+            if(true){
                 ode_solver->steady_state();
             }else{
                 dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;

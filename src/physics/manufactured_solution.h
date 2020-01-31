@@ -345,8 +345,8 @@ public:
     {
         for(int istate = 0; istate < (int)nstate; ++istate){
             for (int d=0; d<dim; d++){
-                epsilon[istate][d] = 0.1;   // smooth
-                // epsilon[istate][d] = 0.005; // strong
+                // epsilon[istate][d] = 0.1;   // smooth
+                epsilon[istate][d] = 0.005; // strong
             }
         }
     }

@@ -129,7 +129,8 @@ inline real ManufacturedSolutionSShock<dim,real>
     real val = 0.0;
     if(dim==2){
         const real x = point[0], y = point[1];
-        val = 0.75*tanh(2*(sin(5*y)-3*x));
+        // val = 0.75*tanh(2*(sin(5*y)-3*x));
+        val = 0.75*tanh(20*(sin(10*y-5)-6*x+3));
     }
     return val;
 }
@@ -359,8 +360,10 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionSShock<dim,real>
     dealii::Tensor<1,dim,real> gradient;
     if(dim == 2){
         const real x = point[0], y = point[1];
-        gradient[0] = -4.5*pow(cosh(6*x-2*sin(5*y)),-2);  
-        gradient[1] =  7.5*pow(cosh(6*x-2*sin(5*y)),-2)*cos(5*y);
+        // gradient[0] = -4.5*pow(cosh(6*x-2*sin(5*y)),-2);  
+        // gradient[1] =  7.5*pow(cosh(6*x-2*sin(5*y)),-2)*cos(5*y);
+        gradient[0] = -90*pow(cosh(-120*x-20*sin(5-10*y)+60),-2);
+        gradient[1] = 150*pow(cosh(-120*x-20*sin(5-10*y)+60),-2)*cos(5-10*y);
     }
     return gradient;
 }
@@ -665,11 +668,17 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionSShock<dim,real>
     dealii::SymmetricTensor<2,dim,real> hessian;
     if (dim==2) {
         const real x = point[0], y = point[1];
-        hessian[0][0] =  54*tanh(6*x-2*sin(5*y))*pow(cosh(6*x-2*sin(5*y)),-2);
-        hessian[0][1] = -90*tanh(6*x-2*sin(5*y))*pow(cosh(6*x-2*sin(5*y)),-2)*cos(5*y);
+        // hessian[0][0] =  54*tanh(6*x-2*sin(5*y))*pow(cosh(6*x-2*sin(5*y)),-2);
+        // hessian[0][1] = -90*tanh(6*x-2*sin(5*y))*pow(cosh(6*x-2*sin(5*y)),-2)*cos(5*y);
 
-        hessian[1][0] = hessian[1][0];
-        hessian[1][1] = pow(cosh(6*x-2*sin(5*y)),-2)*(-37.5*sin(5*y)+150*pow(cos(5*y),2)*tanh(6*x-2*sin(5*y)));
+        // hessian[1][0] = hessian[1][0];
+        // hessian[1][1] = pow(cosh(6*x-2*sin(5*y)),-2)*(-37.5*sin(5*y)+150*pow(cos(5*y),2)*tanh(6*x-2*sin(5*y)));
+
+        hessian[0][0] =  21600*pow(cosh(20*(-3+6*x+sin(5-10*y))),2)*tanh(20*(-3+6*x+sin(5-10*y)));
+        hessian[0][1] = -36000*pow(cosh(20*(-3+6*x+sin(5-10*y))),2)*tanh(20*(-3+6*x+sin(5-10*y)))*cos(5-10*y);
+
+        hessian[1][0] = hessian[0][1];
+        hessian[1][1] =   1500*pow(cosh(20*(-3+6*x+sin(5-10*y))),2)*(40*pow(cos(5-10*y),2)*tanh(20*(-3+6*x+sin(5-10*y)))+sin(5-10*y));
     }
     return hessian;
 }

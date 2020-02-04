@@ -480,13 +480,61 @@ void DGBase<dim,real>::assemble_cell_residual (
                 const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
                 const real penalty = 0.5 * (penalty1 + penalty2);
 
-                if ( compute_dRdW ) {
-                    assemble_face_term_implicit (
-                                                fe_values_face_int, fe_values_face_ext,
-                                                penalty,
-                                                current_dofs_indices, neighbor_dofs_indices,
-                                                current_cell_rhs, neighbor_cell_rhs);
-                } else if ( compute_dRdX ) {
+                // if ( compute_dRdW ) {
+                //     assemble_face_term_implicit (
+                //                                 fe_values_face_int, fe_values_face_ext,
+                //                                 penalty,
+                //                                 current_dofs_indices, neighbor_dofs_indices,
+                //                                 current_cell_rhs, neighbor_cell_rhs);
+                // } else if ( compute_dRdX ) {
+                //     auto metric_neighbor_cell = high_order_grid.dof_handler_grid.begin_active();
+                //     if (cell_index == 0 && iface == 0) {
+                //     // First cell of the domain, neighbor is the last.
+                //         for (unsigned int i = 0 ; i < triangulation->n_active_cells() - 1; ++i) {
+                //             ++neighbor_cell;
+                //         }
+                //     } else if (cell_index == (int) triangulation->n_active_cells() - 1 && iface == 1) {
+                //     // Last cell of the domain, neighbor is the first.
+                //     }
+                //     metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
+                //     const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
+                //     const dealii::Quadrature<dim> quadrature_int =
+                //         dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
+                //     const dealii::Quadrature<dim> quadrature_ext =
+                //         dealii::QProjector<dim>::project_to_face(used_face_quadrature,neighbor_iface);
+                //     assemble_face_term_dRdX (   iface, neighbor_iface,
+                //                                 fe_values_face_int, fe_values_face_ext,
+                //                                 penalty,
+                //                                 fe_collection[i_fele], fe_collection[i_fele_n],
+                //                                 quadrature_int, quadrature_ext,
+                //                                 current_metric_dofs_indices, neighbor_metric_dofs_indices,
+                //                                 current_dofs_indices, neighbor_dofs_indices,
+                //                                 current_cell_rhs, neighbor_cell_rhs);
+                // } else if ( compute_d2R ) {
+                //     auto metric_neighbor_cell = high_order_grid.dof_handler_grid.begin_active();
+                //     if (cell_index == 0 && iface == 0) {
+                //     // First cell of the domain, neighbor is the last.
+                //         for (unsigned int i = 0 ; i < triangulation->n_active_cells() - 1; ++i) {
+                //             ++neighbor_cell;
+                //         }
+                //     } else if (cell_index == (int) triangulation->n_active_cells() - 1 && iface == 1) {
+                //     // Last cell of the domain, neighbor is the first.
+                //     }
+                //     metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
+                //     const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
+                //     const dealii::Quadrature<dim> quadrature_int =
+                //         dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
+                //     const dealii::Quadrature<dim> quadrature_ext =
+                //         dealii::QProjector<dim>::project_to_face(used_face_quadrature,neighbor_iface);
+                //     assemble_face_term_hessian (   iface, neighbor_iface,
+                //                                 fe_values_face_int, fe_values_face_ext,
+                //                                 penalty,
+                //                                 fe_collection[i_fele], fe_collection[i_fele_n],
+                //                                 quadrature_int, quadrature_ext,
+                //                                 current_metric_dofs_indices, neighbor_metric_dofs_indices,
+                //                                 current_dofs_indices, neighbor_dofs_indices,
+                //                                 current_cell_rhs, neighbor_cell_rhs);
+                if ( compute_dRdW || compute_dRdX || compute_d2R ) {
                     auto metric_neighbor_cell = high_order_grid.dof_handler_grid.begin_active();
                     if (cell_index == 0 && iface == 0) {
                     // First cell of the domain, neighbor is the last.
@@ -502,38 +550,15 @@ void DGBase<dim,real>::assemble_cell_residual (
                         dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
                     const dealii::Quadrature<dim> quadrature_ext =
                         dealii::QProjector<dim>::project_to_face(used_face_quadrature,neighbor_iface);
-                    assemble_face_term_dRdX (   iface, neighbor_iface,
+                    assemble_face_term_derivatives (   iface, neighbor_iface,
                                                 fe_values_face_int, fe_values_face_ext,
                                                 penalty,
                                                 fe_collection[i_fele], fe_collection[i_fele_n],
                                                 quadrature_int, quadrature_ext,
                                                 current_metric_dofs_indices, neighbor_metric_dofs_indices,
                                                 current_dofs_indices, neighbor_dofs_indices,
-                                                current_cell_rhs, neighbor_cell_rhs);
-                } else if ( compute_d2R ) {
-                    auto metric_neighbor_cell = high_order_grid.dof_handler_grid.begin_active();
-                    if (cell_index == 0 && iface == 0) {
-                    // First cell of the domain, neighbor is the last.
-                        for (unsigned int i = 0 ; i < triangulation->n_active_cells() - 1; ++i) {
-                            ++neighbor_cell;
-                        }
-                    } else if (cell_index == (int) triangulation->n_active_cells() - 1 && iface == 1) {
-                    // Last cell of the domain, neighbor is the first.
-                    }
-                    metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
-                    const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
-                    const dealii::Quadrature<dim> quadrature_int =
-                        dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
-                    const dealii::Quadrature<dim> quadrature_ext =
-                        dealii::QProjector<dim>::project_to_face(used_face_quadrature,neighbor_iface);
-                    assemble_face_term_hessian (   iface, neighbor_iface,
-                                                fe_values_face_int, fe_values_face_ext,
-                                                penalty,
-                                                fe_collection[i_fele], fe_collection[i_fele_n],
-                                                quadrature_int, quadrature_ext,
-                                                current_metric_dofs_indices, neighbor_metric_dofs_indices,
-                                                current_dofs_indices, neighbor_dofs_indices,
-                                                current_cell_rhs, neighbor_cell_rhs);
+                                                current_cell_rhs, neighbor_cell_rhs,
+                                                compute_dRdW, compute_dRdX, compute_d2R);
                 } else {
                     assemble_face_term_explicit (
                                                 fe_values_face_int, fe_values_face_ext,
@@ -624,13 +649,45 @@ void DGBase<dim,real>::assemble_cell_residual (
                 const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
                 const real penalty = 0.5 * (penalty1 + penalty2);
 
-                if ( compute_dRdW ) {
-                    assemble_face_term_implicit (
-                            fe_values_face_int, fe_values_face_ext,
-                            penalty,
-                            current_dofs_indices, neighbor_dofs_indices,
-                            current_cell_rhs, neighbor_cell_rhs);
-                } else if ( compute_dRdX ) {
+                // if ( compute_dRdW ) {
+                //     assemble_face_term_implicit (
+                //             fe_values_face_int, fe_values_face_ext,
+                //             penalty,
+                //             current_dofs_indices, neighbor_dofs_indices,
+                //             current_cell_rhs, neighbor_cell_rhs);
+                // } else if ( compute_dRdX ) {
+                //     const auto metric_neighbor_cell = current_metric_cell->periodic_neighbor(iface);
+                //     metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
+                //     const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
+                //     const dealii::Quadrature<dim> quadrature_int =
+                //         dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
+                //     const dealii::Quadrature<dim> quadrature_ext =
+                //         dealii::QProjector<dim>::project_to_face(used_face_quadrature,neighbor_iface);
+                //     assemble_face_term_dRdX (   iface, neighbor_iface,
+                //                                 fe_values_face_int, fe_values_face_ext,
+                //                                 penalty,
+                //                                 fe_collection[i_fele], fe_collection[i_fele_n],
+                //                                 quadrature_int, quadrature_ext,
+                //                                 current_metric_dofs_indices, neighbor_metric_dofs_indices,
+                //                                 current_dofs_indices, neighbor_dofs_indices,
+                //                                 current_cell_rhs, neighbor_cell_rhs);
+                // } else if ( compute_d2R ) {
+                //     const auto metric_neighbor_cell = current_metric_cell->periodic_neighbor(iface);
+                //     metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
+                //     const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
+                //     const dealii::Quadrature<dim> quadrature_int =
+                //         dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
+                //     const dealii::Quadrature<dim> quadrature_ext =
+                //         dealii::QProjector<dim>::project_to_face(used_face_quadrature,neighbor_iface);
+                //     assemble_face_term_hessian (   iface, neighbor_iface,
+                //                                 fe_values_face_int, fe_values_face_ext,
+                //                                 penalty,
+                //                                 fe_collection[i_fele], fe_collection[i_fele_n],
+                //                                 quadrature_int, quadrature_ext,
+                //                                 current_metric_dofs_indices, neighbor_metric_dofs_indices,
+                //                                 current_dofs_indices, neighbor_dofs_indices,
+                //                                 current_cell_rhs, neighbor_cell_rhs);
+                if ( compute_d2R ) {
                     const auto metric_neighbor_cell = current_metric_cell->periodic_neighbor(iface);
                     metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
                     const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
@@ -638,30 +695,15 @@ void DGBase<dim,real>::assemble_cell_residual (
                         dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
                     const dealii::Quadrature<dim> quadrature_ext =
                         dealii::QProjector<dim>::project_to_face(used_face_quadrature,neighbor_iface);
-                    assemble_face_term_dRdX (   iface, neighbor_iface,
+                    assemble_face_term_derivatives (   iface, neighbor_iface,
                                                 fe_values_face_int, fe_values_face_ext,
                                                 penalty,
                                                 fe_collection[i_fele], fe_collection[i_fele_n],
                                                 quadrature_int, quadrature_ext,
                                                 current_metric_dofs_indices, neighbor_metric_dofs_indices,
                                                 current_dofs_indices, neighbor_dofs_indices,
-                                                current_cell_rhs, neighbor_cell_rhs);
-                } else if ( compute_d2R ) {
-                    const auto metric_neighbor_cell = current_metric_cell->periodic_neighbor(iface);
-                    metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
-                    const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
-                    const dealii::Quadrature<dim> quadrature_int =
-                        dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
-                    const dealii::Quadrature<dim> quadrature_ext =
-                        dealii::QProjector<dim>::project_to_face(used_face_quadrature,neighbor_iface);
-                    assemble_face_term_hessian (   iface, neighbor_iface,
-                                                fe_values_face_int, fe_values_face_ext,
-                                                penalty,
-                                                fe_collection[i_fele], fe_collection[i_fele_n],
-                                                quadrature_int, quadrature_ext,
-                                                current_metric_dofs_indices, neighbor_metric_dofs_indices,
-                                                current_dofs_indices, neighbor_dofs_indices,
-                                                current_cell_rhs, neighbor_cell_rhs);
+                                                current_cell_rhs, neighbor_cell_rhs,
+                                                compute_dRdW, compute_dRdX, compute_d2R);
                 } else {
                     assemble_face_term_explicit (
                             fe_values_face_int, fe_values_face_ext,
@@ -799,13 +841,47 @@ void DGBase<dim,real>::assemble_cell_residual (
             const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
             const real penalty = 0.5 * (penalty1 + penalty2);
 
-            if ( compute_dRdW ) {
-                assemble_face_term_implicit (
-                        fe_values_face_int, fe_values_face_ext,
-                        penalty,
-                        current_dofs_indices, neighbor_dofs_indices,
-                        current_cell_rhs, neighbor_cell_rhs);
-            } else if ( compute_dRdX ) {
+            // if ( compute_dRdW ) {
+            //     assemble_face_term_implicit (
+            //             fe_values_face_int, fe_values_face_ext,
+            //             penalty,
+            //             current_dofs_indices, neighbor_dofs_indices,
+            //             current_cell_rhs, neighbor_cell_rhs);
+            // } else if ( compute_dRdX ) {
+            //     const auto metric_neighbor_cell = current_metric_cell->neighbor(iface);
+            //     metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
+
+            //     const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
+            //     const dealii::Quadrature<dim> quadrature_int =
+            //         dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
+            //     const dealii::Quadrature<dim> quadrature_ext =
+            //         dealii::QProjector<dim>::project_to_subface(used_face_quadrature,neighbor_iface,i_subface, dealii::RefinementCase<dim-1>::isotropic_refinement);
+            //     assemble_face_term_dRdX (   iface, neighbor_iface,
+            //                                 fe_values_face_int, fe_values_face_ext,
+            //                                 penalty,
+            //                                 fe_collection[i_fele], fe_collection[i_fele_n],
+            //                                 quadrature_int, quadrature_ext,
+            //                                 current_metric_dofs_indices, neighbor_metric_dofs_indices,
+            //                                 current_dofs_indices, neighbor_dofs_indices,
+            //                                 current_cell_rhs, neighbor_cell_rhs);
+            // } else if ( compute_d2R ) {
+            //     const auto metric_neighbor_cell = current_metric_cell->neighbor(iface);
+            //     metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
+
+            //     const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
+            //     const dealii::Quadrature<dim> quadrature_int =
+            //         dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
+            //     const dealii::Quadrature<dim> quadrature_ext =
+            //         dealii::QProjector<dim>::project_to_subface(used_face_quadrature,neighbor_iface,i_subface, dealii::RefinementCase<dim-1>::isotropic_refinement);
+            //     assemble_face_term_hessian (   iface, neighbor_iface,
+            //                                 fe_values_face_int, fe_values_face_ext,
+            //                                 penalty,
+            //                                 fe_collection[i_fele], fe_collection[i_fele_n],
+            //                                 quadrature_int, quadrature_ext,
+            //                                 current_metric_dofs_indices, neighbor_metric_dofs_indices,
+            //                                 current_dofs_indices, neighbor_dofs_indices,
+            //                                 current_cell_rhs, neighbor_cell_rhs);
+            if ( compute_dRdW || compute_dRdX || compute_d2R ) {
                 const auto metric_neighbor_cell = current_metric_cell->neighbor(iface);
                 metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
 
@@ -814,31 +890,15 @@ void DGBase<dim,real>::assemble_cell_residual (
                     dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
                 const dealii::Quadrature<dim> quadrature_ext =
                     dealii::QProjector<dim>::project_to_subface(used_face_quadrature,neighbor_iface,i_subface, dealii::RefinementCase<dim-1>::isotropic_refinement);
-                assemble_face_term_dRdX (   iface, neighbor_iface,
+                assemble_face_term_derivatives (   iface, neighbor_iface,
                                             fe_values_face_int, fe_values_face_ext,
                                             penalty,
                                             fe_collection[i_fele], fe_collection[i_fele_n],
                                             quadrature_int, quadrature_ext,
                                             current_metric_dofs_indices, neighbor_metric_dofs_indices,
                                             current_dofs_indices, neighbor_dofs_indices,
-                                            current_cell_rhs, neighbor_cell_rhs);
-            } else if ( compute_d2R ) {
-                const auto metric_neighbor_cell = current_metric_cell->neighbor(iface);
-                metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
-
-                const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
-                const dealii::Quadrature<dim> quadrature_int =
-                    dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
-                const dealii::Quadrature<dim> quadrature_ext =
-                    dealii::QProjector<dim>::project_to_subface(used_face_quadrature,neighbor_iface,i_subface, dealii::RefinementCase<dim-1>::isotropic_refinement);
-                assemble_face_term_hessian (   iface, neighbor_iface,
-                                            fe_values_face_int, fe_values_face_ext,
-                                            penalty,
-                                            fe_collection[i_fele], fe_collection[i_fele_n],
-                                            quadrature_int, quadrature_ext,
-                                            current_metric_dofs_indices, neighbor_metric_dofs_indices,
-                                            current_dofs_indices, neighbor_dofs_indices,
-                                            current_cell_rhs, neighbor_cell_rhs);
+                                            current_cell_rhs, neighbor_cell_rhs,
+                                            compute_dRdW, compute_dRdX, compute_d2R);
             } else {
                 assemble_face_term_explicit (
                     fe_values_face_int, fe_values_face_ext,
@@ -884,13 +944,45 @@ void DGBase<dim,real>::assemble_cell_residual (
             const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
             const real penalty = 0.5 * (penalty1 + penalty2);
 
-            if ( compute_dRdW ) {
-                assemble_face_term_implicit (
-                        fe_values_face_int, fe_values_face_ext,
-                        penalty,
-                        current_dofs_indices, neighbor_dofs_indices,
-                        current_cell_rhs, neighbor_cell_rhs);
-            } else if ( compute_dRdX ) {
+            // if ( compute_dRdW ) {
+            //     assemble_face_term_implicit (
+            //             fe_values_face_int, fe_values_face_ext,
+            //             penalty,
+            //             current_dofs_indices, neighbor_dofs_indices,
+            //             current_cell_rhs, neighbor_cell_rhs);
+            // } else if ( compute_dRdX ) {
+            //     const auto metric_neighbor_cell = current_metric_cell->neighbor_or_periodic_neighbor(iface);
+            //     metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
+            //     const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
+            //     const dealii::Quadrature<dim> quadrature_int =
+            //         dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
+            //     const dealii::Quadrature<dim> quadrature_ext =
+            //         dealii::QProjector<dim>::project_to_face(used_face_quadrature,neighbor_iface);
+            //     assemble_face_term_dRdX (   iface, neighbor_iface,
+            //                                 fe_values_face_int, fe_values_face_ext,
+            //                                 penalty,
+            //                                 fe_collection[i_fele], fe_collection[i_fele_n],
+            //                                 quadrature_int, quadrature_ext,
+            //                                 current_metric_dofs_indices, neighbor_metric_dofs_indices,
+            //                                 current_dofs_indices, neighbor_dofs_indices,
+            //                                 current_cell_rhs, neighbor_cell_rhs);
+            // } else if ( compute_d2R ) {
+            //     const auto metric_neighbor_cell = current_metric_cell->neighbor_or_periodic_neighbor(iface);
+            //     metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
+            //     const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
+            //     const dealii::Quadrature<dim> quadrature_int =
+            //         dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
+            //     const dealii::Quadrature<dim> quadrature_ext =
+            //         dealii::QProjector<dim>::project_to_face(used_face_quadrature,neighbor_iface);
+            //     assemble_face_term_hessian (   iface, neighbor_iface,
+            //                                 fe_values_face_int, fe_values_face_ext,
+            //                                 penalty,
+            //                                 fe_collection[i_fele], fe_collection[i_fele_n],
+            //                                 quadrature_int, quadrature_ext,
+            //                                 current_metric_dofs_indices, neighbor_metric_dofs_indices,
+            //                                 current_dofs_indices, neighbor_dofs_indices,
+            //                                 current_cell_rhs, neighbor_cell_rhs);
+            if ( compute_dRdW || compute_dRdX || compute_d2R ) {
                 const auto metric_neighbor_cell = current_metric_cell->neighbor_or_periodic_neighbor(iface);
                 metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
                 const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
@@ -898,30 +990,15 @@ void DGBase<dim,real>::assemble_cell_residual (
                     dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
                 const dealii::Quadrature<dim> quadrature_ext =
                     dealii::QProjector<dim>::project_to_face(used_face_quadrature,neighbor_iface);
-                assemble_face_term_dRdX (   iface, neighbor_iface,
+                assemble_face_term_derivatives (   iface, neighbor_iface,
                                             fe_values_face_int, fe_values_face_ext,
                                             penalty,
                                             fe_collection[i_fele], fe_collection[i_fele_n],
                                             quadrature_int, quadrature_ext,
                                             current_metric_dofs_indices, neighbor_metric_dofs_indices,
                                             current_dofs_indices, neighbor_dofs_indices,
-                                            current_cell_rhs, neighbor_cell_rhs);
-            } else if ( compute_d2R ) {
-                const auto metric_neighbor_cell = current_metric_cell->neighbor_or_periodic_neighbor(iface);
-                metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
-                const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
-                const dealii::Quadrature<dim> quadrature_int =
-                    dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
-                const dealii::Quadrature<dim> quadrature_ext =
-                    dealii::QProjector<dim>::project_to_face(used_face_quadrature,neighbor_iface);
-                assemble_face_term_hessian (   iface, neighbor_iface,
-                                            fe_values_face_int, fe_values_face_ext,
-                                            penalty,
-                                            fe_collection[i_fele], fe_collection[i_fele_n],
-                                            quadrature_int, quadrature_ext,
-                                            current_metric_dofs_indices, neighbor_metric_dofs_indices,
-                                            current_dofs_indices, neighbor_dofs_indices,
-                                            current_cell_rhs, neighbor_cell_rhs);
+                                            current_cell_rhs, neighbor_cell_rhs,
+                                            compute_dRdW, compute_dRdX, compute_d2R);
             } else {
                 assemble_face_term_explicit (
                         fe_values_face_int, fe_values_face_ext,

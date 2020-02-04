@@ -69,13 +69,22 @@ int test (
     solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
     dealii::VectorTools::interpolate(dg->dof_handler, *(physics_double->manufactured_solution_function), solution_no_ghost);
     dg->solution = solution_no_ghost;
+    for (auto it = dg->solution.begin(); it != dg->solution.end(); ++it) {
+        // Interpolating the exact manufactured solution caused some problems at the boundary conditions.
+        // The manufactured solution is exactly equal to the manufactured_solution_function at the boundary,
+        // therefore, the finite difference will change whether the flow is incoming or outgoing.
+        // As a result, we would be differentiating at a non-differentiable point.
+        // Hence, we fix this issue by taking the second derivative at a non-exact solution.
+        (*it) += 1.0;
+    }
+    dg->solution.update_ghost_values();
 
 
     dealii::TrilinosWrappers::SparseMatrix dRdW_fd;
     dealii::SparsityPattern sparsity_pattern = dg->get_dRdW_sparsity_pattern ();
 
     const dealii::IndexSet &row_parallel_partitioning = dg->locally_owned_dofs;
-    const dealii::IndexSet &col_parallel_partitioning = dg->locally_relevant_dofs;
+    const dealii::IndexSet &col_parallel_partitioning = dg->locally_owned_dofs;
     dRdW_fd.reinit(row_parallel_partitioning, col_parallel_partitioning, sparsity_pattern, MPI_COMM_WORLD);
 
     const double eps = 1e-6;

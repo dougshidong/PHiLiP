@@ -451,6 +451,27 @@ protected:
         const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs) = 0;
+    /// Evaluate the integral over the internal cell edges and its specified derivatives.
+    /** Compute both the right-hand side and the block of the Jacobian.
+     *  This adds the contribution to both cell's residual and effectively 
+     *  computes 4 block contributions to dRdX blocks. */
+    virtual void assemble_face_term_derivatives(
+        const unsigned int interior_face_number,
+        const unsigned int exterior_face_number,
+        const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_int,
+        const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_ext,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe_int,
+        const dealii::FESystem<dim,dim> &fe_ext,
+        const dealii::Quadrature<dim> &face_quadrature_int,
+        const dealii::Quadrature<dim> &face_quadrature_ext,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
+        dealii::Vector<real>          &local_rhs_int_cell,
+        dealii::Vector<real>          &local_rhs_ext_cell,
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R) = 0;
     /// Evaluate the integral over the internal cell edges
     /** Compute both the right-hand side and the block of the Jacobian.
      *  This adds the contribution to both cell's residual and effectively 
@@ -748,6 +769,27 @@ private:
         const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs);
+    /// Evaluate the integral over the internal cell edges and its specified derivatives.
+    /** Compute both the right-hand side and the block of the Jacobian.
+     *  This adds the contribution to both cell's residual and effectively 
+     *  computes 4 block contributions to dRdX blocks. */
+    void assemble_face_term_derivatives(
+        const unsigned int interior_face_number,
+        const unsigned int exterior_face_number,
+        const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_int,
+        const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_ext,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe_int,
+        const dealii::FESystem<dim,dim> &fe_ext,
+        const dealii::Quadrature<dim> &face_quadrature_int,
+        const dealii::Quadrature<dim> &face_quadrature_ext,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
+        dealii::Vector<real>          &local_rhs_int_cell,
+        dealii::Vector<real>          &local_rhs_ext_cell,
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
     /// Evaluate the integral over the internal cell edges
     /** Compute both the right-hand side and the block of the Jacobian.
      *  This adds the contribution to both cell's residual and effectively 
@@ -974,6 +1016,28 @@ private:
         const std::vector<dealii::types::global_dof_index> &cell_metric_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs);
+
+    /// Evaluate the integral over the internal cell edges and its specified derivatives.
+    /** Compute both the right-hand side and the block of the Jacobian.
+     *  This adds the contribution to both cell's residual and effectively 
+     *  computes 4 block contributions to dRdX blocks. */
+    void assemble_face_term_derivatives(
+        const unsigned int interior_face_number,
+        const unsigned int exterior_face_number,
+        const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_int,
+        const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_ext,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe_int,
+        const dealii::FESystem<dim,dim> &fe_ext,
+        const dealii::Quadrature<dim> &face_quadrature_int,
+        const dealii::Quadrature<dim> &face_quadrature_ext,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
+        dealii::Vector<real>          &local_rhs_int_cell,
+        dealii::Vector<real>          &local_rhs_ext_cell,
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
     /// Evaluate the integral over the internal cell edges
     /** Compute both the right-hand side and the block of the Jacobian.
      *  This adds the contribution to both cell's residual and effectively 

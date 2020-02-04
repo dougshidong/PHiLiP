@@ -167,6 +167,27 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_derivatives(
     const bool ,//compute_dRdX,
     const bool )//compute_d2R)
 { }
+template <int dim, int nstate, typename real>
+void DGStrong<dim,nstate,real>::assemble_face_term_derivatives(
+    const unsigned int ,//interior_face_number,
+    const unsigned int ,//exterior_face_number,
+    const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_int,
+    const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_ext,
+    const real ,//penalty,
+    const dealii::FESystem<dim,dim> &,//fe_int,
+    const dealii::FESystem<dim,dim> &,//fe_ext,
+    const dealii::Quadrature<dim> &,//face_quadrature_int,
+    const dealii::Quadrature<dim> &,//face_quadrature_ext,
+    const std::vector<dealii::types::global_dof_index> &,//metric_dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &,//metric_dof_indices_ext,
+    const std::vector<dealii::types::global_dof_index> &,//soln_dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &,//soln_dof_indices_ext,
+    dealii::Vector<real>          &,//local_rhs_int_cell,
+    dealii::Vector<real>          &,//local_rhs_ext_cell,
+    const bool ,//compute_dRdW,
+    const bool ,//compute_dRdX,
+    const bool )//compute_d2R)
+{ }
 
 template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_volume_terms_implicit(

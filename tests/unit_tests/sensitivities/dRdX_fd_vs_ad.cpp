@@ -21,7 +21,8 @@ using PDEType  = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
 using ConvType = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;
 using DissType = PHiLiP::Parameters::AllParameters::DissipativeNumericalFlux;
 
-const double TOLERANCE = 1E-6;
+const double TOLERANCE = 1E-5;
+const double EPS = 1e-6;
 
 /** This test checks that dRdX evaluated using automatic differentiation
  *  matches with the results obtained using finite-difference.
@@ -70,6 +71,15 @@ int test (
     solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
     dealii::VectorTools::interpolate(dg->dof_handler, *(physics_double->manufactured_solution_function), solution_no_ghost);
     dg->solution = solution_no_ghost;
+    for (auto it = dg->solution.begin(); it != dg->solution.end(); ++it) {
+        // Interpolating the exact manufactured solution caused some problems at the boundary conditions.
+        // The manufactured solution is exactly equal to the manufactured_solution_function at the boundary,
+        // therefore, the finite difference will change whether the flow is incoming or outgoing.
+        // As a result, we would be differentiating at a non-differentiable point.
+        // Hence, we fix this issue by taking the second derivative at a non-exact solution.
+        (*it) += 1.0;
+    }
+    dg->solution.update_ghost_values();
 
 
     dealii::TrilinosWrappers::SparseMatrix dRdXv_fd;
@@ -79,7 +89,6 @@ int test (
     const dealii::IndexSet &col_parallel_partitioning = dg->high_order_grid.locally_owned_dofs_grid;
     dRdXv_fd.reinit(row_parallel_partitioning, col_parallel_partitioning, sparsity_pattern, MPI_COMM_WORLD);
 
-    const double eps = 1e-6;
     PHiLiP::HighOrderGrid<dim,double> &high_order_grid = dg->high_order_grid;
 
     using nodeVector = dealii::LinearAlgebra::distributed::Vector<double>;
@@ -101,7 +110,7 @@ int test (
         // Positive perturbation
         if (high_order_grid.locally_relevant_dofs_grid.is_element(inode) ) {
             old_node = high_order_grid.nodes[inode];
-            high_order_grid.nodes(inode) = old_node+eps;
+            high_order_grid.nodes(inode) = old_node+EPS;
         }
         //hanging_node_constraints.distribute(high_order_grid.nodes);
         //high_order_grid.nodes.update_ghost_values();
@@ -116,7 +125,7 @@ int test (
 
         // Negative perturbation
         if (high_order_grid.locally_relevant_dofs_grid.is_element(inode) ) {
-            high_order_grid.nodes(inode) = old_node-eps;
+            high_order_grid.nodes(inode) = old_node-EPS;
         }
         //hanging_node_constraints.distribute(high_order_grid.nodes);
         //high_order_grid.nodes.update_ghost_values();
@@ -135,7 +144,7 @@ int test (
 
         perturbed_residual_p -= perturbed_residual_m;
         //std::cout << "perturb residual diff " << std::endl; perturbed_residual_p.print(std::cout, 5);
-        perturbed_residual_p /= (2.0*eps);
+        perturbed_residual_p /= (2.0*EPS);
         //std::cout << "fd residual " << std::endl; perturbed_residual_p.print(std::cout, 5);
 
         // Reset node

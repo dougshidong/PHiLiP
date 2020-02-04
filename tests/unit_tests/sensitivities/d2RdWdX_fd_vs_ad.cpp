@@ -267,7 +267,8 @@ int test (
 
     const double ad_frob_norm = dg->d2RdWdX.frobenius_norm();
     const double fd_frob_norm = d2RdWdX_fd.frobenius_norm();
-    const double frob_norm = std::max(ad_frob_norm, fd_frob_norm);
+    double frob_norm = std::max(ad_frob_norm, fd_frob_norm);
+    if (ad_frob_norm < 1e-12) frob_norm = 1.0; // Take absolute error
 
     pcout << "FD-norm = " << d2RdWdX_fd.frobenius_norm() << std::endl;
     pcout << "AD-norm = " << dg->d2RdWdX.frobenius_norm() << std::endl;

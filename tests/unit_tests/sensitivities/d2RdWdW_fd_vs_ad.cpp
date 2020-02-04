@@ -412,7 +412,8 @@ int test (
 
     const double ad_frob_norm = dg->d2RdWdW.frobenius_norm();
     const double fd_frob_norm = d2RdWdW_fd.frobenius_norm();
-    const double frob_norm = std::max(ad_frob_norm, fd_frob_norm);
+    double frob_norm = std::max(ad_frob_norm, fd_frob_norm);
+    if (ad_frob_norm < 1e-12) frob_norm = 1.0; // Take absolute error
 
     pcout << "FD-norm = " << d2RdWdW_fd.frobenius_norm() << std::endl;
     pcout << "AD-norm = " << dg->d2RdWdW.frobenius_norm() << std::endl;
@@ -460,18 +461,18 @@ int main (int argc, char * argv[])
     Parameters::AllParameters all_parameters;
     all_parameters.parse_parameters (parameter_handler);
     std::vector<PDEType> pde_type {
-         //  PDEType::diffusion
-         //, PDEType::advection
+           PDEType::diffusion
+         , PDEType::advection
          //, PDEType::convection_diffusion
          //, PDEType::advection_vector
-          PDEType::euler
+         , PDEType::euler
     };
     std::vector<std::string> pde_name {
-        // " PDEType::diffusion "
-        //, " PDEType::advection "
+         " PDEType::diffusion "
+        , " PDEType::advection "
         //, " PDEType::convection_diffusion "
         //, " PDEType::advection_vector "
-         " PDEType::euler "
+        , " PDEType::euler "
     };
 
     int ipde = -1;

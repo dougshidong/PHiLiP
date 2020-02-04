@@ -21,10 +21,9 @@ using PDEType  = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
 using ConvType = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;
 using DissType = PHiLiP::Parameters::AllParameters::DissipativeNumericalFlux;
 
-const double TOLERANCE = 1E-5;
-const double EPS = 1e-6;
+const double TOLERANCE = 1E-6;
 
-/** This test checks that dRdX evaluated using automatic differentiation
+/** This test checks that dRdW evaluated using automatic differentiation
  *  matches with the results obtained using finite-difference.
  */
 template<int dim, int nstate>
@@ -40,7 +39,6 @@ int test (
     int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
     dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
     using namespace PHiLiP;
-    // Assemble Jacobian
     std::shared_ptr < DGBase<PHILIP_DIM, double> > dg = DGFactory<PHILIP_DIM,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, &grid);
 
     const int n_refine = 1;
@@ -82,74 +80,45 @@ int test (
     dg->solution.update_ghost_values();
 
 
-    dealii::TrilinosWrappers::SparseMatrix dRdXv_fd;
-    dealii::SparsityPattern sparsity_pattern = dg->get_dRdX_sparsity_pattern ();
+    dealii::TrilinosWrappers::SparseMatrix dRdW_fd;
+    dealii::SparsityPattern sparsity_pattern = dg->get_dRdW_sparsity_pattern ();
 
     const dealii::IndexSet &row_parallel_partitioning = dg->locally_owned_dofs;
-    const dealii::IndexSet &col_parallel_partitioning = dg->high_order_grid.locally_owned_dofs_grid;
-    dRdXv_fd.reinit(row_parallel_partitioning, col_parallel_partitioning, sparsity_pattern, MPI_COMM_WORLD);
+    const dealii::IndexSet &col_parallel_partitioning = dg->locally_owned_dofs;
+    dRdW_fd.reinit(row_parallel_partitioning, col_parallel_partitioning, sparsity_pattern, MPI_COMM_WORLD);
 
-    PHiLiP::HighOrderGrid<dim,double> &high_order_grid = dg->high_order_grid;
-
-    using nodeVector = dealii::LinearAlgebra::distributed::Vector<double>;
-    nodeVector old_nodes = high_order_grid.nodes;
-    old_nodes.update_ghost_values();
-
-    dealii::AffineConstraints<double> hanging_node_constraints;
-    hanging_node_constraints.clear();
-    dealii::DoFTools::make_hanging_node_constraints(high_order_grid.dof_handler_grid, hanging_node_constraints);
-    hanging_node_constraints.close();
+    const double eps = 1e-6;
 
     pcout << "Evaluating AD..." << std::endl;
-    dg->assemble_residual(false, true, false);
+    dg->assemble_residual(true, false, false);
 
     pcout << "Evaluating FD..." << std::endl;
-    for (unsigned int inode = 0; inode<high_order_grid.dof_handler_grid.n_dofs(); ++inode) {
-        if (inode % 100 == 0) pcout << "inode " << inode+1 << " out of " << high_order_grid.dof_handler_grid.n_dofs() << std::endl;
-        double old_node = -99999;
+    const unsigned int n_dofs = dg->dof_handler.n_dofs();
+    for (unsigned int idof = 0; idof < n_dofs; ++idof) {
+        if (idof % 100 == 0) pcout << "idof " << idof+1 << " out of " << n_dofs << std::endl;
+        double old_dof = -99999;
         // Positive perturbation
-        if (high_order_grid.locally_relevant_dofs_grid.is_element(inode) ) {
-            old_node = high_order_grid.nodes[inode];
-            high_order_grid.nodes(inode) = old_node+EPS;
+        if (dg->locally_owned_dofs.is_element(idof) ) {
+            old_dof = dg->solution[idof];
+            dg->solution(idof) = old_dof+eps;
         }
-        //hanging_node_constraints.distribute(high_order_grid.nodes);
-        //high_order_grid.nodes.update_ghost_values();
-
         dg->assemble_residual(false, false, false);
         solutionVector perturbed_residual_p = dg->right_hand_side;
 
-        //std::cout << "perturb nodes " << std::endl;  high_order_grid.nodes.print(std::cout, 5);
-        //high_order_grid.nodes = old_nodes;
-        //high_order_grid.nodes.update_ghost_values();
-        //std::cout << "oldnodes " << std::endl; high_order_grid.nodes.print(std::cout, 5);
-
         // Negative perturbation
-        if (high_order_grid.locally_relevant_dofs_grid.is_element(inode) ) {
-            high_order_grid.nodes(inode) = old_node-EPS;
+        if (dg->locally_owned_dofs.is_element(idof) ) {
+            dg->solution(idof) = old_dof-eps;
         }
-        //hanging_node_constraints.distribute(high_order_grid.nodes);
-        //high_order_grid.nodes.update_ghost_values();
-
         dg->assemble_residual(false, false, false);
         solutionVector perturbed_residual_m = dg->right_hand_side;
 
-        //std::cout << "perturb nodes " << std::endl; high_order_grid.nodes.print(std::cout, 5);
-        //high_order_grid.nodes = old_nodes;
-        //high_order_grid.nodes.update_ghost_values();
-        //std::cout << "old nodes " << std::endl; high_order_grid.nodes.print(std::cout, 5);
-
-        // Finite difference
-        //std::cout << "perturb residual p " << std::endl; perturbed_residual_p.print(std::cout, 5);
-        //std::cout << "perturb residual n " << std::endl; perturbed_residual_m.print(std::cout, 5);
-
+        // Finite-difference
         perturbed_residual_p -= perturbed_residual_m;
-        //std::cout << "perturb residual diff " << std::endl; perturbed_residual_p.print(std::cout, 5);
-        perturbed_residual_p /= (2.0*EPS);
-        //std::cout << "fd residual " << std::endl; perturbed_residual_p.print(std::cout, 5);
+        perturbed_residual_p /= (2.0*eps);
 
         // Reset node
-        if (high_order_grid.locally_relevant_dofs_grid.is_element(inode) ) {
-            high_order_grid.nodes(inode) = old_node;
+        if (dg->locally_owned_dofs.is_element(idof) ) {
+            dg->solution(idof) = old_dof;
         }
 
         // Set
@@ -157,47 +126,27 @@ int test (
             if (dg->locally_owned_dofs.is_element(iresidual) ) {
                 const double drdx_entry = perturbed_residual_p[iresidual];
                 if (std::abs(drdx_entry) >= 1e-12) {
-                    dRdXv_fd.add(iresidual,inode,drdx_entry);
+                    dRdW_fd.add(iresidual,idof,drdx_entry);
                 }
             }
         }
     }
-    dRdXv_fd.compress(dealii::VectorOperation::add);
+    dRdW_fd.compress(dealii::VectorOperation::add);
 
-    // {
-    //     const unsigned int n_digits = 5;
-    //     const unsigned int n_spacing = 7+n_digits;
-    //     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
-    //     dealii::FullMatrix<double> fullA(dRdXv_fd.m(),dRdXv_fd.n());
-    //     fullA.copy_from(dRdXv_fd);
-    //     pcout<<"Dense matrix from FD:"<<std::endl;
-    //     if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), n_digits, true, n_spacing, "0", 1., 0.);
-    // }
+    dRdW_fd.add(-1.0,dg->system_matrix);
 
-    // {
-    //     const unsigned int n_digits = 5;
-    //     const unsigned int n_spacing = 7+n_digits;
-    //     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
-    //     dealii::FullMatrix<double> fullA(dRdXv_fd.m(),dRdXv_fd.n());
-    //     fullA.copy_from(dg->dRdXv);
-    //     pcout<<"Dense matrix from AD:"<<std::endl;
-    //     if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), n_digits, true, n_spacing, "0", 1., 0.);
-    // }
-
-    dRdXv_fd.add(-1.0,dg->dRdXv);
-
-    const double diff_lone_norm = dRdXv_fd.l1_norm();
-    const double diff_linf_norm = dRdXv_fd.linfty_norm();
-    pcout << "(dRdX_FD - dRdX_AD) L1-norm = " << diff_lone_norm << std::endl;
-    pcout << "(dRdX_FD - dRdX_AD) Linf-norm = " << diff_linf_norm << std::endl;
+    const double diff_lone_norm = dRdW_fd.l1_norm();
+    const double diff_linf_norm = dRdW_fd.linfty_norm();
+    pcout << "(dRdW_FD - dRdW_AD) L1-norm = " << diff_lone_norm << std::endl;
+    pcout << "(dRdW_FD - dRdW_AD) Linf-norm = " << diff_linf_norm << std::endl;
 
     if (diff_lone_norm > TOLERANCE) 
     {
         const unsigned int n_digits = 5;
         const unsigned int n_spacing = 7+n_digits;
         dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
-        dealii::FullMatrix<double> fullA(dRdXv_fd.m(),dRdXv_fd.n());
-        fullA.copy_from(dRdXv_fd);
+        dealii::FullMatrix<double> fullA(dRdW_fd.m(),dRdW_fd.n());
+        fullA.copy_from(dRdW_fd);
         pcout<<"Dense matrix from FD-AD:"<<std::endl;
 
         std::string path = "./FD_minus_AD_matrix.dat";

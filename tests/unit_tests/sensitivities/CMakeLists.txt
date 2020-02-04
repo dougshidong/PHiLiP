@@ -148,13 +148,13 @@ foreach(dim RANGE 1 2)
 endforeach()
 
 set(TEST_SRC
-    d2R_fd_vs_ad.cpp
+    d2RdXdX_fd_vs_ad.cpp
     )
 
 foreach(dim RANGE 1 2)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_d2R_fd_vs_ad)
+    string(CONCAT TEST_TARGET ${dim}D_d2RdXdX_fd_vs_ad)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code

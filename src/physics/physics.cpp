@@ -64,6 +64,20 @@ template <int dim, int nstate, typename real>
 PhysicsBase<dim,nstate,real>::~PhysicsBase() {}
 
 template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>
+::artificial_dissipative_flux (
+    const real viscosity_coefficient,
+    const std::array<real,nstate> &,//solution,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient)
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> diss_flux;
+    for (int i=0; i<nstate; i++) {
+        diss_flux[i] = -viscosity_coefficient*(solution_gradient[i]);
+    }
+    return diss_flux;
+}
+
+template <int dim, int nstate, typename real>
 void PhysicsBase<dim,nstate,real>
 ::boundary_face_values (
    const int /*boundary_type*/,

@@ -64,6 +64,7 @@ public:
         burgers_split_form,
 		optimization_inverse_manufactured,
         euler_bump_optimization,
+        shock_1d,
         advection_periodicity,
         };
     TestType test_type; ///< Selected TestType from the input file.

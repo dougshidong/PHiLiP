@@ -94,6 +94,77 @@ std::vector< real > project_function(
 
 }
 
+template <int dim, typename real>
+real discontinuity_sensor(
+    const double diameter,
+    const std::vector< real > &soln_coeff_high,
+    const dealii::FESystem<dim,dim> &fe_high)
+{
+    const unsigned int degree = fe_high.tensor_degree();
+    const unsigned int nstate = fe_high.components;
+    if (degree == 0) return 0;
+    const unsigned int lower_degree = degree-1;
+    const dealii::FE_DGQ<dim> fe_dgq_lower(lower_degree);
+    const dealii::FESystem<dim,dim> fe_lower(fe_dgq_lower, nstate);
+
+    const unsigned int n_dofs_high = fe_high.dofs_per_cell;
+    const unsigned int n_dofs_lower = fe_lower.dofs_per_cell;
+    dealii::FullMatrix<double> projection_matrix(n_dofs_lower,n_dofs_high);
+    dealii::FETools::get_projection_matrix(fe_high, fe_lower, projection_matrix);
+
+    const std::vector< real > soln_coeff_lower(n_dofs_lower);
+    for(int row=0; row<n_dofs_lower; ++row) {
+        soln_coeff_lower = 0.0;
+        for(int col=0; col<n_dofs_high; ++col) {
+            soln_coeff_lower += projection_matrix[row][col] * soln_coeff_high[col];
+        }
+    }
+
+    const dealii::QGauss<dim> quadrature(degree+1);
+    const unsigned int n_quad_pts = quadrature.size();
+    const std::vector<dealii::Point<dim,double>> &unit_quad_pts = quadrature.get_points();
+
+    double error = 0.0;
+    double soln_norm = 0.0;
+    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        real soln_high = 0.0;
+        real soln_lower = 0.0;
+        for (unsigned int idof=0; idof<n_dofs_high; ++idof) {
+              soln_high[iquad] += soln_coeff_high[idof] * fe_high.shape_value(idof,unit_quad_pts[iquad]);
+        }
+        for (unsigned int idof=0; idof<n_dofs_lower; ++idof) {
+              soln_lower[iquad] += soln_coeff_lower[idof] * fe_lower.shape_value(idof,unit_quad_pts[iquad]);
+        }
+        error += std::pow(soln_high - soln_lower, 2);
+        soln_norm += std::pow(soln_high, 2);
+    }
+
+    if (error < 1e-12) return 0.0;
+    if (soln_norm > 1e-12) return 0.0;
+
+    real S_e, s_e, S_0, s_0;
+    S_e = 1e-12;
+    s_e = std::log10(S_e);
+
+    S_0 = 1.0 / std::pow(degree,4);
+    s_0 = std::log10(S_0);
+
+    const double kappa = 1.0;
+    const double low = s_0 - kappa;
+    const double upp = s_0 + kappa;
+    const double eps_0 = diameter / degree;
+
+    if ( s_e < low) return 0.0;
+    if ( s_e > upp) return eps_0;
+
+    const double PI = 4*atan(1);
+    double eps = 1.0 + std::sin(PI * (s_e - s_0) * 0.5 / kappa);
+    eps *= eps_0 * 0.5;
+
+    return eps;
+
+}
+
 template <int dim, int nstate, typename real>
 DGWeak<dim,nstate,real>::DGWeak(
     const Parameters::AllParameters *const parameters_input,

@@ -3,7 +3,7 @@
 - [Parallel High-Order Library for PDEs](#parallel-high-order-library-for-pdes)
   * [Code Description](#code-description)
   * [Documentation](#documentation)
-  * [Building/Running the Code](#building-running-the-code)
+  * [Building and Running the Code](#building-and-running-the-code)
     + [Build using CMake](#build-using-cmake)
     + [Compile using Make](#compile-using-make)
   * [Testing](#testing)
@@ -45,7 +45,7 @@ Another great ressource is the [deal.II Google Groups](https://groups.google.com
 
 Finally, I am also always available to answer questions regarding the code by e-mail at doug.shi-dong@mail.mcgill.ca
 
-## Building/Running the Code
+## Building and Running the Code
 
 The code has been succesfully built in the following environments:
 - linux (ubuntu 18.04 and later);

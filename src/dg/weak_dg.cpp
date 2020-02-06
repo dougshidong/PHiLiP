@@ -28,6 +28,72 @@ namespace PHiLiP {
     template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
 #endif
 
+template<int dim, typename real>
+std::vector< real > project_function(
+    const std::vector< real > &function_coeff,
+    const dealii::FESystem<dim,dim> &fe_input,
+    const dealii::FESystem<dim,dim> &fe_output,
+    const dealii::Quadrature<dim> &projection_quadrature)
+{
+    const unsigned int n_quad_pts = projection_quadrature.size();
+    const unsigned int n_dofs_in = fe_input.dofs_per_cell;
+    const unsigned int n_dofs_out = fe_output.dofs_per_cell;
+    const std::vector<dealii::Point<dim,double>> &unit_quad_pts = projection_quadrature.get_points();
+
+    std::vector< real > function_at_quad(n_quad_pts);
+    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        function_at_quad[iquad] = 0.0;
+        for (unsigned int idof=0; idof<n_dofs_in; ++idof) {
+            function_at_quad[iquad] += function_coeff[idof] * fe_input.shape_value(idof,unit_quad_pts[iquad]);
+        }
+    }
+    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        function_at_quad[iquad] *= projection_quadrature.weight(iquad);
+    }
+
+    // interpolation_operator is V^T in the notes.
+    dealii::FullMatrix<double> interpolation_operator(n_dofs_in,n_quad_pts);
+    for (unsigned int idof=0; idof<n_dofs_in; ++idof) {
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            interpolation_operator[idof][iquad] = fe_input.shape_value(idof,unit_quad_pts[iquad]);
+        }
+    }
+
+    std::vector< real > rhs(n_dofs_out);
+    for (unsigned int idof=0; idof<n_dofs_in; ++idof) {
+        rhs[idof] = 0.0;
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            rhs += interpolation_operator[idof][iquad] * function_at_quad[iquad];
+        }
+    }
+
+    dealii::FullMatrix<double> mass(n_dofs_out, n_dofs_out);
+    for(int row=0; row<n_dofs_out; ++row) {
+        for(int col=0; col<n_dofs_out; ++col) {
+            mass[row][col] = 0;
+        }
+    }
+    for(int row=0; row<n_dofs_out; ++row) {
+        for(int col=0; col<n_dofs_out; ++col) {
+            for(int iquad=0; iquad<n_quad_pts; ++iquad) {
+                mass[row][col] += interpolation_operator[row][iquad] * interpolation_operator[col][iquad] * projection_quadrature.weight(iquad);
+            }
+        }
+    }
+    mass.gauss_jordan();
+
+    std::vector< real > function_coeff_out(n_dofs_out);
+    for(int row=0; row<n_dofs_out; ++row) {
+        function_coeff_out = 0.0;
+        for(int col=0; col<n_dofs_out; ++col) {
+            function_coeff_out += mass[row][col] * rhs[col];
+        }
+    }
+
+    return function_coeff_out;
+
+}
+
 template <int dim, int nstate, typename real>
 DGWeak<dim,nstate,real>::DGWeak(
     const Parameters::AllParameters *const parameters_input,

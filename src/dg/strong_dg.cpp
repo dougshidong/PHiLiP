@@ -964,6 +964,17 @@ void DGStrong<dim,nstate,real>::set_physics(
     diss_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, Sacado::Fad::DFad<real>> ::create_dissipative_numerical_flux (DGBase<dim,real>::all_parameters->diss_num_flux_type, pde_physics);
 }
 
+template <int dim, int nstate, typename real>
+void DGStrong<dim,nstate,real>::set_physics(
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > >pde_physics_input)
+{
+    using ADtype = Sacado::Fad::DFad<real>;
+    using ADADtype = Sacado::Fad::DFad<ADtype>;
+    pde_physics_fad_fad = pde_physics_input;
+    conv_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, ADADtype> ::create_convective_numerical_flux (DGBase<dim,real>::all_parameters->conv_num_flux_type, pde_physics_fad_fad);
+    diss_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, ADADtype> ::create_dissipative_numerical_flux (DGBase<dim,real>::all_parameters->diss_num_flux_type, pde_physics_fad_fad);
+}
+
 template class DGStrong <PHILIP_DIM, 1, double>;
 template class DGStrong <PHILIP_DIM, 2, double>;
 template class DGStrong <PHILIP_DIM, 3, double>;

@@ -1,3 +1,22 @@
+# Table of Contents
+
+- [Parallel High-Order Library for PDEs](#parallel-high-order-library-for-pdes)
+  * [Code Description](#code-description)
+  * [Documentation](#documentation)
+  * [Building/Running the Code](#building-running-the-code)
+    + [Build using CMake](#build-using-cmake)
+    + [Compile using Make](#compile-using-make)
+  * [Testing](#testing)
+  * [Debugging](#debugging)
+    + [Memory](#memory)
+    + [Parallel debugging](#parallel-debugging)
+  * [Performance](#performance)
+    + [Computational](#computational)
+    + [Memory](#memory-1)
+  * [Contributing checklist](#contributing-checklist)
+- [License](#license)
+
+
 # Parallel High-Order Library for PDEs
 
 [![Documentation](https://codedocs.xyz/dougshidong/PHiLiP.svg)](https://codedocs.xyz/dougshidong/PHiLiP/)

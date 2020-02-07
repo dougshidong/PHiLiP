@@ -34,17 +34,19 @@
 //extern template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<PHILIP_DIM> >;
 namespace PHiLiP {
 
-//#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-//    using Triangulation = dealii::Triangulation<dim>;
-//#else
-//    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-//#endif
-//namespace PHiLiP {
-//#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-//    template <int dim> using Triangulation = dealii::Triangulation<dim>;
-//#else
-//    template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-//#endif
+// #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+//     /** Triangulation to store the grid.
+//      *  In 1D, dealii::Triangulation<dim> is used.
+//      *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
+//      */
+//     using Triangulation = dealii::Triangulation<dim>;
+// #else
+//     /** Triangulation to store the grid.
+//      *  In 1D, dealii::Triangulation<dim> is used.
+//      *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
+//      */
+//     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+// #endif
 
 /// DGBase is independent of the number of state variables.
 /**  This base class allows the use of arrays to efficiently allocate the data structures
@@ -63,22 +65,14 @@ namespace PHiLiP {
   *  
   *  Also defines the main loop of the DGWeak class which is assemble_residual
   */
-template <int dim, typename real>
+
+#if PHILIP_DIM==1
+template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
 class DGBase 
 {
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    /** Triangulation to store the grid.
-     *  In 1D, dealii::Triangulation<dim> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-     */
-    using Triangulation = dealii::Triangulation<dim>;
-#else
-    /** Triangulation to store the grid.
-     *  In 1D, dealii::Triangulation<dim> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-     */
-    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-#endif
 public:
     const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
 
@@ -107,7 +101,7 @@ public:
            const unsigned int degree,
            const unsigned int max_degree_input,
            const unsigned int grid_degree_input,
-           Triangulation *const triangulation_input);
+           MeshType *const triangulation_input);
 
 
     /// Makes for cleaner doxygen documentation
@@ -129,20 +123,20 @@ public:
             const unsigned int degree,
             const unsigned int max_degree_input,
             const unsigned int grid_degree_input,
-            Triangulation *const triangulation_input,
+            MeshType *const triangulation_input,
             const MassiveCollectionTuple collection_tuple);
 
     virtual ~DGBase(); ///< Destructor.
 
-    /// Reinitializes the DG object after a change of Triangulation
+    /// Reinitializes the DG object after a change of triangulation
     /** Calls respective function for high-order-grid and initializes dof_handler
      *  again. Also resets all fe_degrees to intial_degree set during constructor.
      */
     void reinit();
 
-    Triangulation *const triangulation; ///< Mesh
+    MeshType *const triangulation; ///< Mesh
     /// Sets the triangulation for 2D and 3D. Should be done before allocate system
-    //void set_triangulation(Triangulation *triangulation_input);
+    //void set_triangulation(MeshType *triangulation_input);
 
     /// Refers to a collection Mappings, which represents the high-order grid.
     /** Since we are interested in performing mesh movement for optimization purposes,
@@ -531,22 +525,13 @@ private:
 /// DGWeak class templated on the number of state variables
 /*  Contains the functions that need to be templated on the number of state variables.
  */
-template <int dim, int nstate, typename real>
-class DGWeak : public DGBase<dim, real>
-{
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    /** Triangulation to store the grid.
-     *  In 1D, dealii::Triangulation<dim> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-     */
-    using Triangulation = dealii::Triangulation<dim>;
+#if PHILIP_DIM==1
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-    /** Triangulation to store the grid.
-     *  In 1D, dealii::Triangulation<dim> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-     */
-    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
+class DGWeak : public DGBase<dim, real, MeshType>
+{
 public:
     /// Constructor.
     DGWeak(
@@ -554,7 +539,7 @@ public:
         const unsigned int degree,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
-        Triangulation *const triangulation_input);
+        MeshType *const triangulation_input);
 
     ~DGWeak(); ///< Destructor.
 
@@ -684,22 +669,13 @@ public:
 /// DGStrong class templated on the number of state variables
 /*  Contains the functions that need to be templated on the number of state variables.
  */
-template <int dim, int nstate, typename real>
-class DGStrong : public DGBase<dim, real>
-{
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    /** Triangulation to store the grid.
-     *  In 1D, dealii::Triangulation<dim> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-     */
-    using Triangulation = dealii::Triangulation<dim>;
+#if PHILIP_DIM==1
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-    /** Triangulation to store the grid.
-     *  In 1D, dealii::Triangulation<dim> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-     */
-    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
+class DGStrong : public DGBase<dim, real, MeshType>
+{
 public:
     /// Constructor
     DGStrong(
@@ -707,7 +683,7 @@ public:
         const unsigned int degree,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
-        Triangulation *const triangulation_input);
+        MeshType *const triangulation_input);
 
     /// Destructor
     ~DGStrong();
@@ -839,47 +815,38 @@ public:
 /// This class creates a new DGBase object
 /** This allows the DGBase to not be templated on the number of state variables
   * while allowing DG to be template on the number of state variables */
-template <int dim, typename real>
+#if PHILIP_DIM==1
+template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
 class DGFactory
 {
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    /** Triangulation to store the grid.
-     *  In 1D, dealii::Triangulation<dim> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-     */
-    using Triangulation = dealii::Triangulation<dim>;
-#else
-    /** Triangulation to store the grid.
-     *  In 1D, dealii::Triangulation<dim> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-     */
-    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-#endif
 public:
     /// Creates a derived object DG, but returns it as DGBase.
     /** That way, the caller is agnostic to the number of state variables */
-    static std::shared_ptr< DGBase<dim,real> >
+    static std::shared_ptr< DGBase<dim,real,MeshType> >
         create_discontinuous_galerkin(
         const Parameters::AllParameters *const parameters_input, 
         const unsigned int degree,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
-        Triangulation *const triangulation_input);
+        MeshType *const triangulation_input);
 
     // calls the above dg factory with grid_degree_input = degree + 1
-    static std::shared_ptr< DGBase<dim,real> >
+    static std::shared_ptr< DGBase<dim,real,MeshType> >
         create_discontinuous_galerkin(
         const Parameters::AllParameters *const parameters_input, 
         const unsigned int degree,
         const unsigned int max_degree_input,
-        Triangulation *const triangulation_input);
+        MeshType *const triangulation_input);
 
     // calls the above dg factory with max_degree_input = degree
-    static std::shared_ptr< DGBase<dim,real> >
+    static std::shared_ptr< DGBase<dim,real,MeshType> >
         create_discontinuous_galerkin(
         const Parameters::AllParameters *const parameters_input, 
         const unsigned int degree,
-        Triangulation *const triangulation_input);
+        MeshType *const triangulation_input);
 };
 
 } // PHiLiP namespace

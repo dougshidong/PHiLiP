@@ -72,9 +72,8 @@ namespace PHiLiP {
 //  #endif
 // }
 
-
-template <int dim, typename real>
-dealii::SparsityPattern DGBase<dim,real>::get_dRdX_sparsity_pattern () {
+template <int dim, typename real, typename MeshType>
+dealii::SparsityPattern DGBase<dim,real,MeshType>::get_dRdX_sparsity_pattern () {
 
     const unsigned n_residuals = dof_handler.n_dofs();
     const unsigned n_nodes_coeff = high_order_grid.dof_handler_grid.n_dofs();
@@ -164,8 +163,8 @@ dealii::SparsityPattern DGBase<dim,real>::get_dRdX_sparsity_pattern () {
     return sparsity_pattern;
 }
 
-//template <int dim, typename real>
-//dealii::TrilinosWrappers::SparseMatrix DGBase<dim,real>::get_dRdX_finite_differences (dealii::SparsityPattern dRdX_sparsity_pattern) {
+//template <int dim, typename real, typename MeshType>
+//dealii::TrilinosWrappers::SparseMatrix DGBase<dim,real,MeshType>::get_dRdX_finite_differences (dealii::SparsityPattern dRdX_sparsity_pattern) {
 //
 //    const double pertubation = 1e-8;
 //
@@ -561,6 +560,10 @@ dealii::SparsityPattern DGBase<dim,real>::get_dRdX_sparsity_pattern () {
 //    return dRdX;
 //
 //}
+
+// using default MeshType = Triangulation
+// 1D: dealii::Triangulation<dim>;
+// OW: dealii::parallel::distributed::Triangulation<dim>;
 template class DGBase <PHILIP_DIM, double>;
 
 } // namespace PHiLiP

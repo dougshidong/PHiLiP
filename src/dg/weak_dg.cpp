@@ -22,20 +22,14 @@
 
 namespace PHiLiP {
 
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    template <int dim> using Triangulation = dealii::Triangulation<dim>;
-#else
-    template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-#endif
-
-template <int dim, int nstate, typename real>
-DGWeak<dim,nstate,real>::DGWeak(
+template <int dim, int nstate, typename real, typename MeshType>
+DGWeak<dim,nstate,real,MeshType>::DGWeak(
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
-    Triangulation *const triangulation_input)
-    : DGBase<dim,real>::DGBase(nstate, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input) // Use DGBase constructor
+    MeshType *const triangulation_input)
+    : DGBase<dim,real,MeshType>::DGBase(nstate, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input) // Use DGBase constructor
 {
     using ADtype = Sacado::Fad::DFad<real>;
     pde_physics = Physics::PhysicsFactory<dim,nstate,ADtype> ::create_Physics(parameters_input);
@@ -47,8 +41,8 @@ DGWeak<dim,nstate,real>::DGWeak(
     diss_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_dissipative_numerical_flux (parameters_input->diss_num_flux_type, pde_physics_double);
 }
 // Destructor
-template <int dim, int nstate, typename real>
-DGWeak<dim,nstate,real>::~DGWeak ()
+template <int dim, int nstate, typename real, typename MeshType>
+DGWeak<dim,nstate,real,MeshType>::~DGWeak ()
 { 
     pcout << "Destructing DGWeak..." << std::endl;
     delete conv_num_flux;
@@ -86,8 +80,8 @@ std::vector<dealii::Tensor<2,dim,real>> evaluate_metric_jacobian (
     return metric_jacobian;
 }
 
-template <int dim, int nstate, typename real>
-void DGWeak<dim,nstate,real>::assemble_volume_terms_dRdX(
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::assemble_volume_terms_dRdX(
     const dealii::FEValues<dim,dim> &,//fe_values_vol,
     const dealii::FESystem<dim,dim> &fe,
     const dealii::Quadrature<dim> &quadrature,
@@ -256,9 +250,8 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_dRdX(
 
 }
 
-
-template <int dim, int nstate, typename real>
-void DGWeak<dim,nstate,real>::assemble_boundary_term_dRdX(
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_dRdX(
     const unsigned int face_number,
     const unsigned int boundary_id,
     const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
@@ -492,8 +485,8 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_dRdX(
     }
 }
 
-template <int dim, int nstate, typename real>
-void DGWeak<dim,nstate,real>::assemble_face_term_dRdX(
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_dRdX(
     const unsigned int interior_face_number,
     const unsigned int exterior_face_number,
     const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_int,
@@ -752,8 +745,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term_dRdX(
     } // Quadrature point loop
 }
 
-template <int dim, int nstate, typename real>
-void DGWeak<dim,nstate,real>::assemble_volume_terms_implicit(
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::assemble_volume_terms_implicit(
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const dealii::FESystem<dim,dim> &,//fe,
     const dealii::Quadrature<dim> &,//quadrature,
@@ -857,8 +850,8 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_implicit(
 }
 
 
-template <int dim, int nstate, typename real>
-void DGWeak<dim,nstate,real>::assemble_boundary_term_implicit(
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_implicit(
     const unsigned int boundary_id,
     const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
     const real penalty,
@@ -1001,8 +994,8 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_implicit(
     }
 }
 
-template <int dim, int nstate, typename real>
-void DGWeak<dim,nstate,real>::assemble_face_term_implicit(
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_implicit(
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
     const real penalty,
@@ -1175,8 +1168,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term_implicit(
 }
 
 
-template <int dim, int nstate, typename real>
-void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::assemble_volume_terms_explicit(
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
     dealii::Vector<real> &local_rhs_int_cell,
@@ -1264,8 +1257,8 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
 }
 
 
-template <int dim, int nstate, typename real>
-void DGWeak<dim,nstate,real>::assemble_boundary_term_explicit(
+template <int dim, int nstate, typename real,typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_explicit(
     const unsigned int boundary_id,
     const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
     const real penalty,
@@ -1372,8 +1365,8 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_explicit(
     }
 }
 
-template <int dim, int nstate, typename real>
-void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_explicit(
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
     const real penalty,
@@ -1503,8 +1496,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
     }
 }
 
-template <int dim, int nstate, typename real>
-void DGWeak<dim,nstate,real>::set_physics(
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::set_physics(
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, real > >pde_physics_double_input)
 {
     pde_physics_double = pde_physics_double_input;
@@ -1513,8 +1506,8 @@ void DGWeak<dim,nstate,real>::set_physics(
 
 }
 
-template <int dim, int nstate, typename real>
-void DGWeak<dim,nstate,real>::set_physics(
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::set_physics(
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<real> > >pde_physics_input)
 {
     pde_physics = pde_physics_input;
@@ -1522,6 +1515,9 @@ void DGWeak<dim,nstate,real>::set_physics(
     diss_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, Sacado::Fad::DFad<real>> ::create_dissipative_numerical_flux (DGBase<dim,real>::all_parameters->diss_num_flux_type, pde_physics);
 }
 
+// using default MeshType = Triangulation
+// 1D: dealii::Triangulation<dim>;
+// OW: dealii::parallel::distributed::Triangulation<dim>;
 template class DGWeak <PHILIP_DIM, 1, double>;
 template class DGWeak <PHILIP_DIM, 2, double>;
 template class DGWeak <PHILIP_DIM, 3, double>;

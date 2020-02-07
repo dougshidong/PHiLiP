@@ -19,21 +19,14 @@
 
 namespace PHiLiP {
 
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    template <int dim> using Triangulation = dealii::Triangulation<dim>;
-#else
-    template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-#endif
-
-
-template <int dim, int nstate, typename real>
-DGStrong<dim,nstate,real>::DGStrong(
+template <int dim, int nstate, typename real, typename MeshType>
+DGStrong<dim,nstate,real,MeshType>::DGStrong(
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
-    Triangulation *const triangulation_input)
-    : DGBase<dim,real>::DGBase(nstate, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input) // Use DGBase constructor
+    MeshType *const triangulation_input)
+    : DGBase<dim,real,MeshType>::DGBase(nstate, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input) // Use DGBase constructor
 {
     using ADtype = Sacado::Fad::DFad<real>;
     pde_physics = Physics::PhysicsFactory<dim,nstate,ADtype> ::create_Physics(parameters_input);
@@ -45,8 +38,8 @@ DGStrong<dim,nstate,real>::DGStrong(
     diss_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_dissipative_numerical_flux (parameters_input->diss_num_flux_type, pde_physics_double);
 }
 
-template <int dim, int nstate, typename real>
-DGStrong<dim,nstate,real>::~DGStrong ()
+template <int dim, int nstate, typename real, typename MeshType>
+DGStrong<dim,nstate,real,MeshType>::~DGStrong ()
 { 
     pcout << "Destructing DGStrong..." << std::endl;
     delete conv_num_flux;
@@ -55,8 +48,8 @@ DGStrong<dim,nstate,real>::~DGStrong ()
     delete diss_num_flux_double;
 }
 
-template <int dim, int nstate, typename real>
-void DGStrong<dim,nstate,real>::assemble_volume_terms_dRdX(
+template <int dim, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nstate,real,MeshType>::assemble_volume_terms_dRdX(
     const dealii::FEValues<dim,dim> &,//&fe_values_vol,
     const dealii::FESystem<dim,dim> &,//&fe,
     const dealii::Quadrature<dim> &,//&quadrature,
@@ -65,8 +58,9 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_dRdX(
     dealii::Vector<real> &,//&local_rhs_int_cell,
     const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/)
 { }
-template <int dim, int nstate, typename real>
-void DGStrong<dim,nstate,real>::assemble_boundary_term_dRdX(
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_dRdX(
     const unsigned int ,//face_number,
     const unsigned int ,//boundary_id,
     const dealii::FEFaceValuesBase<dim,dim> &,//fe_values_boundary,
@@ -78,8 +72,8 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_dRdX(
     dealii::Vector<real> &)//local_rhs_int_cell)
 { }
 
-template <int dim, int nstate, typename real>
-void DGStrong<dim,nstate,real>::assemble_face_term_dRdX(
+template <int dim, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_dRdX(
     const unsigned int ,//interior_face_number,
     const unsigned int ,//exterior_face_number,
     const dealii::FEFaceValuesBase<dim,dim>     &,//&fe_values_int,
@@ -97,8 +91,8 @@ void DGStrong<dim,nstate,real>::assemble_face_term_dRdX(
     dealii::Vector<real>          &)//&local_rhs_ext_cell)
 { }
 
-template <int dim, int nstate, typename real>
-void DGStrong<dim,nstate,real>::assemble_volume_terms_implicit(
+template <int dim, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nstate,real,MeshType>::assemble_volume_terms_implicit(
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const dealii::FESystem<dim,dim> &,//fe,
     const dealii::Quadrature<dim> &,//quadrature,
@@ -119,7 +113,6 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_implicit(
 
     const std::vector<real> &JxW = fe_values_vol.get_JxW_values ();
 
-
     std::vector<real> residual_derivatives(n_dofs_cell);
 
     std::vector< ADArray > soln_at_q(n_quad_pts);
@@ -128,7 +121,6 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_implicit(
     std::vector< ADArrayTensor1 > conv_phys_flux_at_q(n_quad_pts);
     std::vector< ADArrayTensor1 > diss_phys_flux_at_q(n_quad_pts);
     std::vector< ADArray > source_at_q(n_quad_pts);
-
 
     // AD variable
     std::vector< ADtype > soln_coeff(n_dofs_cell);
@@ -229,9 +221,8 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_implicit(
     }
 }
 
-
-template <int dim, int nstate, typename real>
-void DGStrong<dim,nstate,real>::assemble_boundary_term_implicit(
+template <int dim, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_implicit(
     const unsigned int boundary_id,
     const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
     const real penalty,
@@ -361,8 +352,8 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_implicit(
     }
 }
 
-template <int dim, int nstate, typename real>
-void DGStrong<dim,nstate,real>::assemble_face_term_implicit(
+template <int dim, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_implicit(
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
     const real penalty,
@@ -535,8 +526,8 @@ void DGStrong<dim,nstate,real>::assemble_face_term_implicit(
     }
 }
 
-template <int dim, int nstate, typename real>
-void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
+template <int dim, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nstate,real,MeshType>::assemble_volume_terms_explicit(
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
     dealii::Vector<real> &local_rhs_int_cell,
@@ -651,8 +642,8 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
 }
 
 
-template <int dim, int nstate, typename real>
-void DGStrong<dim,nstate,real>::assemble_boundary_term_explicit(
+template <int dim, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_explicit(
     const unsigned int boundary_id,
     const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
     const real penalty,
@@ -782,8 +773,8 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_explicit(
     }
 }
 
-template <int dim, int nstate, typename real>
-void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
+template <int dim, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_explicit(
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
     const real penalty,
@@ -962,8 +953,8 @@ void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
     }
 }
 
-template <int dim, int nstate, typename real>
-void DGStrong<dim,nstate,real>::set_physics(
+template <int dim, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nstate,real,MeshType>::set_physics(
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, real > >pde_physics_double_input)
 {
     pde_physics_double = pde_physics_double_input;
@@ -972,8 +963,8 @@ void DGStrong<dim,nstate,real>::set_physics(
 
 }
 
-template <int dim, int nstate, typename real>
-void DGStrong<dim,nstate,real>::set_physics(
+template <int dim, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nstate,real,MeshType>::set_physics(
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<real> > >pde_physics_input)
 {
     pde_physics = pde_physics_input;
@@ -981,6 +972,9 @@ void DGStrong<dim,nstate,real>::set_physics(
     diss_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, Sacado::Fad::DFad<real>> ::create_dissipative_numerical_flux (DGBase<dim,real>::all_parameters->diss_num_flux_type, pde_physics);
 }
 
+// using default MeshType = Triangulation
+// 1D: dealii::Triangulation<dim>;
+// OW: dealii::parallel::distributed::Triangulation<dim>;
 template class DGStrong <PHILIP_DIM, 1, double>;
 template class DGStrong <PHILIP_DIM, 2, double>;
 template class DGStrong <PHILIP_DIM, 3, double>;

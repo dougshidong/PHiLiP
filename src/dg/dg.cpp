@@ -51,95 +51,95 @@ namespace PHiLiP {
 #endif
 
 // DGFactory ***********************************************************************
-template <int dim, typename real>
-std::shared_ptr< DGBase<dim,real> >
-DGFactory<dim,real>
+template <int dim, typename real, typename MeshType>
+std::shared_ptr< DGBase<dim,real,MeshType> >
+DGFactory<dim,real,MeshType>
 ::create_discontinuous_galerkin(
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
-    Triangulation *const triangulation_input)
+    MeshType *const triangulation_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
 
     PDE_enum pde_type = parameters_input->pde_type;
     if (parameters_input->use_weak_form) {
         if (pde_type == PDE_enum::advection) {
-            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            return std::make_shared< DGWeak<dim,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::advection_vector) {
-            return std::make_shared< DGWeak<dim,2,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            return std::make_shared< DGWeak<dim,2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::diffusion) {
-            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            return std::make_shared< DGWeak<dim,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::convection_diffusion) {
-            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            return std::make_shared< DGWeak<dim,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::burgers_inviscid) {
-            return std::make_shared< DGWeak<dim,dim,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            return std::make_shared< DGWeak<dim,dim,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::euler) {
-            return std::make_shared< DGWeak<dim,dim+2,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            return std::make_shared< DGWeak<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         }
     } else {
         if (pde_type == PDE_enum::advection) {
-            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            return std::make_shared< DGStrong<dim,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::advection_vector) {
-            return std::make_shared< DGStrong<dim,2,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            return std::make_shared< DGStrong<dim,2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::diffusion) {
-            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            return std::make_shared< DGStrong<dim,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::convection_diffusion) {
-            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            return std::make_shared< DGStrong<dim,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::burgers_inviscid) {
-            return std::make_shared< DGStrong<dim,dim,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            return std::make_shared< DGStrong<dim,dim,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::euler) {
-            return std::make_shared< DGStrong<dim,dim+2,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            return std::make_shared< DGStrong<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         }
     }
     std::cout << "Can't create DGBase in create_discontinuous_galerkin(). Invalid PDE type: " << pde_type << std::endl;
     return nullptr;
 }
 
-template <int dim, typename real>
-std::shared_ptr< DGBase<dim,real> >
-DGFactory<dim,real>
+template <int dim, typename real, typename MeshType>
+std::shared_ptr< DGBase<dim,real,MeshType> >
+DGFactory<dim,real,MeshType>
 ::create_discontinuous_galerkin(
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
     const unsigned int max_degree_input,
-    Triangulation *const triangulation_input)
+    MeshType *const triangulation_input)
 {
     return create_discontinuous_galerkin(parameters_input, degree, max_degree_input, degree+1, triangulation_input);
 }
 
-template <int dim, typename real>
-std::shared_ptr< DGBase<dim,real> >
-DGFactory<dim,real>
+template <int dim, typename real, typename MeshType>
+std::shared_ptr< DGBase<dim,real,MeshType> >
+DGFactory<dim,real,MeshType>
 ::create_discontinuous_galerkin(
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
-    Triangulation *const triangulation_input)
+    MeshType *const triangulation_input)
 {
     return create_discontinuous_galerkin(parameters_input, degree, degree, triangulation_input);
 }
 
 // DGBase ***************************************************************************
-template <int dim, typename real>
-DGBase<dim,real>::DGBase(
+template <int dim, typename real, typename MeshType>
+DGBase<dim,real,MeshType>::DGBase(
     const int nstate_input,
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
-    Triangulation *const triangulation_input)
-    : DGBase<dim,real>(nstate_input, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input, this->create_collection_tuple(max_degree_input, nstate_input, parameters_input))
+    MeshType *const triangulation_input)
+    : DGBase<dim,real,MeshType>(nstate_input, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input, this->create_collection_tuple(max_degree_input, nstate_input, parameters_input))
 { }
 
-template <int dim, typename real>
-DGBase<dim,real>::DGBase( 
+template <int dim, typename real, typename MeshType>
+DGBase<dim,real,MeshType>::DGBase( 
     const int nstate_input,
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
-    Triangulation *const triangulation_input,
+    MeshType *const triangulation_input,
     const MassiveCollectionTuple collection_tuple)
     : all_parameters(parameters_input)
     , nstate(nstate_input)
@@ -156,15 +156,13 @@ DGBase<dim,real>::DGBase(
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 { 
-
     dof_handler.initialize(*triangulation, fe_collection);
 
     set_all_cells_fe_degree(degree); 
-
 }
 
-template <int dim, typename real>
-void DGBase<dim,real>::reinit()
+template <int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::reinit()
 {
     high_order_grid.reinit();
 
@@ -172,7 +170,7 @@ void DGBase<dim,real>::reinit()
     set_all_cells_fe_degree(initial_degree);
 }
 
-template <int dim, typename real> 
+template <int dim, typename real, typename MeshType> 
 std::tuple<
         //dealii::hp::MappingCollection<dim>, // Mapping
         dealii::hp::FECollection<dim>, // Solution FE
@@ -180,7 +178,10 @@ std::tuple<
         dealii::hp::QCollection<dim-1>, // Face quadrature
         dealii::hp::QCollection<1>, // 1D quadrature for strong form
         dealii::hp::FECollection<dim> >   // Lagrange polynomials for strong form
-DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const
+DGBase<dim,real, MeshType>::create_collection_tuple(
+    const unsigned int max_degree, 
+    const int nstate, 
+    const Parameters::AllParameters *const parameters_input) const
 {
     //dealii::hp::MappingCollection<dim> mapping_coll;
     dealii::hp::FECollection<dim>      fe_coll;
@@ -301,8 +302,8 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
 }
 
 
-template <int dim, typename real>
-void DGBase<dim,real>::set_all_cells_fe_degree ( const unsigned int degree )
+template <int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::set_all_cells_fe_degree ( const unsigned int degree )
 {
     triangulation->prepare_coarsening_and_refinement();
     for (auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell)
@@ -313,8 +314,8 @@ void DGBase<dim,real>::set_all_cells_fe_degree ( const unsigned int degree )
     triangulation->execute_coarsening_and_refinement();
 }
 
-template <int dim, typename real>
-unsigned int DGBase<dim,real>::get_max_fe_degree()
+template <int dim, typename real, typename MeshType>
+unsigned int DGBase<dim,real,MeshType>::get_max_fe_degree()
 {
     unsigned int max_fe_degree = 0;
 
@@ -325,8 +326,8 @@ unsigned int DGBase<dim,real>::get_max_fe_degree()
     return dealii::Utilities::MPI::max(max_fe_degree, MPI_COMM_WORLD);
 }
 
-template <int dim, typename real>
-unsigned int DGBase<dim,real>::get_min_fe_degree()
+template <int dim, typename real, typename MeshType>
+unsigned int DGBase<dim,real,MeshType>::get_min_fe_degree()
 {
     unsigned int min_fe_degree = max_degree;
 
@@ -338,14 +339,14 @@ unsigned int DGBase<dim,real>::get_min_fe_degree()
 }
 
 // Destructor
-template <int dim, typename real>
-DGBase<dim,real>::~DGBase () 
+template <int dim, typename real, typename MeshType>
+DGBase<dim,real,MeshType>::~DGBase () 
 { 
     dof_handler.clear ();
 }
 
-// template <int dim, typename real>
-// void DGBase<dim,real>::set_triangulation(Triangulation *triangulation_input)
+// template <int dim, typename real, typename MeshType>
+// void DGBase<dim,real,MeshType>::set_triangulation(MeshType *triangulation_input)
 // { 
 //     // dof_handler.clear();
 // 
@@ -358,9 +359,9 @@ DGBase<dim,real>::~DGBase ()
 //     //set_all_cells_fe_degree ( max_degree-min_degree);
 // }
 
-template <int dim, typename real>
+template <int dim, typename real, typename MeshType>
 template<typename DoFCellAccessorType1>
-real DGBase<dim,real>::evaluate_penalty_scaling (
+real DGBase<dim,real,MeshType>::evaluate_penalty_scaling (
     const DoFCellAccessorType1 &cell,
     const int iface,
     const dealii::hp::FECollection<dim> fe_collection) const
@@ -378,9 +379,11 @@ real DGBase<dim,real>::evaluate_penalty_scaling (
     return penalty;
 }
 
-template <int dim, typename real>
+template <int dim, typename real, typename MeshType>
 template<typename DoFCellAccessorType1, typename DoFCellAccessorType2>
-bool DGBase<dim,real>::current_cell_should_do_the_work (const DoFCellAccessorType1 &current_cell, const DoFCellAccessorType2 &neighbor_cell) const
+bool DGBase<dim,real,MeshType>::current_cell_should_do_the_work (
+    const DoFCellAccessorType1 &current_cell, 
+    const DoFCellAccessorType2 &neighbor_cell) const
 {
     if (neighbor_cell->has_children()) {
     // Only happens in 1D where neither faces have children, but neighbor has some children
@@ -412,9 +415,9 @@ bool DGBase<dim,real>::current_cell_should_do_the_work (const DoFCellAccessorTyp
     return false;
 }
 
-template <int dim, typename real>
+template <int dim, typename real, typename MeshType>
 template<typename DoFCellAccessorType1, typename DoFCellAccessorType2>
-void DGBase<dim,real>::assemble_cell_residual (
+void DGBase<dim,real,MeshType>::assemble_cell_residual (
     const DoFCellAccessorType1 &current_cell,
     const DoFCellAccessorType2 &current_metric_cell,
     const bool compute_dRdW, const bool compute_dRdX,
@@ -892,8 +895,10 @@ void DGBase<dim,real>::assemble_cell_residual (
 }
 
 
-template <int dim, typename real>
-void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool compute_dRdX)
+template <int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::assemble_residual (
+    const bool compute_dRdW, 
+    const bool compute_dRdX)
 {
     Assert(!(compute_dRdW && compute_dRdX), dealii::ExcInternalError());
     right_hand_side = 0;
@@ -944,19 +949,20 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
 } // end of assemble_system_explicit ()
 
 
-template <int dim, typename real>
-double DGBase<dim,real>::get_residual_l2norm () const
+template <int dim, typename real, typename MeshType>
+double DGBase<dim,real,MeshType>::get_residual_l2norm () const
 {
     return right_hand_side.l2_norm();
 }
-template <int dim, typename real>
-unsigned int DGBase<dim,real>::n_dofs () const
+
+template <int dim, typename real, typename MeshType>
+unsigned int DGBase<dim,real,MeshType>::n_dofs () const
 {
     return dof_handler.n_dofs();
 }
 
-template <int dim, typename real>
-void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
+template <int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle)// const
 {
 
     dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> data_out;
@@ -1047,8 +1053,8 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
 
 }
 
-template <int dim, typename real>
-void DGBase<dim,real>::allocate_system ()
+template <int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::allocate_system ()
 {
     pcout << "Allocating DG system and initializing FEValues" << std::endl;
     // This function allocates all the necessary memory to the 
@@ -1098,8 +1104,8 @@ void DGBase<dim,real>::allocate_system ()
     dRdXv.reinit(row_parallel_partitioning, col_parallel_partitioning, dRdXv_sparsity_pattern, MPI_COMM_WORLD);
 }
 
-template <int dim, typename real>
-void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
+template <int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
 {
     // Mass matrix sparsity pattern
     //dealii::SparsityPattern dsp(dof_handler.n_dofs(), dof_handler.n_dofs(), dof_handler.get_fe_collection().max_dofs_per_cell());
@@ -1210,14 +1216,15 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
 
     return;
 }
-template<int dim, typename real>
-void DGBase<dim,real>::add_mass_matrices(const real scale)
+
+template<int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::add_mass_matrices(const real scale)
 {
     system_matrix.add(scale, global_mass_matrix);
 }
 
-template <int dim, typename real>
-std::vector<real> DGBase<dim,real>::evaluate_time_steps (const bool exact_time_stepping)
+template <int dim, typename real, typename MeshType>
+std::vector<real> DGBase<dim,real,MeshType>::evaluate_time_steps (const bool exact_time_stepping)
 {
     // TO BE DONE
     std::vector<real> time_steps(10);
@@ -1225,6 +1232,9 @@ std::vector<real> DGBase<dim,real>::evaluate_time_steps (const bool exact_time_s
     return time_steps;
 }
 
+// using default MeshType = Triangulation
+// 1D: dealii::Triangulation<dim>;
+// OW: dealii::parallel::distributed::Triangulation<dim>;
 template class DGBase <PHILIP_DIM, double>;
 template class DGFactory <PHILIP_DIM, double>;
 

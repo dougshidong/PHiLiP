@@ -1,0 +1,15 @@
+set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
+
+configure_file(2d_grid_refinement_study.prm 2d_grid_refinement_study.prm COPYONLY)
+add_test(
+  NAME 2D_GRID_REFINEMENT_STUDY
+  COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_grid_refinement_study.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
+configure_file(2d_anisotropic_ff_h.prm 2d_anisotropic_ff_h.prm COPYONLY)
+add_test(
+  NAME 2D_ANISOTROPIC_FF_H
+  COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_anisotropic_ff_h.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)

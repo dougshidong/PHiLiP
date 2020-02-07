@@ -35,7 +35,7 @@ end
 
 subsection grid refinement study
   # polyonomial degrees
-  set poly_degree      = 1
+  set poly_degree      = 2
   set poly_degree_max  = 4
   set poly_degree_grid = 1
 
@@ -68,7 +68,7 @@ subsection grid refinement study
   end
 
   # number of refinements
-  set num_refinements = 3
+  set num_refinements = 4
 
   # grid refinement - 0
   subsection grid refinement [0]
@@ -82,7 +82,7 @@ subsection grid refinement study
     set refinement_method   = fixed_fraction
     set refinement_type     = h
     set isotropic           = true
-    set error_indicator     = hessian_based
+    set error_indicator     = error_based
     set norm_Lq             = 2.0
     set refinement_fraction = 0.3
     set coarsening_fraction = 0.00
@@ -95,15 +95,29 @@ subsection grid refinement study
     set refinement_method   = continuous
     set refinement_type     = h
     set isotropic           = true
+    set error_indicator     = error_based
+    set norm_Lq             = 2.0
+    set complexity_scale    = 2.0
+    set complexity_add      = 0.0
+  end
+
+  subsection grid refinement [3]
+    set refinement_steps    = 8
+    set refinement_method   = continuous
+    set refinement_type     = h
+    set isotropic           = true
     set error_indicator     = hessian_based
     set norm_Lq             = 2.0
     set complexity_scale    = 2.0
     set complexity_add      = 0.0
   end
+
+  # output options
+
 end
 
 subsection manufactured solution convergence study
   set use_manufactured_source_term = true
-  set manufactured_solution_type   = boundary_layer_solution
+  set manufactured_solution_type   = boundary_layer_solution # s_shock_solution  #
 end
 

@@ -41,6 +41,16 @@ private:
         const dealii::UpdateFlags &                             update_flags);
 
     template <typename DoFCellAccessorType>
+    static dealii::Vector<real> reconstruct_L2_norm(
+        const DoFCellAccessorType &                             curr_cell,
+        const dealii::PolynomialSpace<dim>                      ps,
+        const dealii::LinearAlgebra::distributed::Vector<real> &solution,
+        const dealii::hp::MappingCollection<dim> &              mapping_collection,
+        const dealii::hp::FECollection<dim> &                   fe_collection,
+        const dealii::hp::QCollection<dim> &                    quadrature_collection,
+        const dealii::UpdateFlags &                             update_flags);
+
+    template <typename DoFCellAccessorType>
     static std::vector<DoFCellAccessorType> get_patch_around_dof_cell(
         const DoFCellAccessorType &cell);
 

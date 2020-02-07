@@ -46,6 +46,15 @@ void ReconstructPoly<dim,real>::reconstruct_directional_derivative(
             quadrature_collection,
             update_flags);
 
+        // dealii::Vector<real> coeffs_non_hom = reconstruct_L2_norm(
+        //     cell,
+        //     poly_space,
+        //     solution,
+        //     mapping_collection,
+        //     fe_collection,
+        //     quadrature_collection,
+        //     update_flags);
+
         const unsigned int n_poly   = poly_space.n();
         const unsigned int n_degree = poly_space.degree();
 
@@ -379,6 +388,115 @@ dealii::Vector<real> ReconstructPoly<dim,real>::reconstruct_H1_norm(
             for(unsigned int i_vec = 0; i_vec < n_vec; ++i_vec)
                 rhs[i_poly] += ((ps.compute_value(i_poly, qpoint_vec[i_vec]) * soln_at_q_vec[i_vec][istate])
                                +(ps.compute_grad(i_poly, qpoint_vec[i_vec]) * grad_at_q_vec[i_vec][istate]))
+                               *JxW_vec[i_vec];
+    }
+
+    // solving the system
+    dealii::Vector<real> coeffs(n_poly);
+
+    mat.gauss_jordan();
+    mat.vmult(coeffs, rhs);
+
+    return coeffs;
+}
+
+template <int dim, typename real>
+template <typename DoFCellAccessorType>
+dealii::Vector<real> ReconstructPoly<dim,real>::reconstruct_L2_norm(
+    const DoFCellAccessorType &                             curr_cell,
+    const dealii::PolynomialSpace<dim>                      ps,
+    const dealii::LinearAlgebra::distributed::Vector<real> &solution,
+    const dealii::hp::MappingCollection<dim> &              mapping_collection,
+    const dealii::hp::FECollection<dim> &                   fe_collection,
+    const dealii::hp::QCollection<dim> &                    quadrature_collection,
+    const dealii::UpdateFlags &                             update_flags)
+{
+    const int nstate = 1;
+
+    // center point of the current cell
+    dealii::Point<dim,real> center_point = curr_cell->center();
+
+    // things to be extracted
+    std::vector<std::array<real,nstate>>                       soln_at_q_vec;
+    std::vector<dealii::Point<dim,real>>                       qpoint_vec;
+    std::vector<real>                                          JxW_vec;
+
+    // and keeping track of vector lengths
+    unsigned int n_vec = 0;
+
+    // fe_values
+    dealii::hp::FEValues<dim,dim> fe_values_collection(
+        mapping_collection,
+        fe_collection,
+        quadrature_collection,
+        update_flags);
+
+    // looping over the cell vector and extracting the soln, qpoint and JxW
+    // std::vector<DoFCellAccessorType> cell_patch = dealii::GridTools::get_patch_around_cell(curr_cell);
+    std::vector<DoFCellAccessorType> cell_patch = get_patch_around_dof_cell(curr_cell);
+    for(auto cell : cell_patch){
+        const unsigned int mapping_index = 0;
+        const unsigned int fe_index = cell->active_fe_index();
+        const unsigned int quad_index = fe_index; 
+
+        const unsigned int n_dofs = fe_collection[fe_index].n_dofs_per_cell();
+        const unsigned int n_quad = quadrature_collection[quad_index].size();
+
+        fe_values_collection.reinit(cell, quad_index, mapping_index, fe_index);
+        const dealii::FEValues<dim,dim> &fe_values = fe_values_collection.get_present_fe_values();
+
+        std::vector<dealii::types::global_dof_index> dofs_indices(fe_values.dofs_per_cell);
+        cell->get_dof_indices(dofs_indices);
+
+        // looping over the quadrature points of this cell
+        std::array<real,nstate> soln_at_q;
+        for(unsigned int iquad = 0; iquad < n_quad; ++iquad){
+            soln_at_q.fill(0.0);
+                        
+            // looping over the DoFS to get the solution value
+            for(unsigned int idof = 0; idof < n_dofs; ++idof){
+                const unsigned int istate = fe_values.get_fe().system_to_component_index(idof).first;
+                soln_at_q[istate] += solution[dofs_indices[idof]] * fe_values.shape_value_component(idof, iquad, istate);
+            }
+
+            // moving the reference point to the center of the curr_cell
+            dealii::Tensor<1,dim,real> tensor_q = fe_values.quadrature_point(iquad) - center_point;
+            dealii::Point<dim,real> point_q(tensor_q);
+
+            // push back into the vectors
+            soln_at_q_vec.push_back(soln_at_q);
+            qpoint_vec.push_back(point_q);
+            JxW_vec.push_back(fe_values.JxW(iquad));
+            n_vec++;
+        }
+    }
+
+    // number of polynomials in the space
+    const unsigned int n_poly = ps.n();
+
+    // allocating the matrix and vector for the RHS
+    dealii::FullMatrix<real> mat(n_poly);
+    dealii::Vector<real>     rhs(n_poly);
+
+    // looping over to assemble the matrices
+    mat = 0.0;
+    for(unsigned int i_poly = 0; i_poly < n_poly; ++i_poly){
+        for(unsigned int j_poly = 0; j_poly < n_poly; ++j_poly){
+            // taking the inner product between \psi_i and \psi_j
+            // <u,v>_{H^1(\Omega)} = \int_{\Omega} u*v + \sum_i^N {\partial_i u * \partial_i v} dx
+            for(unsigned int i_vec = 0; i_vec < n_vec; ++i_vec)
+                mat.add(i_poly, j_poly, 
+                    (ps.compute_value(i_poly, qpoint_vec[i_vec]) * ps.compute_value(j_poly, qpoint_vec[i_vec]))
+                    *JxW_vec[i_vec]);
+        }
+
+        // take inner product of \psi_i and u (solution)
+        // if multiple states, taking the 2 norm of the different states
+        // TODO: look into other possibilities
+        dealii::Vector<real> rhs_poly(nstate);
+        for(unsigned int istate = 0; istate < nstate; ++istate)
+            for(unsigned int i_vec = 0; i_vec < n_vec; ++i_vec)
+                rhs[i_poly] += (ps.compute_value(i_poly, qpoint_vec[i_vec]) * soln_at_q_vec[i_vec][istate])
                                *JxW_vec[i_vec];
     }
 

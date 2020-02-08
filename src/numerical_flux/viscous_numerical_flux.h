@@ -22,6 +22,8 @@ virtual std::array<real, nstate> evaluate_solution_flux (
 
 /// Auxiliary flux at the interface.
 virtual std::array<real, nstate> evaluate_auxiliary_flux (
+    const real artificial_diss_coeff_int,
+    const real artificial_diss_coeff_ext,
     const std::array<real, nstate> &soln_int,
     const std::array<real, nstate> &soln_ext,
     const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_int,
@@ -65,6 +67,8 @@ std::array<real, nstate> evaluate_solution_flux (
  *
  */
 std::array<real, nstate> evaluate_auxiliary_flux (
+    const real artificial_diss_coeff_int,
+    const real artificial_diss_coeff_ext,
     const std::array<real, nstate> &soln_int,
     const std::array<real, nstate> &soln_ext,
     const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_int,

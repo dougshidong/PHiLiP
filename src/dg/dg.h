@@ -245,6 +245,16 @@ public:
      */
     dealii::LinearAlgebra::distributed::Vector<double> solution;
 
+
+    /// Artificial dissipation in each cell
+    dealii::Vector<double> artificial_dissipation_coeffs;
+    /// Discontinuity sensor based on projecting to p-1
+    template <typename real2>
+    real2 discontinuity_sensor(
+        const double diameter,
+        const std::vector< real2 > &soln_coeff_high,
+        const dealii::FiniteElement<dim,dim> &fe_high);
+
     /// Current optimization dual variables corresponding to the residual constraints also known as the adjoint
 	/** This is used to evaluate the dot-product between the dual and the 2nd derivatives of the residual
 	 *  since storing the 2nd order partials of the residual is a very large 3rd order tensor.

@@ -38,6 +38,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Use other boundary conditions by default. Otherwise use periodic (for 1d burgers only");
 
+    prm.declare_entry("add_artificial_dissipation", "false",
+                      dealii::Patterns::Bool(),
+                      "Persson's subscell shock capturing artificial dissipation.");
+
     prm.declare_entry("test_type", "run_control",
                       dealii::Patterns::Selection(
                       " run_control | "
@@ -155,6 +159,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_collocated_nodes = prm.get_bool("use_collocated_nodes");
     use_split_form = prm.get_bool("use_split_form");
     use_periodic_bc = prm.get_bool("use_periodic_bc");
+    add_artificial_dissipation = prm.get_bool("add_artificial_dissipation");
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
     if (conv_num_flux_string == "lax_friedrichs") conv_num_flux_type = lax_friedrichs;

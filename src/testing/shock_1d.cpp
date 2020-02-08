@@ -63,8 +63,12 @@ public:
      */
     virtual real value (const dealii::Point<dim,real> &point, const unsigned int /*istate = 0*/) const override
     {
-        real val = point[0];
-        if (point[0] > 0.5) val -= 1.0;
+        real val = 0.0;
+        return val;
+        for (int d=0;d<dim;d++) {
+            val += std::sin(point[d]);
+        }
+        //if (point[0] > 0.5) val -= 1.0;
         return val;
     };
 
@@ -72,11 +76,13 @@ public:
     /** 
      *  \f$ \nabla u = 1 \f$
      */
-    virtual dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate = 0*/) const override
+    virtual dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int /*istate = 0*/) const override
     {
         dealii::Tensor<1,dim,real> gradient;
+        gradient = 0.0;
+        return gradient;
         for (int d=0;d<dim;d++) {
-            gradient[d] = 1;
+            gradient[d] = std::cos(point[d]);
         }
         return gradient;
     };
@@ -85,10 +91,14 @@ public:
     /** 
      *  \f$ \nabla^2 u = 0 \f$
      */
-    virtual dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate = 0*/) const override
+    virtual dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int /*istate = 0*/) const override
     {
         dealii::SymmetricTensor<2,dim,real> hessian;
         hessian = 0;
+        return hessian;
+        for (int d=0;d<dim;d++) {
+            hessian[d][d] = -std::sin(point[d]);
+        }
         return hessian;
     }
 };
@@ -277,7 +287,7 @@ int Shock1D<dim,nstate>
                 //dealii::Triangulation<dim>::smoothing_on_coarsening));
 #endif
         dealii::Vector<float> estimated_error_per_cell;
-        for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
+        for (unsigned int igrid=n_grids-1; igrid<n_grids; ++igrid) {
             grid.clear();
             dealii::GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid]);
             for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
@@ -369,8 +379,6 @@ int Shock1D<dim,nstate>
             //
             // PhysicsBase required for exact solution and output error
 
-            initialize_perturbed_solution(*(dg), *(physics_double));
-
             // Create ODE solver using the factory and providing the DG object
             std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
@@ -384,10 +392,12 @@ int Shock1D<dim,nstate>
                  << ". Number of degrees of freedom: " << n_dofs
                  << std::endl;
 
+            initialize_perturbed_solution(*(dg), *(physics_double));
+
             // Solve the steady state problem
             ode_solver->steady_state();
 
-            dg->output_results_vtk(igrid);
+            //dg->output_results_vtk(igrid);
 
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;

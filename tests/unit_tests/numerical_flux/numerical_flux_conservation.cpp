@@ -67,12 +67,15 @@ int test_dissipative_numerical_flux_conservation (const PHiLiP::Parameters::AllP
     std::array<double, nstate> diss_num_flux_dot_n_2 = diss_num_flux->evaluate_solution_flux(soln_ext, soln_int, -normal_int);
 
     double penalty = 100;
+    const double artificial_diss_int = 1.0, artificial_diss_ext = 2.0;
     std::array<double, nstate> diss_auxi_num_flux_dot_n_1 = diss_num_flux->evaluate_auxiliary_flux(
+                 artificial_diss_int, artificial_diss_ext,
                  soln_int, soln_ext,
                  soln_grad_int, soln_grad_ext,
                  normal_int, penalty);
 
     std::array<double, nstate> diss_auxi_num_flux_dot_n_2 = diss_num_flux->evaluate_auxiliary_flux(
+                 artificial_diss_ext, artificial_diss_int,
                  soln_ext, soln_int,
                  soln_grad_ext, soln_grad_int,
                  -normal_int, penalty);
@@ -123,7 +126,9 @@ int test_dissipative_numerical_flux_consistency (const PHiLiP::Parameters::AllPa
     // Evaluate numerical fluxes
     const std::array<double, nstate> diss_soln_num_flux_dot_n = diss_num_flux->evaluate_solution_flux(soln_int, soln_ext, normal_int);
     double penalty = 100;
+    const double artificial_diss_int = 1.0, artificial_diss_ext = 2.0;
     const std::array<double, nstate> diss_auxi_num_flux_dot_n = diss_num_flux->evaluate_auxiliary_flux(
+                 artificial_diss_int, artificial_diss_ext,
                  soln_int, soln_ext,
                  soln_grad_int, soln_grad_ext,
                  normal_int, penalty);

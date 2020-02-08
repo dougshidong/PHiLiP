@@ -28,143 +28,6 @@ namespace PHiLiP {
     template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
 #endif
 
-template<int dim, typename real>
-std::vector< real > project_function(
-    const std::vector< real > &function_coeff,
-    const dealii::FESystem<dim,dim> &fe_input,
-    const dealii::FESystem<dim,dim> &fe_output,
-    const dealii::Quadrature<dim> &projection_quadrature)
-{
-    const unsigned int n_quad_pts = projection_quadrature.size();
-    const unsigned int n_dofs_in = fe_input.dofs_per_cell;
-    const unsigned int n_dofs_out = fe_output.dofs_per_cell;
-    const std::vector<dealii::Point<dim,double>> &unit_quad_pts = projection_quadrature.get_points();
-
-    std::vector< real > function_at_quad(n_quad_pts);
-    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        function_at_quad[iquad] = 0.0;
-        for (unsigned int idof=0; idof<n_dofs_in; ++idof) {
-            function_at_quad[iquad] += function_coeff[idof] * fe_input.shape_value(idof,unit_quad_pts[iquad]);
-        }
-    }
-    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        function_at_quad[iquad] *= projection_quadrature.weight(iquad);
-    }
-
-    // interpolation_operator is V^T in the notes.
-    dealii::FullMatrix<double> interpolation_operator(n_dofs_in,n_quad_pts);
-    for (unsigned int idof=0; idof<n_dofs_in; ++idof) {
-        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-            interpolation_operator[idof][iquad] = fe_input.shape_value(idof,unit_quad_pts[iquad]);
-        }
-    }
-
-    std::vector< real > rhs(n_dofs_out);
-    for (unsigned int idof=0; idof<n_dofs_in; ++idof) {
-        rhs[idof] = 0.0;
-        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-            rhs += interpolation_operator[idof][iquad] * function_at_quad[iquad];
-        }
-    }
-
-    dealii::FullMatrix<double> mass(n_dofs_out, n_dofs_out);
-    for(int row=0; row<n_dofs_out; ++row) {
-        for(int col=0; col<n_dofs_out; ++col) {
-            mass[row][col] = 0;
-        }
-    }
-    for(int row=0; row<n_dofs_out; ++row) {
-        for(int col=0; col<n_dofs_out; ++col) {
-            for(int iquad=0; iquad<n_quad_pts; ++iquad) {
-                mass[row][col] += interpolation_operator[row][iquad] * interpolation_operator[col][iquad] * projection_quadrature.weight(iquad);
-            }
-        }
-    }
-    mass.gauss_jordan();
-
-    std::vector< real > function_coeff_out(n_dofs_out);
-    for(int row=0; row<n_dofs_out; ++row) {
-        function_coeff_out = 0.0;
-        for(int col=0; col<n_dofs_out; ++col) {
-            function_coeff_out += mass[row][col] * rhs[col];
-        }
-    }
-
-    return function_coeff_out;
-
-}
-
-template <int dim, typename real>
-real discontinuity_sensor(
-    const double diameter,
-    const std::vector< real > &soln_coeff_high,
-    const dealii::FiniteElement<dim,dim> &fe_high)
-{
-    const unsigned int degree = fe_high.tensor_degree();
-    const unsigned int nstate = fe_high.components;
-    if (degree == 0) return 0;
-    const unsigned int lower_degree = degree-1;
-    const dealii::FE_DGQ<dim> fe_dgq_lower(lower_degree);
-    const dealii::FESystem<dim,dim> fe_lower(fe_dgq_lower, nstate);
-
-    const unsigned int n_dofs_high = fe_high.dofs_per_cell;
-    const unsigned int n_dofs_lower = fe_lower.dofs_per_cell;
-    dealii::FullMatrix<double> projection_matrix(n_dofs_lower,n_dofs_high);
-    dealii::FETools::get_projection_matrix(fe_high, fe_lower, projection_matrix);
-
-    std::vector< real > soln_coeff_lower(n_dofs_lower);
-    for(unsigned int row=0; row<n_dofs_lower; ++row) {
-        soln_coeff_lower[row] = 0.0;
-        for(unsigned int col=0; col<n_dofs_high; ++col) {
-            soln_coeff_lower[row] += projection_matrix[row][col] * soln_coeff_high[col];
-        }
-    }
-
-    const dealii::QGauss<dim> quadrature(degree+1);
-    const unsigned int n_quad_pts = quadrature.size();
-    const std::vector<dealii::Point<dim,double>> &unit_quad_pts = quadrature.get_points();
-
-    real error = 0.0;
-    real soln_norm = 0.0;
-    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        real soln_high = 0.0;
-        real soln_lower = 0.0;
-        for (unsigned int idof=0; idof<n_dofs_high; ++idof) {
-              soln_high += soln_coeff_high[idof] * fe_high.shape_value(idof,unit_quad_pts[iquad]);
-        }
-        for (unsigned int idof=0; idof<n_dofs_lower; ++idof) {
-              soln_lower += soln_coeff_lower[idof] * fe_lower.shape_value(idof,unit_quad_pts[iquad]);
-        }
-        error += std::pow(soln_high - soln_lower, 2);
-        soln_norm += std::pow(soln_high, 2);
-    }
-
-    if (error < 1e-12) return 0.0;
-    if (soln_norm < 1e-12) return 0.0;
-
-    real S_e, s_e;
-    double S_0, s_0;
-    S_e = error / soln_norm;
-    s_e = std::log10(S_e);
-
-    S_0 = 1.0 / std::pow(degree,4);
-    s_0 = std::log10(S_0);
-
-    const double kappa = 1.0;
-    const double low = s_0 - kappa;
-    const double upp = s_0 + kappa;
-    const real eps_0 = diameter / degree;
-
-    if ( s_e < low) return 0.0;
-    if ( s_e > upp) return eps_0;
-
-    const double PI = 4*atan(1);
-    real eps = 1.0 + std::sin(PI * (s_e - s_0) * 0.5 / kappa);
-    eps *= eps_0 * 0.5;
-
-    return eps;
-
-}
 
 template <int dim, int nstate, typename real>
 DGWeak<dim,nstate,real>::DGWeak(
@@ -255,7 +118,6 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
 
     std::vector< ADArrayTensor1 > conv_phys_flux_at_q(n_quad_pts);
     std::vector< ADArrayTensor1 > diss_phys_flux_at_q(n_quad_pts);
-    std::vector< ADArrayTensor1 > artificial_diss_phys_flux_at_q(n_quad_pts);
     std::vector< doubleArray > source_at_q(n_quad_pts);
 
 
@@ -266,8 +128,9 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
     }
 
     const double cell_diameter = fe_values_vol.get_cell()->diameter();
-    const real artificial_diss_coeff = discontinuity_sensor(cell_diameter, soln_coeff, fe_values_vol.get_fe());
-    std::cout << artificial_diss_coeff << std::endl;
+    const real artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
+                                       this->discontinuity_sensor(cell_diameter, soln_coeff, fe_values_vol.get_fe())
+                                       : 0.0;
 
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         for (int istate=0; istate<nstate; istate++) { 
@@ -283,16 +146,20 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
               soln_at_q[iquad][istate]      += soln_coeff[idof] * fe_values_vol.shape_value_component(idof, iquad, istate);
               soln_grad_at_q[iquad][istate] += soln_coeff[idof] * fe_values_vol.shape_grad_component(idof, iquad, istate);
         }
-        //std::cout << "Density " << soln_at_q[iquad][0] << std::endl;
-        //if(nstate>1) std::cout << "Momentum " << soln_at_q[iquad][1] << std::endl;
-        //std::cout << "Energy " << soln_at_q[iquad][nstate-1] << std::endl;
         // Evaluate physical convective flux and source term
         conv_phys_flux_at_q[iquad] = pde_physics_double->convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = pde_physics_double->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
-        artificial_diss_phys_flux_at_q[iquad] = pde_physics_double->artificial_dissipative_flux (artificial_diss_coeff, soln_at_q[iquad], soln_grad_at_q[iquad]);
+        if(this->all_parameters->add_artificial_dissipation) {
+            const ADArrayTensor1 artificial_diss_phys_flux_at_q = pde_physics_double->artificial_dissipative_flux (artificial_diss_coeff, soln_at_q[iquad], soln_grad_at_q[iquad]);
+            for (int istate=0; istate<nstate; istate++) { 
+                diss_phys_flux_at_q[iquad][istate] += artificial_diss_phys_flux_at_q[istate];
+            }
+        }
         if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
             const dealii::Point<dim,real> point = fe_values_vol.quadrature_point(iquad);
             source_at_q[iquad] = pde_physics_double->source_term (point, soln_at_q[iquad]);
+            //std::array<real,nstate> artificial_source_at_q = pde_physics_double->artificial_source_term (artificial_diss_coeff, point, soln_at_q[iquad]);
+            //for (int s=0;s<nstate;++s) source_at_q[iquad][s] += artificial_source_at_q[s];
         }
     }
 
@@ -317,7 +184,6 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
             //// Diffusive
             //// Note that for diffusion, the negative is defined in the physics_double
             rhs = rhs + fe_values_vol.shape_grad_component(itest,iquad,istate) * diss_phys_flux_at_q[iquad][istate] * JxW[iquad];
-            rhs = rhs + fe_values_vol.shape_grad_component(itest,iquad,istate) * artificial_diss_phys_flux_at_q[iquad][istate] * JxW[iquad];
             // Source
             if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
                 rhs = rhs + fe_values_vol.shape_value_component(itest,iquad,istate) * source_at_q[iquad][istate] * JxW[iquad];
@@ -359,7 +225,6 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_explicit(
     std::vector<doubleArray> conv_num_flux_dot_n(n_face_quad_pts);
     std::vector<doubleArray> diss_soln_num_flux(n_face_quad_pts); // u*
     std::vector<ADArrayTensor1> diss_flux_jump_int(n_face_quad_pts); // u*-u_int
-    std::vector<ADArrayTensor1> artificial_diss_flux_jump_int(n_face_quad_pts); // u*-u_int
     std::vector<doubleArray> diss_auxi_num_flux_dot_n(n_face_quad_pts); // sigma*
 
     // AD variable
@@ -370,14 +235,15 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_explicit(
 
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
         for (int istate=0; istate<nstate; istate++) { 
-            // Interpolate solution to the face quadrature points
             soln_int[iquad][istate]      = 0;
             soln_grad_int[iquad][istate] = 0;
         }
     }
 
     const double cell_diameter = fe_values_boundary.get_cell()->diameter();
-    const real artificial_diss_coeff = discontinuity_sensor(cell_diameter, soln_coeff_int, fe_values_boundary.get_fe());
+    const real artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
+                                       this->discontinuity_sensor(cell_diameter, soln_coeff_int, fe_values_boundary.get_fe())
+                                       : 0.0;
 
     // Interpolate solution to face
     const std::vector< dealii::Point<dim,real> > quad_pts = fe_values_boundary.get_quadrature_points();
@@ -394,7 +260,6 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_explicit(
         const dealii::Point<dim, real> real_quad_point = quad_pts[iquad];
         pde_physics_double->boundary_face_values (boundary_id, real_quad_point, normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
 
-        //
         // Evaluate physical convective flux, physical dissipative flux
         // Following the the boundary treatment given by 
         //      Hartmann, R., Numerical Analysis of Higher Order Discontinuous Galerkin Finite Element Methods,
@@ -415,15 +280,21 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_explicit(
             diss_soln_jump_int[s] = (diss_soln_num_flux[iquad][s] - soln_int[iquad][s]) * normal_int;
         }
         diss_flux_jump_int[iquad] = pde_physics_double->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
-        artificial_diss_flux_jump_int[iquad] = pde_physics_double->artificial_dissipative_flux (artificial_diss_coeff, soln_int[iquad], diss_soln_jump_int);
+        if (this->all_parameters->add_artificial_dissipation) {
+            const ADArrayTensor1 artificial_diss_flux_jump_int = pde_physics_double->artificial_dissipative_flux (artificial_diss_coeff, soln_int[iquad], diss_soln_jump_int);
+            for (int s=0; s<nstate; s++) {
+                diss_flux_jump_int[iquad][s] += artificial_diss_flux_jump_int[s];
+            }
+        }
 
         diss_auxi_num_flux_dot_n[iquad] = diss_num_flux_double->evaluate_auxiliary_flux(
+            artificial_diss_coeff,
+            artificial_diss_coeff,
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
             normal_int, penalty, true);
     }
 
-    // Applying convection boundary condition
     for (unsigned int itest=0; itest<n_soln_dofs_int; ++itest) {
 
         real rhs = 0.0;
@@ -437,7 +308,6 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_explicit(
             // Diffusive
             rhs = rhs - fe_values_boundary.shape_value_component(itest,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW[iquad];
             rhs = rhs + fe_values_boundary.shape_grad_component(itest,iquad,istate) * diss_flux_jump_int[iquad][istate] * JxW[iquad];
-            rhs = rhs + fe_values_boundary.shape_grad_component(itest,iquad,istate) * artificial_diss_flux_jump_int[iquad][istate] * JxW[iquad];
         }
         // *******************
 
@@ -471,6 +341,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
     // Jacobian and normal should always be consistent between two elements
     // In the case of the non-conforming mesh, we should be using the Jacobian
     // of the smaller face since it would be "half" of the larger one.
+    // This should be consistent with the DGBase decision of which cells is reponsible for
+    // the face.
     // However, their curvature should match.
     const std::vector<real> &JxW_int = fe_values_int.get_JxW_values ();
     const std::vector<dealii::Tensor<1,dim> > &normals_int = fe_values_int.get_normal_vectors ();
@@ -493,8 +365,6 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
 
     std::vector<doubleArrayTensor1> diss_flux_jump_int(n_face_quad_pts); // u*-u_int
     std::vector<doubleArrayTensor1> diss_flux_jump_ext(n_face_quad_pts); // u*-u_ext
-    std::vector<doubleArrayTensor1> artificial_diss_flux_jump_int(n_face_quad_pts); // u*-u_int
-    std::vector<doubleArrayTensor1> artificial_diss_flux_jump_ext(n_face_quad_pts); // u*-u_ext
     // AD variable
     for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
         soln_coeff_int[idof] = DGBase<dim,real>::solution(soln_dof_indices_int[idof]);
@@ -512,9 +382,13 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
     }
 
     const double cell_diameter_int = fe_values_int.get_cell()->diameter();
-    const real artificial_diss_coeff_int = discontinuity_sensor(cell_diameter_int, soln_coeff_int, fe_values_int.get_fe());
     const double cell_diameter_ext = fe_values_ext.get_cell()->diameter();
-    const real artificial_diss_coeff_ext = discontinuity_sensor(cell_diameter_ext, soln_coeff_ext, fe_values_ext.get_fe());
+    const real artificial_diss_coeff_int = this->all_parameters->add_artificial_dissipation ?
+                                           this->discontinuity_sensor(cell_diameter_int, soln_coeff_int, fe_values_int.get_fe())
+                                           : 0.0;
+    const real artificial_diss_coeff_ext = this->all_parameters->add_artificial_dissipation ?
+                                           this->discontinuity_sensor(cell_diameter_ext, soln_coeff_ext, fe_values_ext.get_fe())
+                                           : 0.0;
 
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
 
@@ -545,10 +419,18 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
         diss_flux_jump_int[iquad] = pde_physics_double->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
         diss_flux_jump_ext[iquad] = pde_physics_double->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext);
 
-        artificial_diss_flux_jump_int[iquad] = pde_physics_double->artificial_dissipative_flux (artificial_diss_coeff_int, soln_int[iquad], diss_soln_jump_int);
-        artificial_diss_flux_jump_ext[iquad] = pde_physics_double->artificial_dissipative_flux (artificial_diss_coeff_ext, soln_ext[iquad], diss_soln_jump_ext);
+        if (this->all_parameters->add_artificial_dissipation) {
+            const doubleArrayTensor1 artificial_diss_flux_jump_int = pde_physics_double->artificial_dissipative_flux (artificial_diss_coeff_int, soln_int[iquad], diss_soln_jump_int);
+            const doubleArrayTensor1 artificial_diss_flux_jump_ext = pde_physics_double->artificial_dissipative_flux (artificial_diss_coeff_ext, soln_ext[iquad], diss_soln_jump_ext);
+            for (int s=0; s<nstate; s++) {
+                diss_flux_jump_int[iquad][s] += artificial_diss_flux_jump_int[s];
+                diss_flux_jump_ext[iquad][s] += artificial_diss_flux_jump_ext[s];
+            }
+        }
 
         diss_auxi_num_flux_dot_n[iquad] = diss_num_flux_double->evaluate_auxiliary_flux(
+            artificial_diss_coeff_int,
+            artificial_diss_coeff_ext,
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
             normal_int, penalty);
@@ -565,7 +447,6 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
             // Diffusive
             rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW_int[iquad];
             rhs = rhs + fe_values_int.shape_grad_component(itest_int,iquad,istate) * diss_flux_jump_int[iquad][istate] * JxW_int[iquad];
-            rhs = rhs + fe_values_int.shape_grad_component(itest_int,iquad,istate) * artificial_diss_flux_jump_int[iquad][istate] * JxW_int[iquad];
         }
 
         local_rhs_int_cell(itest_int) += rhs;
@@ -582,7 +463,6 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
             // Diffusive
             rhs = rhs - fe_values_ext.shape_value_component(itest_ext,iquad,istate) * (-diss_auxi_num_flux_dot_n[iquad][istate]) * JxW_int[iquad];
             rhs = rhs + fe_values_ext.shape_grad_component(itest_ext,iquad,istate) * diss_flux_jump_ext[iquad][istate] * JxW_int[iquad];
-            rhs = rhs + fe_values_ext.shape_grad_component(itest_ext,iquad,istate) * artificial_diss_flux_jump_ext[iquad][istate] * JxW_int[iquad];
         }
 
         local_rhs_ext_cell(itest_ext) += rhs;
@@ -717,7 +597,6 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
     std::vector<ADArray> conv_num_flux_dot_n(n_quad_pts);
     std::vector<ADArray> diss_soln_num_flux(n_quad_pts); // u*
     std::vector<ADArrayTensor1> diss_flux_jump_int(n_quad_pts); // u*-u_int
-    std::vector<ADArrayTensor1> artificial_diss_flux_jump_int(n_quad_pts); // u*-u_int
     std::vector<ADArray> diss_auxi_num_flux_dot_n(n_quad_pts); // sigma*
 
     dealii::FullMatrix<ADADtype> interpolation_operator(n_soln_dofs,n_quad_pts);
@@ -740,7 +619,9 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
     }
 
     const double cell_diameter = fe_values_boundary.get_cell()->diameter();
-    const ADADtype artificial_diss_coeff = discontinuity_sensor(cell_diameter, soln_coeff, fe_values_boundary.get_fe());
+    const ADADtype artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
+                                           this->discontinuity_sensor(cell_diameter, soln_coeff, fe_values_boundary.get_fe())
+                                           : 0.0;
 
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
@@ -784,9 +665,17 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
             diss_soln_jump_int[s] = (diss_soln_num_flux[iquad][s] - soln_int[s]) * normal_int;
         }
         diss_flux_jump_int[iquad] = pde_physics_fad_fad->dissipative_flux (soln_int, diss_soln_jump_int);
-        artificial_diss_flux_jump_int[iquad] = pde_physics_fad_fad->artificial_dissipative_flux (artificial_diss_coeff, soln_int, diss_soln_jump_int);
+
+        if (this->all_parameters->add_artificial_dissipation) {
+            const ADArrayTensor1 artificial_diss_flux_jump_int = pde_physics_fad_fad->artificial_dissipative_flux (artificial_diss_coeff, soln_int, diss_soln_jump_int);
+            for (int s=0; s<nstate; s++) {
+                diss_flux_jump_int[iquad][s] += artificial_diss_flux_jump_int[s];
+            }
+        }
 
         diss_auxi_num_flux_dot_n[iquad] = diss_num_flux_fad_fad->evaluate_auxiliary_flux(
+            artificial_diss_coeff,
+            artificial_diss_coeff,
             soln_int, soln_ext,
             soln_grad_int, soln_grad_ext,
             normal_int, penalty, true);
@@ -809,7 +698,6 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
             rhs = rhs - interpolation_operator[itest][iquad] * diss_auxi_num_flux_dot_n[iquad][istate] * JxW_iquad;
             for (int d=0;d<dim;++d) {
                 rhs = rhs + gradient_operator[d][itest][iquad] * diss_flux_jump_int[iquad][istate][d] * JxW_iquad;
-                rhs = rhs + gradient_operator[d][itest][iquad] * artificial_diss_flux_jump_int[iquad][istate][d] * JxW_iquad;
             }
         }
 
@@ -1018,9 +906,6 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
     ADArrayTensor1 diss_flux_jump_int; // u*-u_int
     ADArrayTensor1 diss_flux_jump_ext; // u*-u_ext
 
-    ADArrayTensor1 artificial_diss_flux_jump_int; // u*-u_int
-    ADArrayTensor1 artificial_diss_flux_jump_ext; // u*-u_ext
-
     std::vector<ADADtype> interpolation_operator_int(n_soln_dofs_int);
     std::vector<ADADtype> interpolation_operator_ext(n_soln_dofs_ext);
     std::array<std::vector<ADADtype>,dim> gradient_operator_int, gradient_operator_ext;
@@ -1029,9 +914,13 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
         gradient_operator_ext[d].resize(n_soln_dofs_ext);
     }
     const double cell_diameter_int = fe_values_int.get_cell()->diameter();
-    const ADADtype artificial_diss_coeff_int = discontinuity_sensor(cell_diameter_int, soln_coeff_int, fe_values_int.get_fe());
     const double cell_diameter_ext = fe_values_ext.get_cell()->diameter();
-    const ADADtype artificial_diss_coeff_ext = discontinuity_sensor(cell_diameter_ext, soln_coeff_ext, fe_values_ext.get_fe());
+    const ADADtype artificial_diss_coeff_int = this->all_parameters->add_artificial_dissipation ?
+                                               this->discontinuity_sensor(cell_diameter_int, soln_coeff_int, fe_values_int.get_fe())
+                                               : 0.0;
+    const ADADtype artificial_diss_coeff_ext = this->all_parameters->add_artificial_dissipation ?
+                                               this->discontinuity_sensor(cell_diameter_ext, soln_coeff_ext, fe_values_ext.get_fe())
+                                               : 0.0;
 
     ADADtype dual_dot_residual = 0.0;
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
@@ -1126,10 +1015,19 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
         diss_flux_jump_int = pde_physics_fad_fad->dissipative_flux (soln_int, diss_soln_jump_int);
         diss_flux_jump_ext = pde_physics_fad_fad->dissipative_flux (soln_ext, diss_soln_jump_ext);
 
-        artificial_diss_flux_jump_int = pde_physics_fad_fad->artificial_dissipative_flux (artificial_diss_coeff_int, soln_int, diss_soln_jump_int);
-        artificial_diss_flux_jump_ext = pde_physics_fad_fad->artificial_dissipative_flux (artificial_diss_coeff_ext, soln_ext, diss_soln_jump_ext);
+        if (this->all_parameters->add_artificial_dissipation) {
+            const ADArrayTensor1 artificial_diss_flux_jump_int = pde_physics_fad_fad->artificial_dissipative_flux (artificial_diss_coeff_int, soln_int, diss_soln_jump_int);
+            const ADArrayTensor1 artificial_diss_flux_jump_ext = pde_physics_fad_fad->artificial_dissipative_flux (artificial_diss_coeff_ext, soln_ext, diss_soln_jump_ext);
+            for (int s=0; s<nstate; s++) {
+                diss_flux_jump_int[s] += artificial_diss_flux_jump_int[s];
+                diss_flux_jump_ext[s] += artificial_diss_flux_jump_ext[s];
+            }
+        }
+
 
         diss_auxi_num_flux_dot_n = diss_num_flux_fad_fad->evaluate_auxiliary_flux(
+            artificial_diss_coeff_int,
+            artificial_diss_coeff_ext,
             soln_int, soln_ext,
             soln_grad_int, soln_grad_ext,
             normal_normalized_int, penalty);
@@ -1146,7 +1044,6 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
             rhs = rhs - interpolation_operator_int[itest_int] * diss_auxi_num_flux_dot_n[istate] * JxW_iquad;
             for (int d=0;d<dim;++d) {
                 rhs = rhs + gradient_operator_int[d][itest_int] * diss_flux_jump_int[istate][d] * JxW_iquad;
-                rhs = rhs + gradient_operator_int[d][itest_int] * artificial_diss_flux_jump_int[istate][d] * JxW_iquad;
             }
 
             local_rhs_int_cell(itest_int) += rhs.val().val();
@@ -1203,7 +1100,6 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
             rhs = rhs - interpolation_operator_ext[itest_ext] * (-diss_auxi_num_flux_dot_n[istate]) * JxW_iquad;
             for (int d=0;d<dim;++d) {
                 rhs = rhs + gradient_operator_ext[d][itest_ext] * diss_flux_jump_ext[istate][d] * JxW_iquad;
-                rhs = rhs + gradient_operator_ext[d][itest_ext] * artificial_diss_flux_jump_ext[istate][d] * JxW_iquad;
             }
 
             local_rhs_ext_cell(itest_ext) += rhs.val().val();
@@ -1461,7 +1357,6 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
 
     std::vector< ADArrayTensor1 > soln_grad_at_q(n_quad_pts); // Tensor initialize with zeros
     std::vector< ADArrayTensor1 > diss_phys_flux_at_q(n_quad_pts);
-    std::vector< ADArrayTensor1 > artificial_diss_phys_flux_at_q(n_quad_pts);
     std::vector< std::array<ADADtype,nstate> > source_at_q(n_quad_pts);
 
     const std::vector<dealii::Point<dim,double>> &unit_quad_pts = quadrature.get_points();
@@ -1487,7 +1382,9 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
     }
 
     const double cell_diameter = fe_values_vol.get_cell()->diameter();
-    const ADADtype artificial_diss_coeff = discontinuity_sensor(cell_diameter, soln_coeff, fe_values_vol.get_fe());
+    const ADADtype artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
+                                           this->discontinuity_sensor(cell_diameter, soln_coeff, fe_values_vol.get_fe())
+                                           : 0.0;
 
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         for (int istate=0; istate<nstate; istate++) { 
@@ -1504,7 +1401,13 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
         }
         conv_phys_flux_at_q[iquad] = pde_physics_fad_fad->convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = pde_physics_fad_fad->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
-        artificial_diss_phys_flux_at_q[iquad] = pde_physics_fad_fad->artificial_dissipative_flux (artificial_diss_coeff, soln_at_q[iquad], soln_grad_at_q[iquad]);
+
+        if (this->all_parameters->add_artificial_dissipation) {
+            const ADArrayTensor1 artificial_diss_phys_flux_at_q = pde_physics_fad_fad->artificial_dissipative_flux (artificial_diss_coeff, soln_at_q[iquad], soln_grad_at_q[iquad]);
+            for (int s=0; s<nstate; s++) { 
+                diss_phys_flux_at_q[iquad][s] += artificial_diss_phys_flux_at_q[s];
+            }
+        }
 
         if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
             dealii::Point<dim,ADADtype> ad_point;
@@ -1514,6 +1417,8 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
                 ad_point[iaxis] += coords_coeff[idof] * fe_metric.shape_value(idof,unit_quad_pts[iquad]);
             }
             source_at_q[iquad] = pde_physics_fad_fad->source_term (ad_point, soln_at_q[iquad]);
+            //std::array<ADADtype,nstate> artificial_source_at_q = pde_physics_fad_fad->artificial_source_term (artificial_diss_coeff, ad_point, soln_at_q[iquad]);
+            //for (int s=0;s<nstate;++s) source_at_q[iquad][s] += artificial_source_at_q[s];
         }
     }
 
@@ -1542,7 +1447,6 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
                 //// Diffusive
                 //// Note that for diffusion, the negative is defined in the physics
                 rhs = rhs + gradient_operator[d][itest][iquad] * diss_phys_flux_at_q[iquad][istate][d] * JxW_iquad;
-                rhs = rhs + gradient_operator[d][itest][iquad] * artificial_diss_phys_flux_at_q[iquad][istate][d] * JxW_iquad;
             }
             // Source
             if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {

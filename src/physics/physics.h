@@ -89,6 +89,12 @@ public:
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &solution) const = 0;
 
+    /// Artificial source term that does not require differentiation stemming from artificial dissipation.
+    virtual std::array<real,nstate> artificial_source_term (
+        const real viscosity_coefficient,
+        const dealii::Point<dim,real> &pos,
+        const std::array<real,nstate> &solution) const;
+
     /// Evaluates boundary values and gradients on the other side of the face.
     virtual void boundary_face_values (
         const int /*boundary_type*/,

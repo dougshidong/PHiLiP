@@ -1008,7 +1008,8 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     //typename dealii::DataOut<dim>::CurvedCellRegion curved = dealii::DataOut<dim>::CurvedCellRegion::no_curved_cells;
 
     const dealii::Mapping<dim> &mapping = (*(high_order_grid.mapping_fe_field));
-    const int n_subdivisions = max_degree;;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
+    //const int n_subdivisions = max_degree;;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
+    const int n_subdivisions = 0;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
     data_out.build_patches(mapping, n_subdivisions, curved);
     const bool write_higher_order_cells = (dim>1) ? true : false; 
     dealii::DataOutBase::VtkFlags vtkflags(0.0,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
@@ -1254,7 +1255,7 @@ std::vector< real > project_function(
             function_at_quad[iquad] = 0.0;
             for (unsigned int idof=0; idof<n_dofs_in; ++idof) {
                 const unsigned int idof_vector = fe_input.component_to_system_index(istate,idof);
-                function_at_quad[iquad] += function_coeff[idof] * fe_input.shape_value_component(idof_vector,unit_quad_pts[iquad],istate);
+                function_at_quad[iquad] += function_coeff[idof_vector] * fe_input.shape_value_component(idof_vector,unit_quad_pts[iquad],istate);
             }
             function_at_quad[iquad] *= projection_quadrature.weight(iquad);
 
@@ -1317,8 +1318,8 @@ real2 DGBase<dim,real>::discontinuity_sensor(
     const unsigned int degree = fe_high.tensor_degree();
     const unsigned int nstate = fe_high.components;
     if (degree == 0) return 0;
-    const unsigned int lower_degree = degree-1;
-    const dealii::FE_DGQ<dim> fe_dgq_lower(lower_degree);
+    const unsigned int lower_degree = degree-1;//degree-1;
+    const dealii::FE_DGQLegendre<dim> fe_dgq_lower(lower_degree);
     const dealii::FESystem<dim,dim> fe_lower(fe_dgq_lower, nstate);
 
     const unsigned int n_dofs_high = fe_high.dofs_per_cell;
@@ -1334,12 +1335,11 @@ real2 DGBase<dim,real>::discontinuity_sensor(
     //    }
     //}
 
-    const dealii::QGauss<dim> quadrature(degree+1);
+    const dealii::QGauss<dim> quadrature(degree+5);
     const unsigned int n_quad_pts = quadrature.size();
     const std::vector<dealii::Point<dim,double>> &unit_quad_pts = quadrature.get_points();
 
     std::vector< real2 > soln_coeff_lower = project_function<dim,real2>( soln_coeff_high, fe_high, fe_lower, quadrature);
-
 
     real2 error = 0.0;
     real2 soln_norm = 0.0;
@@ -1363,19 +1363,25 @@ real2 DGBase<dim,real>::discontinuity_sensor(
     if (soln_norm < 1e-12) return 0.0;
 
     real2 S_e, s_e;
-    double S_0, s_0;
     S_e = error / soln_norm;
     s_e = std::log10(S_e);
 
-    S_0 = 1.0 / std::pow(degree,4);
-    s_0 = std::log10(S_0);
+    //double S_0, s_0;
+    //S_0 = 1.0 / std::pow(degree,4);
+    //s_0 = std::log10(S_0);
+    //const double kappa = 0.1 * std::abs(s_0);
 
-    const double kappa = 2.0;
+    const double skappa = -1.3;
+    const double s_0 = skappa-4.25*std::log10(degree);
+    const double kappa = 5.2;
+    const double mu_scale = 100.0;
+
     const double low = s_0 - kappa;
     const double upp = s_0 + kappa;
-    const real2 eps_0 = diameter / degree;
+    const real2 eps_0 = mu_scale * diameter / degree;
 
     if ( s_e < low) return 0.0;
+    //std::cout << "error: " << error << " norm: " << soln_norm << " s_e " << s_e << " low: " << low << " upp: " << upp << std::endl;
     if ( s_e > upp) return eps_0;
 
     const double PI = 4*atan(1);

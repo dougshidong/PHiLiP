@@ -443,22 +443,13 @@ template <int dim, int nstate, typename real>
 real Euler<dim,nstate,real>
 ::max_convective_eigenvalue (const std::array<real,nstate> &conservative_soln) const
 {
-    //std::cout << "going to calculate max eig" << std::endl;
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
-    //std::cout << "velocities calculated" << std::endl;
 
     const real sound = compute_sound (conservative_soln);
-    //std::cout << "sound calculated" << std::endl;
 
-    /*const*/ real vel2 = compute_velocity_squared(vel);
-    //std::cout << "vel2 calculated" << std::endl;
-
-    // Why abtin, why?
-    //if (vel2 < 0.0001)
-    //    vel2 = 0.0001;
+    real vel2 = compute_velocity_squared(vel);
 
     const real max_eig = sqrt(vel2) + sound;
-    //std::cout << "max eig calculated" << std::endl;
 
     return max_eig;
 }

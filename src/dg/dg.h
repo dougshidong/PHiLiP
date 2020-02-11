@@ -147,23 +147,32 @@ public:
     /** Must be done after setting the mesh and before assembling the system. */
     virtual void allocate_system ();
 
+    /// Evaluate the time_scaled_global_mass_matrix such that the maximum time step
+    /// cell-wise is taken into account.
+    void time_scaled_mass_matrices(const real scale);
+
     /// Allocates and evaluates the mass matrices for the entire grid
-    /*  Although straightforward, this has not been tested yet.
+    /** Although straightforward, this has not been tested yet.
      *  Will be required for accurate time-stepping or nonlinear problems
      */
     void evaluate_mass_matrices (bool do_inverse_mass_matrix = false);
 
     /// Evaluates the maximum stable time step
-    /*  If exact_time_stepping = true, use the same time step for the entire solution
+    /** If exact_time_stepping = true, use the same time step for the entire solution
      *  NOT YET IMPLEMENTED
      */
     std::vector<real> evaluate_time_steps (const bool exact_time_stepping);
 
     /// Add mass matrices to the system scaled by a factor (likely time-step)
-    /*  Although straightforward, this has not been tested yet.
+    /**  Although straightforward, this has not been tested yet.
      *  Will be required for accurate time-stepping or nonlinear problems
      */
     void add_mass_matrices (const real scale);
+
+    /// Add time scaled mass matrices to the system.
+    /** For pseudotime-stepping where the scaling depends on wavespeed and cell-size.
+     */
+    void add_time_scaled_mass_matrices();
 
     double get_residual_l2norm () const; ///< Returns the L2-norm of the right_hand_side vector
 
@@ -177,6 +186,10 @@ public:
     /// Sparsity pattern used on the system_matrix
     /** Not sure we need to store it.  */
     dealii::SparsityPattern mass_sparsity_pattern;
+
+    /// Global mass matrix divided by the time scales.
+    /** Should be block diagonal where each block contains the scaled mass matrix of each cell.  */
+    dealii::TrilinosWrappers::SparseMatrix time_scaled_global_mass_matrix;
 
     /// Global mass matrix
     /** Should be block diagonal where each block contains the mass matrix of each cell.  */
@@ -245,6 +258,12 @@ public:
      */
     dealii::LinearAlgebra::distributed::Vector<double> solution;
 
+    /// Time it takes for the maximum wavespeed to cross the cell domain.
+    /** Uses evaluate_CFL() which would be defined in the subclasses.
+     *  This is because DGBase isn't templated on nstate and therefore, can't use
+     *  the Physics to compute maximum wavespeeds.
+     */
+    dealii::Vector<double> max_dt_cell;
 
     /// Artificial dissipation in each cell
     dealii::Vector<double> artificial_dissipation_coeffs;
@@ -604,6 +623,15 @@ public:
     NumericalFlux::NumericalFluxDissipative<dim, nstate, ADADType > *diss_num_flux_fad_fad;
 
 private:
+    /// Evaluate the time it takes for the maximum wavespeed to cross the cell domain.
+    /** Currently only uses the convective eigenvalues. Future changes would take in account
+     *  the maximum diffusivity and take the minimum time between dx/conv_eig and dx*dx/max_visc
+     *  to determine the minimum travel time of information.
+     *  
+     *  Furthermore, a more robust implementation would convert the values to a Bezier basis where
+     *  the maximum and minimum values would be bounded by the Bernstein modal coefficients.
+     */
+    real evaluate_CFL (std::vector< std::array<real,nstate> > soln_at_q, const real cell_diameter);
 
     /// Evaluate the integral over the cell volume and the specified derivatives.
     /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */

@@ -300,69 +300,10 @@ int Shock1D<dim,nstate>
             // Warp grid if requested in input file
             if (manu_grid_conv_param.grid_type == GridEnum::sinehypercube) dealii::GridTools::transform (&warp, grid);
 
-            // // Generate hypercube
-            // if ( igrid==0 && (manu_grid_conv_param.grid_type == GridEnum::hypercube || manu_grid_conv_param.grid_type == GridEnum::sinehypercube ) ) {
-
-            //     grid.clear();
-            //     dealii::GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid]);
-            //     for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
-            //         // Set a dummy boundary ID
-            //         cell->set_material_id(9002);
-            //         for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-            //             if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
-            //         }
-            //     }
-            //     // Warp grid if requested in input file
-            //     if (manu_grid_conv_param.grid_type == GridEnum::sinehypercube) dealii::GridTools::transform (&warp, grid);
-            // } else {
-            //     dealii::GridRefinement::refine_and_coarsen_fixed_number(grid,
-            //                                     estimated_error_per_cell,
-            //                                     0.3,
-            //                                     0.03);
-            //     grid.execute_coarsening_and_refinement();
-            // }
-
-            //for (int i=0; i<5;i++) {
-            //    int icell = 0;
-            //    for (auto cell = grid.begin_active(grid.n_levels()-1); cell!=grid.end(); ++cell) {
-            //        if (!cell->is_locally_owned()) continue;
-            //        icell++;
-            //        if (icell < 2) {
-            //            cell->set_refine_flag();
-            //        }
-            //        //else if (icell%2 == 0) {
-            //        //    cell->set_refine_flag();
-            //        //} else if (icell%3 == 0) {
-            //        //    //cell->set_coarsen_flag();
-            //        //}
-            //    }
-            //    grid.execute_coarsening_and_refinement();
-            //}
-
             // Distort grid by random amount if requested
             const double random_factor = manu_grid_conv_param.random_distortion;
             const bool keep_boundary = true;
             if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, grid, keep_boundary);
-
-            // Read grid if requested
-            if (manu_grid_conv_param.grid_type == GridEnum::read_grid) {
-                //std::string write_mshname = "grid-"+std::to_string(igrid)+".msh";
-                std::string read_mshname = manu_grid_conv_param.input_grids+std::to_string(igrid)+".msh";
-                pcout<<"Reading grid: " << read_mshname << std::endl;
-                std::ifstream inmesh(read_mshname);
-                dealii::GridIn<dim,dim> grid_in;
-                grid_in.attach_triangulation(grid);
-                grid_in.read_msh(inmesh);
-            }
-            // Output grid if requested
-            if (manu_grid_conv_param.output_meshes) {
-                std::string write_mshname = "grid-"+std::to_string(igrid)+".msh";
-                std::ofstream outmesh(write_mshname);
-                dealii::GridOutFlags::Msh msh_flags(true, true);
-                dealii::GridOut grid_out;
-                grid_out.set_flags(msh_flags);
-                grid_out.write_msh(grid, outmesh);
-            }
 
             // Show mesh if in 2D
             //std::string gridname = "grid-"+std::to_string(igrid)+".eps";
@@ -375,9 +316,6 @@ int Shock1D<dim,nstate>
             dg->set_physics(physics_ADtype);
             dg->set_physics(physics_ADADtype);
             dg->allocate_system ();
-            //dg->evaluate_inverse_mass_matrices();
-            //
-            // PhysicsBase required for exact solution and output error
 
             // Create ODE solver using the factory and providing the DG object
             std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
@@ -392,12 +330,11 @@ int Shock1D<dim,nstate>
                  << ". Number of degrees of freedom: " << n_dofs
                  << std::endl;
 
+            // Sine wave initial conditions that will form a shock.
             initialize_perturbed_solution(*(dg), *(physics_double));
 
             // Solve the steady state problem
             ode_solver->steady_state();
-
-            //dg->output_results_vtk(igrid);
 
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;

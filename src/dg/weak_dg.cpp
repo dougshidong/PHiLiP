@@ -95,6 +95,24 @@ std::vector<dealii::Tensor<2,dim,real>> evaluate_metric_jacobian (
     return metric_jacobian;
 }
 
+template <int dim, int nstate, typename real>
+real DGWeak<dim,nstate,real>::evaluate_CFL (
+    std::vector< std::array<real,nstate> > soln_at_q,
+    const real cell_diameter
+    )
+{
+    const unsigned int n_pts = soln_at_q.size();
+    std::vector< real > convective_eigenvalues(n_pts);
+    for (unsigned int isol = 0; isol < n_pts; ++isol) {
+        convective_eigenvalues[isol] = pde_physics_double->max_convective_eigenvalue (soln_at_q[isol]);
+        //viscosities[isol] = pde_physics_double->compute_diffusion_coefficient (soln_at_q[isol]);
+    }
+    const real max_eig = *(std::max_element(convective_eigenvalues.begin(), convective_eigenvalues.end()));
+
+    return cell_diameter / max_eig;
+}
+
+
 
 template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
@@ -162,6 +180,9 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
             //for (int s=0;s<nstate;++s) source_at_q[iquad][s] += artificial_source_at_q[s];
         }
     }
+
+    const unsigned int cell_index = fe_values_vol.get_cell()->active_cell_index();
+    this->max_dt_cell[cell_index] = evaluate_CFL ( soln_at_q, cell_diameter );
 
     // Weak form
     // The right-hand side sends all the term to the side of the source term

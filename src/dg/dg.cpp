@@ -958,9 +958,6 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     //std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> data_component_interpretation(nstate, dealii::DataComponentInterpretation::component_is_scalar);
     //data_out.add_data_vector (solution, solution_names, dealii::DataOut<dim>::type_dof_data, data_component_interpretation);
 
-    const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
-    data_out.add_data_vector (solution, *post_processor);
-
     dealii::Vector<float> subdomain(triangulation->n_active_cells());
     for (unsigned int i = 0; i < subdomain.size(); ++i) {
         subdomain(i) = triangulation->locally_owned_subdomain();
@@ -970,6 +967,12 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     if (all_parameters->add_artificial_dissipation) {
         data_out.add_data_vector(artificial_dissipation_coeffs, "artificial_dissipation_coeffs", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
     }
+
+    data_out.add_data_vector(max_dt_cell, "max_dt_cell", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+
+
+    const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
+    data_out.add_data_vector (solution, *post_processor);
 
     // Output the polynomial degree in each cell
     std::vector<unsigned int> active_fe_indices;
@@ -1011,7 +1014,7 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     //const int n_subdivisions = max_degree;;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
     const int n_subdivisions = 0;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
     data_out.build_patches(mapping, n_subdivisions, curved);
-    const bool write_higher_order_cells = (dim>1) ? true : false; 
+    const bool write_higher_order_cells = (dim>1 && max_degree > 1) ? true : false; 
     dealii::DataOutBase::VtkFlags vtkflags(0.0,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
     data_out.set_flags(vtkflags);
 
@@ -1075,6 +1078,8 @@ void DGBase<dim,real>::allocate_system ()
     //dealii::DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
 
     artificial_dissipation_coeffs.reinit(triangulation->n_active_cells());
+    max_dt_cell.reinit(triangulation->n_active_cells());
+
     solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
     //right_hand_side.reinit(locally_owned_dofs, mpi_communicator);
     right_hand_side.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
@@ -1205,6 +1210,7 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
         global_inverse_mass_matrix.compress(dealii::VectorOperation::insert);
     } else {
         global_mass_matrix.compress(dealii::VectorOperation::insert);
+        time_scaled_global_mass_matrix.reinit(global_mass_matrix);
     }
 
     return;
@@ -1214,14 +1220,45 @@ void DGBase<dim,real>::add_mass_matrices(const real scale)
 {
     system_matrix.add(scale, global_mass_matrix);
 }
-
-template <int dim, typename real>
-std::vector<real> DGBase<dim,real>::evaluate_time_steps (const bool exact_time_stepping)
+template<int dim, typename real>
+void DGBase<dim,real>::add_time_scaled_mass_matrices()
 {
-    // TO BE DONE
-    std::vector<real> time_steps(10);
-    if(exact_time_stepping) return time_steps;
-    return time_steps;
+    system_matrix.add(1.0, time_scaled_global_mass_matrix);
+}
+template<int dim, typename real>
+void DGBase<dim,real>::time_scaled_mass_matrices(const real dt_scale)
+{
+    std::vector<dealii::types::global_dof_index> dofs_indices;
+    for (auto cell = dof_handler.begin_active(); cell!=dof_handler.end(); ++cell) {
+
+        if (!cell->is_locally_owned()) continue;
+
+        const unsigned int fe_index_curr_cell = cell->active_fe_index();
+
+        // Current reference element related to this physical cell
+        const dealii::FESystem<dim,dim> &current_fe_ref = fe_collection[fe_index_curr_cell];
+        const unsigned int n_dofs_cell = current_fe_ref.n_dofs_per_cell();
+
+        dofs_indices.resize(n_dofs_cell);
+        cell->get_dof_indices (dofs_indices);
+
+        const double max_dt = max_dt_cell[cell->active_cell_index()];
+
+        for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+            const unsigned int istate_test = current_fe_ref.system_to_component_index(itest).first;
+            for (unsigned int itrial=itest; itrial<n_dofs_cell; ++itrial) {
+                const unsigned int istate_trial = current_fe_ref.system_to_component_index(itrial).first;
+
+                if(istate_test==istate_trial) { 
+                    const double value = global_mass_matrix.el(dofs_indices[itest],dofs_indices[itrial]);
+                    const double new_val = value / (dt_scale * max_dt);
+                    time_scaled_global_mass_matrix.set(dofs_indices[itest],dofs_indices[itrial],new_val);
+                    time_scaled_global_mass_matrix.set(dofs_indices[itest],dofs_indices[itrial],new_val);
+                }
+            }
+        }
+    }
+    time_scaled_global_mass_matrix.compress(dealii::VectorOperation::insert);
 }
 
 template<int dim, typename real>
@@ -1374,7 +1411,7 @@ real2 DGBase<dim,real>::discontinuity_sensor(
     const double skappa = -1.3;
     const double s_0 = skappa-4.25*std::log10(degree);
     const double kappa = 5.2;
-    const double mu_scale = 100.0;
+    const double mu_scale = 1.0;
 
     const double low = s_0 - kappa;
     const double upp = s_0 + kappa;

@@ -91,7 +91,7 @@ int ODESolver<dim,real>::steady_state ()
         pcout << " ********************************************************** "
                   << std::endl
                   << " Nonlinear iteration: " << this->current_iteration
-                  << " residual norm: " << this->residual_norm
+                  << " residual norm: " << this->residual_norm / this->initial_residual_norm
                   << std::endl;
 
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
@@ -101,6 +101,8 @@ int ODESolver<dim,real>::steady_state ()
 
         double dt = ode_param.initial_time_step;
         dt *= pow((1.0-std::log10(this->residual_norm_decrease)*ode_param.time_step_factor_residual), ode_param.time_step_factor_residual_exp);
+        dt = std::max(dt,ode_param.initial_time_step);
+        //dt = std::min(dt,1.0);
         //const double decrease_log = (1.0-std::log10(this->residual_norm_decrease));
         //dt *= dt*pow(10, decrease_log);
         pcout << "Time step = " << dt << std::endl;
@@ -196,7 +198,10 @@ void Implicit_ODESolver<dim,real>::step_in_time (real dt)
 
     this->dg->system_matrix *= -1.0;
 
-    this->dg->add_mass_matrices(1.0/dt);
+    //this->dg->add_mass_matrices(1.0/dt);
+    const double dt_scale = dt;
+    this->dg->time_scaled_mass_matrices(dt_scale);
+    this->dg->add_time_scaled_mass_matrices();
 
     if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
         (this->current_iteration%ode_param.print_iteration_modulo) == 0 ) {

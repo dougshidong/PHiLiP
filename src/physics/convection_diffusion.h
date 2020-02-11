@@ -75,7 +75,8 @@ public:
     /// Source term is zero or depends on manufactured solution
     std::array<real,nstate> source_term (
         const dealii::Point<dim,double> &pos,
-        const std::array<real,nstate> &solution) const;
+        const std::array<real,nstate> &solution,
+        const real current_time) const;
 
     /// If diffusion is present, assign Dirichlet boundary condition
     /** Using Neumann boundary conditions might need to modify the functional

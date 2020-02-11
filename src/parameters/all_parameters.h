@@ -43,6 +43,10 @@ public:
 
     bool use_periodic_bc;
 
+    bool use_energy;
+
+    bool use_jac_sol_points;
+
     /// Flag to use Projected (p+1) nonlinear flux.
     bool use_projected_flux;
 

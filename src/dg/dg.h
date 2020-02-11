@@ -111,7 +111,8 @@ public:
         dealii::hp::FECollection<dim>, //Flux FE
         dealii::hp::QCollection<dim>, //Flux Volume Quadrature 
         dealii::hp::QCollection<dim-1>, //Flux Face Quadrature         
-        dealii::hp::QCollection<1> >;  //Flux 1D quadrature for Strong Form
+        dealii::hp::QCollection<1>,  //Flux 1D quadrature for Strong Form
+        dealii::hp::QCollection<dim> >; //Jac soln points Volume Quadrature 
 
     /// Delegated constructor that initializes collections.
     /** Since a function is used to generate multiple different objects, a delegated
@@ -319,6 +320,9 @@ public:
     dealii::hp::QCollection<dim-1>   face_quadrature_collection_flux;
     dealii::hp::QCollection<1>       oned_quadrature_collection_flux;
 
+    //for jac soln point
+    dealii::hp::QCollection<dim>     volume_quadrature_collection_jac_sol;
+
     /// Degrees of freedom handler
     /*  Allows us to iterate over the finite elements' degrees of freedom.
      *  Note that since we are not using FESystem, we need to multiply
@@ -332,7 +336,11 @@ public:
     /// High order grid that will provide the MappingFEField
     HighOrderGrid<dim,real> high_order_grid;
 
+    void set_current_time(const real current_time);//set the current time
+
 protected:
+
+    real current_time;
 
     /// Evaluate the integral over the cell volume.
     /** Compute both the right-hand side and the block of the Jacobian */

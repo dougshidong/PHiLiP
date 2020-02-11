@@ -78,7 +78,8 @@ public:
     /// Source term that does not require differentiation.
     virtual std::array<real,nstate> source_term (
         const dealii::Point<dim,double> &pos,
-        const std::array<real,nstate> &solution) const = 0;
+        const std::array<real,nstate> &solution,
+        const real current_time) const = 0;
 
     /// Evaluates boundary values and gradients on the other side of the face.
     virtual void boundary_face_values (

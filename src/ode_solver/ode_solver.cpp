@@ -215,14 +215,17 @@ template <int dim, typename real>
 void Explicit_ODESolver<dim,real>::step_in_time (real dt)
 {
     // this->dg->assemble_residual (); // Not needed since it is called in the base class for time step
-    this->current_time += dt;
-    const int rk_order = 3;
+    const int rk_order = 4;
     if (rk_order == 1) {
+        this->current_time += dt;
+        this->dg->set_current_time(this->current_time);
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
 
         this->update_norm = this->solution_update.l2_norm();
         this->dg->solution.add(dt,this->solution_update);
     } else if (rk_order == 3) {
+        this->current_time += dt;
+        this->dg->set_current_time(this->current_time);//need to fix time for RK4
         // Stage 0
         this->rk_stage[0] = this->dg->solution;
 
@@ -263,6 +266,50 @@ void Explicit_ODESolver<dim,real>::step_in_time (real dt)
         this->dg->solution = this->rk_stage[3];
         pcout<< "done." << std::endl;
     }
+    else if (rk_order == 4) {
+        // Stage 0
+        this->rk_stage[0] = this->dg->solution;
+        // Stage 1
+//        pcout<< "Stage 1... " << std::flush;
+        this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
+        this->rk_stage[1] = this->solution_update;
+        this->rk_stage[1].operator*=(dt);
+        this->dg->solution=this->rk_stage[0];
+        this->dg->solution.add(0.5, this->rk_stage[1]);
+        // Stage 2
+ //       pcout<< "2... " << std::flush;
+        this->dg->set_current_time(this->current_time + dt/2.0);
+        this->dg->assemble_residual ();
+        this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
+        this->rk_stage[2] = this->solution_update;
+        this->rk_stage[2].operator*=(dt);
+        this->dg->solution=this->rk_stage[0];
+        this->dg->solution.add(0.5, this->rk_stage[2]);
+        // Stage 3
+  //      pcout<< "3... " << std::flush;
+        this->dg->assemble_residual ();
+        this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
+        this->rk_stage[3] = this->solution_update;
+        this->rk_stage[3].operator*=(dt);
+        this->dg->solution=this->rk_stage[0];
+        this->dg->solution.add(1.0, this->rk_stage[3]);
+        // Stage 4
+   //     pcout<< "4... " << std::flush;
+        this->dg->set_current_time(this->current_time + dt);
+        this->dg->assemble_residual ();
+        this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
+        this->rk_stage[4] = this->solution_update;
+        this->rk_stage[4].operator*=(dt);
+
+        this->dg->solution=this->rk_stage[0];
+        this->dg->solution.add(1.0/6.0, this->rk_stage[1]);
+        this->dg->solution.add(1.0/3.0, this->rk_stage[2]);
+        this->dg->solution.add(1.0/3.0, this->rk_stage[3]);
+        this->dg->solution.add(1.0/6.0, this->rk_stage[4]);
+    //    pcout<< "done." << std::endl;
+        this->current_time += dt;
+
+    }
 
 }
 
@@ -281,8 +328,8 @@ void Explicit_ODESolver<dim,real>::allocate_ode_system ()
         this->dg->build_global_projection_operator();
 
 
-    this->rk_stage.resize(4);
-    for (int i=0; i<4; i++) {
+    this->rk_stage.resize(5);
+    for (int i=0; i<5; i++) {
         this->rk_stage[i].reinit(this->dg->solution);
     }
 }

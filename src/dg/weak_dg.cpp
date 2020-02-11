@@ -78,6 +78,8 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_implicit(
     std::vector< ADArrayTensor1 > diss_phys_flux_at_q(n_quad_pts);
     std::vector< ADArray > source_at_q(n_quad_pts);
 
+    std::vector< ADArrayTensor1 > soln_at_q_split(n_quad_pts);//for split form
+
 
     // AD variable
     std::vector< ADtype > soln_coeff(n_dofs_cell);
@@ -106,7 +108,13 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_implicit(
         conv_phys_flux_at_q[iquad] = pde_physics->convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = pde_physics->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
         if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
-            source_at_q[iquad] = pde_physics->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad]);
+           // source_at_q[iquad] = pde_physics->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad]);
+            source_at_q[iquad] = pde_physics->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad], DGBase<dim,real>::current_time);
+        }
+        for (int idim=0; idim<dim; idim++){
+            for (int istate =0; istate<nstate; istate++){
+                soln_at_q_split[iquad][istate][idim] = soln_at_q[iquad][istate];
+            }
         }
     }
 
@@ -122,12 +130,22 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_implicit(
 
         ADtype rhs = 0;
 
+        ADtype split = 0;
+
         const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(itest).first;
 
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
+            double alpha = 1.0;
+            if (this->all_parameters->use_split_form == true){
+                alpha = 2.0/3.0;
+                //for split form
+                split = split + (1.0 - alpha) * fe_values_vol.shape_grad_component(itest,iquad,istate) * soln_at_q_split[iquad][istate] * JxW[iquad];
+            }
+
             // Convective
-            rhs = rhs + fe_values_vol.shape_grad_component(itest,iquad,istate) * conv_phys_flux_at_q[iquad][istate] * JxW[iquad];
+            rhs = rhs + alpha * fe_values_vol.shape_grad_component(itest,iquad,istate) * conv_phys_flux_at_q[iquad][istate] * JxW[iquad];
+           // rhs = rhs + fe_values_vol.shape_grad_component(itest,iquad,istate) * conv_phys_flux_at_q[iquad][istate] * JxW[iquad];
             //// Diffusive
             //// Note that for diffusion, the negative is defined in the physics
             rhs = rhs + fe_values_vol.shape_grad_component(itest,iquad,istate) * diss_phys_flux_at_q[iquad][istate] * JxW[iquad];
@@ -135,6 +153,11 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_implicit(
             if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
                 rhs = rhs + fe_values_vol.shape_value_component(itest,iquad,istate) * source_at_q[iquad][istate] * JxW[iquad];
             }
+        }
+
+        if (this->all_parameters->use_split_form == true){
+            split = split * soln_at_q[itest][istate]; 
+            rhs = rhs + split;
         }
 
         local_rhs_int_cell(itest) += rhs.val();
@@ -463,6 +486,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
     std::vector< ADArrayTensor1 > diss_phys_flux_at_q(n_quad_pts);
     std::vector< doubleArray > source_at_q(n_quad_pts);
 
+    std::vector< ADArrayTensor1 > soln_at_q_split(n_quad_pts);//for split form
 
     // AD variable
     std::vector< real > soln_coeff(n_dofs_cell);
@@ -490,7 +514,13 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
         conv_phys_flux_at_q[iquad] = pde_physics_double->convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = pde_physics_double->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
         if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
-            source_at_q[iquad] = pde_physics_double->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad]);
+           // source_at_q[iquad] = pde_physics_double->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad]);
+            source_at_q[iquad] = pde_physics_double->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad], DGBase<dim,real>::current_time);
+        }
+        for (int idim=0; idim<dim; idim++){
+            for (int istate =0; istate<nstate; istate++){
+                soln_at_q_split[iquad][istate][idim] = soln_at_q[iquad][istate];
+            }
         }
     }
 
@@ -505,13 +535,24 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
     for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
 
         real rhs = 0;
+        
+        real split = 0;
 
         const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(itest).first;
 
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
+            double alpha = 1.0;
+            if (this->all_parameters->use_split_form == true){
+                alpha = 2.0/3.0;
+                //for split form
+                split = split + (1.0 - alpha) * fe_values_vol.shape_grad_component(itest,iquad,istate) * soln_at_q_split[iquad][istate] * JxW[iquad];
+            }
+
+
             // Convective
-            rhs = rhs + fe_values_vol.shape_grad_component(itest,iquad,istate) * conv_phys_flux_at_q[iquad][istate] * JxW[iquad];
+            rhs = rhs + alpha * fe_values_vol.shape_grad_component(itest,iquad,istate) * conv_phys_flux_at_q[iquad][istate] * JxW[iquad];
+           // rhs = rhs + fe_values_vol.shape_grad_component(itest,iquad,istate) * conv_phys_flux_at_q[iquad][istate] * JxW[iquad];
             //// Diffusive
             //// Note that for diffusion, the negative is defined in the physics_double
             rhs = rhs + fe_values_vol.shape_grad_component(itest,iquad,istate) * diss_phys_flux_at_q[iquad][istate] * JxW[iquad];
@@ -519,6 +560,11 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
             if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
                 rhs = rhs + fe_values_vol.shape_value_component(itest,iquad,istate) * source_at_q[iquad][istate] * JxW[iquad];
             }
+        }
+
+        if (this->all_parameters->use_split_form == true){
+            split = split * soln_at_q[itest][istate]; 
+            rhs = rhs + split;
         }
 
         local_rhs_int_cell(itest) += rhs;

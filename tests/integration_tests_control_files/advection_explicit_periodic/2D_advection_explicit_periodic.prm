@@ -5,8 +5,8 @@ set test_type = advection_periodicity
 # Number of dimensions
 set dimension = 2
 
-set use_weak_form = true
-#set use_weak_form = false
+#set use_weak_form = true
+set use_weak_form = false
 
 set use_collocated_nodes = false
 
@@ -14,7 +14,11 @@ set use_split_form = false
 
 set use_periodic_bc = true
 
-set flux_reconstruction = cDG
+set use_energy = false
+
+set use_jac_sol_points = false
+
+set flux_reconstruction = cPlus
 #set flux_reconstruction_aux = kHU
 set use_projected_flux = false
 

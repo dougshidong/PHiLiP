@@ -126,6 +126,8 @@ DGBase<dim,real>::DGBase(
     , volume_quadrature_collection_flux(std::get<6>(collection_tuple))
     , face_quadrature_collection_flux(std::get<7>(collection_tuple))
     , oned_quadrature_collection_flux(std::get<8>(collection_tuple))
+//for jac at soln points
+    , volume_quadrature_collection_jac_sol(std::get<9>(collection_tuple))
 
     , dof_handler(*triangulation)
     , high_order_grid(all_parameters, max_degree_input+1, triangulation)
@@ -150,7 +152,8 @@ std::tuple<
         dealii::hp::FECollection<dim>, //Flux FE
         dealii::hp::QCollection<dim>, //Flux Volume Quadrature
         dealii::hp::QCollection<dim-1>, //Flux Face Quadrature
-        dealii::hp::QCollection<1> > //Flux 1D Quadrature For Strong Form
+        dealii::hp::QCollection<1>, //Flux 1D Quadrature For Strong Form
+        dealii::hp::QCollection<dim> > //Jac soln points quadrature
 DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const
 {
     //dealii::hp::MappingCollection<dim> mapping_coll;
@@ -166,6 +169,8 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
     dealii::hp::QCollection<dim>       volume_quad_coll_flux;
     dealii::hp::QCollection<dim-1>     face_quad_coll_flux;
     dealii::hp::QCollection<1>         oned_quad_coll_flux;
+//for Jac soln points
+    dealii::hp::QCollection<dim>       volume_quad_coll_jac_sol;
 
     // for p=0, we use a p=1 FE for collocation, since there's no p=0 quadrature for Gauss Lobatto
     if (parameters_input->use_collocated_nodes==true)
@@ -181,7 +186,15 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
 		const dealii::FESystem<dim,dim> fe_system(fe_dg, nstate);
 		fe_coll.push_back (fe_system);
 
-		//
+                //proj flux
+                const dealii::FE_DGQ<dim> fe_dg_flux(degree);
+                const dealii::FESystem<dim,dim> fe_system_flux(fe_dg_flux, nstate);
+                fe_coll_flux.push_back (fe_system_flux);
+                //for flux points
+                dealii::Quadrature<1>     oned_quad_flux(degree+1);
+                dealii::Quadrature<dim>   volume_quad_flux(degree+1);
+                dealii::Quadrature<dim-1> face_quad_flux(degree+1); //removed const
+		//end proj flux
 
 		dealii::Quadrature<1>     oned_quad(degree+1);
 		dealii::Quadrature<dim>   volume_quad(degree+1);
@@ -194,15 +207,26 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
 				oned_quad = oned_quad_Gauss_Lobatto;
 				volume_quad = vol_quad_Gauss_Lobatto;
 
+                                //flux point
+                                oned_quad_flux = oned_quad_Gauss_Lobatto;
+                                volume_quad_flux = vol_quad_Gauss_Lobatto;
+                                //flux point end
+
 				if(dim == 1)
 				{
 					dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
 					face_quad = face_quad_Gauss_Legendre;
+                                        //flux point
+                                        face_quad_flux = face_quad_Gauss_Legendre;
+                                        //end flux point
 				}
 				else
 				{
 					dealii::QGaussLobatto<dim-1> face_quad_Gauss_Lobatto (degree+1);
 					face_quad = face_quad_Gauss_Lobatto;
+                                        //flux point
+                                        face_quad_flux = face_quad_Gauss_Lobatto;
+                                        //end flux point
 				}
 
 
@@ -215,6 +239,14 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
 				oned_quad = oned_quad_Gauss_Legendre;
 				volume_quad = vol_quad_Gauss_Legendre;
 				face_quad = face_quad_Gauss_Legendre;
+                                //for flux points
+                                dealii::QGauss<1> oned_quad_Gauss_Legendre_flux (degree+1);
+                                dealii::QGauss<dim> vol_quad_Gauss_Legendre_flux (degree+1);
+                                dealii::QGauss<dim-1> face_quad_Gauss_Legendre_flux (degree+1);
+                                oned_quad_flux = oned_quad_Gauss_Legendre_flux;
+                                volume_quad_flux = vol_quad_Gauss_Legendre_flux;
+                                face_quad_flux = face_quad_Gauss_Legendre_flux;
+                                //end flux point
 			}
 		//
 
@@ -225,6 +257,11 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
 
 		dealii::FE_DGQArbitraryNodes<dim,dim> lagrange_poly(oned_quad);
 		fe_coll_lagr.push_back (lagrange_poly);
+
+        //for flux points
+        volume_quad_coll_flux.push_back (volume_quad_flux);
+        face_quad_coll_flux.push_back (face_quad_flux);
+        oned_quad_coll_flux.push_back (oned_quad_flux);
     }
 
     int minimum_degree = (parameters_input->use_collocated_nodes==true) ?  1 :  0;
@@ -244,6 +281,9 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
         dealii::Quadrature<1>     oned_quad(degree+1);
         dealii::Quadrature<dim>   volume_quad(degree+1);
         dealii::Quadrature<dim-1> face_quad(degree+1); //removed const
+
+//for jac soln points
+        dealii::Quadrature<dim>   volume_quad_jac(degree+1);
 
         if (parameters_input->use_collocated_nodes) {
             dealii::QGaussLobatto<1> oned_quad_Gauss_Lobatto (degree+1);
@@ -268,11 +308,25 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
             oned_quad = oned_quad_Gauss_Legendre;
             volume_quad = vol_quad_Gauss_Legendre;
             face_quad = face_quad_Gauss_Legendre;
+            if(parameters_input->use_jac_sol_points == true){
+                unsigned int degree_GLL;
+                if(degree == 0)
+                    degree_GLL = degree + 1;
+                else
+                    degree_GLL = degree;
+                dealii::QGaussLobatto<dim> vol_quad_Gauss_Lobatto (degree_GLL+1);
+                volume_quad_jac = vol_quad_Gauss_Lobatto;
+            }
+            else{
+                volume_quad_jac = vol_quad_Gauss_Legendre;
+            }
         }
 
         volume_quad_coll.push_back (volume_quad);
         face_quad_coll.push_back (face_quad);
         oned_quad_coll.push_back (oned_quad);
+        //for jac soln points
+        volume_quad_coll_jac_sol.push_back(volume_quad_jac);
 
         dealii::FE_DGQArbitraryNodes<dim,dim> lagrange_poly(oned_quad);
         fe_coll_lagr.push_back (lagrange_poly);
@@ -289,6 +343,9 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
 
    // for (unsigned int degree=(minimum_degree+1); degree<=(max_degree +1); ++degree) {
    // for (unsigned int degree=(minimum_degree); degree<=(max_degree ); ++degree) {
+    if(parameters_input->use_collocated_nodes==true){
+        minimum_degree = minimum_degree + 1;
+    }
     for (unsigned int degree=(minimum_degree); degree<=(maximum_degree); ++degree) {
         //const dealii::MappingQ<dim,dim> mapping(degree, true);
         //const dealii::MappingQ<dim,dim> mapping(degree+1, true);
@@ -352,7 +409,7 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
       //  fe_coll_lagr_flux.push_back (lagrange_poly);
 
     }
-    return std::make_tuple(fe_coll, volume_quad_coll, face_quad_coll, oned_quad_coll, fe_coll_lagr, fe_coll_flux, volume_quad_coll_flux, face_quad_coll_flux, oned_quad_coll_flux);
+    return std::make_tuple(fe_coll, volume_quad_coll, face_quad_coll, oned_quad_coll, fe_coll_lagr, fe_coll_flux, volume_quad_coll_flux, face_quad_coll_flux, oned_quad_coll_flux, volume_quad_coll_jac_sol);
 }
 
 
@@ -1009,6 +1066,9 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
         for(int idim=0; idim<dim; idim++){
             global_inverse_mass_correction_matrix[idim].reinit(locally_owned_dofs, mass_sparsity_pattern);
         }
+        if (this->all_parameters->use_energy == true){//for split form get energy
+            global_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
+        }
     } else {
         global_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
     }
@@ -1033,6 +1093,11 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
     dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.
+//#if 0
+//for jac soln points
+    dealii::hp::FEValues<dim,dim> fe_values_collection_volume_jac (mapping_collection, fe_collection, volume_quadrature_collection_jac_sol, this->volume_update_flags); ///< FEValues of volume.
+//#endif
+
     for (auto cell = dof_handler.begin_active(); cell!=dof_handler.end(); ++cell) {
 
         if (!cell->is_locally_owned()) continue;
@@ -1055,17 +1120,70 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
 
         fe_values_collection_volume.reinit (cell, quad_index, mapping_index, fe_index_curr_cell);
         const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
+//#if 0
+        //for jac soln points
+        fe_values_collection_volume_jac.reinit (cell, quad_index, mapping_index, fe_index_curr_cell);
+        const dealii::FEValues<dim,dim> &fe_values_volume_jac = fe_values_collection_volume_jac.get_present_fe_values();
+        const std::vector<real> &quad_weights = volume_quadrature_collection[fe_index_curr_cell].get_weights ();
+        const std::vector<real> &quad_weights_jac = volume_quadrature_collection_jac_sol[fe_index_curr_cell].get_weights ();
+//#endif
 
+
+//#if 0
+        dealii::FullMatrix<real> Chi_operator(n_quad_pts, n_dofs_cell);
+        dealii::FullMatrix<real> Chi_operator_soln(n_quad_pts, n_dofs_cell);
+        dealii::FullMatrix<real> Quad(n_quad_pts);
+        dealii::FullMatrix<real> Jac(n_quad_pts);
+        for(int istate=0; istate<nstate; istate++){
+        for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+            for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                Chi_operator[iquad][itest] = fe_values_volume.shape_value_component(itest,iquad,istate);
+                Chi_operator_soln[iquad][itest] = fe_values_volume_jac.shape_value_component(itest,iquad,istate);
+                if(itest == iquad){
+                    Quad[iquad][iquad] = quad_weights[iquad];
+                    Jac[iquad][iquad] = fe_values_volume_jac.JxW(iquad) / quad_weights_jac[iquad];
+                }
+                else{
+                    Quad[iquad][itest] = 0.0;
+                    Jac[iquad][itest] = 0.0;
+                }
+            }
+        }
+        }
+        dealii::FullMatrix<real> Chi_operator_soln_inv(n_quad_pts, n_dofs_cell);
+        Chi_operator_soln_inv.invert(Chi_operator_soln);
+        dealii::FullMatrix<real> Chi_Quad(n_dofs_cell, n_quad_pts);
+        Chi_operator.Tmmult(Chi_Quad, Quad);
+        dealii::FullMatrix<real> interp_flux_sol(n_quad_pts, n_quad_pts); 
+        Chi_operator.mmult(interp_flux_sol, Chi_operator_soln_inv);
+        dealii::FullMatrix<real> interp_Jac(n_quad_pts, n_quad_pts);
+        interp_flux_sol.mmult(interp_Jac, Jac);
+        dealii::FullMatrix<real> Chi_quad_Jac(n_dofs_cell, n_quad_pts);
+        Chi_Quad.mmult(Chi_quad_Jac, interp_Jac);
+        Chi_quad_Jac.mmult(local_mass_matrix, Chi_operator); 
+
+//#endif
+
+
+#if 0
         for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
             const unsigned int istate_test = fe_values_volume.get_fe().system_to_component_index(itest).first;
             for (unsigned int itrial=itest; itrial<n_dofs_cell; ++itrial) {
                 const unsigned int istate_trial = fe_values_volume.get_fe().system_to_component_index(itrial).first;
                 real value = 0.0;
                 for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+               // #if 0
                     value +=
                         fe_values_volume.shape_value_component(itest,iquad,istate_test)
                         * fe_values_volume.shape_value_component(itrial,iquad,istate_trial)
                         * fe_values_volume.JxW(iquad);
+               // #endif
+                #if 0
+                    value +=
+                        fe_values_volume.shape_value_component(itest,iquad,istate_test)
+                        * fe_values_volume.shape_value_component(itrial,iquad,istate_trial)
+                        * quad_weights[iquad] * fe_values_volume_jac.JxW(iquad) / quad_weights_jac[iquad];
+                #endif
                 }
                 local_mass_matrix[itrial][itest] = 0.0;
                 local_mass_matrix[itest][itrial] = 0.0;
@@ -1075,6 +1193,7 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
                 }
             }
         }
+#endif
 
 
         //For flux reconstruction
@@ -1113,6 +1232,14 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
             local_inverse_mass_correction_matrix.invert(local_mass_correction_matrix[idim]);
             global_inverse_mass_correction_matrix[idim].set (dofs_indices, local_inverse_mass_correction_matrix);
             }
+            if (this->all_parameters->use_energy == true){//for split form energy
+        for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+            for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
+                local_mass_matrix[itest][itrial] = local_mass_matrix[itest][itrial] - K_operator[itest][itrial];
+            }
+        }
+                global_mass_matrix.set (dofs_indices, local_mass_matrix);
+            }
         } else {
             global_mass_matrix.set (dofs_indices, local_mass_matrix);
         }
@@ -1123,6 +1250,9 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
 
         for(int idim=0; idim<dim; idim++){
         global_inverse_mass_correction_matrix[idim].compress(dealii::VectorOperation::insert);
+        }
+        if (this->all_parameters->use_energy == true){//for split form energy
+            global_mass_matrix.compress(dealii::VectorOperation::insert);
         }
     } else {
         global_mass_matrix.compress(dealii::VectorOperation::insert);
@@ -1376,6 +1506,31 @@ void DGBase<dim,real>::get_K_operator_FR(
     Chi_inv_operator.mmult(Jacobian_physical, Chi_operator_with_Jac);//Chi^{-1}*Jm*Chi
     Chi_operator.Tmmult(local_Mass_Matrix_no_Jac, Chi_operator_with_Quad);//M=Chi^T*W*Chi
 
+#if 0
+printf("Chi operator Volume\n");
+fflush(stdout);
+for (unsigned int idof=0; idof<n_dofs_cell; idof++){
+for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+    printf(" %g ",Chi_operator[idof][iquad]);
+    fflush(stdout);
+}
+printf("\n");
+fflush(stdout);
+}
+#endif
+#if 0
+printf("Jac physical\n");
+fflush(stdout);
+for (unsigned int idof=0; idof<n_dofs_cell; idof++){
+for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+    printf(" %g ",Jacobian_physical[idof][iquad]);
+    fflush(stdout);
+}
+printf("\n");
+fflush(stdout);
+}
+#endif
+
 
     for(int istate=0; istate<nstate; istate++){
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
@@ -1444,14 +1599,13 @@ void DGBase<dim,real>::get_K_operator_FR(
     else if(c_input == FR_enum::cPlus){ 
         if(curr_cell_degree == 2){
             c = 0.186;
-            c = 0.173;//RK33
-    //        c=10000.0;
+    //        c = 0.173;//RK33
         }
         if(curr_cell_degree == 3)
             c = 3.67e-3;
         if(curr_cell_degree == 4){
             c = 4.79e-5;
-            c = 4.92e-5;//RK33
+     //       c = 4.92e-5;//RK33
         }
         if(curr_cell_degree == 5)
             c = 4.24e-7;
@@ -1498,24 +1652,24 @@ void DGBase<dim,real>::get_K_operator_FR(
         if(curr_cell_degree == 2)
         {
             k = 0.186;
-            k = 0.173;//RK33
-    //        k=10000.0;
+        //    k = 0.173;//RK33
         }
         if(curr_cell_degree == 3)
         {
             k = 3.67e-3;
-           // k=10000.0;
         }
         if(curr_cell_degree == 4){
             k = 4.79e-5;
-            k = 4.92e-5;//RK33
+        //    k = 4.92e-5;//RK33
         }
         if(curr_cell_degree == 5)
             k = 4.24e-7;
         k/=2.0;//since orthonormal
         k/=pow(pow(2.0,curr_cell_degree),2);//since ref elem [0,1]
     }
+//c=10000.0;
 
+  //  c = 10.0;
 #if 0
 printf("\n\n\n");
 fflush(stdout);
@@ -1608,6 +1762,60 @@ fflush(stdout);
         dealii::FullMatrix<real> K_operator_temp(n_dofs_cell);
         derivative_p_temp.Tmmult(K_operator_temp, local_Mass_Matrix_no_Jac);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M
         K_operator_temp.mmult(K_operator_no_Jac, derivative_p);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
+
+#if 0
+//BUILD WEAK K OPERATOR
+        dealii::FullMatrix<real> derivative_weak(n_dofs_cell);
+    std::vector<dealii::FullMatrix<real>> derivative_weak_temp(dim);
+    for(int idim=0; idim<dim; idim++){
+       derivative_weak_temp[idim].reinit(n_quad_pts, n_dofs_cell);
+    }
+        dealii::FullMatrix<real> Mass_inv(n_dofs_cell);
+       // dealii::FullMatrix<real> derivative_weak_temp(n_dofs_cell);
+        dealii::FullMatrix<real> derivative_weak_trans(n_dofs_cell);
+        Mass_inv.invert(local_Mass_Matrix_no_Jac);
+    for(int istate=0; istate<nstate; istate++){
+    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+            dealii::Tensor<1,dim,real> derivative;
+            const dealii::Point<dim> qpoint  = volume_quadrature_collection[fe_index_curr_cell].point(iquad);
+            derivative = fe_collection[fe_index_curr_cell].shape_grad_component(idof, qpoint, istate);
+            for (int idim=0; idim<dim; idim++){
+                derivative_weak_temp[idim][iquad][idof] = derivative[idim];//store dChi/dXi
+            }
+        }
+    }
+    }
+        derivative_weak_temp[0].Tmmult(derivative_weak_trans, Chi_operator_with_Quad);
+        Mass_inv.mmult(derivative_weak, derivative_weak_trans);
+        dealii::FullMatrix<real> derivative_p_weak(n_quad_pts, n_dofs_cell);
+        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                if(idof == iquad){
+                    derivative_p_weak[idof][iquad] = 1.0;//set it equal to identity
+                }
+            }
+        }
+        for(unsigned int idegree=0; idegree< (curr_cell_degree); idegree++){
+            dealii::FullMatrix<real> derivative_p_temp_weak(n_quad_pts, n_dofs_cell);
+            derivative_p_temp_weak.add(1, derivative_p_weak);
+            derivative_weak.mmult(derivative_p_weak, derivative_p_temp_weak);
+        }
+
+        //c*(Chi^{-1}*dChi/dXi)^p
+        dealii::FullMatrix<real> derivative_p_temp_weak(n_quad_pts, n_dofs_cell);
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                derivative_p_temp_weak[iquad][idof] = c * derivative_p_weak[iquad][idof];
+            }
+        }
+
+        derivative_p_temp_weak.Tmmult(K_operator_temp, local_Mass_Matrix_no_Jac);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M
+        K_operator_temp.mmult(K_operator_no_Jac, derivative_p_weak);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
+//END BUILD WEAK K
+        
+#endif
+
 
         //repeat for auxiliary equation
         for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
@@ -1913,6 +2121,11 @@ double DGBase<dim,real>::factorial_DG(double n)
       return n*factorial_DG(n-1);
 }
 
+template <int dim, typename real>
+void DGBase<dim,real>::set_current_time(const real time)
+{
+    this->current_time = time;
+}
 
 
 

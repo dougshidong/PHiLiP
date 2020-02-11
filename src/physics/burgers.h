@@ -35,9 +35,11 @@ public:
     /// Turns on diffusive part of the Burgers problem.
     const bool hasDiffusion;
 
+    const Parameters::AllParameters::TestType test_type; ///< Pointer to all parameters
+
     /// Constructor
-    Burgers (const bool convection = true, const bool diffusion = true)
-        : hasConvection(convection), hasDiffusion(diffusion)
+    Burgers (const bool convection = true, const bool diffusion = true, const Parameters::AllParameters::TestType parameters_test = Parameters::AllParameters::TestType::run_control)
+        : hasConvection(convection), hasDiffusion(diffusion), test_type(parameters_test) 
     {
         static_assert(nstate==dim, "Physics::Burgers() should be created with nstate==dim");
     };
@@ -73,7 +75,8 @@ public:
     /// Source term is zero or depends on manufactured solution
     std::array<real,nstate> source_term (
         const dealii::Point<dim,double> &pos,
-        const std::array<real,nstate> &solution) const;
+        const std::array<real,nstate> &solution,
+        const real current_time) const;
 
     /// If diffusion is present, assign Dirichlet boundary condition
     /** Using Neumann boundary conditions might need to modify the functional

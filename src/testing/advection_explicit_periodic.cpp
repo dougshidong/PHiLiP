@@ -40,9 +40,12 @@ template<int dim, int nstate>
 double AdvectionPeriodic<dim, nstate>::compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const
 {
 	double energy = 0.0;
+        dealii::LinearAlgebra::distributed::Vector<double> Mu_hat(dg->solution.size());
+        dg->global_mass_matrix.vmult( Mu_hat, dg->solution);
 	for (unsigned int i = 0; i < dg->solution.size(); ++i)
 	{
-		energy += dg->global_mass_matrix(i,i) * dg->solution(i) * dg->solution(i);
+	//	energy += dg->global_mass_matrix(i,i) * dg->solution(i) * dg->solution(i);
+            energy +=  dg->solution(i) * Mu_hat(i);
 	}
 	return energy;
 }
@@ -64,7 +67,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
 
-    const unsigned int n_grids = 7;
+    const unsigned int n_grids = 6;
     std::array<double,n_grids> grid_size;
     std::array<double,n_grids> soln_error;
    // std::array<double,n_grids> output_error;
@@ -89,7 +92,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 	const bool colorize = true;
 //	int n_refinements = 6;
 	unsigned int n_refinements = n_grids;
-	unsigned int poly_degree = 2;
+	unsigned int poly_degree = 3;
 //	dealii::GridGenerator::hyper_cube(grid, left, right, colorize);
 
         dealii::ConvergenceTable convergence_table;
@@ -108,53 +111,23 @@ fflush(stdout);
 				this->mpi_communicator);
 #endif
 
-//	dealii::GridGenerator::hyper_cube(grid, left, right, colorize);
-
-#if 0
-const dealii::Point<dim> center (1,0);
-const dealii::SphericalManifold<dim> manifold(center);
-//Triangulation<2> triangulation;
-dealii::GridGenerator::hyper_cube (grid, left, right, colorize);
-// again disable all manifolds for demonstration purposes
-grid.reset_all_manifolds();
-// reenable the manifold:
-grid.set_all_manifold_ids(0);
-grid.set_manifold (0, manifold);
-grid.refine_global (3);
-#endif
-
 
 //#if 0
 const dealii::Point<dim> center1(0,1);
-//const dealii::Point<dim> center1(0.8,1.5);
-//const dealii::Point<dim> center1(4,1);
 const dealii::SphericalManifold<dim> m0(center1);
 dealii::GridGenerator::hyper_cube (grid, left, right, colorize);
-//dealii::GridGenerator::hyper_cube(tria,-1,1);
-//grid.set_all_manifold_ids(0);
-//grid.set_all_manifold_ids_on_boundary(0);
-//grid.set_all_manifold_ids_on_boundary(-1);
 grid.set_manifold(0, m0);
-#if 0
-for(int idim=0; idim<dim; idim++){
-grid.set_all_manifold_ids_on_boundary(2*(idim -1),2*(idim-1));
-grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
-}
-#endif
-//const dealii::Point<dim> center2(0,1);
 const dealii::Point<dim> center2(2,1);
-//const dealii::Point<dim> center2(1.8,1.5);
 const dealii::SphericalManifold<dim> m02(center2);
 grid.set_manifold(1, m02);
 for(int idim=0; idim<dim; idim++){
 grid.set_all_manifold_ids_on_boundary(2*(idim -1),2*(idim-1));
 grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 }
-//m0.copy_boundary_to_manifold_id(grid, false);
-//dealii::GridTools::regularize_corner_cells(grid);
-//grid.refine_global(4);
+//	grid.refine_global(igrid);
 
 //#endif
+//dealii::GridGenerator::hyper_cube (grid, left, right, colorize);
 
  #if PHILIP_DIM==1
 #else
@@ -168,42 +141,6 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 #endif
 	grid.refine_global(igrid);
 
-    if (igrid == 4){
-    all_parameters_new.ode_solver_param.initial_time_step = 4.0e-3;
-    if(poly_degree==3 || poly_degree == 4){
-    all_parameters_new.ode_solver_param.initial_time_step = 1.0e-3;
-   // all_parameters_new.ode_solver_param.initial_time_step = 2.5e-4;
-    }
-    }
-    if (igrid ==5){
-    all_parameters_new.ode_solver_param.initial_time_step = 1.0e-3;
-    if(poly_degree==3 || poly_degree == 4){
-    all_parameters_new.ode_solver_param.initial_time_step = 2.5e-4;
-    //all_parameters_new.ode_solver_param.initial_time_step = 1.0-5;
-    }
-    }
-    if (igrid==6){
-    all_parameters_new.ode_solver_param.initial_time_step = 2.5e-4;
-    if(poly_degree==3 || poly_degree == 4){
-   // all_parameters_new.ode_solver_param.initial_time_step = 5.0e-6;
-    all_parameters_new.ode_solver_param.initial_time_step = 1.0e-5;
-    }
-    }
-    if (igrid==7){
-   // all_parameters_new.ode_solver_param.initial_time_step = 6.25e-5;
-    all_parameters_new.ode_solver_param.initial_time_step = 1.0e-5;
-    if(poly_degree==3 || poly_degree == 4){
-    //all_parameters_new.ode_solver_param.initial_time_step = 1.0-6;
-    all_parameters_new.ode_solver_param.initial_time_step = 5.0e-6;
-    }
-    }
-    if (igrid==8){
-    all_parameters_new.ode_solver_param.initial_time_step = 2.5e-6;
-    if(poly_degree==3 || poly_degree == 4){
-    //all_parameters_new.ode_solver_param.initial_time_step = 1.0-6;
-    all_parameters_new.ode_solver_param.initial_time_step = 1.0e-6;
-    }
-    }
 
 #if 0
             const unsigned int n_global_active_cells2 = grid.n_global_active_cells();
@@ -219,6 +156,10 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
    // all_parameters_new.ode_solver_param.initial_time_step =  delta_x /(2.0*(2.0*poly_degree+1)) ;
     //all_parameters_new.ode_solver_param.initial_time_step =  delta_x /(1.0*(2.0*poly_degree+1)) ;
     all_parameters_new.ode_solver_param.initial_time_step =  delta_x /(1.0*(2.0*poly_degree+1)) ;
+    all_parameters_new.ode_solver_param.initial_time_step =  0.5*delta_x;
+//    all_parameters_new.ode_solver_param.initial_time_step =  0.0001;
+    std::cout << "dt " <<all_parameters_new.ode_solver_param.initial_time_step <<  std::endl;
+    std::cout << "cells " <<n_global_active_cells2 <<  std::endl;
   //  all_parameters_new.ode_solver_param.initial_time_step *= 1e-3;  
 
 	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, &grid);
@@ -258,11 +199,12 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 	    expression = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) + 20*(z-1)*(z-1) ) )";//"sin(pi*x)*sin(pi*y)";
         if (dim == 2)
 	    //expression = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) ) )";//"sin(pi*x)*sin(pi*y)";
-	 //   expression = "exp( -( 20*(x-2)*(x-2) + 20*(y-2)*(y-2) ) )";//"sin(pi*x)*sin(pi*y)";
-	    expression = "sin(pi*x)*sin(pi*y)";//"sin(pi*x)*sin(pi*y)";
+	    expression = "exp( -( 20*(x-2)*(x-2) + 20*(y-2)*(y-2) ) )";//"sin(pi*x)*sin(pi*y)";
+	  //  expression = "sin(pi*x)*sin(pi*y)";//"sin(pi*x)*sin(pi*y)";
 	    //expression = "exp( -( 20*(x-1.5)*(x-1.5) + 20*(y-1.5)*(y-1.5) ) )";//"sin(pi*x)*sin(pi*y)";
         if(dim==1)
-	    expression = "exp( -( 20*(x-1)*(x-1) ) )";//"sin(pi*x)*sin(pi*y)";
+	   // expression = "exp( -( 20*(x-1)*(x-1) ) )";//"sin(pi*x)*sin(pi*y)";
+	    expression = "sin(pi*x)";//"sin(pi*x)*sin(pi*y)";
 	initial_condition.initialize(variables,
 								 expression,
 								 constants);
@@ -316,15 +258,19 @@ finalTime=2.0;
 finalTime = delta_x /(1.0*(2.0*poly_degree+1));
 finalTime =10 *1e-1* delta_x /(1.0*(2.0*poly_degree+1));
 finalTime =1/16;
+finalTime =0.1;
+finalTime = 20.0;
 //finalTime=0.25;
 //finalTime =1/8;
 //finalTime = 0.5;
 //finalTime = 10.0;
 //finalTime = 1.0;
+//finalTime = all_parameters_new.ode_solver_param.initial_time_step;
 
-#if 0
+//#if 0
 	//need to call ode_solver before calculating energy because mass matrix isn't allocated yet.
 
+        if (all_parameters_new.use_energy == true){//for split form get energy
 	ode_solver->advance_solution_time(0.000001);
 	double initial_energy = compute_energy(dg);
 
@@ -332,25 +278,31 @@ finalTime =1/16;
 	//this causes some issues with outputs (only one file is output, which is overwritten at each time step)
 	//also the ode solver output doesn't make sense (says "iteration 1 out of 1")
 	//but it works. I'll keep it for now and need to modify the output functions later to account for this.
-	std::ofstream myfile ("energy_plot_CPlus.gpl" , std::ios::trunc);
+	std::ofstream myfile ("energy_plot_Cplus_p3_central_curv_adv_corrected.gpl" , std::ios::trunc);
 	double dt = all_parameters_new.ode_solver_param.initial_time_step;
 
 	for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
 	{
 		ode_solver->advance_solution_time(dt);
 		double current_energy = compute_energy(dg);
+                current_energy /=initial_energy;
+                std::cout << std::setprecision(9) << std::fixed;
 		pcout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
-		myfile << i * dt << " " << current_energy << std::endl;
-		if (current_energy - initial_energy >= 0.001)
+		myfile << i * dt << " " << std::fixed << std::setprecision(9) << current_energy << std::endl;
+		if (current_energy*initial_energy - initial_energy >= 10.00)
 		{
 			return 1;
 			break;
 		}
 	}
 	myfile.close();
-#endif
+        }
+        else{//do OOA
+            finalTime = 2.0;
+	    ode_solver->advance_solution_time(finalTime);
+//#endif
 
-	ode_solver->advance_solution_time(finalTime);
+	//ode_solver->advance_solution_time(finalTime);
 
 //output results
             const unsigned int n_global_active_cells = grid.n_global_active_cells();
@@ -377,7 +329,7 @@ finalTime =1/16;
 
             // Integrate solution error and output error
 
-            const double pi = atan(1)*4.0;
+           // const double pi = atan(1)*4.0;
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
 
@@ -398,34 +350,8 @@ finalTime =1/16;
                     const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
                     double uexact=1.0;
                     for(int idim=0; idim<dim; idim++){
-                    //    double speed=0.0;
-#if 0
-                        if(idim==0){
-                        //if(istate==0){
-                            speed =1.1;
-                        }
-                        else if (idim==1){
-                        //else if (istate==1){
-                            speed = -atan(1) * 4.0 / exp(1);
-                        }
-#endif
-                     //   speed=1.0;
-#if 0
-                        printf(" q point %g speed %g idim %d\n",qpoint[idim],speed,idim);
-                        fflush(stdout);
-#endif
-#if 0
-                        if(qpoint[idim]+speed*finalTime>2)
-                        uexact *= exp(-(20 * (qpoint[idim] - speed*finalTime - 2 -1) * (qpoint[idim] - speed*finalTime -1)));
-                        else
-                        uexact *= exp(-(20 * (qpoint[idim] - speed*finalTime -1) * (qpoint[idim] - speed*finalTime -1)));
-#endif
-                     //   uexact *= exp(-(20 * (qpoint[idim] - 1) * (qpoint[idim] - 1)));
-                       // uexact *= exp(-(20 * (qpoint[idim] - 2) * (qpoint[idim] - 2)));//for grid 1-3
-                        uexact *= sin(pi*(qpoint[idim]-finalTime));//for grid 1-3
-                        //uexact *= exp(-(20 * (qpoint[idim] - 1.5) * (qpoint[idim] - 1.5)));//for grid 1-2
-                        //uexact *= exp(-(20 * (qpoint[idim] - finalTime  - 1) * (qpoint[idim] - finalTime - 1)));
-                        //uexact *= exp(-(20 * (qpoint[istate] - speed*finalTime -1) * (qpoint[istate] - speed*finalTime -1)));
+                        uexact *= exp(-(20 * (qpoint[idim] - 2) * (qpoint[idim] - 2)));//for grid 1-3
+                       // uexact *= sin(pi*(qpoint[idim]-finalTime));//for grid 1-3
                     }
                         //std::cout << uexact - soln_at_q[istate] << std::endl;
                         l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
@@ -500,6 +426,7 @@ finalTime =1/16;
         convergence_table.set_scientific("soln_L2_error", true);
         convergence_table.set_scientific("output_error", true);
         if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
+        }//end of OOA
 
        // convergence_table_vector.push_back(convergence_table);
 

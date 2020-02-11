@@ -38,6 +38,14 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Use other boundary conditions by default. Otherwise use periodic (for 1d burgers only");
 
+    prm.declare_entry("use_energy", "false",
+                      dealii::Patterns::Bool(),
+                      "Not calculate energy by default. Otherwise, get energy per iteration.");
+
+    prm.declare_entry("use_jac_sol_points", "false",
+                      dealii::Patterns::Bool(),
+                      "Jacobian at quadrature points default, otherwise soln points.");
+
     prm.declare_entry("use_projected_flux", "true",
                       dealii::Patterns::Bool(),
                       "Use projected nonlinear flux to p+1 by default. If false, use unprojected nonlinear flux.");
@@ -160,6 +168,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_collocated_nodes = prm.get_bool("use_collocated_nodes");
     use_split_form = prm.get_bool("use_split_form");
     use_periodic_bc = prm.get_bool("use_periodic_bc");
+    use_energy = prm.get_bool("use_energy");
+    use_jac_sol_points = prm.get_bool("use_jac_sol_points");
     use_projected_flux = prm.get_bool("use_projected_flux");
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");

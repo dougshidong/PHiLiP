@@ -138,9 +138,24 @@ template <int dim, int nstate, typename real>
 std::array<real,nstate> Burgers<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,double> &pos,
-    const std::array<real,nstate> &/*solution*/) const
+    const std::array<real,nstate> &/*solution*/,
+    const real current_time) const
 {
     std::array<real,nstate> source;
+    using TestType = Parameters::AllParameters::TestType;
+
+    if(this->test_type == TestType::burgers_energy_stability){
+        for(int istate =0; istate<nstate; istate++){
+            source[istate] = 0.0;
+            const double pi = atan(1)*4.0;
+            for(int idim=0; idim< dim; idim++){
+                source[istate] += pi * cos(pi*(pos[idim] - current_time))
+                                    *(-0.99 + sin(pi * (pos[idim] - current_time)));
+            }
+        }
+    }
+    else{
+
     const real diff_coeff = diffusion_coefficient();
     // for (int istate=0; istate<nstate; istate++) {
     //     dealii::Tensor<1,dim,real> manufactured_gradient = this->manufactured_solution_function.gradient (pos, istate);
@@ -170,6 +185,8 @@ std::array<real,nstate> Burgers<dim,nstate,real>
             divergence += manufactured_gradient[d];
         }
         source[istate] += 0.5*manufactured_solution*divergence;
+    }
+
     }
 
     // for (int istate=0; istate<nstate; istate++) {

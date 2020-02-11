@@ -4,6 +4,10 @@
 
 #include <deal.II/distributed/solution_transfer.h>
 
+#include <deal.II/grid/tria.h>
+#include <deal.II/distributed/shared_tria.h>
+#include <deal.II/distributed/tria.h>
+
 #include "tests.h"
 #include "grid_study.h"
 #include "grid_refinement_study.h"
@@ -53,8 +57,37 @@ std::vector<int> TestsBase::get_number_1d_cells(const int n_grids) const
 //    solution_transfer.clear();
 //}
 
-template<int dim, int nstate>
-std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
+template<int dim, int nstate, typename MeshType>
+std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
+::select_mesh(const AllParam *const parameters_input) {
+    using Mesh_enum = AllParam::MeshType;
+    Mesh_enum mesh_type = parameters_input->mesh_type;
+
+    if(mesh_type == Mesh_enum::default_triangulation) {
+        #if PHILIP_DIM == 1
+        return TestsFactory<dim,nstate,dealii::Triangulation<dim>>::select_test(parameters_input);
+        #else
+        return TestsFactory<dim,nstate,dealii::parallel::distributed::Triangulation<dim>>::select_test(parameters_input);
+        #endif
+    } else if(mesh_type == Mesh_enum::triangulation) {
+        return TestsFactory<dim,nstate,dealii::Triangulation<dim>>::select_test(parameters_input);
+    } else if(mesh_type == Mesh_enum::parallel_shared_triangulation) {
+        return TestsFactory<dim,nstate,dealii::parallel::shared::Triangulation<dim>>::select_test(parameters_input);
+    } else if(mesh_type == Mesh_enum::parallel_distributed_triangulation) {
+        #if PHILIP_DIM == 1
+        std::cout << "dealii::parallel::distributed::Triangulation is unavailible in 1D." << std::endl;
+        #else
+        return TestsFactory<dim,nstate,dealii::parallel::distributed::Triangulation<dim>>::select_test(parameters_input);
+        #endif
+    } else {
+        std::cout << "Invalid mesh type." << std::endl;
+    }
+
+    return nullptr;
+}
+
+template<int dim, int nstate, typename MeshType>
+std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
 ::select_test(const AllParam *const parameters_input) {
     using Test_enum = AllParam::TestType;
     Test_enum test_type = parameters_input->test_type;
@@ -62,7 +95,7 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
     if(test_type == Test_enum::run_control) {
         return std::make_unique<GridStudy<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::grid_refinement_study) {
-        return std::make_unique<GridRefinementStudy<dim,nstate>>(parameters_input);
+        return std::make_unique<GridRefinementStudy<dim,nstate,MeshType>>(parameters_input);
     } else if(test_type == Test_enum::burgers_energy_stability) {
         if constexpr (dim==1 && nstate==1) return std::make_unique<BurgersEnergyStability<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::diffusion_exact_adjoint) {
@@ -83,15 +116,15 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
         if constexpr (dim>=2 && nstate==PHILIP_DIM+2) return std::make_unique<EulerEntropyWaves<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_split_taylor_green) {
     	if constexpr (dim==3 && nstate == dim+2) return std::make_unique<EulerTaylorGreen<dim,nstate>>(parameters_input);
-    } else{
+    } else {
         std::cout << "Invalid test." << std::endl;
     }
 
     return nullptr;
 }
 
-template<int dim, int nstate>
-std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
+template<int dim, int nstate, typename MeshType>
+std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
 ::create_test(AllParam const *const parameters_input)
 {
     // Recursive templating required because template parameters must be compile time constants
@@ -103,7 +136,7 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
         // then create the selected test with template parameters dim and nstate
         // Otherwise, keep decreasing nstate and dim until it matches
         if(nstate == parameters_input->nstate) 
-            return TestsFactory<dim,nstate>::select_test(parameters_input);
+            return TestsFactory<dim,nstate>::select_mesh(parameters_input);
         else if constexpr (nstate > 1)
             return TestsFactory<dim,nstate-1>::create_test(parameters_input);
         else
@@ -125,7 +158,11 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
 //template class TestsFactory <PHILIP_DIM,2>;
 //template class TestsFactory <PHILIP_DIM,3>;
 //template class TestsFactory <PHILIP_DIM,4>;
-template class TestsFactory <PHILIP_DIM,5>;
+//template class TestsFactory <PHILIP_DIM,5>;
+
+template class TestsFactory <PHILIP_DIM,5,dealii::Triangulation<PHILIP_DIM>>;
+template class TestsFactory <PHILIP_DIM,5,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class TestsFactory <PHILIP_DIM,5,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 
 } // Tests namespace
 } // PHiLiP namespace

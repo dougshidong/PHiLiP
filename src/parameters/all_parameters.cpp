@@ -23,6 +23,20 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Integer(),
                       "Number of dimensions");
 
+
+    prm.declare_entry("mesh_type", "default_triangulation",
+                      dealii::Patterns::Selection(
+                      " default_triangulation | "
+                      " triangulation | "
+                      " parallel_shared_triangulation | "
+                      " parallel_distributed_triangulation"),
+                      "Type of triangulation to be used."
+                      "Note: parralel_distributed_triangulation not availible int 1D."
+                      " <default_triangulation | "
+                      "  triangulation | "
+                      "  parallel_shared_triangulation |"
+                      "  parallel_distributed_triangulation>.");
+
     prm.declare_entry("use_weak_form", "true",
                       dealii::Patterns::Bool(),
                       "Use weak form by default. If false, use strong form.");
@@ -116,7 +130,13 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 {
     pcout << "Parsing main input..." << std::endl;
 
-    dimension                   = prm.get_integer("dimension");
+    dimension = prm.get_integer("dimension");
+
+    const std::string mesh_type_string = prm.get("mesh_type");
+    if (mesh_type_string == "default_triangulation")                   { mesh_type = default_triangulation; }
+    else if (mesh_type_string == "triangulation")                      { mesh_type = triangulation; }
+    else if (mesh_type_string == "parallel_shared_triangulation")      { mesh_type = parallel_shared_triangulation; }
+    else if (mesh_type_string == "parallel_distributed_triangulation") { mesh_type = parallel_distributed_triangulation; }
 
     const std::string test_string = prm.get("test_type");
     if (test_string == "run_control")                      { test_type = run_control; }

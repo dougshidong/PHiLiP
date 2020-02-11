@@ -6,7 +6,10 @@
 #include <deal.II/dofs/dof_tools.h>
 
 #include <deal.II/distributed/tria.h>
+
 #include <deal.II/grid/tria.h>
+#include <deal.II/distributed/shared_tria.h>
+#include <deal.II/distributed/tria.h>
 
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_refinement.h>
@@ -42,16 +45,16 @@ namespace PHiLiP {
     
 namespace Tests {
 
-template <int dim, int nstate>
-GridRefinementStudy<dim,nstate>::GridRefinementStudy(
+template <int dim, int nstate, typename MeshType>
+GridRefinementStudy<dim,nstate,MeshType>::GridRefinementStudy(
     const Parameters::AllParameters *const parameters_input) :
         TestsBase::TestsBase(parameters_input){}
 
-template <int dim, int nstate>
-int GridRefinementStudy<dim,nstate>::run_test() const
+template <int dim, int nstate, typename MeshType>
+int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
 {
     pcout << " Running Grid Refinement Study. " << std::endl;
-    const Parameters::AllParameters param           = *(TestsBase::all_parameters);
+    const Parameters::AllParameters param                = *(TestsBase::all_parameters);
     const Parameters::GridRefinementStudyParam grs_param = param.grid_refinement_study_param;
 
     using ADtype = Sacado::Fad::DFad<double>;
@@ -307,11 +310,23 @@ int GridRefinementStudy<dim,nstate>::run_test() const
     return 0;
 }
 
-template class GridRefinementStudy <PHILIP_DIM,1>;
-template class GridRefinementStudy <PHILIP_DIM,2>;
-template class GridRefinementStudy <PHILIP_DIM,3>;
-template class GridRefinementStudy <PHILIP_DIM,4>;
-template class GridRefinementStudy <PHILIP_DIM,5>;
+template class GridRefinementStudy <PHILIP_DIM,1,dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinementStudy <PHILIP_DIM,2,dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinementStudy <PHILIP_DIM,3,dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinementStudy <PHILIP_DIM,4,dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinementStudy <PHILIP_DIM,5,dealii::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinementStudy <PHILIP_DIM,1,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinementStudy <PHILIP_DIM,2,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinementStudy <PHILIP_DIM,3,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinementStudy <PHILIP_DIM,4,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinementStudy <PHILIP_DIM,5,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinementStudy <PHILIP_DIM,1,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinementStudy <PHILIP_DIM,2,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinementStudy <PHILIP_DIM,3,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinementStudy <PHILIP_DIM,4,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinementStudy <PHILIP_DIM,5,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 
 } // namespace Tests
 

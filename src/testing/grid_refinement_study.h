@@ -11,8 +11,12 @@ namespace PHiLiP {
 namespace Tests {
 
 /// Performs grid convergence for various polynomial degrees.
-template <int dim, int nstate>
-class GridRefinementStudy: public TestsBase
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+template <int dim, int nstate, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class GridRefinementStudy : public TestsBase
 {
 public:
     /// Constructor. Deleted the default constructor since it should not be used

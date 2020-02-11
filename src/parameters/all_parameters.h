@@ -3,6 +3,7 @@
 
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/parameter_handler.h>
+
 #include "parameters.h"
 #include "parameters/parameters_ode_solver.h"
 #include "parameters/parameters_linear_solver.h"
@@ -36,6 +37,15 @@ public:
 
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;
+
+    /// Mesh type to be used in defining the triangulation
+    enum MeshType {
+        default_triangulation,
+        triangulation,
+        parallel_shared_triangulation,
+        parallel_distributed_triangulation,
+        };
+    MeshType mesh_type; //< Selected MeshType from the input file
 
     /// Flag to use weak or strong form of DG
     bool use_weak_form;

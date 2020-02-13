@@ -1125,7 +1125,7 @@ GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase(
 template <int dim, int nstate, typename real, typename MeshType>
 GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase(
     PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
-    std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg_input,
+    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg_input,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input,
     std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional_input) :
         GridRefinementBase<dim,nstate,real>(
@@ -1138,7 +1138,7 @@ GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase(
 template <int dim, int nstate, typename real, typename MeshType>
 GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase(
     PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
-    std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg_input,
+    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg_input,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) : 
         GridRefinementBase<dim,nstate,real>(
             gr_param_input, 
@@ -1149,8 +1149,8 @@ GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase(
 
 template <int dim, int nstate, typename real, typename MeshType>
 GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase(
-    PHiLiP::Parameters::GridRefinementParam      gr_param_input,
-    std::shared_ptr< PHiLiP::DGBase<dim, real> > dg_input) :
+    PHiLiP::Parameters::GridRefinementParam                gr_param_input,
+    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> > dg_input) :
         GridRefinementBase<dim,nstate,real>(
             gr_param_input, 
             nullptr, 
@@ -1164,7 +1164,7 @@ GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase(
     PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
     std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real> >            adj_input,
     std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional_input,
-    std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg_input,
+    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg_input,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) :
         grid_refinement_param(gr_param_input),
         adjoint(adj_input),
@@ -1236,7 +1236,7 @@ template <int dim, int nstate, typename real, typename MeshType>
 std::shared_ptr< GridRefinementBase<dim,nstate,real,MeshType> > 
 GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
     PHiLiP::Parameters::GridRefinementParam                          gr_param,
-    std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg,
+    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics,
     std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional)
 {
@@ -1280,7 +1280,7 @@ template <int dim, int nstate, typename real, typename MeshType>
 std::shared_ptr< GridRefinementBase<dim,nstate,real,MeshType> > 
 GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
     PHiLiP::Parameters::GridRefinementParam                          gr_param,
-    std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg,
+    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics)
 {
     // hessian and error based
@@ -1322,8 +1322,8 @@ GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
 template <int dim, int nstate, typename real, typename MeshType>
 std::shared_ptr< GridRefinementBase<dim,nstate,real,MeshType> > 
 GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
-    PHiLiP::Parameters::GridRefinementParam      gr_param,
-    std::shared_ptr< PHiLiP::DGBase<dim, real> > dg)
+    PHiLiP::Parameters::GridRefinementParam                gr_param,
+    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> > dg)
 {
     // residual based or uniform
     using RefinementMethodEnum = PHiLiP::Parameters::GridRefinementParam::RefinementMethod;

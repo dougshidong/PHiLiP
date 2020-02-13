@@ -657,8 +657,8 @@ private:
         dealii::Vector<real>          &current_cell_rhs,
         dealii::Vector<real>          &neighbor_cell_rhs);
 
-    using DGBase<dim,real>::mpi_communicator; ///< MPI communicator
-    using DGBase<dim,real>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
+    using DGBase<dim,real,MeshType>::mpi_communicator; ///< MPI communicator
+    using DGBase<dim,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
 public:
     /// Change the physics object
@@ -802,9 +802,9 @@ private:
         dealii::Vector<real>          &current_cell_rhs,
         dealii::Vector<real>          &neighbor_cell_rhs);
 
-    using DGBase<dim,real>::all_parameters; ///< Pointer to all parameters
-    using DGBase<dim,real>::mpi_communicator; ///< MPI communicator
-    using DGBase<dim,real>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
+    using DGBase<dim,real,MeshType>::all_parameters; ///< Pointer to all parameters
+    using DGBase<dim,real,MeshType>::mpi_communicator; ///< MPI communicator
+    using DGBase<dim,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
 public:
     /// Change the physics object

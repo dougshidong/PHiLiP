@@ -4,6 +4,10 @@
 
 #include <deal.II/base/qprojector.h>
 
+#include <deal.II/grid/tria.h>
+#include <deal.II/distributed/shared_tria.h>
+#include <deal.II/distributed/tria.h>
+
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_refinement.h>
 
@@ -38,17 +42,11 @@
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/vector_tools.templates.h>
 
-
 #include "dg.h"
 #include "post_processor/physics_post_processor.h"
 
 //template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<PHILIP_DIM> >;
 namespace PHiLiP {
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    template <int dim> using Triangulation = dealii::Triangulation<dim>;
-#else
-    template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-#endif
 
 // DGFactory ***********************************************************************
 template <int dim, typename real, typename MeshType>
@@ -1235,7 +1233,17 @@ std::vector<real> DGBase<dim,real,MeshType>::evaluate_time_steps (const bool exa
 // using default MeshType = Triangulation
 // 1D: dealii::Triangulation<dim>;
 // OW: dealii::parallel::distributed::Triangulation<dim>;
-template class DGBase <PHILIP_DIM, double>;
-template class DGFactory <PHILIP_DIM, double>;
+
+#if 1
+template class DGBase <PHILIP_DIM,double>;
+template class DGFactory <PHILIP_DIM,double>;
+#else
+template class DGBase <PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>;
+template class DGBase <PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGBase <PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGFactory <PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>;
+template class DGFactory <PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGFactory <PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#endif
 
 } // PHiLiP namespace

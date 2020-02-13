@@ -18,22 +18,13 @@ namespace PHiLiP {
 namespace GridRefinement {
 
 // central class of the grid_refinement, controls refinements
-template <int dim, int nstate, typename real>
+#if PHILIP_DIM==1
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
 class GridRefinementBase
 {
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    /** Triangulation to store the grid.
-     *  In 1D, dealii::Triangulation<dim> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-     */
-    using Triangulation = dealii::Triangulation<dim>;
-#else
-    /** Triangulation to store the grid.
-     *  In 1D, dealii::Triangulation<dim> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-     */
-    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-#endif
 public:
     // deleting the default constructor
     GridRefinementBase() = delete;
@@ -142,7 +133,7 @@ protected:
     // triangulation
     // dealii::Triangulation<dim, dim> &tria;
     // Triangulation &tria;
-    Triangulation *const tria;
+    MeshType *const tria;
 
     // iteration counter
     unsigned int iteration;
@@ -175,12 +166,16 @@ protected:
         dealii::update_JxW_values;
 };
 
-template <int dim, int nstate, typename real>
-class GridRefinement_Uniform : public GridRefinementBase<dim,nstate,real>
+#if PHILIP_DIM==1
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class GridRefinement_Uniform : public GridRefinementBase<dim,nstate,real,MeshType>
 {
 public:
-    using GridRefinementBase<dim,nstate,real>::GridRefinementBase;
-    using GridRefinementBase<dim,nstate,real>::MAX_METHOD_VEC;
+    using GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase;
+    using GridRefinementBase<dim,nstate,real,MeshType>::MAX_METHOD_VEC;
     void refine_grid()    override;
 protected:
     void refine_grid_h()  override;
@@ -191,12 +186,16 @@ protected:
         std::array<dealii::Vector<real>,MAX_METHOD_VEC>   &dat_vec_vec) override;
 };
 
-template <int dim, int nstate, typename real>
-class GridRefinement_FixedFraction : public GridRefinementBase<dim,nstate,real>
+#if PHILIP_DIM==1
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class GridRefinement_FixedFraction : public GridRefinementBase<dim,nstate,real,MeshType>
 {
 public:
-    using GridRefinementBase<dim,nstate,real>::GridRefinementBase;
-    using GridRefinementBase<dim,nstate,real>::MAX_METHOD_VEC;
+    using GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase;
+    using GridRefinementBase<dim,nstate,real,MeshType>::MAX_METHOD_VEC;
     void refine_grid()    override;
 protected:
     void refine_grid_h()  override;
@@ -214,40 +213,60 @@ protected:
     dealii::Vector<real> smoothness;
 };
 
-template <int dim, int nstate, typename real>
-class GridRefinement_FixedFraction_Error : public GridRefinement_FixedFraction<dim,nstate,real>
+#if PHILIP_DIM==1
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class GridRefinement_FixedFraction_Error : public GridRefinement_FixedFraction<dim,nstate,real,MeshType>
 {
 public:
-    using GridRefinement_FixedFraction<dim,nstate,real>::GridRefinement_FixedFraction;
+    using GridRefinement_FixedFraction<dim,nstate,real,MeshType>::GridRefinement_FixedFraction;
     void error_indicator() override;
 };
 
-template <int dim, int nstate, typename real>
-class GridRefinement_FixedFraction_Hessian : public GridRefinement_FixedFraction<dim,nstate,real>
+#if PHILIP_DIM==1
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class GridRefinement_FixedFraction_Hessian : public GridRefinement_FixedFraction<dim,nstate,real,MeshType>
 {
 public:
-    using GridRefinement_FixedFraction<dim,nstate,real>::GridRefinement_FixedFraction;
+    using GridRefinement_FixedFraction<dim,nstate,real,MeshType>::GridRefinement_FixedFraction;
     void error_indicator() override;
 };
 
-template <int dim, int nstate, typename real>
-class GridRefinement_FixedFraction_Residual : public GridRefinement_FixedFraction<dim,nstate,real>
+#if PHILIP_DIM==1
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class GridRefinement_FixedFraction_Residual : public GridRefinement_FixedFraction<dim,nstate,real,MeshType>
 {
 public:
-    using GridRefinement_FixedFraction<dim,nstate,real>::GridRefinement_FixedFraction;
+    using GridRefinement_FixedFraction<dim,nstate,real,MeshType>::GridRefinement_FixedFraction;
     void error_indicator() override;
 };
 
-template <int dim, int nstate, typename real>
-class GridRefinement_FixedFraction_Adjoint : public GridRefinement_FixedFraction<dim,nstate,real>
+#if PHILIP_DIM==1
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class GridRefinement_FixedFraction_Adjoint : public GridRefinement_FixedFraction<dim,nstate,real,MeshType>
 {
 public:
-    using GridRefinement_FixedFraction<dim,nstate,real>::GridRefinement_FixedFraction;
+    using GridRefinement_FixedFraction<dim,nstate,real,MeshType>::GridRefinement_FixedFraction;
     void error_indicator() override;
 };
 
-template <int dim, int nstate, typename real>
-class GridRefinement_Continuous : public GridRefinementBase<dim,nstate,real>
+#if PHILIP_DIM==1
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class GridRefinement_Continuous : public GridRefinementBase<dim,nstate,real,MeshType>
 {
 public:
     
@@ -259,7 +278,7 @@ public:
         PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
         std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real> >            adj_input,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) : 
-            GridRefinement_Continuous<dim,nstate,real>(
+            GridRefinement_Continuous<dim,nstate,real,MeshType>(
                 gr_param_input,
                 adj_input,
                 adj_input->functional, 
@@ -271,7 +290,7 @@ public:
         std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg_input,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input,
         std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional_input) : 
-            GridRefinement_Continuous<dim,nstate,real>(
+            GridRefinement_Continuous<dim,nstate,real,MeshType>(
                 gr_param_input, 
                 nullptr, 
                 functional_input, 
@@ -282,7 +301,7 @@ public:
         PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
         std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg_input,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) : 
-            GridRefinement_Continuous<dim,nstate,real>(
+            GridRefinement_Continuous<dim,nstate,real,MeshType>(
                 gr_param_input, 
                 nullptr, 
                 nullptr, 
@@ -293,7 +312,7 @@ public:
         PHiLiP::Parameters::GridRefinementParam      gr_param_input,
         // PHiLiP::Parameters::AllParameters const *const param_input,
         std::shared_ptr< PHiLiP::DGBase<dim, real> > dg_input) :
-            GridRefinement_Continuous<dim,nstate,real>(
+            GridRefinement_Continuous<dim,nstate,real,MeshType>(
                 gr_param_input, 
                 nullptr, 
                 nullptr, 
@@ -308,7 +327,7 @@ protected:
         std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional_input,
         std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg_input,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) : 
-            GridRefinementBase<dim,nstate,real>(
+            GridRefinementBase<dim,nstate,real,MeshType>(
                 gr_param_input,
                 adj_input,
                 functional_input,
@@ -331,8 +350,8 @@ protected:
         target_complexity();
     }
 
-    using GridRefinementBase<dim,nstate,real>::GridRefinementBase;
-    using GridRefinementBase<dim,nstate,real>::MAX_METHOD_VEC;
+    using GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase;
+    using GridRefinementBase<dim,nstate,real,MeshType>::MAX_METHOD_VEC;
     void refine_grid()    override;
 protected:
     void refine_grid_h()  override;
@@ -360,60 +379,80 @@ protected:
     dealii::Vector<real> p_field;
 };
 
-template <int dim, int nstate, typename real>
-class GridRefinement_Continuous_Error : public GridRefinement_Continuous<dim,nstate,real>
+#if PHILIP_DIM==1
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class GridRefinement_Continuous_Error : public GridRefinement_Continuous<dim,nstate,real,MeshType>
 {
 public:
-    using GridRefinement_Continuous<dim,nstate,real>::GridRefinement_Continuous;
+    using GridRefinement_Continuous<dim,nstate,real,MeshType>::GridRefinement_Continuous;
     void field_h()  override;
     void field_p()  override;
     void field_hp() override;
 };
 
-template <int dim, int nstate, typename real>
-class GridRefinement_Continuous_Hessian : public GridRefinement_Continuous<dim,nstate,real>
+#if PHILIP_DIM==1
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class GridRefinement_Continuous_Hessian : public GridRefinement_Continuous<dim,nstate,real,MeshType>
 {
 public:
-    using GridRefinement_Continuous<dim,nstate,real>::GridRefinement_Continuous;
+    using GridRefinement_Continuous<dim,nstate,real,MeshType>::GridRefinement_Continuous;
     void field_h()  override;
     void field_p()  override;
     void field_hp() override;
 };
 
-template <int dim, int nstate, typename real>
-class GridRefinement_Continuous_Residual : public GridRefinement_Continuous<dim,nstate,real>
+#if PHILIP_DIM==1
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class GridRefinement_Continuous_Residual : public GridRefinement_Continuous<dim,nstate,real,MeshType>
 {
 public:
-    using GridRefinement_Continuous<dim,nstate,real>::GridRefinement_Continuous;
+    using GridRefinement_Continuous<dim,nstate,real,MeshType>::GridRefinement_Continuous;
     void field_h()  override;
     void field_p()  override;
     void field_hp() override;
 };
 
-template <int dim, int nstate, typename real>
-class GridRefinement_Continuous_Adjoint : public GridRefinement_Continuous<dim,nstate,real>
+#if PHILIP_DIM==1
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class GridRefinement_Continuous_Adjoint : public GridRefinement_Continuous<dim,nstate,real,MeshType>
 {
 public:
-    using GridRefinement_Continuous<dim,nstate,real>::GridRefinement_Continuous;
+    using GridRefinement_Continuous<dim,nstate,real,MeshType>::GridRefinement_Continuous;
     void field_h()  override;
     void field_p()  override;
     void field_hp() override;
 };
 
-template <int dim, int nstate, typename real>
+#if PHILIP_DIM==1
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
 class GridRefinementFactory
 {
 public:
     // different factory calls have access to different Grid refinements
     // adjoint (dg + functional)
-    static std::shared_ptr< GridRefinementBase<dim,nstate,real> > 
+    static std::shared_ptr< GridRefinementBase<dim,nstate,real,MeshType> > 
     create_GridRefinement(
         PHiLiP::Parameters::GridRefinementParam                          gr_param,
         std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real> >            adj,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input);
 
     // dg + physics + Functional
-    static std::shared_ptr< GridRefinementBase<dim,nstate,real> > 
+    static std::shared_ptr< GridRefinementBase<dim,nstate,real,MeshType> > 
     create_GridRefinement(
         PHiLiP::Parameters::GridRefinementParam                          gr_param,
         std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg,
@@ -421,14 +460,14 @@ public:
         std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional);
 
     // dg + physics
-    static std::shared_ptr< GridRefinementBase<dim,nstate,real> > 
+    static std::shared_ptr< GridRefinementBase<dim,nstate,real,MeshType> > 
     create_GridRefinement(
         PHiLiP::Parameters::GridRefinementParam                          gr_param,
         std::shared_ptr< PHiLiP::DGBase<dim, real> >                     dg,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics);
 
     // dg 
-    static std::shared_ptr< GridRefinementBase<dim,nstate,real> > 
+    static std::shared_ptr< GridRefinementBase<dim,nstate,real,MeshType> > 
     create_GridRefinement(
         PHiLiP::Parameters::GridRefinementParam      gr_param,
         std::shared_ptr< PHiLiP::DGBase<dim, real> > dg);

@@ -7,8 +7,8 @@
 namespace PHiLiP {
 namespace ODE {
 
-template <int dim, typename real>
-ODESolver<dim,real>::ODESolver(std::shared_ptr< DGBase<dim, real> > dg_input)
+template <int dim, typename real, typename MeshType>
+ODESolver<dim,real,MeshType>::ODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
     : current_time(0.0)
     , dg(dg_input)
     , all_parameters(dg->all_parameters)
@@ -16,8 +16,8 @@ ODESolver<dim,real>::ODESolver(std::shared_ptr< DGBase<dim, real> > dg_input)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {}
 
-template <int dim, typename real>
-void ODESolver<dim,real>::initialize_steady_polynomial_ramping (const unsigned int global_final_poly_degree)
+template <int dim, typename real, typename MeshType>
+void ODESolver<dim,real,MeshType>::initialize_steady_polynomial_ramping (const unsigned int global_final_poly_degree)
 {
     pcout << " ************************************************************************ " << std::endl;
     pcout << " Initializing DG with global polynomial degree = " << global_final_poly_degree << " by ramping from degree 0 ... " << std::endl;
@@ -57,10 +57,10 @@ void ODESolver<dim,real>::initialize_steady_polynomial_ramping (const unsigned i
     }
 }
 
-template <int dim, typename real>
-int ODESolver<dim,real>::steady_state ()
+template <int dim, typename real, typename MeshType>
+int ODESolver<dim,real,MeshType>::steady_state ()
 {
-    Parameters::ODESolverParam ode_param = ODESolver<dim,real>::all_parameters->ode_solver_param;
+    Parameters::ODESolverParam ode_param = ODESolver<dim,real,MeshType>::all_parameters->ode_solver_param;
     if (ode_param.output_solution_every_x_steps >= 0) this->dg->output_results_vtk(this->current_iteration);
     pcout << " Performing steady state analysis... " << std::endl;
     allocate_ode_system ();
@@ -135,10 +135,10 @@ int ODESolver<dim,real>::steady_state ()
     return 1;
 }
 
-template <int dim, typename real>
-int ODESolver<dim,real>::advance_solution_time (double time_advance)
+template <int dim, typename real, typename MeshType>
+int ODESolver<dim,real,MeshType>::advance_solution_time (double time_advance)
 {
-    Parameters::ODESolverParam ode_param = ODESolver<dim,real>::all_parameters->ode_solver_param;
+    Parameters::ODESolverParam ode_param = ODESolver<dim,real,MeshType>::all_parameters->ode_solver_param;
 
     const unsigned int number_of_time_steps = static_cast<int>(ceil(time_advance/ode_param.initial_time_step));
     const double constant_time_step = time_advance/number_of_time_steps;
@@ -184,15 +184,15 @@ int ODESolver<dim,real>::advance_solution_time (double time_advance)
     return 1;
 }
 
-template <int dim, typename real>
-void Implicit_ODESolver<dim,real>::step_in_time (real dt)
+template <int dim, typename real, typename MeshType>
+void Implicit_ODESolver<dim,real,MeshType>::step_in_time (real dt)
 {
     const bool compute_dRdW = true;
     this->dg->assemble_residual(compute_dRdW);
     this->current_time += dt;
     // Solve (M/dt - dRdW) dw = R
     // w = w + dw
-    Parameters::ODESolverParam ode_param = ODESolver<dim,real>::all_parameters->ode_solver_param;
+    Parameters::ODESolverParam ode_param = ODESolver<dim,real,MeshType>::all_parameters->ode_solver_param;
 
     this->dg->system_matrix *= -1.0;
 
@@ -207,15 +207,15 @@ void Implicit_ODESolver<dim,real>::step_in_time (real dt)
         this->dg->system_matrix,
         this->dg->right_hand_side, 
         this->solution_update,
-        this->ODESolver<dim,real>::all_parameters->linear_solver_param);
+        this->ODESolver<dim,real,MeshType>::all_parameters->linear_solver_param);
 
     this->dg->solution += this->solution_update;
 
     this->update_norm = this->solution_update.l2_norm();
 }
 
-template <int dim, typename real>
-void Explicit_ODESolver<dim,real>::step_in_time (real dt)
+template <int dim, typename real, typename MeshType>
+void Explicit_ODESolver<dim,real,MeshType>::step_in_time (real dt)
 {
     // this->dg->assemble_residual (); // Not needed since it is called in the base class for time step
     this->current_time += dt;
@@ -265,8 +265,8 @@ void Explicit_ODESolver<dim,real>::step_in_time (real dt)
 
 }
 
-template <int dim, typename real>
-void Explicit_ODESolver<dim,real>::allocate_ode_system ()
+template <int dim, typename real, typename MeshType>
+void Explicit_ODESolver<dim,real,MeshType>::allocate_ode_system ()
 {
     const bool do_inverse_mass_matrix = true;
     this->solution_update.reinit(this->dg->right_hand_side);
@@ -277,16 +277,16 @@ void Explicit_ODESolver<dim,real>::allocate_ode_system ()
         this->rk_stage[i].reinit(this->dg->solution);
     }
 }
-template <int dim, typename real>
-void Implicit_ODESolver<dim,real>::allocate_ode_system ()
+template <int dim, typename real, typename MeshType>
+void Implicit_ODESolver<dim,real,MeshType>::allocate_ode_system ()
 {
     const bool do_inverse_mass_matrix = false;
     this->solution_update.reinit(this->dg->right_hand_side);
     this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
 }
 
-//template <int dim, typename real>
-//std::shared_ptr<ODESolver<dim,real>> ODESolverFactory<dim,real>::create_ODESolver(Parameters::ODESolverParam::ODESolverEnum ode_solver_type)
+//template <int dim, typename real, typename MeshType>
+//std::shared_ptr<ODESolver<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_ODESolver(Parameters::ODESolverParam::ODESolverEnum ode_solver_type)
 //{
 //    using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
 //    if(ode_solver_type == ODEEnum::explicit_solver) return std::make_shared<Explicit_ODESolver<dim,real>>();
@@ -296,13 +296,13 @@ void Implicit_ODESolver<dim,real>::allocate_ode_system ()
 //        return nullptr;
 //    }
 //}
-template <int dim, typename real>
-std::shared_ptr<ODESolver<dim,real>> ODESolverFactory<dim,real>::create_ODESolver(std::shared_ptr< DGBase<dim,real> > dg_input)
+template <int dim, typename real, typename MeshType>
+std::shared_ptr<ODESolver<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_ODESolver(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input)
 {
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
-    if(ode_solver_type == ODEEnum::explicit_solver) return std::make_shared<Explicit_ODESolver<dim,real>>(dg_input);
-    if(ode_solver_type == ODEEnum::implicit_solver) return std::make_shared<Implicit_ODESolver<dim,real>>(dg_input);
+    if(ode_solver_type == ODEEnum::explicit_solver) return std::make_shared<Explicit_ODESolver<dim,real,MeshType>>(dg_input);
+    if(ode_solver_type == ODEEnum::implicit_solver) return std::make_shared<Implicit_ODESolver<dim,real,MeshType>>(dg_input);
     else {
         dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
         pcout << "********************************************************************" << std::endl;
@@ -317,10 +317,25 @@ std::shared_ptr<ODESolver<dim,real>> ODESolverFactory<dim,real>::create_ODESolve
     }
 }
 
-template class ODESolver<PHILIP_DIM, double>;
-template class Explicit_ODESolver<PHILIP_DIM, double>;
-template class Implicit_ODESolver<PHILIP_DIM, double>;
-template class ODESolverFactory<PHILIP_DIM, double>;
+// dealii::Triangulation<PHILIP_DIM>
+template class ODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
+template class Explicit_ODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
+template class Implicit_ODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
+template class ODESolverFactory<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
+
+// dealii::parallel::shared::Triangulation<PHILIP_DIM>
+template class ODESolver<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class Explicit_ODESolver<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class Implicit_ODESolver<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class ODESolverFactory<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+#if PHILIP_DIM != 1
+// dealii::parallel::distributed::Triangulation<PHILIP_DIM>
+template class ODESolver<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class Explicit_ODESolver<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class Implicit_ODESolver<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class ODESolverFactory<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#endif
 
 } // ODE namespace
 } // PHiLiP namespace

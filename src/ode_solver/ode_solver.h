@@ -18,12 +18,16 @@ namespace ODE {
  *      \frac{\partial \mathbf{u}}{\partial t} = \mathbf{R}(\mathbf{u})
  *  \f]
  */
-template <int dim, typename real>
+#if PHILIP_DIM==1
+template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
 class ODESolver
 {
 public:
     ODESolver(int ode_solver_type); ///< Constructor.
-    ODESolver(std::shared_ptr< DGBase<dim, real> > dg_input); ///< Constructor.
+    ODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input); ///< Constructor.
     virtual ~ODESolver() {}; ///< Destructor.
 
     /// Useful for accurate time-stepping.
@@ -74,7 +78,7 @@ protected:
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;
 
     /// Smart pointer to DGBase
-    std::shared_ptr<DGBase<dim,real>> dg;
+    std::shared_ptr<DGBase<dim,real,MeshType>> dg;
 
     /// Input parameters.
     const Parameters::AllParameters *const all_parameters;
@@ -103,16 +107,20 @@ protected:
  *      \left. \frac{\partial \mathbf{R}}{\partial \mathbf{u}} \right|_{\mathbf{u}^{n}} (\mathbf{u}^{n+1} - \mathbf{u}^{n})
  *  \f]
  */
-template<int dim, typename real>
+#if PHILIP_DIM==1
+template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
 class Implicit_ODESolver
-    : public ODESolver<dim, real>
+    : public ODESolver<dim, real, MeshType>
 {
 public:
     Implicit_ODESolver() = delete; ///< Constructor.
     /// Constructor.
-    Implicit_ODESolver(std::shared_ptr<DGBase<dim, real>> dg_input)
+    Implicit_ODESolver(std::shared_ptr<DGBase<dim, real, MeshType>> dg_input)
     :
-    ODESolver<dim,real>::ODESolver(dg_input)
+    ODESolver<dim,real,MeshType>::ODESolver(dg_input)
     {};
     ~Implicit_ODESolver() {}; ///< Destructor.
     /// Allocates ODE system based on given DGBase.
@@ -123,7 +131,7 @@ protected:
     /// Advances the solution in time by \p dt.
     void step_in_time(real dt);
 
-    using ODESolver<dim,real>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
+    using ODESolver<dim,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
 }; // end of Implicit_ODESolver class
 
@@ -132,14 +140,18 @@ protected:
 /** Not tested. It worked a few commits ago before some major changes.
  *  Used to use assemble_implicit and just use the right-hand-side ignoring the system matrix
  */
-template<int dim, typename real>
+#if PHILIP_DIM==1
+template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
 class Explicit_ODESolver
-    : public ODESolver<dim, real>
+    : public ODESolver<dim, real, MeshType>
 {
 public:
     /// Constructor.
-    Explicit_ODESolver(std::shared_ptr<DGBase<dim, real>> dg_input)
-    : ODESolver<dim,real>::ODESolver(dg_input) 
+    Explicit_ODESolver(std::shared_ptr<DGBase<dim, real, MeshType>> dg_input)
+    : ODESolver<dim,real,MeshType>::ODESolver(dg_input) 
     {};
     /// Destructor.
     ~Explicit_ODESolver() {};
@@ -150,19 +162,23 @@ public:
 
 protected:
     void step_in_time(real dt); ///< Advances the solution in time by \p dt.
-    using ODESolver<dim,real>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
+    using ODESolver<dim,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 }; // end of Explicit_ODESolver class
 
 /// Creates and assemble Explicit_ODESolver or Implicit_ODESolver as ODESolver based on input.
-template <int dim, typename real>
+#if PHILIP_DIM==1
+template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
 class ODESolverFactory
 {
 public:
     /// Creates the ODE solver given a DGBase.
     /** The input parameters are copied from the DGBase since they should be consistent
      */
-    static std::shared_ptr<ODESolver<dim,real>> create_ODESolver(std::shared_ptr< DGBase<dim, real> > dg_input);
-    // static std::shared_ptr<ODESolver<dim,real>> create_ODESolver(Parameters::ODESolverParam::ODESolverEnum ode_solver_type);
+    static std::shared_ptr<ODESolver<dim,real,MeshType>> create_ODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
+    // static std::shared_ptr<ODESolver<dim,real,MeshType>> create_ODESolver(Parameters::ODESolverParam::ODESolverEnum ode_solver_type);
 };
 
 

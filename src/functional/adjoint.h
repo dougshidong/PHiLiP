@@ -34,14 +34,13 @@ namespace PHiLiP {
   * Includes functions for solving both the coarse and fine \f$p\f$-enriched adjoint problems. Subscripts \f$H\f$ 
   * and \f$h\f$ are used to denote coarse and fine grid variables respectively. 
   */ 
-template <int dim, int nstate, typename real>
+ #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
 class Adjoint
 {
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    using Triangulation = dealii::Triangulation<dim>;
-#else
-    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-#endif
 public:
 
     /// For storing the current state in the adjoint
@@ -56,7 +55,7 @@ public:
      *  for the mesh for converting back to coarse state after refinement.
      */
     Adjoint(
-        std::shared_ptr< DGBase<dim,real> > _dg,
+        std::shared_ptr< DGBase<dim,real,MeshType> > _dg,
         std::shared_ptr< Functional<dim, nstate, real> > _functional,
         std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> > _physics);
 
@@ -125,14 +124,14 @@ public:
     void output_results_vtk(const unsigned int cycle);
 
     /// DG class pointer
-    std::shared_ptr< DGBase<dim,real> > dg;
+    std::shared_ptr< DGBase<dim,real,MeshType> > dg;
     /// Functional class pointer
     std::shared_ptr< Functional<dim, nstate, real> > functional;
     /// Problem physics (for calling the functional class) 
     std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> > physics;
     
     /// Grid
-    Triangulation *const triangulation;
+    MeshType *const triangulation;
     /// original solution
     dealii::LinearAlgebra::distributed::Vector<real> solution_coarse;
     /// functional derivative (on the fine grid)

@@ -2,6 +2,8 @@
 #define __HIGHORDERGRID_H__
 
 #include <deal.II/grid/tria.h>
+#include <deal.II/distributed/shared_tria.h>
+#include <deal.II/distributed/tria.h>
 
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/fe/mapping_fe_field.h> 

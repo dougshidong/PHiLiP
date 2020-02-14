@@ -5,6 +5,10 @@
 
 #include <deal.II/dofs/dof_tools.h>
 
+#include <deal.II/grid/tria.h>
+#include <deal.II/distributed/shared_tria.h>
+#include <deal.II/distributed/tria.h>
+
 #include <deal.II/lac/la_parallel_vector.h>
 #include <deal.II/distributed/solution_transfer.h>
 
@@ -27,9 +31,9 @@
 namespace PHiLiP {
 
 // constructor
-template <int dim, int nstate, typename real>
-Adjoint<dim, nstate, real>::Adjoint(
-    std::shared_ptr< DGBase<dim,real> > _dg, 
+template <int dim, int nstate, typename real, typename MeshType>
+Adjoint<dim, nstate, real, MeshType>::Adjoint(
+    std::shared_ptr< DGBase<dim,real,MeshType> > _dg, 
     std::shared_ptr< Functional<dim, nstate, real> > _functional,
     std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> > _physics):
     dg(_dg),
@@ -51,11 +55,11 @@ Adjoint<dim, nstate, real>::Adjoint(
 }
 
 // destructor
-template <int dim, int nstate, typename real>
-Adjoint<dim, nstate, real>::~Adjoint(){}
+template <int dim, int nstate, typename real, typename MeshType>
+Adjoint<dim, nstate, real, MeshType>::~Adjoint(){}
 
-template <int dim, int nstate, typename real>
-void Adjoint<dim, nstate, real>::reinit()
+template <int dim, int nstate, typename real, typename MeshType>
+void Adjoint<dim, nstate, real, MeshType>::reinit()
 {
     // assuming that all pointers are still valid
     // reinitilizing all variables after triangulation in the constructor
@@ -79,8 +83,8 @@ void Adjoint<dim, nstate, real>::reinit()
     dual_weighted_residual_fine = dealii::Vector<real>();
 }
 
-template <int dim, int nstate, typename real>
-void Adjoint<dim, nstate, real>::convert_to_state(AdjointStateEnum state)
+template <int dim, int nstate, typename real, typename MeshType>
+void Adjoint<dim, nstate, real, MeshType>::convert_to_state(AdjointStateEnum state)
 {   
     // checks if conversion is needed
     if(adjoint_state == state) 
@@ -94,8 +98,8 @@ void Adjoint<dim, nstate, real>::convert_to_state(AdjointStateEnum state)
         fine_to_coarse();
 }
 
-template <int dim, int nstate, typename real>
-void Adjoint<dim, nstate, real>::coarse_to_fine()
+template <int dim, int nstate, typename real, typename MeshType>
+void Adjoint<dim, nstate, real, MeshType>::coarse_to_fine()
 {
     dealii::IndexSet locally_owned_dofs, locally_relevant_dofs;
     locally_owned_dofs =  dg->dof_handler.locally_owned_dofs();
@@ -128,8 +132,8 @@ void Adjoint<dim, nstate, real>::coarse_to_fine()
     adjoint_state = AdjointStateEnum::fine;
 }
 
-template <int dim, int nstate, typename real>
-void Adjoint<dim, nstate, real>::fine_to_coarse()
+template <int dim, int nstate, typename real, typename MeshType>
+void Adjoint<dim, nstate, real, MeshType>::fine_to_coarse()
 {
     dg->high_order_grid.prepare_for_coarsening_and_refinement();
     dg->triangulation->prepare_coarsening_and_refinement();
@@ -149,8 +153,8 @@ void Adjoint<dim, nstate, real>::fine_to_coarse()
     adjoint_state = AdjointStateEnum::coarse;
 }
 
-template <int dim, int nstate, typename real>
-dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nstate, real>::fine_grid_adjoint()
+template <int dim, int nstate, typename real, typename MeshType>
+dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nstate, real, MeshType>::fine_grid_adjoint()
 {
     convert_to_state(AdjointStateEnum::fine);
 
@@ -178,8 +182,8 @@ dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nstate, real>::fin
     return adjoint_fine;
 }
 
-template <int dim, int nstate, typename real>
-dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nstate, real>::coarse_grid_adjoint()
+template <int dim, int nstate, typename real, typename MeshType>
+dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nstate, real, MeshType>::coarse_grid_adjoint()
 {
     convert_to_state(AdjointStateEnum::coarse);
 
@@ -207,8 +211,8 @@ dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nstate, real>::coa
     return adjoint_coarse;
 }
 
-template <int dim, int nstate, typename real>
-dealii::Vector<real> Adjoint<dim, nstate, real>::dual_weighted_residual()
+template <int dim, int nstate, typename real, typename MeshType>
+dealii::Vector<real> Adjoint<dim, nstate, real, MeshType>::dual_weighted_residual()
 {
     convert_to_state(AdjointStateEnum::fine);
 
@@ -240,8 +244,8 @@ dealii::Vector<real> Adjoint<dim, nstate, real>::dual_weighted_residual()
     return dual_weighted_residual_fine;
 }
 
-template <int dim, int nstate, typename real>
-void Adjoint<dim,nstate,real>::output_results_vtk(const unsigned int cycle)
+template <int dim, int nstate, typename real, typename MeshType>
+void Adjoint<dim, nstate, real, MeshType>::output_results_vtk(const unsigned int cycle)
 {
     dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> data_out;
     data_out.attach_dof_handler(dg->dof_handler);
@@ -338,10 +342,24 @@ void Adjoint<dim,nstate,real>::output_results_vtk(const unsigned int cycle)
     }
 }
 
-template class Adjoint <PHILIP_DIM, 1, double>;
-template class Adjoint <PHILIP_DIM, 2, double>;
-template class Adjoint <PHILIP_DIM, 3, double>;
-template class Adjoint <PHILIP_DIM, 4, double>;
-template class Adjoint <PHILIP_DIM, 5, double>;
+template class Adjoint <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class Adjoint <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class Adjoint <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class Adjoint <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class Adjoint <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+
+template class Adjoint <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class Adjoint <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class Adjoint <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class Adjoint <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class Adjoint <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+#if PHILIP_DIM!=1
+template class Adjoint <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class Adjoint <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class Adjoint <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class Adjoint <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class Adjoint <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#endif
 
 } // PHiLiP namespace

@@ -32,7 +32,7 @@ public:
     // constructor stores the parameters
     GridRefinementBase(
         PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
-        std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real> >            adj_input,
+        std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >  adj_input,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input);
 
     GridRefinementBase(
@@ -55,7 +55,7 @@ protected:
     // delegated constructor
     GridRefinementBase(
         PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
-        std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real> >            adj_input,
+        std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >  adj_input,
         std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional_input,
         std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg_input,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input);
@@ -115,7 +115,7 @@ protected:
     PHiLiP::Parameters::GridRefinementParam grid_refinement_param;
 
     // adj
-    std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real> > adjoint;
+    std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> > adjoint;
 
     // Functional
     std::shared_ptr< PHiLiP::Functional<dim, nstate, real> > functional;
@@ -276,7 +276,7 @@ public:
     // overriding the other constructors to call this delegated constructors constructors
     GridRefinement_Continuous(
         PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
-        std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real> >            adj_input,
+        std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >  adj_input,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) : 
             GridRefinement_Continuous<dim,nstate,real,MeshType>(
                 gr_param_input,
@@ -323,7 +323,7 @@ protected:
     // delegated constructor
     GridRefinement_Continuous(
         PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
-        std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real> >            adj_input,
+        std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >  adj_input,
         std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional_input,
         std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg_input,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) : 
@@ -448,7 +448,7 @@ public:
     static std::shared_ptr< GridRefinementBase<dim,nstate,real,MeshType> > 
     create_GridRefinement(
         PHiLiP::Parameters::GridRefinementParam                          gr_param,
-        std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real> >            adj,
+        std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >  adj,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input);
 
     // dg + physics + Functional

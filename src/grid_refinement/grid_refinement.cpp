@@ -506,7 +506,7 @@ void GridRefinement_FixedFraction_Adjoint<dim,nstate,real,MeshType>::error_indic
     this->adjoint->reinit();
 
     // evaluating the functional derivatives and adjoint
-    this->adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,real>::AdjointStateEnum::fine);
+    this->adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,real,MeshType>::AdjointStateEnum::fine);
     this->adjoint->fine_grid_adjoint();
     
     // reinitializing the error indicator vector
@@ -514,7 +514,7 @@ void GridRefinement_FixedFraction_Adjoint<dim,nstate,real,MeshType>::error_indic
     this->indicator = this->adjoint->dual_weighted_residual();
 
     // return to the coarse grid
-    this->adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,real>::AdjointStateEnum::coarse);
+    this->adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,real,MeshType>::AdjointStateEnum::coarse);
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -789,7 +789,7 @@ void GridRefinement_Continuous_Hessian<dim,nstate,real,MeshType>::field_h()
             poly_degree);
     }else{
         // the case of non-uniform p
-        GridRefinement_Continuous<dim,nstate,real>::get_current_field_p();
+        GridRefinement_Continuous<dim,nstate,real,MeshType>::get_current_field_p();
 
         SizeField<dim,real>::isotropic_h(
             this->complexity_target,
@@ -1006,7 +1006,7 @@ void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk_adjoint(
     data_out.add_data_vector(adjoint->dual_weighted_residual_fine, "DWR", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
     // returning to original state
-    adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::coarse);
+    adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double,MeshType>::AdjointStateEnum::coarse);
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -1113,9 +1113,9 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::output_results_vtk_met
 template <int dim, int nstate, typename real, typename MeshType>
 GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase(
     PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
-    std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real> >            adj_input,
+    std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >  adj_input,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) : 
-        GridRefinementBase<dim,nstate,real>(
+        GridRefinementBase<dim,nstate,real,MeshType>(
             gr_param_input, 
             adj_input, 
             adj_input->functional, 
@@ -1128,7 +1128,7 @@ GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase(
     std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg_input,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input,
     std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional_input) :
-        GridRefinementBase<dim,nstate,real>(
+        GridRefinementBase<dim,nstate,real,MeshType>(
             gr_param_input, 
             nullptr, 
             functional_input, 
@@ -1140,7 +1140,7 @@ GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase(
     PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
     std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg_input,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) : 
-        GridRefinementBase<dim,nstate,real>(
+        GridRefinementBase<dim,nstate,real,MeshType>(
             gr_param_input, 
             nullptr, 
             nullptr, 
@@ -1151,7 +1151,7 @@ template <int dim, int nstate, typename real, typename MeshType>
 GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase(
     PHiLiP::Parameters::GridRefinementParam                gr_param_input,
     std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> > dg_input) :
-        GridRefinementBase<dim,nstate,real>(
+        GridRefinementBase<dim,nstate,real,MeshType>(
             gr_param_input, 
             nullptr, 
             nullptr, 
@@ -1162,7 +1162,7 @@ GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase(
 template <int dim, int nstate, typename real, typename MeshType>
 GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase(
     PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
-    std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real> >            adj_input,
+    std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >  adj_input,
     std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional_input,
     std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg_input,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) :
@@ -1184,7 +1184,7 @@ template <int dim, int nstate, typename real, typename MeshType>
 std::shared_ptr< GridRefinementBase<dim,nstate,real,MeshType> > 
 GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
     PHiLiP::Parameters::GridRefinementParam                          gr_param,
-    std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real> >            adj,
+    std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >  adj,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics)
 {
     // all adjoint based methods should be constructed here
@@ -1196,36 +1196,36 @@ GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
     // adjoint (dg + functional)
     if(refinement_method == RefinementMethodEnum::fixed_fraction &&
        error_indicator   == ErrorIndicatorEnum::adjoint_based){
-        return std::make_shared< GridRefinement_FixedFraction_Adjoint<dim,nstate,real> >(gr_param, adj, physics);
+        return std::make_shared< GridRefinement_FixedFraction_Adjoint<dim,nstate,real,MeshType> >(gr_param, adj, physics);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::adjoint_based){
-        return std::make_shared< GridRefinement_Continuous_Adjoint<dim,nstate,real> >(gr_param, adj, physics);
+        return std::make_shared< GridRefinement_Continuous_Adjoint<dim,nstate,real,MeshType> >(gr_param, adj, physics);
     }
 
     // dg + physics
     if(refinement_method == RefinementMethodEnum::fixed_fraction &&
        error_indicator   == ErrorIndicatorEnum::hessian_based){
-        return std::make_shared< GridRefinement_FixedFraction_Hessian<dim,nstate,real> >(gr_param, adj, physics);
+        return std::make_shared< GridRefinement_FixedFraction_Hessian<dim,nstate,real,MeshType> >(gr_param, adj, physics);
     }else if(refinement_method == RefinementMethodEnum::fixed_fraction &&
              error_indicator   == ErrorIndicatorEnum::error_based){
-        return std::make_shared< GridRefinement_FixedFraction_Error<dim,nstate,real> >(gr_param, adj, physics);
+        return std::make_shared< GridRefinement_FixedFraction_Error<dim,nstate,real,MeshType> >(gr_param, adj, physics);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::hessian_based){
-        return std::make_shared< GridRefinement_Continuous_Hessian<dim,nstate,real> >(gr_param, adj, physics);
+        return std::make_shared< GridRefinement_Continuous_Hessian<dim,nstate,real,MeshType> >(gr_param, adj, physics);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::error_based){
-        return std::make_shared< GridRefinement_Continuous_Error<dim,nstate,real> >(gr_param, adj, physics);
+        return std::make_shared< GridRefinement_Continuous_Error<dim,nstate,real,MeshType> >(gr_param, adj, physics);
     }
 
     // dg
     if(refinement_method == RefinementMethodEnum::fixed_fraction &&
        error_indicator   == ErrorIndicatorEnum::residual_based){
-        return std::make_shared< GridRefinement_FixedFraction_Residual<dim,nstate,real> >(gr_param, adj, physics);
+        return std::make_shared< GridRefinement_FixedFraction_Residual<dim,nstate,real,MeshType> >(gr_param, adj, physics);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::residual_based){
-        return std::make_shared< GridRefinement_Continuous_Residual<dim,nstate,real> >(gr_param, adj, physics);
+        return std::make_shared< GridRefinement_Continuous_Residual<dim,nstate,real,MeshType> >(gr_param, adj, physics);
     }else if(refinement_method == RefinementMethodEnum::uniform){
-        return std::make_shared< GridRefinement_Uniform<dim, nstate, real> >(gr_param, adj, physics);
+        return std::make_shared< GridRefinement_Uniform<dim,nstate,real,MeshType> >(gr_param, adj, physics);
     }
 
     return create_GridRefinement(gr_param, adj->dg, physics, adj->functional);
@@ -1249,27 +1249,27 @@ GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
     // dg + physics
     if(refinement_method == RefinementMethodEnum::fixed_fraction &&
        error_indicator   == ErrorIndicatorEnum::hessian_based){
-        return std::make_shared< GridRefinement_FixedFraction_Hessian<dim,nstate,real> >(gr_param, dg, physics, functional);
+        return std::make_shared< GridRefinement_FixedFraction_Hessian<dim,nstate,real,MeshType> >(gr_param, dg, physics, functional);
     }else if(refinement_method == RefinementMethodEnum::fixed_fraction &&
              error_indicator   == ErrorIndicatorEnum::error_based){
-        return std::make_shared< GridRefinement_FixedFraction_Error<dim,nstate,real> >(gr_param, dg, physics, functional);
+        return std::make_shared< GridRefinement_FixedFraction_Error<dim,nstate,real,MeshType> >(gr_param, dg, physics, functional);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::hessian_based){
-        return std::make_shared< GridRefinement_Continuous_Hessian<dim,nstate,real> >(gr_param, dg, physics, functional);
+        return std::make_shared< GridRefinement_Continuous_Hessian<dim,nstate,real,MeshType> >(gr_param, dg, physics, functional);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::error_based){
-        return std::make_shared< GridRefinement_Continuous_Error<dim,nstate,real> >(gr_param, dg, physics, functional);
+        return std::make_shared< GridRefinement_Continuous_Error<dim,nstate,real,MeshType> >(gr_param, dg, physics, functional);
     }
 
     // dg
     if(refinement_method == RefinementMethodEnum::fixed_fraction &&
        error_indicator   == ErrorIndicatorEnum::residual_based){
-        return std::make_shared< GridRefinement_FixedFraction_Residual<dim,nstate,real> >(gr_param, dg, physics, functional);
+        return std::make_shared< GridRefinement_FixedFraction_Residual<dim,nstate,real,MeshType> >(gr_param, dg, physics, functional);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::residual_based){
-        return std::make_shared< GridRefinement_Continuous_Residual<dim,nstate,real> >(gr_param, dg, physics, functional);
+        return std::make_shared< GridRefinement_Continuous_Residual<dim,nstate,real,MeshType> >(gr_param, dg, physics, functional);
     }else if(refinement_method == RefinementMethodEnum::uniform){
-        return std::make_shared< GridRefinement_Uniform<dim, nstate, real> >(gr_param, dg, physics, functional);
+        return std::make_shared< GridRefinement_Uniform<dim,nstate,real,MeshType> >(gr_param, dg, physics, functional);
     }
 
     return create_GridRefinement(gr_param, dg, physics);
@@ -1292,27 +1292,27 @@ GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
     // dg + physics
     if(refinement_method == RefinementMethodEnum::fixed_fraction &&
        error_indicator   == ErrorIndicatorEnum::hessian_based){
-        return std::make_shared< GridRefinement_FixedFraction_Hessian<dim,nstate,real> >(gr_param, dg, physics);
+        return std::make_shared< GridRefinement_FixedFraction_Hessian<dim,nstate,real,MeshType> >(gr_param, dg, physics);
     }else if(refinement_method == RefinementMethodEnum::fixed_fraction &&
              error_indicator   == ErrorIndicatorEnum::error_based){
-        return std::make_shared< GridRefinement_FixedFraction_Error<dim,nstate,real> >(gr_param, dg, physics);
+        return std::make_shared< GridRefinement_FixedFraction_Error<dim,nstate,real,MeshType> >(gr_param, dg, physics);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::hessian_based){
-        return std::make_shared< GridRefinement_Continuous_Hessian<dim,nstate,real> >(gr_param, dg, physics);
+        return std::make_shared< GridRefinement_Continuous_Hessian<dim,nstate,real,MeshType> >(gr_param, dg, physics);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::error_based){
-        return std::make_shared< GridRefinement_Continuous_Error<dim,nstate,real> >(gr_param, dg, physics);
+        return std::make_shared< GridRefinement_Continuous_Error<dim,nstate,real,MeshType> >(gr_param, dg, physics);
     }
 
     // dg
     if(refinement_method == RefinementMethodEnum::fixed_fraction &&
        error_indicator   == ErrorIndicatorEnum::residual_based){
-        return std::make_shared< GridRefinement_FixedFraction_Residual<dim,nstate,real> >(gr_param, dg, physics);
+        return std::make_shared< GridRefinement_FixedFraction_Residual<dim,nstate,real,MeshType> >(gr_param, dg, physics);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::residual_based){
-        return std::make_shared< GridRefinement_Continuous_Residual<dim,nstate,real> >(gr_param, dg, physics);
+        return std::make_shared< GridRefinement_Continuous_Residual<dim,nstate,real,MeshType> >(gr_param, dg, physics);
     }else if(refinement_method == RefinementMethodEnum::uniform){
-        return std::make_shared< GridRefinement_Uniform<dim, nstate, real> >(gr_param, dg, physics);
+        return std::make_shared< GridRefinement_Uniform<dim,nstate,real,MeshType> >(gr_param, dg, physics);
     }
 
     return create_GridRefinement(gr_param, dg);
@@ -1333,12 +1333,12 @@ GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
 
     if(refinement_method == RefinementMethodEnum::fixed_fraction &&
        error_indicator   == ErrorIndicatorEnum::residual_based){
-        return std::make_shared< GridRefinement_FixedFraction_Residual<dim,nstate,real> >(gr_param, dg);
+        return std::make_shared< GridRefinement_FixedFraction_Residual<dim,nstate,real,MeshType> >(gr_param, dg);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::residual_based){
-        return std::make_shared< GridRefinement_Continuous_Residual<dim,nstate,real> >(gr_param, dg);
+        return std::make_shared< GridRefinement_Continuous_Residual<dim,nstate,real,MeshType> >(gr_param, dg);
     }else if(refinement_method == RefinementMethodEnum::uniform){
-        return std::make_shared< GridRefinement_Uniform<dim, nstate, real> >(gr_param, dg);
+        return std::make_shared< GridRefinement_Uniform<dim,nstate,real,MeshType> >(gr_param, dg);
     }
 
     std::cout << "Invalid GridRefinement." << std::endl;
@@ -1346,78 +1346,229 @@ GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
     return nullptr;
 }
 
-// large amount of templating to be done, move to an .inst file and see if it can be reduced
-template class GridRefinementBase<PHILIP_DIM, 1, double>;
-template class GridRefinementBase<PHILIP_DIM, 2, double>;
-template class GridRefinementBase<PHILIP_DIM, 3, double>;
-template class GridRefinementBase<PHILIP_DIM, 4, double>;
-template class GridRefinementBase<PHILIP_DIM, 5, double>;
+// large amount of templating to be done, move to an .inst file
+// try reducing this with BOOST
 
-template class GridRefinement_Uniform<PHILIP_DIM, 1, double>;
-template class GridRefinement_Uniform<PHILIP_DIM, 2, double>;
-template class GridRefinement_Uniform<PHILIP_DIM, 3, double>;
-template class GridRefinement_Uniform<PHILIP_DIM, 4, double>;
-template class GridRefinement_Uniform<PHILIP_DIM, 5, double>;
+// dealii::Triangulation<PHILIP_DIM>
+template class GridRefinementBase<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinementBase<PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinementBase<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinementBase<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinementBase<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
 
-template class GridRefinement_FixedFraction<PHILIP_DIM, 1, double>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, 2, double>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, 3, double>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, 4, double>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, 5, double>;
+template class GridRefinement_Uniform<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
 
-template class GridRefinement_FixedFraction_Error<PHILIP_DIM, 1, double>;
-template class GridRefinement_FixedFraction_Error<PHILIP_DIM, 2, double>;
-template class GridRefinement_FixedFraction_Error<PHILIP_DIM, 3, double>;
-template class GridRefinement_FixedFraction_Error<PHILIP_DIM, 4, double>;
-template class GridRefinement_FixedFraction_Error<PHILIP_DIM, 5, double>;
+template class GridRefinement_FixedFraction<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction<PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
 
-template class GridRefinement_FixedFraction_Hessian<PHILIP_DIM, 1, double>;
-template class GridRefinement_FixedFraction_Hessian<PHILIP_DIM, 2, double>;
-template class GridRefinement_FixedFraction_Hessian<PHILIP_DIM, 3, double>;
-template class GridRefinement_FixedFraction_Hessian<PHILIP_DIM, 4, double>;
-template class GridRefinement_FixedFraction_Hessian<PHILIP_DIM, 5, double>;
+template class GridRefinement_FixedFraction_Error<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Error<PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Error<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Error<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Error<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
 
-template class GridRefinement_FixedFraction_Residual<PHILIP_DIM, 1, double>;
-template class GridRefinement_FixedFraction_Residual<PHILIP_DIM, 2, double>;
-template class GridRefinement_FixedFraction_Residual<PHILIP_DIM, 3, double>;
-template class GridRefinement_FixedFraction_Residual<PHILIP_DIM, 4, double>;
-template class GridRefinement_FixedFraction_Residual<PHILIP_DIM, 5, double>;
+template class GridRefinement_FixedFraction_Hessian<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Hessian<PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Hessian<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Hessian<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Hessian<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
 
-template class GridRefinement_FixedFraction_Adjoint<PHILIP_DIM, 1, double>;
-template class GridRefinement_FixedFraction_Adjoint<PHILIP_DIM, 2, double>;
-template class GridRefinement_FixedFraction_Adjoint<PHILIP_DIM, 3, double>;
-template class GridRefinement_FixedFraction_Adjoint<PHILIP_DIM, 4, double>;
-template class GridRefinement_FixedFraction_Adjoint<PHILIP_DIM, 5, double>;
+template class GridRefinement_FixedFraction_Residual<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Residual<PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Residual<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Residual<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Residual<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
 
-template class GridRefinement_Continuous_Error<PHILIP_DIM, 1, double>;
-template class GridRefinement_Continuous_Error<PHILIP_DIM, 2, double>;
-template class GridRefinement_Continuous_Error<PHILIP_DIM, 3, double>;
-template class GridRefinement_Continuous_Error<PHILIP_DIM, 4, double>;
-template class GridRefinement_Continuous_Error<PHILIP_DIM, 5, double>;
+template class GridRefinement_FixedFraction_Adjoint<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Adjoint<PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Adjoint<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Adjoint<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Adjoint<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
 
-template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 1, double>;
-template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 2, double>;
-template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 3, double>;
-template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 4, double>;
-template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 5, double>;
+template class GridRefinement_Continuous_Error<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Error<PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Error<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Error<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Error<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
 
-template class GridRefinement_Continuous_Residual<PHILIP_DIM, 1, double>;
-template class GridRefinement_Continuous_Residual<PHILIP_DIM, 2, double>;
-template class GridRefinement_Continuous_Residual<PHILIP_DIM, 3, double>;
-template class GridRefinement_Continuous_Residual<PHILIP_DIM, 4, double>;
-template class GridRefinement_Continuous_Residual<PHILIP_DIM, 5, double>;
+template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
 
-template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 1, double>;
-template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 2, double>;
-template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 3, double>;
-template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 4, double>;
-template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 5, double>;
+template class GridRefinement_Continuous_Residual<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Residual<PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Residual<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Residual<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Residual<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
 
-template class GridRefinementFactory<PHILIP_DIM, 1, double>;
-template class GridRefinementFactory<PHILIP_DIM, 2, double>;
-template class GridRefinementFactory<PHILIP_DIM, 3, double>;
-template class GridRefinementFactory<PHILIP_DIM, 4, double>;
-template class GridRefinementFactory<PHILIP_DIM, 5, double>;
+template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinementFactory<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinementFactory<PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinementFactory<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinementFactory<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinementFactory<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+
+// dealii::parallel::shared::Triangulation<PHILIP_DIM>
+template class GridRefinementBase<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinementBase<PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinementBase<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinementBase<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinementBase<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinement_Uniform<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinement_FixedFraction<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction<PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinement_FixedFraction_Error<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Error<PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Error<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Error<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Error<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinement_FixedFraction_Hessian<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Hessian<PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Hessian<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Hessian<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Hessian<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinement_FixedFraction_Residual<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Residual<PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Residual<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Residual<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Residual<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinement_FixedFraction_Adjoint<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Adjoint<PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Adjoint<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Adjoint<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Adjoint<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinement_Continuous_Error<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Error<PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Error<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Error<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Error<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinement_Continuous_Residual<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Residual<PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Residual<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Residual<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Residual<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinementFactory<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinementFactory<PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinementFactory<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinementFactory<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinementFactory<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+#if PHILIP_DIM != 1
+// dealii::parallel::distributed::Triangulation<PHILIP_DIM>
+template class GridRefinementBase<PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinementBase<PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinementBase<PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinementBase<PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinementBase<PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinement_Uniform<PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinement_FixedFraction<PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction<PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction<PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction<PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction<PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinement_FixedFraction_Error<PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Error<PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Error<PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Error<PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Error<PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinement_FixedFraction_Hessian<PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Hessian<PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Hessian<PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Hessian<PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Hessian<PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinement_FixedFraction_Residual<PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Residual<PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Residual<PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Residual<PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Residual<PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinement_FixedFraction_Adjoint<PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Adjoint<PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Adjoint<PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Adjoint<PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_FixedFraction_Adjoint<PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinement_Continuous_Error<PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Error<PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Error<PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Error<PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Error<PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinement_Continuous_Residual<PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Residual<PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Residual<PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Residual<PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Residual<PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class GridRefinementFactory<PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinementFactory<PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinementFactory<PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinementFactory<PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinementFactory<PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#endif
 
 } // namespace GridRefinement
 

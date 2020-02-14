@@ -12,6 +12,10 @@
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_bernstein.h>
 
+#include <deal.II/grid/tria.h>
+#include <deal.II/distributed/shared_tria.h>
+#include <deal.II/distributed/tria.h>
+
 #include <deal.II/dofs/dof_tools.h>
 
 #include <deal.II/lac/sparsity_pattern.h>
@@ -1633,18 +1637,20 @@ namespace MeshMover
             }
         }
     }
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template class LinearElasticity<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>, dealii::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
-#else
-template class LinearElasticity<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
+
+template class LinearElasticity<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
+template class LinearElasticity<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+#if PHILIP_DIM1!=1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+template class LinearElasticity<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
+
 }
 
 //template class HighOrderGrid<PHILIP_DIM, double>;
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template class HighOrderGrid<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>, dealii::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
-#else
-template class HighOrderGrid<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
+template class HighOrderGrid<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
+template class HighOrderGrid<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+#if PHILIP_DIM1!=1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+template class HighOrderGrid<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
-//template class HighOrderGrid<PHILIP_DIM, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
+
 } // namespace PHiLiP

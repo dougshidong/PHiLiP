@@ -156,7 +156,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_terms_dRdX(
     // AD variable
     std::vector< ADtype > soln_coeff(n_dofs_cell);
     for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-        soln_coeff[idof] = DGBase<dim,real>::solution(cell_dofs_indices[idof]);
+        soln_coeff[idof] = DGBase<dim,real,MeshType>::solution(cell_dofs_indices[idof]);
     }
 
     const std::vector<dealii::Point<dim,double>> &unit_quad_pts = quadrature.get_points();
@@ -347,7 +347,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_dRdX(
     // AD variable
     std::vector< ADtype > soln_coeff_int(n_dofs_cell);
     for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-        soln_coeff_int[idof] = DGBase<dim,real>::solution(dof_indices_int[idof]);
+        soln_coeff_int[idof] = DGBase<dim,real,MeshType>::solution(dof_indices_int[idof]);
     }
 
     dealii::FullMatrix<ADtype> interpolation_operator(n_dofs_cell,n_quad_pts);
@@ -573,10 +573,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_dRdX(
     ADArrayTensor1 diss_flux_jump_ext; // u*-u_ext
     // AD variable
     for (unsigned int idof = 0; idof < n_dofs_int; ++idof) {
-        soln_coeff_int_ad[idof] = DGBase<dim,real>::solution(dof_indices_int[idof]);
+        soln_coeff_int_ad[idof] = DGBase<dim,real,MeshType>::solution(dof_indices_int[idof]);
     }
     for (unsigned int idof = 0; idof < n_dofs_ext; ++idof) {
-        soln_coeff_ext_ad[idof] = DGBase<dim,real>::solution(dof_indices_ext[idof]);
+        soln_coeff_ext_ad[idof] = DGBase<dim,real,MeshType>::solution(dof_indices_ext[idof]);
     }
 
     std::vector<ADtype> interpolation_operator_int(n_dofs_int);
@@ -779,7 +779,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_terms_implicit(
     // AD variable
     std::vector< ADtype > soln_coeff(n_dofs_cell);
     for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-        soln_coeff[idof] = DGBase<dim,real>::solution(cell_dofs_indices[idof]);
+        soln_coeff[idof] = DGBase<dim,real,MeshType>::solution(cell_dofs_indices[idof]);
         soln_coeff[idof].diff(idof, n_dofs_cell);
     }
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
@@ -887,7 +887,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_implicit(
     std::vector< ADtype > soln_coeff_int(n_dofs_cell);
     const unsigned int n_total_indep = n_dofs_cell;
     for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-        soln_coeff_int[idof] = DGBase<dim,real>::solution(dof_indices_int[idof]);
+        soln_coeff_int[idof] = DGBase<dim,real,MeshType>::solution(dof_indices_int[idof]);
         soln_coeff_int[idof].diff(idof, n_total_indep);
     }
 
@@ -1053,11 +1053,11 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_implicit(
     // AD variable
     const unsigned int n_total_indep = n_dofs_int + n_dofs_ext;
     for (unsigned int idof = 0; idof < n_dofs_int; ++idof) {
-        soln_coeff_int_ad[idof] = DGBase<dim,real>::solution(dof_indices_int[idof]);
+        soln_coeff_int_ad[idof] = DGBase<dim,real,MeshType>::solution(dof_indices_int[idof]);
         soln_coeff_int_ad[idof].diff(idof, n_total_indep);
     }
     for (unsigned int idof = 0; idof < n_dofs_ext; ++idof) {
-        soln_coeff_ext_ad[idof] = DGBase<dim,real>::solution(dof_indices_ext[idof]);
+        soln_coeff_ext_ad[idof] = DGBase<dim,real,MeshType>::solution(dof_indices_ext[idof]);
         soln_coeff_ext_ad[idof].diff(idof+n_dofs_int, n_total_indep);
     }
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
@@ -1196,7 +1196,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_terms_explicit(
     // AD variable
     std::vector< real > soln_coeff(n_dofs_cell);
     for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-        soln_coeff[idof] = DGBase<dim,real>::solution(cell_dofs_indices[idof]);
+        soln_coeff[idof] = DGBase<dim,real,MeshType>::solution(cell_dofs_indices[idof]);
     }
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         for (int istate=0; istate<nstate; istate++) { 
@@ -1291,7 +1291,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_explicit(
     // AD variable
     std::vector< real > soln_coeff_int(n_dofs_cell);
     for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-        soln_coeff_int[idof] = DGBase<dim,real>::solution(dof_indices_int[idof]);
+        soln_coeff_int[idof] = DGBase<dim,real,MeshType>::solution(dof_indices_int[idof]);
     }
 
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
@@ -1415,10 +1415,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_explicit(
     std::vector<doubleArrayTensor1> diss_flux_jump_ext(n_face_quad_pts); // u*-u_ext
     // AD variable
     for (unsigned int idof = 0; idof < n_dofs_int; ++idof) {
-        soln_coeff_int_ad[idof] = DGBase<dim,real>::solution(dof_indices_int[idof]);
+        soln_coeff_int_ad[idof] = DGBase<dim,real,MeshType>::solution(dof_indices_int[idof]);
     }
     for (unsigned int idof = 0; idof < n_dofs_ext; ++idof) {
-        soln_coeff_ext_ad[idof] = DGBase<dim,real>::solution(dof_indices_ext[idof]);
+        soln_coeff_ext_ad[idof] = DGBase<dim,real,MeshType>::solution(dof_indices_ext[idof]);
     }
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
         for (int istate=0; istate<nstate; istate++) { 
@@ -1501,8 +1501,8 @@ void DGWeak<dim,nstate,real,MeshType>::set_physics(
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, real > >pde_physics_double_input)
 {
     pde_physics_double = pde_physics_double_input;
-    conv_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_convective_numerical_flux (DGBase<dim,real>::all_parameters->conv_num_flux_type, pde_physics_double);
-    diss_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_dissipative_numerical_flux (DGBase<dim,real>::all_parameters->diss_num_flux_type, pde_physics_double);
+    conv_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_convective_numerical_flux (DGBase<dim,real,MeshType>::all_parameters->conv_num_flux_type, pde_physics_double);
+    diss_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_dissipative_numerical_flux (DGBase<dim,real,MeshType>::all_parameters->diss_num_flux_type, pde_physics_double);
 
 }
 
@@ -1511,18 +1511,30 @@ void DGWeak<dim,nstate,real,MeshType>::set_physics(
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<real> > >pde_physics_input)
 {
     pde_physics = pde_physics_input;
-    conv_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, Sacado::Fad::DFad<real>> ::create_convective_numerical_flux (DGBase<dim,real>::all_parameters->conv_num_flux_type, pde_physics);
-    diss_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, Sacado::Fad::DFad<real>> ::create_dissipative_numerical_flux (DGBase<dim,real>::all_parameters->diss_num_flux_type, pde_physics);
+    conv_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, Sacado::Fad::DFad<real>> ::create_convective_numerical_flux (DGBase<dim,real,MeshType>::all_parameters->conv_num_flux_type, pde_physics);
+    diss_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, Sacado::Fad::DFad<real>> ::create_dissipative_numerical_flux (DGBase<dim,real,MeshType>::all_parameters->diss_num_flux_type, pde_physics);
 }
 
 // using default MeshType = Triangulation
 // 1D: dealii::Triangulation<dim>;
 // OW: dealii::parallel::distributed::Triangulation<dim>;
-template class DGWeak <PHILIP_DIM, 1, double>;
-template class DGWeak <PHILIP_DIM, 2, double>;
-template class DGWeak <PHILIP_DIM, 3, double>;
-template class DGWeak <PHILIP_DIM, 4, double>;
-template class DGWeak <PHILIP_DIM, 5, double>;
+template class DGWeak <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+
+template class DGWeak <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class DGWeak <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 
 } // PHiLiP namespace
 

@@ -564,6 +564,8 @@ dealii::SparsityPattern DGBase<dim,real,MeshType>::get_dRdX_sparsity_pattern () 
 // using default MeshType = Triangulation
 // 1D: dealii::Triangulation<dim>;
 // OW: dealii::parallel::distributed::Triangulation<dim>;
-template class DGBase <PHILIP_DIM, double>;
+template class DGBase <PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>;
+template class DGBase <PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGBase <PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 
 } // namespace PHiLiP

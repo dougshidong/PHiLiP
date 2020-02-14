@@ -1233,17 +1233,11 @@ std::vector<real> DGBase<dim,real,MeshType>::evaluate_time_steps (const bool exa
 // using default MeshType = Triangulation
 // 1D: dealii::Triangulation<dim>;
 // OW: dealii::parallel::distributed::Triangulation<dim>;
-
-#if 1
-template class DGBase <PHILIP_DIM,double>;
-template class DGFactory <PHILIP_DIM,double>;
-#else
 template class DGBase <PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>;
 template class DGBase <PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class DGBase <PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class DGFactory <PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>;
 template class DGFactory <PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class DGFactory <PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-#endif
 
 } // PHiLiP namespace

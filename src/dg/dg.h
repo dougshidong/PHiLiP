@@ -344,7 +344,7 @@ public:
     dealii::hp::DoFHandler<dim> dof_handler;
 
     /// High order grid that will provide the MappingFEField
-    HighOrderGrid<dim,real> high_order_grid;
+    HighOrderGrid<dim,real,MeshType> high_order_grid;
 protected:
 
     /// Evaluate the integral over the cell volume.

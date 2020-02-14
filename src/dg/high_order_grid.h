@@ -23,11 +23,6 @@
 #include <deal.II/lac/trilinos_vector.h>
 
 namespace PHiLiP {
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    template <int dim> using Triangulation = dealii::Triangulation<dim>;
-#else
-    template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-#endif
 
 /** This HighOrderGrid class basically contains all the different part necessary to generate
  *  a dealii::MappingFEField that corresponds to the current Triangulation and attached Manifold.
@@ -40,9 +35,9 @@ namespace PHiLiP {
  *  deal.II will change this one day such that we have one interface for both.
  */
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
+template <int dim = PHILIP_DIM, typename real = double, typename MeshType = dealii::Triangulation<dim>, typename VectorType = dealii::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
 #else
-template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
+template <int dim = PHILIP_DIM, typename real = double, typename MeshType = dealii::parallel::distributed::Triangulation<dim>, typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
 #endif
 //template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
 class HighOrderGrid
@@ -71,7 +66,10 @@ class HighOrderGrid
 #endif
 public:
     /// Principal constructor that will call delegated constructor.
-    HighOrderGrid(const Parameters::AllParameters *const parameters_input, const unsigned int max_degree, Triangulation<dim> *const triangulation_input);
+    HighOrderGrid(
+        const Parameters::AllParameters *const parameters_input, 
+        const unsigned int                     max_degree, 
+        MeshType *const                        triangulation_input);
 
     /// Reinitialize high_order_grid after a change in triangulation
     void reinit();
@@ -93,7 +91,7 @@ public:
     /// Maximum degree of the geometry polynomial representing the grid.
     const unsigned int max_degree;
 
-    Triangulation<dim> *triangulation; ///< Mesh
+    MeshType *triangulation; ///< Mesh
 
     /// Degrees of freedom handler for the high-order grid
     dealii::DoFHandler<dim> dof_handler_grid;
@@ -285,15 +283,15 @@ public:
 namespace MeshMover
 {
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
+    template <int dim = PHILIP_DIM, typename real = double, typename MeshType = dealii::Triangulation<dim>, typename VectorType = dealii::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
 #else
-    template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
+    template <int dim = PHILIP_DIM, typename real = double, typename MeshType = dealii::parallel::distributed::Triangulation<dim>, typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
 #endif
     class LinearElasticity
     {
       public:
         LinearElasticity(
-            const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
+            const HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType> &high_order_grid,
             const std::vector<dealii::types::global_dof_index> boundary_ids,
             const std::vector<double> boundary_displacements);
         ~LinearElasticity();
@@ -305,7 +303,7 @@ namespace MeshMover
         unsigned int solve_linear_problem();
         void move_mesh();
         void setup_quadrature_point_history();
-        const Triangulation<dim> &triangulation;
+        const MeshType &triangulation;
         dealii::FESystem<dim> fe;
         std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field;
         DoFHandlerType dof_handler;

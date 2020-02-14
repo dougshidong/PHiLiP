@@ -46,14 +46,14 @@
 
 namespace PHiLiP {
 
-template <int dim, typename real, typename VectorType, typename DoFHandlerType>
-unsigned int HighOrderGrid<dim,real,VectorType,DoFHandlerType>::nth_refinement=0;
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+unsigned int HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::nth_refinement=0;
 
-template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::HighOrderGrid(
         const Parameters::AllParameters *const parameters_input,
         const unsigned int max_degree,
-        Triangulation<dim> *const triangulation_input)
+        MeshType *const triangulation_input)
     : all_parameters(parameters_input)
     , max_degree(max_degree)
     , triangulation(triangulation_input)
@@ -97,8 +97,8 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
     }
 }
 
-template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::reinit(){
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::reinit(){
     allocate();
     const dealii::ComponentMask mask(dim, true);
     get_position_vector(dof_handler_grid, nodes, mask);
@@ -130,15 +130,15 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::reinit(){
     }
 }
 
-template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_mapping_fe_field() {
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::update_mapping_fe_field() {
     const dealii::ComponentMask mask(dim, true);
     mapping_fe_field = std::make_shared< dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> > (dof_handler_grid,nodes,mask);
 }
 
-template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
 void 
-HighOrderGrid<dim,real,VectorType,DoFHandlerType>::allocate() 
+HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::allocate() 
 {
     dof_handler_grid.initialize(*triangulation, fe_system);
     dof_handler_grid.distribute_dofs(fe_system);
@@ -154,9 +154,9 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::allocate()
 #endif
 }
 
-//template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+//template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
 //dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> 
-//HighOrderGrid<dim,real,VectorType,DoFHandlerType>::get_MappingFEField() {
+//HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::get_MappingFEField() {
 //    const dealii::ComponentMask mask(dim, true);
 //    dealii::VectorTools::get_position_vector(dof_handler_grid, nodes, mask);
 //
@@ -167,8 +167,8 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::allocate()
 //
 
 
-template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-void HighOrderGrid<dim,real,VectorType,DoFHandlerType>
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>
 ::get_position_vector(const DoFHandlerType &dh, VectorType &vector, const dealii::ComponentMask &mask)
 {
     AssertDimension(vector.size(), dh.n_dofs());
@@ -209,9 +209,9 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>
 }
 
 
-template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
 template <typename real2>
-inline real2 HighOrderGrid<dim,real,VectorType,DoFHandlerType>
+inline real2 HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>
 ::determinant(const std::array< dealii::Tensor<1,dim,real2>, dim > jacobian) const
 {
     if constexpr(dim == 1) return jacobian[0][0];
@@ -227,8 +227,8 @@ inline real2 HighOrderGrid<dim,real,VectorType,DoFHandlerType>
 }
 
 
-template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-std::vector<real> HighOrderGrid<dim,real,VectorType,DoFHandlerType>::evaluate_jacobian_at_points(
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+std::vector<real> HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::evaluate_jacobian_at_points(
         const VectorType &solution,
         const typename DoFHandlerType::cell_iterator &cell,
         const std::vector<dealii::Point<dim>> &points) const
@@ -271,9 +271,9 @@ std::vector<real> HighOrderGrid<dim,real,VectorType,DoFHandlerType>::evaluate_ja
     return jac_det;
 }
 
-template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
 template <typename real2>
-real2 HighOrderGrid<dim,real,VectorType,DoFHandlerType>::evaluate_jacobian_at_point(
+real2 HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::evaluate_jacobian_at_point(
         const std::vector<real2> &dofs,
         const dealii::FESystem<dim> &fe,
         const dealii::Point<dim> &point) const
@@ -291,9 +291,9 @@ real2 HighOrderGrid<dim,real,VectorType,DoFHandlerType>::evaluate_jacobian_at_po
     return determinant(coords_grad);
 }
 
-template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
 template <typename real2>
-void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::evaluate_jacobian_at_points(
+void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::evaluate_jacobian_at_points(
         const std::vector<real2> &dofs,
         const dealii::FESystem<dim> &fe,
         const std::vector<dealii::Point<dim>> &points,
@@ -323,8 +323,8 @@ std::vector<real> matrix_stdvector_mult(const dealii::FullMatrix<double> &matrix
     return vector_out;
 }
 
-template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::evaluate_lagrange_to_bernstein_operator(const unsigned int order)
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::evaluate_lagrange_to_bernstein_operator(const unsigned int order)
 {
     const dealii::FE_Q<dim> lagrange_basis(order);
     const std::vector< dealii::Point<dim> > &lagrange_pts = lagrange_basis.get_unit_support_points();
@@ -350,8 +350,8 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::evaluate_lagrange_to_ber
 }
 
 
-template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-bool HighOrderGrid<dim,real,VectorType,DoFHandlerType>::check_valid_cell(const typename DoFHandlerType::cell_iterator &cell) const
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+bool HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::check_valid_cell(const typename DoFHandlerType::cell_iterator &cell) const
 {
     return true;
     const unsigned int exact_jacobian_order = (max_degree-1) * dim, min_jacobian_order = 1;
@@ -412,8 +412,8 @@ bool HighOrderGrid<dim,real,VectorType,DoFHandlerType>::check_valid_cell(const t
 //     }
 // }
 
-template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-bool HighOrderGrid<dim,real,VectorType,DoFHandlerType>::fix_invalid_cell(const typename DoFHandlerType::cell_iterator &cell)
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+bool HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::fix_invalid_cell(const typename DoFHandlerType::cell_iterator &cell)
 {
     // This will be the target ratio between the current minimum (estimated) cell Jacobian
     // and the value of the straight-sided Jacobian. This estimates depends on the Bernstein
@@ -657,8 +657,8 @@ bool HighOrderGrid<dim,real,VectorType,DoFHandlerType>::fix_invalid_cell(const t
 
 
 
-// template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-// bool HighOrderGrid<dim,real,VectorType,DoFHandlerType>::make_valid_cell(
+// template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+// bool HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::make_valid_cell(
 //         const typename DoFHandlerType::cell_iterator &cell);
 // {
 //     const dealii::FESystem<dim> &fe_coords = cell->get_fe();
@@ -718,8 +718,8 @@ bool HighOrderGrid<dim,real,VectorType,DoFHandlerType>::fix_invalid_cell(const t
 //     return false;
 // }
 
-template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::test_jacobian()
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::test_jacobian()
 {
     // // Setup a dummy system
     // const unsigned int solution_degree = max_degree-1;
@@ -785,8 +785,8 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::test_jacobian()
 }
 
 
-template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::prepare_for_coarsening_and_refinement() {
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::prepare_for_coarsening_and_refinement() {
 
     old_nodes = nodes;
     old_nodes.update_ghost_values();
@@ -794,8 +794,8 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::prepare_for_coarsening_a
     solution_transfer.prepare_for_coarsening_and_refinement(old_nodes);
 }
 
-template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::execute_coarsening_and_refinement(const bool output_mesh) {
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::execute_coarsening_and_refinement(const bool output_mesh) {
     allocate();
     if constexpr(dim == 1) {
         solution_transfer.interpolate(old_nodes, nodes);
@@ -835,8 +835,8 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::execute_coarsening_and_r
 }
 
 
-template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::deform_mesh(std::vector<real> local_surface_displacements) {
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::deform_mesh(std::vector<real> local_surface_displacements) {
 
     int n_mpi;
     int rank;
@@ -946,8 +946,8 @@ std::vector<T> flatten(const std::vector<std::vector<T>>& v) {
 //    }
 //}
 
-template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_nodes() {
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::update_surface_nodes() {
     int n_mpi;
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -1010,8 +1010,8 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_nodes() {
 }
 
 
-template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices() {
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::update_surface_indices() {
     locally_relevant_surface_nodes_indices.clear();
     local_surface_nodes.clear();
     locally_relevant_surface_nodes_boundary_id.clear();
@@ -1113,8 +1113,8 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices()
     //std::cout << "I own " << locally_relevant_surface_nodes_indices.size() << " surface nodes" << std::endl;
 }
 
-template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::output_results_vtk (const unsigned int cycle) const
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::output_results_vtk (const unsigned int cycle) const
 {
 
 //     { 
@@ -1343,9 +1343,9 @@ dealii::UpdateFlags GridPostprocessor<dim>::get_needed_update_flags () const
 
 namespace MeshMover
 {
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    LinearElasticity<dim,real,VectorType,DoFHandlerType>::LinearElasticity(
-        const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
+    template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+    LinearElasticity<dim,real,MeshType,VectorType,DoFHandlerType>::LinearElasticity(
+        const HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType> &high_order_grid,
         const std::vector<dealii::types::global_dof_index> boundary_ids,
         const std::vector<double> boundary_displacements)
       : triangulation(*(high_order_grid.triangulation))
@@ -1360,10 +1360,10 @@ namespace MeshMover
       , boundary_ids(boundary_ids)
       , boundary_displacements(boundary_displacements)
     { }
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    LinearElasticity<dim,real,VectorType,DoFHandlerType>::~LinearElasticity() { dof_handler.clear(); }
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    VectorType LinearElasticity<dim,real,VectorType,DoFHandlerType>::get_volume_displacements()
+    template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+    LinearElasticity<dim,real,MeshType,VectorType,DoFHandlerType>::~LinearElasticity() { dof_handler.clear(); }
+    template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+    VectorType LinearElasticity<dim,real,MeshType,VectorType,DoFHandlerType>::get_volume_displacements()
     {
         pcout << std::endl << "Solving linear elasticity problem for volume displacements..." << std::endl;
         setup_system();
@@ -1374,8 +1374,8 @@ namespace MeshMover
         displacement_solution.update_ghost_values();
         return displacement_solution;
     }
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    void LinearElasticity<dim,real,VectorType,DoFHandlerType>::setup_system()
+    template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+    void LinearElasticity<dim,real,MeshType,VectorType,DoFHandlerType>::setup_system()
     {
         dof_handler.distribute_dofs(fe);
         locally_owned_dofs = dof_handler.locally_owned_dofs();
@@ -1449,8 +1449,8 @@ namespace MeshMover
         pcout << "    Number of active cells: " << triangulation.n_active_cells() << std::endl;
         pcout << "    Number of degrees of freedom: " << dof_handler.n_dofs() << std::endl;
     }
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    void LinearElasticity<dim,real,VectorType,DoFHandlerType>::assemble_system()
+    template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+    void LinearElasticity<dim,real,MeshType,VectorType,DoFHandlerType>::assemble_system()
     {
         system_rhs    = 0;
         system_matrix = 0;
@@ -1554,8 +1554,8 @@ namespace MeshMover
         //MatrixTools::apply_boundary_values(boundary_displacements, system_matrix, tmp, system_rhs, false);
         //displacement_solution = tmp;
     }
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    void LinearElasticity<dim,real,VectorType,DoFHandlerType>::solve_timestep()
+    template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+    void LinearElasticity<dim,real,MeshType,VectorType,DoFHandlerType>::solve_timestep()
     {
         pcout << "    Assembling system..." << std::flush;
         assemble_system();
@@ -1563,8 +1563,8 @@ namespace MeshMover
         const unsigned int n_iterations = solve_linear_problem();
         pcout << "    Solver converged in " << n_iterations << " iterations." << std::endl;
     }
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    unsigned int LinearElasticity<dim,real,VectorType,DoFHandlerType>::solve_linear_problem()
+    template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+    unsigned int LinearElasticity<dim,real,MeshType,VectorType,DoFHandlerType>::solve_linear_problem()
     {
         dealii::TrilinosWrappers::MPI::Vector trilinos_solution(system_rhs);
 
@@ -1615,8 +1615,8 @@ namespace MeshMover
         }
         return solver_control.last_step();
     }
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    void LinearElasticity<dim,real,VectorType,DoFHandlerType>::move_mesh()
+    template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+    void LinearElasticity<dim,real,MeshType,VectorType,DoFHandlerType>::move_mesh()
     {
         pcout << "    Moving mesh..." << std::endl;
         std::vector<bool> vertex_touched(triangulation.n_vertices(), false);
@@ -1634,17 +1634,17 @@ namespace MeshMover
         }
     }
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template class LinearElasticity<PHILIP_DIM, double, dealii::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
+template class LinearElasticity<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>, dealii::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
 #else
-template class LinearElasticity<PHILIP_DIM, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
+template class LinearElasticity<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
 #endif
 }
 
 //template class HighOrderGrid<PHILIP_DIM, double>;
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template class HighOrderGrid<PHILIP_DIM, double, dealii::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
+template class HighOrderGrid<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>, dealii::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
 #else
-template class HighOrderGrid<PHILIP_DIM, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
+template class HighOrderGrid<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
 #endif
 //template class HighOrderGrid<PHILIP_DIM, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
 } // namespace PHiLiP

@@ -159,10 +159,12 @@ int main (int argc, char * argv[])
 
 #if PHILIP_DIM==1
             using VectorType = dealii::Vector<double>;
+            using MeshType   = dealii::Triangulation<dim>;
 #else
             using VectorType = dealii::LinearAlgebra::distributed::Vector<double>;
+            using MeshType   = dealii::parallel::distributed::Triangulation<dim>;
 #endif
-            MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
+            MeshMover::LinearElasticity<dim, double, MeshType, VectorType , dealii::DoFHandler<dim>> 
                 meshmover(high_order_grid, surface_node_global_indices, surface_node_displacements);
             VectorType volume_displacements = meshmover.get_volume_displacements();
 

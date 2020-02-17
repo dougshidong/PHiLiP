@@ -90,23 +90,12 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
         
         const unsigned int refinement_steps = gr_param.refinement_steps;
 
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-        dealii::Triangulation<dim> grid(
-            typename dealii::Triangulation<dim>::MeshSmoothing(
-                dealii::Triangulation<dim>::smoothing_on_refinement |
-                dealii::Triangulation<dim>::smoothing_on_coarsening));
-#else
-        dealii::parallel::distributed::Triangulation<dim> grid(
-            this->mpi_communicator);//,
-            // typename dealii::Triangulation<dim>::MeshSmoothing(
-            //     dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_refinement));
-                //dealii::Triangulation<dim>::smoothing_on_refinement |
-                //dealii::Triangulation<dim>::smoothing_on_coarsening));
-#endif
+        std::unique_ptr<MeshType> grid = 
+            MeshFactory<MeshType>::create_MeshType(this->mpi_communicator);
 
         // generating the mesh
-        dealii::GridGenerator::subdivided_hyper_cube(grid, grid_size, left, right);
-        for(auto cell = grid.begin_active(); cell != grid.end(); ++cell){
+        dealii::GridGenerator::subdivided_hyper_cube(*grid, grid_size, left, right);
+        for(auto cell = grid->begin_active(); cell != grid->end(); ++cell){
             cell->set_material_id(9002);
             for(unsigned int face = 0; face < dealii::GeometryInfo<dim>::faces_per_cell; ++face)
                 if(cell->face(face)->at_boundary())
@@ -114,39 +103,39 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
         }
 
         // generate DG
-        std::shared_ptr< DGBase<dim, double> > dg 
-            = DGFactory<dim,double>::create_discontinuous_galerkin(
+        std::shared_ptr< DGBase<dim, double, MeshType> > dg 
+            = DGFactory<dim,double,MeshType>::create_discontinuous_galerkin(
                 &param, 
                 poly_degree,
                 poly_degree_max,
                 poly_degree_grid,
-                &grid);
+                grid.get());
         dg->allocate_system();
 
         // initialize the solution
         // dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
         // generate ODE solver
-        std::shared_ptr< ODE::ODESolver<dim,double> > ode_solver
-            = ODE::ODESolverFactory<dim,double>::create_ODESolver(dg);
+        std::shared_ptr< ODE::ODESolver<dim,double,MeshType> > ode_solver
+            = ODE::ODESolverFactory<dim,double,MeshType>::create_ODESolver(dg);
         // ode_solver->steady_state();
         // ode_solver->initialize_steady_polynomial_ramping(poly_degree);
 
         // generate Functional
-        std::shared_ptr< Functional<dim,nstate,double> > functional 
-            = FunctionalFactory<dim,nstate,double>::create_Functional(grs_param.functional_param, dg);
+        std::shared_ptr< Functional<dim,nstate,double,MeshType> > functional 
+            = FunctionalFactory<dim,nstate,double,MeshType>::create_Functional(grs_param.functional_param, dg);
 
         // generate Adjoint
-        std::shared_ptr< Adjoint<dim,nstate,double> > adjoint 
-            = std::make_shared< Adjoint<dim,nstate,double> >(dg, functional, physics_adtype);
+        std::shared_ptr< Adjoint<dim,nstate,double,MeshType> > adjoint 
+            = std::make_shared< Adjoint<dim,nstate,double,MeshType> >(dg, functional, physics_adtype);
 
         // generate the GridRefinement
-        std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> > grid_refinement 
-            = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(gr_param,adjoint,physics_double);
+        std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double,MeshType> > grid_refinement 
+            = GridRefinement::GridRefinementFactory<dim,nstate,double,MeshType>::create_GridRefinement(gr_param,adjoint,physics_double);
 
         // starting the iterations
         dealii::ConvergenceTable convergence_table;
-        dealii::Vector<float> estimated_error_per_cell(grid.n_active_cells());
+        dealii::Vector<float> estimated_error_per_cell(grid->n_active_cells());
         
         // for plotting the error convergence with gnuplot
         std::vector<double> error;
@@ -158,7 +147,7 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
             }
 
             // outputting the grid information
-            const unsigned int n_global_active_cells = grid.n_global_active_cells();
+            const unsigned int n_global_active_cells = grid->n_global_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
             pcout << "Dimension: " << dim << "\t Polynomial degree p: " << poly_degree << std::endl
                  << "Grid number: " << igrid+1 << "/" << refinement_steps
@@ -233,15 +222,15 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
 
             // evaluating the derivatives and the fine grid adjoint
             if(less_than_max){ // don't output if at max order (as p-enrichment will segfault)
-                adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::fine);
+                adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double,MeshType>::AdjointStateEnum::fine);
                 adjoint->fine_grid_adjoint();
-                estimated_error_per_cell.reinit(grid.n_active_cells());
+                estimated_error_per_cell.reinit(grid->n_active_cells());
                 estimated_error_per_cell = adjoint->dual_weighted_residual();
                 adjoint->output_results_vtk(iref*10+igrid);
             }
 
             // and for the coarse grid
-            adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::coarse); // this one is necessary though
+            adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double,MeshType>::AdjointStateEnum::coarse); // this one is necessary though
             adjoint->coarse_grid_adjoint();
             adjoint->output_results_vtk(iref*10+igrid);
 
@@ -310,6 +299,44 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
     return 0;
 }
 
+// mesh factory specializations
+template <>
+std::unique_ptr<dealii::Triangulation<PHILIP_DIM>>
+MeshFactory<dealii::Triangulation<PHILIP_DIM>>::create_MeshType(const MPI_Comm /* mpi_communicator */)
+{
+    return std::unique_ptr<dealii::Triangulation<PHILIP_DIM>>(
+        new dealii::Triangulation<PHILIP_DIM>(
+            typename dealii::Triangulation<PHILIP_DIM>::MeshSmoothing(
+                dealii::Triangulation<PHILIP_DIM>::smoothing_on_refinement |
+                dealii::Triangulation<PHILIP_DIM>::smoothing_on_coarsening)));
+}
+
+template <>
+std::unique_ptr<dealii::parallel::shared::Triangulation<PHILIP_DIM>>
+MeshFactory<dealii::parallel::shared::Triangulation<PHILIP_DIM>>::create_MeshType(const MPI_Comm mpi_communicator)
+{
+    return std::unique_ptr<dealii::parallel::shared::Triangulation<PHILIP_DIM>>(
+        new dealii::parallel::shared::Triangulation<PHILIP_DIM>(
+            mpi_communicator,
+            typename dealii::Triangulation<PHILIP_DIM>::MeshSmoothing(
+                dealii::Triangulation<PHILIP_DIM>::smoothing_on_refinement |
+                dealii::Triangulation<PHILIP_DIM>::smoothing_on_coarsening)));
+}
+
+#if PHILIP_DIM != 1
+template <>
+std::unique_ptr<dealii::parallel::distributed::Triangulation<PHILIP_DIM>>
+MeshFactory<dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::create_MeshType(const MPI_Comm mpi_communicator)
+{
+    return std::unique_ptr<dealii::parallel::distributed::Triangulation<PHILIP_DIM>>(
+        new dealii::parallel::distributed::Triangulation<PHILIP_DIM>(
+            mpi_communicator,
+            typename dealii::Triangulation<PHILIP_DIM>::MeshSmoothing(
+                dealii::Triangulation<PHILIP_DIM>::smoothing_on_refinement |
+                dealii::Triangulation<PHILIP_DIM>::smoothing_on_coarsening)));
+}
+#endif
+
 template class GridRefinementStudy <PHILIP_DIM,1,dealii::Triangulation<PHILIP_DIM>>;
 template class GridRefinementStudy <PHILIP_DIM,2,dealii::Triangulation<PHILIP_DIM>>;
 template class GridRefinementStudy <PHILIP_DIM,3,dealii::Triangulation<PHILIP_DIM>>;
@@ -322,11 +349,13 @@ template class GridRefinementStudy <PHILIP_DIM,3,dealii::parallel::shared::Trian
 template class GridRefinementStudy <PHILIP_DIM,4,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class GridRefinementStudy <PHILIP_DIM,5,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 
+#if PHILIP_DIM!=1
 template class GridRefinementStudy <PHILIP_DIM,1,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class GridRefinementStudy <PHILIP_DIM,2,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class GridRefinementStudy <PHILIP_DIM,3,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class GridRefinementStudy <PHILIP_DIM,4,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class GridRefinementStudy <PHILIP_DIM,5,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#endif
 
 } // namespace Tests
 

@@ -799,8 +799,8 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::prepare_for_coa
 
     old_nodes = nodes;
     old_nodes.update_ghost_values();
-    if constexpr (std::is_same_v<typename MeshTypeHelper<MeshType>::SolutionTransfer, 
-                                 dealii::SolutionTransfer<dim, dealii::Vector<real>, dealii::DoFHandler<dim>>>) 
+    if constexpr (std::is_same_v<typename dealii::SolutionTransfer<dim,VectorType,DoFHandlerType>,
+                                 decltype(solution_transfer)>)
         solution_transfer.clear();
     solution_transfer.prepare_for_coarsening_and_refinement(old_nodes);
 }
@@ -808,8 +808,8 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::prepare_for_coa
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
 void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::execute_coarsening_and_refinement(const bool output_mesh) {
     allocate();
-    if constexpr (std::is_same_v<decltype(solution_transfer), 
-                                 dealii::SolutionTransfer<dim, dealii::Vector<real>, dealii::DoFHandler<dim>>>){
+    if constexpr (std::is_same_v<typename dealii::SolutionTransfer<dim,VectorType,DoFHandlerType>,
+                                 decltype(solution_transfer)>){
         solution_transfer.interpolate(old_nodes, nodes);
     }else{
         solution_transfer.interpolate(nodes);

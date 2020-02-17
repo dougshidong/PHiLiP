@@ -4,7 +4,7 @@
 set dimension = 2
 
 # Changing the mesh type to allow for anisotropic refinements
-set mesh_type = Triangulation
+set mesh_type = triangulation
 
 # The PDE we want to solve. Choices are
 # <advection|diffusion|convection_diffusion>.
@@ -51,10 +51,10 @@ subsection grid refinement study
 
   # grid refinement - 0
   subsection grid refinement
-    set refinement_steps    = 9
+    set refinement_steps    = 5
     set refinement_method   = fixed_fraction
     set refinement_type     = h
-    set isotropic           = false
+    # set isotropic           = false
     set error_indicator     = error_based
     set refinement_fraction = 0.3
     set coarsening_fraction = 0.00
@@ -65,6 +65,6 @@ end
 
 subsection manufactured solution convergence study
   set use_manufactured_source_term = true
-  set manufactured_solution_type   = boundary_layer_solution # s_shock_solution  #
+  set manufactured_solution_type   = s_shock_solution  #boundary_layer_solution #
 end
 

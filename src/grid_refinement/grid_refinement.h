@@ -36,10 +36,10 @@ public:
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input);
 
     GridRefinementBase(
-        PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg_input,
-        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input,
-        std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional_input);
+        PHiLiP::Parameters::GridRefinementParam                            gr_param_input,
+        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg_input,
+        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics_input,
+        std::shared_ptr< PHiLiP::Functional<dim, nstate, real, MeshType> > functional_input);
 
     GridRefinementBase(
         PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
@@ -54,11 +54,11 @@ public:
 protected:
     // delegated constructor
     GridRefinementBase(
-        PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
-        std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >  adj_input,
-        std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional_input,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg_input,
-        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input);
+        PHiLiP::Parameters::GridRefinementParam                            gr_param_input,
+        std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >    adj_input,
+        std::shared_ptr< PHiLiP::Functional<dim, nstate, real, MeshType> > functional_input,
+        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg_input,
+        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics_input);
 
 public:
     // refine_grid is the main function
@@ -118,7 +118,7 @@ protected:
     std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> > adjoint;
 
     // Functional
-    std::shared_ptr< PHiLiP::Functional<dim, nstate, real> > functional;
+    std::shared_ptr< PHiLiP::Functional<dim, nstate, real, MeshType> > functional;
 
     // dg
     std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> > dg;
@@ -286,10 +286,10 @@ public:
                 physics_input){}
 
     GridRefinement_Continuous(
-        PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg_input,
-        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input,
-        std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional_input) : 
+        PHiLiP::Parameters::GridRefinementParam                            gr_param_input,
+        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg_input,
+        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics_input,
+        std::shared_ptr< PHiLiP::Functional<dim, nstate, real, MeshType> > functional_input) : 
             GridRefinement_Continuous<dim,nstate,real,MeshType>(
                 gr_param_input, 
                 nullptr, 
@@ -322,11 +322,11 @@ public:
 protected:
     // delegated constructor
     GridRefinement_Continuous(
-        PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
-        std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >  adj_input,
-        std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional_input,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg_input,
-        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) : 
+        PHiLiP::Parameters::GridRefinementParam                            gr_param_input,
+        std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >    adj_input,
+        std::shared_ptr< PHiLiP::Functional<dim, nstate, real, MeshType> > functional_input,
+        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg_input,
+        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics_input) : 
             GridRefinementBase<dim,nstate,real,MeshType>(
                 gr_param_input,
                 adj_input,
@@ -454,10 +454,10 @@ public:
     // dg + physics + Functional
     static std::shared_ptr< GridRefinementBase<dim,nstate,real,MeshType> > 
     create_GridRefinement(
-        PHiLiP::Parameters::GridRefinementParam                          gr_param,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg,
-        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics,
-        std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional);
+        PHiLiP::Parameters::GridRefinementParam                            gr_param,
+        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg,
+        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics,
+        std::shared_ptr< PHiLiP::Functional<dim, nstate, real, MeshType> > functional);
 
     // dg + physics
     static std::shared_ptr< GridRefinementBase<dim,nstate,real,MeshType> > 

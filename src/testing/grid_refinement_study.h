@@ -32,6 +32,15 @@ public:
     int run_test() const;
 };
 
+// constructs the mesh for the test
+template <typename MeshType>
+class MeshFactory
+{
+public:
+    static std::unique_ptr<MeshType>
+    create_MeshType(const MPI_Comm mpi_communicator);
+};
+
 } // Tests namespace
 
 } // PHiLiP namespace

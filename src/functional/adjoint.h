@@ -56,7 +56,7 @@ public:
      */
     Adjoint(
         std::shared_ptr< DGBase<dim,real,MeshType> > _dg,
-        std::shared_ptr< Functional<dim, nstate, real> > _functional,
+        std::shared_ptr< Functional<dim, nstate, real, MeshType> > _functional,
         std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> > _physics);
 
     ///destructor
@@ -126,7 +126,7 @@ public:
     /// DG class pointer
     std::shared_ptr< DGBase<dim,real,MeshType> > dg;
     /// Functional class pointer
-    std::shared_ptr< Functional<dim, nstate, real> > functional;
+    std::shared_ptr< Functional<dim, nstate, real, MeshType> > functional;
     /// Problem physics (for calling the functional class) 
     std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> > physics;
     

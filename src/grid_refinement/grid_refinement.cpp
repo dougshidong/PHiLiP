@@ -128,9 +128,11 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::refine_grid()
     dealii::LinearAlgebra::distributed::Vector<double> solution_old(this->dg->solution);
     solution_old.update_ghost_values();
 
-    dealii::parallel::distributed::SolutionTransfer< 
-        dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim> 
-        > solution_transfer(this->dg->dof_handler);
+    using VectorType       = typename dealii::LinearAlgebra::distributed::Vector<double>;
+    using DoFHandlerType   = typename dealii::hp::DoFHandler<dim>;
+    using SolutionTransfer = typename MeshTypeHelper<MeshType>::template SolutionTransfer<dim,VectorType,DoFHandlerType>;
+
+    SolutionTransfer solution_transfer(this->dg->dof_handler);
     solution_transfer.prepare_for_coarsening_and_refinement(solution_old);
 
     this->dg->high_order_grid.prepare_for_coarsening_and_refinement();
@@ -159,7 +161,14 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::refine_grid()
     // transfering the solution from solution_old
     this->dg->allocate_system();
     this->dg->solution.zero_out_ghosts();
-    solution_transfer.interpolate(this->dg->solution);
+
+    if constexpr (std::is_same_v<typename dealii::SolutionTransfer<dim,VectorType,DoFHandlerType>, 
+                                 decltype(solution_transfer)>){
+        solution_transfer.interpolate(solution_old, this->dg->solution);
+    }else{
+        solution_transfer.interpolate(this->dg->solution);
+    }
+
     this->dg->solution.update_ghost_values();
 
     // increase the count
@@ -1124,10 +1133,10 @@ GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase(
 
 template <int dim, int nstate, typename real, typename MeshType>
 GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase(
-    PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
-    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg_input,
-    std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input,
-    std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional_input) :
+    PHiLiP::Parameters::GridRefinementParam                            gr_param_input,
+    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg_input,
+    std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics_input,
+    std::shared_ptr< PHiLiP::Functional<dim, nstate, real, MeshType> > functional_input) :
         GridRefinementBase<dim,nstate,real,MeshType>(
             gr_param_input, 
             nullptr, 
@@ -1161,11 +1170,11 @@ GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase(
 // main constructor is private for constructor delegation
 template <int dim, int nstate, typename real, typename MeshType>
 GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase(
-    PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
-    std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >  adj_input,
-    std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional_input,
-    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg_input,
-    std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) :
+    PHiLiP::Parameters::GridRefinementParam                            gr_param_input,
+    std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >    adj_input,
+    std::shared_ptr< PHiLiP::Functional<dim, nstate, real, MeshType> > functional_input,
+    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg_input,
+    std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics_input) :
         grid_refinement_param(gr_param_input),
         adjoint(adj_input),
         functional(functional_input),
@@ -1235,10 +1244,10 @@ GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
 template <int dim, int nstate, typename real, typename MeshType>
 std::shared_ptr< GridRefinementBase<dim,nstate,real,MeshType> > 
 GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
-    PHiLiP::Parameters::GridRefinementParam                          gr_param,
-    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg,
-    std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics,
-    std::shared_ptr< PHiLiP::Functional<dim, nstate, real> >         functional)
+    PHiLiP::Parameters::GridRefinementParam                            gr_param,
+    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg,
+    std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics,
+    std::shared_ptr< PHiLiP::Functional<dim, nstate, real, MeshType> > functional)
 {
     // hessian and error based
     using RefinementMethodEnum = PHiLiP::Parameters::GridRefinementParam::RefinementMethod;

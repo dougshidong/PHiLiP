@@ -34,7 +34,7 @@ namespace PHiLiP {
 template <int dim, int nstate, typename real, typename MeshType>
 Adjoint<dim, nstate, real, MeshType>::Adjoint(
     std::shared_ptr< DGBase<dim,real,MeshType> > _dg, 
-    std::shared_ptr< Functional<dim, nstate, real> > _functional,
+    std::shared_ptr< Functional<dim, nstate, real, MeshType> > _functional,
     std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> > _physics):
     dg(_dg),
     functional(_functional),
@@ -109,9 +109,11 @@ void Adjoint<dim, nstate, real, MeshType>::coarse_to_fine()
     solution_coarse.update_ghost_values();
     
     // Solution Transfer to fine grid
-    dealii::parallel::distributed::SolutionTransfer< 
-        dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim> 
-        > solution_transfer(dg->dof_handler);
+    using VectorType       = typename dealii::LinearAlgebra::distributed::Vector<double>;
+    using DoFHandlerType   = typename dealii::hp::DoFHandler<dim>;
+    using SolutionTransfer = typename MeshTypeHelper<MeshType>::template SolutionTransfer<dim,VectorType,DoFHandlerType>;
+
+    SolutionTransfer solution_transfer(dg->dof_handler);
     solution_transfer.prepare_for_coarsening_and_refinement(solution_coarse);
 
     dg->high_order_grid.prepare_for_coarsening_and_refinement();
@@ -126,7 +128,14 @@ void Adjoint<dim, nstate, real, MeshType>::coarse_to_fine()
 
     dg->allocate_system();
     dg->solution.zero_out_ghosts();
-    solution_transfer.interpolate(dg->solution);
+
+    if constexpr (std::is_same_v<typename dealii::SolutionTransfer<dim,VectorType,DoFHandlerType>, 
+                                 decltype(solution_transfer)>){
+        solution_transfer.interpolate(solution_coarse, dg->solution);
+    }else{
+        solution_transfer.interpolate(dg->solution);
+    }
+    
     dg->solution.update_ghost_values();
 
     adjoint_state = AdjointStateEnum::fine;

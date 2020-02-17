@@ -35,9 +35,11 @@ template <>
 class MeshTypeHelper<dealii::Triangulation<PHILIP_DIM>>
 {
 public:
-    using VectorType       = dealii::Vector<double>;
-    using SolutionTransfer = dealii::SolutionTransfer<PHILIP_DIM, dealii::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
-    using DoFHandlerType   = dealii::DoFHandler<PHILIP_DIM>;
+    using VectorType     = dealii::Vector<double>;
+    using DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>;
+
+    template <int dim = PHILIP_DIM, typename Vector = VectorType, typename DoFHandler = DoFHandlerType>
+    using SolutionTransfer = dealii::SolutionTransfer<dim, Vector, DoFHandler>;
 
     // reinitialize vector based on non-parralel Dofhandler
     static void reinit_vector(
@@ -55,10 +57,12 @@ template <>
 class MeshTypeHelper<dealii::parallel::distributed::Triangulation<PHILIP_DIM>>
 {
 public:
-    using VectorType       = dealii::LinearAlgebra::distributed::Vector<double>;
-    using SolutionTransfer = dealii::parallel::distributed::SolutionTransfer<PHILIP_DIM, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
-    using DoFHandlerType   = dealii::DoFHandler<PHILIP_DIM>;
+    using VectorType     = dealii::LinearAlgebra::distributed::Vector<double>;
+    using DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>;
     
+    template <int dim = PHILIP_DIM, typename Vector = VectorType, typename DoFHandler = DoFHandlerType>
+    using SolutionTransfer = dealii::parallel::distributed::SolutionTransfer<dim, Vector, DoFHandler>;
+
     // reinitialize vector based on parralel Dofhandler
     static void reinit_vector(
         VectorType             &vector, 
@@ -76,9 +80,11 @@ template <>
 class MeshTypeHelper<dealii::parallel::shared::Triangulation<PHILIP_DIM>>
 {
 public:
-    using VectorType       = dealii::LinearAlgebra::distributed::Vector<double>;
-    using SolutionTransfer = dealii::parallel::distributed::SolutionTransfer<PHILIP_DIM, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
-    using DoFHandlerType   = dealii::DoFHandler<PHILIP_DIM>;
+    using VectorType     = dealii::LinearAlgebra::distributed::Vector<double>;
+    using DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>;
+
+    template <int dim = PHILIP_DIM, typename Vector = VectorType, typename DoFHandler = DoFHandlerType>
+    using SolutionTransfer = dealii::SolutionTransfer<dim, Vector, DoFHandler>;
 
     // reinitialize vector based on parralel Dofhandler
     static void reinit_vector(
@@ -118,8 +124,7 @@ template <int      dim            = PHILIP_DIM,
 #endif
 class HighOrderGrid
 {
-    using SolutionTransfer = typename MeshTypeHelper<MeshType>::SolutionTransfer;
-
+    using SolutionTransfer = typename MeshTypeHelper<MeshType>::template SolutionTransfer<dim,VectorType,DoFHandlerType>;
 public:
     /// Principal constructor that will call delegated constructor.
     HighOrderGrid(

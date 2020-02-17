@@ -1,5 +1,7 @@
 #include <mpi.h>
 
+#include <type_traits>
+
 #include <deal.II/base/exceptions.h>
 
 // For metric Jacobian testing
@@ -151,11 +153,14 @@ HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::allocate()
     dealii::DoFTools::extract_locally_relevant_dofs(dof_handler_grid, locally_relevant_dofs_grid);
     ghost_dofs_grid = locally_relevant_dofs_grid;
     ghost_dofs_grid.subtract_set(locally_owned_dofs_grid);
-#if PHILIP_DIM == 1
-    nodes.reinit(dof_handler_grid.n_dofs());
-#else
-    nodes.reinit(locally_owned_dofs_grid, ghost_dofs_grid, mpi_communicator);
-#endif
+
+    // reinit nodes depending on the MeshType::VectorType
+    MeshTypeHelper<MeshType>::reinit_vector(
+        nodes, 
+        dof_handler_grid, 
+        locally_owned_dofs_grid,
+        ghost_dofs_grid,
+        mpi_communicator);
 }
 
 //template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
@@ -794,16 +799,19 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::prepare_for_coa
 
     old_nodes = nodes;
     old_nodes.update_ghost_values();
-    if constexpr (dim == 1) solution_transfer.clear();
+    if constexpr (std::is_same_v<typename MeshTypeHelper<MeshType>::SolutionTransfer, 
+                                 dealii::SolutionTransfer<dim, dealii::Vector<real>, dealii::DoFHandler<dim>>>) 
+        solution_transfer.clear();
     solution_transfer.prepare_for_coarsening_and_refinement(old_nodes);
 }
 
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
 void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::execute_coarsening_and_refinement(const bool output_mesh) {
     allocate();
-    if constexpr(dim == 1) {
+    if constexpr (std::is_same_v<decltype(solution_transfer), 
+                                 dealii::SolutionTransfer<dim, dealii::Vector<real>, dealii::DoFHandler<dim>>>){
         solution_transfer.interpolate(old_nodes, nodes);
-    } else {
+    }else{
         solution_transfer.interpolate(nodes);
     }
     nodes.update_ghost_values();
@@ -1215,11 +1223,13 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::output_results_
     // data_out.add_data_vector (nodes, grid_post_processor);
 
     VectorType jacobian_determinant;
-#if PHILIP_DIM == 1
-    jacobian_determinant.reinit(dof_handler_grid.n_dofs());
-#else
-    jacobian_determinant.reinit(locally_owned_dofs_grid, ghost_dofs_grid, mpi_communicator);
-#endif
+    MeshTypeHelper<MeshType>::reinit_vector(
+        jacobian_determinant, 
+        dof_handler_grid, 
+        locally_owned_dofs_grid,
+        ghost_dofs_grid,
+        mpi_communicator);
+    
     // const unsigned int n_dofs_per_cell = fe_system.n_dofs_per_cell();
     // std::vector<dealii::types::global_dof_index> dofs_indices(n_dofs_per_cell);
     // const std::vector< dealii::Point<dim> > &points = fe_system.get_unit_support_points();
@@ -1390,12 +1400,12 @@ namespace MeshMover
         local_dofs_per_process = dof_handler.compute_n_locally_owned_dofs_per_processor();
 
         system_rhs.reinit(locally_owned_dofs, mpi_communicator);
-        if constexpr (dim == 1) {
-            displacement_solution.reinit(dof_handler.n_dofs());
-        }
-        if constexpr (dim != 1) {
-            displacement_solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
-        }
+        MeshTypeHelper<MeshType>::reinit_vector(
+            displacement_solution, 
+            dof_handler, 
+            locally_owned_dofs,
+            ghost_dofs,
+            mpi_communicator);
 
         // Set the hanging node constraints
         all_constraints.clear();
@@ -1610,7 +1620,7 @@ namespace MeshMover
         //direct.solve(system_matrix, trilinos_solution, system_rhs);
 
         all_constraints.distribute(trilinos_solution);
-        if constexpr(dim==1) {
+        if constexpr (std::is_same_v<VectorType, dealii::Vector<real>>) {
             displacement_solution = trilinos_solution;
         } else {
             dealii::LinearAlgebra::ReadWriteVector<double> rw_vector;

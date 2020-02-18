@@ -82,6 +82,9 @@ protected:
     const MPI_Comm mpi_communicator; ///< MPI communicator.
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
+public:
+    /// Courant-Friedrichs-Lax number
+    double CFL;
 
 }; // end of ODESolver class
 
@@ -122,6 +125,8 @@ public:
 protected:
     /// Advances the solution in time by \p dt.
     void step_in_time(real dt);
+
+    double linesearch ();
 
     using ODESolver<dim,real>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 

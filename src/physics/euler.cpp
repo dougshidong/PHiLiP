@@ -60,11 +60,14 @@ inline std::array<real,nstate> Euler<dim,nstate,real>
     dealii::Tensor<1,dim,real> vel = compute_velocities (conservative_soln);
     real pressure = compute_pressure (conservative_soln);
 
+    if (density < 0.0) density = 100;
+    if (pressure < 0.0) pressure = 100;
     primitive_soln[0] = density;
     for (int d=0; d<dim; ++d) {
         primitive_soln[1+d] = vel[d];
     }
     primitive_soln[nstate-1] = pressure;
+
     return primitive_soln;
 }
 
@@ -210,13 +213,13 @@ inline real Euler<dim,nstate,real>
     real pressure = gamm1*(tot_energy - 0.5*density*vel2);
     //std::cout << "calculated pressure is" << pressure << std::endl;
     if(pressure<0.0) {
-        std::cout<<"Cannot compute pressure..."<<std::endl;
-        std::cout<<"density "<<density<<std::endl;
-        for(int d=0;d<dim;d++) std::cout<<"vel"<<d<<" "<<vel[d]<<std::endl;
-        std::cout<<"energy "<<tot_energy<<std::endl;
-        throw 1;
+        //std::cout<<"Cannot compute pressure..."<<std::endl;
+        //std::cout<<"density "<<density<<std::endl;
+        //for(int d=0;d<dim;d++) std::cout<<"vel"<<d<<" "<<vel[d]<<std::endl;
+        //std::cout<<"energy "<<tot_energy<<std::endl;
+        pressure = 100.01;
     }
-    assert(pressure>0.0);
+    //assert(pressure>0.0);
     //if(pressure<1e-4) pressure = 0.01;
     return pressure;
 }
@@ -228,10 +231,11 @@ inline real Euler<dim,nstate,real>
     real density = conservative_soln[0];
     //if(density<1e-4) density = 0.01;
     if(density<0.0) {
-        std::cout<<"density"<<density<<std::endl;
-        std::abort();
+        //std::cout<<"density"<<density<<std::endl;
+        density = 100.01;
+        //std::abort();
     }
-    assert(density > 0);
+    //assert(density > 0);
     const real pressure = compute_pressure(conservative_soln);
     //std::cout << "pressure is" << pressure << std::endl;
     const real sound = std::sqrt(pressure*gam/density);
@@ -243,7 +247,7 @@ template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
 ::compute_sound ( const real density, const real pressure ) const
 {
-    assert(density > 0);
+    //assert(density > 0);
     const real sound = std::sqrt(pressure*gam/density);
     return sound;
 }
@@ -708,7 +712,7 @@ dealii::Vector<double> Euler<dim,nstate,real>::post_compute_derived_quantities_v
             conservative_soln[s] = uh(s);
         }
         const std::array<double, nstate> primitive_soln = convert_conservative_to_primitive(conservative_soln);
-        if (primitive_soln[0] < 0) std::cout << evaluation_points << std::endl;
+        // if (primitive_soln[0] < 0) std::cout << evaluation_points << std::endl;
 
         // Density
         computed_quantities(++current_data_index) = primitive_soln[0];

@@ -1392,8 +1392,14 @@ real2 DGBase<dim,real>::discontinuity_sensor(
         // Need JxW not just W
         // However, this happens at the cell faces, and therefore can't query the 
         // the volume Jacobians
-        error += std::pow(soln_high - soln_lower, 2) * quadrature.weight(iquad);
-        soln_norm += std::pow(soln_high, 2) * quadrature.weight(iquad);
+        //std::cout << "soln_high" << std::endl;
+        //std::cout << soln_high << std::endl;
+        //std::cout << "soln_lower" << std::endl;
+        //std::cout << soln_lower << std::endl;
+        //error += std::pow(soln_high - soln_lower, 2) * quadrature.weight(iquad);
+        //soln_norm += std::pow(soln_high, 2) * quadrature.weight(iquad);
+        error += (soln_high - soln_lower) * (soln_high - soln_lower) * quadrature.weight(iquad);
+        soln_norm += soln_high * soln_high * quadrature.weight(iquad);
     }
 
     if (error < 1e-12) return 0.0;
@@ -1410,7 +1416,7 @@ real2 DGBase<dim,real>::discontinuity_sensor(
 
     const double skappa = -1.3;
     const double s_0 = skappa-4.25*std::log10(degree);
-    const double kappa = 5.2;
+    const double kappa = 1.2;
     const double mu_scale = 1.0;
 
     const double low = s_0 - kappa;

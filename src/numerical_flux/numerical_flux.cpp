@@ -134,7 +134,10 @@ std::array<real, nstate> Roe<dim,nstate,real>
     const real normal_vel_ravg = velocities_ravg*normal_int;
 
     const real sound2_ravg = euler_physics->gamm1*(specific_total_enthalpy_ravg-0.5*vel2_ravg);
-    const real sound_ravg = std::sqrt(sound2_ravg);
+    real sound_ravg = 100;
+    if (sound2_ravg > 0.0) {
+        sound_ravg = std::sqrt(sound2_ravg);
+    }
 
     // Compute eigenvalues
     std::array<real, 3> eig_ravg;

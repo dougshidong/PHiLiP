@@ -1414,9 +1414,9 @@ real2 DGBase<dim,real>::discontinuity_sensor(
     //s_0 = std::log10(S_0);
     //const double kappa = 0.1 * std::abs(s_0);
 
-    const double skappa = -1.3;
+    const double skappa = -2.3;
     const double s_0 = skappa-4.25*std::log10(degree);
-    const double kappa = 1.2;
+    const double kappa = 10.2; // 1.2
     const double mu_scale = 1.0;
 
     const double low = s_0 - kappa;

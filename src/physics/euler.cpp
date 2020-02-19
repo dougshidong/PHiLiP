@@ -141,7 +141,8 @@ template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
 ::compute_entropy_measure ( const std::array<real,nstate> &conservative_soln ) const
 {
-    const real density = conservative_soln[0];
+    real density = conservative_soln[0];
+    if (density < 0.0) density = 100;
     const real pressure = compute_pressure(conservative_soln);
     const real entropy_measure = pressure*pow(density,-gam);
     return entropy_measure;

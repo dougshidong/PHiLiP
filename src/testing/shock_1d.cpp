@@ -408,26 +408,6 @@ int Shock1D<dim,nstate>
                  << " output_error: " << output_error[igrid]
                  << std::endl;
 
-            if (igrid > 0) {
-                const double slope_soln_err = log(soln_error[igrid]/soln_error[igrid-1])
-                                      / log(grid_size[igrid]/grid_size[igrid-1]);
-                const double slope_output_err = log(output_error[igrid]/output_error[igrid-1])
-                                      / log(grid_size[igrid]/grid_size[igrid-1]);
-                pcout << "From grid " << igrid-1
-                     << "  to grid " << igrid
-                     << "  dimension: " << dim
-                     << "  polynomial degree p: " << poly_degree
-                     << std::endl
-                     << "  solution_error1 " << soln_error[igrid-1]
-                     << "  solution_error2 " << soln_error[igrid]
-                     << "  slope " << slope_soln_err
-                     << std::endl
-                     << "  solution_integral_error1 " << output_error[igrid-1]
-                     << "  solution_integral_error2 " << output_error[igrid]
-                     << "  slope " << slope_output_err
-                     << std::endl;
-            }
-
         }
         pcout << " ********************************************"
              << std::endl
@@ -443,33 +423,6 @@ int Shock1D<dim,nstate>
         if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
 
         convergence_table_vector.push_back(convergence_table);
-
-        const double expected_slope = poly_degree+1;
-
-        const double last_slope = log(soln_error[n_grids-1]/soln_error[n_grids-2])
-                                  / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
-        double before_last_slope = last_slope;
-        if ( n_grids > 2 ) {
-        before_last_slope = log(soln_error[n_grids-2]/soln_error[n_grids-3])
-                            / log(grid_size[n_grids-2]/grid_size[n_grids-3]);
-        }
-        const double slope_avg = 0.5*(before_last_slope+last_slope);
-        const double slope_diff = slope_avg-expected_slope;
-
-        double slope_deficit_tolerance = -std::abs(manu_grid_conv_param.slope_deficit_tolerance);
-        if(poly_degree == 0) slope_deficit_tolerance *= 2; // Otherwise, grid sizes need to be much bigger for p=0
-
-        if (slope_diff < slope_deficit_tolerance) {
-            pcout << std::endl
-                 << "Convergence order not achieved. Average last 2 slopes of "
-                 << slope_avg << " instead of expected "
-                 << expected_slope << " within a tolerance of "
-                 << slope_deficit_tolerance
-                 << std::endl;
-            // p=0 just requires too many meshes to get into the asymptotic region.
-            if(poly_degree!=0) fail_conv_poly.push_back(poly_degree);
-            if(poly_degree!=0) fail_conv_slop.push_back(slope_avg);
-        }
 
     }
     pcout << std::endl << std::endl << std::endl << std::endl;

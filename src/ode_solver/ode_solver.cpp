@@ -101,7 +101,7 @@ int ODESolver<dim,real>::steady_state ()
             pcout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
         }
 
-        double dt = CFL;
+        double dt = std::max(CFL,all_parameters->ode_solver_param.initial_time_step);
         dt *= pow((1.0-std::log10(this->residual_norm_decrease)*ode_param.time_step_factor_residual), ode_param.time_step_factor_residual_exp);
         dt = std::max(dt,CFL);
         pcout << "CFL = " << CFL << " Time step = " << dt << std::endl;
@@ -244,8 +244,14 @@ double Implicit_ODESolver<dim,real>::linesearch ()
         this->dg->assemble_residual ();
         new_residual = this->dg->get_residual_l2norm();
     }
+    if (step_length > std::pow(step_reduction,maxline/2)) {
+        this->CFL *= 1.2;
+    } else {
+        //this->CFL *= 0.5;
+    }
     if (iline == maxline) {
         step_length = 1.0;
+        pcout << " Step length " << step_length << " accepting any give valid residual. Old residual: " << initial_residual << std::endl;
         this->dg->solution.add(step_length, this->solution_update);
         this->dg->assemble_residual ();
         new_residual = this->dg->get_residual_l2norm();
@@ -257,16 +263,37 @@ double Implicit_ODESolver<dim,real>::linesearch ()
             this->dg->assemble_residual ();
             new_residual = this->dg->get_residual_l2norm();
         }
-    }
-    if (iline == maxline) {
-        pcout << " Reached maximum number of linesearches. Terminating... " << std::endl;
-        std::abort();
+        //this->CFL *= 0.5;
     }
 
-    if (step_length > step_reduction) {
-        this->CFL *= 1.2;
-    } else {
-        this->CFL *= 0.2;
+    if (iline == maxline) {
+        pcout << " Reached maximum number of linesearches. Terminating... " << std::endl;
+        step_length = -1.0;
+        pcout << " Step length " << step_length << " accepting any give valid residual. Old residual: " << initial_residual << std::endl;
+        for (iline = 0; iline < maxline && new_residual > initial_residual; ++iline) {
+            pcout << " Step length " << step_length << " did not reduce residual. Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+            step_length = step_length * step_reduction;
+            this->dg->solution = old_solution;
+            this->dg->solution.add(step_length, this->solution_update);
+            this->dg->assemble_residual ();
+            new_residual = this->dg->get_residual_l2norm();
+        }
+        if (iline == maxline) {
+            step_length = 1.0;
+            this->dg->solution.add(step_length, this->solution_update);
+            this->dg->assemble_residual ();
+            new_residual = this->dg->get_residual_l2norm();
+            for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance ; ++iline) {
+                pcout << " Step length " << step_length << " did not give valid residual. Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+                step_length = step_length * step_reduction;
+                this->dg->solution = old_solution;
+                this->dg->solution.add(step_length, this->solution_update);
+                this->dg->assemble_residual ();
+                new_residual = this->dg->get_residual_l2norm();
+            }
+        }
+        //this->CFL *= 0.5;
+        //std::abort();
     }
 
     return step_length;

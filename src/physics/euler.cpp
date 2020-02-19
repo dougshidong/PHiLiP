@@ -60,8 +60,8 @@ inline std::array<real,nstate> Euler<dim,nstate,real>
     dealii::Tensor<1,dim,real> vel = compute_velocities (conservative_soln);
     real pressure = compute_pressure (conservative_soln);
 
-    if (density < 0.0) density = 100;
-    if (pressure < 0.0) pressure = 100;
+    if (density < 0.0) density = 1e10;
+    if (pressure < 0.0) pressure = 1e10;
     primitive_soln[0] = density;
     for (int d=0; d<dim; ++d) {
         primitive_soln[1+d] = vel[d];
@@ -142,7 +142,7 @@ inline real Euler<dim,nstate,real>
 ::compute_entropy_measure ( const std::array<real,nstate> &conservative_soln ) const
 {
     real density = conservative_soln[0];
-    if (density < 0.0) density = 100;
+    if (density < 0.0) density = 1e10;
     const real pressure = compute_pressure(conservative_soln);
     const real entropy_measure = pressure*pow(density,-gam);
     return entropy_measure;
@@ -218,7 +218,7 @@ inline real Euler<dim,nstate,real>
         //std::cout<<"density "<<density<<std::endl;
         //for(int d=0;d<dim;d++) std::cout<<"vel"<<d<<" "<<vel[d]<<std::endl;
         //std::cout<<"energy "<<tot_energy<<std::endl;
-        pressure = 100.01;
+        pressure = 1e10;
     }
     //assert(pressure>0.0);
     //if(pressure<1e-4) pressure = 0.01;
@@ -233,7 +233,7 @@ inline real Euler<dim,nstate,real>
     //if(density<1e-4) density = 0.01;
     if(density<0.0) {
         //std::cout<<"density"<<density<<std::endl;
-        density = 100.01;
+        density = 1e10;
         //std::abort();
     }
     //assert(density > 0);

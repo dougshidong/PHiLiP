@@ -57,6 +57,24 @@ DGStrong<dim,nstate,real>::~DGStrong ()
 
 
 template <int dim, int nstate, typename real>
+real DGStrong<dim,nstate,real>::evaluate_CFL (
+    std::vector< std::array<real,nstate> > soln_at_q,
+    const real cell_diameter
+    )
+{
+    const unsigned int n_pts = soln_at_q.size();
+    std::vector< real > convective_eigenvalues(n_pts);
+    for (unsigned int isol = 0; isol < n_pts; ++isol) {
+        convective_eigenvalues[isol] = pde_physics_double->max_convective_eigenvalue (soln_at_q[isol]);
+        //viscosities[isol] = pde_physics_double->compute_diffusion_coefficient (soln_at_q[isol]);
+    }
+    const real max_eig = *(std::max_element(convective_eigenvalues.begin(), convective_eigenvalues.end()));
+
+    return cell_diameter / max_eig;
+}
+
+
+template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_boundary_term_derivatives(
     const unsigned int ,//face_number,
     const unsigned int boundary_id,
@@ -579,6 +597,10 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
             source_at_q[iquad] = pde_physics_double->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad]);
         }
     }
+
+    const double cell_diameter = fe_values_vol.get_cell()->diameter();
+    const unsigned int cell_index = fe_values_vol.get_cell()->active_cell_index();
+    this->max_dt_cell[cell_index] = evaluate_CFL ( soln_at_q, cell_diameter );
 
 
     // Evaluate flux divergence by interpolating the flux

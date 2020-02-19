@@ -752,6 +752,16 @@ private:
     using ADType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using ADADType = Sacado::Fad::DFad<Sacado::Fad::DFad<real>>; ///< Sacado AD type that allows 2nd derivatives.
 
+    /// Evaluate the time it takes for the maximum wavespeed to cross the cell domain.
+    /** Currently only uses the convective eigenvalues. Future changes would take in account
+     *  the maximum diffusivity and take the minimum time between dx/conv_eig and dx*dx/max_visc
+     *  to determine the minimum travel time of information.
+     *  
+     *  Furthermore, a more robust implementation would convert the values to a Bezier basis where
+     *  the maximum and minimum values would be bounded by the Bernstein modal coefficients.
+     */
+    real evaluate_CFL (std::vector< std::array<real,nstate> > soln_at_q, const real cell_diameter);
+
     /// Contains the physics of the PDE with real type
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, real > > pde_physics_double;
     /// Convective numerical flux with real type

@@ -1,8 +1,6 @@
 #include <stdlib.h>     /* srand, rand */
 #include <iostream>
 
-#include <deal.II/base/convergence_table.h>
-
 #include <deal.II/distributed/solution_transfer.h>
 #include <deal.II/dofs/dof_tools.h>
 
@@ -168,16 +166,9 @@ int EulerBumpOptimization<dim,nstate>
         pcout << initial_conditions.farfield_conservative[s] << std::endl;
     }
 
-    std::vector<int> fail_conv_poly;
-    std::vector<double> fail_conv_slop;
-    std::vector<dealii::ConvergenceTable> convergence_table_vector;
-
     int poly_degree = 1;
 
-
     const int n_1d_cells = manu_grid_conv_param.initial_grid_size;
-
-    dealii::ConvergenceTable convergence_table;
 
     std::vector<unsigned int> n_subdivisions(dim);
     //n_subdivisions[1] = n_1d_cells; // y-direction

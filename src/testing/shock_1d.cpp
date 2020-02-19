@@ -156,14 +156,17 @@ double Shock1D<dim,nstate>
     return solution_integral_mpi_sum;
 }
 
+/// Sine initial conditions.
 template <int dim>
 class SineInitialCondition : public dealii::Function<dim>
 {
 public:
+  /// Constructor.
   SineInitialCondition(const unsigned int n_components = 1,
                        const double       time         = 0.)
     : dealii::Function<dim>(n_components, time)
   {}
+  /// Initial value.
   virtual double value(const dealii::Point<dim> &p,
                        const unsigned int /*component*/) const override
   {

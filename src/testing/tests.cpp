@@ -18,6 +18,7 @@
 #include "euler_split_inviscid_taylor_green_vortex.h"
 #include "optimization_inverse_manufactured/optimization_inverse_manufactured.h"
 #include "euler_bump_optimization.h"
+#include "shock_1d.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -86,6 +87,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
     	return std::make_unique<OptimizationInverseManufactured<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_bump_optimization) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerBumpOptimization<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::shock_1d) {
+        if constexpr (dim==1 && nstate==1) return std::make_unique<Shock1D<dim,nstate>>(parameters_input);
     } else{
         std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
     }

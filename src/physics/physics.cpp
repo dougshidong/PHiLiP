@@ -64,6 +64,41 @@ template <int dim, int nstate, typename real>
 PhysicsBase<dim,nstate,real>::~PhysicsBase() {}
 
 template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>
+::artificial_dissipative_flux (
+    const real viscosity_coefficient,
+    const std::array<real,nstate> &,//solution,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient)
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> diss_flux;
+    for (int i=0; i<nstate; i++) {
+        diss_flux[i] = -viscosity_coefficient*(solution_gradient[i]);
+    }
+    return diss_flux;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> PhysicsBase<dim,nstate,real>
+::artificial_source_term (
+    const real viscosity_coefficient,
+    const dealii::Point<dim,real> &pos,
+    const std::array<real,nstate> &/*solution*/) const
+{
+    std::array<real,nstate> source;
+    
+    dealii::Tensor<2,dim,double> artificial_diffusion_tensor;
+    for (int i=0;i<dim;i++)
+        for (int j=0;j<dim;j++)
+            artificial_diffusion_tensor[i][j] = (i==j) ? 1.0 : 0.0;
+
+    for (int istate=0; istate<nstate; istate++) {
+        dealii::SymmetricTensor<2,dim,real> manufactured_hessian = this->manufactured_solution_function->hessian (pos, istate);
+        source[istate] = -viscosity_coefficient*scalar_product(artificial_diffusion_tensor,manufactured_hessian);
+    }
+    return source;
+}
+
+template <int dim, int nstate, typename real>
 void PhysicsBase<dim,nstate,real>
 ::boundary_face_values (
    const int /*boundary_type*/,

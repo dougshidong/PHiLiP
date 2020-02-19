@@ -107,7 +107,7 @@ dealii::Point<2> warp_cylinder_adjoint (const dealii::Point<2> &p)//, const doub
 
     //const double radius = std::abs(p[0]);
 
-    const double power = 2.25;
+    const double power = 1.8;
     const double radius = outer_radius_adjoint*(inner_radius_adjoint/outer_radius_adjoint + pow(std::abs(p[0]), power));
 
     dealii::Point<2> q = p;
@@ -261,7 +261,7 @@ int EulerCylinderAdjoint<dim,nstate>
             //     dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_coarsening));
 
         const unsigned int n_cells_circle = n_1d_cells[0];
-        const unsigned int n_cells_radial = 2*n_cells_circle;
+        const unsigned int n_cells_radial = 1.5*n_cells_circle;
         half_cylinder_adjoint(grid, n_cells_circle, n_cells_radial);
 
         // Create DG object, using max_poly = p+1 to allow for adjoint computation

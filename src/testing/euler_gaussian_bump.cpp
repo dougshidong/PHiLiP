@@ -43,7 +43,8 @@ public:
     FreeStreamInitialConditions (const Physics::Euler<dim,nstate,double> euler_physics)
     : dealii::Function<dim,double>(nstate)
     {
-        const double density_bc = 2.33333*euler_physics.density_inf;
+        //const double density_bc = 2.33333*euler_physics.density_inf;
+        const double density_bc = euler_physics.density_inf;
         const double pressure_bc = 1.0/(euler_physics.gam*euler_physics.mach_inf_sqr);
         std::array<double,nstate> primitive_boundary_values;
         primitive_boundary_values[0] = density_bc;

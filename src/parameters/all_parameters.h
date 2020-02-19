@@ -46,6 +46,12 @@ public:
      */
     bool use_periodic_bc;
 
+    /// Flag to add artificial dissipation from Persson's shock capturing paper.
+    /** This feature is currently not fully working. It dissipates the Burger's
+     *  invisid shock, but loses all the order of accuracy for the Gaussian bump.
+     */
+    bool add_artificial_dissipation;
+
     /// Number of state variables. Will depend on PDE
     int nstate;
 
@@ -64,6 +70,7 @@ public:
         burgers_split_form,
 		optimization_inverse_manufactured,
         euler_bump_optimization,
+        shock_1d,
         advection_periodicity,
         };
     TestType test_type; ///< Selected TestType from the input file.

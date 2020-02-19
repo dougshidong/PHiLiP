@@ -57,6 +57,24 @@ DGStrong<dim,nstate,real>::~DGStrong ()
 
 
 template <int dim, int nstate, typename real>
+real DGStrong<dim,nstate,real>::evaluate_CFL (
+    std::vector< std::array<real,nstate> > soln_at_q,
+    const real cell_diameter
+    )
+{
+    const unsigned int n_pts = soln_at_q.size();
+    std::vector< real > convective_eigenvalues(n_pts);
+    for (unsigned int isol = 0; isol < n_pts; ++isol) {
+        convective_eigenvalues[isol] = pde_physics_double->max_convective_eigenvalue (soln_at_q[isol]);
+        //viscosities[isol] = pde_physics_double->compute_diffusion_coefficient (soln_at_q[isol]);
+    }
+    const real max_eig = *(std::max_element(convective_eigenvalues.begin(), convective_eigenvalues.end()));
+
+    return cell_diameter / max_eig;
+}
+
+
+template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_boundary_term_derivatives(
     const unsigned int ,//face_number,
     const unsigned int boundary_id,
@@ -161,6 +179,7 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_derivatives(
         diss_flux_jump_int[iquad] = pde_physics->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
  
         diss_auxi_num_flux_dot_n[iquad] = diss_num_flux->evaluate_auxiliary_flux(
+            0.0, 0.0,
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
             normal_int, penalty, true);
@@ -457,6 +476,7 @@ void DGStrong<dim,nstate,real>::assemble_face_term_derivatives(
         diss_flux_jump_ext[iquad] = pde_physics->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext);
 
         diss_auxi_num_flux_dot_n[iquad] = diss_num_flux->evaluate_auxiliary_flux(
+            0.0, 0.0,
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
             normal_int, penalty);
@@ -577,6 +597,10 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
             source_at_q[iquad] = pde_physics_double->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad]);
         }
     }
+
+    const double cell_diameter = fe_values_vol.get_cell()->diameter();
+    const unsigned int cell_index = fe_values_vol.get_cell()->active_cell_index();
+    this->max_dt_cell[cell_index] = evaluate_CFL ( soln_at_q, cell_diameter );
 
 
     // Evaluate flux divergence by interpolating the flux
@@ -730,6 +754,7 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_explicit(
         diss_flux_jump_int[iquad] = pde_physics->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
 
         diss_auxi_num_flux_dot_n[iquad] = diss_num_flux->evaluate_auxiliary_flux(
+            0.0, 0.0,
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
             normal_int, penalty, true);
@@ -885,6 +910,7 @@ void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
         diss_flux_jump_ext[iquad] = pde_physics->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext);
 
         diss_auxi_num_flux_dot_n[iquad] = diss_num_flux->evaluate_auxiliary_flux(
+            0.0, 0.0,
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
             normal_int, penalty);
@@ -962,6 +988,17 @@ void DGStrong<dim,nstate,real>::set_physics(
     pde_physics = pde_physics_input;
     conv_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, Sacado::Fad::DFad<real>> ::create_convective_numerical_flux (DGBase<dim,real>::all_parameters->conv_num_flux_type, pde_physics);
     diss_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, Sacado::Fad::DFad<real>> ::create_dissipative_numerical_flux (DGBase<dim,real>::all_parameters->diss_num_flux_type, pde_physics);
+}
+
+template <int dim, int nstate, typename real>
+void DGStrong<dim,nstate,real>::set_physics(
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > >pde_physics_input)
+{
+    using ADtype = Sacado::Fad::DFad<real>;
+    using ADADtype = Sacado::Fad::DFad<ADtype>;
+    pde_physics_fad_fad = pde_physics_input;
+    conv_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, ADADtype> ::create_convective_numerical_flux (DGBase<dim,real>::all_parameters->conv_num_flux_type, pde_physics_fad_fad);
+    diss_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, ADADtype> ::create_dissipative_numerical_flux (DGBase<dim,real>::all_parameters->diss_num_flux_type, pde_physics_fad_fad);
 }
 
 template class DGStrong <PHILIP_DIM, 1, double>;

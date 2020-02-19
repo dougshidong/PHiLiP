@@ -12,3 +12,5 @@ add_subdirectory(euler_integration)
 add_subdirectory(euler_bump_optimization)
 
 add_subdirectory(optimization_inverse_manufactured)
+
+add_subdirectory(1d_shock)

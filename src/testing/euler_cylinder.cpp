@@ -43,7 +43,7 @@ dealii::Point<2> warp_cylinder (const dealii::Point<2> &p)//, const double inner
 
     //const double radius = std::abs(p[0]);
 
-    const double power = 2.25;
+    const double power = 1.8;
     const double radius = outer_radius*(inner_radius/outer_radius + pow(std::abs(p[0]), power));
 
     dealii::Point<2> q = p;
@@ -188,7 +188,7 @@ int EulerCylinder<dim,nstate>
                 dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_coarsening));
 
         const unsigned int n_cells_circle = n_1d_cells[0];
-        const unsigned int n_cells_radial = 2*n_cells_circle;
+        const unsigned int n_cells_radial = 1.5*n_cells_circle;
         half_cylinder(grid, n_cells_circle, n_cells_radial);
 
         // Create DG object

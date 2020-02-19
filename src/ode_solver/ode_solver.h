@@ -82,6 +82,9 @@ protected:
     const MPI_Comm mpi_communicator; ///< MPI communicator.
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
+public:
+    /// Courant-Friedrichs-Lax number
+    double CFL;
 
 }; // end of ODESolver class
 
@@ -122,6 +125,14 @@ public:
 protected:
     /// Advances the solution in time by \p dt.
     void step_in_time(real dt);
+
+    /// Performs a linesearch to reduce the residual.
+    /** It first does a backtracking linesearch to make sure the residual is reduced.
+     *  If not found, a linesearch is made to check that the residual is valid.
+     *  Otherwise, take step in the other direction or accept current linesearch, while
+     *  reducing the CFL for the next time step.
+     */
+    double linesearch ();
 
     using ODESolver<dim,real>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 

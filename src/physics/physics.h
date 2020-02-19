@@ -63,7 +63,7 @@ public:
     //     const std::array<real,nstate> &solution,
     //     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_grad) const = 0;
 
-    /// Dissipative fluxes that will be differentiated once in space.
+    /// Dissipative fluxes that will be differentiated ONCE in space.
     /** Evaluates the dissipative flux through the linearization F = A(u)*grad(u).
      */
     std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux_A_gradu (
@@ -72,15 +72,28 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         std::array<dealii::Tensor<1,dim,real>,nstate> &diss_flux) const;
 
-    /// Dissipative fluxes that will be differentiated once in space.
+    /// Dissipative fluxes that will be differentiated ONCE in space.
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
         const std::array<real,nstate> &solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const = 0;
+
+    /// Artificial dissipative fluxes that will be differentiated ONCE in space.
+    /** Stems from the Persson2006 paper on subcell shock capturing */
+    virtual std::array<dealii::Tensor<1,dim,real>,nstate> artificial_dissipative_flux (
+        const real viscosity_coefficient,
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient);
 
     /// Source term that does not require differentiation.
     virtual std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &solution) const = 0;
+
+    /// Artificial source term that does not require differentiation stemming from artificial dissipation.
+    virtual std::array<real,nstate> artificial_source_term (
+        const real viscosity_coefficient,
+        const dealii::Point<dim,real> &pos,
+        const std::array<real,nstate> &solution) const;
 
     /// Evaluates boundary values and gradients on the other side of the face.
     virtual void boundary_face_values (

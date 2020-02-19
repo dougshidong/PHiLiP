@@ -60,11 +60,14 @@ inline std::array<real,nstate> Euler<dim,nstate,real>
     dealii::Tensor<1,dim,real> vel = compute_velocities (conservative_soln);
     real pressure = compute_pressure (conservative_soln);
 
+    if (density < 0.0) density = 1e10;
+    if (pressure < 0.0) pressure = 1e10;
     primitive_soln[0] = density;
     for (int d=0; d<dim; ++d) {
         primitive_soln[1+d] = vel[d];
     }
     primitive_soln[nstate-1] = pressure;
+
     return primitive_soln;
 }
 
@@ -138,7 +141,8 @@ template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
 ::compute_entropy_measure ( const std::array<real,nstate> &conservative_soln ) const
 {
-    const real density = conservative_soln[0];
+    real density = conservative_soln[0];
+    if (density < 0.0) density = 1e10;
     const real pressure = compute_pressure(conservative_soln);
     const real entropy_measure = pressure*pow(density,-gam);
     return entropy_measure;
@@ -210,12 +214,13 @@ inline real Euler<dim,nstate,real>
     real pressure = gamm1*(tot_energy - 0.5*density*vel2);
     //std::cout << "calculated pressure is" << pressure << std::endl;
     if(pressure<0.0) {
-        std::cout<<"Cannot compute pressure..."<<std::endl;
-        std::cout<<"density "<<density<<std::endl;
-        for(int d=0;d<dim;d++) std::cout<<"vel"<<d<<" "<<vel[d]<<std::endl;
-        std::cout<<"energy "<<tot_energy<<std::endl;
+        //std::cout<<"Cannot compute pressure..."<<std::endl;
+        //std::cout<<"density "<<density<<std::endl;
+        //for(int d=0;d<dim;d++) std::cout<<"vel"<<d<<" "<<vel[d]<<std::endl;
+        //std::cout<<"energy "<<tot_energy<<std::endl;
+        pressure = 1e10;
     }
-    assert(pressure>0.0);
+    //assert(pressure>0.0);
     //if(pressure<1e-4) pressure = 0.01;
     return pressure;
 }
@@ -227,10 +232,11 @@ inline real Euler<dim,nstate,real>
     real density = conservative_soln[0];
     //if(density<1e-4) density = 0.01;
     if(density<0.0) {
-        std::cout<<"density"<<density<<std::endl;
-        std::abort();
+        //std::cout<<"density"<<density<<std::endl;
+        density = 1e10;
+        //std::abort();
     }
-    assert(density > 0);
+    //assert(density > 0);
     const real pressure = compute_pressure(conservative_soln);
     //std::cout << "pressure is" << pressure << std::endl;
     const real sound = std::sqrt(pressure*gam/density);
@@ -242,7 +248,7 @@ template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
 ::compute_sound ( const real density, const real pressure ) const
 {
-    assert(density > 0);
+    //assert(density > 0);
     const real sound = std::sqrt(pressure*gam/density);
     return sound;
 }
@@ -442,22 +448,13 @@ template <int dim, int nstate, typename real>
 real Euler<dim,nstate,real>
 ::max_convective_eigenvalue (const std::array<real,nstate> &conservative_soln) const
 {
-    //std::cout << "going to calculate max eig" << std::endl;
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
-    //std::cout << "velocities calculated" << std::endl;
 
     const real sound = compute_sound (conservative_soln);
-    //std::cout << "sound calculated" << std::endl;
 
-    /*const*/ real vel2 = compute_velocity_squared(vel);
-    //std::cout << "vel2 calculated" << std::endl;
-
-    // Why abtin, why?
-    //if (vel2 < 0.0001)
-    //    vel2 = 0.0001;
+    real vel2 = compute_velocity_squared(vel);
 
     const real max_eig = sqrt(vel2) + sound;
-    //std::cout << "max eig calculated" << std::endl;
 
     return max_eig;
 }
@@ -716,7 +713,7 @@ dealii::Vector<double> Euler<dim,nstate,real>::post_compute_derived_quantities_v
             conservative_soln[s] = uh(s);
         }
         const std::array<double, nstate> primitive_soln = convert_conservative_to_primitive(conservative_soln);
-        if (primitive_soln[0] < 0) std::cout << evaluation_points << std::endl;
+        // if (primitive_soln[0] < 0) std::cout << evaluation_points << std::endl;
 
         // Density
         computed_quantities(++current_data_index) = primitive_soln[0];

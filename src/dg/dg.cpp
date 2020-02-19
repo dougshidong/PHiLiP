@@ -425,6 +425,18 @@ void DGBase<dim,real>::assemble_cell_residual (
     std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs_cell);
     std::vector<dealii::types::global_dof_index> neighbor_metric_dofs_indices(n_metric_dofs_cell);
     current_metric_cell->get_dof_indices (current_metric_dofs_indices);
+
+    if (all_parameters->add_artificial_dissipation) {
+        const unsigned int n_soln_dofs = fe_values_volume.dofs_per_cell;
+        const double cell_diameter = current_cell->diameter();
+        std::vector< real > soln_coeff(n_soln_dofs);
+        for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+            soln_coeff[idof] = solution(current_dofs_indices[idof]);
+        }
+        const double artificial_diss_coeff = discontinuity_sensor(cell_diameter, soln_coeff, fe_values_volume.get_fe());
+        artificial_dissipation_coeffs[current_cell->active_cell_index()] = artificial_diss_coeff;
+    }
+
     if ( compute_dRdW || compute_dRdX || compute_d2R ) {
         assemble_volume_terms_derivatives (
             fe_values_volume, current_fe_ref, volume_quadrature_collection[i_quad],
@@ -946,14 +958,21 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     //std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> data_component_interpretation(nstate, dealii::DataComponentInterpretation::component_is_scalar);
     //data_out.add_data_vector (solution, solution_names, dealii::DataOut<dim>::type_dof_data, data_component_interpretation);
 
-    const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
-    data_out.add_data_vector (solution, *post_processor);
-
     dealii::Vector<float> subdomain(triangulation->n_active_cells());
     for (unsigned int i = 0; i < subdomain.size(); ++i) {
         subdomain(i) = triangulation->locally_owned_subdomain();
     }
     data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+
+    if (all_parameters->add_artificial_dissipation) {
+        data_out.add_data_vector(artificial_dissipation_coeffs, "artificial_dissipation_coeffs", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    }
+
+    data_out.add_data_vector(max_dt_cell, "max_dt_cell", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+
+
+    const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
+    data_out.add_data_vector (solution, *post_processor);
 
     // Output the polynomial degree in each cell
     std::vector<unsigned int> active_fe_indices;
@@ -992,9 +1011,10 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     //typename dealii::DataOut<dim>::CurvedCellRegion curved = dealii::DataOut<dim>::CurvedCellRegion::no_curved_cells;
 
     const dealii::Mapping<dim> &mapping = (*(high_order_grid.mapping_fe_field));
-    const int n_subdivisions = max_degree;;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
+    //const int n_subdivisions = max_degree;;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
+    const int n_subdivisions = 0;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
     data_out.build_patches(mapping, n_subdivisions, curved);
-    const bool write_higher_order_cells = (dim>1) ? true : false; 
+    const bool write_higher_order_cells = (dim>1 && max_degree > 1) ? true : false; 
     dealii::DataOutBase::VtkFlags vtkflags(0.0,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
     data_out.set_flags(vtkflags);
 
@@ -1056,6 +1076,9 @@ void DGBase<dim,real>::allocate_system ()
     locally_relevant_dofs = ghost_dofs;
     ghost_dofs.subtract_set(locally_owned_dofs);
     //dealii::DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
+
+    artificial_dissipation_coeffs.reinit(triangulation->n_active_cells());
+    max_dt_cell.reinit(triangulation->n_active_cells());
 
     solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
     //right_hand_side.reinit(locally_owned_dofs, mpi_communicator);
@@ -1187,6 +1210,7 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
         global_inverse_mass_matrix.compress(dealii::VectorOperation::insert);
     } else {
         global_mass_matrix.compress(dealii::VectorOperation::insert);
+        time_scaled_global_mass_matrix.reinit(global_mass_matrix);
     }
 
     return;
@@ -1196,17 +1220,230 @@ void DGBase<dim,real>::add_mass_matrices(const real scale)
 {
     system_matrix.add(scale, global_mass_matrix);
 }
+template<int dim, typename real>
+void DGBase<dim,real>::add_time_scaled_mass_matrices()
+{
+    system_matrix.add(1.0, time_scaled_global_mass_matrix);
+}
+template<int dim, typename real>
+void DGBase<dim,real>::time_scaled_mass_matrices(const real dt_scale)
+{
+    std::vector<dealii::types::global_dof_index> dofs_indices;
+    for (auto cell = dof_handler.begin_active(); cell!=dof_handler.end(); ++cell) {
+
+        if (!cell->is_locally_owned()) continue;
+
+        const unsigned int fe_index_curr_cell = cell->active_fe_index();
+
+        // Current reference element related to this physical cell
+        const dealii::FESystem<dim,dim> &current_fe_ref = fe_collection[fe_index_curr_cell];
+        const unsigned int n_dofs_cell = current_fe_ref.n_dofs_per_cell();
+
+        dofs_indices.resize(n_dofs_cell);
+        cell->get_dof_indices (dofs_indices);
+
+        const double max_dt = max_dt_cell[cell->active_cell_index()];
+
+        for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+            const unsigned int istate_test = current_fe_ref.system_to_component_index(itest).first;
+            for (unsigned int itrial=itest; itrial<n_dofs_cell; ++itrial) {
+                const unsigned int istate_trial = current_fe_ref.system_to_component_index(itrial).first;
+
+                if(istate_test==istate_trial) { 
+                    const double value = global_mass_matrix.el(dofs_indices[itest],dofs_indices[itrial]);
+                    const double new_val = value / (dt_scale * max_dt);
+                    time_scaled_global_mass_matrix.set(dofs_indices[itest],dofs_indices[itrial],new_val);
+                    time_scaled_global_mass_matrix.set(dofs_indices[itrial],dofs_indices[itest],new_val);
+                }
+            }
+        }
+    }
+    time_scaled_global_mass_matrix.compress(dealii::VectorOperation::insert);
+}
+
+template<int dim, typename real>
+std::vector< real > project_function(
+    const std::vector< real > &function_coeff,
+    const dealii::FESystem<dim,dim> &fe_input,
+    const dealii::FESystem<dim,dim> &fe_output,
+    const dealii::QGauss<dim> &projection_quadrature)
+{
+    const unsigned int nstate = fe_input.n_components();
+    const unsigned int n_vector_dofs_in = fe_input.dofs_per_cell;
+    const unsigned int n_vector_dofs_out = fe_output.dofs_per_cell;
+    const unsigned int n_dofs_in = n_vector_dofs_in / nstate;
+    const unsigned int n_dofs_out = n_vector_dofs_out / nstate;
+
+    assert(n_vector_dofs_in == function_coeff.size());
+    assert(nstate == fe_output.n_components());
+
+    const unsigned int n_quad_pts = projection_quadrature.size();
+    const std::vector<dealii::Point<dim,double>> &unit_quad_pts = projection_quadrature.get_points();
+
+    std::vector< real > function_coeff_out(n_vector_dofs_out); // output function coefficients.
+    for (unsigned istate = 0; istate < nstate; ++istate) {
+
+        std::vector< real > function_at_quad(n_quad_pts);
+
+        // Output interpolation_operator is V^T in the notes.
+        dealii::FullMatrix<double> interpolation_operator(n_dofs_out,n_quad_pts);
+
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            function_at_quad[iquad] = 0.0;
+            for (unsigned int idof=0; idof<n_dofs_in; ++idof) {
+                const unsigned int idof_vector = fe_input.component_to_system_index(istate,idof);
+                function_at_quad[iquad] += function_coeff[idof_vector] * fe_input.shape_value_component(idof_vector,unit_quad_pts[iquad],istate);
+            }
+            function_at_quad[iquad] *= projection_quadrature.weight(iquad);
+
+            for (unsigned int idof=0; idof<n_dofs_out; ++idof) {
+                const unsigned int idof_vector = fe_output.component_to_system_index(istate,idof);
+                interpolation_operator[idof][iquad] = fe_output.shape_value_component(idof_vector,unit_quad_pts[iquad],istate);
+            }
+        }
+
+        std::vector< real > rhs(n_dofs_out);
+        for (unsigned int idof=0; idof<n_dofs_out; ++idof) {
+            rhs[idof] = 0.0;
+            for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                rhs[idof] += interpolation_operator[idof][iquad] * function_at_quad[iquad];
+            }
+        }
+
+        dealii::FullMatrix<double> mass(n_dofs_out, n_dofs_out);
+        for(unsigned int row=0; row<n_dofs_out; ++row) {
+            for(unsigned int col=0; col<n_dofs_out; ++col) {
+                mass[row][col] = 0;
+            }
+        }
+        for(unsigned int row=0; row<n_dofs_out; ++row) {
+            for(unsigned int col=0; col<n_dofs_out; ++col) {
+                for(unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                    mass[row][col] += interpolation_operator[row][iquad] * interpolation_operator[col][iquad] * projection_quadrature.weight(iquad);
+                }
+            }
+        }
+        mass.gauss_jordan();
+
+        for(unsigned int row=0; row<n_dofs_out; ++row) {
+            const unsigned int idof_vector = fe_output.component_to_system_index(istate,row);
+            function_coeff_out[idof_vector] = 0.0;
+            for(unsigned int col=0; col<n_dofs_out; ++col) {
+                function_coeff_out[idof_vector] += mass[row][col] * rhs[col];
+            }
+        }
+    }
+
+    return function_coeff_out;
+    //
+    //int mpi_rank;
+    //(void) MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+    //if (mpi_rank==0) mass.print(std::cout);
+
+}
+
 
 template <int dim, typename real>
-std::vector<real> DGBase<dim,real>::evaluate_time_steps (const bool exact_time_stepping)
+template <typename real2>
+real2 DGBase<dim,real>::discontinuity_sensor(
+    const double diameter,
+    const std::vector< real2 > &soln_coeff_high,
+    const dealii::FiniteElement<dim,dim> &fe_high)
 {
-    // TO BE DONE
-    std::vector<real> time_steps(10);
-    if(exact_time_stepping) return time_steps;
-    return time_steps;
+    //return 0;
+    //return 0.01;
+    const unsigned int degree = fe_high.tensor_degree();
+    const unsigned int nstate = fe_high.components;
+    if (degree == 0) return 0;
+    const unsigned int lower_degree = degree-1;//degree-1;
+    const dealii::FE_DGQLegendre<dim> fe_dgq_lower(lower_degree);
+    const dealii::FESystem<dim,dim> fe_lower(fe_dgq_lower, nstate);
+
+    const unsigned int n_dofs_high = fe_high.dofs_per_cell;
+    const unsigned int n_dofs_lower = fe_lower.dofs_per_cell;
+    //dealii::FullMatrix<double> projection_matrix(n_dofs_lower,n_dofs_high);
+    //dealii::FETools::get_projection_matrix(fe_high, fe_lower, projection_matrix);
+
+    //std::vector< real2 > soln_coeff_lower(n_dofs_lower);
+    //for(unsigned int row=0; row<n_dofs_lower; ++row) {
+    //    soln_coeff_lower[row] = 0.0;
+    //    for(unsigned int col=0; col<n_dofs_high; ++col) {
+    //        soln_coeff_lower[row] += projection_matrix[row][col] * soln_coeff_high[col];
+    //    }
+    //}
+
+    const dealii::QGauss<dim> quadrature(degree+5);
+    const unsigned int n_quad_pts = quadrature.size();
+    const std::vector<dealii::Point<dim,double>> &unit_quad_pts = quadrature.get_points();
+
+    std::vector< real2 > soln_coeff_lower = project_function<dim,real2>( soln_coeff_high, fe_high, fe_lower, quadrature);
+
+    real2 error = 0.0;
+    real2 soln_norm = 0.0;
+    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        real2 soln_high = 0.0;
+        real2 soln_lower = 0.0;
+        for (unsigned int idof=0; idof<n_dofs_high; ++idof) {
+              soln_high += soln_coeff_high[idof] * fe_high.shape_value(idof,unit_quad_pts[iquad]);
+        }
+        for (unsigned int idof=0; idof<n_dofs_lower; ++idof) {
+              soln_lower += soln_coeff_lower[idof] * fe_lower.shape_value(idof,unit_quad_pts[iquad]);
+        }
+        // Need JxW not just W
+        // However, this happens at the cell faces, and therefore can't query the 
+        // the volume Jacobians
+        //std::cout << "soln_high" << std::endl;
+        //std::cout << soln_high << std::endl;
+        //std::cout << "soln_lower" << std::endl;
+        //std::cout << soln_lower << std::endl;
+        //error += std::pow(soln_high - soln_lower, 2) * quadrature.weight(iquad);
+        //soln_norm += std::pow(soln_high, 2) * quadrature.weight(iquad);
+        error += (soln_high - soln_lower) * (soln_high - soln_lower) * quadrature.weight(iquad);
+        soln_norm += soln_high * soln_high * quadrature.weight(iquad);
+    }
+
+    if (error < 1e-12) return 0.0;
+    if (soln_norm < 1e-12) return 0.0;
+
+    real2 S_e, s_e;
+    S_e = error / soln_norm;
+    s_e = std::log10(S_e);
+
+    //double S_0, s_0;
+    //S_0 = 1.0 / std::pow(degree,4);
+    //s_0 = std::log10(S_0);
+    //const double kappa = 0.1 * std::abs(s_0);
+
+    const double skappa = -2.3;
+    const double s_0 = skappa-4.25*std::log10(degree);
+    const double kappa = 10.2; // 1.2
+    const double mu_scale = 1.0;
+
+    const double low = s_0 - kappa;
+    const double upp = s_0 + kappa;
+    const real2 eps_0 = mu_scale * diameter / degree;
+
+    if ( s_e < low) return 0.0;
+    //std::cout << "error: " << error << " norm: " << soln_norm << " s_e " << s_e << " low: " << low << " upp: " << upp << std::endl;
+    if ( s_e > upp) return eps_0;
+
+    const double PI = 4*atan(1);
+    real2 eps = 1.0 + std::sin(PI * (s_e - s_0) * 0.5 / kappa);
+    eps *= eps_0 * 0.5;
+
+    return eps;
+
 }
+
 
 template class DGBase <PHILIP_DIM, double>;
 template class DGFactory <PHILIP_DIM, double>;
+
+template double
+DGBase<PHILIP_DIM,double>::discontinuity_sensor(const double diameter, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high);
+template Sacado::Fad::DFad<double>
+DGBase<PHILIP_DIM,double>::discontinuity_sensor(const double diameter, const std::vector< Sacado::Fad::DFad<double> > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high);
+template Sacado::Fad::DFad<Sacado::Fad::DFad<double>>
+DGBase<PHILIP_DIM,double>::discontinuity_sensor(const double diameter, const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<double>> > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high);
 
 } // PHiLiP namespace

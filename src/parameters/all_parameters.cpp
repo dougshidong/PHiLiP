@@ -38,6 +38,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Use other boundary conditions by default. Otherwise use periodic (for 1d burgers only");
 
+    prm.declare_entry("add_artificial_dissipation", "false",
+                      dealii::Patterns::Bool(),
+                      "Persson's subscell shock capturing artificial dissipation.");
+
     prm.declare_entry("test_type", "run_control",
                       dealii::Patterns::Selection(
                       " run_control | "
@@ -51,6 +55,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler_vortex | "
                       " euler_entropy_waves | "
                       "  euler_bump_optimization | "
+                      "  shock_1d | "
                       " advection_periodicity |"
                       " euler_split_taylor_green"),
                       "The type of test we want to solve. "
@@ -67,6 +72,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_cylinder_adjoint "
 					  "  euler_split_taylor_green |"
                       "  euler_bump_optimization | "
+                      "  shock_1d | "
 					  "  advection_periodicity >.");
 
     prm.declare_entry("pde_type", "advection",
@@ -125,6 +131,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "advection_periodicity") {test_type = advection_periodicity; }
     else if (test_string == "euler_split_taylor_green") {test_type = euler_split_taylor_green;}
     else if (test_string == "euler_bump_optimization") { test_type = euler_bump_optimization; }
+    else if (test_string == "shock_1d") { test_type = shock_1d; }
     else if (test_string == "optimization_inverse_manufactured") {test_type = optimization_inverse_manufactured; }
     
     const std::string pde_string = prm.get("pde_type");
@@ -152,6 +159,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_collocated_nodes = prm.get_bool("use_collocated_nodes");
     use_split_form = prm.get_bool("use_split_form");
     use_periodic_bc = prm.get_bool("use_periodic_bc");
+    add_artificial_dissipation = prm.get_bool("add_artificial_dissipation");
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
     if (conv_num_flux_string == "lax_friedrichs") conv_num_flux_type = lax_friedrichs;

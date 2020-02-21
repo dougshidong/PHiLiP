@@ -47,6 +47,13 @@ public:
 
     unsigned int grid_size;
 
+    bool use_interpolation;
+
+    bool output_vtk;
+    bool output_adjoint_vtk;
+    bool output_gnuplot;
+    bool refresh_gnuplot;
+
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters(dealii::ParameterHandler &prm);
     /// Parses input file and sets the variables.

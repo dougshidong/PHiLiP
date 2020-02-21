@@ -159,7 +159,7 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
 
             // solving the system
             // option of whether to solve the problem or interpolate it from the manufactured solution
-            if(true){
+            if(!grs_param.use_interpolation){
                 ode_solver->steady_state();
             }else{
                 dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
@@ -220,24 +220,26 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
             // reinitializing the adjoint
             adjoint->reinit();
 
-            bool less_than_max = dg->get_max_fe_degree() + 1 <= dg->max_degree;
+            // optional output of the adjoint results to vtk
+            if(grs_param.output_adjoint_vtk){
+                // evaluating the derivatives and the fine grid adjoint
+                if(dg->get_max_fe_degree() + 1 <= dg->max_degree){ // don't output if at max order (as p-enrichment will segfault)
+                    adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double,MeshType>::AdjointStateEnum::fine);
+                    adjoint->fine_grid_adjoint();
+                    estimated_error_per_cell.reinit(grid->n_active_cells());
+                    estimated_error_per_cell = adjoint->dual_weighted_residual();
+                    adjoint->output_results_vtk(iref*10+igrid);
+                }
 
-            // evaluating the derivatives and the fine grid adjoint
-            if(less_than_max){ // don't output if at max order (as p-enrichment will segfault)
-                adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double,MeshType>::AdjointStateEnum::fine);
-                adjoint->fine_grid_adjoint();
-                estimated_error_per_cell.reinit(grid->n_active_cells());
-                estimated_error_per_cell = adjoint->dual_weighted_residual();
+                // and for the coarse grid
+                adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double,MeshType>::AdjointStateEnum::coarse); // this one is necessary though
+                adjoint->coarse_grid_adjoint();
                 adjoint->output_results_vtk(iref*10+igrid);
             }
 
-            // and for the coarse grid
-            adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double,MeshType>::AdjointStateEnum::coarse); // this one is necessary though
-            adjoint->coarse_grid_adjoint();
-            adjoint->output_results_vtk(iref*10+igrid);
-
             // outputting the results from the grid refinement method
-            grid_refinement->output_results_vtk(iref);
+            if(grs_param.output_vtk)
+                grid_refinement->output_results_vtk(iref);
 
             // convergence table
             convergence_table.add_value("cells", n_global_active_cells);
@@ -269,8 +271,13 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
 
         convergence_table_vector.push_back(convergence_table);
     
+        // adding the data to gnuplot figure
         if(pcout.is_active()) 
             gf.add_xy_data(dofs, error, "l2error."+dealii::Utilities::int_to_string(iref,1));
+
+        // if refresh flag is set, output the plot at each iteration
+        if(pcout.is_active() && grs_param.output_gnuplot && grs_param.refresh_gnuplot)
+            output_gnufig(gf);
     }
 
     pcout << std::endl << std::endl << std::endl << std::endl
@@ -282,23 +289,28 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
         pcout << " ********************************************" << std::endl;
     }
 
-    if(pcout.is_active()){
-        // formatting for the figure and outputting .gp
-        gf.set_name("ErrorPlot");
-        gf.set_title("Error Convergence, |u|_2 vs. Dofs");
-        gf.set_x_label("# Dofs");
-        gf.set_y_label("L2 Error, |u|_2");
-        gf.set_grid(false);
-        gf.set_x_scale_log(true);
-        gf.set_y_scale_log(true);
-        gf.set_legend(true);
-        gf.write_gnuplot();
-
-        // performing plotting
-        gf.exec_gnuplot();
-    }
+    if(pcout.is_active() && grs_param.output_gnuplot)
+        output_gnufig(gf);
 
     return 0;
+}
+
+// function to output and execute the gnuplot command
+void output_gnufig(PHiLiP::GridRefinement::GnuFig<double> &gf)
+{
+    // formatting for the figure and outputting .gp
+    gf.set_name("ErrorPlot");
+    gf.set_title("Error Convergence, |u|_2 vs. Dofs");
+    gf.set_x_label("# Dofs");
+    gf.set_y_label("L2 Error, |u|_2");
+    gf.set_grid(false);
+    gf.set_x_scale_log(true);
+    gf.set_y_scale_log(true);
+    gf.set_legend(true);
+    gf.write_gnuplot();
+
+    // performing plotting
+    gf.exec_gnuplot();
 }
 
 // mesh factory specializations

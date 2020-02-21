@@ -444,7 +444,7 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h_recon
         // equivalent to the form used in jump_based indicator
         for(unsigned int i = 0; i < dim; ++i)
             if(indicator[i] / sum > anisotropic_threshold_ratio/(1.0 + anisotropic_threshold_ratio))
-                cell->set_refine_flag(dealii::RefinementCase<dim>::cut_axis(i==0 ? 1 : 0));
+                cell->set_refine_flag(dealii::RefinementCase<dim>::cut_axis(i));
     }
 }
 

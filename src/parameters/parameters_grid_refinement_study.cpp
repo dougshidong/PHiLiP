@@ -72,6 +72,27 @@ void GridRefinementStudyParam::declare_parameters(dealii::ParameterHandler &prm)
         prm.declare_entry("grid_size", "4",
                           dealii::Patterns::Integer(),
                           "Initial grid size (number of elements per side).");
+
+        prm.declare_entry("use_interpolation", "false",
+                          dealii::Patterns::Bool(),
+                          "Indicates whether to interpolate the problem instead of solving with DG.");
+
+        prm.declare_entry("output_vtk", "true",
+                          dealii::Patterns::Bool(),
+                          "Output flag for grid_refinement vtk files.");
+
+        prm.declare_entry("output_adjoint_vtk", "false",
+                          dealii::Patterns::Bool(),
+                          "output flag for adjoint vtk files.");
+
+        prm.declare_entry("output_gnuplot", "true",
+                          dealii::Patterns::Bool(),
+                          "Output flag for gnuplot figure.");
+
+        prm.declare_entry("refresh_gnuplot", "true",
+                          dealii::Patterns::Bool(),
+                          "Indicates whetherto output a new gnuplot figure at every iteration."
+                          "Requires output_gnuplot == true.");
     }
     prm.leave_subsection();
 }
@@ -116,6 +137,13 @@ void GridRefinementStudyParam::parse_parameters(dealii::ParameterHandler &prm)
         grid_right = prm.get_double("grid_right");
 
         grid_size  = prm.get_integer("grid_size");
+
+        use_interpolation = prm.get_bool("use_interpolation");
+
+        output_vtk         = prm.get_bool("output_vtk");
+        output_adjoint_vtk = prm.get_bool("output_adjoint_vtk");
+        output_gnuplot     = prm.get_bool("output_gnuplot");
+        refresh_gnuplot    = prm.get_bool("refresh_gnuplot");
     }
     prm.leave_subsection();
 }

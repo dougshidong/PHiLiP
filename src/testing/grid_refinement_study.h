@@ -6,6 +6,8 @@
 #include "physics/physics.h"
 #include "parameters/all_parameters.h"
 
+#include "grid_refinement/gnu_out.h"
+
 namespace PHiLiP {
 
 namespace Tests {
@@ -40,6 +42,9 @@ public:
     static std::unique_ptr<MeshType>
     create_MeshType(const MPI_Comm mpi_communicator);
 };
+
+// function to perform the formatted output to gnuplot
+void output_gnufig(PHiLiP::GridRefinement::GnuFig<double> &gf);
 
 } // Tests namespace
 

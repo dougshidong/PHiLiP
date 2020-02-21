@@ -259,11 +259,10 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h()
     const dealii::LinearAlgebra::distributed::Vector<real> solution(this->dg->solution);
     solution.update_ghost_values();
 
-    real anisotropic_threshold_ratio = 1.0;//3.0;
-    std::cout << "testing testing 123" << std::endl;
+    real anisotropic_threshold_ratio = 3.0;
 
     for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell){
-        if(!cell->is_locally_owned() || !cell->refine_flag_set()) continue;
+        if(!(cell->is_locally_owned()) || !(cell->refine_flag_set())) continue;
 
         dealii::Point<dim> jump;
         dealii::Point<dim> area;
@@ -359,10 +358,8 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h()
         }
 
         for(unsigned int i = 0; i < dim; ++i)
-            if(average_jumps[i] > anisotropic_threshold_ratio * (sum_of_average_jumps - average_jumps[i])){
+            if(average_jumps[i] > anisotropic_threshold_ratio * (sum_of_average_jumps - average_jumps[i]))
                 cell->set_refine_flag(dealii::RefinementCase<dim>::cut_axis(i));
-                std::cout << "setting the refine flag on axis: " << i << std::endl;
-            }
     }    
 }
 

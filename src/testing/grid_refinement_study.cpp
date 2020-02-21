@@ -1,6 +1,8 @@
 #include <stdlib.h>     /* srand, rand */
 #include <iostream>
 
+#include <type_traits>
+
 #include <deal.II/base/convergence_table.h>
 
 #include <deal.II/dofs/dof_tools.h>
@@ -304,11 +306,11 @@ template <>
 std::unique_ptr<dealii::Triangulation<PHILIP_DIM>>
 MeshFactory<dealii::Triangulation<PHILIP_DIM>>::create_MeshType(const MPI_Comm /* mpi_communicator */)
 {
-    return std::unique_ptr<dealii::Triangulation<PHILIP_DIM>>(
-        new dealii::Triangulation<PHILIP_DIM>(
-            typename dealii::Triangulation<PHILIP_DIM>::MeshSmoothing(
-                dealii::Triangulation<PHILIP_DIM>::smoothing_on_refinement |
-                dealii::Triangulation<PHILIP_DIM>::smoothing_on_coarsening)));
+    return std::unique_ptr<dealii::Triangulation<PHILIP_DIM>>(new dealii::Triangulation<PHILIP_DIM>());
+        // new dealii::Triangulation<PHILIP_DIM>(
+        //     typename dealii::Triangulation<PHILIP_DIM>::MeshSmoothing(
+        //         dealii::Triangulation<PHILIP_DIM>::smoothing_on_refinement |
+        //         dealii::Triangulation<PHILIP_DIM>::smoothing_on_coarsening)));
 }
 
 template <>

@@ -15,6 +15,118 @@ namespace PHiLiP {
 
 namespace GridRefinement {
 
+// reconstruct the directional derivatives of the reconstructed solution along each of the quad chords
+template <int dim, typename real>
+void ReconstructPoly<dim,real>::reconstruct_chord_derivative(
+    const dealii::LinearAlgebra::distributed::Vector<real>&solution,              // approximation to be reconstructed
+    const dealii::hp::DoFHandler<dim>&                     dof_handler,           // dof_handler
+    const dealii::hp::MappingCollection<dim>&              mapping_collection,    // mapping collection
+    const dealii::hp::FECollection<dim>&                   fe_collection,         // fe collection
+    const dealii::hp::QCollection<dim>&                    quadrature_collection, // quadrature collection
+    const dealii::UpdateFlags&                             update_flags,          // update flags for for volume fe
+    const unsigned int&                                    rel_order,             // order of the reconstruction
+    std::vector<dealii::Tensor<1,dim,real>>&               A)                     // holds the reconstructed directional derivative along each centerline chord
+{
+    /* based on the dealii numbering, chords defined along nth axis
+          dir[1]
+        2---+---3
+        |   |   |
+        +---o---+ dir[0]
+        |   |   |
+        0---+---1
+    */
+
+    for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell){
+        if(!cell->is_locally_owned()) continue;
+
+        // generating the polynomial space
+        unsigned int order = cell->active_fe_index()+rel_order;
+        dealii::PolynomialSpace<dim> poly_space(dealii::Polynomials::Monomial<double>::generate_complete_basis(order));
+
+        // getting the vector of polynomial coefficients from the p+1 expansion
+        dealii::Vector<real> coeffs_non_hom = reconstruct_H1_norm(
+            cell,
+            poly_space,
+            solution,
+            mapping_collection,
+            fe_collection,
+            quadrature_collection,
+            update_flags);
+
+        // dealii::Vector<real> coeffs_non_hom = reconstruct_L2_norm(
+        //     cell,
+        //     poly_space,
+        //     solution,
+        //     mapping_collection,
+        //     fe_collection,
+        //     quadrature_collection,
+        //     update_flags);
+
+        const unsigned int n_poly   = poly_space.n();
+        const unsigned int n_degree = poly_space.degree();
+
+        // assembling a vector of coefficients and indices
+        std::vector<real>                          coeffs;
+        std::vector<std::array<unsigned int, dim>> indices;
+        unsigned int                               n_vec = 0;
+
+        for(unsigned int i = 0; i < n_poly; ++i){
+            std::array<unsigned int, dim> arr = compute_index(i, n_degree);
+
+            unsigned int sum = 0;
+            for(int j = 0; j < dim; ++j)
+                sum += arr[j];
+
+            if(sum == order){
+                // based on expansion of taylor series additional term from expansion (x (+y) (+z))^n
+                // for cross terms, in 1D no such terms. But, after expanding the n^th derivative with
+                // i, j partials in (x,y) we get 1/n! * (n \choose i, j) * i! j! = 1 on the x^i y^j term
+                // (the only one that will be remaining). Also generalizes to n-dimensions.
+                coeffs.push_back(coeffs_non_hom[i]);
+                indices.push_back(arr);
+                n_vec++;
+            }
+        }
+
+        dealii::Tensor<1,dim,real> A_cell;
+        std::array<dealii::Tensor<1,dim,real>,dim> chord_vec;
+
+        // holds the nodes that form the coord
+        // summing over all the nodes onto each (dim) neighbouring faces/edges
+        std::array<std::pair<dealii::Tensor<1,dim,real>, dealii::Tensor<1,dim,real>>,dim> chord_nodes;
+        for(unsigned int vertex = 0; vertex < dealii::GeometryInfo<dim>::vertices_per_cell; ++vertex)
+            for(unsigned int i = 0; i < dim; ++i)
+                if(vertex % (unsigned int)pow(2,i) == 0){
+                    chord_nodes[i].first  += cell->vertex(vertex);
+                }else{
+                    chord_nodes[i].second += cell->vertex(vertex);
+                }
+
+        // computing the direction, the chords could also be divided by 2^{i-1} first to get the actual physical coordinates
+        for(unsigned int i = 0; i < dim; ++i)
+            chord_vec[i] = chord_nodes[i].second - chord_nodes[i].first;
+
+        // normalizing
+        for(unsigned int i = 0; i < dim; ++i)
+            chord_vec[i] /= chord_vec[i].norm();
+    
+        // computing the directional derivative along each vector
+        for(unsigned int i = 0; i < dim; ++i) // loop over the axes
+            for(unsigned int n = 0; n < n_vec; ++n){ // loop over the polynomials
+                real poly_val = coeffs[n];
+                
+                for(unsigned int d = 0; d < dim; ++d) // loop over each poly term, ie x^i y^j z^k
+                    poly_val *= pow(chord_vec[i][d], indices[n][d]);
+
+                // adding polynomial terms contribution to the axis
+                A_cell[i] += poly_val;
+            }
+
+        A[cell->active_cell_index()] = A_cell;
+    }
+
+}
+
 // takes an input field and polynomial space and output the largest directional derivative and coresponding normal direction
 template <int dim, typename real>
 void ReconstructPoly<dim,real>::reconstruct_directional_derivative(

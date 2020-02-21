@@ -208,6 +208,8 @@ protected:
     virtual void error_indicator() = 0;
     void smoothness_indicator();
     void anisotropic_h();
+    void anisotropic_h_jump_based();
+    void anisotropic_h_reconstruction_based();
 protected:
     dealii::Vector<real> indicator;
     dealii::Vector<real> smoothness;

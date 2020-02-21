@@ -49,15 +49,19 @@ subsection grid refinement study
   set grid_right = 1.0
   set grid_size  = 4
 
+  # indicate whether to solve the problem
+  set use_interpolation = true
+
   # grid refinement - 0
   subsection grid refinement
-    set refinement_steps    = 9
-    set refinement_method   = fixed_fraction
-    set refinement_type     = h
-    set isotropic           = false
-    set error_indicator     = error_based
-    set refinement_fraction = 0.3
-    set coarsening_fraction = 0.00
+    set refinement_steps      = 9
+    set refinement_method     = fixed_fraction
+    set refinement_type       = h
+    set isotropic             = false
+    set anisotropic_indicator = reconstruction_based
+    set error_indicator       = hessian_based
+    set refinement_fraction   = 0.3
+    set coarsening_fraction   = 0.00
   end
 
   # output options
@@ -65,6 +69,6 @@ end
 
 subsection manufactured solution convergence study
   set use_manufactured_source_term = true
-  set manufactured_solution_type   = boundary_layer_solution #s_shock_solution  #
+  set manufactured_solution_type   = atan_solution #boundary_layer_solution #s_shock_solution  #
 end
 

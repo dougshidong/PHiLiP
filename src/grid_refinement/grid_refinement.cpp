@@ -235,7 +235,21 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::smoothness_indicato
 template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h()
 {
-    // based on dealii step-30
+    using AnisoIndicator = typename PHiLiP::Parameters::GridRefinementParam::AnisoIndicator;
+    AnisoIndicator aniso_indicator = this->grid_refinement_param.anisotropic_indicator;
+
+    // selecting the anisotropic method to be used
+    if(aniso_indicator == AnisoIndicator::jump_based){
+        anisotropic_h_jump_based();
+    }else if(aniso_indicator == AnisoIndicator::reconstruction_based){
+        anisotropic_h_reconstruction_based();
+    }
+}
+
+// based on dealii step-30
+template <int dim, int nstate, typename real, typename MeshType>
+void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h_jump_based()
+{
     const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid.mapping_fe_field));
     const dealii::hp::FECollection<dim>      fe_collection(this->dg->fe_collection);
     const dealii::hp::QCollection<dim-1>     face_quadrature_collection(this->dg->face_quadrature_collection);
@@ -259,7 +273,7 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h()
     const dealii::LinearAlgebra::distributed::Vector<real> solution(this->dg->solution);
     solution.update_ghost_values();
 
-    real anisotropic_threshold_ratio = 3.0;
+    real anisotropic_threshold_ratio = this->grid_refinement_param.anisotropic_threshold_ratio;
 
     for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell){
         if(!(cell->is_locally_owned()) || !(cell->refine_flag_set())) continue;
@@ -361,6 +375,77 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h()
             if(average_jumps[i] > anisotropic_threshold_ratio * (sum_of_average_jumps - average_jumps[i]))
                 cell->set_refine_flag(dealii::RefinementCase<dim>::cut_axis(i));
     }    
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h_reconstruction_based()
+{
+    // for storing the derivatives
+    std::vector<dealii::Tensor<1,dim,real>> A(this->tria->n_active_cells());
+
+    // mapping
+    const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid.mapping_fe_field));
+
+    // using p+1 reconstruction
+    const unsigned int rel_order = 1;
+
+    // call to reconstruct the derivatives
+    PHiLiP::GridRefinement::ReconstructPoly<dim,real>::reconstruct_chord_derivative(
+        this->dg->solution,
+        this->dg->dof_handler,
+        mapping_collection,
+        this->dg->fe_collection,
+        this->dg->volume_quadrature_collection,
+        this->volume_update_flags,
+        rel_order,
+        A);
+
+    // controls degree of anisotropy required to flag cell for cut in x
+    real anisotropic_threshold_ratio = this->grid_refinement_param.anisotropic_threshold_ratio;
+
+    // looping over flagged cells to compute anisotropic indicators
+    for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell){
+        if(!(cell->is_locally_owned()) || !(cell->refine_flag_set())) continue;
+
+        // vector of chord and midface positions
+        std::array<std::pair<dealii::Tensor<1,dim,real>, dealii::Tensor<1,dim,real>>,dim> chord_nodes;
+        std::array<dealii::Tensor<1,dim,real>,dim> chord_vec;
+
+        // computing the chord associated with each 
+        for(unsigned int vertex = 0; vertex < dealii::GeometryInfo<dim>::vertices_per_cell; ++vertex)
+            for(unsigned int i = 0; i < dim; ++i)
+                if(vertex % (unsigned int)pow(2,i) == 0){
+                    chord_nodes[i].first  += cell->vertex(vertex);
+                }else{
+                    chord_nodes[i].second += cell->vertex(vertex);
+                }
+        
+        // averaging the nodes to get the coord
+        for(unsigned int i = 0; i < dim; ++i){
+            chord_nodes[i].first  /= pow(2,dim-1);
+            chord_nodes[i].second /= pow(2,dim-1);
+        }
+
+        // computing the vectors
+        for(unsigned int i = 0; i < dim; ++i){
+            chord_vec[i] = chord_nodes[i].second - chord_nodes[i].first;
+        }
+
+        // computing the indicator scaled to the chord length
+        dealii::Tensor<1,dim,real> indicator;
+        for(unsigned int i = 0; i < dim; ++i)
+            indicator[i] += A[cell->active_cell_index()][i] * pow(chord_vec[i].norm(), cell->active_fe_index()+rel_order);
+
+        real sum = 0.0;
+        for(unsigned int i = 0; i < dim; ++i)
+            sum += indicator[i];
+
+        // checking if it meets the criteria for anisotropy
+        // equivalent to the form used in jump_based indicator
+        for(unsigned int i = 0; i < dim; ++i)
+            if(indicator[i] / sum > anisotropic_threshold_ratio/(1.0 + anisotropic_threshold_ratio))
+                cell->set_refine_flag(dealii::RefinementCase<dim>::cut_axis(i==0 ? 1 : 0));
+    }
 }
 
 template <int dim, int nstate, typename real, typename MeshType>

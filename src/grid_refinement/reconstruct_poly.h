@@ -15,6 +15,16 @@ template <int dim, typename real>
 class ReconstructPoly
 {
 public:
+    static void reconstruct_chord_derivative(
+        const dealii::LinearAlgebra::distributed::Vector<real>&solution,              // approximation to be reconstructed
+        const dealii::hp::DoFHandler<dim>&                     dof_handler,           // dof_handler
+        const dealii::hp::MappingCollection<dim>&              mapping_collection,    // mapping collection
+        const dealii::hp::FECollection<dim>&                   fe_collection,         // fe collection
+        const dealii::hp::QCollection<dim>&                    quadrature_collection, // quadrature collection
+        const dealii::UpdateFlags&                             update_flags,          // update flags for for volume fe
+        const unsigned int&                                    rel_order,             // order of the reconstruction
+        std::vector<dealii::Tensor<1,dim,real>>&               A);                    // holds the reconstructed directional derivative along each centerline chord
+
     static void reconstruct_directional_derivative(
         const dealii::LinearAlgebra::distributed::Vector<real>&solution,              // approximation to be reconstructed
         const dealii::hp::DoFHandler<dim>&                     dof_handler,           // dof_handler
@@ -23,7 +33,7 @@ public:
         const dealii::hp::QCollection<dim>&                    quadrature_collection, // quadrature collection
         const dealii::UpdateFlags&                             update_flags,          // update flags for for volume fe
         const unsigned int&                                    rel_order,             // order of the reconstruction
-        std::vector<dealii::Tensor<1,dim,real>>&               A);                     // (output) holds the largest (scaled) derivative in each direction and then in each orthogonal plane
+        std::vector<dealii::Tensor<1,dim,real>>&               A);                    // (output) holds the largest (scaled) derivative in each direction and then in each orthogonal plane
 
 private:
     static std::array<unsigned int, dim> compute_index(

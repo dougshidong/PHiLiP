@@ -31,6 +31,14 @@ public:
     
     bool isotropic;
 
+    double anisotropic_threshold_ratio;
+
+    enum AnisoIndicator{
+        jump_based,           // based on face jumps with neighbouring cells
+        reconstruction_based, // based on p+1 derivative along tensor product chord lines
+        };
+    AnisoIndicator anisotropic_indicator;
+
     enum ErrorIndicator{
         error_based,    // using the exact error for testing
         hessian_based,  // feature_based

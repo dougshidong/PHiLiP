@@ -46,15 +46,26 @@ void GridRefinementParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Bool(),
                           "Inidcates whether the refinement should be done isotropically.");
 
+        prm.declare_entry("anisotropic_indicator", "jump_based",
+                          dealii::Patterns::Selection(
+                          " jump_based | "
+                          " reconstruction_based"),
+                          "Enum of anisotropic indicators (unused for isotropic refinement)."
+                          "Choices are "
+                          " <jump_based | "
+                          "  reconstruction_based>.");
+
+        prm.declare_entry("anisotropic_threshold_ratio", "3.0",
+                          dealii::Patterns::Double(1.0, dealii::Patterns::Double::max_double_value),
+                          "Threshold for flagging cells with anisotropic refinement.");
 
         prm.declare_entry("error_indicator", "error_based",
                           dealii::Patterns::Selection(
                           " error_based | "
                           " hessian_based | "
                           " residual_based | "
-                          " adjoint_based"
-                          ),
-                          "Enum of error indicators (unused for uniform refinement."
+                          " adjoint_based"),
+                          "Enum of error indicators (unused for uniform refinement)."
                           "Choices are "
                           " <error_based | "
                           "  hessian_based | "
@@ -108,6 +119,12 @@ void GridRefinementParam::parse_parameters(dealii::ParameterHandler &prm)
         else if(refinement_type_string == "hp"){refinement_type = RefinementType::hp;}
 
         isotropic = prm.get_bool("isotropic");
+
+        anisotropic_threshold_ratio = prm.get_double("anisotropic_threshold_ratio");
+
+        const std::string anisotropic_indicator_string = prm.get("anisotropic_indicator");
+        if(anisotropic_indicator_string == "jump_based")               {anisotropic_indicator = AnisoIndicator::jump_based;}
+        else if(anisotropic_indicator_string == "reconstruction_based"){anisotropic_indicator = AnisoIndicator::reconstruction_based;}
 
         const std::string error_indicator_string = prm.get("error_indicator");
         if(error_indicator_string == "error_based")        {error_indicator = ErrorIndicator::error_based;}

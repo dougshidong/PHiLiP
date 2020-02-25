@@ -48,7 +48,7 @@ class TargetFunctional
 {
     using ADType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using ADADType = Sacado::Fad::DFad<ADType>; ///< Sacado AD type that allows 2nd derivatives.
-private:
+protected:
     /// Smart pointer to DGBase
     std::shared_ptr<DGBase<dim,real>> dg;
 

@@ -72,6 +72,9 @@ public:
     /// destructor
     ~Functional(){}
 
+    /// Allocate and setup the derivative vectors/matrices.
+    void allocate_derivatives(const bool compute_dIdW, const bool compute_dIdX, const bool compute_d2I);
+
     // /// Evaluates the functional of interest
     // /** Loops over the discretized domain and assembles contributions from
     //  *  

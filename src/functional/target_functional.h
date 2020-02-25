@@ -97,6 +97,9 @@ public:
         const bool uses_solution_values = true,
         const bool uses_solution_gradient = true);
 
+    /// Allocate and setup the derivative vectors/matrices.
+    void allocate_derivatives(const bool compute_dIdW, const bool compute_dIdX, const bool compute_d2I);
+
     /// Destructor
     ~TargetFunctional(){}
 

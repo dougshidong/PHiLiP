@@ -83,6 +83,48 @@ TargetFunctional<dim,nstate,real>::TargetFunctional(
 
 
 template <int dim, int nstate, typename real>
+void TargetFunctional<dim,nstate,real>::allocate_derivatives(const bool compute_dIdW, const bool compute_dIdX, const bool compute_d2I)
+{
+    if (compute_dIdW) {
+        // allocating the vector
+        dealii::IndexSet locally_owned_dofs = dg->dof_handler.locally_owned_dofs();
+        dIdw.reinit(locally_owned_dofs, MPI_COMM_WORLD);
+    }
+    if (compute_dIdX) {
+        // allocating the vector
+        dealii::IndexSet locally_owned_dofs = dg->high_order_grid.dof_handler_grid.locally_owned_dofs();
+        dealii::IndexSet locally_relevant_dofs, ghost_dofs;
+        dealii::DoFTools::extract_locally_relevant_dofs(dg->high_order_grid.dof_handler_grid, locally_relevant_dofs);
+        ghost_dofs = locally_relevant_dofs;
+        ghost_dofs.subtract_set(locally_owned_dofs);
+        dIdX.reinit(locally_owned_dofs, ghost_dofs, MPI_COMM_WORLD);
+    }
+    if (compute_d2I) {
+        {
+            dealii::SparsityPattern sparsity_pattern_d2IdWdX = dg->get_d2RdWdX_sparsity_pattern ();
+            const dealii::IndexSet &row_parallel_partitioning_d2IdWdX = dg->locally_owned_dofs;
+            const dealii::IndexSet &col_parallel_partitioning_d2IdWdX = dg->high_order_grid.locally_owned_dofs_grid;
+            d2IdWdX.reinit(row_parallel_partitioning_d2IdWdX, col_parallel_partitioning_d2IdWdX, sparsity_pattern_d2IdWdX, MPI_COMM_WORLD);
+        }
+
+        {
+            dealii::SparsityPattern sparsity_pattern_d2IdWdW = dg->get_d2RdWdW_sparsity_pattern ();
+            const dealii::IndexSet &row_parallel_partitioning_d2IdWdW = dg->locally_owned_dofs;
+            const dealii::IndexSet &col_parallel_partitioning_d2IdWdW = dg->locally_owned_dofs;
+            d2IdWdW.reinit(row_parallel_partitioning_d2IdWdW, col_parallel_partitioning_d2IdWdW, sparsity_pattern_d2IdWdW, MPI_COMM_WORLD);
+        }
+
+        {
+            dealii::SparsityPattern sparsity_pattern_d2IdXdX = dg->get_d2RdXdX_sparsity_pattern ();
+            const dealii::IndexSet &row_parallel_partitioning_d2IdXdX = dg->high_order_grid.locally_owned_dofs_grid;
+            const dealii::IndexSet &col_parallel_partitioning_d2IdXdX = dg->high_order_grid.locally_owned_dofs_grid;
+            d2IdXdX.reinit(row_parallel_partitioning_d2IdXdX, col_parallel_partitioning_d2IdXdX, sparsity_pattern_d2IdXdX, MPI_COMM_WORLD);
+        }
+    }
+}
+
+
+template <int dim, int nstate, typename real>
 template <typename real2>
 real2 TargetFunctional<dim, nstate, real>::evaluate_volume_cell_functional(
     const Physics::PhysicsBase<dim,nstate,real2> &physics,
@@ -305,42 +347,7 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
 
     dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg->fe_collection, dg->face_quadrature_collection,   this->face_update_flags);
 
-    if (compute_dIdW) {
-        // allocating the vector
-        dealii::IndexSet locally_owned_dofs = dg->dof_handler.locally_owned_dofs();
-        dIdw.reinit(locally_owned_dofs, MPI_COMM_WORLD);
-    }
-    if (compute_dIdX) {
-        // allocating the vector
-        dealii::IndexSet locally_owned_dofs = dg->high_order_grid.dof_handler_grid.locally_owned_dofs();
-        dealii::IndexSet locally_relevant_dofs, ghost_dofs;
-        dealii::DoFTools::extract_locally_relevant_dofs(dg->high_order_grid.dof_handler_grid, locally_relevant_dofs);
-        ghost_dofs = locally_relevant_dofs;
-        ghost_dofs.subtract_set(locally_owned_dofs);
-        dIdX.reinit(locally_owned_dofs, ghost_dofs, MPI_COMM_WORLD);
-    }
-    if (compute_d2I) {
-        {
-            dealii::SparsityPattern sparsity_pattern_d2IdWdX = dg->get_d2RdWdX_sparsity_pattern ();
-            const dealii::IndexSet &row_parallel_partitioning_d2IdWdX = dg->locally_owned_dofs;
-            const dealii::IndexSet &col_parallel_partitioning_d2IdWdX = dg->high_order_grid.locally_owned_dofs_grid;
-            d2IdWdX.reinit(row_parallel_partitioning_d2IdWdX, col_parallel_partitioning_d2IdWdX, sparsity_pattern_d2IdWdX, MPI_COMM_WORLD);
-        }
-
-        {
-            dealii::SparsityPattern sparsity_pattern_d2IdWdW = dg->get_d2RdWdW_sparsity_pattern ();
-            const dealii::IndexSet &row_parallel_partitioning_d2IdWdW = dg->locally_owned_dofs;
-            const dealii::IndexSet &col_parallel_partitioning_d2IdWdW = dg->locally_owned_dofs;
-            d2IdWdW.reinit(row_parallel_partitioning_d2IdWdW, col_parallel_partitioning_d2IdWdW, sparsity_pattern_d2IdWdW, MPI_COMM_WORLD);
-        }
-
-        {
-            dealii::SparsityPattern sparsity_pattern_d2IdXdX = dg->get_d2RdXdX_sparsity_pattern ();
-            const dealii::IndexSet &row_parallel_partitioning_d2IdXdX = dg->high_order_grid.locally_owned_dofs_grid;
-            const dealii::IndexSet &col_parallel_partitioning_d2IdXdX = dg->high_order_grid.locally_owned_dofs_grid;
-            d2IdXdX.reinit(row_parallel_partitioning_d2IdXdX, col_parallel_partitioning_d2IdXdX, sparsity_pattern_d2IdXdX, MPI_COMM_WORLD);
-        }
-    }
+    allocate_derivatives(compute_dIdW, compute_dIdX, compute_d2I);
 
     dg->solution.update_ghost_values();
     auto metric_cell = dg->high_order_grid.dof_handler_grid.begin_active();

@@ -51,25 +51,24 @@ public:
     using ADType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using ADADType = Sacado::Fad::DFad<ADType>; ///< Sacado AD type that allows 2nd derivatives.
 
-    // Members from base class.
-    /// Smart pointer to DGBase
-    using Functional<dim,nstate,real>::dg;
-    /// Physics that should correspond to the one in DGBase
-    using Functional<dim,nstate,real>::physics_fad_fad;
-
     /// Vector for storing the derivatives with respect to each solution DoF
     using Functional<dim,nstate,real>::dIdw;
     /// Vector for storing the derivatives with respect to each grid DoF
     using Functional<dim,nstate,real>::dIdX;
 	/// Store the functional value from the last time evaluate_functional() was called.
     using Functional<dim,nstate,real>::current_functional_value;
-
     /// Sparse matrix for storing the functional partial second derivatives.
     using Functional<dim,nstate,real>::d2IdWdW;
     /// Sparse matrix for storing the functional partial second derivatives.
     using Functional<dim,nstate,real>::d2IdWdX;
     /// Sparse matrix for storing the functional partial second derivatives.
     using Functional<dim,nstate,real>::d2IdXdX;
+
+protected:
+    /// Smart pointer to DGBase
+    using Functional<dim,nstate,real>::dg;
+    /// Physics that should correspond to the one in DGBase
+    using Functional<dim,nstate,real>::physics_fad_fad;
 
     using Functional<dim,nstate,real>::volume_update_flags; ///< Update flags needed at volume points.
     using Functional<dim,nstate,real>::face_update_flags; ///< Update flags needed at face points.

@@ -49,6 +49,18 @@ Functional<dim,nstate,real>::Functional(
 { }
 
 template <int dim, int nstate, typename real>
+void Functional<dim,nstate,real>::allocate_dIdX(dealii::LinearAlgebra::distributed::Vector<real> &dIdX) const
+{
+    // allocating the vector
+    dealii::IndexSet locally_owned_dofs = dg->high_order_grid.dof_handler_grid.locally_owned_dofs();
+    dealii::IndexSet locally_relevant_dofs, ghost_dofs;
+    dealii::DoFTools::extract_locally_relevant_dofs(dg->high_order_grid.dof_handler_grid, locally_relevant_dofs);
+    ghost_dofs = locally_relevant_dofs;
+    ghost_dofs.subtract_set(locally_owned_dofs);
+    dIdX.reinit(locally_owned_dofs, ghost_dofs, MPI_COMM_WORLD);
+}
+
+template <int dim, int nstate, typename real>
 void Functional<dim,nstate,real>::allocate_derivatives(const bool compute_dIdW, const bool compute_dIdX, const bool compute_d2I)
 {
     if (compute_dIdW) {
@@ -57,13 +69,7 @@ void Functional<dim,nstate,real>::allocate_derivatives(const bool compute_dIdW, 
         dIdw.reinit(locally_owned_dofs, MPI_COMM_WORLD);
     }
     if (compute_dIdX) {
-        // allocating the vector
-        dealii::IndexSet locally_owned_dofs = dg->high_order_grid.dof_handler_grid.locally_owned_dofs();
-        dealii::IndexSet locally_relevant_dofs, ghost_dofs;
-        dealii::DoFTools::extract_locally_relevant_dofs(dg->high_order_grid.dof_handler_grid, locally_relevant_dofs);
-        ghost_dofs = locally_relevant_dofs;
-        ghost_dofs.subtract_set(locally_owned_dofs);
-        dIdX.reinit(locally_owned_dofs, ghost_dofs, MPI_COMM_WORLD);
+        allocate_dIdX(dIdX);
     }
     if (compute_d2I) {
         {
@@ -551,14 +557,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
 
     // vector for storing the derivatives with respect to each DOF
     dealii::LinearAlgebra::distributed::Vector<real> dIdX_FD;
-
-    // allocating the vector
-    dealii::IndexSet locally_owned_dofs = dg.high_order_grid.dof_handler_grid.locally_owned_dofs();
-    dealii::IndexSet locally_relevant_dofs, ghost_dofs;
-    dealii::DoFTools::extract_locally_relevant_dofs(dg.high_order_grid.dof_handler_grid, locally_relevant_dofs);
-    ghost_dofs = locally_relevant_dofs;
-    ghost_dofs.subtract_set(locally_owned_dofs);
-    dIdX_FD.reinit(locally_owned_dofs, ghost_dofs, MPI_COMM_WORLD);
+    allocate_dIdX(dIdX_FD);
 
     // setup it mostly the same as evaluating the value (with exception that local solution is also AD)
     const unsigned int max_dofs_per_cell = dg.dof_handler.get_fe_collection().max_dofs_per_cell();

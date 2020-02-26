@@ -27,43 +27,15 @@ namespace PHiLiP {
 template <int dim, int nstate, typename real>
 TargetFunctional<dim,nstate,real>::TargetFunctional(
     std::shared_ptr<DGBase<dim,real>> _dg,
-    std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> > _physics_fad_fad,
     const bool _uses_solution_values,
     const bool _uses_solution_gradient)
-    : dg(_dg)
+    : Functional<dim,nstate,real>::Functional(_dg, _uses_solution_values, _uses_solution_gradient)
 	, target_solution(dg->solution)
-    , physics_fad_fad(_physics_fad_fad)
-    , uses_solution_values(_uses_solution_values)
-    , uses_solution_gradient(_uses_solution_gradient)
-{ }
-
-template <int dim, int nstate, typename real>
-TargetFunctional<dim,nstate,real>::TargetFunctional(
-    std::shared_ptr<DGBase<dim,real>> _dg,
-    const bool _uses_solution_values,
-    const bool _uses_solution_gradient)
-    : dg(_dg)
-	, target_solution(dg->solution)
-    , uses_solution_values(_uses_solution_values)
-    , uses_solution_gradient(_uses_solution_gradient)
 { 
     using ADtype = Sacado::Fad::DFad<real>;
     using ADADtype = Sacado::Fad::DFad<ADtype>;
     physics_fad_fad = Physics::PhysicsFactory<dim,nstate,ADADtype>::create_Physics(dg->all_parameters);
 }
-template <int dim, int nstate, typename real>
-TargetFunctional<dim,nstate,real>::TargetFunctional(
-    std::shared_ptr<DGBase<dim,real>> _dg,
-    const dealii::LinearAlgebra::distributed::Vector<real> &target_solution,
-    std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> > _physics_fad_fad,
-    const bool _uses_solution_values,
-    const bool _uses_solution_gradient)
-    : dg(_dg)
-	, target_solution(target_solution)
-    , physics_fad_fad(_physics_fad_fad)
-    , uses_solution_values(_uses_solution_values)
-    , uses_solution_gradient(_uses_solution_gradient)
-{ }
 
 template <int dim, int nstate, typename real>
 TargetFunctional<dim,nstate,real>::TargetFunctional(
@@ -71,57 +43,34 @@ TargetFunctional<dim,nstate,real>::TargetFunctional(
     const dealii::LinearAlgebra::distributed::Vector<real> &target_solution,
     const bool _uses_solution_values,
     const bool _uses_solution_gradient)
-    : dg(_dg)
+    : Functional<dim,nstate,real>::Functional(_dg, _uses_solution_values, _uses_solution_gradient)
 	, target_solution(target_solution)
-    , uses_solution_values(_uses_solution_values)
-    , uses_solution_gradient(_uses_solution_gradient)
 { 
     using ADtype = Sacado::Fad::DFad<real>;
     using ADADtype = Sacado::Fad::DFad<ADtype>;
     physics_fad_fad = Physics::PhysicsFactory<dim,nstate,ADADtype>::create_Physics(dg->all_parameters);
 }
 
+template <int dim, int nstate, typename real>
+TargetFunctional<dim,nstate,real>::TargetFunctional(
+    std::shared_ptr<DGBase<dim,real>> _dg,
+    std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> > _physics_fad_fad,
+    const bool _uses_solution_values,
+    const bool _uses_solution_gradient)
+    : Functional<dim,nstate,real>::Functional(_dg, _physics_fad_fad, _uses_solution_values, _uses_solution_gradient)
+	, target_solution(dg->solution)
+{ }
 
 template <int dim, int nstate, typename real>
-void TargetFunctional<dim,nstate,real>::allocate_derivatives(const bool compute_dIdW, const bool compute_dIdX, const bool compute_d2I)
-{
-    if (compute_dIdW) {
-        // allocating the vector
-        dealii::IndexSet locally_owned_dofs = dg->dof_handler.locally_owned_dofs();
-        dIdw.reinit(locally_owned_dofs, MPI_COMM_WORLD);
-    }
-    if (compute_dIdX) {
-        // allocating the vector
-        dealii::IndexSet locally_owned_dofs = dg->high_order_grid.dof_handler_grid.locally_owned_dofs();
-        dealii::IndexSet locally_relevant_dofs, ghost_dofs;
-        dealii::DoFTools::extract_locally_relevant_dofs(dg->high_order_grid.dof_handler_grid, locally_relevant_dofs);
-        ghost_dofs = locally_relevant_dofs;
-        ghost_dofs.subtract_set(locally_owned_dofs);
-        dIdX.reinit(locally_owned_dofs, ghost_dofs, MPI_COMM_WORLD);
-    }
-    if (compute_d2I) {
-        {
-            dealii::SparsityPattern sparsity_pattern_d2IdWdX = dg->get_d2RdWdX_sparsity_pattern ();
-            const dealii::IndexSet &row_parallel_partitioning_d2IdWdX = dg->locally_owned_dofs;
-            const dealii::IndexSet &col_parallel_partitioning_d2IdWdX = dg->high_order_grid.locally_owned_dofs_grid;
-            d2IdWdX.reinit(row_parallel_partitioning_d2IdWdX, col_parallel_partitioning_d2IdWdX, sparsity_pattern_d2IdWdX, MPI_COMM_WORLD);
-        }
-
-        {
-            dealii::SparsityPattern sparsity_pattern_d2IdWdW = dg->get_d2RdWdW_sparsity_pattern ();
-            const dealii::IndexSet &row_parallel_partitioning_d2IdWdW = dg->locally_owned_dofs;
-            const dealii::IndexSet &col_parallel_partitioning_d2IdWdW = dg->locally_owned_dofs;
-            d2IdWdW.reinit(row_parallel_partitioning_d2IdWdW, col_parallel_partitioning_d2IdWdW, sparsity_pattern_d2IdWdW, MPI_COMM_WORLD);
-        }
-
-        {
-            dealii::SparsityPattern sparsity_pattern_d2IdXdX = dg->get_d2RdXdX_sparsity_pattern ();
-            const dealii::IndexSet &row_parallel_partitioning_d2IdXdX = dg->high_order_grid.locally_owned_dofs_grid;
-            const dealii::IndexSet &col_parallel_partitioning_d2IdXdX = dg->high_order_grid.locally_owned_dofs_grid;
-            d2IdXdX.reinit(row_parallel_partitioning_d2IdXdX, col_parallel_partitioning_d2IdXdX, sparsity_pattern_d2IdXdX, MPI_COMM_WORLD);
-        }
-    }
-}
+TargetFunctional<dim,nstate,real>::TargetFunctional(
+    std::shared_ptr<DGBase<dim,real>> _dg,
+    const dealii::LinearAlgebra::distributed::Vector<real> &target_solution,
+    std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> > _physics_fad_fad,
+    const bool _uses_solution_values,
+    const bool _uses_solution_gradient)
+    : Functional<dim,nstate,real>::Functional(_dg, _physics_fad_fad, _uses_solution_values, _uses_solution_gradient)
+	, target_solution(target_solution)
+{ }
 
 
 template <int dim, int nstate, typename real>
@@ -133,7 +82,7 @@ real2 TargetFunctional<dim, nstate, real>::evaluate_volume_cell_functional(
     const dealii::FESystem<dim> &fe_solution,
     const std::vector< real2 > &coords_coeff,
     const dealii::FESystem<dim> &fe_metric,
-    const dealii::Quadrature<dim> &volume_quadrature)
+    const dealii::Quadrature<dim> &volume_quadrature) const
 {
     const unsigned int n_vol_quad_pts = volume_quadrature.size();
     const unsigned int n_soln_dofs_cell = soln_coeff.size();
@@ -202,7 +151,7 @@ real TargetFunctional<dim, nstate, real>::evaluate_volume_cell_functional(
     const dealii::FESystem<dim> &fe_solution,
     const std::vector< real > &coords_coeff,
     const dealii::FESystem<dim> &fe_metric,
-    const dealii::Quadrature<dim> &volume_quadrature)
+    const dealii::Quadrature<dim> &volume_quadrature) const
 {
     return evaluate_volume_cell_functional<real>(physics, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 }
@@ -215,7 +164,7 @@ Sacado::Fad::DFad<Sacado::Fad::DFad<real>> TargetFunctional<dim, nstate, real>::
     const dealii::FESystem<dim> &fe_solution,
     const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &coords_coeff,
     const dealii::FESystem<dim> &fe_metric,
-    const dealii::Quadrature<dim> &volume_quadrature)
+    const dealii::Quadrature<dim> &volume_quadrature) const
 {
     return evaluate_volume_cell_functional<Sacado::Fad::DFad<Sacado::Fad::DFad<real>>>(physics_fad_fad, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 }
@@ -229,7 +178,7 @@ real2 TargetFunctional<dim, nstate, real>::evaluate_face_cell_functional(
     const dealii::FESystem<dim> &fe_solution,
     const std::vector< real2 > &coords_coeff,
     const dealii::FESystem<dim> &fe_metric,
-    const dealii::Quadrature<dim> &face_quadrature)
+    const dealii::Quadrature<dim> &face_quadrature) const
 {
     const unsigned int n_face_quad_pts = face_quadrature.size();
     const unsigned int n_soln_dofs_cell = soln_coeff.size();
@@ -280,7 +229,7 @@ real2 TargetFunctional<dim, nstate, real>::evaluate_face_cell_functional(
                 target_soln_grad_at_q[istate] += target_soln_coeff[idof] * phys_shape_grad;
             }
         }
-        real2 face_integrand = this->evaluate_face_integrand(physics, phys_coord, soln_at_q, target_soln_at_q, soln_grad_at_q, target_soln_grad_at_q);
+        real2 face_integrand = evaluate_face_integrand(physics, phys_coord, soln_at_q, target_soln_at_q, soln_grad_at_q, target_soln_grad_at_q);
 
 		(void) jacobian_determinant;
 		(void) quad_weight;
@@ -299,7 +248,7 @@ real TargetFunctional<dim, nstate, real>::evaluate_face_cell_functional(
     const dealii::FESystem<dim> &fe_solution,
     const std::vector< real > &coords_coeff,
     const dealii::FESystem<dim> &fe_metric,
-    const dealii::Quadrature<dim> &face_quadrature)
+    const dealii::Quadrature<dim> &face_quadrature) const
 {
     return evaluate_face_cell_functional<real>(physics, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, face_quadrature);
 }
@@ -312,7 +261,7 @@ Sacado::Fad::DFad<Sacado::Fad::DFad<real>> TargetFunctional<dim, nstate, real>::
     const dealii::FESystem<dim> &fe_solution,
     const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &coords_coeff,
     const dealii::FESystem<dim> &fe_metric,
-    const dealii::Quadrature<dim> &face_quadrature)
+    const dealii::Quadrature<dim> &face_quadrature) const
 {
     return evaluate_face_cell_functional<Sacado::Fad::DFad<Sacado::Fad::DFad<real>>>(physics_fad_fad, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, face_quadrature);
 }
@@ -347,7 +296,7 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
 
     dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg->fe_collection, dg->face_quadrature_collection,   this->face_update_flags);
 
-    allocate_derivatives(compute_dIdW, compute_dIdX, compute_d2I);
+    this->allocate_derivatives(compute_dIdW, compute_dIdX, compute_d2I);
 
     dg->solution.update_ghost_values();
     auto metric_cell = dg->high_order_grid.dof_handler_grid.begin_active();
@@ -428,11 +377,6 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
                 const dealii::Quadrature<dim> face_quadrature = dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
 
                 volume_local_sum += evaluate_face_cell_functional(*physics_fad_fad, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
-
-                //fe_values_collection_face.reinit(soln_cell, iface, i_quad, i_mapp, i_fele);
-                //const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
-                //const unsigned int boundary_id = face->boundary_id();
-                //volume_local_sum += this->evaluate_cell_boundary(*physics_fad_fad, boundary_id, fe_values_face, soln_coeff, target_soln_coeff);
             }
 
         }
@@ -440,57 +384,7 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
         local_functional += volume_local_sum.val().val();
         // now getting the values and adding them to the derivaitve vector
 
-        i_derivative = 0;
-        if (compute_dIdW) {
-            local_dIdw.resize(n_soln_dofs_cell);
-            for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof){
-                local_dIdw[idof] = volume_local_sum.dx(i_derivative++).val();
-            }
-            dIdw.add(cell_soln_dofs_indices, local_dIdw);
-        }
-        if (compute_dIdX) {
-            local_dIdX.resize(n_metric_dofs_cell);
-            for(unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof){
-                local_dIdX[idof] = volume_local_sum.dx(i_derivative++).val();
-            }
-            dIdX.add(cell_metric_dofs_indices, local_dIdX);
-        }
-		if (compute_dIdW || compute_dIdX) AssertDimension(i_derivative, n_total_indep);
-        if (compute_d2I) {
-			std::vector<real> dWidW(n_soln_dofs_cell);
-			std::vector<real> dWidX(n_metric_dofs_cell);
-			std::vector<real> dXidX(n_metric_dofs_cell);
-
-
-			i_derivative = 0;
-			for (unsigned int idof=0; idof<n_soln_dofs_cell; ++idof) {
-
-				unsigned int j_derivative = 0;
-				const ADtype dWi = volume_local_sum.dx(i_derivative++);
-
-				for (unsigned int jdof=0; jdof<n_soln_dofs_cell; ++jdof) {
-					dWidW[jdof] = dWi.dx(j_derivative++);
-				}
-				d2IdWdW.add(cell_soln_dofs_indices[idof], cell_soln_dofs_indices, dWidW);
-
-				for (unsigned int jdof=0; jdof<n_metric_dofs_cell; ++jdof) {
-					dWidX[jdof] = dWi.dx(j_derivative++);
-				}
-				d2IdWdX.add(cell_soln_dofs_indices[idof], cell_metric_dofs_indices, dWidX);
-			}
-
-			for (unsigned int idof=0; idof<n_metric_dofs_cell; ++idof) {
-
-				const ADtype dXi = volume_local_sum.dx(i_derivative++);
-
-				unsigned int j_derivative = n_soln_dofs_cell;
-				for (unsigned int jdof=0; jdof<n_metric_dofs_cell; ++jdof) {
-					dXidX[jdof] = dXi.dx(j_derivative++);
-				}
-				d2IdXdX.add(cell_metric_dofs_indices[idof], cell_metric_dofs_indices, dXidX);
-			}
-        }
-        AssertDimension(i_derivative, n_total_indep);
+        this->set_derivatives(compute_dIdW, compute_dIdX, compute_d2I, volume_local_sum, cell_soln_dofs_indices, cell_metric_dofs_indices);
     }
 	//std::cout << local_functional << std::endl;
     current_functional_value = dealii::Utilities::MPI::sum(local_functional, MPI_COMM_WORLD);
@@ -589,11 +483,6 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
 
                 local_sum_old += evaluate_face_cell_functional(physics, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 
-                //fe_values_collection_face.reinit(cell, iface, i_quad, i_mapp, i_fele);
-                //const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
-                //const unsigned int boundary_id = face->boundary_id();
-                //local_sum_old += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff, target_soln_coeff);
-
             }
 
         }
@@ -620,12 +509,6 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
                     const dealii::Quadrature<dim> face_quadrature = dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
 
                     local_sum_new += evaluate_face_cell_functional(physics, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
-
-                    //fe_values_collection_face.reinit(cell, iface, i_quad, i_mapp, i_fele);
-                    //const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
-                    //const unsigned int boundary_id = face->boundary_id();
-
-                    //local_sum_new += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff, target_soln_coeff);
                 }
 
             }
@@ -773,8 +656,7 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
     return dIdX_FD;
 }
 
-template class TargetFunctional <PHILIP_DIM, 1, double>;
-template class TargetFunctional <PHILIP_DIM, 2, double>;
+template class TargetFunctional <PHILIP_DIM, 1, double>; template class TargetFunctional <PHILIP_DIM, 2, double>;
 template class TargetFunctional <PHILIP_DIM, 3, double>;
 template class TargetFunctional <PHILIP_DIM, 4, double>;
 template class TargetFunctional <PHILIP_DIM, 5, double>;

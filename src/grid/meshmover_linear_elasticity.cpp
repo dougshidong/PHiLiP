@@ -11,7 +11,7 @@
 #include <deal.II/lac/trilinos_precondition.h>
 #include <deal.II/lac/trilinos_solver.h>
 
-#include "dg/meshmover_linear_elasticity.hpp"
+#include "meshmover_linear_elasticity.hpp"
 
 namespace PHiLiP {
 namespace MeshMover {

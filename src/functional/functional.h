@@ -17,7 +17,6 @@
 #include <deal.II/fe/fe_values.h>
 
 #include "dg/dg.h"
-#include "dg/high_order_grid.h"
 #include "physics/physics.h"
 
 namespace PHiLiP {

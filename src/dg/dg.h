@@ -25,7 +25,7 @@
 
 #include <Sacado.hpp>
 
-#include "dg/high_order_grid.h"
+#include "grid/high_order_grid.h"
 #include "physics/physics.h"
 #include "numerical_flux/numerical_flux.h"
 #include "parameters/all_parameters.h"

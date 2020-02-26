@@ -20,7 +20,6 @@
 #include "dg/dg.h"
 #include "adjoint.h"
 #include "functional.h"
-#include "dg/high_order_grid.h"
 #include "physics/physics.h"
 #include "linear_solver/linear_solver.h"
 #include "post_processor/physics_post_processor.h"

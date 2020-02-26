@@ -21,7 +21,7 @@
 #include <deal.II/fe/mapping_fe_field.h> 
 #include <deal.II/fe/mapping_q.h> 
 
-#include "dg/high_order_grid.h"
+#include "grid/high_order_grid.h"
 #include "parameters/all_parameters.h"
 
 // https://en.wikipedia.org/wiki/Volume_of_an_n-ball#Recursions

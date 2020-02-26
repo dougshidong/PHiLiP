@@ -23,8 +23,8 @@
 #include <deal.II/fe/mapping_fe_field.h> 
 #include <deal.II/fe/mapping_q.h> 
 
-#include "dg/high_order_grid.h"
-#include "dg/meshmover_linear_elasticity.hpp"
+#include "grid/high_order_grid.h"
+#include "grid/meshmover_linear_elasticity.hpp"
 #include "parameters/all_parameters.h"
 
 template<int dim>

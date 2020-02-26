@@ -89,6 +89,74 @@ void Functional<dim,nstate,real>::allocate_derivatives(const bool compute_dIdW, 
     }
 }
 
+
+template <int dim, int nstate, typename real>
+void Functional<dim,nstate,real>::set_derivatives(
+    const bool compute_dIdW, const bool compute_dIdX, const bool compute_d2I,
+    const Sacado::Fad::DFad<Sacado::Fad::DFad<real>> volume_local_sum,
+    std::vector<dealii::types::global_dof_index> cell_soln_dofs_indices,
+    std::vector<dealii::types::global_dof_index> cell_metric_dofs_indices)
+{
+    using ADtype = Sacado::Fad::DFad<real>;
+
+    const unsigned int n_total_indep = volume_local_sum.size();
+    (void) n_total_indep; // Not used apart from assert.
+    const unsigned int n_soln_dofs_cell = cell_soln_dofs_indices.size();
+    const unsigned int n_metric_dofs_cell = cell_metric_dofs_indices.size();
+    unsigned int i_derivative = 0;
+
+    if (compute_dIdW) {
+        std::vector<real> local_dIdw(n_soln_dofs_cell);
+        for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof){
+            local_dIdw[idof] = volume_local_sum.dx(i_derivative++).val();
+        }
+        dIdw.add(cell_soln_dofs_indices, local_dIdw);
+    }
+    if (compute_dIdX) {
+        std::vector<real> local_dIdX(n_metric_dofs_cell);
+        for(unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof){
+            local_dIdX[idof] = volume_local_sum.dx(i_derivative++).val();
+        }
+        dIdX.add(cell_metric_dofs_indices, local_dIdX);
+    }
+    if (compute_dIdW || compute_dIdX) AssertDimension(i_derivative, n_total_indep);
+    if (compute_d2I) {
+        std::vector<real> dWidW(n_soln_dofs_cell);
+        std::vector<real> dWidX(n_metric_dofs_cell);
+        std::vector<real> dXidX(n_metric_dofs_cell);
+
+
+        i_derivative = 0;
+        for (unsigned int idof=0; idof<n_soln_dofs_cell; ++idof) {
+
+            unsigned int j_derivative = 0;
+            const ADtype dWi = volume_local_sum.dx(i_derivative++);
+
+            for (unsigned int jdof=0; jdof<n_soln_dofs_cell; ++jdof) {
+                dWidW[jdof] = dWi.dx(j_derivative++);
+            }
+            d2IdWdW.add(cell_soln_dofs_indices[idof], cell_soln_dofs_indices, dWidW);
+
+            for (unsigned int jdof=0; jdof<n_metric_dofs_cell; ++jdof) {
+                dWidX[jdof] = dWi.dx(j_derivative++);
+            }
+            d2IdWdX.add(cell_soln_dofs_indices[idof], cell_metric_dofs_indices, dWidX);
+        }
+
+        for (unsigned int idof=0; idof<n_metric_dofs_cell; ++idof) {
+
+            const ADtype dXi = volume_local_sum.dx(i_derivative++);
+
+            unsigned int j_derivative = n_soln_dofs_cell;
+            for (unsigned int jdof=0; jdof<n_metric_dofs_cell; ++jdof) {
+                dXidX[jdof] = dXi.dx(j_derivative++);
+            }
+            d2IdXdX.add(cell_metric_dofs_indices[idof], cell_metric_dofs_indices, dXidX);
+        }
+    }
+    AssertDimension(i_derivative, n_total_indep);
+}
+
 template <int dim, int nstate, typename real>
 template <typename real2>
 real2 Functional<dim, nstate, real>::evaluate_volume_cell_functional(
@@ -97,7 +165,7 @@ real2 Functional<dim, nstate, real>::evaluate_volume_cell_functional(
     const dealii::FESystem<dim> &fe_solution,
     const std::vector< real2 > &coords_coeff,
     const dealii::FESystem<dim> &fe_metric,
-    const dealii::Quadrature<dim> &volume_quadrature)
+    const dealii::Quadrature<dim> &volume_quadrature) const
 {
     const unsigned int n_vol_quad_pts = volume_quadrature.size();
     const unsigned int n_soln_dofs_cell = soln_coeff.size();
@@ -157,7 +225,7 @@ real Functional<dim, nstate, real>::evaluate_volume_cell_functional(
     const dealii::FESystem<dim> &fe_solution,
     const std::vector< real > &coords_coeff,
     const dealii::FESystem<dim> &fe_metric,
-    const dealii::Quadrature<dim> &volume_quadrature)
+    const dealii::Quadrature<dim> &volume_quadrature) const
 {
     return evaluate_volume_cell_functional<real>(physics, soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 }
@@ -169,7 +237,7 @@ Sacado::Fad::DFad<Sacado::Fad::DFad<real>> Functional<dim, nstate, real>::evalua
     const dealii::FESystem<dim> &fe_solution,
     const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &coords_coeff,
     const dealii::FESystem<dim> &fe_metric,
-    const dealii::Quadrature<dim> &volume_quadrature)
+    const dealii::Quadrature<dim> &volume_quadrature) const
 {
     return evaluate_volume_cell_functional<Sacado::Fad::DFad<Sacado::Fad::DFad<real>>>(physics_fad_fad, soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 }

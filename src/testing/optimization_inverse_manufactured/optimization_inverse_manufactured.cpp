@@ -248,6 +248,16 @@ dealii::Point<dim> target_deformation(dealii::Point<dim> point) {
 template <int dim, int nstate, typename real>
 class BoundaryInverseTarget : public TargetFunctional<dim, nstate, real>
 {
+    using ADType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
+    using ADADType = Sacado::Fad::DFad<ADType>; ///< Sacado AD type that allows 2nd derivatives.
+
+    /// Avoid warning that the function was hidden [-Woverloaded-virtual].
+    /** The compiler would otherwise hide Functional::evaluate_volume_integrand, which is fine for 
+     *  us, but is a typical bug that other people have. This 'using' imports the base class function
+     *  to our derived class even though we don't need it.
+     */
+    using Functional<dim,nstate,real>::evaluate_volume_integrand;
+
 public:
     /// Constructor
     BoundaryInverseTarget(
@@ -266,7 +276,7 @@ public:
 		const std::array<real2,nstate> &,//soln_at_q,
         const std::array<real,nstate> &,//target_soln_at_q,
 		const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/,
-		const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*target_soln_grad_at_q*/)
+		const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*target_soln_grad_at_q*/) const
 	{
 		real2 l2error = 0;
 		
@@ -280,12 +290,10 @@ public:
 		const std::array<real,nstate> &soln_at_q,
         const std::array<real,nstate> &target_soln_at_q,
 		const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q,
-		const std::array<dealii::Tensor<1,dim,real>,nstate> &target_soln_grad_at_q) override
+		const std::array<dealii::Tensor<1,dim,real>,nstate> &target_soln_grad_at_q) const override
 	{
 		return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, target_soln_at_q, soln_grad_at_q, target_soln_grad_at_q);
 	}
-    using ADType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
-    using ADADType = Sacado::Fad::DFad<ADType>; ///< Sacado AD type that allows 2nd derivatives.
 	/// non-template functions to override the template classes
 	ADADType evaluate_volume_integrand(
 		const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADType> &physics,
@@ -293,7 +301,7 @@ public:
 		const std::array<ADADType,nstate> &soln_at_q,
         const std::array<real,nstate> &target_soln_at_q,
 		const std::array<dealii::Tensor<1,dim,ADADType>,nstate> &soln_grad_at_q,
-        const std::array<dealii::Tensor<1,dim,ADADType>,nstate> &target_soln_grad_at_q) override
+        const std::array<dealii::Tensor<1,dim,ADADType>,nstate> &target_soln_grad_at_q) const override
 	{
 		return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, target_soln_at_q, soln_grad_at_q, target_soln_grad_at_q);
 	}

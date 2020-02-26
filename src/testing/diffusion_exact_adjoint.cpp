@@ -296,7 +296,7 @@ real2 DiffusionFunctional<dim,nstate,real>::evaluate_volume_integrand(
     const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
     const dealii::Point<dim,real2> &phys_coord,
     const std::array<real2,nstate> &soln_at_q,
-    const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/)
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
 {
     real2 val = 0;
 

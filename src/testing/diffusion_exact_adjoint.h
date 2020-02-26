@@ -183,14 +183,14 @@ class DiffusionFunctional : public Functional<dim, nstate, real>
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
             const dealii::Point<dim,real2> &phys_coord,
             const std::array<real2,nstate> &soln_at_q,
-            const std::array<dealii::Tensor<1,dim,real2>,nstate> &soln_grad_at_q);
+            const std::array<dealii::Tensor<1,dim,real2>,nstate> &soln_grad_at_q) const;
 
     	/// Non-template functions to override the template classes
 		real evaluate_volume_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
             const dealii::Point<dim,real> &phys_coord,
             const std::array<real,nstate> &soln_at_q,
-            const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) override
+            const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override
 		{
 			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
 		}
@@ -199,7 +199,7 @@ class DiffusionFunctional : public Functional<dim, nstate, real>
             const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADType> &physics,
             const dealii::Point<dim,ADADType> &phys_coord,
             const std::array<ADADType,nstate> &soln_at_q,
-            const std::array<dealii::Tensor<1,dim,ADADType>,nstate> &soln_grad_at_q) override
+            const std::array<dealii::Tensor<1,dim,ADADType>,nstate> &soln_grad_at_q) const override
 		{
 			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
 		}

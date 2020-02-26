@@ -125,6 +125,9 @@ protected:
     /// Allocate and setup the derivative vectors/matrices.
     /** Helper function to simplify the evaluate_functional */
     void allocate_derivatives(const bool compute_dIdW, const bool compute_dIdX, const bool compute_d2I);
+    /// Allocate and setup the derivative dIdX vector.
+    /** Helper function to simplify the evaluate_functional */
+    void allocate_dIdX(dealii::LinearAlgebra::distributed::Vector<real> &dIdX) const;
     /// Set the derivative vectors/matrices.
     /** Helper function to simplify the evaluate_functional */
     void set_derivatives(

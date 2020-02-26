@@ -241,37 +241,6 @@ namespace Tests {
 //    }
 //};
 
-/// Function used to evaluate farfield conservative solution
-template <int dim, int nstate>
-class FreeStreamInitialConditions2 : public dealii::Function<dim>
-{
-public:
-    /// Farfield conservative solution
-    std::array<double,nstate> farfield_conservative;
-
-    /// Constructor.
-    /** Evaluates the primary farfield solution and converts it into the store farfield_conservative solution
-     */
-    FreeStreamInitialConditions2 (const Physics::Euler<dim,nstate,double> euler_physics)
-    : dealii::Function<dim,double>(nstate)
-    {
-        const double density_bc = euler_physics.density_inf;
-        const double pressure_bc = 1.0/(euler_physics.gam*euler_physics.mach_inf_sqr);
-        std::array<double,nstate> primitive_boundary_values;
-        primitive_boundary_values[0] = density_bc;
-        for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = euler_physics.velocities_inf[d]; }
-        primitive_boundary_values[nstate-1] = pressure_bc;
-        farfield_conservative = euler_physics.convert_primitive_to_conservative(primitive_boundary_values);
-    }
-  
-    /// Returns the istate-th farfield conservative value
-    double value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const
-    {
-        return farfield_conservative[istate];
-    }
-};
-template class FreeStreamInitialConditions2 <PHILIP_DIM, PHILIP_DIM+2>;
-
 template <int dim, int nstate>
 EulerBumpOptimization<dim,nstate>::EulerBumpOptimization(const Parameters::AllParameters *const parameters_input)
     :
@@ -374,7 +343,7 @@ int EulerBumpOptimization<dim,nstate>
                 param.euler_param.mach_inf,
                 param.euler_param.angle_of_attack,
                 param.euler_param.side_slip_angle);
-    FreeStreamInitialConditions2<dim,nstate> initial_conditions(euler_physics_double);
+    Physics::FreeStreamInitialConditions<dim,nstate> initial_conditions(euler_physics_double);
     pcout << "Farfield conditions: "<< std::endl;
     for (int s=0;s<nstate;s++) {
         pcout << initial_conditions.farfield_conservative[s] << std::endl;

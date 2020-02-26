@@ -13,11 +13,9 @@
 
 #include <deal.II/dofs/dof_tools.h>
 
-//#include "dg/high_order_grid.h"
 #include "physics/physics.h"
 #include "physics/physics_factory.h"
 #include "dg/dg.h"
-#include "dg/high_order_grid.h"
 #include "functional.h"
 
 namespace PHiLiP {

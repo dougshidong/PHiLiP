@@ -17,9 +17,9 @@ foreach(dim RANGE 2 3)
 
     # Library dependency
     set(ParametersLib ParametersLibrary)
-    string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
+    string(CONCAT HighOrderGridLib HighOrderGrid_${dim}D)
     target_link_libraries(${TEST_TARGET} ${ParametersLib})
-    target_link_libraries(${TEST_TARGET} ${DiscontinuousGalerkinLib})
+    target_link_libraries(${TEST_TARGET} ${HighOrderGridLib})
     # Setup target with deal.II
     if (NOT DOC_ONLY)
         DEAL_II_SETUP_TARGET(${TEST_TARGET})
@@ -32,7 +32,7 @@ foreach(dim RANGE 2 3)
     )
 
     unset(TEST_TARGET)
-    unset(DiscontinuousGalerkinLib)
+    unset(HighOrderGridLib)
     unset(ParametersLib)
 
 endforeach()
@@ -56,9 +56,9 @@ foreach(dim RANGE 1 3)
 
     # Library dependency
     set(ParametersLib ParametersLibrary)
-    string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
+    string(CONCAT HighOrderGridLib HighOrderGrid_${dim}D)
     target_link_libraries(${TEST_TARGET} ${ParametersLib})
-    target_link_libraries(${TEST_TARGET} ${DiscontinuousGalerkinLib})
+    target_link_libraries(${TEST_TARGET} ${HighOrderGridLib})
     # Setup target with deal.II
     if (NOT DOC_ONLY)
         DEAL_II_SETUP_TARGET(${TEST_TARGET})
@@ -83,7 +83,7 @@ foreach(dim RANGE 1 3)
     )
 
     unset(TEST_TARGET)
-    unset(DiscontinuousGalerkinLib)
+    unset(HighOrderGridLib)
     unset(ParametersLib)
 
 endforeach()
@@ -106,9 +106,9 @@ add_dependencies(${dim}D ${TEST_TARGET})
 
 # Library dependency
 set(ParametersLib ParametersLibrary)
-string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
+string(CONCAT HighOrderGridLib HighOrderGrid_${dim}D)
 target_link_libraries(${TEST_TARGET} ${ParametersLib})
-target_link_libraries(${TEST_TARGET} ${DiscontinuousGalerkinLib})
+target_link_libraries(${TEST_TARGET} ${HighOrderGridLib})
 # Setup target with deal.II
 if (NOT DOC_ONLY)
     DEAL_II_SETUP_TARGET(${TEST_TARGET})
@@ -121,6 +121,6 @@ add_test(
 )
 
 unset(TEST_TARGET)
-unset(DiscontinuousGalerkinLib)
+unset(HighOrderGridLib)
 unset(ParametersLib)
 

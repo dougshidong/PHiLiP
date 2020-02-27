@@ -130,9 +130,9 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::allocate()
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
 void HighOrderGrid<dim,real,VectorType,DoFHandlerType>
-::get_position_vector(const DoFHandlerType &dh, VectorType &vector, const dealii::ComponentMask &mask)
+::get_position_vector(const DoFHandlerType &dh, VectorType &position_vector, const dealii::ComponentMask &mask)
 {
-    AssertDimension(vector.size(), dh.n_dofs());
+    AssertDimension(position_vector.size(), dh.n_dofs());
     const dealii::FESystem<dim, dim> &fe = dh.get_fe();
   
     // Construct default fe_mask;
@@ -163,7 +163,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>
             const std::vector<dealii::Point<dim>> &points = fe_v.get_quadrature_points();
             for (unsigned int q = 0; q < points.size(); ++q) {
                 const unsigned int comp = fe.system_to_component_index(q).first;
-                if (fe_mask[comp]) ::dealii::internal::ElementAccess<VectorType>::set(points[q][fe_to_real[comp]], dofs[q], vector);
+                if (fe_mask[comp]) ::dealii::internal::ElementAccess<VectorType>::set(points[q][fe_to_real[comp]], dofs[q], position_vector);
             }
         }
     }

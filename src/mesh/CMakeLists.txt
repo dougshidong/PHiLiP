@@ -1,3 +1,5 @@
+add_subdirectory(grids)
+
 set(GRID_SOURCE
     high_order_grid.cpp
     meshmover_linear_elasticity.cpp

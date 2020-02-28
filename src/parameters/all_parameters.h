@@ -45,6 +45,10 @@ public:
 
     bool use_energy;
 
+    bool use_classical_FR;
+
+    bool use_skew_sym_deriv;
+
     bool use_jac_sol_points;
 
     /// Flag to use Projected (p+1) nonlinear flux.

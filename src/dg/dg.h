@@ -428,7 +428,9 @@ protected:
 
     /// Update flags needed at volume points.
    // const dealii::UpdateFlags volume_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values;
-    const dealii::UpdateFlags volume_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values;
+   // const dealii::UpdateFlags volume_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values;
+   // const dealii::UpdateFlags volume_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_jacobians;
+    const dealii::UpdateFlags volume_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_inverse_jacobians;
     /// Update flags needed at face points.
     const dealii::UpdateFlags face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_normal_vectors;
     /// Update flags needed at neighbor' face points. 
@@ -577,6 +579,8 @@ public:
     unsigned int n_quad_pts, unsigned int n_dofs_cell,
     dealii::FullMatrix<real> &projection_matrix);
 
+
+
     /// Destructor
     ~DGStrong();
 
@@ -602,6 +606,20 @@ private:
 //    void get_projection_operator(const dealii::FEValues<dim,dim> &fe_values_volume,
  //   unsigned int n_quad_pts, unsigned int n_dofs_cell,
  //   dealii::FullMatrix<real> &projection_matrix);
+
+    //for metric flux
+    void get_flux_with_metric_terms(
+         const dealii::FEValues<dim,dim> &fe_values_vol,
+         const unsigned int n_quad_pts, 
+         const std::vector< std::array< dealii::Tensor<1,dim,real>, nstate >> &conv_phys_flux_at_q, 
+         std::vector< std::array< dealii::Tensor<1,dim,real>, nstate >> &conv_phys_flux_metric);
+
+    void get_Flux_Reconstruction_modifying_filters(
+        const dealii::FEValues<dim,dim> &fe_values_vol, const unsigned int n_dofs_cell, 
+        const unsigned int n_quad_pts, const dealii::FEValues<dim,dim> &fe_values_vol_soln_flux, 
+        const unsigned int n_quad_pts_flux, const dealii::FullMatrix<real> K_operator,
+        dealii::FullMatrix<real> &filter_chi, dealii::FullMatrix<real> &filter_chi_source);
+
 
     /// Evaluate the auxiliary equation volume integrals
     void assemble_volume_terms_auxiliary_equation(

@@ -42,6 +42,14 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Not calculate energy by default. Otherwise, get energy per iteration.");
 
+    prm.declare_entry("use_classical_Flux_Reconstruction", "false",
+                      dealii::Patterns::Bool(),
+                      "Not use Classical Flux Reconstruction by default. Otherwise, use Classical Flux Reconstruction.");
+
+    prm.declare_entry("use_skew_sym_deriv", "false",
+                      dealii::Patterns::Bool(),
+                      "Not use Skew Symmetric Derivative by default. Otherwise, use Skew Symmetric Derivative (Metric Split form).");
+
     prm.declare_entry("use_jac_sol_points", "false",
                       dealii::Patterns::Bool(),
                       "Jacobian at quadrature points default, otherwise soln points.");
@@ -169,6 +177,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_split_form = prm.get_bool("use_split_form");
     use_periodic_bc = prm.get_bool("use_periodic_bc");
     use_energy = prm.get_bool("use_energy");
+    use_classical_FR = prm.get_bool("use_classical_Flux_Reconstruction");
+    use_skew_sym_deriv = prm.get_bool("use_skew_sym_deriv");
     use_jac_sol_points = prm.get_bool("use_jac_sol_points");
     use_projected_flux = prm.get_bool("use_projected_flux");
 

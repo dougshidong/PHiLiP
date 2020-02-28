@@ -6,11 +6,13 @@ set use_weak_form = false
 
 set use_collocated_nodes = false
 
-set use_split_form = false
+set use_split_form = true
 
 set use_projected_flux = true
 
 set use_energy = false
+
+set use_classical_Flux_reconstruction = false
 
 set use_periodic_bc = true
 

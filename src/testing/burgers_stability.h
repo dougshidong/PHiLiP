@@ -16,6 +16,8 @@ public:
     int run_test () const override;
 private:
 	double compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const;
+protected:
+    void initialize(DGBase<dim,double> &dg) const;
 };
 
 } // End of Tests namespace

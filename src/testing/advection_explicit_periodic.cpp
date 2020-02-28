@@ -51,6 +51,51 @@ double AdvectionPeriodic<dim, nstate>::compute_energy(std::shared_ptr < PHiLiP::
 }
 
 template <int dim, int nstate>
+dealii::Point<dim> AdvectionPeriodic<dim,nstate>
+::warp (const dealii::Point<dim> &p)
+{
+    const double pi = atan(1)*4.0;
+    dealii::Point<dim> q = p;
+
+#if 0
+  q[dim-1] *= 10;
+  if (dim >= 2)
+    q[0] += 2*std::sin(q[dim-1]);
+  if (dim >= 3)
+    q[1] += 2*std::cos(q[dim-1]);
+#endif
+
+    if (dim == 1){
+        q[dim-1] = p[dim-1] + 1.0/8.0 * cos(pi/2.0 * p[dim-1]);
+    }
+    if (dim == 2){
+        q[dim-1] = p[dim-1] + 1.0/8.0 * std::cos(pi/2.0 * p[dim-1]) * std::cos(pi/2.0 * p[dim-2]);
+        q[dim-2] = p[dim-2] + 1.0/8.0 * std::cos(pi/2.0 * p[dim-1]) * std::cos(pi/2.0 * p[dim-2]);
+    }
+    if(dim==3){
+        q[dim-1] = p[dim-1] + 1.0/8.0 * cos(pi/2.0 * p[dim-1]) * cos(pi/2.0 * p[dim-2]) * cos(pi/2.0 * p[dim-3]);
+        q[dim-2] = p[dim-2] + 1.0/8.0 * cos(pi/2.0 * p[dim-1]) * cos(pi/2.0 * p[dim-2]) * cos(pi/2.0 * p[dim-3]);
+        q[dim-3] = p[dim-2] + 1.0/8.0 * cos(pi/2.0 * p[dim-1]) * cos(pi/2.0 * p[dim-2]) * cos(pi/2.0 * p[dim-3]);
+    }
+
+
+#if 0
+   // q[dim-1] = 1.5*std::sin(2*(q[0]-2))*std::sin(4*(q[dim-1]));
+   // q[dim-1] = 1.0 + 2.0*std::sin(pi/2.0*(p[dim-1]))*std::sin(pi/4.0*(p[dim-1]-pi));
+    q[dim-1] = p[dim-1] + 2.0*std::sin(pi/2.0*(p[dim-1]))*std::sin(pi/4.0*(p[dim-1]-pi));
+   // if (dim >= 2) q[0] = std::sin(q[dim-1])*std::sin(2*(q[0]-1));
+    if (dim >= 2) q[0] = 1.0 + 2.0*std::sin(pi/2.0*p[0])*std::sin(pi/4.0*(p[0]-pi));
+    if (dim >= 3) q[1] += 1*std::cos(q[dim-1]);
+#endif
+#if 0
+    q[dim-1] *= 1.5;
+    if (dim >= 2) q[0] += 1*std::sin(q[dim-1]);
+    if (dim >= 3) q[1] += 1*std::cos(q[dim-1]);
+#endif
+    return q;
+}
+
+template <int dim, int nstate>
 int AdvectionPeriodic<dim, nstate>::run_test() const
 {
 #if 0
@@ -67,7 +112,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
 
-    const unsigned int n_grids = 6;
+    const unsigned int n_grids = 5;
     std::array<double,n_grids> grid_size;
     std::array<double,n_grids> soln_error;
    // std::array<double,n_grids> output_error;
@@ -86,8 +131,10 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 //	double right = 2.0;
 //	double left = -1.0;
 //	double right = 1.0;
-	double left = 1.0;
-	double right = 3.0;
+//	double left = 1.0;
+//	double right = 3.0;
+	double left = -1.0;
+	double right = 1.0;
 	//double right = 2.0;
 	const bool colorize = true;
 //	int n_refinements = 6;
@@ -96,7 +143,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 //	dealii::GridGenerator::hyper_cube(grid, left, right, colorize);
 
         dealii::ConvergenceTable convergence_table;
-        const unsigned int igrid_start = 3;
+        const unsigned int igrid_start = 4;
 printf("NEW GRID\n");
 fflush(stdout);
 
@@ -109,21 +156,35 @@ fflush(stdout);
 #else
 			dealii::parallel::distributed::Triangulation<dim> grid(
 				this->mpi_communicator);
+       // dealii::parallel::distributed::Triangulation<dim> grid(
+        //    this->mpi_communicator,
+         //   typename dealii::Triangulation<dim>::MeshSmoothing(
+          //      dealii::Triangulation<dim>::smoothing_on_refinement |
+           //     dealii::Triangulation<dim>::smoothing_on_coarsening));
 #endif
 
 
-//#if 0
+//testing warping
+dealii::GridGenerator::hyper_cube (grid, left, right, colorize);
+//dealii::GridTools::transform (&warp, grid);
+
+
+
+#if 0
 const dealii::Point<dim> center1(0,1);
 const dealii::SphericalManifold<dim> m0(center1);
-dealii::GridGenerator::hyper_cube (grid, left, right, colorize);
+//dealii::GridGenerator::hyper_cube (grid, left, right, colorize);
+//dealii::GridGenerator::subdivided_hyper_cube(grid,static_cast<int>(pow(2, 3) + 5*igrid),left, right);
 grid.set_manifold(0, m0);
 const dealii::Point<dim> center2(2,1);
 const dealii::SphericalManifold<dim> m02(center2);
 grid.set_manifold(1, m02);
+//#if 0
 for(int idim=0; idim<dim; idim++){
 grid.set_all_manifold_ids_on_boundary(2*(idim -1),2*(idim-1));
 grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 }
+#endif
 //	grid.refine_global(igrid);
 
 //#endif
@@ -138,6 +199,20 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
                 if(dim==3)
 		dealii::GridTools::collect_periodic_faces(grid,4,5,2,matched_pairs);
 		grid.add_periodicity(matched_pairs);
+#endif
+dealii::GridTools::transform (&warp, grid);
+#if 0
+const dealii::Point<dim> center1(0,1);
+const dealii::SphericalManifold<dim> m0(center1);
+grid.set_manifold(0, m0);
+const dealii::Point<dim> center2(2,1);
+const dealii::SphericalManifold<dim> m02(center2);
+grid.set_manifold(1, m02);
+//#if 0
+for(int idim=0; idim<dim; idim++){
+grid.set_all_manifold_ids_on_boundary(2*(idim -1),2*(idim-1));
+grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
+}
 #endif
 	grid.refine_global(igrid);
 
@@ -156,7 +231,9 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
    // all_parameters_new.ode_solver_param.initial_time_step =  delta_x /(2.0*(2.0*poly_degree+1)) ;
     //all_parameters_new.ode_solver_param.initial_time_step =  delta_x /(1.0*(2.0*poly_degree+1)) ;
     all_parameters_new.ode_solver_param.initial_time_step =  delta_x /(1.0*(2.0*poly_degree+1)) ;
+   // all_parameters_new.ode_solver_param.initial_time_step =  0.25*delta_x;
     all_parameters_new.ode_solver_param.initial_time_step =  0.5*delta_x;
+   // all_parameters_new.ode_solver_param.initial_time_step =  0.05*delta_x;
 //    all_parameters_new.ode_solver_param.initial_time_step =  0.0001;
     std::cout << "dt " <<all_parameters_new.ode_solver_param.initial_time_step <<  std::endl;
     std::cout << "cells " <<n_global_active_cells2 <<  std::endl;
@@ -199,7 +276,8 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 	    expression = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) + 20*(z-1)*(z-1) ) )";//"sin(pi*x)*sin(pi*y)";
         if (dim == 2)
 	    //expression = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) ) )";//"sin(pi*x)*sin(pi*y)";
-	    expression = "exp( -( 20*(x-2)*(x-2) + 20*(y-2)*(y-2) ) )";//"sin(pi*x)*sin(pi*y)";
+	   // expression = "exp( -( 20*(x-2)*(x-2) + 20*(y-2)*(y-2) ) )";//"sin(pi*x)*sin(pi*y)";
+	    expression = "exp( -( 20*(x)*(x) + 20*(y)*(y) ) )";//"sin(pi*x)*sin(pi*y)";
 	  //  expression = "sin(pi*x)*sin(pi*y)";//"sin(pi*x)*sin(pi*y)";
 	    //expression = "exp( -( 20*(x-1.5)*(x-1.5) + 20*(y-1.5)*(y-1.5) ) )";//"sin(pi*x)*sin(pi*y)";
         if(dim==1)
@@ -260,12 +338,14 @@ finalTime =10 *1e-1* delta_x /(1.0*(2.0*poly_degree+1));
 finalTime =1/16;
 finalTime =0.1;
 finalTime = 20.0;
+finalTime = 10.0;
+//finalTime = 2.0;
 //finalTime=0.25;
 //finalTime =1/8;
 //finalTime = 0.5;
 //finalTime = 10.0;
 //finalTime = 1.0;
-//finalTime = all_parameters_new.ode_solver_param.initial_time_step;
+finalTime = all_parameters_new.ode_solver_param.initial_time_step;
 
 //#if 0
 	//need to call ode_solver before calculating energy because mass matrix isn't allocated yet.
@@ -273,12 +353,14 @@ finalTime = 20.0;
         if (all_parameters_new.use_energy == true){//for split form get energy
 	ode_solver->advance_solution_time(0.000001);
 	double initial_energy = compute_energy(dg);
+printf("initial energy %g\n",initial_energy);
 
 	//currently the only way to calculate energy at each time-step is to advance solution by dt instead of finaltime
 	//this causes some issues with outputs (only one file is output, which is overwritten at each time step)
 	//also the ode solver output doesn't make sense (says "iteration 1 out of 1")
 	//but it works. I'll keep it for now and need to modify the output functions later to account for this.
-	std::ofstream myfile ("energy_plot_Cplus_p3_central_curv_adv_corrected.gpl" , std::ios::trunc);
+	//std::ofstream myfile ("energy_plot_Cplus_p3_central_curv_adv_skew_deirv.gpl" , std::ios::trunc);
+	std::ofstream myfile ("energy_plot_one_step.gpl" , std::ios::trunc);
 	double dt = all_parameters_new.ode_solver_param.initial_time_step;
 
 	for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
@@ -299,6 +381,7 @@ finalTime = 20.0;
         }
         else{//do OOA
             finalTime = 2.0;
+            finalTime = all_parameters_new.ode_solver_param.initial_time_step;
 	    ode_solver->advance_solution_time(finalTime);
 //#endif
 

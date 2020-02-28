@@ -43,6 +43,38 @@ double BurgersEnergyStability<dim, nstate>::compute_energy(std::shared_ptr < PHi
 	}
 	return energy;
 }
+template<int dim, int nstate>
+void BurgersEnergyStability<dim, nstate>::initialize(PHiLiP::DGBase<dim, double>  &dg) const
+{
+	pcout << "Implement initial conditions" << std::endl;
+	dealii::FunctionParser<dim> initial_condition;
+	std::string variables;
+        if (dim == 3)
+	    variables = "x,y,z";
+        if (dim == 2)
+	    variables = "x,y";
+        if (dim == 1)
+	    variables = "x";
+	//std::string variables = "x";
+	std::map<std::string,double> constants;
+	constants["pi"] = dealii::numbers::PI;
+	std::string expression;
+        if (dim == 3)
+	    expression = "sin(pi*(x))*sin(pi*y)*sin(pi*z) + 0.01";
+        if (dim == 2)
+	    expression = "sin(pi*(x))*sin(pi*y) + 0.01";
+        if(dim==1)
+	    expression = "sin(pi*(x)) + 0.01";
+	initial_condition.initialize(variables,
+	                             expression,
+	                             constants);
+//	dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
+        dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
+        solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
+	dealii::VectorTools::interpolate(dg.dof_handler,initial_condition,solution_no_ghost);
+        dg.solution = solution_no_ghost;
+
+}
 
 template <int dim, int nstate>
 int BurgersEnergyStability<dim, nstate>::run_test() const
@@ -53,14 +85,14 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
         PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
 	double left = 0.0;
 	double right = 2.0;
-//	const bool colorize = true;
-	const unsigned int n_grids = 7;
+	const unsigned int n_grids = 8;
         std::array<double,n_grids> grid_size;
         std::array<double,n_grids> soln_error;
-	unsigned int poly_degree = 4;
+	unsigned int poly_degree = 5;
         dealii::ConvergenceTable convergence_table;
-        const unsigned int igrid_start = 3;
+        const unsigned int igrid_start = 7;
 
+//        const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids_input);
         for(unsigned int igrid = igrid_start; igrid<n_grids; igrid++){
 
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
@@ -73,8 +105,9 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
 				this->mpi_communicator);
 #endif
 //straight
-	dealii::GridGenerator::hyper_cube(grid, left, right, colorize);
-//	dealii::GridGenerator::subdivided_hyper_cube(grid,(int) pow(2, igrid),left, right);
+    dealii::GridGenerator::hyper_cube(grid, left, right, true);
+   // dealii::GridGenerator::subdivided_hyper_cube(grid,static_cast<int>(pow(2, igrid)),left, right);
+      //  dealii::GridGenerator::subdivided_hyper_cube(grid_super_fine, n_1d_cells[n_grids_input-1]);
 //curvilinear
 #if 0
 const dealii::Point<dim> center1(-1,1);
@@ -108,6 +141,7 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
     all_parameters_new.ode_solver_param.initial_time_step =  0.005*delta_x;
   //  all_parameters_new.ode_solver_param.initial_time_step =  0.05*delta_x;
     all_parameters_new.ode_solver_param.initial_time_step =  0.0001;
+  //  all_parameters_new.ode_solver_param.initial_time_step =  0.00005;
  //   all_parameters_new.ode_solver_param.initial_time_step =  0.001;
    // all_parameters_new.ode_solver_param.initial_time_step =  0.00001;
   //  if(igrid ==6 )
@@ -116,10 +150,13 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
     
          
 //allocate dg
-	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, &grid);
+//	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, &grid);
+	std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, &grid);
 	pcout << "dg created" <<std::endl;
 	dg->allocate_system ();
 
+        initialize(*(dg));
+    #if 0
 	pcout << "Implement initial conditions" << std::endl;
 	dealii::FunctionParser<dim> initial_condition;
 	std::string variables;
@@ -142,9 +179,12 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 	initial_condition.initialize(variables,
 	                             expression,
 	                             constants);
-	dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
+//	dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
+	dealii::VectorTools::interpolate(*(dg).dof_handler,initial_condition,dg.solution);
+#endif
 	// Create ODE solver using the factory and providing the DG object
-	std::shared_ptr<PHiLiP::ODE::ODESolver<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+//	std::shared_ptr<PHiLiP::ODE::ODESolver<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+	std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
 	double finalTime = 3.0;
 
@@ -219,7 +259,7 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 
                 for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
-                    std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
+                    std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
                     for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
                         const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
                         soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
@@ -263,8 +303,8 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
                                       / log(grid_size[igrid]/grid_size[igrid-1]);
               //  const double slope_output_err = log(output_error[igrid]/output_error[igrid-1])
      //                                 / log(grid_size[igrid]/grid_size[igrid-1]);
-                pcout << "From grid " << igrid-1
-                     << "  to grid " << igrid
+                pcout << "From grid " << igrid
+                     << "  to grid " << igrid+1
                      << "  dimension: " << dim
                      << "  polynomial degree p: " << poly_degree
                      << std::endl
@@ -283,10 +323,10 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
              << " ********************************************"
              << std::endl;
         convergence_table.evaluate_convergence_rates("soln_L2_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        convergence_table.evaluate_convergence_rates("output_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+      //  convergence_table.evaluate_convergence_rates("output_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.set_scientific("dx", true);
         convergence_table.set_scientific("soln_L2_error", true);
-        convergence_table.set_scientific("output_error", true);
+     //   convergence_table.set_scientific("output_error", true);
         if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
 
 

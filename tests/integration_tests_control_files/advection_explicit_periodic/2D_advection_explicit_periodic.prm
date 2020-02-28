@@ -16,6 +16,8 @@ set use_periodic_bc = true
 
 set use_energy = false
 
+set use_skew_sym_deriv = true
+
 set use_jac_sol_points = false
 
 set flux_reconstruction = cPlus

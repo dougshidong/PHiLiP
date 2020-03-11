@@ -27,7 +27,7 @@ end
 subsection linear solver
 #set linear_solver_type = direct
   subsection gmres options
-    set linear_residual_tolerance = 1e-2
+    set linear_residual_tolerance = 1e-4
     set max_iterations = 2000
     set restart_number = 50
     set ilut_fill = 2
@@ -62,7 +62,7 @@ subsection manufactured solution convergence study
   set degree_start      = 1
 
   # Initial grid of size (initial_grid_size)^dim
-  set initial_grid_size = 4
+  set initial_grid_size = 5
 
   # Number of grids in grid study
   set number_of_grids   = 4

@@ -603,11 +603,17 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
             const dealii::Tensor<1,dim,ADADtype> normal = dealii::contract<1,0>(jacobian_transpose_inverse, unit_normal);
             const ADADtype area = normal.norm();
 
+            surface_jac_det[iquad] = normal.norm()*jac_det[iquad];
             // Technically the normals have jac_det multiplied.
             // However, we use normalized normals by convention, so the the term
             // ends up appearing in the surface jacobian.
             normals[iquad] = normal / normal.norm();
-            surface_jac_det[iquad] = normal.norm()*jac_det[iquad];
+
+            // Exact mapping
+            // real_quad_pts[iquad] = fe_values_boundary.quadrature_point(iquad);
+            // surface_jac_det[iquad] = fe_values_boundary.JxW(iquad) / face_quadrature.weight(iquad);
+            // normals[iquad] = fe_values_boundary.normal_vector(iquad);
+
         } else {
             real_quad_pts[iquad] = fe_values_boundary.quadrature_point(iquad);
             surface_jac_det[iquad] = fe_values_boundary.JxW(iquad) / face_quadrature.weight(iquad);
@@ -638,6 +644,12 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
                 for (int d=0;d<dim;++d) {
                     gradient_operator[d][idof][iquad] = phys_shape_grad[d];
                 }
+
+                // Exact mapping
+                // for (int d=0;d<dim;++d) {
+                //     const unsigned int istate = fe.system_to_component_index(idof).first;
+                //     gradient_operator[d][idof][iquad] = fe_values_boundary.shape_grad_component(idof, iquad, istate)[d];
+                // }
             } else {
                 for (int d=0;d<dim;++d) {
                     const unsigned int istate = fe.system_to_component_index(idof).first;
@@ -984,6 +996,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
 
             normal_normalized_int = normal_int / area_int;
             normal_normalized_ext = -normal_normalized_int;//normal_ext / area_ext; Must use opposite normal to be consistent with explicit
+
             surface_jac_det_int = area_int*jac_det_int;
             surface_jac_det_ext = area_ext*jac_det_ext;
 
@@ -1016,6 +1029,29 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
                     gradient_operator_ext[d][idof] = phys_shape_grad[d];
                 }
             }
+
+            // Exact mapping
+            // for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
+            //     interpolation_operator_int[idof] = fe_int.shape_value(idof,unit_quad_pts_int[iquad]);
+            // }
+            // for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
+            //     interpolation_operator_ext[idof] = fe_ext.shape_value(idof,unit_quad_pts_ext[iquad]);
+            // }
+            // for (int d=0;d<dim;++d) {
+            //     for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
+            //         const unsigned int istate = fe_int.system_to_component_index(idof).first;
+            //         gradient_operator_int[d][idof] = fe_values_int.shape_grad_component(idof, iquad, istate)[d];
+            //     }
+            //     for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
+            //         const unsigned int istate = fe_ext.system_to_component_index(idof).first;
+            //         gradient_operator_ext[d][idof] = fe_values_ext.shape_grad_component(idof, iquad, istate)[d];
+            //     }
+            // }
+            // normal_normalized_int = fe_values_int.normal_vector(iquad);
+            // normal_normalized_ext = -normal_normalized_int; // Must use opposite normal to be consistent with explicit
+            // surface_jac_det_int = fe_values_int.JxW(iquad)/face_quadrature_int.weight(iquad);
+            // surface_jac_det_ext = fe_values_ext.JxW(iquad)/face_quadrature_ext.weight(iquad);
+
         } else {
             for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
                 interpolation_operator_int[idof] = fe_int.shape_value(idof,unit_quad_pts_int[iquad]);
@@ -1414,6 +1450,9 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
 
             jac_det[iquad] = jacobian_determinant;
             jac_inv_tran[iquad] = jacobian_transpose_inverse;
+
+            // Exact mapping
+            // jac_det[iquad] = fe_values_vol.JxW(iquad) / quadrature.weight(iquad);
         } else {
             jac_det[iquad] = fe_values_vol.JxW(iquad) / quadrature.weight(iquad);
         }
@@ -1446,6 +1485,12 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
                 for (int d=0;d<dim;++d) {
                     gradient_operator[d][idof][iquad] = phys_shape_grad[d];
                 }
+
+                // Exact mapping
+                // for (int d=0;d<dim;++d) {
+                //     const unsigned int istate = fe.system_to_component_index(idof).first;
+                //     gradient_operator[d][idof][iquad] = fe_values_vol.shape_grad_component(idof, iquad, istate)[d];
+                // }
             } else {
                 for (int d=0;d<dim;++d) {
                     const unsigned int istate = fe.system_to_component_index(idof).first;

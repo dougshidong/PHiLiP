@@ -26,8 +26,11 @@
 #include <deal.II/meshworker/simple.h>
 #include <deal.II/meshworker/loop.h>
 
+#include <deal.II/fe/fe_dgq.h>
+
 //#include <deal.II/fe/mapping_q1.h> // Might need mapping_q
 #include <deal.II/fe/mapping_q.h> // Might need mapping_q
+#include <deal.II/fe/mapping_q_generic.h>
 #include <deal.II/fe/mapping_manifold.h> 
 #include <deal.II/fe/mapping_fe_field.h> 
 
@@ -174,7 +177,6 @@ std::tuple<
         dealii::hp::FECollection<dim> >   // Lagrange polynomials for strong form
 DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const
 {
-    //dealii::hp::MappingCollection<dim> mapping_coll;
     dealii::hp::FECollection<dim>      fe_coll;
     dealii::hp::QCollection<dim>       volume_quad_coll;
     dealii::hp::QCollection<dim-1>     face_quad_coll;
@@ -186,10 +188,6 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
     if (parameters_input->use_collocated_nodes==true)
     {
     	int degree = 1;
-		//const dealii::MappingQ<dim,dim> mapping(degree, true);
-		//const dealii::MappingQ<dim,dim> mapping(degree+1, true);
-		//const dealii::MappingManifold<dim,dim> mapping;
-		//mapping_coll.push_back(mapping);
 
 		const dealii::FE_DGQ<dim> fe_dg(degree);
 		const dealii::FESystem<dim,dim> fe_system(fe_dg, nstate);
@@ -243,13 +241,11 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
 
     int minimum_degree = (parameters_input->use_collocated_nodes==true) ?  1 :  0;
     for (unsigned int degree=minimum_degree; degree<=max_degree; ++degree) {
-        //const dealii::MappingQ<dim,dim> mapping(degree, true);
-        //const dealii::MappingQ<dim,dim> mapping(degree+1, true);
-        //const dealii::MappingManifold<dim,dim> mapping;
-        //mapping_coll.push_back(mapping);
 
         // Solution FECollection
         const dealii::FE_DGQ<dim> fe_dg(degree);
+        //const dealii::FE_DGQArbitraryNodes<dim,dim> fe_dg(dealii::QGauss<1>(degree+1));
+        //std::cout << degree << " fe_dg.tensor_degree " << fe_dg.tensor_degree() << " fe_dg.n_dofs_per_cell " << fe_dg.n_dofs_per_cell() << std::endl;
         const dealii::FESystem<dim,dim> fe_system(fe_dg, nstate);
         fe_coll.push_back (fe_system);
 
@@ -274,9 +270,10 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
                 face_quad = face_quad_Gauss_Lobatto;
             }
         } else {
-            dealii::QGauss<1> oned_quad_Gauss_Legendre (degree+1);
-            dealii::QGauss<dim> vol_quad_Gauss_Legendre (degree+1);
-            dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
+            const unsigned int overintegration = 0;
+            dealii::QGauss<1> oned_quad_Gauss_Legendre (degree+1+overintegration);
+            dealii::QGauss<dim> vol_quad_Gauss_Legendre (degree+1+overintegration);
+            dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1+overintegration);
             oned_quad = oned_quad_Gauss_Legendre;
             volume_quad = vol_quad_Gauss_Legendre;
             face_quad = face_quad_Gauss_Legendre;
@@ -884,10 +881,10 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
         d2RdXdX = 0;
     }
 
-    //dealii::hp::MappingCollection<dim> mapping_collection(*(high_order_grid.mapping_fe_field));
     //const dealii::MappingManifold<dim,dim> mapping;
-    //const dealii::MappingQ<dim,dim> mapping(max_degree+1);
-
+    //const dealii::MappingQ<dim,dim> mapping(10);//;max_degree+1);
+    //const dealii::MappingQ<dim,dim> mapping(high_order_grid.max_degree);
+    //const dealii::MappingQGeneric<dim,dim> mapping(high_order_grid.max_degree);
     const auto mapping = (*(high_order_grid.mapping_fe_field));
 
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
@@ -1150,10 +1147,13 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
     //}
     //pcout << "AFter reinit" << std::endl;
 
-    //dealii::hp::MappingCollection<dim> mapping_collection(*(high_order_grid.mapping_fe_field));
     //const dealii::MappingManifold<dim,dim> mapping;
     //const dealii::MappingQ<dim,dim> mapping(max_degree+1);
+    //const dealii::MappingQ<dim,dim> mapping(high_order_grid.max_degree);
+    // std::cout << "Grid degree: " << high_order_grid.max_degree << std::endl;
+    //const dealii::MappingQGeneric<dim,dim> mapping(high_order_grid.max_degree);
     const auto mapping = (*(high_order_grid.mapping_fe_field));
+
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
     dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.

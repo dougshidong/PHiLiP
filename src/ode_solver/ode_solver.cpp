@@ -64,7 +64,6 @@ int ODESolver<dim,real>::steady_state ()
     pcout << " Performing steady state analysis... " << std::endl;
     allocate_ode_system ();
 
-    this->residual_norm = 1;
     this->residual_norm_decrease = 1; // Always do at least 1 iteration
     update_norm = 1; // Always do at least 1 iteration
     this->current_iteration = 0;
@@ -72,8 +71,8 @@ int ODESolver<dim,real>::steady_state ()
 
     pcout << " Evaluating right-hand side and setting system_matrix to Jacobian before starting iterations... " << std::endl;
     this->dg->assemble_residual ();
-    this->residual_norm = initial_residual_norm;
     initial_residual_norm = this->dg->get_residual_l2norm();
+    this->residual_norm = initial_residual_norm;
     pcout << " ********************************************************** "
           << std::endl
           << " Initial absolute residual norm: " << this->residual_norm

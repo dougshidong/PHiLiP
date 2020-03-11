@@ -49,27 +49,32 @@ void gaussian_bump(
     grid.reset_all_manifolds();
     grid.set_all_manifold_ids(manifold_id);
     grid.set_manifold ( manifold_id, bump_manifold );
+   
+    // // Set Flat manifold on the domain, but not on the boundary.
+    // grid.set_manifold(0, dealii::FlatManifold<2>());
+    // grid.set_all_manifold_ids_on_boundary(1001,1);
+    // grid.set_manifold(1, bump_manifold);
 }
 
-dealii::Point<2> BumpManifold::warp (const dealii::Point<2> &p)
-{
-    const double x_ref = p[0];
-    const double y_ref = p[1];
-
-    // Re-scale the y-axis to have exponential spacing.
-    const double coeff2 = 1.25; // Increase for more aggressive INITIAL exponential spacing.
-    const double x_scaled = x_ref; // [-channel_length/2,channel_length/2]
-    const double y_scaled = y_height*(exp(std::pow(y_ref,coeff2))-1.0)/(exp(std::pow(y_height,coeff2))-1.0); // [0,y_height]
-
-    dealii::Point<2> new_point = p;
-    new_point[0] = x_scaled;
-    //new_point[1] = y_height*y_scaled + bump_height*exp(coeff_expy*y_scaled*y_scaled)*exp(coeff_expx*new_point[0]*new_point[0]) * (1.0+0.7*new_point[0]);
-    //new_point[1] = y_height*y_scaled + bump_height*exp(coeff_expy*y_scaled*y_scaled)*exp(coeff_expx*new_point[0]*new_point[0]) * (1.0+0.7*new_point[0]);
-    const double y_lower = bump_height*exp(coeff_expx*new_point[0]*new_point[0]);
-    const double perturbation = y_lower * exp(coeff_expy*y_scaled*y_scaled);
-    new_point[1] = y_scaled + perturbation;
-    return new_point;
-}
+//dealii::Point<2> BumpManifold::warp (const dealii::Point<2> &p)
+//{
+//    const double x_ref = p[0];
+//    const double y_ref = p[1];
+//
+//    // Re-scale the y-axis to have exponential spacing.
+//    const double coeff2 = 1.25; // Increase for more aggressive INITIAL exponential spacing.
+//    const double x_scaled = x_ref; // [-channel_length/2,channel_length/2]
+//    const double y_scaled = y_height*(exp(std::pow(y_ref,coeff2))-1.0)/(exp(std::pow(y_height,coeff2))-1.0); // [0,y_height]
+//
+//    dealii::Point<2> new_point = p;
+//    new_point[0] = x_scaled;
+//    //new_point[1] = y_height*y_scaled + bump_height*exp(coeff_expy*y_scaled*y_scaled)*exp(coeff_expx*new_point[0]*new_point[0]) * (1.0+0.7*new_point[0]);
+//    //new_point[1] = y_height*y_scaled + bump_height*exp(coeff_expy*y_scaled*y_scaled)*exp(coeff_expx*new_point[0]*new_point[0]) * (1.0+0.7*new_point[0]);
+//    const double y_lower = bump_height*exp(coeff_expx*new_point[0]*new_point[0]);
+//    const double perturbation = y_lower * exp(coeff_expy*y_scaled*y_scaled);
+//    new_point[1] = y_scaled + perturbation;
+//    return new_point;
+//}
 
 template<typename real>
 dealii::Point<2,real> BumpManifold::mapping(const dealii::Point<2,real> &chart_point) const 
@@ -80,7 +85,7 @@ dealii::Point<2,real> BumpManifold::mapping(const dealii::Point<2,real> &chart_p
 
     //const real y_phys = y_height*y_ref + exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys) * (1.0+0.7*x_phys);
 
-    const double coeff2 = 1.25; // Increase for more aggressive INITIAL exponential spacing.
+    //const double coeff2 = 1.25; // Increase for more aggressive INITIAL exponential spacing.
     real y_scaled = y_height;
     y_scaled *= (exp(y_ref)-1.0);
     y_scaled /= (exp(y_height)-1.0); // [0,y_height]

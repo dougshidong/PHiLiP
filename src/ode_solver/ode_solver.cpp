@@ -72,7 +72,12 @@ int ODESolver<dim,real>::steady_state ()
 
     pcout << " Evaluating right-hand side and setting system_matrix to Jacobian before starting iterations... " << std::endl;
     this->dg->assemble_residual ();
+    this->residual_norm = initial_residual_norm;
     initial_residual_norm = this->dg->get_residual_l2norm();
+    pcout << " ********************************************************** "
+          << std::endl
+          << " Initial absolute residual norm: " << this->residual_norm
+          << std::endl;
 
     CFL = all_parameters->ode_solver_param.initial_time_step;
 
@@ -93,7 +98,7 @@ int ODESolver<dim,real>::steady_state ()
         pcout << " ********************************************************** "
                   << std::endl
                   << " Nonlinear iteration: " << this->current_iteration
-                  << " residual norm: " << this->residual_norm / this->initial_residual_norm
+                  << " Normalized residual norm: " << this->residual_norm / this->initial_residual_norm
                   << std::endl;
 
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&

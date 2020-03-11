@@ -2,6 +2,7 @@
 
 // For metric Jacobian testing
 #include <deal.II/fe/mapping_q.h>
+#include <deal.II/fe/mapping_q_generic.h>
 #include <deal.II/fe/fe_dgq.h>
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/dofs/dof_handler.h>
@@ -149,7 +150,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>
   
     const dealii::Quadrature<dim> quad(fe.get_unit_support_points());
   
-    dealii::MappingQ<dim, dim> map_q(fe.degree);
+    dealii::MappingQGeneric<dim, dim> map_q(fe.degree);
     dealii::FEValues<dim, dim> fe_v(map_q, fe, quad, dealii::update_quadrature_points);
     std::vector<dealii::types::global_dof_index> dofs(fe.dofs_per_cell);
   

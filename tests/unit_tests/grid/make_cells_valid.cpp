@@ -13,7 +13,7 @@
 
 #include <deal.II/fe/mapping_fe_field.h> 
 
-#include "dg/high_order_grid.h"
+#include "mesh/high_order_grid.h"
 #include "parameters/all_parameters.h"
 
 dealii::Point<2> center(0.0,0.0);

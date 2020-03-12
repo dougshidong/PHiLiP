@@ -3,7 +3,7 @@
 
 #include "parameters/all_parameters.h"
 
-#include "dg/high_order_grid.h"
+#include "high_order_grid.h"
 
 namespace PHiLiP {
 

@@ -13,11 +13,9 @@
 
 #include <deal.II/dofs/dof_tools.h>
 
-//#include "dg/high_order_grid.h"
 #include "physics/physics.h"
 #include "physics/physics_factory.h"
 #include "dg/dg.h"
-#include "dg/high_order_grid.h"
 #include "functional.h"
 
 namespace PHiLiP {
@@ -49,6 +47,121 @@ Functional<dim,nstate,real>::Functional(
 { }
 
 template <int dim, int nstate, typename real>
+void Functional<dim,nstate,real>::allocate_dIdX(dealii::LinearAlgebra::distributed::Vector<real> &dIdX) const
+{
+    // allocating the vector
+    dealii::IndexSet locally_owned_dofs = dg->high_order_grid.dof_handler_grid.locally_owned_dofs();
+    dealii::IndexSet locally_relevant_dofs, ghost_dofs;
+    dealii::DoFTools::extract_locally_relevant_dofs(dg->high_order_grid.dof_handler_grid, locally_relevant_dofs);
+    ghost_dofs = locally_relevant_dofs;
+    ghost_dofs.subtract_set(locally_owned_dofs);
+    dIdX.reinit(locally_owned_dofs, ghost_dofs, MPI_COMM_WORLD);
+}
+
+template <int dim, int nstate, typename real>
+void Functional<dim,nstate,real>::allocate_derivatives(const bool compute_dIdW, const bool compute_dIdX, const bool compute_d2I)
+{
+    if (compute_dIdW) {
+        // allocating the vector
+        dealii::IndexSet locally_owned_dofs = dg->dof_handler.locally_owned_dofs();
+        dIdw.reinit(locally_owned_dofs, MPI_COMM_WORLD);
+    }
+    if (compute_dIdX) {
+        allocate_dIdX(dIdX);
+    }
+    if (compute_d2I) {
+        {
+            dealii::SparsityPattern sparsity_pattern_d2IdWdX = dg->get_d2RdWdX_sparsity_pattern ();
+            const dealii::IndexSet &row_parallel_partitioning_d2IdWdX = dg->locally_owned_dofs;
+            const dealii::IndexSet &col_parallel_partitioning_d2IdWdX = dg->high_order_grid.locally_owned_dofs_grid;
+            d2IdWdX.reinit(row_parallel_partitioning_d2IdWdX, col_parallel_partitioning_d2IdWdX, sparsity_pattern_d2IdWdX, MPI_COMM_WORLD);
+        }
+
+        {
+            dealii::SparsityPattern sparsity_pattern_d2IdWdW = dg->get_d2RdWdW_sparsity_pattern ();
+            const dealii::IndexSet &row_parallel_partitioning_d2IdWdW = dg->locally_owned_dofs;
+            const dealii::IndexSet &col_parallel_partitioning_d2IdWdW = dg->locally_owned_dofs;
+            d2IdWdW.reinit(row_parallel_partitioning_d2IdWdW, col_parallel_partitioning_d2IdWdW, sparsity_pattern_d2IdWdW, MPI_COMM_WORLD);
+        }
+
+        {
+            dealii::SparsityPattern sparsity_pattern_d2IdXdX = dg->get_d2RdXdX_sparsity_pattern ();
+            const dealii::IndexSet &row_parallel_partitioning_d2IdXdX = dg->high_order_grid.locally_owned_dofs_grid;
+            const dealii::IndexSet &col_parallel_partitioning_d2IdXdX = dg->high_order_grid.locally_owned_dofs_grid;
+            d2IdXdX.reinit(row_parallel_partitioning_d2IdXdX, col_parallel_partitioning_d2IdXdX, sparsity_pattern_d2IdXdX, MPI_COMM_WORLD);
+        }
+    }
+}
+
+
+template <int dim, int nstate, typename real>
+void Functional<dim,nstate,real>::set_derivatives(
+    const bool compute_dIdW, const bool compute_dIdX, const bool compute_d2I,
+    const Sacado::Fad::DFad<Sacado::Fad::DFad<real>> volume_local_sum,
+    std::vector<dealii::types::global_dof_index> cell_soln_dofs_indices,
+    std::vector<dealii::types::global_dof_index> cell_metric_dofs_indices)
+{
+    using ADtype = Sacado::Fad::DFad<real>;
+
+    const unsigned int n_total_indep = volume_local_sum.size();
+    (void) n_total_indep; // Not used apart from assert.
+    const unsigned int n_soln_dofs_cell = cell_soln_dofs_indices.size();
+    const unsigned int n_metric_dofs_cell = cell_metric_dofs_indices.size();
+    unsigned int i_derivative = 0;
+
+    if (compute_dIdW) {
+        std::vector<real> local_dIdw(n_soln_dofs_cell);
+        for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof){
+            local_dIdw[idof] = volume_local_sum.dx(i_derivative++).val();
+        }
+        dIdw.add(cell_soln_dofs_indices, local_dIdw);
+    }
+    if (compute_dIdX) {
+        std::vector<real> local_dIdX(n_metric_dofs_cell);
+        for(unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof){
+            local_dIdX[idof] = volume_local_sum.dx(i_derivative++).val();
+        }
+        dIdX.add(cell_metric_dofs_indices, local_dIdX);
+    }
+    if (compute_dIdW || compute_dIdX) AssertDimension(i_derivative, n_total_indep);
+    if (compute_d2I) {
+        std::vector<real> dWidW(n_soln_dofs_cell);
+        std::vector<real> dWidX(n_metric_dofs_cell);
+        std::vector<real> dXidX(n_metric_dofs_cell);
+
+
+        i_derivative = 0;
+        for (unsigned int idof=0; idof<n_soln_dofs_cell; ++idof) {
+
+            unsigned int j_derivative = 0;
+            const ADtype dWi = volume_local_sum.dx(i_derivative++);
+
+            for (unsigned int jdof=0; jdof<n_soln_dofs_cell; ++jdof) {
+                dWidW[jdof] = dWi.dx(j_derivative++);
+            }
+            d2IdWdW.add(cell_soln_dofs_indices[idof], cell_soln_dofs_indices, dWidW);
+
+            for (unsigned int jdof=0; jdof<n_metric_dofs_cell; ++jdof) {
+                dWidX[jdof] = dWi.dx(j_derivative++);
+            }
+            d2IdWdX.add(cell_soln_dofs_indices[idof], cell_metric_dofs_indices, dWidX);
+        }
+
+        for (unsigned int idof=0; idof<n_metric_dofs_cell; ++idof) {
+
+            const ADtype dXi = volume_local_sum.dx(i_derivative++);
+
+            unsigned int j_derivative = n_soln_dofs_cell;
+            for (unsigned int jdof=0; jdof<n_metric_dofs_cell; ++jdof) {
+                dXidX[jdof] = dXi.dx(j_derivative++);
+            }
+            d2IdXdX.add(cell_metric_dofs_indices[idof], cell_metric_dofs_indices, dXidX);
+        }
+    }
+    AssertDimension(i_derivative, n_total_indep);
+}
+
+template <int dim, int nstate, typename real>
 template <typename real2>
 real2 Functional<dim, nstate, real>::evaluate_volume_cell_functional(
     const Physics::PhysicsBase<dim,nstate,real2> &physics,
@@ -56,7 +169,7 @@ real2 Functional<dim, nstate, real>::evaluate_volume_cell_functional(
     const dealii::FESystem<dim> &fe_solution,
     const std::vector< real2 > &coords_coeff,
     const dealii::FESystem<dim> &fe_metric,
-    const dealii::Quadrature<dim> &volume_quadrature)
+    const dealii::Quadrature<dim> &volume_quadrature) const
 {
     const unsigned int n_vol_quad_pts = volume_quadrature.size();
     const unsigned int n_soln_dofs_cell = soln_coeff.size();
@@ -116,7 +229,7 @@ real Functional<dim, nstate, real>::evaluate_volume_cell_functional(
     const dealii::FESystem<dim> &fe_solution,
     const std::vector< real > &coords_coeff,
     const dealii::FESystem<dim> &fe_metric,
-    const dealii::Quadrature<dim> &volume_quadrature)
+    const dealii::Quadrature<dim> &volume_quadrature) const
 {
     return evaluate_volume_cell_functional<real>(physics, soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 }
@@ -128,7 +241,7 @@ Sacado::Fad::DFad<Sacado::Fad::DFad<real>> Functional<dim, nstate, real>::evalua
     const dealii::FESystem<dim> &fe_solution,
     const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &coords_coeff,
     const dealii::FESystem<dim> &fe_metric,
-    const dealii::Quadrature<dim> &volume_quadrature)
+    const dealii::Quadrature<dim> &volume_quadrature) const
 {
     return evaluate_volume_cell_functional<Sacado::Fad::DFad<Sacado::Fad::DFad<real>>>(physics_fad_fad, soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 }
@@ -162,42 +275,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
 
     dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg->fe_collection, dg->face_quadrature_collection,   this->face_update_flags);
 
-    if (compute_dIdW) {
-        // allocating the vector
-        dealii::IndexSet locally_owned_dofs = dg->dof_handler.locally_owned_dofs();
-        dIdw.reinit(locally_owned_dofs, MPI_COMM_WORLD);
-    }
-    if (compute_dIdX) {
-        // allocating the vector
-        dealii::IndexSet locally_owned_dofs = dg->high_order_grid.dof_handler_grid.locally_owned_dofs();
-        dealii::IndexSet locally_relevant_dofs, ghost_dofs;
-        dealii::DoFTools::extract_locally_relevant_dofs(dg->high_order_grid.dof_handler_grid, locally_relevant_dofs);
-        ghost_dofs = locally_relevant_dofs;
-        ghost_dofs.subtract_set(locally_owned_dofs);
-        dIdX.reinit(locally_owned_dofs, ghost_dofs, MPI_COMM_WORLD);
-    }
-    if (compute_d2I) {
-        {
-            dealii::SparsityPattern sparsity_pattern_d2IdWdX = dg->get_d2RdWdX_sparsity_pattern ();
-            const dealii::IndexSet &row_parallel_partitioning_d2IdWdX = dg->locally_owned_dofs;
-            const dealii::IndexSet &col_parallel_partitioning_d2IdWdX = dg->high_order_grid.locally_owned_dofs_grid;
-            d2IdWdX.reinit(row_parallel_partitioning_d2IdWdX, col_parallel_partitioning_d2IdWdX, sparsity_pattern_d2IdWdX, MPI_COMM_WORLD);
-        }
-
-        {
-            dealii::SparsityPattern sparsity_pattern_d2IdWdW = dg->get_d2RdWdW_sparsity_pattern ();
-            const dealii::IndexSet &row_parallel_partitioning_d2IdWdW = dg->locally_owned_dofs;
-            const dealii::IndexSet &col_parallel_partitioning_d2IdWdW = dg->locally_owned_dofs;
-            d2IdWdW.reinit(row_parallel_partitioning_d2IdWdW, col_parallel_partitioning_d2IdWdW, sparsity_pattern_d2IdWdW, MPI_COMM_WORLD);
-        }
-
-        {
-            dealii::SparsityPattern sparsity_pattern_d2IdXdX = dg->get_d2RdXdX_sparsity_pattern ();
-            const dealii::IndexSet &row_parallel_partitioning_d2IdXdX = dg->high_order_grid.locally_owned_dofs_grid;
-            const dealii::IndexSet &col_parallel_partitioning_d2IdXdX = dg->high_order_grid.locally_owned_dofs_grid;
-            d2IdXdX.reinit(row_parallel_partitioning_d2IdXdX, col_parallel_partitioning_d2IdXdX, sparsity_pattern_d2IdXdX, MPI_COMM_WORLD);
-        }
-    }
+    allocate_derivatives(compute_dIdW, compute_dIdX, compute_d2I);
 
     dg->solution.update_ghost_values();
     auto metric_cell = dg->high_order_grid.dof_handler_grid.begin_active();
@@ -477,14 +555,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
 
     // vector for storing the derivatives with respect to each DOF
     dealii::LinearAlgebra::distributed::Vector<real> dIdX_FD;
-
-    // allocating the vector
-    dealii::IndexSet locally_owned_dofs = dg.high_order_grid.dof_handler_grid.locally_owned_dofs();
-    dealii::IndexSet locally_relevant_dofs, ghost_dofs;
-    dealii::DoFTools::extract_locally_relevant_dofs(dg.high_order_grid.dof_handler_grid, locally_relevant_dofs);
-    ghost_dofs = locally_relevant_dofs;
-    ghost_dofs.subtract_set(locally_owned_dofs);
-    dIdX_FD.reinit(locally_owned_dofs, ghost_dofs, MPI_COMM_WORLD);
+    allocate_dIdX(dIdX_FD);
 
     // setup it mostly the same as evaluating the value (with exception that local solution is also AD)
     const unsigned int max_dofs_per_cell = dg.dof_handler.get_fe_collection().max_dofs_per_cell();

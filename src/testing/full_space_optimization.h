@@ -1,7 +1,7 @@
 #ifndef __FULL_SPACE_OPTIMIZATION_H__
 #define __FULL_SPACE_OPTIMIZATION_H__
 
-#include "dg/meshmover_linear_elasticity.hpp"
+#include "mesh/meshmover_linear_elasticity.hpp"
 
 #define HESSIAN_DIAG 1e0
 namespace PHiLiP {

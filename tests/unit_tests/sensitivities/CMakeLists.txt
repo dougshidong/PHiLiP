@@ -258,9 +258,11 @@ foreach(dim RANGE 1 2)
 
     # Library dependency
     set(ParametersLib ParametersLibrary)
+    set(GridsLib Grids)
     string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
     target_link_libraries(${TEST_TARGET} ${ParametersLib})
     target_link_libraries(${TEST_TARGET} ${DiscontinuousGalerkinLib})
+    target_link_libraries(${TEST_TARGET} ${GridsLib})
     # Setup target with deal.II
     if(NOT DOC_ONLY)
         DEAL_II_SETUP_TARGET(${TEST_TARGET})
@@ -280,6 +282,7 @@ foreach(dim RANGE 1 2)
 
     unset(TEST_TARGET)
     unset(ParametersLib)
+    unset(GridsLib)
 
 endforeach()
 
@@ -438,9 +441,9 @@ foreach(dim RANGE 1 2)
 
     # Library dependency
     set(ParametersLib ParametersLibrary)
-    string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
+    string(CONCAT HighOrderGridLib HighOrderGrid_${dim}D)
     target_link_libraries(${TEST_TARGET} ${ParametersLib})
-    target_link_libraries(${TEST_TARGET} ${DiscontinuousGalerkinLib})
+    target_link_libraries(${TEST_TARGET} ${HighOrderGridLib})
     # Setup target with deal.II
     if(NOT DOC_ONLY)
         DEAL_II_SETUP_TARGET(${TEST_TARGET})
@@ -459,7 +462,7 @@ foreach(dim RANGE 1 2)
 
     unset(TEST_TARGET)
     unset(ParametersLib)
-    unset(DiscontinuousGalerkinLib)
+    unset(HighOrderGridLib)
 
 endforeach()
 

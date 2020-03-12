@@ -20,102 +20,101 @@ const double TOLERANCE = 1e-6;
 template <int dim, int nstate, typename real>
 class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
 {
-	public:
-        /// Constructor
-        L2_Norm_Functional(
-            std::shared_ptr<PHiLiP::DGBase<dim,real>> dg_input,
-            const bool uses_solution_values = true,
-            const bool uses_solution_gradient = false)
-        : PHiLiP::Functional<dim,nstate,real>(dg_input,uses_solution_values,uses_solution_gradient)
-        {}
+    using ADType = Sacado::Fad::DFad<double>; ///< Sacado AD type for first derivatives.
+    using ADADType = Sacado::Fad::DFad<ADType>; ///< Sacado AD type that allows 2nd derivatives.
 
-        /// Templated volume integrand.
-        template <typename real2>
-		real2 evaluate_volume_integrand(
-            const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
-            const dealii::Point<dim,real2> &phys_coord,
-            const std::array<real2,nstate> &soln_at_q,
-            const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/)
-		{
-			real2 l2error = 0;
-			
-			for (int istate=0; istate<nstate; ++istate) {
-				const real2 uexact = physics.manufactured_solution_function->value(phys_coord, istate);
-				l2error += std::pow(soln_at_q[istate] - uexact, 2);
-			}
+public:
+    /// Constructor
+    L2_Norm_Functional(
+        std::shared_ptr<PHiLiP::DGBase<dim,real>> dg_input,
+        const bool uses_solution_values = true,
+        const bool uses_solution_gradient = false)
+    : PHiLiP::Functional<dim,nstate,real>(dg_input,uses_solution_values,uses_solution_gradient)
+    {}
 
-			return l2error;
-		}
+    /// Templated volume integrand.
+    template <typename real2>
+    real2 evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+        const dealii::Point<dim,real2> &phys_coord,
+        const std::array<real2,nstate> &soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
+    {
+        real2 l2error = 0;
+        
+        for (int istate=0; istate<nstate; ++istate) {
+            const real2 uexact = physics.manufactured_solution_function->value(phys_coord, istate);
+            l2error += std::pow(soln_at_q[istate] - uexact, 2);
+        }
 
-        /** Templated function to evaluate the cell boundary functional.
-         *  This is simply integrates the solution on the boundary.
-         */
-        template <typename real2>
-        real2 evaluate_cell_boundary(
-            const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
-            const unsigned int /*boundary_id*/,
-            const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
-            std::vector<real2> local_solution)
-        {
-            real2 boundary_integral = 0;
-            const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
-            const unsigned int n_quad = fe_values_boundary.n_quadrature_points;
-            std::array<real2,nstate> soln_at_q;
-            for (unsigned int iquad=0;iquad<n_quad;++iquad) {
-                soln_at_q.fill(0.0);
-                for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
-                    const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
-                    soln_at_q[istate]      += local_solution[idof] * fe_values_boundary.shape_value_component(idof, iquad, istate);
-                }
-                for (int s=0;s<nstate;++s) {
-                    boundary_integral += soln_at_q[s] * fe_values_boundary.JxW(iquad);
-                }
+        return l2error;
+    }
+
+    /** Templated function to evaluate the cell boundary functional.
+     *  This is simply integrates the solution on the boundary.
+     */
+    template <typename real2>
+    real2 evaluate_cell_boundary(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
+        const unsigned int /*boundary_id*/,
+        const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
+        const std::vector<real2> &local_solution) const
+    {
+        real2 boundary_integral = 0;
+        const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
+        const unsigned int n_quad = fe_values_boundary.n_quadrature_points;
+        std::array<real2,nstate> soln_at_q;
+        for (unsigned int iquad=0;iquad<n_quad;++iquad) {
+            soln_at_q.fill(0.0);
+            for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+                const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
+                soln_at_q[istate]      += local_solution[idof] * fe_values_boundary.shape_value_component(idof, iquad, istate);
             }
-            return boundary_integral;
+            for (int s=0;s<nstate;++s) {
+                boundary_integral += soln_at_q[s] * fe_values_boundary.JxW(iquad);
+            }
         }
+        return boundary_integral;
+    }
 
-        using ADType = Sacado::Fad::DFad<double>; ///< Sacado AD type for first derivatives.
-        using ADADType = Sacado::Fad::DFad<ADType>; ///< Sacado AD type that allows 2nd derivatives.
+    /// Non-template functions to override the template classes
+    real evaluate_cell_boundary(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+        const unsigned int boundary_id,
+        const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
+        const std::vector<real> &local_solution) const override
+    {
+        return evaluate_cell_boundary<>(physics, boundary_id, fe_values_boundary, local_solution);
+    }
 
-    	/// Non-template functions to override the template classes
-        real evaluate_cell_boundary(
-            const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
-            const unsigned int boundary_id,
-            const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
-            std::vector<real> local_solution) override
-        {
-            return evaluate_cell_boundary<>(physics, boundary_id, fe_values_boundary, local_solution);
-        }
+    /// Non-template functions to override the template classes
+    ADADType evaluate_cell_boundary(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADType> &physics,
+        const unsigned int boundary_id,
+        const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
+        const std::vector<ADADType> &local_solution) const override
+    {
+        return evaluate_cell_boundary<>(physics, boundary_id, fe_values_boundary, local_solution);
+    }
 
-
-    	/// Non-template functions to override the template classes
-        ADADType evaluate_cell_boundary(
-            const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADType> &physics,
-            const unsigned int boundary_id,
-            const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
-            std::vector<ADADType> local_solution) override
-        {
-            return evaluate_cell_boundary<>(physics, boundary_id, fe_values_boundary, local_solution);
-        }
-
-    	/// Non-template functions to override the template classes
-		real evaluate_volume_integrand(
-            const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
-            const dealii::Point<dim,real> &phys_coord,
-            const std::array<real,nstate> &soln_at_q,
-            const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) override
-		{
-			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
-		}
-    	/// Non-template functions to override the template classes
-		ADADType evaluate_volume_integrand(
-            const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADType> &physics,
-            const dealii::Point<dim,ADADType> &phys_coord,
-            const std::array<ADADType,nstate> &soln_at_q,
-            const std::array<dealii::Tensor<1,dim,ADADType>,nstate> &soln_grad_at_q) override
-		{
-			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
-		}
+    /// Non-template functions to override the template classes
+    real evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+        const dealii::Point<dim,real> &phys_coord,
+        const std::array<real,nstate> &soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override
+    {
+        return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
+    }
+    /// Non-template functions to override the template classes
+    ADADType evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADType> &physics,
+        const dealii::Point<dim,ADADType> &phys_coord,
+        const std::array<ADADType,nstate> &soln_at_q,
+        const std::array<dealii::Tensor<1,dim,ADADType>,nstate> &soln_grad_at_q) const override
+    {
+        return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
+    }
 
 };
 

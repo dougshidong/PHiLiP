@@ -508,6 +508,8 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
     using ADArray = std::array<ADADtype,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADADtype>, nstate >;
 
+    const bool compute_metric_derivatives = (!compute_dRdX && !compute_d2R) ? false : true;
+
     const unsigned int n_soln_dofs = fe_values_boundary.dofs_per_cell;
     const unsigned int n_quad_pts = fe_values_boundary.n_quadrature_points;
 
@@ -585,34 +587,39 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
 
     const dealii::Tensor<1,dim,ADADtype> unit_normal = dealii::GeometryInfo<dim>::unit_normal_vector[face_number];
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        for (int d=0;d<dim;++d) { real_quad_pts[iquad][d] = 0;}
-        for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-            const int iaxis = fe_metric.system_to_component_index(idof).first;
-            real_quad_pts[iquad][iaxis] += coords_coeff[idof] * fe_metric.shape_value(idof,unit_quad_pts[iquad]);
+        if (compute_metric_derivatives) {
+            for (int d=0;d<dim;++d) { real_quad_pts[iquad][d] = 0;}
+            for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+                const int iaxis = fe_metric.system_to_component_index(idof).first;
+                real_quad_pts[iquad][iaxis] += coords_coeff[idof] * fe_metric.shape_value(idof,unit_quad_pts[iquad]);
+            }
+
+            const ADADtype jacobian_determinant = dealii::determinant(metric_jacobian[iquad]);
+            const dealii::Tensor<2,dim,ADADtype> jacobian_transpose_inverse = dealii::transpose(dealii::invert(metric_jacobian[iquad]));
+
+            jac_det[iquad] = jacobian_determinant;
+            jac_inv_tran[iquad] = jacobian_transpose_inverse;
+
+            const dealii::Tensor<1,dim,ADADtype> normal = dealii::contract<1,0>(jacobian_transpose_inverse, unit_normal);
+            const ADADtype area = normal.norm();
+
+            surface_jac_det[iquad] = normal.norm()*jac_det[iquad];
+            // Technically the normals have jac_det multiplied.
+            // However, we use normalized normals by convention, so the the term
+            // ends up appearing in the surface jacobian.
+            normals[iquad] = normal / normal.norm();
+
+            // Exact mapping
+            // real_quad_pts[iquad] = fe_values_boundary.quadrature_point(iquad);
+            // surface_jac_det[iquad] = fe_values_boundary.JxW(iquad) / face_quadrature.weight(iquad);
+            // normals[iquad] = fe_values_boundary.normal_vector(iquad);
+
+        } else {
+            real_quad_pts[iquad] = fe_values_boundary.quadrature_point(iquad);
+            surface_jac_det[iquad] = fe_values_boundary.JxW(iquad) / face_quadrature.weight(iquad);
+            normals[iquad] = fe_values_boundary.normal_vector(iquad);
         }
 
-        const ADADtype jacobian_determinant = dealii::determinant(metric_jacobian[iquad]);
-        const dealii::Tensor<2,dim,ADADtype> jacobian_transpose_inverse = dealii::transpose(dealii::invert(metric_jacobian[iquad]));
-
-
-        jac_det[iquad] = jacobian_determinant;
-        jac_inv_tran[iquad] = jacobian_transpose_inverse;
-
-        const dealii::Tensor<1,dim,ADADtype> normal = dealii::contract<1,0>(jacobian_transpose_inverse, unit_normal);
-        const ADADtype area = normal.norm();
-
-        // Technically the normals have jac_det multiplied.
-        // However, we use normalized normals by convention, so the the term
-        // ends up appearing in the surface jacobian.
-        normals[iquad] = normal / normal.norm();
-        surface_jac_det[iquad] = normal.norm()*jac_det[iquad];
-
-        //std::cout << "my JxW/J" << surface_jac_det[iquad].val().val() << std::endl;
-        //std::cout << "my normals again ";
-        //for (int d=0;d<dim;++d) {
-        //    std::cout << normals[iquad][d].val().val() << " ";
-        //}
-        //std::cout << std::endl;
     }
 
     std::vector<ADArray> conv_num_flux_dot_n(n_quad_pts);
@@ -632,9 +639,22 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
     }
     for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-            const dealii::Tensor<1,dim,ADADtype> phys_shape_grad = dealii::contract<1,0>(jac_inv_tran[iquad], fe.shape_grad(idof,unit_quad_pts[iquad]));
-            for (int d=0;d<dim;++d) {
-                gradient_operator[d][idof][iquad] = phys_shape_grad[d];
+            if (compute_metric_derivatives) {
+                const dealii::Tensor<1,dim,ADADtype> phys_shape_grad = dealii::contract<1,0>(jac_inv_tran[iquad], fe.shape_grad(idof,unit_quad_pts[iquad]));
+                for (int d=0;d<dim;++d) {
+                    gradient_operator[d][idof][iquad] = phys_shape_grad[d];
+                }
+
+                // Exact mapping
+                // for (int d=0;d<dim;++d) {
+                //     const unsigned int istate = fe.system_to_component_index(idof).first;
+                //     gradient_operator[d][idof][iquad] = fe_values_boundary.shape_grad_component(idof, iquad, istate)[d];
+                // }
+            } else {
+                for (int d=0;d<dim;++d) {
+                    const unsigned int istate = fe.system_to_component_index(idof).first;
+                    gradient_operator[d][idof][iquad] = fe_values_boundary.shape_grad_component(idof, iquad, istate)[d];
+                }
             }
         }
     }
@@ -807,6 +827,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
     using ADArray = std::array<ADADtype,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADADtype>, nstate >;
 
+    const bool compute_metric_derivatives = (!compute_dRdX && !compute_d2R) ? false : true;
+
     const std::vector<dealii::Point<dim,double>> &unit_quad_pts_int = face_quadrature_int.get_points();
     const std::vector<dealii::Point<dim,double>> &unit_quad_pts_ext = face_quadrature_ext.get_points();
 
@@ -945,60 +967,113 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
 
     ADADtype dual_dot_residual = 0.0;
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
-        const ADADtype jacobian_determinant_int = dealii::determinant(metric_jac_int[iquad]);
-        const ADADtype jacobian_determinant_ext = dealii::determinant(metric_jac_ext[iquad]);
 
-        const dealii::Tensor<2,dim,ADADtype> jacobian_transpose_inverse_int = dealii::transpose(dealii::invert(metric_jac_int[iquad]));
-        const dealii::Tensor<2,dim,ADADtype> jacobian_transpose_inverse_ext = dealii::transpose(dealii::invert(metric_jac_ext[iquad]));
+        dealii::Tensor<1,dim,ADADtype> normal_normalized_int;
+        dealii::Tensor<1,dim,ADADtype> normal_normalized_ext;
+        ADADtype surface_jac_det_int;
+        ADADtype surface_jac_det_ext;
+        if (compute_metric_derivatives) {
+            const ADADtype jacobian_determinant_int = dealii::determinant(metric_jac_int[iquad]);
+            const ADADtype jacobian_determinant_ext = dealii::determinant(metric_jac_ext[iquad]);
 
-        const ADADtype jac_det_int = jacobian_determinant_int;
-        const ADADtype jac_det_ext = jacobian_determinant_ext;
+            const dealii::Tensor<2,dim,ADADtype> jacobian_transpose_inverse_int = dealii::transpose(dealii::invert(metric_jac_int[iquad]));
+            const dealii::Tensor<2,dim,ADADtype> jacobian_transpose_inverse_ext = dealii::transpose(dealii::invert(metric_jac_ext[iquad]));
 
-        const dealii::Tensor<2,dim,ADADtype> jac_inv_tran_int = jacobian_transpose_inverse_int;
-        const dealii::Tensor<2,dim,ADADtype> jac_inv_tran_ext = jacobian_transpose_inverse_ext;
+            const ADADtype jac_det_int = jacobian_determinant_int;
+            const ADADtype jac_det_ext = jacobian_determinant_ext;
 
-        const dealii::Tensor<1,dim,ADADtype> normal_int = dealii::contract<1,0>(jacobian_transpose_inverse_int, unit_normal_int);
-        const dealii::Tensor<1,dim,ADADtype> normal_ext = dealii::contract<1,0>(jacobian_transpose_inverse_ext, unit_normal_ext);
-        const ADADtype area_int = normal_int.norm();
-        const ADADtype area_ext = normal_ext.norm();
+            const dealii::Tensor<2,dim,ADADtype> jac_inv_tran_int = jacobian_transpose_inverse_int;
+            const dealii::Tensor<2,dim,ADADtype> jac_inv_tran_ext = jacobian_transpose_inverse_ext;
 
-        // Technically the normals have jac_det multiplied.
-        // However, we use normalized normals by convention, so the the term
-        // ends up appearing in the surface jacobian.
+            const dealii::Tensor<1,dim,ADADtype> normal_int = dealii::contract<1,0>(jacobian_transpose_inverse_int, unit_normal_int);
+            const dealii::Tensor<1,dim,ADADtype> normal_ext = dealii::contract<1,0>(jacobian_transpose_inverse_ext, unit_normal_ext);
+            const ADADtype area_int = normal_int.norm();
+            const ADADtype area_ext = normal_ext.norm();
 
-        const dealii::Tensor<1,dim,ADADtype> normal_normalized_int = normal_int / area_int;
-        const dealii::Tensor<1,dim,ADADtype> normal_normalized_ext = -normal_normalized_int;//normal_ext / area_ext; Must use opposite normal to be consistent with explicit
-        const ADADtype surface_jac_det_int = area_int*jac_det_int;
-        const ADADtype surface_jac_det_ext = area_ext*jac_det_ext;
+            // Technically the normals have jac_det multiplied.
+            // However, we use normalized normals by convention, so the the term
+            // ends up appearing in the surface jacobian.
 
-        for (int d=0;d<dim;++d) {
-            //Assert( std::abs(normal_int[d].val().val()+normal_ext[d].val().val()) < 1e-12,
-            //    dealii::ExcMessage("Inconsistent normals. Direction " + std::to_string(d)
-            //        + " N1: " + std::to_string(normal_int[d].val().val())
-            //        + " N2: " + std::to_string(normal_ext[d].val().val())));
-            Assert( std::abs(normal_normalized_int[d].val().val()+normal_normalized_ext[d].val().val()) < 1e-12,
-                dealii::ExcMessage("Inconsistent normals. Direction " + std::to_string(d)
-                    + " N1: " + std::to_string(normal_normalized_int[d].val().val())
-                    + " N2: " + std::to_string(normal_normalized_ext[d].val().val())));
-        }
-        Assert( std::abs(surface_jac_det_ext.val().val()-surface_jac_det_int.val().val()) < 1e-12
-                || std::abs(surface_jac_det_ext.val().val()-std::pow(2,dim-1)*surface_jac_det_int.val().val()) < 1e-12 ,
-                dealii::ExcMessage("Inconsistent surface Jacobians. J1: " + std::to_string(surface_jac_det_int.val().val())
-                + " J2: " + std::to_string(surface_jac_det_ext.val().val())));
+            normal_normalized_int = normal_int / area_int;
+            normal_normalized_ext = -normal_normalized_int;//normal_ext / area_ext; Must use opposite normal to be consistent with explicit
 
-        for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
-            interpolation_operator_int[idof] = fe_int.shape_value(idof,unit_quad_pts_int[iquad]);
-            const dealii::Tensor<1,dim,ADADtype> phys_shape_grad = dealii::contract<1,0>(jac_inv_tran_int, fe_int.shape_grad(idof,unit_quad_pts_int[iquad]));
+            surface_jac_det_int = area_int*jac_det_int;
+            surface_jac_det_ext = area_ext*jac_det_ext;
+
             for (int d=0;d<dim;++d) {
-                gradient_operator_int[d][idof] = phys_shape_grad[d];
+                //Assert( std::abs(normal_int[d].val().val()+normal_ext[d].val().val()) < 1e-12,
+                //    dealii::ExcMessage("Inconsistent normals. Direction " + std::to_string(d)
+                //        + " N1: " + std::to_string(normal_int[d].val().val())
+                //        + " N2: " + std::to_string(normal_ext[d].val().val())));
+                Assert( std::abs(normal_normalized_int[d].val().val()+normal_normalized_ext[d].val().val()) < 1e-12,
+                    dealii::ExcMessage("Inconsistent normals. Direction " + std::to_string(d)
+                        + " N1: " + std::to_string(normal_normalized_int[d].val().val())
+                        + " N2: " + std::to_string(normal_normalized_ext[d].val().val())));
             }
-        }
-        for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
-            interpolation_operator_ext[idof] = fe_ext.shape_value(idof,unit_quad_pts_ext[iquad]);
-            const dealii::Tensor<1,dim,ADADtype> phys_shape_grad = dealii::contract<1,0>(jac_inv_tran_ext, fe_ext.shape_grad(idof,unit_quad_pts_ext[iquad]));
+            Assert( std::abs(surface_jac_det_ext.val().val()-surface_jac_det_int.val().val()) < 1e-12
+                    || std::abs(surface_jac_det_ext.val().val()-std::pow(2,dim-1)*surface_jac_det_int.val().val()) < 1e-12 ,
+                    dealii::ExcMessage("Inconsistent surface Jacobians. J1: " + std::to_string(surface_jac_det_int.val().val())
+                    + " J2: " + std::to_string(surface_jac_det_ext.val().val())));
+
+            for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
+                interpolation_operator_int[idof] = fe_int.shape_value(idof,unit_quad_pts_int[iquad]);
+                const dealii::Tensor<1,dim,ADADtype> phys_shape_grad = dealii::contract<1,0>(jac_inv_tran_int, fe_int.shape_grad(idof,unit_quad_pts_int[iquad]));
+                for (int d=0;d<dim;++d) {
+                    gradient_operator_int[d][idof] = phys_shape_grad[d];
+                }
+            }
+            for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
+                interpolation_operator_ext[idof] = fe_ext.shape_value(idof,unit_quad_pts_ext[iquad]);
+                const dealii::Tensor<1,dim,ADADtype> phys_shape_grad = dealii::contract<1,0>(jac_inv_tran_ext, fe_ext.shape_grad(idof,unit_quad_pts_ext[iquad]));
+                for (int d=0;d<dim;++d) {
+                    gradient_operator_ext[d][idof] = phys_shape_grad[d];
+                }
+            }
+
+            // Exact mapping
+            // for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
+            //     interpolation_operator_int[idof] = fe_int.shape_value(idof,unit_quad_pts_int[iquad]);
+            // }
+            // for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
+            //     interpolation_operator_ext[idof] = fe_ext.shape_value(idof,unit_quad_pts_ext[iquad]);
+            // }
+            // for (int d=0;d<dim;++d) {
+            //     for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
+            //         const unsigned int istate = fe_int.system_to_component_index(idof).first;
+            //         gradient_operator_int[d][idof] = fe_values_int.shape_grad_component(idof, iquad, istate)[d];
+            //     }
+            //     for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
+            //         const unsigned int istate = fe_ext.system_to_component_index(idof).first;
+            //         gradient_operator_ext[d][idof] = fe_values_ext.shape_grad_component(idof, iquad, istate)[d];
+            //     }
+            // }
+            // normal_normalized_int = fe_values_int.normal_vector(iquad);
+            // normal_normalized_ext = -normal_normalized_int; // Must use opposite normal to be consistent with explicit
+            // surface_jac_det_int = fe_values_int.JxW(iquad)/face_quadrature_int.weight(iquad);
+            // surface_jac_det_ext = fe_values_ext.JxW(iquad)/face_quadrature_ext.weight(iquad);
+
+        } else {
+            for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
+                interpolation_operator_int[idof] = fe_int.shape_value(idof,unit_quad_pts_int[iquad]);
+            }
+            for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
+                interpolation_operator_ext[idof] = fe_ext.shape_value(idof,unit_quad_pts_ext[iquad]);
+            }
             for (int d=0;d<dim;++d) {
-                gradient_operator_ext[d][idof] = phys_shape_grad[d];
+                for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
+                    const unsigned int istate = fe_int.system_to_component_index(idof).first;
+                    gradient_operator_int[d][idof] = fe_values_int.shape_grad_component(idof, iquad, istate)[d];
+                }
+                for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
+                    const unsigned int istate = fe_ext.system_to_component_index(idof).first;
+                    gradient_operator_ext[d][idof] = fe_values_ext.shape_grad_component(idof, iquad, istate)[d];
+                }
             }
+            surface_jac_det_int = fe_values_int.JxW(iquad)/face_quadrature_int.weight(iquad);
+            surface_jac_det_ext = fe_values_ext.JxW(iquad)/face_quadrature_ext.weight(iquad);
+
+            normal_normalized_int = fe_values_int.normal_vector(iquad);
+            normal_normalized_ext = -normal_normalized_int; // Must use opposite normal to be consistent with explicit
         }
 
         for (int istate=0; istate<nstate; istate++) { 
@@ -1300,6 +1375,8 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
     using ADArray = std::array<ADADtype,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADADtype>, nstate >;
 
+    const bool compute_metric_derivatives = (!compute_dRdX && !compute_d2R) ? false : true;
+
     const unsigned int n_quad_pts      = quadrature.size();
     const unsigned int n_soln_dofs     = fe.dofs_per_cell;
 
@@ -1366,11 +1443,19 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
     std::vector<ADADtype> jac_det(n_quad_pts);
     std::vector<dealii::Tensor<2,dim,ADADtype>> jac_inv_tran(n_quad_pts);
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        const ADADtype jacobian_determinant = dealii::determinant(metric_jacobian[iquad]);
-        const dealii::Tensor<2,dim,ADADtype> jacobian_transpose_inverse = dealii::transpose(dealii::invert(metric_jacobian[iquad]));
 
-        jac_det[iquad] = jacobian_determinant;
-        jac_inv_tran[iquad] = jacobian_transpose_inverse;
+        if (compute_metric_derivatives) {
+            const ADADtype jacobian_determinant = dealii::determinant(metric_jacobian[iquad]);
+            const dealii::Tensor<2,dim,ADADtype> jacobian_transpose_inverse = dealii::transpose(dealii::invert(metric_jacobian[iquad]));
+
+            jac_det[iquad] = jacobian_determinant;
+            jac_inv_tran[iquad] = jacobian_transpose_inverse;
+
+            // Exact mapping
+            // jac_det[iquad] = fe_values_vol.JxW(iquad) / quadrature.weight(iquad);
+        } else {
+            jac_det[iquad] = fe_values_vol.JxW(iquad) / quadrature.weight(iquad);
+        }
     }
 
     std::vector< std::array<ADADtype,nstate> > soln_at_q(n_quad_pts);
@@ -1395,9 +1480,22 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
     }
     for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-            const dealii::Tensor<1,dim,ADADtype> phys_shape_grad = dealii::contract<1,0>(jac_inv_tran[iquad], fe.shape_grad(idof,points[iquad]));
-            for (int d=0;d<dim;++d) {
-                gradient_operator[d][idof][iquad] = phys_shape_grad[d];
+            if (compute_metric_derivatives) {
+                const dealii::Tensor<1,dim,ADADtype> phys_shape_grad = dealii::contract<1,0>(jac_inv_tran[iquad], fe.shape_grad(idof,points[iquad]));
+                for (int d=0;d<dim;++d) {
+                    gradient_operator[d][idof][iquad] = phys_shape_grad[d];
+                }
+
+                // Exact mapping
+                // for (int d=0;d<dim;++d) {
+                //     const unsigned int istate = fe.system_to_component_index(idof).first;
+                //     gradient_operator[d][idof][iquad] = fe_values_vol.shape_grad_component(idof, iquad, istate)[d];
+                // }
+            } else {
+                for (int d=0;d<dim;++d) {
+                    const unsigned int istate = fe.system_to_component_index(idof).first;
+                    gradient_operator[d][idof][iquad] = fe_values_vol.shape_grad_component(idof, iquad, istate)[d];
+                }
             }
         }
     }

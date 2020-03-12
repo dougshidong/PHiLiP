@@ -9,6 +9,7 @@
 #include <deal.II/numerics/vector_tools.h>
 
 #include "dg/dg.h"
+#include "mesh/grids/gaussian_bump.h"
 #include "parameters/parameters.h"
 #include "physics/physics_factory.h"
 #include "numerical_flux/numerical_flux.h"
@@ -163,14 +164,7 @@ int main (int argc, char * argv[])
                     typename dealii::Triangulation<dim>::MeshSmoothing(
                         dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_refinement |
                         dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_coarsening));
-#else
-                dealii::parallel::distributed::Triangulation<dim> grid(MPI_COMM_WORLD,
-                    typename dealii::Triangulation<dim>::MeshSmoothing(
-                        dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_refinement |
-                        dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_coarsening));
-#endif
                 dealii::GridGenerator::subdivided_hyper_cube(grid, igrid);
-
                 const double random_factor = 0.3;
                 const bool keep_boundary = false;
                 if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, grid, keep_boundary);
@@ -179,6 +173,27 @@ int main (int argc, char * argv[])
                         if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
                     }
                 }
+#else
+                dealii::parallel::distributed::Triangulation<dim> grid(MPI_COMM_WORLD,
+                    typename dealii::Triangulation<dim>::MeshSmoothing(
+                        dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_refinement |
+                        dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_coarsening));
+                // std::vector<unsigned int> n_subdivisions(dim);
+                // n_subdivisions[1] = 4; // y-direction
+                // n_subdivisions[0] = 9*n_subdivisions[1]; // x-direction
+                // const double channel_length = 3.0;
+                // const double channel_height = 0.8;
+                // Grids::gaussian_bump(grid, n_subdivisions, channel_length, channel_height);
+                dealii::GridGenerator::subdivided_hyper_cube(grid, igrid);
+                const double random_factor = 0.3;
+                const bool keep_boundary = false;
+                if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, grid, keep_boundary);
+                for (auto &cell : grid.active_cell_iterators()) {
+                    for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+                        if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
+                    }
+                }
+#endif
 
                 if (*pde==PDEType::euler) {
                     error = test<dim,dim+2>(poly_degree, grid, all_parameters);

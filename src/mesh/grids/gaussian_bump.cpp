@@ -51,9 +51,9 @@ void gaussian_bump(
     grid.set_manifold ( manifold_id, bump_manifold );
    
     // // Set Flat manifold on the domain, but not on the boundary.
-    // grid.set_manifold(0, dealii::FlatManifold<2>());
-    // grid.set_all_manifold_ids_on_boundary(1001,1);
-    // grid.set_manifold(1, bump_manifold);
+    grid.set_manifold(0, dealii::FlatManifold<2>());
+    grid.set_all_manifold_ids_on_boundary(1001,1);
+    grid.set_manifold(1, bump_manifold);
 }
 
 //dealii::Point<2> BumpManifold::warp (const dealii::Point<2> &p)
@@ -85,10 +85,10 @@ dealii::Point<2,real> BumpManifold::mapping(const dealii::Point<2,real> &chart_p
 
     //const real y_phys = y_height*y_ref + exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys) * (1.0+0.7*x_phys);
 
-    //const double coeff2 = 1.25; // Increase for more aggressive INITIAL exponential spacing.
+    const double coeff2 = 2; // Increase for more aggressive INITIAL exponential spacing.
     real y_scaled = y_height;
-    y_scaled *= (exp(y_ref)-1.0);
-    y_scaled /= (exp(y_height)-1.0); // [0,y_height]
+    y_scaled *= (exp(std::pow(y_ref,coeff2))-1.0);
+    y_scaled /= (exp(std::pow(y_height,coeff2))-1.0); // [0,y_height]
     const real y_lower = bump_height*exp(coeff_expx*x_ref*x_ref);
     const real perturbation = y_lower * exp(coeff_expy*y_scaled*y_scaled);
     const real y_phys = y_scaled + perturbation;

@@ -2,44 +2,21 @@
 #include <iostream>
 
 #include <deal.II/base/conditional_ostream.h>
-#include <deal.II/base/convergence_table.h>
-#include <deal.II/base/parameter_handler.h>
 
 #include <deal.II/dofs/dof_tools.h>
 
-#include <deal.II/distributed/tria.h>
-#include <deal.II/distributed/solution_transfer.h>
 #include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/manifold_lib.h>
 #include <deal.II/grid/grid_refinement.h>
 #include <deal.II/grid/grid_tools.h>
 
 #include <deal.II/numerics/vector_tools.h>
-#include <deal.II/numerics/solution_transfer.h>
-
-#include <deal.II/fe/fe_values.h>
-
-#include <deal.II/grid/grid_out.h>
-#include <deal.II/numerics/data_out.h>
-
-#include <exception>
-#include <deal.II/fe/mapping.h> 
-#include <deal.II/base/exceptions.h> // ExcTransformationFailed
-
-#include <deal.II/fe/mapping_fe_field.h> 
-#include <deal.II/fe/mapping_q.h> 
 
 #include <Sacado.hpp>
-
-#include <deal.II/differentiation/ad/sacado_math.h>
-#include <deal.II/differentiation/ad/sacado_number_types.h>
-#include <deal.II/differentiation/ad/sacado_product_types.h>
 
 #include "physics/physics_factory.h"
 #include "physics/manufactured_solution.h"
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
-#include "dg/high_order_grid.h"
 #include "ode_solver/ode_solver.h"
 #include "dg/dg.h"
 #include "functional/target_functional.h"

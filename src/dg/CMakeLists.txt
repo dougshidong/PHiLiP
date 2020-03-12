@@ -1,8 +1,5 @@
 set(DG_SOURCE
-    high_order_grid.cpp
-    meshmover_linear_elasticity.cpp
     dg.cpp
-    drdx.cpp
     residual_sparsity_patterns.cpp
     weak_dg.cpp
     strong_dg.cpp
@@ -16,9 +13,11 @@ foreach(dim RANGE 1 3)
     target_compile_definitions(${DiscontinuousGalerkinLib} PRIVATE PHILIP_DIM=${dim})
 
     # Library dependency
+    string(CONCAT HighOrderGridLib HighOrderGrid_${dim}D)
     string(CONCAT PostprocessingLib Postprocessing_${dim}D)
     string(CONCAT NumericalFluxLib NumericalFlux_${dim}D)
     string(CONCAT PhysicsLib Physics_${dim}D)
+    target_link_libraries(${DiscontinuousGalerkinLib} ${HighOrderGridLib})
     target_link_libraries(${DiscontinuousGalerkinLib} ${PostprocessingLib})
     target_link_libraries(${DiscontinuousGalerkinLib} ${NumericalFluxLib})
     target_link_libraries(${DiscontinuousGalerkinLib} ${PhysicsLib})
@@ -27,6 +26,8 @@ foreach(dim RANGE 1 3)
         DEAL_II_SETUP_TARGET(${DiscontinuousGalerkinLib})
     endif()
 
+    unset(HighOrderGridLib)
+    unset(PostprocessingLib)
     unset(DiscontinuousGalerkinLib)
     unset(NumericalFluxLib)
     unset(PhysicsLib)

@@ -61,18 +61,22 @@ template <int dim, typename real>
 int ODESolver<dim,real>::steady_state ()
 {
     Parameters::ODESolverParam ode_param = ODESolver<dim,real>::all_parameters->ode_solver_param;
-    if (ode_param.output_solution_every_x_steps >= 0) this->dg->output_results_vtk(this->current_iteration);
     pcout << " Performing steady state analysis... " << std::endl;
     allocate_ode_system ();
 
-    this->residual_norm = 1;
     this->residual_norm_decrease = 1; // Always do at least 1 iteration
     update_norm = 1; // Always do at least 1 iteration
     this->current_iteration = 0;
+    if (ode_param.output_solution_every_x_steps >= 0) this->dg->output_results_vtk(this->current_iteration);
 
     pcout << " Evaluating right-hand side and setting system_matrix to Jacobian before starting iterations... " << std::endl;
     this->dg->assemble_residual ();
     initial_residual_norm = this->dg->get_residual_l2norm();
+    this->residual_norm = initial_residual_norm;
+    pcout << " ********************************************************** "
+          << std::endl
+          << " Initial absolute residual norm: " << this->residual_norm
+          << std::endl;
 
     CFL = all_parameters->ode_solver_param.initial_time_step;
 
@@ -93,7 +97,7 @@ int ODESolver<dim,real>::steady_state ()
         pcout << " ********************************************************** "
                   << std::endl
                   << " Nonlinear iteration: " << this->current_iteration
-                  << " residual norm: " << this->residual_norm / this->initial_residual_norm
+                  << " Normalized residual norm: " << this->residual_norm / this->initial_residual_norm
                   << std::endl;
 
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
@@ -245,7 +249,7 @@ double Implicit_ODESolver<dim,real>::linesearch ()
         new_residual = this->dg->get_residual_l2norm();
     }
     if (step_length > std::pow(step_reduction,maxline/2)) {
-        this->CFL *= 1.2;
+        //this->CFL *= 1.2;
     } else {
         //this->CFL *= 0.5;
     }

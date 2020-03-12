@@ -243,7 +243,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
             const dealii::Point<dim,real2> &phys_coord,
             const std::array<real2,nstate> &soln_at_q,
-            const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/)
+            const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
 		{
 			real2 l2error = 0;
 			
@@ -261,7 +261,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
             const unsigned int /*boundary_id*/,
             const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
-            std::vector<real2> local_solution)
+            const std::vector<real2> &local_solution) const
         {
             real2 boundary_integral = 0;
             const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
@@ -288,7 +288,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
             const unsigned int boundary_id,
             const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
-            std::vector<real> local_solution) override
+            const std::vector<real> &local_solution) const override
         {
             return evaluate_cell_boundary<>(physics, boundary_id, fe_values_boundary, local_solution);
         }
@@ -299,7 +299,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
             const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADType> &physics,
             const unsigned int boundary_id,
             const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
-            std::vector<ADADType> local_solution) override
+            const std::vector<ADADType> &local_solution) const override
         {
             return evaluate_cell_boundary<>(physics, boundary_id, fe_values_boundary, local_solution);
         }
@@ -309,7 +309,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
             const dealii::Point<dim,real> &phys_coord,
             const std::array<real,nstate> &soln_at_q,
-            const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) override
+            const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override
 		{
 			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
 		}
@@ -318,7 +318,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
             const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADType> &physics,
             const dealii::Point<dim,ADADType> &phys_coord,
             const std::array<ADADType,nstate> &soln_at_q,
-            const std::array<dealii::Tensor<1,dim,ADADType>,nstate> &soln_grad_at_q) override
+            const std::array<dealii::Tensor<1,dim,ADADType>,nstate> &soln_grad_at_q) const override
 		{
 			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
 		}

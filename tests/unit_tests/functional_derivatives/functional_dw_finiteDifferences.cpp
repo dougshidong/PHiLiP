@@ -2,44 +2,19 @@
 #include <iostream>
 
 #include <deal.II/base/conditional_ostream.h>
-#include <deal.II/base/convergence_table.h>
-#include <deal.II/base/parameter_handler.h>
 
-#include <deal.II/dofs/dof_tools.h>
-
-#include <deal.II/distributed/tria.h>
-#include <deal.II/distributed/solution_transfer.h>
 #include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/manifold_lib.h>
 #include <deal.II/grid/grid_refinement.h>
 #include <deal.II/grid/grid_tools.h>
 
 #include <deal.II/numerics/vector_tools.h>
-#include <deal.II/numerics/solution_transfer.h>
-
-#include <deal.II/fe/fe_values.h>
-
-#include <deal.II/grid/grid_out.h>
-#include <deal.II/numerics/data_out.h>
-
-#include <exception>
-#include <deal.II/fe/mapping.h> 
-#include <deal.II/base/exceptions.h> // ExcTransformationFailed
-
-#include <deal.II/fe/mapping_fe_field.h> 
-#include <deal.II/fe/mapping_q.h> 
 
 #include <Sacado.hpp>
-
-#include <deal.II/differentiation/ad/sacado_math.h>
-#include <deal.II/differentiation/ad/sacado_number_types.h>
-#include <deal.II/differentiation/ad/sacado_product_types.h>
 
 #include "physics/physics_factory.h"
 #include "physics/manufactured_solution.h"
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
-#include "dg/high_order_grid.h"
 #include "ode_solver/ode_solver.h"
 #include "dg/dg.h"
 #include "functional/functional.h"
@@ -65,7 +40,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
             const dealii::Point<dim,real2> &phys_coord,
             const std::array<real2,nstate> &soln_at_q,
-            const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/)
+            const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
 		{
 			real2 l2error = 0;
 			
@@ -83,7 +58,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
             const unsigned int /*boundary_id*/,
             const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
-            std::vector<real2> local_solution)
+            const std::vector<real2> &local_solution) const
         {
             real2 boundary_integral = 0;
             const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
@@ -110,7 +85,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
             const unsigned int boundary_id,
             const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
-            std::vector<real> local_solution) override
+            const std::vector<real> &local_solution) const override
         {
             return evaluate_cell_boundary<>(physics, boundary_id, fe_values_boundary, local_solution);
         }
@@ -120,7 +95,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
             const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADtype> &physics,
             const unsigned int boundary_id,
             const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
-            std::vector<ADADtype> local_solution) override
+            const std::vector<ADADtype> &local_solution) const override
         {
             return evaluate_cell_boundary<>(physics, boundary_id, fe_values_boundary, local_solution);
         }
@@ -130,7 +105,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
             const dealii::Point<dim,real> &phys_coord,
             const std::array<real,nstate> &soln_at_q,
-            const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) override
+            const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override
 		{
 			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
 		}
@@ -139,7 +114,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
             const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADtype> &physics,
             const dealii::Point<dim,ADADtype> &phys_coord,
             const std::array<ADADtype,nstate> &soln_at_q,
-            const std::array<dealii::Tensor<1,dim,ADADtype>,nstate> &soln_grad_at_q) override
+            const std::array<dealii::Tensor<1,dim,ADADtype>,nstate> &soln_grad_at_q) const override
 		{
 			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
 		}

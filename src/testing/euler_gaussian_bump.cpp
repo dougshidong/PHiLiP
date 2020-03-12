@@ -17,8 +17,10 @@
 #include <deal.II/fe/fe_values.h>
 
 #include <deal.II/fe/mapping_q.h>
+#include <deal.II/fe/mapping_manifold.h>
 
 #include "euler_gaussian_bump.h"
+#include "mesh/grids/gaussian_bump.h"
 
 #include "physics/euler.h"
 #include "physics/manufactured_solution.h"
@@ -162,62 +164,86 @@ int EulerGaussianBump<dim,nstate>
         //n_subdivisions[1] = n_1d_cells[0]; // y-direction
         //n_subdivisions[0] = 4*n_subdivisions[1]; // x-direction
         n_subdivisions[1] = n_1d_cells[0]; // y-direction
-        n_subdivisions[0] = 9*n_subdivisions[1]; // x-direction
-        dealii::Point<2> p1(-1.5,0.0), p2(1.5,y_height);
-        const bool colorize = true;
-        dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator,
-            typename dealii::Triangulation<dim>::MeshSmoothing(
-                dealii::Triangulation<dim>::smoothing_on_refinement |
-                dealii::Triangulation<dim>::smoothing_on_coarsening));
-        dealii::GridGenerator::subdivided_hyper_rectangle (grid, n_subdivisions, p1, p2, colorize);
+        n_subdivisions[0] = 4*n_subdivisions[1]; // x-direction
+        // dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator,
+        //     typename dealii::Triangulation<dim>::MeshSmoothing(
+        //         dealii::Triangulation<dim>::smoothing_on_refinement |
+        //         dealii::Triangulation<dim>::smoothing_on_coarsening));
 
-        for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
-            for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-                if (cell->face(face)->at_boundary()) {
-                    unsigned int current_id = cell->face(face)->boundary_id();
-                    if (current_id == 2 || current_id == 3) cell->face(face)->set_boundary_id (1001); // Bottom and top wall
-                    if (current_id == 1) cell->face(face)->set_boundary_id (1002); // Outflow with supersonic or back_pressure
-                    if (current_id == 0) cell->face(face)->set_boundary_id (1003); // Inflow
-                }
-            }
-        }
+        // //dealii::Point<2> p1(-1.5,0.0), p2(1.5,y_height);
+        // //const bool colorize = true;
+        // //dealii::GridGenerator::subdivided_hyper_rectangle (grid, n_subdivisions, p1, p2, colorize);
+        // //for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+        // //    for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+        // //        if (cell->face(face)->at_boundary()) {
+        // //            unsigned int current_id = cell->face(face)->boundary_id();
+        // //            if (current_id == 2 || current_id == 3) cell->face(face)->set_boundary_id (1001); // Bottom and top wall
+        // //            if (current_id == 1) cell->face(face)->set_boundary_id (1002); // Outflow with supersonic or back_pressure
+        // //            if (current_id == 0) cell->face(face)->set_boundary_id (1003); // Inflow
+        // //        }
+        // //    }
+        // //}
 
-        // Warp grid to be a gaussian bump
-        dealii::GridTools::transform (&warp, grid);
-        
-        // Assign a manifold to have curved geometry
-        const BumpManifold bump_manifold;
-        unsigned int manifold_id=0; // top face, see GridGenerator::hyper_rectangle, colorize=true
-        grid.reset_all_manifolds();
-        grid.set_all_manifold_ids(manifold_id);
-        grid.set_manifold ( manifold_id, bump_manifold );
+        // //// Warp grid to be a gaussian bump
+        // //dealii::GridTools::transform (&warp, grid);
+        // //
+        // //// Assign a manifold to have curved geometry
+        // //const BumpManifold bump_manifold;
+        // //unsigned int manifold_id=0; // top face, see GridGenerator::hyper_rectangle, colorize=true
+        // //grid.reset_all_manifolds();
+        // //grid.set_all_manifold_ids(manifold_id);
+        // //grid.set_manifold ( manifold_id, bump_manifold );
 
-        // Create DG object
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
+        // const double channel_length = 3.0;
+        // const double channel_height = 0.8;
+        // Grids::gaussian_bump(grid, n_subdivisions, channel_length, channel_height);
 
-        // Initialize coarse grid solution with free-stream
-        dg->allocate_system ();
-        dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
+        // const double solution_degree = poly_degree;
+        // const double grid_degree = 3;
+        // // Create DG object
+        // std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, solution_degree, solution_degree, grid_degree, &grid);
 
-        // Create ODE solver and ramp up the solution from p0
-        std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-        ode_solver->initialize_steady_polynomial_ramping (poly_degree);
+        // // Initialize coarse grid solution with free-stream
+        // dg->allocate_system ();
+        // dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
+
+        // // Create ODE solver and ramp up the solution from p0
+        // std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        // ode_solver->initialize_steady_polynomial_ramping (poly_degree);
 
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
 
 
-            if (igrid!=0) {
-                dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
-                dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
-                solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
-                dg->high_order_grid.prepare_for_coarsening_and_refinement();
-                grid.refine_global (1);
-                dg->high_order_grid.execute_coarsening_and_refinement();
-                dg->allocate_system ();
-                dg->solution.zero_out_ghosts();
-                solution_transfer.interpolate(dg->solution);
-                dg->solution.update_ghost_values();
-            }
+            //if (igrid!=0) {
+            //    dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
+            //    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+            //    solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
+            //    dg->high_order_grid.prepare_for_coarsening_and_refinement();
+            //    grid.refine_global (1);
+            //    dg->high_order_grid.execute_coarsening_and_refinement(true);
+            //    dg->allocate_system ();
+            //    dg->solution.zero_out_ghosts();
+            //    solution_transfer.interpolate(dg->solution);
+            //    dg->solution.update_ghost_values();
+            //}
+
+            dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator,
+                typename dealii::Triangulation<dim>::MeshSmoothing(
+                    dealii::Triangulation<dim>::smoothing_on_refinement |
+                    dealii::Triangulation<dim>::smoothing_on_coarsening));
+
+            const double channel_length = 3.0;
+            const double channel_height = 0.8;
+            Grids::gaussian_bump(grid, n_subdivisions, channel_length, channel_height);
+            grid.refine_global(igrid);
+
+            const double solution_degree = poly_degree;
+            const double grid_degree = solution_degree+1;
+            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, solution_degree, solution_degree, grid_degree, &grid);
+
+            // Initialize coarse grid solution with free-stream
+            dg->allocate_system ();
+            dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
             const unsigned int n_global_active_cells = grid.n_global_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
@@ -227,15 +253,17 @@ int EulerGaussianBump<dim,nstate>
                  << ". Number of degrees of freedom: " << n_dofs
                  << std::endl;
 
-            // Solve the steady state problem
-            ode_solver->steady_state();
-            //ode_solver->initialize_steady_polynomial_ramping(poly_degree);
+            // Create ODE solver and ramp up the solution from p0
+            std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+            ode_solver->initialize_steady_polynomial_ramping (poly_degree);
 
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;
             dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
-            dealii::MappingQ<dim> mappingq(dg->max_degree+overintegrate);
-            dealii::FEValues<dim,dim> fe_values_extra(mappingq, dg->fe_collection[poly_degree], quad_extra, 
+            //dealii::MappingQ<dim> mapping(dg->max_degree+overintegrate);
+            //const dealii::MappingManifold<dim,dim> mapping;
+            const dealii::Mapping<dim> &mapping = (*(dg->high_order_grid.mapping_fe_field));
+            dealii::FEValues<dim,dim> fe_values_extra(mapping, dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;

@@ -8,6 +8,8 @@ namespace PHiLiP {
 namespace Grids {
 
 /// Create a Gaussian bump grid with an associated nonlinear manifold.
+/** Numbers used are the ones from the High-Order Prediction Workshop (HOPW)
+ */
 void gaussian_bump(
     dealii::parallel::distributed::Triangulation<2> &grid,
     const std::vector<unsigned int> n_subdivisions,
@@ -17,13 +19,13 @@ void gaussian_bump(
 /// Gaussian bump manifold.
 class BumpManifold: public dealii::ChartManifold<2,2,2> {
 protected:
-    static constexpr double y_height = 0.8;
-    static constexpr double bump_height = 0.0625; // High-Order Prediction Workshop
-    static constexpr double coeff_expx = -25; // High-Order Prediction Workshop
-    static constexpr double coeff_expy = -30;
+    static constexpr double y_height = 0.8; ///< Channel height.
+    static constexpr double bump_height = 0.0625; ///< Bump height.
+    static constexpr double coeff_expx = -25; ///< Bump exponent (variance).
+    static constexpr double coeff_expy = -30; ///< Bump propagation in the domain.
 public:
     template<typename real>
-    dealii::Point<2,real> mapping(const dealii::Point<2,real> &chart_point) const;
+    dealii::Point<2,real> mapping(const dealii::Point<2,real> &chart_point) const; ///< Templated mapping from square to the bump.
 
     virtual dealii::Point<2> pull_back(const dealii::Point<2> &space_point) const override; ///< See dealii::Manifold.
     virtual dealii::Point<2> push_forward(const dealii::Point<2> &chart_point) const override; ///< See dealii::Manifold.

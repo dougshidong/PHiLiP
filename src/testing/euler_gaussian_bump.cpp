@@ -37,80 +37,6 @@ EulerGaussianBump<dim,nstate>::EulerGaussianBump(const Parameters::AllParameters
     TestsBase::TestsBase(parameters_input)
 {}
 
-const double y_height = 0.8;
-const double bump_height = 0.0625; // High-Order Prediction Workshop
-const double coeff_expx = -25; // High-Order Prediction Workshop
-const double coeff_expy = -30;
-template <int dim, int nstate>
-dealii::Point<dim> EulerGaussianBump<dim,nstate>
-::warp (const dealii::Point<dim> &p)
-{
-    const double x_ref = p[0];
-    const double coeff = 1.0;
-    const double y_ref = (exp(coeff*std::pow(p[1],1.25))-1.0)/(exp(coeff)-1.0);
-    dealii::Point<dim> q = p;
-    q[0] = x_ref;
-    q[1] = 0.8*y_ref + bump_height*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*q[0]*q[0]) * (1.0+0.7*q[0]);
-    return q;
-}
-
-
-dealii::Point<2> BumpManifold::pull_back(const dealii::Point<2> &space_point) const {
-    double x_phys = space_point[0];
-    double y_phys = space_point[1];
-    double x_ref = x_phys;
-
-    double y_ref = y_phys;
-
-    for (int i=0; i<200; i++) {
-        const double function = y_height*y_ref + bump_height*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*x_phys*x_phys) * (1.0+0.7*x_phys) - y_phys;
-        const double derivative = y_height + bump_height*coeff_expy*2*y_ref*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*x_phys*x_phys) * (1.0+0.7*x_phys);
-        //const double function = y_height*y_ref + bump_height*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*x_phys*x_phys) - y_phys;
-        //const double derivative = y_height + bump_height*coeff_expy*2*y_ref*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*x_phys*x_phys);
-        y_ref = y_ref - function/derivative;
-        if(std::abs(function) < 1e-15) break;
-    }
-    const double function = y_height*y_ref + bump_height*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*x_phys*x_phys) * (1.0+0.7*x_phys);
-    const double error = std::abs(function - y_phys);
-    if (error > 1e-13) {
-        std::cout << "Large error " << error << std::endl;
-        std::cout << "xref " << x_ref << "yref " << y_ref << "y_phys " << y_phys << " " << function << " " << error << std::endl;
-    }
-
-    dealii::Point<2> p(x_ref, y_ref);
-    return p;
-}
-
-dealii::Point<2> BumpManifold::push_forward(const dealii::Point<2> &chart_point) const 
-{
-    double x_ref = chart_point[0];
-    double y_ref = chart_point[1];
-    double x_phys = x_ref;//-1.5+x_ref*3.0;
-    double y_phys = y_height*y_ref + exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys) * (1.0+0.7*x_phys);
-    return dealii::Point<2> ( x_phys, y_phys); // Trigonometric
-}
-
-dealii::DerivativeForm<1,2,2> BumpManifold::push_forward_gradient(const dealii::Point<2> &chart_point) const
-{
-    dealii::DerivativeForm<1, 2, 2> dphys_dref;
-    double x_ref = chart_point[0];
-    double y_ref = chart_point[1];
-    double x_phys = x_ref;
-    //double y_phys = y_height*y_ref + exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys);
-    dphys_dref[0][0] = 1;
-    dphys_dref[0][1] = 0;
-    dphys_dref[1][0] = exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys) * coeff_expx*2*x_phys*dphys_dref[0][0] * (1.0+0.7*x_phys);
-    dphys_dref[1][0] += exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys) * 0.7*dphys_dref[0][0];
-    dphys_dref[1][1] = y_height + coeff_expy * 2*y_ref * exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys) * (1.0+0.7*x_phys);
-    return dphys_dref;
-}
-
-std::unique_ptr<dealii::Manifold<2,2> > BumpManifold::clone() const
-{
-    return std::make_unique<BumpManifold>();
-}
-
-
 template<int dim, int nstate>
 int EulerGaussianBump<dim,nstate>
 ::run_test () const
@@ -161,38 +87,8 @@ int EulerGaussianBump<dim,nstate>
         dealii::ConvergenceTable convergence_table;
 
         std::vector<unsigned int> n_subdivisions(dim);
-        //n_subdivisions[1] = n_1d_cells[0]; // y-direction
-        //n_subdivisions[0] = 4*n_subdivisions[1]; // x-direction
         n_subdivisions[1] = n_1d_cells[0]; // y-direction
         n_subdivisions[0] = 4*n_subdivisions[1]; // x-direction
-        // dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator,
-        //     typename dealii::Triangulation<dim>::MeshSmoothing(
-        //         dealii::Triangulation<dim>::smoothing_on_refinement |
-        //         dealii::Triangulation<dim>::smoothing_on_coarsening));
-
-        // //dealii::Point<2> p1(-1.5,0.0), p2(1.5,y_height);
-        // //const bool colorize = true;
-        // //dealii::GridGenerator::subdivided_hyper_rectangle (grid, n_subdivisions, p1, p2, colorize);
-        // //for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
-        // //    for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-        // //        if (cell->face(face)->at_boundary()) {
-        // //            unsigned int current_id = cell->face(face)->boundary_id();
-        // //            if (current_id == 2 || current_id == 3) cell->face(face)->set_boundary_id (1001); // Bottom and top wall
-        // //            if (current_id == 1) cell->face(face)->set_boundary_id (1002); // Outflow with supersonic or back_pressure
-        // //            if (current_id == 0) cell->face(face)->set_boundary_id (1003); // Inflow
-        // //        }
-        // //    }
-        // //}
-
-        // //// Warp grid to be a gaussian bump
-        // //dealii::GridTools::transform (&warp, grid);
-        // //
-        // //// Assign a manifold to have curved geometry
-        // //const BumpManifold bump_manifold;
-        // //unsigned int manifold_id=0; // top face, see GridGenerator::hyper_rectangle, colorize=true
-        // //grid.reset_all_manifolds();
-        // //grid.set_all_manifold_ids(manifold_id);
-        // //grid.set_manifold ( manifold_id, bump_manifold );
 
         // const double channel_length = 3.0;
         // const double channel_height = 0.8;

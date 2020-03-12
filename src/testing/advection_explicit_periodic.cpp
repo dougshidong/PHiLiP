@@ -24,6 +24,7 @@
 #include<fenv.h>
 
 #include <deal.II/grid/manifold_lib.h>
+#include <deal.II/fe/mapping_q.h>
 #include <fstream>
 
 namespace PHiLiP {
@@ -36,18 +37,129 @@ TestsBase::TestsBase(parameters_input)
 , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {}
 
-template<int dim, int nstate>
-double AdvectionPeriodic<dim, nstate>::compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const
+/****************
+ * For Curved Grid Polynomial Representation
+ * ************************************/
+//dealii::Point<2> CurvManifold::pull_back(const dealii::Point<2> &space_point) const {
+template<int dim>
+dealii::Point<dim> CurvManifold<dim>::pull_back(const dealii::Point<dim> &space_point) const 
 {
-	double energy = 0.0;
-        dealii::LinearAlgebra::distributed::Vector<double> Mu_hat(dg->solution.size());
-        dg->global_mass_matrix.vmult( Mu_hat, dg->solution);
-	for (unsigned int i = 0; i < dg->solution.size(); ++i)
-	{
-	//	energy += dg->global_mass_matrix(i,i) * dg->solution(i) * dg->solution(i);
-            energy +=  dg->solution(i) * Mu_hat(i);
-	}
-	return energy;
+    const double pi = atan(1)*4.0;
+    dealii::Point<dim> x_ref;
+    dealii::Point<dim> x_phys;
+    for(int idim=0; idim<dim; idim++){
+        x_ref[idim] = space_point[idim];
+        x_phys[idim] = space_point[idim];
+    }
+    dealii::Vector<double> function(dim);
+    dealii::FullMatrix<double> derivative(dim);
+    //for (int i=0; i<200; i++) {
+    int flag =0;
+    while(flag != dim){
+        for(int idim=0;idim<dim;idim++){
+            function[idim] = 1.0 / 8.0; 
+            for(int idim2=0;idim2<dim;idim2++){
+                function[idim] *= std::cos(3.0 * pi/2.0 * x_ref[idim2]);
+            }
+            function[idim] += x_ref[idim] - x_phys[idim];
+        }
+        for(int idim=0; idim<dim; idim++){
+            for(int idim2=0; idim2<dim;idim2++){
+                derivative[idim][idim2] = - 3.0 * pi / 16.0;
+                for(int idim3 =0;idim3<dim; idim3++){
+                    if(idim2 == idim3)
+                        derivative[idim][idim2] *=std::sin(3.0 * pi/2.0 * x_ref[idim3]);
+                    else
+                        derivative[idim][idim2] *=std::cos(3.0 * pi/2.0 * x_ref[idim3]);
+                }
+                if(idim == idim2)
+                    derivative[idim][idim2] += 1.0;
+            }
+        }
+        dealii::FullMatrix<double> Jacobian_inv(dim);
+        Jacobian_inv.invert(derivative);
+        dealii::Vector<double> Newton_Step(dim);
+        Jacobian_inv.vmult(Newton_Step, function);
+        for(int idim=0; idim<dim; idim++){
+            x_ref[idim] -= Newton_Step[idim];
+        }
+        flag=0;
+        for(int idim=0; idim<dim; idim++){
+            if(std::abs(function[idim]) < 1e-15)
+                flag++;
+        }
+        if(flag == dim)
+            break;
+    }
+    std::vector<double> function_check(dim);
+    for(int idim=0;idim<dim; idim++){
+        function_check[idim] = 1.0/8.0;
+        for(int idim2=0; idim2<dim; idim2++){
+            function_check[idim] *= std::cos(3.0 * pi/2.0 * x_ref[idim2]);
+        }
+        function_check[idim] += x_ref[idim];
+    }
+    std::vector<double> error(dim);
+    for(int idim=0; idim<dim; idim++) 
+        error[idim] = std::abs(function_check[idim] - x_phys[idim]);
+    if (error[0] > 1e-13) {
+        std::cout << "Large error " << error[0] << std::endl;
+        for(int idim=0;idim<dim; idim++)
+        std::cout << "dim " << idim << " xref " << x_ref[idim] <<  " x_phys " << x_phys[idim] << " function Check  " << function_check[idim] << " Error " << error[idim] << " Flag " << flag << std::endl;
+    }
+
+    return x_ref;
+
+}
+
+template<int dim>
+dealii::Point<dim> CurvManifold<dim>::push_forward(const dealii::Point<dim> &chart_point) const 
+{
+    const double pi = atan(1)*4.0;
+
+    dealii::Point<dim> x_ref;
+    dealii::Point<dim> x_phys;
+    for(int idim=0; idim<dim; idim++)
+        x_ref[idim] = chart_point[idim];
+    for(int idim=0; idim<dim; idim++){
+        x_phys[idim] = 1.0/8.0;
+        for(int idim2=0;idim2<dim; idim2++){
+           x_phys[idim] *= std::cos( 3.0 * pi/2.0 * x_ref[idim2]);
+        }
+        x_phys[idim] += x_ref[idim];
+    }
+    return dealii::Point<dim> (x_phys); // Trigonometric
+}
+
+template<int dim>
+dealii::DerivativeForm<1,dim,dim> CurvManifold<dim>::push_forward_gradient(const dealii::Point<dim> &chart_point) const 
+{
+    const double pi = atan(1)*4.0;
+    dealii::DerivativeForm<1, dim, dim> dphys_dref;
+    dealii::Point<dim> x;
+    for(int idim=0; idim<dim; idim++)
+        x[idim] = chart_point[idim];
+    for(int idim=0; idim<dim; idim++){
+        for(int idim2=0; idim2<dim;idim2++){
+            dphys_dref[idim][idim2] = - 3.0 * pi / 16.0;
+            for(int idim3 =0;idim3<dim; idim3++){
+                if(idim2 == idim3)
+                    dphys_dref[idim][idim2] *=std::sin(3.0 * pi/2.0 * x[idim3]);
+                else
+                    dphys_dref[idim][idim2] *=std::cos(3.0 * pi/2.0 * x[idim3]);
+            }
+            if(idim == idim2)
+                dphys_dref[idim][idim2] += 1.0;
+        }
+    }
+
+    return dphys_dref;
+}
+
+template<int dim>
+std::unique_ptr<dealii::Manifold<dim,dim> > CurvManifold<dim>::clone() const 
+{
+    return std::make_unique<CurvManifold<dim>>();
 }
 
 template <int dim, int nstate>
@@ -57,43 +169,47 @@ dealii::Point<dim> AdvectionPeriodic<dim,nstate>
     const double pi = atan(1)*4.0;
     dealii::Point<dim> q = p;
 
-#if 0
-  q[dim-1] *= 10;
-  if (dim >= 2)
-    q[0] += 2*std::sin(q[dim-1]);
-  if (dim >= 3)
-    q[1] += 2*std::cos(q[dim-1]);
-#endif
-
     if (dim == 1){
-        q[dim-1] = p[dim-1] + 1.0/8.0 * cos(pi/2.0 * p[dim-1]);
+        q[dim-1] = p[dim-1] + 1.0/8.0 * cos(3.0 * pi/2.0 * p[dim-1]);
     }
     if (dim == 2){
-        q[dim-1] = p[dim-1] + 1.0/8.0 * std::cos(pi/2.0 * p[dim-1]) * std::cos(pi/2.0 * p[dim-2]);
-        q[dim-2] = p[dim-2] + 1.0/8.0 * std::cos(pi/2.0 * p[dim-1]) * std::cos(pi/2.0 * p[dim-2]);
+        q[dim-1] = p[dim-1] + 1.0/8.0 * std::cos(3.0 * pi/2.0 * p[dim-1]) * std::cos(3.0 * pi/2.0 * p[dim-2]);
+        q[dim-2] = p[dim-2] + 1.0/8.0 * std::cos(3.0 * pi/2.0 * p[dim-1]) * std::cos(3.0 * pi/2.0 * p[dim-2]);
     }
     if(dim==3){
-        q[dim-1] = p[dim-1] + 1.0/8.0 * cos(pi/2.0 * p[dim-1]) * cos(pi/2.0 * p[dim-2]) * cos(pi/2.0 * p[dim-3]);
-        q[dim-2] = p[dim-2] + 1.0/8.0 * cos(pi/2.0 * p[dim-1]) * cos(pi/2.0 * p[dim-2]) * cos(pi/2.0 * p[dim-3]);
-        q[dim-3] = p[dim-2] + 1.0/8.0 * cos(pi/2.0 * p[dim-1]) * cos(pi/2.0 * p[dim-2]) * cos(pi/2.0 * p[dim-3]);
+        q[dim-1] = p[dim-1] + 1.0/8.0 * cos(3.0 * pi/2.0 * p[dim-1]) * cos(3.0 * pi/2.0 * p[dim-2]) * cos(3.0 * pi/2.0 * p[dim-3]);
+        q[dim-2] = p[dim-2] + 1.0/8.0 * cos(3.0 * pi/2.0 * p[dim-1]) * cos(3.0 * pi/2.0 * p[dim-2]) * cos(3.0 * pi/2.0 * p[dim-3]);
+        q[dim-3] = p[dim-2] + 1.0/8.0 * cos(3.0 * pi/2.0 * p[dim-1]) * cos(3.0 * pi/2.0 * p[dim-2]) * cos(3.0 * pi/2.0 * p[dim-3]);
     }
 
-
-#if 0
-   // q[dim-1] = 1.5*std::sin(2*(q[0]-2))*std::sin(4*(q[dim-1]));
-   // q[dim-1] = 1.0 + 2.0*std::sin(pi/2.0*(p[dim-1]))*std::sin(pi/4.0*(p[dim-1]-pi));
-    q[dim-1] = p[dim-1] + 2.0*std::sin(pi/2.0*(p[dim-1]))*std::sin(pi/4.0*(p[dim-1]-pi));
-   // if (dim >= 2) q[0] = std::sin(q[dim-1])*std::sin(2*(q[0]-1));
-    if (dim >= 2) q[0] = 1.0 + 2.0*std::sin(pi/2.0*p[0])*std::sin(pi/4.0*(p[0]-pi));
-    if (dim >= 3) q[1] += 1*std::cos(q[dim-1]);
-#endif
-#if 0
-    q[dim-1] *= 1.5;
-    if (dim >= 2) q[0] += 1*std::sin(q[dim-1]);
-    if (dim >= 3) q[1] += 1*std::cos(q[dim-1]);
-#endif
     return q;
 }
+/****************************
+ * End of Curvilinear Grid
+ * ***************************/
+
+template<int dim, int nstate>
+double AdvectionPeriodic<dim, nstate>::compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const
+{
+	double energy = 0.0;
+       // dealii::LinearAlgebra::distributed::Vector<double> Mu_hat(dg->solution.size());
+        dealii::LinearAlgebra::distributed::Vector<double> Mu_hat(dg->right_hand_side);
+       // printf(" size Mass %d size sol %d\n",dg->global_mass_matrix.n(),dg->solution.size());
+       // printf("  Mass %g size sol %g\n",dg->global_mass_matrix(dg->global_mass_matrix.m(),dg->global_mass_matrix.n()),dg->solution(dg->solution.size()));
+        dg->global_mass_matrix.vmult( Mu_hat, dg->solution);
+        energy = dg->solution * Mu_hat;
+#if 0
+      //  printf("didn't fail where thought\n");
+//	for (unsigned int i = 0; i < dg->solution.size(); ++i)
+	for (unsigned int i = 0; i < dg->right_hand_side.size(); ++i)
+	{
+	//	energy += dg->global_mass_matrix(i,i) * dg->solution(i) * dg->solution(i);
+            energy +=  dg->solution(i) * Mu_hat(i);
+	}
+#endif
+	return energy;
+}
+
 
 template <int dim, int nstate>
 int AdvectionPeriodic<dim, nstate>::run_test() const
@@ -112,7 +228,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
 
-    const unsigned int n_grids = 5;
+    const unsigned int n_grids = 4;
     std::array<double,n_grids> grid_size;
     std::array<double,n_grids> soln_error;
    // std::array<double,n_grids> output_error;
@@ -131,8 +247,8 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 //	double right = 2.0;
 //	double left = -1.0;
 //	double right = 1.0;
-//	double left = 1.0;
-//	double right = 3.0;
+	//double left = 1.0;
+	//double right = 3.0;
 	double left = -1.0;
 	double right = 1.0;
 	//double right = 2.0;
@@ -143,7 +259,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 //	dealii::GridGenerator::hyper_cube(grid, left, right, colorize);
 
         dealii::ConvergenceTable convergence_table;
-        const unsigned int igrid_start = 4;
+        const unsigned int igrid_start = 3;
 printf("NEW GRID\n");
 fflush(stdout);
 
@@ -166,7 +282,6 @@ fflush(stdout);
 
 //testing warping
 dealii::GridGenerator::hyper_cube (grid, left, right, colorize);
-//dealii::GridTools::transform (&warp, grid);
 
 
 
@@ -200,7 +315,7 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 		dealii::GridTools::collect_periodic_faces(grid,4,5,2,matched_pairs);
 		grid.add_periodicity(matched_pairs);
 #endif
-dealii::GridTools::transform (&warp, grid);
+//dealii::GridTools::transform (&warp, grid);
 #if 0
 const dealii::Point<dim> center1(0,1);
 const dealii::SphericalManifold<dim> m0(center1);
@@ -215,7 +330,18 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 }
 #endif
 	grid.refine_global(igrid);
+//warp curvilinear transformed grid
+//#if 0
+dealii::GridTools::transform (&warp, grid);
 
+// Assign a manifold to have curved geometry
+        const CurvManifold<dim> curv_manifold;
+        unsigned int manifold_id=0; // top face, see GridGenerator::hyper_rectangle, colorize=true
+        grid.reset_all_manifolds();
+        grid.set_all_manifold_ids(manifold_id);
+        grid.set_manifold ( manifold_id, curv_manifold );
+//#endif
+//end of warp curv transformed grid
 
 #if 0
             const unsigned int n_global_active_cells2 = grid.n_global_active_cells();
@@ -233,8 +359,9 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
     all_parameters_new.ode_solver_param.initial_time_step =  delta_x /(1.0*(2.0*poly_degree+1)) ;
    // all_parameters_new.ode_solver_param.initial_time_step =  0.25*delta_x;
     all_parameters_new.ode_solver_param.initial_time_step =  0.5*delta_x;
-   // all_parameters_new.ode_solver_param.initial_time_step =  0.05*delta_x;
-//    all_parameters_new.ode_solver_param.initial_time_step =  0.0001;
+    all_parameters_new.ode_solver_param.initial_time_step =  0.05*delta_x;
+    all_parameters_new.ode_solver_param.initial_time_step =  0.05*delta_x;
+    all_parameters_new.ode_solver_param.initial_time_step =  0.005*delta_x;
     std::cout << "dt " <<all_parameters_new.ode_solver_param.initial_time_step <<  std::endl;
     std::cout << "cells " <<n_global_active_cells2 <<  std::endl;
   //  all_parameters_new.ode_solver_param.initial_time_step *= 1e-3;  
@@ -276,13 +403,13 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 	    expression = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) + 20*(z-1)*(z-1) ) )";//"sin(pi*x)*sin(pi*y)";
         if (dim == 2)
 	    //expression = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) ) )";//"sin(pi*x)*sin(pi*y)";
-	   // expression = "exp( -( 20*(x-2)*(x-2) + 20*(y-2)*(y-2) ) )";//"sin(pi*x)*sin(pi*y)";
+	    //expression = "exp( -( 20*(x-2)*(x-2) + 20*(y-2)*(y-2) ) )";//"sin(pi*x)*sin(pi*y)";
 	    expression = "exp( -( 20*(x)*(x) + 20*(y)*(y) ) )";//"sin(pi*x)*sin(pi*y)";
-	  //  expression = "sin(pi*x)*sin(pi*y)";//"sin(pi*x)*sin(pi*y)";
+	    //expression = "sin(pi*x)*sin(pi*y)";//"sin(pi*x)*sin(pi*y)";
 	    //expression = "exp( -( 20*(x-1.5)*(x-1.5) + 20*(y-1.5)*(y-1.5) ) )";//"sin(pi*x)*sin(pi*y)";
         if(dim==1)
-	   // expression = "exp( -( 20*(x-1)*(x-1) ) )";//"sin(pi*x)*sin(pi*y)";
-	    expression = "sin(pi*x)";//"sin(pi*x)*sin(pi*y)";
+	    expression = "exp( -( 20*(x)*(x) ) )";//"sin(pi*x)*sin(pi*y)";
+	    //expression = "sin(pi*x)";//"sin(pi*x)*sin(pi*y)";
 	initial_condition.initialize(variables,
 								 expression,
 								 constants);
@@ -345,7 +472,7 @@ finalTime = 10.0;
 //finalTime = 0.5;
 //finalTime = 10.0;
 //finalTime = 1.0;
-finalTime = all_parameters_new.ode_solver_param.initial_time_step;
+//finalTime = all_parameters_new.ode_solver_param.initial_time_step;
 
 //#if 0
 	//need to call ode_solver before calculating energy because mass matrix isn't allocated yet.
@@ -353,14 +480,15 @@ finalTime = all_parameters_new.ode_solver_param.initial_time_step;
         if (all_parameters_new.use_energy == true){//for split form get energy
 	ode_solver->advance_solution_time(0.000001);
 	double initial_energy = compute_energy(dg);
-printf("initial energy %g\n",initial_energy);
+//printf("initial energy %g\n",initial_energy);
 
 	//currently the only way to calculate energy at each time-step is to advance solution by dt instead of finaltime
 	//this causes some issues with outputs (only one file is output, which is overwritten at each time step)
 	//also the ode solver output doesn't make sense (says "iteration 1 out of 1")
 	//but it works. I'll keep it for now and need to modify the output functions later to account for this.
 	//std::ofstream myfile ("energy_plot_Cplus_p3_central_curv_adv_skew_deirv.gpl" , std::ios::trunc);
-	std::ofstream myfile ("energy_plot_one_step.gpl" , std::ios::trunc);
+	//std::ofstream myfile ("energy_plot_10_seconds_upwind_flux_curv_grid_cPlus_p3_curv_normal.gpl" , std::ios::trunc);
+	std::ofstream myfile ("energy_plot_10_seconds_central_flux_curv_grid_cPlus_2D_p3_drop2.gpl" , std::ios::trunc);
 	double dt = all_parameters_new.ode_solver_param.initial_time_step;
 
 	for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
@@ -368,11 +496,12 @@ printf("initial energy %g\n",initial_energy);
 		ode_solver->advance_solution_time(dt);
 		double current_energy = compute_energy(dg);
                 current_energy /=initial_energy;
-                std::cout << std::setprecision(9) << std::fixed;
-		pcout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
-		myfile << i * dt << " " << std::fixed << std::setprecision(9) << current_energy << std::endl;
+                std::cout << std::setprecision(16) << std::fixed;
+		pcout << "Energy at time " << i * dt << " is " << current_energy<< std::endl;
+		myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_energy << std::endl;
 		if (current_energy*initial_energy - initial_energy >= 10.00)
 		{
+                    pcout << " Energy was not monotonically decreasing" << std::endl;
 			return 1;
 			break;
 		}
@@ -381,7 +510,7 @@ printf("initial energy %g\n",initial_energy);
         }
         else{//do OOA
             finalTime = 2.0;
-            finalTime = all_parameters_new.ode_solver_param.initial_time_step;
+           // finalTime = all_parameters_new.ode_solver_param.initial_time_step;
 	    ode_solver->advance_solution_time(finalTime);
 //#endif
 
@@ -412,7 +541,7 @@ printf("initial energy %g\n",initial_energy);
 
             // Integrate solution error and output error
 
-           // const double pi = atan(1)*4.0;
+            const double pi = atan(1)*4.0;
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
 
@@ -433,8 +562,8 @@ printf("initial energy %g\n",initial_energy);
                     const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
                     double uexact=1.0;
                     for(int idim=0; idim<dim; idim++){
-                        uexact *= exp(-(20 * (qpoint[idim] - 2) * (qpoint[idim] - 2)));//for grid 1-3
-                       // uexact *= sin(pi*(qpoint[idim]-finalTime));//for grid 1-3
+                        //uexact *= exp(-(20 * (qpoint[idim] - 2) * (qpoint[idim] - 2)));//for grid 1-3
+                        uexact *= sin(pi*(qpoint[idim]-finalTime));//for grid 1-3
                     }
                         //std::cout << uexact - soln_at_q[istate] << std::endl;
                         l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);

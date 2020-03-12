@@ -38,7 +38,7 @@ double BurgersEnergyStability<dim, nstate>::compute_energy(std::shared_ptr < PHi
 
 	for (unsigned int i = 0; i < dg->solution.size(); ++i)
 	{
-           // energy += dg->global_mass_matrix(i,i) * dg->solution(i) * dg->solution(i);
+            //energy += dg->global_mass_matrix(i,i) * dg->solution(i) * dg->solution(i);
             energy +=  dg->solution(i) * Mu_hat(i);
 	}
 	return energy;
@@ -85,12 +85,12 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
         PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
 	double left = 0.0;
 	double right = 2.0;
-	const unsigned int n_grids = 8;
+	const unsigned int n_grids = 4;
         std::array<double,n_grids> grid_size;
         std::array<double,n_grids> soln_error;
-	unsigned int poly_degree = 5;
+	unsigned int poly_degree = 4;
         dealii::ConvergenceTable convergence_table;
-        const unsigned int igrid_start = 7;
+        const unsigned int igrid_start = 3;
 
 //        const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids_input);
         for(unsigned int igrid = igrid_start; igrid<n_grids; igrid++){
@@ -106,7 +106,7 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
 #endif
 //straight
     dealii::GridGenerator::hyper_cube(grid, left, right, true);
-   // dealii::GridGenerator::subdivided_hyper_cube(grid,static_cast<int>(pow(2, igrid)),left, right);
+    //dealii::GridGenerator::subdivided_hyper_cube(grid,static_cast<int>(pow(2, igrid)),left, right);
       //  dealii::GridGenerator::subdivided_hyper_cube(grid_super_fine, n_1d_cells[n_grids_input-1]);
 //curvilinear
 #if 0
@@ -141,7 +141,7 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
     all_parameters_new.ode_solver_param.initial_time_step =  0.005*delta_x;
   //  all_parameters_new.ode_solver_param.initial_time_step =  0.05*delta_x;
     all_parameters_new.ode_solver_param.initial_time_step =  0.0001;
-  //  all_parameters_new.ode_solver_param.initial_time_step =  0.00005;
+    //all_parameters_new.ode_solver_param.initial_time_step =  0.00005;
  //   all_parameters_new.ode_solver_param.initial_time_step =  0.001;
    // all_parameters_new.ode_solver_param.initial_time_step =  0.00001;
   //  if(igrid ==6 )
@@ -200,7 +200,7 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 	//this causes some issues with outputs (only one file is output, which is overwritten at each time step)
 	//also the ode solver output doesn't make sense (says "iteration 1 out of 1")
 	//but it works. I'll keep it for now and need to modify the output functions later to account for this.
-	std::ofstream myfile ("energy_plot_cDG_split_p5.gpl" , std::ios::trunc);
+	std::ofstream myfile ("energy_plot_cPlus_Classical_split_p5.gpl" , std::ios::trunc);
 
 	for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
 	{
@@ -210,6 +210,7 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 		pcout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
 		myfile << i * dt << " " << current_energy << std::endl;
 		if (current_energy*initial_energy - initial_energy >= 1.0)
+	//	if (current_energy*initial_energy - initial_energy >= 10000.0)
 		{
 			return 1;
 			break;

@@ -5,8 +5,30 @@
 #include "dg/dg.h"
 #include "parameters/all_parameters.h"
 
+#include <deal.II/grid/manifold_lib.h>
+
 namespace PHiLiP {
 namespace Tests {
+
+/// Curvilinear manifold.
+//class CurvManifold: public dealii::ChartManifold<2,2,2> {
+template <int dim>
+class CurvManifold: public dealii::ChartManifold<dim,dim,dim> {
+#if 0
+public:
+    virtual dealii::Point<2> pull_back(const dealii::Point<2> &space_point) const override; ///< See dealii::Manifold.
+    virtual dealii::Point<2> push_forward(const dealii::Point<2> &chart_point) const override; ///< See dealii::Manifold.
+    virtual dealii::DerivativeForm<1,2,2> push_forward_gradient(const dealii::Point<2> &chart_point) const override; ///< See dealii::Manifold.
+    
+    virtual std::unique_ptr<dealii::Manifold<2,2> > clone() const override; ///< See dealii::Manifold.
+#endif
+    virtual dealii::Point<dim> pull_back(const dealii::Point<dim> &space_point) const override; ///< See dealii::Manifold.
+    virtual dealii::Point<dim> push_forward(const dealii::Point<dim> &chart_point) const override; ///< See dealii::Manifold.
+    virtual dealii::DerivativeForm<1,dim,dim> push_forward_gradient(const dealii::Point<dim> &chart_point) const override; ///< See dealii::Manifold.
+    
+    virtual std::unique_ptr<dealii::Manifold<dim,dim> > clone() const override; ///< See dealii::Manifold.
+};
+
 
 template <int dim, int nstate>
 class AdvectionPeriodic: public TestsBase

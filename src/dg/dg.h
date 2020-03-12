@@ -610,7 +610,7 @@ private:
     //for metric flux
     void get_flux_with_metric_terms(
          const dealii::FEValues<dim,dim> &fe_values_vol,
-         const unsigned int n_quad_pts, 
+         const unsigned int n_quad_pts, const unsigned int n_dofs_cell,
          const std::vector< std::array< dealii::Tensor<1,dim,real>, nstate >> &conv_phys_flux_at_q, 
          std::vector< std::array< dealii::Tensor<1,dim,real>, nstate >> &conv_phys_flux_metric);
 

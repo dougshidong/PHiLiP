@@ -188,7 +188,7 @@ dealii::FullMatrix<double> get_projection_operator(
 template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::get_flux_with_metric_terms(
                 const dealii::FEValues<dim,dim> &fe_values_vol,
-                const unsigned int n_quad_pts, 
+                const unsigned int n_quad_pts, const unsigned int n_dofs_cell,
                 const std::vector< std::array< dealii::Tensor<1,dim,real>, nstate >> &conv_phys_flux_at_q, 
                 std::vector< std::array< dealii::Tensor<1,dim,real>, nstate >> &conv_phys_flux_metric)
 {
@@ -207,7 +207,7 @@ void DGStrong<dim,nstate,real>::get_flux_with_metric_terms(
             }
         }
         
-    const unsigned int fe_index_curr_cell = pow(n_quad_pts,1.0/dim) - 1;
+    const unsigned int fe_index_curr_cell = pow(n_dofs_cell,1.0/dim) - 1;
     const std::vector<real> &quad_weights = DGBase<dim,real>::volume_quadrature_collection_flux[fe_index_curr_cell].get_weights ();
     const std::vector<real> &JxW = fe_values_vol.get_JxW_values ();
     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
@@ -215,7 +215,7 @@ void DGStrong<dim,nstate,real>::get_flux_with_metric_terms(
             for(int idim=0; idim<dim; idim++){
                 conv_phys_flux_metric[iquad][istate][idim] = 0.0;
                 for(int idim2=0; idim2<dim; idim2++){
-//                conv_phys_flux_metric[iquad][istate][idim] += Jacobian_inv[iquad][idim][idim2] * conv_phys_flux_at_q[iquad][istate][idim];
+                //conv_phys_flux_metric[iquad][istate][idim] += Jacobian_inv[iquad][idim][idim2] * conv_phys_flux_at_q[iquad][istate][idim];
                 conv_phys_flux_metric[iquad][istate][idim] += Jacobian_inv[iquad][idim][idim2] * conv_phys_flux_at_q[iquad][istate][idim] * JxW[iquad] / quad_weights[iquad];
                 }
             }
@@ -268,7 +268,12 @@ void DGStrong<dim,nstate,real>::get_Flux_Reconstruction_modifying_filters(
             filter.mTmult(filter_chi, Chi_operator_soln_flux);
         }
         else{
-            filter_chi = Chi_operator_soln_flux;
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                for(unsigned int iquad=0; iquad<n_quad_pts_flux; iquad++){
+                    filter_chi[idof][iquad] = Chi_operator_soln_flux[iquad][idof];//filter_chi = Chi^T
+                }
+            }
+        //    filter_chi = Chi_operator_soln_flux;
         }
         filter.mTmult(filter_chi_source, Chi_operator);
 
@@ -1668,20 +1673,20 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
 //Note split form will have to change since now in p+1 polynomial basis rather than nodal solutions of the flux
     // Evaluate flux divergence by interpolating the flux
     // Since we have nodal values of the flux, we use the Lagrange polynomials to obtain the gradients at the quadrature points.
-   // const dealii::FEValues<dim,dim> &fe_values_lagrange = this->fe_values_collection_volume_lagrange.get_present_fe_values();
-#if 0
-    std::vector<ADArray> flux_divergence(n_quad_pts);
+    //const dealii::FEValues<dim,dim> &fe_values_lagrange = this->fe_values_collection_volume_lagrange.get_present_fe_values();
+#if 0 
+    std::vector<ADArray> flux_divergence_lagrange(n_quad_pts_flux);
     for (int istate = 0; istate<nstate; ++istate) {
-        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-            flux_divergence[iquad][istate] = 0.0;
-            for ( unsigned int flux_basis = 0; flux_basis < n_quad_pts; ++flux_basis ) {
-                if (this->all_parameters->use_split_form == true)
+        for (unsigned int iquad=0; iquad<n_quad_pts_flux; ++iquad) {
+            flux_divergence_lagrange[iquad][istate] = 0.0;
+            for ( unsigned int flux_basis = 0; flux_basis < n_quad_pts_flux; ++flux_basis ) {
+            //    if (this->all_parameters->use_split_form == true)
+             //   {
+              //      flux_divergence_lagrange[iquad][istate] += 2* pde_physics->convective_numerical_split_flux(soln_at_q[iquad],soln_at_q[flux_basis])[istate] *  fe_values_lagrange.shape_grad(flux_basis,iquad);
+               // }
+               // else
                 {
-                    flux_divergence[iquad][istate] += 2* pde_physics->convective_numerical_split_flux(soln_at_q[iquad],soln_at_q[flux_basis])[istate] *  fe_values_lagrange.shape_grad(flux_basis,iquad);
-                }
-                else
-                {
-                    flux_divergence[iquad][istate] += conv_phys_flux_at_q[flux_basis][istate] * fe_values_lagrange.shape_grad(flux_basis,iquad);
+                    flux_divergence_lagrange[iquad][istate] += conv_phys_flux_at_q[flux_basis][istate] * fe_values_lagrange.shape_grad(flux_basis,iquad);
                 }
             }
         }
@@ -1709,7 +1714,32 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
 //#endif
 //for skew symmteric form of metric terms
     std::vector< ADArrayTensor1 > conv_phys_flux_metric(n_quad_pts_flux);
-    get_flux_with_metric_terms(fe_values_vol_flux, n_quad_pts_flux, conv_phys_flux_at_q, conv_phys_flux_metric);
+    get_flux_with_metric_terms(fe_values_vol_flux, n_quad_pts_flux, n_dofs_cell, conv_phys_flux_at_q, conv_phys_flux_metric);
+
+
+//test P^T*Chi^T=Identity
+#if 0
+    dealii::FullMatrix<real> Chi_operator_flux(n_quad_pts_flux, n_dofs_cell_flux);
+    dealii::FullMatrix<real> P_trans_Chi_trans(n_quad_pts_flux, n_dofs_cell_flux);
+    for (unsigned int idof=0; idof<n_dofs_cell_flux; idof++){
+        const unsigned int istate = fe_values_vol_flux.get_fe().system_to_component_index(idof).first;
+        for( unsigned int iquad=0; iquad<n_quad_pts_flux; iquad++){
+            Chi_operator_flux[iquad][idof] = JxW_soln_flux[iquad] * fe_values_vol_flux.shape_value_component(idof,iquad,istate);
+        }
+    }
+    
+    projection_matrix.TmTmult(P_trans_Chi_trans, Chi_operator_flux);
+
+printf("Test\n");
+    for (unsigned int idof=0; idof<n_dofs_cell_flux; idof++){
+        for( unsigned int iquad=0; iquad<n_quad_pts_flux; iquad++){
+            printf("%g ",P_trans_Chi_trans[idof][iquad]);
+        }
+    printf("\n");
+    }
+
+#endif
+//end test P^T*Chi^T
 
 
 
@@ -1740,7 +1770,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
     std::vector<ADArray> flux_divergence(n_quad_pts_flux);
     std::vector<ADArray> flux_divergence_metric(n_quad_pts_flux);
     std::vector<ADArray> split_div(n_quad_pts_flux);//d(Chi)/d(xi)*u
-    const unsigned int fe_index_curr_cell = pow(n_dofs_cell_flux,1.0/dim) - 1;
+    const unsigned int fe_index_curr_cell = pow(n_dofs_cell,1.0/dim) - 1;
     for (int istate = 0; istate<nstate; ++istate) {
         for (unsigned int iquad=0; iquad<n_quad_pts_flux; ++iquad) {
             flux_divergence[iquad][istate] = 0.0;
@@ -1757,217 +1787,17 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
         }
     }
 
-
-//Testing KD
 #if 0
-    std::vector<dealii::FullMatrix<real>> local_derivative_operator(dim);
-    for(int idim=0; idim<dim; idim++){
-       local_derivative_operator[idim].reinit(n_quad_pts, n_dofs_cell);
-    }
-    dealii::FullMatrix<real> Chi_operator(n_quad_pts, n_dofs_cell);
-    dealii::FullMatrix<real> Chi_operator_with_Jac(n_quad_pts, n_dofs_cell);
-    dealii::FullMatrix<real> Chi_inv_operator(n_quad_pts, n_dofs_cell);
-    const std::vector<real> &quad_weights = DGBase<dim,real>::volume_quadrature_collection[2].get_weights ();
-    for(int istate=0; istate<nstate; istate++){
-    for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
-        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-            const dealii::Point<dim> qpoint  = DGBase<dim,real>::volume_quadrature_collection[2].point(iquad);
-            Chi_operator[iquad][itest] = DGBase<dim,real>::fe_collection[2].shape_value_component(itest,qpoint,istate);
-            Chi_operator_with_Jac[iquad][itest] = DGBase<dim,real>::fe_collection[2].shape_value_component(itest,qpoint,istate) * JxW[iquad] / quad_weights[iquad];
-        }
-    }
-    }
-    Chi_inv_operator.invert(Chi_operator);
-    dealii::FullMatrix<real> Jacobian_physical(n_dofs_cell);
-    Chi_inv_operator.mmult(Jacobian_physical, Chi_operator_with_Jac);
-//printf("deriv\n");
-//fflush(stdout);
-    for(int istate=0; istate<nstate; istate++){
-    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
-            dealii::Tensor<1,dim,real> derivative;
-           // derivative = fe_values_vol.shape_grad_component(idof, iquad, istate);
-            const dealii::Point<dim> qpoint  = DGBase<dim,real>::volume_quadrature_collection[2].point(iquad);
-            derivative = DGBase<dim,real>::fe_collection[2].shape_grad_component(idof, qpoint, istate);
-            for (int idim=0; idim<dim; idim++){
-                local_derivative_operator[idim][iquad][idof] = derivative[idim];
-//printf("%g ",local_derivative_operator[idim][iquad][idof]);
-//fflush(stdout);
+    std::vector<ADArray> split_div2(n_quad_pts_flux);//d(Chi)/d(xi)*u
+    for (int istate = 0; istate<nstate; ++istate) {
+        for (unsigned int idof=0; idof<n_dofs_cell_flux; ++idof) {
+            split_div2[idof][istate] = 0.0;
+            for (unsigned int iquad=0; iquad<n_quad_pts_flux; ++iquad) {
+                split_div2[idof][istate] += P_trans_Chi_trans[idof][iquad] * split_div[iquad][istate]; 
             }
         }
-//printf("\n");
-//fflush(stdout);
-    }
-    }
-    for(int idim=0; idim<dim; idim++){
-        dealii::FullMatrix<real> derivative_temp(n_quad_pts, n_dofs_cell);
-        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-                derivative_temp[iquad][idof] = local_derivative_operator[idim][iquad][idof];
-            }
-        }
-        Chi_inv_operator.mmult(local_derivative_operator[idim],derivative_temp);
-    }
-        dealii::FullMatrix<real> derivative_p2(n_quad_pts, n_dofs_cell);
-        dealii::FullMatrix<real> derivative_p3(n_quad_pts, n_dofs_cell);
-        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                    derivative_p3[idof][iquad] = 0.0;//set it equal to identity
-            }
-        }
-        for(unsigned int v_deg=0; v_deg<=2; v_deg++){
-        dealii::FullMatrix<real> derivative_p(n_quad_pts, n_dofs_cell);
-        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                if(idof == iquad){
-                    derivative_p[idof][iquad] = 1.0;//set it equal to identity
-                }
-            }
-        }
-        
-        for(unsigned int idegree=0; idegree< (2 -v_deg); idegree++){
-            dealii::FullMatrix<real> derivative_p_temp(n_quad_pts, n_dofs_cell);
-            derivative_p_temp.add(1, derivative_p);
-            local_derivative_operator[0].mmult(derivative_p, derivative_p_temp);
-        }
-        for(unsigned int idegree=0; idegree< (v_deg); idegree++){
-            dealii::FullMatrix<real> derivative_p_temp(n_quad_pts, n_dofs_cell);
-            derivative_p_temp.add(1, derivative_p);
-            local_derivative_operator[1].mmult(derivative_p, derivative_p_temp);
-        }
-        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                    derivative_p3[idof][iquad] += derivative_p[idof][iquad];
-                    if(v_deg == 1)
-                        derivative_p3[idof][iquad] += derivative_p[idof][iquad];
-            }
-        }
-
-        }
-        dealii::FullMatrix<real> derivative_p4(n_quad_pts, n_dofs_cell);
-        Chi_operator.mmult(derivative_p4, derivative_p3);
-        derivative_p4.mmult(derivative_p2,Jacobian_physical);
-#if 0
-printf("Dsquared\n");
-fflush(stdout);
-for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-for(unsigned int idof=0; idof<n_dofs_cell;idof++){
-printf("%g ",derivative_p[iquad][idof]);
-fflush(stdout);
-}
-printf("\n");
-fflush(stdout);
-}
-#endif
-
-    std::vector<ADArray> flux_divergence_test(n_dofs_cell);
-    for(unsigned int idof=0; idof<n_dofs_cell; ++idof){
-        const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(idof).first;
-    flux_divergence_test[idof][0] = 0.0;
-        for (unsigned int iquad=0; iquad<n_quad_pts_flux; ++iquad) {
-            flux_divergence_test[idof][istate] -= fe_values_vol_soln_flux.shape_value_component(idof,iquad,istate) * flux_divergence[iquad][istate]* JxW_soln_flux[iquad];
-    }
-    }
-
-        dealii::FullMatrix<real> local_mass_matrix(n_dofs_cell);
-        for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
-            const unsigned int istate_test = fe_values_vol.get_fe().system_to_component_index(itest).first;
-            for (unsigned int itrial=itest; itrial<n_dofs_cell; ++itrial) {
-                const unsigned int istate_trial = fe_values_vol.get_fe().system_to_component_index(itrial).first;
-                real value = 0.0;
-                for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-                    value +=
-                        fe_values_vol.shape_value_component(itest,iquad,istate_test)
-                        * fe_values_vol.shape_value_component(itrial,iquad,istate_trial)
-                        * fe_values_vol.JxW(iquad);
-                }
-                local_mass_matrix[itrial][itest] = 0.0;
-                local_mass_matrix[itest][itrial] = 0.0;
-                if(istate_test==istate_trial) { 
-                    local_mass_matrix[itrial][itest] = value;
-                    local_mass_matrix[itest][itrial] = value;
-                }
-            }
-        }
-            dealii::FullMatrix<real> local_inverse_mass_matrix(n_dofs_cell);
-            local_inverse_mass_matrix.invert(local_mass_matrix);
-
-    std::vector<ADArray> flux_divergence_test2(n_dofs_cell);
-    for(unsigned int idof=0; idof<n_dofs_cell; ++idof){
-        const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(idof).first;
-    flux_divergence_test2[idof][0] = 0.0;
-        for (unsigned int idof2=0; idof2<n_dofs_cell; ++idof2) {
-            flux_divergence_test2[idof][istate] += local_inverse_mass_matrix[idof][idof2] * flux_divergence_test[idof2][istate];
-    }
-    }
-
-    std::vector<ADArray> flux_divergence_fin(n_quad_pts);
-    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-    flux_divergence_fin[iquad][0] = 0.0;
-    for(unsigned int idof=0; idof<n_dofs_cell; ++idof){
-        const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(idof).first;
-            flux_divergence_fin[iquad][istate] += derivative_p2[iquad][idof] * flux_divergence_test2[idof][istate];
-    }
-    //    printf("KD %g\n",flux_divergence_fin[iquad][0]);
-     //   fflush(stdout);
-    std::cout << "Primary KD: " << flux_divergence_fin[iquad][0] << ".\n";
     }
 #endif
-
-   // dealii::FullMatrix<real> Chi_operator(n_quad_pts, n_dofs_cell);
-   //
-//    dealii::FullMatrix<real> Chi_operator_soln_flux(n_quad_pts_flux, n_dofs_cell);
-
-   // dealii::FullMatrix<real> diag_soln_U(n_quad_pts);
-   // dealii::FullMatrix<real> diag_soln_U(n_quad_pts_flux);
-   // dealii::FullMatrix<real> temp_U(n_dofs_cell, n_quad_pts);
-   // dealii::FullMatrix<real> U_chain_rule(n_dofs_cell, n_quad_pts_flux);
-   //
-   // dealii::FullMatrix<real> chi_U_flux(n_dofs_cell, n_quad_pts_flux);//Chi^T*diag(Chi u_hat^T)*Proj*Chi_flux^T
-    #if 0
-    for(int istate=0; istate<nstate; istate++){
-    for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
-        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-   //         Chi_operator[iquad][itest] = fe_values_vol.shape_value_component(itest,iquad,istate);
-    //        Chi_operator_flux[iquad][itest] = fe_values_vol_soln_flux.shape_value_component(itest,iquad,istate);
-            if(itest == iquad){
-               // diag_soln_U[iquad][iquad] = soln_at_q[iquad][istate];
-                diag_soln_U[iquad][iquad] = soln_at_q_flux[iquad][istate];
-            }
-        }
-    }
-    }
-    #endif
-    #if 0
-    for(int istate=0; istate<nstate; istate++){
-    for (unsigned int iquad1=0; iquad1<n_quad_pts_flux; ++iquad1) {
-        for (unsigned int iquad2=0; iquad2<n_quad_pts_flux; ++iquad2) {
-            if(iquad1 == iquad2){
-                diag_soln_U[iquad1][iquad2] = soln_at_q_flux[iquad1][istate];
-            }
-            else{
-                diag_soln_U[iquad1][iquad2] = 0.0;
-            }
-        }
-    }
-    }
-    #endif
-#if 0
-    for(int istate=0; istate<nstate; istate++){
-    for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
-        for (unsigned int iquad=0; iquad<n_quad_pts_flux; ++iquad) {
-            Chi_operator_soln_flux[iquad][itest] = fe_values_vol_soln_flux.shape_value_component(itest,iquad,istate);
-        }
-    }
-    }
-#endif
-   // Chi_operator_inv.invert(Chi_operator);
-   #if 0
-    Chi_operator.Tmmult(temp_U, diag_soln_U);
-    temp_U.mTmult(U_chain_rule, projection_matrix);
-    U_chain_rule.mTmult(chi_U_flux, Chi_operator_flux);
-    #endif
-  //  Chi_operator_soln_flux.Tmmult(chi_U_flux, diag_soln_U);
 
 //ESFR CLASSICAL 
 
@@ -1981,136 +1811,75 @@ fflush(stdout);
     DGBase<dim,real>::get_K_operator_FR(DGBase<dim,real>::fe_collection, fe_index_curr_cell, fe_values_vol, n_quad_pts, n_dofs_cell, fe_index_curr_cell, K_operator, K_operator_aux);
     get_Flux_Reconstruction_modifying_filters(fe_values_vol, n_dofs_cell, n_quad_pts, fe_values_vol_soln_flux, n_quad_pts_flux, K_operator, filter_chi, filter_chi_source);
 
-//ESFR Classical
+//testing KD
 
 #if 0
-    dealii::FullMatrix<real> K_oper(n_dofs_cell);
-    dealii::FullMatrix<real> K_oper_Jac(n_dofs_cell);
-    dealii::FullMatrix<real> Mass(n_dofs_cell);
     dealii::FullMatrix<real> Mass_Jac(n_dofs_cell);
-    dealii::FullMatrix<real> M_K(n_dofs_cell);
     dealii::FullMatrix<real> M_inv(n_dofs_cell);
-    dealii::FullMatrix<real> Chi_operator(n_dofs_cell);
-    dealii::FullMatrix<real> Chi_inv_operator(n_dofs_cell);
-    dealii::FullMatrix<real> Chi_operator_with_Quad(n_dofs_cell);
-    dealii::FullMatrix<real> Chi_operator_with_Jac(n_quad_pts, n_dofs_cell);
+    dealii::FullMatrix<real> Chi_operator(n_quad_pts, n_dofs_cell);
     dealii::FullMatrix<real> Chi_operator_with_Jac_Quad(n_quad_pts, n_dofs_cell);
-    const unsigned int fe_index_curr_cell = 5;
-    const std::vector<real> &quad_weights = DGBase<dim,real>::volume_quadrature_collection[fe_index_curr_cell].get_weights ();
+   // const std::vector<real> &JxW = fe_values_vol.get_JxW_values ();
     for(int istate=0; istate<nstate; istate++){
     for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
-        for (unsigned int iquad=0; iquad<n_dofs_cell; ++iquad) {
-            const dealii::Point<dim> qpoint  = DGBase<dim,real>::volume_quadrature_collection[fe_index_curr_cell].point(iquad);
-            Chi_operator[iquad][itest] = DGBase<dim,real>::fe_collection[fe_index_curr_cell].shape_value_component(itest,qpoint,istate);
-            Chi_operator_with_Quad[iquad][itest] = DGBase<dim,real>::fe_collection[fe_index_curr_cell].shape_value_component(itest,qpoint,istate) * quad_weights[iquad];
-            Chi_operator_with_Jac[iquad][itest] = DGBase<dim,real>::fe_collection[fe_index_curr_cell].shape_value_component(itest,qpoint,istate) * JxW[iquad] / quad_weights[iquad];
-            Chi_operator_with_Jac_Quad[iquad][itest] = DGBase<dim,real>::fe_collection[fe_index_curr_cell].shape_value_component(itest,qpoint,istate) * JxW[iquad];
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            Chi_operator[iquad][itest] = fe_values_vol.shape_value_component(itest,iquad,istate);
+            Chi_operator_with_Jac_Quad[iquad][itest] = fe_values_vol.shape_value_component(itest,iquad,istate) * JxW[iquad];
         }
     }
     }
-    Chi_operator.Tmmult(Mass, Chi_operator_with_Quad); 
     Chi_operator.Tmmult(Mass_Jac, Chi_operator_with_Jac_Quad); 
-    Chi_inv_operator.invert(Chi_operator);
-    dealii::FullMatrix<real> Jacobian_physical(n_dofs_cell);
-    Chi_inv_operator.mmult(Jacobian_physical, Chi_operator_with_Jac);//Chi^{-1}*Jm*Chi
-    std::vector<dealii::FullMatrix<real>> local_derivative_operator(dim);
-    for(int idim=0; idim<dim; idim++){
-       local_derivative_operator[idim].reinit(n_dofs_cell, n_dofs_cell);
-    }
-    for(int istate=0; istate<nstate; istate++){
-    for (unsigned int iquad=0; iquad<n_dofs_cell; ++iquad) {
-        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
-            dealii::Tensor<1,dim,real> derivative;
-            const dealii::Point<dim> qpoint  = DGBase<dim,real>::volume_quadrature_collection[fe_index_curr_cell].point(iquad);
-            derivative = DGBase<dim,real>::fe_collection[fe_index_curr_cell].shape_grad_component(idof, qpoint, istate);
-            for (int idim=0; idim<dim; idim++){
-                local_derivative_operator[idim][iquad][idof] = derivative[idim];//store dChi/dXi
-            }
+    for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            Mass_Jac[iquad][itest] += K_operator[iquad][itest];
         }
     }
+    M_inv.invert(Mass_Jac);
+    dealii::Vector<real> int_f(n_dofs_cell);
+    for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+        const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(itest).first;
+        int_f[itest] = 0.0;
+        for (unsigned int iquad=0; iquad<n_quad_pts_flux; ++iquad) {
+           // const std::vector<real> &quad_weights = DGBase<dim,real>::volume_quadrature_collection_flux[fe_index_curr_cell].get_weights ();
+           // int_f[itest] -=  filter_chi[itest][iquad] * flux_divergence_metric[iquad][istate] * quad_weights[iquad];
+            //int_f[itest] -=  filter_chi[itest][iquad] * flux_divergence[iquad][istate] * JxW_soln_flux[iquad];
+            //int_f[itest] -=  filter_chi[itest][iquad] * flux_divergence_lagrange[iquad][istate] * JxW_soln_flux[iquad];
+            int_f[itest] -=  filter_chi[itest][iquad] * soln_at_q_flux[iquad][istate] * split_div[iquad][istate] * JxW_soln_flux[iquad];
+        }
     }
-
-    //turn derivative of basis function to derivative operator D=Chi^{-1}*dChi/dXi
-    for(int idim=0; idim<dim; idim++){
-        dealii::FullMatrix<real> derivative_temp(n_dofs_cell);
-        for(unsigned int iquad=0; iquad<n_dofs_cell; iquad++){
-            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-                derivative_temp[iquad][idof] = local_derivative_operator[idim][iquad][idof];
-            }
-        }
-        Chi_inv_operator.mmult(local_derivative_operator[idim],derivative_temp);
+    dealii::Vector<real> test_KD(n_dofs_cell);
+    dealii::Vector<real> Df(n_dofs_cell);
+    M_inv.vmult(Df, int_f);
+    K_operator.vmult(test_KD, Df);
+    printf("\n\n\n");
+    fflush(stdout);
+    printf("integratd flux \n");
+    fflush(stdout);
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        printf("%g \n", int_f[idof]);
+        fflush(stdout);
     }
-    real c = 0.0;
-    if(fe_index_curr_cell == 4){
-            c = 4.79e-5;
-        c/=2.0;//since orthonormal
-        c/=pow(pow(2.0,4.0),2);//since ref elem [0,1]
+    printf("\n\n\n");
+    fflush(stdout);
+    printf("KDf \n");
+    fflush(stdout);
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        printf("%g \n", test_KD[idof]);
+        fflush(stdout);
     }
-    else{
-            c = 4.24e-7;
-        c/=2.0;//since orthonormal
-        c/=pow(pow(2.0,5.0),2);//since ref elem [0,1]
+    printf("\n\n\n");
+    fflush(stdout);
+    printf("K \n");
+    fflush(stdout);
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+    for(unsigned int idof2=0; idof2<n_dofs_cell; idof2++){
+        printf("%g ", K_operator[idof][idof2]);
+        fflush(stdout);
     }
-    c=0.0;
-        dealii::FullMatrix<real> derivative_p(n_dofs_cell);
-        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-            for(unsigned int iquad=0; iquad<n_dofs_cell; iquad++){
-                if(idof == iquad){
-                    derivative_p[idof][iquad] = 1.0;//set it equal to identity
-                }
-            }
-        }
-
-        //(Chi^{-1}*dChi/dXi)^p
-        for(unsigned int idegree=0; idegree< (fe_index_curr_cell); idegree++){
-            dealii::FullMatrix<real> derivative_p_temp(n_dofs_cell);
-            derivative_p_temp.add(1, derivative_p);
-            local_derivative_operator[0].mmult(derivative_p, derivative_p_temp);
-        }
-
-        //c*(Chi^{-1}*dChi/dXi)^p
-        dealii::FullMatrix<real> derivative_p_temp(n_dofs_cell);
-        for(unsigned int iquad=0; iquad<n_dofs_cell; iquad++){
-            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-                derivative_p_temp[iquad][idof] = c * derivative_p[iquad][idof];
-            }
-        }
-        dealii::FullMatrix<real> K_operator_temp(n_dofs_cell);
-        derivative_p_temp.Tmmult(K_operator_temp, Mass);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M
-        K_operator_temp.mmult(K_oper, derivative_p);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
-        K_oper.mmult(K_oper_Jac, Jacobian_physical);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
-        for(unsigned int iquad=0; iquad<n_dofs_cell; iquad++){
-            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-            M_K[iquad][idof] = Mass_Jac[iquad][idof] + K_oper_Jac[iquad][idof];
-            }
-        }
-        M_inv.invert(Mass_Jac);
-        dealii::FullMatrix<real> filter(n_dofs_cell);
-        M_K.mmult(filter, M_inv);
-       // dealii::FullMatrix<real> filter_chi(n_dofs_cell, n_quad_pts_flux);
-        dealii::FullMatrix<real> filter_chi_source(n_dofs_cell);
-        dealii::FullMatrix<real> Chi_operator_soln_flux(n_quad_pts_flux,n_dofs_cell);
-        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-            for(unsigned int iquad=0; iquad<n_quad_pts_flux; iquad++){
-                Chi_operator_soln_flux[iquad][idof] = fe_values_vol_soln_flux.shape_value_component(idof,iquad,0);
-            }
-        }
-       // filter.mTmult(filter_chi, Chi_operator_soln_flux);
-        filter.mTmult(filter_chi_source, Chi_operator);
+    printf("\n");
+    }
 #endif
-
-//end of ESFR Classical
-
-
-
-
-
-
-
-
-
-
-//END ESFR CLASSICAL
+//end test KD
+    
     
 
     // Strong form
@@ -2140,29 +1909,32 @@ fflush(stdout);
             if (this->all_parameters->use_split_form == true){
                 alpha = 2.0/3.0;
                 //for split form
-               // split = split + (1.0 - alpha) * soln_at_q_flux[iquad][istate] *  fe_values_vol_soln_flux.shape_value_component(itest,iquad,istate) * split_div[iquad][istate] * JxW_soln_flux[iquad];//THIS IS IT YAY
+                //split = split + (1.0 - alpha) * soln_at_q_flux[iquad][istate] *  fe_values_vol_soln_flux.shape_value_component(itest,iquad,istate) * split_div[iquad][istate] * JxW_soln_flux[iquad];//THIS IS IT YAY
                 split = split + (1.0 - alpha) * soln_at_q_flux[iquad][istate] * filter_chi[itest][iquad]  * split_div[iquad][istate] * JxW_soln_flux[iquad];//THIS IS IT YAY
+                //split = split + (1.0 - alpha) * soln_at_q_flux[iquad][istate] * filter_chi[itest][iquad]  * split_div2[iquad][istate];//THIS IS IT YAY
+               // split = split + (1.0 - alpha) * filter_chi[itest][iquad]  * split_div[iquad][istate] * JxW_soln_flux[iquad];//THIS IS IT YAY
             }
             if (this->all_parameters->use_skew_sym_deriv == true){
                 beta = 1.0/2.0;
-    //            rhs = rhs - beta * fe_values_vol_soln_flux.shape_value_component(itest,iquad,istate) * flux_divergence_metric[iquad][istate] * JxW_soln_flux[iquad];
-    const std::vector<real> &quad_weights = DGBase<dim,real>::volume_quadrature_collection_flux[fe_index_curr_cell].get_weights ();
-                rhs = rhs - beta * fe_values_vol_soln_flux.shape_value_component(itest,iquad,istate) * flux_divergence_metric[iquad][istate] *  quad_weights[iquad];
+             //   rhs = rhs - beta * fe_values_vol_soln_flux.shape_value_component(itest,iquad,istate) * flux_divergence_metric[iquad][istate] * JxW_soln_flux[iquad];
+                const std::vector<real> &quad_weights = DGBase<dim,real>::volume_quadrature_collection_flux[fe_index_curr_cell].get_weights ();
+          //      rhs = rhs - beta * fe_values_vol_soln_flux.shape_value_component(itest,iquad,istate) * flux_divergence_metric[iquad][istate] *  quad_weights[iquad];
+                rhs = rhs - beta * filter_chi[itest][iquad] * flux_divergence_metric[iquad][istate] *  quad_weights[iquad];
             }
 
 
-           // rhs = rhs - alpha * fe_values_vol_soln_flux.shape_value_component(itest,iquad,istate) * flux_divergence[iquad][istate] * JxW_soln_flux[iquad];
-            rhs = rhs - alpha * beta * fe_values_vol_soln_flux.shape_value_component(itest,iquad,istate) * flux_divergence[iquad][istate] * JxW_soln_flux[iquad];
+            //rhs = rhs - alpha * fe_values_vol_soln_flux.shape_value_component(itest,iquad,istate) * flux_divergence[iquad][istate] * JxW_soln_flux[iquad];
+           // rhs = rhs - alpha * beta * fe_values_vol_soln_flux.shape_value_component(itest,iquad,istate) * flux_divergence[iquad][istate] * JxW_soln_flux[iquad];
+            //
+            rhs = rhs - alpha * beta * filter_chi[itest][iquad] * flux_divergence[iquad][istate] * JxW_soln_flux[iquad];
+
+
+
             //rhs = rhs - alpha * filter_chi[itest][iquad] * flux_divergence[iquad][istate] * JxW_soln_flux[iquad];
     //        rhs = rhs - alpha * fe_values_vol_soln_flux.shape_value_component(itest,iquad,istate) * flux_divergence_metric[iquad][istate] * JxW_soln_flux[iquad];
 //#endif
- //           rhs = rhs - fe_values_vol_soln_flux.shape_value_component(itest,iquad,istate) * flux_divergence[iquad][istate] * JxW_soln_flux[iquad];
+            //rhs = rhs - fe_values_vol_soln_flux.shape_value_component(itest,iquad,istate) * flux_divergence[iquad][istate] * JxW_soln_flux[iquad];
 
-#if 0
-            //for split form
-           // rhs = rhs - (1.0 - alpha) * soln_at_q[itest][istate] * fe_values_vol_soln_flux.shape_value_component(itest,iquad,istate) * split_div[iquad][istate] * JxW_soln_flux[iquad];
-            split = split + (1.0 - alpha) *  fe_values_vol_soln_flux.shape_value_component(itest,iquad,istate) * split_div[iquad][istate] * JxW_soln_flux[iquad];
-#endif
 
             //// Diffusive
             //// Note that for diffusion, the negative is defined in the physics
@@ -2179,7 +1951,7 @@ fflush(stdout);
         }
 
         if (this->all_parameters->use_split_form == true){
-            //split = split * soln_at_q[itest][istate]; 
+           // split = split * soln_at_q[itest][istate]; 
            // split = split * soln_coeff[itest];
             rhs = rhs - split;
         }
@@ -3150,6 +2922,7 @@ void DGStrong<dim,nstate,real>::assemble_residual (const bool compute_dRdW)
 
                 if(current_face->at_boundary() && all_parameters->use_periodic_bc == true && dim == 1) //using periodic BCs (for 1d)
                 {
+#if 0
                     const unsigned int boundary_id_check = current_face->boundary_id();//not to double count periodic faces
                     if(boundary_id_check == 0)
                         continue;
@@ -3187,8 +2960,11 @@ void DGStrong<dim,nstate,real>::assemble_residual (const bool compute_dRdW)
                         const unsigned int quad_index_neigh_cell = fe_index_neigh_cell;
                         const unsigned int mapping_index_neigh_cell = 0;
                         fe_values_collection_face_ext.reinit(neighbor_cell, neighbor_face, quad_index_neigh_cell, mapping_index_neigh_cell, fe_index_neigh_cell); //not sure how changing the face number would work in dim!=1-dimensions.
+                    const int neighbor_face_no = neighbor_face;
+#endif
                 
-#if 0
+//#if 0
+                    int cell_index  = current_cell->index();
                     if (cell_index == 0 && iface == 0)
                     {
                         fe_values_collection_face_int.reinit(current_cell, iface, quad_index, mapping_index, fe_index_curr_cell);
@@ -3215,12 +2991,11 @@ void DGStrong<dim,nstate,real>::assemble_residual (const bool compute_dRdW)
                         const unsigned int mapping_index_neigh_cell = 0;
                         fe_values_collection_face_ext.reinit(neighbor_cell,(iface == 1) ? 0 : 1, quad_index_neigh_cell, mapping_index_neigh_cell, fe_index_neigh_cell); //not sure how changing the face number would work in dim!=1-dimensions.
                     }
-#endif
 
                     //std::cout << "cell " << current_cell->index() << "'s " << iface << "th face has neighbour: " << neighbor_cell->index() << std::endl;
-                 //   const int neighbor_face_no = (iface ==1) ? 0:1;
-                    const int neighbor_face_no = neighbor_face;
-                 //   const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
+                    const int neighbor_face_no = (iface ==1) ? 0:1;
+                    const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
+//#endif
 
                     const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
                     const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();

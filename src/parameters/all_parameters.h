@@ -45,6 +45,8 @@ public:
 
     bool use_energy;
 
+    bool use_L2_norm;
+
     bool use_classical_FR;
 
     bool use_skew_sym_deriv;
@@ -108,13 +110,13 @@ public:
     ConvectiveNumericalFlux conv_num_flux_type;
 
     /// Flag to use Flux Reconstruction
-    enum Flux_Reconstruction {cDG, cSD, cHU, cNegative, cNegative2, cPlus};
+    enum Flux_Reconstruction {cDG, cSD, cHU, cNegative, cNegative2, cPlus, c10Thousand};
 
     /// Store convective flux type
     Flux_Reconstruction flux_reconstruction_type;
 
     /// Flag to use Flux Reconstruction
-    enum Flux_Reconstruction_Aux {kDG, kSD, kHU, kNegative, kNegative2, kPlus};
+    enum Flux_Reconstruction_Aux {kDG, kSD, kHU, kNegative, kNegative2, kPlus, k10Thousand};
 
     /// Store convective flux type
     Flux_Reconstruction_Aux flux_reconstruction_aux_type;

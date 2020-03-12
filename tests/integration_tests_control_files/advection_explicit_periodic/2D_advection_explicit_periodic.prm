@@ -14,7 +14,7 @@ set use_split_form = false
 
 set use_periodic_bc = true
 
-set use_energy = false
+set use_energy = true
 
 set use_skew_sym_deriv = true
 
@@ -23,6 +23,8 @@ set use_jac_sol_points = false
 set flux_reconstruction = cPlus
 #set flux_reconstruction_aux = kHU
 set use_projected_flux = false
+
+set use_classical_Flux_Reconstruction = false
 
 # The PDE we want to solve
 set pde_type = advection

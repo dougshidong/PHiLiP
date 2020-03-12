@@ -182,7 +182,9 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
 		//mapping_coll.push_back(mapping);
 
 		const dealii::FE_DGQ<dim> fe_dg(degree);
+		//const dealii::FE_Q<dim> fe_dg(degree);
                 //const dealii::FE_DGQLegendre<dim> fe_dg(degree);
+		//const dealii::FE_DGP<dim> fe_dg(degree);
 		const dealii::FESystem<dim,dim> fe_system(fe_dg, nstate);
 		fe_coll.push_back (fe_system);
 
@@ -277,6 +279,7 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
 
         // Solution FECollection
         const dealii::FE_DGQ<dim> fe_dg(degree);
+        //const dealii::FE_Q<dim> fe_dg(degree);
         //const dealii::FE_DGQLegendre<dim> fe_dg(degree);
         //const dealii::FE_DGP<dim> fe_dg(degree);
         const dealii::FESystem<dim,dim> fe_system(fe_dg, nstate);
@@ -360,6 +363,7 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
        // mapping_coll_flux.push_back(mapping);
 
         const dealii::FE_DGQ<dim> fe_dg_flux(degree);
+        //const dealii::FE_Q<dim> fe_dg_flux(degree);
         //const dealii::FE_DGQLegendre<dim> fe_dg_flux(degree);
         //const dealii::FE_DGP<dim> fe_dg_flux(degree);
         const dealii::FESystem<dim,dim> fe_system_flux(fe_dg_flux, nstate);
@@ -1254,13 +1258,13 @@ fflush(stdout);
             global_inverse_mass_correction_matrix[idim].set (dofs_indices, local_inverse_mass_correction_matrix);
             }
             if (this->all_parameters->use_energy == true){//for split form energy
-#if 0
-        for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
-            for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
-                local_mass_matrix[itest][itrial] = local_mass_matrix[itest][itrial] - K_operator[itest][itrial];
-            }
-        }
-#endif
+                if (this->all_parameters->use_L2_norm == true){//for split form energy
+                    for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+                        for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
+                            local_mass_matrix[itest][itrial] = local_mass_matrix[itest][itrial] - K_operator[itest][itrial];
+                        }
+                    }
+                }
                 global_mass_matrix.set (dofs_indices, local_mass_matrix);
             }
         } else {
@@ -1518,7 +1522,8 @@ void DGBase<dim,real>::get_K_operator_FR(
             const dealii::Point<dim> qpoint  = volume_quadrature_collection[fe_index_curr_cell].point(iquad);
             Chi_operator[iquad][itest] = fe_collection[fe_index_curr_cell].shape_value_component(itest,qpoint,istate);
             Chi_operator_with_Jac[iquad][itest] = fe_collection[fe_index_curr_cell].shape_value_component(itest,qpoint,istate) * JxW[iquad] / quad_weights[iquad];
-            Chi_operator_with_Quad[iquad][itest] = fe_collection[fe_index_curr_cell].shape_value_component(itest,qpoint,istate) * quad_weights[iquad];
+            //Chi_operator_with_Quad[iquad][itest] = fe_collection[fe_index_curr_cell].shape_value_component(itest,qpoint,istate) * quad_weights[iquad];
+            Chi_operator_with_Quad[iquad][itest] = fe_collection[fe_index_curr_cell].shape_value_component(itest,qpoint,istate) * JxW[iquad];
         }
     }
     }
@@ -1526,7 +1531,9 @@ void DGBase<dim,real>::get_K_operator_FR(
     Chi_inv_operator.invert(Chi_operator);
     dealii::FullMatrix<real> Jacobian_physical(n_dofs_cell);
     dealii::FullMatrix<real> local_Mass_Matrix_no_Jac(n_dofs_cell);
-    Chi_inv_operator.mmult(Jacobian_physical, Chi_operator_with_Jac);//Chi^{-1}*Jm*Chi
+    //Chi_inv_operator.mmult(Jacobian_physical, Chi_operator_with_Jac);//Chi^{-1}*Jm*Chi
+    //Chi_operator.Tmmult(local_Mass_Matrix_no_Jac, Chi_operator_with_Quad);//M=Chi^T*W*Chi
+    Chi_inv_operator.mmult(Jacobian_physical, Chi_operator);//Chi^{-1}*Jm*Chi
     Chi_operator.Tmmult(local_Mass_Matrix_no_Jac, Chi_operator_with_Quad);//M=Chi^T*W*Chi
 
 
@@ -1589,10 +1596,6 @@ fflush(stdout);
     }
     }
 
-
-
-
-
     //turn derivative of basis function to derivative operator D=Chi^{-1}*dChi/dXi
     for(int idim=0; idim<dim; idim++){
         dealii::FullMatrix<real> derivative_temp(n_quad_pts, n_dofs_cell);
@@ -1604,220 +1607,6 @@ fflush(stdout);
         Chi_inv_operator.mmult(local_derivative_operator[idim],derivative_temp);
     }
 
-
-
-#if 0
-//test Skew symmetric form of derivative
-
-
-    std::vector<dealii::FullMatrix<real>> Jacobian(n_quad_pts);
-   // std::vector<dealii::DerivativeForm<1, dim, dim>> Jacobian(n_quad_pts);
-    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-       Jacobian[iquad].reinit(dim, dim);
-    }
-    std::vector<dealii::FullMatrix<real>> Jacobian_inv(n_quad_pts);
-    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-       Jacobian_inv[iquad].reinit(dim, dim);
-    }
-        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-            dealii::DerivativeForm<1, dim, dim> temp;
-            temp=fe_values_vol.jacobian(iquad);
-            for(int idim=0; idim<dim; idim++){
-                for(int idim2=0; idim2<dim; idim2++){
-                   // Jacobian[iquad] = fe_values_vol.jacobian(iquad);
-                    Jacobian[iquad][idim][idim2] = temp[idim][idim2];
-                }
-            }
-            Jacobian_inv[iquad].invert(Jacobian[iquad]);
-        }
-        
-    std::vector<dealii::FullMatrix<real>> cons_deriv(dim);
-    for(int idim=0; idim<dim; idim++){
-       cons_deriv[idim].reinit(n_quad_pts, n_dofs_cell);
-    }
-    for(int istate=0; istate<nstate; istate++){
-    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
-            dealii::Tensor<1,dim,real> derivative;
-            derivative = fe_values_vol.shape_grad_component(idof, iquad, istate);
-            //derivative = fe_values_vol.shape_grad_component(idof, iquad, istate)* fe_values_vol.JxW(iquad);
-            for (int idim=0; idim<dim; idim++){
-                cons_deriv[idim][iquad][idof] = derivative[idim];//store dChi/dXi
-            }
-        }
-    }
-    }
-
-    std::vector<dealii::FullMatrix<real>> skew_deriv(dim);
-    for(int idim=0; idim<dim; idim++){
-       skew_deriv[idim].reinit(n_quad_pts, n_dofs_cell);
-    }
-    for(int istate=0; istate<nstate; istate++){
-    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
-            dealii::Tensor<1,dim,real> derivative;
-            const dealii::Point<dim> qpoint  = volume_quadrature_collection[fe_index_curr_cell].point(iquad);
-            derivative = fe_collection[fe_index_curr_cell].shape_grad_component(idof, qpoint, istate);
-          //  derivative = fe_collection[fe_index_curr_cell].shape_grad_component(idof, qpoint, istate) * fe_values_vol.JxW(iquad);
-            for (int idim=0; idim<dim; idim++){
-                skew_deriv[idim][iquad][idof] = 0.0;
-                for(int idim2=0; idim2<dim; idim2++){ 
-                    skew_deriv[idim][iquad][idof] += derivative[idim2] * Jacobian_inv[iquad][idim2][idim];;
-                }
-            }
-        }
-    }
-    }
-
-    for (int idim=0; idim<dim; idim++){
-    printf("Conservative Derivative in dim %d\n\n\n", idim);
-    fflush(stdout);
-    for(unsigned int iquad =0; iquad<n_quad_pts; iquad++){
-        for(unsigned int idof =0; idof<n_dofs_cell; idof++){
-            printf(" %g ",cons_deriv[idim][iquad][idof]);
-            fflush(stdout);
-        }
-        printf("\n");
-        fflush(stdout);
-    }
-    }
-    printf("\n\n");
-    fflush(stdout);
-    for (int idim=0; idim<dim; idim++){
-    printf("Skew Derivative in dim %d\n\n\n", idim);
-    fflush(stdout);
-    for(unsigned int iquad =0; iquad<n_quad_pts; iquad++){
-        for(unsigned int idof =0; idof<n_dofs_cell; idof++){
-            printf(" %g ",skew_deriv[idim][iquad][idof]);
-            fflush(stdout);
-        }
-        printf("\n");
-        fflush(stdout);
-    }
-    }
-    printf("\n\n");
-    fflush(stdout);
-    std::vector<dealii::FullMatrix<real>> dif_deriv(dim);
-    for(int idim=0; idim<dim; idim++){
-       dif_deriv[idim].reinit(n_quad_pts, n_dofs_cell);
-    }
-    for (int idim=0; idim<dim; idim++){
-        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-                dif_deriv[idim][iquad][idof] = cons_deriv[idim][iquad][idof] - skew_deriv[idim][iquad][idof];
-            }
-        }
-    }
-    for (int idim=0; idim<dim; idim++){
-    printf("difference in Derivative in dim %d\n\n\n", idim);
-    fflush(stdout);
-    for(unsigned int iquad =0; iquad<n_quad_pts; iquad++){
-        for(unsigned int idof =0; idof<n_dofs_cell; idof++){
-            printf(" %g ",dif_deriv[idim][iquad][idof]);
-            fflush(stdout);
-        }
-        printf("\n");
-        fflush(stdout);
-    }
-    }
-    printf("\n\n");
-    fflush(stdout);
-
-    std::vector<dealii::FullMatrix<real>> cons_deriv_oper(dim);
-    for(int idim=0; idim<dim; idim++){
-       cons_deriv_oper[idim].reinit(n_quad_pts, n_dofs_cell);
-    }
-
-#if 0
-
-    for(int istate=0; istate<nstate; istate++){
-    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
-            dealii::Tensor<1,dim,real> derivative;
-            derivative = fe_values_vol.shape_grad_component(idof, iquad, istate);
-            for (int idim=0; idim<dim; idim++){
-               // cons_deriv_oper[idim][iquad][idof] = derivative[idim];//store dChi/dXi
-                cons_deriv_oper[idim][iquad][idof] = derivative[idim]* JxW[iquad] / quad_weights[iquad];//store dChi/dXi
-            }
-        }
-    }
-    }
-
-    //turn derivative of basis function to derivative operator D=Chi^{-1}*dChi/dXi
-    for(int idim=0; idim<dim; idim++){
-        dealii::FullMatrix<real> derivative_temp(n_quad_pts, n_dofs_cell);
-        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-                derivative_temp[iquad][idof] = cons_deriv_oper[idim][iquad][idof];
-            }
-        }
-        Chi_inv_operator.mmult(cons_deriv_oper[idim],derivative_temp);
-    }
-#endif
-    for(int istate=0; istate<nstate; istate++){
-    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
-            for (int idim=0; idim<dim; idim++){
-                cons_deriv[idim][iquad][idof] = 0.0;
-                for(int idim2=0; idim2<dim; idim2++){ 
-                    cons_deriv_oper[idim][iquad][idof] += local_derivative_operator[idim2][iquad][idof] * Jacobian_inv[iquad][idim2][idim]* JxW[iquad] / quad_weights[iquad];
-                }
-            }
-        }
-    }
-    }
-
-    std::vector<dealii::FullMatrix<real>> skew_deriv_oper(dim);
-    for(int idim=0; idim<dim; idim++){
-       skew_deriv_oper[idim].reinit(n_quad_pts, n_dofs_cell);
-    }
-    for(int istate=0; istate<nstate; istate++){
-    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
-            for (int idim=0; idim<dim; idim++){
-                skew_deriv[idim][iquad][idof] = 0.0;
-                for(int idim2=0; idim2<dim; idim2++){ 
-                    skew_deriv_oper[idim][iquad][idof] += local_derivative_operator[idim2][iquad][idof] * Jacobian_inv[iquad][idim2][idim]* JxW[iquad] / quad_weights[iquad];
-                }
-            }
-        }
-    }
-    }
-    for (int idim=0; idim<dim; idim++){
-    printf("Conservative Derivative OPERATOR in dim %d\n\n\n", idim);
-    fflush(stdout);
-    for(unsigned int iquad =0; iquad<n_quad_pts; iquad++){
-        for(unsigned int idof =0; idof<n_dofs_cell; idof++){
-            printf(" %g ",cons_deriv_oper[idim][iquad][idof]);
-            fflush(stdout);
-        }
-        printf("\n");
-        fflush(stdout);
-    }
-    }
-    printf("\n\n");
-    fflush(stdout);
-    for (int idim=0; idim<dim; idim++){
-    printf("Skew Derivative OPERATOR in dim %d\n\n\n", idim);
-    fflush(stdout);
-    for(unsigned int iquad =0; iquad<n_quad_pts; iquad++){
-        for(unsigned int idof =0; idof<n_dofs_cell; idof++){
-            printf(" %g ",skew_deriv_oper[idim][iquad][idof]);
-            fflush(stdout);
-        }
-        printf("\n");
-        fflush(stdout);
-    }
-    }
-    printf("\n\n");
-    fflush(stdout);
-
-//end of test Skew symmetric form of derivative
-
-#endif
-
-
-
     real c = 0.0;
     real k = 0.0;
     FR_enum c_input = this->all_parameters->flux_reconstruction_type; 
@@ -1827,7 +1616,7 @@ fflush(stdout);
         const double pfact2 = factorial_DG(2.0 * curr_cell_degree);
        // double cp = 1.0/(pow(2.0,curr_cell_degree)) * pfact2/(pow(pfact,2));
         double cp = pfact2/(pow(pfact,2));//since ref element [0,1]
-        c = 2.0 * (curr_cell_degree+1)/( (2.0*curr_cell_degree+1.0)*curr_cell_degree*(pow(pfact*cp,2)));  
+        c = 2.0 * (curr_cell_degree+1)/( curr_cell_degree*pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),dim));  
         c/=2.0;//since orthonormal
     }
     else if(c_input == FR_enum::cSD){ 
@@ -1835,7 +1624,7 @@ fflush(stdout);
         const double pfact2 = factorial_DG(2.0 * curr_cell_degree);
        // double cp = 1.0/(pow(2.0,curr_cell_degree)) * pfact2/(pow(pfact,2));
         double cp = pfact2/(pow(pfact,2));
-        c = 2 * (curr_cell_degree)/( (2.0*curr_cell_degree+1.0)*(curr_cell_degree+1.0)*(pow(pfact*cp,2)));  
+        c = 2 * (curr_cell_degree)/( (curr_cell_degree+1.0)*pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),dim));  
         c/=2.0;//since orthonormal
     }
     else if(c_input == FR_enum::cNegative){ 
@@ -1843,7 +1632,7 @@ fflush(stdout);
         const double pfact2 = factorial_DG(2.0 * curr_cell_degree);
        // double cp = 1.0/(pow(2,curr_cell_degree)) * pfact2/(pow(pfact,2));
         double cp = pfact2/(pow(pfact,2));
-        c = - 2.0 / ( (2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)));  
+        c = - 2.0 / ( pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),dim));  
         c/=2.0;//since orthonormal
     }
     else if(c_input == FR_enum::cNegative2){ 
@@ -1851,14 +1640,21 @@ fflush(stdout);
         const double pfact2 = factorial_DG(2.0 * curr_cell_degree);
        // double cp = 1.0/(pow(2,curr_cell_degree)) * pfact2/(pow(pfact,2));
         double cp = pfact2/(pow(pfact,2));
-        c = - 2.0 / ( (2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)));  
+        c = - 2.0 / ( pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),dim));  
         c/=2.0;//since orthonormal
-        c/=2.0;
+        c/=2.0;//since cneg/2
     }
     else if(c_input == FR_enum::cDG){ 
         c = 0.0;
     }
+    else if(c_input == FR_enum::c10Thousand){ 
+        c = 10000.0;
+        //c = 10.0;
+    }
     else if(c_input == FR_enum::cPlus){ 
+        const double pfact = factorial_DG(curr_cell_degree);
+        const double pfact2 = factorial_DG(2.0 * curr_cell_degree);
+        double cp = pfact2/(pow(pfact,2));
         if(curr_cell_degree == 2){
             c = 0.186;
     //        c = 0.173;//RK33
@@ -1873,13 +1669,14 @@ fflush(stdout);
             c = 4.24e-7;
         c/=2.0;//since orthonormal
         c/=pow(pow(2.0,curr_cell_degree),2);//since ref elem [0,1]
+        c /= pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),dim -1.0);//for multiple dim tensor product
     }
     if(k_input == FR_Aux_enum::kHU){ 
         const double pfact = factorial_DG(curr_cell_degree);
         const double pfact2 = factorial_DG(2.0 * curr_cell_degree);
        // double cp = 1.0/(pow(2.0,curr_cell_degree)) * pfact2/(pow(pfact,2));
         double cp = pfact2/(pow(pfact,2));
-        k = 2.0 * (curr_cell_degree+1.0)/( (2.0*curr_cell_degree+1.0)*curr_cell_degree*(pow(pfact*cp,2)));  
+        k = 2.0 * (curr_cell_degree+1.0)/( curr_cell_degree*pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),dim));  
         k/=2.0;//since orthonormal
     }
     else if(k_input == FR_Aux_enum::kSD){ 
@@ -1887,7 +1684,7 @@ fflush(stdout);
         const double pfact2 = factorial_DG(2.0 * curr_cell_degree);
        // double cp = 1.0/(pow(2.0,curr_cell_degree)) * pfact2/(pow(pfact,2));
         double cp = pfact2/(pow(pfact,2));
-        k = 2.0 * (curr_cell_degree)/( (2.0*curr_cell_degree+1.0)*(curr_cell_degree+1.0)*(pow(pfact*cp,2)));  
+        k = 2.0 * (curr_cell_degree)/( (curr_cell_degree+1.0)*pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),dim));  
         k/=2.0;//since orthonormal
     }
     else if(k_input == FR_Aux_enum::kNegative){ 
@@ -1895,7 +1692,7 @@ fflush(stdout);
         const double pfact2 = factorial_DG(2.0 * curr_cell_degree);
        // double cp = 1.0/(pow(2.0,curr_cell_degree)) * pfact2/(pow(pfact,2));
         double cp = pfact2/(pow(pfact,2));
-        k = - 2.0 / ( (2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)));  
+        k = - 2.0 / ( pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),dim));  
         k/=2.0;//since orthonormal
     }
     else if(k_input == FR_Aux_enum::kNegative2){ 
@@ -1903,14 +1700,20 @@ fflush(stdout);
         const double pfact2 = factorial_DG(2.0 * curr_cell_degree);
        // double cp = 1.0/(pow(2.0,curr_cell_degree)) * pfact2/(pow(pfact,2));
         double cp = pfact2/(pow(pfact,2));
-        k = - 2.0 / ( (2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)));  
+        k = - 2.0 / ( pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),dim));  
         k/=2.0;//since orthonormal
         k/=2.0;
     }
     else if(k_input == FR_Aux_enum::kDG){ 
         k = 0.0;
     }
+    else if(k_input == FR_Aux_enum::k10Thousand){ 
+        k = 10000.0;
+    }
     else if(k_input == FR_Aux_enum::kPlus){ 
+        const double pfact = factorial_DG(curr_cell_degree);
+        const double pfact2 = factorial_DG(2.0 * curr_cell_degree);
+        double cp = pfact2/(pow(pfact,2));
         if(curr_cell_degree == 2)
         {
             k = 0.186;
@@ -1928,70 +1731,9 @@ fflush(stdout);
             k = 4.24e-7;
         k/=2.0;//since orthonormal
         k/=pow(pow(2.0,curr_cell_degree),2);//since ref elem [0,1]
+        k /= pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),dim -1.0);//for multiple dim tensor product
     }
-//c=10000.0;
 
-  //  c = 10.0;
-#if 0
-printf("\n\n\n");
-fflush(stdout);
-    printf("Hessian first\n");
-    fflush(stdout);
-    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-        const dealii::Point<dim> qpoint  = volume_quadrature_collection[fe_index_curr_cell].point(iquad);
-        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-            unsigned int istate =0;
-            dealii::Tensor<2,dim,real> derivative;
-            derivative = fe_collection[fe_index_curr_cell].shape_grad_grad_component(idof, qpoint, istate);
-                printf("%g ",derivative[0][0]);
-        fflush(stdout);
-        }
-        printf("\n");
-        fflush(stdout);
-    } 
-    printf("Hessian second\n");
-    fflush(stdout);
-    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-        const dealii::Point<dim> qpoint  = volume_quadrature_collection[fe_index_curr_cell].point(iquad);
-        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-            unsigned int istate =0;
-            dealii::Tensor<2,dim,real> derivative;
-            derivative = fe_collection[fe_index_curr_cell].shape_grad_grad_component(idof, qpoint, istate);
-                printf("%g ",derivative[0][1]);
-        fflush(stdout);
-        }
-        printf("\n");
-        fflush(stdout);
-    } 
-    printf("Hessian third\n");
-    fflush(stdout);
-    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-        const dealii::Point<dim> qpoint  = volume_quadrature_collection[fe_index_curr_cell].point(iquad);
-        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-            unsigned int istate =0;
-            dealii::Tensor<2,dim,real> derivative;
-            derivative = fe_collection[fe_index_curr_cell].shape_grad_grad_component(idof, qpoint, istate);
-                printf("%g ",derivative[1][0]);
-        fflush(stdout);
-        }
-        printf("\n");
-        fflush(stdout);
-    } 
-    printf("Hessian fourth\n");
-    fflush(stdout);
-    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-        const dealii::Point<dim> qpoint  = volume_quadrature_collection[fe_index_curr_cell].point(iquad);
-        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-            unsigned int istate =0;
-            dealii::Tensor<2,dim,real> derivative;
-            derivative = fe_collection[fe_index_curr_cell].shape_grad_grad_component(idof, qpoint, istate);
-                printf("%g ",derivative[1][1]);
-        fflush(stdout);
-        }
-        printf("\n");
-        fflush(stdout);
-    } 
-#endif
     
     if(dim == 1){
         dealii::FullMatrix<real> K_operator_no_Jac(n_dofs_cell);
@@ -2025,60 +1767,6 @@ fflush(stdout);
         derivative_p_temp.Tmmult(K_operator_temp, local_Mass_Matrix_no_Jac);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M
         K_operator_temp.mmult(K_operator_no_Jac, derivative_p);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
 
-#if 0
-//BUILD WEAK K OPERATOR
-        dealii::FullMatrix<real> derivative_weak(n_dofs_cell);
-    std::vector<dealii::FullMatrix<real>> derivative_weak_temp(dim);
-    for(int idim=0; idim<dim; idim++){
-       derivative_weak_temp[idim].reinit(n_quad_pts, n_dofs_cell);
-    }
-        dealii::FullMatrix<real> Mass_inv(n_dofs_cell);
-       // dealii::FullMatrix<real> derivative_weak_temp(n_dofs_cell);
-        dealii::FullMatrix<real> derivative_weak_trans(n_dofs_cell);
-        Mass_inv.invert(local_Mass_Matrix_no_Jac);
-    for(int istate=0; istate<nstate; istate++){
-    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
-            dealii::Tensor<1,dim,real> derivative;
-            const dealii::Point<dim> qpoint  = volume_quadrature_collection[fe_index_curr_cell].point(iquad);
-            derivative = fe_collection[fe_index_curr_cell].shape_grad_component(idof, qpoint, istate);
-            for (int idim=0; idim<dim; idim++){
-                derivative_weak_temp[idim][iquad][idof] = derivative[idim];//store dChi/dXi
-            }
-        }
-    }
-    }
-        derivative_weak_temp[0].Tmmult(derivative_weak_trans, Chi_operator_with_Quad);
-        Mass_inv.mmult(derivative_weak, derivative_weak_trans);
-        dealii::FullMatrix<real> derivative_p_weak(n_quad_pts, n_dofs_cell);
-        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                if(idof == iquad){
-                    derivative_p_weak[idof][iquad] = 1.0;//set it equal to identity
-                }
-            }
-        }
-        for(unsigned int idegree=0; idegree< (curr_cell_degree); idegree++){
-            dealii::FullMatrix<real> derivative_p_temp_weak(n_quad_pts, n_dofs_cell);
-            derivative_p_temp_weak.add(1, derivative_p_weak);
-            derivative_weak.mmult(derivative_p_weak, derivative_p_temp_weak);
-        }
-
-        //c*(Chi^{-1}*dChi/dXi)^p
-        dealii::FullMatrix<real> derivative_p_temp_weak(n_quad_pts, n_dofs_cell);
-        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-                derivative_p_temp_weak[iquad][idof] = c * derivative_p_weak[iquad][idof];
-            }
-        }
-
-        derivative_p_temp_weak.Tmmult(K_operator_temp, local_Mass_Matrix_no_Jac);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M
-        K_operator_temp.mmult(K_operator_no_Jac, derivative_p_weak);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
-//END BUILD WEAK K
-        
-#endif
-
-
         //repeat for auxiliary equation
         for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
             for(unsigned int idof=0; idof<n_dofs_cell; idof++){
@@ -2110,13 +1798,9 @@ fflush(stdout);
             }
         }
 
-        for(unsigned int v_deg=0; v_deg<=curr_cell_degree; v_deg++){
+        //for(unsigned int v_deg=0; v_deg<=curr_cell_degree; v_deg++){
+        unsigned int v_deg = 0;
  
-#if 0
-            if(v_deg != 0){
-                v_deg=curr_cell_degree;
-            }
-#endif
             dealii::FullMatrix<real> derivative_p(n_quad_pts, n_dofs_cell);
             for(unsigned int idof=0; idof<n_dofs_cell; idof++){
                 for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
@@ -2129,67 +1813,25 @@ fflush(stdout);
                 }
             }
         
-            for(unsigned int idegree=0; idegree< (curr_cell_degree-v_deg); idegree++){
+            //for(unsigned int idegree=0; idegree< (curr_cell_degree-v_deg); idegree++){
+            for(unsigned int idegree=0; idegree< curr_cell_degree; idegree++){
                 dealii::FullMatrix<real> derivative_p_temp(n_quad_pts, n_dofs_cell);
                 derivative_p_temp.add(1, derivative_p);
                 local_derivative_operator[0].mmult(derivative_p, derivative_p_temp);
             }
-            for(unsigned int idegree=0; idegree< v_deg; idegree++){
+           // for(unsigned int idegree=0; idegree< v_deg; idegree++){
+            for(unsigned int idegree=0; idegree< curr_cell_degree; idegree++){
                 dealii::FullMatrix<real> derivative_p_temp(n_quad_pts, n_dofs_cell);
                 derivative_p_temp.add(1, derivative_p);
                 local_derivative_operator[1].mmult(derivative_p, derivative_p_temp);
             }
-
-#if 0
-//testing for verification
-            dealii::FullMatrix<real> temp_deriv_p(n_quad_pts, n_dofs_cell);
-            Chi_operator.mmult(temp_deriv_p,derivative_p);
-    printf("\n\n\n");
-    fflush(stdout);
-    printf("from Dp v is %d\n",v_deg);
-    fflush(stdout);
-    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-               // printf("%g ",temp_deriv_p[iquad][idof]);
-               if(fabs(derivative_p[iquad][idof])<1e-9)
-                    derivative_p[iquad][idof]=0.0;
-                printf("%.12g ",derivative_p[iquad][idof]);
-        fflush(stdout);
-        }
-        printf("\n");
-        fflush(stdout);
-    } 
-    printf("from Dp ACTUAL vdeg %d\n",v_deg);
-    fflush(stdout);
-    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-               // printf("%g ",temp_deriv_p[iquad][idof]);
-                printf("%g ",temp_deriv_p[iquad][idof]);
-                //printf("%g ",derivative_p[iquad][idof]);
-        fflush(stdout);
-        }
-        printf("\n");
-        fflush(stdout);
-    } 
-#if 0
-    printf("CHI INV\n");
-    fflush(stdout);
-    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-                printf("%g ",Chi_inv_operator[iquad][idof]);
-        fflush(stdout);
-        }
-        printf("\n");
-        fflush(stdout);
-    } 
-#endif
-#endif
 
             const double pfact = factorial_DG(curr_cell_degree);
             const double vfact = factorial_DG(v_deg);
             const double p_minus_v_fact = factorial_DG(curr_cell_degree - v_deg);
             double c_v = c * pfact / (vfact * p_minus_v_fact); 
             double k_v = k * pfact / (vfact * p_minus_v_fact); 
+            c_v = c;
 
             dealii::FullMatrix<real> derivative_p_temp(n_quad_pts, n_dofs_cell);
             for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
@@ -2200,59 +1842,29 @@ fflush(stdout);
 
             dealii::FullMatrix<real> K_operator_temp(n_dofs_cell);
             derivative_p_temp.Tmmult(K_operator_temp, local_Mass_Matrix_no_Jac);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M
-            K_operator_temp.mmult(K_operator_no_Jac, derivative_p, true);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
-     //       dealii::FullMatrix<real> K_operator_temp2(n_dofs_cell);
-      //      K_operator_temp.mmult(K_operator_temp2, derivative_p);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
+           // K_operator_temp.mmult(K_operator_no_Jac, derivative_p, true);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
+            K_operator_temp.mmult(K_operator_no_Jac, derivative_p);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
 
 #if 0
-    printf("\n\n\n");
-    fflush(stdout);
-    printf("K oper temp 2\n");
-    fflush(stdout);
-    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-                printf("%.12g ",K_operator_temp2[iquad][idof]);
-        fflush(stdout);
-        }
-        printf("\n");
-        fflush(stdout);
-    } 
+            dealii::FullMatrix<real> K_operator_temp2(n_dofs_cell);
+            K_operator_temp.mmult(K_operator_temp2, derivative_p);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
+
+           // if(v_deg ==0 || v_deg == curr_cell_degree){
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                for(unsigned int idof2=0; idof2<n_dofs_cell; idof2++){
+                    K_operator_no_Jac[idof][idof2] += K_operator_temp2[idof][idof2];
+                }
+            }
+           // }
 #endif
-#if 0
-    printf("Mass\n");
-    fflush(stdout);
-    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-               if(local_Mass_Matrix_no_Jac[iquad][idof]<1e-9)
-                    local_Mass_Matrix_no_Jac[iquad][idof]=0.0;
-                printf("%g ",local_Mass_Matrix_no_Jac[iquad][idof]);
-        fflush(stdout);
-        }
-        printf("\n");
-        fflush(stdout);
-    } 
-    printf("K oper no Jac vdeg %d\n",v_deg);
-    fflush(stdout);
-    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-               if(K_operator_no_Jac[iquad][idof]<1e-9)
-                    K_operator_no_Jac[iquad][idof]=0.0;
-                printf("%g ",K_operator_no_Jac[iquad][idof]);
-        fflush(stdout);
-        }
-        printf("\n");
-        fflush(stdout);
-    } 
-#endif
-           // derivative_p_temp.Tmmult(K_operator_no_Jac, derivative_p, true);
            
+            k_v = k;
             for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
                 for(unsigned int idof=0; idof<n_dofs_cell; idof++){
                     derivative_p_temp[iquad][idof] = k_v * derivative_p[iquad][idof];
                 }
             }
 
-//#if 0
             derivative_p_temp.Tmmult(K_operator_temp, local_Mass_Matrix_no_Jac, false);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M
             if (v_deg==0){
                 K_operator_temp.mmult(K_operator_no_Jac_aux[0], derivative_p, false);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
@@ -2261,44 +1873,78 @@ fflush(stdout);
                 K_operator_temp.mmult(K_operator_no_Jac_aux[1], derivative_p, false);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
             }
 
+       // }
 
-//#endif
 #if 0
-           // derivative_p_temp.Tmmult(K_operator_no_Jac_aux, derivative_p, true);
-                dealii::FullMatrix<real> temp_mat(n_dofs_cell);
-                dealii::FullMatrix<real> temp_mat2(n_dofs_cell);
-                derivative_p_temp.TmTmult(temp_mat, Chi_operator);            
-                temp_mat.mmult(temp_mat2, Chi_operator);            
-                temp_mat2.mmult(K_operator_no_Jac_aux[0], derivative_p, true);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
-
-
-#endif
-#if 0
-printf("\n\n\n");
+printf("K operator no Jac\n\n");
 fflush(stdout);
-        printf("K oper after\n");
+for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+for(unsigned int idof2=0; idof2<n_dofs_cell; idof2++){
+    printf(" %g ",K_operator_no_Jac[idof][idof2]);
+    fflush(stdout);
+}
+printf("\n");
 fflush(stdout);
-        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-            for(unsigned int idof2=0; idof2<n_dofs_cell; idof2++){
-                if(fabs(K_operator_no_Jac_aux[0][idof][idof2])<1e-9)
-                    K_operator_no_Jac_aux[1][idof][idof2]=0.0;
-                printf("%g ",K_operator_no_Jac_aux[1][idof][idof2]);
-                fflush(stdout);
-            }
-            printf("\n");
-            fflush(stdout);
-        }
-
+}
+printf("\n\n");
+fflush(stdout);
 #endif
-        }
         //Include Jac dependence
         K_operator_no_Jac.mmult(K_operator,Jacobian_physical);
         for(int idim=0; idim<dim; idim++){
             K_operator_no_Jac_aux[idim].mmult(K_operator_aux[idim],Jacobian_physical);
         }
+        
+//KD check
+#if 0
+        dealii::FullMatrix<real> sum_KD(n_dofs_cell);
+        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int idof2=0; idof2<n_dofs_cell; idof2++){
+            sum_KD[idof][idof2] = 0.0;
+        }
+        }
+        for (int idim=0; idim<dim; idim++){
+            dealii::FullMatrix<real> KD(n_dofs_cell);
+            dealii::FullMatrix<real> temp(n_dofs_cell);
+            dealii::FullMatrix<real> Jac_phys_inv(n_dofs_cell);
+            Jac_phys_inv.invert(Jacobian_physical);
+            Jac_phys_inv.mmult(temp,local_derivative_operator[idim]);
+           // K_operator.mmult(KD, local_derivative_operator[idim]);
+            K_operator.mmult(KD, temp);
+            sum_KD.add(1.0, KD);
+            printf("KD in dim %d\n\n",idim);
+            fflush(stdout);
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                    printf(" %g ",KD[idof][iquad]);
+                    fflush(stdout);
+                }
+                printf("\n");
+                fflush(stdout);
+            }
+                printf("\n\n\n");
+                fflush(stdout);
+        }
+            printf("sum of KD \n\n");
+            fflush(stdout);
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                    if(sum_KD[idof][iquad] < 1e-9)
+                        sum_KD[idof][iquad] = 0.0;
+                    printf(" %g ",sum_KD[idof][iquad]);
+                    fflush(stdout);
+                }
+                printf("\n");
+                fflush(stdout);
+            }
+                printf("\n\n\n");
+                fflush(stdout);
+#endif
+
+
+
     }
     else{
-        //build K matrix without Jac dependence
         dealii::FullMatrix<real> K_operator_no_Jac(n_dofs_cell);
         dealii::FullMatrix<real> K_operator_no_Jac_aux(n_dofs_cell);
         for(unsigned int idof=0; idof<n_dofs_cell; idof++){

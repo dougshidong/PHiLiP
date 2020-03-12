@@ -42,6 +42,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Not calculate energy by default. Otherwise, get energy per iteration.");
 
+    prm.declare_entry("use_L2_norm", "false",
+                      dealii::Patterns::Bool(),
+                      "Not calculate L2 norm by default (M+K). Otherwise, get L2 norm per iteration.");
+
     prm.declare_entry("use_classical_Flux_Reconstruction", "false",
                       dealii::Patterns::Bool(),
                       "Not use Classical Flux Reconstruction by default. Otherwise, use Classical Flux Reconstruction.");
@@ -109,14 +113,14 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Choices are <lax_friedrichs | roe | split_form>.");
 
     prm.declare_entry("flux_reconstruction", "cDG",
-                      dealii::Patterns::Selection("cDG | cSD | cHU | cNegative | cNegative2 | cPlus"),
+                      dealii::Patterns::Selection("cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand"),
                       "Flux Reconstruction. "
-                      "Choices are <cDG | cSD | cHU | cNegative | cNegative2 | cPlus>.");
+                      "Choices are <cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand>.");
 
     prm.declare_entry("flux_reconstruction_aux", "kDG",
-                      dealii::Patterns::Selection("kDG | kSD | kHU | kNegative | kNegative2 | kPlus"),
+                      dealii::Patterns::Selection("kDG | kSD | kHU | kNegative | kNegative2 | kPlus | k10Thousand"),
                       "Flux Reconstruction for Auxiliary Equation. "
-                      "Choices are <kDG | kSD | kHU | kNegative | kNegative2 | kPlus>.");
+                      "Choices are <kDG | kSD | kHU | kNegative | kNegative2 | kPlus | k10Thousand>.");
 
     prm.declare_entry("diss_num_flux", "symm_internal_penalty",
                       dealii::Patterns::Selection("symm_internal_penalty | BR2"),
@@ -177,6 +181,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_split_form = prm.get_bool("use_split_form");
     use_periodic_bc = prm.get_bool("use_periodic_bc");
     use_energy = prm.get_bool("use_energy");
+    use_L2_norm = prm.get_bool("use_L2_norm");
     use_classical_FR = prm.get_bool("use_classical_Flux_Reconstruction");
     use_skew_sym_deriv = prm.get_bool("use_skew_sym_deriv");
     use_jac_sol_points = prm.get_bool("use_jac_sol_points");
@@ -194,6 +199,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (flux_reconstruction_string == "cNegative") flux_reconstruction_type = cNegative;
     if (flux_reconstruction_string == "cNegative2") flux_reconstruction_type = cNegative2;
     if (flux_reconstruction_string == "cPlus") flux_reconstruction_type = cPlus;
+    if (flux_reconstruction_string == "c10Thousand") flux_reconstruction_type = c10Thousand;
 
     const std::string flux_reconstruction_aux_string = prm.get("flux_reconstruction_aux");
     if (flux_reconstruction_aux_string == "kDG") flux_reconstruction_aux_type = kDG;
@@ -202,6 +208,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (flux_reconstruction_aux_string == "kNegative") flux_reconstruction_aux_type = kNegative;
     if (flux_reconstruction_aux_string == "kNegative2") flux_reconstruction_aux_type = kNegative2;
     if (flux_reconstruction_aux_string == "kPlus") flux_reconstruction_aux_type = kPlus;
+    if (flux_reconstruction_aux_string == "k10Thousand") flux_reconstruction_aux_type = k10Thousand;
 
     const std::string diss_num_flux_string = prm.get("diss_num_flux");
     if (diss_num_flux_string == "symm_internal_penalty") diss_num_flux_type = symm_internal_penalty;

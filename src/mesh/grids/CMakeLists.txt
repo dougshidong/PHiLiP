@@ -2,6 +2,7 @@
 
 set(GRIDS_SOURCE
     gaussian_bump.cpp
+    spline_channel.cpp
     )
 
 # Output library

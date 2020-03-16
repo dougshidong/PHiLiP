@@ -4,6 +4,8 @@
 #include <deal.II/grid/manifold_lib.h>
 #include <deal.II/distributed/tria.h>
 
+#include "../high_order_grid.h"
+
 namespace PHiLiP {
 namespace Grids {
 
@@ -54,6 +56,23 @@ protected:
     std::vector<dealii::Point<dim>> control_points; ///< Control points.
     std::array<std::vector<double>,chartdim> knot_vector; ///< Knot vector.
 
+    template<typename real>
+    dealii::Point<dim,real> DeBoor_1D(
+        const real chart_point
+        , const unsigned int degree
+        , const unsigned int knot_index
+        , const std::vector<double> knot_vector_1d
+        , const std::vector<dealii::Point<dim,real>> control_points
+        ) const;
+
+    template<typename real>
+    dealii::Point<dim,real> DeBoor(
+        const dealii::Point<chartdim,real> &chart_point
+        , const unsigned int degree
+        , std::array<std::vector<double>,chartdim> knot_vector
+        , const std::vector<dealii::Point<dim,real>> control_points
+        ) const;
+
     /// Generate the clamped uniform knot vector of degree spline_degree with n_control_pts.
     std::array<std::vector<double>,chartdim> generate_clamped_uniform_knot_vector()
     {
@@ -86,18 +105,21 @@ protected:
         return all_knots;
     };
 
+    /// Perform a least-squares to fit B-spline to Triangulation surface.
+    double fit_spline(
+        const PHiLiP::HighOrderGrid<dim,double> &high_order_grid,
+        unsigned int surface_id
+    );
+
 public:
     template<typename real>
-    dealii::Point<2,real> mapping(const dealii::Point<2,real> &chart_point) const; ///< Templated mapping from square to the bump.
+    dealii::Point<dim,real> mapping(const dealii::Point<chartdim,real> &chart_point) const; ///< Templated mapping from square to the bump.
 
-    virtual dealii::Point<2> pull_back(const dealii::Point<2> &space_point) const override; ///< See dealii::Manifold.
-    virtual dealii::Point<2> push_forward(const dealii::Point<2> &chart_point) const override; ///< See dealii::Manifold.
-    virtual dealii::DerivativeForm<1,2,2> push_forward_gradient(const dealii::Point<2> &chart_point) const override; ///< See dealii::Manifold.
+    virtual dealii::Point<chartdim> pull_back(const dealii::Point<dim> &space_point) const override; ///< See dealii::Manifold.
+    virtual dealii::Point<dim> push_forward(const dealii::Point<chartdim> &chart_point) const override; ///< See dealii::Manifold.
+    virtual dealii::DerivativeForm<1,chartdim,dim> push_forward_gradient(const dealii::Point<chartdim> &chart_point) const override; ///< See dealii::Manifold.
     
-    virtual std::unique_ptr<dealii::Manifold<2,2> > clone() const override; ///< See dealii::Manifold.
-
-    /// Used to deform a hypercube Triangulation into the Gaussian bump.
-    static dealii::Point<2> warp (const dealii::Point<2> &p);
+    virtual std::unique_ptr<dealii::Manifold<dim,dim> > clone() const override; ///< See dealii::Manifold.
 
 };
 

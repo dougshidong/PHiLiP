@@ -258,7 +258,7 @@ foreach(dim RANGE 1 2)
 
     # Library dependency
     set(ParametersLib ParametersLibrary)
-    set(GridsLib Grids)
+    set(GridsLib Grids_${dim}D)
     string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
     target_link_libraries(${TEST_TARGET} ${ParametersLib})
     target_link_libraries(${TEST_TARGET} ${DiscontinuousGalerkinLib})

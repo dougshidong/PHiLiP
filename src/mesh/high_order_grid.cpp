@@ -1024,6 +1024,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices()
     locally_relevant_surface_nodes_indices.clear();
     locally_relevant_surface_nodes.clear();
     locally_relevant_surface_nodes_boundary_id.clear();
+    // locally_relevant_surface_nodes_user_index.clear();
     locally_relevant_surface_points.clear();
     global_index_to_point_and_axis.clear();
     point_and_axis_to_global_index.clear();
@@ -1053,6 +1054,9 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices()
             if (!face->at_boundary()) continue;
 
             const unsigned int boundary_id = face->boundary_id();
+            // Can't assign a face of dim 0 (point) a user_index...
+            // Works in 2D and 3D, but not 1D
+            // const unsigned int face_user_index = face->user_index();
 
             for (unsigned int idof_face=0; idof_face<dofs_per_face; ++idof_face) {
                 // Get the cell dof index based on the current face dof index.
@@ -1073,6 +1077,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices()
                     locally_relevant_surface_dof_indices_set.insert(global_idof_index);
                     locally_relevant_surface_nodes_indices.push_back(global_idof_index);
                     locally_relevant_surface_nodes_boundary_id.push_back(boundary_id);
+                    // locally_relevant_surface_nodes_user_index.push_back(face_user_index);
                     // Refer to the nonmenclature of
                     // https://www.dealii.org/current/doxygen/deal.II/classFiniteElement.html#ae2ea16b60a6fc644a9bc7097703a53e8
                     const unsigned int i = idof_cell;

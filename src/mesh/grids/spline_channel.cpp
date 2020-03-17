@@ -145,6 +145,7 @@ dealii::Point<dim,real> BSplineManifold<dim,chartdim>
             }
         }
     }
+    return d_points[degree];
 }
 
 template<int dim, int chartdim>
@@ -175,7 +176,7 @@ dealii::Point<dim,real> BSplineManifold<dim,chartdim>::DeBoor(
         const unsigned int n_new_points_j = n_control_pts / n_1d_control_pts;
         std::vector<dealii::Point<dim,real>> new_points_j(n_new_points_j);
 
-        const std::vector<dealii::Point<dim,real>> used_control_points(n_1d_control_pts);
+        std::vector<dealii::Point<dim,real>> used_control_points(n_1d_control_pts);
         for (int j = 0; j < n_1d_control_pts; ++j) {
 
             std::array<int,chartdim> grid_index;
@@ -184,9 +185,11 @@ dealii::Point<dim,real> BSplineManifold<dim,chartdim>::DeBoor(
             for (int i = 0; i < n_1d_control_pts; ++i) {
 
                 grid_index[0] = i;
-                const int global_used_ctl_index = grid_to_global ( n_1d_control_pts, grid_index );
+                const int global_used_ctl_index = grid_to_global<chartdim> ( n_1d_control_pts, grid_index );
 
-                used_control_points[i] = control_points[global_used_ctl_index];
+                for (int d=0;d<dim;++d) {
+                    used_control_points[i][d] = control_points[global_used_ctl_index][d];
+                }
             }
             new_points_j[j] = DeBoor_1D( chart_point[0], degree , knot_indices[0], knot_vector[0], used_control_points );
         }
@@ -287,10 +290,39 @@ dealii::Point<dim> BSplineManifold<dim,chartdim>::push_forward(const dealii::Poi
 template<int dim, int chartdim>
 double BSplineManifold<dim,chartdim>::fit_spline(
         const HighOrderGrid<dim,double> &high_order_grid,
-        unsigned int surface_id
+        const unsigned int boundary_user_index,
+        const std::vector<dealii::Point<dim>> clamped_points
     )
 {
     double l2error = 0;
+
+    (void) high_order_grid;
+    (void) boundary_user_index;
+    (void) clamped_points;
+    // if constexpr (chartdim == 1) assert(clamped_points == 2);
+    // // else figure out how to do this for a surface bspline in 3D.
+    // n_surface_indices = high_order_grid.locally_relevant_surface_nodes_indices.size();
+
+    // std::vector<dealii::Point<dim> local_surface_points_on_user_index;
+    // for (int i = 0; i < n_surface_indices; ++i)
+    //     if (high_order_grid.locally_relevant_surface_nodes_user_index[i] == boundary_user_index) {
+    //         const unsigned int global_index = high_order_grid.locally_relevant_surface_nodes_indices[i];
+
+    //         high_order_grid.locally_relevant_surface_nodes_user_index[i] == boundary_user_index) {
+    //     }
+    // }
+   
+    // for (const auto &cell : high_order_grid.dof_handler_grid.active_cell_iterators()) {
+    //     if (cell->is_locally_owned()) {
+    //         fe_v.reinit(cell);
+    //         cell->get_dof_indices(dofs);
+    //         const std::vector<dealii::Point<dim>> &points = fe_v.get_quadrature_points();
+    //         for (unsigned int q = 0; q < points.size(); ++q) {
+    //             const unsigned int comp = fe.system_to_component_index(q).first;
+    //             if (fe_mask[comp]) ::dealii::internal::ElementAccess<VectorType>::set(points[q][fe_to_real[comp]], dofs[q], position_vector);
+    //         }
+    //     }
+    // }
 
     return l2error;
 }
@@ -308,11 +340,11 @@ dealii::DerivativeForm<1,chartdim,dim> BSplineManifold<dim,chartdim>::push_forwa
     }
 
     std::vector<dealii::Point<dim,ADtype>> control_points_ad(control_points.size());
-    for (int ictl = 0; ictl < control_points.size(); ++ictl) {
+    for (unsigned int ictl = 0; ictl < control_points.size(); ++ictl) {
         control_points_ad[ictl] = control_points[ictl];
     }
 
-    dealii::Point<2,ADtype> new_point = DeBoor(chart_point_ad, spline_degree, knot_vector, control_points_ad);
+    dealii::Point<dim,ADtype> new_point = DeBoor(chart_point_ad, spline_degree, knot_vector, control_points_ad);
 
     dealii::DerivativeForm<1, chartdim, dim> dphys_dref;
 

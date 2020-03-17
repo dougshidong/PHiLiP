@@ -36,7 +36,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     prm.declare_entry("use_periodic_bc", "false",
                       dealii::Patterns::Bool(),
-                      "Use other boundary conditions by default. Otherwise use periodic (for 1d burgers only");
+                      "Use other boundary conditions by default. Otherwise use periodic");
 
     prm.declare_entry("use_energy", "false",
                       dealii::Patterns::Bool(),

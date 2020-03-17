@@ -356,6 +356,7 @@ protected:
     virtual void assemble_boundary_term_implicit(
         const unsigned int boundary_id,
         const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
+        const dealii::FEValues<dim,dim> &fe_values_vol,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs) = 0;
@@ -366,6 +367,8 @@ protected:
     virtual void assemble_face_term_implicit(
         const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
         const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
+        const dealii::FEValues<dim,dim> &fe_values_vol_int,
+        const dealii::FEValues<dim,dim> &fe_values_vol_ext,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
@@ -384,6 +387,7 @@ protected:
     virtual void assemble_boundary_term_explicit(
         const unsigned int boundary_id,
         const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
+        const dealii::FEValues<dim,dim> &fe_values_vol,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs) = 0;
@@ -391,6 +395,8 @@ protected:
     virtual void assemble_face_term_explicit(
         const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
         const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
+        const dealii::FEValues<dim,dim> &fe_values_vol_int,
+        const dealii::FEValues<dim,dim> &fe_values_vol_ext,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
@@ -505,6 +511,7 @@ private:
     void assemble_boundary_term_implicit(
         const unsigned int boundary_id,
         const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
+        const dealii::FEValues<dim,dim> &fe_values_vol,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs);
@@ -515,6 +522,8 @@ private:
     void assemble_face_term_implicit(
         const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
         const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
+        const dealii::FEValues<dim,dim> &fe_values_vol_int,
+        const dealii::FEValues<dim,dim> &fe_values_vol_ext,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
@@ -533,6 +542,7 @@ private:
     void assemble_boundary_term_explicit(
         const unsigned int boundary_id,
         const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
+        const dealii::FEValues<dim,dim> &fe_values_vol,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs);
@@ -540,6 +550,8 @@ private:
     void assemble_face_term_explicit(
         const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
         const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
+        const dealii::FEValues<dim,dim> &fe_values_vol_int,
+        const dealii::FEValues<dim,dim> &fe_values_vol_ext,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
@@ -655,6 +667,7 @@ private:
     void assemble_boundary_term_implicit(
         const unsigned int boundary_id,
         const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
+        const dealii::FEValues<dim,dim> &fe_values_vol,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs);
@@ -665,6 +678,8 @@ private:
     void assemble_face_term_implicit(
         const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
         const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
+        const dealii::FEValues<dim,dim> &fe_values_vol_int,
+        const dealii::FEValues<dim,dim> &fe_values_vol_ext,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
@@ -683,6 +698,7 @@ private:
     void assemble_boundary_term_explicit(
         const unsigned int boundary_id,
         const dealii::FEFaceValues<dim,dim> &fe_values_face_int,
+        const dealii::FEValues<dim,dim> &fe_values_vol,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs);
@@ -690,6 +706,8 @@ private:
     void assemble_face_term_explicit(
         const dealii::FEValuesBase<dim,dim>     &fe_values_face_int,
         const dealii::FEFaceValues<dim,dim>     &fe_values_face_ext,
+        const dealii::FEValues<dim,dim> &fe_values_vol_int,
+        const dealii::FEValues<dim,dim> &fe_values_vol_ext,
         const real penalty,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,

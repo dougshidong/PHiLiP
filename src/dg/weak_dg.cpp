@@ -177,6 +177,7 @@ template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_boundary_term_implicit(
     const unsigned int boundary_id,
     const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
+    const dealii::FEValues<dim,dim> &/*fe_values_vol*/,
     const real penalty,
     const std::vector<dealii::types::global_dof_index> &dof_indices_int,
     dealii::Vector<real> &local_rhs_int_cell)
@@ -297,6 +298,8 @@ template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_face_term_implicit(
     const dealii::FEValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValues<dim,dim>     &fe_values_ext,
+    const dealii::FEValues<dim,dim> &/*fe_values_vol_int*/,
+    const dealii::FEValues<dim,dim> &/*fe_values_vol_ext*/,
     const real penalty,
     const std::vector<dealii::types::global_dof_index> &dof_indices_int,
     const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
@@ -577,6 +580,7 @@ template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_boundary_term_explicit(
     const unsigned int boundary_id,
     const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
+    const dealii::FEValues<dim,dim> &/*fe_values_vol*/,
     const real penalty,
     const std::vector<dealii::types::global_dof_index> &dof_indices_int,
     dealii::Vector<real> &local_rhs_int_cell)
@@ -685,6 +689,8 @@ template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
     const dealii::FEValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValues<dim,dim>     &fe_values_ext,
+    const dealii::FEValues<dim,dim> &/*fe_values_vol_int*/,
+    const dealii::FEValues<dim,dim> &/*fe_values_vol_ext*/,
     const real penalty,
     const std::vector<dealii::types::global_dof_index> &dof_indices_int,
     const std::vector<dealii::types::global_dof_index> &dof_indices_ext,

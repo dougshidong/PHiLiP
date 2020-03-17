@@ -59,8 +59,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
     if(test_type == Test_enum::run_control) {
         return std::make_unique<GridStudy<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::burgers_energy_stability) {
-        if constexpr (dim==1 && nstate==1) return std::make_unique<BurgersEnergyStability<dim,nstate>>(parameters_input);
-        //if constexpr (nstate == dim) return std::make_unique<BurgersEnergyStability<dim,nstate>>(parameters_input);
+        //if constexpr (dim==1 && nstate==1) return std::make_unique<BurgersEnergyStability<dim,nstate>>(parameters_input);
+        if constexpr (nstate == dim) return std::make_unique<BurgersEnergyStability<dim,nstate>>(parameters_input);
     } else if (test_type == Test_enum::advection_periodicity){
         if constexpr (nstate == 1) return std::make_unique<AdvectionPeriodic<dim,nstate>> (parameters_input);
     } else if (test_type == Test_enum::convection_diffusion_periodicity){

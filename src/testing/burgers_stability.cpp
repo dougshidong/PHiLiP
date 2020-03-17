@@ -32,7 +32,11 @@ template<int dim, int nstate>
 double BurgersEnergyStability<dim, nstate>::compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const
 {
 	double energy = 0.0;
+        dealii::LinearAlgebra::distributed::Vector<double> Mu_hat(dg->right_hand_side);
+        dg->global_mass_matrix.vmult( Mu_hat, dg->solution);
+        energy = dg->solution * Mu_hat;
         
+#if 0
         dealii::LinearAlgebra::distributed::Vector<double> Mu_hat(dg->solution.size());
         dg->global_mass_matrix.vmult( Mu_hat, dg->solution);
 
@@ -41,13 +45,15 @@ double BurgersEnergyStability<dim, nstate>::compute_energy(std::shared_ptr < PHi
             //energy += dg->global_mass_matrix(i,i) * dg->solution(i) * dg->solution(i);
             energy +=  dg->solution(i) * Mu_hat(i);
 	}
+#endif
 	return energy;
 }
 template<int dim, int nstate>
 void BurgersEnergyStability<dim, nstate>::initialize(PHiLiP::DGBase<dim, double>  &dg) const
 {
 	pcout << "Implement initial conditions" << std::endl;
-	dealii::FunctionParser<dim> initial_condition;
+//	dealii::FunctionParser<dim> initial_condition;
+	dealii::FunctionParser<dim> initial_condition(nstate);
 	std::string variables;
         if (dim == 3)
 	    variables = "x,y,z";
@@ -58,21 +64,39 @@ void BurgersEnergyStability<dim, nstate>::initialize(PHiLiP::DGBase<dim, double>
 	//std::string variables = "x";
 	std::map<std::string,double> constants;
 	constants["pi"] = dealii::numbers::PI;
-	std::string expression;
-        if (dim == 3)
-	    expression = "sin(pi*(x))*sin(pi*y)*sin(pi*z) + 0.01";
-        if (dim == 2)
-	    expression = "sin(pi*(x))*sin(pi*y) + 0.01";
-        if(dim==1)
-	    expression = "sin(pi*(x)) + 0.01";
+//	std::string expression;
+	std::vector<std::string> expression;
+        if (dim == 3){
+            for(int idim=0; idim<dim; idim++)
+                expression.push_back("sin(pi*(x))*sin(pi*y)*sin(pi*z) + 0.01");
+#if 0
+	    expression[0]= "sin(pi*(x))*sin(pi*y)*sin(pi*z) + 0.01";
+	    expression[1]= "sin(pi*(x))*sin(pi*y)*sin(pi*z) + 0.01";
+	    expression[2] = "sin(pi*(x))*sin(pi*y)*sin(pi*z) + 0.01";
+#endif
+        }
+        if (dim == 2){
+            for(int idim=0; idim<dim; idim++)
+                expression.push_back("sin(pi*(x))*sin(pi*y) + 0.01");
+#if 0
+	    expression[0] = "sin(pi*(x))*sin(pi*y) + 0.01";
+	    expression[1] = "sin(pi*(x))*sin(pi*y) + 0.01";
+#endif
+        }
+        if(dim==1){
+            expression.push_back("sin(pi*(x)) + 0.01");
+	  //  expression[0] = "sin(pi*(x)) + 0.01";
+        }
 	initial_condition.initialize(variables,
 	                             expression,
 	                             constants);
-//	dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
+//	dealii::VectorTools::interpolate(dg.dof_handler,initial_condition,dg.solution);
+//#if 0
         dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
         solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
 	dealii::VectorTools::interpolate(dg.dof_handler,initial_condition,solution_no_ghost);
         dg.solution = solution_no_ghost;
+//#endif
 
 }
 
@@ -85,7 +109,7 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
         PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
 	double left = 0.0;
 	double right = 2.0;
-	const unsigned int n_grids = 4;
+	const unsigned int n_grids = 5;
         std::array<double,n_grids> grid_size;
         std::array<double,n_grids> soln_error;
 	unsigned int poly_degree = 4;
@@ -138,12 +162,12 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
     const unsigned int n_global_active_cells2 = grid.n_global_active_cells();
     double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
     double delta_x = (right-left)/pow(n_dofs_cfl,(1.0/dim)); 
-    all_parameters_new.ode_solver_param.initial_time_step =  0.005*delta_x;
-  //  all_parameters_new.ode_solver_param.initial_time_step =  0.05*delta_x;
+    all_parameters_new.ode_solver_param.initial_time_step =  0.00005*delta_x;
+    //all_parameters_new.ode_solver_param.initial_time_step =  0.05*delta_x;
     all_parameters_new.ode_solver_param.initial_time_step =  0.0001;
-    //all_parameters_new.ode_solver_param.initial_time_step =  0.00005;
- //   all_parameters_new.ode_solver_param.initial_time_step =  0.001;
-   // all_parameters_new.ode_solver_param.initial_time_step =  0.00001;
+   // all_parameters_new.ode_solver_param.initial_time_step =  0.00005;
+    //all_parameters_new.ode_solver_param.initial_time_step =  0.001;
+    //all_parameters_new.ode_solver_param.initial_time_step =  0.00001;
   //  if(igrid ==6 )
   //  all_parameters_new.ode_solver_param.initial_time_step =  0.00001;
     
@@ -200,18 +224,20 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 	//this causes some issues with outputs (only one file is output, which is overwritten at each time step)
 	//also the ode solver output doesn't make sense (says "iteration 1 out of 1")
 	//but it works. I'll keep it for now and need to modify the output functions later to account for this.
-	std::ofstream myfile ("energy_plot_cPlus_Classical_split_p5.gpl" , std::ios::trunc);
+	std::ofstream myfile ("energy_plot_cDG_p4_lax_split.gpl" , std::ios::trunc);
 
 	for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
 	{
 		ode_solver->advance_solution_time(dt);
 		double current_energy = compute_energy(dg);
                 current_energy /=initial_energy;
+                std::cout << std::setprecision(16) << std::fixed;
 		pcout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
-		myfile << i * dt << " " << current_energy << std::endl;
+		myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_energy << std::endl;
 		if (current_energy*initial_energy - initial_energy >= 1.0)
 	//	if (current_energy*initial_energy - initial_energy >= 10000.0)
 		{
+                    pcout<<"Energy Fail"<<std::endl;
 			return 1;
 			break;
 		}

@@ -331,7 +331,7 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 #endif
 	grid.refine_global(igrid);
 //warp curvilinear transformed grid
-//#if 0
+#if 0
 dealii::GridTools::transform (&warp, grid);
 
 // Assign a manifold to have curved geometry
@@ -340,7 +340,7 @@ dealii::GridTools::transform (&warp, grid);
         grid.reset_all_manifolds();
         grid.set_all_manifold_ids(manifold_id);
         grid.set_manifold ( manifold_id, curv_manifold );
-//#endif
+#endif
 //end of warp curv transformed grid
 
 #if 0
@@ -360,8 +360,7 @@ dealii::GridTools::transform (&warp, grid);
    // all_parameters_new.ode_solver_param.initial_time_step =  0.25*delta_x;
     all_parameters_new.ode_solver_param.initial_time_step =  0.5*delta_x;
     all_parameters_new.ode_solver_param.initial_time_step =  0.05*delta_x;
-    all_parameters_new.ode_solver_param.initial_time_step =  0.05*delta_x;
-    all_parameters_new.ode_solver_param.initial_time_step =  0.005*delta_x;
+   // all_parameters_new.ode_solver_param.initial_time_step =  0.005*delta_x;
     std::cout << "dt " <<all_parameters_new.ode_solver_param.initial_time_step <<  std::endl;
     std::cout << "cells " <<n_global_active_cells2 <<  std::endl;
   //  all_parameters_new.ode_solver_param.initial_time_step *= 1e-3;  
@@ -456,15 +455,6 @@ dealii::GridTools::transform (&warp, grid);
 	std::shared_ptr<PHiLiP::ODE::ODESolver<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
 	double finalTime = 1.5;
-finalTime=1e-20;
-finalTime=10.0;
-finalTime = 1.0;
-finalTime=2.0;
-finalTime = delta_x /(1.0*(2.0*poly_degree+1));
-finalTime =10 *1e-1* delta_x /(1.0*(2.0*poly_degree+1));
-finalTime =1/16;
-finalTime =0.1;
-finalTime = 20.0;
 finalTime = 10.0;
 //finalTime = 2.0;
 //finalTime=0.25;

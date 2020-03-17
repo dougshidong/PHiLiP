@@ -492,6 +492,7 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW)
 
 //solution basis functions evaluated at flux volume nodes
     dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_soln_flux (mapping_collection, DGBase<dim,real>::fe_collection, DGBase<dim,real>::volume_quadrature_collection_flux, this->volume_update_flags); ///< FEValues of volume.
+    dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_neigh (mapping_collection, DGBase<dim,real>::fe_collection, DGBase<dim,real>::volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.
 
     unsigned int n_cell_visited = 0;
     unsigned int n_face_visited = 0;
@@ -613,16 +614,20 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW)
                     const real penalty2 = deg2sq / vol_div_facearea2;
 
                     real penalty = 0.5 * ( penalty1 + penalty2 );
+                    fe_values_collection_volume_neigh.reinit (neighbor_cell, quad_index, mapping_index, fe_index_neigh_cell);
+                    const dealii::FEValues<dim,dim> &fe_values_volume_neigh = fe_values_collection_volume_neigh.get_present_fe_values();
 
                     if ( compute_dRdW ) {
                         assemble_face_term_implicit (
                                                     fe_values_face_int, fe_values_face_ext,
+                                fe_values_volume, fe_values_volume_neigh,
                                                     penalty,
                                                     current_dofs_indices, neighbor_dofs_indices,
                                                     current_cell_rhs, neighbor_cell_rhs);
                     } else {
                         assemble_face_term_explicit (
                                                     fe_values_face_int, fe_values_face_ext,
+                                fe_values_volume, fe_values_volume_neigh,
                                                     penalty,
                                                     current_dofs_indices, neighbor_dofs_indices,
                                                     current_cell_rhs, neighbor_cell_rhs);
@@ -639,9 +644,9 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW)
                     const unsigned int boundary_id = current_face->boundary_id();
                     // Need to somehow get boundary type from the mesh
                     if ( compute_dRdW ) {
-                        assemble_boundary_term_implicit (boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
+                        assemble_boundary_term_implicit (boundary_id, fe_values_face_int, fe_values_volume, penalty, current_dofs_indices, current_cell_rhs);
                     } else {
-                        assemble_boundary_term_explicit (boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
+                        assemble_boundary_term_explicit (boundary_id, fe_values_face_int, fe_values_volume, penalty, current_dofs_indices, current_cell_rhs);
                     }
                 }
 
@@ -702,16 +707,20 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW)
 
                     real penalty = 0.5 * ( penalty1 + penalty2 );
                     //penalty = 1;//99;
+                    fe_values_collection_volume_neigh.reinit (neighbor_cell, quad_index, mapping_index, fe_index_neigh_cell);
+                    const dealii::FEValues<dim,dim> &fe_values_volume_neigh = fe_values_collection_volume_neigh.get_present_fe_values();
 
                     if ( compute_dRdW ) {
                         assemble_face_term_implicit (
                                 fe_values_face_int, fe_values_face_ext,
+                                fe_values_volume, fe_values_volume_neigh,
                                 penalty,
                                 current_dofs_indices, neighbor_dofs_indices,
                                 current_cell_rhs, neighbor_cell_rhs);
                     } else {
                         assemble_face_term_explicit (
                                 fe_values_face_int, fe_values_face_ext,
+                                fe_values_volume, fe_values_volume_neigh,
                                 penalty,
                                 current_dofs_indices, neighbor_dofs_indices,
                                 current_cell_rhs, neighbor_cell_rhs);
@@ -779,16 +788,20 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW)
                     const real penalty2 = deg2sq / vol_div_facearea2;
                     
                     real penalty = 0.5 * ( penalty1 + penalty2 );
+                    fe_values_collection_volume_neigh.reinit (neighbor_cell, quad_index, mapping_index, fe_index_neigh_cell);
+                    const dealii::FEValues<dim,dim> &fe_values_volume_neigh = fe_values_collection_volume_neigh.get_present_fe_values();
 
                     if ( compute_dRdW ) {
                         assemble_face_term_implicit (
                                 fe_values_face_int, fe_values_face_ext,
+                                fe_values_volume, fe_values_volume_neigh,
                                 penalty,
                                 current_dofs_indices, neighbor_dofs_indices,
                                 current_cell_rhs, neighbor_cell_rhs);
                     } else {
                         assemble_face_term_explicit (
                             fe_values_face_int, fe_values_face_ext,
+                                fe_values_volume, fe_values_volume_neigh,
                             penalty,
                             current_dofs_indices, neighbor_dofs_indices,
                             current_cell_rhs, neighbor_cell_rhs);
@@ -868,16 +881,20 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW)
                 
                 real penalty = 0.5 * ( penalty1 + penalty2 );
                 //penalty = 1;//99;
+                    fe_values_collection_volume_neigh.reinit (neighbor_cell, quad_index, mapping_index, fe_index_neigh_cell);
+                    const dealii::FEValues<dim,dim> &fe_values_volume_neigh = fe_values_collection_volume_neigh.get_present_fe_values();
 
                 if ( compute_dRdW ) {
                     assemble_face_term_implicit (
                             fe_values_face_int, fe_values_face_ext,
+                                fe_values_volume, fe_values_volume_neigh,
                             penalty,
                             current_dofs_indices, neighbor_dofs_indices,
                             current_cell_rhs, neighbor_cell_rhs);
                 } else {
                     assemble_face_term_explicit (
                             fe_values_face_int, fe_values_face_ext,
+                                fe_values_volume, fe_values_volume_neigh,
                             penalty,
                             current_dofs_indices, neighbor_dofs_indices,
                             current_cell_rhs, neighbor_cell_rhs);
@@ -1310,6 +1327,7 @@ void DGBase<dim,real>::build_global_projection_operator ()
 
     dealii::hp::FEValues<dim,dim>        fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.
     dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_flux (mapping_collection, fe_collection_flux, volume_quadrature_collection_flux, this->volume_update_flags); ///< FEValues of volume.
+   // dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_flux (mapping_collection, fe_collection, volume_quadrature_collection_flux, this->volume_update_flags); ///< FEValues of volume.
     
     unsigned int n_dif_cells = 0;
    // std::array<std::array<unsigned int, 2>, 100> dif_cells;
@@ -1502,7 +1520,7 @@ void DGBase<dim,real>::get_K_operator_FR(
                  dealii::FullMatrix<real> &K_operator,
                  std::vector<dealii::FullMatrix<real>> &K_operator_aux/*, std::string correction*/)
 {
-    using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
+ using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     using FR_Aux_enum = Parameters::AllParameters::Flux_Reconstruction_Aux;
 
     std::vector<dealii::FullMatrix<real>> local_derivative_operator(dim);
@@ -2018,8 +2036,8 @@ fflush(stdout);
         K_operator_no_Jac.mmult(K_operator,Jacobian_physical);
         K_operator_no_Jac_aux.mmult(K_operator_aux[0],Jacobian_physical);
     }
-
 }
+
 template <int dim, typename real>
 double DGBase<dim,real>::factorial_DG(double n)
 {

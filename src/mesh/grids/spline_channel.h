@@ -107,8 +107,9 @@ protected:
 
     /// Perform a least-squares to fit B-spline to Triangulation surface.
     double fit_spline(
-        const PHiLiP::HighOrderGrid<dim,double> &high_order_grid,
-        unsigned int surface_id
+        const HighOrderGrid<dim,double> &high_order_grid,
+        const unsigned int boundary_user_index,
+        const std::vector<dealii::Point<dim>> clamped_points
     );
 
 public:

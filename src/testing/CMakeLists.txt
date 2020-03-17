@@ -24,7 +24,7 @@ foreach(dim RANGE 1 3)
     target_compile_definitions(${TestsLib} PRIVATE PHILIP_DIM=${dim})
 
     # Library dependency
-    string(CONCAT GridsLib Grids_{dim}D)
+    string(CONCAT GridsLib Grids_${dim}D)
     string(CONCAT NumericalFluxLib NumericalFlux_${dim}D)
     string(CONCAT PhysicsLib Physics_${dim}D)
     string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)

@@ -67,6 +67,7 @@ BSplineManifold<dim,chartdim>::BSplineManifold(
     , n_1d_knots(n_1d_control_pts + spline_degree + 1)
     , knot_vector(generate_clamped_uniform_knot_vector())
 {
+    control_points.resize(n_control_pts);
 }
 
 template <int chartdim>
@@ -100,7 +101,6 @@ int get_knot_interval(const real val, const std::vector<double> knot_vector)
     // Binary search to find interval i such that
     // knot_vector[i] <= val < knot_vector[i+1]
     const int n_knots = knot_vector.size();
-    int interval = n_knots / 2;
     for (int i = 0; i < n_knots; ++i) {
     }
     int low = 0, high = n_knots - 1 - 1;
@@ -128,19 +128,21 @@ dealii::Point<dim,real> BSplineManifold<dim,chartdim>
 ::DeBoor_1D(  const real chart_point
             , const unsigned int degree
             , const unsigned int knot_index
-            , const std::vector<double> knot_vector_1d
-            , const std::vector<dealii::Point<dim,real>> control_points
+            , const std::vector<double> &knot_vector_1d
+            , const std::vector<dealii::Point<dim,real>> &control_points
     ) const 
 {
     // https://en.wikipedia.org/wiki/De_Boor%27s_algorithm
-    const std::vector<dealii::Point<dim,real>> d(degree);
+    std::vector<dealii::Point<dim,real>> d_points(degree);
     for (unsigned int j = 0; j < degree+1; ++j) {
-        d[j] = control_points[j + knot_index - degree];
+        d_points[j] = control_points[j + knot_index - degree];
     }
     for (unsigned int r = 1; r < degree+1; ++r) {
         for (unsigned int j = degree; j > r-1; --j) {
             real alpha = (chart_point - knot_vector_1d[j+knot_index-degree]) / (knot_vector_1d[j+1+knot_index-r] - knot_vector_1d[j+knot_index-degree]);
-            d[j] = (1.0 - alpha) * d[j-1] + alpha * d[j];
+            for (int d=0; d<dim; ++d) {
+                d_points[j][d] = (1.0 - alpha) * d_points[j-1][d] + alpha * d_points[j][d];
+            }
         }
     }
 }
@@ -154,16 +156,89 @@ dealii::Point<dim,real> BSplineManifold<dim,chartdim>::DeBoor(
     , const std::vector<dealii::Point<dim,real>> control_points
     ) const
 {
-    const unsigned int n_total_control_pts = control_points.size();
-    for (unsigned int cdim = 0; cdim < chartdim; ++cdim) {
-
-        const std::vector<dealii::Point<dim,real>> new_control_points(n_total_control_pts / n_1d_control_pts);
-
-        real chart_val = chart_point[cdim];
-        const unsigned int knot_index = get_knot_interval(chart_val, knot_vector[cdim]);
-
+    // https://pages.mtu.edu/~shene/COURSES/cs3621/NOTES/surface/bspline-de-boor.html
+    dealii::Point<dim,real> new_point;
+    if constexpr (chartdim == 1) {
+        const unsigned int cdim = 0;
+        const unsigned int knot_index = get_knot_interval(chart_point[cdim], knot_vector[cdim]);
+        new_point = DeBoor_1D( chart_point[cdim], degree , knot_index , knot_vector[cdim], control_points );
     }
-    return dealii::Point<dim,real> ();
+    if constexpr (chartdim == 2) {
+
+        std::array<unsigned int, chartdim> knot_indices;
+        for (int cdim = 0; cdim < chartdim; ++cdim) {
+            knot_indices[cdim] = get_knot_interval(chart_point[cdim], knot_vector[cdim]);
+        }
+
+        /// new_point = sum_j (N_j(v) q_j)
+        /// where q_j = sum_i (N_i(u) p_ij)
+        const unsigned int n_new_points_j = n_control_pts / n_1d_control_pts;
+        std::vector<dealii::Point<dim,real>> new_points_j(n_new_points_j);
+
+        const std::vector<dealii::Point<dim,real>> used_control_points(n_1d_control_pts);
+        for (int j = 0; j < n_1d_control_pts; ++j) {
+
+            std::array<int,chartdim> grid_index;
+            grid_index[1] = j;
+
+            for (int i = 0; i < n_1d_control_pts; ++i) {
+
+                grid_index[0] = i;
+                const int global_used_ctl_index = grid_to_global ( n_1d_control_pts, grid_index );
+
+                used_control_points[i] = control_points[global_used_ctl_index];
+            }
+            new_points_j[j] = DeBoor_1D( chart_point[0], degree , knot_indices[0], knot_vector[0], used_control_points );
+        }
+
+        new_point = DeBoor_1D( chart_point[1], degree , knot_indices[1], knot_vector[1], new_points_j );
+    }
+    // unsigned int n_new_points = control_points.size();
+    // for (unsigned int cdim = 0; cdim < chartdim; ++cdim) {
+
+    //     n_new_points /= n_1d_control_pts;
+
+
+    //     real chart_val = chart_point[cdim];
+    //     const unsigned int knot_index = get_knot_interval(chart_val, knot_vector[cdim]);
+
+    //     const std::vector<dealii::Point<dim,real>> new_points(n_new_points);
+
+    //     for (int i_new_pt = 0; i_new_pt < n_new_points; ++i_new_pt) {
+
+    //         std::array<int,chartdim-cdim-1> new_grid_index;
+    //         global_to_grid ( i_new_pt, n_1d_control_pts, new_grid_index );
+
+    //         for (int i_used_pt = 0; i_used_pt < n_1d_control_pts; i_used_pt) {
+    //             
+    //             std::array<int,chartdim-cdim> used_grid_index;
+    //             if (cdim == 0) {
+    //                 used_grid_index[0] = i_used_pt;
+    //                 used_grid_index[0] = new_grid_index
+    //                 used_grid_index[0] = i_used_pt;
+    //             }
+    //             const int global_ctl_index = grid_to_global ( n_1d_control_pts, const std::array<int,chartdim> &grid_index )
+    //         }
+    //     }
+    //     
+    //     const std::vector<dealii::Point<dim,real>> used_control_points(n_1d_control_pts);
+    //     for (int i_new_pt = 0; i_new_pt < n_control_pts; ++i_new_pt) {
+    //         std::array<int,chartdim> grid_index;
+    //         global_to_grid ( i_new_pt, n_1d_control_pts, grid_index );
+
+    //         used_control_points
+
+    //     }
+    //             for (int ictl = 0; ictl < n_1d_control_pts; ++i_ctl) {
+    //         }
+    //         new_points[i_new_pt] = 
+    //     }
+    //     const std::array<int,chartdim> &grid_index
+    //     const int global_ctl_index = grid_to_global ( n_1d_control_pts, const std::array<int,chartdim> &grid_index )
+    // }
+    // return global_index;
+
+    return new_point;
 }
 
 

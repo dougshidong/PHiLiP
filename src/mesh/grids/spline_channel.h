@@ -49,20 +49,20 @@ protected:
     //     return bij;
     // }
     unsigned int spline_degree; ///< B-spline degree.
-    unsigned int n_control_pts; ///< Total number of control points.
     unsigned int n_1d_control_pts; ///< Number of control points in one of the chartdim direction.
+    unsigned int n_control_pts; ///< Total number of control points.
     unsigned int n_1d_knots; ///< Number of knots in one of the chartdim direction.
+    std::array<std::vector<double>,chartdim> knot_vector; ///< Knot vector.
 
     std::vector<dealii::Point<dim>> control_points; ///< Control points.
-    std::array<std::vector<double>,chartdim> knot_vector; ///< Knot vector.
 
     template<typename real>
     dealii::Point<dim,real> DeBoor_1D(
         const real chart_point
         , const unsigned int degree
         , const unsigned int knot_index
-        , const std::vector<double> knot_vector_1d
-        , const std::vector<dealii::Point<dim,real>> control_points
+        , const std::vector<double> &knot_vector_1d
+        , const std::vector<dealii::Point<dim,real>> &control_points
         ) const;
 
     template<typename real>

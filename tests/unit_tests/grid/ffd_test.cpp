@@ -27,7 +27,7 @@ int main (int argc, char * argv [])
     // We will definitely the last "upper" section.
     dealii::Point<3> _displaced_point_location;
     for (int d=0; d<3; ++d) {
-        _undisplaced_point_location[d] = _origin[d] + 0.1;
+        _undisplaced_point_location[d] = _origin[d] - 0.1;
         _displaced_point_location[d] = _origin[d] + _rectangle_lengths[d] - 0.1;
     }
 
@@ -131,7 +131,7 @@ int main (int argc, char * argv [])
     std::vector<dealii::Point<dim>> grid_points(npts);
 
     const double pi = atan(1.0)*4.0;
-    const double frequency = 5.0;
+    const double frequency = 2.0;
 
     for (int i = 0; i < nx; ++i) {
         for (int j = 0; j < ny; ++j) {
@@ -167,9 +167,10 @@ int main (int argc, char * argv [])
         initial_sine_points_file.close();
         deformed_sine_points_file.close();
 
-        if (dim == 2) std::cout <<  " gnuplot -e \"set terminal jpeg; plot 'initial_sine_points.dat' with linespoints, 'deformed_sine_points.dat' with linespoints; set xrange [1:3]; set yrange[2:5] \" > out.jpeg "  << std::endl;
+        std::cout << "To plot a sine wave being deformated, use the following command in the terminal" << std::endl;
+        if (dim == 2) std::cout <<  " gnuplot -e \"set terminal jpeg; plot 'tests/unit_tests/grid/initial_sine_points.dat' with linespoints, 'tests/unit_tests/grid/deformed_sine_points.dat' with linespoints; set xrange [1:3]; set yrange[2:5] \" > out.jpeg "  << std::endl;
 
-        if (dim == 3) std::cout << " splot 'initial_sine_points.dat' using 1:2:3, 'deformed_sine_points.dat' using 1:2:3; set xrange [1:3]; set yrange[2:5]; set zrange[3:7] " << std::endl;
+        if (dim == 3) std::cout << " gnuplot -e \"set terminal jpeg; splot 'tests/unit_tests/grid/initial_sine_points.dat' using 1:2:3, 'tests/unit_tests/grid/deformed_sine_points.dat' using 1:2:3; set xrange [1:3]; set yrange[2:5]; set zrange[3:7] > out.jpeg " << std::endl;
     }
 
 

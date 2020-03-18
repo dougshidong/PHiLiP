@@ -117,7 +117,8 @@ int get_knot_interval(const real val, const std::vector<double> knot_vector)
            return mid;
         }
    }
-   assert();
+   std::cout << "Knot interval not found for val = " << val << std::endl;
+   assert(1==0);
    return -1;
 }
 

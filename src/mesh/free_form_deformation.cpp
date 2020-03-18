@@ -1,3 +1,5 @@
+#include <boost/math/special_functions/binomial.hpp>
+
 #include "free_form_deformation.h"
 
 namespace PHiLiP {
@@ -13,8 +15,7 @@ FreeFormDeformation<dim>::FreeFormDeformation (
         , n_control_pts(compute_total_ctl_pts())
         , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
 { 
-    init_msg();
-
+    control_pts.resize(n_control_pts);
     for (unsigned int ictl = 0; ictl < n_control_pts; ++ictl) {
 
         std::array<unsigned int,dim> ijk = global_to_grid (ictl);
@@ -25,6 +26,8 @@ FreeFormDeformation<dim>::FreeFormDeformation (
         }
 
     }
+    init_msg();
+
     pcout << " **************************************** " << std::endl;
 }
 
@@ -64,7 +67,12 @@ dealii::Point<dim,real> FreeFormDeformation<dim>::get_local_coordinates (const d
     const dealii::Tensor<1,dim,real> dX = (p - origin);
     for (int d=0;d<dim;++d) {
         local_coordinates[d] = (dX * perp_vectors[d]) / (parallepiped_vectors[d] * perp_vectors[d]);
-        assert(0 < local_coordinates[d] && local_coordinates[d] < 1);
+        // const double TOL = 1e-12;
+        // if (!(-TOL <= local_coordinates[d] && local_coordinates[d] <= 1.0+TOL)) {
+        //     std::cout << " Point: " << p << " is not within the FFD box." << std::endl;
+        //     std::cout << " Direction: " << d << " Local (s,t,u) coord: " << local_coordinates[d] << std::endl;
+        //     throw(1);
+        // }
     }
 
     return local_coordinates;
@@ -135,12 +143,80 @@ void FreeFormDeformation<dim>::init_msg() const
     pcout << " * Creating Free-Form Deformation (FFD) * " << std::endl;
 
     pcout << " Parallepiped with corner nodes located at: * " << std::endl;
-    for (int d=0; d<dim; ++d) {
-        pcout << origin << std::endl;
-        pcout << origin + parallepiped_vectors[d] << std::endl;
+    for (int ictl = 0; ictl < n_control_pts; ++ictl) {
+        std::array<unsigned int, dim> ijk = global_to_grid(ictl);
+        bool print = true;
+        for (int d=0; d<dim; ++d) {
+            if ( !( ijk[d] == 0 || ijk[d] == (ndim_control_pts[d] - 1) ) ) {
+                print = false;
+            }
+        }
+        if (print) pcout << control_pts[ictl] << std::endl;
     }
 }
 
+template<int dim>
+void FreeFormDeformation<dim>::move_ctl_dx ( const unsigned i, const dealii::Tensor<1,dim,double> dx )
+{
+    control_pts[i] += dx;
+}
+
+template<int dim>
+void FreeFormDeformation<dim>::move_ctl_dx ( const std::array<unsigned int,dim> ijk, const dealii::Tensor<1,dim,double> dx)
+{
+    control_pts[grid_to_global(ijk)] += dx;
+}
+
+template<int dim>
+template<typename real>
+dealii::Point<dim,real> FreeFormDeformation<dim>::displaced_point (const dealii::Point<dim,real> &initial_point) const
+{
+    const dealii::Point<dim,real> s_t_u = get_local_coordinates (initial_point);
+    for (int d=0; d<dim; ++d) {
+        if (!(0 <= s_t_u[d] && s_t_u[d] <= 1.0)) {
+            return initial_point;
+        }
+    }
+    return evaluate_ffd (s_t_u);
+}
+
+template<int dim>
+template<typename real>
+dealii::Point<dim,real> FreeFormDeformation<dim>::evaluate_ffd (const dealii::Point<dim,real> &s_t_u_point) const
+{
+    dealii::Point<dim,real> ffd_location;
+
+    std::array<std::vector<real>,dim> ijk_coefficients;
+    
+    for (int d=0; d<dim; ++d) {
+        ffd_location[d] = 0.0;
+
+        ijk_coefficients[d].resize(ndim_control_pts[d]);
+
+        const unsigned n_intervals = ndim_control_pts[d] - 1;
+
+        for (unsigned int i = 0; i < ndim_control_pts[d]; ++i) {
+            double bin_coeff = boost::math::binomial_coefficient<double>(n_intervals, i);
+            const unsigned int power = n_intervals - i;
+            ijk_coefficients[d][i] = bin_coeff * std::pow(1.0 - s_t_u_point[d], power) * std::pow(s_t_u_point[d], i);
+        }
+    }
+
+    for (int ictl = 0; ictl < n_control_pts; ++ictl) {
+        std::array<unsigned int, dim> ijk = global_to_grid(ictl);
+
+        real coeff = 1.0;
+        for (int d=0; d<dim; ++d) {
+            coeff *= ijk_coefficients[d][ijk[d]];
+        }
+        ffd_location += coeff * control_pts[ictl];
+    }
+
+    return ffd_location;
+}
+
+
 template class FreeFormDeformation<PHILIP_DIM>;
+template dealii::Point<PHILIP_DIM, double> FreeFormDeformation<PHILIP_DIM>::displaced_point(const dealii::Point<PHILIP_DIM, double>&) const;
 
 } // namespace PHiLiP

@@ -1,5 +1,5 @@
-#ifndef __SPLINE_CHANNEL__
-#define __SPLINE_CHANNEL__
+#ifndef __FREE_FORM_DEFORMATION__
+#define __FREE_FORM_DEFORMATION__
 
 #include "high_order_grid.h"
 
@@ -22,6 +22,17 @@ public:
         const std::array<double,dim> &rectangle_lengths,
         const std::array<unsigned int,dim> &_ndim_control);
 
+    /// Given an initial point in the undeformed initial parallepiped, return the 
+    /// position of the new point location.
+    template<typename real>
+    dealii::Point<dim,real> displaced_point (const dealii::Point<dim,real> &initial_point) const;
+
+    /// Given the s,t,u reference location within the FFD box, return its position in the 
+    /// actual domain.
+    template<typename real>
+    dealii::Point<dim,real> evaluate_ffd (const dealii::Point<dim,real> &stu_point) const;
+
+    /// Control points of the FFD box used to deform the geometry.
     std::vector<dealii::Point<dim>> control_pts;
 
     /// Given a control points' global index return its ijk coordinate.
@@ -33,6 +44,13 @@ public:
     /** Opposite of global_to_grid
      */
     unsigned int grid_to_global ( const std::array<unsigned int,dim> &ijk_index ) const;
+
+    /// Move control point with global index i.
+    void move_ctl_dx ( const unsigned i, const dealii::Tensor<1,dim,double> );
+
+    /// Move control point with grid index (i,j,k).
+    void move_ctl_dx ( const std::array<unsigned int,dim> ijk, const dealii::Tensor<1,dim,double> );
+
 protected:
 
     /// Returns the local coordinates s-t-u within the FFD box.

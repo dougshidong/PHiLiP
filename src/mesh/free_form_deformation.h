@@ -70,12 +70,14 @@ protected:
     /// Number of control points in each direction.
     const std::array<unsigned int, dim> ndim_control_pts;
 public:
+    /// Total number of control points.
     const unsigned int n_control_pts;
 private:
 
     /// Returns rectangular vector box given the box lengths.
     std::array<dealii::Tensor<1,dim,double>,dim> get_rectangular_parallepiped_vectors (const std::array<double,dim> &rectangle_lengths) const;
 
+    /// Used by constructor to evaluate total number of control points.
     unsigned int compute_total_ctl_pts() const;
 
     /// Outputs if MPI rank is 0.

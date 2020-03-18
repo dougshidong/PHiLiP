@@ -138,6 +138,9 @@ public:
     /// List of surface node boundary IDs, corresponding to locally_relevant_surface_nodes_indices
     std::vector<dealii::types::global_dof_index> locally_relevant_surface_nodes_boundary_id;
 
+    // /// List of surface node boundary user index, corresponding to locally_relevant_surface_nodes_indices
+    // std::vector<dealii::types::global_dof_index> locally_relevant_surface_nodes_user_index;
+
     /// List of surface nodes.
     /** Note that this contains all \<dim\> directions.
      *  By convention, the DoF representing the z-direction follows the DoF representing

@@ -56,26 +56,6 @@ void gaussian_bump(
     grid.set_manifold(1, bump_manifold);
 }
 
-//dealii::Point<2> BumpManifold::warp (const dealii::Point<2> &p)
-//{
-//    const double x_ref = p[0];
-//    const double y_ref = p[1];
-//
-//    // Re-scale the y-axis to have exponential spacing.
-//    const double coeff2 = 1.25; // Increase for more aggressive INITIAL exponential spacing.
-//    const double x_scaled = x_ref; // [-channel_length/2,channel_length/2]
-//    const double y_scaled = y_height*(exp(std::pow(y_ref,coeff2))-1.0)/(exp(std::pow(y_height,coeff2))-1.0); // [0,y_height]
-//
-//    dealii::Point<2> new_point = p;
-//    new_point[0] = x_scaled;
-//    //new_point[1] = y_height*y_scaled + bump_height*exp(coeff_expy*y_scaled*y_scaled)*exp(coeff_expx*new_point[0]*new_point[0]) * (1.0+0.7*new_point[0]);
-//    //new_point[1] = y_height*y_scaled + bump_height*exp(coeff_expy*y_scaled*y_scaled)*exp(coeff_expx*new_point[0]*new_point[0]) * (1.0+0.7*new_point[0]);
-//    const double y_lower = bump_height*exp(coeff_expx*new_point[0]*new_point[0]);
-//    const double perturbation = y_lower * exp(coeff_expy*y_scaled*y_scaled);
-//    new_point[1] = y_scaled + perturbation;
-//    return new_point;
-//}
-
 template<typename real>
 dealii::Point<2,real> BumpManifold::mapping(const dealii::Point<2,real> &chart_point) const 
 {
@@ -156,58 +136,6 @@ dealii::DerivativeForm<1,2,2> BumpManifold::push_forward_gradient(const dealii::
 
     return dphys_dref;
 }
-
-// dealii::Point<2> BumpManifold::pull_back(const dealii::Point<2> &space_point) const {
-//     double x_phys = space_point[0];
-//     double y_phys = space_point[1];
-//     double x_ref = x_phys;
-// 
-//     double y_ref = y_phys;
-// 
-//     for (int i=0; i<200; i++) {
-//         const double function = y_height*y_ref + bump_height*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*x_phys*x_phys) * (1.0+0.7*x_phys) - y_phys;
-//         const double derivative = y_height + bump_height*coeff_expy*2*y_ref*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*x_phys*x_phys) * (1.0+0.7*x_phys);
-//         //const double function = y_height*y_ref + bump_height*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*x_phys*x_phys) - y_phys;
-//         //const double derivative = y_height + bump_height*coeff_expy*2*y_ref*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*x_phys*x_phys);
-//         y_ref = y_ref - function/derivative;
-//         if(std::abs(function) < 1e-15) break;
-//     }
-//     const double function = y_height*y_ref + bump_height*exp(coeff_expy*y_ref*y_ref)*exp(coeff_expx*x_phys*x_phys) * (1.0+0.7*x_phys);
-//     const double error = std::abs(function - y_phys);
-//     if (error > 1e-13) {
-//         std::cout << "Large error " << error << std::endl;
-//         std::cout << "xref " << x_ref << "yref " << y_ref << "y_phys " << y_phys << " " << function << " " << error << std::endl;
-//     }
-// 
-//     dealii::Point<2> p(x_ref, y_ref);
-//     return p;
-// }
-// 
-// dealii::Point<2> BumpManifold::push_forward(const dealii::Point<2> &chart_point) const 
-// {
-//     const double x_ref = chart_point[0];
-//     const double y_ref = chart_point[1];
-//     const double x_phys = x_ref;//-1.5+x_ref*3.0;
-//     const double y_phys = y_height*y_ref + exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys) * (1.0+0.7*x_phys);
-// 
-//     std::cout << x_ref << " " << y_ref << " " << x_phys << " " << y_phys << std::endl;
-//     return dealii::Point<2> ( x_phys, y_phys); // Trigonometric
-// }
-// 
-// dealii::DerivativeForm<1,2,2> BumpManifold::push_forward_gradient(const dealii::Point<2> &chart_point) const
-// {
-//     dealii::DerivativeForm<1, 2, 2> dphys_dref;
-//     double x_ref = chart_point[0];
-//     double y_ref = chart_point[1];
-//     double x_phys = x_ref;
-//     //double y_phys = y_height*y_ref + exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys);
-//     dphys_dref[0][0] = 1;
-//     dphys_dref[0][1] = 0;
-//     dphys_dref[1][0] = exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys) * coeff_expx*2*x_phys*dphys_dref[0][0] * (1.0+0.7*x_phys);
-//     dphys_dref[1][0] += exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys) * 0.7*dphys_dref[0][0];
-//     dphys_dref[1][1] = y_height + coeff_expy * 2*y_ref * exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys) * (1.0+0.7*x_phys);
-//     return dphys_dref;
-// }
 
 std::unique_ptr<dealii::Manifold<2,2> > BumpManifold::clone() const
 {

@@ -26,6 +26,7 @@ namespace Grids {
 template<int dim,int chartdim = dim-1>
 class BSplineManifold: public dealii::ChartManifold<dim,dim,chartdim> {
 public:
+    /// Constructor.
     BSplineManifold( const unsigned int _spline_degree, const unsigned int _n_control_pts );
     // /// Chartdim will always be dim-1 since we will be using BSplineManifold to represent
     // /// the domain boundary.
@@ -56,6 +57,7 @@ protected:
 
     std::vector<dealii::Point<dim>> control_points; ///< Control points.
 
+    /// DeBoor algorithm for a 1D chartdim BSpline.
     template<typename real>
     dealii::Point<dim,real> DeBoor_1D(
         const real chart_point
@@ -65,6 +67,7 @@ protected:
         , const std::vector<dealii::Point<dim,real>> &control_points
         ) const;
 
+    /// DeBoor algorithm for a N-D chartdim BSpline.
     template<typename real>
     dealii::Point<dim,real> DeBoor(
         const dealii::Point<chartdim,real> &chart_point

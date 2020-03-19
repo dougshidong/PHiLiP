@@ -178,12 +178,12 @@ dealii::Point<dim,real> BSplineManifold<dim,chartdim>::DeBoor(
         std::vector<dealii::Point<dim,real>> new_points_j(n_new_points_j);
 
         std::vector<dealii::Point<dim,real>> used_control_points(n_1d_control_pts);
-        for (int j = 0; j < n_1d_control_pts; ++j) {
+        for (unsigned int j = 0; j < n_1d_control_pts; ++j) {
 
             std::array<int,chartdim> grid_index;
             grid_index[1] = j;
 
-            for (int i = 0; i < n_1d_control_pts; ++i) {
+            for (unsigned int i = 0; i < n_1d_control_pts; ++i) {
 
                 grid_index[0] = i;
                 const int global_used_ctl_index = grid_to_global<chartdim> ( n_1d_control_pts, grid_index );

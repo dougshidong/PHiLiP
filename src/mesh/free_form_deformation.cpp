@@ -143,7 +143,7 @@ void FreeFormDeformation<dim>::init_msg() const
     pcout << " * Creating Free-Form Deformation (FFD) * " << std::endl;
 
     pcout << " Parallepiped with corner nodes located at: * " << std::endl;
-    for (int ictl = 0; ictl < n_control_pts; ++ictl) {
+    for (unsigned int ictl = 0; ictl < n_control_pts; ++ictl) {
         std::array<unsigned int, dim> ijk = global_to_grid(ictl);
         bool print = true;
         for (int d=0; d<dim; ++d) {
@@ -202,7 +202,7 @@ dealii::Point<dim,real> FreeFormDeformation<dim>::evaluate_ffd (const dealii::Po
         }
     }
 
-    for (int ictl = 0; ictl < n_control_pts; ++ictl) {
+    for (unsigned int ictl = 0; ictl < n_control_pts; ++ictl) {
         std::array<unsigned int, dim> ijk = global_to_grid(ictl);
 
         real coeff = 1.0;

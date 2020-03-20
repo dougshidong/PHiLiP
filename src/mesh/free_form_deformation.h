@@ -25,7 +25,12 @@ public:
     /// Given an initial point in the undeformed initial parallepiped, return the 
     /// position of the new point location.
     template<typename real>
-    dealii::Point<dim,real> displaced_point (const dealii::Point<dim,real> &initial_point) const;
+    dealii::Point<dim,real> new_point_location (const dealii::Point<dim,real> &initial_point) const;
+
+    /// Given an initial point in the undeformed initial parallepiped, return the 
+    /// its displacement due to the free-form deformation.
+    template<typename real>
+    dealii::Tensor<1,dim,real> get_displacement (const dealii::Point<dim,real> &initial_point) const;
 
     /// Given the s,t,u reference location within the FFD box, return its position in the 
     /// actual domain.

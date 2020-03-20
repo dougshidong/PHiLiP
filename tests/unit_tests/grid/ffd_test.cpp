@@ -56,7 +56,7 @@ int main (int argc, char * argv [])
 
     pcout << " Testing unperturbed control points... " << std::endl;
 
-    new_point = ffd.displaced_point(undisplaced_point_location);
+    new_point = ffd.new_point_location(undisplaced_point_location);
     if ((new_point - undisplaced_point_location).norm() > TOL) {
         pcout << " Before moving control points, point " << undisplaced_point_location
               << " should have been undisplaced, but is now located at " << new_point
@@ -64,7 +64,7 @@ int main (int argc, char * argv [])
         fail_bool = true;
     }
 
-    new_point = ffd.displaced_point(displaced_point_location);
+    new_point = ffd.new_point_location(displaced_point_location);
     if ((new_point - displaced_point_location).norm() > TOL) {
         pcout << " Before moving control points, point " << displaced_point_location
               << " should have been undisplaced, but is now located at " << new_point
@@ -72,7 +72,7 @@ int main (int argc, char * argv [])
         fail_bool = true;
     }
 
-    new_point = ffd.displaced_point(point_on_control);
+    new_point = ffd.new_point_location(point_on_control);
     if ((new_point - point_on_control).norm() > TOL) {
         pcout << " Before moving control points, point " << point_on_control
               << " should have been undisplaced, but is now located at " << new_point
@@ -99,7 +99,7 @@ int main (int argc, char * argv [])
         pcout << ffd.control_pts[ictl] << std::endl;
     }
 
-    new_point = ffd.displaced_point(undisplaced_point_location);
+    new_point = ffd.new_point_location(undisplaced_point_location);
     if ((new_point - undisplaced_point_location).norm() > TOL) {
         pcout << " Point in unperturbed section: " << undisplaced_point_location
               << " should have been undisplaced, but is now located at " << new_point
@@ -107,7 +107,7 @@ int main (int argc, char * argv [])
         fail_bool = true;
     }
 
-    new_point = ffd.displaced_point(displaced_point_location);
+    new_point = ffd.new_point_location(displaced_point_location);
     if ((new_point - displaced_point_location).norm() < TOL) {
         pcout << " Point in perturbed section " << displaced_point_location
               << " should have been displaced, but is still located at " << new_point
@@ -115,7 +115,7 @@ int main (int argc, char * argv [])
         fail_bool = true;
     }
 
-    new_point = ffd.displaced_point(point_on_control);
+    new_point = ffd.new_point_location(point_on_control);
     if ((new_point - control_point_to_follow).norm() > TOL) {
         pcout << " Before moving control points, point " << point_on_control
               << " should have been undisplaced to the same location as control point: " << control_point_to_follow
@@ -159,7 +159,7 @@ int main (int argc, char * argv [])
 
         std::vector<dealii::Point<dim>> sine_points(npts);
         for (int i = 0; i<npts; ++i) {
-            new_point = ffd.displaced_point(grid_points[i]);
+            new_point = ffd.new_point_location(grid_points[i]);
             initial_sine_points_file << grid_points[i] << std::endl;
             deformed_sine_points_file  << new_point << std::endl;
         }

@@ -27,6 +27,11 @@
 #include "mesh/meshmover_linear_elasticity.hpp"
 #include "parameters/all_parameters.h"
 
+/// Tests the LinearElasticity mesh movement by displacing the mesh and integrating its
+/// volume, checking against its known volume.
+/// Furthermore, the surface nodes are checked to ensure that the mesh mover correctly 
+/// prescribes the surface displacements.
+
 template<int dim>
 dealii::Point<dim> deformation(dealii::Point<dim> point) {
     const double amplitude = 0.1;
@@ -203,10 +208,6 @@ int main (int argc, char * argv[])
             auto prescribed_surface_dx = surface_node_displacements.begin();
             bool error = false;
             for (; index != index_end; ++index, ++prescribed_surface_dx) {
-                // Note that LinearElasticity returns a non-ghosted vector since it uses Trilinos.
-                // As a result, we do not have access to the volume displacements that would typically
-                // be ghost elements. We therefore have to update the actual nodes after having 
-                // moved them using the locally owned volume displacements.
                 //if (locally_relevant_dofs.is_element(*index)) {
                 if (locally_owned_dofs.is_element(*index)) {
                     const double computed_surface_dx = volume_displacements[*index];
@@ -221,17 +222,11 @@ int main (int argc, char * argv[])
                     }
                 }
             }
-            //index = surface_node_global_indices.begin();
-            //prescribed_surface_dx = surface_node_displacements.begin();
-            //for (; index != index_end; ++index, ++prescribed_surface_dx) {
-            //    if (locally_relevant_dofs.is_element(*index)) {
-            //        const double computed_surface_dx = volume_displacements[*index];
-            //            std::cout << "DoF with global index: " << *index
-            //                      << " has a computed displacement of " << computed_surface_dx
-            //                      << " instead of the prescribed displacement of " << *prescribed_surface_dx
-            //                      << std::endl;
-            //    }
-            //}
+
+            // Note that LinearElasticity returns a non-ghosted vector since it uses Trilinos.
+            // As a result, we do not have access to the volume displacements that would typically
+            // be ghost elements. We therefore have to update the actual nodes after having 
+            // moved them using the locally owned volume displacements.
             high_order_grid.nodes += volume_displacements;
             high_order_grid.nodes.update_ghost_values();
 

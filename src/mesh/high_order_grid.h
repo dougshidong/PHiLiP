@@ -191,6 +191,13 @@ public:
      */
     std::map<std::pair<unsigned int, unsigned int>, dealii::types::global_dof_index> point_and_axis_to_global_index;
 
+    // /** Given the Point index within the locally_relevant_surface_points and its component,
+    //  *  this will return the index of the surface_nodes' index.
+    //  *  This allows us to obtain a deformation vector matching the locally_relevant_surface_points, and then copy 
+    //  *  its results to the surface_nodes.
+    //  */
+    // std::map<std::pair<unsigned int, unsigned int>, dealii::types::global_dof_index> point_and_axis_to_surface_nodes_index;
+
 
 
     /// Update list of surface nodes (all_locally_relevant_surface_nodes).

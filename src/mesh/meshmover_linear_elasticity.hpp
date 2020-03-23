@@ -33,7 +33,11 @@ namespace MeshMover
             const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
 			const dealii::LinearAlgebra::distributed::Vector<double> &boundary_displacements_vector);
 
-        // ~LinearElasticity(); ///< Destructor.
+        /// Constructor
+        LinearElasticity(
+            const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
+            const std::vector<dealii::Tensor<1,dim,real>> &boundary_displacements_tensors);
+
         /** Evaluate and return volume displacements given boundary displacements.
          */
         VectorType get_volume_displacements();
@@ -74,7 +78,6 @@ namespace MeshMover
          *  Currently uses CG with a Jacobi preconditioner.
          */
         unsigned int solve_linear_problem();
-        // void move_mesh();
 
         const Triangulation &triangulation; ///< Triangulation on which this acts.
         /// MappingFEField corresponding to curved mesh.
@@ -129,6 +132,10 @@ namespace MeshMover
         /** Displacement of boundary nodes corresponding to boundary_ids_vector.
          */
         const dealii::LinearAlgebra::distributed::Vector<double> &boundary_displacements_vector;
+
+        /** Transforms a std::vector<Tensor> into the corresponding distributed vector.
+         */
+        dealii::LinearAlgebra::distributed::Vector<double> tensor_to_vector(const std::vector<dealii::Tensor<1,dim,real>> &boundary_displacements_tensors) const;
 
     };
 } // namespace MeshMover

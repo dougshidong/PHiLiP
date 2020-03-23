@@ -32,6 +32,11 @@ public:
     template<typename real>
     dealii::Tensor<1,dim,real> get_displacement (const dealii::Point<dim,real> &initial_point) const;
 
+    /// Given a vector of initial points in the undeformed initial parallepiped, return the 
+    /// its corresponding displacements due to the free-form deformation.
+    template<typename real>
+    std::vector<dealii::Tensor<1,dim,real>> get_displacement (const std::vector<dealii::Point<dim,real>> &initial_point) const;
+
     /// Given the s,t,u reference location within the FFD box, return its position in the 
     /// actual domain.
     template<typename real>

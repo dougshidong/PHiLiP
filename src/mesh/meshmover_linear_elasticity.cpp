@@ -35,6 +35,34 @@ namespace MeshMover {
         AssertDimension(boundary_displacements_vector.size(), boundary_ids_vector.size());
     }
 
+    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    LinearElasticity<dim,real,VectorType,DoFHandlerType>::LinearElasticity(
+        const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
+        const std::vector<dealii::Tensor<1,dim,real>> &boundary_displacements_tensors)
+      : triangulation(*(high_order_grid.triangulation))
+      , mapping_fe_field(high_order_grid.mapping_fe_field)
+      , dof_handler(high_order_grid.dof_handler_grid)
+      , fe_system(high_order_grid.dof_handler_grid.get_fe(0))
+      , quadrature_formula(dof_handler.get_fe().degree + 1)
+      , mpi_communicator(MPI_COMM_WORLD)
+      , n_mpi_processes(dealii::Utilities::MPI::n_mpi_processes(mpi_communicator))
+      , this_mpi_process(dealii::Utilities::MPI::this_mpi_process(mpi_communicator))
+      , pcout(std::cout, this_mpi_process == 0)
+      , boundary_ids_vector(high_order_grid.surface_indices)
+      , boundary_displacements_vector(tensor_to_vector(boundary_displacements_tensors))
+    { 
+        AssertDimension(boundary_displacements_vector.size(), boundary_ids_vector.size());
+    }
+
+    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    dealii::LinearAlgebra::distributed::Vector<double> LinearElasticity<dim,real,VectorType,DoFHandlerType>::
+    tensor_to_vector(const std::vector<dealii::Tensor<1,dim,real>> &boundary_displacements_tensors) const
+    {
+        (void) boundary_displacements_tensors;
+        dealii::LinearAlgebra::distributed::Vector<double> boundary_displacements_vector;
+        return boundary_displacements_vector;
+    }
+
     //template <int dim, typename real, typename VectorType , typename DoFHandlerType>
     //LinearElasticity<dim,real,VectorType,DoFHandlerType>::~LinearElasticity() { dof_handler.clear(); }
 
@@ -46,7 +74,6 @@ namespace MeshMover {
         solve_timestep();
         // displacement_solution = 0;
         // all_constraints.distribute(displacement_solution);
-        //move_mesh();
         displacement_solution.update_ghost_values();
         return displacement_solution;
     }
@@ -77,7 +104,9 @@ namespace MeshMover {
         dealii::DoFTools::make_hanging_node_constraints(dof_handler, hanging_node_constraints);
 
         // Set the Dirichlet BC constraint
-        // Only add Dirichlet BC there is currently no constraint.
+        // Only add Dirichlet BC when there is currently no constraint.
+        // Note that we set ALL surfaces to be an inhomogeneous BC.
+        // In a way, it allows us to detect surface DoFs in the matrix by checking whether there is an inhomogeneous constraight.
         // If there is another constraint, it's because it's a hanging node.
         // In that case, we choose to satisfy the regularity properties of the element and ignoring the Dirichlet BC.
         const auto &partitionner = boundary_ids_vector.get_partitioner();
@@ -102,19 +131,8 @@ namespace MeshMover {
                     /*verbose*/ true),
                     dealii::ExcInternalError());
 
-        //dirichlet_boundary_constraints.reinit(locally_relevant_dofs);
-        //for (; iglobal_row != iglobal_end; ++iglobal_row,++dirichlet_value) {
-        //    dirichlet_boundary_constraints.add_line(*iglobal_row);
-        //    dirichlet_boundary_constraints.set_inhomogeneity(*iglobal_row, *dirichlet_value);
-        //}
-
-
 
         dealii::DynamicSparsityPattern sparsity_pattern(locally_relevant_dofs);
-        // dealii::DoFTools::make_sparsity_pattern(dof_handler,
-        //                                 sparsity_pattern,
-        //                                 all_constraints,
-        //                                 /*keep constrained dofs*/ false);
         dealii::DoFTools::make_sparsity_pattern(dof_handler,
                                         sparsity_pattern,
                                         all_constraints,
@@ -399,23 +417,6 @@ namespace MeshMover {
         //   //trilinos_solution.print(std::cout, 4);
         //   system_rhs.print(std::cout, 4);
 
-        // dealii::SolverControl solver_control(
-        //     dof_handler.n_dofs(),
-        //     1e-16 * system_rhs.l2_norm(),
-        //     true, true);
-        // dealii::TrilinosWrappers::SolverCG cg(solver_control);
-        // ////dealii::TrilinosWrappers::PreconditionAMG preconditioner;
-        // ////dealii::TrilinosWrappers::PreconditionAMG::AdditionalData additional_data;
-        // //
-        // //dealii::TrilinosWrappers::PreconditionIdentity preconditioner;
-        // //dealii::TrilinosWrappers::PreconditionIdentity::AdditionalData additional_data;
-        // //preconditioner.initialize(system_matrix, additional_data);
-        // //
-        // dealii::TrilinosWrappers::PreconditionJacobi preconditioner;
-        // preconditioner.initialize(system_matrix);
-        // cg.solve(system_matrix, trilinos_solution, system_rhs, preconditioner);
-
-
         dealii::SolverControl solver_control(5000, 1e-12 * system_rhs.l2_norm());
         dealii::SolverCG<dealii::TrilinosWrappers::MPI::Vector> solver(solver_control);
         dealii::TrilinosWrappers::PreconditionJacobi      precondition;
@@ -457,24 +458,7 @@ namespace MeshMover {
         displacement_solution.import(rw_vector, dealii::VectorOperation::insert);
         return solver_control.last_step();
     }
-    // template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    // void LinearElasticity<dim,real,VectorType,DoFHandlerType>::move_mesh()
-    // {
-    //     pcout << "    Moving mesh..." << std::endl;
-    //     std::vector<bool> vertex_touched(triangulation.n_vertices(), false);
-    //     for (auto &cell : dof_handler.active_cell_iterators()) {
-    //         for (unsigned int v = 0; v < dealii::GeometryInfo<dim>::vertices_per_cell; ++v) {
-    //             if (vertex_touched[cell->vertex_index(v)] == false) {
-    //                 vertex_touched[cell->vertex_index(v)] = true;
-    //                 dealii::Point<dim> vertex_displacement;
-    //                 for (unsigned int d = 0; d < dim; ++d) {
-    //                     vertex_displacement[d] = displacement_solution(cell->vertex_dof_index(v, d));
-    //                 }
-    //                 cell->vertex(v) += vertex_displacement;
-    //             }
-    //         }
-    //     }
-    // }
+
 template class LinearElasticity<PHILIP_DIM, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
 } // namespace MeshMover
 

@@ -25,22 +25,38 @@ public:
     /// Given an initial point in the undeformed initial parallepiped, return the 
     /// position of the new point location.
     template<typename real>
-    dealii::Point<dim,real> new_point_location (const dealii::Point<dim,real> &initial_point) const;
+    dealii::Point<dim,real> new_point_location
+        (const dealii::Point<dim,double> &initial_point,
+         const std::vector<dealii::Point<dim,real>> &control_pts) const;
+
+    /// Given an initial point in the undeformed initial parallepiped, return the 
+    /// position of the new point location using the current control point locations.
+    dealii::Point<dim,double> new_point_location (const dealii::Point<dim,double> &initial_point) const;
+
+    /// Given an initial point in the undeformed initial parallepiped and the index a control point,
+    /// return the derivative dXsdXp of the new point location point_i with respect to that control_point_j.
+    dealii::Point<dim,double> dXsdXp (const dealii::Point<dim,double> &initial_point, const unsigned int ctl_index, const unsigned int ctl_axis) const;
 
     /// Given an initial point in the undeformed initial parallepiped, return the 
     /// its displacement due to the free-form deformation.
     template<typename real>
-    dealii::Tensor<1,dim,real> get_displacement (const dealii::Point<dim,real> &initial_point) const;
+    dealii::Tensor<1,dim,real> get_displacement (
+        const dealii::Point<dim,double> &initial_point,
+        const std::vector<dealii::Point<dim,real>> &control_pts) const;
 
     /// Given a vector of initial points in the undeformed initial parallepiped, return the 
     /// its corresponding displacements due to the free-form deformation.
     template<typename real>
-    std::vector<dealii::Tensor<1,dim,real>> get_displacement (const std::vector<dealii::Point<dim,real>> &initial_point) const;
+    std::vector<dealii::Tensor<1,dim,real>> get_displacement (
+        const std::vector<dealii::Point<dim,double>> &initial_point,
+        const std::vector<dealii::Point<dim,real>> &control_pts) const;
 
     /// Given the s,t,u reference location within the FFD box, return its position in the 
     /// actual domain.
     template<typename real>
-    dealii::Point<dim,real> evaluate_ffd (const dealii::Point<dim,real> &stu_point) const;
+    dealii::Point<dim,real> evaluate_ffd (
+        const dealii::Point<dim,double> &s_t_u_point,
+        const std::vector<dealii::Point<dim,real>> &control_pts) const;
 
     /// Control points of the FFD box used to deform the geometry.
     std::vector<dealii::Point<dim>> control_pts;
@@ -66,8 +82,7 @@ protected:
     /// Returns the local coordinates s-t-u within the FFD box.
     /** s,t,u should be in [0,1] for a point inside the box.
      */
-    template<typename real>
-    dealii::Point<dim,real> get_local_coordinates (const dealii::Point<dim,real> p) const;
+    dealii::Point<dim,double> get_local_coordinates (const dealii::Point<dim,double> p) const;
 
     /// Parallepiped origin.
     const dealii::Point<dim> origin;

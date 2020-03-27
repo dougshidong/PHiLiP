@@ -1,6 +1,9 @@
 #include <boost/math/special_functions/binomial.hpp>
 
+#include <Sacado.hpp>
+
 #include "free_form_deformation.h"
+
 
 namespace PHiLiP {
 
@@ -40,10 +43,9 @@ FreeFormDeformation<dim>::FreeFormDeformation (
 { }
 
 template<int dim>
-template<typename real>
-dealii::Point<dim,real> FreeFormDeformation<dim>::get_local_coordinates (const dealii::Point<dim,real> p) const
+dealii::Point<dim,double> FreeFormDeformation<dim>::get_local_coordinates (const dealii::Point<dim,double> p) const
 {
-    dealii::Point<dim,real> local_coordinates;
+    dealii::Point<dim,double> local_coordinates;
     std::array<dealii::Tensor<1,dim,double>,dim> perp_vectors;
     if constexpr (dim == 1) {
         perp_vectors[0] = 1;
@@ -64,7 +66,7 @@ dealii::Point<dim,real> FreeFormDeformation<dim>::get_local_coordinates (const d
         perp_vectors[2] = cross_product_3d(parallepiped_vectors[0], parallepiped_vectors[1]);
     }
 
-    const dealii::Tensor<1,dim,real> dX = (p - origin);
+    const dealii::Tensor<1,dim,double> dX = (p - origin);
     for (int d=0;d<dim;++d) {
         local_coordinates[d] = (dX * perp_vectors[d]) / (parallepiped_vectors[d] * perp_vectors[d]);
         // const double TOL = 1e-12;
@@ -167,43 +169,93 @@ void FreeFormDeformation<dim>::move_ctl_dx ( const std::array<unsigned int,dim> 
     control_pts[grid_to_global(ijk)] += dx;
 }
 
+template<int dim>
+dealii::Point<dim,double> FreeFormDeformation<dim>
+::new_point_location (const dealii::Point<dim,double> &initial_point) const
+{
+    return new_point_location (initial_point, this->control_pts);
+}
+
 
 template<int dim>
 template<typename real>
-dealii::Point<dim,real> FreeFormDeformation<dim>::new_point_location (const dealii::Point<dim,real> &initial_point) const
+dealii::Point<dim,real> FreeFormDeformation<dim>
+::new_point_location (
+    const dealii::Point<dim,double> &initial_point,
+    const std::vector<dealii::Point<dim,real>> &control_pts) const
 {
-    const dealii::Point<dim,real> s_t_u = get_local_coordinates (initial_point);
+    const dealii::Point<dim,double> s_t_u = get_local_coordinates (initial_point);
     for (int d=0; d<dim; ++d) {
         if (!(0 <= s_t_u[d] && s_t_u[d] <= 1.0)) {
-            return initial_point;
+            dealii::Point<dim,real> initial_point_ad;
+            for (int d=0; d<dim; ++d) {
+                initial_point_ad[d] = initial_point[d];
+            }
+            return initial_point_ad;
         }
     }
-    return evaluate_ffd (s_t_u);
+    return evaluate_ffd (s_t_u, control_pts);
 }
 
 template<int dim>
 template<typename real>
-std::vector<dealii::Tensor<1,dim,real>> FreeFormDeformation<dim>::get_displacement (const std::vector<dealii::Point<dim,real>> &initial_points) const
+dealii::Tensor<1,dim,real> FreeFormDeformation<dim>
+::get_displacement (
+    const dealii::Point<dim,double> &initial_point,
+    const std::vector<dealii::Point<dim,real>> &control_pts) const
+{
+    const dealii::Point<dim,real> new_point = new_point_location (initial_point, control_pts);
+    const dealii::Tensor<1,dim,real> displacement = new_point - initial_point;
+    return displacement;
+}
+
+
+template<int dim>
+template<typename real>
+std::vector<dealii::Tensor<1,dim,real>> FreeFormDeformation<dim>
+::get_displacement (
+    const std::vector<dealii::Point<dim,double>> &initial_points,
+    const std::vector<dealii::Point<dim,real>> &control_pts) const
 {
     std::vector<dealii::Tensor<1,dim,real>> displacements;
     for (unsigned int i=0; i<initial_points.size(); ++i) {
-        displacements[i] = get_displacement (initial_points[i]);
+        displacements[i] = get_displacement (initial_points[i], control_pts);
     }
     return displacements;
 }
 
 template<int dim>
-template<typename real>
-dealii::Tensor<1,dim,real> FreeFormDeformation<dim>::get_displacement (const dealii::Point<dim,real> &initial_point) const
+dealii::Point<dim,double> FreeFormDeformation<dim>
+::dXsdXp (const dealii::Point<dim,double> &initial_point, const unsigned int ctl_index, const unsigned int ctl_axis) const
 {
-    const dealii::Point<dim,real> new_point_location (initial_point);
-    const dealii::Tensor<1,dim,real> displacement = new_point_location - initial_point;
-    return displacement;
+    assert(ctl_axis < dim);
+    assert(ctl_index < n_control_pts);
+    using ADtype = Sacado::Fad::DFad<double>;
+    std::vector<dealii::Point<dim,ADtype>> control_pts_ad(control_pts.size());
+    for (unsigned int i=0; i<n_control_pts; ++i) {
+        control_pts_ad[i] = control_pts[i];
+    }
+    control_pts_ad[ctl_index][ctl_axis].diff(0,1);
+
+    dealii::Point<dim, ADtype> new_point_ad = new_point_location(initial_point, control_pts_ad);
+
+    dealii::Point<dim,double> dXsdXp;
+    for (int d=0; d<dim; ++d) {
+        dXsdXp[d] = new_point_ad[d].dx(0);
+    }
+    return dXsdXp;
 }
+
+// template<int dim>
+// template<typename real>
+// dealii::Point<dim,real> dXsdXp (const dealii::Point<dim,real> &initial_point, const unsigned int ctl_index) const;
 
 template<int dim>
 template<typename real>
-dealii::Point<dim,real> FreeFormDeformation<dim>::evaluate_ffd (const dealii::Point<dim,real> &s_t_u_point) const
+dealii::Point<dim,real> FreeFormDeformation<dim>
+::evaluate_ffd (
+    const dealii::Point<dim,double> &s_t_u_point,
+    const std::vector<dealii::Point<dim,real>> &control_pts) const
 {
     dealii::Point<dim,real> ffd_location;
 
@@ -230,7 +282,9 @@ dealii::Point<dim,real> FreeFormDeformation<dim>::evaluate_ffd (const dealii::Po
         for (int d=0; d<dim; ++d) {
             coeff *= ijk_coefficients[d][ijk[d]];
         }
-        ffd_location += coeff * control_pts[ictl];
+        for (int d=0; d<dim; ++d) {
+            ffd_location[d] += coeff * control_pts[ictl][d];
+        }
     }
 
     return ffd_location;
@@ -238,8 +292,17 @@ dealii::Point<dim,real> FreeFormDeformation<dim>::evaluate_ffd (const dealii::Po
 
 
 template class FreeFormDeformation<PHILIP_DIM>;
-//template dealii::Point<PHILIP_DIM, double> FreeFormDeformation<PHILIP_DIM>::new_point_location(const dealii::Point<PHILIP_DIM, double>&) const;
 
-template std::vector<dealii::Tensor<1, PHILIP_DIM, double>> FreeFormDeformation<PHILIP_DIM>::get_displacement (const std::vector<dealii::Point<PHILIP_DIM,double>> &initial_points) const;
+template dealii::Point<PHILIP_DIM,double> FreeFormDeformation<PHILIP_DIM>
+::evaluate_ffd (const dealii::Point<PHILIP_DIM,double> &, const std::vector<dealii::Point<PHILIP_DIM,double>> &) const;
+
+template dealii::Point<PHILIP_DIM, double> FreeFormDeformation<PHILIP_DIM>
+::new_point_location(const dealii::Point<PHILIP_DIM, double>&, const std::vector<dealii::Point<PHILIP_DIM,double>> &) const;
+
+template dealii::Tensor<1, PHILIP_DIM, double> FreeFormDeformation<PHILIP_DIM>
+::get_displacement (const dealii::Point<PHILIP_DIM,double> &, const std::vector<dealii::Point<PHILIP_DIM,double>> &) const;
+
+template std::vector<dealii::Tensor<1, PHILIP_DIM, double>> FreeFormDeformation<PHILIP_DIM>
+::get_displacement (const std::vector<dealii::Point<PHILIP_DIM,double>> &, const std::vector<dealii::Point<PHILIP_DIM,double>> &) const;
 
 } // namespace PHiLiP

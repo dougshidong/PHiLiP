@@ -35,24 +35,12 @@ namespace MeshMover {
         AssertDimension(boundary_displacements_vector.size(), boundary_ids_vector.size());
     }
 
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    LinearElasticity<dim,real,VectorType,DoFHandlerType>::LinearElasticity(
-        const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
-        const std::vector<dealii::Tensor<1,dim,real>> &boundary_displacements_tensors)
-      : triangulation(*(high_order_grid.triangulation))
-      , mapping_fe_field(high_order_grid.mapping_fe_field)
-      , dof_handler(high_order_grid.dof_handler_grid)
-      , fe_system(high_order_grid.dof_handler_grid.get_fe(0))
-      , quadrature_formula(dof_handler.get_fe().degree + 1)
-      , mpi_communicator(MPI_COMM_WORLD)
-      , n_mpi_processes(dealii::Utilities::MPI::n_mpi_processes(mpi_communicator))
-      , this_mpi_process(dealii::Utilities::MPI::this_mpi_process(mpi_communicator))
-      , pcout(std::cout, this_mpi_process == 0)
-      , boundary_ids_vector(high_order_grid.surface_indices)
-      , boundary_displacements_vector(tensor_to_vector(boundary_displacements_tensors))
-    { 
-        AssertDimension(boundary_displacements_vector.size(), boundary_ids_vector.size());
-    }
+    // template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    // LinearElasticity<dim,real,VectorType,DoFHandlerType>::LinearElasticity(
+    //     const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
+    //     const std::vector<dealii::Tensor<1,dim,real>> &boundary_displacements_tensors)
+    //   : LinearElasticity(high_order_grid, boundary_displacements_vector(tensor_to_vector(boundary_displacements_tensors))
+    // { }
 
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
     dealii::LinearAlgebra::distributed::Vector<double> LinearElasticity<dim,real,VectorType,DoFHandlerType>::
@@ -300,6 +288,8 @@ namespace MeshMover {
 
         //all_constraints.distribute(trilinos_solution);
 
+        /// The use of the constrained linear operator is heavily discussed in:
+        /// https://www.dealii.org/current/doxygen/deal.II/group__constraints.html
         using trilinos_vector_type = dealii::TrilinosWrappers::MPI::Vector;
         using payload_type = dealii::TrilinosWrappers::internal::LinearOperatorImplementation::TrilinosPayload;
         const auto op_a = dealii::linear_operator<trilinos_vector_type,trilinos_vector_type,payload_type>(system_matrix_unconstrained);

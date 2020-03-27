@@ -13,6 +13,8 @@
 //
 // ---------------------------------------------------------------------
 
+#include <typeinfo>
+
 #include <deal.II/base/utilities.h>
 
 #include <deal.II/lac/generic_linear_algebra.h>
@@ -23,21 +25,18 @@
 #include <iostream>
 #include <sstream>
 
-#include <Sacado.hpp>
-
 #include "ROL_Algorithm.hpp"
 #include "ROL_LineSearchStep.hpp"
 #include "ROL_Objective.hpp"
 #include "ROL_StatusTest.hpp"
 #include "Teuchos_GlobalMPISession.hpp"
 
+using serial_Vector = typename dealii::Vector<double>;
+using distributed_Vector = typename dealii::LinearAlgebra::distributed::Vector<double>;
 // Use ROL to minimize the objective function, f(x,y) = x^2 + y^2.
 
-//using VectorType = typename dealii::Vector<double>;
-using VectorType = typename dealii::LinearAlgebra::distributed::Vector<double>;
-
-template <class Real = double, typename AdaptVector = dealii::Rol::VectorAdaptor<VectorType>>
-class QuadraticObjective : public ROL::Objective<Real>
+template <typename VectorType, class Real = double, typename AdaptVector = dealii::Rol::VectorAdaptor<VectorType>>
+class RosenbrockObjective : public ROL::Objective<Real>
 {
 private:
     Teuchos::RCP<const VectorType>
@@ -59,13 +58,6 @@ public:
       // Rosenbrock function
 
       Real local_rosenbrock = 0.0;
-
-      // const unsigned int nx = (*xp).size();
-      // for (unsigned int i = 0; i < nx-1; ++i) {
-      //     const Real &x1 = (*xp)[i];
-      //     const Real &x2 = (*xp)[i+1];
-      //     local_rosenbrock += 100*(x2 - x1*x1)*(x2 - x1*x1) + (1.0-x1)*(1.0-x1);
-      // }
 
       const dealii::IndexSet &local_range = (*xp).locally_owned_elements ();
       for (auto ip = local_range.begin(); ip != local_range.end(); ++ip) {
@@ -89,8 +81,8 @@ public:
       Teuchos::RCP<const VectorType> xp = this->get_rcp_to_VectorType(x);
       Teuchos::RCP<VectorType>       gp = this->get_rcp_to_VectorType(g);
 
-      gp->reinit(xp->get_partitioner());
-      gp->set_ghost_state(true);
+      // gp->reinit(xp->get_partitioner());
+      // gp->set_ghost_state(true);
 
       // const unsigned int nx = (*xp).size();
       // (*gp) *= 0.0;
@@ -127,72 +119,74 @@ public:
       }
       // std::cout << (*gp).l2_norm() << std::endl;
       // (*gp).print(std::cout);
-
-      // const double tpi = 2* std::atan(1.0)*4;
-      // (*gp)[0] = std::cos((*xp)[0] * tpi) * tpi;
-      // (*gp)[1] = std::cos((*xp)[1] * tpi) * tpi;
     }
 };
 
-void
-test(const unsigned int n_des_var)
+template <typename VectorType>
+int test(const unsigned int n_des_var)
 {
     typedef double RealT;
   
     int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
     int n_mpi = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
-    dealii::LinearAlgebra::distributed::Vector<double> soln;
 
-    const unsigned int n_dofs_per_proc = n_des_var / n_mpi;
-    const unsigned int low_i = n_dofs_per_proc * mpi_rank;
-    const unsigned int high_i = (n_mpi-1) == mpi_rank ? n_des_var : n_dofs_per_proc * (mpi_rank+1);
-    dealii::IndexSet locally_owned_dofs(n_des_var);
-    locally_owned_dofs.add_range(low_i, high_i);
-
-    dealii::IndexSet ghost_dofs(n_des_var);
-    for (auto ip = locally_owned_dofs.begin(); ip != locally_owned_dofs.end(); ++ip) {
-        const auto index = *ip;
-
-        const auto ghost_low = (index > 0) ? index-1 : 0;
-        if (!locally_owned_dofs.is_element(ghost_low)) ghost_dofs.add_index(ghost_low);
-
-        const auto ghost_high = (index < n_des_var-1) ? index+1 : n_des_var-1;
-        if (!locally_owned_dofs.is_element(ghost_high)) ghost_dofs.add_index(ghost_high);
-        
-    }
-    soln.reinit(locally_owned_dofs, ghost_dofs, MPI_COMM_WORLD);
-  
-    for (auto s = soln.begin(); s != soln.end(); ++s) {
-        *s = 2.0;
-    }
-    QuadraticObjective<RealT> quad_objective;
+    if (mpi_rank == 0) std::cout << std::endl << "**************************************************" << std::endl;
+    if (mpi_rank == 0) std::cout << "Optimization with " << n_des_var << " using VectorType = " << typeid(VectorType).name() << std::endl;
   
     Teuchos::RCP<VectorType>   x_rcp     = Teuchos::rcp(new VectorType);
   
-    x_rcp->reinit(soln);
+    dealii::IndexSet locally_owned_dofs(n_des_var);
+    if constexpr (std::is_same_v<VectorType, serial_Vector>) {
+        x_rcp->reinit(n_des_var);
+        locally_owned_dofs.add_range(0, n_des_var);
+    }
+    if constexpr (std::is_same_v<VectorType, distributed_Vector>) {
+        const unsigned int n_dofs_per_proc = n_des_var / n_mpi;
+        const unsigned int low_i = n_dofs_per_proc * mpi_rank;
+        const unsigned int high_i = (n_mpi-1) == mpi_rank ? n_des_var : n_dofs_per_proc * (mpi_rank+1);
+        locally_owned_dofs.add_range(low_i, high_i);
+
+        dealii::IndexSet ghost_dofs(n_des_var);
+        for (auto ip = locally_owned_dofs.begin(); ip != locally_owned_dofs.end(); ++ip) {
+            const auto index = *ip;
+
+            const auto ghost_low = (index > 0) ? index-1 : 0;
+            if (!locally_owned_dofs.is_element(ghost_low)) ghost_dofs.add_index(ghost_low);
+
+            const auto ghost_high = (index < n_des_var-1) ? index+1 : n_des_var-1;
+            if (!locally_owned_dofs.is_element(ghost_high)) ghost_dofs.add_index(ghost_high);
+            
+        }
+        x_rcp->reinit(locally_owned_dofs, ghost_dofs, MPI_COMM_WORLD);
+    }
+
   
-    for (unsigned int i=low_i; i<high_i; ++i) {
-        (*x_rcp)[i] = 0.0;
+    for (auto xi = x_rcp->begin(); xi != x_rcp->end(); ++xi) {
+        *xi = 0.0;
     }
     x_rcp->update_ghost_values();
 
-  
     dealii::Rol::VectorAdaptor<VectorType> x_rol(x_rcp);
   
-    Teuchos::ParameterList parlist;
+    RosenbrockObjective<VectorType, RealT> rosenbrock_objective;
+  
     // Set parameters.
+    Teuchos::ParameterList parlist;
     parlist.sublist("Secant").set("Use as Preconditioner", false);
+    parlist.sublist("Status Test").set("Gradient Tolerance", 1e-10);
+    parlist.sublist("Status Test").set("Iteration Limit", 1000);
+
     // Define algorithm.
     ROL::Algorithm<RealT> algo("Line Search", parlist);
   
-    // Run Algorithm
-    //Teuchos::RCP<std::ostream> outStream = mpi_rank == 0 ? Teuchos::rcp(&std::cout, false): Teuchos::rcp(NULL,false);
-    Teuchos::RCP<std::ostream> outStream;
+    // Output stream
     ROL::nullstream bhs; // outputs nothing
+    Teuchos::RCP<std::ostream> outStream;
     if (mpi_rank == 0) outStream = ROL::makePtrFromRef(std::cout);
     else outStream = ROL::makePtrFromRef(bhs);
 
-    algo.run(x_rol, quad_objective, true, *outStream);
+    // Run Algorithm
+    algo.run(x_rol, rosenbrock_objective, true, *outStream);
   
     Teuchos::RCP<const VectorType> xg = x_rol.getVector();
     *outStream << "The solution to minimization problem is: ";
@@ -200,24 +194,26 @@ test(const unsigned int n_des_var)
 
     //(*xg).print(std::cout);
     for (unsigned int i=0; i<n_des_var; ++i) {
-        if (locally_owned_dofs.is_element(i)) 
-            //*outStream << (*xg)[i] << " ";
+        if (locally_owned_dofs.is_element(i)) {
             std::cout << (*xg)[i] << " ";
+        }
+        (void) MPI_Barrier(MPI_COMM_WORLD);
     }
     std::cout << std::flush;
     *outStream << std::endl;
+
+    return algo.getState()->statusFlag;
 }
 
 int main (int argc, char * argv[])
 {
     dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
+    int test_error = false;
     try {
-         test(5);
-         test(10);
-         test(100);
-        // test(10, -2);
-        // test(-0.1, 0.1);
-        // test(9.1, -6.1);
+         test_error += test<serial_Vector>(10);
+         test_error += test<distributed_Vector>(10);
+         test_error += test<serial_Vector>(100);
+         test_error += test<distributed_Vector>(100);
     }
     catch (std::exception &exc) {
         std::cerr << std::endl
@@ -243,5 +239,5 @@ int main (int argc, char * argv[])
         throw;
     }
 
-    return 0;
+    return test_error;
 }

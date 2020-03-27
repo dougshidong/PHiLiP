@@ -1,11 +1,11 @@
 set(TEST_SRC
-    vector_adaptor.cpp
+    rol_rosenbrock.cpp
     )
 
 foreach(dim RANGE 1 1)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_vector_adaptor)
+    string(CONCAT TEST_TARGET rol_rosenbrock)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code

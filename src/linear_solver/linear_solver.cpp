@@ -88,4 +88,23 @@ solve_linear (
     return {-1.0, -1.0};
 }
 
+std::pair<unsigned int, double>
+solve_linear (
+    const dealii::TrilinosWrappers::SparseMatrix &system_matrix,
+    const dealii::LinearAlgebra::distributed::Vector<double> &right_hand_side,
+    dealii::LinearAlgebra::distributed::Vector<double> &solution,
+    const Parameters::LinearSolverParam &param)
+{
+    const unsigned int overlap = 1;
+    dealii::TrilinosWrappers::PreconditionILUT::AdditionalData ilut_additional_data(param.ilut_drop, param.ilut_fill, param.ilut_atol, param.ilut_rtol, overlap);
+    dealii::TrilinosWrappers::PreconditionILUT precondition_ilut;
+
+    precondition_ilut.initialize(system_matrix, ilut_additional_data);
+
+    dealii::SolverControl solver_control(param.max_iterations, param.linear_residual);
+    dealii::TrilinosWrappers::SolverGMRES solver(solver_control);
+    solver.solve(system_matrix, solution, right_hand_side, precondition_ilut);
+    return {solver_control.last_step(), solver_control.last_value()};
+}
+
 } // PHiLiP namespace

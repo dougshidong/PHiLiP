@@ -74,6 +74,9 @@ public:
     ~Functional(){}
 
 public:
+    void set_state(const dealii::LinearAlgebra::distributed::Vector<real> &solution_set);
+    void set_geom(const dealii::LinearAlgebra::distributed::Vector<real> &nodes_set);
+
     /// Evaluates the functional derivative with respect to the solution variable
     /** Loops over the discretized domain and determines the sensitivity of the functional value to each 
      *  solution node. Computed from

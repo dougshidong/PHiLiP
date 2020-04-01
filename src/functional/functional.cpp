@@ -47,6 +47,18 @@ Functional<dim,nstate,real>::Functional(
 { }
 
 template <int dim, int nstate, typename real>
+void Functional<dim,nstate,real>::set_state(const dealii::LinearAlgebra::distributed::Vector<real> &solution_set)
+{
+    dg->solution = solution_set;
+}
+
+template <int dim, int nstate, typename real>
+void Functional<dim,nstate,real>::set_geom(const dealii::LinearAlgebra::distributed::Vector<real> &nodes_set)
+{
+    dg->high_order_grid.nodes = nodes_set;
+}
+
+template <int dim, int nstate, typename real>
 void Functional<dim,nstate,real>::allocate_dIdX(dealii::LinearAlgebra::distributed::Vector<real> &dIdX) const
 {
     // allocating the vector

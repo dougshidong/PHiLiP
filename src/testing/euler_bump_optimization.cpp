@@ -234,10 +234,12 @@ public:
     void update_1( const ROL_Vector& des_var_sim, bool flag = true, int iter = -1 ) override {
         (void) flag; (void) iter;
         dg->solution = get_ROLvec_to_VectorType(des_var_sim);
+        dg->solution.update_ghost_values();
     }
     void update_2( const ROL_Vector& des_var_ctl, bool flag = true, int iter = -1 ) override {
         (void) flag; (void) iter;
         dg->high_order_grid.nodes = get_ROLvec_to_VectorType(des_var_ctl);
+        dg->high_order_grid.nodes.update_ghost_values();
     }
 
     void solve( ROL_Vector& constraint_values, ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) override {
@@ -508,10 +510,11 @@ int EulerBumpOptimization<dim,nstate>
             dealii::Triangulation<dim>::smoothing_on_coarsening));
 
     VectorType target_solution;
+    double bump_height = 0.0625;
     {
         const double channel_length = 3.0;
         const double channel_height = 0.8;
-        Grids::gaussian_bump(grid, n_subdivisions, channel_length, channel_height);
+        Grids::gaussian_bump(grid, n_subdivisions, channel_length, channel_height, bump_height);
         // Create DG object
         std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
 
@@ -530,8 +533,9 @@ int EulerBumpOptimization<dim,nstate>
     }
     grid.clear();
     const double channel_length = 3.0;
-    const double channel_height = 0.5;
-    Grids::gaussian_bump(grid, n_subdivisions, channel_length, channel_height);
+    const double channel_height = 0.8;
+    bump_height *= 0.5;
+    Grids::gaussian_bump(grid, n_subdivisions, channel_length, channel_height, bump_height);
     // Create DG object
     std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
 
@@ -551,7 +555,7 @@ int EulerBumpOptimization<dim,nstate>
     const bool has_ownership = false;
     Teuchos::RCP<VectorType> des_var_sim_rcp = Teuchos::rcp(&dg->solution, has_ownership);
     Teuchos::RCP<VectorType> des_var_ctl_rcp = Teuchos::rcp(&dg->high_order_grid.nodes, has_ownership);
-    Teuchos::RCP<VectorType> des_var_adj_rcp = Teuchos::rcp(&dg->dual);
+    Teuchos::RCP<VectorType> des_var_adj_rcp = Teuchos::rcp(&dg->dual, has_ownership);
 
     AdaptVector des_var_sim_rol(des_var_sim_rcp);
     AdaptVector des_var_ctl_rol(des_var_ctl_rcp);
@@ -567,15 +571,14 @@ int EulerBumpOptimization<dim,nstate>
     parlist.sublist("Status Test").set("Gradient Tolerance", 1e-10);
     parlist.sublist("Status Test").set("Iteration Limit", 1000);
 
-    // Define algorithm.
-    ROL::Algorithm<double> algo("Line Search", parlist);
-
     // Output stream
     ROL::nullstream bhs; // outputs nothing
     Teuchos::RCP<std::ostream> outStream;
     if (this->mpi_rank == 0) outStream = ROL::makePtrFromRef(std::cout);
     else outStream = ROL::makePtrFromRef(bhs);
 
+    // Define algorithm.
+    ROL::Algorithm<double> algo("Line Search", parlist);
     // Run Algorithm
     //RosenbrockObjective<VectorType, double> rosenbrock_objective;
     //algo.run(x_rol, rosenbrock_objective, true, *outStream);
@@ -583,10 +586,51 @@ int EulerBumpOptimization<dim,nstate>
     auto obj  = ROL::makePtr<InverseObjective<dim,nstate>>( functional );
     auto con  = ROL::makePtr<FlowConstraint<dim>>(dg);
     auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p );
+
+    // if (derivCheck) {
+    //     // Initialize control vectors.
+    //     ROL::Ptr<std::vector<double> > yz_ptr = ROL::makePtr<std::vector<double>>(pFEM->numZ(), 0.0);
+    //     for (uint i=0; i<pFEM->numZ(); i++) {
+    //       (*yz_ptr)[i] = frac * (double)rand()/(double)RAND_MAX;
+    //     }
+    //     ROL::StdVector<double> yz(yz_ptr);
+    //     ROL::Ptr<ROL::Vector<double> > yzp = ROL::makePtrFromRef(yz);
+    //     // Initialize state vectors.
+    //     ROL::Ptr<std::vector<double> > yu_ptr = ROL::makePtr<std::vector<double>>(pFEM->numU(), 0.0);
+    //     for (uint i=0; i<pFEM->numU(); i++) {
+    //     (*u_ptr)[i]  = (double)rand()/(double)RAND_MAX;
+    //       (*yu_ptr)[i] = (double)rand()/(double)RAND_MAX;
+    //     }
+    //     ROL::StdVector<double> yu(yu_ptr);
+    //     ROL::Ptr<ROL::Vector<double> > yup = ROL::makePtrFromRef(yu);
+    //     // Initialize Jacobian vector.
+    //     ROL::Ptr<std::vector<double> > jv_ptr  = ROL::makePtr<std::vector<double>>(pFEM->numU(), 0.0);
+    //     ROL::StdVector<double> jv(jv_ptr);
+    //     ROL::Ptr<ROL::Vector<double> > jvp = ROL::makePtrFromRef(jv);
+    //     // Initialize SimOpt Vectors
+    //     ROL::Vector_SimOpt<double> x(up,zp);
+    //     ROL::Vector_SimOpt<double> y(yup,yzp);
+    //     // Test equality constraint.
+    //     pcon->checkApplyJacobian(x,y,jv,true,*outStream);
+    //     //pcon->checkApplyAdjointJacobian(x,yu,jv,x,true);
+    //     pcon->checkApplyAdjointHessian(x,yu,y,x,true,*outStream);
+    //     // Test full objective function.
+    //     pobj = ROL::makePtr<Objective_TopOpt<RealT>>(pFEM,frac,reg,pen,rmin);
+    //     pobj->checkGradient(x,y,true,*outStream);
+    //     pobj->checkHessVec(x,y,true,*outStream);
+    //     // Test reduced objective function.
+    //     robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<RealT>>(pobj,pcon,up,zp,pp);
+    //     robj->checkGradient(z,yz,true,*outStream);
+    //     robj->checkHessVec(z,yz,true,*outStream);
+    // }
+
     // Full space problem
     ROL::OptimizationProblem<double> opt( robj, des_var_ctl_rol_p );
+    opt.check(*outStream);
     ROL::OptimizationSolver<double> solver( opt, parlist );
 
+    solver.solve( std::cout );
+    
     int ifail = 1;
     return ifail;
 }

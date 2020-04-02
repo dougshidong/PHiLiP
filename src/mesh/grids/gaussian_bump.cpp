@@ -11,7 +11,8 @@ void gaussian_bump(
     dealii::parallel::distributed::Triangulation<2> &grid,
     const std::vector<unsigned int> n_subdivisions,
     const double channel_length,
-    const double channel_height)
+    const double channel_height,
+    const double bump_height)
 {
     const double x_start = channel_length * 0.5;
     const dealii::Point<2> p1(-x_start,0.0), p2(x_start,channel_height);
@@ -36,7 +37,7 @@ void gaussian_bump(
         }
     }
 
-    const BumpManifold bump_manifold;
+    const BumpManifold bump_manifold(channel_height, bump_height);
 
     // Warp grid to be a gaussian bump
     //dealii::GridTools::transform (&(BumpManifold::warp), grid);
@@ -63,12 +64,12 @@ dealii::Point<2,real> BumpManifold::mapping(const dealii::Point<2,real> &chart_p
     const real y_ref = chart_point[1];
     const real x_phys = x_ref;//-1.5+x_ref*3.0;
 
-    //const real y_phys = y_height*y_ref + exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys) * (1.0+0.7*x_phys);
+    //const real y_phys = channel_height*y_ref + exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys) * (1.0+0.7*x_phys);
 
     const double coeff2 = 2; // Increase for more aggressive INITIAL exponential spacing.
-    real y_scaled = y_height;
+    real y_scaled = channel_height;
     y_scaled *= (exp(std::pow(y_ref,coeff2))-1.0);
-    y_scaled /= (exp(std::pow(y_height,coeff2))-1.0); // [0,y_height]
+    y_scaled /= (exp(std::pow(channel_height,coeff2))-1.0); // [0,channel_height]
     const real y_lower = bump_height*exp(coeff_expx*x_ref*x_ref);
     const real perturbation = y_lower * exp(coeff_expy*y_scaled*y_scaled);
     const real y_phys = y_scaled + perturbation;
@@ -139,7 +140,7 @@ dealii::DerivativeForm<1,2,2> BumpManifold::push_forward_gradient(const dealii::
 
 std::unique_ptr<dealii::Manifold<2,2> > BumpManifold::clone() const
 {
-    return std::make_unique<BumpManifold>();
+    return std::make_unique<BumpManifold>(channel_height,bump_height);
 }
 
 } // namespace Grids

@@ -362,7 +362,9 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
         const dealii::Quadrature<dim> &volume_quadrature = dg->volume_quadrature_collection[i_quad];
 
         // Evaluate integral on the cell volume
-        ADADtype volume_local_sum = evaluate_volume_cell_functional(*physics_fad_fad, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
+        ADADtype volume_local_sum;
+        volume_local_sum.resizeAndZero(n_total_indep);
+        volume_local_sum += evaluate_volume_cell_functional(*physics_fad_fad, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 
         // std::cout << "volume_local_sum.val().val() : " <<  volume_local_sum.val().val() << std::endl;
 

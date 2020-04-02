@@ -14,16 +14,22 @@ void gaussian_bump(
     dealii::parallel::distributed::Triangulation<2> &grid,
     const std::vector<unsigned int> n_subdivisions,
     const double channel_length,
-    const double y_height);
+    const double channel_heigh,
+    const double bump_height = 0.0625);
 
 /// Gaussian bump manifold.
 class BumpManifold: public dealii::ChartManifold<2,2,2> {
 protected:
-    static constexpr double y_height = 0.8; ///< Channel height.
-    static constexpr double bump_height = 0.0625; ///< Bump height.
+    double channel_height; ///< Channel height.
+    double bump_height; ///< Bump height.
     static constexpr double coeff_expx = -25; ///< Bump exponent (variance).
     static constexpr double coeff_expy = -30; ///< Bump propagation in the domain.
 public:
+    BumpManifold(const double channel_height, const double bump_height)
+    : dealii::ChartManifold<2,2,2>()
+    , channel_height(channel_height)
+    , bump_height(bump_height)
+    {};
     template<typename real>
     dealii::Point<2,real> mapping(const dealii::Point<2,real> &chart_point) const; ///< Templated mapping from square to the bump.
 

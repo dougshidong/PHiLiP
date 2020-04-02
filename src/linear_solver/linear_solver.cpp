@@ -95,15 +95,35 @@ solve_linear (
     dealii::LinearAlgebra::distributed::Vector<double> &solution,
     const Parameters::LinearSolverParam &param)
 {
+    const unsigned int ilut_drop = param.ilut_drop;
+    const unsigned int ilut_fill = param.ilut_fill;
+    const double ilut_atol = 1e-4;// param.ilut_atol;
+    const double ilut_rtol = 1.01;//param.ilut_rtol;
     const unsigned int overlap = 1;
-    dealii::TrilinosWrappers::PreconditionILUT::AdditionalData ilut_additional_data(param.ilut_drop, param.ilut_fill, param.ilut_atol, param.ilut_rtol, overlap);
-    dealii::TrilinosWrappers::PreconditionILUT precondition_ilut;
+    dealii::TrilinosWrappers::PreconditionILUT::AdditionalData additional_data(ilut_drop, ilut_fill, ilut_atol, ilut_rtol, overlap);
+    dealii::TrilinosWrappers::PreconditionILUT preconditioner;
 
-    precondition_ilut.initialize(system_matrix, ilut_additional_data);
+    //dealii::TrilinosWrappers::PreconditionIdentity preconditioner;
+    //dealii::TrilinosWrappers::PreconditionIdentity::AdditionalData additional_data;
+
+    preconditioner.initialize(system_matrix, additional_data);
+
+        // dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
+        // if (pcout.is_active()) right_hand_side.print(pcout.get_stream());
+        // if (pcout.is_active()) solution.print(pcout.get_stream());
+        // dealii::FullMatrix<double> fullA(system_matrix.m());
+        // fullA.copy_from(system_matrix);
+        // pcout<<"Dense matrix:"<<std::endl;
+        // if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), 3, true, 10, "0", 1., 0.);
 
     dealii::SolverControl solver_control(param.max_iterations, param.linear_residual);
-    dealii::TrilinosWrappers::SolverGMRES solver(solver_control);
-    solver.solve(system_matrix, solution, right_hand_side, precondition_ilut);
+
+    const bool output_solver_details=false;
+    const unsigned int restart_parameter=100;
+    dealii::TrilinosWrappers::SolverGMRES::AdditionalData solver_add_data(output_solver_details, restart_parameter);
+
+    dealii::TrilinosWrappers::SolverGMRES solver(solver_control, solver_add_data);
+    solver.solve(system_matrix, solution, right_hand_side, preconditioner);
     return {solver_control.last_step(), solver_control.last_value()};
 }
 

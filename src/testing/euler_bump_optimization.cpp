@@ -170,7 +170,7 @@ public:
       const bool compute_dIdX = false;
       const bool compute_d2I = false;
       functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
-      auto dIdW = get_ROLvec_to_VectorType(g);
+      auto &dIdW = get_ROLvec_to_VectorType(g);
       dIdW = functional.dIdw;
   }
 
@@ -181,7 +181,7 @@ public:
       const bool compute_dIdX = true;
       const bool compute_d2I = false;
       functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
-      auto dIdX = get_ROLvec_to_VectorType(g);
+      auto &dIdX = get_ROLvec_to_VectorType(g);
       dIdX = functional.dIdX;
   }
 
@@ -212,6 +212,8 @@ private:
 
     Parameters::LinearSolverParam linear_solver_param;
     dealii::ParameterHandler parameter_handler;
+
+    int i_out = 1000;
 public:
     using ROL::Constraint_SimOpt<double>::value;
     using ROL::Constraint_SimOpt<double>::applyAdjointJacobian_2;
@@ -227,8 +229,10 @@ public:
         linear_solver_param.linear_residual = 1e-13;
         linear_solver_param.ilut_fill = 1;
         linear_solver_param.ilut_drop = 0.0;
-        linear_solver_param.ilut_rtol = 0.0;
+        linear_solver_param.ilut_rtol = 1.0;
         linear_solver_param.ilut_atol = 0.0;
+        linear_solver_param.linear_solver_output = Parameters::OutputEnum::quiet;
+        linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
     };
 
     void update_1( const ROL_Vector& des_var_sim, bool flag = true, int iter = -1 ) override {
@@ -245,7 +249,10 @@ public:
     void solve( ROL_Vector& constraint_values, ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) override {
 
         update_2(des_var_ctl);
-        ode_solver->steady_state();
+        //ode_solver->steady_state();
+        dg->output_results_vtk(i_out++);
+        std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver_1 = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        ode_solver_1->steady_state();
 
         dg->assemble_residual();
         auto constraint_p = get_rcp_to_VectorType(constraint_values);
@@ -287,7 +294,7 @@ public:
         const auto &input_vector_v = get_ROLvec_to_VectorType(input_vector);
         auto &output_vector_v = get_ROLvec_to_VectorType(output_vector);
 
-        solve_linear (
+        solve_linear_2 (
             this->dg->system_matrix,
             input_vector_v,
             output_vector_v,
@@ -301,16 +308,22 @@ public:
 
         const bool compute_dRdW=true; const bool compute_dRdX=false; const bool compute_d2R=false;
         dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+
         dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose;
         Epetra_CrsMatrix *system_matrix_transpose_tril;
         Epetra_RowMatrixTransposer epmt( const_cast<Epetra_CrsMatrix *>( &( dg->system_matrix.trilinos_matrix() ) ) );
         epmt.CreateTranspose(false, system_matrix_transpose_tril);
         system_matrix_transpose.reinit(*system_matrix_transpose_tril);
 
-        const auto &input_vector_v = get_ROLvec_to_VectorType(input_vector);
+        // Input vector is copied into temporary non-const vector.
+        auto input_vector_v = get_ROLvec_to_VectorType(input_vector);
         auto &output_vector_v = get_ROLvec_to_VectorType(output_vector);
 
-        solve_linear(system_matrix_transpose, input_vector_v, output_vector_v, this->linear_solver_param);
+        solve_linear (system_matrix_transpose, input_vector_v, output_vector_v, this->linear_solver_param);
+
+        // dg->system_matrix.transpose();
+        // solve_linear (dg->system_matrix, input_vector_v, output_vector_v, this->linear_solver_param);
+        // dg->system_matrix.transpose();
     }
 
     void applyJacobian_2( ROL_Vector& output_vector, const ROL_Vector& input_vector, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) override {
@@ -334,16 +347,16 @@ public:
 
         const bool compute_dRdW=false; const bool compute_dRdX=true; const bool compute_d2R=false;
         dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
-        dealii::TrilinosWrappers::SparseMatrix dRdX_matrix_transpose;
-        Epetra_CrsMatrix *dRdX_transpose_tril;
-        Epetra_RowMatrixTransposer epmt( const_cast<Epetra_CrsMatrix *>( &( dg->dRdXv.trilinos_matrix() ) ) );
-        epmt.CreateTranspose(false, dRdX_transpose_tril);
-        dRdX_matrix_transpose.reinit(*dRdX_transpose_tril);
+        //dealii::TrilinosWrappers::SparseMatrix dRdX_matrix_transpose;
+        //Epetra_CrsMatrix *dRdX_transpose_tril;
+        //Epetra_RowMatrixTransposer epmt( const_cast<Epetra_CrsMatrix *>( &( dg->dRdXv.trilinos_matrix() ) ) );
+        //epmt.CreateTranspose(false, dRdX_transpose_tril);
+        //dRdX_matrix_transpose.reinit(*dRdX_transpose_tril);
 
         const auto &input_vector_v = get_ROLvec_to_VectorType(input_vector);
         auto &output_vector_v = get_ROLvec_to_VectorType(output_vector);
 
-        dRdX_matrix_transpose.vmult(output_vector_v, input_vector_v);
+        dg->dRdXv.Tvmult(output_vector_v, input_vector_v);
     }
 
 };
@@ -497,12 +510,13 @@ int EulerBumpOptimization<dim,nstate>
 
     int poly_degree = 1;
 
-    const int n_1d_cells = manu_grid_conv_param.initial_grid_size;
+    //const int n_1d_cells = manu_grid_conv_param.initial_grid_size;
 
     std::vector<unsigned int> n_subdivisions(dim);
     //n_subdivisions[1] = n_1d_cells; // y-direction
     //n_subdivisions[0] = 4*n_subdivisions[1]; // x-direction
-    n_subdivisions[1] = n_1d_cells; // y-direction
+    n_subdivisions[1] = 5; //20;// y-direction
+    //n_subdivisions[1] = n_1d_cells; // y-direction
     n_subdivisions[0] = 9*n_subdivisions[1]; // x-direction
     dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator,
         typename dealii::Triangulation<dim>::MeshSmoothing(
@@ -555,7 +569,55 @@ int EulerBumpOptimization<dim,nstate>
     const bool has_ownership = false;
     Teuchos::RCP<VectorType> des_var_sim_rcp = Teuchos::rcp(&dg->solution, has_ownership);
     Teuchos::RCP<VectorType> des_var_ctl_rcp = Teuchos::rcp(&dg->high_order_grid.nodes, has_ownership);
+    dg->set_dual(dg->solution);
     Teuchos::RCP<VectorType> des_var_adj_rcp = Teuchos::rcp(&dg->dual, has_ownership);
+
+    VectorType gradient_nodes(dg->high_order_grid.nodes);
+    {
+        const bool compute_dIdW = true;
+        const bool compute_dIdX = true;
+        const bool compute_d2I = false;
+        (void) functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
+        gradient_nodes = functional.dIdX;
+        gradient_nodes.update_ghost_values();
+
+        VectorType dIdW(functional.dIdw);
+
+        {
+            const bool compute_dRdW=true; const bool compute_dRdX=false; const bool compute_d2R=false;
+            dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+        }
+        {
+            const bool compute_dRdW=false; const bool compute_dRdX=true; const bool compute_d2R=false;
+            dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+        }
+
+        dIdW *= -1.0;
+
+        dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose;
+        Epetra_CrsMatrix *system_matrix_transpose_tril;
+
+        Epetra_RowMatrixTransposer epmt(const_cast<Epetra_CrsMatrix *>(&dg->system_matrix.trilinos_matrix()));
+        epmt.CreateTranspose(false, system_matrix_transpose_tril);
+        system_matrix_transpose.reinit(*system_matrix_transpose_tril);
+
+        VectorType adjoint(functional.dIdw);
+        Parameters::LinearSolverParam linear_solver_param;
+        linear_solver_param.max_iterations = 1000;
+        linear_solver_param.restart_number = 100;
+        linear_solver_param.linear_residual = 1e-13;
+        linear_solver_param.ilut_fill = 1;
+        linear_solver_param.ilut_drop = 0.0;
+        linear_solver_param.ilut_rtol = 1.0;
+        linear_solver_param.ilut_atol = 0.0;
+        linear_solver_param.linear_solver_output = Parameters::OutputEnum::quiet;
+        linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
+        solve_linear(system_matrix_transpose, dIdW, adjoint, linear_solver_param);
+
+        //dg->dRdXv.transpose();
+        dg->dRdXv.Tvmult_add(gradient_nodes, adjoint);
+        //gradient_nodes.print(std::cout);
+    }
 
     AdaptVector des_var_sim_rol(des_var_sim_rcp);
     AdaptVector des_var_ctl_rol(des_var_ctl_rcp);
@@ -565,11 +627,6 @@ int EulerBumpOptimization<dim,nstate>
     auto des_var_ctl_rol_p = ROL::makePtr<AdaptVector>(des_var_ctl_rol);
     auto des_var_adj_rol_p = ROL::makePtr<AdaptVector>(des_var_adj_rol);
 
-    // Set parameters.
-    Teuchos::ParameterList parlist;
-    parlist.sublist("Secant").set("Use as Preconditioner", false);
-    parlist.sublist("Status Test").set("Gradient Tolerance", 1e-10);
-    parlist.sublist("Status Test").set("Iteration Limit", 1000);
 
     // Output stream
     ROL::nullstream bhs; // outputs nothing
@@ -577,8 +634,6 @@ int EulerBumpOptimization<dim,nstate>
     if (this->mpi_rank == 0) outStream = ROL::makePtrFromRef(std::cout);
     else outStream = ROL::makePtrFromRef(bhs);
 
-    // Define algorithm.
-    ROL::Algorithm<double> algo("Line Search", parlist);
     // Run Algorithm
     //RosenbrockObjective<VectorType, double> rosenbrock_objective;
     //algo.run(x_rol, rosenbrock_objective, true, *outStream);
@@ -587,46 +642,17 @@ int EulerBumpOptimization<dim,nstate>
     auto con  = ROL::makePtr<FlowConstraint<dim>>(dg);
     auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p );
 
-    // if (derivCheck) {
-    //     // Initialize control vectors.
-    //     ROL::Ptr<std::vector<double> > yz_ptr = ROL::makePtr<std::vector<double>>(pFEM->numZ(), 0.0);
-    //     for (uint i=0; i<pFEM->numZ(); i++) {
-    //       (*yz_ptr)[i] = frac * (double)rand()/(double)RAND_MAX;
-    //     }
-    //     ROL::StdVector<double> yz(yz_ptr);
-    //     ROL::Ptr<ROL::Vector<double> > yzp = ROL::makePtrFromRef(yz);
-    //     // Initialize state vectors.
-    //     ROL::Ptr<std::vector<double> > yu_ptr = ROL::makePtr<std::vector<double>>(pFEM->numU(), 0.0);
-    //     for (uint i=0; i<pFEM->numU(); i++) {
-    //     (*u_ptr)[i]  = (double)rand()/(double)RAND_MAX;
-    //       (*yu_ptr)[i] = (double)rand()/(double)RAND_MAX;
-    //     }
-    //     ROL::StdVector<double> yu(yu_ptr);
-    //     ROL::Ptr<ROL::Vector<double> > yup = ROL::makePtrFromRef(yu);
-    //     // Initialize Jacobian vector.
-    //     ROL::Ptr<std::vector<double> > jv_ptr  = ROL::makePtr<std::vector<double>>(pFEM->numU(), 0.0);
-    //     ROL::StdVector<double> jv(jv_ptr);
-    //     ROL::Ptr<ROL::Vector<double> > jvp = ROL::makePtrFromRef(jv);
-    //     // Initialize SimOpt Vectors
-    //     ROL::Vector_SimOpt<double> x(up,zp);
-    //     ROL::Vector_SimOpt<double> y(yup,yzp);
-    //     // Test equality constraint.
-    //     pcon->checkApplyJacobian(x,y,jv,true,*outStream);
-    //     //pcon->checkApplyAdjointJacobian(x,yu,jv,x,true);
-    //     pcon->checkApplyAdjointHessian(x,yu,y,x,true,*outStream);
-    //     // Test full objective function.
-    //     pobj = ROL::makePtr<Objective_TopOpt<RealT>>(pFEM,frac,reg,pen,rmin);
-    //     pobj->checkGradient(x,y,true,*outStream);
-    //     pobj->checkHessVec(x,y,true,*outStream);
-    //     // Test reduced objective function.
-    //     robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<RealT>>(pobj,pcon,up,zp,pp);
-    //     robj->checkGradient(z,yz,true,*outStream);
-    //     robj->checkHessVec(z,yz,true,*outStream);
-    // }
-
     // Full space problem
     ROL::OptimizationProblem<double> opt( robj, des_var_ctl_rol_p );
     opt.check(*outStream);
+
+    // Set parameters.
+    Teuchos::ParameterList parlist;
+    parlist.sublist("Secant").set("Use as Preconditioner", false);
+    parlist.sublist("Status Test").set("Gradient Tolerance", 1e-10);
+    parlist.sublist("Status Test").set("Iteration Limit", 1000);
+    // Define algorithm.
+    ROL::Algorithm<double> algo("Line Search", parlist);
     ROL::OptimizationSolver<double> solver( opt, parlist );
 
     solver.solve( std::cout );

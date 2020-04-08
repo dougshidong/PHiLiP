@@ -160,8 +160,9 @@ int EulerCylinder<dim,nstate>
         half_cylinder(grid, n_cells_circle, n_cells_radial);
 
         // Create DG object
-        const double solution_degree = poly_degree;
-        const double grid_degree = solution_degree+1;
+        const int solution_degree = poly_degree;
+        //const int grid_degree = std::max(2,solution_degree);
+        const int grid_degree = solution_degree+1;
         std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, solution_degree, solution_degree, grid_degree, &grid);
 
         dg->allocate_system ();

@@ -28,6 +28,7 @@
 #include "functional/target_functional.h"
 
 #include "mesh/grids/gaussian_bump.h"
+#include "mesh/free_form_deformation.h"
 
 #include "linear_solver/linear_solver.h"
 
@@ -566,6 +567,11 @@ int EulerBumpOptimization<dim,nstate>
 
     BoundaryInverseTarget1<dim,nstate,double> functional(dg, target_solution, true, true);
 
+    const dealii::Point<dim> ffd_origin(-1.0,-0.1);
+    const std::array<double,dim> ffd_rectangle_lengths = {2,0.6};
+    const std::array<unsigned int,dim> ffd_ndim_control_pts = {10,2};
+    FreeFormDeformation<dim> ffd( ffd_origin, ffd_rectangle_lengths, ffd_ndim_control_pts);
+
     const bool has_ownership = false;
     Teuchos::RCP<VectorType> des_var_sim_rcp = Teuchos::rcp(&dg->solution, has_ownership);
     Teuchos::RCP<VectorType> des_var_ctl_rcp = Teuchos::rcp(&dg->high_order_grid.nodes, has_ownership);
@@ -644,15 +650,27 @@ int EulerBumpOptimization<dim,nstate>
 
     // Full space problem
     ROL::OptimizationProblem<double> opt( robj, des_var_ctl_rol_p );
-    opt.check(*outStream);
+    // opt.check(*outStream);
+    ROL::EProblem problemType = opt.getProblemType();
+    std::cout << ROL::EProblemToString(problemType) << std::endl;
 
     // Set parameters.
     Teuchos::ParameterList parlist;
-    parlist.sublist("Secant").set("Use as Preconditioner", false);
+    //parlist.sublist("Secant").set("Use as Preconditioner", false);
     parlist.sublist("Status Test").set("Gradient Tolerance", 1e-10);
     parlist.sublist("Status Test").set("Iteration Limit", 1000);
+    parlist.sublist("Step").set("Type","Line Search");
+    parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",1e-3);
+    parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
+    //parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Iteration Scaling");
+    parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Backtracking");
+    //parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Quasi-Newton Method");
+    parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type", "Steepest Descent");
+    parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Null Curvature Condition");
+    //parlist.sublist("Step").sublist("Interior Point").set("Initial Step Size",0.1);
+
     // Define algorithm.
-    ROL::Algorithm<double> algo("Line Search", parlist);
+    //ROL::Algorithm<double> algo("Line Search", parlist);
     ROL::OptimizationSolver<double> solver( opt, parlist );
 
     solver.solve( std::cout );

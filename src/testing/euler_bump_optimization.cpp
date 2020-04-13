@@ -29,6 +29,7 @@
 
 #include "mesh/grids/gaussian_bump.h"
 #include "mesh/free_form_deformation.h"
+#include "mesh/meshmover_linear_elasticity.hpp"
 
 #include "linear_solver/linear_solver.h"
 
@@ -211,18 +212,46 @@ private:
     std::shared_ptr<DGBase<dim,double>> dg;
     std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver;
 
+    FreeFormDeformation<dim> ffd;
+
     Parameters::LinearSolverParam linear_solver_param;
     dealii::ParameterHandler parameter_handler;
+
+    const std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim;
+    dealii::LinearAlgebra::distributed::Vector<double> ffd_des_var;
 
     int i_out = 1000;
 public:
     using ROL::Constraint_SimOpt<double>::value;
     using ROL::Constraint_SimOpt<double>::applyAdjointJacobian_2;
 
-    FlowConstraint(std::shared_ptr<DGBase<dim,double>> _dg)
+    // FlowConstraint(std::shared_ptr<DGBase<dim,double>> &_dg)
+    // : dg(_dg)
+    // , ode_solver(ODE::ODESolverFactory<dim, double>::create_ODESolver(dg))
+    // {
+    //     Parameters::LinearSolverParam::declare_parameters (parameter_handler);
+    //     linear_solver_param.parse_parameters (parameter_handler);
+    //     linear_solver_param.max_iterations = 1000;
+    //     linear_solver_param.restart_number = 100;
+    //     linear_solver_param.linear_residual = 1e-13;
+    //     linear_solver_param.ilut_fill = 1;
+    //     linear_solver_param.ilut_drop = 0.0;
+    //     linear_solver_param.ilut_rtol = 1.0;
+    //     linear_solver_param.ilut_atol = 0.0;
+    //     linear_solver_param.linear_solver_output = Parameters::OutputEnum::quiet;
+    //     linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
+    // };
+    FlowConstraint(std::shared_ptr<DGBase<dim,double>> &_dg, 
+                   const FreeFormDeformation<dim> &_ffd,
+                   std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim)
     : dg(_dg)
     , ode_solver(ODE::ODESolverFactory<dim, double>::create_ODESolver(dg))
+    , ffd(_ffd)
+    , ffd_design_variables_indices_dim(_ffd_design_variables_indices_dim)
     {
+        ffd_des_var.reinit(ffd_design_variables_indices_dim.size());
+        ffd.get_design_variables(ffd_design_variables_indices_dim, ffd_des_var);
+
         Parameters::LinearSolverParam::declare_parameters (parameter_handler);
         linear_solver_param.parse_parameters (parameter_handler);
         linear_solver_param.max_iterations = 1000;
@@ -236,6 +265,17 @@ public:
         linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
     };
 
+    // void update_1( const ROL_Vector& des_var_sim, bool flag = true, int iter = -1 ) override {
+    //     (void) flag; (void) iter;
+    //     dg->solution = get_ROLvec_to_VectorType(des_var_sim);
+    //     dg->solution.update_ghost_values();
+    // }
+    // void update_2( const ROL_Vector& des_var_ctl, bool flag = true, int iter = -1 ) override {
+    //     (void) flag; (void) iter;
+    //     dg->high_order_grid.nodes = get_ROLvec_to_VectorType(des_var_ctl);
+    //     dg->high_order_grid.nodes.update_ghost_values();
+    // }
+
     void update_1( const ROL_Vector& des_var_sim, bool flag = true, int iter = -1 ) override {
         (void) flag; (void) iter;
         dg->solution = get_ROLvec_to_VectorType(des_var_sim);
@@ -243,7 +283,41 @@ public:
     }
     void update_2( const ROL_Vector& des_var_ctl, bool flag = true, int iter = -1 ) override {
         (void) flag; (void) iter;
-        dg->high_order_grid.nodes = get_ROLvec_to_VectorType(des_var_ctl);
+        ffd_des_var =  get_ROLvec_to_VectorType(des_var_ctl);
+        ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_des_var);
+
+        // std::vector<dealii::Tensor<1,dim,double>> point_displacements(dg->high_order_grid.locally_relevant_surface_points.size());
+        // auto disp = point_displacements.begin();
+        // auto point = dg->high_order_grid.locally_relevant_surface_points.begin();
+        // auto point_end = dg->high_order_grid.locally_relevant_surface_points.end();
+        // for (;point != point_end; ++point, ++disp) {
+        //     (*disp) = get_displacement ( *point, ffd.control_pts);
+        // }
+
+        dealii::LinearAlgebra::distributed::Vector<double> surface_node_displacements(dg->high_order_grid.surface_nodes);
+        auto index = dg->high_order_grid.surface_indices.begin();
+        auto node = dg->high_order_grid.surface_nodes.begin();
+        auto new_node = surface_node_displacements.begin();
+        for (; index != dg->high_order_grid.surface_indices.end(); ++index, ++node, ++new_node) {
+            const dealii::types::global_dof_index global_idof_index = *index;
+            const std::pair<unsigned int, unsigned int> ipoint_component = dg->high_order_grid.global_index_to_point_and_axis.at(global_idof_index);
+            const unsigned int ipoint = ipoint_component.first;
+            const unsigned int component = ipoint_component.second;
+            dealii::Point<dim> old_point;
+            for (int d=0;d<dim;d++) {
+                old_point[d] = dg->high_order_grid.locally_relevant_surface_points[ipoint][d];
+            }
+            const dealii::Point<dim> new_point = ffd.new_point_location(old_point);
+            *new_node = new_point[component];
+        }
+        surface_node_displacements.update_ghost_values();
+        surface_node_displacements -= dg->high_order_grid.surface_nodes;
+        surface_node_displacements.update_ghost_values();
+
+        MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+            meshmover(dg->high_order_grid, surface_node_displacements);
+        dealii::LinearAlgebra::distributed::Vector<double> volume_displacements = meshmover.get_volume_displacements();
+        dg->high_order_grid.nodes += volume_displacements;
         dg->high_order_grid.nodes.update_ghost_values();
     }
 
@@ -669,7 +743,7 @@ int EulerBumpOptimization<dim,nstate>
     //algo.run(x_rol, rosenbrock_objective, true, *outStream);
 
     auto obj  = ROL::makePtr<InverseObjective<dim,nstate>>( functional );
-    auto con  = ROL::makePtr<FlowConstraint<dim>>(dg);
+    auto con  = ROL::makePtr<FlowConstraint<dim>>(dg,ffd,ffd_design_variables_indices_dim);
     auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p );
 
     // Full space problem

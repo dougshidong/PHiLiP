@@ -572,6 +572,30 @@ int EulerBumpOptimization<dim,nstate>
     const std::array<unsigned int,dim> ffd_ndim_control_pts = {10,2};
     FreeFormDeformation<dim> ffd( ffd_origin, ffd_rectangle_lengths, ffd_ndim_control_pts);
 
+    unsigned int n_design_variables = 0;
+    // Vector of ijk indices and dimension.
+    // Each entry in the vector points to a design variable's ijk ctl point and its acting dimension.
+    std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim;
+    for (unsigned int i_ctl = 0; i_ctl < ffd.n_control_pts; ++i_ctl) {
+
+        const std::array<unsigned int,dim> ijk = ffd.global_to_grid ( i_ctl );
+        for (unsigned int d_ffd = 0; d_ffd < dim; ++d_ffd) {
+
+            if (   ijk[0] == 0 // Constrain first column of FFD points.
+                || ijk[0] == ffd_ndim_control_pts[0] - 1  // Constrain last column of FFD points.
+                || d_ffd == 0 // Constrain x-direction of FFD points.
+               ) {
+                continue;
+            }
+            ++n_design_variables;
+            ffd_design_variables_indices_dim.push_back(std::make_pair(i_ctl, d_ffd));
+        }
+    }
+
+    VectorType ffd_design_variables(n_design_variables);
+    ffd.get_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
+    ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
+
     const bool has_ownership = false;
     Teuchos::RCP<VectorType> des_var_sim_rcp = Teuchos::rcp(&dg->solution, has_ownership);
     Teuchos::RCP<VectorType> des_var_ctl_rcp = Teuchos::rcp(&dg->high_order_grid.nodes, has_ownership);

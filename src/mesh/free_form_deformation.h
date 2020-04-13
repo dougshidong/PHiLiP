@@ -77,6 +77,16 @@ public:
     /// Move control point with grid index (i,j,k).
     void move_ctl_dx ( const std::array<unsigned int,dim> ijk, const dealii::Tensor<1,dim,double> );
 
+    /// Copies the desired control points from FreeFormDeformation object into vector_to_copy_into.
+    void get_design_variables(
+        const std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim,
+        dealii::LinearAlgebra::distributed::Vector<double> vector_to_copy_into) const;
+    /// Copies the desired control points from vector_to_copy_from into FreeFormDeformation object 
+    void set_design_variables(
+        const std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim,
+        const dealii::LinearAlgebra::distributed::Vector<double> vector_to_copy_from);
+
+
 protected:
 
     /// Returns the local coordinates s-t-u within the FFD box.

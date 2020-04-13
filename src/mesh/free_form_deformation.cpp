@@ -290,6 +290,43 @@ dealii::Point<dim,real> FreeFormDeformation<dim>
     return ffd_location;
 }
 
+template<int dim>
+void FreeFormDeformation<dim>
+::get_design_variables(
+    const std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim,
+    dealii::LinearAlgebra::distributed::Vector<double> vector_to_copy_into) const
+{
+    AssertDimension(ffd_design_variables_indices_dim.size(), vector_to_copy_into.size())
+    auto partitioner = vector_to_copy_into.get_partitioner();
+
+    for (unsigned int i_dvar = 0; i_dvar < ffd_design_variables_indices_dim.size(); ++i_dvar) {
+        if (partitioner->in_local_range(i_dvar)) {
+            const unsigned int i_ctl = ffd_design_variables_indices_dim[i_dvar].first;
+            const unsigned int d_ctl = ffd_design_variables_indices_dim[i_dvar].second;
+            vector_to_copy_into[i_dvar] = this->control_pts[i_ctl][d_ctl];
+        }
+    }
+    vector_to_copy_into.update_ghost_values();
+}
+
+template<int dim>
+void FreeFormDeformation<dim>
+::set_design_variables(
+    const std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim,
+    const dealii::LinearAlgebra::distributed::Vector<double> vector_to_copy_from)
+{
+    AssertDimension(ffd_design_variables_indices_dim.size(), vector_to_copy_from.size())
+    auto partitioner = vector_to_copy_from.get_partitioner();
+    for (unsigned int i_dvar = 0; i_dvar < ffd_design_variables_indices_dim.size(); ++i_dvar) {
+
+        assert( partitioner->in_local_range(i_dvar) || partitioner->is_ghost_entry(i_dvar) );
+
+        const unsigned int i_ctl = ffd_design_variables_indices_dim[i_dvar].first;
+        const unsigned int d_ctl = ffd_design_variables_indices_dim[i_dvar].second;
+        this->control_pts[i_ctl][d_ctl] = vector_to_copy_from[i_dvar];
+    }
+}
+
 
 template class FreeFormDeformation<PHILIP_DIM>;
 

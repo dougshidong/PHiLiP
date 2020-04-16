@@ -3,6 +3,7 @@
 #include <Sacado.hpp>
 
 #include "free_form_deformation.h"
+#include "meshmover_linear_elasticity.hpp"
 
 
 namespace PHiLiP {
@@ -325,6 +326,37 @@ void FreeFormDeformation<dim>
         const unsigned int d_ctl = ffd_design_variables_indices_dim[i_dvar].second;
         this->control_pts[i_ctl][d_ctl] = vector_to_copy_from[i_dvar];
     }
+}
+
+template<int dim>
+void FreeFormDeformation<dim>
+::deform_mesh (HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid) const
+{
+    dealii::LinearAlgebra::distributed::Vector<double> surface_node_displacements(high_order_grid.surface_nodes);
+    auto index = high_order_grid.surface_indices.begin();
+    auto node = high_order_grid.surface_nodes.begin();
+    auto new_node = surface_node_displacements.begin();
+    for (; index != high_order_grid.surface_indices.end(); ++index, ++node, ++new_node) {
+        const dealii::types::global_dof_index global_idof_index = *index;
+        const std::pair<unsigned int, unsigned int> ipoint_component = high_order_grid.global_index_to_point_and_axis.at(global_idof_index);
+        const unsigned int ipoint = ipoint_component.first;
+        const unsigned int component = ipoint_component.second;
+        dealii::Point<dim> old_point;
+        for (int d=0;d<dim;d++) {
+            old_point[d] = high_order_grid.locally_relevant_surface_points[ipoint][d];
+        }
+        const dealii::Point<dim> new_point = new_point_location(old_point);
+        *new_node = new_point[component];
+    }
+    surface_node_displacements.update_ghost_values();
+    surface_node_displacements -= high_order_grid.surface_nodes;
+    surface_node_displacements.update_ghost_values();
+
+    MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+        meshmover(high_order_grid, surface_node_displacements);
+    dealii::LinearAlgebra::distributed::Vector<double> volume_displacements = meshmover.get_volume_displacements();
+    high_order_grid.nodes += volume_displacements;
+    high_order_grid.nodes.update_ghost_values();
 }
 
 

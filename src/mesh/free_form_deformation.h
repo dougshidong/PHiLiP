@@ -33,6 +33,9 @@ public:
     /// position of the new point location using the current control point locations.
     dealii::Point<dim,double> new_point_location (const dealii::Point<dim,double> &initial_point) const;
 
+    /// Deform HighOrderGrid using its initial nodes to retrieve the deformed set of nodes.
+    void deform_mesh (HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid) const;
+
     /// Given an initial point in the undeformed initial parallepiped and the index a control point,
     /// return the derivative dXsdXp of the new point location point_i with respect to that control_point_j.
     dealii::Point<dim,double> dXsdXp (const dealii::Point<dim,double> &initial_point, const unsigned int ctl_index, const unsigned int ctl_axis) const;

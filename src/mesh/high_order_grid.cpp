@@ -69,6 +69,7 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
     nodes.update_ghost_values();
     update_surface_nodes();
     update_mapping_fe_field();
+    reset_initial_nodes();
     output_results_vtk(nth_refinement++);
 
     // Used to check Jacobian validity
@@ -98,6 +99,7 @@ template <int dim, typename real, typename VectorType , typename DoFHandlerType>
 void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_mapping_fe_field() {
     const dealii::ComponentMask mask(dim, true);
     mapping_fe_field = std::make_shared< dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> > (dof_handler_grid,nodes,mask);
+    initial_mapping_fe_field = std::make_shared< dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> > (dof_handler_grid,initial_nodes,mask);
 }
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
@@ -1014,6 +1016,16 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_nodes() {
     surface_indices.update_ghost_values();
     surface_nodes.update_ghost_values();
 
+}
+
+
+template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::reset_initial_nodes()
+{
+    initial_nodes = nodes;
+    initial_nodes.update_ghost_values();
+    initial_surface_nodes = surface_nodes;
+    initial_surface_nodes.update_ghost_values();
 }
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>

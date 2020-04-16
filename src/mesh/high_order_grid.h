@@ -103,6 +103,19 @@ public:
     /** Distributed ghosted vector of surface nodes.
      */
     Vector surface_nodes;
+
+    /// Initial nodal coefficients of the high-order grid.
+    /** Used for deformation schemes that always deform the mesh from the initial mesh.
+     */
+    Vector initial_nodes;
+    /// Distributed ghosted vector of initial surface nodes.
+    /** Used for deformation schemes that always deform the mesh from the initial mesh.
+     */
+    Vector initial_surface_nodes;
+
+    /// Sets the initial_nodes and initial_surface_nodes to the current nodes and surface_nodes.
+    void reset_initial_nodes();
+
     /** Distributed ghosted vector of surface indices.
      *  Ordering matches the surface_nodes.
      */
@@ -179,6 +192,11 @@ public:
      *  for consistency and create a function to retrieve the Point.
      */
     std::vector<dealii::Point<dim>> locally_relevant_surface_points;
+
+    /// Initial locally relevant surface points.
+    /** In the optimization framework, we often displace the mesh from the initial mesh.
+     */
+    std::vector<dealii::Point<dim>> initial_locally_relevant_surface_points;
 
     /** Given a global DoF index, this will return the Point index
      *  within the locally_relevant_surface_points and its component.
@@ -287,6 +305,14 @@ public:
      *  <a href=" https://stackoverflow.com/questions/7557153/defining-an-object-without-calling-its-constructor-in-c">thread</a>.
      */
     std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field;
+
+    /// MappingFEField that will provide the polynomial-based grid for the initial nodes.
+    /** Will likely be used for deformations based on initial grids.
+     *  It is a shared smart pointer because the constructor requires the dof_handler_grid to be properly initialized.
+     *  See discussion in the following 
+     *  <a href=" https://stackoverflow.com/questions/7557153/defining-an-object-without-calling-its-constructor-in-c">thread</a>.
+     */
+    std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> initial_mapping_fe_field;
 
     dealii::IndexSet locally_owned_dofs_grid; ///< Locally own degrees of freedom for the grid
     dealii::IndexSet ghost_dofs_grid; ///< Locally relevant ghost degrees of freedom for the grid

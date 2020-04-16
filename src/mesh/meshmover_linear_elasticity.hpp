@@ -84,12 +84,6 @@ namespace MeshMover
         std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field;
         /// Same DoFHandler as the HighOrderGrid
         const DoFHandlerType &dof_handler;
-        /** Same FESystem as the HighOrderGrid.
-         *  For some reason, I can't make it a const reference.
-         *  Gives warning as error:
-         *  "a temporary bound to ... only persists until the constructor exits"
-         */
-        dealii::FESystem<dim> fe_system;
         /// Integration strength of the mesh order plus one.
         const dealii::QGauss<dim> quadrature_formula;
 

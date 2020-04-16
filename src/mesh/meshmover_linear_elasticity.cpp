@@ -23,7 +23,6 @@ namespace MeshMover {
       : triangulation(*(high_order_grid.triangulation))
       , mapping_fe_field(high_order_grid.mapping_fe_field)
       , dof_handler(high_order_grid.dof_handler_grid)
-      , fe_system(high_order_grid.dof_handler_grid.get_fe(0))
       , quadrature_formula(dof_handler.get_fe().degree + 1)
       , mpi_communicator(MPI_COMM_WORLD)
       , n_mpi_processes(dealii::Utilities::MPI::n_mpi_processes(mpi_communicator))
@@ -148,6 +147,7 @@ namespace MeshMover {
         system_matrix = 0;
         system_rhs_unconstrained    = 0;
         system_matrix_unconstrained = 0;
+        const dealii::FESystem<dim> &fe_system = dof_handler.get_fe(0);
         dealii::FEValues<dim> fe_values(
             *mapping_fe_field,
             fe_system,

@@ -352,8 +352,16 @@ void FreeFormDeformation<dim>
     surface_node_displacements -= high_order_grid.surface_nodes;
     surface_node_displacements.update_ghost_values();
 
+    // MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+    //     meshmover(high_order_grid, surface_node_displacements);
+
     MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
-        meshmover(high_order_grid, surface_node_displacements);
+        meshmover( 
+          *(high_order_grid.triangulation),
+          high_order_grid.initial_mapping_fe_field,
+          high_order_grid.dof_handler_grid,
+          high_order_grid.surface_indices,
+          surface_node_displacements);
     dealii::LinearAlgebra::distributed::Vector<double> volume_displacements = meshmover.get_volume_displacements();
     high_order_grid.nodes += volume_displacements;
     high_order_grid.nodes.update_ghost_values();

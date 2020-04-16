@@ -294,31 +294,32 @@ public:
         //     (*disp) = get_displacement ( *point, ffd.control_pts);
         // }
 
-        dealii::LinearAlgebra::distributed::Vector<double> surface_node_displacements(dg->high_order_grid.surface_nodes);
-        auto index = dg->high_order_grid.surface_indices.begin();
-        auto node = dg->high_order_grid.surface_nodes.begin();
-        auto new_node = surface_node_displacements.begin();
-        for (; index != dg->high_order_grid.surface_indices.end(); ++index, ++node, ++new_node) {
-            const dealii::types::global_dof_index global_idof_index = *index;
-            const std::pair<unsigned int, unsigned int> ipoint_component = dg->high_order_grid.global_index_to_point_and_axis.at(global_idof_index);
-            const unsigned int ipoint = ipoint_component.first;
-            const unsigned int component = ipoint_component.second;
-            dealii::Point<dim> old_point;
-            for (int d=0;d<dim;d++) {
-                old_point[d] = dg->high_order_grid.locally_relevant_surface_points[ipoint][d];
-            }
-            const dealii::Point<dim> new_point = ffd.new_point_location(old_point);
-            *new_node = new_point[component];
-        }
-        surface_node_displacements.update_ghost_values();
-        surface_node_displacements -= dg->high_order_grid.surface_nodes;
-        surface_node_displacements.update_ghost_values();
+        ffd.deform_mesh(dg->high_order_grid);
+        // dealii::LinearAlgebra::distributed::Vector<double> surface_node_displacements(dg->high_order_grid.surface_nodes);
+        // auto index = dg->high_order_grid.surface_indices.begin();
+        // auto node = dg->high_order_grid.surface_nodes.begin();
+        // auto new_node = surface_node_displacements.begin();
+        // for (; index != dg->high_order_grid.surface_indices.end(); ++index, ++node, ++new_node) {
+        //     const dealii::types::global_dof_index global_idof_index = *index;
+        //     const std::pair<unsigned int, unsigned int> ipoint_component = dg->high_order_grid.global_index_to_point_and_axis.at(global_idof_index);
+        //     const unsigned int ipoint = ipoint_component.first;
+        //     const unsigned int component = ipoint_component.second;
+        //     dealii::Point<dim> old_point;
+        //     for (int d=0;d<dim;d++) {
+        //         old_point[d] = dg->high_order_grid.locally_relevant_surface_points[ipoint][d];
+        //     }
+        //     const dealii::Point<dim> new_point = ffd.new_point_location(old_point);
+        //     *new_node = new_point[component];
+        // }
+        // surface_node_displacements.update_ghost_values();
+        // surface_node_displacements -= dg->high_order_grid.surface_nodes;
+        // surface_node_displacements.update_ghost_values();
 
-        MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
-            meshmover(dg->high_order_grid, surface_node_displacements);
-        dealii::LinearAlgebra::distributed::Vector<double> volume_displacements = meshmover.get_volume_displacements();
-        dg->high_order_grid.nodes += volume_displacements;
-        dg->high_order_grid.nodes.update_ghost_values();
+        // MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+        //     meshmover(dg->high_order_grid, surface_node_displacements);
+        // dealii::LinearAlgebra::distributed::Vector<double> volume_displacements = meshmover.get_volume_displacements();
+        // dg->high_order_grid.nodes += volume_displacements;
+        // dg->high_order_grid.nodes.update_ghost_values();
     }
 
     void solve( ROL_Vector& constraint_values, ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) override {
@@ -412,7 +413,36 @@ public:
         const auto &input_vector_v = get_ROLvec_to_VectorType(input_vector);
         auto &output_vector_v = get_ROLvec_to_VectorType(output_vector);
 
-        dg->dRdXv.vmult(output_vector_v, input_vector_v);
+        // dg->dRdXv.vmult(output_vector_v, input_vector_v);
+
+        dealii::LinearAlgebra::distributed::Vector<double> surface_node_displacements_vector = dg->high_order_grid.surface_nodes;
+        MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+            meshmover( 
+              *(dg->high_order_grid.triangulation),
+              dg->high_order_grid.initial_mapping_fe_field,
+              dg->high_order_grid.dof_handler_grid,
+              dg->high_order_grid.surface_indices,
+              surface_node_displacements_vector);
+        meshmover.evaluate_dXvdXs();
+        dealii::TrilinosWrappers::SparseMatrix dRdXs;
+		{
+			dRdXs.clear();
+			dealii::SparsityPattern sparsity_pattern_dRdXs = dg->get_dRdXs_sparsity_pattern ();
+			const dealii::IndexSet &row_parallel_partitioning_dRdXs = dg->locally_owned_dofs;
+            const dealii::IndexSet &surface_locally_owned_indexset = dg->high_order_grid.surface_nodes.locally_owned_elements();
+			const dealii::IndexSet &col_parallel_partitioning_dRdXs = surface_locally_owned_indexset;
+			dRdXs.reinit(row_parallel_partitioning_dRdXs, col_parallel_partitioning_dRdXs, sparsity_pattern_dRdXs, MPI_COMM_WORLD);
+		}
+		for (unsigned int isurf = 0; isurf < dg->high_order_grid.surface_nodes.size(); ++isurf) {
+			VectorType dRdXs_i(dg->solution);
+			dg->dRdXv.vmult(dRdXs_i,meshmover.dXvdXs[isurf]);
+			for (unsigned int irow = 0; irow < dg->dof_handler.n_dofs(); ++irow) {
+				if (dg->locally_owned_dofs.is_element(irow)) {
+					dRdXs.add(irow, isurf, dRdXs_i[irow]);
+				}
+			}
+		}
+        dRdXs.compress(dealii::VectorOperation::add);
     }
 
     void applyAdjointJacobian_2( ROL_Vector& output_vector, const ROL_Vector& input_vector, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) override {
@@ -672,7 +702,8 @@ int EulerBumpOptimization<dim,nstate>
 
     const bool has_ownership = false;
     Teuchos::RCP<VectorType> des_var_sim_rcp = Teuchos::rcp(&dg->solution, has_ownership);
-    Teuchos::RCP<VectorType> des_var_ctl_rcp = Teuchos::rcp(&dg->high_order_grid.nodes, has_ownership);
+    //Teuchos::RCP<VectorType> des_var_ctl_rcp = Teuchos::rcp(&dg->high_order_grid.nodes, has_ownership);
+    Teuchos::RCP<VectorType> des_var_ctl_rcp = Teuchos::rcp(&ffd_design_variables, has_ownership);
     dg->set_dual(dg->solution);
     Teuchos::RCP<VectorType> des_var_adj_rcp = Teuchos::rcp(&dg->dual, has_ownership);
 

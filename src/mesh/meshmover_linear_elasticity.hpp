@@ -28,15 +28,18 @@ namespace MeshMover
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
 #endif
       public:
-        /// Constructor
+        /// Constructor.
+        LinearElasticity(
+            const Triangulation &_triangulation,
+            const std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field,
+            const DoFHandlerType &_dof_handler,
+            const dealii::LinearAlgebra::distributed::Vector<int> &_boundary_ids_vector,
+            const dealii::LinearAlgebra::distributed::Vector<double> &_boundary_displacements_vector);
+
+        /// Constructor that uses information from HighOrderGrid and uses current nodes from HighOrderGrid.
         LinearElasticity(
             const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
 			const dealii::LinearAlgebra::distributed::Vector<double> &boundary_displacements_vector);
-
-        /// Constructor
-        LinearElasticity(
-            const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
-            const std::vector<dealii::Tensor<1,dim,real>> &boundary_displacements_tensors);
 
         /** Evaluate and return volume displacements given boundary displacements.
          */
@@ -81,7 +84,7 @@ namespace MeshMover
 
         const Triangulation &triangulation; ///< Triangulation on which this acts.
         /// MappingFEField corresponding to curved mesh.
-        std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field;
+        const std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field;
         /// Same DoFHandler as the HighOrderGrid
         const DoFHandlerType &dof_handler;
         /// Integration strength of the mesh order plus one.

@@ -16,20 +16,53 @@
 namespace PHiLiP {
 namespace MeshMover {
 
+    // template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    // LinearElasticity<dim,real,VectorType,DoFHandlerType>::LinearElasticity(
+    //     const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
+    //     const dealii::LinearAlgebra::distributed::Vector<double> &boundary_displacements_vector)
+    //   : triangulation(*(high_order_grid.triangulation))
+    //   , mapping_fe_field(high_order_grid.mapping_fe_field)
+    //   , dof_handler(high_order_grid.dof_handler_grid)
+    //   , quadrature_formula(dof_handler.get_fe().degree + 1)
+    //   , mpi_communicator(MPI_COMM_WORLD)
+    //   , n_mpi_processes(dealii::Utilities::MPI::n_mpi_processes(mpi_communicator))
+    //   , this_mpi_process(dealii::Utilities::MPI::this_mpi_process(mpi_communicator))
+    //   , pcout(std::cout, this_mpi_process == 0)
+    //   , boundary_ids_vector(high_order_grid.surface_indices)
+    //   , boundary_displacements_vector(boundary_displacements_vector)
+    // { 
+    //     AssertDimension(boundary_displacements_vector.size(), boundary_ids_vector.size());
+    // }
+
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
     LinearElasticity<dim,real,VectorType,DoFHandlerType>::LinearElasticity(
         const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
         const dealii::LinearAlgebra::distributed::Vector<double> &boundary_displacements_vector)
-      : triangulation(*(high_order_grid.triangulation))
-      , mapping_fe_field(high_order_grid.mapping_fe_field)
-      , dof_handler(high_order_grid.dof_handler_grid)
+      : LinearElasticity<dim,real,VectorType,DoFHandlerType> (
+          *(high_order_grid.triangulation),
+          high_order_grid.mapping_fe_field,
+          high_order_grid.dof_handler_grid,
+          high_order_grid.surface_indices,
+          boundary_displacements_vector)
+    { }
+
+    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    LinearElasticity<dim,real,VectorType,DoFHandlerType>::LinearElasticity(
+        const Triangulation &_triangulation,
+        const std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field,
+        const DoFHandlerType &_dof_handler,
+        const dealii::LinearAlgebra::distributed::Vector<int> &_boundary_ids_vector,
+        const dealii::LinearAlgebra::distributed::Vector<double> &_boundary_displacements_vector)
+      : triangulation(_triangulation)
+      , mapping_fe_field(mapping_fe_field)
+      , dof_handler(_dof_handler)
       , quadrature_formula(dof_handler.get_fe().degree + 1)
       , mpi_communicator(MPI_COMM_WORLD)
       , n_mpi_processes(dealii::Utilities::MPI::n_mpi_processes(mpi_communicator))
       , this_mpi_process(dealii::Utilities::MPI::this_mpi_process(mpi_communicator))
       , pcout(std::cout, this_mpi_process == 0)
-      , boundary_ids_vector(high_order_grid.surface_indices)
-      , boundary_displacements_vector(boundary_displacements_vector)
+      , boundary_ids_vector(_boundary_ids_vector)
+      , boundary_displacements_vector(_boundary_displacements_vector)
     { 
         AssertDimension(boundary_displacements_vector.size(), boundary_ids_vector.size());
     }

@@ -1,6 +1,8 @@
 #ifndef __HIGHORDERGRID_H__
 #define __HIGHORDERGRID_H__
 
+#include <deal.II/base/conditional_ostream.h>
+
 #include <deal.II/grid/tria.h>
 
 #include <deal.II/fe/fe_system.h>
@@ -13,8 +15,6 @@
 
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/la_parallel_vector.templates.h>
-
-#include "parameters/all_parameters.h"
 
 #include <deal.II/numerics/data_postprocessor.h>
 #include <deal.II/numerics/data_out.h>
@@ -66,7 +66,7 @@ class HighOrderGrid
 #endif
 public:
     /// Principal constructor that will call delegated constructor.
-    HighOrderGrid(const Parameters::AllParameters *const parameters_input, const unsigned int max_degree, Triangulation *const triangulation_input);
+    HighOrderGrid(const unsigned int max_degree, Triangulation *const triangulation_input);
 
     /// Update the MappingFEField
     /** Note that this rarely needs to be called since MappingFEField stores a
@@ -79,8 +79,6 @@ public:
 
     /// Return a MappingFEField that corresponds to the current node locations
     dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> get_MappingFEField();
-
-    const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
 
     /// Maximum degree of the geometry polynomial representing the grid.
     const unsigned int max_degree;

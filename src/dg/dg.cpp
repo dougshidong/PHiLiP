@@ -156,7 +156,7 @@ DGBase<dim,real>::DGBase(
     , oned_quadrature_collection(std::get<3>(collection_tuple))
     , fe_collection_lagrange(std::get<4>(collection_tuple))
     , dof_handler(*triangulation)
-    , high_order_grid(all_parameters, grid_degree_input, triangulation)
+    , high_order_grid(grid_degree_input, triangulation)
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 { 

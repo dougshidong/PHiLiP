@@ -1,6 +1,5 @@
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/convergence_table.h>
-#include <deal.II/base/parameter_handler.h>
 
 #include <deal.II/dofs/dof_tools.h>
 
@@ -25,7 +24,6 @@
 
 #include "mesh/high_order_grid.h"
 #include "mesh/meshmover_linear_elasticity.hpp"
-#include "parameters/all_parameters.h"
 
 /// Tests the LinearElasticity mesh movement by displacing the mesh and integrating its
 /// volume, checking against its known volume.
@@ -62,11 +60,6 @@ int main (int argc, char * argv[])
 
     using namespace PHiLiP;
 
-    dealii::ParameterHandler parameter_handler;
-    Parameters::AllParameters::declare_parameters (parameter_handler);
-    Parameters::AllParameters all_parameters;
-    all_parameters.parse_parameters (parameter_handler);
-
     const int initial_n_cells = 3;
     const unsigned int n_grids = 3;
     const unsigned int p_start = 1;
@@ -101,7 +94,7 @@ int main (int argc, char * argv[])
             dealii::GridGenerator::subdivided_hyper_cube(grid, initial_n_cells);
 
 
-            HighOrderGrid<dim,double> high_order_grid(&all_parameters, poly_degree, &grid);
+            HighOrderGrid<dim,double> high_order_grid(poly_degree, &grid);
 
             for (unsigned int i=0; i<igrid; ++i) {
                 high_order_grid.prepare_for_coarsening_and_refinement();

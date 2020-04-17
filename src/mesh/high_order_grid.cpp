@@ -46,11 +46,9 @@ unsigned int HighOrderGrid<dim,real,VectorType,DoFHandlerType>::nth_refinement=0
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
 HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
-        const Parameters::AllParameters *const parameters_input,
         const unsigned int max_degree,
         Triangulation *const triangulation_input)
-    : all_parameters(parameters_input)
-    , max_degree(max_degree)
+    : max_degree(max_degree)
     , triangulation(triangulation_input)
     , dof_handler_grid(*triangulation)
     , fe_q(max_degree) // The grid must be at least p1. A p0 solution required a p1 grid.

@@ -1,5 +1,4 @@
 #include <deal.II/base/conditional_ostream.h>
-#include <deal.II/base/parameter_handler.h>
 
 #include <deal.II/dofs/dof_tools.h>
 
@@ -14,7 +13,6 @@
 #include <deal.II/fe/mapping_fe_field.h> 
 
 #include "mesh/high_order_grid.h"
-#include "parameters/all_parameters.h"
 
 dealii::Point<2> center(0.0,0.0);
 const double inner_radius = 1, outer_radius = inner_radius*20;
@@ -111,12 +109,7 @@ int main (int argc, char * argv[])
         const unsigned int n_cells_radial = 2*n_cells_circle;
         half_cylinder(grid, n_cells_circle, n_cells_radial);
 
-        dealii::ParameterHandler parameter_handler;
-        PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler);
-        PHiLiP::Parameters::AllParameters all_parameters;
-        all_parameters.parse_parameters (parameter_handler);
-
-        PHiLiP::HighOrderGrid<dim,double> high_order_grid(&all_parameters, poly_degree, &grid);
+        PHiLiP::HighOrderGrid<dim,double> high_order_grid(poly_degree, &grid);
 
         //bool has_invalid_grid = false;
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {

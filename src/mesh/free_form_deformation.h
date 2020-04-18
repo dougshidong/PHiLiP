@@ -89,6 +89,9 @@ public:
         const std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim,
         const dealii::LinearAlgebra::distributed::Vector<double> vector_to_copy_from);
 
+    /// Output a .vtu file of the FFD box to visualize.
+    void output_ffd_vtu(const unsigned int cycle) const;
+
 
 protected:
 

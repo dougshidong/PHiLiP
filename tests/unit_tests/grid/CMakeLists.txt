@@ -101,6 +101,7 @@ if (NOT DOC_ONLY)
     DEAL_II_SETUP_TARGET(${TEST_TARGET})
 endif()
 
+set (NMPI ${MPIMAX})
 set (LENGTH SHORT)
 
 add_test(

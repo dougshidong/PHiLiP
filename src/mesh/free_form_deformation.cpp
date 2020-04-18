@@ -5,6 +5,7 @@
 #include "free_form_deformation.h"
 #include "meshmover_linear_elasticity.hpp"
 
+#include <deal.II/base/utilities.h>
 #include <deal.II/grid/grid_out.h>
 
 
@@ -374,6 +375,7 @@ template<int dim>
 void FreeFormDeformation<dim>
 ::output_ffd_vtu(const unsigned int cycle) const
 {
+    if (dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) != 0) return;
     dealii::Triangulation<dim,dim> tria;
     // next create the cells
     std::vector<dealii::CellData<dim>> cells;
@@ -383,6 +385,7 @@ void FreeFormDeformation<dim>
     }
     cells.resize(n_cells);
 
+    // From here, the code is copied from dealii::GridGenerator::subdivided_parallelpiped()
     std::array<unsigned int, dim> repetitions;
     for (int d = 0; d < dim; ++d) {
         repetitions[d] = ndim_control_pts[d]-1;
@@ -390,57 +393,53 @@ void FreeFormDeformation<dim>
     switch (dim) {
         case 1:
         {
-            for (unsigned int x = 0; x < repetitions[0]; ++x)
-              {
+            for (unsigned int x = 0; x < repetitions[0]; ++x) {
                 cells[x].vertices[0] = x;
                 cells[x].vertices[1] = x + 1;
                 cells[x].material_id = 0;
-              }
+            }
             break;
         }
  
         case 2:
         {
-            for (unsigned int y = 0; y < repetitions[1]; ++y)
-              for (unsigned int x = 0; x < repetitions[0]; ++x)
-                {
-                  const unsigned int c = x + y * repetitions[0];
-                  cells[c].vertices[0] = y * (repetitions[0] + 1) + x;
-                  cells[c].vertices[1] = y * (repetitions[0] + 1) + x + 1;
-                  cells[c].vertices[2] = (y + 1) * (repetitions[0] + 1) + x;
-                  cells[c].vertices[3] = (y + 1) * (repetitions[0] + 1) + x + 1;
-                  cells[c].material_id = 0;
+            for (unsigned int y = 0; y < repetitions[1]; ++y) {
+                for (unsigned int x = 0; x < repetitions[0]; ++x) {
+                    const unsigned int c = x + y * repetitions[0];
+                    cells[c].vertices[0] = y * (repetitions[0] + 1) + x;
+                    cells[c].vertices[1] = y * (repetitions[0] + 1) + x + 1;
+                    cells[c].vertices[2] = (y + 1) * (repetitions[0] + 1) + x;
+                    cells[c].vertices[3] = (y + 1) * (repetitions[0] + 1) + x + 1;
+                    cells[c].material_id = 0;
                 }
+            }
             break;
         }
  
         case 3:
-          {
+        {
             const unsigned int n_x = (repetitions[0] + 1);
-            const unsigned int n_xy =
-              (repetitions[0] + 1) * (repetitions[1] + 1);
+            const unsigned int n_xy = (repetitions[0] + 1) * (repetitions[1] + 1);
  
-            for (unsigned int z = 0; z < repetitions[2]; ++z)
-              for (unsigned int y = 0; y < repetitions[1]; ++y)
-                for (unsigned int x = 0; x < repetitions[0]; ++x)
-                  {
-                    const unsigned int c = x + y * repetitions[0] +
-                                           z * repetitions[0] * repetitions[1];
-                    cells[c].vertices[0] = z * n_xy + y * n_x + x;
-                    cells[c].vertices[1] = z * n_xy + y * n_x + x + 1;
-                    cells[c].vertices[2] = z * n_xy + (y + 1) * n_x + x;
-                    cells[c].vertices[3] = z * n_xy + (y + 1) * n_x + x + 1;
-                    cells[c].vertices[4] = (z + 1) * n_xy + y * n_x + x;
-                    cells[c].vertices[5] = (z + 1) * n_xy + y * n_x + x + 1;
-                    cells[c].vertices[6] = (z + 1) * n_xy + (y + 1) * n_x + x;
-                    cells[c].vertices[7] =
-                      (z + 1) * n_xy + (y + 1) * n_x + x + 1;
-                    cells[c].material_id = 0;
-                  }
+            for (unsigned int z = 0; z < repetitions[2]; ++z) {
+                for (unsigned int y = 0; y < repetitions[1]; ++y) {
+                    for (unsigned int x = 0; x < repetitions[0]; ++x) {
+                        const unsigned int c = x + y * repetitions[0] + z * repetitions[0] * repetitions[1];
+                        cells[c].vertices[0] = z * n_xy + y * n_x + x;
+                        cells[c].vertices[1] = z * n_xy + y * n_x + x + 1;
+                        cells[c].vertices[2] = z * n_xy + (y + 1) * n_x + x;
+                        cells[c].vertices[3] = z * n_xy + (y + 1) * n_x + x + 1;
+                        cells[c].vertices[4] = (z + 1) * n_xy + y * n_x + x;
+                        cells[c].vertices[5] = (z + 1) * n_xy + y * n_x + x + 1;
+                        cells[c].vertices[6] = (z + 1) * n_xy + (y + 1) * n_x + x;
+                        cells[c].vertices[7] = (z + 1) * n_xy + (y + 1) * n_x + x + 1;
+                        cells[c].material_id = 0;
+                    }
+                }
+            }
             break;
-          }
- 
-      }
+        }
+    } // switch(dim)
  
     tria.create_triangulation(control_pts, cells, dealii::SubCellData());
     std::string nffd_string[3];

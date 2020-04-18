@@ -5,6 +5,8 @@
 #include "free_form_deformation.h"
 #include "meshmover_linear_elasticity.hpp"
 
+#include <deal.II/grid/grid_out.h>
+
 
 namespace PHiLiP {
 
@@ -334,7 +336,7 @@ void FreeFormDeformation<dim>
 {
     dealii::LinearAlgebra::distributed::Vector<double> surface_node_displacements(high_order_grid.surface_nodes);
     auto index = high_order_grid.surface_indices.begin();
-    auto node = high_order_grid.surface_nodes.begin();
+    auto node = high_order_grid.initial_surface_nodes.begin();
     auto new_node = surface_node_displacements.begin();
     for (; index != high_order_grid.surface_indices.end(); ++index, ++node, ++new_node) {
         const dealii::types::global_dof_index global_idof_index = *index;
@@ -343,13 +345,13 @@ void FreeFormDeformation<dim>
         const unsigned int component = ipoint_component.second;
         dealii::Point<dim> old_point;
         for (int d=0;d<dim;d++) {
-            old_point[d] = high_order_grid.locally_relevant_surface_points[ipoint][d];
+            old_point[d] = high_order_grid.initial_locally_relevant_surface_points[ipoint][d];
         }
         const dealii::Point<dim> new_point = new_point_location(old_point);
         *new_node = new_point[component];
     }
     surface_node_displacements.update_ghost_values();
-    surface_node_displacements -= high_order_grid.surface_nodes;
+    surface_node_displacements -= high_order_grid.initial_surface_nodes;
     surface_node_displacements.update_ghost_values();
 
     // MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
@@ -363,8 +365,101 @@ void FreeFormDeformation<dim>
           high_order_grid.surface_indices,
           surface_node_displacements);
     dealii::LinearAlgebra::distributed::Vector<double> volume_displacements = meshmover.get_volume_displacements();
+    high_order_grid.nodes = high_order_grid.initial_nodes;
     high_order_grid.nodes += volume_displacements;
     high_order_grid.nodes.update_ghost_values();
+}
+
+template<int dim>
+void FreeFormDeformation<dim>
+::output_ffd_vtu(const unsigned int cycle) const
+{
+    dealii::Triangulation<dim,dim> tria;
+    // next create the cells
+    std::vector<dealii::CellData<dim>> cells;
+    unsigned int n_cells = 1;
+    for (int d = 0; d<dim; ++d) {
+        n_cells *= ndim_control_pts[d]-1;
+    }
+    cells.resize(n_cells);
+
+    std::array<unsigned int, dim> repetitions;
+    for (int d = 0; d < dim; ++d) {
+        repetitions[d] = ndim_control_pts[d]-1;
+    }
+    switch (dim) {
+        case 1:
+        {
+            for (unsigned int x = 0; x < repetitions[0]; ++x)
+              {
+                cells[x].vertices[0] = x;
+                cells[x].vertices[1] = x + 1;
+                cells[x].material_id = 0;
+              }
+            break;
+        }
+ 
+        case 2:
+        {
+            for (unsigned int y = 0; y < repetitions[1]; ++y)
+              for (unsigned int x = 0; x < repetitions[0]; ++x)
+                {
+                  const unsigned int c = x + y * repetitions[0];
+                  cells[c].vertices[0] = y * (repetitions[0] + 1) + x;
+                  cells[c].vertices[1] = y * (repetitions[0] + 1) + x + 1;
+                  cells[c].vertices[2] = (y + 1) * (repetitions[0] + 1) + x;
+                  cells[c].vertices[3] = (y + 1) * (repetitions[0] + 1) + x + 1;
+                  cells[c].material_id = 0;
+                }
+            break;
+        }
+ 
+        case 3:
+          {
+            const unsigned int n_x = (repetitions[0] + 1);
+            const unsigned int n_xy =
+              (repetitions[0] + 1) * (repetitions[1] + 1);
+ 
+            for (unsigned int z = 0; z < repetitions[2]; ++z)
+              for (unsigned int y = 0; y < repetitions[1]; ++y)
+                for (unsigned int x = 0; x < repetitions[0]; ++x)
+                  {
+                    const unsigned int c = x + y * repetitions[0] +
+                                           z * repetitions[0] * repetitions[1];
+                    cells[c].vertices[0] = z * n_xy + y * n_x + x;
+                    cells[c].vertices[1] = z * n_xy + y * n_x + x + 1;
+                    cells[c].vertices[2] = z * n_xy + (y + 1) * n_x + x;
+                    cells[c].vertices[3] = z * n_xy + (y + 1) * n_x + x + 1;
+                    cells[c].vertices[4] = (z + 1) * n_xy + y * n_x + x;
+                    cells[c].vertices[5] = (z + 1) * n_xy + y * n_x + x + 1;
+                    cells[c].vertices[6] = (z + 1) * n_xy + (y + 1) * n_x + x;
+                    cells[c].vertices[7] =
+                      (z + 1) * n_xy + (y + 1) * n_x + x + 1;
+                    cells[c].material_id = 0;
+                  }
+            break;
+          }
+ 
+      }
+ 
+    tria.create_triangulation(control_pts, cells, dealii::SubCellData());
+    std::string nffd_string[3];
+    for (int d=0; d<dim; ++d) {
+        nffd_string[d] = dealii::Utilities::int_to_string(ndim_control_pts[d], 3);
+    }
+    std::string filename = "FFD-" + dealii::Utilities::int_to_string(dim, 1) +"D_";
+    for (int d=0; d<dim; ++d) {
+        filename += dealii::Utilities::int_to_string(ndim_control_pts[d], 3);
+        if (d<dim-1) filename += "X";
+    }
+    filename += dealii::Utilities::int_to_string(cycle, 4) + ".vtu";
+    pcout << "Outputting FFD grid: " << filename << " ... " << std::endl;
+
+    std::ofstream output(filename);
+
+    dealii::GridOut grid_out;
+    grid_out.write_vtu (tria, output);
+ 
 }
 
 

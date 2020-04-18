@@ -1024,6 +1024,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::reset_initial_nodes()
     initial_nodes.update_ghost_values();
     initial_surface_nodes = surface_nodes;
     initial_surface_nodes.update_ghost_values();
+    initial_locally_relevant_surface_points = locally_relevant_surface_points;
 }
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>

@@ -1136,9 +1136,8 @@ transform_surface_nodes(std::function<dealii::Point<dim>(dealii::Point<dim>)> tr
 {
     VectorType new_surface_nodes(surface_nodes);
     auto index = surface_indices.begin();
-    auto node = surface_nodes.begin();
     auto new_node = new_surface_nodes.begin();
-    for (; index != surface_indices.end(); ++index, ++node, ++new_node) {
+    for (; index != surface_indices.end(); ++index, ++new_node) {
         const dealii::types::global_dof_index global_idof_index = *index;
         //const std::pair<unsigned int, unsigned int> ipoint_component = global_index_to_point_and_axis[global_idof_index];
         //const auto ipoint_component = global_index_to_point_and_axis.at(global_idof_index);

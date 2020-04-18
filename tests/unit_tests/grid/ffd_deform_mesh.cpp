@@ -94,7 +94,6 @@ int main (int argc, char * argv[])
                     dealii::Point<dim> new_ffd_point = old_ffd_point;
                     new_ffd_point[1] = amplitude*std::sin(old_ffd_point[0]*tpi);
                     ffd.move_ctl_dx ( ijk_ffd, new_ffd_point - old_ffd_point);
-                    std::cout << "old ffd " << old_ffd_point << " new ffd " << new_ffd_point << std::endl;
                 }
                 ffd.output_ffd_vtu(iffd_output++);
                 ffd.deform_mesh(high_order_grid);

@@ -50,6 +50,11 @@ namespace MeshMover
          */
 		void evaluate_dXvdXs();
 
+        /** Apply the analytical derivatives of volume displacements with respect
+         *  to surface displacements onto a set of various right-hand sides.
+         */
+        void apply_dXvdXs(std::vector<dealii::TrilinosWrappers::MPI::Vector> &list_of_vectors);
+
         /** Current displacement solution
          */
         VectorType displacement_solution;
@@ -63,6 +68,11 @@ namespace MeshMover
          *  the same way the volume mesh nodes are distributed among the processors.
          */
         std::vector<dealii::LinearAlgebra::distributed::Vector<double>> dXvdXs;
+
+        // /** Sparse matrix containing the dXvdXs sensititivies.
+        //  */
+        // dealii::TrilinosWrappers::SparseMatrix<double> dXvdXs_matrix;
+
       private:
         /// Allocation and boundary condition setup.
         void setup_system();

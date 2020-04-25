@@ -1,6 +1,8 @@
 #ifndef __MESHMOVER_LINEAR_ELASTICITY_H__
 #define __MESHMOVER_LINEAR_ELASTICITY_H__
 
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+
 #include "parameters/all_parameters.h"
 
 #include "high_order_grid.h"
@@ -26,6 +28,7 @@ namespace MeshMover
      *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
      */
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+#include <deal.II/lac/trilinos_sparse_matrix.h>
 #endif
       public:
         /// Constructor.
@@ -53,7 +56,7 @@ namespace MeshMover
         /** Apply the analytical derivatives of volume displacements with respect
          *  to surface displacements onto a set of various right-hand sides.
          */
-        void apply_dXvdXs(std::vector<dealii::TrilinosWrappers::MPI::Vector> &list_of_vectors);
+        void apply_dXvdXs(std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &list_of_vectors);
 
         /** Current displacement solution
          */
@@ -67,6 +70,7 @@ namespace MeshMover
          *  is the size of the volume mesh. Those sensitivities are distributed among the processors
          *  the same way the volume mesh nodes are distributed among the processors.
          */
+        //dealii::TrilinosWrappers::SparseMatrix dXvdXs;
         std::vector<dealii::LinearAlgebra::distributed::Vector<double>> dXvdXs;
 
         // /** Sparse matrix containing the dXvdXs sensititivies.
@@ -106,7 +110,7 @@ namespace MeshMover
         /** System right-hand side corresponding to the unconstrained linearized elasticity problem.
          *  Note that no body forces are present and the right-hand side is therefore zero.
          */
-        dealii::TrilinosWrappers::MPI::Vector system_rhs_unconstrained;
+        dealii::LinearAlgebra::distributed::Vector<double> system_rhs_unconstrained;
 
         /// System matrix corresponding to linearized elasticity problem.
         dealii::TrilinosWrappers::SparseMatrix system_matrix;
@@ -115,7 +119,7 @@ namespace MeshMover
          *  However, Dirichlet boundary conditions may make some RHS entries non-zero,
          *  depending on the method used to impose them.
          */
-        dealii::TrilinosWrappers::MPI::Vector system_rhs;
+        dealii::LinearAlgebra::distributed::Vector<double> system_rhs;
 
         /** AffineConstraints containing boundary and hanging node constraints.
          */

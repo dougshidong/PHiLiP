@@ -68,6 +68,9 @@ namespace MeshMover {
       , boundary_displacements_vector(_boundary_displacements_vector)
     { 
         AssertDimension(boundary_displacements_vector.size(), boundary_ids_vector.size());
+
+        boundary_displacements_vector.update_ghost_values();
+        setup_system();
     }
 
     // template <int dim, typename real, typename VectorType , typename DoFHandlerType>
@@ -93,7 +96,6 @@ namespace MeshMover {
     VectorType LinearElasticity<dim,real,VectorType,DoFHandlerType>::get_volume_displacements()
     {
         pcout << std::endl << "Solving linear elasticity problem for volume displacements..." << std::endl;
-        setup_system();
         solve_timestep();
         // displacement_solution = 0;
         // all_constraints.distribute(displacement_solution);
@@ -179,6 +181,10 @@ namespace MeshMover {
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
     void LinearElasticity<dim,real,VectorType,DoFHandlerType>::assemble_system()
     {
+        pcout << "    Assembling MeshMover::LinearElasticity system..." << std::flush;
+
+        setup_system();
+
         system_rhs    = 0;
         system_matrix = 0;
         system_rhs_unconstrained    = 0;
@@ -302,7 +308,6 @@ namespace MeshMover {
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
     void LinearElasticity<dim,real,VectorType,DoFHandlerType>::solve_timestep()
     {
-        pcout << "    Assembling system..." << std::flush;
         assemble_system();
         pcout << " norm of rhs is " << system_rhs.l2_norm() << std::endl;
         const unsigned int n_iterations = solve_linear_problem();
@@ -406,8 +411,14 @@ namespace MeshMover {
     // }
 
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    void LinearElasticity<dim,real,VectorType,DoFHandlerType>::apply_dXvdXs(std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &list_of_vectors)
+    void
+    LinearElasticity<dim,real,VectorType,DoFHandlerType>
+    ::apply_dXvdXs(
+        std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &list_of_vectors,
+        dealii::TrilinosWrappers::SparseMatrix &output_matrix)
     {
+        assemble_system();
+
         const unsigned int n_rows = dof_handler.n_dofs();
         const unsigned int n_cols = list_of_vectors.size();
         //const unsigned int max_per_row = n_cols;
@@ -433,8 +444,7 @@ namespace MeshMover {
 
         dealii::IndexSet col_part(n_cols);
         col_part.add_range(col_start,col_end);
-        dealii::TrilinosWrappers::SparseMatrix dXvdVector;
-        dXvdVector.reinit(row_part, col_part, full_sp, mpi_communicator);
+        output_matrix.reinit(row_part, col_part, full_sp, mpi_communicator);
 
         dealii::SolverControl solver_control(5000, 1e-12 * system_rhs.l2_norm());
         dealii::SolverCG<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
@@ -485,11 +495,12 @@ namespace MeshMover {
             dXvdXs.push_back(dXvdXs_i_trilinos);
 
             for (const auto &row: dof_handler.locally_owned_dofs()) {
-                dXvdVector.set(row, col, dXvdXs[col][row]);
+                output_matrix.set(row, col, dXvdXs[col][row]);
             }
             col++;
         }
-        dXvdVector.compress(dealii::VectorOperation::insert);
+        output_matrix.compress(dealii::VectorOperation::insert);
+
     }
 
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
@@ -511,7 +522,8 @@ namespace MeshMover {
 
             unit_rhs_vector.push_back(unit_rhs);
         }
-        apply_dXvdXs(unit_rhs_vector);
+        dealii::TrilinosWrappers::SparseMatrix dXvdXs_matrix;
+        apply_dXvdXs(unit_rhs_vector, dXvdXs_matrix);
     }
 
     // template <int dim, typename real, typename VectorType , typename DoFHandlerType>

@@ -56,7 +56,8 @@ namespace MeshMover
         /** Apply the analytical derivatives of volume displacements with respect
          *  to surface displacements onto a set of various right-hand sides.
          */
-        void apply_dXvdXs(std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &list_of_vectors);
+        void
+        apply_dXvdXs(std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &list_of_vectors, dealii::TrilinosWrappers::SparseMatrix &output_matrix);
 
         /** Current displacement solution
          */

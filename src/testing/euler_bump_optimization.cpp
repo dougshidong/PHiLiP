@@ -148,17 +148,34 @@ class InverseObjective : public ROL::Objective_SimOpt<double> {
 private:
     Functional<dim,nstate,double> &functional;
 
+    FreeFormDeformation<dim> ffd;
+
+    const std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim;
+    dealii::LinearAlgebra::distributed::Vector<double> ffd_des_var;
+
 public:
 
-  InverseObjective( Functional<dim,nstate,double> &_functional)
-  : functional(_functional)
-  {}
+  InverseObjective( Functional<dim,nstate,double> &_functional, 
+                    const FreeFormDeformation<dim> &_ffd,
+                    std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim)
+      : functional(_functional)
+      , ffd(_ffd)
+      , ffd_design_variables_indices_dim(_ffd_design_variables_indices_dim)
+  {
+      ffd_des_var.reinit(ffd_design_variables_indices_dim.size());
+      ffd.get_design_variables(ffd_design_variables_indices_dim, ffd_des_var);
+  }
 
   using ROL::Objective_SimOpt<double>::value;
 
   double value( const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) override {
       functional.set_state(get_ROLvec_to_VectorType(des_var_sim));
-      functional.set_geom(get_ROLvec_to_VectorType(des_var_ctl));
+      // functional.set_geom(get_ROLvec_to_VectorType(des_var_ctl));
+
+      ffd_des_var =  get_ROLvec_to_VectorType(des_var_ctl);
+      ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_des_var);
+      ffd.deform_mesh(functional.dg->high_order_grid);
+
       const bool compute_dIdW = false;
       const bool compute_dIdX = false;
       const bool compute_d2I = false;
@@ -167,7 +184,12 @@ public:
 
   void gradient_1( ROL_Vector& g, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) override {
       functional.set_state(get_ROLvec_to_VectorType(des_var_sim));
-      functional.set_geom(get_ROLvec_to_VectorType(des_var_ctl));
+      // functional.set_geom(get_ROLvec_to_VectorType(des_var_ctl));
+
+      ffd_des_var =  get_ROLvec_to_VectorType(des_var_ctl);
+      ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_des_var);
+      ffd.deform_mesh(functional.dg->high_order_grid);
+
       const bool compute_dIdW = true;
       const bool compute_dIdX = false;
       const bool compute_d2I = false;
@@ -178,13 +200,25 @@ public:
 
   void gradient_2( ROL_Vector& g, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) override {
       functional.set_state(get_ROLvec_to_VectorType(des_var_sim));
-      functional.set_geom(get_ROLvec_to_VectorType(des_var_ctl));
+      //functional.set_geom(get_ROLvec_to_VectorType(des_var_ctl));
+
+      ffd_des_var =  get_ROLvec_to_VectorType(des_var_ctl);
+      ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_des_var);
+      ffd.deform_mesh(functional.dg->high_order_grid);
+
       const bool compute_dIdW = false;
       const bool compute_dIdX = true;
       const bool compute_d2I = false;
       functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
-      auto &dIdX = get_ROLvec_to_VectorType(g);
-      dIdX = functional.dIdX;
+
+      auto &dIdXv = functional.dIdX;
+
+      dealii::TrilinosWrappers::SparseMatrix dXvdXp;
+      ffd.get_dXvdXp (functional.dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
+
+      auto &dIdXp = get_ROLvec_to_VectorType(g);
+      dXvdXp.Tvmult(dIdXp, dIdXv);
+
   }
 
   // void hessVec_11( ROL_Vector& hv, const ROL_Vector& v, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) {
@@ -413,36 +447,55 @@ public:
         const auto &input_vector_v = get_ROLvec_to_VectorType(input_vector);
         auto &output_vector_v = get_ROLvec_to_VectorType(output_vector);
 
-        // dg->dRdXv.vmult(output_vector_v, input_vector_v);
+        (void) input_vector_v;
+        (void) output_vector_v;
 
-        dealii::LinearAlgebra::distributed::Vector<double> surface_node_displacements_vector = dg->high_order_grid.surface_nodes;
-        MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
-            meshmover( 
-              *(dg->high_order_grid.triangulation),
-              dg->high_order_grid.initial_mapping_fe_field,
-              dg->high_order_grid.dof_handler_grid,
-              dg->high_order_grid.surface_indices,
-              surface_node_displacements_vector);
-        meshmover.evaluate_dXvdXs();
-        dealii::TrilinosWrappers::SparseMatrix dRdXs;
-		{
-			dRdXs.clear();
-			dealii::SparsityPattern sparsity_pattern_dRdXs = dg->get_dRdXs_sparsity_pattern ();
-			const dealii::IndexSet &row_parallel_partitioning_dRdXs = dg->locally_owned_dofs;
-            const dealii::IndexSet &surface_locally_owned_indexset = dg->high_order_grid.surface_nodes.locally_owned_elements();
-			const dealii::IndexSet &col_parallel_partitioning_dRdXs = surface_locally_owned_indexset;
-			dRdXs.reinit(row_parallel_partitioning_dRdXs, col_parallel_partitioning_dRdXs, sparsity_pattern_dRdXs, MPI_COMM_WORLD);
-		}
-		for (unsigned int isurf = 0; isurf < dg->high_order_grid.surface_nodes.size(); ++isurf) {
-			VectorType dRdXs_i(dg->solution);
-			dg->dRdXv.vmult(dRdXs_i,meshmover.dXvdXs[isurf]);
-			for (unsigned int irow = 0; irow < dg->dof_handler.n_dofs(); ++irow) {
-				if (dg->locally_owned_dofs.is_element(irow)) {
-					dRdXs.add(irow, isurf, dRdXs_i[irow]);
-				}
-			}
-		}
-        dRdXs.compress(dealii::VectorOperation::add);
+        dealii::TrilinosWrappers::SparseMatrix dXvdXp;
+        ffd.get_dXvdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
+
+        auto dXvdXp_input = dg->high_order_grid.nodes;
+
+        dXvdXp.vmult(dXvdXp_input, input_vector_v);
+        dg->dRdXv.vmult(output_vector_v, dXvdXp_input);
+
+        // dealii::LinearAlgebra::distributed::Vector<double> surface_node_displacements_vector = dg->high_order_grid.surface_nodes;
+        // MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+        //     meshmover( 
+        //       *(dg->high_order_grid.triangulation),
+        //       dg->high_order_grid.initial_mapping_fe_field,
+        //       dg->high_order_grid.dof_handler_grid,
+        //       dg->high_order_grid.surface_indices,
+        //       surface_node_displacements_vector);
+        // meshmover.evaluate_dXvdXs();
+        // dealii::TrilinosWrappers::SparseMatrix dRdXs;
+		// {
+		// 	dRdXs.clear();
+		// 	dealii::SparsityPattern sparsity_pattern_dRdXs = dg->get_dRdXs_sparsity_pattern ();
+		// 	const dealii::IndexSet &row_parallel_partitioning_dRdXs = dg->locally_owned_dofs;
+        //     const dealii::IndexSet &surface_locally_owned_indexset = dg->high_order_grid.surface_nodes.locally_owned_elements();
+		// 	const dealii::IndexSet &col_parallel_partitioning_dRdXs = surface_locally_owned_indexset;
+		// 	dRdXs.reinit(row_parallel_partitioning_dRdXs, col_parallel_partitioning_dRdXs, sparsity_pattern_dRdXs, MPI_COMM_WORLD);
+		// }
+		// for (unsigned int isurf = 0; isurf < dg->high_order_grid.surface_nodes.size(); ++isurf) {
+		// 	VectorType dRdXs_i(dg->solution);
+		// 	dg->dRdXv.vmult(dRdXs_i,meshmover.dXvdXs[isurf]);
+		// 	for (unsigned int irow = 0; irow < dg->dof_handler.n_dofs(); ++irow) {
+		// 		if (dg->locally_owned_dofs.is_element(irow)) {
+		// 			dRdXs.add(irow, isurf, dRdXs_i[irow]);
+		// 		}
+		// 	}
+		// }
+        // dRdXs.compress(dealii::VectorOperation::add);
+
+
+        // dealii::TrilinosWrappers::SparseMatrix dRdXd;
+        // dealii::SparsityPattern sparsity_pattern_dRdXs = dg->get_dRdXs_sparsity_pattern ();
+        // const unsigned n_residuals = dof_handler.n_dofs();
+        // const unsigned n_des = des_var_ctl.size();
+        // const unsigned int n_rows = n_residuals;
+        // const unsigned int n_cols = n_des;
+
+        // dealii::DynamicSparsityPattern dsp(n_rows, n_cols);
     }
 
     void applyAdjointJacobian_2( ROL_Vector& output_vector, const ROL_Vector& input_vector, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) override {
@@ -461,7 +514,14 @@ public:
         const auto &input_vector_v = get_ROLvec_to_VectorType(input_vector);
         auto &output_vector_v = get_ROLvec_to_VectorType(output_vector);
 
-        dg->dRdXv.Tvmult(output_vector_v, input_vector_v);
+        auto input_dRdXv = dg->high_order_grid.nodes;
+
+        dg->dRdXv.Tvmult(input_dRdXv, input_vector_v);
+
+        dealii::TrilinosWrappers::SparseMatrix dXvdXp;
+        ffd.get_dXvdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
+
+        dXvdXp.Tvmult(output_vector_v, input_dRdXv);
     }
 
 };
@@ -696,7 +756,22 @@ int EulerBumpOptimization<dim,nstate>
         }
     }
 
-    VectorType ffd_design_variables(n_design_variables);
+    const unsigned int this_mpi_process = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    const unsigned int n_mpi_processes = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
+    const unsigned int n_rows = n_design_variables;
+    const unsigned int n_rows_per_cpu = n_rows / n_mpi_processes;
+    const bool is_last_cpu = (this_mpi_process == n_mpi_processes - 1);
+    const unsigned int row_start = this_mpi_process * n_rows_per_cpu;
+    const unsigned int row_end = is_last_cpu ? n_rows : (this_mpi_process+1) * n_rows_per_cpu;
+
+    dealii::IndexSet row_part(n_rows);
+    dealii::IndexSet ghost_row_part(n_rows);
+    row_part.add_range(row_start,row_end);
+    ghost_row_part.add_range(0,n_design_variables);
+
+    VectorType ffd_design_variables(row_part,ghost_row_part,MPI_COMM_WORLD);
+
+
     ffd.get_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
     ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
@@ -773,13 +848,41 @@ int EulerBumpOptimization<dim,nstate>
     //RosenbrockObjective<VectorType, double> rosenbrock_objective;
     //algo.run(x_rol, rosenbrock_objective, true, *outStream);
 
-    auto obj  = ROL::makePtr<InverseObjective<dim,nstate>>( functional );
+    auto obj  = ROL::makePtr<InverseObjective<dim,nstate>>( functional, ffd, ffd_design_variables_indices_dim );
     auto con  = ROL::makePtr<FlowConstraint<dim>>(dg,ffd,ffd_design_variables_indices_dim);
     auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p );
 
+    {
+        const auto u = des_var_sim_rol_p->clone();
+        const auto z = des_var_ctl_rol_p->clone();
+        const auto v = u->clone();
+        const auto jv = v->clone();
+
+        std::vector<double> steps;
+        for (int i = -4; i > -10; i--) {
+            steps.push_back(std::pow(10,i));
+        }
+        const int order = 2;
+        con->checkApplyJacobian_1(*u, *z, *v, *jv, steps, true, *outStream, order);
+    }
+    {
+        const auto u = des_var_sim_rol_p->clone();
+        const auto z = des_var_ctl_rol_p->clone();
+        const auto v = z->clone();
+        const auto jv = u->clone();
+
+        std::vector<double> steps;
+        for (int i = -4; i > -10; i--) {
+            steps.push_back(std::pow(10,i));
+        }
+        const int order = 2;
+        con->checkApplyJacobian_2(*u, *z, *v, *jv, steps, true, *outStream, order);
+    }
+    std::abort();
+
     // Full space problem
     ROL::OptimizationProblem<double> opt( robj, des_var_ctl_rol_p );
-    // opt.check(*outStream);
+    opt.check(*outStream);
     ROL::EProblem problemType = opt.getProblemType();
     std::cout << ROL::EProblemToString(problemType) << std::endl;
 

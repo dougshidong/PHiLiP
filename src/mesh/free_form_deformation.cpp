@@ -706,7 +706,7 @@ void FreeFormDeformation<dim>
         filename += dealii::Utilities::int_to_string(ndim_control_pts[d], 3);
         if (d<dim-1) filename += "X";
     }
-    filename += dealii::Utilities::int_to_string(cycle, 4) + ".vtu";
+    filename += "_"+dealii::Utilities::int_to_string(cycle, 4) + ".vtu";
     pcout << "Outputting FFD grid: " << filename << " ... " << std::endl;
 
     std::ofstream output(filename);

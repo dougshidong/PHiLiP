@@ -8,6 +8,10 @@
 #include <deal.II/base/utilities.h>
 #include <deal.II/grid/grid_out.h>
 
+// For FD
+#include <deal.II/dofs/dof_tools.h>
+#include <deal.II/lac/dynamic_sparsity_pattern.h>
+#include <deal.II/lac/sparsity_tools.h>
 
 namespace PHiLiP {
 
@@ -358,7 +362,28 @@ template<int dim>
 void FreeFormDeformation<dim>
 ::deform_mesh (HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid) const
 {
+    dealii::LinearAlgebra::distributed::Vector<double>  surface_node_displacements = get_surface_displacement (high_order_grid);
+
+    MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+        meshmover( 
+          *(high_order_grid.triangulation),
+          high_order_grid.initial_mapping_fe_field,
+          high_order_grid.dof_handler_grid,
+          high_order_grid.surface_indices,
+          surface_node_displacements);
+    dealii::LinearAlgebra::distributed::Vector<double> volume_displacements = meshmover.get_volume_displacements();
+    high_order_grid.nodes = high_order_grid.initial_nodes;
+    high_order_grid.nodes += volume_displacements;
+    high_order_grid.nodes.update_ghost_values();
+}
+
+template<int dim>
+dealii::LinearAlgebra::distributed::Vector<double> 
+FreeFormDeformation<dim>
+::get_surface_displacement (const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid) const
+{
     dealii::LinearAlgebra::distributed::Vector<double> surface_node_displacements(high_order_grid.surface_nodes);
+
     auto index = high_order_grid.surface_indices.begin();
     auto node = high_order_grid.initial_surface_nodes.begin();
     auto new_node = surface_node_displacements.begin();
@@ -378,58 +403,99 @@ void FreeFormDeformation<dim>
     surface_node_displacements -= high_order_grid.initial_surface_nodes;
     surface_node_displacements.update_ghost_values();
 
-    // MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
-    //     meshmover(high_order_grid, surface_node_displacements);
-
-    MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
-        meshmover( 
-          *(high_order_grid.triangulation),
-          high_order_grid.initial_mapping_fe_field,
-          high_order_grid.dof_handler_grid,
-          high_order_grid.surface_indices,
-          surface_node_displacements);
-    dealii::LinearAlgebra::distributed::Vector<double> volume_displacements = meshmover.get_volume_displacements();
-    high_order_grid.nodes = high_order_grid.initial_nodes;
-    high_order_grid.nodes += volume_displacements;
-    high_order_grid.nodes.update_ghost_values();
+    return surface_node_displacements;
 }
 
 template<int dim>
-void
+std::vector<dealii::LinearAlgebra::distributed::Vector<double>>
 FreeFormDeformation<dim>
-::get_dXvdXp (
-    HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
-    const std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim,
-    dealii::TrilinosWrappers::SparseMatrix &dXvdXp
+::get_dXsdXp_FD (
+    const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
+    const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim,
+    const double eps
+    )
+{
+    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> dXsdXp_vector_FD;
+
+    for (auto const &ffd_pair: ffd_design_variables_indices_dim) {
+
+        const unsigned int ictl = ffd_pair.first;
+        const unsigned int d_ffd  = ffd_pair.second;
+
+        // Save
+        const dealii::Point<dim> old_ffd_point = control_pts[ictl];
+
+        // Perturb
+        {
+            dealii::Point<dim> new_ffd_point = old_ffd_point;
+            new_ffd_point[d_ffd] += eps;
+            move_ctl_dx ( ictl, new_ffd_point - old_ffd_point);
+        }
+        const auto surface_node_displacements_p = get_surface_displacement (high_order_grid);
+
+        // Reset FFD
+        control_pts[ictl] = old_ffd_point;
+
+        // Perturb
+        {
+            dealii::Point<dim> new_ffd_point = old_ffd_point;
+            new_ffd_point[d_ffd] -= eps;
+            move_ctl_dx ( ictl, new_ffd_point - old_ffd_point);
+        }
+        const auto surface_node_displacements_n = get_surface_displacement (high_order_grid);
+
+        // Reset FFD
+        control_pts[ictl] = old_ffd_point;
+
+        auto diff = surface_node_displacements_p;
+        diff -= surface_node_displacements_n;
+        diff /= 2.0*eps;
+
+        // Put into volume-sized vector
+        dealii::LinearAlgebra::distributed::Vector<double> derivative_surface_nodes_ffd_ctl;
+        derivative_surface_nodes_ffd_ctl.reinit(high_order_grid.nodes);
+
+        auto surf_index = high_order_grid.surface_indices.begin();
+        auto surf_value = diff.begin();
+
+        for (; surf_index != high_order_grid.surface_indices.end(); ++surf_index, ++surf_value) {
+            derivative_surface_nodes_ffd_ctl[*surf_index] = *surf_value;
+        }
+
+        derivative_surface_nodes_ffd_ctl.update_ghost_values();
+
+        dXsdXp_vector_FD.push_back(derivative_surface_nodes_ffd_ctl);
+    }
+    return dXsdXp_vector_FD;
+}
+
+template<int dim>
+std::vector<dealii::LinearAlgebra::distributed::Vector<double>>
+FreeFormDeformation<dim>
+::get_dXsdXp (
+    const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
+    const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim
     ) const
 {
-    // const unsigned int n_design_var = ffd_design_variables_indices_dim.size();
-
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> dXsdXp_vector;
 
-    const dealii::IndexSet &surface_nodes_locally_owned = high_order_grid.surface_nodes.get_partitioner()->locally_owned_range();
     const dealii::IndexSet &nodes_locally_owned = high_order_grid.nodes.get_partitioner()->locally_owned_range();
     for (auto const &ffd_pair: ffd_design_variables_indices_dim) {
 
         const unsigned int ctl_index = ffd_pair.first;
         const unsigned int ctl_axis  = ffd_pair.second;
 
-        //dealii::LinearAlgebra::distributed::Vector<double> derivative_surface_nodes_ffd_ctl(high_order_grid.surface_nodes);
         dealii::LinearAlgebra::distributed::Vector<double> derivative_surface_nodes_ffd_ctl;
         derivative_surface_nodes_ffd_ctl.reinit(high_order_grid.nodes);
-
         unsigned int ipoint = 0;
         for (auto const& surface_point: high_order_grid.initial_locally_relevant_surface_points) {
 
             dealii::Point<dim,double> dxsdxp = dXsdXp (surface_point, ctl_index, ctl_axis);
 
             for (int d=0; d<dim; ++d) { 
-                const dealii::types::global_dof_index surf_index = high_order_grid.point_and_axis_to_global_index[std::make_pair(ipoint,(unsigned int)d)];
-                if (surface_nodes_locally_owned.is_element(surf_index)) {
-                    const dealii::types::global_dof_index vol_index = high_order_grid.surface_indices[surf_index];
-                    if (nodes_locally_owned.is_element(vol_index)) {
-                        derivative_surface_nodes_ffd_ctl[vol_index] = dxsdxp[d];
-                    }
+                const dealii::types::global_dof_index vol_index = high_order_grid.point_and_axis_to_global_index.at(std::make_pair(ipoint,(unsigned int)d));
+                if (nodes_locally_owned.is_element(vol_index)) {
+                    derivative_surface_nodes_ffd_ctl[vol_index] = dxsdxp[d];
                 }
             }
 
@@ -439,6 +505,21 @@ FreeFormDeformation<dim>
 
         dXsdXp_vector.push_back(derivative_surface_nodes_ffd_ctl);
     }
+    return dXsdXp_vector;
+}
+
+template<int dim>
+void
+FreeFormDeformation<dim>
+::get_dXvdXp (
+    const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
+    const std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim,
+    dealii::TrilinosWrappers::SparseMatrix &dXvdXp
+    ) const
+{
+    // const unsigned int n_design_var = ffd_design_variables_indices_dim.size();
+
+    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> dXsdXp_vector = get_dXsdXp(high_order_grid, ffd_design_variables_indices_dim);
 
     dealii::LinearAlgebra::distributed::Vector<double> surface_node_displacements(high_order_grid.surface_nodes);
     MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
@@ -450,6 +531,98 @@ FreeFormDeformation<dim>
           surface_node_displacements);
     //meshmover.evaluate_dXvdXs();
     meshmover.apply_dXvdXs(dXsdXp_vector, dXvdXp);
+}
+
+template<int dim>
+void
+FreeFormDeformation<dim>
+::get_dXvdXp_FD (
+    HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
+    const std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim,
+    dealii::TrilinosWrappers::SparseMatrix &dXvdXp_FD,
+    const double eps
+    )
+{
+    const unsigned int n_mpi_processes = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
+    const unsigned int this_mpi_process = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+
+    const unsigned int n_rows = high_order_grid.nodes.size();
+    const unsigned int n_cols = ffd_design_variables_indices_dim.size();
+
+    // Row partitioning
+    const dealii::IndexSet &row_part = high_order_grid.dof_handler_grid.locally_owned_dofs();
+    dealii::IndexSet col_part(n_cols);
+
+    // Col partitioning
+    const unsigned int n_cols_per_cpu = n_cols / n_mpi_processes;
+    const bool is_last_cpu = (this_mpi_process == n_mpi_processes - 1);
+    const unsigned int col_start = this_mpi_process * n_cols_per_cpu;
+    const unsigned int col_end = is_last_cpu ? n_cols : (this_mpi_process+1) * n_cols_per_cpu;
+    col_part.add_range(col_start,col_end);
+
+    // Sparsity pattern
+    dealii::DynamicSparsityPattern full_dsp(n_rows, n_cols, row_part);
+    for (const auto &i_row: row_part) {
+        for (unsigned int i_col = 0; i_col < n_cols; ++i_col) {
+            full_dsp.add(i_row, i_col);
+        }
+    }
+    dealii::IndexSet locally_relevant_dofs;
+    dealii::DoFTools::extract_locally_relevant_dofs(high_order_grid.dof_handler_grid, locally_relevant_dofs);
+    dealii::SparsityTools::distribute_sparsity_pattern(full_dsp, high_order_grid.dof_handler_grid.compute_n_locally_owned_dofs_per_processor(), MPI_COMM_WORLD, locally_relevant_dofs);
+    dealii::SparsityPattern full_sp;
+    full_sp.copy_from(full_dsp);
+
+    // Allocate matrix
+    dXvdXp_FD.reinit(row_part, col_part, full_sp, MPI_COMM_WORLD);
+
+    // Get finite-differenced dXvdXp_FD
+    auto old_nodes = high_order_grid.nodes;
+    for (unsigned int i_design = 0; i_design < ffd_design_variables_indices_dim.size(); ++i_design) {
+        const unsigned int ictl = ffd_design_variables_indices_dim[i_design].first;
+        const unsigned int d_ffd = ffd_design_variables_indices_dim[i_design].second;
+
+        // Save
+        const dealii::Point<dim> old_ffd_point = control_pts[ictl];
+
+        // Perturb
+        {
+            dealii::Point<dim> new_ffd_point = old_ffd_point;
+            new_ffd_point[d_ffd] += eps;
+            move_ctl_dx ( ictl, new_ffd_point - old_ffd_point);
+            deform_mesh(high_order_grid);
+        }
+
+        auto nodes_p = high_order_grid.nodes;
+
+        // Reset FFD
+        control_pts[ictl] = old_ffd_point;
+        high_order_grid.nodes = old_nodes;
+
+        // Perturb
+        {
+            dealii::Point<dim> new_ffd_point = old_ffd_point;
+            new_ffd_point[d_ffd] -= eps;
+            move_ctl_dx ( ictl, new_ffd_point - old_ffd_point);
+            deform_mesh(high_order_grid);
+        }
+
+        auto nodes_m = high_order_grid.nodes;
+
+        // Reset FFD
+        control_pts[ictl] = old_ffd_point;
+        high_order_grid.nodes = old_nodes;
+
+        auto dXvdXp_i = nodes_p;
+        dXvdXp_i -= nodes_m;
+        dXvdXp_i /= (2*eps);
+
+        const auto &locally_owned = dXvdXp_i.get_partitioner()->locally_owned_range();
+        for (const auto &index: locally_owned) {
+            dXvdXp_FD.set(index,i_design, dXvdXp_i[index]);
+        }
+    }
+    dXvdXp_FD.compress(dealii::VectorOperation::insert);
 }
 
 

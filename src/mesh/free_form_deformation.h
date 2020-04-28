@@ -33,6 +33,11 @@ public:
     /// position of the new point location using the current control point locations.
     dealii::Point<dim,double> new_point_location (const dealii::Point<dim,double> &initial_point) const;
 
+    /// Using the initial surface nodes from the given HighOrderGrid, return the surface displacements based
+    /// on the free-form deformation displacements.
+    dealii::LinearAlgebra::distributed::Vector<double> 
+    get_surface_displacement (const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid) const;
+
     /// Deform HighOrderGrid using its initial nodes to retrieve the deformed set of nodes.
     void deform_mesh (HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid) const;
 
@@ -40,11 +45,28 @@ public:
     /// return the derivative dXsdXp of the new point location point_i with respect to that control_point_j.
     dealii::Point<dim,double> dXsdXp (const dealii::Point<dim,double> &initial_point, const unsigned int ctl_index, const unsigned int ctl_axis) const;
 
+    std::vector<dealii::LinearAlgebra::distributed::Vector<double>>
+    get_dXsdXp (const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
+                const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim
+               ) const;
+
+    std::vector<dealii::LinearAlgebra::distributed::Vector<double>>
+    get_dXsdXp_FD (const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
+                const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim,
+                const double eps
+               );
+
     void
-    get_dXvdXp (HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
+    get_dXvdXp (const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
                 const std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim,
                 dealii::TrilinosWrappers::SparseMatrix &dXvdXp
                 ) const;
+    void
+    get_dXvdXp_FD (HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
+                const std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim,
+                dealii::TrilinosWrappers::SparseMatrix &dXvdXp_FD,
+                const double eps
+                );
 
     /// Given an initial point in the undeformed initial parallepiped, return the 
     /// its displacement due to the free-form deformation.

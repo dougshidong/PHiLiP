@@ -44,9 +44,11 @@ class Functional
     using ADType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using ADADType = Sacado::Fad::DFad<ADType>; ///< Sacado AD type that allows 2nd derivatives.
 
-protected:
+public:
     /// Smart pointer to DGBase
     std::shared_ptr<DGBase<dim,real>> dg;
+
+protected:
     /// Physics that should correspond to the one in DGBase
     std::shared_ptr<Physics::PhysicsBase<dim,nstate,ADADType>> physics_fad_fad;
 

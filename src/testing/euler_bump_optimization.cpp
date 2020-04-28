@@ -361,6 +361,7 @@ public:
         update_2(des_var_ctl);
         //ode_solver->steady_state();
         dg->output_results_vtk(i_out++);
+        ffd.output_ffd_vtu(i_out);
         std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver_1 = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
         ode_solver_1->steady_state();
 
@@ -731,9 +732,9 @@ int EulerBumpOptimization<dim,nstate>
 
     BoundaryInverseTarget1<dim,nstate,double> functional(dg, target_solution, true, true);
 
-    const dealii::Point<dim> ffd_origin(-1.0,-0.1);
-    const std::array<double,dim> ffd_rectangle_lengths = {2,0.6};
-    const std::array<unsigned int,dim> ffd_ndim_control_pts = {10,2};
+    const dealii::Point<dim> ffd_origin(-1.4,-0.1);
+    const std::array<double,dim> ffd_rectangle_lengths = {2.8,0.6};
+    const std::array<unsigned int,dim> ffd_ndim_control_pts = {20,2};
     FreeFormDeformation<dim> ffd( ffd_origin, ffd_rectangle_lengths, ffd_ndim_control_pts);
 
     unsigned int n_design_variables = 0;
@@ -852,6 +853,12 @@ int EulerBumpOptimization<dim,nstate>
     auto con  = ROL::makePtr<FlowConstraint<dim>>(dg,ffd,ffd_design_variables_indices_dim);
     auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p );
 
+    // Full space problem
+    ROL::OptimizationProblem<double> opt( robj, des_var_ctl_rol_p );
+
+    {
+        opt.check(*outStream);
+    }
     {
         const auto u = des_var_sim_rol_p->clone();
         const auto z = des_var_ctl_rol_p->clone();
@@ -878,11 +885,7 @@ int EulerBumpOptimization<dim,nstate>
         const int order = 2;
         con->checkApplyJacobian_2(*u, *z, *v, *jv, steps, true, *outStream, order);
     }
-    std::abort();
 
-    // Full space problem
-    ROL::OptimizationProblem<double> opt( robj, des_var_ctl_rol_p );
-    opt.check(*outStream);
     ROL::EProblem problemType = opt.getProblemType();
     std::cout << ROL::EProblemToString(problemType) << std::endl;
 
@@ -890,15 +893,20 @@ int EulerBumpOptimization<dim,nstate>
     Teuchos::ParameterList parlist;
     //parlist.sublist("Secant").set("Use as Preconditioner", false);
     parlist.sublist("Status Test").set("Gradient Tolerance", 1e-10);
-    parlist.sublist("Status Test").set("Iteration Limit", 1000);
+    parlist.sublist("Status Test").set("Iteration Limit", 200);
     parlist.sublist("Step").set("Type","Line Search");
-    parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",1e-3);
+    parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",1e-0);
     parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
+
     //parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Iteration Scaling");
     parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Backtracking");
-    //parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Quasi-Newton Method");
-    parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type", "Steepest Descent");
-    parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Null Curvature Condition");
+
+    parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Quasi-Newton Method");
+    //parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type", "Steepest Descent");
+
+    //parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Null Curvature Condition");
+    parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Wolfe Conditions");
+
     //parlist.sublist("Step").sublist("Interior Point").set("Initial Step Size",0.1);
 
     // Define algorithm.

@@ -40,6 +40,12 @@ public:
     /// return the derivative dXsdXp of the new point location point_i with respect to that control_point_j.
     dealii::Point<dim,double> dXsdXp (const dealii::Point<dim,double> &initial_point, const unsigned int ctl_index, const unsigned int ctl_axis) const;
 
+    void
+    get_dXvdXp (HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
+                const std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim,
+                dealii::TrilinosWrappers::SparseMatrix &dXvdXp
+                ) const;
+
     /// Given an initial point in the undeformed initial parallepiped, return the 
     /// its displacement due to the free-form deformation.
     template<typename real>
@@ -82,12 +88,12 @@ public:
 
     /// Copies the desired control points from FreeFormDeformation object into vector_to_copy_into.
     void get_design_variables(
-        const std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim,
-        dealii::LinearAlgebra::distributed::Vector<double> vector_to_copy_into) const;
+        const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim,
+        dealii::LinearAlgebra::distributed::Vector<double> &vector_to_copy_into) const;
     /// Copies the desired control points from vector_to_copy_from into FreeFormDeformation object 
     void set_design_variables(
-        const std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim,
-        const dealii::LinearAlgebra::distributed::Vector<double> vector_to_copy_from);
+        const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim,
+        dealii::LinearAlgebra::distributed::Vector<double> &vector_to_copy_from);
 
     /// Output a .vtu file of the FFD box to visualize.
     void output_ffd_vtu(const unsigned int cycle) const;

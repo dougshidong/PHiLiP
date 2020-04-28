@@ -859,7 +859,7 @@ int EulerBumpOptimization<dim,nstate>
         const auto jv = v->clone();
 
         std::vector<double> steps;
-        for (int i = -4; i > -10; i--) {
+        for (int i = -4; i > -6; i--) {
             steps.push_back(std::pow(10,i));
         }
         const int order = 2;
@@ -872,7 +872,7 @@ int EulerBumpOptimization<dim,nstate>
         const auto jv = u->clone();
 
         std::vector<double> steps;
-        for (int i = -4; i > -10; i--) {
+        for (int i = -4; i > -6; i--) {
             steps.push_back(std::pow(10,i));
         }
         const int order = 2;

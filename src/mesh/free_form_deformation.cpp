@@ -543,22 +543,15 @@ FreeFormDeformation<dim>
     const double eps
     )
 {
-    const unsigned int n_mpi_processes = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
-    const unsigned int this_mpi_process = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
-
     const unsigned int n_rows = high_order_grid.nodes.size();
     const unsigned int n_cols = ffd_design_variables_indices_dim.size();
 
     // Row partitioning
     const dealii::IndexSet &row_part = high_order_grid.dof_handler_grid.locally_owned_dofs();
-    dealii::IndexSet col_part(n_cols);
 
-    // Col partitioning
-    const unsigned int n_cols_per_cpu = n_cols / n_mpi_processes;
-    const bool is_last_cpu = (this_mpi_process == n_mpi_processes - 1);
-    const unsigned int col_start = this_mpi_process * n_cols_per_cpu;
-    const unsigned int col_end = is_last_cpu ? n_cols : (this_mpi_process+1) * n_cols_per_cpu;
-    col_part.add_range(col_start,col_end);
+    const std::vector<dealii::IndexSet> col_parts = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_cols);
+    const unsigned int this_mpi_process = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    const dealii::IndexSet &col_part = col_parts[this_mpi_process];
 
     // Sparsity pattern
     dealii::DynamicSparsityPattern full_dsp(n_rows, n_cols, row_part);
@@ -624,7 +617,6 @@ FreeFormDeformation<dim>
     }
     dXvdXp_FD.compress(dealii::VectorOperation::insert);
 }
-
 
 template<int dim>
 void FreeFormDeformation<dim>
@@ -706,7 +698,7 @@ void FreeFormDeformation<dim>
         filename += dealii::Utilities::int_to_string(ndim_control_pts[d], 3);
         if (d<dim-1) filename += "X";
     }
-    filename += "_"+dealii::Utilities::int_to_string(cycle, 4) + ".vtu";
+    filename += "-"+dealii::Utilities::int_to_string(cycle, 4) + ".vtu";
     pcout << "Outputting FFD grid: " << filename << " ... " << std::endl;
 
     std::ofstream output(filename);

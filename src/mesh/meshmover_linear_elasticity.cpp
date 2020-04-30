@@ -437,13 +437,10 @@ namespace MeshMover {
         dealii::SparsityPattern full_sp;
         full_sp.copy_from(full_dsp);
 
-        const unsigned int n_cols_per_cpu = n_cols / n_mpi_processes;
-        const bool is_last_cpu = (this_mpi_process == n_mpi_processes - 1);
-        const unsigned int col_start = this_mpi_process * n_cols_per_cpu;
-        const unsigned int col_end = is_last_cpu ? n_cols : (this_mpi_process+1) * n_cols_per_cpu;
+        const std::vector<dealii::IndexSet> col_parts = dealii::Utilities::MPI::create_evenly_distributed_partitioning(mpi_communicator, n_cols);
+        const unsigned int this_mpi_process = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
+        const dealii::IndexSet &col_part = col_parts[this_mpi_process];
 
-        dealii::IndexSet col_part(n_cols);
-        col_part.add_range(col_start,col_end);
         output_matrix.reinit(row_part, col_part, full_sp, mpi_communicator);
 
         dealii::SolverControl solver_control(5000, 1e-12 * system_rhs.l2_norm());

@@ -28,7 +28,6 @@ namespace MeshMover
      *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
      */
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-#include <deal.II/lac/trilinos_sparse_matrix.h>
 #endif
       public:
         /// Constructor.

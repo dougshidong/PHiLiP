@@ -120,7 +120,6 @@ public:
     /// Output a .vtu file of the FFD box to visualize.
     void output_ffd_vtu(const unsigned int cycle) const;
 
-
 protected:
 
     /// Returns the local coordinates s-t-u within the FFD box.

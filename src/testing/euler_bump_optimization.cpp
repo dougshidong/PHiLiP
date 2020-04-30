@@ -689,52 +689,50 @@ int EulerBumpOptimization<dim,nstate>
             dealii::Triangulation<dim>::smoothing_on_refinement |
             dealii::Triangulation<dim>::smoothing_on_coarsening));
 
-    VectorType target_solution;
-    double bump_height = 0.0625;
-    {
-        const double channel_length = 3.0;
-        const double channel_height = 0.8;
-        Grids::gaussian_bump(grid, n_subdivisions, channel_length, channel_height, bump_height);
-        // Create DG object
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
+    // VectorType target_solution;
+    // double bump_height = 0.0625;
+    // {
+    //     const double channel_length = 3.0;
+    //     const double channel_height = 0.8;
+    //     Grids::gaussian_bump(grid, n_subdivisions, channel_length, channel_height, bump_height);
+    //     // Create DG object
+    //     std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
 
-        // Initialize coarse grid solution with free-stream
-        dg->allocate_system ();
-        dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
-        // Create ODE solver and ramp up the solution from p0
-        std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-        ode_solver->initialize_steady_polynomial_ramping (poly_degree);
-        // Solve the steady state problem
-        ode_solver->steady_state();
-        // Output target solution
-        dg->output_results_vtk(9999);
+    //     // Initialize coarse grid solution with free-stream
+    //     dg->allocate_system ();
+    //     dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
+    //     // Create ODE solver and ramp up the solution from p0
+    //     std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    //     ode_solver->initialize_steady_polynomial_ramping (poly_degree);
+    //     // Solve the steady state problem
+    //     ode_solver->steady_state();
+    //     // Output target solution
+    //     dg->output_results_vtk(9998);
 
-        target_solution = dg->solution;
-    }
-    grid.clear();
-    const double channel_length = 3.0;
-    const double channel_height = 0.8;
-    bump_height *= 0.5;
-    Grids::gaussian_bump(grid, n_subdivisions, channel_length, channel_height, bump_height);
-    // Create DG object
-    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
+    //     target_solution = dg->solution;
+    // }
+    // grid.clear();
+    // const double channel_length = 3.0;
+    // const double channel_height = 0.8;
+    // bump_height *= 0.5;
+    // Grids::gaussian_bump(grid, n_subdivisions, channel_length, channel_height, bump_height);
+    // // Create DG object
+    // std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
 
-    // Initialize coarse grid solution with free-stream
-    dg->allocate_system ();
-    dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
-    // Create ODE solver and ramp up the solution from p0
-    std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-    ode_solver->initialize_steady_polynomial_ramping (poly_degree);
-    // Solve the steady state problem
-    ode_solver->steady_state();
-    // Output target solution
-    dg->output_results_vtk(9998);
-
-    BoundaryInverseTarget1<dim,nstate,double> functional(dg, target_solution, true, true);
+    // // Initialize coarse grid solution with free-stream
+    // dg->allocate_system ();
+    // dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
+    // // Create ODE solver and ramp up the solution from p0
+    // std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    // ode_solver->initialize_steady_polynomial_ramping (poly_degree);
+    // // Solve the steady state problem
+    // ode_solver->steady_state();
+    // // Output initial solution
+    // dg->output_results_vtk(9999);
 
     const dealii::Point<dim> ffd_origin(-1.4,-0.1);
     const std::array<double,dim> ffd_rectangle_lengths = {2.8,0.6};
-    const std::array<unsigned int,dim> ffd_ndim_control_pts = {20,2};
+    const std::array<unsigned int,dim> ffd_ndim_control_pts = {10,2};
     FreeFormDeformation<dim> ffd( ffd_origin, ffd_rectangle_lengths, ffd_ndim_control_pts);
 
     unsigned int n_design_variables = 0;
@@ -757,24 +755,91 @@ int EulerBumpOptimization<dim,nstate>
         }
     }
 
-    const unsigned int this_mpi_process = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
-    const unsigned int n_mpi_processes = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
-    const unsigned int n_rows = n_design_variables;
-    const unsigned int n_rows_per_cpu = n_rows / n_mpi_processes;
-    const bool is_last_cpu = (this_mpi_process == n_mpi_processes - 1);
-    const unsigned int row_start = this_mpi_process * n_rows_per_cpu;
-    const unsigned int row_end = is_last_cpu ? n_rows : (this_mpi_process+1) * n_rows_per_cpu;
+    const std::vector<dealii::IndexSet> row_parts = dealii::Utilities::MPI::create_evenly_distributed_partitioning(this->mpi_communicator, n_design_variables);
+    const unsigned int this_mpi_process = dealii::Utilities::MPI::this_mpi_process(this->mpi_communicator);
+    const dealii::IndexSet &row_part = row_parts[this_mpi_process];
 
-    dealii::IndexSet row_part(n_rows);
-    dealii::IndexSet ghost_row_part(n_rows);
-    row_part.add_range(row_start,row_end);
+    dealii::IndexSet ghost_row_part(n_design_variables);
     ghost_row_part.add_range(0,n_design_variables);
 
     VectorType ffd_design_variables(row_part,ghost_row_part,MPI_COMM_WORLD);
 
+    ffd_design_variables.print(std::cout);
+
 
     ffd.get_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
     ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
+
+    const auto initial_design_variables = ffd_design_variables;
+    ffd_design_variables[0] = -1.558e-01;
+    ffd_design_variables[1] = -2.189e-01;
+    ffd_design_variables[2] = -2.338e-01;
+    ffd_design_variables[3] = -1.691e-01;
+    ffd_design_variables[4] = -1.806e-01;
+    ffd_design_variables[5] = -2.294e-01;
+    ffd_design_variables[6] = -2.243e-01;
+    ffd_design_variables[7] = -1.552e-01;
+    ffd_design_variables[8] = 7.737e-01;
+    ffd_design_variables[9] = 1.110e+00;
+    ffd_design_variables[10] = 1.141e+00;
+    ffd_design_variables[11] = 8.757e-01;
+    ffd_design_variables[12] = 8.825e-01;
+    ffd_design_variables[13] = 1.159e+00;
+    ffd_design_variables[14] = 1.119e+00;
+    ffd_design_variables[15] = 7.769e-01;
+    ffd_design_variables.update_ghost_values();
+    ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
+
+    // Create Target solution
+    VectorType target_solution;
+    const double bump_height = 0.0625;
+    const double channel_length = 3.0;
+    const double channel_height = 0.8;
+    {
+        grid.clear();
+        Grids::gaussian_bump(grid, n_subdivisions, channel_length, channel_height, bump_height);
+        // Create DG object
+        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
+
+        ffd.deform_mesh(dg->high_order_grid);
+
+        // Initialize coarse grid solution with free-stream
+        dg->allocate_system ();
+        dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
+        // Create ODE solver and ramp up the solution from p0
+        std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        ode_solver->initialize_steady_polynomial_ramping (poly_degree);
+        // Solve the steady state problem
+        ode_solver->steady_state();
+        // Output target solution
+        dg->output_results_vtk(9998);
+
+        target_solution = dg->solution;
+    }
+
+    // Initial optimization point
+    grid.clear();
+    Grids::gaussian_bump(grid, n_subdivisions, channel_length, channel_height, bump_height);
+
+    ffd_design_variables = initial_design_variables;
+    ffd_design_variables.update_ghost_values();
+    ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
+
+    // Create DG object
+    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
+
+    // Initialize coarse grid solution with free-stream
+    dg->allocate_system ();
+    dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
+    // Create ODE solver and ramp up the solution from p0
+    std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    ode_solver->initialize_steady_polynomial_ramping (poly_degree);
+    // Solve the steady state problem
+    ode_solver->steady_state();
+    // Output initial solution
+    dg->output_results_vtk(9999);
+
+    BoundaryInverseTarget1<dim,nstate,double> functional(dg, target_solution, true, true);
 
     const bool has_ownership = false;
     Teuchos::RCP<VectorType> des_var_sim_rcp = Teuchos::rcp(&dg->solution, has_ownership);
@@ -841,8 +906,12 @@ int EulerBumpOptimization<dim,nstate>
 
     // Output stream
     ROL::nullstream bhs; // outputs nothing
+    std::filebuf filebuffer;
+    if (this->mpi_rank == 0) filebuffer.open ("optimization.log",std::ios::out);
+    std::ostream ostr(&filebuffer);
+
     Teuchos::RCP<std::ostream> outStream;
-    if (this->mpi_rank == 0) outStream = ROL::makePtrFromRef(std::cout);
+    if (this->mpi_rank == 0) outStream = ROL::makePtrFromRef(ostr);
     else outStream = ROL::makePtrFromRef(bhs);
 
     // Run Algorithm
@@ -892,28 +961,38 @@ int EulerBumpOptimization<dim,nstate>
     // Set parameters.
     Teuchos::ParameterList parlist;
     //parlist.sublist("Secant").set("Use as Preconditioner", false);
-    parlist.sublist("Status Test").set("Gradient Tolerance", 1e-10);
-    parlist.sublist("Status Test").set("Iteration Limit", 200);
+    parlist.sublist("Status Test").set("Gradient Tolerance", 1e-14);
+    parlist.sublist("Status Test").set("Iteration Limit", 5000);
     parlist.sublist("Step").set("Type","Line Search");
     parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",1e-0);
     parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
 
     //parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Iteration Scaling");
-    parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Backtracking");
+    //parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Backtracking");
+    parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Cubic Interpolation");
+
+    //parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Null Curvature Condition");
+    //parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Strong Wolfe Conditions");
+    parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Goldstein Conditions");
 
     parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Quasi-Newton Method");
     //parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type", "Steepest Descent");
 
-    //parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Null Curvature Condition");
-    parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Wolfe Conditions");
-
     //parlist.sublist("Step").sublist("Interior Point").set("Initial Step Size",0.1);
+
+    parlist.sublist("General").sublist("Secant").set("Type","Limited-Memory BFGS");
+    //parlist.sublist("General").sublist("Secant").set("Maximum Storage",(int)n_design_variables);
+    parlist.sublist("General").sublist("Secant").set("Maximum Storage",5000);
 
     // Define algorithm.
     //ROL::Algorithm<double> algo("Line Search", parlist);
     ROL::OptimizationSolver<double> solver( opt, parlist );
 
-    solver.solve( std::cout );
+    solver.solve( *outStream );
+
+    filebuffer.close();
+
+    ffd_design_variables.print(std::cout);
     
     int ifail = 1;
     return ifail;

@@ -254,32 +254,6 @@ dealii::Point<dim,double> FreeFormDeformation<dim>
     return dXsdXp;
 }
 
-// template<int dim>
-// std::vector<dealii::LinearAlgebra::distributed::Vector<double> FreeFormDeformation<dim>
-// ::dXsdXp_vector_of_vector (initial_point, const unsigned int ctl_index, const unsigned int ctl_axis) const
-// {
-//     assert(ctl_axis < dim);
-//     assert(ctl_index < n_control_pts);
-//     using ADtype = Sacado::Fad::DFad<double>;
-//     std::vector<dealii::Point<dim,ADtype>> control_pts_ad(control_pts.size());
-//     for (unsigned int i=0; i<n_control_pts; ++i) {
-//         control_pts_ad[i] = control_pts[i];
-//     }
-//     control_pts_ad[ctl_index][ctl_axis].diff(0,1);
-// 
-//     dealii::Point<dim, ADtype> new_point_ad = new_point_location(initial_point, control_pts_ad);
-// 
-//     dealii::Point<dim,double> dXsdXp;
-//     for (int d=0; d<dim; ++d) {
-//         dXsdXp[d] = new_point_ad[d].dx(0);
-//     }
-//     return dXsdXp;
-// }
-
-// template<int dim>
-// template<typename real>
-// dealii::Point<dim,real> dXsdXp (const dealii::Point<dim,real> &initial_point, const unsigned int ctl_index) const;
-
 template<int dim>
 template<typename real>
 dealii::Point<dim,real> FreeFormDeformation<dim>

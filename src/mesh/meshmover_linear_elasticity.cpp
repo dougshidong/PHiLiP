@@ -437,9 +437,10 @@ namespace MeshMover {
         dealii::SparsityPattern full_sp;
         full_sp.copy_from(full_dsp);
 
-        const std::vector<dealii::IndexSet> col_parts = dealii::Utilities::MPI::create_evenly_distributed_partitioning(mpi_communicator, n_cols);
-        const unsigned int this_mpi_process = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
-        const dealii::IndexSet &col_part = col_parts[this_mpi_process];
+        //const std::vector<dealii::IndexSet> col_parts = dealii::Utilities::MPI::create_evenly_distributed_partitioning(mpi_communicator, n_cols);
+        //const unsigned int this_mpi_process = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
+        //const dealii::IndexSet &col_part = col_parts[this_mpi_process];
+        const dealii::IndexSet col_part = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_cols);
 
         output_matrix.reinit(row_part, col_part, full_sp, mpi_communicator);
 
@@ -516,6 +517,7 @@ namespace MeshMover {
                 const unsigned int constrained_row = boundary_ids_vector[iconstraint];
                 unit_rhs[constrained_row] = 1.0;
             }
+            unit_rhs.update_ghost_values();
 
             unit_rhs_vector.push_back(unit_rhs);
         }

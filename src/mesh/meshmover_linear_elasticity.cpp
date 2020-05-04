@@ -113,7 +113,6 @@ namespace MeshMover {
         dealii::IndexSet ghost_dofs = locally_relevant_dofs;
         ghost_dofs.subtract_set(locally_owned_dofs);
         //ghost_dofs.print(std::cout);
-        local_dofs_per_process = dof_handler.compute_n_locally_owned_dofs_per_processor();
 
         system_rhs.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
         system_rhs_unconstrained.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
@@ -146,11 +145,10 @@ namespace MeshMover {
             }
         }
         all_constraints.close();
-        const std::vector<dealii::IndexSet> &temp_locally_owned_dofs =
-        dof_handler.compute_locally_owned_dofs_per_processor();
         dealii::IndexSet temp_locally_active_dofs;
         dealii::DoFTools::extract_locally_active_dofs(dof_handler, temp_locally_active_dofs);
-        AssertThrow(all_constraints.is_consistent_in_parallel(temp_locally_owned_dofs,
+        const std::vector<dealii::IndexSet> local_dofs_per_process = dealii::Utilities::MPI::all_gather(mpi_communicator, dof_handler.locally_owned_dofs());
+        AssertThrow(all_constraints.is_consistent_in_parallel(local_dofs_per_process,
                     temp_locally_active_dofs,
                     mpi_communicator,
                     /*verbose*/ true),
@@ -163,7 +161,7 @@ namespace MeshMover {
                                         all_constraints,
                                         /*keep constrained dofs*/ true);
         dealii::SparsityTools::distribute_sparsity_pattern(sparsity_pattern,
-                                                   local_dofs_per_process,
+                                                   dof_handler.locally_owned_dofs(),
                                                    mpi_communicator,
                                                    locally_relevant_dofs);
         system_matrix.reinit(locally_owned_dofs,
@@ -432,7 +430,7 @@ namespace MeshMover {
                 full_dsp.add(i_row, i_col);
             }
         }
-        dealii::SparsityTools::distribute_sparsity_pattern(full_dsp, dof_handler.compute_n_locally_owned_dofs_per_processor(), mpi_communicator, locally_relevant_dofs);
+        dealii::SparsityTools::distribute_sparsity_pattern(full_dsp, dof_handler.locally_owned_dofs(), mpi_communicator, locally_relevant_dofs);
 
         dealii::SparsityPattern full_sp;
         full_sp.copy_from(full_dsp);

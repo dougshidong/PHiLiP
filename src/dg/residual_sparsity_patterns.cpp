@@ -17,7 +17,7 @@ dealii::SparsityPattern DGBase<dim,real>::get_dRdW_sparsity_pattern ()
 {
     dealii::DynamicSparsityPattern dsp(locally_relevant_dofs);
     dealii::DoFTools::make_flux_sparsity_pattern(dof_handler, dsp);
-    dealii::SparsityTools::distribute_sparsity_pattern(dsp, dof_handler.compute_n_locally_owned_dofs_per_processor(), mpi_communicator, locally_relevant_dofs);
+    dealii::SparsityTools::distribute_sparsity_pattern(dsp, dof_handler.locally_owned_dofs(), mpi_communicator, locally_relevant_dofs);
 
     dealii::SparsityPattern sparsity_pattern;
     sparsity_pattern.copy_from(dsp);
@@ -36,7 +36,7 @@ dealii::SparsityPattern DGBase<dim,real>::get_d2RdXdX_sparsity_pattern ()
     dealii::DoFTools::extract_locally_relevant_dofs(high_order_grid.dof_handler_grid, locally_relevant_dofs);
     dealii::DynamicSparsityPattern dsp(locally_relevant_dofs);
     dealii::DoFTools::make_flux_sparsity_pattern(high_order_grid.dof_handler_grid, dsp);
-    dealii::SparsityTools::distribute_sparsity_pattern(dsp, high_order_grid.dof_handler_grid.compute_n_locally_owned_dofs_per_processor(), mpi_communicator, locally_relevant_dofs);
+    dealii::SparsityTools::distribute_sparsity_pattern(dsp, high_order_grid.dof_handler_grid.locally_owned_dofs(), mpi_communicator, locally_relevant_dofs);
 
     dealii::SparsityPattern sparsity_pattern;
     sparsity_pattern.copy_from(dsp);
@@ -120,7 +120,7 @@ dealii::SparsityPattern DGBase<dim,real>::get_dRdX_sparsity_pattern ()
         } 
     } // end of cell loop
 
-    dealii::SparsityTools::distribute_sparsity_pattern(dsp, dof_handler.compute_n_locally_owned_dofs_per_processor(), MPI_COMM_WORLD, locally_owned_dofs);
+    dealii::SparsityTools::distribute_sparsity_pattern(dsp, dof_handler.locally_owned_dofs(), MPI_COMM_WORLD, locally_owned_dofs);
     dealii::SparsityPattern sparsity_pattern;
     sparsity_pattern.copy_from(dsp);
 
@@ -182,7 +182,7 @@ dealii::SparsityPattern DGBase<dim,real>::get_dRdXs_sparsity_pattern ()
         }
     } // end of cell loop
 
-    dealii::SparsityTools::distribute_sparsity_pattern(dsp, dof_handler.compute_n_locally_owned_dofs_per_processor(), MPI_COMM_WORLD, locally_owned_dofs);
+    dealii::SparsityTools::distribute_sparsity_pattern(dsp, dof_handler.locally_owned_dofs(), MPI_COMM_WORLD, locally_owned_dofs);
     dealii::SparsityPattern sparsity_pattern;
     sparsity_pattern.copy_from(dsp);
 

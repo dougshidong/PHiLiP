@@ -755,9 +755,10 @@ int EulerBumpOptimization<dim,nstate>
         }
     }
 
-    const std::vector<dealii::IndexSet> row_parts = dealii::Utilities::MPI::create_evenly_distributed_partitioning(this->mpi_communicator, n_design_variables);
-    const unsigned int this_mpi_process = dealii::Utilities::MPI::this_mpi_process(this->mpi_communicator);
-    const dealii::IndexSet &row_part = row_parts[this_mpi_process];
+    //const std::vector<dealii::IndexSet> row_parts = dealii::Utilities::MPI::create_evenly_distributed_partitioning(this->mpi_communicator, n_design_variables);
+    //const unsigned int this_mpi_process = dealii::Utilities::MPI::this_mpi_process(this->mpi_communicator);
+    //const dealii::IndexSet &row_part = row_parts[this_mpi_process];
+    const dealii::IndexSet row_part = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_design_variables);
 
     dealii::IndexSet ghost_row_part(n_design_variables);
     ghost_row_part.add_range(0,n_design_variables);

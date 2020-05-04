@@ -523,9 +523,10 @@ FreeFormDeformation<dim>
     // Row partitioning
     const dealii::IndexSet &row_part = high_order_grid.dof_handler_grid.locally_owned_dofs();
 
-    const std::vector<dealii::IndexSet> col_parts = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_cols);
-    const unsigned int this_mpi_process = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
-    const dealii::IndexSet &col_part = col_parts[this_mpi_process];
+    //const unsigned int this_mpi_process = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    //const std::vector<dealii::IndexSet> col_parts = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_cols);
+    //const dealii::IndexSet &col_part = col_parts[this_mpi_process];
+    const dealii::IndexSet col_part = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_cols);
 
     // Sparsity pattern
     dealii::DynamicSparsityPattern full_dsp(n_rows, n_cols, row_part);

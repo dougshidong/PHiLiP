@@ -537,7 +537,7 @@ FreeFormDeformation<dim>
     }
     dealii::IndexSet locally_relevant_dofs;
     dealii::DoFTools::extract_locally_relevant_dofs(high_order_grid.dof_handler_grid, locally_relevant_dofs);
-    dealii::SparsityTools::distribute_sparsity_pattern(full_dsp, high_order_grid.dof_handler_grid.compute_n_locally_owned_dofs_per_processor(), MPI_COMM_WORLD, locally_relevant_dofs);
+    dealii::SparsityTools::distribute_sparsity_pattern(full_dsp, high_order_grid.dof_handler_grid.locally_owned_dofs(), MPI_COMM_WORLD, locally_relevant_dofs);
     dealii::SparsityPattern full_sp;
     full_sp.copy_from(full_dsp);
 

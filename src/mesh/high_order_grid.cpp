@@ -1001,16 +1001,16 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_nodes() {
     }
 
     surface_nodes.reinit(locally_owned_surface_nodes_indexset, ghost_surface_nodes_indexset, MPI_COMM_WORLD);
-    surface_indices.reinit(locally_owned_surface_nodes_indexset, ghost_surface_nodes_indexset, MPI_COMM_WORLD);
+    surface_to_volume_indices.reinit(locally_owned_surface_nodes_indexset, ghost_surface_nodes_indexset, MPI_COMM_WORLD);
     unsigned int i = 0;
-    auto index = surface_indices.begin();
+    auto index = surface_to_volume_indices.begin();
     AssertDimension(locally_owned_surface_nodes_indexset.n_elements(), locally_owned_surface_nodes.size());
     AssertDimension(locally_owned_surface_nodes_indexset.n_elements(), locally_owned_surface_nodes_indices.size());
     for (auto node = surface_nodes.begin(); node != surface_nodes.end(); node++, index++, i++) {
         *node = locally_owned_surface_nodes[i];
         *index = locally_owned_surface_nodes_indices[i];
     }
-    surface_indices.update_ghost_values();
+    surface_to_volume_indices.update_ghost_values();
     surface_nodes.update_ghost_values();
 
     update_map_nodes_surf_to_vol();
@@ -1032,7 +1032,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_map_nodes_surf_to
     dealii::DynamicSparsityPattern dsp(n_rows, n_cols, row_part);
     for (unsigned int i_col = 0; i_col < n_cols; ++i_col) {
         if (col_part.is_element(i_col)) {
-            const unsigned int i_row = surface_indices[i_col];
+            const unsigned int i_row = surface_to_volume_indices[i_col];
             dsp.add(i_row, i_col);
         }
     }
@@ -1043,7 +1043,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_map_nodes_surf_to
 
     for (unsigned int i_col = 0; i_col < n_cols; ++i_col) {
         if (col_part.is_element(i_col)) {
-            const unsigned int i_row = surface_indices[i_col];
+            const unsigned int i_row = surface_to_volume_indices[i_col];
             map_nodes_surf_to_vol.set(i_row, i_col, 1.0);
         }
     }
@@ -1169,9 +1169,9 @@ VectorType HighOrderGrid<dim,real,VectorType,DoFHandlerType>::
 transform_surface_nodes(std::function<dealii::Point<dim>(dealii::Point<dim>)> transformation) const
 {
     VectorType new_surface_nodes(surface_nodes);
-    auto index = surface_indices.begin();
+    auto index = surface_to_volume_indices.begin();
     auto new_node = new_surface_nodes.begin();
-    for (; index != surface_indices.end(); ++index, ++new_node) {
+    for (; index != surface_to_volume_indices.end(); ++index, ++new_node) {
         const dealii::types::global_dof_index global_idof_index = *index;
         //const std::pair<unsigned int, unsigned int> ipoint_component = global_index_to_point_and_axis[global_idof_index];
         //const auto ipoint_component = global_index_to_point_and_axis.at(global_idof_index);

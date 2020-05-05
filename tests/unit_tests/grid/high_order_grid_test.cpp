@@ -1,6 +1,5 @@
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/convergence_table.h>
-#include <deal.II/base/parameter_handler.h>
 
 #include <deal.II/dofs/dof_tools.h>
 
@@ -22,7 +21,6 @@
 #include <deal.II/fe/mapping_q.h> 
 
 #include "mesh/high_order_grid.h"
-#include "parameters/all_parameters.h"
 
 // https://en.wikipedia.org/wiki/Volume_of_an_n-ball#Recursions
 template <int dim>
@@ -44,11 +42,6 @@ int main (int argc, char * argv[])
     dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
 
     using namespace PHiLiP;
-
-    dealii::ParameterHandler parameter_handler;
-    Parameters::AllParameters::declare_parameters (parameter_handler);
-    Parameters::AllParameters all_parameters;
-    all_parameters.parse_parameters (parameter_handler);
 
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
 
@@ -93,7 +86,7 @@ int main (int argc, char * argv[])
         grid.set_manifold(1, transfinite_interpolation);
 
 
-        HighOrderGrid<dim,double> high_order_grid(&all_parameters, poly_degree, &grid);
+        HighOrderGrid<dim,double> high_order_grid(poly_degree, &grid);
         //std::shared_ptr < dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> > mapping = (high_order_grid.mapping_fe_field);
         auto mapping = (high_order_grid.mapping_fe_field);
         grid.reset_all_manifolds();

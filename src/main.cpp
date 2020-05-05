@@ -14,9 +14,9 @@
 
 int main (int argc, char *argv[])
 {
-#if !defined(__APPLE__)
-    feenableexcept(FE_INVALID | FE_OVERFLOW); // catch nan
-#endif
+// #if !defined(__APPLE__)
+//     feenableexcept(FE_INVALID | FE_OVERFLOW); // catch nan
+// #endif
     dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
     const int n_mpi = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
     const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
@@ -56,6 +56,7 @@ int main (int argc, char *argv[])
         std::unique_ptr<PHiLiP::Tests::TestsBase> test = PHiLiP::Tests::TestsFactory<max_dim,max_nstate>::create_test(&all_parameters);
         test_error = test->run_test();
 
+        pcout << "Finished test with test error code: " << test_error << std::endl;
     }
     catch (std::exception &exc)
     {

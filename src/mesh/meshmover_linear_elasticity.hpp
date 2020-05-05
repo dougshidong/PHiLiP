@@ -1,6 +1,8 @@
 #ifndef __MESHMOVER_LINEAR_ELASTICITY_H__
 #define __MESHMOVER_LINEAR_ELASTICITY_H__
 
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+
 #include "parameters/all_parameters.h"
 
 #include "high_order_grid.h"
@@ -28,12 +30,19 @@ namespace MeshMover
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
 #endif
       public:
-        /// Constructor
+        /// Constructor.
+        LinearElasticity(
+            const Triangulation &_triangulation,
+            const std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field,
+            const DoFHandlerType &_dof_handler,
+            const dealii::LinearAlgebra::distributed::Vector<int> &_boundary_ids_vector,
+            const dealii::LinearAlgebra::distributed::Vector<double> &_boundary_displacements_vector);
+
+        /// Constructor that uses information from HighOrderGrid and uses current nodes from HighOrderGrid.
         LinearElasticity(
             const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
 			const dealii::LinearAlgebra::distributed::Vector<double> &boundary_displacements_vector);
 
-        // ~LinearElasticity(); ///< Destructor.
         /** Evaluate and return volume displacements given boundary displacements.
          */
         VectorType get_volume_displacements();
@@ -42,6 +51,12 @@ namespace MeshMover
          *  to surface displacements.
          */
 		void evaluate_dXvdXs();
+
+        /** Apply the analytical derivatives of volume displacements with respect
+         *  to surface displacements onto a set of various right-hand sides.
+         */
+        void
+        apply_dXvdXs(std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &list_of_vectors, dealii::TrilinosWrappers::SparseMatrix &output_matrix);
 
         /** Current displacement solution
          */
@@ -55,7 +70,13 @@ namespace MeshMover
          *  is the size of the volume mesh. Those sensitivities are distributed among the processors
          *  the same way the volume mesh nodes are distributed among the processors.
          */
+        //dealii::TrilinosWrappers::SparseMatrix dXvdXs;
         std::vector<dealii::LinearAlgebra::distributed::Vector<double>> dXvdXs;
+
+        // /** Sparse matrix containing the dXvdXs sensititivies.
+        //  */
+        // dealii::TrilinosWrappers::SparseMatrix<double> dXvdXs_matrix;
+
       private:
         /// Allocation and boundary condition setup.
         void setup_system();
@@ -74,19 +95,12 @@ namespace MeshMover
          *  Currently uses CG with a Jacobi preconditioner.
          */
         unsigned int solve_linear_problem();
-        // void move_mesh();
 
         const Triangulation &triangulation; ///< Triangulation on which this acts.
         /// MappingFEField corresponding to curved mesh.
-        std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field;
+        const std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field;
         /// Same DoFHandler as the HighOrderGrid
         const DoFHandlerType &dof_handler;
-        /** Same FESystem as the HighOrderGrid.
-         *  For some reason, I can't make it a const reference.
-         *  Gives warning as error:
-         *  "a temporary bound to ... only persists until the constructor exits"
-         */
-        dealii::FESystem<dim> fe_system;
         /// Integration strength of the mesh order plus one.
         const dealii::QGauss<dim> quadrature_formula;
 
@@ -96,7 +110,7 @@ namespace MeshMover
         /** System right-hand side corresponding to the unconstrained linearized elasticity problem.
          *  Note that no body forces are present and the right-hand side is therefore zero.
          */
-        dealii::TrilinosWrappers::MPI::Vector system_rhs_unconstrained;
+        dealii::LinearAlgebra::distributed::Vector<double> system_rhs_unconstrained;
 
         /// System matrix corresponding to linearized elasticity problem.
         dealii::TrilinosWrappers::SparseMatrix system_matrix;
@@ -105,7 +119,7 @@ namespace MeshMover
          *  However, Dirichlet boundary conditions may make some RHS entries non-zero,
          *  depending on the method used to impose them.
          */
-        dealii::TrilinosWrappers::MPI::Vector system_rhs;
+        dealii::LinearAlgebra::distributed::Vector<double> system_rhs;
 
         /** AffineConstraints containing boundary and hanging node constraints.
          */
@@ -129,6 +143,10 @@ namespace MeshMover
         /** Displacement of boundary nodes corresponding to boundary_ids_vector.
          */
         const dealii::LinearAlgebra::distributed::Vector<double> &boundary_displacements_vector;
+
+        /** Transforms a std::vector<Tensor> into the corresponding distributed vector.
+         */
+        dealii::LinearAlgebra::distributed::Vector<double> tensor_to_vector(const std::vector<dealii::Tensor<1,dim,real>> &boundary_displacements_tensors) const;
 
     };
 } // namespace MeshMover

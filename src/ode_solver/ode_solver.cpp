@@ -81,11 +81,7 @@ int ODESolver<dim,real>::steady_state ()
     CFL = all_parameters->ode_solver_param.initial_time_step;
 
     // Output initial solution
-    while (    this->residual_norm     > ode_param.nonlinear_steady_residual_tolerance 
-            && this->residual_norm_decrease > ode_param.nonlinear_steady_residual_tolerance 
-            //&& update_norm             > ode_param.nonlinear_steady_residual_tolerance 
-            && this->current_iteration < ode_param.nonlinear_max_iterations )
-    {
+    do {
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose
             && (this->current_iteration%ode_param.print_iteration_modulo) == 0 
             && dealii::Utilities::MPI::this_mpi_process(mpi_communicator) == 0 )
@@ -125,7 +121,10 @@ int ODESolver<dim,real>::steady_state ()
                 this->dg->output_results_vtk(file_number);
             }
         }
-    }
+    } while (    this->residual_norm     > ode_param.nonlinear_steady_residual_tolerance 
+            && this->residual_norm_decrease > ode_param.nonlinear_steady_residual_tolerance 
+            //&& update_norm             > ode_param.nonlinear_steady_residual_tolerance 
+            && this->current_iteration < ode_param.nonlinear_max_iterations );
 
     pcout << " ********************************************************** "
           << std::endl

@@ -28,7 +28,9 @@ using AllParam = Parameters::AllParameters;
 TestsBase::TestsBase(Parameters::AllParameters const *const parameters_input)
     : all_parameters(parameters_input)
     , mpi_communicator(MPI_COMM_WORLD)
-    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
+    , mpi_rank (dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
+    , n_mpi (dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD))
+    , pcout(std::cout, mpi_rank==0)
 {}
 
 std::vector<int> TestsBase::get_number_1d_cells(const int n_grids) const

@@ -39,7 +39,7 @@ void LinearSolverParam::declare_parameters (dealii::ParameterHandler &prm)
             prm.declare_entry("ilut_drop", "0.0",
                               dealii::Patterns::Double(),
                               "relative size of elements which should be dropped when forming an incomplete lu decomposition with threshold");
-            prm.declare_entry("ilut_rtol", "0.0",
+            prm.declare_entry("ilut_rtol", "1.0",
                               dealii::Patterns::Double(),
                               "Amount of an absolute perturbation that will be added to the diagonal of the matrix, "
                               "which sometimes can help to get better preconditioners");

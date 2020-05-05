@@ -1,6 +1,5 @@
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/convergence_table.h>
-#include <deal.II/base/parameter_handler.h>
 
 #include <deal.II/dofs/dof_tools.h>
 
@@ -25,8 +24,8 @@
 
 #include "mesh/high_order_grid.h"
 #include "mesh/meshmover_linear_elasticity.hpp"
-#include "parameters/all_parameters.h"
 
+const double TOL = 1e-8;
 template<int dim>
 dealii::Point<dim> initial_deformation(dealii::Point<dim> point) {
     const double amplitude = 0.1;
@@ -57,17 +56,12 @@ int main (int argc, char * argv[])
 
     using namespace PHiLiP;
 
-    dealii::ParameterHandler parameter_handler;
-    Parameters::AllParameters::declare_parameters (parameter_handler);
-    Parameters::AllParameters all_parameters;
-    all_parameters.parse_parameters (parameter_handler);
-
     const double amplitude = 0.1;
     const int initial_n_cells = 3;
     const unsigned int n_grids = 3;
     const unsigned int p_start = 2;
     const unsigned int p_end = 3;
-    const double fd_eps = 1e-0;
+    const double fd_eps = 1e-1;
     std::vector<int> fail_poly;
     std::vector<double> fail_area;
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
@@ -95,7 +89,7 @@ int main (int argc, char * argv[])
             dealii::GridGenerator::subdivided_hyper_cube(grid, initial_n_cells);
 
 
-            HighOrderGrid<dim,double> high_order_grid(&all_parameters, poly_degree, &grid);
+            HighOrderGrid<dim,double> high_order_grid(poly_degree, &grid);
 
             for (unsigned int i=0; i<igrid; ++i) {
                 high_order_grid.prepare_for_coarsening_and_refinement();
@@ -228,9 +222,11 @@ int main (int argc, char * argv[])
             meshmover.evaluate_dXvdXs();
             // Start finite difference
             std::vector<VectorType> dXvdXs_FD;
-            for (unsigned int isurface = 0; isurface < surface_node_displacements_vector.size(); isurface++) {
+            const auto &part = surface_node_displacements_vector.get_partitioner();
+            const auto &local_range = part->locally_owned_range();
+            for (unsigned int isurface = 2; isurface < surface_node_displacements_vector.size(); isurface++) {
 
-                bool iown = surface_node_displacements_vector.locally_owned_elements().is_element(isurface);
+                const bool iown = local_range.is_element(isurface);
                 double old_value = 0;
                 unsigned int corresponding_volume_dof = 999999999;
                 if (iown) {
@@ -275,14 +271,19 @@ int main (int argc, char * argv[])
 
                 dXvdXs_FD.push_back(volume_displacements_p);
                 pcout << "Finite difference: " << std::endl;
-                dXvdXs_FD[isurface].print(std::cout);
+                dXvdXs_FD.back().print(std::cout);
                 pcout << "Analytical difference: " << std::endl;
                 meshmover.dXvdXs[isurface].print(std::cout);
 
                 if (iown) {
-                    std::cout << "dXvdXs_FD: " << dXvdXs_FD[isurface][corresponding_volume_dof]
-                            << " meshmover.dXvdXs " << meshmover.dXvdXs[isurface][corresponding_volume_dof]
-                            << " should be 1" << std::endl;
+                    const double surface_deri_FD = dXvdXs_FD.back()[corresponding_volume_dof];
+                    const double surface_deri_AN = meshmover.dXvdXs[isurface][corresponding_volume_dof];
+                    if ( std::abs(surface_deri_FD - 1.0) > TOL || std::abs(surface_deri_AN - 1.0) > TOL) {
+                        std::cout << "dXvdXs_FD: " << surface_deri_FD
+                                << " meshmover.dXvdXs " << surface_deri_AN
+                                << " should be 1" << std::endl;
+                        std::abort();
+                    }
                 }
 
                 //dealii::LinearAlgebra::ReadWriteVector<double> rw_vector;
@@ -292,18 +293,17 @@ int main (int argc, char * argv[])
                 //dXvdXs_i.import(rw_vector, dealii::VectorOperation::insert);
                 //dXvdXs_FD[isurface].add(-1.0,dXvdXs_i);
 
-                dXvdXs_FD[isurface].add(-1.0,meshmover.dXvdXs[isurface]);
+                dXvdXs_FD.back().add(-1.0,meshmover.dXvdXs[isurface]);
 
-                const double l2_error = dXvdXs_FD[isurface].l2_norm();
+                const double l2_error = dXvdXs_FD.back().l2_norm();
                 pcout << "*********************************" << std::endl;
                 pcout << "L2-norm of difference: " << l2_error << std::endl;
                 pcout << "*********************************" << std::endl;
 
-                if (l2_error > 1e-4) {
-                    pcout << "Nodes: " << std::endl;
-                    high_order_grid.nodes.print(std::cout);
+                if (l2_error > TOL) {
                     pcout << "Error vector: " << std::endl;
-                    dXvdXs_FD[isurface].print(std::cout,3,true,false);
+                    //dXvdXs_FD.back().print(std::cout,3,true,false);
+                    dXvdXs_FD.back().print(std::cout);
                     std::abort();
                 }
 

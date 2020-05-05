@@ -25,6 +25,7 @@ protected:
     static constexpr double coeff_expx = -25; ///< Bump exponent (variance).
     static constexpr double coeff_expy = -30; ///< Bump propagation in the domain.
 public:
+    /// Constructor.
     BumpManifold(const double channel_height, const double bump_height)
     : dealii::ChartManifold<2,2,2>()
     , channel_height(channel_height)

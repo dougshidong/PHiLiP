@@ -76,7 +76,9 @@ public:
     ~Functional(){}
 
 public:
+    /** Set the associated @ref DGBase's solution to @p solution_set. */
     void set_state(const dealii::LinearAlgebra::distributed::Vector<real> &solution_set);
+    /** Set the associated @ref DGBase's HighOrderGrid's nodes to @p nodes_set. */
     void set_geom(const dealii::LinearAlgebra::distributed::Vector<real> &nodes_set);
 
     /// Evaluates the functional derivative with respect to the solution variable

@@ -31,20 +31,26 @@
 #include "ROL_StatusTest.hpp"
 #include "Teuchos_GlobalMPISession.hpp"
 
+// This test is used to check that the dealii::LinearAlgebra::distributed::Vector<double>
+// is working properly with ROL. This is done by performing an unconstrained optimization
+// of the Rosenbrock function.
 using serial_Vector = typename dealii::Vector<double>;
 using distributed_Vector = typename dealii::LinearAlgebra::distributed::Vector<double>;
 // Use ROL to minimize the objective function, f(x,y) = x^2 + y^2.
 
+/// Rosensenbrock objective function
 template <typename VectorType, class Real = double, typename AdaptVector = dealii::Rol::VectorAdaptor<VectorType>>
 class RosenbrockObjective : public ROL::Objective<Real>
 {
 private:
+    /// Cast const ROL vector into a Teuchos::RCP pointer.
     Teuchos::RCP<const VectorType>
     get_rcp_to_VectorType(const ROL::Vector<Real> &x)
     {
       return (Teuchos::dyn_cast<const AdaptVector>(x)).getVector();
     }
 
+    /// Cast ROL vector into a const Teuchos::RCP pointer.
     Teuchos::RCP<VectorType>
     get_rcp_to_VectorType(ROL::Vector<Real> &x)
     {
@@ -52,6 +58,7 @@ private:
     }
 
 public:
+    /// Return the Rosenbrock objective function value.
     Real value(const ROL::Vector<Real> &x, Real & /*tol*/)
     {
       Teuchos::RCP<const VectorType> xp = this->get_rcp_to_VectorType(x);
@@ -73,6 +80,7 @@ public:
       return rosenbrock;
     }
 
+    /// Return the Rosenbrock objective gradient.
     void gradient(ROL::Vector<Real> &g, const ROL::Vector<Real> &x, Real & /*tol*/)
     {
       using ADtype = Sacado::Fad::DFad<double>;

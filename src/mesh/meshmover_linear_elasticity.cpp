@@ -31,7 +31,7 @@ namespace MeshMover {
     //   , n_mpi_processes(dealii::Utilities::MPI::n_mpi_processes(mpi_communicator))
     //   , this_mpi_process(dealii::Utilities::MPI::this_mpi_process(mpi_communicator))
     //   , pcout(std::cout, this_mpi_process == 0)
-    //   , boundary_ids_vector(high_order_grid.surface_indices)
+    //   , boundary_ids_vector(high_order_grid.surface_to_volume_indices)
     //   , boundary_displacements_vector(boundary_displacements_vector)
     // { 
     //     AssertDimension(boundary_displacements_vector.size(), boundary_ids_vector.size());
@@ -45,7 +45,7 @@ namespace MeshMover {
           *(high_order_grid.triangulation),
           high_order_grid.mapping_fe_field,
           high_order_grid.dof_handler_grid,
-          high_order_grid.surface_indices,
+          high_order_grid.surface_to_volume_indices,
           boundary_displacements_vector)
     { }
 

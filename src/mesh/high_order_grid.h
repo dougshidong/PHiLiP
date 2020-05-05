@@ -118,10 +118,10 @@ public:
     /** Distributed ghosted vector of surface indices.
      *  Ordering matches the surface_nodes.
      */
-    dealii::LinearAlgebra::distributed::Vector<int> surface_indices;
+    dealii::LinearAlgebra::distributed::Vector<int> surface_to_volume_indices;
 
     /** Maps a vector of surface_nodes to a vector of nodes.
-     *  This is equivalent to using surface_indices to assign the surface_nodes values
+     *  This is equivalent to using surface_to_volume_indices to assign the surface_nodes values
      *  into a vector of size nodes.size(), except that it uses a matrix-vector multiplication
      *  to easily obtain the mapping.
      */

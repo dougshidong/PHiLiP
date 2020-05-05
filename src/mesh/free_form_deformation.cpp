@@ -343,7 +343,7 @@ void FreeFormDeformation<dim>
           *(high_order_grid.triangulation),
           high_order_grid.initial_mapping_fe_field,
           high_order_grid.dof_handler_grid,
-          high_order_grid.surface_indices,
+          high_order_grid.surface_to_volume_indices,
           surface_node_displacements);
     dealii::LinearAlgebra::distributed::Vector<double> volume_displacements = meshmover.get_volume_displacements();
     high_order_grid.nodes = high_order_grid.initial_nodes;
@@ -358,10 +358,10 @@ FreeFormDeformation<dim>
 {
     dealii::LinearAlgebra::distributed::Vector<double> surface_node_displacements(high_order_grid.surface_nodes);
 
-    auto index = high_order_grid.surface_indices.begin();
+    auto index = high_order_grid.surface_to_volume_indices.begin();
     auto node = high_order_grid.initial_surface_nodes.begin();
     auto new_node = surface_node_displacements.begin();
-    for (; index != high_order_grid.surface_indices.end(); ++index, ++node, ++new_node) {
+    for (; index != high_order_grid.surface_to_volume_indices.end(); ++index, ++node, ++new_node) {
         const dealii::types::global_dof_index global_idof_index = *index;
         const std::pair<unsigned int, unsigned int> ipoint_component = high_order_grid.global_index_to_point_and_axis.at(global_idof_index);
         const unsigned int ipoint = ipoint_component.first;
@@ -431,10 +431,10 @@ FreeFormDeformation<dim>
 
         high_order_grid.map_nodes_surf_to_vol.vmult(derivative_surface_nodes_ffd_ctl,diff);
 
-        // auto surf_index = high_order_grid.surface_indices.begin();
+        // auto surf_index = high_order_grid.surface_to_volume_indices.begin();
         // auto surf_value = diff.begin();
 
-        // for (; surf_index != high_order_grid.surface_indices.end(); ++surf_index, ++surf_value) {
+        // for (; surf_index != high_order_grid.surface_to_volume_indices.end(); ++surf_index, ++surf_value) {
         //     derivative_surface_nodes_ffd_ctl[*surf_index] = *surf_value;
         // }
 
@@ -503,7 +503,7 @@ FreeFormDeformation<dim>
           *(high_order_grid.triangulation),
           high_order_grid.initial_mapping_fe_field,
           high_order_grid.dof_handler_grid,
-          high_order_grid.surface_indices,
+          high_order_grid.surface_to_volume_indices,
           surface_node_displacements);
     //meshmover.evaluate_dXvdXs();
     meshmover.apply_dXvdXs(dXsdXp_vector, dXvdXp);

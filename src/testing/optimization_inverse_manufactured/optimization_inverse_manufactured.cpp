@@ -607,7 +607,7 @@ int OptimizationInverseManufactured<dim,nstate>
 			if (dIdXs.locally_owned_elements().is_element(isurf)) {
 
 				// Only do X-direction
-				const unsigned int surface_index = high_order_grid.surface_indices[isurf];
+				const unsigned int surface_index = high_order_grid.surface_to_volume_indices[isurf];
 				const unsigned int component = high_order_grid.global_index_to_point_and_axis[surface_index].second;
 				if (component != 0) dIdXs[isurf] = 0.0;
 				else dIdXs[isurf] = scalar_product;
@@ -671,7 +671,7 @@ int OptimizationInverseManufactured<dim,nstate>
 		for (unsigned int isurf = 0; isurf < dg->high_order_grid.surface_nodes.size(); ++isurf) {
 			if (search_direction.locally_owned_elements().is_element(isurf)) {
 				// Only do X-direction
-				const unsigned int surface_index = high_order_grid.surface_indices[isurf];
+				const unsigned int surface_index = high_order_grid.surface_to_volume_indices[isurf];
 				const unsigned int component = high_order_grid.global_index_to_point_and_axis[surface_index].second;
 				if (component != 0) search_direction[isurf] = 0.0;
 			}
@@ -743,7 +743,7 @@ int OptimizationInverseManufactured<dim,nstate>
 			const auto scalar_product = meshmover.dXvdXs[isurf] * inverse_target_functional.dIdX;
 			if (dIdXs.locally_owned_elements().is_element(isurf)) {
 				// Only do X-direction
-				const unsigned int surface_index = high_order_grid.surface_indices[isurf];
+				const unsigned int surface_index = high_order_grid.surface_to_volume_indices[isurf];
 				const unsigned int component = high_order_grid.global_index_to_point_and_axis[surface_index].second;
 				if (component != 0) dIdXs[isurf] = 0.0;
 				else dIdXs[isurf] = scalar_product;

@@ -3,7 +3,8 @@
 
 #include <deal.II/base/qprojector.h>
 
-#include <deal.II/lac/full_matrix.templates.h>
+//#include <deal.II/lac/full_matrix.templates.h>
+#include <deal.II/lac/full_matrix.h>
 
 #include <deal.II/fe/fe_values.h>
 
@@ -627,15 +628,19 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
     std::vector<ADArrayTensor1> diss_flux_jump_int(n_quad_pts); // u*-u_int
     std::vector<ADArray> diss_auxi_num_flux_dot_n(n_quad_pts); // sigma*
 
-    dealii::FullMatrix<ADADtype> interpolation_operator(n_soln_dofs,n_quad_pts);
+    dealii::FullMatrix<real> interpolation_operator(n_soln_dofs,n_quad_pts);
     for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             interpolation_operator[idof][iquad] = fe.shape_value(idof,unit_quad_pts[iquad]);
         }
     }
-    std::array<dealii::FullMatrix<ADADtype>,dim> gradient_operator;
+    //std::array<dealii::FullMatrix<ADADtype>,dim> gradient_operator;
+    // for (int d=0;d<dim;++d) {
+    //     gradient_operator[d].reinit(n_soln_dofs, n_quad_pts);
+    // }
+    std::array<dealii::Table<2,ADADtype>,dim> gradient_operator;
     for (int d=0;d<dim;++d) {
-        gradient_operator[d].reinit(n_soln_dofs, n_quad_pts);
+        gradient_operator[d].reinit(dealii::TableIndices<2>(n_soln_dofs, n_quad_pts));
     }
     for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
@@ -1466,7 +1471,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
     std::vector< std::array<ADADtype,nstate> > source_at_q(n_quad_pts);
 
     const std::vector<dealii::Point<dim,double>> &unit_quad_pts = quadrature.get_points();
-    dealii::FullMatrix<ADADtype> interpolation_operator(n_soln_dofs,n_quad_pts);
+    dealii::FullMatrix<real> interpolation_operator(n_soln_dofs,n_quad_pts);
     for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             interpolation_operator[idof][iquad] = fe.shape_value(idof,unit_quad_pts[iquad]);
@@ -1474,9 +1479,13 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
     }
     // Might want to have the dimension as the innermost index
     // Need a contiguous 2d-array structure
-    std::array<dealii::FullMatrix<ADADtype>,dim> gradient_operator;
+    // std::array<dealii::FullMatrix<ADADtype>,dim> gradient_operator;
+    // for (int d=0;d<dim;++d) {
+    //     gradient_operator[d].reinit(n_soln_dofs, n_quad_pts);
+    // }
+    std::array<dealii::Table<2,ADADtype>,dim> gradient_operator;
     for (int d=0;d<dim;++d) {
-        gradient_operator[d].reinit(n_soln_dofs, n_quad_pts);
+        gradient_operator[d].reinit(dealii::TableIndices<2>(n_soln_dofs, n_quad_pts));
     }
     for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {

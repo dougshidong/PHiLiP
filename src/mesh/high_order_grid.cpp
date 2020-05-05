@@ -10,7 +10,6 @@
 
 #include <deal.II/dofs/dof_tools.h>
 
-#include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_bernstein.h>
 
 #include <deal.II/numerics/vector_tools.h>
@@ -46,11 +45,9 @@ unsigned int HighOrderGrid<dim,real,VectorType,DoFHandlerType>::nth_refinement=0
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
 HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
-        const Parameters::AllParameters *const parameters_input,
         const unsigned int max_degree,
         Triangulation *const triangulation_input)
-    : all_parameters(parameters_input)
-    , max_degree(max_degree)
+    : max_degree(max_degree)
     , triangulation(triangulation_input)
     , dof_handler_grid(*triangulation)
     , fe_q(max_degree) // The grid must be at least p1. A p0 solution required a p1 grid.
@@ -69,6 +66,7 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
     nodes.update_ghost_values();
     update_surface_nodes();
     update_mapping_fe_field();
+    reset_initial_nodes();
     output_results_vtk(nth_refinement++);
 
     // Used to check Jacobian validity
@@ -98,6 +96,7 @@ template <int dim, typename real, typename VectorType , typename DoFHandlerType>
 void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_mapping_fe_field() {
     const dealii::ComponentMask mask(dim, true);
     mapping_fe_field = std::make_shared< dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> > (dof_handler_grid,nodes,mask);
+    initial_mapping_fe_field = std::make_shared< dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> > (dof_handler_grid,initial_nodes,mask);
 }
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
@@ -796,80 +795,80 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::execute_coarsening_and_r
 }
 
 
-template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::deform_mesh(std::vector<real> local_surface_displacements) {
-    (void) local_surface_displacements;
-    // const unsigned int n_local_surface_disp = local_surface_displacements.size();
-    // Assert(n_local_surface_disp==locally_relevant_surface_nodes.size(), dealii::ExcDimensionMismatch(n_local_surface_disp,local_surface_nodes.size()));
-
-    const unsigned int n_relevant_surface_nodes = all_locally_relevant_surface_nodes.size();
-    dealii::Vector<real> surface_displacements(n_relevant_surface_nodes);
-    Assert(surface_displacements.size() == all_locally_relevant_surface_nodes.size(), dealii::ExcDimensionMismatch(surface_displacements.size(),all_locally_relevant_surface_nodes.size()));
-
-    const unsigned int n_surface_points = n_relevant_surface_nodes / dim;
-    Assert( n_relevant_surface_nodes % dim == 0, dealii::ExcMessage("Surface nodes has incorrect size."));
-
-    (void) surface_displacements;
-    const double support_radius = 1.0;
-    const double support_radius2 = support_radius*support_radius;
-
-    dealii::SparsityPattern sparsity_pattern_M(n_surface_points, n_surface_points, n_surface_points);
-    int row=0, col=0;
-    for (auto node1 = all_locally_relevant_surface_nodes.begin(); node1 != all_locally_relevant_surface_nodes.end(); node1+=dim) {
-        for (auto node2 = node1; node2 != all_locally_relevant_surface_nodes.end(); node2+=dim) {
-            double distance2 = 0;
-            // Evaluate the squared distance
-            for (int d=0;d<dim;++d) {
-                const double diff = (*(node1+d) - *(node2+d));
-                const double diff2 = diff*diff;
-                distance2 += diff2;
-            }
-            if(distance2/support_radius2 <= 1.0) sparsity_pattern_M.add(row,col);
-            col++;
-        }
-        row++;
-    }
-    sparsity_pattern_M.symmetrize();
-    sparsity_pattern_M.compress();
-
-    // Row partitionning
-    // Equally distribute the rows.
-    const int n_rows_per_mpi = n_surface_points / n_mpi;
-    const int rows_leftover = n_surface_points - n_mpi * n_rows_per_mpi;
-    dealii::IndexSet my_rows;
-    my_rows.add_range(n_rows_per_mpi*mpi_rank, n_rows_per_mpi*(mpi_rank+1)-1);
-    if (mpi_rank == n_mpi-1) my_rows.add_range(n_rows_per_mpi*(mpi_rank+1), n_rows_per_mpi*(mpi_rank+1)+rows_leftover);
-    MPI_Barrier(MPI_COMM_WORLD);
-    //std::cout << "Rank: " << mpi_rank << "range: "<< my_rows.print(std::cout) << std::endl << std::endl;
-    //my_rows.print(std::cout);
-    MPI_Barrier(MPI_COMM_WORLD);
-
-    dealii::TrilinosWrappers::SparseMatrix M;
-    M.reinit(my_rows, sparsity_pattern_M, MPI_COMM_WORLD);
-    row=0; col=0;
-    for (auto node1 = all_locally_relevant_surface_nodes.begin(); node1 != all_locally_relevant_surface_nodes.end(); node1+=dim) {
-        for (auto node2 = node1; node2 != all_locally_relevant_surface_nodes.end(); node2+=dim) {
-            double distance2 = 0;
-            // Evaluate the squared distance
-            for (int d=0;d<dim;++d) {
-                const double diff = (*(node1+d) - *(node2+d));
-                const double diff2 = diff*diff;
-                distance2 += diff2;
-            }
-            // Evaluate the radial basis function
-            if(distance2/support_radius2 <= 1.0) {
-                const double distance = std::sqrt(distance2);
-                const double c2_rbf = std::pow((1.0 - distance), 4) * (4*distance + 1.0);
-                M.set(row, col, c2_rbf);
-                M.set(col, row, c2_rbf);
-            }
-            col++;
-        }
-        row++;
-    }
-    M.compress(dealii::VectorOperation::values::insert);
-
-}
+// template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+// void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::deform_mesh(std::vector<real> local_surface_displacements) {
+//     (void) local_surface_displacements;
+//     // const unsigned int n_local_surface_disp = local_surface_displacements.size();
+//     // Assert(n_local_surface_disp==locally_relevant_surface_nodes.size(), dealii::ExcDimensionMismatch(n_local_surface_disp,local_surface_nodes.size()));
+// 
+//     const unsigned int n_relevant_surface_nodes = all_locally_relevant_surface_nodes.size();
+//     dealii::Vector<real> surface_displacements(n_relevant_surface_nodes);
+//     Assert(surface_displacements.size() == all_locally_relevant_surface_nodes.size(), dealii::ExcDimensionMismatch(surface_displacements.size(),all_locally_relevant_surface_nodes.size()));
+// 
+//     const unsigned int n_surface_points = n_relevant_surface_nodes / dim;
+//     Assert( n_relevant_surface_nodes % dim == 0, dealii::ExcMessage("Surface nodes has incorrect size."));
+// 
+//     (void) surface_displacements;
+//     const double support_radius = 1.0;
+//     const double support_radius2 = support_radius*support_radius;
+// 
+//     dealii::SparsityPattern sparsity_pattern_M(n_surface_points, n_surface_points, n_surface_points);
+//     int row=0, col=0;
+//     for (auto node1 = all_locally_relevant_surface_nodes.begin(); node1 != all_locally_relevant_surface_nodes.end(); node1+=dim) {
+//         for (auto node2 = node1; node2 != all_locally_relevant_surface_nodes.end(); node2+=dim) {
+//             double distance2 = 0;
+//             // Evaluate the squared distance
+//             for (int d=0;d<dim;++d) {
+//                 const double diff = (*(node1+d) - *(node2+d));
+//                 const double diff2 = diff*diff;
+//                 distance2 += diff2;
+//             }
+//             if(distance2/support_radius2 <= 1.0) sparsity_pattern_M.add(row,col);
+//             col++;
+//         }
+//         row++;
+//     }
+//     sparsity_pattern_M.symmetrize();
+//     sparsity_pattern_M.compress();
+// 
+//     // Row partitionning
+//     // Equally distribute the rows.
+//     const int n_rows_per_mpi = n_surface_points / n_mpi;
+//     const int rows_leftover = n_surface_points - n_mpi * n_rows_per_mpi;
+//     dealii::IndexSet my_rows;
+//     my_rows.add_range(n_rows_per_mpi*mpi_rank, n_rows_per_mpi*(mpi_rank+1)-1);
+//     if (mpi_rank == n_mpi-1) my_rows.add_range(n_rows_per_mpi*(mpi_rank+1), n_rows_per_mpi*(mpi_rank+1)+rows_leftover);
+//     MPI_Barrier(MPI_COMM_WORLD);
+//     //std::cout << "Rank: " << mpi_rank << "range: "<< my_rows.print(std::cout) << std::endl << std::endl;
+//     //my_rows.print(std::cout);
+//     MPI_Barrier(MPI_COMM_WORLD);
+// 
+//     dealii::TrilinosWrappers::SparseMatrix M;
+//     M.reinit(my_rows, sparsity_pattern_M, MPI_COMM_WORLD);
+//     row=0; col=0;
+//     for (auto node1 = all_locally_relevant_surface_nodes.begin(); node1 != all_locally_relevant_surface_nodes.end(); node1+=dim) {
+//         for (auto node2 = node1; node2 != all_locally_relevant_surface_nodes.end(); node2+=dim) {
+//             double distance2 = 0;
+//             // Evaluate the squared distance
+//             for (int d=0;d<dim;++d) {
+//                 const double diff = (*(node1+d) - *(node2+d));
+//                 const double diff2 = diff*diff;
+//                 distance2 += diff2;
+//             }
+//             // Evaluate the radial basis function
+//             if(distance2/support_radius2 <= 1.0) {
+//                 const double distance = std::sqrt(distance2);
+//                 const double c2_rbf = std::pow((1.0 - distance), 4) * (4*distance + 1.0);
+//                 M.set(row, col, c2_rbf);
+//                 M.set(col, row, c2_rbf);
+//             }
+//             col++;
+//         }
+//         row++;
+//     }
+//     M.compress(dealii::VectorOperation::values::insert);
+// 
+// }
 
 template <typename T>
 std::vector<T> flatten(const std::vector<std::vector<T>>& v) {
@@ -1016,6 +1015,17 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_nodes() {
 
 }
 
+
+template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::reset_initial_nodes()
+{
+    initial_nodes = nodes;
+    initial_nodes.update_ghost_values();
+    initial_surface_nodes = surface_nodes;
+    initial_surface_nodes.update_ghost_values();
+    initial_locally_relevant_surface_points = locally_relevant_surface_points;
+}
+
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
 void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices() {
     locally_owned_surface_nodes_indices.clear();
@@ -1125,9 +1135,8 @@ transform_surface_nodes(std::function<dealii::Point<dim>(dealii::Point<dim>)> tr
 {
     VectorType new_surface_nodes(surface_nodes);
     auto index = surface_indices.begin();
-    auto node = surface_nodes.begin();
     auto new_node = new_surface_nodes.begin();
-    for (; index != surface_indices.end(); ++index, ++node, ++new_node) {
+    for (; index != surface_indices.end(); ++index, ++new_node) {
         const dealii::types::global_dof_index global_idof_index = *index;
         //const std::pair<unsigned int, unsigned int> ipoint_component = global_index_to_point_and_axis[global_idof_index];
         //const auto ipoint_component = global_index_to_point_and_axis.at(global_idof_index);

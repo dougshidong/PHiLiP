@@ -44,9 +44,11 @@ class Functional
     using ADType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using ADADType = Sacado::Fad::DFad<ADType>; ///< Sacado AD type that allows 2nd derivatives.
 
-protected:
+public:
     /// Smart pointer to DGBase
     std::shared_ptr<DGBase<dim,real>> dg;
+
+protected:
     /// Physics that should correspond to the one in DGBase
     std::shared_ptr<Physics::PhysicsBase<dim,nstate,ADADType>> physics_fad_fad;
 
@@ -74,6 +76,11 @@ public:
     ~Functional(){}
 
 public:
+    /** Set the associated @ref DGBase's solution to @p solution_set. */
+    void set_state(const dealii::LinearAlgebra::distributed::Vector<real> &solution_set);
+    /** Set the associated @ref DGBase's HighOrderGrid's nodes to @p nodes_set. */
+    void set_geom(const dealii::LinearAlgebra::distributed::Vector<real> &nodes_set);
+
     /// Evaluates the functional derivative with respect to the solution variable
     /** Loops over the discretized domain and determines the sensitivity of the functional value to each 
      *  solution node. Computed from

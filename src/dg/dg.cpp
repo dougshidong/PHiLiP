@@ -840,6 +840,7 @@ void DGBase<dim,real>::set_dual(const dealii::LinearAlgebra::distributed::Vector
 template <int dim, typename real>
 void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
+    dealii::deal_II_exceptions::disable_abort_on_exception(); // Allows us to catch negative Jacobians.
     Assert( !(compute_dRdW && compute_dRdX)
         &&  !(compute_dRdW && compute_d2R)
         &&  !(compute_dRdX && compute_d2R)
@@ -874,7 +875,7 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
     right_hand_side = 0;
 
     if (compute_dRdW) system_matrix = 0;
-    if (compute_dRdW) dRdXv = 0;
+    if (compute_dRdX) dRdXv = 0;
     if (compute_d2R) {
         d2RdWdW = 0;
         d2RdWdX = 0;
@@ -898,22 +899,40 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
 
     solution.update_ghost_values();
 
-    auto current_metric_cell = high_order_grid.dof_handler_grid.begin_active();
-    for (auto current_cell = dof_handler.begin_active(); current_cell != dof_handler.end(); ++current_cell, ++current_metric_cell) {
-        if (!current_cell->is_locally_owned()) continue;
+    try {
+        auto current_metric_cell = high_order_grid.dof_handler_grid.begin_active();
+        for (auto current_cell = dof_handler.begin_active(); current_cell != dof_handler.end(); ++current_cell, ++current_metric_cell) {
+            if (!current_cell->is_locally_owned()) continue;
 
-        // Add right-hand side contributions this cell can compute
-        assemble_cell_residual (
-            current_cell, 
-            current_metric_cell, 
-            compute_dRdW, compute_dRdX, compute_d2R,
-            fe_values_collection_volume,
-            fe_values_collection_face_int,
-            fe_values_collection_face_ext,
-            fe_values_collection_subface,
-            fe_values_collection_volume_lagrange,
-            right_hand_side);
-    } // end of cell loop
+            // Add right-hand side contributions this cell can compute
+            assemble_cell_residual (
+                current_cell, 
+                current_metric_cell, 
+                compute_dRdW, compute_dRdX, compute_d2R,
+                fe_values_collection_volume,
+                fe_values_collection_face_int,
+                fe_values_collection_face_ext,
+                fe_values_collection_subface,
+                fe_values_collection_volume_lagrange,
+                right_hand_side);
+        } // end of cell loop
+    } catch(...) {
+        if (compute_dRdW) {
+            right_hand_side *= 0.0;
+            right_hand_side.add(1.0);
+            const bool do_inverse_mass_matrix = false;
+            evaluate_mass_matrices (do_inverse_mass_matrix);
+            system_matrix.copy_from(global_mass_matrix);
+        }
+        //if (compute_dRdX) {
+        //    dRdXv.trilinos_matrix().
+        //}
+        //if (compute_d2R) {
+        //    d2RdWdW = 0;
+        //    d2RdWdX = 0;
+        //    d2RdXdX = 0;
+        //}
+    }
 
     right_hand_side.compress(dealii::VectorOperation::add);
     if ( compute_dRdW ) system_matrix.compress(dealii::VectorOperation::add);

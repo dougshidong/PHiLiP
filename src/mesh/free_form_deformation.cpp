@@ -429,14 +429,16 @@ FreeFormDeformation<dim>
         dealii::LinearAlgebra::distributed::Vector<double> derivative_surface_nodes_ffd_ctl;
         derivative_surface_nodes_ffd_ctl.reinit(high_order_grid.nodes);
 
-        auto surf_index = high_order_grid.surface_indices.begin();
-        auto surf_value = diff.begin();
+        high_order_grid.map_nodes_surf_to_vol.vmult(derivative_surface_nodes_ffd_ctl,diff);
 
-        for (; surf_index != high_order_grid.surface_indices.end(); ++surf_index, ++surf_value) {
-            derivative_surface_nodes_ffd_ctl[*surf_index] = *surf_value;
-        }
+        // auto surf_index = high_order_grid.surface_indices.begin();
+        // auto surf_value = diff.begin();
 
-        derivative_surface_nodes_ffd_ctl.update_ghost_values();
+        // for (; surf_index != high_order_grid.surface_indices.end(); ++surf_index, ++surf_value) {
+        //     derivative_surface_nodes_ffd_ctl[*surf_index] = *surf_value;
+        // }
+
+        // derivative_surface_nodes_ffd_ctl.update_ghost_values();
 
         dXsdXp_vector_FD.push_back(derivative_surface_nodes_ffd_ctl);
     }

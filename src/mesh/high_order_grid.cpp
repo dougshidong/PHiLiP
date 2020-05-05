@@ -1013,6 +1013,41 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_nodes() {
     surface_indices.update_ghost_values();
     surface_nodes.update_ghost_values();
 
+    update_map_nodes_surf_to_vol();
+}
+
+
+template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_map_nodes_surf_to_vol()
+{
+    const unsigned int n_rows = nodes.size();
+    const unsigned int n_cols = surface_nodes.size();
+
+    const dealii::IndexSet &row_part = nodes.get_partitioner()->locally_owned_range();
+    dealii::IndexSet locally_relevant_dofs;
+    dealii::DoFTools::extract_locally_relevant_dofs(dof_handler_grid, locally_relevant_dofs);
+
+    const dealii::IndexSet &col_part = surface_nodes.get_partitioner()->locally_owned_range();
+
+    dealii::DynamicSparsityPattern dsp(n_rows, n_cols, row_part);
+    for (unsigned int i_col = 0; i_col < n_cols; ++i_col) {
+        if (col_part.is_element(i_col)) {
+            const unsigned int i_row = surface_indices[i_col];
+            dsp.add(i_row, i_col);
+        }
+    }
+
+    dealii::SparsityTools::distribute_sparsity_pattern(dsp, row_part, mpi_communicator, locally_relevant_dofs);
+
+    map_nodes_surf_to_vol.reinit(row_part, col_part, dsp, mpi_communicator);
+
+    for (unsigned int i_col = 0; i_col < n_cols; ++i_col) {
+        if (col_part.is_element(i_col)) {
+            const unsigned int i_row = surface_indices[i_col];
+            map_nodes_surf_to_vol.set(i_row, i_col, 1.0);
+        }
+    }
+    map_nodes_surf_to_vol.compress(dealii::VectorOperation::insert);
 }
 
 

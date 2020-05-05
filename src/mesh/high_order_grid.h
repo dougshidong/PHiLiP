@@ -120,6 +120,16 @@ public:
      */
     dealii::LinearAlgebra::distributed::Vector<int> surface_indices;
 
+    /** Maps a vector of surface_nodes to a vector of nodes.
+     *  This is equivalent to using surface_indices to assign the surface_nodes values
+     *  into a vector of size nodes.size(), except that it uses a matrix-vector multiplication
+     *  to easily obtain the mapping.
+     */
+    dealii::TrilinosWrappers::SparseMatrix map_nodes_surf_to_vol;
+
+    /// Sets the initial_nodes and initial_surface_nodes to the current nodes and surface_nodes.
+    void update_map_nodes_surf_to_vol();
+
     /** Locally owned surface nodes dealii::IndexSet
      */
 	dealii::IndexSet locally_owned_surface_nodes_indexset;

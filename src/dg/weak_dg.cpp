@@ -569,7 +569,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
         if (compute_dRdW || compute_d2R) i_derivative++;
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        const real val = this->high_order_grid.nodes[metric_dof_indices[idof]];
+        const real val = this->high_order_grid.volume_nodes[metric_dof_indices[idof]];
         coords_coeff[idof] = val;
         coords_coeff[idof].val() = val;
 
@@ -908,7 +908,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
         if (compute_dRdW || compute_d2R) i_derivative++;
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        const real val = this->high_order_grid.nodes[metric_dof_indices_int[idof]];
+        const real val = this->high_order_grid.volume_nodes[metric_dof_indices_int[idof]];
         coords_coeff_int[idof] = val;
         coords_coeff_int[idof].val() = val;
 
@@ -917,7 +917,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
         if (compute_dRdX || compute_d2R) i_derivative++;
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        const real val = this->high_order_grid.nodes[metric_dof_indices_ext[idof]];
+        const real val = this->high_order_grid.volume_nodes[metric_dof_indices_ext[idof]];
         coords_coeff_ext[idof] = val;
         coords_coeff_ext[idof].val() = val;
 
@@ -1432,7 +1432,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
         if (compute_dRdW || compute_d2R) i_derivative++;
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        const real val = this->high_order_grid.nodes[metric_dof_indices[idof]];
+        const real val = this->high_order_grid.volume_nodes[metric_dof_indices[idof]];
         coords_coeff[idof] = val;
         coords_coeff[idof].val() = val;
 

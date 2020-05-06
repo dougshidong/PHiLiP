@@ -142,7 +142,7 @@ int main (int argc, char * argv[])
                     else has_invalid_poly = true;
                 }
             }
-            high_order_grid.nodes.update_ghost_values();
+            high_order_grid.volume_nodes.update_ghost_values();
             if (has_invalid_poly) std::abort();
         }
     }

@@ -147,7 +147,7 @@ public:
 /** Uses FFD to parametrize the geometry.
  *  An update on the simulation variables updates the DGBase object within the Functional
  *  and an update on the control variables updates the FreeFormDeformation object, which in
- *  turn, updates the DGBase.HighOrderGrid.nodes.
+ *  turn, updates the DGBase.HighOrderGrid.volume_nodes.
  */
 template <int dim, int nstate>
 class InverseObjective : public ROL::Objective_SimOpt<double> {
@@ -450,7 +450,7 @@ public:
         dealii::TrilinosWrappers::SparseMatrix dXvdXp;
         ffd.get_dXvdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
 
-        auto dXvdXp_input = dg->high_order_grid.nodes;
+        auto dXvdXp_input = dg->high_order_grid.volume_nodes;
 
         dXvdXp.vmult(dXvdXp_input, input_vector_v);
         dg->dRdXv.vmult(output_vector_v, dXvdXp_input);
@@ -489,7 +489,7 @@ public:
         const auto &input_vector_v = get_ROLvec_to_VectorType(input_vector);
         auto &output_vector_v = get_ROLvec_to_VectorType(output_vector);
 
-        auto input_dRdXv = dg->high_order_grid.nodes;
+        auto input_dRdXv = dg->high_order_grid.volume_nodes;
 
         dg->dRdXv.Tvmult(input_dRdXv, input_vector_v);
 
@@ -783,12 +783,12 @@ int EulerBumpOptimization<dim,nstate>
 
     const bool has_ownership = false;
     Teuchos::RCP<VectorType> des_var_sim_rcp = Teuchos::rcp(&dg->solution, has_ownership);
-    //Teuchos::RCP<VectorType> des_var_ctl_rcp = Teuchos::rcp(&dg->high_order_grid.nodes, has_ownership);
+    //Teuchos::RCP<VectorType> des_var_ctl_rcp = Teuchos::rcp(&dg->high_order_grid.volume_nodes, has_ownership);
     Teuchos::RCP<VectorType> des_var_ctl_rcp = Teuchos::rcp(&ffd_design_variables, has_ownership);
     dg->set_dual(dg->solution);
     Teuchos::RCP<VectorType> des_var_adj_rcp = Teuchos::rcp(&dg->dual, has_ownership);
 
-    VectorType gradient_nodes(dg->high_order_grid.nodes);
+    VectorType gradient_nodes(dg->high_order_grid.volume_nodes);
     {
         const bool compute_dIdW = true;
         const bool compute_dIdX = true;

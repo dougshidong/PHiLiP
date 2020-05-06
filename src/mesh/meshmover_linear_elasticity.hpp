@@ -38,7 +38,7 @@ namespace MeshMover
             const dealii::LinearAlgebra::distributed::Vector<int> &_boundary_ids_vector,
             const dealii::LinearAlgebra::distributed::Vector<double> &_boundary_displacements_vector);
 
-        /// Constructor that uses information from HighOrderGrid and uses current nodes from HighOrderGrid.
+        /// Constructor that uses information from HighOrderGrid and uses current volume_nodes from HighOrderGrid.
         LinearElasticity(
             const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
 			const dealii::LinearAlgebra::distributed::Vector<double> &boundary_displacements_vector);
@@ -57,7 +57,7 @@ namespace MeshMover
          *  Note that the right-hand-side is of size n_volume_nodes.
          *  If the right-hand-side are the surface node displacements indexed in a
          *  volume node vector, the result is a displacement vector of the volume
-         *  nodes (which include the prescribed surface nodes).
+         *  volume_nodes (which include the prescribed surface nodes).
          */
         void
         apply_dXvdXvs(std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &list_of_vectors, dealii::TrilinosWrappers::SparseMatrix &output_matrix);
@@ -72,7 +72,7 @@ namespace MeshMover
         /** Vector of vectors containing the dXvdXs sensititivies.
          *  The outer vector represents the current surface index, while the inner vectors
          *  is the size of the volume mesh. Those sensitivities are distributed among the processors
-         *  the same way the volume mesh nodes are distributed among the processors.
+         *  the same way the volume mesh volume_nodes are distributed among the processors.
          */
         //dealii::TrilinosWrappers::SparseMatrix dXvdXs;
         std::vector<dealii::LinearAlgebra::distributed::Vector<double>> dXvdXs;
@@ -140,11 +140,11 @@ namespace MeshMover
         dealii::IndexSet locally_owned_dofs; ///< Locally owned DoFs.
         dealii::IndexSet locally_relevant_dofs; ///< Locally relevant DoFs.
 
-        /** Global index of boundary nodes that need to be constrained.
+        /** Global index of boundary volume_nodes that need to be constrained.
          *  Note that typically all surface boundaries "need" to be constrained.
          */
         const dealii::LinearAlgebra::distributed::Vector<int> &boundary_ids_vector;
-        /** Displacement of boundary nodes corresponding to boundary_ids_vector.
+        /** Displacement of boundary volume_nodes corresponding to boundary_ids_vector.
          */
         const dealii::LinearAlgebra::distributed::Vector<double> &boundary_displacements_vector;
 

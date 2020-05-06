@@ -535,7 +535,7 @@ int main(int argc, char *argv[])
 
     dealii::LinearAlgebra::distributed::BlockVector<double> block_vector(3);
 	block_vector.block(0) = dg->solution;
-	block_vector.block(1) = dg->high_order_grid.nodes;
+	block_vector.block(1) = dg->high_order_grid.volume_nodes;
 	block_vector.block(2) = dummy_dual;
     dealii::LinearAlgebra::distributed::BlockVector<double> Hv(3);
     dealii::LinearAlgebra::distributed::BlockVector<double> Htv(3);

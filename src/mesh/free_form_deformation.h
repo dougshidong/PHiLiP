@@ -38,7 +38,7 @@ public:
     dealii::LinearAlgebra::distributed::Vector<double> 
     get_surface_displacement (const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid) const;
 
-    /// Deform HighOrderGrid using its initial nodes to retrieve the deformed set of nodes.
+    /// Deform HighOrderGrid using its initial volume_nodes to retrieve the deformed set of volume_nodes.
     void deform_mesh (HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid) const;
 
     /// Given an initial point in the undeformed initial parallepiped and the index a control point,

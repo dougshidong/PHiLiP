@@ -128,7 +128,7 @@ int test (
                 old_iw = dg->solution[iw];
             }
             if (jnode_relevant) {
-                old_jnode = dg->high_order_grid.nodes[jnode];
+                old_jnode = dg->high_order_grid.volume_nodes[jnode];
             }
             std::array<std::array<int, 2>, 25> pert;
             for (int i=-2; i<3; ++i) {
@@ -149,7 +149,7 @@ int test (
                         dg->solution[iw] = old_iw+i*EPS;
                     }
                     if (jnode_relevant) {
-                        dg->high_order_grid.nodes[jnode] = old_jnode+j*EPS;
+                        dg->high_order_grid.volume_nodes[jnode] = old_jnode+j*EPS;
                     }
                     dg->assemble_residual(false, false, false);
                     perturbed_dual_dot_residual[ij] = dg->right_hand_side * dg->dual;
@@ -158,7 +158,7 @@ int test (
                         dg->solution[iw] = old_iw;
                     }
                     if (jnode_relevant) {
-                        dg->high_order_grid.nodes[jnode] = old_jnode;
+                        dg->high_order_grid.volume_nodes[jnode] = old_jnode;
                     }
                 }
             }
@@ -223,7 +223,7 @@ int test (
                 dg->solution[iw] = old_iw;
             }
             if (jnode_relevant) {
-                dg->high_order_grid.nodes[jnode] = old_jnode;
+                dg->high_order_grid.volume_nodes[jnode] = old_jnode;
             }
 
             // Set

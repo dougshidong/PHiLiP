@@ -202,7 +202,7 @@ public:
     dealii::TrilinosWrappers::SparseMatrix system_matrix;
 
     /// System matrix corresponding to the derivative of the right_hand_side with
-    /// respect to the volume nodes Xv
+    /// respect to the volume volume_nodes Xv
     dealii::TrilinosWrappers::SparseMatrix dRdXv;
 
     /// System matrix corresponding to the second derivatives of the right_hand_side with
@@ -210,11 +210,11 @@ public:
     dealii::TrilinosWrappers::SparseMatrix d2RdWdW;
 
     /// System matrix corresponding to the second derivatives of the right_hand_side with
-    /// respect to the volume nodes
+    /// respect to the volume volume_nodes
     dealii::TrilinosWrappers::SparseMatrix d2RdXdX;
     //
     /// System matrix corresponding to the mixed second derivatives of the right_hand_side with
-    /// respect to the solution and the volume nodes
+    /// respect to the solution and the volume volume_nodes
     dealii::TrilinosWrappers::SparseMatrix d2RdWdX;
 
     /// Residual of the current solution
@@ -284,7 +284,7 @@ public:
     void set_dual(const dealii::LinearAlgebra::distributed::Vector<real> &dual_input);
 
     /// Evaluate SparsityPattern of dRdX
-    /*  Where R represents the residual and X represents the grid degrees of freedom stored as high_order_grid.nodes.
+    /*  Where R represents the residual and X represents the grid degrees of freedom stored as high_order_grid.volume_nodes.
      */
     dealii::SparsityPattern get_dRdX_sparsity_pattern ();
 
@@ -299,31 +299,31 @@ public:
     dealii::SparsityPattern get_d2RdWdW_sparsity_pattern ();
 
     /// Evaluate SparsityPattern of the residual Hessian dual.d2RdXdX
-    /*  Where R represents the residual and X represents the grid degrees of freedom stored as high_order_grid.nodes.
+    /*  Where R represents the residual and X represents the grid degrees of freedom stored as high_order_grid.volume_nodes.
      */
     dealii::SparsityPattern get_d2RdXdX_sparsity_pattern ();
 
     /// Evaluate SparsityPattern of the residual Hessian dual.d2RdXdW
-    /*  Where R represents the residual, W the solution DoF, and X represents the grid degrees of freedom stored as high_order_grid.nodes.
+    /*  Where R represents the residual, W the solution DoF, and X represents the grid degrees of freedom stored as high_order_grid.volume_nodes.
      */
     dealii::SparsityPattern get_d2RdWdX_sparsity_pattern ();
 
     /// Evaluate SparsityPattern of dRdXs
-    /*  Where R represents the residual and Xs represents the grid surface degrees of freedom stored as high_order_grid.nodes.
+    /*  Where R represents the residual and Xs represents the grid surface degrees of freedom stored as high_order_grid.volume_nodes.
      */
     dealii::SparsityPattern get_dRdXs_sparsity_pattern ();
     /// Evaluate SparsityPattern of the residual Hessian dual.d2RdXsdXs
-    /*  Where R represents the residual and Xs represents the grid surface degrees of freedom stored as high_order_grid.nodes.
+    /*  Where R represents the residual and Xs represents the grid surface degrees of freedom stored as high_order_grid.volume_nodes.
      */
     dealii::SparsityPattern get_d2RdXsdXs_sparsity_pattern ();
 
     /// Evaluate SparsityPattern of the residual Hessian dual.d2RdXsdW
-    /*  Where R represents the residual, W the solution DoF, and Xs represents the grid surface degrees of freedom stored as high_order_grid.nodes.
+    /*  Where R represents the residual, W the solution DoF, and Xs represents the grid surface degrees of freedom stored as high_order_grid.volume_nodes.
      */
     dealii::SparsityPattern get_d2RdWdXs_sparsity_pattern ();
 
     /// Evaluate dRdX using finite-differences
-    /*  Where R represents the residual and X represents the grid degrees of freedom stored as high_order_grid.nodes.
+    /*  Where R represents the residual and X represents the grid degrees of freedom stored as high_order_grid.volume_nodes.
      */
     dealii::TrilinosWrappers::SparseMatrix get_dRdX_finite_differences (dealii::SparsityPattern dRdX_sparsity_pattern);
 
@@ -513,7 +513,7 @@ protected:
     // const dealii::FESystem<dim,dim> fe_system;
     //
 
-    // /// QGauss is Gauss-Legendre quadrature nodes
+    // /// QGauss is Gauss-Legendre quadrature volume_nodes
     // dealii::QGauss<1>     oned_quadrature; // For the strong form
     // dealii::QGauss<dim>   volume_quadrature;
     // dealii::QGauss<dim-1> face_quadrature;

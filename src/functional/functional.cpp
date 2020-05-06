@@ -53,9 +53,9 @@ void Functional<dim,nstate,real>::set_state(const dealii::LinearAlgebra::distrib
 }
 
 template <int dim, int nstate, typename real>
-void Functional<dim,nstate,real>::set_geom(const dealii::LinearAlgebra::distributed::Vector<real> &nodes_set)
+void Functional<dim,nstate,real>::set_geom(const dealii::LinearAlgebra::distributed::Vector<real> &volume_nodes_set)
 {
-    dg->high_order_grid.nodes = nodes_set;
+    dg->high_order_grid.volume_nodes = volume_nodes_set;
 }
 
 template <int dim, int nstate, typename real>
@@ -311,7 +311,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
         metric_cell->get_dof_indices (cell_metric_dofs_indices);
         std::vector< ADADtype > coords_coeff(n_metric_dofs_cell);
         for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-            coords_coeff[idof] = dg->high_order_grid.nodes[cell_metric_dofs_indices[idof]];
+            coords_coeff[idof] = dg->high_order_grid.volume_nodes[cell_metric_dofs_indices[idof]];
         }
 
         // Setup automatic differentiation
@@ -325,7 +325,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
 			if (compute_dIdW || compute_d2I) soln_coeff[idof].diff(i_derivative++, n_total_indep);
 		}
 		for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-			const real val = dg->high_order_grid.nodes[cell_metric_dofs_indices[idof]];
+			const real val = dg->high_order_grid.volume_nodes[cell_metric_dofs_indices[idof]];
 			coords_coeff[idof] = val;
 			if (compute_dIdX || compute_d2I) coords_coeff[idof].diff(i_derivative++, n_total_indep);
         }
@@ -338,7 +338,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
 				soln_coeff[idof].val().diff(i_derivative++, n_total_indep);
 			}
             for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-				const real val = dg->high_order_grid.nodes[cell_metric_dofs_indices[idof]];
+				const real val = dg->high_order_grid.volume_nodes[cell_metric_dofs_indices[idof]];
 				coords_coeff[idof].val() = val;
 				coords_coeff[idof].val().diff(i_derivative++, n_total_indep);
             }
@@ -492,7 +492,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
         metric_cell->get_dof_indices (cell_metric_dofs_indices);
         std::vector<real> coords_coeff(n_metric_dofs_cell);
         for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-            coords_coeff[idof] = dg.high_order_grid.nodes[cell_metric_dofs_indices[idof]];
+            coords_coeff[idof] = dg.high_order_grid.volume_nodes[cell_metric_dofs_indices[idof]];
         }
 
         const dealii::Quadrature<dim> &volume_quadrature = dg.volume_quadrature_collection[i_quad];
@@ -610,7 +610,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
         metric_cell->get_dof_indices (cell_metric_dofs_indices);
         std::vector<real> coords_coeff(n_metric_dofs_cell);
         for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-            coords_coeff[idof] = dg.high_order_grid.nodes[cell_metric_dofs_indices[idof]];
+            coords_coeff[idof] = dg.high_order_grid.volume_nodes[cell_metric_dofs_indices[idof]];
         }
 
         const dealii::Quadrature<dim> &volume_quadrature = dg.volume_quadrature_collection[i_quad];
@@ -639,7 +639,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
         for(unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof){
             // for each dof copying the solution
             for(unsigned int idof2 = 0; idof2 < n_metric_dofs_cell; ++idof2){
-                coords_coeff[idof2] = dg.high_order_grid.nodes[cell_metric_dofs_indices[idof2]];
+                coords_coeff[idof2] = dg.high_order_grid.volume_nodes[cell_metric_dofs_indices[idof2]];
             }
             coords_coeff[idof] += stepsize;
 

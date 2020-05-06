@@ -234,7 +234,7 @@ std::vector<dealii::Tensor<1,dim,real>> FreeFormDeformation<dim>
 
 template<int dim>
 dealii::Point<dim,double> FreeFormDeformation<dim>
-::dXsdXp (const dealii::Point<dim,double> &initial_point, const unsigned int ctl_index, const unsigned int ctl_axis) const
+::dXdXp (const dealii::Point<dim,double> &initial_point, const unsigned int ctl_index, const unsigned int ctl_axis) const
 {
     assert(ctl_axis < dim);
     assert(ctl_index < n_control_pts);
@@ -247,11 +247,11 @@ dealii::Point<dim,double> FreeFormDeformation<dim>
 
     dealii::Point<dim, ADtype> new_point_ad = new_point_location(initial_point, control_pts_ad);
 
-    dealii::Point<dim,double> dXsdXp;
+    dealii::Point<dim,double> dXdXp;
     for (int d=0; d<dim; ++d) {
-        dXsdXp[d] = new_point_ad[d].dx(0);
+        dXdXp[d] = new_point_ad[d].dx(0);
     }
-    return dXsdXp;
+    return dXdXp;
 }
 
 template<int dim>
@@ -383,13 +383,13 @@ FreeFormDeformation<dim>
 template<int dim>
 std::vector<dealii::LinearAlgebra::distributed::Vector<double>>
 FreeFormDeformation<dim>
-::get_dXsdXp_FD (
+::get_dXvsdXp_FD (
     const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
     const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim,
     const double eps
     )
 {
-    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> dXsdXp_vector_FD;
+    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> dXvsdXp_vector_FD;
 
     for (auto const &ffd_pair: ffd_design_variables_indices_dim) {
 
@@ -440,20 +440,20 @@ FreeFormDeformation<dim>
 
         // derivative_surface_nodes_ffd_ctl.update_ghost_values();
 
-        dXsdXp_vector_FD.push_back(derivative_surface_nodes_ffd_ctl);
+        dXvsdXp_vector_FD.push_back(derivative_surface_nodes_ffd_ctl);
     }
-    return dXsdXp_vector_FD;
+    return dXvsdXp_vector_FD;
 }
 
 template<int dim>
 std::vector<dealii::LinearAlgebra::distributed::Vector<double>>
 FreeFormDeformation<dim>
-::get_dXsdXp (
+::get_dXvsdXp (
     const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
     const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim
     ) const
 {
-    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> dXsdXp_vector;
+    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> dXvsdXp_vector;
 
     const dealii::IndexSet &nodes_locally_owned = high_order_grid.nodes.get_partitioner()->locally_owned_range();
     for (auto const &ffd_pair: ffd_design_variables_indices_dim) {
@@ -466,7 +466,7 @@ FreeFormDeformation<dim>
         unsigned int ipoint = 0;
         for (auto const& surface_point: high_order_grid.initial_locally_relevant_surface_points) {
 
-            dealii::Point<dim,double> dxsdxp = dXsdXp (surface_point, ctl_index, ctl_axis);
+            dealii::Point<dim,double> dxsdxp = dXdXp (surface_point, ctl_index, ctl_axis);
 
             for (int d=0; d<dim; ++d) { 
                 const dealii::types::global_dof_index vol_index = high_order_grid.point_and_axis_to_global_index.at(std::make_pair(ipoint,(unsigned int)d));
@@ -479,10 +479,50 @@ FreeFormDeformation<dim>
         }
         derivative_surface_nodes_ffd_ctl.update_ghost_values();
 
-        dXsdXp_vector.push_back(derivative_surface_nodes_ffd_ctl);
+        dXvsdXp_vector.push_back(derivative_surface_nodes_ffd_ctl);
     }
-    return dXsdXp_vector;
+    return dXvsdXp_vector;
 }
+
+// template<int dim>
+// void
+// FreeFormDeformation<dim>
+// ::get_dXvsdXp (
+//     const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
+//     const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim
+//     std::vector<dealii::LinearAlgebra::distributed::Vector<double>>
+//     ) const
+// {
+//     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> dXvsdXp_vector;
+// 
+//     const dealii::IndexSet &nodes_locally_owned = high_order_grid.nodes.get_partitioner()->locally_owned_range();
+//     for (auto const &ffd_pair: ffd_design_variables_indices_dim) {
+// 
+//         const unsigned int ctl_index = ffd_pair.first;
+//         const unsigned int ctl_axis  = ffd_pair.second;
+// 
+//         dealii::LinearAlgebra::distributed::Vector<double> derivative_surface_nodes_ffd_ctl;
+//         derivative_surface_nodes_ffd_ctl.reinit(high_order_grid.nodes);
+//         unsigned int ipoint = 0;
+//         for (auto const& surface_point: high_order_grid.initial_locally_relevant_surface_points) {
+// 
+//             dealii::Point<dim,double> dxsdxp = dXdXp (surface_point, ctl_index, ctl_axis);
+// 
+//             for (int d=0; d<dim; ++d) { 
+//                 const dealii::types::global_dof_index vol_index = high_order_grid.point_and_axis_to_global_index.at(std::make_pair(ipoint,(unsigned int)d));
+//                 if (nodes_locally_owned.is_element(vol_index)) {
+//                     derivative_surface_nodes_ffd_ctl[vol_index] = dxsdxp[d];
+//                 }
+//             }
+// 
+//             ipoint++;
+//         }
+//         derivative_surface_nodes_ffd_ctl.update_ghost_values();
+// 
+//         dXvsdXp_vector.push_back(derivative_surface_nodes_ffd_ctl);
+//     }
+//     return dXvsdXp_vector;
+// }
 
 template<int dim>
 void
@@ -495,7 +535,7 @@ FreeFormDeformation<dim>
 {
     // const unsigned int n_design_var = ffd_design_variables_indices_dim.size();
 
-    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> dXsdXp_vector = get_dXsdXp(high_order_grid, ffd_design_variables_indices_dim);
+    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> dXvsdXp_vector = get_dXvsdXp(high_order_grid, ffd_design_variables_indices_dim);
 
     dealii::LinearAlgebra::distributed::Vector<double> surface_node_displacements(high_order_grid.surface_nodes);
     MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
@@ -506,7 +546,7 @@ FreeFormDeformation<dim>
           high_order_grid.surface_to_volume_indices,
           surface_node_displacements);
     //meshmover.evaluate_dXvdXs();
-    meshmover.apply_dXvdXs(dXsdXp_vector, dXvdXp);
+    meshmover.apply_dXvdXs(dXvsdXp_vector, dXvdXp);
 }
 
 template<int dim>

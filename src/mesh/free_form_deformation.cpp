@@ -469,6 +469,9 @@ FreeFormDeformation<dim>
             dealii::Point<dim,double> dxsdxp = dXdXp (surface_point, ctl_index, ctl_axis);
 
             for (int d=0; d<dim; ++d) { 
+                if ((unsigned int)d!=ctl_axis) {
+                    assert(dxsdxp[d] == 0.0);
+                }
                 const dealii::types::global_dof_index vol_index = high_order_grid.point_and_axis_to_global_index.at(std::make_pair(ipoint,(unsigned int)d));
                 if (nodes_locally_owned.is_element(vol_index)) {
                     derivative_surface_nodes_ffd_ctl[vol_index] = dxsdxp[d];
@@ -484,43 +487,63 @@ FreeFormDeformation<dim>
     return dXvsdXp_vector;
 }
 
-// template<int dim>
-// void
-// FreeFormDeformation<dim>
-// ::get_dXvsdXp (
-//     const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
-//     const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim
-//     dealii::TrilinosWrappers::SparseMatrix &dXvsdXp
-//     ) const
-// {
-//     const dealii::IndexSet &nodes_locally_owned = high_order_grid.volume_nodes.get_partitioner()->locally_owned_range();
-//     for (auto const &ffd_pair: ffd_design_variables_indices_dim) {
-// 
-//         const unsigned int ctl_index = ffd_pair.first;
-//         const unsigned int ctl_axis  = ffd_pair.second;
-// 
-//         dealii::LinearAlgebra::distributed::Vector<double> derivative_surface_nodes_ffd_ctl;
-//         derivative_surface_nodes_ffd_ctl.reinit(high_order_grid.volume_nodes);
-//         unsigned int ipoint = 0;
-//         for (auto const& surface_point: high_order_grid.initial_locally_relevant_surface_points) {
-// 
-//             dealii::Point<dim,double> dxsdxp = dXdXp (surface_point, ctl_index, ctl_axis);
-// 
-//             for (int d=0; d<dim; ++d) { 
-//                 const dealii::types::global_dof_index vol_index = high_order_grid.point_and_axis_to_global_index.at(std::make_pair(ipoint,(unsigned int)d));
-//                 if (nodes_locally_owned.is_element(vol_index)) {
-//                     derivative_surface_nodes_ffd_ctl[vol_index] = dxsdxp[d];
-//                 }
-//             }
-// 
-//             ipoint++;
-//         }
-//         derivative_surface_nodes_ffd_ctl.update_ghost_values();
-// 
-//         dXvsdXp_vector.push_back(derivative_surface_nodes_ffd_ctl);
-//     }
-//     return dXvsdXp_vector;
-// }
+template<int dim>
+void
+FreeFormDeformation<dim>
+::get_dXvsdXp (
+    const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
+    const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim,
+    dealii::TrilinosWrappers::SparseMatrix &dXvsdXp
+    ) const
+{
+    const unsigned int n_rows = high_order_grid.dof_handler_grid.n_dofs();
+    const unsigned int n_cols = ffd_design_variables_indices_dim.size();
+    const dealii::IndexSet &row_part = high_order_grid.dof_handler_grid.locally_owned_dofs();
+    const dealii::IndexSet col_part = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_cols);
+
+    dealii::DynamicSparsityPattern full_dsp(n_rows, n_cols, row_part);
+    for (const auto &i_row: row_part) {
+        for (unsigned int i_col = 0; i_col < n_cols; ++i_col) {
+            full_dsp.add(i_row, i_col);
+        }
+    }
+    dealii::IndexSet locally_relevant_dofs;
+    dealii::DoFTools::extract_locally_relevant_dofs(high_order_grid.dof_handler_grid, locally_relevant_dofs);
+    dealii::SparsityTools::distribute_sparsity_pattern(full_dsp, row_part, MPI_COMM_WORLD, locally_relevant_dofs);
+
+    dealii::SparsityPattern full_sp;
+    full_sp.copy_from(full_dsp);
+
+    dXvsdXp.reinit(row_part, col_part, full_sp, MPI_COMM_WORLD);
+
+
+    const dealii::IndexSet &nodes_locally_owned = high_order_grid.volume_nodes.get_partitioner()->locally_owned_range();
+    for (unsigned int i_col = 0; i_col < ffd_design_variables_indices_dim.size(); ++i_col) {
+
+        const auto ffd_pair = ffd_design_variables_indices_dim[i_col];
+        const unsigned int ctl_index = ffd_pair.first;
+        const unsigned int ctl_axis  = ffd_pair.second;
+
+        unsigned int ipoint = 0;
+        for (auto const& surface_point: high_order_grid.initial_locally_relevant_surface_points) {
+
+            dealii::Point<dim,double> dxsdxp = dXdXp (surface_point, ctl_index, ctl_axis);
+
+            for (int d=0; d<dim; ++d) { 
+                const dealii::types::global_dof_index vol_index = high_order_grid.point_and_axis_to_global_index.at(std::make_pair(ipoint,(unsigned int)d));
+                if (nodes_locally_owned.is_element(vol_index)) {
+                    dXvsdXp.set(vol_index,i_col, dxsdxp[d]);
+                }
+                if ((unsigned int)d!=ctl_axis) {
+                    assert(dxsdxp[d] == 0.0);
+                }
+            }
+
+            ipoint++;
+        }
+    }
+    dXvsdXp.compress(dealii::VectorOperation::insert);
+}
 
 template<int dim>
 void

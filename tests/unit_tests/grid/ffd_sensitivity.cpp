@@ -124,7 +124,11 @@ int main (int argc, char * argv[])
 
                 std::vector<dealii::LinearAlgebra::distributed::Vector<double>> dXvsdXp_vector_AD = ffd.get_dXvsdXp ( high_order_grid, ffd_design_variables_indices_dim );
                 std::vector<dealii::LinearAlgebra::distributed::Vector<double>> dXvsdXp_vector_FD = ffd.get_dXvsdXp_FD ( high_order_grid, ffd_design_variables_indices_dim, EPS );
+                dealii::TrilinosWrappers::SparseMatrix dXvsdXp_matrix;
+                ffd.get_dXvsdXp ( high_order_grid, ffd_design_variables_indices_dim, dXvsdXp_matrix );
 
+                double local_matrix_error = 0.0;
+                const auto &row_part = dXvsdXp_matrix.locally_owned_range_indices();
                 for (unsigned int i_design = 0; i_design < n_design_variables; ++i_design) {
                     auto diff = dXvsdXp_vector_AD[i_design];
                     diff -= dXvsdXp_vector_FD[i_design];
@@ -136,8 +140,20 @@ int main (int argc, char * argv[])
                     pcout << " dXvsdXp i: " << i_design << " error: " << rel_diff_norm << std::endl;
 
                     if (rel_diff_norm > 1e-4) fail_bool = true;
-                }
 
+
+                    for (const auto &row : row_part) {
+                        const double val_m = dXvsdXp_matrix.el(row,i_design);
+                        const double val_v = dXvsdXp_vector_AD[i_design][row];
+                        const double diff_mv = val_m - val_v;
+
+                        local_matrix_error += diff_mv*diff_mv;
+                    }
+                }
+                double matrix_abs_error = std::sqrt(dealii::Utilities::MPI::sum(local_matrix_error,MPI_COMM_WORLD));
+                double matrix_rel_error = matrix_abs_error / dXvsdXp_matrix.frobenius_norm();
+                pcout << " dXvsdXp_vector - dXvsdXp_matrix: " << matrix_rel_error << std::endl;
+                if (matrix_rel_error > 1e-12) fail_bool = true;
             }
         }
     }

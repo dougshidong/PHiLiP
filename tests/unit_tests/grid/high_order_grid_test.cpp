@@ -133,7 +133,7 @@ int main (int argc, char * argv[])
                 if (d==1) solution_names.push_back("y");
                 if (d==2) solution_names.push_back("z");
             }
-            data_out.add_data_vector(high_order_grid.nodes, solution_names);
+            data_out.add_data_vector(high_order_grid.volume_nodes, solution_names);
 
             const int iproc = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
             data_out.build_patches(*mapping, poly_degree, dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells);
@@ -164,12 +164,12 @@ int main (int argc, char * argv[])
 
 
             // Perform a mesh deformation
-            // This basically translates all the nodes by 1.0 in every direction
+            // This basically translates all the volume_nodes by 1.0 in every direction
             // This translation should not affect the volume estimate
-            for (auto dof = high_order_grid.nodes.begin(); dof != high_order_grid.nodes.end(); ++dof) {
+            for (auto dof = high_order_grid.volume_nodes.begin(); dof != high_order_grid.volume_nodes.end(); ++dof) {
                 *dof += 1.0;
             }
-            high_order_grid.nodes.update_ghost_values();
+            high_order_grid.volume_nodes.update_ghost_values();
             
             // This grid transformation is not necessary, it is simply to prove a point that once we use MappingFEField,
             // the Triangulation's vertices locations become irrelevant. All that matters is the cell to cell connectivity.
@@ -178,7 +178,7 @@ int main (int argc, char * argv[])
             // https://github.com/dealii/dealii/issues/8877#issuecomment-536831446
             
             // Weirdly enough, it does affect the p1 geometry discretization. Not sure why.
-            // It might be using some of the Triangulation's vertices instead of the MappingFEField nodes?
+            // It might be using some of the Triangulation's vertices instead of the MappingFEField volume_nodes?
             dealii::GridTools::transform(
                 [](const dealii::Point<dim> &old_point) -> dealii::Point<dim> {
                     dealii::Point<dim> new_point;

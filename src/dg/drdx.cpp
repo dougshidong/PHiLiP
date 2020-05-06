@@ -205,13 +205,13 @@ namespace PHiLiP {
 //            for (int icol=0; icol < n_cols; ++icol) {
 //                const int icol_glob = dRdX_sparsity_pattern.column_number(irow_glob, icol);
 //
-//                double old_node = high_order_grid.nodes[icol_glob];
+//                double old_node = high_order_grid.volume_nodes[icol_glob];
 //                double dx = cell_diameter * perturbation;
-//                double high_order_grid.nodes[icol_glob] += dx;
-//                high_order_grid.nodes.update_ghost_values();
+//                double high_order_grid.volume_nodes[icol_glob] += dx;
+//                high_order_grid.volume_nodes.update_ghost_values();
 //
-//                double high_order_grid.nodes[icol_glob] = old_node;
-//                high_order_grid.nodes.update_ghost_values();
+//                double high_order_grid.volume_nodes[icol_glob] = old_node;
+//                high_order_grid.volume_nodes.update_ghost_values();
 //            }
 //        }
 //

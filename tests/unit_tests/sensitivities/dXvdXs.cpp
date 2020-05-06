@@ -242,11 +242,11 @@ int main (int argc, char * argv[])
 
                 VectorType volume_displacements_p = meshmover_p.get_volume_displacements();
 
-                high_order_grid.nodes += volume_displacements_p;
-                high_order_grid.nodes.update_ghost_values();
+                high_order_grid.volume_nodes += volume_displacements_p;
+                high_order_grid.volume_nodes.update_ghost_values();
                 high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
-                high_order_grid.nodes -= volume_displacements_p;
-                high_order_grid.nodes.update_ghost_values();
+                high_order_grid.volume_nodes -= volume_displacements_p;
+                high_order_grid.volume_nodes.update_ghost_values();
                 high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
 
 

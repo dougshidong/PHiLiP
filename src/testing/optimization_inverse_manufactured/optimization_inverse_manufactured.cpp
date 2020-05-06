@@ -398,7 +398,7 @@ int OptimizationInverseManufactured<dim,nstate>
 			}
 		}
 	}
-	const auto initial_grid = high_order_grid.nodes;
+	const auto initial_grid = high_order_grid.volume_nodes;
 	// *****************************************************************************
 	// Obtain target grid
 	// *****************************************************************************
@@ -419,8 +419,8 @@ int OptimizationInverseManufactured<dim,nstate>
 		meshmover(high_order_grid, surface_node_displacements_vector);
 	VectorType volume_displacements = meshmover.get_volume_displacements();
 
-	high_order_grid.nodes += volume_displacements;
-	high_order_grid.nodes.update_ghost_values();
+	high_order_grid.volume_nodes += volume_displacements;
+	high_order_grid.volume_nodes.update_ghost_values();
     high_order_grid.update_surface_nodes();
 	//{
 	//	std::function<dealii::Point<dim>(dealii::Point<dim>)> reverse_transformation = reverse_deformation<dim>;
@@ -429,8 +429,8 @@ int OptimizationInverseManufactured<dim,nstate>
 	//	surface_node_displacements_vector.update_ghost_values();
 	//	volume_displacements = meshmover.get_volume_displacements();
 	//}
-	//high_order_grid.nodes += volume_displacements;
-	//high_order_grid.nodes.update_ghost_values();
+	//high_order_grid.volume_nodes += volume_displacements;
+	//high_order_grid.volume_nodes.update_ghost_values();
     //high_order_grid.update_surface_nodes();
 
 	// Get discrete solution on this target grid
@@ -441,9 +441,9 @@ int OptimizationInverseManufactured<dim,nstate>
 	std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 	ode_solver->steady_state();
 
-	// Save target solution and nodes
+	// Save target solution and volume_nodes
 	const auto target_solution = dg->solution;
-	const auto target_nodes    = high_order_grid.nodes;
+	const auto target_nodes    = high_order_grid.volume_nodes;
 
 	pcout << "Target grid: " << std::endl;
 	dg->output_results_vtk(9999);
@@ -485,12 +485,12 @@ int OptimizationInverseManufactured<dim,nstate>
 	//	surface_node_displacements_vector.update_ghost_values();
 	//	volume_displacements = meshmover.get_volume_displacements();
 	//}
-	//high_order_grid.nodes += volume_displacements;
-	//high_order_grid.nodes.update_ghost_values();
+	//high_order_grid.volume_nodes += volume_displacements;
+	//high_order_grid.volume_nodes.update_ghost_values();
     //high_order_grid.update_surface_nodes();
 	
-	high_order_grid.nodes = initial_grid;
-	high_order_grid.nodes.update_ghost_values();
+	high_order_grid.volume_nodes = initial_grid;
+	high_order_grid.volume_nodes.update_ghost_values();
     high_order_grid.update_surface_nodes();
 	pcout << "Initial grid: " << std::endl;
 	dg->output_results_vtk(9998);
@@ -513,7 +513,7 @@ int OptimizationInverseManufactured<dim,nstate>
 	pcout << "*************************************************************" << std::endl;
 	pcout << "Starting design... " << std::endl;
 	pcout << "Number of state variables: " << dg->dof_handler.n_dofs() << std::endl;
-	pcout << "Number of mesh nodes: " << high_order_grid.dof_handler_grid.n_dofs() << std::endl;
+	pcout << "Number of mesh volume_nodes: " << high_order_grid.dof_handler_grid.n_dofs() << std::endl;
 	pcout << "Number of constraints: " << dg->dof_handler.n_dofs() << std::endl;
 
 	const dealii::IndexSet surface_locally_owned_indexset = high_order_grid.surface_nodes.locally_owned_elements();
@@ -553,7 +553,7 @@ int OptimizationInverseManufactured<dim,nstate>
 	p4inv_kkt_rhs.reinit(kkt_rhs);
 
 	auto mesh_error = target_nodes;
-	mesh_error -= high_order_grid.nodes;
+	mesh_error -= high_order_grid.volume_nodes;
 
 	double current_functional = inverse_target_functional.current_functional_value;
 	double current_kkt_norm = kkt_rhs.l2_norm();
@@ -678,7 +678,7 @@ int OptimizationInverseManufactured<dim,nstate>
 		}
 
 		const auto old_solution = dg->solution;
-		const auto old_nodes = high_order_grid.nodes;
+		const auto old_volume_nodes = high_order_grid.volume_nodes;
 		const auto old_surface_nodes = high_order_grid.surface_nodes;
 		const auto old_functional = current_functional;
 
@@ -699,8 +699,8 @@ int OptimizationInverseManufactured<dim,nstate>
 			} else {
 
 				VectorType volume_displacements = meshmover.get_volume_displacements();
-				high_order_grid.nodes += volume_displacements;
-				high_order_grid.nodes.update_ghost_values();
+				high_order_grid.volume_nodes += volume_displacements;
+				high_order_grid.volume_nodes.update_ghost_values();
 				high_order_grid.update_surface_nodes();
 
 				ode_solver->steady_state();
@@ -723,8 +723,8 @@ int OptimizationInverseManufactured<dim,nstate>
 			}
 
 			dg->solution = old_solution;
-			high_order_grid.nodes = old_nodes;
-			high_order_grid.nodes.update_ghost_values();
+			high_order_grid.volume_nodes = old_volume_nodes;
+			high_order_grid.volume_nodes.update_ghost_values();
 			high_order_grid.update_surface_nodes();
 			step_length *= 0.5;
 		}
@@ -813,7 +813,7 @@ int OptimizationInverseManufactured<dim,nstate>
 		high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
 
 		mesh_error = target_nodes;
-		mesh_error -= high_order_grid.nodes;
+		mesh_error -= high_order_grid.volume_nodes;
 		current_kkt_norm = grad_lagrangian.l2_norm();
 		current_constraint_satisfaction = dg->right_hand_side.l2_norm();
 		current_mesh_error = mesh_error.l2_norm();
@@ -922,7 +922,7 @@ int OptimizationInverseManufactured<dim,nstate>
 	// 		}
 
 
-	// 		const dealii::IndexSet volume_locally_owned_indexset = high_order_grid.nodes.locally_owned_elements();
+	// 		const dealii::IndexSet volume_locally_owned_indexset = high_order_grid.volume_nodes.locally_owned_elements();
 	// 		dealii::TrilinosWrappers::MPI::Vector dXvdXs_i(volume_locally_owned_indexset);
 	// 		dealii::LinearAlgebra::ReadWriteVector<double> dXvdXs_i_rwv(volume_locally_owned_indexset);
 	// 		dXvdXs_i_rwv.import(meshmover.dXvdXs[isurf], dealii::VectorOperation::insert);
@@ -989,7 +989,7 @@ int OptimizationInverseManufactured<dim,nstate>
 
 	// 	kkt_soln = p4inv_kkt_rhs;
 	// 	const auto old_solution = dg->solution;
-	// 	const auto old_nodes = high_order_grid.nodes;
+	// 	const auto old_volume_nodes = high_order_grid.volume_nodes;
 	// 	const auto old_surface_nodes = high_order_grid.surface_nodes;
 	// 	const auto old_dual = dg->dual;
 	// 	auto dual_step = kkt_soln.block(2);
@@ -1015,8 +1015,8 @@ int OptimizationInverseManufactured<dim,nstate>
 	// 		surface_node_displacements_vector = kkt_soln.block(1);
 	// 		surface_node_displacements_vector *= step_length;
 	// 		VectorType volume_displacements = meshmover.get_volume_displacements();
-	// 		high_order_grid.nodes += volume_displacements;
-	// 		high_order_grid.nodes.update_ghost_values();
+	// 		high_order_grid.volume_nodes += volume_displacements;
+	// 		high_order_grid.volume_nodes.update_ghost_values();
 	// 		high_order_grid.update_surface_nodes();
 
 	// 		current_functional = inverse_target_functional.evaluate_functional();
@@ -1031,8 +1031,8 @@ int OptimizationInverseManufactured<dim,nstate>
 	// 			break;
 	// 		} else {
 	// 			dg->solution = old_solution;
-	// 			high_order_grid.nodes = old_nodes;
-	// 			high_order_grid.nodes.update_ghost_values();
+	// 			high_order_grid.volume_nodes = old_volume_nodes;
+	// 			high_order_grid.volume_nodes.update_ghost_values();
 	// 			high_order_grid.update_surface_nodes();
 	// 			step_length *= 0.5;
 	// 		}
@@ -1040,7 +1040,7 @@ int OptimizationInverseManufactured<dim,nstate>
 	// 	dg->dual.add(step_length, dual_step);
 	// 	if (i_linesearch == max_linesearch) return 1;
 
-	// 	high_order_grid.nodes.update_ghost_values();
+	// 	high_order_grid.volume_nodes.update_ghost_values();
 	// 	high_order_grid.update_surface_nodes();
 
 
@@ -1048,7 +1048,7 @@ int OptimizationInverseManufactured<dim,nstate>
 	// 	high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
 
 	// 	mesh_error = target_nodes;
-	// 	mesh_error -= high_order_grid.nodes;
+	// 	mesh_error -= high_order_grid.volume_nodes;
 	// 	current_kkt_norm = kkt_rhs.l2_norm();
 	// 	current_constraint_satisfaction = dg->right_hand_side.l2_norm();
 	// 	current_mesh_error = mesh_error.l2_norm();
@@ -1065,14 +1065,14 @@ int OptimizationInverseManufactured<dim,nstate>
 	// }
 
 	pcout << std::endl << std::endl << std::endl << std::endl;
-	// Make sure that if the nodes are located at the target nodes, then we recover our target functional
-	high_order_grid.nodes = target_nodes;
-	high_order_grid.nodes.update_ghost_values();
+	// Make sure that if the volume_nodes are located at the target volume_nodes, then we recover our target functional
+	high_order_grid.volume_nodes = target_nodes;
+	high_order_grid.volume_nodes.update_ghost_values();
     high_order_grid.update_surface_nodes();
 	// Solve on this new grid
 	ode_solver->steady_state();
     const double zero_l2_error = inverse_target_functional.evaluate_functional();
-	pcout << "Nodes at target nodes should have zero functional l2 error : " << zero_l2_error << std::endl;
+	pcout << "Nodes at target volume_nodes should have zero functional l2 error : " << zero_l2_error << std::endl;
 	if (zero_l2_error > 1e-10) return 1;
 
 	if (current_kkt_norm > kkt_tolerance) return 1;

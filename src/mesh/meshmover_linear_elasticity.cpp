@@ -446,13 +446,31 @@ namespace MeshMover {
         dealii::SolverCG<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
         dealii::TrilinosWrappers::PreconditionJacobi      precondition;
         precondition.initialize(system_matrix_unconstrained);
-        //precondition.initialize(system_matrix);
-        //solver.solve(system_matrix, trilinos_solution, system_rhs, precondition);
-
-        //all_constraints.distribute(trilinos_solution);
 
         /// The use of the constrained linear operator is heavily discussed in:
         /// https://www.dealii.org/current/doxygen/deal.II/group__constraints.html
+        /// Given affine constraints such that x = C y + k
+        /// where C describes the homogeneous part of the linear constraints stored in an AffineConstraints object
+        /// and the vector k is the vector of corresponding inhomogeneities
+        ///
+        /// Eg. Dirichlet BC's would have zero-rows in C and non-zero rows in k
+        /// and hanging-nodes would be linearly constrained through non-zero rows within C.
+        ///
+        /// 1.  (Ct A_unconstrained C + Id_c) y = Ct (b - Ak)
+        /// 2.  x = C y + k
+        ///
+        /// b are the forces, which == 0
+        /// k are the inhomogeneous
+        /// Id_c Identity on the subspace of constrained degrees of freedom.
+        /// 
+        /// The above steps 1. and 2. solve the real constrained system A_constrained x = b_constrained
+        /// Although possible to assemble and solve, we will be interested in the derivative with respect
+        /// to the inhomogeneity vector k, which is more easily recoverable through formulation 1. and 2.,
+        /// than the assembly of the constrained system.
+        ///
+        /// y = - inverse(Ct A_unconstrained C + Id_c) Ct A k
+        /// x = - C inverse(Ct A_unconstrained C + Id_c) Ct A k + k
+        /// dx/dk = - C inverse(Ct A_unconstrained C + Id_c) Ct A + I
         using trilinos_vector_type = dealii::LinearAlgebra::distributed::Vector<double>;
         using payload_type = dealii::TrilinosWrappers::internal::LinearOperatorImplementation::TrilinosPayload;
         const auto op_a = dealii::linear_operator<trilinos_vector_type,trilinos_vector_type,payload_type>(system_matrix_unconstrained);

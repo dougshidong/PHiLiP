@@ -411,7 +411,7 @@ namespace MeshMover {
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
     void
     LinearElasticity<dim,real,VectorType,DoFHandlerType>
-    ::apply_dXvdXs(
+    ::apply_dXvdXvs(
         std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &list_of_vectors,
         dealii::TrilinosWrappers::SparseMatrix &output_matrix)
     {
@@ -520,7 +520,7 @@ namespace MeshMover {
             unit_rhs_vector.push_back(unit_rhs);
         }
         dealii::TrilinosWrappers::SparseMatrix dXvdXs_matrix;
-        apply_dXvdXs(unit_rhs_vector, dXvdXs_matrix);
+        apply_dXvdXvs(unit_rhs_vector, dXvdXs_matrix);
     }
 
     // template <int dim, typename real, typename VectorType , typename DoFHandlerType>

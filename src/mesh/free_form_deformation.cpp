@@ -490,11 +490,9 @@ FreeFormDeformation<dim>
 // ::get_dXvsdXp (
 //     const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
 //     const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim
-//     std::vector<dealii::LinearAlgebra::distributed::Vector<double>>
+//     dealii::TrilinosWrappers::SparseMatrix &dXvsdXp
 //     ) const
 // {
-//     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> dXvsdXp_vector;
-// 
 //     const dealii::IndexSet &nodes_locally_owned = high_order_grid.nodes.get_partitioner()->locally_owned_range();
 //     for (auto const &ffd_pair: ffd_design_variables_indices_dim) {
 // 
@@ -546,7 +544,7 @@ FreeFormDeformation<dim>
           high_order_grid.surface_to_volume_indices,
           surface_node_displacements);
     //meshmover.evaluate_dXvdXs();
-    meshmover.apply_dXvdXs(dXvsdXp_vector, dXvdXp);
+    meshmover.apply_dXvdXvs(dXvsdXp_vector, dXvdXp);
 }
 
 template<int dim>

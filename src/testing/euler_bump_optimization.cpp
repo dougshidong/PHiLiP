@@ -179,15 +179,22 @@ public:
   }
 
   using ROL::Objective_SimOpt<double>::value;
+  using ROL::Objective_SimOpt<double>::update;
 
-  /// Returns the value of the Functional object.
-  double value( const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) override {
+  void update( const ROL_Vector &des_var_sim, const ROL_Vector &des_var_ctl, bool flag = true, int iter = -1) override
+  {
+      (void) flag; (void) iter;
       functional.set_state(get_ROLvec_to_VectorType(des_var_sim));
-      // functional.set_geom(get_ROLvec_to_VectorType(des_var_ctl));
 
       ffd_des_var =  get_ROLvec_to_VectorType(des_var_ctl);
       ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_des_var);
       ffd.deform_mesh(functional.dg->high_order_grid);
+  }
+
+
+  /// Returns the value of the Functional object.
+  double value( const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) override {
+      update(des_var_sim, des_var_ctl);
 
       const bool compute_dIdW = false;
       const bool compute_dIdX = false;
@@ -197,12 +204,7 @@ public:
 
   /// Returns the gradient w.\ r.\ t.\ the simulation variables of the Functional object.
   void gradient_1( ROL_Vector& g, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) override {
-      functional.set_state(get_ROLvec_to_VectorType(des_var_sim));
-      // functional.set_geom(get_ROLvec_to_VectorType(des_var_ctl));
-
-      ffd_des_var =  get_ROLvec_to_VectorType(des_var_ctl);
-      ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_des_var);
-      ffd.deform_mesh(functional.dg->high_order_grid);
+      update(des_var_sim, des_var_ctl);
 
       const bool compute_dIdW = true;
       const bool compute_dIdX = false;
@@ -214,12 +216,7 @@ public:
 
   /// Returns the gradient w.\ r.\ t.\ the control variables of the Functional object.
   void gradient_2( ROL_Vector& g, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) override {
-      functional.set_state(get_ROLvec_to_VectorType(des_var_sim));
-      //functional.set_geom(get_ROLvec_to_VectorType(des_var_ctl));
-
-      ffd_des_var =  get_ROLvec_to_VectorType(des_var_ctl);
-      ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_des_var);
-      ffd.deform_mesh(functional.dg->high_order_grid);
+      update(des_var_sim, des_var_ctl);
 
       const bool compute_dIdW = false;
       const bool compute_dIdX = true;
@@ -236,20 +233,79 @@ public:
 
   }
 
-  // void hessVec_11( ROL_Vector& hv, const ROL_Vector& v, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) {
-  //   hv.set(*w);  hv.scale(w->dot(v));
+  // void hessVec_11( ROL_Vector& output_vector, const ROL_Vector& input_vector, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) {
+  //     update(des_var_sim, des_var_ctl);
+
+  //     const bool compute_dIdW = false;
+  //     const bool compute_dIdX = false;
+  //     const bool compute_d2I = true;
+  //     functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
+
+  //     const auto &v = get_ROLvec_to_VectorType(input_vector);
+  //     auto &hv = get_ROLvec_to_VectorType(output_vector);
+
+  //     functional.d2IdWdW.vmult(hv, v);
   // }
 
-  // void hessVec_12( ROL_Vector& hv, const ROL_Vector& v, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) {
-  //   hv.zero();
+  // void hessVec_12( ROL_Vector& output_vector, const ROL_Vector& input_vector, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) {
+  //     update(des_var_sim, des_var_ctl);
+
+  //     const bool compute_dIdW = false;
+  //     const bool compute_dIdX = false;
+  //     const bool compute_d2I = true;
+  //     functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
+
+  //     const auto &v = get_ROLvec_to_VectorType(input_vector);
+  //     auto &hv = get_ROLvec_to_VectorType(output_vector);
+
+  //     auto dXvdXp_input = functional.dg->high_order_grid.volume_nodes;
+
+  //     dealii::TrilinosWrappers::SparseMatrix dXvdXp;
+  //     ffd.get_dXvdXp (functional.dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
+  //     dXvdXp.vmult(dXvdXp_input, v);
+  //     functional.d2IdWdX.vmult(hv, dXvdXp_input);
   // }
 
-  // void hessVec_21( ROL_Vector& hv, const ROL_Vector& v, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) {
-  //   hv.zero();
+  // void hessVec_21( ROL_Vector& output_vector, const ROL_Vector& input_vector, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) {
+  //     update(des_var_sim, des_var_ctl);
+
+  //     const bool compute_dIdW = false;
+  //     const bool compute_dIdX = false;
+  //     const bool compute_d2I = true;
+  //     functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
+
+  //     const auto &v = get_ROLvec_to_VectorType(input_vector);
+  //     auto &hv = get_ROLvec_to_VectorType(output_vector);
+
+  //     auto d2IdXdW_input = functional.dg->high_order_grid.volume_nodes;
+  //     functional.d2IdWdX.Tvmult(d2IdXdW_input, v);
+
+  //     dealii::TrilinosWrappers::SparseMatrix dXvdXp;
+  //     ffd.get_dXvdXp (functional.dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
+  //     dXvdXp.Tvmult(hv, d2IdXdW_input);
   // }
 
-  // void hessVec_22( ROL_Vector& hv, const ROL_Vector& v, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) {
-  //   hv.set(v);  hv.scale(alpha*dt);
+  // void hessVec_22( ROL_Vector& output_vector, const ROL_Vector& input_vector, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) {
+  //     update(des_var_sim, des_var_ctl);
+
+  //     const bool compute_dIdW = false;
+  //     const bool compute_dIdX = false;
+  //     const bool compute_d2I = true;
+  //     functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
+
+  //     const auto &v = get_ROLvec_to_VectorType(input_vector);
+  //     auto &hv = get_ROLvec_to_VectorType(output_vector);
+
+  //     dealii::TrilinosWrappers::SparseMatrix dXvdXp;
+  //     ffd.get_dXvdXp (functional.dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
+
+  //     auto dXvdXp_input = functional.dg->high_order_grid.volume_nodes;
+  //     dXvdXp.vmult(dXvdXp_input, v);
+
+  //     auto d2IdXdX_dXvdXp_input = functional.dg->high_order_grid.volume_nodes;
+  //     functional.d2IdXdX.vmult(d2IdXdX_dXvdXp_input, dXvdXp_input);
+
+  //     dXvdXp.Tvmult(hv, d2IdXdX_dXvdXp_input);
   // }
 }; // InverseObjective
 
@@ -444,9 +500,6 @@ public:
         const auto &input_vector_v = get_ROLvec_to_VectorType(input_vector);
         auto &output_vector_v = get_ROLvec_to_VectorType(output_vector);
 
-        (void) input_vector_v;
-        (void) output_vector_v;
-
         dealii::TrilinosWrappers::SparseMatrix dXvdXp;
         ffd.get_dXvdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
 
@@ -480,11 +533,6 @@ public:
 
         const bool compute_dRdW=false; const bool compute_dRdX=true; const bool compute_d2R=false;
         dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
-        //dealii::TrilinosWrappers::SparseMatrix dRdX_matrix_transpose;
-        //Epetra_CrsMatrix *dRdX_transpose_tril;
-        //Epetra_RowMatrixTransposer epmt( const_cast<Epetra_CrsMatrix *>( &( dg->dRdXv.trilinos_matrix() ) ) );
-        //epmt.CreateTranspose(false, dRdX_transpose_tril);
-        //dRdX_matrix_transpose.reinit(*dRdX_transpose_tril);
 
         const auto &input_vector_v = get_ROLvec_to_VectorType(input_vector);
         auto &output_vector_v = get_ROLvec_to_VectorType(output_vector);
@@ -497,82 +545,234 @@ public:
         ffd.get_dXvdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
 
         dXvdXp.Tvmult(output_vector_v, input_dRdXv);
+
     }
 
-    // void applyAdjointHessian_11 ( ROL_Vector &output_vector,
-    //                               const ROL_Vector &dual,
-    //                               const ROL_Vector &input_vector,
-    //                               const ROL_Vector &des_var_sim,
-    //                               const ROL_Vector &des_var_ctl,
-    //                               double &tol) override
-    // {
-    //     (void) tol;
-    //     dg->set_dual(get_ROLvec_to_VectorType(dual));
-    //     dg->dual.update_ghost_values();
-    //     update_1(des_var_sim);
-    //     update_2(des_var_ctl);
+    void applyAdjointHessian_11 ( ROL_Vector &output_vector,
+                                  const ROL_Vector &dual,
+                                  const ROL_Vector &input_vector,
+                                  const ROL_Vector &des_var_sim,
+                                  const ROL_Vector &des_var_ctl,
+                                  double &tol) override
+    {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
+        (void) tol;
+        dg->set_dual(get_ROLvec_to_VectorType(dual));
+        dg->dual.update_ghost_values();
+        update_1(des_var_sim);
+        update_2(des_var_ctl);
 
-    //     const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
-    //     dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
-    //     dg->d2RdWdW.vmult(get_ROLvec_to_VectorType(output_vector), get_ROLvec_to_VectorType(input_vector));
-    // }
+        const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+        dg->d2RdWdW.vmult(get_ROLvec_to_VectorType(output_vector), get_ROLvec_to_VectorType(input_vector));
+    }
 
-    // void applyAdjointHessian_12 ( ROL_Vector &output_vector,
-    //                               const ROL_Vector &dual,
-    //                               const ROL_Vector &input_vector,
-    //                               const ROL_Vector &des_var_sim,
-    //                               const ROL_Vector &des_var_ctl,
-    //                               double &tol) override
-    // {
-    //     (void) tol;
-    //     dg->set_dual(get_ROLvec_to_VectorType(dual));
-    //     dg->dual.update_ghost_values();
-    //     update_1(des_var_sim);
-    //     update_2(des_var_ctl);
+    void applyAdjointHessian_12 ( ROL_Vector &output_vector,
+                                  const ROL_Vector &dual,
+                                  const ROL_Vector &input_vector,
+                                  const ROL_Vector &des_var_sim,
+                                  const ROL_Vector &des_var_ctl,
+                                  double &tol) override
+    {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
+        (void) tol;
+        update_1(des_var_sim);
+        update_2(des_var_ctl);
 
-    //     const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
-    //     dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
-    //     dg->d2RdWdX.Tvmult(get_ROLvec_to_VectorType(output_vector), get_ROLvec_to_VectorType(input_vector));
+        const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
+        dg->set_dual(get_ROLvec_to_VectorType(dual));
+        dg->dual.update_ghost_values();
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
 
-    //     dealii::TrilinosWrappers::SparseMatrix dXvdXp;
-    //     ffd.get_dXvdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
-    // }
+        const auto &input_vector_v = get_ROLvec_to_VectorType(input_vector);
+        auto &output_vector_v = get_ROLvec_to_VectorType(output_vector);
 
-    // void applyAdjointHessian_21 ( ROL_Vector &output_vector,
-    //                               const ROL_Vector &dual,
-    //                               const ROL_Vector &input_vector,
-    //                               const ROL_Vector &des_var_sim,
-    //                               const ROL_Vector &des_var_ctl,
-    //                               double &tol) override
-    // {
-    //     (void) tol;
-    //     dg->set_dual(get_ROLvec_to_VectorType(dual));
-    //     dg->dual.update_ghost_values();
-    //     update_1(des_var_sim);
-    //     update_2(des_var_ctl);
+        auto d2RdXdW_input = dg->high_order_grid.volume_nodes;
+        dg->d2RdWdX.Tvmult(d2RdXdW_input, input_vector_v);
 
-    //     const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
-    //     dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
-    //     dg->d2RdWdX.Tvmult(get_ROLvec_to_VectorType(output_vector), get_ROLvec_to_VectorType(input_vector));
-    // }
+        dealii::TrilinosWrappers::SparseMatrix dXvdXp;
+        ffd.get_dXvdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
+        dXvdXp.Tvmult(output_vector_v, d2RdXdW_input);
+    }
 
-    // void applyAdjointHessian_22 ( ROL_Vector &output_vector,
-    //                               const ROL_Vector &dual,
-    //                               const ROL_Vector &input_vector,
-    //                               const ROL_Vector &des_var_sim,
-    //                               const ROL_Vector &des_var_ctl,
-    //                               double &tol) override
-    // {
-    //     (void) tol;
-    //     dg->set_dual(get_ROLvec_to_VectorType(dual));
-    //     dg->dual.update_ghost_values();
-    //     update_1(des_var_sim);
-    //     update_2(des_var_ctl);
+    void applyAdjointHessian_21 ( ROL_Vector &output_vector,
+                                  const ROL_Vector &dual,
+                                  const ROL_Vector &input_vector,
+                                  const ROL_Vector &des_var_sim,
+                                  const ROL_Vector &des_var_ctl,
+                                  double &tol) override
+    {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
+        (void) tol;
+        update_1(des_var_sim);
+        update_2(des_var_ctl);
 
-    //     const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
-    //     dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
-    //     dg->d2RdXdX.vmult(get_ROLvec_to_VectorType(output_vector), get_ROLvec_to_VectorType(input_vector));
-    // }
+        const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
+        dg->set_dual(get_ROLvec_to_VectorType(dual));
+        dg->dual.update_ghost_values();
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+
+        const auto &input_vector_v = get_ROLvec_to_VectorType(input_vector);
+        auto &output_vector_v = get_ROLvec_to_VectorType(output_vector);
+
+        auto dXvdXp_input = dg->high_order_grid.volume_nodes;
+        dealii::TrilinosWrappers::SparseMatrix dXvdXp;
+        ffd.get_dXvdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
+        assert(input_vector_v.size() == dXvdXp.n());
+        assert(dXvdXp_input.size() == dXvdXp.m());
+        dXvdXp.vmult(dXvdXp_input, input_vector_v);
+
+        dg->d2RdWdX.vmult(output_vector_v, dXvdXp_input);
+    }
+
+
+    void applyAdjointHessian_22 ( ROL_Vector &output_vector,
+                                  const ROL_Vector &dual,
+                                  const ROL_Vector &input_vector,
+                                  const ROL_Vector &des_var_sim,
+                                  const ROL_Vector &des_var_ctl,
+                                  double &tol) override
+    {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
+        (void) tol;
+
+        update_1(des_var_sim);
+        update_2(des_var_ctl);
+
+        const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
+        dg->set_dual(get_ROLvec_to_VectorType(dual));
+        dg->dual.update_ghost_values();
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+
+        const auto &input_vector_v = get_ROLvec_to_VectorType(input_vector);
+        auto &output_vector_v = get_ROLvec_to_VectorType(output_vector);
+
+        dealii::TrilinosWrappers::SparseMatrix dXvdXp;
+        ffd.get_dXvdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
+
+        auto dXvdXp_input = dg->high_order_grid.volume_nodes;
+        dXvdXp.vmult(dXvdXp_input, input_vector_v);
+
+        auto d2RdXdX_dXvdXp_input = dg->high_order_grid.volume_nodes;
+        dg->d2RdXdX.vmult(d2RdXdX_dXvdXp_input, dXvdXp_input);
+
+        ffd.get_dXvdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
+        dXvdXp.Tvmult(output_vector_v, d2RdXdX_dXvdXp_input);
+
+    }
+
+    void applyAdjointMyHessian_11 ( ROL_Vector &output_vector,
+                                  const ROL_Vector &dual,
+                                  const ROL_Vector &input_vector,
+                                  const ROL_Vector &des_var_sim,
+                                  const ROL_Vector &des_var_ctl,
+                                  double &tol) 
+    {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
+        (void) tol;
+        dg->set_dual(get_ROLvec_to_VectorType(dual));
+        dg->dual.update_ghost_values();
+        update_1(des_var_sim);
+        update_2(des_var_ctl);
+
+        const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+        dg->d2RdWdW.vmult(get_ROLvec_to_VectorType(output_vector), get_ROLvec_to_VectorType(input_vector));
+    }
+
+    void applyAdjointMyHessian_12 ( ROL_Vector &output_vector,
+                                  const ROL_Vector &dual,
+                                  const ROL_Vector &input_vector,
+                                  const ROL_Vector &des_var_sim,
+                                  const ROL_Vector &des_var_ctl,
+                                  double &tol) 
+    {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
+        (void) tol;
+        update_1(des_var_sim);
+        update_2(des_var_ctl);
+
+        const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
+        dg->set_dual(get_ROLvec_to_VectorType(dual));
+        dg->dual.update_ghost_values();
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+
+        const auto &input_vector_v = get_ROLvec_to_VectorType(input_vector);
+        auto &output_vector_v = get_ROLvec_to_VectorType(output_vector);
+
+        auto d2RdXdW_input = dg->high_order_grid.volume_nodes;
+        dg->d2RdWdX.Tvmult(d2RdXdW_input, input_vector_v);
+
+        dealii::TrilinosWrappers::SparseMatrix dXvdXp;
+        ffd.get_dXvdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
+        dXvdXp.Tvmult(output_vector_v, d2RdXdW_input);
+    }
+
+    void applyAdjointMyHessian_21 ( ROL_Vector &output_vector,
+                                  const ROL_Vector &dual,
+                                  const ROL_Vector &input_vector,
+                                  const ROL_Vector &des_var_sim,
+                                  const ROL_Vector &des_var_ctl,
+                                  double &tol) 
+    {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
+        (void) tol;
+        update_1(des_var_sim);
+        update_2(des_var_ctl);
+
+        const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
+        dg->set_dual(get_ROLvec_to_VectorType(dual));
+        dg->dual.update_ghost_values();
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+
+        const auto &input_vector_v = get_ROLvec_to_VectorType(input_vector);
+        auto &output_vector_v = get_ROLvec_to_VectorType(output_vector);
+
+        auto dXvdXp_input = dg->high_order_grid.volume_nodes;
+        dealii::TrilinosWrappers::SparseMatrix dXvdXp;
+        ffd.get_dXvdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
+        assert(input_vector_v.size() == dXvdXp.n());
+        assert(dXvdXp_input.size() == dXvdXp.m());
+        dXvdXp.vmult(dXvdXp_input, input_vector_v);
+
+        dg->d2RdWdX.vmult(output_vector_v, dXvdXp_input);
+    }
+
+
+    void applyAdjointMyHessian_22 ( ROL_Vector &output_vector,
+                                  const ROL_Vector &dual,
+                                  const ROL_Vector &input_vector,
+                                  const ROL_Vector &des_var_sim,
+                                  const ROL_Vector &des_var_ctl,
+                                  double &tol) 
+    {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
+        (void) tol;
+
+        update_1(des_var_sim);
+        update_2(des_var_ctl);
+
+        const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
+        dg->set_dual(get_ROLvec_to_VectorType(dual));
+        dg->dual.update_ghost_values();
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+
+        const auto &input_vector_v = get_ROLvec_to_VectorType(input_vector);
+        auto &output_vector_v = get_ROLvec_to_VectorType(output_vector);
+
+        dealii::TrilinosWrappers::SparseMatrix dXvdXp;
+        ffd.get_dXvdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
+
+        auto dXvdXp_input = dg->high_order_grid.volume_nodes;
+        dXvdXp.vmult(dXvdXp_input, input_vector_v);
+
+        auto d2RdXdX_dXvdXp_input = dg->high_order_grid.volume_nodes;
+        dg->d2RdXdX.vmult(d2RdXdX_dXvdXp_input, dXvdXp_input);
+
+        ffd.get_dXvdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
+        dXvdXp.Tvmult(output_vector_v, d2RdXdX_dXvdXp_input);
+
+    }
 
 
 
@@ -782,11 +982,13 @@ int EulerBumpOptimization<dim,nstate>
     BoundaryInverseTarget1<dim,nstate,double> functional(dg, target_solution, true, true);
 
     const bool has_ownership = false;
-    Teuchos::RCP<VectorType> des_var_sim_rcp = Teuchos::rcp(&dg->solution, has_ownership);
-    //Teuchos::RCP<VectorType> des_var_ctl_rcp = Teuchos::rcp(&dg->high_order_grid.volume_nodes, has_ownership);
-    Teuchos::RCP<VectorType> des_var_ctl_rcp = Teuchos::rcp(&ffd_design_variables, has_ownership);
+    auto des_var_sim = dg->solution;
+    auto des_var_ctl = ffd_design_variables;
+    auto des_var_adj = dg->dual;
+    Teuchos::RCP<VectorType> des_var_sim_rcp = Teuchos::rcp(&des_var_sim, has_ownership);
+    Teuchos::RCP<VectorType> des_var_ctl_rcp = Teuchos::rcp(&des_var_ctl, has_ownership);
+    Teuchos::RCP<VectorType> des_var_adj_rcp = Teuchos::rcp(&des_var_adj, has_ownership);
     dg->set_dual(dg->solution);
-    Teuchos::RCP<VectorType> des_var_adj_rcp = Teuchos::rcp(&dg->dual, has_ownership);
 
     VectorType gradient_nodes(dg->high_order_grid.volume_nodes);
     {
@@ -857,7 +1059,8 @@ int EulerBumpOptimization<dim,nstate>
     auto obj  = ROL::makePtr<InverseObjective<dim,nstate>>( functional, ffd, ffd_design_variables_indices_dim );
     auto con  = ROL::makePtr<FlowConstraint<dim>>(dg,ffd,ffd_design_variables_indices_dim);
     auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p );
-    const bool full_space = true;
+    //const bool full_space = true;
+    const bool full_space = false;
     ROL::OptimizationProblem<double> opt;
     // Set parameters.
     Teuchos::ParameterList parlist;
@@ -910,9 +1113,7 @@ int EulerBumpOptimization<dim,nstate>
         ROL::EProblem problemType = opt.getProblemType();
         std::cout << ROL::EProblemToString(problemType) << std::endl;
 
-        {
-            opt.check(*outStream);
-        }
+        const auto des_var_p = ROL::makePtr<ROL::Vector_SimOpt<double>>(des_var_sim_rol_p, des_var_ctl_rol_p);
         {
             const auto u = des_var_sim_rol_p->clone();
             const auto z = des_var_ctl_rol_p->clone();
@@ -920,11 +1121,17 @@ int EulerBumpOptimization<dim,nstate>
             const auto jv = v->clone();
 
             std::vector<double> steps;
-            for (int i = -4; i > -6; i--) {
+            for (int i = -2; i > -9; i--) {
                 steps.push_back(std::pow(10,i));
             }
             const int order = 2;
+            *outStream << "con->checkApplyJacobian_1..." << std::endl;
             con->checkApplyJacobian_1(*u, *z, *v, *jv, steps, true, *outStream, order);
+
+            const auto direction = des_var_p->clone();
+            *outStream << "obj->checkGradient..." << std::endl;
+            obj->checkGradient( *des_var_p, *direction, steps, true, *outStream, order);
+
         }
         {
             const auto u = des_var_sim_rol_p->clone();
@@ -933,12 +1140,68 @@ int EulerBumpOptimization<dim,nstate>
             const auto jv = u->clone();
 
             std::vector<double> steps;
-            for (int i = -4; i > -6; i--) {
+            for (int i = -2; i > -9; i--) {
                 steps.push_back(std::pow(10,i));
             }
             const int order = 2;
+            *outStream << "con->checkApplyJacobian_2..." << std::endl;
             con->checkApplyJacobian_2(*u, *z, *v, *jv, steps, true, *outStream, order);
         }
+        {
+            auto dual = des_var_sim_rol_p->clone();
+            dual->set(*des_var_sim_rol_p);
+            const auto v = des_var_p->clone();
+            v->set(*des_var_p);
+            const auto hv = des_var_p->clone();
+
+            std::vector<double> steps;
+            for (int i = -1; i > -13; i--) {
+                steps.push_back(std::pow(10,i));
+            }
+            const int order = 2; (void) order;
+
+            *outStream << "con->checkApplyAdjointHessian..." << std::endl;
+            (void) con->checkApplyAdjointHessian(*des_var_p, *dual, *v, *hv, steps, true, *outStream, order);
+
+            const auto direction_1 = des_var_p->clone();
+            const auto direction_2 = des_var_p->clone();
+            *outStream << "obj->checkHessVec..." << std::endl;
+            obj->checkHessVec( *des_var_p, *direction_1, steps, true, *outStream, order);
+            *outStream << "obj->checkHessSym..." << std::endl;
+            obj->checkHessSym( *des_var_p, *direction_1, *direction_2, true, *outStream);
+
+
+            //auto input_vector = des_var_sim_rol_p->clone();
+            //input_vector->set(*des_var_sim_rol_p);
+            //double tol = 1e-2;
+            //auto output_vector_1 = des_var_sim_rol_p->clone();
+            //con->applyAdjointMyHessian_11 ( *output_vector_1, *dual, *input_vector, *des_var_sim_rol_p, *des_var_ctl_rol_p, tol) ;
+
+            //auto output_vector_2 = des_var_sim_rol_p->clone();
+            //std::cout
+            //    << "dual norm " << get_ROLvec_to_VectorType(*dual).l2_norm()
+            //    << "input_vector norm " << get_ROLvec_to_VectorType(*input_vector).l2_norm()
+            //    << "des_var_sim_rol_p norm " << get_ROLvec_to_VectorType(*des_var_sim_rol_p).l2_norm()
+            //    << "des_var_ctl_rol_p norm " << get_ROLvec_to_VectorType(*des_var_ctl_rol_p).l2_norm()
+            //    << std::endl;
+            //con->applyAdjointHessian_11 ( *output_vector_2, *dual, *input_vector, *des_var_sim_rol_p, *des_var_ctl_rol_p, tol) ;
+
+
+            //const VectorType vec1 = get_ROLvec_to_VectorType(*output_vector_1);
+            //const VectorType vec2 = get_ROLvec_to_VectorType(*output_vector_2);
+
+            //auto diff = vec1;
+            //diff -= vec2;
+            //std::cout << "vec1 norm " << vec1.l2_norm() << " vec2 norm: " << vec2.l2_norm() << " diff norm: " << diff.l2_norm() <<std::endl;
+            //MPI_Barrier(MPI_COMM_WORLD);
+            //std::abort();
+
+
+        }
+        {
+            opt.check(*outStream);
+        }
+
 
         //parlist.sublist("Secant").set("Use as Preconditioner", false);
         parlist.sublist("Status Test").set("Gradient Tolerance", 1e-10);

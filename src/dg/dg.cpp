@@ -874,13 +874,22 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
 
     right_hand_side = 0;
 
-    if (compute_dRdW) system_matrix = 0;
-    if (compute_dRdX) dRdXv = 0;
+    pcout << "Assembling DG residual...";
+    if (compute_dRdW) {
+        pcout << " with dRdW...";
+        system_matrix = 0;
+    }
+    if (compute_dRdX) {
+        pcout << " with dRdX...";
+        dRdXv = 0;
+    }
     if (compute_d2R) {
+        pcout << " with d2RdWdW, d2RdWdX, d2RdXdX...";
         d2RdWdW = 0;
         d2RdWdX = 0;
         d2RdXdX = 0;
     }
+    pcout << std::endl;
 
     //const dealii::MappingManifold<dim,dim> mapping;
     //const dealii::MappingQ<dim,dim> mapping(10);//;max_degree+1);
@@ -917,7 +926,10 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
                 right_hand_side);
         } // end of cell loop
     } catch(...) {
+        std::cout << "Invalid residual assembly encountered..."
+                  << " Filling up RHS with 1s. " << std::endl;
         if (compute_dRdW) {
+            std::cout << " Filling up Jacobian with mass matrix. " << std::endl;
             right_hand_side *= 0.0;
             right_hand_side.add(1.0);
             const bool do_inverse_mass_matrix = false;

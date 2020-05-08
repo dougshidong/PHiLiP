@@ -8,6 +8,8 @@
 #include <deal.II/base/utilities.h>
 #include <deal.II/grid/grid_out.h>
 
+#include <deal.II/grid/grid_reordering.h>
+
 // For FD
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
@@ -104,12 +106,12 @@ std::array<unsigned int,dim> FreeFormDeformation<dim>::global_to_grid ( const un
 {
     std::array<unsigned int,dim> ijk_index;
 
-    unsigned int remainder = global_ictl;
+    unsigned int remain = global_ictl;
     for (int d=0; d<dim; ++d) {
-        ijk_index[d] = remainder % ndim_control_pts[d];
-        remainder /= ndim_control_pts[d];
+        ijk_index[d] = remain % ndim_control_pts[d];
+        remain /= ndim_control_pts[d];
     }
-    assert(remainder == 0);
+    assert(remain == 0);
 
     return ijk_index;
 }
@@ -661,7 +663,6 @@ void FreeFormDeformation<dim>
 ::output_ffd_vtu(const unsigned int cycle) const
 {
     if (dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) != 0) return;
-    dealii::Triangulation<dim,dim> tria;
     // next create the cells
     std::vector<dealii::CellData<dim>> cells;
     unsigned int n_cells = 1;
@@ -726,6 +727,8 @@ void FreeFormDeformation<dim>
         }
     } // switch(dim)
  
+    dealii::GridReordering<dim>::reorder_cells(cells, true);
+    dealii::Triangulation<dim,dim> tria;
     tria.create_triangulation(control_pts, cells, dealii::SubCellData());
     std::string nffd_string[3];
     for (int d=0; d<dim; ++d) {

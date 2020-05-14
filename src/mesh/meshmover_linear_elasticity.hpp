@@ -62,6 +62,18 @@ namespace MeshMover
         void
         apply_dXvdXvs(std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &list_of_vectors, dealii::TrilinosWrappers::SparseMatrix &output_matrix);
 
+        /** Apply the transposed analytical derivatives of volume displacements with respect
+         *  to surface displacements onto a right-hand sides.
+         *  Note that the right-hand side and solution is of size n_volume_nodes.
+         *  If the right-hand-side are the surface node displacements indexed in a
+         *  volume node vector, the result is a displacement vector of the volume
+         *  volume_nodes (which include the prescribed surface nodes).
+         */
+        void
+        apply_dXvdXvs_transpose(
+            dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
+            dealii::LinearAlgebra::distributed::Vector<double> &output_vector);
+
         /** Current displacement solution
          */
         VectorType displacement_solution;

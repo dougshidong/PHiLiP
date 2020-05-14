@@ -6,22 +6,22 @@
 
 namespace PHiLiP {
 
-Teuchos::RCP<const dealii_Vector> get_rcp_to_VectorType(const ROL_Vector &x)
+Teuchos::RCP<const dealii_Vector> get_rcp_to_VectorType(const ROL::Vector<double> &x)
 {
     return (Teuchos::dyn_cast<const AdaptVector>(x)).getVector();
 }
 
-Teuchos::RCP<dealii_Vector> get_rcp_to_VectorType(ROL_Vector &x)
+Teuchos::RCP<dealii_Vector> get_rcp_to_VectorType(ROL::Vector<double> &x)
 {
     return (Teuchos::dyn_cast<AdaptVector>(x)).getVector();
 }
 
-const dealii_Vector & get_ROLvec_to_VectorType(const ROL_Vector &x)
+const dealii_Vector & get_ROLvec_to_VectorType(const ROL::Vector<double> &x)
 {
     return *(Teuchos::dyn_cast<const AdaptVector>(x)).getVector();
 }
 
-dealii_Vector &get_ROLvec_to_VectorType(ROL_Vector &x)
+dealii_Vector &get_ROLvec_to_VectorType(ROL::Vector<double> &x)
 {
     return *(Teuchos::dyn_cast<AdaptVector>(x)).getVector();
 }
@@ -54,7 +54,7 @@ FlowConstraints<dim>
 
 template<int dim>
 void FlowConstraints<dim>
-::update_1( const ROL_Vector& des_var_sim, bool flag, int iter )
+::update_1( const ROL::Vector<double>& des_var_sim, bool flag, int iter )
 {
         (void) flag; (void) iter;
         dg->solution = get_ROLvec_to_VectorType(des_var_sim);
@@ -63,7 +63,7 @@ void FlowConstraints<dim>
 
 template<int dim>
 void FlowConstraints<dim>
-::update_2( const ROL_Vector& des_var_ctl, bool flag, int iter )
+::update_2( const ROL::Vector<double>& des_var_ctl, bool flag, int iter )
 {
     (void) flag; (void) iter;
     ffd_des_var =  get_ROLvec_to_VectorType(des_var_ctl);
@@ -75,9 +75,9 @@ void FlowConstraints<dim>
 template<int dim>
 void FlowConstraints<dim>
 ::solve(
-    ROL_Vector& constraint_values,
-    ROL_Vector& des_var_sim,
-    const ROL_Vector& des_var_ctl,
+    ROL::Vector<double>& constraint_values,
+    ROL::Vector<double>& des_var_sim,
+    const ROL::Vector<double>& des_var_ctl,
     double& /*tol*/
     )
 {
@@ -99,9 +99,9 @@ void FlowConstraints<dim>
 template<int dim>
 void FlowConstraints<dim>
 ::value(
-    ROL_Vector& constraint_values,
-    const ROL_Vector& des_var_sim,
-    const ROL_Vector& des_var_ctl,
+    ROL::Vector<double>& constraint_values,
+    const ROL::Vector<double>& des_var_sim,
+    const ROL::Vector<double>& des_var_ctl,
     double &/*tol*/
     )
 {
@@ -117,10 +117,10 @@ void FlowConstraints<dim>
 template<int dim>
 void FlowConstraints<dim>
 ::applyJacobian_1(
-    ROL_Vector& output_vector,
-    const ROL_Vector& input_vector,
-    const ROL_Vector& des_var_sim,
-    const ROL_Vector& des_var_ctl,
+    ROL::Vector<double>& output_vector,
+    const ROL::Vector<double>& input_vector,
+    const ROL::Vector<double>& des_var_sim,
+    const ROL::Vector<double>& des_var_ctl,
     double& /*tol*/
     )
 {
@@ -139,10 +139,10 @@ void FlowConstraints<dim>
 template<int dim>
 void FlowConstraints<dim>
 ::applyInverseJacobian_1(
-    ROL_Vector& output_vector,
-    const ROL_Vector& input_vector,
-    const ROL_Vector& des_var_sim,
-    const ROL_Vector& des_var_ctl,
+    ROL::Vector<double>& output_vector,
+    const ROL::Vector<double>& input_vector,
+    const ROL::Vector<double>& des_var_sim,
+    const ROL::Vector<double>& des_var_ctl,
     double& /*tol*/ )
 {
 
@@ -185,10 +185,10 @@ void FlowConstraints<dim>
 
 template<int dim>
 void FlowConstraints<dim>
-::applyInverseAdjointJacobian_1( ROL_Vector& output_vector,
-const ROL_Vector& input_vector,
-const ROL_Vector& des_var_sim,
-const ROL_Vector& des_var_ctl,
+::applyInverseAdjointJacobian_1( ROL::Vector<double>& output_vector,
+const ROL::Vector<double>& input_vector,
+const ROL::Vector<double>& des_var_sim,
+const ROL::Vector<double>& des_var_ctl,
 double& /*tol*/ )
 {
 
@@ -224,10 +224,10 @@ double& /*tol*/ )
 
 template<int dim>
 void FlowConstraints<dim>
-::applyJacobian_2( ROL_Vector& output_vector,
-const ROL_Vector& input_vector,
-const ROL_Vector& des_var_sim,
-const ROL_Vector& des_var_ctl,
+::applyJacobian_2( ROL::Vector<double>& output_vector,
+const ROL::Vector<double>& input_vector,
+const ROL::Vector<double>& des_var_sim,
+const ROL::Vector<double>& des_var_ctl,
 double& /*tol*/ )
 {
 
@@ -253,10 +253,10 @@ double& /*tol*/ )
 
 template<int dim>
 void FlowConstraints<dim>
-::applyAdjointJacobian_1( ROL_Vector& output_vector,
-const ROL_Vector& input_vector,
-const ROL_Vector& des_var_sim,
-const ROL_Vector& des_var_ctl,
+::applyAdjointJacobian_1( ROL::Vector<double>& output_vector,
+const ROL::Vector<double>& input_vector,
+const ROL::Vector<double>& des_var_sim,
+const ROL::Vector<double>& des_var_ctl,
 double& /*tol*/ )
 {
 
@@ -274,10 +274,10 @@ double& /*tol*/ )
 
 template<int dim>
 void FlowConstraints<dim>
-::applyAdjointJacobian_2( ROL_Vector& output_vector,
-const ROL_Vector& input_vector,
-const ROL_Vector& des_var_sim,
-const ROL_Vector& des_var_ctl,
+::applyAdjointJacobian_2( ROL::Vector<double>& output_vector,
+const ROL::Vector<double>& input_vector,
+const ROL::Vector<double>& des_var_sim,
+const ROL::Vector<double>& des_var_ctl,
 double& /*tol*/ )
 {
 
@@ -304,11 +304,11 @@ double& /*tol*/ )
 
 template<int dim>
 void FlowConstraints<dim>
-::applyAdjointHessian_11 ( ROL_Vector &output_vector,
-                                  const ROL_Vector &dual,
-                                  const ROL_Vector &input_vector,
-                                  const ROL_Vector &des_var_sim,
-                                  const ROL_Vector &des_var_ctl,
+::applyAdjointHessian_11 ( ROL::Vector<double> &output_vector,
+                                  const ROL::Vector<double> &dual,
+                                  const ROL::Vector<double> &input_vector,
+                                  const ROL::Vector<double> &des_var_sim,
+                                  const ROL::Vector<double> &des_var_ctl,
                                   double &tol)
 {
     std::cout << __PRETTY_FUNCTION__ << std::endl;
@@ -325,11 +325,11 @@ void FlowConstraints<dim>
 
 template<int dim>
 void FlowConstraints<dim>
-::applyAdjointHessian_12 ( ROL_Vector &output_vector,
-                                  const ROL_Vector &dual,
-                                  const ROL_Vector &input_vector,
-                                  const ROL_Vector &des_var_sim,
-                                  const ROL_Vector &des_var_ctl,
+::applyAdjointHessian_12 ( ROL::Vector<double> &output_vector,
+                                  const ROL::Vector<double> &dual,
+                                  const ROL::Vector<double> &input_vector,
+                                  const ROL::Vector<double> &des_var_sim,
+                                  const ROL::Vector<double> &des_var_ctl,
                                   double &tol)
 {
     std::cout << __PRETTY_FUNCTION__ << std::endl;
@@ -356,11 +356,11 @@ void FlowConstraints<dim>
 template<int dim>
 void FlowConstraints<dim>
 ::applyAdjointHessian_21 (
-    ROL_Vector &output_vector,
-    const ROL_Vector &dual,
-    const ROL_Vector &input_vector,
-    const ROL_Vector &des_var_sim,
-    const ROL_Vector &des_var_ctl,
+    ROL::Vector<double> &output_vector,
+    const ROL::Vector<double> &dual,
+    const ROL::Vector<double> &input_vector,
+    const ROL::Vector<double> &des_var_sim,
+    const ROL::Vector<double> &des_var_ctl,
     double &tol
     )
 {
@@ -391,11 +391,11 @@ void FlowConstraints<dim>
 template<int dim>
 void FlowConstraints<dim>
 ::applyAdjointHessian_22 (
-    ROL_Vector &output_vector,
-    const ROL_Vector &dual,
-    const ROL_Vector &input_vector,
-    const ROL_Vector &des_var_sim,
-    const ROL_Vector &des_var_ctl,
+    ROL::Vector<double> &output_vector,
+    const ROL::Vector<double> &dual,
+    const ROL::Vector<double> &input_vector,
+    const ROL::Vector<double> &des_var_sim,
+    const ROL::Vector<double> &des_var_ctl,
     double &tol
     )
 {

@@ -14,9 +14,15 @@
 namespace PHiLiP {
 
 using dealii_Vector = dealii::LinearAlgebra::distributed::Vector<double>;
-using ROL_Vector = ROL::Vector<double>;
 using AdaptVector = dealii::Rol::VectorAdaptor<dealii_Vector>;
 
+/// Use DGBase as a Simulation Constraint ROL::Constraint_SimOpt.
+/** The simulation variables will be the DoFs stored in the DGBase::solution.
+ *
+ *  The control variables will be some of the the FFD points/directions.
+ *  The given @p ffd_design_variables_indices_dim point to the points/directions
+ *  used as design variables.
+ */
 template<int dim>
 class FlowConstraints : public ROL::Constraint_SimOpt<double> {
 private:
@@ -40,15 +46,26 @@ protected:
     /// ID used when outputting the flow solution.
     int i_out = 1000;
 public:
+    /// Avoid -Werror=overloaded-virtual.
     using ROL::Constraint_SimOpt<double>::value;
 
+    /// Avoid -Werror=overloaded-virtual.
     using ROL::Constraint_SimOpt<double>::applyAdjointJacobian_1;
+        //(
+        //ROL::Vector<double>& output_vector,
+        //const ROL::Vector<double>& input_vector,
+        //const ROL::Vector<double>& des_var_sim,
+        //const ROL::Vector<double>& des_var_ctl,
+        //const ROL::Vector<double>& dualv,
+        //double& /*tol*/ 
+        //);
+    /// Avoid -Werror=overloaded-virtual.
     using ROL::Constraint_SimOpt<double>::applyAdjointJacobian_2;
 
-    using ROL::Constraint_SimOpt<double>::applyAdjointHessian_11;
-    using ROL::Constraint_SimOpt<double>::applyAdjointHessian_12;
-    using ROL::Constraint_SimOpt<double>::applyAdjointHessian_21;
-    using ROL::Constraint_SimOpt<double>::applyAdjointHessian_22;
+    // using ROL::Constraint_SimOpt<double>::applyAdjointHessian_11;
+    // using ROL::Constraint_SimOpt<double>::applyAdjointHessian_12;
+    // using ROL::Constraint_SimOpt<double>::applyAdjointHessian_21;
+    // using ROL::Constraint_SimOpt<double>::applyAdjointHessian_22;
 
     /// Constructor
     FlowConstraints(
@@ -57,76 +74,150 @@ public:
         std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim);
 
     /// Update the simulation variables.
-    void update_1( const ROL_Vector& des_var_sim, bool flag = true, int iter = -1 );
+    void update_1( const ROL::Vector<double>& des_var_sim, bool flag = true, int iter = -1 );
 
     /// Update the control variables.
     /** Update FFD from design variables and then deforms the mesh.
      */
-    void update_2( const ROL_Vector& des_var_ctl, bool flag = true, int iter = -1 );
+    void update_2( const ROL::Vector<double>& des_var_ctl, bool flag = true, int iter = -1 );
 
     /// Solve the Simulation Constraint and returns the constraints values.
     /** In this case, we use the ODESolver to solve the steady state solution
      *  of the flow given the geometry.
      */
-    void solve( ROL_Vector& constraint_values, ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) override;
+    void solve(
+        ROL::Vector<double>& constraint_values,
+        ROL::Vector<double>& des_var_sim,
+        const ROL::Vector<double>& des_var_ctl,
+        double& /*tol*/ 
+        ) override;
 
     /// Returns the current constraint residual given a set of control and simulation variables.
-    void value( ROL_Vector& constraint_values, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double &/*tol*/ ) override;
+    void value(
+        ROL::Vector<double>& constraint_values,
+        const ROL::Vector<double>& des_var_sim,
+        const ROL::Vector<double>& des_var_ctl,
+        double &/*tol*/ 
+        ) override;
     
     /// Applies the Jacobian of the Constraints w.\ r.\ t.\ the simulation variables onto a vector.
-    void applyJacobian_1( ROL_Vector& output_vector, const ROL_Vector& input_vector, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) override;
-
-    /// Applies the inverse Jacobian of the Constraints w.\ r.\ t.\ the simulation variables onto a vector.
-    void applyInverseJacobian_1( ROL_Vector& output_vector, const ROL_Vector& input_vector, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) override;
-
-    /// Applies the adjoint Jacobian of the Constraints w.\ r.\ t.\ the simulation variables onto a vector.
-    void applyInverseAdjointJacobian_1( ROL_Vector& output_vector, const ROL_Vector& input_vector, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) override;
-
-    /// Applies the Jacobian of the Constraints w.\ r.\ t.\ the control variables onto a vector.
-    void applyJacobian_2( ROL_Vector& output_vector, const ROL_Vector& input_vector, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) override;
+    void applyJacobian_1(
+        ROL::Vector<double>& output_vector,
+        const ROL::Vector<double>& input_vector,
+        const ROL::Vector<double>& des_var_sim,
+        const ROL::Vector<double>& des_var_ctl,
+        double& /*tol*/ 
+        ) override;
 
     /// Applies the Jacobian of the Constraints w.\ r.\ t.\ the simulation variables onto a vector.
-    void applyAdjointJacobian_1( ROL_Vector& output_vector, const ROL_Vector& input_vector, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) override;
+    void applyAdjointJacobian_1(
+        ROL::Vector<double>& output_vector,
+        const ROL::Vector<double>& input_vector,
+        const ROL::Vector<double>& des_var_sim,
+        const ROL::Vector<double>& des_var_ctl,
+        double& /*tol*/ 
+        ) override;
+
+    /// Applies the inverse Jacobian of the Constraints w.\ r.\ t.\ the simulation variables onto a vector.
+    void applyInverseJacobian_1(
+        ROL::Vector<double>& output_vector,
+        const ROL::Vector<double>& input_vector,
+        const ROL::Vector<double>& des_var_sim,
+        const ROL::Vector<double>& des_var_ctl,
+        double& /*tol*/ 
+        ) override;
+
+    /// Applies the adjoint Jacobian of the Constraints w.\ r.\ t.\ the simulation variables onto a vector.
+    void applyInverseAdjointJacobian_1(
+        ROL::Vector<double>& output_vector,
+        const ROL::Vector<double>& input_vector,
+        const ROL::Vector<double>& des_var_sim,
+        const ROL::Vector<double>& des_var_ctl,
+        double& /*tol*/ 
+        ) override;
+
+    /// Applies the Jacobian of the Constraints w.\ r.\ t.\ the control variables onto a vector.
+    void applyJacobian_2(
+        ROL::Vector<double>& output_vector,
+        const ROL::Vector<double>& input_vector,
+        const ROL::Vector<double>& des_var_sim,
+        const ROL::Vector<double>& des_var_ctl,
+        double& /*tol*/ 
+        ) override;
 
 
     /// Applies the Jacobian of the Constraints w.\ r.\ t.\ the control variables onto a vector.
-    void applyAdjointJacobian_2( ROL_Vector& output_vector, const ROL_Vector& input_vector, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) override;
+    void applyAdjointJacobian_2(
+        ROL::Vector<double>& output_vector,
+        const ROL::Vector<double>& input_vector,
+        const ROL::Vector<double>& des_var_sim,
+        const ROL::Vector<double>& des_var_ctl,
+        double& /*tol*/
+        ) override;
 
-    /// Applies the adjoint of the Hessian of the constraints w.\r.\t.\ the simulation variables onto a vector.
+    /// Applies the adjoint of the Hessian of the constraints w.\ r.\ t.\ the simulation variables onto a vector.
     /** More specifically, apply
      *  \f[
      *      \mathbf{v}_{out} = \left( \sum_i \psi_i \frac{\partial^2 R_i}{\partial u \partial u} \right)^T \mathbf{v}_{in}
      *  \f]
      *  onto the @p input_vector to obtain the @p output_vector
      */
-    void applyAdjointHessian_11 ( ROL_Vector &output_vector,
-                                  const ROL_Vector &dual,
-                                  const ROL_Vector &input_vector,
-                                  const ROL_Vector &des_var_sim,
-                                  const ROL_Vector &des_var_ctl,
-                                  double &tol) override;
+    void applyAdjointHessian_11 (
+        ROL::Vector<double> &output_vector,
+        const ROL::Vector<double> &dual,
+        const ROL::Vector<double> &input_vector,
+        const ROL::Vector<double> &des_var_sim,
+        const ROL::Vector<double> &des_var_ctl,
+        double &tol
+        ) override;
 
-    /// Applies the adjoint of the Hessian of the constraints w.\r.\t.\ the simulation variables onto a vector.
-    void applyAdjointHessian_12 ( ROL_Vector &output_vector,
-                                  const ROL_Vector &dual,
-                                  const ROL_Vector &input_vector,
-                                  const ROL_Vector &des_var_sim,
-                                  const ROL_Vector &des_var_ctl,
-                                  double &tol) override;
+    /// Applies the adjoint of the Hessian of the constraints w.\ r.\ t.\ the simulation variables onto a vector.
+    /** More specifically, apply
+     *  \f[
+     *      \mathbf{v}_{out} = \left( \sum_i \psi_i \frac{\partial^2 R_i}{\partial u \partial x} \right)^T \mathbf{v}_{in}
+     *  \f]
+     *  onto the @p input_vector to obtain the @p output_vector
+     */
+    void applyAdjointHessian_12 (
+        ROL::Vector<double> &output_vector,
+        const ROL::Vector<double> &dual,
+        const ROL::Vector<double> &input_vector,
+        const ROL::Vector<double> &des_var_sim,
+        const ROL::Vector<double> &des_var_ctl,
+        double &tol
+        ) override;
 
-    void applyAdjointHessian_21 ( ROL_Vector &output_vector,
-                                  const ROL_Vector &dual,
-                                  const ROL_Vector &input_vector,
-                                  const ROL_Vector &des_var_sim,
-                                  const ROL_Vector &des_var_ctl,
-                                  double &tol) override;
+    /// Applies the adjoint of the Hessian of the constraints w.\ r.\ t.\ the simulation variables onto a vector.
+    /** More specifically, apply
+     *  \f[
+     *      \mathbf{v}_{out} = \left( \sum_i \psi_i \frac{\partial^2 R_i}{\partial x \partial u} \right)^T \mathbf{v}_{in}
+     *  \f]
+     *  onto the @p input_vector to obtain the @p output_vector
+     */
+    void applyAdjointHessian_21 (
+        ROL::Vector<double> &output_vector,
+        const ROL::Vector<double> &dual,
+        const ROL::Vector<double> &input_vector,
+        const ROL::Vector<double> &des_var_sim,
+        const ROL::Vector<double> &des_var_ctl,
+        double &tol
+        ) override;
 
-    void applyAdjointHessian_22 ( ROL_Vector &output_vector,
-                                  const ROL_Vector &dual,
-                                  const ROL_Vector &input_vector,
-                                  const ROL_Vector &des_var_sim,
-                                  const ROL_Vector &des_var_ctl,
-                                  double &tol) override;
+    /// Applies the adjoint of the Hessian of the constraints w.\ r.\ t.\ the simulation variables onto a vector.
+    /** More specifically, apply
+     *  \f[
+     *      \mathbf{v}_{out} = \left( \sum_i \psi_i \frac{\partial^2 R_i}{\partial x \partial x} \right)^T \mathbf{v}_{in}
+     *  \f]
+     *  onto the @p input_vector to obtain the @p output_vector
+     */
+    void applyAdjointHessian_22 (
+        ROL::Vector<double> &output_vector,
+        const ROL::Vector<double> &dual,
+        const ROL::Vector<double> &input_vector,
+        const ROL::Vector<double> &des_var_sim,
+        const ROL::Vector<double> &des_var_ctl,
+        double &tol
+        ) override;
 
 };
 

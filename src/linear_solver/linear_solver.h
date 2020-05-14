@@ -2,6 +2,7 @@
 #define __LINEAR_SOLVER_H__
 
 #include <deal.II/lac/trilinos_sparse_matrix.h>
+#include <deal.II/lac/la_parallel_vector.h>
 #include "parameters/all_parameters.h"
 
 namespace PHiLiP {

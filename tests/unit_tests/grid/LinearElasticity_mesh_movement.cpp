@@ -218,10 +218,10 @@ int main (int argc, char * argv[])
 
             // Note that LinearElasticity returns a non-ghosted vector since it uses Trilinos.
             // As a result, we do not have access to the volume displacements that would typically
-            // be ghost elements. We therefore have to update the actual nodes after having 
+            // be ghost elements. We therefore have to update the actual volume_nodes after having 
             // moved them using the locally owned volume displacements.
-            high_order_grid.nodes += volume_displacements;
-            high_order_grid.nodes.update_ghost_values();
+            high_order_grid.volume_nodes += volume_displacements;
+            high_order_grid.volume_nodes.update_ghost_values();
 
             high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
 

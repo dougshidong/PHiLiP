@@ -10,6 +10,7 @@ add_subdirectory(dg)
 add_subdirectory(ode_solver)
 add_subdirectory(post_processor)
 add_subdirectory(functional)
+add_subdirectory(optimization)
 
 add_subdirectory(testing)
 

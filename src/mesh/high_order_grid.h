@@ -34,9 +34,9 @@ namespace PHiLiP {
 /** This HighOrderGrid class basically contains all the different part necessary to generate
  *  a dealii::MappingFEField that corresponds to the current Triangulation and attached Manifold.
  *  Once the high order grid is generated, the mesh can be deformed by assigning different values to the
- *  nodes vector. The dof_handler_grid is used to access and loop through those nodes.
+ *  volume_nodes vector. The dof_handler_grid is used to access and loop through those volume_nodes.
  *  This will especially be useful when performing shape optimization, where the surface and volume 
- *  nodes will need to be displaced.
+ *  volume_nodes will need to be displaced.
  *  Note that there are a lot of pre-processor statements, and that is because the SolutionTransfer class
  *  and the Vector class act quite differently between serial and parallel implementation. Hopefully,
  *  deal.II will change this one day such that we have one interface for both.
@@ -75,7 +75,7 @@ public:
      */
     void update_mapping_fe_field();
 
-    /// Needed to allocate the correct number of nodes when initializing and after the mesh is refined
+    /// Needed to allocate the correct number of volume_nodes when initializing and after the mesh is refined
     void allocate();
 
     /// Return a MappingFEField that corresponds to the current node locations
@@ -96,7 +96,7 @@ public:
      *  the integer division "idof_index / dim" gives the coordinates related to the same
      *  point.
      */
-    Vector nodes;
+    Vector volume_nodes;
 
 
     /** Distributed ghosted vector of surface nodes.
@@ -106,19 +106,29 @@ public:
     /// Initial nodal coefficients of the high-order grid.
     /** Used for deformation schemes that always deform the mesh from the initial mesh.
      */
-    Vector initial_nodes;
+    Vector initial_volume_nodes;
     /// Distributed ghosted vector of initial surface nodes.
     /** Used for deformation schemes that always deform the mesh from the initial mesh.
      */
     Vector initial_surface_nodes;
 
-    /// Sets the initial_nodes and initial_surface_nodes to the current nodes and surface_nodes.
+    /// Sets the initial_volume_nodes and initial_surface_nodes to the current volume_nodes and surface_nodes.
     void reset_initial_nodes();
 
     /** Distributed ghosted vector of surface indices.
      *  Ordering matches the surface_nodes.
      */
-    dealii::LinearAlgebra::distributed::Vector<int> surface_indices;
+    dealii::LinearAlgebra::distributed::Vector<int> surface_to_volume_indices;
+
+    /** Maps a vector of surface_nodes to a vector of volume_nodes.
+     *  This is equivalent to using surface_to_volume_indices to assign the surface_nodes values
+     *  into a vector of size volume_nodes.size(), except that it uses a matrix-vector multiplication
+     *  to easily obtain the mapping.
+     */
+    dealii::TrilinosWrappers::SparseMatrix map_nodes_surf_to_vol;
+
+    /// Sets the initial_volume_nodes and initial_surface_nodes to the current volume_nodes and surface_nodes.
+    void update_map_nodes_surf_to_vol();
 
     /** Locally owned surface nodes dealii::IndexSet
      */
@@ -305,7 +315,7 @@ public:
      */
     std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field;
 
-    /// MappingFEField that will provide the polynomial-based grid for the initial nodes.
+    /// MappingFEField that will provide the polynomial-based grid for the initial volume_nodes.
     /** Will likely be used for deformations based on initial grids.
      *  It is a shared smart pointer because the constructor requires the dof_handler_grid to be properly initialized.
      *  See discussion in the following 
@@ -325,7 +335,7 @@ protected:
     void update_surface_indices();
 
     /// Used for the SolutionTransfer when performing grid adaptation.
-    Vector old_nodes;
+    Vector old_volume_nodes;
 
     /** Transfers the coarse curved curve onto the fine curved grid.
      *  Used in prepare_for_coarsening_and_refinement() and execute_coarsening_and_refinement()

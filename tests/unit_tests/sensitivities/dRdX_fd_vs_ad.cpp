@@ -92,8 +92,8 @@ int test (
     PHiLiP::HighOrderGrid<dim,double> &high_order_grid = dg->high_order_grid;
 
     using nodeVector = dealii::LinearAlgebra::distributed::Vector<double>;
-    nodeVector old_nodes = high_order_grid.nodes;
-    old_nodes.update_ghost_values();
+    nodeVector old_volume_nodes = high_order_grid.volume_nodes;
+    old_volume_nodes.update_ghost_values();
 
     dealii::AffineConstraints<double> hanging_node_constraints;
     hanging_node_constraints.clear();
@@ -109,34 +109,34 @@ int test (
         double old_node = -99999;
         // Positive perturbation
         if (high_order_grid.locally_relevant_dofs_grid.is_element(inode) ) {
-            old_node = high_order_grid.nodes[inode];
-            high_order_grid.nodes(inode) = old_node+EPS;
+            old_node = high_order_grid.volume_nodes[inode];
+            high_order_grid.volume_nodes(inode) = old_node+EPS;
         }
-        //hanging_node_constraints.distribute(high_order_grid.nodes);
-        //high_order_grid.nodes.update_ghost_values();
+        //hanging_node_constraints.distribute(high_order_grid.volume_nodes);
+        //high_order_grid.volume_nodes.update_ghost_values();
 
         dg->assemble_residual(false, false, false);
         solutionVector perturbed_residual_p = dg->right_hand_side;
 
-        //std::cout << "perturb nodes " << std::endl;  high_order_grid.nodes.print(std::cout, 5);
-        //high_order_grid.nodes = old_nodes;
-        //high_order_grid.nodes.update_ghost_values();
-        //std::cout << "oldnodes " << std::endl; high_order_grid.nodes.print(std::cout, 5);
+        //std::cout << "perturb volume_nodes " << std::endl;  high_order_grid.volume_nodes.print(std::cout, 5);
+        //high_order_grid.volume_nodes = old_volume_nodes;
+        //high_order_grid.volume_nodes.update_ghost_values();
+        //std::cout << "oldnodes " << std::endl; high_order_grid.volume_nodes.print(std::cout, 5);
 
         // Negative perturbation
         if (high_order_grid.locally_relevant_dofs_grid.is_element(inode) ) {
-            high_order_grid.nodes(inode) = old_node-EPS;
+            high_order_grid.volume_nodes(inode) = old_node-EPS;
         }
-        //hanging_node_constraints.distribute(high_order_grid.nodes);
-        //high_order_grid.nodes.update_ghost_values();
+        //hanging_node_constraints.distribute(high_order_grid.volume_nodes);
+        //high_order_grid.volume_nodes.update_ghost_values();
 
         dg->assemble_residual(false, false, false);
         solutionVector perturbed_residual_m = dg->right_hand_side;
 
-        //std::cout << "perturb nodes " << std::endl; high_order_grid.nodes.print(std::cout, 5);
-        //high_order_grid.nodes = old_nodes;
-        //high_order_grid.nodes.update_ghost_values();
-        //std::cout << "old nodes " << std::endl; high_order_grid.nodes.print(std::cout, 5);
+        //std::cout << "perturb volume_nodes " << std::endl; high_order_grid.volume_nodes.print(std::cout, 5);
+        //high_order_grid.volume_nodes = old_volume_nodes;
+        //high_order_grid.volume_nodes.update_ghost_values();
+        //std::cout << "old volume_nodes " << std::endl; high_order_grid.volume_nodes.print(std::cout, 5);
 
         // Finite difference
         //std::cout << "perturb residual p " << std::endl; perturbed_residual_p.print(std::cout, 5);
@@ -149,7 +149,7 @@ int test (
 
         // Reset node
         if (high_order_grid.locally_relevant_dofs_grid.is_element(inode) ) {
-            high_order_grid.nodes(inode) = old_node;
+            high_order_grid.volume_nodes(inode) = old_node;
         }
 
         // Set

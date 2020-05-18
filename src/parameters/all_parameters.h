@@ -110,7 +110,7 @@ public:
     ConvectiveNumericalFlux conv_num_flux_type;
 
     /// Flag to use Flux Reconstruction
-    enum Flux_Reconstruction {cDG, cSD, cHU, cNegative, cNegative2, cPlus, c10Thousand};
+    enum Flux_Reconstruction {cDG, cSD, cHU, cNegative, cNegative2, cPlus, cPlus1D, c10Thousand};
 
     /// Store convective flux type
     Flux_Reconstruction flux_reconstruction_type;

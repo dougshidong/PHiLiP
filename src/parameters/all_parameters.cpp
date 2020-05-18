@@ -113,9 +113,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Choices are <lax_friedrichs | roe | split_form>.");
 
     prm.declare_entry("flux_reconstruction", "cDG",
-                      dealii::Patterns::Selection("cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand"),
+                      dealii::Patterns::Selection("cDG | cSD | cHU | cNegative | cNegative2 | cPlus | cPlus1D |c10Thousand"),
                       "Flux Reconstruction. "
-                      "Choices are <cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand>.");
+                      "Choices are <cDG | cSD | cHU | cNegative | cNegative2 | cPlus | cPlus1D |c10Thousand>.");
 
     prm.declare_entry("flux_reconstruction_aux", "kDG",
                       dealii::Patterns::Selection("kDG | kSD | kHU | kNegative | kNegative2 | kPlus | k10Thousand"),
@@ -199,6 +199,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (flux_reconstruction_string == "cNegative") flux_reconstruction_type = cNegative;
     if (flux_reconstruction_string == "cNegative2") flux_reconstruction_type = cNegative2;
     if (flux_reconstruction_string == "cPlus") flux_reconstruction_type = cPlus;
+    if (flux_reconstruction_string == "cPlus1D") flux_reconstruction_type = cPlus1D;
     if (flux_reconstruction_string == "c10Thousand") flux_reconstruction_type = c10Thousand;
 
     const std::string flux_reconstruction_aux_string = prm.get("flux_reconstruction_aux");

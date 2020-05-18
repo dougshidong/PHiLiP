@@ -23,6 +23,8 @@
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/trilinos_vector.h>
 
+#include <deal.II/fe/fe_q.h>
+
 namespace PHiLiP {
 //#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
 //    template <int dim> using Triangulation = dealii::Triangulation<dim>;

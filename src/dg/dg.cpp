@@ -1635,6 +1635,7 @@ fflush(stdout);
        // double cp = 1.0/(pow(2.0,curr_cell_degree)) * pfact2/(pow(pfact,2));
         double cp = pfact2/(pow(pfact,2));//since ref element [0,1]
         c = 2.0 * (curr_cell_degree+1)/( curr_cell_degree*pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),dim));  
+        //c = 2.0 * (curr_cell_degree+1)/( curr_cell_degree*((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2))));  
         c/=2.0;//since orthonormal
     }
     else if(c_input == FR_enum::cSD){ 
@@ -1642,7 +1643,7 @@ fflush(stdout);
         const double pfact2 = factorial_DG(2.0 * curr_cell_degree);
        // double cp = 1.0/(pow(2.0,curr_cell_degree)) * pfact2/(pow(pfact,2));
         double cp = pfact2/(pow(pfact,2));
-        c = 2 * (curr_cell_degree)/( (curr_cell_degree+1.0)*pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),dim));  
+        c = 2.0 * (curr_cell_degree)/( (curr_cell_degree+1.0)*pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),dim));  
         c/=2.0;//since orthonormal
     }
     else if(c_input == FR_enum::cNegative){ 
@@ -1651,6 +1652,7 @@ fflush(stdout);
        // double cp = 1.0/(pow(2,curr_cell_degree)) * pfact2/(pow(pfact,2));
         double cp = pfact2/(pow(pfact,2));
         c = - 2.0 / ( pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),dim));  
+    //    c = - 2.0 / ( pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),1.0));  
         c/=2.0;//since orthonormal
     }
     else if(c_input == FR_enum::cNegative2){ 
@@ -1685,9 +1687,31 @@ fflush(stdout);
         }
         if(curr_cell_degree == 5)
             c = 4.24e-7;
+
+       // c=0.01;
         c/=2.0;//since orthonormal
         c/=pow(pow(2.0,curr_cell_degree),2);//since ref elem [0,1]
         c /= pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),dim -1.0);//for multiple dim tensor product
+     //   c *= pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),dim -1.0);//for multiple dim tensor product
+        
+    //    c= 100000000.0;
+    }
+    else if(c_input == FR_enum::cPlus1D){ 
+        if(curr_cell_degree == 2){
+            c = 0.186;
+    //        c = 0.173;//RK33
+        }
+        if(curr_cell_degree == 3)
+            c = 3.67e-3;
+        if(curr_cell_degree == 4){
+            c = 4.79e-5;
+     //       c = 4.92e-5;//RK33
+        }
+        if(curr_cell_degree == 5)
+            c = 4.24e-7;
+        
+        c/=2.0;//since orthonormal
+        c/=pow(pow(2.0,curr_cell_degree),2);//since ref elem [0,1]
     }
     if(k_input == FR_Aux_enum::kHU){ 
         const double pfact = factorial_DG(curr_cell_degree);
@@ -1913,6 +1937,20 @@ fflush(stdout);
             K_operator_no_Jac_aux[idim].mmult(K_operator_aux[idim],Jacobian_physical);
         }
         
+#if 0
+printf("K operator \n\n");
+fflush(stdout);
+for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+for(unsigned int idof2=0; idof2<n_dofs_cell; idof2++){
+    printf(" %g ",K_operator[idof][idof2]);
+    fflush(stdout);
+}
+printf("\n");
+fflush(stdout);
+}
+printf("\n\n");
+fflush(stdout);
+#endif
 //KD check
 #if 0
         dealii::FullMatrix<real> sum_KD(n_dofs_cell);
@@ -1972,8 +2010,8 @@ fflush(stdout);
             }
         }
 
-        for(unsigned int v_deg=0; v_deg<=curr_cell_degree; v_deg++){
-            for(unsigned int w_deg=0; w_deg<=v_deg; w_deg++){
+//        for(unsigned int v_deg=0; v_deg<=curr_cell_degree; v_deg++){
+ //           for(unsigned int w_deg=0; w_deg<=v_deg; w_deg++){
     
                 dealii::FullMatrix<real> derivative_p(n_quad_pts, n_dofs_cell);
                 for(unsigned int idof=0; idof<n_dofs_cell; idof++){
@@ -1984,22 +2022,23 @@ fflush(stdout);
                     }
                 }
         
-                for(unsigned int idegree=0; idegree< (curr_cell_degree-v_deg); idegree++){
+                for(unsigned int idegree=0; idegree< curr_cell_degree; idegree++){
                     dealii::FullMatrix<real> derivative_p_temp(n_quad_pts, n_dofs_cell);
                     derivative_p_temp.add(1, derivative_p);
                     local_derivative_operator[0].mmult(derivative_p, derivative_p_temp);
                 }
-                for(unsigned int idegree=0; idegree< (v_deg-w_deg); idegree++){
+                for(unsigned int idegree=0; idegree< curr_cell_degree; idegree++){
                     dealii::FullMatrix<real> derivative_p_temp(n_quad_pts, n_dofs_cell);
                     derivative_p_temp.add(1, derivative_p);
                     local_derivative_operator[1].mmult(derivative_p, derivative_p_temp);
                 }
-                for(unsigned int idegree=0; idegree< w_deg; idegree++){
+                for(unsigned int idegree=0; idegree<curr_cell_degree ; idegree++){
                     dealii::FullMatrix<real> derivative_p_temp(n_quad_pts, n_dofs_cell);
                     derivative_p_temp.add(1, derivative_p);
                     local_derivative_operator[2].mmult(derivative_p, derivative_p_temp);
                 }
 
+#if 0
                 const double pfact = factorial_DG(curr_cell_degree);
                 const double vfact = factorial_DG(v_deg);
                 const double wfact = factorial_DG(w_deg);
@@ -2007,22 +2046,27 @@ fflush(stdout);
                 const double v_minus_w_fact = factorial_DG(v_deg - w_deg);
                 double c_vw = c * pfact / (vfact * p_minus_v_fact) * vfact / (wfact * v_minus_w_fact);//binomial coeff 
                 double k_vw = k * pfact / (vfact * p_minus_v_fact) * vfact / (wfact * v_minus_w_fact);//binomial coeff 
+                c_vw = c;
+#endif
 
                 dealii::FullMatrix<real> derivative_p_temp(n_quad_pts, n_dofs_cell);
                 for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
                     for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-                        derivative_p_temp[iquad][idof] = c_vw * derivative_p[iquad][idof];
+                       // derivative_p_temp[iquad][idof] = c_vw * derivative_p[iquad][idof];
+                        derivative_p_temp[iquad][idof] = c * derivative_p[iquad][idof];
                     }
                 }
 
                 dealii::FullMatrix<real> K_operator_temp(n_dofs_cell);
                 derivative_p_temp.Tmmult(K_operator_temp, local_Mass_Matrix_no_Jac);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M
-                K_operator_temp.mmult(K_operator_no_Jac, derivative_p, true);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
+               // K_operator_temp.mmult(K_operator_no_Jac, derivative_p, true);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
+                K_operator_temp.mmult(K_operator_no_Jac, derivative_p);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
                // derivative_p_temp.Tmmult(K_operator_no_Jac, derivative_p, true);
 
                 for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
                     for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-                        derivative_p_temp[iquad][idof] = k_vw * derivative_p[iquad][idof];
+                       // derivative_p_temp[iquad][idof] = k_vw * derivative_p[iquad][idof];
+                        derivative_p_temp[iquad][idof] = k * derivative_p[iquad][idof];
                     }
                 }
 
@@ -2030,8 +2074,8 @@ fflush(stdout);
                 K_operator_temp.mmult(K_operator_no_Jac_aux, derivative_p, true);//(c*(Chi^{-1}*dChi/dXi)^p)^T*M*(Chi^{-1}*dChi/dXi)^p)
     
                // derivative_p_temp.Tmmult(K_operator_no_Jac_aux, derivative_p, true);
-            }
-        }
+   //         }
+  //      }
         //Include Jac dependence
         K_operator_no_Jac.mmult(K_operator,Jacobian_physical);
         K_operator_no_Jac_aux.mmult(K_operator_aux[0],Jacobian_physical);

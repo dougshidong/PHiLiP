@@ -38,28 +38,38 @@ public:
     dealii::LinearAlgebra::distributed::Vector<double> 
     get_surface_displacement (const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid) const;
 
-    /// Deform HighOrderGrid using its initial nodes to retrieve the deformed set of nodes.
+    /// Deform HighOrderGrid using its initial volume_nodes to retrieve the deformed set of volume_nodes.
     void deform_mesh (HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid) const;
 
     /// Given an initial point in the undeformed initial parallepiped and the index a control point,
-    /// return the derivative dXsdXp of the new point location point_i with respect to that control_point_j.
-    dealii::Point<dim,double> dXsdXp (const dealii::Point<dim,double> &initial_point, const unsigned int ctl_index, const unsigned int ctl_axis) const;
+    /// return the derivative dXdXp of the new point location point_i with respect to that control_point_j.
+    dealii::Point<dim,double> dXdXp (const dealii::Point<dim,double> &initial_point, const unsigned int ctl_index, const unsigned int ctl_axis) const;
 
     /** For the given list of FFD indices and direction, return the analytical
      *  derivatives of the HighOrderGrid's initial surface points with respect to the FFD.
-     *  Note that the result is returned as a vector of vector because it will likely be used with a MeshMover's apply_dXvdXs() function.
+     *  The result is written into the given dXvsdXp SparseMatrix.
+     */
+    void get_dXvsdXp (
+        const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
+        const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim,
+        dealii::TrilinosWrappers::SparseMatrix &dXvsdXp
+        ) const;
+
+    /** For the given list of FFD indices and direction, return the analytical
+     *  derivatives of the HighOrderGrid's initial surface points with respect to the FFD.
+     *  Note that the result is returned as a vector of vector because it will likely be used with a MeshMover's apply_dXvdXvs() function.
      */
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>>
-    get_dXsdXp (const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
+    get_dXvsdXp (const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
                 const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim
                ) const;
 
     /** For the given list of FFD indices and direction, return the finite-differenced
      *  derivatives of the HighOrderGrid's initial surface points with respect to the FFD.
-     *  Note that the result is returned as a vector of vector because it will likely be used with a MeshMover's apply_dXvdXs() function.
+     *  Note that the result is returned as a vector of vector because it will likely be used with a MeshMover's apply_dXvdXvs() function.
      */
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>>
-    get_dXsdXp_FD (const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
+    get_dXvsdXp_FD (const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
                 const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim,
                 const double eps
                );

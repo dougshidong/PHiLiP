@@ -874,13 +874,22 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
 
     right_hand_side = 0;
 
-    if (compute_dRdW) system_matrix = 0;
-    if (compute_dRdX) dRdXv = 0;
+    pcout << "Assembling DG residual...";
+    if (compute_dRdW) {
+        pcout << " with dRdW...";
+        system_matrix = 0;
+    }
+    if (compute_dRdX) {
+        pcout << " with dRdX...";
+        dRdXv = 0;
+    }
     if (compute_d2R) {
+        pcout << " with d2RdWdW, d2RdWdX, d2RdXdX...";
         d2RdWdW = 0;
         d2RdWdX = 0;
         d2RdXdX = 0;
     }
+    pcout << std::endl;
 
     //const dealii::MappingManifold<dim,dim> mapping;
     //const dealii::MappingQ<dim,dim> mapping(10);//;max_degree+1);
@@ -899,6 +908,7 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
 
     solution.update_ghost_values();
 
+    int assembly_error = 0;
     try {
         auto current_metric_cell = high_order_grid.dof_handler_grid.begin_active();
         for (auto current_cell = dof_handler.begin_active(); current_cell != dof_handler.end(); ++current_cell, ++current_metric_cell) {
@@ -917,9 +927,17 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
                 right_hand_side);
         } // end of cell loop
     } catch(...) {
+        assembly_error = 1;
+    }
+    const int mpi_assembly_error = dealii::Utilities::MPI::sum(assembly_error, mpi_communicator);
+
+    if (mpi_assembly_error != 0) {
+        std::cout << "Invalid residual assembly encountered..."
+                  << " Filling up RHS with 1s. " << std::endl;
+        right_hand_side *= 0.0;
+        right_hand_side.add(1.0);
         if (compute_dRdW) {
-            right_hand_side *= 0.0;
-            right_hand_side.add(1.0);
+            std::cout << " Filling up Jacobian with mass matrix. " << std::endl;
             const bool do_inverse_mass_matrix = false;
             evaluate_mass_matrices (do_inverse_mass_matrix);
             system_matrix.copy_from(global_mass_matrix);

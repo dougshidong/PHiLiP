@@ -31,7 +31,7 @@ namespace MeshMover {
     //   , n_mpi_processes(dealii::Utilities::MPI::n_mpi_processes(mpi_communicator))
     //   , this_mpi_process(dealii::Utilities::MPI::this_mpi_process(mpi_communicator))
     //   , pcout(std::cout, this_mpi_process == 0)
-    //   , boundary_ids_vector(high_order_grid.surface_indices)
+    //   , boundary_ids_vector(high_order_grid.surface_to_volume_indices)
     //   , boundary_displacements_vector(boundary_displacements_vector)
     // { 
     //     AssertDimension(boundary_displacements_vector.size(), boundary_ids_vector.size());
@@ -45,7 +45,7 @@ namespace MeshMover {
           *(high_order_grid.triangulation),
           high_order_grid.mapping_fe_field,
           high_order_grid.dof_handler_grid,
-          high_order_grid.surface_indices,
+          high_order_grid.surface_to_volume_indices,
           boundary_displacements_vector)
     { }
 
@@ -312,106 +312,10 @@ namespace MeshMover {
         pcout << "    Solver converged in " << n_iterations << " iterations." << std::endl;
     }
 
-    // template <typename dealii::LinearAlgebra::distributed::Vector<double>>
-    // template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    // dealii::LinearAlgebra::distributed::Vector<double>
-    // LinearElasticity<dim,real,VectorType,DoFHandlerType>::
-    // apply_dXvdXs_transpose(dealii::LinearAlgebra::distributed::Vector<double> &input_vector)
-    // {
-    //     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> list_of_in_vector;
-    //     list_of_in_vector.push_back(input_vector);
-    //     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> list_of_out_vector = apply_dXvdXs_transpose(list_of_in_vector);
-    //     return list_of_in_vector[0];
-    // }
-
-    // template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    // std::vector<dealii::LinearAlgebra::distributed::Vector<double>>
-    // LinearElasticity<dim,real,VectorType,DoFHandlerType>::
-    // apply_dXvdXs_transpose(std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &list_of_vectors)
-    // {
-    //     const unsigned int n_rows = dof_handler.n_dofs();
-    //     const unsigned int n_cols = list_of_vectors.size();
-    //     const unsigned int max_per_row = n_cols;
-
-    //     const dealii::SparsityPattern full_dsp(n_rows, n_cols, max_per_row);
-    //     const dealii::IndexSet &row_part = dof_handler.locally_owned_dofs();
-    //     dealii::IndexSet col_part(n_cols);
-    //     col_part.add_range(0,n_cols);
-
-    //     dealii::LinearAlgebra::distributed::Vector<double> trilinos_solution(system_rhs);
-    //     all_constraints.set_zero(trilinos_solution);
-
-    //     dealii::SolverControl solver_control(5000, 1e-12 * system_rhs.l2_norm());
-    //     dealii::SolverCG<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
-    //     dealii::TrilinosWrappers::PreconditionJacobi      precondition;
-    //     precondition.initialize(system_matrix_unconstrained);
-    //     //precondition.initialize(system_matrix);
-    //     //solver.solve(system_matrix, trilinos_solution, system_rhs, precondition);
-
-    //     //all_constraints.distribute(trilinos_solution);
-
-    //     /// The use of the constrained linear operator is heavily discussed in:
-    //     /// https://www.dealii.org/current/doxygen/deal.II/group__constraints.html
-    //     //using trilinos_vector_type = VectorType;
-    //     using payload_type = dealii::TrilinosWrappers::internal::LinearOperatorImplementation::TrilinosPayload;
-    //     const auto op_at = dealii::transpose_operator(dealii::linear_operator<trilinos_vector_type,trilinos_vector_type,payload_type>(system_matrix_unconstrained));
-    //     const auto op_atmod = dealii::constrained_linear_operator(all_constraints, op_at);
-    //     const auto C    = distribute_constraints_linear_operator(all_constraints, op_at);
-    //     const auto Ct   = transpose_operator(C);
-    //     const auto Id_c = project_to_constrained_linear_operator(all_constraints, op_at);
-
-    //     const unsigned int n_dirichlet_constraints = boundary_displacements_vector.size();
-    //     const unsigned int n_surface_nodes = n_dirichlet_constraints;
-    //     dXvdXs.clear();
-    //     // const dealii::SparsityPattern full_surface_sparsity_pattern(n_rows, n_surface_nodes, n_surface_nodes);
-    //     // dXvdXs.reinit(row_part, n_surface_nodes, full_surface_sparsity_pattern, mpi_communicator);
-    //     pcout << "Solving for dXvdXs with " << n_dirichlet_constraints << "surface nodes..." << std::endl;
-
-    //     unsigned int col = 0;
-    //     for (auto &rhs_vector: list_of_vectors) {
-
-    //         // Build RHS.
-    //         VectorType Ctrhs;
-    //         Ctrhs.reinit(rhs_vector);
-    //         Ctrhs = Ct*rhs_vector;
-
-    //         // Solution.
-    //         VectorType op_inv_Ctrhs;
-
-    //         // Solve modified system.
-    //         dealii::deallog.depth_console(0);
-    //         solver.solve(op_atmod, op_inv_Ctrhs, rhs_vector, precondition);
-
-    //         //pcout << "Surface Dirichlet constraint " << iconstraint+1 << " out of " << n_dirichlet_constraints
-    //         //      << " DoF constrained: " << iconstraint
-    //         //      << "    Solver converged in " << solver_control.last_step() << " iterations." << std::endl;
-
-    //         // Apply boundary condition
-    //         VectorType dXvdXs_transpose_output;
-    //         dXvdXs_transpose_output.reinit(rhs_vector);
-    //         dXvdXs_transpose_output = op_at*C*op_inv_Ctrhs;
-    //         dXvdXs_transpose_output *= -1.0;
-    //         dXvdXs_transpose_output.add(rhs_vector);
-
-    //         dealii::LinearAlgebra::ReadWriteVector<double> rw_vector;
-    //         rw_vector.reinit(dXvdXs_transpose_output);
-
-    //         dealii::LinearAlgebra::distributed::Vector<double> dXvdXs_i;
-    //         dXvdXs_i.reinit(displacement_solution);
-    //         dXvdXs_i.import(rw_vector, dealii::VectorOperation::insert);
-    //         dXvdXs.push_back(dXvdXs_i);
-
-    //         for (const auto &row: dof_handler.locally_owned_dofs()) {
-    //             dXvdVector.set(row, col, dXvdXs_i[row]);
-    //         }
-    //     }
-    //     dXvdVector.compress(dealii::VectorOperation::insert);
-    // }
-
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
     void
     LinearElasticity<dim,real,VectorType,DoFHandlerType>
-    ::apply_dXvdXs(
+    ::apply_dXvdXvs(
         std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &list_of_vectors,
         dealii::TrilinosWrappers::SparseMatrix &output_matrix)
     {
@@ -435,9 +339,6 @@ namespace MeshMover {
         dealii::SparsityPattern full_sp;
         full_sp.copy_from(full_dsp);
 
-        //const std::vector<dealii::IndexSet> col_parts = dealii::Utilities::MPI::create_evenly_distributed_partitioning(mpi_communicator, n_cols);
-        //const unsigned int this_mpi_process = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
-        //const dealii::IndexSet &col_part = col_parts[this_mpi_process];
         const dealii::IndexSet col_part = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_cols);
 
         output_matrix.reinit(row_part, col_part, full_sp, mpi_communicator);
@@ -446,13 +347,31 @@ namespace MeshMover {
         dealii::SolverCG<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
         dealii::TrilinosWrappers::PreconditionJacobi      precondition;
         precondition.initialize(system_matrix_unconstrained);
-        //precondition.initialize(system_matrix);
-        //solver.solve(system_matrix, trilinos_solution, system_rhs, precondition);
-
-        //all_constraints.distribute(trilinos_solution);
 
         /// The use of the constrained linear operator is heavily discussed in:
         /// https://www.dealii.org/current/doxygen/deal.II/group__constraints.html
+        /// Given affine constraints such that x = C y + k
+        /// where C describes the homogeneous part of the linear constraints stored in an AffineConstraints object
+        /// and the vector k is the vector of corresponding inhomogeneities
+        ///
+        /// Eg. Dirichlet BC's would have zero-rows in C and non-zero rows in k
+        /// and hanging-nodes would be linearly constrained through non-zero rows within C.
+        ///
+        /// 1.  (Ct A_unconstrained C + Id_c) y = Ct (b - Ak)
+        /// 2.  x = C y + k
+        ///
+        /// b are the forces, which == 0
+        /// k are the inhomogeneous
+        /// Id_c Identity on the subspace of constrained degrees of freedom.
+        /// 
+        /// The above steps 1. and 2. solve the real constrained system A_constrained x = b_constrained
+        /// Although possible to assemble and solve, we will be interested in the derivative with respect
+        /// to the inhomogeneity vector k, which is more easily recoverable through formulation 1. and 2.,
+        /// than the assembly of the constrained system.
+        ///
+        /// y = - inverse(Ct A_unconstrained C + Id_c) Ct A k
+        /// x = - C inverse(Ct A_unconstrained C + Id_c) Ct A k + k
+        /// dx/dk = - C inverse(Ct A_unconstrained C + Id_c) Ct A + I
         using trilinos_vector_type = dealii::LinearAlgebra::distributed::Vector<double>;
         using payload_type = dealii::TrilinosWrappers::internal::LinearOperatorImplementation::TrilinosPayload;
         const auto op_a = dealii::linear_operator<trilinos_vector_type,trilinos_vector_type,payload_type>(system_matrix_unconstrained);
@@ -500,6 +419,59 @@ namespace MeshMover {
     }
 
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    void
+    LinearElasticity<dim,real,VectorType,DoFHandlerType>
+    ::apply_dXvdXvs_transpose(
+        dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
+        dealii::LinearAlgebra::distributed::Vector<double> &output_vector)
+    {
+        assemble_system();
+
+        dealii::SolverControl solver_control(5000, 1e-12 * system_rhs.l2_norm());
+        dealii::SolverCG<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
+        dealii::TrilinosWrappers::PreconditionJacobi      precondition;
+        precondition.initialize(system_matrix_unconstrained);
+
+        /// The use of the constrained linear operator is heavily discussed in:
+        /// https://www.dealii.org/current/doxygen/deal.II/group__constraints.html
+        /// x = - C inverse(Ct A_unconstrained C + Id_c) Ct A k + k
+        /// dx/dk = - C inverse(Ct A_unconstrained C + Id_c) Ct A + I
+        /// transpose(dx/dk) = - transpose(A) C transpose(inverse(Ct A_unconstrained C + Id_c)) Ct + I
+        using trilinos_vector_type = dealii::LinearAlgebra::distributed::Vector<double>;
+        using payload_type = dealii::TrilinosWrappers::internal::LinearOperatorImplementation::TrilinosPayload;
+        const auto op_a = dealii::linear_operator<trilinos_vector_type,trilinos_vector_type,payload_type>(system_matrix_unconstrained);
+        const auto op_at = transpose_operator(op_a);
+        const auto op_amod_trans = transpose_operator(dealii::constrained_linear_operator(all_constraints, op_a));
+        const auto C    = distribute_constraints_linear_operator(all_constraints, op_a);
+        const auto Ct   = transpose_operator(C);
+        const auto Id_c = project_to_constrained_linear_operator(all_constraints, op_a);
+
+        pcout << "Applying transpose(dXvdXvs) onto a vector..." << std::endl;
+
+        // Build RHS.
+        dealii::LinearAlgebra::distributed::Vector<double> Ctrhs;
+        Ctrhs.reinit(input_vector);
+        Ctrhs = Ct*input_vector;
+
+        // Solution.
+        dealii::LinearAlgebra::distributed::Vector<double> op_inv_Ctrhs(input_vector);
+        all_constraints.set_zero(op_inv_Ctrhs);
+
+        // Solve modified system.
+        dealii::deallog.depth_console(0);
+        solver.solve(op_amod_trans, op_inv_Ctrhs, Ctrhs, precondition);
+
+        // Apply boundary condition
+        output_vector.reinit(Ctrhs);
+        output_vector = op_at*C*op_inv_Ctrhs;
+        output_vector *= -1.0;
+        output_vector += input_vector;
+
+        //output_vector.compress(dealii::VectorOperation::insert);
+
+    }
+
+    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
     void LinearElasticity<dim,real,VectorType,DoFHandlerType>::evaluate_dXvdXs()
     {
         std::vector<dealii::LinearAlgebra::distributed::Vector<double>> unit_rhs_vector;
@@ -520,7 +492,7 @@ namespace MeshMover {
             unit_rhs_vector.push_back(unit_rhs);
         }
         dealii::TrilinosWrappers::SparseMatrix dXvdXs_matrix;
-        apply_dXvdXs(unit_rhs_vector, dXvdXs_matrix);
+        apply_dXvdXvs(unit_rhs_vector, dXvdXs_matrix);
     }
 
     // template <int dim, typename real, typename VectorType , typename DoFHandlerType>

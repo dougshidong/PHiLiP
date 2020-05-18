@@ -137,7 +137,7 @@ dealii::SparsityPattern DGBase<dim,real>::get_d2RdWdXs_sparsity_pattern ()
 template <int dim, typename real>
 dealii::SparsityPattern DGBase<dim,real>::get_d2RdXsdXs_sparsity_pattern ()
 {
-    const auto &partitionner = high_order_grid.surface_indices.get_partitioner();
+    const auto &partitionner = high_order_grid.surface_to_volume_indices.get_partitioner();
     const dealii::IndexSet owned = partitionner->locally_owned_range();
     dealii::DynamicSparsityPattern dsp(owned);
 

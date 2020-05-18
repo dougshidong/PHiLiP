@@ -84,7 +84,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_dRdX(
 
     const unsigned int n_total_indep = n_metric_dofs;
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        coords_coeff[idof] = this->high_order_grid.nodes[metric_dof_indices_int[idof]];
+        coords_coeff[idof] = this->high_order_grid.volume_nodes[metric_dof_indices_int[idof]];
         coords_coeff[idof].diff(idof, n_total_indep);
     }
     std::vector<dealii::Tensor<2,dim,ADtype>> metric_jacobian = evaluate_metric_jacobian ( points, coords_coeff, fe_metric);
@@ -268,7 +268,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_dRdX(
 
     const unsigned int n_total_indep = n_metric_dofs;
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        coords_coeff[idof] = this->high_order_grid.nodes[metric_dof_indices_int[idof]];
+        coords_coeff[idof] = this->high_order_grid.volume_nodes[metric_dof_indices_int[idof]];
         coords_coeff[idof].diff(idof, n_total_indep);
     }
     std::vector<dealii::Tensor<2,dim,ADtype>> metric_jacobian = evaluate_metric_jacobian (unit_quad_pts, coords_coeff, fe_metric);
@@ -497,11 +497,11 @@ void DGWeak<dim,nstate,real>::assemble_face_term_dRdX(
 
     const unsigned int n_total_indep = 2*n_metric_dofs;
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        coords_coeff_int[idof] = this->high_order_grid.nodes[metric_dof_indices_int[idof]];
+        coords_coeff_int[idof] = this->high_order_grid.volume_nodes[metric_dof_indices_int[idof]];
         coords_coeff_int[idof].diff(idof, n_total_indep);
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        coords_coeff_ext[idof] = this->high_order_grid.nodes[metric_dof_indices_ext[idof]];
+        coords_coeff_ext[idof] = this->high_order_grid.volume_nodes[metric_dof_indices_ext[idof]];
         coords_coeff_ext[idof].diff(n_metric_dofs+idof, n_total_indep);
     }
     // Use the metric Jacobian from the interior cell
@@ -1186,7 +1186,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_hessian(
         i_derivative++;
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        const real val = this->high_order_grid.nodes[metric_dof_indices_int[idof]];
+        const real val = this->high_order_grid.volume_nodes[metric_dof_indices_int[idof]];
         coords_coeff[idof] = val;
         coords_coeff[idof].diff(i_derivative, n_total_indep);
         coords_coeff[idof].val() = val;
@@ -1386,7 +1386,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_hessian(
         i_derivative++;
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        const real val = this->high_order_grid.nodes[metric_dof_indices_int[idof]];
+        const real val = this->high_order_grid.volume_nodes[metric_dof_indices_int[idof]];
         coords_coeff[idof] = val;
         coords_coeff[idof].diff(i_derivative, n_total_indep);
         coords_coeff[idof].val() = val;
@@ -1628,7 +1628,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_hessian(
         i_derivative++;
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        const real val = this->high_order_grid.nodes[metric_dof_indices_int[idof]];
+        const real val = this->high_order_grid.volume_nodes[metric_dof_indices_int[idof]];
         coords_coeff_int[idof] = val;
         coords_coeff_int[idof].diff(i_derivative, n_total_indep);
         coords_coeff_int[idof].val() = val;
@@ -1636,7 +1636,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_hessian(
         i_derivative++;
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        const real val = this->high_order_grid.nodes[metric_dof_indices_ext[idof]];
+        const real val = this->high_order_grid.volume_nodes[metric_dof_indices_ext[idof]];
         coords_coeff_ext[idof] = val;
         coords_coeff_ext[idof].diff(i_derivative, n_total_indep);
         coords_coeff_ext[idof].val() = val;

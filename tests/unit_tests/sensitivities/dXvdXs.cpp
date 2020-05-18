@@ -169,11 +169,11 @@ int main (int argc, char * argv[])
                         v1.push_back(i);
                     }
 
-                    const dealii::IndexSet owned = high_order_grid.surface_indices.locally_owned_elements();
-                    const dealii::IndexSet ghosted = high_order_grid.surface_indices.get_partitioner()->ghost_indices();
-                    for (unsigned int i=0; i<high_order_grid.surface_indices.size(); ++i) {
+                    const dealii::IndexSet owned = high_order_grid.surface_to_volume_indices.locally_owned_elements();
+                    const dealii::IndexSet ghosted = high_order_grid.surface_to_volume_indices.get_partitioner()->ghost_indices();
+                    for (unsigned int i=0; i<high_order_grid.surface_to_volume_indices.size(); ++i) {
                         if(owned.is_element(i) || ghosted.is_element(i)) {
-                            v2.push_back(high_order_grid.surface_indices[i]);
+                            v2.push_back(high_order_grid.surface_to_volume_indices[i]);
                         }
                     }
                     std::sort(v1.begin(),v1.end());
@@ -230,8 +230,8 @@ int main (int argc, char * argv[])
                 double old_value = 0;
                 unsigned int corresponding_volume_dof = 999999999;
                 if (iown) {
-                    corresponding_volume_dof = high_order_grid.surface_indices[isurface];
-                    std::cout << "Performing finite difference for node: " << high_order_grid.surface_indices[isurface] << std::endl;
+                    corresponding_volume_dof = high_order_grid.surface_to_volume_indices[isurface];
+                    std::cout << "Performing finite difference for node: " << high_order_grid.surface_to_volume_indices[isurface] << std::endl;
                     old_value = surface_node_displacements_vector[isurface];
                     surface_node_displacements_vector[isurface] = old_value + fd_eps;
                 }
@@ -242,11 +242,11 @@ int main (int argc, char * argv[])
 
                 VectorType volume_displacements_p = meshmover_p.get_volume_displacements();
 
-                high_order_grid.nodes += volume_displacements_p;
-                high_order_grid.nodes.update_ghost_values();
+                high_order_grid.volume_nodes += volume_displacements_p;
+                high_order_grid.volume_nodes.update_ghost_values();
                 high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
-                high_order_grid.nodes -= volume_displacements_p;
-                high_order_grid.nodes.update_ghost_values();
+                high_order_grid.volume_nodes -= volume_displacements_p;
+                high_order_grid.volume_nodes.update_ghost_values();
                 high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
 
 

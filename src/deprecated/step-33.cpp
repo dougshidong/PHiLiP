@@ -248,7 +248,7 @@ namespace Step33
 
     // @sect4{EulerEquations::compute_normal_flux}
 
-    // On the boundaries of the domain and across hanging nodes we use a
+    // On the boundaries of the domain and across hanging volume_nodes we use a
     // numerical flux function to enforce boundary conditions.  This routine
     // is the basic Lax-Friedrich's flux with a stabilization parameter
     // $\alpha$. It's form has also been given already in the introduction:

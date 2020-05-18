@@ -36,25 +36,25 @@ const double EPS = 1E-4;
 //    PHiLiP::HighOrderGrid<dim,double> &high_order_grid = dg->high_order_grid;
 //
 //    if (inode_relevant) {
-//        old_inode = high_order_grid.nodes(inode);
-//        high_order_grid.nodes(inode) = old_inode+dipert*EPS;
+//        old_inode = high_order_grid.volume_nodes(inode);
+//        high_order_grid.volume_nodes(inode) = old_inode+dipert*EPS;
 //    }
 //    if (jnode_relevant) {
-//        old_jnode = high_order_grid.nodes(jnode);
+//        old_jnode = high_order_grid.volume_nodes(jnode);
 //        if (inode == jnode) {
-//            high_order_grid.nodes(jnode) += j*EPS;
+//            high_order_grid.volume_nodes(jnode) += j*EPS;
 //        } else {
-//            high_order_grid.nodes(jnode) = old_jnode+djpert*EPS;
+//            high_order_grid.volume_nodes(jnode) = old_jnode+djpert*EPS;
 //        }
 //    }
 //    dg->assemble_residual(false, false, false);
 //    perturbed_dual_dot_residual[ij] = dg->right_hand_side * dg->dual;
 //
 //    if (inode_relevant) {
-//        high_order_grid.nodes(inode) = old_inode;
+//        high_order_grid.volume_nodes(inode) = old_inode;
 //    }
 //    if (jnode_relevant) {
-//        high_order_grid.nodes(jnode) = old_jnode;
+//        high_order_grid.volume_nodes(jnode) = old_jnode;
 //    }
 /** This test checks that dRdX evaluated using automatic differentiation
  *  matches with the results obtained using finite-difference.
@@ -130,8 +130,8 @@ int test (
     PHiLiP::HighOrderGrid<dim,double> &high_order_grid = dg->high_order_grid;
 
     using nodeVector = dealii::LinearAlgebra::distributed::Vector<double>;
-    nodeVector old_nodes = high_order_grid.nodes;
-    old_nodes.update_ghost_values();
+    nodeVector old_volume_nodes = high_order_grid.volume_nodes;
+    old_volume_nodes.update_ghost_values();
 
     pcout << "Evaluating AD..." << std::endl;
     dg->assemble_residual(false, false, true);
@@ -161,15 +161,15 @@ int test (
             //if (inode == jnode) {
                 // +
                 if (inode_relevant) {
-                    old_inode = high_order_grid.nodes[inode];
-                    high_order_grid.nodes(inode) = old_inode+EPS;
+                    old_inode = high_order_grid.volume_nodes[inode];
+                    high_order_grid.volume_nodes(inode) = old_inode+EPS;
                 }
                 dg->assemble_residual(false, false, false);
                 double perturbed_dual_dot_residual_p = dg->right_hand_side * dg->dual;
 
                 // -
                 if (inode_relevant) {
-                    high_order_grid.nodes(inode) = old_inode-EPS;
+                    high_order_grid.volume_nodes(inode) = old_inode-EPS;
                 }
                 dg->assemble_residual(false, false, false);
                 double perturbed_dual_dot_residual_m = dg->right_hand_side * dg->dual;
@@ -182,7 +182,7 @@ int test (
 
                 // Reset node
                 if (inode_relevant) {
-                    high_order_grid.nodes(inode) = old_inode;
+                    high_order_grid.volume_nodes(inode) = old_inode;
                 }
 
                 // Set
@@ -196,42 +196,42 @@ int test (
 
             //    // + +
             //    if (inode_relevant) {
-            //        old_inode = high_order_grid.nodes[inode];
-            //        high_order_grid.nodes(inode) = old_inode+EPS;
+            //        old_inode = high_order_grid.volume_nodes[inode];
+            //        high_order_grid.volume_nodes(inode) = old_inode+EPS;
             //    }
             //    if (jnode_relevant) {
-            //        old_jnode = high_order_grid.nodes[jnode];
-            //        high_order_grid.nodes(jnode) = old_jnode+EPS;
+            //        old_jnode = high_order_grid.volume_nodes[jnode];
+            //        high_order_grid.volume_nodes(jnode) = old_jnode+EPS;
             //    }
             //    dg->assemble_residual(false, false, false);
             //    double perturbed_dual_dot_residual_p_p = dg->right_hand_side * dg->dual;
 
             //    // + -
             //    if (inode_relevant) {
-            //        high_order_grid.nodes(inode) = old_inode+EPS;
+            //        high_order_grid.volume_nodes(inode) = old_inode+EPS;
             //    }
             //    if (jnode_relevant) {
-            //        high_order_grid.nodes(jnode) = old_jnode-EPS;
+            //        high_order_grid.volume_nodes(jnode) = old_jnode-EPS;
             //    }
             //    dg->assemble_residual(false, false, false);
             //    double perturbed_dual_dot_residual_p_m = dg->right_hand_side * dg->dual;
 
             //    // - +
             //    if (inode_relevant) {
-            //        high_order_grid.nodes(inode) = old_inode-EPS;
+            //        high_order_grid.volume_nodes(inode) = old_inode-EPS;
             //    }
             //    if (jnode_relevant) {
-            //        high_order_grid.nodes(jnode) = old_jnode+EPS;
+            //        high_order_grid.volume_nodes(jnode) = old_jnode+EPS;
             //    }
             //    dg->assemble_residual(false, false, false);
             //    double perturbed_dual_dot_residual_m_p = dg->right_hand_side * dg->dual;
 
             //    // - -
             //    if (inode_relevant) {
-            //        high_order_grid.nodes(inode) = old_inode-EPS;
+            //        high_order_grid.volume_nodes(inode) = old_inode-EPS;
             //    }
             //    if (jnode_relevant) {
-            //        high_order_grid.nodes(jnode) = old_jnode-EPS;
+            //        high_order_grid.volume_nodes(jnode) = old_jnode-EPS;
             //    }
             //    dg->assemble_residual(false, false, false);
             //    double perturbed_dual_dot_residual_m_m = dg->right_hand_side * dg->dual;
@@ -245,10 +245,10 @@ int test (
 
             //    // Reset node
             //    if (inode_relevant) {
-            //        high_order_grid.nodes(inode) = old_inode;
+            //        high_order_grid.volume_nodes(inode) = old_inode;
             //    }
             //    if (jnode_relevant) {
-            //        high_order_grid.nodes(jnode) = old_jnode;
+            //        high_order_grid.volume_nodes(jnode) = old_jnode;
             //    }
 
             //    // Set
@@ -261,10 +261,10 @@ int test (
             } else {
 
                 if (inode_relevant) {
-                    old_inode = high_order_grid.nodes[inode];
+                    old_inode = high_order_grid.volume_nodes[inode];
                 }
                 if (jnode_relevant) {
-                    old_jnode = high_order_grid.nodes[jnode];
+                    old_jnode = high_order_grid.volume_nodes[jnode];
                 }
                 std::array<std::array<int, 2>, 25> pert;
                 for (int i=-2; i<3; ++i) {
@@ -282,23 +282,23 @@ int test (
                         int ij = (i+2)*5 + (j+2);
 
                         if (inode_relevant) {
-                            high_order_grid.nodes(inode) = old_inode+i*EPS;
+                            high_order_grid.volume_nodes(inode) = old_inode+i*EPS;
                         }
                         if (jnode_relevant) {
                             if (inode == jnode) {
-                                high_order_grid.nodes(jnode) += j*EPS;
+                                high_order_grid.volume_nodes(jnode) += j*EPS;
                             } else {
-                                high_order_grid.nodes(jnode) = old_jnode+j*EPS;
+                                high_order_grid.volume_nodes(jnode) = old_jnode+j*EPS;
                             }
                         }
                         dg->assemble_residual(false, false, false);
                         perturbed_dual_dot_residual[ij] = dg->right_hand_side * dg->dual;
 
                         if (inode_relevant) {
-                            high_order_grid.nodes(inode) = old_inode;
+                            high_order_grid.volume_nodes(inode) = old_inode;
                         }
                         if (jnode_relevant) {
-                            high_order_grid.nodes(jnode) = old_jnode;
+                            high_order_grid.volume_nodes(jnode) = old_jnode;
                         }
                     }
                 }
@@ -360,10 +360,10 @@ int test (
 
                 // Reset node
                 if (inode_relevant) {
-                    high_order_grid.nodes(inode) = old_inode;
+                    high_order_grid.volume_nodes(inode) = old_inode;
                 }
                 if (jnode_relevant) {
-                    high_order_grid.nodes(jnode) = old_jnode;
+                    high_order_grid.volume_nodes(jnode) = old_jnode;
                 }
 
                 // Set

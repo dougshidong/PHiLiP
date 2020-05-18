@@ -122,22 +122,38 @@ int main (int argc, char * argv[])
                 if (rel_diff_frob_norm > 1e-4) fail_bool = true;
 
 
-                std::vector<dealii::LinearAlgebra::distributed::Vector<double>> dXsdXp_vector_AD = ffd.get_dXsdXp ( high_order_grid, ffd_design_variables_indices_dim );
-                std::vector<dealii::LinearAlgebra::distributed::Vector<double>> dXsdXp_vector_FD = ffd.get_dXsdXp_FD ( high_order_grid, ffd_design_variables_indices_dim, EPS );
+                std::vector<dealii::LinearAlgebra::distributed::Vector<double>> dXvsdXp_vector_AD = ffd.get_dXvsdXp ( high_order_grid, ffd_design_variables_indices_dim );
+                std::vector<dealii::LinearAlgebra::distributed::Vector<double>> dXvsdXp_vector_FD = ffd.get_dXvsdXp_FD ( high_order_grid, ffd_design_variables_indices_dim, EPS );
+                dealii::TrilinosWrappers::SparseMatrix dXvsdXp_matrix;
+                ffd.get_dXvsdXp ( high_order_grid, ffd_design_variables_indices_dim, dXvsdXp_matrix );
 
+                double local_matrix_error = 0.0;
+                const auto &row_part = dXvsdXp_matrix.locally_owned_range_indices();
                 for (unsigned int i_design = 0; i_design < n_design_variables; ++i_design) {
-                    auto diff = dXsdXp_vector_AD[i_design];
-                    diff -= dXsdXp_vector_FD[i_design];
+                    auto diff = dXvsdXp_vector_AD[i_design];
+                    diff -= dXvsdXp_vector_FD[i_design];
 
-                    const double dXsdXp_AD_l2_norm = dXsdXp_vector_AD[i_design].l2_norm(); (void) dXsdXp_AD_l2_norm;
-                    const double dXsdXp_FD_l2_norm = dXsdXp_vector_FD[i_design].l2_norm(); (void) dXsdXp_FD_l2_norm;
+                    const double dXvsdXp_AD_l2_norm = dXvsdXp_vector_AD[i_design].l2_norm(); (void) dXvsdXp_AD_l2_norm;
+                    const double dXvsdXp_FD_l2_norm = dXvsdXp_vector_FD[i_design].l2_norm(); (void) dXvsdXp_FD_l2_norm;
                     const double abs_diff_norm = diff.l2_norm();
-                    const double rel_diff_norm = (dXsdXp_AD_l2_norm == 0.0) ? abs_diff_norm : abs_diff_norm / dXsdXp_AD_l2_norm;
-                    pcout << " dXsdXp i: " << i_design << " error: " << rel_diff_norm << std::endl;
+                    const double rel_diff_norm = (dXvsdXp_AD_l2_norm == 0.0) ? abs_diff_norm : abs_diff_norm / dXvsdXp_AD_l2_norm;
+                    pcout << " dXvsdXp i: " << i_design << " error: " << rel_diff_norm << std::endl;
 
                     if (rel_diff_norm > 1e-4) fail_bool = true;
-                }
 
+
+                    for (const auto &row : row_part) {
+                        const double val_m = dXvsdXp_matrix.el(row,i_design);
+                        const double val_v = dXvsdXp_vector_AD[i_design][row];
+                        const double diff_mv = val_m - val_v;
+
+                        local_matrix_error += diff_mv*diff_mv;
+                    }
+                }
+                double matrix_abs_error = std::sqrt(dealii::Utilities::MPI::sum(local_matrix_error,MPI_COMM_WORLD));
+                double matrix_rel_error = matrix_abs_error / dXvsdXp_matrix.frobenius_norm();
+                pcout << " dXvsdXp_vector - dXvsdXp_matrix: " << matrix_rel_error << std::endl;
+                if (matrix_rel_error > 1e-12) fail_bool = true;
             }
         }
     }

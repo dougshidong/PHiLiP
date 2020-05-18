@@ -158,7 +158,7 @@ public:
     /// Applies the adjoint of the Hessian of the constraints w.\ r.\ t.\ the simulation variables onto a vector.
     /** More specifically, apply
      *  \f[
-     *      \mathbf{v}_{out} = \left( \sum_i \psi_i \frac{\partial^2 R_i}{\partial u \partial u} \right)^T \mathbf{v}_{in}
+     *      \mathbf{v}_{output} = \left( \sum_i \psi_i \frac{\partial^2 R_i}{\partial u \partial u} \right)^T \mathbf{v}_{input}
      *  \f]
      *  onto the @p input_vector to obtain the @p output_vector
      */
@@ -174,7 +174,7 @@ public:
     /// Applies the adjoint of the Hessian of the constraints w.\ r.\ t.\ the simulation variables onto a vector.
     /** More specifically, apply
      *  \f[
-     *      \mathbf{v}_{out} = \left( \sum_i \psi_i \frac{\partial^2 R_i}{\partial u \partial x} \right)^T \mathbf{v}_{in}
+     *      \mathbf{v}_{output} = \left( \sum_i \psi_i \frac{\partial^2 R_i}{\partial u \partial x} \right)^T \mathbf{v}_{input}
      *  \f]
      *  onto the @p input_vector to obtain the @p output_vector
      */
@@ -190,7 +190,7 @@ public:
     /// Applies the adjoint of the Hessian of the constraints w.\ r.\ t.\ the simulation variables onto a vector.
     /** More specifically, apply
      *  \f[
-     *      \mathbf{v}_{out} = \left( \sum_i \psi_i \frac{\partial^2 R_i}{\partial x \partial u} \right)^T \mathbf{v}_{in}
+     *      \mathbf{v}_{output} = \left( \sum_i \psi_i \frac{\partial^2 R_i}{\partial x \partial u} \right)^T \mathbf{v}_{input}
      *  \f]
      *  onto the @p input_vector to obtain the @p output_vector
      */
@@ -206,9 +206,16 @@ public:
     /// Applies the adjoint of the Hessian of the constraints w.\ r.\ t.\ the simulation variables onto a vector.
     /** More specifically, apply
      *  \f[
-     *      \mathbf{v}_{out} = \left( \sum_i \psi_i \frac{\partial^2 R_i}{\partial x \partial x} \right)^T \mathbf{v}_{in}
+     *      \mathbf{v}_{output} = \left( \sum_i \psi_i \frac{\partial^2 R_i}{\partial x \partial x} \right)^T \mathbf{v}_{input}
      *  \f]
      *  onto the @p input_vector to obtain the @p output_vector
+     *
+     * @param[out] output_vector   Resulting vector \f$ \mathbf{v}_{output} \in \mathbb{R}^{N_{ctl}} \f$
+     * @param[in]  dual            Lagrange multiplier associated with constraint vector \f$ \boldsymbol{\psi} \in \mathbb{R}^{N_{residual}} \f$
+     * @param[in]  input_vector    Input vector \f$ \mathbf{v}_{input} \in \mathbb{R}^{N_{ctl}} \f$
+     * @param[in]  des_var_sim     Simulation variables \f$ \mathbf{v}_{input} \in \mathbb{R}^{N_{flow}} \f$
+     * @param[in]  des_var_ctl     Simulation variables \f$ \mathbf{v}_{input} \in \mathbb{R}^{N_{ctl}} \f$
+     * @param[in]  tol             Tolerance, not used. From virtual ROL function.
      */
     void applyAdjointHessian_22 (
         ROL::Vector<double> &output_vector,

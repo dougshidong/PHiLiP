@@ -1847,7 +1847,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
     for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
 
         ADtype rhs = 0;
-    //    ADtype split = 0;
+        ADtype split = 0;
 
         const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(itest).first;
 
@@ -1909,13 +1909,13 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
             }
         }
 
-#if 0
+//#if 0
         if (this->all_parameters->use_split_form == true){
             //split = split * soln_at_q[itest][istate]; 
             //split = split * soln_coeff[itest];
             rhs = rhs - split;
         }
-#endif
+//#endif
 
        // local_rhs_int_cell(itest) += rhs.val();
         local_rhs_int_cell(itest) += rhs;

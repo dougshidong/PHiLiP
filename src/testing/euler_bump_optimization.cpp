@@ -182,6 +182,7 @@ public:
   using ROL::Objective_SimOpt<double>::value;
   using ROL::Objective_SimOpt<double>::update;
 
+  /// Update the simulation and control variables.
   void update( const ROL_Vector &des_var_sim, const ROL_Vector &des_var_ctl, bool flag = true, int iter = -1) override
   {
       (void) flag; (void) iter;
@@ -234,6 +235,12 @@ public:
 
   }
 
+  /// Applies the functional Hessian w.\ r.\ t.\ the simulation variables onto a vector.
+  /** More specifically, 
+   *  \f[
+   *      \mathbf{v}_{output} = \left( \frac{\partial^2 \mathcal{I}}{\partial w \partial w} \right)^T \mathbf{v}_{input}
+   *  \f]
+   */
   void hessVec_11( ROL_Vector& output_vector, const ROL_Vector& input_vector, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) {
       update(des_var_sim, des_var_ctl);
 
@@ -248,6 +255,12 @@ public:
       functional.d2IdWdW.vmult(hv, v);
   }
 
+  /// Applies the functional Hessian w.\ r.\ t.\ the simulation and control variables onto a vector.
+  /** More specifically, 
+   *  \f[
+   *      \mathbf{v}_{output} = \left( \frac{\partial^2 \mathcal{I}}{\partial w \partial x} \right)^T \mathbf{v}_{input}
+   *  \f]
+   */
   void hessVec_12( ROL_Vector& output_vector, const ROL_Vector& input_vector, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) {
       update(des_var_sim, des_var_ctl);
 
@@ -267,6 +280,12 @@ public:
       functional.d2IdWdX.vmult(hv, dXvdXp_input);
   }
 
+  /// Applies the functional Hessian w.\ r.\ t.\ the control and simulation variables onto a vector.
+  /** More specifically, 
+   *  \f[
+   *      \mathbf{v}_{output} = \left( \frac{\partial^2 \mathcal{I}}{\partial x \partial w} \right)^T \mathbf{v}_{input}
+   *  \f]
+   */
   void hessVec_21( ROL_Vector& output_vector, const ROL_Vector& input_vector, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) {
       update(des_var_sim, des_var_ctl);
 
@@ -286,6 +305,13 @@ public:
       dXvdXp.Tvmult(hv, d2IdXdW_input);
   }
 
+  /// Applies the functional Hessian w.\ r.\ t.\ the control variables onto a vector.
+  /** More specifically, 
+   *  \f[
+   *      \mathbf{v}_{output} = \left( \frac{\partial^2 \mathcal{I}}{\partial x \partial x} \right)^T \mathbf{v}_{input}
+   *  \f]
+   */
+  void hessVec_21( ROL_Vector& output_vector, const ROL_Vector& input_vector, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) {
   void hessVec_22( ROL_Vector& output_vector, const ROL_Vector& input_vector, const ROL_Vector& des_var_sim, const ROL_Vector& des_var_ctl, double& /*tol*/ ) {
       update(des_var_sim, des_var_ctl);
 

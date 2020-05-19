@@ -1,30 +1,12 @@
 #include "optimization/flow_constraints.hpp"
 
+#include "rol_to_dealii_vector.hpp"
+
 #include "ode_solver/ode_solver.h"
 
 #include <Epetra_RowMatrixTransposer.h>
 
 namespace PHiLiP {
-
-Teuchos::RCP<const dealii_Vector> get_rcp_to_VectorType(const ROL::Vector<double> &x)
-{
-    return (Teuchos::dyn_cast<const AdaptVector>(x)).getVector();
-}
-
-Teuchos::RCP<dealii_Vector> get_rcp_to_VectorType(ROL::Vector<double> &x)
-{
-    return (Teuchos::dyn_cast<AdaptVector>(x)).getVector();
-}
-
-const dealii_Vector & get_ROLvec_to_VectorType(const ROL::Vector<double> &x)
-{
-    return *(Teuchos::dyn_cast<const AdaptVector>(x)).getVector();
-}
-
-dealii_Vector &get_ROLvec_to_VectorType(ROL::Vector<double> &x)
-{
-    return *(Teuchos::dyn_cast<AdaptVector>(x)).getVector();
-}
 
 template<int dim>
 FlowConstraints<dim>
@@ -40,16 +22,16 @@ FlowConstraints<dim>
 
     dealii::ParameterHandler parameter_handler;
     Parameters::LinearSolverParam::declare_parameters (parameter_handler);
-    linear_solver_param.parse_parameters (parameter_handler);
-    linear_solver_param.max_iterations = 1000;
-    linear_solver_param.restart_number = 200;
-    linear_solver_param.linear_residual = 1e-13;
-    linear_solver_param.ilut_fill = 0;
-    linear_solver_param.ilut_drop = 0.0;
-    linear_solver_param.ilut_rtol = 1.0;
-    linear_solver_param.ilut_atol = 0.0;
-    linear_solver_param.linear_solver_output = Parameters::OutputEnum::quiet;
-    linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
+    this->linear_solver_param.parse_parameters (parameter_handler);
+    this->linear_solver_param.max_iterations = 1000;
+    this->linear_solver_param.restart_number = 200;
+    this->linear_solver_param.linear_residual = 1e-13;
+    this->linear_solver_param.ilut_fill = 0;
+    this->linear_solver_param.ilut_drop = 0.0;
+    this->linear_solver_param.ilut_rtol = 1.0;
+    this->linear_solver_param.ilut_atol = 0.0;
+    this->linear_solver_param.linear_solver_output = Parameters::OutputEnum::quiet;
+    this->linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
 }
 
 template<int dim>
@@ -57,7 +39,7 @@ void FlowConstraints<dim>
 ::update_1( const ROL::Vector<double>& des_var_sim, bool flag, int iter )
 {
         (void) flag; (void) iter;
-        dg->solution = get_ROLvec_to_VectorType(des_var_sim);
+        dg->solution = ROL_vector_to_dealii_vector_reference(des_var_sim);
         dg->solution.update_ghost_values();
 }
 
@@ -66,7 +48,7 @@ void FlowConstraints<dim>
 ::update_2( const ROL::Vector<double>& des_var_ctl, bool flag, int iter )
 {
     (void) flag; (void) iter;
-    ffd_des_var =  get_ROLvec_to_VectorType(des_var_ctl);
+    ffd_des_var =  ROL_vector_to_dealii_vector_reference(des_var_ctl);
     ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_des_var);
 
     ffd.deform_mesh(dg->high_order_grid);
@@ -90,9 +72,9 @@ void FlowConstraints<dim>
     ode_solver_1->steady_state();
 
     dg->assemble_residual();
-    auto &constraint = get_ROLvec_to_VectorType(constraint_values);
+    auto &constraint = ROL_vector_to_dealii_vector_reference(constraint_values);
     constraint = dg->right_hand_side;
-    auto &des_var_sim_v = get_ROLvec_to_VectorType(des_var_sim);
+    auto &des_var_sim_v = ROL_vector_to_dealii_vector_reference(des_var_sim);
     des_var_sim_v = dg->solution;
 }
 
@@ -110,7 +92,7 @@ void FlowConstraints<dim>
     update_2(des_var_ctl);
 
     dg->assemble_residual();
-    auto &constraint = get_ROLvec_to_VectorType(constraint_values);
+    auto &constraint = ROL_vector_to_dealii_vector_reference(constraint_values);
     constraint = dg->right_hand_side;
 }
     
@@ -131,8 +113,8 @@ void FlowConstraints<dim>
     const bool compute_dRdW=true; const bool compute_dRdX=false; const bool compute_d2R=false;
     dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
 
-    const auto &input_vector_v = get_ROLvec_to_VectorType(input_vector);
-    auto &output_vector_v = get_ROLvec_to_VectorType(output_vector);
+    const auto &input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
+    auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
     this->dg->system_matrix.vmult(output_vector_v, input_vector_v);
 }
 
@@ -170,8 +152,8 @@ void FlowConstraints<dim>
     // }
 
     // Input vector is copied into temporary non-const vector.
-    auto input_vector_v = get_ROLvec_to_VectorType(input_vector);
-    auto &output_vector_v = get_ROLvec_to_VectorType(output_vector);
+    auto input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
+    auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
 
     solve_linear (dg->system_matrix, input_vector_v, output_vector_v, this->linear_solver_param);
     //solve_linear_2 ( this->dg->system_matrix, input_vector_v, output_vector_v, this->linear_solver_param);
@@ -206,8 +188,8 @@ double& /*tol*/ )
     system_matrix_transpose.reinit(*system_matrix_transpose_tril);
 
     // Input vector is copied into temporary non-const vector.
-    auto input_vector_v = get_ROLvec_to_VectorType(input_vector);
-    auto &output_vector_v = get_ROLvec_to_VectorType(output_vector);
+    auto input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
+    auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
 
     std::cout << __PRETTY_FUNCTION__ << std::endl;
     //try {
@@ -238,8 +220,8 @@ double& /*tol*/ )
     const bool compute_dRdW=false; const bool compute_dRdX=true; const bool compute_d2R=false;
     dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
 
-    const auto &input_vector_v = get_ROLvec_to_VectorType(input_vector);
-    auto &output_vector_v = get_ROLvec_to_VectorType(output_vector);
+    const auto &input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
+    auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
 
     dealii::TrilinosWrappers::SparseMatrix dXvdXp;
     ffd.get_dXvdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
@@ -267,8 +249,8 @@ double& /*tol*/ )
     const bool compute_dRdW=true; const bool compute_dRdX=false; const bool compute_d2R=false;
     dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
 
-    const auto &input_vector_v = get_ROLvec_to_VectorType(input_vector);
-    auto &output_vector_v = get_ROLvec_to_VectorType(output_vector);
+    const auto &input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
+    auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
     this->dg->system_matrix.Tvmult(output_vector_v, input_vector_v);
 }
 
@@ -288,8 +270,8 @@ double& /*tol*/ )
     const bool compute_dRdW=false; const bool compute_dRdX=true; const bool compute_d2R=false;
     dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
 
-    const auto &input_vector_v = get_ROLvec_to_VectorType(input_vector);
-    auto &output_vector_v = get_ROLvec_to_VectorType(output_vector);
+    const auto &input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
+    auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
 
     auto input_dRdXv = dg->high_order_grid.volume_nodes;
 
@@ -313,14 +295,14 @@ void FlowConstraints<dim>
 {
     std::cout << __PRETTY_FUNCTION__ << std::endl;
     (void) tol;
-    dg->set_dual(get_ROLvec_to_VectorType(dual));
+    dg->set_dual(ROL_vector_to_dealii_vector_reference(dual));
     dg->dual.update_ghost_values();
     update_1(des_var_sim);
     update_2(des_var_ctl);
 
     const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
     dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
-    dg->d2RdWdW.vmult(get_ROLvec_to_VectorType(output_vector), get_ROLvec_to_VectorType(input_vector));
+    dg->d2RdWdW.vmult(ROL_vector_to_dealii_vector_reference(output_vector), ROL_vector_to_dealii_vector_reference(input_vector));
 }
 
 template<int dim>
@@ -338,12 +320,12 @@ void FlowConstraints<dim>
     update_2(des_var_ctl);
 
     const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
-    dg->set_dual(get_ROLvec_to_VectorType(dual));
+    dg->set_dual(ROL_vector_to_dealii_vector_reference(dual));
     dg->dual.update_ghost_values();
     dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
 
-    const auto &input_vector_v = get_ROLvec_to_VectorType(input_vector);
-    auto &output_vector_v = get_ROLvec_to_VectorType(output_vector);
+    const auto &input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
+    auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
 
     auto d2RdXdW_input = dg->high_order_grid.volume_nodes;
     dg->d2RdWdX.Tvmult(d2RdXdW_input, input_vector_v);
@@ -370,12 +352,12 @@ void FlowConstraints<dim>
     update_2(des_var_ctl);
 
     const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
-    dg->set_dual(get_ROLvec_to_VectorType(dual));
+    dg->set_dual(ROL_vector_to_dealii_vector_reference(dual));
     dg->dual.update_ghost_values();
     dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
 
-    const auto &input_vector_v = get_ROLvec_to_VectorType(input_vector);
-    auto &output_vector_v = get_ROLvec_to_VectorType(output_vector);
+    const auto &input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
+    auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
 
     auto dXvdXp_input = dg->high_order_grid.volume_nodes;
     dealii::TrilinosWrappers::SparseMatrix dXvdXp;
@@ -406,12 +388,12 @@ void FlowConstraints<dim>
     update_2(des_var_ctl);
 
     const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
-    dg->set_dual(get_ROLvec_to_VectorType(dual));
+    dg->set_dual(ROL_vector_to_dealii_vector_reference(dual));
     dg->dual.update_ghost_values();
     dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
 
-    const auto &input_vector_v = get_ROLvec_to_VectorType(input_vector);
-    auto &output_vector_v = get_ROLvec_to_VectorType(output_vector);
+    const auto &input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
+    auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
 
     dealii::TrilinosWrappers::SparseMatrix dXvdXp;
     ffd.get_dXvdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);

@@ -1,3 +1,6 @@
+#ifndef __FLOWCONSTRAINTS_H__
+#define __FLOWCONSTRAINTS_H__
+
 #include <deal.II/optimization/rol/vector_adaptor.h>
 
 #include "ROL_Constraint_SimOpt.hpp"
@@ -229,3 +232,5 @@ public:
 };
 
 } // PHiLiP namespace
+
+#endif

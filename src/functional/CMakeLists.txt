@@ -1,6 +1,7 @@
 SET(SOURCE
     functional.cpp
     target_functional.cpp
+    target_boundary_functional.cpp
     adjoint.cpp
     )
 

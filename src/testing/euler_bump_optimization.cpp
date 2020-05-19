@@ -1,14 +1,7 @@
 #include <stdlib.h>     /* srand, rand */
 #include <iostream>
 
-#include <deal.II/distributed/solution_transfer.h>
-#include <deal.II/dofs/dof_tools.h>
-
 #include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/grid_refinement.h>
-#include <deal.II/grid/grid_tools.h>
-#include <deal.II/grid/grid_out.h>
-#include <deal.II/grid/grid_in.h>
 
 #include <deal.II/numerics/vector_tools.h>
 
@@ -19,7 +12,7 @@
 #include "ROL_Reduced_Objective_SimOpt.hpp"
 #include "ROL_OptimizationSolver.hpp"
 #include "ROL_LineSearchStep.hpp"
-#include "ROL_StatusTest.hpp"
+//#include "ROL_StatusTest.hpp"
 
 #include "euler_bump_optimization.h"
 
@@ -32,9 +25,6 @@
 #include "mesh/grids/gaussian_bump.h"
 #include "mesh/free_form_deformation.h"
 
-#include "parameters/all_parameters.h"
-
-
 #include "optimization/rol_to_dealii_vector.hpp"
 #include "optimization/flow_constraints.hpp"
 #include "optimization/rol_objective.hpp"
@@ -43,7 +33,7 @@ namespace PHiLiP {
 namespace Tests {
 
 
-const int POLY_DEGREE = 4;
+const int POLY_DEGREE = 1;
 const double BUMP_HEIGHT = 0.0625;
 const double CHANNEL_LENGTH = 3.0;
 const double CHANNEL_HEIGHT = 0.8;

@@ -74,8 +74,6 @@ public:
           const Real &x1 = (*xp)[i+1];
           local_rosenbrock += 100*(x1 - x0*x0)*(x1 - x0*x0) + (1.0-x0)*(1.0-x0);
       }
-      // const double tpi = 2* std::atan(1.0)*4;
-      // return std::sin((*xp)[0]*tpi) + std::sin((*xp)[1]*tpi);
       const Real rosenbrock = dealii::Utilities::MPI::sum(local_rosenbrock, MPI_COMM_WORLD);
       return rosenbrock;
     }
@@ -88,23 +86,6 @@ public:
 
       Teuchos::RCP<const VectorType> xp = this->get_rcp_to_VectorType(x);
       Teuchos::RCP<VectorType>       gp = this->get_rcp_to_VectorType(g);
-
-      // gp->reinit(xp->get_partitioner());
-      // gp->set_ghost_state(true);
-
-      // const unsigned int nx = (*xp).size();
-      // (*gp) *= 0.0;
-      // for (unsigned int i = 0; i < nx-1; ++i) {
-      //     const Real &x1 = (*xp)[i];
-      //     const Real &x2 = (*xp)[i+1];
-      //     // https://www.wolframalpha.com/input/?i=f%28a%2Cb%29+%3D+100*%28b-a*a%29%5E2+%2B+%281-a%29%5E2%2C+df%2Fda
-      //      const Real drosenbrock_dx1 = 2.0*(200*x1*x1*x1 - 200*x1*x2 + x1 - 1.0);
-      //     (*gp)[i]   += drosenbrock_dx1;
-
-      //     // https://www.wolframalpha.com/input/?i=f%28a%2Cb%29+%3D+100*%28b-a*a%29%5E2+%2B+%281-a%29%5E2%2C+df%2Fdb
-      //     const Real drosenbrock_dx2 = 200.0*(x2-x1*x1);
-      //     (*gp)[i+1] += drosenbrock_dx2;
-      // }
 
       (*gp) *= 0.0;
       const dealii::IndexSet &local_range = (*xp).locally_owned_elements ();
@@ -125,8 +106,6 @@ public:
           const Real drosenbrock_dx2 = 200.0*(x2-x1*x1);
           (*gp)[i] += drosenbrock_dx2;
       }
-      // std::cout << (*gp).l2_norm() << std::endl;
-      // (*gp).print(std::cout);
     }
 };
 
@@ -136,23 +115,17 @@ int test(const unsigned int n_des_var)
     typedef double RealT;
   
     int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
-    int n_mpi = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
 
-    if (mpi_rank == 0) std::cout << std::endl << "**************************************************" << std::endl;
-    if (mpi_rank == 0) std::cout << "Optimization with " << n_des_var << " using VectorType = " << typeid(VectorType).name() << std::endl;
+    if (mpi_rank == 0) std::cout << std::endl << std::endl;
+    if (mpi_rank == 0) std::cout << "Optimization with " << n_des_var << " design variables using VectorType = " << typeid(VectorType).name() << std::endl;
   
     Teuchos::RCP<VectorType>   x_rcp     = Teuchos::rcp(new VectorType);
   
-    dealii::IndexSet locally_owned_dofs(n_des_var);
+    const dealii::IndexSet locally_owned_dofs = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD, n_des_var);
     if constexpr (std::is_same_v<VectorType, serial_Vector>) {
         x_rcp->reinit(n_des_var);
-        locally_owned_dofs.add_range(0, n_des_var);
     }
     if constexpr (std::is_same_v<VectorType, distributed_Vector>) {
-        const unsigned int n_dofs_per_proc = n_des_var / n_mpi;
-        const unsigned int low_i = n_dofs_per_proc * mpi_rank;
-        const unsigned int high_i = (n_mpi-1) == mpi_rank ? n_des_var : n_dofs_per_proc * (mpi_rank+1);
-        locally_owned_dofs.add_range(low_i, high_i);
 
         dealii::IndexSet ghost_dofs(n_des_var);
         for (auto ip = locally_owned_dofs.begin(); ip != locally_owned_dofs.end(); ++ip) {
@@ -222,6 +195,8 @@ int main (int argc, char * argv[])
          test_error += test<distributed_Vector>(10);
          test_error += test<serial_Vector>(100);
          test_error += test<distributed_Vector>(100);
+         test_error += test<serial_Vector>(101);
+         test_error += test<distributed_Vector>(101);
     }
     catch (std::exception &exc) {
         std::cerr << std::endl

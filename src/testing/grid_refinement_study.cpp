@@ -86,6 +86,8 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
     // output for convergence figure
     PHiLiP::GridRefinement::GnuFig<double> gf;
 
+    std::vector<double> error_per_cell;
+
     // start of loop for each grid refinement run
     for(unsigned int iref = 0; iref <  (num_refinements?num_refinements:1); ++iref){
         // getting the parameters for this run
@@ -181,6 +183,9 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
             double l2_norm = 0.0;
 
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
+            
+            error_per_cell.resize(n_global_active_cells);
+
             for(auto cell = dg->dof_handler.begin_active(); cell < dg->dof_handler.end(); ++cell){
                 if(!cell->is_locally_owned()) continue;
 
@@ -206,6 +211,8 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
                         cell_linf[istate] = std::max(cell_linf[istate], abs(soln_at_q[istate]-uexact));
                     }
                 }
+
+                error_per_cell[cell->active_cell_index()] = l2_norm;
 
                 l2_norm += cell_l2error;
                 for(unsigned int istate = 0; istate < nstate; ++ istate){
@@ -258,6 +265,7 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
             PHiLiP::GridRefinement::MshOut<dim,double> msh_out(dg->dof_handler);
             std::string write_mshname = "test-msh-" + dealii::Utilities::int_to_string(iref*10+igrid) + ".msh";
             std::ofstream outmsh(write_mshname);
+            msh_out.add_data_vector(error_per_cell, PHiLiP::GridRefinement::StorageType::element);
             msh_out.write_msh(outmsh);
         }
 

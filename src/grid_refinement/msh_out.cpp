@@ -65,8 +65,8 @@ void MshOut<dim,real>::write_msh(
     for(unsigned int i = 0; i < vertices.size(); ++i){
         if(!vertex_used[i]) continue;
 
-        unsigned int nodeTag = i + 1;
-        out << nodeTag << '\n';
+        unsigned int node_tag = i + 1;
+        out << node_tag << '\n';
     }
 
     // x(double) y(double) z(double)
@@ -117,13 +117,13 @@ void MshOut<dim,real>::write_msh(
     for(auto cell = tria.begin_active(); cell != dof_handler.end(); ++cell){
         if(!cell->is_locally_owned()) continue;
 
-        unsigned int elementTag = cell->active_cell_index() + 1;
-        out << elementTag;
+        unsigned int element_tag = cell->active_cell_index() + 1;
+        out << element_tag;
 
         // switching numbering order to match mesh writing, nodeTag = nodeIndex + 1
         for(unsigned int vertex = 0; vertex < dealii::GeometryInfo<dim>::vertices_per_cell; ++vertex){
-            unsigned int nodeTag = cell->vertex_index(dealii::GeometryInfo<dim>::ucd_to_deal[vertex]) + 1;
-            out << " " << nodeTag;
+            unsigned int node_tag = cell->vertex_index(dealii::GeometryInfo<dim>::ucd_to_deal[vertex]) + 1;
+            out << " " << node_tag;
         }
         
         out << '\n';
@@ -139,7 +139,6 @@ void MshOut<dim,real>::write_msh(
     out << std::flush;
 }
 
-
 // writing the data from a MshOutData
 template <int dim>
 void MshOutData<dim>::write_msh_data(
@@ -147,7 +146,7 @@ void MshOutData<dim>::write_msh_data(
     std::ostream &                     out)
 {
     // opening section
-    switch(storageType){
+    switch(storage_type){
         case node:
             out << "$NodeData" << '\n';
             break;
@@ -162,33 +161,33 @@ void MshOutData<dim>::write_msh_data(
     }
 
     // writing the section header
-    int numStringTags  = stringTags.size(); 
-    int numRealTags    = realTags.size();
-    int numIntegerTags = integerTags.size();
+    int num_string_tags  = string_tags.size(); 
+    int num_real_tags    = real_tags.size();
+    int num_integer_tags = integer_tags.size();
 
     // numStringTags(ASCII int)
     // stringTag(string) ...
-    out << numStringTags << '\n';
-    for(auto stringTag: stringTags)
-        out << stringTag << '\n';
+    out << num_string_tags << '\n';
+    for(auto string_tag: string_tags)
+        out << string_tag << '\n';
 
     // numRealTags(ASCII int)
     // realTag(ASCII double) ...
-    out << numRealTags << '\n';
-    for(auto realTag: realTags)
-        out << realTag << '\n';
+    out << num_real_tags << '\n';
+    for(auto real_tag: real_tags)
+        out << real_tag << '\n';
 
     // numIntegerTags(ASCII int)
     // integerTag(ASCII int) ...
-    out << numIntegerTags << '\n';
-    for(auto integerTag: integerTags)
-        out << integerTag << '\n';
+    out << num_integer_tags << '\n';
+    for(auto integer_tag: integer_tags)
+        out << integer_tag << '\n';
 
     // writing the data (internal)
     write_msh_data_internal(dof_handler, out);
 
     // closing the section
-    switch(storageType){
+    switch(storage_type){
         case node:
             out << "$EndNodeData" << '\n';
             break;
@@ -203,16 +202,78 @@ void MshOutData<dim>::write_msh_data(
     }
 }
 
+// getting the number of entries (rows associated with the section)
+template <int dim>
+unsigned int MshOutData<dim>::num_entries(
+    const dealii::hp::DoFHandler<dim> &dof_handler)
+{
+    switch(storage_type){
+        case node:
+            return dof_handler.get_triangulation().n_used_vertices();
+
+        case element:
+        case elementNode:
+            return dof_handler.get_triangulation().n_active_cells();
+    }
+
+    return 0;
+}
+
+// sets the string tags
+template <int dim>
+void MshOutData<dim>::set_string_tags(
+    std::string name,
+    std::string interpolation_scheme)
+{
+    string_tags.push_back(name);
+    string_tags.push_back(interpolation_scheme);
+}
+
+// sets the real tags
+template <int dim>
+void MshOutData<dim>::set_real_tags(
+    double time)
+{
+    real_tags.push_back(time);
+}
+
+// sets the integer tags
+template <int dim>
+void MshOutData<dim>::set_integer_tags(
+    unsigned int time_step,
+    unsigned int num_components,
+    unsigned int num_entries)
+{
+    integer_tags.push_back(time_step);
+    integer_tags.push_back(num_components);
+    integer_tags.push_back(num_entries);
+}
+
+// different data output types
+using scalar = double;
+using vector = dealii::Tensor<1,PHILIP_DIM,double>;
+using matrix = dealii::Tensor<2,PHILIP_DIM,double>;
+
+// specifying the data size of each entry for storage
+template <>
+unsigned int const MshOutDataInternal<PHILIP_DIM,scalar>::num_components = 1;
+
+template <>
+unsigned int const MshOutDataInternal<PHILIP_DIM,vector>::num_components = 3;
+
+template <>
+unsigned int const MshOutDataInternal<PHILIP_DIM,matrix>::num_components = 9;
+
 // writing the data for scalar data
 template <>
-void MshOutDataInternal<PHILIP_DIM,double>::write_msh_data_internal(
+void MshOutDataInternal<PHILIP_DIM,scalar>::write_msh_data_internal(
     const dealii::hp::DoFHandler<PHILIP_DIM> &dof_handler,
     std::ostream &                            out)
 {
-    const int dim = PHILIP_DIM;
+    const unsigned int dim = PHILIP_DIM;
 
     // looping through the data structure
-    switch(storageType){
+    switch(storage_type){
         case node:{
             // nodeTag(size_t) value(double) ...
             const dealii::Triangulation<dim,dim> &tria = dof_handler.get_triangulation();
@@ -223,11 +284,11 @@ void MshOutDataInternal<PHILIP_DIM,double>::write_msh_data_internal(
             for(unsigned int i = 0; i < vertex_used.size(); ++i){
                 if(!vertex_used[i]) continue;
 
-                double nodeData = data[i];
+                scalar node_data = data[i];
 
                 // data entries
-                unsigned int nodeTag = i + 1;
-                out << nodeTag << " " << nodeData << '\n';
+                unsigned int node_tag = i + 1;
+                out << node_tag << " " << node_data << '\n';
             }
 
             break;
@@ -237,11 +298,11 @@ void MshOutDataInternal<PHILIP_DIM,double>::write_msh_data_internal(
             for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell){
                 if(!cell->is_locally_owned()) continue;
 
-                double cellData = data[cell->active_cell_index()];
+                scalar cell_data = data[cell->active_cell_index()];
 
                 // data entries
-                unsigned int elementTag =  cell->active_cell_index() + 1;
-                out << elementTag << " " << cellData << '\n';
+                unsigned int element_tag =  cell->active_cell_index() + 1;
+                out << element_tag << " " << cell_data << '\n';
             }
 
             break;
@@ -251,17 +312,17 @@ void MshOutDataInternal<PHILIP_DIM,double>::write_msh_data_internal(
             for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell){
                 if(!cell->is_locally_owned()) continue;
 
-                unsigned int elementTag = cell->active_cell_index() + 1;
-                out << elementTag << " " << dealii::GeometryInfo<dim>::vertices_per_cell;
+                unsigned int element_tag = cell->active_cell_index() + 1;
+                out << element_tag << " " << dealii::GeometryInfo<dim>::vertices_per_cell;
 
                 // looping over the vertices
                 for(unsigned int vertex = 0; vertex < dealii::GeometryInfo<dim>::vertices_per_cell; ++vertex){
                     // nodeTag = nodeIndex + 1
-                    unsigned int nodeIndex = cell->vertex_index(dealii::GeometryInfo<dim>::ucd_to_deal[vertex]);
+                    unsigned int node_index = cell->vertex_index(dealii::GeometryInfo<dim>::ucd_to_deal[vertex]);
                     
-                    double nodeData = data[nodeIndex];
+                    scalar node_data = data[node_index];
 
-                    out << " " << nodeData;
+                    out << " " << node_data;
                 }
 
                 out << '\n';
@@ -274,14 +335,14 @@ void MshOutDataInternal<PHILIP_DIM,double>::write_msh_data_internal(
 
 // writing the data for vector data
 template <>
-void MshOutDataInternal<PHILIP_DIM,dealii::Tensor<1,PHILIP_DIM,double>>::write_msh_data_internal(
+void MshOutDataInternal<PHILIP_DIM,vector>::write_msh_data_internal(
     const dealii::hp::DoFHandler<PHILIP_DIM> &dof_handler,
     std::ostream &                            out)
 {
-    const int dim = PHILIP_DIM;
+    const unsigned int dim = PHILIP_DIM;
 
     // looping through the data structure
-    switch(storageType){
+    switch(storage_type){
         case node:{
             // nodeTag(size_t) value(double) ...
             const dealii::Triangulation<dim,dim> &tria = dof_handler.get_triangulation();
@@ -292,14 +353,14 @@ void MshOutDataInternal<PHILIP_DIM,dealii::Tensor<1,PHILIP_DIM,double>>::write_m
             for(unsigned int i = 0; i < vertex_used.size(); ++i){
                 if(!vertex_used[i]) continue;
 
-                dealii::Tensor<1,dim,double> nodeData = data[i];
+                vector node_data = data[i];
                 
-                unsigned int nodeTag = i + 1;
-                out << nodeTag;
+                unsigned int node_tag = i + 1;
+                out << node_tag;
 
                 // vector entries
                 for(unsigned int i = 0; i < dim; ++i)
-                    out << " " << nodeData[i];
+                    out << " " << node_data[i];
                 
                 // padding zeros
                 for(unsigned int i = dim; i < 3; ++i)
@@ -315,14 +376,14 @@ void MshOutDataInternal<PHILIP_DIM,dealii::Tensor<1,PHILIP_DIM,double>>::write_m
             for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell){
                 if(!cell->is_locally_owned()) continue;
 
-                dealii::Tensor<1,dim,double> cellData = data[cell->active_cell_index()];
+                vector cell_data = data[cell->active_cell_index()];
                 
-                unsigned int elementTag = cell->active_cell_index() + 1;
-                out << elementTag;
+                unsigned int element_tag = cell->active_cell_index() + 1;
+                out << element_tag;
 
                 // vector entries
                 for(unsigned int i = 0; i < dim; ++i)
-                    out << " " << cellData[i];
+                    out << " " << cell_data[i];
 
                 // padding zeros
                 for(unsigned int i = dim; i < 3; ++i)
@@ -338,19 +399,19 @@ void MshOutDataInternal<PHILIP_DIM,dealii::Tensor<1,PHILIP_DIM,double>>::write_m
             for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell){
                 if(!cell->is_locally_owned()) continue;
 
-                unsigned int elementTag = cell->active_cell_index() + 1;
-                out << elementTag << " " << dealii::GeometryInfo<dim>::vertices_per_cell;
+                unsigned int element_tag = cell->active_cell_index() + 1;
+                out << element_tag << " " << dealii::GeometryInfo<dim>::vertices_per_cell;
 
                 // looping over the vertices
                 for(unsigned int vertex = 0; vertex < dealii::GeometryInfo<dim>::vertices_per_cell; ++vertex){
                     // switching numbering order to match mesh writing, nodeTag = nodeIndex + 1
-                    unsigned int nodeIndex = cell->vertex_index(dealii::GeometryInfo<dim>::ucd_to_deal[vertex]);
+                    unsigned int node_index = cell->vertex_index(dealii::GeometryInfo<dim>::ucd_to_deal[vertex]);
                     
-                    dealii::Tensor<1,dim,double> nodeData = data[nodeIndex];
+                   vector node_data = data[node_index];
 
                     // vector entries
                     for(unsigned int i = 0; i < dim; ++i)
-                        out << " " << nodeData[i];
+                        out << " " << node_data[i];
 
                     // padding zeros
                     for(unsigned int i = dim; i < 3; ++i)
@@ -368,14 +429,14 @@ void MshOutDataInternal<PHILIP_DIM,dealii::Tensor<1,PHILIP_DIM,double>>::write_m
 
 // writing the data for matrix data
 template <>
-void MshOutDataInternal<PHILIP_DIM, dealii::Tensor<2,PHILIP_DIM,double>>::write_msh_data_internal(
+void MshOutDataInternal<PHILIP_DIM,matrix>::write_msh_data_internal(
     const dealii::hp::DoFHandler<PHILIP_DIM> &dof_handler,
     std::ostream &                            out)
 {
-    const int dim = PHILIP_DIM;
+    const unsigned int dim = PHILIP_DIM;
 
     // looping through the data structure
-    switch(storageType){
+    switch(storage_type){
         case node:{
             // nodeTag(size_t) value(double) ...
             const dealii::Triangulation<dim,dim> &tria = dof_handler.get_triangulation();
@@ -386,15 +447,15 @@ void MshOutDataInternal<PHILIP_DIM, dealii::Tensor<2,PHILIP_DIM,double>>::write_
             for(unsigned int i = 0; i < vertex_used.size(); ++i){
                 if(!vertex_used[i]) continue;
 
-                dealii::Tensor<2,dim,double> nodeData = data[i];
+                matrix node_data = data[i];
                 
-                unsigned int nodeTag = i + 1;
-                out << nodeTag;
+                unsigned int node_tag = i + 1;
+                out << node_tag;
 
                 for(unsigned int i = 0; i < dim; ++i){
                     // matrix entries
                     for(unsigned int j = 0; j < dim; ++j)
-                        out << " " << nodeData[i][j];
+                        out << " " << node_data[i][j];
                     
                     // padding zeros
                     for(unsigned int j = dim; j < 3; ++j)
@@ -416,15 +477,15 @@ void MshOutDataInternal<PHILIP_DIM, dealii::Tensor<2,PHILIP_DIM,double>>::write_
             for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell){
                 if(!cell->is_locally_owned()) continue;
 
-                dealii::Tensor<2,dim,double> cellData = data[cell->active_cell_index()];
+                matrix cell_data = data[cell->active_cell_index()];
                 
-                unsigned int elementTag = cell->active_cell_index() + 1;
-                out << elementTag;
+                unsigned int element_tag = cell->active_cell_index() + 1;
+                out << element_tag;
 
                 for(unsigned int i = 0; i < dim; ++i){
                     // matrix entries
                     for(unsigned int j = 0; j < dim; ++j)
-                        out << " " << cellData[i][j];
+                        out << " " << cell_data[i][j];
                     
                     // padding zeros
                     for(unsigned int j = dim; j < 3; ++j)
@@ -452,14 +513,14 @@ void MshOutDataInternal<PHILIP_DIM, dealii::Tensor<2,PHILIP_DIM,double>>::write_
                 // looping over the vertices
                 for(unsigned int vertex = 0; vertex < dealii::GeometryInfo<dim>::vertices_per_cell; ++vertex){
                     // switching numbering order to match mesh writing, nodeTag = nodeIndex + 1
-                    unsigned int nodeIndex = cell->vertex_index(dealii::GeometryInfo<dim>::ucd_to_deal[vertex]);
+                    unsigned int node_index = cell->vertex_index(dealii::GeometryInfo<dim>::ucd_to_deal[vertex]);
                     
-                    dealii::Tensor<2,dim,double> nodeData = data[nodeIndex];
+                    matrix node_data = data[node_index];
 
                     for(unsigned int i = 0; i < dim; ++i){
                         // matrix entries
                         for(unsigned int j = 0; j < dim; ++j)
-                            out << " " << nodeData[i][j];
+                            out << " " << node_data[i][j];
                         
                         // padding zeros
                         for(unsigned int j = dim; j < 3; ++j)
@@ -482,6 +543,7 @@ void MshOutDataInternal<PHILIP_DIM, dealii::Tensor<2,PHILIP_DIM,double>>::write_
 }
 
 template class MshOut <PHILIP_DIM, double>;
+template class MshOutData <PHILIP_DIM>;
 
 } // namespace GridRefinement
 

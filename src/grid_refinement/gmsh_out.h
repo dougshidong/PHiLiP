@@ -15,9 +15,9 @@ class GmshOut
 public:
     // writing the .pos file for use with gmsh
     static void write_pos(
-        const dealii::Triangulation<dim, dim> &tria,
-        dealii::Vector<real>                   data,
-        std::ostream &                         out);
+        const dealii::Triangulation<dim,dim> &tria,
+        dealii::Vector<real>                  data,
+        std::ostream &                        out);
 
     // writing the geo file
     static void write_geo(

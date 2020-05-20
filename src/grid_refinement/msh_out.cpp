@@ -55,7 +55,7 @@ void MshOut<dim,real>::write_msh(
     const unsigned int       n_vertices  = tria.n_used_vertices();
 
     // numEntityBlocks(size_t) numNodes(size_t) minNodeTag(size_t) maxNodeTag(size_t)
-    out << 1 << " " << n_vertices << " " << 1 << " " << vertices.size() + 1 << '\n';
+    out << 1 << " " << n_vertices << " " << 1 << " " << vertices.size() << '\n';
 
     // entityDim(int) entityTag(int) parametric(int; 0 or 1) numNodesInBlock(size_t)
     out << dim << " " << 1 << " " << 0 << " " << n_vertices << '\n';
@@ -108,7 +108,7 @@ void MshOut<dim,real>::write_msh(
 
 
     // numEntityBlocks(size_t) numElements(size_t) minElementTag(size_t) maxElementTag(size_t)
-    out << 1 << " " << tria.n_active_cells() << " " << 1 << " " << tria.n_cells()  << '\n';
+    out << 1 << " " << tria.n_active_cells() << " " << 1 << " " << tria.n_cells() << '\n';
 
     // entityDim(int) entityTag(int) elementType(int; see above) numElementsInBlock(size_t)
     out << dim << " " << 1 << " " << element_type << " " << tria.n_active_cells() << '\n';
@@ -117,11 +117,14 @@ void MshOut<dim,real>::write_msh(
     for(auto cell = tria.begin_active(); cell != dof_handler.end(); ++cell){
         if(!cell->is_locally_owned()) continue;
 
-        out << cell->active_cell_index();
+        unsigned int elementTag = cell->active_cell_index() + 1;
+        out << elementTag;
 
         // switching numbering order to match mesh writing, nodeTag = nodeIndex + 1
-        for(unsigned int vertex = 0; vertex < dealii::GeometryInfo<dim>::vertices_per_cell; ++vertex)
-            out << ((vertex==0)?(""):(" ")) << cell->vertex_index(dealii::GeometryInfo<dim>::ucd_to_deal[vertex]) + 1;
+        for(unsigned int vertex = 0; vertex < dealii::GeometryInfo<dim>::vertices_per_cell; ++vertex){
+            unsigned int nodeTag = cell->vertex_index(dealii::GeometryInfo<dim>::ucd_to_deal[vertex]) + 1;
+            out << " " << nodeTag;
+        }
         
         out << '\n';
     }
@@ -140,8 +143,8 @@ void MshOut<dim,real>::write_msh(
 // writing the data from a MshOutData
 template <int dim>
 void MshOutData<dim>::write_msh_data(
-    const dealii::DoFHandler<dim, dim> &dof_handler,
-    std::ostream &                      out)
+    const dealii::hp::DoFHandler<dim> &dof_handler,
+    std::ostream &                     out)
 {
     // opening section
     switch(storageType){
@@ -203,8 +206,8 @@ void MshOutData<dim>::write_msh_data(
 // writing the data for scalar data
 template <>
 void MshOutDataInternal<PHILIP_DIM,double>::write_msh_data_internal(
-    const dealii::DoFHandler<PHILIP_DIM,PHILIP_DIM> &dof_handler,
-    std::ostream &                                   out)
+    const dealii::hp::DoFHandler<PHILIP_DIM> &dof_handler,
+    std::ostream &                            out)
 {
     const int dim = PHILIP_DIM;
 
@@ -272,8 +275,8 @@ void MshOutDataInternal<PHILIP_DIM,double>::write_msh_data_internal(
 // writing the data for vector data
 template <>
 void MshOutDataInternal<PHILIP_DIM,dealii::Tensor<1,PHILIP_DIM,double>>::write_msh_data_internal(
-    const dealii::DoFHandler<PHILIP_DIM,PHILIP_DIM> &dof_handler,
-    std::ostream &                                   out)
+    const dealii::hp::DoFHandler<PHILIP_DIM> &dof_handler,
+    std::ostream &                            out)
 {
     const int dim = PHILIP_DIM;
 
@@ -366,8 +369,8 @@ void MshOutDataInternal<PHILIP_DIM,dealii::Tensor<1,PHILIP_DIM,double>>::write_m
 // writing the data for matrix data
 template <>
 void MshOutDataInternal<PHILIP_DIM, dealii::Tensor<2,PHILIP_DIM,double>>::write_msh_data_internal(
-    const dealii::DoFHandler<PHILIP_DIM,PHILIP_DIM> &dof_handler,
-    std::ostream &                                   out)
+    const dealii::hp::DoFHandler<PHILIP_DIM> &dof_handler,
+    std::ostream &                            out)
 {
     const int dim = PHILIP_DIM;
 

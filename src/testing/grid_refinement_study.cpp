@@ -40,6 +40,7 @@
 
 #include "grid_refinement/grid_refinement.h"
 #include "grid_refinement/gmsh_out.h"
+#include "grid_refinement/msh_out.h"
 #include "grid_refinement/size_field.h"
 #include "grid_refinement/gnu_out.h"
 
@@ -252,6 +253,12 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
         
             error.push_back(l2_norm_mpi);
             dofs.push_back(n_dofs);
+
+            // temp
+            PHiLiP::GridRefinement::MshOut<dim,double> msh_out(dg->dof_handler);
+            std::string write_mshname = "test-msh-" + dealii::Utilities::int_to_string(iref*10+igrid) + ".msh";
+            std::ofstream outmsh(write_mshname);
+            msh_out.write_msh(outmsh);
         }
 
         pcout << " ********************************************" << std::endl

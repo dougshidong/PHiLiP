@@ -26,8 +26,8 @@ public:
             storageType(storageType){};
 
     void write_msh_data(
-        const dealii::DoFHandler<dim,dim> &dof_handler,
-        std::ostream &                      out);
+        const dealii::hp::DoFHandler<dim> &dof_handler,
+        std::ostream &                     out);
 
 protected:
     // storage type of the current object
@@ -39,8 +39,8 @@ protected:
 
     // write function for the data to be overriden
     virtual void write_msh_data_internal(
-        const dealii::DoFHandler<dim,dim> &dof_handler,
-        std::ostream &                      out) = 0;
+        const dealii::hp::DoFHandler<dim> &dof_handler,
+        std::ostream &                     out) = 0;
 };
 
 // templated class for internal data processing
@@ -57,8 +57,8 @@ public:
 
 protected:
     void write_msh_data_internal(
-        const dealii::DoFHandler<dim,dim> &dof_handler,
-        std::ostream &                      out) override;
+        const dealii::hp::DoFHandler<dim> &dof_handler,
+        std::ostream &                     out) override;
 
 private:
     const std::vector<T> data;
@@ -72,7 +72,7 @@ class MshOut
 public: 
     // constructor
     MshOut(
-        const dealii::DoFHandler<dim,dim> &dof_handler) :
+        const dealii::hp::DoFHandler<dim> &dof_handler) :
             dof_handler(dof_handler){};
 
     // adding data vector of specified storage type
@@ -89,7 +89,7 @@ public:
         std::ostream &out);
 
 private:
-        const dealii::DoFHandler<dim,dim> &          dof_handler;
+        const dealii::hp::DoFHandler<dim> &           dof_handler;
         std::vector<std::shared_ptr<MshOutData<dim>>> data_vector;
 };
 

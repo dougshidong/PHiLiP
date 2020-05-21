@@ -79,10 +79,8 @@ int main (int /*argc*/, char * /*argv*/[])
             const dealii::FE_DGQLegendre<dim> fe_dgp(degree);
             const dealii::FESystem<dim,dim> fe_system_Legendre(fe_dgp, nstate);
             fe_collection_Legendre.push_back (fe_system_Legendre);
-           // dealii::QGaussLobatto<dim> vol_quad_Gauss_Lobatto (over_int_GLL);
-           // volume_quadrature_collection_GLL.push_back(vol_quad_Gauss_Lobatto);
-            dealii::QGauss<dim> vol_quad_Gauss_Legendre (over_int_GL);
-            volume_quadrature_collection_GLL.push_back(vol_quad_Gauss_Legendre);
+            dealii::QGaussLobatto<dim> vol_quad_Gauss_Lobatto (over_int_GLL);
+            volume_quadrature_collection_GLL.push_back(vol_quad_Gauss_Lobatto);
             }
 
 
@@ -184,8 +182,10 @@ int main (int /*argc*/, char * /*argv*/[])
         projection_GL.mmult(I_stof, phi_GL);//Interp soln to flux from definition evaluated at GL nodes
         dealii::FullMatrix<real> DI_StoF(n_quad_GL, n_dofs);
         D_Lagrange.mmult(DI_StoF, I_stof);//D at GL nodes* I stof
+        //dchi_dxi[0].mmult(DI_StoF, I_stof);//D at GL nodes* I stof
         dealii::FullMatrix<real> I_StoF_Dhat(n_quad_GLL, n_dofs);
         I_stof.mmult(I_StoF_Dhat, D_Legendre);//I stof * \hat{D} at GLL nodes
+       // I_stof.mmult(I_StoF_Dhat, dphi_dxi[0]);//I stof * \hat{D} at GLL nodes
         printf(" DIstof \n");
         for (unsigned int iquad=0; iquad<n_quad_GL; ++iquad) {
             for (unsigned int idof=0; idof<n_dofs; ++idof) {
@@ -198,6 +198,16 @@ int main (int /*argc*/, char * /*argv*/[])
         for (unsigned int iquad=0; iquad<n_quad_GLL; ++iquad) {
             for (unsigned int idof=0; idof<n_dofs; ++idof) {
                 printf(" %g ",I_StoF_Dhat[iquad][idof]);
+            }
+            printf("\n");
+        }
+
+        dealii::FullMatrix<real> chi_p(n_quad_GL);
+        chi.mmult(chi_p, projection_GL);
+        printf(" chi * P\n");
+        for (unsigned int iquad=0; iquad<n_quad_GLL; ++iquad) {
+            for (unsigned int iquad2=0; iquad2<n_quad_GL; ++iquad2) {
+                printf(" %g ",chi_p[iquad][iquad2]);
             }
             printf("\n");
         }

@@ -263,10 +263,10 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
 
             // temp
             PHiLiP::GridRefinement::MshOut<dim,double> msh_out(dg->dof_handler);
-            std::string write_mshname = "test-msh-" + dealii::Utilities::int_to_string(iref*10+igrid) + ".msh";
-            std::ofstream outmsh(write_mshname);
+            std::string write_msh_name = "test-msh-" + dealii::Utilities::int_to_string(iref*10+igrid) + ".msh";
+            std::ofstream out_msh(write_msh_name);
             msh_out.add_data_vector(error_per_cell, PHiLiP::GridRefinement::StorageType::element);
-            msh_out.write_msh(outmsh);
+            msh_out.write_msh(out_msh);
         }
 
         pcout << " ********************************************" << std::endl

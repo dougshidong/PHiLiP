@@ -9,10 +9,17 @@ namespace PHiLiP {
 namespace GridRefinement {
 
 // enum of mesh storage types
-enum StorageType {
+enum class StorageType {
     node,
     element,
     elementNode,
+};
+
+// enum of data types
+enum class DataType {
+    scalar,
+    vector,
+    matrix,
 };
 
 // data structure for outputting data to msh files
@@ -118,6 +125,8 @@ private:
         const dealii::hp::DoFHandler<dim> &           dof_handler;
         std::vector<std::shared_ptr<MshOutData<dim>>> data_vector;
 };
+
+void test();
 
 } // namespace GridRefinement
 

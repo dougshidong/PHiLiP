@@ -56,12 +56,6 @@ if(NOT DOC_ONLY)
 endif()
 
 target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=2)
-set(NMPI 1)
-add_test(
-  NAME ${TEST_TARGET}_nmpi=${NMPI}
-  COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
-  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
 set(NMPI ${MPIMAX})
 add_test(
   NAME ${TEST_TARGET}_nmpi=${NMPI}

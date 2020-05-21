@@ -542,10 +542,6 @@ void MshOutDataInternal<PHILIP_DIM,Matrix>::write_msh_data_internal(
     }
 }
 
-void test(){
-    std::cout << "test" << '\n';
-}
-
 template class MshOut <PHILIP_DIM, double>;
 template class MshOutData <PHILIP_DIM>;
 

@@ -16,7 +16,7 @@ foreach(dim RANGE 1 3)
 
     # Library dependency
     string(CONCAT GridRefinementLib GridRefinement_${dim}D)
-    target_link_libraries(${TestsLib} ${GridRefinementLib})
+    target_link_libraries(${TEST_TARGET} ${GridRefinementLib})
     # Setup target with deal.II
     DEAL_II_SETUP_TARGET(${TEST_TARGET})
 

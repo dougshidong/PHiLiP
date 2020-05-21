@@ -285,7 +285,7 @@ void msh_out_test_helper(
     for(unsigned int i = 0; i < vector_coord.size(); ++i)
         vector_data[i] = data_function<T>(vector_coord[i]);
 
-    // msh_out.add_data_vector(vector_data, storage_type);
+    msh_out.add_data_vector(vector_data, storage_type);
 
     // building the file name and output stream
     std::string write_msh_name =  dealii::Utilities::int_to_string(dim) + "d_test_msh";

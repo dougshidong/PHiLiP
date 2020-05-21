@@ -126,8 +126,6 @@ private:
         std::vector<std::shared_ptr<MshOutData<dim>>> data_vector;
 };
 
-void test();
-
 } // namespace GridRefinement
 
 } //namespace PHiLiP

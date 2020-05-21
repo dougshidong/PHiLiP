@@ -95,7 +95,7 @@ public:
         Physics::ConvectionDiffusion<dim,nstate,real>::ConvectionDiffusion(convection, diffusion)
         {
             // negative one is used so that the problem becomes \del u(x) = f(x)
-            Physics::ConvectionDiffusion<dim,nstate,real>::diff_coeff = -1.0;
+            Physics::ConvectionDiffusion<dim,nstate,real>::diffusion_scaling_coeff = -1.0;
             Physics::ConvectionDiffusion<dim,nstate,real>::diffusion_tensor[0][0] = 1;
             if (dim>=2) {
                 Physics::ConvectionDiffusion<dim,nstate,real>::diffusion_tensor[0][1] = 0.0;

@@ -14,6 +14,50 @@ namespace PHiLiP {
 namespace Physics {
 
 template <int dim, int nstate, typename real>
+Euler<dim,nstate,real>::Euler ( const double ref_length,
+                                const double gamma_gas,
+                                const double mach_inf,
+                                const double angle_of_attack,
+                                const double side_slip_angle)
+    : ref_length(ref_length)
+    , gam(gamma_gas)
+    , gamm1(gam-1.0)
+    , density_inf(1.0)
+    , mach_inf(mach_inf)
+    , mach_inf_sqr(mach_inf*mach_inf)
+    , angle_of_attack(angle_of_attack)
+    , side_slip_angle(side_slip_angle)
+    , sound_inf(1.0/(mach_inf))
+    , pressure_inf(1.0/(gam*mach_inf_sqr))
+    , entropy_inf(pressure_inf*pow(density_inf,-gam))
+    //, internal_energy_inf(mach_inf_sqr/(gam*(gam-1.0)))
+{
+    static_assert(nstate==dim+2, "Physics::Euler() should be created with nstate=dim+2");
+
+    temperature_inf = gam*pressure_inf/density_inf * mach_inf_sqr;
+
+    // For now, don't allow side-slip angle
+    if (std::abs(side_slip_angle) >= 1e-14) {
+        std::cout << "Side slip angle = " << side_slip_angle << ". Side_slip_angle must be zero. " << std::endl;
+        std::cout << "I have not figured out the side slip angles just yet." << std::endl;
+        std::abort();
+    }
+    if(dim==1) {
+        velocities_inf[0] = 1.0;
+    } else if(dim==2) {
+        velocities_inf[0] = cos(angle_of_attack);
+        velocities_inf[1] = sin(angle_of_attack); // Maybe minus??
+    } else if (dim==3) {
+        velocities_inf[0] = cos(angle_of_attack)*cos(side_slip_angle);
+        velocities_inf[1] = sin(angle_of_attack)*cos(side_slip_angle);
+        velocities_inf[2] = sin(side_slip_angle);
+    }
+    assert(std::abs(velocities_inf.norm() - 1.0) < 1e-14);
+
+
+}
+
+template <int dim, int nstate, typename real>
 std::array<real,nstate> Euler<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,

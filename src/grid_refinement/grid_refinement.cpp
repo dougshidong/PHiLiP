@@ -32,6 +32,7 @@
 #include "post_processor/physics_post_processor.h"
 
 #include "grid_refinement/gmsh_out.h"
+#include "grid_refinement/msh_out.h"
 #include "grid_refinement/size_field.h"
 #include "grid_refinement/reconstruct_poly.h"
 #include "grid_refinement.h"
@@ -641,6 +642,37 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid()
 template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_h()
 {
+    using OutputType = PHiLiP::Parameters::GridRefinementParam::OutputType;
+    OutputType output_type = this->grid_refinement_param.output_type;
+
+    // selecting the output type
+    if(output_type == OutputType::gmsh_out){
+        refine_grid_gmsh();
+    }else if(output_type == OutputType::msh_out){
+        refine_grid_msh();
+    }
+
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_p()
+{
+    // physical grid stays the same, apply the update to the p_field
+    for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
+        if(cell->is_locally_owned())
+            cell->set_future_fe_index(round(p_field[cell->active_cell_index()]));
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_hp()
+{
+    // make a copy of the old grid and build a P1 continuous solution averaged at each of the nodes
+    // new P will be the weighted average of the integral over the new cell
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_gmsh()
+{
     const int iproc = dealii::Utilities::MPI::this_mpi_process(this->mpi_communicator);
     
     // now outputting this new field
@@ -683,19 +715,38 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_h()
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_p()
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_msh()
 {
-    // physical grid stays the same, apply the update to the p_field
-    for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
-        if(cell->is_locally_owned())
-            cell->set_future_fe_index(round(p_field[cell->active_cell_index()]));
-}
+    // geting the data output type
+    using OutputDataType = PHiLiP::Parameters::GridRefinementParam::OutputDataType;
+    OutputDataType output_data_type = this->grid_refinement_param.output_data_type;
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_hp()
-{
-    // make a copy of the old grid and build a P1 continuous solution averaged at each of the nodes
-    // new P will be the weighted average of the integral over the new cell
+    // storage type for format of data vector
+    using StorageType = PHiLiP::GridRefinement::StorageType;
+    StorageType storage_type = StorageType::element;
+
+    // file name and output file stream
+    std::string write_msh_name = "grid-" + 
+                                 dealii::Utilities::int_to_string(this->iteration, 4) + ".msh";
+    
+    std::ofstream out_msh(write_msh_name);
+
+    if(output_data_type == OutputDataType::size_field){
+        // outputting the h_field (no orientation)
+        std::vector<real> size_field = get_size_field();
+
+        // setting up output handler
+        PHiLiP::GridRefinement::MshOut<dim,real> msh_out(this->dg->dof_handler);
+        msh_out.add_data_vector(size_field, storage_type, "size_field");
+        msh_out.write_msh(out_msh);
+
+        std::cout << "msh file written." << std::endl;
+    }else if(output_data_type == OutputDataType::frame_field){
+    }else if(output_data_type == OutputDataType::metric_field){
+    }
+
+    // full cycle-not yet implemented
+    throw;
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -772,6 +823,19 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::get_current_field_p()
     for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
         if(cell->is_locally_owned())
             this->p_field[cell->active_cell_index()] = cell->active_fe_index();
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+std::vector<real> GridRefinement_Continuous<dim,nstate,real,MeshType>::get_size_field()
+{
+    // allocating
+    std::vector<real> size_field(h_field.size());
+
+    // iterating over the dof_handler to convert
+    for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++ cell)
+        size_field[cell->active_cell_index()] = this->h_field[cell->active_cell_index()];
+    
+    return size_field;
 }
 
 template <int dim, int nstate, typename real, typename MeshType>

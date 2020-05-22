@@ -9,14 +9,14 @@ namespace PHiLiP {
 namespace GridRefinement {
 
 // enum of mesh storage types
-enum class StorageType {
+enum class StorageType{
     node,
     element,
     elementNode,
 };
 
 // enum of data types
-enum class DataType {
+enum class DataType{
     scalar,
     vector,
     matrix,
@@ -58,6 +58,9 @@ protected:
         std::string name,
         std::string interpolation_scheme);
 
+    void set_string_tags(
+        std::string name);
+
     // sets the real tags
     void set_real_tags(
         double time);
@@ -84,6 +87,18 @@ public:
     {
         this->set_integer_tags(0, num_components, this->num_entries(dof_handler));
     };
+
+    MshOutDataInternal(
+        std::vector<T>                     data,
+        StorageType                        storage_type,
+        std::string                        name,
+        const dealii::hp::DoFHandler<dim> &dof_handler) :
+            MshOutData<dim>(storage_type),
+            data(data)
+    {
+        this->set_integer_tags(0, num_components, this->num_entries(dof_handler));
+        this->set_string_tags(name);
+    }
 
 protected:
     void write_msh_data_internal(
@@ -114,7 +129,26 @@ public:
         std::vector<T> data,
         StorageType    storage_type)
     {
-        data_vector.push_back(std::make_shared<MshOutDataInternal<dim,T>>(data,storage_type,dof_handler));
+        data_vector.push_back(
+            std::make_shared<MshOutDataInternal<dim,T>>(
+                data,
+                storage_type,
+                dof_handler));
+    }
+
+    // adding data vector of specified storage type and name
+    template <typename T>
+    void add_data_vector(
+        std::vector<T> data,
+        StorageType    storage_type,
+        std::string    name)
+    {
+        data_vector.push_back(
+            std::make_shared<MshOutDataInternal<dim,T>>(
+                data,
+                storage_type,
+                name,
+                dof_handler));
     }
 
     // performing the output to ostream

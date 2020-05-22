@@ -169,7 +169,7 @@ void MshOutData<dim>::write_msh_data(
     // stringTag(string) ...
     out << num_string_tags << '\n';
     for(auto string_tag: string_tags)
-        out << string_tag << '\n';
+        out << '"' << string_tag << '"' << '\n';
 
     // numRealTags(ASCII int)
     // realTag(ASCII double) ...
@@ -227,6 +227,14 @@ void MshOutData<dim>::set_string_tags(
 {
     string_tags.push_back(name);
     string_tags.push_back(interpolation_scheme);
+}
+
+// sets only the name
+template <int dim>
+void MshOutData<dim>::set_string_tags(
+    std::string name)
+{
+    string_tags.push_back(name);
 }
 
 // sets the real tags

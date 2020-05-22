@@ -368,6 +368,10 @@ protected:
     virtual void field_p() = 0;
     virtual void field_hp() = 0;
     
+    // performing output to appropriate mesh generator
+    void refine_grid_gmsh();
+    void refine_grid_msh();
+
     real current_complexity();
     void target_complexity();
 
@@ -379,6 +383,12 @@ protected:
     void get_current_field_p();
     dealii::Vector<real> h_field;
     dealii::Vector<real> p_field;
+
+    // functions for getting the output data
+    std::vector<real> get_size_field();
+    // to be added
+    // frame_field();
+    // metric_field();
 };
 
 #if PHILIP_DIM==1

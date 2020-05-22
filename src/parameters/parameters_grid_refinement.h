@@ -47,6 +47,21 @@ public:
         };
     ErrorIndicator error_indicator;    
 
+    // file type/interface to use
+    enum OutputType{
+        gmsh_out, // output of pos and geo files for gmsh remeshing
+        msh_out,  // output of .msh with data fields corresponding to output_data_type
+        };
+    OutputType output_type;
+
+    // method of data storage in the output file
+    enum OutputDataType{
+        size_field,   // size 
+        frame_field,  // vector pair
+        metric_field, // dim x dim matrix 
+        };
+    OutputDataType output_data_type;
+
     // need to add: isotropy indicators AND smoothness indicator
 
     // double p; // polynomial order when fixed, should take this from the grid

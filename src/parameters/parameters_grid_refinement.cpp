@@ -46,6 +46,10 @@ void GridRefinementParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Bool(),
                           "Inidcates whether the refinement should be done isotropically.");
 
+        prm.declare_entry("anisotropic_threshold_ratio", "3.0",
+                          dealii::Patterns::Double(1.0, dealii::Patterns::Double::max_double_value),
+                          "Threshold for flagging cells with anisotropic refinement.");
+
         prm.declare_entry("anisotropic_indicator", "jump_based",
                           dealii::Patterns::Selection(
                           " jump_based | "
@@ -54,10 +58,6 @@ void GridRefinementParam::declare_parameters(dealii::ParameterHandler &prm)
                           "Choices are "
                           " <jump_based | "
                           "  reconstruction_based>.");
-
-        prm.declare_entry("anisotropic_threshold_ratio", "3.0",
-                          dealii::Patterns::Double(1.0, dealii::Patterns::Double::max_double_value),
-                          "Threshold for flagging cells with anisotropic refinement.");
 
         prm.declare_entry("error_indicator", "error_based",
                           dealii::Patterns::Selection(
@@ -71,6 +71,26 @@ void GridRefinementParam::declare_parameters(dealii::ParameterHandler &prm)
                           "  hessian_based | "
                           "  residual_based | "
                           "  adjoint_based>.");
+
+        prm.declare_entry("output_type", "msh_out",
+                          dealii::Patterns::Selection(
+                          " gmsh_out | "
+                          " msh_out"),
+                          "Enum of output data types (for interface with mesh generators)."
+                          "Choices are "
+                          " <gmsh_out | "
+                          "  msh_out>.");
+
+        prm.declare_entry("output_data_type", "size_field",
+                          dealii::Patterns::Selection(
+                          " size_field | "
+                          " frame_field | "
+                          " metric_field"),
+                          "Enum of output data types of refinement indicator (used for msh_out only currently)."
+                          "Choices are "
+                          " <size_field | "
+                          "  frame_field | "
+                          "  metric_field>.");
 
         prm.declare_entry("norm_Lq", "2.0",
                           dealii::Patterns::Double(1.0, dealii::Patterns::Double::max_double_value),
@@ -132,6 +152,15 @@ void GridRefinementParam::parse_parameters(dealii::ParameterHandler &prm)
         else if(error_indicator_string == "residual_based"){error_indicator = ErrorIndicator::residual_based;}
         else if(error_indicator_string == "adjoint_based") {error_indicator = ErrorIndicator::adjoint_based;}
         
+        const std::string output_type_string = prm.get("output_type");
+        if(output_type_string == "gmsh_out")     {output_type = OutputType::gmsh_out;}
+        else if(output_type_string == "msh_out") {output_type = OutputType::msh_out;}
+
+        const std::string output_data_type_string = prm.get("output_data_type");
+        if(output_data_type_string == "size_field")        {output_data_type = OutputDataType::size_field;}
+        else if(output_data_type_string == "frame_field")  {output_data_type = OutputDataType::frame_field;}
+        else if(output_data_type_string == "metric_field") {output_data_type = OutputDataType::metric_field;}
+
         norm_Lq             = prm.get_double("norm_Lq");
         refinement_fraction = prm.get_double("refinement_fraction");
         coarsening_fraction = prm.get_double("coarsening_fraction");

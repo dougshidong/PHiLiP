@@ -301,14 +301,6 @@ int EulerBumpOptimization<dim,nstate>
                 steps.push_back(std::pow(10,i));
             }
             const int order = 2;
-            *outStream << "con->checkApplyJacobian_1..." << std::endl;
-            con->checkApplyJacobian_1(*u, *z, *v, *jv, steps, true, *outStream, order);
-
-            *outStream << "con->checkInverseJacobian_1..." << std::endl;
-            con->checkInverseJacobian_1(*jv, *v, *u, *z, true, *outStream);
-
-            *outStream << "con->checkInverseAdjointJacobian_1..." << std::endl;
-            con->checkInverseAdjointJacobian_1(*jv, *v, *u, *z, true, *outStream);
 
             const auto direction = des_var_p->clone();
             *outStream << "obj->checkGradient..." << std::endl;
@@ -317,21 +309,6 @@ int EulerBumpOptimization<dim,nstate>
             *outStream << "robj->checkGradient..." << std::endl;
             const auto direction_ctl = des_var_ctl_rol_p->clone();
             robj->checkGradient( *des_var_ctl_rol_p, *direction_ctl, steps, true, *outStream, order);
-
-        }
-        {
-            const auto u = des_var_sim_rol_p->clone();
-            const auto z = des_var_ctl_rol_p->clone();
-            const auto v = z->clone();
-            const auto jv = u->clone();
-
-            std::vector<double> steps;
-            for (int i = -2; i > -9; i--) {
-                steps.push_back(std::pow(10,i));
-            }
-            const int order = 2;
-            *outStream << "con->checkApplyJacobian_2..." << std::endl;
-            con->checkApplyJacobian_2(*u, *z, *v, *jv, steps, true, *outStream, order);
 
         }
         {
@@ -346,9 +323,6 @@ int EulerBumpOptimization<dim,nstate>
                 steps.push_back(std::pow(10,i));
             }
             const int order = 2; (void) order;
-
-            *outStream << "con->checkApplyAdjointHessian..." << std::endl;
-            (void) con->checkApplyAdjointHessian(*des_var_p, *dual, *v, *hv, steps, true, *outStream, order);
 
             const auto direction_1 = des_var_p->clone();
             auto direction_2 = des_var_p->clone();

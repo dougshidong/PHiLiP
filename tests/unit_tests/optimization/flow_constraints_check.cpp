@@ -27,6 +27,9 @@
 #include "optimization/flow_constraints.hpp"
 #include "optimization/rol_objective.hpp"
 
+const double FD_TOL = 1e-6;
+const double MACHINE_TOL = 1e-11;
+
 const int dim = 2;
 const int nstate = 4;
 const int POLY_DEGREE = 1;
@@ -38,6 +41,7 @@ const unsigned int NX_CELL = 9*NY_CELL;
 
 int test(const unsigned int nx_ffd)
 {
+    int test_error = 0;
     using namespace PHiLiP;
     using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
@@ -190,84 +194,95 @@ int test(const unsigned int nx_ffd)
         steps.push_back(std::pow(10,i));
     }
     const int order = 2;
+
     *outStream << "con->checkApplyJacobian_1..." << std::endl;
-    con->checkApplyJacobian_1(*temp_sim, *temp_ctl, *v1, *jv1, steps, true, *outStream, order);
+    *outStream << "Checks dRdW * v1 against R(w+h*v1,x)/h  ..." << std::endl;
+    {
+        std::vector<std::vector<double>> results
+            = con->checkApplyJacobian_1(*temp_sim, *temp_ctl, *v1, *jv1, steps, true, *outStream, order);
+
+        double max_rel_err = 999999;
+        for (unsigned int i = 0; i < results.size(); ++i) {
+            const double abs_val_ad = std::abs(results[i][1]);
+            const double abs_val_fd = std::abs(results[i][2]);
+            const double abs_err    = std::abs(results[i][3]);
+            const double rel_err    = abs_err / std::max(abs_val_ad,abs_val_fd);
+            max_rel_err = std::min(max_rel_err, rel_err);
+        }
+        if (max_rel_err > FD_TOL) test_error++;
+    }
 
     *outStream << "con->checkApplyJacobian_2..." << std::endl;
-    con->checkApplyJacobian_2(*temp_sim, *temp_ctl, *v2, *jv2, steps, true, *outStream, order);
+    *outStream << "Checks dRdX * v2 against R(w,x+h*v2)/h  ..." << std::endl;
+    {
+        std::vector<std::vector<double>> results
+            = con->checkApplyJacobian_2(*temp_sim, *temp_ctl, *v2, *jv2, steps, true, *outStream, order);
+
+        double max_rel_err = 999999;
+        for (unsigned int i = 0; i < results.size(); ++i) {
+            const double abs_val_ad = std::abs(results[i][1]);
+            const double abs_val_fd = std::abs(results[i][2]);
+            const double abs_err    = std::abs(results[i][3]);
+            const double rel_err    = abs_err / std::max(abs_val_ad,abs_val_fd);
+            max_rel_err = std::min(max_rel_err, rel_err);
+        }
+        if (max_rel_err > FD_TOL) test_error++;
+    }
 
     *outStream << "con->checkInverseJacobian_1..." << std::endl;
-    con->checkInverseJacobian_1(*jv1, *v1, *temp_sim, *temp_ctl, true, *outStream);
+    *outStream << "Checks || v - Jinv J v || == 0  ..." << std::endl;
+    {
+        const double v_minus_Jinv_J_v = con->checkInverseJacobian_1(*jv1, *v1, *temp_sim, *temp_ctl, true, *outStream);
+        const double normalized_v_minus_Jinv_J_v = v_minus_Jinv_J_v / v1->norm();
+        if (normalized_v_minus_Jinv_J_v > MACHINE_TOL) test_error++;
+    }
 
     *outStream << "con->checkInverseAdjointJacobian_1..." << std::endl;
-    con->checkInverseAdjointJacobian_1(*jv1, *v1, *temp_sim, *temp_ctl, true, *outStream);
-
-    //const auto dual = des_var_sim_rol_p->clone();
-    //const auto temp_sim_ctl = des_var_rol_p->clone();
-    //const auto v3 = des_var_rol_p->clone();
-    //const auto hv3 = des_var_rol_p->clone();
-
-    //*outStream << "con->checkApplyAdjointHessian..." << std::endl;
-    //(void) con->checkApplyAdjointHessian(*des_var_rol_p, *dual, *v3, *hv3, steps, true, *outStream, order);
-
+    *outStream << "Checks || v - Jtinv Jt v || == 0  ..." << std::endl;
     {
-        *outStream << "con->checkAdjointConsistencyJacobian..." << std::endl;
-        *outStream << "Checks (w J v) versus (v Jt w)  ..." << std::endl;
+        const double v_minus_Jinv_J_v = con->checkInverseAdjointJacobian_1(*jv1, *v1, *temp_sim, *temp_ctl, true, *outStream);
+        const double normalized_v_minus_Jinv_J_v = v_minus_Jinv_J_v / v1->norm();
+        if (normalized_v_minus_Jinv_J_v > MACHINE_TOL) test_error++;
+    }
+
+    *outStream << "con->checkAdjointConsistencyJacobian..." << std::endl;
+    *outStream << "Checks (w J v) versus (v Jt w)  ..." << std::endl;
+    {
         const auto w = des_var_adj_rol_p->clone();
         const auto v = des_var_rol_p->clone();
         const auto x = des_var_rol_p->clone();
         const auto temp_Jv = des_var_adj_rol_p->clone();
         const auto temp_Jtw = des_var_rol_p->clone();
-        double tol = 1e-8;
-        con->applyJacobian(*temp_Jv,*v,*x,tol);
-        con->applyAdjointJacobian(*temp_Jtw,*w,*x,tol);
-
         const bool printToStream = true;
-        con->checkAdjointConsistencyJacobian (*w, *v, *x, *temp_Jv, *temp_Jtw, printToStream, *outStream);
+        const double wJv_minus_vJw = con->checkAdjointConsistencyJacobian (*w, *v, *x, *temp_Jv, *temp_Jtw, printToStream, *outStream);
+        if (wJv_minus_vJw > MACHINE_TOL) test_error++;
     }
 
-    // const auto direction_1 = des_var_rol_p->clone();
-    // auto direction_2 = des_var_rol_p->clone();
-    // direction_2->scale(0.5);
+    *outStream << "con->checkApplyAdjointHessian..." << std::endl;
+    *outStream << "Checks (w H v) versus FD approximation  ..." << std::endl;
+    {
+        const auto dual = des_var_sim_rol_p->clone();
+        const auto temp_sim_ctl = des_var_rol_p->clone();
+        const auto v3 = des_var_rol_p->clone();
+        const auto hv3 = des_var_rol_p->clone();
 
-    // *outStream << "obj->checkHessVec..." << std::endl;
-    // obj->checkHessVec( *des_var_rol_p, *direction_1, steps, true, *outStream, order);
+        std::vector<std::vector<double>> results
+            = con->checkApplyAdjointHessian(*des_var_rol_p, *dual, *v3, *hv3, steps, true, *outStream, order);
 
-    // *outStream << "obj->checkHessSym..." << std::endl;
-    // obj->checkHessSym( *des_var_rol_p, *direction_1, *direction_2, true, *outStream);
-
-    // //  *outStream << "Outputting Hessian..." << std::endl;
-    // //  dealii::FullMatrix<double> hessian(n_design_variables, n_design_variables);
-    // //  for (unsigned int i=0; i<n_design_variables; ++i) {
-    // //      pcout << "Column " << i << " out of " << n_design_variables << std::endl;
-    // //      auto direction_unit = des_var_ctl_rol_p->basis(i);
-    // //      auto hv3 = des_var_ctl_rol_p->clone();
-    // //      double tol = 1e-6;
-    // //      robj->hessVec( *hv3, *direction_unit, *des_var_ctl_rol_p, tol );
-
-    // //      auto result = ROL_vector_to_dealii_vector_reference(*hv3);
-    // //      result.update_ghost_values();
-
-    // //      for (unsigned int j=0; j<result.size(); ++j) {
-    // //          hessian[j][i] = result[j];
-    // //      }
-    // //  }
-    // //  if (mpi_rank == 0) hessian.print_formatted(*outStream, 3, true, 10, "0", 1., 0.);
-
-    // *outStream << "robj->checkHessSym..." << std::endl;
-    // robj->checkHessSym( *des_var_ctl_rol_p, *direction_ctl_1, *direction_ctl_2, true, *outStream);
-
-    // *outStream << "Starting optimization..." << std::endl;
-    // ROL::OptimizationSolver<double> solver( opt, parlist );
-    // solver.solve( *outStream );
-
-    // ROL::Ptr< const ROL::AlgorithmState <double> > opt_state = solver.getAlgorithmState();
-
-    // ROL::EExitStatus opt_exit_state = opt_state->statusFlag;
+        double max_rel_err = 999999;
+        for (unsigned int i = 0; i < results.size(); ++i) {
+            const double abs_val_ad = std::abs(results[i][1]);
+            const double abs_val_fd = std::abs(results[i][2]);
+            const double abs_err    = std::abs(results[i][3]);
+            const double rel_err    = abs_err / std::max(abs_val_ad,abs_val_fd);
+            max_rel_err = std::min(max_rel_err, rel_err);
+        }
+        if (max_rel_err > FD_TOL) test_error++;
+    }
 
     filebuffer.close();
 
-    return 0;
+    return test_error;
 }
 
 

@@ -49,6 +49,10 @@ public:
      */
     int run_test () const;
 
+private:
+    /// Actual test for which the number of design variables can be inputted.
+    int optimize_target_bump (const unsigned int nx_ffd) const;
+
 protected:
 
     //  // Integrate entropy over the entire domain to use as a functional.

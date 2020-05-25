@@ -35,6 +35,7 @@ namespace Tests {
 
 const int POLY_DEGREE = 1;
 const double BUMP_HEIGHT = 0.0625;
+const double TARGET_BUMP_HEIGHT = 0.5*BUMP_HEIGHT;
 const double CHANNEL_LENGTH = 3.0;
 const double CHANNEL_HEIGHT = 0.8;
 const unsigned int NY_CELL = 5;
@@ -51,6 +52,27 @@ template<int dim, int nstate>
 int EulerBumpOptimization<dim,nstate>
 ::run_test () const
 {
+    int test_error = 0;
+    std::filebuf filebuffer;
+    if (this->mpi_rank == 0) filebuffer.open ("optimization.log", std::ios::out);
+    if (this->mpi_rank == 0) filebuffer.close();
+
+    const unsigned int n_des_var_start = 10;
+    const unsigned int n_des_var_end   = 50;
+    const unsigned int n_des_var_step  = 10;
+    for (unsigned int n_des_var = n_des_var_start; n_des_var <= n_des_var_end; n_des_var += n_des_var_step) {
+        const unsigned int nx_ffd = n_des_var / 2 + 2;
+        test_error += optimize_target_bump(nx_ffd);
+    }
+    return test_error;
+}
+
+template<int dim, int nstate>
+int EulerBumpOptimization<dim,nstate>
+::optimize_target_bump (const unsigned int nx_ffd) const
+{
+    int test_error = 0;
+
     using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
     using GridEnum = ManParam::GridEnum;
@@ -58,7 +80,6 @@ int EulerBumpOptimization<dim,nstate>
 
     Assert(dim == param.dimension, dealii::ExcDimensionMismatch(dim, param.dimension));
     Assert(param.pde_type != param.PartialDifferentialEquation::euler, dealii::ExcNotImplemented());
-    //if (param.pde_type == param.PartialDifferentialEquation::euler) return 1;
 
     ManParam manu_grid_conv_param = param.manufactured_convergence_study_param;
 
@@ -71,11 +92,6 @@ int EulerBumpOptimization<dim,nstate>
                 param.euler_param.angle_of_attack,
                 param.euler_param.side_slip_angle);
     Physics::FreeStreamInitialConditions<dim,nstate> initial_conditions(euler_physics_double);
-    pcout << "Farfield conditions: "<< std::endl;
-    for (int s=0;s<nstate;s++) {
-        pcout << initial_conditions.farfield_conservative[s] << std::endl;
-    }
-
 
     std::vector<unsigned int> n_subdivisions(dim);
 
@@ -96,7 +112,7 @@ int EulerBumpOptimization<dim,nstate>
 
     const dealii::Point<dim> ffd_origin(-1.4,-0.1);
     const std::array<double,dim> ffd_rectangle_lengths = {2.8,0.6};
-    const std::array<unsigned int,dim> ffd_ndim_control_pts = {10,2};
+    const std::array<unsigned int,dim> ffd_ndim_control_pts = {nx_ffd,2};
     FreeFormDeformation<dim> ffd( ffd_origin, ffd_rectangle_lengths, ffd_ndim_control_pts);
 
     unsigned int n_design_variables = 0;
@@ -136,34 +152,14 @@ int EulerBumpOptimization<dim,nstate>
     ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
     const auto initial_design_variables = ffd_design_variables;
-    ffd_design_variables[0] = -1.558e-01;
-    ffd_design_variables[1] = -2.189e-01;
-    ffd_design_variables[2] = -2.338e-01;
-    ffd_design_variables[3] = -1.691e-01;
-    ffd_design_variables[4] = -1.806e-01;
-    ffd_design_variables[5] = -2.294e-01;
-    ffd_design_variables[6] = -2.243e-01;
-    ffd_design_variables[7] = -1.552e-01;
-    ffd_design_variables[8] = 7.737e-01;
-    ffd_design_variables[9] = 1.110e+00;
-    ffd_design_variables[10] = 1.141e+00;
-    ffd_design_variables[11] = 8.757e-01;
-    ffd_design_variables[12] = 8.825e-01;
-    ffd_design_variables[13] = 1.159e+00;
-    ffd_design_variables[14] = 1.119e+00;
-    ffd_design_variables[15] = 7.769e-01;
-    ffd_design_variables.update_ghost_values();
-    ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
     // Create Target solution
-    DealiiVector target_solution;
+    DealiiVector target_bump_solution;
     {
         grid.clear();
-        Grids::gaussian_bump(grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, BUMP_HEIGHT);
+        Grids::gaussian_bump(grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, 0.5*BUMP_HEIGHT);
         // Create DG object
         std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, &grid);
-
-        ffd.deform_mesh(dg->high_order_grid);
 
         // Initialize coarse grid solution with free-stream
         dg->allocate_system ();
@@ -176,7 +172,7 @@ int EulerBumpOptimization<dim,nstate>
         // Output target solution
         dg->output_results_vtk(9998);
 
-        target_solution = dg->solution;
+        target_bump_solution = dg->solution;
     }
 
     // Initial optimization point
@@ -202,7 +198,7 @@ int EulerBumpOptimization<dim,nstate>
     dg->output_results_vtk(9999);
 
     const bool functional_uses_solution_values = true, functional_uses_solution_gradient = false;
-    TargetBoundaryFunctional<dim,nstate,double> functional(dg, target_solution, functional_uses_solution_values, functional_uses_solution_gradient);
+    TargetBoundaryFunctional<dim,nstate,double> target_bump_functional(dg, target_bump_solution, functional_uses_solution_values, functional_uses_solution_gradient);
 
     const bool has_ownership = false;
     DealiiVector des_var_sim = dg->solution;
@@ -227,7 +223,7 @@ int EulerBumpOptimization<dim,nstate>
     // Output stream
     ROL::nullstream bhs; // outputs nothing
     std::filebuf filebuffer;
-    if (this->mpi_rank == 0) filebuffer.open ("optimization.log",std::ios::out);
+    if (this->mpi_rank == 0) filebuffer.open ("optimization.log", std::ios::out|std::ios::app);
     std::ostream ostr(&filebuffer);
 
     Teuchos::RCP<std::ostream> outStream;
@@ -235,21 +231,78 @@ int EulerBumpOptimization<dim,nstate>
     else if (this->mpi_rank == 1) outStream = ROL::makePtrFromRef(std::cout);
     else outStream = ROL::makePtrFromRef(bhs);
 
-    auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( functional, ffd, ffd_design_variables_indices_dim );
-    auto con  = ROL::makePtr<FlowConstraints<dim>>(dg,ffd,ffd_design_variables_indices_dim);
-    const bool storage = false;
-    const bool useFDHessian = false;
-    auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p, storage, useFDHessian);
-    //const bool full_space = true;
-    const bool full_space = false;
+    // Generate target design vector.
+    DealiiVector target_ffd_solution;
+    {
+        // Reduced space problem
+        auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( target_bump_functional, ffd, ffd_design_variables_indices_dim );
+        auto con  = ROL::makePtr<FlowConstraints<dim>>(dg,ffd,ffd_design_variables_indices_dim);
+        const bool storage = false;
+        const bool useFDHessian = false;
+        auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p, storage, useFDHessian);
+
+        ROL::OptimizationProblem<double> opt = ROL::OptimizationProblem<double> ( robj, des_var_ctl_rol_p );
+        ROL::EProblem problemType = opt.getProblemType();
+        std::cout << ROL::EProblemToString(problemType) << std::endl;
+
+        Teuchos::ParameterList parlist;
+        parlist.sublist("Status Test").set("Gradient Tolerance", 1e-8);
+        parlist.sublist("Status Test").set("Iteration Limit", 5000);
+        parlist.sublist("Step").set("Type","Line Search");
+        parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",1e-0);
+        parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
+
+        parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Cubic Interpolation");
+        parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Goldstein Conditions");
+
+        parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Quasi-Newton Method");
+        parlist.sublist("General").sublist("Secant").set("Type","Limited-Memory BFGS");
+        parlist.sublist("General").sublist("Secant").set("Maximum Storage",(int)n_design_variables);
+        parlist.sublist("General").sublist("Secant").set("Maximum Storage",5000);
+
+        *outStream << "Starting optimization with " << n_design_variables << "..." << std::endl;
+        *outStream << "Optimizing FFD points to obtain target Gaussian bump..." << std::endl;
+        ROL::OptimizationSolver<double> solver( opt, parlist );
+        solver.solve( *outStream );
+
+        ROL::Ptr< const ROL::AlgorithmState <double> > opt_state = solver.getAlgorithmState();
+
+        test_error += opt_state->statusFlag;
+
+        target_ffd_solution = dg->solution;
+    }
+    *outStream << " Done target optimization..." << std::endl;
+    *outStream << " Resetting problem to initial conditions and target previous FFD points "<< std::endl;
+    *outStream << " and aim for machine precision functional value...." << std::endl;
+
+    // Reset to initial_grid
+
+    ffd_design_variables = initial_design_variables;
+    ffd_design_variables.update_ghost_values();
+    ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
+
+
+    grid.clear();
+    Grids::gaussian_bump(grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, BUMP_HEIGHT);
+
+    ode_solver->steady_state();
+
+    des_var_sim = dg->solution;
+    des_var_ctl = ffd_design_variables;
+    des_var_adj = dg->dual;
+
     ROL::OptimizationProblem<double> opt;
-    // Set parameters.
     Teuchos::ParameterList parlist;
 
-    auto des_var_p = ROL::makePtr<ROL::Vector_SimOpt<double>>(des_var_sim_rol_p, des_var_ctl_rol_p);
+    TargetBoundaryFunctional<dim,nstate,double> target_ffd_functional(dg, target_ffd_solution, functional_uses_solution_values, functional_uses_solution_gradient);
+    // Reduced space problem
+    auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( target_ffd_functional, ffd, ffd_design_variables_indices_dim );
+    auto con  = ROL::makePtr<FlowConstraints<dim>>(dg,ffd,ffd_design_variables_indices_dim);
 
+    const bool full_space = false;
     if (full_space) {
         // Full space problem
+        auto des_var_p = ROL::makePtr<ROL::Vector_SimOpt<double>>(des_var_sim_rol_p, des_var_ctl_rol_p);
         auto dual_sim_p = des_var_sim_rol_p->clone();
         //auto dual_sim_p = ROL::makePtrFromRef(dual_sim);
         opt = ROL::OptimizationProblem<double> ( obj, des_var_p, con, dual_sim_p );
@@ -283,84 +336,12 @@ int EulerBumpOptimization<dim,nstate>
 
     } else { 
         // Reduced space problem
+        const bool storage = false;
+        const bool useFDHessian = false;
+        auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p, storage, useFDHessian);
         opt = ROL::OptimizationProblem<double> ( robj, des_var_ctl_rol_p );
         ROL::EProblem problemType = opt.getProblemType();
         std::cout << ROL::EProblemToString(problemType) << std::endl;
-
-        {
-            const auto u = des_var_sim_rol_p->clone();
-            const auto z = des_var_ctl_rol_p->clone();
-            const auto v = u->clone();
-            const auto jv = v->clone();
-
-            v->zero();
-            v->setScalar(1.0);
-
-            std::vector<double> steps;
-            for (int i = -2; i > -9; i--) {
-                steps.push_back(std::pow(10,i));
-            }
-            const int order = 2;
-
-            const auto direction = des_var_p->clone();
-            *outStream << "obj->checkGradient..." << std::endl;
-            obj->checkGradient( *des_var_p, *direction, steps, true, *outStream, order);
-
-            *outStream << "robj->checkGradient..." << std::endl;
-            const auto direction_ctl = des_var_ctl_rol_p->clone();
-            robj->checkGradient( *des_var_ctl_rol_p, *direction_ctl, steps, true, *outStream, order);
-
-        }
-        {
-            auto dual = des_var_sim_rol_p->clone();
-            dual->set(*des_var_sim_rol_p);
-            const auto v = des_var_p->clone();
-            v->set(*des_var_p);
-            const auto hv = des_var_p->clone();
-
-            std::vector<double> steps;
-            for (int i = -1; i > -13; i--) {
-                steps.push_back(std::pow(10,i));
-            }
-            const int order = 2; (void) order;
-
-            const auto direction_1 = des_var_p->clone();
-            auto direction_2 = des_var_p->clone();
-            direction_2->scale(0.5);
-            *outStream << "obj->checkHessVec..." << std::endl;
-            obj->checkHessVec( *des_var_p, *direction_1, steps, true, *outStream, order);
-            *outStream << "obj->checkHessSym..." << std::endl;
-            obj->checkHessSym( *des_var_p, *direction_1, *direction_2, true, *outStream);
-
-            const auto direction_ctl_1 = des_var_ctl_rol_p->clone();
-            auto direction_ctl_2 = des_var_ctl_rol_p->clone();
-            direction_ctl_2->scale(0.5);
-            *outStream << "robj->checkHessVec..." << std::endl;
-            robj->checkHessVec( *des_var_ctl_rol_p, *direction_ctl_1, steps, true, *outStream, order);
-
-            //  *outStream << "Outputting Hessian..." << std::endl;
-            //  dealii::FullMatrix<double> hessian(n_design_variables, n_design_variables);
-            //  for (unsigned int i=0; i<n_design_variables; ++i) {
-            //      pcout << "Column " << i << " out of " << n_design_variables << std::endl;
-            //      auto direction_unit = des_var_ctl_rol_p->basis(i);
-            //      auto hv = des_var_ctl_rol_p->clone();
-            //      double tol = 1e-6;
-            //      robj->hessVec( *hv, *direction_unit, *des_var_ctl_rol_p, tol );
-
-            //      auto result = ROL_vector_to_dealii_vector_reference(*hv);
-            //      result.update_ghost_values();
-
-            //      for (unsigned int j=0; j<result.size(); ++j) {
-            //          hessian[j][i] = result[j];
-            //      }
-            //  }
-            //  if (mpi_rank == 0) hessian.print_formatted(*outStream, 3, true, 10, "0", 1., 0.);
-
-            *outStream << "robj->checkHessSym..." << std::endl;
-            robj->checkHessSym( *des_var_ctl_rol_p, *direction_ctl_1, *direction_ctl_2, true, *outStream);
-
-        }
-
 
         parlist.sublist("Status Test").set("Gradient Tolerance", 1e-10);
         parlist.sublist("Status Test").set("Iteration Limit", 5000);
@@ -378,30 +359,29 @@ int EulerBumpOptimization<dim,nstate>
 
         //parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Newton's Method");
 
-        //parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Newton-Krylov");
-        //parlist.sublist("General").sublist("Secant").set("Use as Preconditioner", false);
+        parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Newton-Krylov");
+        parlist.sublist("General").sublist("Secant").set("Use as Preconditioner", true);
 
 
         //parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type", "Steepest Descent");
 
-        parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Quasi-Newton Method");
+        //parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Quasi-Newton Method");
         parlist.sublist("General").sublist("Secant").set("Type","Limited-Memory BFGS");
         parlist.sublist("General").sublist("Secant").set("Maximum Storage",(int)n_design_variables);
         parlist.sublist("General").sublist("Secant").set("Maximum Storage",5000);
-
     }
 
-    *outStream << "Starting optimization..." << std::endl;
+    *outStream << "Starting optimization with " << n_design_variables << "..." << std::endl;
     ROL::OptimizationSolver<double> solver( opt, parlist );
     solver.solve( *outStream );
 
     ROL::Ptr< const ROL::AlgorithmState <double> > opt_state = solver.getAlgorithmState();
 
-    ROL::EExitStatus opt_exit_state = opt_state->statusFlag;
+    test_error += opt_state->statusFlag;
 
     filebuffer.close();
 
-    return opt_exit_state;
+    return test_error;
 }
 
 

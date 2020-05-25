@@ -1,5 +1,3 @@
-#include <stdlib.h>     /* srand, rand */
-#include <iostream>
 
 #include <deal.II/grid/grid_generator.h>
 
@@ -13,8 +11,6 @@
 #include "ROL_OptimizationSolver.hpp"
 #include "ROL_LineSearchStep.hpp"
 //#include "ROL_StatusTest.hpp"
-
-#include "euler_bump_optimization.h"
 
 #include "physics/euler.h"
 #include "dg/dg.h"
@@ -30,6 +26,8 @@
 #include "optimization/rol_objective.hpp"
 
 
+const double TOL = 1e-7;
+
 const int dim = 2;
 const int nstate = 4;
 const int POLY_DEGREE = 2;
@@ -39,28 +37,49 @@ const double CHANNEL_HEIGHT = 0.8;
 const unsigned int NY_CELL = 5;
 const unsigned int NX_CELL = 9*NY_CELL;
 
+double check_max_rel_error(std::vector<std::vector<double>> rol_check_results) {
+    double max_rel_err = 999999;
+    for (unsigned int i = 0; i < rol_check_results.size(); ++i) {
+        const double abs_val_ad = std::abs(rol_check_results[i][1]);
+        const double abs_val_fd = std::abs(rol_check_results[i][2]);
+        const double abs_err    = std::abs(rol_check_results[i][3]);
+        const double rel_err    = abs_err / std::max(abs_val_ad,abs_val_fd);
+        max_rel_err = std::min(max_rel_err, rel_err);
+    }
+    return max_rel_err;
+}
 
-template <int dim, int nstate>
-EulerBumpOptimization<dim,nstate>::EulerBumpOptimization(const Parameters::AllParameters *const parameters_input)
-    :
-    TestsBase::TestsBase(parameters_input)
-{}
-
-template<int dim, int nstate>
-int EulerBumpOptimization<dim,nstate>
-::run_test () const
+int test(const unsigned int nx_ffd)
 {
+    int test_error = 0;
+    using namespace PHiLiP;
     using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
     using GridEnum = ManParam::GridEnum;
-    const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
-    Assert(dim == param.dimension, dealii::ExcDimensionMismatch(dim, param.dimension));
-    Assert(param.pde_type != param.PartialDifferentialEquation::euler, dealii::ExcNotImplemented());
-    //if (param.pde_type == param.PartialDifferentialEquation::euler) return 1;
+    const unsigned int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
 
-    ManParam manu_grid_conv_param = param.manufactured_convergence_study_param;
+    dealii::ParameterHandler parameter_handler;
+    Parameters::AllParameters::declare_parameters (parameter_handler);
+    parameter_handler.set("pde_type", "euler");
+    parameter_handler.set("conv_num_flux", "roe");
+    parameter_handler.set("dimension", (long int)dim);
+    parameter_handler.enter_subsection("euler");
+    parameter_handler.set("mach_infinity", 0.3);
+    parameter_handler.leave_subsection();
+    parameter_handler.enter_subsection("ODE solver");
+    parameter_handler.set("nonlinear_max_iterations", (long int) 500);
+    parameter_handler.set("nonlinear_steady_residual_tolerance", 1e-12);
+    parameter_handler.set("initial_time_step", 0.05);
+    parameter_handler.set("time_step_factor_residual", 25.0);
+    parameter_handler.set("time_step_factor_residual_exp", 4.0);
+    parameter_handler.leave_subsection();
 
+    Parameters::AllParameters param;
+    param.parse_parameters (parameter_handler);
+
+    param.euler_param.parse_parameters (parameter_handler);
+    param.euler_param.mach_inf = 0.3;
 
     Physics::Euler<dim,nstate,double> euler_physics_double
         = Physics::Euler<dim, nstate, double>(
@@ -70,18 +89,13 @@ int EulerBumpOptimization<dim,nstate>
                 param.euler_param.angle_of_attack,
                 param.euler_param.side_slip_angle);
     Physics::FreeStreamInitialConditions<dim,nstate> initial_conditions(euler_physics_double);
-    pcout << "Farfield conditions: "<< std::endl;
-    for (int s=0;s<nstate;s++) {
-        pcout << initial_conditions.farfield_conservative[s] << std::endl;
-    }
-
 
     std::vector<unsigned int> n_subdivisions(dim);
 
     n_subdivisions[1] = NY_CELL;
     n_subdivisions[0] = NX_CELL;
 
-    dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator,
+    dealii::parallel::distributed::Triangulation<dim> grid(MPI_COMM_WORLD,
         typename dealii::Triangulation<dim>::MeshSmoothing(
             dealii::Triangulation<dim>::smoothing_on_refinement |
             dealii::Triangulation<dim>::smoothing_on_coarsening));
@@ -116,7 +130,7 @@ int EulerBumpOptimization<dim,nstate>
 
     const dealii::Point<dim> ffd_origin(-1.4,-0.1);
     const std::array<double,dim> ffd_rectangle_lengths = {2.8,0.6};
-    const std::array<unsigned int,dim> ffd_ndim_control_pts = {10,2};
+    const std::array<unsigned int,dim> ffd_ndim_control_pts = {nx_ffd,2};
     FreeFormDeformation<dim> ffd( ffd_origin, ffd_rectangle_lengths, ffd_ndim_control_pts);
 
     unsigned int n_design_variables = 0;
@@ -147,11 +161,7 @@ int EulerBumpOptimization<dim,nstate>
     DealiiVector ffd_design_variables(row_part,ghost_row_part,MPI_COMM_WORLD);
 
     ffd.get_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
-    ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
-
-    ffd_design_variables = initial_design_variables;
     ffd_design_variables.update_ghost_values();
-    ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
     // Create DG object
     std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, &grid);
@@ -193,12 +203,12 @@ int EulerBumpOptimization<dim,nstate>
     // Output stream
     ROL::nullstream bhs; // outputs nothing
     std::filebuf filebuffer;
-    if (this->mpi_rank == 0) filebuffer.open ("optimization.log",std::ios::out);
+    if (mpi_rank == 0) filebuffer.open ("objective_check_"+std::to_string(nx_ffd)+".log",std::ios::out);
     std::ostream ostr(&filebuffer);
 
     Teuchos::RCP<std::ostream> outStream;
-    if (this->mpi_rank == 0) outStream = ROL::makePtrFromRef(ostr);
-    else if (this->mpi_rank == 1) outStream = ROL::makePtrFromRef(std::cout);
+    if (mpi_rank == 0) outStream = ROL::makePtrFromRef(ostr);
+    else if (mpi_rank == 1) outStream = ROL::makePtrFromRef(std::cout);
     else outStream = ROL::makePtrFromRef(bhs);
 
     auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( functional, ffd, ffd_design_variables_indices_dim );
@@ -213,57 +223,63 @@ int EulerBumpOptimization<dim,nstate>
 
     auto des_var_p = ROL::makePtr<ROL::Vector_SimOpt<double>>(des_var_sim_rol_p, des_var_ctl_rol_p);
 
+    std::vector<double> steps;
+    for (int i = -2; i > -9; i--) {
+        steps.push_back(std::pow(10,i));
+    }
+    const int order = 2;
     {
-        const auto u = des_var_sim_rol_p->clone();
-        const auto z = des_var_ctl_rol_p->clone();
-        const auto v = u->clone();
-        const auto jv = v->clone();
-
-        v->zero();
-        v->setScalar(1.0);
-
-        std::vector<double> steps;
-        for (int i = -2; i > -9; i--) {
-            steps.push_back(std::pow(10,i));
-        }
-        const int order = 2;
-
         const auto direction = des_var_p->clone();
         *outStream << "obj->checkGradient..." << std::endl;
-        obj->checkGradient( *des_var_p, *direction, steps, true, *outStream, order);
+        std::vector<std::vector<double>> results
+            = obj->checkGradient( *des_var_p, *direction, steps, true, *outStream, order);
 
-        *outStream << "robj->checkGradient..." << std::endl;
-        const auto direction_ctl = des_var_ctl_rol_p->clone();
-        robj->checkGradient( *des_var_ctl_rol_p, *direction_ctl, steps, true, *outStream, order);
-
+        const double max_rel_err = check_max_rel_error(results);
+        if (max_rel_err > TOL) test_error++;
     }
     {
-        auto dual = des_var_sim_rol_p->clone();
-        dual->set(*des_var_sim_rol_p);
-        const auto v = des_var_p->clone();
-        v->set(*des_var_p);
-        const auto hv = des_var_p->clone();
-
-        std::vector<double> steps;
-        for (int i = -1; i > -13; i--) {
-            steps.push_back(std::pow(10,i));
-        }
-        const int order = 2; (void) order;
-
         const auto direction_1 = des_var_p->clone();
         auto direction_2 = des_var_p->clone();
         direction_2->scale(0.5);
         *outStream << "obj->checkHessVec..." << std::endl;
-        obj->checkHessVec( *des_var_p, *direction_1, steps, true, *outStream, order);
+        std::vector<std::vector<double>> results
+            = obj->checkHessVec( *des_var_p, *direction_1, steps, true, *outStream, order);
+
+        const double max_rel_err = check_max_rel_error(results);
+        if (max_rel_err > TOL) test_error++;
+
         *outStream << "obj->checkHessSym..." << std::endl;
-        obj->checkHessSym( *des_var_p, *direction_1, *direction_2, true, *outStream);
+        std::vector<double> results_HessSym = obj->checkHessSym( *des_var_p, *direction_1, *direction_2, true, *outStream);
+        double wHv       = std::abs(results_HessSym[0]);
+        double vHw       = std::abs(results_HessSym[1]);
+        double abs_error = std::abs(wHv - vHw);
+        double rel_error = abs_error / std::max(wHv, vHw);
+        if (rel_error > TOL) test_error++;
+    }
 
-        const auto direction_ctl_1 = des_var_ctl_rol_p->clone();
-        auto direction_ctl_2 = des_var_ctl_rol_p->clone();
-        direction_ctl_2->scale(0.5);
-        *outStream << "robj->checkHessVec..." << std::endl;
-        robj->checkHessVec( *des_var_ctl_rol_p, *direction_ctl_1, steps, true, *outStream, order);
+    {
+        const auto direction_ctl = des_var_ctl_rol_p->clone();
+        *outStream << "robj->checkGradient..." << std::endl;
+        std::vector<std::vector<double>> results
+            = robj->checkGradient( *des_var_ctl_rol_p, *direction_ctl, steps, true, *outStream, order);
 
+        const double max_rel_err = check_max_rel_error(results);
+        if (max_rel_err > TOL) test_error++;
+
+    }
+    // Takes a really long time to evaluate the reduced Hessian.
+    // {
+
+    //     const auto direction_ctl_1 = des_var_ctl_rol_p->clone();
+    //     auto direction_ctl_2 = des_var_ctl_rol_p->clone();
+    //     direction_ctl_2->scale(0.5);
+    //     *outStream << "robj->checkHessVec..." << std::endl;
+    //     robj->checkHessVec( *des_var_ctl_rol_p, *direction_ctl_1, steps, true, *outStream, order);
+
+    //     *outStream << "robj->checkHessSym..." << std::endl;
+    //     robj->checkHessSym( *des_var_ctl_rol_p, *direction_ctl_1, *direction_ctl_2, true, *outStream);
+    // }
+    {
         //  *outStream << "Outputting Hessian..." << std::endl;
         //  dealii::FullMatrix<double> hessian(n_design_variables, n_design_variables);
         //  for (unsigned int i=0; i<n_design_variables; ++i) {
@@ -281,24 +297,21 @@ int EulerBumpOptimization<dim,nstate>
         //      }
         //  }
         //  if (mpi_rank == 0) hessian.print_formatted(*outStream, 3, true, 10, "0", 1., 0.);
-
-        *outStream << "robj->checkHessSym..." << std::endl;
-        robj->checkHessSym( *des_var_ctl_rol_p, *direction_ctl_1, *direction_ctl_2, true, *outStream);
     }
 
 
     filebuffer.close();
 
-    return opt_exit_state;
+    return test_error;
 }
 
 int main (int argc, char * argv[])
 {
     dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
-    int test_error = false;
+    int test_error = 0;
     try {
+         test_error += test(5);
          test_error += test(10);
-         test_error += test(20);
     }
     catch (std::exception &exc) {
         std::cerr << std::endl

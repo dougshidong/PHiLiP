@@ -39,6 +39,18 @@ const double CHANNEL_HEIGHT = 0.8;
 const unsigned int NY_CELL = 5;
 const unsigned int NX_CELL = 9*NY_CELL;
 
+double check_max_rel_error(std::vector<std::vector<double>> rol_check_results) {
+    double max_rel_err = 999999;
+    for (unsigned int i = 0; i < rol_check_results.size(); ++i) {
+        const double abs_val_ad = std::abs(rol_check_results[i][1]);
+        const double abs_val_fd = std::abs(rol_check_results[i][2]);
+        const double abs_err    = std::abs(rol_check_results[i][3]);
+        const double rel_err    = abs_err / std::max(abs_val_ad,abs_val_fd);
+        max_rel_err = std::min(max_rel_err, rel_err);
+    }
+    return max_rel_err;
+}
+
 int test(const unsigned int nx_ffd)
 {
     int test_error = 0;
@@ -201,14 +213,7 @@ int test(const unsigned int nx_ffd)
         std::vector<std::vector<double>> results
             = con->checkApplyJacobian_1(*temp_sim, *temp_ctl, *v1, *jv1, steps, true, *outStream, order);
 
-        double max_rel_err = 999999;
-        for (unsigned int i = 0; i < results.size(); ++i) {
-            const double abs_val_ad = std::abs(results[i][1]);
-            const double abs_val_fd = std::abs(results[i][2]);
-            const double abs_err    = std::abs(results[i][3]);
-            const double rel_err    = abs_err / std::max(abs_val_ad,abs_val_fd);
-            max_rel_err = std::min(max_rel_err, rel_err);
-        }
+        const double max_rel_err = check_max_rel_error(results);
         if (max_rel_err > FD_TOL) test_error++;
     }
 
@@ -218,14 +223,7 @@ int test(const unsigned int nx_ffd)
         std::vector<std::vector<double>> results
             = con->checkApplyJacobian_2(*temp_sim, *temp_ctl, *v2, *jv2, steps, true, *outStream, order);
 
-        double max_rel_err = 999999;
-        for (unsigned int i = 0; i < results.size(); ++i) {
-            const double abs_val_ad = std::abs(results[i][1]);
-            const double abs_val_fd = std::abs(results[i][2]);
-            const double abs_err    = std::abs(results[i][3]);
-            const double rel_err    = abs_err / std::max(abs_val_ad,abs_val_fd);
-            max_rel_err = std::min(max_rel_err, rel_err);
-        }
+        const double max_rel_err = check_max_rel_error(results);
         if (max_rel_err > FD_TOL) test_error++;
     }
 
@@ -269,14 +267,7 @@ int test(const unsigned int nx_ffd)
         std::vector<std::vector<double>> results
             = con->checkApplyAdjointHessian(*des_var_rol_p, *dual, *v3, *hv3, steps, true, *outStream, order);
 
-        double max_rel_err = 999999;
-        for (unsigned int i = 0; i < results.size(); ++i) {
-            const double abs_val_ad = std::abs(results[i][1]);
-            const double abs_val_fd = std::abs(results[i][2]);
-            const double abs_err    = std::abs(results[i][3]);
-            const double rel_err    = abs_err / std::max(abs_val_ad,abs_val_fd);
-            max_rel_err = std::min(max_rel_err, rel_err);
-        }
+        const double max_rel_err = check_max_rel_error(results);
         if (max_rel_err > FD_TOL) test_error++;
     }
 

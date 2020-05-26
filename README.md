@@ -106,7 +106,7 @@ ROOT$ ctest -V (Enable verbose output from tests)
 ```
 Note that running `ctest` in `Debug` will take forever since some integration tests fully solve nonlinear problems with multiple orders and multiple meshes. It is suggested to perform `ctest` in `Release` mode, and only use `Debug` mode for debugging purposes.
 
-## Debugging
+## Serial Debugging
 
 Here is a quickstart guide to debugging. It is highly suggested to use gdb and/or valgrind when the program crashes unexpectedly.
 The first step is to compile the program in `DEBUG` mode through `CMAKE_BUILD_TYPE=Debug`.
@@ -141,7 +141,7 @@ Memory leaks can be detected using Valgrind's tool `memcheck`. The application m
 valgrind --leak-check=full --track-origins=yes /home/ddong/Codes/PHiLiP/build_debug/bin/2D_HighOrder_MappingFEField
 ```
 
-### Parallel debugging
+## Parallel debugging
 
 If the error only occurs when using parallelism, you can use the following example command
 ```sh
@@ -149,6 +149,12 @@ mpirun -np 2 xterm -hold -e gdb -ex 'break MPI_Abort' -ex run --args /home/ddong
 ```
 This launches 2 xterm processes, each of which will launch gdb processes that will run the code and will have a breakpoint when MPI_Abort is encountered.
 
+### Memory
+Since no interaction is needed with Valgrind, we don't need xterm anymore. We can simply use
+```sh
+mpiexec -np 2 valgrind --leak-check=full  --show-reachable=yes --log-file=logfile.%p.log "/home/ddong/Codes/PHiLiP/build_debug/bin/objective_check"
+```
+to output to multiple logfiles.
 ## Performance
 
 Problems tend to show up in the 3D version if an algorithm has been implemented inefficiently. It is therefore highly recommended that a 3D test accompanies the implemented features.

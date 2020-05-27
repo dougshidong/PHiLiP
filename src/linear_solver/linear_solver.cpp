@@ -11,7 +11,7 @@ namespace PHiLiP {
 
 std::pair<unsigned int, double>
 solve_linear (
-    dealii::TrilinosWrappers::SparseMatrix &system_matrix,
+    const dealii::TrilinosWrappers::SparseMatrix &system_matrix,
     dealii::LinearAlgebra::distributed::Vector<double> &right_hand_side,
     dealii::LinearAlgebra::distributed::Vector<double> &solution,
     const Parameters::LinearSolverParam &param)

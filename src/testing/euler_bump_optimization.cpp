@@ -61,6 +61,8 @@ int EulerBumpOptimization<dim,nstate>
     const unsigned int n_des_var_end   = 50;
     const unsigned int n_des_var_step  = 10;
     for (unsigned int n_des_var = n_des_var_start; n_des_var <= n_des_var_end; n_des_var += n_des_var_step) {
+        assert(n_des_var%2 == 0);
+        assert(n_des_var>=2);
         const unsigned int nx_ffd = n_des_var / 2 + 2;
         test_error += optimize_target_bump(nx_ffd);
     }

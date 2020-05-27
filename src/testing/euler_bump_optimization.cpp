@@ -79,7 +79,7 @@ int EulerBumpOptimization<dim,nstate>
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
     Assert(dim == param.dimension, dealii::ExcDimensionMismatch(dim, param.dimension));
-    Assert(param.pde_type != param.PartialDifferentialEquation::euler, dealii::ExcNotImplemented());
+    Assert(param.pde_type == param.PartialDifferentialEquation::euler, dealii::ExcNotImplemented());
 
     ManParam manu_grid_conv_param = param.manufactured_convergence_study_param;
 
@@ -104,7 +104,9 @@ int EulerBumpOptimization<dim,nstate>
     n_subdivisions[1] = NY_CELL;
     n_subdivisions[0] = NX_CELL;
 
-    dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator,
+    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+    std::shared_ptr <Triangulation> grid = std::make_shared<Triangulation> (
+        this->mpi_communicator,
         typename dealii::Triangulation<dim>::MeshSmoothing(
             dealii::Triangulation<dim>::smoothing_on_refinement |
             dealii::Triangulation<dim>::smoothing_on_coarsening));
@@ -156,10 +158,10 @@ int EulerBumpOptimization<dim,nstate>
     // Create Target solution
     DealiiVector target_bump_solution;
     {
-        grid.clear();
-        Grids::gaussian_bump(grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, 0.5*BUMP_HEIGHT);
+        grid->clear();
+        Grids::gaussian_bump(*grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, 0.5*BUMP_HEIGHT);
         // Create DG object
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, &grid);
+        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, grid);
 
         // Initialize coarse grid solution with free-stream
         dg->allocate_system ();
@@ -176,15 +178,15 @@ int EulerBumpOptimization<dim,nstate>
     }
 
     // Initial optimization point
-    grid.clear();
-    Grids::gaussian_bump(grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, BUMP_HEIGHT);
+    grid->clear();
+    Grids::gaussian_bump(*grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, BUMP_HEIGHT);
 
     ffd_design_variables = initial_design_variables;
     ffd_design_variables.update_ghost_values();
     ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
     // Create DG object
-    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, &grid);
+    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, grid);
 
     // Initialize coarse grid solution with free-stream
     dg->allocate_system ();
@@ -282,8 +284,8 @@ int EulerBumpOptimization<dim,nstate>
     ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
 
-    grid.clear();
-    Grids::gaussian_bump(grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, BUMP_HEIGHT);
+    grid->clear();
+    Grids::gaussian_bump(*grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, BUMP_HEIGHT);
 
     ode_solver->steady_state();
 
@@ -313,22 +315,20 @@ int EulerBumpOptimization<dim,nstate>
         //parlist.sublist("Secant").set("Use as Preconditioner", false);
         parlist.sublist("Status Test").set("Gradient Tolerance", 1e-14);
         parlist.sublist("Status Test").set("Iteration Limit", 5000);
-        parlist.sublist("Step").set("Type","Line Search");
-        parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",1e-0);
-        parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
-
-        //parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Iteration Scaling");
-        //parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Backtracking");
-        parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Cubic Interpolation");
-
-        //parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Null Curvature Condition");
-        //parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Strong Wolfe Conditions");
-        parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Goldstein Conditions");
-
-        parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Quasi-Newton Method");
-        //parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type", "Steepest Descent");
 
         //parlist.sublist("Step").sublist("Interior Point").set("Initial Step Size",0.1);
+
+        parlist.sublist("Step").set("Type","Composite Step");
+        ROL::ParameterList& steplist = parlist.sublist("Step").sublist("Composite Step");
+        steplist.sublist("Optimality System Solver").set("Nominal Relative Tolerance", 1e-8);
+        steplist.sublist("Optimality System Solver").set("Fix Tolerance", true);
+        steplist.sublist("Tangential Subproblem Solver").set("Iteration Limit", 20);
+        steplist.sublist("Tangential Subproblem Solver").set("Relative Tolerance", 1e-2);
+        steplist.set("Initial Radius", 1e2);
+        steplist.set("Use Constraint Hessian", true); // default is true
+
+        steplist.set("Output Level", 1);
+
 
         parlist.sublist("General").sublist("Secant").set("Type","Limited-Memory BFGS");
         //parlist.sublist("General").sublist("Secant").set("Maximum Storage",(int)n_design_variables);
@@ -359,13 +359,21 @@ int EulerBumpOptimization<dim,nstate>
 
         //parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Newton's Method");
 
-        parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Newton-Krylov");
-        parlist.sublist("General").sublist("Secant").set("Use as Preconditioner", true);
-
+        // {
+        //     parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Newton-Krylov");
+        //     parlist.sublist("General").sublist("Secant").set("Use as Preconditioner", true);
+        //     const double em4 = 1e-4, em2 = 1e-2;
+        //     const int cg_iteration_limit = 100;
+        //     parlist.sublist("General").sublist("Krylov").set("Type","Conjugate Gradients");
+        //     parlist.sublist("General").sublist("Krylov").set("Absolute Tolerance", em4);
+        //     parlist.sublist("General").sublist("Krylov").set("Relative Tolerance", em2);
+        //     parlist.sublist("General").sublist("Krylov").set("Iteration Limit", cg_iteration_limit);
+        //     parlist.sublist("General").set("Inexact Hessian-Times-A-Vector",false);
+        // }
 
         //parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type", "Steepest Descent");
 
-        //parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Quasi-Newton Method");
+        parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Quasi-Newton Method");
         parlist.sublist("General").sublist("Secant").set("Type","Limited-Memory BFGS");
         parlist.sublist("General").sublist("Secant").set("Maximum Storage",(int)n_design_variables);
         parlist.sublist("General").sublist("Secant").set("Maximum Storage",5000);

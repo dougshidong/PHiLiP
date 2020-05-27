@@ -74,41 +74,42 @@ int main (int argc, char * argv[])
         dealii::ConvergenceTable convergence_table;
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
 
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-            dealii::Triangulation<dim> grid(
-                typename dealii::Triangulation<dim>::MeshSmoothing(
-                    dealii::Triangulation<dim>::smoothing_on_refinement |
-                    dealii::Triangulation<dim>::smoothing_on_coarsening));
+#if PHILIP_DIM==1
+            using Triangulation = dealii::Triangulation<dim>;
 #else
-            dealii::parallel::distributed::Triangulation<dim> grid(
+            using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+#endif
+            std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+#if PHILIP_DIM!=1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
                 MPI_COMM_WORLD,
+#endif
                 typename dealii::Triangulation<dim>::MeshSmoothing(
                     dealii::Triangulation<dim>::smoothing_on_refinement |
                     dealii::Triangulation<dim>::smoothing_on_coarsening));
-#endif
-            dealii::GridGenerator::subdivided_hyper_cube(grid, initial_n_cells);
+
+            dealii::GridGenerator::subdivided_hyper_cube(*grid, initial_n_cells);
 
 
-            HighOrderGrid<dim,double> high_order_grid(poly_degree, &grid);
+            HighOrderGrid<dim,double> high_order_grid(poly_degree, grid);
 
             for (unsigned int i=0; i<igrid; ++i) {
                 high_order_grid.prepare_for_coarsening_and_refinement();
-                grid.refine_global (1);
+                grid->refine_global (1);
                 high_order_grid.execute_coarsening_and_refinement();
             }
 			const int n_refine = 2;
 			for (int i=0; i<n_refine;i++) {
 				high_order_grid.prepare_for_coarsening_and_refinement();
-				grid.prepare_coarsening_and_refinement();
+				grid->prepare_coarsening_and_refinement();
 				unsigned int icell = 0;
-				for (auto cell = grid.begin_active(); cell!=grid.end(); ++cell) {
+				for (auto cell = grid->begin_active(); cell!=grid->end(); ++cell) {
 					if (!cell->is_locally_owned()) continue;
 					icell++;
-					if (icell > grid.n_active_cells()/2) {
+					if (icell > grid->n_active_cells()/2) {
 						cell->set_refine_flag();
 					}
 				}
-				grid.execute_coarsening_and_refinement();
+				grid->execute_coarsening_and_refinement();
 				bool mesh_out = (i==n_refine-1);
 				high_order_grid.execute_coarsening_and_refinement(mesh_out);
 			}
@@ -117,7 +118,7 @@ int main (int argc, char * argv[])
 
 #if PHILIP_DIM!=1
             high_order_grid.prepare_for_coarsening_and_refinement();
-            grid.repartition();
+            grid->repartition();
             high_order_grid.execute_coarsening_and_refinement();
 #endif
 

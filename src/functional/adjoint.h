@@ -79,7 +79,7 @@ public:
     const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> &physics;
     
     /// fine grid triangulation
-    Triangulation *const triangulation;
+    const std::shared_ptr<Triangulation> triangulation;
     /// original solution
     dealii::LinearAlgebra::distributed::Vector<real> solution_coarse;
     /// functional derivative (fine grid)

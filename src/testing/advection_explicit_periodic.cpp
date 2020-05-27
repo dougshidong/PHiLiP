@@ -34,32 +34,36 @@ TestsBase::TestsBase(parameters_input)
 template <int dim, int nstate>
 int AdvectionPeriodic<dim, nstate>::run_test() const
 {
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-			dealii::Triangulation<dim> grid(
-				typename dealii::Triangulation<dim>::MeshSmoothing(
-					dealii::Triangulation<dim>::smoothing_on_refinement |
-					dealii::Triangulation<dim>::smoothing_on_coarsening));
+#if PHILIP_DIM==1
+    using Triangulation = dealii::Triangulation<PHILIP_DIM>;
 #else
-			dealii::parallel::distributed::Triangulation<dim> grid(
-				this->mpi_communicator);
+    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
 #endif
+
+    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+#if PHILIP_DIM!=1
+        MPI_COMM_WORLD,
+#endif
+        typename dealii::Triangulation<dim>::MeshSmoothing(
+            dealii::Triangulation<dim>::smoothing_on_refinement |
+            dealii::Triangulation<dim>::smoothing_on_coarsening));
 
 	double left = 0.0;
 	double right = 2.0;
 	const bool colorize = true;
 	int n_refinements = 5;
 	unsigned int poly_degree = 2;
-	dealii::GridGenerator::hyper_cube(grid, left, right, colorize);
+	dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
 
-	std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
-		dealii::GridTools::collect_periodic_faces(grid,0,1,0,matched_pairs);
-		dealii::GridTools::collect_periodic_faces(grid,2,3,1,matched_pairs);
-		//dealii::GridTools::collect_periodic_faces(grid,4,5,2,matched_pairs);
-		grid.add_periodicity(matched_pairs);
+	std::vector<dealii::GridTools::PeriodicFacePair<typename Triangulation::cell_iterator> > matched_pairs;
+		dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
+		dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
+		//dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
+		grid->add_periodicity(matched_pairs);
 
-	grid.refine_global(n_refinements);
+	grid->refine_global(n_refinements);
 
-	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, &grid);
+	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);
 	dg->allocate_system ();
 
 //	for (auto current_cell = dg->dof_handler.begin_active(); current_cell != dg->dof_handler.end(); ++current_cell) {

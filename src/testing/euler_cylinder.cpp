@@ -150,20 +150,22 @@ int EulerCylinder<dim,nstate>
         dealii::ConvergenceTable convergence_table;
 
         // Generate grid and mapping
-        dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator,
+        using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+        std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+            MPI_COMM_WORLD,
             typename dealii::Triangulation<dim>::MeshSmoothing(
-                dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_refinement |
-                dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_coarsening));
+                dealii::Triangulation<dim>::smoothing_on_refinement |
+                dealii::Triangulation<dim>::smoothing_on_coarsening));
 
         const unsigned int n_cells_circle = n_1d_cells[0];
         const unsigned int n_cells_radial = 1.5*n_cells_circle;
-        half_cylinder(grid, n_cells_circle, n_cells_radial);
+        half_cylinder(*grid, n_cells_circle, n_cells_radial);
 
         // Create DG object
         const int solution_degree = poly_degree;
         //const int grid_degree = std::max(2,solution_degree);
         const int grid_degree = solution_degree+1;
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, solution_degree, solution_degree, grid_degree, &grid);
+        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, solution_degree, solution_degree, grid_degree, grid);
 
         dg->allocate_system ();
         // Initialize coarse grid solution with free-stream
@@ -173,7 +175,7 @@ int EulerCylinder<dim,nstate>
         std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
         ode_solver->initialize_steady_polynomial_ramping(poly_degree);
 
-        dealii::Vector<float> estimated_error_per_cell(grid.n_active_cells());
+        dealii::Vector<float> estimated_error_per_cell(grid->n_active_cells());
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
 
             // Interpolate solution from previous grid
@@ -183,12 +185,12 @@ int EulerCylinder<dim,nstate>
                 solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
                 dg->high_order_grid.prepare_for_coarsening_and_refinement();
 
-                grid.refine_global (1);
-                //dealii::GridRefinement::refine_and_coarsen_fixed_number(grid,
+                grid->refine_global (1);
+                //dealii::GridRefinement::refine_and_coarsen_fixed_number(*grid,
                 //                                estimated_error_per_cell,
                 //                                0.3,
                 //                                0.03);
-                //grid.execute_coarsening_and_refinement();
+                //grid->execute_coarsening_and_refinement();
                 dg->high_order_grid.execute_coarsening_and_refinement();
                 dg->allocate_system ();
                 dg->solution.zero_out_ghosts();
@@ -199,12 +201,12 @@ int EulerCylinder<dim,nstate>
             // std::string filename = "grid_cylinder-" + dealii::Utilities::int_to_string(igrid, 1) + ".eps";
             // std::ofstream out (filename);
             // dealii::GridOut grid_out;
-            // grid_out.write_eps (grid, out);
-            // pcout << " Grid #" << igrid+1 << " . Number of cells: " << grid.n_global_active_cells() << std::endl;
+            // grid_out.write_eps (*grid, out);
+            // pcout << " Grid #" << igrid+1 << " . Number of cells: " << grid->n_global_active_cells() << std::endl;
             // pcout << " written to " << filename << std::endl << std::endl;
 
 
-            const unsigned int n_global_active_cells = grid.n_global_active_cells();
+            const unsigned int n_global_active_cells = grid->n_global_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
             pcout << "Dimension: " << dim << "\t Polynomial degree p: " << poly_degree << std::endl
                  << "Grid number: " << igrid+1 << "/" << n_grids
@@ -233,7 +235,7 @@ int EulerCylinder<dim,nstate>
 
             const double entropy_inf = euler_physics_double.entropy_inf;
 
-            estimated_error_per_cell.reinit(grid.n_active_cells());
+            estimated_error_per_cell.reinit(grid->n_active_cells());
             // Integrate solution error and output error
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
 

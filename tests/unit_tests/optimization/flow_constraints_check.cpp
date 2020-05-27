@@ -129,18 +129,20 @@ int test(const unsigned int nx_ffd)
     ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
     // Initial optimization point
-    dealii::parallel::distributed::Triangulation<dim> grid(MPI_COMM_WORLD,
+    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+        MPI_COMM_WORLD,
         typename dealii::Triangulation<dim>::MeshSmoothing(
             dealii::Triangulation<dim>::smoothing_on_refinement |
             dealii::Triangulation<dim>::smoothing_on_coarsening));
 
-    Grids::gaussian_bump(grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, BUMP_HEIGHT);
+    Grids::gaussian_bump(*grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, BUMP_HEIGHT);
 
     ffd_design_variables.update_ghost_values();
     ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
     // Create DG object
-    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, &grid);
+    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, grid);
     dg->allocate_system ();
 
     // Initialize coarse grid solution with free-stream

@@ -71,7 +71,7 @@ namespace MeshMover
          */
         void
         apply_dXvdXvs_transpose(
-            dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
+            const dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
             dealii::LinearAlgebra::distributed::Vector<double> &output_vector);
 
         /** Current displacement solution

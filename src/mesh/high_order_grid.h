@@ -67,7 +67,8 @@ class HighOrderGrid
 #endif
 public:
     /// Principal constructor that will call delegated constructor.
-    HighOrderGrid(const unsigned int max_degree, Triangulation *const triangulation_input);
+    HighOrderGrid(const unsigned int max_degree,
+                  const std::shared_ptr<Triangulation> triangulation_input);
 
     /// Update the MappingFEField
     /** Note that this rarely needs to be called since MappingFEField stores a
@@ -84,7 +85,7 @@ public:
     /// Maximum degree of the geometry polynomial representing the grid.
     const unsigned int max_degree;
 
-    Triangulation *triangulation; ///< Mesh
+    const std::shared_ptr<Triangulation> triangulation; ///< Mesh
 
     /// Degrees of freedom handler for the high-order grid
     dealii::DoFHandler<dim> dof_handler_grid;

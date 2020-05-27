@@ -104,7 +104,7 @@ public:
            const unsigned int degree,
            const unsigned int max_degree_input,
            const unsigned int grid_degree_input,
-           Triangulation *const triangulation_input);
+           const std::shared_ptr<Triangulation> triangulation_input);
 
 
     /// Makes for cleaner doxygen documentation
@@ -126,14 +126,12 @@ public:
             const unsigned int degree,
             const unsigned int max_degree_input,
             const unsigned int grid_degree_input,
-            Triangulation *const triangulation_input,
+            const std::shared_ptr<Triangulation> triangulation_input,
             const MassiveCollectionTuple collection_tuple);
 
     virtual ~DGBase(); ///< Destructor.
 
-    Triangulation *const triangulation; ///< Mesh
-    /// Sets the triangulation for 2D and 3D. Should be done before allocate system
-    //void set_triangulation(Triangulation *triangulation_input);
+    const std::shared_ptr<Triangulation> triangulation; ///< Mesh
 
     /// Refers to a collection Mappings, which represents the high-order grid.
     /** Since we are interested in performing mesh movement for optimization purposes,
@@ -594,7 +592,7 @@ public:
         const unsigned int degree,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
-        Triangulation *const triangulation_input);
+        const std::shared_ptr<Triangulation> triangulation_input);
 
     ~DGWeak(); ///< Destructor.
 
@@ -743,7 +741,7 @@ public:
         const unsigned int degree,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
-        Triangulation *const triangulation_input);
+        const std::shared_ptr<Triangulation> triangulation_input);
 
     /// Destructor
     ~DGStrong();
@@ -893,7 +891,7 @@ public:
         const unsigned int degree,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
-        Triangulation *const triangulation_input);
+        const std::shared_ptr<Triangulation> triangulation_input);
 
     /// calls the above dg factory with grid_degree_input = degree + 1
     static std::shared_ptr< DGBase<dim,real> >
@@ -901,14 +899,14 @@ public:
         const Parameters::AllParameters *const parameters_input, 
         const unsigned int degree,
         const unsigned int max_degree_input,
-        Triangulation *const triangulation_input);
+        const std::shared_ptr<Triangulation> triangulation_input);
 
     /// calls the above dg factory with max_degree_input = degree
     static std::shared_ptr< DGBase<dim,real> >
         create_discontinuous_galerkin(
         const Parameters::AllParameters *const parameters_input, 
         const unsigned int degree,
-        Triangulation *const triangulation_input);
+        const std::shared_ptr<Triangulation> triangulation_input);
 };
 
 } // PHiLiP namespace

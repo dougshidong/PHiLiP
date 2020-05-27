@@ -64,7 +64,7 @@ DGFactory<dim,real>
     const unsigned int degree,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
-    Triangulation *const triangulation_input)
+    const std::shared_ptr<Triangulation> triangulation_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
 
@@ -109,7 +109,7 @@ DGFactory<dim,real>
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
     const unsigned int max_degree_input,
-    Triangulation *const triangulation_input)
+    const std::shared_ptr<Triangulation> triangulation_input)
 {
     return create_discontinuous_galerkin(parameters_input, degree, max_degree_input, degree+1, triangulation_input);
 }
@@ -120,7 +120,7 @@ DGFactory<dim,real>
 ::create_discontinuous_galerkin(
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
-    Triangulation *const triangulation_input)
+    const std::shared_ptr<Triangulation> triangulation_input)
 {
     return create_discontinuous_galerkin(parameters_input, degree, degree, triangulation_input);
 }
@@ -133,7 +133,7 @@ DGBase<dim,real>::DGBase(
     const unsigned int degree,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
-    Triangulation *const triangulation_input)
+    const std::shared_ptr<Triangulation> triangulation_input)
     : DGBase<dim,real>(nstate_input, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input, this->create_collection_tuple(max_degree_input, nstate_input, parameters_input))
 { }
 
@@ -144,7 +144,7 @@ DGBase<dim,real>::DGBase(
     const unsigned int degree,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
-    Triangulation *const triangulation_input,
+    const std::shared_ptr<Triangulation> triangulation_input,
     const MassiveCollectionTuple collection_tuple)
     : all_parameters(parameters_input)
     , nstate(nstate_input)

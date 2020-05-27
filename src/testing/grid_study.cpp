@@ -125,22 +125,23 @@ int GridStudy<dim,nstate>
     double exact_solution_integral;
     pcout << "Evaluating EXACT solution integral..." << std::endl;
     // Limit the scope of grid_super_fine and dg_super_fine
+#if PHILIP_DIM==1
+        using Triangulation = dealii::Triangulation<dim>;
+#else
+        using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+#endif
     {
         const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids_input);
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-        dealii::Triangulation<dim> grid_super_fine(
-            typename dealii::Triangulation<dim>::MeshSmoothing(
-                dealii::Triangulation<dim>::smoothing_on_refinement |
-                dealii::Triangulation<dim>::smoothing_on_coarsening));
-#else
-        dealii::parallel::distributed::Triangulation<dim> grid_super_fine(
-            this->mpi_communicator,
-            typename dealii::Triangulation<dim>::MeshSmoothing(
-                dealii::Triangulation<dim>::smoothing_on_refinement |
-                dealii::Triangulation<dim>::smoothing_on_coarsening));
+        std::shared_ptr<Triangulation> grid_super_fine = std::make_shared<Triangulation>(
+#if PHILIP_DIM!=1
+            MPI_COMM_WORLD,
 #endif
-        dealii::GridGenerator::subdivided_hyper_cube(grid_super_fine, n_1d_cells[n_grids_input-1]);
-        std::shared_ptr < DGBase<dim, double> > dg_super_fine = DGFactory<dim,double>::create_discontinuous_galerkin(&param, p_end, &grid_super_fine);
+            typename dealii::Triangulation<dim>::MeshSmoothing(
+                dealii::Triangulation<dim>::smoothing_on_refinement |
+                dealii::Triangulation<dim>::smoothing_on_coarsening));
+
+        dealii::GridGenerator::subdivided_hyper_cube(*grid_super_fine, n_1d_cells[n_grids_input-1]);
+        std::shared_ptr < DGBase<dim, double> > dg_super_fine = DGFactory<dim,double>::create_discontinuous_galerkin(&param, p_end, grid_super_fine);
         dg_super_fine->allocate_system ();
 
         initialize_perturbed_solution(*dg_super_fine, *physics_double);
@@ -170,24 +171,19 @@ int GridStudy<dim,nstate>
         // DG will be destructed before Triangulation
         // thus removing any dependence of Triangulation and allowing Triangulation to be destructed
         // Otherwise, a Subscriptor error will occur
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-        dealii::Triangulation<dim> grid(
+        std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+#if PHILIP_DIM!=1
+            MPI_COMM_WORLD,
+#endif
             typename dealii::Triangulation<dim>::MeshSmoothing(
                 dealii::Triangulation<dim>::smoothing_on_refinement |
                 dealii::Triangulation<dim>::smoothing_on_coarsening));
-#else
-        dealii::parallel::distributed::Triangulation<dim> grid(
-            this->mpi_communicator,
-            typename dealii::Triangulation<dim>::MeshSmoothing(
-                dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_refinement));
-                //dealii::Triangulation<dim>::smoothing_on_refinement |
-                //dealii::Triangulation<dim>::smoothing_on_coarsening));
-#endif
+
         dealii::Vector<float> estimated_error_per_cell;
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
-            grid.clear();
-            dealii::GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid]);
-            for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
+            grid->clear();
+            dealii::GridGenerator::subdivided_hyper_cube(*grid, n_1d_cells[igrid]);
+            for (auto cell = grid->begin_active(); cell != grid->end(); ++cell) {
                 // Set a dummy boundary ID
                 cell->set_material_id(9002);
                 for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
@@ -195,14 +191,14 @@ int GridStudy<dim,nstate>
                 }
             }
             // Warp grid if requested in input file
-            if (manu_grid_conv_param.grid_type == GridEnum::sinehypercube) dealii::GridTools::transform (&warp, grid);
+            if (manu_grid_conv_param.grid_type == GridEnum::sinehypercube) dealii::GridTools::transform (&warp, *grid);
 
             // // Generate hypercube
             // if ( igrid==0 && (manu_grid_conv_param.grid_type == GridEnum::hypercube || manu_grid_conv_param.grid_type == GridEnum::sinehypercube ) ) {
 
-            //     grid.clear();
-            //     dealii::GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid]);
-            //     for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
+            //     grid->clear();
+            //     dealii::GridGenerator::subdivided_hyper_cube(*grid, n_1d_cells[igrid]);
+            //     for (auto cell = grid->begin_active(); cell != grid->end(); ++cell) {
             //         // Set a dummy boundary ID
             //         cell->set_material_id(9002);
             //         for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
@@ -210,18 +206,18 @@ int GridStudy<dim,nstate>
             //         }
             //     }
             //     // Warp grid if requested in input file
-            //     if (manu_grid_conv_param.grid_type == GridEnum::sinehypercube) dealii::GridTools::transform (&warp, grid);
+            //     if (manu_grid_conv_param.grid_type == GridEnum::sinehypercube) dealii::GridTools::transform (&warp, *grid);
             // } else {
-            //     dealii::GridRefinement::refine_and_coarsen_fixed_number(grid,
+            //     dealii::GridRefinement::refine_and_coarsen_fixed_number(*grid,
             //                                     estimated_error_per_cell,
             //                                     0.3,
             //                                     0.03);
-            //     grid.execute_coarsening_and_refinement();
+            //     grid->execute_coarsening_and_refinement();
             // }
 
             //for (int i=0; i<5;i++) {
             //    int icell = 0;
-            //    for (auto cell = grid.begin_active(grid.n_levels()-1); cell!=grid.end(); ++cell) {
+            //    for (auto cell = grid->begin_active(grid->n_levels()-1); cell!=grid->end(); ++cell) {
             //        if (!cell->is_locally_owned()) continue;
             //        icell++;
             //        if (icell < 2) {
@@ -233,13 +229,13 @@ int GridStudy<dim,nstate>
             //        //    //cell->set_coarsen_flag();
             //        //}
             //    }
-            //    grid.execute_coarsening_and_refinement();
+            //    grid->execute_coarsening_and_refinement();
             //}
 
             // Distort grid by random amount if requested
             const double random_factor = manu_grid_conv_param.random_distortion;
             const bool keep_boundary = true;
-            if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, grid, keep_boundary);
+            if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, *grid, keep_boundary);
 
             // Read grid if requested
             if (manu_grid_conv_param.grid_type == GridEnum::read_grid) {
@@ -248,7 +244,7 @@ int GridStudy<dim,nstate>
                 pcout<<"Reading grid: " << read_mshname << std::endl;
                 std::ifstream inmesh(read_mshname);
                 dealii::GridIn<dim,dim> grid_in;
-                grid_in.attach_triangulation(grid);
+                grid_in.attach_triangulation(*grid);
                 grid_in.read_msh(inmesh);
             }
             // Output grid if requested
@@ -258,17 +254,17 @@ int GridStudy<dim,nstate>
                 dealii::GridOutFlags::Msh msh_flags(true, true);
                 dealii::GridOut grid_out;
                 grid_out.set_flags(msh_flags);
-                grid_out.write_msh(grid, outmesh);
+                grid_out.write_msh(*grid, outmesh);
             }
 
             // Show mesh if in 2D
             //std::string gridname = "grid-"+std::to_string(igrid)+".eps";
-            //if (dim == 2) print_mesh_info (grid, gridname);
+            //if (dim == 2) print_mesh_info (*grid, gridname);
 
             using ADtype = Sacado::Fad::DFad<double>;
 
             // Create DG object using the factory
-            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
+            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
             dg->allocate_system ();
             //dg->evaluate_inverse_mass_matrices();
             //
@@ -279,7 +275,7 @@ int GridStudy<dim,nstate>
             // Create ODE solver using the factory and providing the DG object
             std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
-            const unsigned int n_global_active_cells = grid.n_global_active_cells();
+            const unsigned int n_global_active_cells = grid->n_global_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
             pcout << "Dimension: " << dim
                  << "\t Polynomial degree p: " << poly_degree
@@ -306,7 +302,7 @@ int GridStudy<dim,nstate>
             // Integrate solution error and output error
 
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
-            estimated_error_per_cell.reinit(grid.n_active_cells());
+            estimated_error_per_cell.reinit(grid->n_active_cells());
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
 
                 if (!cell->is_locally_owned()) continue;

@@ -95,7 +95,9 @@ int test(const unsigned int nx_ffd)
     n_subdivisions[1] = NY_CELL;
     n_subdivisions[0] = NX_CELL;
 
-    dealii::parallel::distributed::Triangulation<dim> grid(MPI_COMM_WORLD,
+    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+        MPI_COMM_WORLD,
         typename dealii::Triangulation<dim>::MeshSmoothing(
             dealii::Triangulation<dim>::smoothing_on_refinement |
             dealii::Triangulation<dim>::smoothing_on_coarsening));
@@ -105,10 +107,10 @@ int test(const unsigned int nx_ffd)
     // Create Target solution
     DealiiVector target_solution;
     {
-        grid.clear();
-        Grids::gaussian_bump(grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, 0.5*BUMP_HEIGHT);
+        grid->clear();
+        Grids::gaussian_bump(*grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, 0.5*BUMP_HEIGHT);
         // Create DG object
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, &grid);
+        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, grid);
 
         // Initialize coarse grid solution with free-stream
         dg->allocate_system ();
@@ -125,8 +127,8 @@ int test(const unsigned int nx_ffd)
     }
 
     // Initial optimization point
-    grid.clear();
-    Grids::gaussian_bump(grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, BUMP_HEIGHT);
+    grid->clear();
+    Grids::gaussian_bump(*grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, BUMP_HEIGHT);
 
     const dealii::Point<dim> ffd_origin(-1.4,-0.1);
     const std::array<double,dim> ffd_rectangle_lengths = {2.8,0.6};
@@ -164,7 +166,7 @@ int test(const unsigned int nx_ffd)
     ffd_design_variables.update_ghost_values();
 
     // Create DG object
-    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, &grid);
+    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, grid);
 
     // Initialize coarse grid solution with free-stream
     dg->allocate_system ();

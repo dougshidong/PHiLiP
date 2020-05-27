@@ -1,4 +1,5 @@
 #include "optimization/flow_constraints.hpp"
+#include "mesh/meshmover_linear_elasticity.hpp"
 
 #include "rol_to_dealii_vector.hpp"
 
@@ -181,19 +182,19 @@ double& /*tol*/ )
     const bool compute_dRdW=true; const bool compute_dRdX=false; const bool compute_d2R=false;
     dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
 
+    // Input vector is copied into temporary non-const vector.
+    auto input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
+    auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
+
     dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose;
     Epetra_CrsMatrix *system_matrix_transpose_tril;
     Epetra_RowMatrixTransposer epmt( const_cast<Epetra_CrsMatrix *>( &( dg->system_matrix.trilinos_matrix() ) ) );
     epmt.CreateTranspose(false, system_matrix_transpose_tril);
     system_matrix_transpose.reinit(*system_matrix_transpose_tril);
+    solve_linear (system_matrix_transpose, input_vector_v, output_vector_v, this->linear_solver_param);
 
-    // Input vector is copied into temporary non-const vector.
-    auto input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
-    auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
-
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
     //try {
-        solve_linear (system_matrix_transpose, input_vector_v, output_vector_v, this->linear_solver_param);
+    //    solve_linear (system_matrix_transpose, input_vector_v, output_vector_v, this->linear_solver_param, true);
     //} catch (...) {
     //    std::cout << "Failed to solve linear system in " << __PRETTY_FUNCTION__ << std::endl;
     //    output_vector.setScalar(1.0);
@@ -277,10 +278,26 @@ double& /*tol*/ )
 
     dg->dRdXv.Tvmult(input_dRdXv, input_vector_v);
 
-    dealii::TrilinosWrappers::SparseMatrix dXvdXp;
-    ffd.get_dXvdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
+    // dealii::TrilinosWrappers::SparseMatrix dXvdXp;
+    // ffd.get_dXvdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
 
-    dXvdXp.Tvmult(output_vector_v, input_dRdXv);
+    // dXvdXp.Tvmult(output_vector_v, input_dRdXv);
+    //
+    auto input_dRdXv_dXvdXvs = dg->high_order_grid.volume_nodes;
+    dealii::TrilinosWrappers::SparseMatrix dXvdXp;
+    dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(dg->high_order_grid.surface_nodes);
+    MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+        meshmover(*(dg->high_order_grid.triangulation),
+          dg->high_order_grid.initial_mapping_fe_field,
+          dg->high_order_grid.dof_handler_grid,
+          dg->high_order_grid.surface_to_volume_indices,
+          dummy_vector);
+    meshmover.apply_dXvdXvs_transpose(input_dRdXv, input_dRdXv_dXvdXvs);
+
+
+    dealii::TrilinosWrappers::SparseMatrix dXvsdXp;
+    ffd.get_dXvsdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvsdXp);
+    dXvsdXp.Tvmult(output_vector_v, input_dRdXv_dXvdXvs);
 
 }
 

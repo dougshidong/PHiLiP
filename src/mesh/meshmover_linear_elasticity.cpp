@@ -422,7 +422,7 @@ namespace MeshMover {
     void
     LinearElasticity<dim,real,VectorType,DoFHandlerType>
     ::apply_dXvdXvs_transpose(
-        dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
+        const dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
         dealii::LinearAlgebra::distributed::Vector<double> &output_vector)
     {
         assemble_system();

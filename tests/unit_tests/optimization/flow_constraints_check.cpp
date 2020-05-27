@@ -28,7 +28,7 @@
 #include "optimization/rol_objective.hpp"
 
 const double FD_TOL = 1e-6;
-const double MACHINE_TOL = 1e-11;
+const double CONSISTENCY_ABS_TOL = 1e-10;
 
 const int dim = 2;
 const int nstate = 4;
@@ -154,6 +154,7 @@ int test(const unsigned int nx_ffd)
     ode_solver->steady_state();
     // Output initial solution
     dg->output_results_vtk(9999);
+    dg->set_dual(dg->solution);
 
     const bool has_ownership = false;
     DealiiVector des_var_sim = dg->solution;
@@ -162,7 +163,6 @@ int test(const unsigned int nx_ffd)
     Teuchos::RCP<DealiiVector> des_var_sim_rcp = Teuchos::rcp(&des_var_sim, has_ownership);
     Teuchos::RCP<DealiiVector> des_var_ctl_rcp = Teuchos::rcp(&des_var_ctl, has_ownership);
     Teuchos::RCP<DealiiVector> des_var_adj_rcp = Teuchos::rcp(&des_var_adj, has_ownership);
-    dg->set_dual(dg->solution);
 
     using VectorAdaptor = dealii::Rol::VectorAdaptor<DealiiVector>;
 
@@ -177,7 +177,7 @@ int test(const unsigned int nx_ffd)
     // Output stream
     ROL::nullstream bhs; // outputs nothing
     std::filebuf filebuffer;
-    if (mpi_rank == 0) filebuffer.open ("flow_constraints_check.log",std::ios::out);
+    if (mpi_rank == 0) filebuffer.open ("flow_constraints_check"+std::to_string(nx_ffd)+".log",std::ios::out);
     std::ostream ostr(&filebuffer);
 
     Teuchos::RCP<std::ostream> outStream;
@@ -216,7 +216,10 @@ int test(const unsigned int nx_ffd)
             = con->checkApplyJacobian_1(*temp_sim, *temp_ctl, *v1, *jv1, steps, true, *outStream, order);
 
         const double max_rel_err = check_max_rel_error(results);
-        if (max_rel_err > FD_TOL) test_error++;
+        if (max_rel_err > FD_TOL) {
+            test_error++;
+            *outStream << "Failed con->checkApplyJacobian_1..." << std::endl;
+        }
     }
 
     *outStream << "con->checkApplyJacobian_2..." << std::endl;
@@ -226,7 +229,10 @@ int test(const unsigned int nx_ffd)
             = con->checkApplyJacobian_2(*temp_sim, *temp_ctl, *v2, *jv2, steps, true, *outStream, order);
 
         const double max_rel_err = check_max_rel_error(results);
-        if (max_rel_err > FD_TOL) test_error++;
+        if (max_rel_err > FD_TOL) {
+            test_error++;
+            *outStream << "Failed con->checkApplyJacobian_2..." << std::endl;
+        }
     }
 
     *outStream << "con->checkInverseJacobian_1..." << std::endl;
@@ -234,7 +240,10 @@ int test(const unsigned int nx_ffd)
     {
         const double v_minus_Jinv_J_v = con->checkInverseJacobian_1(*jv1, *v1, *temp_sim, *temp_ctl, true, *outStream);
         const double normalized_v_minus_Jinv_J_v = v_minus_Jinv_J_v / v1->norm();
-        if (normalized_v_minus_Jinv_J_v > MACHINE_TOL) test_error++;
+        if (normalized_v_minus_Jinv_J_v > CONSISTENCY_ABS_TOL) {
+            test_error++;
+            *outStream << "Failed con->checkInverseJacobian_1..." << std::endl;
+        }
     }
 
     *outStream << "con->checkInverseAdjointJacobian_1..." << std::endl;
@@ -242,7 +251,11 @@ int test(const unsigned int nx_ffd)
     {
         const double v_minus_Jinv_J_v = con->checkInverseAdjointJacobian_1(*jv1, *v1, *temp_sim, *temp_ctl, true, *outStream);
         const double normalized_v_minus_Jinv_J_v = v_minus_Jinv_J_v / v1->norm();
-        if (normalized_v_minus_Jinv_J_v > MACHINE_TOL) test_error++;
+        if (normalized_v_minus_Jinv_J_v > CONSISTENCY_ABS_TOL) {
+            test_error++;
+            *outStream << "Failed con->checkInverseAdjointJacobian_1..." << std::endl;
+        }
+
     }
 
     *outStream << "con->checkAdjointConsistencyJacobian..." << std::endl;
@@ -255,7 +268,10 @@ int test(const unsigned int nx_ffd)
         const auto temp_Jtw = des_var_rol_p->clone();
         const bool printToStream = true;
         const double wJv_minus_vJw = con->checkAdjointConsistencyJacobian (*w, *v, *x, *temp_Jv, *temp_Jtw, printToStream, *outStream);
-        if (wJv_minus_vJw > MACHINE_TOL) test_error++;
+        if (wJv_minus_vJw > CONSISTENCY_ABS_TOL) {
+            test_error++;
+            *outStream << "Failed con->checkAdjointConsistencyJacobian..." << std::endl;
+        }
     }
 
     *outStream << "con->checkApplyAdjointHessian..." << std::endl;
@@ -270,7 +286,10 @@ int test(const unsigned int nx_ffd)
             = con->checkApplyAdjointHessian(*des_var_rol_p, *dual, *v3, *hv3, steps, true, *outStream, order);
 
         const double max_rel_err = check_max_rel_error(results);
-        if (max_rel_err > FD_TOL) test_error++;
+        if (max_rel_err > FD_TOL) {
+            test_error++;
+            *outStream << "Failed con->checkApplyAdjointHessian..." << std::endl;
+        }
     }
 
     filebuffer.close();

@@ -29,6 +29,9 @@ using AdaptVector = dealii::Rol::VectorAdaptor<dealii_Vector>;
 template<int dim>
 class FlowConstraints : public ROL::Constraint_SimOpt<double> {
 private:
+    /// MPI rank used for printing
+    const int mpi_rank;
+    const bool i_print;
     /// Smart pointer to DGBase
     std::shared_ptr<DGBase<dim,double>> dg;
 

@@ -41,6 +41,14 @@ const double CHANNEL_HEIGHT = 0.8;
 const unsigned int NY_CELL = 5;
 const unsigned int NX_CELL = 9*NY_CELL;
 
+const unsigned int n_des_var_start = 10;
+const unsigned int n_des_var_end   = 10;
+const unsigned int n_des_var_step  = 10;
+
+const bool full_space = false;
+const std::string descent_method = "Newton-Krylov";
+//const std::string descent_method = "Quasi-Newton Method";
+
 
 template <int dim, int nstate>
 EulerBumpOptimization<dim,nstate>::EulerBumpOptimization(const Parameters::AllParameters *const parameters_input)
@@ -57,9 +65,6 @@ int EulerBumpOptimization<dim,nstate>
     if (this->mpi_rank == 0) filebuffer.open ("optimization.log", std::ios::out);
     if (this->mpi_rank == 0) filebuffer.close();
 
-    const unsigned int n_des_var_start = 10;
-    const unsigned int n_des_var_end   = 50;
-    const unsigned int n_des_var_step  = 10;
     for (unsigned int n_des_var = n_des_var_start; n_des_var <= n_des_var_end; n_des_var += n_des_var_step) {
         assert(n_des_var%2 == 0);
         assert(n_des_var>=2);
@@ -305,7 +310,6 @@ int EulerBumpOptimization<dim,nstate>
     auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( target_ffd_functional, ffd, ffd_design_variables_indices_dim );
     auto con  = ROL::makePtr<FlowConstraints<dim>>(dg,ffd,ffd_design_variables_indices_dim);
 
-    const bool full_space = false;
     if (full_space) {
         // Full space problem
         auto des_var_p = ROL::makePtr<ROL::Vector_SimOpt<double>>(des_var_sim_rol_p, des_var_ctl_rol_p);
@@ -361,25 +365,19 @@ int EulerBumpOptimization<dim,nstate>
         //parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Strong Wolfe Conditions");
         parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Goldstein Conditions");
 
-        //parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Newton's Method");
+        parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type", descent_method);
+        if (descent_method == "Newton-Krylov") {
+            parlist.sublist("General").sublist("Secant").set("Use as Preconditioner", true);
+            const double em4 = 1e-4, em2 = 1e-2;
+            const int cg_iteration_limit = 100;
+            parlist.sublist("General").sublist("Krylov").set("Type","Conjugate Gradients");
+            parlist.sublist("General").sublist("Krylov").set("Absolute Tolerance", em4);
+            parlist.sublist("General").sublist("Krylov").set("Relative Tolerance", em2);
+            parlist.sublist("General").sublist("Krylov").set("Iteration Limit", cg_iteration_limit);
+            parlist.sublist("General").set("Inexact Hessian-Times-A-Vector",false);
+        }
 
-        // {
-        //     parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Newton-Krylov");
-        //     parlist.sublist("General").sublist("Secant").set("Use as Preconditioner", true);
-        //     const double em4 = 1e-4, em2 = 1e-2;
-        //     const int cg_iteration_limit = 100;
-        //     parlist.sublist("General").sublist("Krylov").set("Type","Conjugate Gradients");
-        //     parlist.sublist("General").sublist("Krylov").set("Absolute Tolerance", em4);
-        //     parlist.sublist("General").sublist("Krylov").set("Relative Tolerance", em2);
-        //     parlist.sublist("General").sublist("Krylov").set("Iteration Limit", cg_iteration_limit);
-        //     parlist.sublist("General").set("Inexact Hessian-Times-A-Vector",false);
-        // }
-
-        //parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type", "Steepest Descent");
-
-        parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Quasi-Newton Method");
         parlist.sublist("General").sublist("Secant").set("Type","Limited-Memory BFGS");
-        parlist.sublist("General").sublist("Secant").set("Maximum Storage",(int)n_design_variables);
         parlist.sublist("General").sublist("Secant").set("Maximum Storage",5000);
     }
 

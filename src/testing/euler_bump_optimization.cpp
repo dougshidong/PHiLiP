@@ -75,7 +75,20 @@ int EulerBumpOptimization<dim,nstate>
 {
     int test_error = 0;
 
+    // Output stream
+    ROL::nullstream bhs; // outputs nothing
+    std::filebuf filebuffer;
+    if (this->mpi_rank == 0) filebuffer.open ("optimization.log", std::ios::out|std::ios::app);
+    std::ostream ostr(&filebuffer);
+
+    Teuchos::RCP<std::ostream> outStream;
+    if (this->mpi_rank == 0) outStream = ROL::makePtrFromRef(ostr);
+    else if (this->mpi_rank == 1) outStream = ROL::makePtrFromRef(std::cout);
+    else outStream = ROL::makePtrFromRef(bhs);
+
+
     using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
+    using VectorAdaptor = dealii::Rol::VectorAdaptor<DealiiVector>;
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
     using GridEnum = ManParam::GridEnum;
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
@@ -139,25 +152,17 @@ int EulerBumpOptimization<dim,nstate>
         }
     }
 
-    //const std::vector<dealii::IndexSet> row_parts = dealii::Utilities::MPI::create_evenly_distributed_partitioning(this->mpi_communicator, n_design_variables);
-    //const unsigned int this_mpi_process = dealii::Utilities::MPI::this_mpi_process(this->mpi_communicator);
-    //const dealii::IndexSet &row_part = row_parts[this_mpi_process];
     const dealii::IndexSet row_part = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_design_variables);
-
     dealii::IndexSet ghost_row_part(n_design_variables);
     ghost_row_part.add_range(0,n_design_variables);
-
     DealiiVector ffd_design_variables(row_part,ghost_row_part,MPI_COMM_WORLD);
-
-    ffd_design_variables.print(std::cout);
-
 
     ffd.get_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
     ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
     const auto initial_design_variables = ffd_design_variables;
 
-    // Create Target solution
+    // Create target nonlinear bump solution
     DealiiVector target_bump_solution;
     {
         grid->clear();
@@ -173,72 +178,53 @@ int EulerBumpOptimization<dim,nstate>
         ode_solver->initialize_steady_polynomial_ramping (POLY_DEGREE);
         // Solve the steady state problem
         ode_solver->steady_state();
-        // Output target solution
+        // Output target_bump_solution
         dg->output_results_vtk(9998);
 
         target_bump_solution = dg->solution;
     }
 
-    // Initial optimization point
-    grid->clear();
-    Grids::gaussian_bump(*grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, BUMP_HEIGHT);
-
-    ffd_design_variables = initial_design_variables;
-    ffd_design_variables.update_ghost_values();
-    ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
-
-    // Create DG object
-    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, grid);
-
-    // Initialize coarse grid solution with free-stream
-    dg->allocate_system ();
-    dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
-    // Create ODE solver and ramp up the solution from p0
-    std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-    ode_solver->initialize_steady_polynomial_ramping (POLY_DEGREE);
-    // Solve the steady state problem
-    ode_solver->steady_state();
-    // Output initial solution
-    dg->output_results_vtk(9999);
-
-    const bool functional_uses_solution_values = true, functional_uses_solution_gradient = false;
-    TargetBoundaryFunctional<dim,nstate,double> target_bump_functional(dg, target_bump_solution, functional_uses_solution_values, functional_uses_solution_gradient);
-
-    const bool has_ownership = false;
-    DealiiVector des_var_sim = dg->solution;
-    DealiiVector des_var_ctl = ffd_design_variables;
-    DealiiVector des_var_adj = dg->dual;
-    Teuchos::RCP<DealiiVector> des_var_sim_rcp = Teuchos::rcp(&des_var_sim, has_ownership);
-    Teuchos::RCP<DealiiVector> des_var_ctl_rcp = Teuchos::rcp(&des_var_ctl, has_ownership);
-    Teuchos::RCP<DealiiVector> des_var_adj_rcp = Teuchos::rcp(&des_var_adj, has_ownership);
-    dg->set_dual(dg->solution);
-
-    using VectorAdaptor = dealii::Rol::VectorAdaptor<DealiiVector>;
-
-    VectorAdaptor des_var_sim_rol(des_var_sim_rcp);
-    VectorAdaptor des_var_ctl_rol(des_var_ctl_rcp);
-    VectorAdaptor des_var_adj_rol(des_var_adj_rcp);
-
-    ROL::Ptr<ROL::Vector<double>> des_var_sim_rol_p = ROL::makePtr<VectorAdaptor>(des_var_sim_rol);
-    ROL::Ptr<ROL::Vector<double>> des_var_ctl_rol_p = ROL::makePtr<VectorAdaptor>(des_var_ctl_rol);
-    ROL::Ptr<ROL::Vector<double>> des_var_adj_rol_p = ROL::makePtr<VectorAdaptor>(des_var_adj_rol);
-
-
-    // Output stream
-    ROL::nullstream bhs; // outputs nothing
-    std::filebuf filebuffer;
-    if (this->mpi_rank == 0) filebuffer.open ("optimization.log", std::ios::out|std::ios::app);
-    std::ostream ostr(&filebuffer);
-
-    Teuchos::RCP<std::ostream> outStream;
-    if (this->mpi_rank == 0) outStream = ROL::makePtrFromRef(ostr);
-    else if (this->mpi_rank == 1) outStream = ROL::makePtrFromRef(std::cout);
-    else outStream = ROL::makePtrFromRef(bhs);
-
     // Generate target design vector.
     DealiiVector target_ffd_solution;
     {
+        // Initial optimization point
+        grid->clear();
+        Grids::gaussian_bump(*grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, BUMP_HEIGHT);
+
+        ffd_design_variables = initial_design_variables;
+        ffd_design_variables.update_ghost_values();
+        ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
+
+        // Initialize flow solution with free-stream
+        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, grid);
+        dg->allocate_system ();
+        dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
+        // Create ODE solver and ramp up the solution from p0
+        std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        ode_solver->initialize_steady_polynomial_ramping (POLY_DEGREE);
+        // Solve the steady state problem
+        ode_solver->steady_state();
+        // Output target_ffd_solution
+        dg->output_results_vtk(9999);
+        dg->set_dual(dg->solution);
+
+        // Copy vector to be used by optimizer.
+        DealiiVector des_var_sim = dg->solution;
+        DealiiVector des_var_ctl = initial_design_variables;
+        DealiiVector des_var_adj = dg->dual;
+
+        const bool has_ownership = false;
+        VectorAdaptor des_var_sim_rol(Teuchos::rcp(&des_var_sim, has_ownership));
+        VectorAdaptor des_var_ctl_rol(Teuchos::rcp(&des_var_ctl, has_ownership));
+        VectorAdaptor des_var_adj_rol(Teuchos::rcp(&des_var_adj, has_ownership));
+
+        ROL::Ptr<ROL::Vector<double>> des_var_sim_rol_p = ROL::makePtr<VectorAdaptor>(des_var_sim_rol);
+        ROL::Ptr<ROL::Vector<double>> des_var_ctl_rol_p = ROL::makePtr<VectorAdaptor>(des_var_ctl_rol);
+        ROL::Ptr<ROL::Vector<double>> des_var_adj_rol_p = ROL::makePtr<VectorAdaptor>(des_var_adj_rol);
+
         // Reduced space problem
+        const bool functional_uses_solution_values = true, functional_uses_solution_gradient = false;
+        TargetBoundaryFunctional<dim,nstate,double> target_bump_functional(dg, target_bump_solution, functional_uses_solution_values, functional_uses_solution_gradient);
         auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( target_bump_functional, ffd, ffd_design_variables_indices_dim );
         auto con  = ROL::makePtr<FlowConstraints<dim>>(dg,ffd,ffd_design_variables_indices_dim);
         const bool storage = false;
@@ -252,16 +238,15 @@ int EulerBumpOptimization<dim,nstate>
         Teuchos::ParameterList parlist;
         parlist.sublist("Status Test").set("Gradient Tolerance", 1e-8);
         parlist.sublist("Status Test").set("Iteration Limit", 5000);
+
         parlist.sublist("Step").set("Type","Line Search");
+        parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Quasi-Newton Method");
         parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",1e-0);
         parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
-
         parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Cubic Interpolation");
         parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Goldstein Conditions");
 
-        parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Quasi-Newton Method");
         parlist.sublist("General").sublist("Secant").set("Type","Limited-Memory BFGS");
-        parlist.sublist("General").sublist("Secant").set("Maximum Storage",(int)n_design_variables);
         parlist.sublist("General").sublist("Secant").set("Maximum Storage",5000);
 
         *outStream << "Starting optimization with " << n_design_variables << "..." << std::endl;
@@ -279,27 +264,44 @@ int EulerBumpOptimization<dim,nstate>
     *outStream << " Resetting problem to initial conditions and target previous FFD points "<< std::endl;
     *outStream << " and aim for machine precision functional value...." << std::endl;
 
-    // Reset to initial_grid
+    // Initial optimization point
+    grid->clear();
+    Grids::gaussian_bump(*grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, BUMP_HEIGHT);
 
     ffd_design_variables = initial_design_variables;
     ffd_design_variables.update_ghost_values();
     ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
-
-    grid->clear();
-    Grids::gaussian_bump(*grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, BUMP_HEIGHT);
-
+    // Initialize flow solution with free-stream
+    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, grid);
+    dg->allocate_system ();
+    dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
+    // Create ODE solver and ramp up the solution from p0
+    std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    ode_solver->initialize_steady_polynomial_ramping (POLY_DEGREE);
+    // Solve the steady state problem
     ode_solver->steady_state();
 
-    des_var_sim = dg->solution;
-    des_var_ctl = ffd_design_variables;
-    des_var_adj = dg->dual;
+    // Reset to initial_grid
+    DealiiVector des_var_sim = dg->solution;
+    DealiiVector des_var_ctl = initial_design_variables;
+    DealiiVector des_var_adj = dg->dual;
+
+    const bool has_ownership = false;
+    VectorAdaptor des_var_sim_rol(Teuchos::rcp(&des_var_sim, has_ownership));
+    VectorAdaptor des_var_ctl_rol(Teuchos::rcp(&des_var_ctl, has_ownership));
+    VectorAdaptor des_var_adj_rol(Teuchos::rcp(&des_var_adj, has_ownership));
+
+    ROL::Ptr<ROL::Vector<double>> des_var_sim_rol_p = ROL::makePtr<VectorAdaptor>(des_var_sim_rol);
+    ROL::Ptr<ROL::Vector<double>> des_var_ctl_rol_p = ROL::makePtr<VectorAdaptor>(des_var_ctl_rol);
+    ROL::Ptr<ROL::Vector<double>> des_var_adj_rol_p = ROL::makePtr<VectorAdaptor>(des_var_adj_rol);
 
     ROL::OptimizationProblem<double> opt;
     Teuchos::ParameterList parlist;
 
-    TargetBoundaryFunctional<dim,nstate,double> target_ffd_functional(dg, target_ffd_solution, functional_uses_solution_values, functional_uses_solution_gradient);
     // Reduced space problem
+    const bool functional_uses_solution_values = true, functional_uses_solution_gradient = false;
+    TargetBoundaryFunctional<dim,nstate,double> target_ffd_functional(dg, target_ffd_solution, functional_uses_solution_values, functional_uses_solution_gradient);
     auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( target_ffd_functional, ffd, ffd_design_variables_indices_dim );
     auto con  = ROL::makePtr<FlowConstraints<dim>>(dg,ffd,ffd_design_variables_indices_dim);
 

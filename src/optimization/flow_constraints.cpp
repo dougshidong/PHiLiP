@@ -14,7 +14,9 @@ FlowConstraints<dim>
 ::FlowConstraints(std::shared_ptr<DGBase<dim,double>> &_dg, 
                  const FreeFormDeformation<dim> &_ffd,
                  std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim)
-    : dg(_dg)
+    : mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
+    , i_print(mpi_rank==0)
+    , dg(_dg)
     , ffd(_ffd)
     , ffd_design_variables_indices_dim(_ffd_design_variables_indices_dim)
 {
@@ -142,7 +144,7 @@ void FlowConstraints<dim>
     const bool compute_dRdW=true; const bool compute_dRdX=false; const bool compute_d2R=false;
     dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
 
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
+    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     //solve_linear_2 (
     //    this->dg->system_matrix,
     //    input_vector_v,
@@ -155,7 +157,7 @@ void FlowConstraints<dim>
     //         output_vector_v,
     //         this->linear_solver_param);
     // } catch (...) {
-    //     std::cout << "Failed to solve linear system in " << __PRETTY_FUNCTION__ << std::endl;
+    //     if(i_print) std::cout << "Failed to solve linear system in " << __PRETTY_FUNCTION__ << std::endl;
     //     output_vector.setScalar(1.0);
     // }
 
@@ -168,7 +170,7 @@ void FlowConstraints<dim>
     //try {
     //  solve_linear (dg->system_matrix, input_vector_v, output_vector_v, this->linear_solver_param);
     //} catch (...) {
-    //    std::cout << "Failed to solve linear system in " << __PRETTY_FUNCTION__ << std::endl;
+    //    if(i_print) std::cout << "Failed to solve linear system in " << __PRETTY_FUNCTION__ << std::endl;
     //    output_vector.setScalar(1.0);
     //}
 }
@@ -182,7 +184,7 @@ const ROL::Vector<double>& des_var_ctl,
 double& /*tol*/ )
 {
 
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
+    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     update_1(des_var_sim);
     update_2(des_var_ctl);
 
@@ -203,7 +205,7 @@ double& /*tol*/ )
     //try {
     //    solve_linear (system_matrix_transpose, input_vector_v, output_vector_v, this->linear_solver_param, true);
     //} catch (...) {
-    //    std::cout << "Failed to solve linear system in " << __PRETTY_FUNCTION__ << std::endl;
+    //    if(i_print) std::cout << "Failed to solve linear system in " << __PRETTY_FUNCTION__ << std::endl;
     //    output_vector.setScalar(1.0);
     //}
 
@@ -221,7 +223,7 @@ const ROL::Vector<double>& des_var_ctl,
 double& /*tol*/ )
 {
 
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
+    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     update_1(des_var_sim);
     update_2(des_var_ctl);
 
@@ -266,7 +268,7 @@ const ROL::Vector<double>& des_var_ctl,
 double& /*tol*/ )
 {
 
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
+    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     update_1(des_var_sim);
     update_2(des_var_ctl);
 
@@ -287,7 +289,7 @@ const ROL::Vector<double>& des_var_ctl,
 double& /*tol*/ )
 {
 
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
+    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     update_1(des_var_sim);
     update_2(des_var_ctl);
 
@@ -331,7 +333,10 @@ void FlowConstraints<dim>
                                   const ROL::Vector<double> &des_var_ctl,
                                   double &tol)
 {
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
+    // ROL_vector_to_dealii_vector_reference(output_vector) *= 0.0;
+    // return;
+
+    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     (void) tol;
     dg->set_dual(ROL_vector_to_dealii_vector_reference(dual));
     dg->dual.update_ghost_values();
@@ -352,7 +357,10 @@ void FlowConstraints<dim>
                                   const ROL::Vector<double> &des_var_ctl,
                                   double &tol)
 {
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
+    // ROL_vector_to_dealii_vector_reference(output_vector) *= 0.0;
+    // return;
+
+    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     (void) tol;
     update_1(des_var_sim);
     update_2(des_var_ctl);
@@ -400,7 +408,10 @@ void FlowConstraints<dim>
     double &tol
     )
 {
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
+    // ROL_vector_to_dealii_vector_reference(output_vector) *= 0.0;
+    // return;
+
+    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     (void) tol;
     update_1(des_var_sim);
     update_2(des_var_ctl);
@@ -450,7 +461,10 @@ void FlowConstraints<dim>
     double &tol
     )
 {
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
+    // ROL_vector_to_dealii_vector_reference(output_vector) *= 0.0;
+    // return;
+
+    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     (void) tol;
 
     update_1(des_var_sim);

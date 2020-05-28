@@ -316,6 +316,76 @@ namespace MeshMover {
     void
     LinearElasticity<dim,real,VectorType,DoFHandlerType>
     ::apply_dXvdXvs(
+        const dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
+        dealii::LinearAlgebra::distributed::Vector<double> &output_vector)
+    {
+        pcout << "Applying [dXvdXs] onto a vector..." << std::endl;
+        assert(input_vector.size() == output_vector.size());
+
+        assemble_system();
+
+        dealii::SolverControl solver_control(5000, 1e-12 * system_rhs.l2_norm());
+        dealii::SolverCG<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
+        dealii::TrilinosWrappers::PreconditionJacobi      precondition;
+        precondition.initialize(system_matrix_unconstrained);
+
+        /// The use of the constrained linear operator is heavily discussed in:
+        /// https://www.dealii.org/current/doxygen/deal.II/group__constraints.html
+        /// Given affine constraints such that x = C y + k
+        /// where C describes the homogeneous part of the linear constraints stored in an AffineConstraints object
+        /// and the vector k is the vector of corresponding inhomogeneities
+        ///
+        /// Eg. Dirichlet BC's would have zero-rows in C and non-zero rows in k
+        /// and hanging-nodes would be linearly constrained through non-zero rows within C.
+        ///
+        /// 1.  (Ct A_unconstrained C + Id_c) y = Ct (b - Ak)
+        /// 2.  x = C y + k
+        ///
+        /// b are the forces, which == 0
+        /// k are the inhomogeneous
+        /// Id_c Identity on the subspace of constrained degrees of freedom.
+        /// 
+        /// The above steps 1. and 2. solve the real constrained system A_constrained x = b_constrained
+        /// Although possible to assemble and solve, we will be interested in the derivative with respect
+        /// to the inhomogeneity vector k, which is more easily recoverable through formulation 1. and 2.,
+        /// than the assembly of the constrained system.
+        ///
+        /// y = - inverse(Ct A_unconstrained C + Id_c) Ct A k
+        /// x = - C inverse(Ct A_unconstrained C + Id_c) Ct A k + k
+        /// dx/dk = - C inverse(Ct A_unconstrained C + Id_c) Ct A + I
+        using trilinos_vector_type = dealii::LinearAlgebra::distributed::Vector<double>;
+        using payload_type = dealii::TrilinosWrappers::internal::LinearOperatorImplementation::TrilinosPayload;
+        const auto op_a = dealii::linear_operator<trilinos_vector_type,trilinos_vector_type,payload_type>(system_matrix_unconstrained);
+        const auto op_amod = dealii::constrained_linear_operator(all_constraints, op_a);
+        const auto C    = distribute_constraints_linear_operator(all_constraints, op_a);
+        const auto Ct   = transpose_operator(C);
+        const auto Id_c = project_to_constrained_linear_operator(all_constraints, op_a);
+
+        const auto &rhs_vector = input_vector;
+
+        // Build RHS.
+        dealii::LinearAlgebra::distributed::Vector<double> CtArhs;
+        CtArhs.reinit(rhs_vector);
+        CtArhs = Ct*op_a*rhs_vector;
+
+        // Solution.
+        dealii::LinearAlgebra::distributed::Vector<double> op_inv_CtArhs(rhs_vector);
+        all_constraints.set_zero(op_inv_CtArhs);
+
+        // Solve modified system.
+        dealii::deallog.depth_console(0);
+        solver.solve(op_amod, op_inv_CtArhs, CtArhs, precondition);
+
+        // Apply boundary condition
+        output_vector = C*op_inv_CtArhs;
+        output_vector *= -1.0;
+        output_vector += rhs_vector;
+    }
+
+    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    void
+    LinearElasticity<dim,real,VectorType,DoFHandlerType>
+    ::apply_dXvdXvs(
         std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &list_of_vectors,
         dealii::TrilinosWrappers::SparseMatrix &output_matrix)
     {
@@ -380,9 +450,8 @@ namespace MeshMover {
         const auto Ct   = transpose_operator(C);
         const auto Id_c = project_to_constrained_linear_operator(all_constraints, op_a);
 
-        const unsigned int n_dirichlet_constraints = boundary_displacements_vector.size();
         dXvdXs.clear();
-        pcout << "Solving for dXvdXs with " << n_dirichlet_constraints << "surface nodes..." << std::endl;
+        pcout << "Applying for [dXvdXs] onto " << list_of_vectors.size() << " vectors..." << std::endl;
 
         unsigned int col = 0;
         for (auto &rhs_vector: list_of_vectors) {
@@ -425,6 +494,7 @@ namespace MeshMover {
         const dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
         dealii::LinearAlgebra::distributed::Vector<double> &output_vector)
     {
+        pcout << "Applying [transpose(dXvdXvs)] onto a vector..." << std::endl;
         assemble_system();
 
         dealii::SolverControl solver_control(5000, 1e-12 * system_rhs.l2_norm());
@@ -445,8 +515,6 @@ namespace MeshMover {
         const auto C    = distribute_constraints_linear_operator(all_constraints, op_a);
         const auto Ct   = transpose_operator(C);
         const auto Id_c = project_to_constrained_linear_operator(all_constraints, op_a);
-
-        pcout << "Applying transpose(dXvdXvs) onto a vector..." << std::endl;
 
         // Build RHS.
         dealii::LinearAlgebra::distributed::Vector<double> Ctrhs;
@@ -477,7 +545,7 @@ namespace MeshMover {
         std::vector<dealii::LinearAlgebra::distributed::Vector<double>> unit_rhs_vector;
         const unsigned int n_dirichlet_constraints = boundary_displacements_vector.size();
         dXvdXs.clear();
-        pcout << "Solving for dXvdXs with " << n_dirichlet_constraints << "surface nodes..." << std::endl;
+        pcout << "Solving for dXvdXs with " << n_dirichlet_constraints << " surface nodes..." << std::endl;
         for (unsigned int iconstraint = 0; iconstraint < n_dirichlet_constraints; iconstraint++) {
 
             dealii::LinearAlgebra::distributed::Vector<double> unit_rhs;

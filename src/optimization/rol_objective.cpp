@@ -29,8 +29,16 @@ void ROLObjectiveSimOpt<dim,nstate>::update(
     functional.set_state(ROL_vector_to_dealii_vector_reference(des_var_sim));
 
     ffd_des_var =  ROL_vector_to_dealii_vector_reference(des_var_ctl);
-    ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_des_var);
-    ffd.deform_mesh(functional.dg->high_order_grid);
+    auto current_ffd_des_var = ffd_des_var;
+    ffd.get_design_variables( ffd_design_variables_indices_dim, current_ffd_des_var);
+
+    auto diff = ffd_des_var;
+    diff -= current_ffd_des_var;
+    const double l2_norm = diff.l2_norm();
+    if (l2_norm != 0.0) {
+        ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_des_var);
+        ffd.deform_mesh(functional.dg->high_order_grid);
+    }
 }
 
 
@@ -74,18 +82,29 @@ void ROLObjectiveSimOpt<dim,nstate>::gradient_2(
 {
     update(des_var_sim, des_var_ctl);
 
-    const bool compute_dIdW = false;
-    const bool compute_dIdX = true;
-    const bool compute_d2I = false;
+    const bool compute_dIdW = false, compute_dIdX = true, compute_d2I = false;
     functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
 
-    auto &dIdXv = functional.dIdX;
+    const auto &dIdXv = functional.dIdX;
 
-    dealii::TrilinosWrappers::SparseMatrix dXvdXp;
-    ffd.get_dXvdXp (functional.dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
+    auto dIdXvs = dIdXv;
+    {
+        dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(functional.dg->high_order_grid.surface_nodes);
+        MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+            meshmover(*(functional.dg->high_order_grid.triangulation),
+              functional.dg->high_order_grid.initial_mapping_fe_field,
+              functional.dg->high_order_grid.dof_handler_grid,
+              functional.dg->high_order_grid.surface_to_volume_indices,
+              dummy_vector);
+        meshmover.apply_dXvdXvs_transpose(dIdXv, dIdXvs);
+    }
 
     auto &dIdXp = ROL_vector_to_dealii_vector_reference(g);
-    dXvdXp.Tvmult(dIdXp, dIdXv);
+    {
+        dealii::TrilinosWrappers::SparseMatrix dXvsdXp;
+        ffd.get_dXvsdXp (functional.dg->high_order_grid, ffd_design_variables_indices_dim, dXvsdXp);
+        dXvsdXp.Tvmult(dIdXp, dIdXvs);
+    }
 
 }
 
@@ -120,20 +139,34 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_12(
 {
     update(des_var_sim, des_var_ctl);
 
-    const bool compute_dIdW = false;
-    const bool compute_dIdX = false;
-    const bool compute_d2I = true;
-    functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
-
     const auto &v = ROL_vector_to_dealii_vector_reference(input_vector);
-    auto &hv = ROL_vector_to_dealii_vector_reference(output_vector);
 
-    auto dXvdXp_input = functional.dg->high_order_grid.volume_nodes;
+    auto dXvsdXp_v = functional.dg->high_order_grid.volume_nodes;
+    {
+        dealii::TrilinosWrappers::SparseMatrix dXvsdXp;
+        ffd.get_dXvsdXp (functional.dg->high_order_grid, ffd_design_variables_indices_dim, dXvsdXp);
+        dXvsdXp.vmult(dXvsdXp_v, v);
+    }
 
-    dealii::TrilinosWrappers::SparseMatrix dXvdXp;
-    ffd.get_dXvdXp (functional.dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
-    dXvdXp.vmult(dXvdXp_input, v);
-    functional.d2IdWdX.vmult(hv, dXvdXp_input);
+    auto dXvdXp_v = dXvsdXp_v;
+    {
+        dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(functional.dg->high_order_grid.surface_nodes);
+        MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+            meshmover(*(functional.dg->high_order_grid.triangulation),
+              functional.dg->high_order_grid.initial_mapping_fe_field,
+              functional.dg->high_order_grid.dof_handler_grid,
+              functional.dg->high_order_grid.surface_to_volume_indices,
+              dummy_vector);
+        meshmover.apply_dXvdXvs(dXvsdXp_v, dXvdXp_v);
+    }
+
+    auto &d2IdWdXp_v = ROL_vector_to_dealii_vector_reference(output_vector);
+    {
+        const bool compute_dIdW = false, compute_dIdX = false, compute_d2I = true;
+        functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
+        functional.d2IdWdX.vmult(d2IdWdXp_v, dXvdXp_v);
+    }
+
 }
 
 template <int dim, int nstate>
@@ -152,14 +185,28 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_21(
     functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
 
     const auto &v = ROL_vector_to_dealii_vector_reference(input_vector);
-    auto &hv = ROL_vector_to_dealii_vector_reference(output_vector);
 
-    auto d2IdXdW_input = functional.dg->high_order_grid.volume_nodes;
-    functional.d2IdWdX.Tvmult(d2IdXdW_input, v);
+    auto d2IdXdW_v = functional.dg->high_order_grid.volume_nodes;
+    functional.d2IdWdX.Tvmult(d2IdXdW_v, v);
 
-    dealii::TrilinosWrappers::SparseMatrix dXvdXp;
-    ffd.get_dXvdXp (functional.dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
-    dXvdXp.Tvmult(hv, d2IdXdW_input);
+    auto d2IdXvsdW_v = functional.dg->high_order_grid.volume_nodes;
+    {
+        dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(functional.dg->high_order_grid.surface_nodes);
+        MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+            meshmover(*(functional.dg->high_order_grid.triangulation),
+              functional.dg->high_order_grid.initial_mapping_fe_field,
+              functional.dg->high_order_grid.dof_handler_grid,
+              functional.dg->high_order_grid.surface_to_volume_indices,
+              dummy_vector);
+        meshmover.apply_dXvdXvs_transpose(d2IdXdW_v, d2IdXvsdW_v);
+    }
+
+    auto &d2IdXpdW_v = ROL_vector_to_dealii_vector_reference(output_vector);
+    {
+        dealii::TrilinosWrappers::SparseMatrix dXvsdXp;
+        ffd.get_dXvsdXp (functional.dg->high_order_grid, ffd_design_variables_indices_dim, dXvsdXp);
+        dXvsdXp.Tvmult(d2IdXpdW_v, d2IdXvsdW_v);
+    }
 }
 
 template <int dim, int nstate>
@@ -172,24 +219,54 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_22(
 {
     update(des_var_sim, des_var_ctl);
 
-    const bool compute_dIdW = false;
-    const bool compute_dIdX = false;
-    const bool compute_d2I = true;
-    functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
 
     const auto &v = ROL_vector_to_dealii_vector_reference(input_vector);
-    auto &hv = ROL_vector_to_dealii_vector_reference(output_vector);
 
-    dealii::TrilinosWrappers::SparseMatrix dXvdXp;
-    ffd.get_dXvdXp (functional.dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
+    dealii::TrilinosWrappers::SparseMatrix dXvsdXp;
+    ffd.get_dXvsdXp (functional.dg->high_order_grid, ffd_design_variables_indices_dim, dXvsdXp);
 
-    auto dXvdXp_input = functional.dg->high_order_grid.volume_nodes;
-    dXvdXp.vmult(dXvdXp_input, v);
+    auto dXvsdXp_v = functional.dg->high_order_grid.volume_nodes;
+    {
+        dXvsdXp.vmult(dXvsdXp_v, v);
+    }
 
-    auto d2IdXdX_dXvdXp_input = functional.dg->high_order_grid.volume_nodes;
-    functional.d2IdXdX.vmult(d2IdXdX_dXvdXp_input, dXvdXp_input);
+    auto dXvdXp_v = dXvsdXp_v;
+    {
+        dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(functional.dg->high_order_grid.surface_nodes);
+        MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+            meshmover(*(functional.dg->high_order_grid.triangulation),
+              functional.dg->high_order_grid.initial_mapping_fe_field,
+              functional.dg->high_order_grid.dof_handler_grid,
+              functional.dg->high_order_grid.surface_to_volume_indices,
+              dummy_vector);
+        meshmover.apply_dXvdXvs(dXvsdXp_v, dXvdXp_v);
+    }
 
-    dXvdXp.Tvmult(hv, d2IdXdX_dXvdXp_input);
+
+    auto d2IdXdXp_v = functional.dg->high_order_grid.volume_nodes;
+    {
+        const bool compute_dIdW = false, compute_dIdX = false, compute_d2I = true;
+        functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
+        functional.d2IdXdX.vmult(d2IdXdXp_v, dXvdXp_v);
+    }
+
+    auto d2IdXvsdXp_v = functional.dg->high_order_grid.volume_nodes;
+    {
+        dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(functional.dg->high_order_grid.surface_nodes);
+        MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+            meshmover(*(functional.dg->high_order_grid.triangulation),
+              functional.dg->high_order_grid.initial_mapping_fe_field,
+              functional.dg->high_order_grid.dof_handler_grid,
+              functional.dg->high_order_grid.surface_to_volume_indices,
+              dummy_vector);
+        meshmover.apply_dXvdXvs_transpose(d2IdXdXp_v, d2IdXvsdXp_v);
+    }
+
+    auto &d2IdXpdXp_v = ROL_vector_to_dealii_vector_reference(output_vector);
+    {
+        dXvsdXp.Tvmult(d2IdXpdXp_v, d2IdXvsdXp_v);
+    }
+
 }
 
 template class ROLObjectiveSimOpt <PHILIP_DIM,1>;

@@ -39,9 +39,9 @@ template<int dim>
 void FlowConstraints<dim>
 ::update_1( const ROL::Vector<double>& des_var_sim, bool flag, int iter )
 {
-        (void) flag; (void) iter;
-        dg->solution = ROL_vector_to_dealii_vector_reference(des_var_sim);
-        dg->solution.update_ghost_values();
+    (void) flag; (void) iter;
+    dg->solution = ROL_vector_to_dealii_vector_reference(des_var_sim);
+    dg->solution.update_ghost_values();
 }
 
 template<int dim>
@@ -50,9 +50,16 @@ void FlowConstraints<dim>
 {
     (void) flag; (void) iter;
     ffd_des_var =  ROL_vector_to_dealii_vector_reference(des_var_ctl);
-    ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_des_var);
+    auto current_ffd_des_var = ffd_des_var;
+    ffd.get_design_variables( ffd_design_variables_indices_dim, current_ffd_des_var);
 
-    ffd.deform_mesh(dg->high_order_grid);
+    auto diff = ffd_des_var;
+    diff -= current_ffd_des_var;
+    const double l2_norm = diff.l2_norm();
+    if (l2_norm != 0.0) {
+        ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_des_var);
+        ffd.deform_mesh(dg->high_order_grid);
+    }
 }
 
 template<int dim>
@@ -218,19 +225,35 @@ double& /*tol*/ )
     update_1(des_var_sim);
     update_2(des_var_ctl);
 
-    const bool compute_dRdW=false; const bool compute_dRdX=true; const bool compute_d2R=false;
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
-
     const auto &input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
-    auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
 
-    dealii::TrilinosWrappers::SparseMatrix dXvdXp;
-    ffd.get_dXvdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
+    auto dXvsdXp_input = dg->high_order_grid.volume_nodes;
+    {
+        dealii::TrilinosWrappers::SparseMatrix dXvsdXp;
+        ffd.get_dXvsdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvsdXp);
+        dXvsdXp.vmult(dXvsdXp_input,input_vector_v);
+    }
 
     auto dXvdXp_input = dg->high_order_grid.volume_nodes;
+    {
+        dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(dg->high_order_grid.surface_nodes);
+        MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+            meshmover(*(dg->high_order_grid.triangulation),
+              dg->high_order_grid.initial_mapping_fe_field,
+              dg->high_order_grid.dof_handler_grid,
+              dg->high_order_grid.surface_to_volume_indices,
+              dummy_vector);
 
-    dXvdXp.vmult(dXvdXp_input, input_vector_v);
-    dg->dRdXv.vmult(output_vector_v, dXvdXp_input);
+        meshmover.apply_dXvdXvs(dXvsdXp_input, dXvdXp_input);
+    }
+
+    auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
+
+    {
+        const bool compute_dRdW=false; const bool compute_dRdX=true; const bool compute_d2R=false;
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+        dg->dRdXv.vmult(output_vector_v, dXvdXp_input);
+    }
 
 }
 
@@ -268,36 +291,34 @@ double& /*tol*/ )
     update_1(des_var_sim);
     update_2(des_var_ctl);
 
-    const bool compute_dRdW=false; const bool compute_dRdX=true; const bool compute_d2R=false;
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
 
     const auto &input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
-    auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
 
     auto input_dRdXv = dg->high_order_grid.volume_nodes;
+    {
+        const bool compute_dRdW=false; const bool compute_dRdX=true; const bool compute_d2R=false;
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+        dg->dRdXv.Tvmult(input_dRdXv, input_vector_v);
+    }
 
-    dg->dRdXv.Tvmult(input_dRdXv, input_vector_v);
-
-    // dealii::TrilinosWrappers::SparseMatrix dXvdXp;
-    // ffd.get_dXvdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
-
-    // dXvdXp.Tvmult(output_vector_v, input_dRdXv);
-    //
     auto input_dRdXv_dXvdXvs = dg->high_order_grid.volume_nodes;
-    dealii::TrilinosWrappers::SparseMatrix dXvdXp;
-    dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(dg->high_order_grid.surface_nodes);
-    MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
-        meshmover(*(dg->high_order_grid.triangulation),
-          dg->high_order_grid.initial_mapping_fe_field,
-          dg->high_order_grid.dof_handler_grid,
-          dg->high_order_grid.surface_to_volume_indices,
-          dummy_vector);
-    meshmover.apply_dXvdXvs_transpose(input_dRdXv, input_dRdXv_dXvdXvs);
+    {
+        dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(dg->high_order_grid.surface_nodes);
+        MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+            meshmover(*(dg->high_order_grid.triangulation),
+              dg->high_order_grid.initial_mapping_fe_field,
+              dg->high_order_grid.dof_handler_grid,
+              dg->high_order_grid.surface_to_volume_indices,
+              dummy_vector);
+        meshmover.apply_dXvdXvs_transpose(input_dRdXv, input_dRdXv_dXvdXvs);
+    }
 
-
-    dealii::TrilinosWrappers::SparseMatrix dXvsdXp;
-    ffd.get_dXvsdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvsdXp);
-    dXvsdXp.Tvmult(output_vector_v, input_dRdXv_dXvdXvs);
+    auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
+    {
+        dealii::TrilinosWrappers::SparseMatrix dXvsdXp;
+        ffd.get_dXvsdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvsdXp);
+        dXvsdXp.Tvmult(output_vector_v, input_dRdXv_dXvdXvs);
+    }
 
 }
 
@@ -336,20 +357,36 @@ void FlowConstraints<dim>
     update_1(des_var_sim);
     update_2(des_var_ctl);
 
-    const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
     dg->set_dual(ROL_vector_to_dealii_vector_reference(dual));
     dg->dual.update_ghost_values();
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
 
     const auto &input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
+
+    auto input_d2RdWdX = dg->high_order_grid.volume_nodes;
+    {
+        const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+        dg->d2RdWdX.Tvmult(input_d2RdWdX, input_vector_v);
+    }
+
+    auto input_d2RdWdX_dXvdXvs = dg->high_order_grid.volume_nodes;
+    {
+        dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(dg->high_order_grid.surface_nodes);
+        MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+            meshmover(*(dg->high_order_grid.triangulation),
+              dg->high_order_grid.initial_mapping_fe_field,
+              dg->high_order_grid.dof_handler_grid,
+              dg->high_order_grid.surface_to_volume_indices,
+              dummy_vector);
+        meshmover.apply_dXvdXvs_transpose(input_d2RdWdX, input_d2RdWdX_dXvdXvs);
+    }
+
     auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
-
-    auto d2RdXdW_input = dg->high_order_grid.volume_nodes;
-    dg->d2RdWdX.Tvmult(d2RdXdW_input, input_vector_v);
-
-    dealii::TrilinosWrappers::SparseMatrix dXvdXp;
-    ffd.get_dXvdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
-    dXvdXp.Tvmult(output_vector_v, d2RdXdW_input);
+    {
+        dealii::TrilinosWrappers::SparseMatrix dXvsdXp;
+        ffd.get_dXvsdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvsdXp);
+        dXvsdXp.Tvmult(output_vector_v, input_d2RdWdX_dXvdXvs);
+    }
 }
 
 template<int dim>
@@ -368,22 +405,37 @@ void FlowConstraints<dim>
     update_1(des_var_sim);
     update_2(des_var_ctl);
 
-    const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
     dg->set_dual(ROL_vector_to_dealii_vector_reference(dual));
     dg->dual.update_ghost_values();
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
 
     const auto &input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
-    auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
+
+    auto dXvsdXp_input = dg->high_order_grid.volume_nodes;
+    {
+        dealii::TrilinosWrappers::SparseMatrix dXvsdXp;
+        ffd.get_dXvsdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvsdXp);
+        dXvsdXp.vmult(dXvsdXp_input,input_vector_v);
+    }
 
     auto dXvdXp_input = dg->high_order_grid.volume_nodes;
-    dealii::TrilinosWrappers::SparseMatrix dXvdXp;
-    ffd.get_dXvdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
-    assert(input_vector_v.size() == dXvdXp.n());
-    assert(dXvdXp_input.size() == dXvdXp.m());
-    dXvdXp.vmult(dXvdXp_input, input_vector_v);
+    {
+        dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(dg->high_order_grid.surface_nodes);
+        MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+            meshmover(*(dg->high_order_grid.triangulation),
+              dg->high_order_grid.initial_mapping_fe_field,
+              dg->high_order_grid.dof_handler_grid,
+              dg->high_order_grid.surface_to_volume_indices,
+              dummy_vector);
 
-    dg->d2RdWdX.vmult(output_vector_v, dXvdXp_input);
+        meshmover.apply_dXvdXvs(dXvsdXp_input, dXvdXp_input);
+    }
+
+    auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
+    {
+        const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+        dg->d2RdWdX.vmult(output_vector_v, dXvdXp_input);
+    }
 }
 
 
@@ -404,26 +456,56 @@ void FlowConstraints<dim>
     update_1(des_var_sim);
     update_2(des_var_ctl);
 
-    const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
     dg->set_dual(ROL_vector_to_dealii_vector_reference(dual));
     dg->dual.update_ghost_values();
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
 
     const auto &input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
-    auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
 
-    dealii::TrilinosWrappers::SparseMatrix dXvdXp;
-    ffd.get_dXvdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
+    auto dXvsdXp_input = dg->high_order_grid.volume_nodes;
+    {
+        dealii::TrilinosWrappers::SparseMatrix dXvsdXp;
+        ffd.get_dXvsdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvsdXp);
+        dXvsdXp.vmult(dXvsdXp_input,input_vector_v);
+    }
 
     auto dXvdXp_input = dg->high_order_grid.volume_nodes;
-    dXvdXp.vmult(dXvdXp_input, input_vector_v);
+    {
+        dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(dg->high_order_grid.surface_nodes);
+        MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+            meshmover(*(dg->high_order_grid.triangulation),
+              dg->high_order_grid.initial_mapping_fe_field,
+              dg->high_order_grid.dof_handler_grid,
+              dg->high_order_grid.surface_to_volume_indices,
+              dummy_vector);
+
+        meshmover.apply_dXvdXvs(dXvsdXp_input, dXvdXp_input);
+    }
 
     auto d2RdXdX_dXvdXp_input = dg->high_order_grid.volume_nodes;
-    dg->d2RdXdX.vmult(d2RdXdX_dXvdXp_input, dXvdXp_input);
+    {
+        const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+        dg->d2RdXdX.vmult(d2RdXdX_dXvdXp_input, dXvdXp_input);
+    }
 
-    ffd.get_dXvdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvdXp);
-    dXvdXp.Tvmult(output_vector_v, d2RdXdX_dXvdXp_input);
+    auto dXvdXvsT_d2RdXdX_dXvdXp_input = dg->high_order_grid.volume_nodes;
+    {
+        dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(dg->high_order_grid.surface_nodes);
+        MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+            meshmover(*(dg->high_order_grid.triangulation),
+              dg->high_order_grid.initial_mapping_fe_field,
+              dg->high_order_grid.dof_handler_grid,
+              dg->high_order_grid.surface_to_volume_indices,
+              dummy_vector);
+        meshmover.apply_dXvdXvs_transpose(d2RdXdX_dXvdXp_input, dXvdXvsT_d2RdXdX_dXvdXp_input);
+    }
 
+    auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
+    {
+        dealii::TrilinosWrappers::SparseMatrix dXvsdXp;
+        ffd.get_dXvsdXp (dg->high_order_grid, ffd_design_variables_indices_dim, dXvsdXp);
+        dXvsdXp.Tvmult(output_vector_v, dXvdXvsT_d2RdXdX_dXvdXp_input);
+    }
 }
 
 template class FlowConstraints<PHILIP_DIM>;

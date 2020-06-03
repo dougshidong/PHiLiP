@@ -74,15 +74,15 @@ solve_linear (
         solver.SetAztecParam(AZ_rthresh, ilut_rtol);
         solver.SetUserMatrix(const_cast<Epetra_CrsMatrix *>(&system_matrix.trilinos_matrix()));
         dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
-        pcout << " Linear solver max its: " << max_iterations 
-              << " Linear residual tolerance: " << linear_residual << std::endl;
+        pcout << " Solving linear system with max_iterations = " << max_iterations 
+              << " and linear residual tolerance: " << linear_residual << std::endl;
         solver.Iterate(max_iterations,
                        linear_residual);
   
         pcout << " Linear solver took " << solver.NumIters()
               << " iterations resulting in a linear residual of " << solver.ScaledResidual() << std::endl
               << " Current RHS norm: " << right_hand_side.l2_norm()
-              << " Newton update norm: " << solution.l2_norm() << std::endl;
+              << " Linear solution norm: " << solution.l2_norm() << std::endl;
 
         return {solver.NumIters(), solver.TrueResidual()};
     }

@@ -846,8 +846,6 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
         &&  !(compute_dRdX && compute_d2R)
             , dealii::ExcMessage("Can only do one at a time compute_dRdW or compute_dRdX or compute_d2R"));
 
-    right_hand_side = 0;
-
     pcout << "Assembling DG residual...";
     if (compute_dRdW) {
         pcout << " with dRdW...";
@@ -863,7 +861,7 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
             const double l2_norm_node = diff_node.l2_norm();
 
             if (l2_norm_node == 0.0) {
-                pcout << " which is already assembled...";
+                pcout << " which is already assembled..." << std::endl;
                 return;
             }
         }
@@ -886,7 +884,7 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
             const double l2_norm_node = diff_node.l2_norm();
 
             if (l2_norm_node == 0.0) {
-                pcout << " which is already assembled...";
+                pcout << " which is already assembled..." << std::endl;
                 return;
             }
         }
@@ -907,7 +905,7 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
             const double l2_norm_node = diff_node.l2_norm();
 
             if (l2_norm_node == 0.0) {
-                pcout << " which is already assembled...";
+                pcout << " which is already assembled..." << std::endl;
                 return;
             }
         }
@@ -917,6 +915,8 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
         d2RdWdX = 0;
         d2RdXdX = 0;
     }
+    right_hand_side = 0;
+
     pcout << std::endl;
 
     //const dealii::MappingManifold<dim,dim> mapping;
@@ -1312,7 +1312,6 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
         global_inverse_mass_matrix.compress(dealii::VectorOperation::insert);
     } else {
         global_mass_matrix.compress(dealii::VectorOperation::insert);
-        time_scaled_global_mass_matrix.reinit(global_mass_matrix);
     }
 
     return;
@@ -1330,6 +1329,8 @@ void DGBase<dim,real>::add_time_scaled_mass_matrices()
 template<int dim, typename real>
 void DGBase<dim,real>::time_scaled_mass_matrices(const real dt_scale)
 {
+    time_scaled_global_mass_matrix.reinit(system_matrix);
+    time_scaled_global_mass_matrix = 0.0;
     std::vector<dealii::types::global_dof_index> dofs_indices;
     for (auto cell = dof_handler.begin_active(); cell!=dof_handler.end(); ++cell) {
 

@@ -95,7 +95,7 @@ namespace MeshMover {
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
     VectorType LinearElasticity<dim,real,VectorType,DoFHandlerType>::get_volume_displacements()
     {
-        pcout << std::endl << "Solving linear elasticity problem for volume displacements..." << std::endl;
+        pcout << "Solving linear elasticity problem for volume displacements..." << std::endl;
         solve_timestep();
         // displacement_solution = 0;
         // all_constraints.distribute(displacement_solution);
@@ -173,13 +173,13 @@ namespace MeshMover {
                                  sparsity_pattern,
                                  mpi_communicator);
 
-        pcout << "    Number of active cells: " << triangulation.n_active_cells() << std::endl;
-        pcout << "    Number of degrees of freedom: " << dof_handler.n_dofs() << std::endl;
+        // pcout << "    Number of active cells: " << triangulation.n_active_cells() << std::endl;
+        // pcout << "    Number of degrees of freedom: " << dof_handler.n_dofs() << std::endl;
     }
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
     void LinearElasticity<dim,real,VectorType,DoFHandlerType>::assemble_system()
     {
-        pcout << "    Assembling MeshMover::LinearElasticity system..." << std::flush;
+        pcout << "    Assembling MeshMover::LinearElasticity system..." << std::endl;
 
         setup_system();
 
@@ -307,7 +307,6 @@ namespace MeshMover {
     void LinearElasticity<dim,real,VectorType,DoFHandlerType>::solve_timestep()
     {
         assemble_system();
-        pcout << " norm of rhs is " << system_rhs.l2_norm() << std::endl;
         const unsigned int n_iterations = solve_linear_problem();
         pcout << "    Solver converged in " << n_iterations << " iterations." << std::endl;
     }

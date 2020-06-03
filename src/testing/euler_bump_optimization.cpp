@@ -42,13 +42,22 @@ const unsigned int NY_CELL = 5;
 const unsigned int NX_CELL = 9*NY_CELL;
 
 const unsigned int n_des_var_start = 10;
-const unsigned int n_des_var_end   = 10;
+const unsigned int n_des_var_end   = 50;
 const unsigned int n_des_var_step  = 10;
 
 const bool full_space = false;
 const std::string descent_method = "Newton-Krylov";
+const int cg_iteration_limit = 200;
 //const std::string descent_method = "Quasi-Newton Method";
 
+const std::string line_search_curvature =
+    "Null Curvature Condition";
+    //"Goldstein Conditions";
+    //"Strong Wolfe Conditions";
+const std::string line_search_method =
+    // "Cubic Interpolation";
+    // "Iteration Scaling";
+    "Backtracking";
 
 template <int dim, int nstate>
 EulerBumpOptimization<dim,nstate>::EulerBumpOptimization(const Parameters::AllParameters *const parameters_input)
@@ -248,8 +257,8 @@ int EulerBumpOptimization<dim,nstate>
         parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Quasi-Newton Method");
         parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",1e-0);
         parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
-        parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Cubic Interpolation");
-        parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Goldstein Conditions");
+        parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type",line_search_method);
+        parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type",line_search_curvature);
 
         parlist.sublist("General").sublist("Secant").set("Type","Limited-Memory BFGS");
         parlist.sublist("General").sublist("Secant").set("Maximum Storage",5000);
@@ -310,37 +319,71 @@ int EulerBumpOptimization<dim,nstate>
     auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( target_ffd_functional, ffd, ffd_design_variables_indices_dim );
     auto con  = ROL::makePtr<FlowConstraints<dim>>(dg,ffd,ffd_design_variables_indices_dim);
 
+    // Verbosity setting
+    parlist.sublist("General").set("Print Verbosity", 1);
     if (full_space) {
         // Full space problem
         auto des_var_p = ROL::makePtr<ROL::Vector_SimOpt<double>>(des_var_sim_rol_p, des_var_ctl_rol_p);
         auto dual_sim_p = des_var_sim_rol_p->clone();
-        //auto dual_sim_p = ROL::makePtrFromRef(dual_sim);
         opt = ROL::OptimizationProblem<double> ( obj, des_var_p, con, dual_sim_p );
-        ROL::EProblem problemType = opt.getProblemType();
-        std::cout << ROL::EProblemToString(problemType) << std::endl;
 
         // Set parameters.
-        //parlist.sublist("Secant").set("Use as Preconditioner", false);
-        parlist.sublist("Status Test").set("Gradient Tolerance", 1e-14);
+        parlist.sublist("Status Test").set("Gradient Tolerance", 1e-11);
         parlist.sublist("Status Test").set("Iteration Limit", 5000);
-
-        //parlist.sublist("Step").sublist("Interior Point").set("Initial Step Size",0.1);
 
         parlist.sublist("Step").set("Type","Composite Step");
         ROL::ParameterList& steplist = parlist.sublist("Step").sublist("Composite Step");
-        steplist.sublist("Optimality System Solver").set("Nominal Relative Tolerance", 1e-8);
-        steplist.sublist("Optimality System Solver").set("Fix Tolerance", true);
-        steplist.sublist("Tangential Subproblem Solver").set("Iteration Limit", 20);
-        steplist.sublist("Tangential Subproblem Solver").set("Relative Tolerance", 1e-2);
         steplist.set("Initial Radius", 1e2);
         steplist.set("Use Constraint Hessian", true); // default is true
-
         steplist.set("Output Level", 1);
 
+        steplist.sublist("Optimality System Solver").set("Nominal Relative Tolerance", 1e-8);
+        steplist.sublist("Optimality System Solver").set("Fix Tolerance", true);
+        steplist.sublist("Tangential Subproblem Solver").set("Iteration Limit", cg_iteration_limit);
+        steplist.sublist("Tangential Subproblem Solver").set("Relative Tolerance", 1e-2);
 
         parlist.sublist("General").sublist("Secant").set("Type","Limited-Memory BFGS");
-        //parlist.sublist("General").sublist("Secant").set("Maximum Storage",(int)n_design_variables);
         parlist.sublist("General").sublist("Secant").set("Maximum Storage",5000);
+
+        // const double one = 1, p1 = 0.1, p9 = 0.9, ten = 1.e1, oe8 = 1.e8;
+        // parlist.sublist("Step").set("Type","Augmented Lagrangian");
+        // ROL::ParameterList& steplist = parlist.sublist("Step").sublist("Augmented Lagrangian");
+        // steplist.set("Use Default Initial Penalty Parameter",true);
+        // steplist.set("Initial Penalty Parameter",ten);
+        // // Multiplier update parameters
+        // steplist.set("Use Scaled Augmented Lagrangian",          false);
+        // steplist.set("Penalty Parameter Reciprocal Lower Bound", p1);
+        // steplist.set("Penalty Parameter Growth Factor",          ten);
+        // steplist.set("Maximum Penalty Parameter",                oe8);
+        // // Optimality tolerance update
+        // steplist.set("Optimality Tolerance Update Exponent",     one);
+        // steplist.set("Optimality Tolerance Decrease Exponent",   one);
+        // steplist.set("Initial Optimality Tolerance",             one);
+        // // Feasibility tolerance update    
+        // steplist.set("Feasibility Tolerance Update Exponent",    p1);
+        // steplist.set("Feasibility Tolerance Decrease Exponent",  p9);
+        // steplist.set("Initial Feasibility Tolerance",            one);
+        // // Subproblem information
+        // steplist.set("Print Intermediate Optimization History",  true);
+        // steplist.set("Subproblem Iteration Limit",               100);
+        // //steplist.set("Subproblem Step Type",                     "Trust Region");
+        // steplist.set("Subproblem Step Type",                     "Line Search");
+        // parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",1e-0);
+        // parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
+        // //parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type",line_search_method);
+        // parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type",line_search_curvature);
+        // //parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type", descent_method);
+        // parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type", "Quasi-Newton Method");
+        // if (descent_method == "Newton-Krylov") {
+        //     parlist.sublist("General").sublist("Secant").set("Use as Preconditioner", true);
+        //     const double em4 = 1e-4, em2 = 1e-2;
+        //     const int cg_iteration_limit = 100;
+        //     parlist.sublist("General").sublist("Krylov").set("Type","Conjugate Gradients");
+        //     parlist.sublist("General").sublist("Krylov").set("Absolute Tolerance", em4);
+        //     parlist.sublist("General").sublist("Krylov").set("Relative Tolerance", em2);
+        //     parlist.sublist("General").sublist("Krylov").set("Iteration Limit", cg_iteration_limit);
+        //     parlist.sublist("General").set("Inexact Hessian-Times-A-Vector",false);
+        // }
 
     } else { 
         // Reduced space problem
@@ -357,20 +400,16 @@ int EulerBumpOptimization<dim,nstate>
         parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",1e-0);
         parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
 
-        //parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Iteration Scaling");
-        //parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Backtracking");
-        parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Cubic Interpolation");
+        parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type",line_search_method);
 
-        //parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Null Curvature Condition");
-        //parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Strong Wolfe Conditions");
-        parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Goldstein Conditions");
+        parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type",line_search_curvature);
 
         parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type", descent_method);
         if (descent_method == "Newton-Krylov") {
             parlist.sublist("General").sublist("Secant").set("Use as Preconditioner", true);
             const double em4 = 1e-4, em2 = 1e-2;
-            const int cg_iteration_limit = 100;
-            parlist.sublist("General").sublist("Krylov").set("Type","Conjugate Gradients");
+            //parlist.sublist("General").sublist("Krylov").set("Type","Conjugate Gradients");
+            parlist.sublist("General").sublist("Krylov").set("Type","GMRES");
             parlist.sublist("General").sublist("Krylov").set("Absolute Tolerance", em4);
             parlist.sublist("General").sublist("Krylov").set("Relative Tolerance", em2);
             parlist.sublist("General").sublist("Krylov").set("Iteration Limit", cg_iteration_limit);

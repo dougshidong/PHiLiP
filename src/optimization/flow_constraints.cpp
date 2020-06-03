@@ -198,8 +198,11 @@ double& /*tol*/ )
     dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose;
     Epetra_CrsMatrix *system_matrix_transpose_tril;
     Epetra_RowMatrixTransposer epmt( const_cast<Epetra_CrsMatrix *>( &( dg->system_matrix.trilinos_matrix() ) ) );
-    epmt.CreateTranspose(false, system_matrix_transpose_tril);
-    system_matrix_transpose.reinit(*system_matrix_transpose_tril);
+    const bool make_data_contiguous = true;
+    epmt.CreateTranspose(make_data_contiguous, system_matrix_transpose_tril);
+    const bool copy_values = true;
+    system_matrix_transpose.reinit(*system_matrix_transpose_tril, copy_values);
+    delete system_matrix_transpose_tril;
     solve_linear (system_matrix_transpose, input_vector_v, output_vector_v, this->linear_solver_param);
 
     //try {

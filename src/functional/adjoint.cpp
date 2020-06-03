@@ -171,7 +171,8 @@ dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nstate, real>::fin
 
     Epetra_RowMatrixTransposer epmt(const_cast<Epetra_CrsMatrix *>(&dg.system_matrix.trilinos_matrix()));
     epmt.CreateTranspose(false, system_matrix_transpose_tril);
-    system_matrix_transpose.reinit(*system_matrix_transpose_tril);
+    system_matrix_transpose.reinit(*system_matrix_transpose_tril,true);
+    delete system_matrix_transpose_tril;
     solve_linear(system_matrix_transpose, dIdw_fine, adjoint_fine, dg.all_parameters->linear_solver_param);
     // solve_linear(dg.system_matrix, dIdw_fine, adjoint_fine, dg.all_parameters->linear_solver_param);
 

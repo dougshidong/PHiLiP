@@ -255,6 +255,28 @@ public:
      *  and has write-access to all locally_owned_dofs
      */
     dealii::LinearAlgebra::distributed::Vector<double> solution;
+private:
+    /// Modal coefficients of the solution used to compute dRdW last
+    /// Will be used to avoid recomputing dRdW.
+    dealii::LinearAlgebra::distributed::Vector<double> solution_dRdW;
+    /// Modal coefficients of the grid nodes used to compute dRdW last
+    /// Will be used to avoid recomputing dRdW.
+    dealii::LinearAlgebra::distributed::Vector<double> volume_nodes_dRdW;
+
+    /// Modal coefficients of the solution used to compute dRdX last
+    /// Will be used to avoid recomputing dRdX.
+    dealii::LinearAlgebra::distributed::Vector<double> solution_dRdX;
+    /// Modal coefficients of the grid nodes used to compute dRdX last
+    /// Will be used to avoid recomputing dRdX.
+    dealii::LinearAlgebra::distributed::Vector<double> volume_nodes_dRdX;
+
+    /// Modal coefficients of the solution used to compute d2R last
+    /// Will be used to avoid recomputing d2R.
+    dealii::LinearAlgebra::distributed::Vector<double> solution_d2R;
+    /// Modal coefficients of the grid nodes used to compute d2R last
+    /// Will be used to avoid recomputing d2R.
+    dealii::LinearAlgebra::distributed::Vector<double> volume_nodes_d2R;
+public:
 
     /// Time it takes for the maximum wavespeed to cross the cell domain.
     /** Uses evaluate_CFL() which would be defined in the subclasses.

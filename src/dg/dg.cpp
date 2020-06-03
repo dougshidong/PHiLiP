@@ -845,46 +845,74 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
         &&  !(compute_dRdW && compute_d2R)
         &&  !(compute_dRdX && compute_d2R)
             , dealii::ExcMessage("Can only do one at a time compute_dRdW or compute_dRdX or compute_d2R"));
-    if (compute_d2R) {
-        //dual.reinit(locally_owned_dofs,mpi_communicator);
-
-        {
-            dealii::SparsityPattern sparsity_pattern_d2RdWdX = get_d2RdWdX_sparsity_pattern ();
-            const dealii::IndexSet &row_parallel_partitioning_d2RdWdX = locally_owned_dofs;
-            const dealii::IndexSet &col_parallel_partitioning_d2RdWdX = high_order_grid.locally_owned_dofs_grid;
-            d2RdWdX.reinit(row_parallel_partitioning_d2RdWdX, col_parallel_partitioning_d2RdWdX, sparsity_pattern_d2RdWdX, mpi_communicator);
-        }
-
-        {
-            dealii::SparsityPattern sparsity_pattern_d2RdWdW = get_d2RdWdW_sparsity_pattern ();
-            const dealii::IndexSet &row_parallel_partitioning_d2RdWdW = locally_owned_dofs;
-            const dealii::IndexSet &col_parallel_partitioning_d2RdWdW = locally_owned_dofs;
-            d2RdWdW.reinit(row_parallel_partitioning_d2RdWdW, col_parallel_partitioning_d2RdWdW, sparsity_pattern_d2RdWdW, mpi_communicator);
-        }
-
-        {
-            dealii::SparsityPattern sparsity_pattern_d2RdXdX = get_d2RdXdX_sparsity_pattern ();
-            const dealii::IndexSet &row_parallel_partitioning_d2RdXdX = high_order_grid.locally_owned_dofs_grid;
-            const dealii::IndexSet &col_parallel_partitioning_d2RdXdX = high_order_grid.locally_owned_dofs_grid;
-            d2RdXdX.reinit(row_parallel_partitioning_d2RdXdX, col_parallel_partitioning_d2RdXdX, sparsity_pattern_d2RdXdX, mpi_communicator);
-        }
-
-        AssertDimension(dual.size(), right_hand_side.size());
-    }
 
     right_hand_side = 0;
 
     pcout << "Assembling DG residual...";
     if (compute_dRdW) {
         pcout << " with dRdW...";
+
+        auto diff_sol = solution;
+        diff_sol -= solution_dRdW;
+        const double l2_norm_sol = diff_sol.l2_norm();
+
+        if (l2_norm_sol == 0.0) {
+
+            auto diff_node = high_order_grid.volume_nodes;
+            diff_node -= volume_nodes_dRdW;
+            const double l2_norm_node = diff_node.l2_norm();
+
+            if (l2_norm_node == 0.0) {
+                pcout << " which is already assembled...";
+                return;
+            }
+        }
+        solution_dRdW = solution;
+        volume_nodes_dRdW = high_order_grid.volume_nodes;
+
         system_matrix = 0;
     }
     if (compute_dRdX) {
         pcout << " with dRdX...";
+
+        auto diff_sol = solution;
+        diff_sol -= solution_dRdX;
+        const double l2_norm_sol = diff_sol.l2_norm();
+
+        if (l2_norm_sol == 0.0) {
+
+            auto diff_node = high_order_grid.volume_nodes;
+            diff_node -= volume_nodes_dRdX;
+            const double l2_norm_node = diff_node.l2_norm();
+
+            if (l2_norm_node == 0.0) {
+                pcout << " which is already assembled...";
+                return;
+            }
+        }
+        solution_dRdX = solution;
+        volume_nodes_dRdX = high_order_grid.volume_nodes;
         dRdXv = 0;
     }
     if (compute_d2R) {
         pcout << " with d2RdWdW, d2RdWdX, d2RdXdX...";
+        auto diff_sol = solution;
+        diff_sol -= solution_d2R;
+        const double l2_norm_sol = diff_sol.l2_norm();
+
+        if (l2_norm_sol == 0.0) {
+
+            auto diff_node = high_order_grid.volume_nodes;
+            diff_node -= volume_nodes_d2R;
+            const double l2_norm_node = diff_node.l2_norm();
+
+            if (l2_norm_node == 0.0) {
+                pcout << " which is already assembled...";
+                return;
+            }
+        }
+        solution_d2R = solution;
+        volume_nodes_d2R = high_order_grid.volume_nodes;
         d2RdWdW = 0;
         d2RdWdX = 0;
         d2RdXdX = 0;
@@ -1134,6 +1162,43 @@ void DGBase<dim,real>::allocate_system ()
     const dealii::IndexSet &col_parallel_partitioning = high_order_grid.locally_owned_dofs_grid;
     //const dealii::IndexSet &col_parallel_partitioning = high_order_grid.locally_relevant_dofs_grid;
     dRdXv.reinit(row_parallel_partitioning, col_parallel_partitioning, dRdXv_sparsity_pattern, MPI_COMM_WORLD);
+
+    {
+        dealii::SparsityPattern sparsity_pattern_d2RdWdX = get_d2RdWdX_sparsity_pattern ();
+        const dealii::IndexSet &row_parallel_partitioning_d2RdWdX = locally_owned_dofs;
+        const dealii::IndexSet &col_parallel_partitioning_d2RdWdX = high_order_grid.locally_owned_dofs_grid;
+        d2RdWdX.reinit(row_parallel_partitioning_d2RdWdX, col_parallel_partitioning_d2RdWdX, sparsity_pattern_d2RdWdX, mpi_communicator);
+    }
+
+    {
+        dealii::SparsityPattern sparsity_pattern_d2RdWdW = get_d2RdWdW_sparsity_pattern ();
+        const dealii::IndexSet &row_parallel_partitioning_d2RdWdW = locally_owned_dofs;
+        const dealii::IndexSet &col_parallel_partitioning_d2RdWdW = locally_owned_dofs;
+        d2RdWdW.reinit(row_parallel_partitioning_d2RdWdW, col_parallel_partitioning_d2RdWdW, sparsity_pattern_d2RdWdW, mpi_communicator);
+    }
+
+    {
+        dealii::SparsityPattern sparsity_pattern_d2RdXdX = get_d2RdXdX_sparsity_pattern ();
+        const dealii::IndexSet &row_parallel_partitioning_d2RdXdX = high_order_grid.locally_owned_dofs_grid;
+        const dealii::IndexSet &col_parallel_partitioning_d2RdXdX = high_order_grid.locally_owned_dofs_grid;
+        d2RdXdX.reinit(row_parallel_partitioning_d2RdXdX, col_parallel_partitioning_d2RdXdX, sparsity_pattern_d2RdXdX, mpi_communicator);
+    }
+
+
+    solution_dRdW.reinit(solution);
+    solution_dRdW *= 0.0;
+    volume_nodes_dRdW.reinit(high_order_grid.volume_nodes);
+    volume_nodes_dRdW *= 0.0;
+
+    solution_dRdX.reinit(solution);
+    solution_dRdX *= 0.0;
+    volume_nodes_dRdX.reinit(high_order_grid.volume_nodes);
+    volume_nodes_dRdX *= 0.0;
+
+    solution_d2R.reinit(solution);
+    solution_d2R *= 0.0;
+    volume_nodes_d2R.reinit(high_order_grid.volume_nodes);
+    volume_nodes_d2R *= 0.0;
 }
 
 template <int dim, typename real>

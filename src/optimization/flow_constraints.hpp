@@ -51,6 +51,7 @@ private:
 protected:
     /// ID used when outputting the flow solution.
     int i_out = 1000;
+
 public:
     /// Avoid -Werror=overloaded-virtual.
     using ROL::Constraint_SimOpt<double>::value;
@@ -231,6 +232,20 @@ public:
         const ROL::Vector<double> &des_var_ctl,
         double &tol
         ) override;
+
+    // std::vector<double> solveAugmentedSystem(
+    //     ROL::Vector<double> &v1,
+    //     ROL::Vector<double> &v2,
+    //     const ROL::Vector<double> &b1,
+    //     const ROL::Vector<double> &b2,
+    //     const ROL::Vector<double> &x,
+    //     double & tol) override;
+    //
+    // void applyPreconditioner(ROL::Vector<double> &pv,
+    //                          const ROL::Vector<double> &v,
+    //                          const ROL::Vector<double> &x,
+    //                          const ROL::Vector<double> &g,
+    //                          double &tol) override;
 
 };
 

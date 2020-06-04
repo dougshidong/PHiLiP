@@ -23,6 +23,9 @@
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/trilinos_vector.h>
 
+#include <Epetra_RowMatrixTransposer.h>
+#include <AztecOO.h>
+
 #include <Sacado.hpp>
 
 #include "mesh/high_order_grid.h"
@@ -198,6 +201,15 @@ public:
     /// System matrix corresponding to the derivative of the right_hand_side with
     /// respect to the solution
     dealii::TrilinosWrappers::SparseMatrix system_matrix;
+
+    /// System matrix corresponding to the derivative of the right_hand_side with
+    /// respect to the solution TRANSPOSED.
+    dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose;
+
+    /// Epetra_RowMatrixTransposer used to transpose the system_matrix.
+    std::unique_ptr<Epetra_RowMatrixTransposer> epetra_rowmatrixtransposer_dRdW;
+
+    AztecOO dRdW_preconditioner_builder;
 
     /// System matrix corresponding to the derivative of the right_hand_side with
     /// respect to the volume volume_nodes Xv

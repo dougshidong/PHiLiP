@@ -981,7 +981,21 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
     }
 
     right_hand_side.compress(dealii::VectorOperation::add);
-    if ( compute_dRdW ) system_matrix.compress(dealii::VectorOperation::add);
+    if ( compute_dRdW ) {
+        system_matrix.compress(dealii::VectorOperation::add);
+
+        Epetra_CrsMatrix *input_matrix  = const_cast<Epetra_CrsMatrix *>(&(system_matrix.trilinos_matrix()));
+        Epetra_CrsMatrix *output_matrix;
+        epetra_rowmatrixtransposer_dRdW = std::make_unique<Epetra_RowMatrixTransposer> ( input_matrix );
+        const bool make_data_contiguous = true;
+        epetra_rowmatrixtransposer_dRdW->CreateTranspose( make_data_contiguous, output_matrix);
+        system_matrix_transpose.reinit(*output_matrix);
+        delete(output_matrix);
+
+
+        //double condition_estimate;
+        //dRdW_preconditioner_builder.ConstructPreconditioner(condition_estimate);
+    }
     if ( compute_dRdX ) dRdXv.compress(dealii::VectorOperation::add);
     if ( compute_d2R ) {
         d2RdWdW.compress(dealii::VectorOperation::add);
@@ -1155,6 +1169,35 @@ void DGBase<dim,real>::allocate_system ()
     sparsity_pattern.copy_from(dsp);
 
     system_matrix.reinit(locally_owned_dofs, sparsity_pattern, mpi_communicator);
+
+    system_matrix_transpose.reinit(system_matrix);
+    Epetra_CrsMatrix *input_matrix  = const_cast<Epetra_CrsMatrix *>(&(system_matrix.trilinos_matrix()));
+    Epetra_CrsMatrix *output_matrix;
+    epetra_rowmatrixtransposer_dRdW = std::make_unique<Epetra_RowMatrixTransposer> ( input_matrix );
+    const bool make_data_contiguous = true;
+    epetra_rowmatrixtransposer_dRdW->CreateTranspose( make_data_contiguous, output_matrix);
+    system_matrix_transpose.reinit(*output_matrix);
+    delete(output_matrix);
+
+    // {
+    //     dRdW_preconditioner_builder.SetUserMatrix(const_cast<Epetra_CrsMatrix *>(&system_matrix.trilinos_matrix()));
+    //     dRdW_preconditioner_builder.SetAztecOption(AZ_precond, AZ_dom_decomp);
+    //     dRdW_preconditioner_builder.SetAztecOption(AZ_subdomain_solve, AZ_ilut);
+    //     dRdW_preconditioner_builder.SetAztecOption(AZ_overlap, 0);
+    //     dRdW_preconditioner_builder.SetAztecOption(AZ_reorder, 1); // RCM re-ordering
+
+    //     const Parameters::LinearSolverParam &linear_parameters = all_parameters->linear_solver_param;
+    //     const double ilut_drop = linear_parameters.ilut_drop;
+    //     const double ilut_rtol = linear_parameters.ilut_rtol;
+    //     const double ilut_atol = linear_parameters.ilut_atol;
+    //     const int ilut_fill = linear_parameters.ilut_fill;
+
+    //     dRdW_preconditioner_builder.SetAztecParam(AZ_drop, ilut_drop);
+    //     dRdW_preconditioner_builder.SetAztecParam(AZ_ilut_fill, ilut_fill);
+    //     dRdW_preconditioner_builder.SetAztecParam(AZ_athresh, ilut_atol);
+    //     dRdW_preconditioner_builder.SetAztecParam(AZ_rthresh, ilut_rtol);
+
+    // }
 
     // dRdXv matrix allocation
     dealii::SparsityPattern dRdXv_sparsity_pattern = get_dRdX_sparsity_pattern ();

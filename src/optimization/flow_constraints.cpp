@@ -175,6 +175,31 @@ void FlowConstraints<dim>
     //}
 }
 
+// template<int dim>
+// void FlowConstraints<dim>
+// ::applyInverseJacobian_1_preconditioner(
+//     ROL::Vector<double>& output_vector,
+//     const ROL::Vector<double>& input_vector,
+//     const ROL::Vector<double>& des_var_sim,
+//     const ROL::Vector<double>& des_var_ctl,
+//     double& /*tol*/ )
+// {
+// 
+//     update_1(des_var_sim);
+//     update_2(des_var_ctl);
+// 
+//     const bool compute_dRdW=true; const bool compute_dRdX=false; const bool compute_d2R=false;
+//     dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+// 
+//     if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
+// 
+//     // Input vector is copied into temporary non-const vector.
+//     auto input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
+//     auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
+// 
+//     solve_linear (dg->system_matrix, input_vector_v, output_vector_v, this->linear_solver_param);
+// }
+
 template<int dim>
 void FlowConstraints<dim>
 ::applyInverseAdjointJacobian_1( ROL::Vector<double>& output_vector,
@@ -195,15 +220,26 @@ double& /*tol*/ )
     auto input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
     auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
 
-    dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose;
-    Epetra_CrsMatrix *system_matrix_transpose_tril;
-    Epetra_RowMatrixTransposer epmt( const_cast<Epetra_CrsMatrix *>( &( dg->system_matrix.trilinos_matrix() ) ) );
-    const bool make_data_contiguous = true;
-    epmt.CreateTranspose(make_data_contiguous, system_matrix_transpose_tril);
-    const bool copy_values = true;
-    system_matrix_transpose.reinit(*system_matrix_transpose_tril, copy_values);
-    delete system_matrix_transpose_tril;
-    solve_linear (system_matrix_transpose, input_vector_v, output_vector_v, this->linear_solver_param);
+    // dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose;
+    // Epetra_CrsMatrix *system_matrix_transpose_tril;
+    // Epetra_RowMatrixTransposer epmt( const_cast<Epetra_CrsMatrix *>( &( dg->system_matrix.trilinos_matrix() ) ) );
+    // const bool make_data_contiguous = true;
+    // epmt.CreateTranspose(make_data_contiguous, system_matrix_transpose_tril);
+    // const bool copy_values = true;
+    // system_matrix_transpose.reinit(*system_matrix_transpose_tril, copy_values);
+    // delete system_matrix_transpose_tril;
+
+    solve_linear (dg->system_matrix_transpose, input_vector_v, output_vector_v, this->linear_solver_param);
+
+    // dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose;
+    // Epetra_CrsMatrix *system_matrix_transpose_tril;
+    // Epetra_RowMatrixTransposer epmt( const_cast<Epetra_CrsMatrix *>( &( dg->system_matrix.trilinos_matrix() ) ) );
+    // const bool make_data_contiguous = true;
+    // epmt.CreateTranspose(make_data_contiguous, system_matrix_transpose_tril);
+    // const bool copy_values = true;
+    // system_matrix_transpose.reinit(*system_matrix_transpose_tril, copy_values);
+    // delete system_matrix_transpose_tril;
+    // solve_linear (system_matrix_transpose, input_vector_v, output_vector_v, this->linear_solver_param);
 
     //try {
     //    solve_linear (system_matrix_transpose, input_vector_v, output_vector_v, this->linear_solver_param, true);
@@ -524,6 +560,103 @@ void FlowConstraints<dim>
         dXvsdXp.Tvmult(output_vector_v, dXvdXvsT_d2RdXdX_dXvdXp_input);
     }
 }
+
+// template<int dim>
+// void FlowConstraints<dim>
+// ::applyPreconditioner(ROL::Vector<double> &pv,
+//                          const ROL::Vector<double> &v,
+//                          const ROL::Vector<double> &x,
+//                          const ROL::Vector<double> &g,
+//                          double &tol)
+// {
+//     Constraint<double>::applyPreconditioner(pv, v, x, g, tol);
+//     // try {
+//     //     const Vector_SimOpt<double> &xs = dynamic_cast<const Vector_SimOpt<double>&>(x);
+//     //     Ptr<Vector<double>> ijv = (xs.get_1())->clone();
+//   
+//     //     applyInverseJacobian_1_preconditioner(*ijv, v, *(xs.get_1()), *(xs.get_2()), tol);
+//     //     const Vector_SimOpt<double> &gs = dynamic_cast<const Vector_SimOpt<double>&>(g);
+//     //     Ptr<Vector<double>> ijv_dual = (gs.get_1())->clone();
+//     //     ijv_dual->set(ijv->dual());
+//     //     applyInverseAdjointJacobian_1_preconditioner(pv, *ijv_dual, *(xs.get_1()), *(xs.get_2()), tol);
+//     // }
+//     // catch (const std::logic_error &e) {
+//     //     Constraint<double>::applyPreconditioner(pv, v, x, g, tol);
+//     //     return;
+//     // }
+// }
+
+// virtual void applyPreconditioner(Vector<Real> &pv,
+//                                const Vector<Real> &v,
+//                                const Vector<Real> &x,
+//                                const Vector<Real> &g,
+//                                Real &tol)
+// {
+//     update(x);
+// 
+//     const bool compute_dRdW=true; const bool compute_dRdX=false; const bool compute_d2R=false;
+//     dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+// 
+//     AztecOO solver;
+//     solver.SetAztecOption(AZ_output, (param.linear_solver_output ? AZ_all : AZ_none));
+//     solver.SetAztecOption(AZ_solver, AZ_gmres);
+//     solver.SetAztecOption(AZ_kspace, param.restart_number);
+// 
+//     solver.SetAztecOption(AZ_precond, AZ_dom_decomp);
+//     solver.SetAztecOption(AZ_subdomain_solve, AZ_ilut);
+//     solver.SetAztecOption(AZ_overlap, 0);
+//     solver.SetAztecOption(AZ_reorder, 1); // RCM re-ordering
+// 
+//     const double 
+//       ilut_drop = param.ilut_drop,
+//       ilut_rtol = param.ilut_rtol,//0.0,//1.1,
+//       ilut_atol = param.ilut_atol,//0.0,//1e-9,
+//       linear_residual = param.linear_residual;//1e-4;
+//     const int ilut_fill = param.ilut_fill,//1,
+// 
+//     solver.SetAztecParam(AZ_drop, ilut_drop);
+//     solver.SetAztecParam(AZ_ilut_fill, ilut_fill);
+//     solver.SetAztecParam(AZ_athresh, ilut_atol);
+//     solver.SetAztecParam(AZ_rthresh, ilut_rtol);
+//     solver.SetUserMatrix(const_cast<Epetra_CrsMatrix *>(&(dg->system_matrix.trilinos_matrix())));
+// 
+//     double condition_number_estimate;
+//     const int precond_error = solver.ConstructPreconditioner (condition_number_estimate);
+//     const Epetra_Operator* preconditionner = solver.GetPrecOperator();
+// 
+// 
+//     Epetra_Vector pv_epetra(View,
+//                     dg->system_matrix.trilinos_matrix().DomainMap(),
+//                     ROL_vector_to_dealii_vector_reference(pv).begin());
+//     Epetra_Vector v_epetra(View,
+//                     dg->system_matrix.trilinos_matrix().RangeMap(),
+//                     ROL_vector_to_dealii_vector_reference(v).begin());
+// 
+//     preconditionner.applyInverse(
+// 
+// 
+//     pv.set(v.dual());
+// }
+
+// std::vector<double> solveAugmentedSystem(
+//     ROL::Vector<double> &v1,
+//     ROL::Vector<double> &v2,
+//     const ROL::Vector<double> &b1,
+//     const ROL::Vector<double> &b2,
+//     const ROL::Vector<double> &x,
+//     double & tol) override
+// {
+//     ROL::Vector_SimOpt<double> &v1_simctl
+//         = dynamic_cast<Vector_SimOpt<double>&>(
+//           dynamic_cast<Vector<double>&> (v1));
+//     const ROL::Vector_SimOpt<double> &b1_simctl
+//         = dynamic_cast<const Vector_SimOpt<double>&>(
+//           dynamic_cast<const Vector<double>&>(b));
+//     const ROL::Vector<double> &v1_sim = *(v1_simctl.get_1());
+//     const ROL::Vector<double> &v1_ctl = *(v1_simctl.get_2());
+//     const ROL::Vector<double> &b1_sim = *(b1_simctl.get_1());
+//     const ROL::Vector<double> &b1_ctl = *(b1_simctl.get_2());
+// }
 
 template class FlowConstraints<PHILIP_DIM>;
 

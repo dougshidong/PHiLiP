@@ -58,9 +58,9 @@ int main (int argc, char * argv[])
 
     const double amplitude = 0.1;
     const int initial_n_cells = 3;
-    const unsigned int n_grids = 3;
-    const unsigned int p_start = 2;
-    const unsigned int p_end = 3;
+    const unsigned int n_grids = 2;
+    const unsigned int p_start = 1;
+    const unsigned int p_end = 2;
     const double fd_eps = 1e-1;
     std::vector<int> fail_poly;
     std::vector<double> fail_area;
@@ -186,19 +186,19 @@ int main (int argc, char * argv[])
             for (int impi=0;impi<n_mpi;++impi) {
                 if (impi == mpi_rank) {
                     std::vector<double> v1, v2;
-                    std::cout << "List " << std::endl;
+                    //std::cout << "List " << std::endl;
                     for (const auto &i: surface_node_displacements) {
-                        std::cout << i << std::endl;
+                        //std::cout << i << std::endl;
                         v1.push_back(i);
                     }
 
                     const dealii::IndexSet owned = surface_node_displacements_vector.locally_owned_elements();
                     const dealii::IndexSet ghosted = surface_node_displacements_vector.get_partitioner()->ghost_indices();
-                    std::cout << "Vector " << std::endl;
+                    //std::cout << "Vector " << std::endl;
                     for (unsigned int i=0; i<surface_node_displacements_vector.size(); ++i) {
                         if(owned.is_element(i) || ghosted.is_element(i)) {
                             v2.push_back(surface_node_displacements_vector[i]);
-                            std::cout << surface_node_displacements_vector[i] << std::endl;
+                            //std::cout << surface_node_displacements_vector[i] << std::endl;
                         }
                     }
                     std::sort(v1.begin(),v1.end());
@@ -272,9 +272,9 @@ int main (int argc, char * argv[])
 
                 dXvdXs_FD.push_back(volume_displacements_p);
                 pcout << "Finite difference: " << std::endl;
-                dXvdXs_FD.back().print(std::cout);
+                //dXvdXs_FD.back().print(std::cout);
                 pcout << "Analytical difference: " << std::endl;
-                meshmover.dXvdXs[isurface].print(std::cout);
+                //meshmover.dXvdXs[isurface].print(std::cout);
 
                 if (iown) {
                     const double surface_deri_FD = dXvdXs_FD.back()[corresponding_volume_dof];

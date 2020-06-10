@@ -133,7 +133,7 @@ int main (int argc, char * argv[])
                 pcout << " dXvsdXp error: " << rel_diff_frob_norm << std::endl;
                 pcout << " ****************************** " << std::endl;
 
-                if (rel_diff_frob_norm > tol) fail_bool = true;
+                if (rel_diff_frob_norm > TOL) fail_bool = true;
 
             }
         }

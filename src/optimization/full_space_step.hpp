@@ -28,7 +28,7 @@ private:
     ROL::Ptr<Vector<Real> > cvec_;
 
     ROL::Ptr<Objective<Real>> merit_function_;
-    ROL::Ptr<Vector<Real>> lagrange_mult_search_direction;
+    ROL::Ptr<Vector<Real>> lagrange_mult_search_direction_;
 
     ROL::Ptr<Step<Real> >        desc_;       ///< Unglobalized step object
     ROL::Ptr<Secant<Real> >      secant_;     ///< Secant object (used for quasi-Newton)
@@ -164,7 +164,7 @@ public:
         Vector<Real> &design_variables,
         const Vector<Real> &gradient,
         Vector<Real> &lagrange_mult,
-        const Vector<Real> &equal_constraints_value,
+        const Vector<Real> &equal_constraints_values,
         Objective<Real> &objective,
         Constraint<Real> &equal_constraints,
         AlgorithmState<Real> &algo_state ) override
@@ -175,7 +175,7 @@ public:
             design_variables,
             gradient,
             lagrange_mult,
-            equal_constraints_value,
+            equal_constraints_values,
             objective,
             equal_constraints,
             bound_constraints, // new argument
@@ -186,12 +186,13 @@ public:
         Vector<Real> &design_variables,
         const Vector<Real> &gradient,
         Vector<Real> &lagrange_mult,
-        const Vector<Real> &equal_constraints_value,
+        const Vector<Real> &equal_constraints_values,
         Objective<Real> &objective,
         Constraint<Real> &equal_constraints,
         BoundConstraint<Real> &bound_constraints,
         AlgorithmState<Real> &algo_state ) override
     {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
         //Real tol = std::sqrt(ROL_EPSILON<Real>())
         Real tol = ROL_EPSILON<Real>();
         Real zero(0);
@@ -205,12 +206,12 @@ public:
         xvec_ = design_variables.clone();
         gvec_ = gradient.clone();
         lvec_ = lagrange_mult.clone();
-        cvec_ = equal_constraints_value.clone();
+        cvec_ = equal_constraints_values.clone();
 
         // Initialize state descent direction and gradient storage
         step_state->descentVec  = design_variables.clone();
         step_state->gradientVec = gradient.clone();
-        step_state->constraintVec = equal_constraints_value.clone();
+        step_state->constraintVec = equal_constraints_values.clone();
         step_state->searchSize  = zero;
 
         // Project design_variables onto bound_constraints set
@@ -235,7 +236,6 @@ public:
         ROL::Ptr<Vector<Real> > lagrangian_gradient = step_state->gradientVec->clone();
         computeLagrangianGradient(*lagrangian_gradient, design_variables, lagrange_mult, *(step_state->gradientVec), equal_constraints);
         algo_state.ngrad++;
-        algo_state.gnorm = lagrangian_gradient->norm();
 
         // // Not sure why this is done in ROL_Step.hpp
         // if ( bound_constraints.isActivated() ) {
@@ -255,20 +255,42 @@ public:
         // with it. But might as well be consistent.
         const Real penalty_value = 1.0;
         merit_function_ = ROL::makePtr<ROL::AugmentedLagrangian<Real>> (
-                objective,
-                equal_constraints,
+                makePtrFromRef<Objective<Real>>(objective),
+                makePtrFromRef<Constraint<Real>>(equal_constraints),
                 lagrange_mult,
                 penalty_value,
                 design_variables,
-                equal_constraints_value,
+                equal_constraints_values,
                 parlist_);
 
         // Dummy search direction vector used to initialize the linesearch.
         ROL::Ptr<Vector<Real> > search_direction_dummy = design_variables.clone();
         lineSearch_->initialize(design_variables, *search_direction_dummy, gradient, *merit_function_, bound_constraints);
     }
-    Real computeLagrangianPenalty(
+    Real computeAugmentedLagrangianPenalty(
+        const Vector<Real> &search_direction,
+        const Vector<Real> &lagrange_mult_search_direction,
+        const Vector<Real> &design_variables,
+        const Vector<Real> &objective_gradient,
+        const Vector<Real> &equal_constraints_values,
+        const Vector<Real> &adjoint_jacobian_lagrange,
+        Constraint<Real> &equal_constraints,
+        const Real offset)
     {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
+        // Biros and Ghattas 2005, Part II
+        // Equation (2.10)
+        Real penalty = objective_gradient.dot(search_direction);
+        penalty += adjoint_jacobian_lagrange.dot(search_direction);
+        penalty += equal_constraints_values.dot(lagrange_mult_search_direction);
+        penalty += offset;
+
+        const ROL::Ptr<Vector<Real>> jacobian_search_direction = equal_constraints_values.clone();
+        Real tol = std::sqrt(ROL_EPSILON<Real>());
+        equal_constraints.applyJacobian(*jacobian_search_direction, search_direction, design_variables, tol);
+
+        penalty /= jacobian_search_direction->dot(equal_constraints_values);
+        return penalty;
     }
   
     void compute(
@@ -292,11 +314,14 @@ public:
         BoundConstraint<Real> &bound_constraints,
         AlgorithmState<Real> &algo_state ) override
     {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
+        ROL::Ptr<StepState<Real> > step_state = Step<Real>::getState();
   
         Real tol = std::sqrt(ROL_EPSILON<Real>());
         const Real one = 1.0;
+
         /* Form gradient of the Lagrangian. */
-        ROL::Ptr<Vector<Real> > objective_gradient  = gvec_->clone();
+        ROL::Ptr<Vector<Real> > objective_gradient = gvec_->clone();
         objective.gradient(*objective_gradient, design_variables, tol);
         // Apply adjoint of equal_constraints Jacobian to current Lagrange multiplier.
         ROL::Ptr<Vector<Real> > adjoint_jacobian_lagrange = gvec_->clone();
@@ -321,11 +346,24 @@ public:
   
         /* Solve augmented system. */
         //const std::vector<Real> augiters = equal_constraints.solveAugmentedSystem(*lhs1, *lhs2, *rhs1, *rhs2, design_variables, tol);
-        (void) equal_constraints.solveAugmentedSystem(*lhs1, *lhs2, *rhs1, *rhs2, design_variables, tol);
+        const std::vector<Real> augIters = equal_constraints.solveAugmentedSystem(*lhs1, *lhs2, *rhs1, *rhs2, design_variables, tol);
+        step_state->SPiter = augIters.size();
+
+        search_direction.set(*lhs1);
+        lagrange_mult_search_direction_->set(*lhs2);
 
         //#pen_ = parlist.sublist("Step").sublist("Augmented Lagrangian").get("Initial Penalty Parameter",ten);
         /* Create merit function based on augmented Lagrangian */
-        const Real penalty_value = 1.0;
+        const Real penalty_offset = 1e-4;
+        const Real penalty_value = computeAugmentedLagrangianPenalty(
+            search_direction,
+            *lagrange_mult_search_direction_,
+            design_variables,
+            *objective_gradient,
+            *(step_state->constraintVec),
+            *adjoint_jacobian_lagrange,
+            equal_constraints,
+            penalty_offset);
         AugmentedLagrangian<Real> &augLag = dynamic_cast<AugmentedLagrangian<Real>&>(*merit_function_);
         augLag.reset(lagrange_mult, penalty_value);
 
@@ -334,10 +372,9 @@ public:
         ROL::Ptr<Vector<Real> > merit_function_gradient = gvec_->clone();
         merit_function_->gradient( *merit_function_gradient, design_variables, tol );
         Real directional_derivative_step = merit_function_gradient->dot(search_direction);
-        directional_derivative_step += equal_constraints_value.dot(lagrange_mult_search_direction);
+        directional_derivative_step += step_state->constraintVec->dot(*lagrange_mult_search_direction_);
 
         /* Perform line-search */
-        ROL::Ptr<StepState<Real> > step_state = Step<Real>::getState();
         fval_ = algo_state.value;
         step_state->nfval = 0;
         step_state->ngrad = 0;
@@ -352,12 +389,12 @@ public:
                          *merit_function_,
                          bound_constraints);
 
-        // Make correction if maximum function evaluations reached
-        if(!acceptLastAlpha_) {
-            lineSearch_->setMaxitUpdate(step_state->searchSize,fval_,algo_state.value);
-        }
+        // // Make correction if maximum function evaluations reached
+        // if(!acceptLastAlpha_) {
+        //     lineSearch_->setMaxitUpdate(step_state->searchSize,fval_,algo_state.value);
+        // }
         // Compute scaled descent direction
-        lagrange_mult_search_direction->scale(step_state->searchSize);
+        lagrange_mult_search_direction_->scale(step_state->searchSize);
         search_direction.scale(step_state->searchSize);
         if ( bound_constraints.isActivated() ) {
             search_direction.plus(design_variables);
@@ -399,19 +436,33 @@ public:
         BoundConstraint< Real > &bound_constraints,
         AlgorithmState<Real> &algo_state ) override
     {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
+        Real tol = std::sqrt(ROL_EPSILON<Real>());
+        (void) bound_constraints;
+        design_variables.plus(search_direction);
+        lagrange_mult.plus(*lagrange_mult_search_direction_);
+
+        // Update StepState
         ROL::Ptr<StepState<Real> > step_state = Step<Real>::getState();
+        step_state->descentVec  = design_variables.clone();
+        objective.gradient(*(step_state->gradientVec), design_variables, tol);
+        equal_constraints.value(*(step_state->constraintVec), design_variables, tol);
+
+        ROL::Ptr<Vector<Real> > lagrangian_gradient = step_state->gradientVec->clone();
+        computeLagrangianGradient(*lagrangian_gradient, design_variables, lagrange_mult, *(step_state->gradientVec), equal_constraints);
+
         algo_state.nfval += step_state->nfval;
         algo_state.ngrad += step_state->ngrad;
 
-        design_variables.plus(search_direction);
-        lagrange_mult.plus(*lagrange_mult_search_direction);
 
-        step_state->flag = desc_->getStepState()->flag;
-        step_state->SPiter = desc_->getStepState()->SPiter;
-        step_state->SPflag = desc_->getStepState()->SPflag;
-        if ( !computeObj_ ) {
-            algo_state.value = fval_;
-        }
+        algo_state.value = fval_;
+        algo_state.gnorm = lagrangian_gradient->norm();
+        algo_state.cnorm = step_state->constraintVec->norm();
+        algo_state.snorm = search_direction.norm();
+        algo_state.snorm += lagrange_mult_search_direction_->norm();
+        algo_state.iterateVec->set(design_variables);
+        algo_state.lagmultVec->set(lagrange_mult);
+        algo_state.iter++;
     }
   
     /** \brief Print iterate header.
@@ -420,12 +471,12 @@ public:
     */
     std::string printHeader( void ) const override
     {
-      std::string head = desc_->printHeader();
-      head.erase(std::remove(head.end()-3,head.end(),'\n'), head.end());
+      //std::string head = desc_->printHeader();
+      //head.erase(std::remove(head.end()-3,head.end(),'\n'), head.end());
       std::stringstream hist;
-      hist.write(head.c_str(),head.length());
-      hist << std::setw(10) << std::left << "ls_#fval";
-      hist << std::setw(10) << std::left << "ls_#grad";
+      // hist.write(head.c_str(),head.length());
+      // hist << std::setw(10) << std::left << "ls_#fval";
+      // hist << std::setw(10) << std::left << "ls_#grad";
       hist << "\n";
       return hist.str();
     }
@@ -436,9 +487,9 @@ public:
     */
     std::string printName( void ) const override
     {
-      std::string name = desc_->printName();
+      //std::string name = desc_->printName();
       std::stringstream hist;
-      hist << name;
+      //hist << name;
       hist << "Line Search: " << lineSearchName_;
       hist << " satisfying " << ECurvatureConditionToString(econd_) << "\n";
       return hist.str();
@@ -454,13 +505,13 @@ public:
     std::string print( AlgorithmState<Real> & algo_state, bool print_header = false ) const override
     {
       const ROL::Ptr<const StepState<Real> > step_state = Step<Real>::getStepState();
-      std::string desc = desc_->print(algo_state,false);
-      desc.erase(std::remove(desc.end()-3,desc.end(),'\n'), desc.end());
-      std::string name = desc_->printName();
-      size_t pos = desc.find(name);
-      if ( pos != std::string::npos ) {
-        desc.erase(pos, name.length());
-      }
+      // std::string desc = desc_->print(algo_state,false);
+      // desc.erase(std::remove(desc.end()-3,desc.end(),'\n'), desc.end());
+      // std::string name = desc_->printName();
+      // size_t pos = desc.find(name);
+      // if ( pos != std::string::npos ) {
+      //   desc.erase(pos, name.length());
+      // }
   
       std::stringstream hist;
       if ( algo_state.iter == 0 ) {
@@ -469,7 +520,7 @@ public:
       if ( print_header ) {
         hist << printHeader();
       }
-      hist << desc;
+      //hist << desc;
       if ( algo_state.iter == 0 ) {
         hist << "\n";
       }

@@ -351,9 +351,15 @@ namespace MeshMover {
         pcout << "Applying [dXvdXs] onto a vector..." << std::endl;
         assert(input_vector.size() == output_vector.size());
 
+        double input_vector_norm = input_vector.l2_norm();
+        if (input_vector_norm == 0.0) {
+            output_vector = 0.0;
+            return;
+        }
+
         assemble_system();
 
-        dealii::SolverControl solver_control(5000, 1e-14 * input_vector.l2_norm());
+        dealii::SolverControl solver_control(5000, 1e-14 * input_vector_norm);
         dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
         dealii::TrilinosWrappers::PreconditionJacobi      precondition;
         precondition.initialize(system_matrix);
@@ -413,17 +419,22 @@ namespace MeshMover {
         pcout << "Applying for [dXvdXs] onto " << list_of_vectors.size() << " vectors..." << std::endl;
 
         unsigned int col = 0;
-        for (auto &rhs_vector: list_of_vectors) {
+        for (auto &input_vector: list_of_vectors) {
 
             dealii::deallog.depth_console(0);
 
-            dealii::LinearAlgebra::distributed::Vector<double> dXvdXs_i_trilinos;
-            dXvdXs_i_trilinos.reinit(rhs_vector);
-            dealii::SolverControl solver_control(5000, 1e-14 * rhs_vector.l2_norm());
-            dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
-            solver.solve(op_a, dXvdXs_i_trilinos, rhs_vector, precondition);
+            dealii::LinearAlgebra::distributed::Vector<double> output_vector;
+            output_vector.reinit(input_vector);
+            double input_vector_norm = input_vector.l2_norm();
+            if (input_vector_norm == 0.0) {
+                output_vector = 0.0;
+            } else {
+                dealii::SolverControl solver_control(5000, 1e-14 * input_vector_norm);
+                dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
+                solver.solve(op_a, output_vector, input_vector, precondition);
+            }
 
-            dXvdXs.push_back(dXvdXs_i_trilinos);
+            dXvdXs.push_back(output_vector);
 
             for (const auto &row: dof_handler.locally_owned_dofs()) {
                 output_matrix.set(row, col, dXvdXs[col][row]);
@@ -442,9 +453,16 @@ namespace MeshMover {
         dealii::LinearAlgebra::distributed::Vector<double> &output_vector)
     {
         pcout << "Applying [transpose(dXvdXvs)] onto a vector..." << std::endl;
+
+        double input_vector_norm = input_vector.l2_norm();
+        if (input_vector_norm == 0.0) {
+            output_vector = 0.0;
+            return;
+        }
+
         assemble_system();
 
-        dealii::SolverControl solver_control(5000, 1e-14 * input_vector.l2_norm());
+        dealii::SolverControl solver_control(5000, 1e-14 * input_vector_norm);
         dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
         dealii::TrilinosWrappers::PreconditionJacobi      precondition;
         precondition.initialize(system_matrix);

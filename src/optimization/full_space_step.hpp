@@ -39,6 +39,7 @@ private:
     ELineSearch         els_;   ///< enum determines type of line search
     ECurvatureCondition econd_; ///< enum determines type of curvature condition
   
+    Real penalty_value_;
     bool acceptLastAlpha_;  ///< For backwards compatibility. When max function evaluations are reached take last step
   
     bool usePreviousAlpha_; ///< If true, use the previously accepted step length (if any) as the new initial step length
@@ -208,6 +209,8 @@ public:
         lvec_ = lagrange_mult.clone();
         cvec_ = equal_constraints_values.clone();
 
+        lagrange_mult_search_direction_ = lagrange_mult.clone();
+
         // Initialize state descent direction and gradient storage
         step_state->descentVec  = design_variables.clone();
         step_state->gradientVec = gradient.clone();
@@ -253,12 +256,12 @@ public:
 
         // I don't have to initialize with merit function since it does nothing
         // with it. But might as well be consistent.
-        const Real penalty_value = 1.0;
+        penalty_value_ = 1.0;
         merit_function_ = ROL::makePtr<ROL::AugmentedLagrangian<Real>> (
                 makePtrFromRef<Objective<Real>>(objective),
                 makePtrFromRef<Constraint<Real>>(equal_constraints),
                 lagrange_mult,
-                penalty_value,
+                penalty_value_,
                 design_variables,
                 equal_constraints_values,
                 parlist_);
@@ -281,15 +284,24 @@ public:
         // Biros and Ghattas 2005, Part II
         // Equation (2.10)
         Real penalty = objective_gradient.dot(search_direction);
+        std::cout << "penalty1 " << penalty <<std::endl;
         penalty += adjoint_jacobian_lagrange.dot(search_direction);
+        std::cout << "penalty2 " << penalty <<std::endl;
         penalty += equal_constraints_values.dot(lagrange_mult_search_direction);
-        penalty += offset;
+        std::cout << "penalty3 " << penalty <<std::endl;
+        std::cout << "penalty4 " << penalty <<std::endl;
 
         const ROL::Ptr<Vector<Real>> jacobian_search_direction = equal_constraints_values.clone();
         Real tol = std::sqrt(ROL_EPSILON<Real>());
         equal_constraints.applyJacobian(*jacobian_search_direction, search_direction, design_variables, tol);
 
-        penalty /= jacobian_search_direction->dot(equal_constraints_values);
+        Real denom = jacobian_search_direction->dot(equal_constraints_values);
+        std::cout << "denom " << denom <<std::endl;
+
+        penalty /= denom;
+
+        penalty += offset;
+
         return penalty;
     }
   
@@ -335,6 +347,7 @@ public:
         rhs1->scale(-one);
         // rhs2 is the contraint value
         equal_constraints.value(*rhs2, design_variables, tol);
+        rhs2->scale(-one);
   
         /* Declare left-hand side of augmented system. */
         ROL::Ptr<Vector<Real> > lhs1 = xvec_->clone();
@@ -346,8 +359,14 @@ public:
   
         /* Solve augmented system. */
         //const std::vector<Real> augiters = equal_constraints.solveAugmentedSystem(*lhs1, *lhs2, *rhs1, *rhs2, design_variables, tol);
+        std::cout 
+            << "Startingto solve augmented system..."
+            << std::endl;
         const std::vector<Real> augIters = equal_constraints.solveAugmentedSystem(*lhs1, *lhs2, *rhs1, *rhs2, design_variables, tol);
         step_state->SPiter = augIters.size();
+        std::cout 
+            << "Finished solving augmented system..."
+            << std::endl;
 
         search_direction.set(*lhs1);
         lagrange_mult_search_direction_->set(*lhs2);
@@ -355,7 +374,7 @@ public:
         //#pen_ = parlist.sublist("Step").sublist("Augmented Lagrangian").get("Initial Penalty Parameter",ten);
         /* Create merit function based on augmented Lagrangian */
         const Real penalty_offset = 1e-4;
-        const Real penalty_value = computeAugmentedLagrangianPenalty(
+        penalty_value_ = computeAugmentedLagrangianPenalty(
             search_direction,
             *lagrange_mult_search_direction_,
             design_variables,
@@ -364,8 +383,11 @@ public:
             *adjoint_jacobian_lagrange,
             equal_constraints,
             penalty_offset);
+        std::cout 
+            << "Finished computeAugmentedLagrangianPenalty..."
+            << std::endl;
         AugmentedLagrangian<Real> &augLag = dynamic_cast<AugmentedLagrangian<Real>&>(*merit_function_);
-        augLag.reset(lagrange_mult, penalty_value);
+        augLag.reset(lagrange_mult, penalty_value_);
 
         const bool changed_design_variables = true;
         merit_function_->update(design_variables, changed_design_variables, algo_state.iter);
@@ -373,12 +395,21 @@ public:
         merit_function_->gradient( *merit_function_gradient, design_variables, tol );
         Real directional_derivative_step = merit_function_gradient->dot(search_direction);
         directional_derivative_step += step_state->constraintVec->dot(*lagrange_mult_search_direction_);
+        std::cout 
+            << "directional_derivative_step "
+            << directional_derivative_step
+            << std::endl;
 
         /* Perform line-search */
-        fval_ = algo_state.value;
+        fval_ = merit_function_->value(design_variables, tol );
         step_state->nfval = 0;
         step_state->ngrad = 0;
+        std::cout 
+            << "Performing line search..."
+            << " Initial merit function value = " << fval_
+            << std::endl;
         lineSearch_->setData(algo_state.gnorm,*merit_function_gradient);
+        Real nfval_before = step_state->nfval;
         lineSearch_->run(step_state->searchSize,
                          fval_,
                          step_state->nfval,
@@ -388,6 +419,14 @@ public:
                          design_variables,
                          *merit_function_,
                          bound_constraints);
+        Real nfval_after = step_state->nfval;
+        std::cout 
+            << "End of line search... searchSize is..."
+            << step_state->searchSize
+            << " and number of function evaluations: "
+            << nfval_after - nfval_before
+            << " Final merit function value = " << fval_
+            << std::endl;
 
         // // Make correction if maximum function evaluations reached
         // if(!acceptLastAlpha_) {
@@ -401,6 +440,9 @@ public:
             bound_constraints.project(search_direction);
             search_direction.axpy(static_cast<Real>(-1),design_variables);
         }
+        std::cout
+            << "End of compute..."
+            << std::endl;
 
     }
   
@@ -423,9 +465,10 @@ public:
         Constraint<Real> &equal_constraints,
         AlgorithmState<Real> &algo_state ) override
     {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
         BoundConstraint<Real> bound_constraints;
         bound_constraints.deactivate();
-        update( design_variables, lagrange_mult, search_direction, objective, equal_constraints, algo_state );
+        update( design_variables, lagrange_mult, search_direction, objective, equal_constraints, bound_constraints, algo_state );
     }
     void update (
         Vector<Real> &design_variables,
@@ -455,11 +498,20 @@ public:
         algo_state.ngrad += step_state->ngrad;
 
 
-        algo_state.value = fval_;
+        algo_state.value = objective.value(design_variables, tol);
         algo_state.gnorm = lagrangian_gradient->norm();
         algo_state.cnorm = step_state->constraintVec->norm();
         algo_state.snorm = search_direction.norm();
         algo_state.snorm += lagrange_mult_search_direction_->norm();
+
+        std::cout
+        << " algo_state.value: "  <<   algo_state.value
+        << " algo_state.gnorm: "  <<   algo_state.gnorm
+        << " algo_state.cnorm: "  <<   algo_state.cnorm
+        << " algo_state.snorm: "  <<   algo_state.snorm
+        << " algo_state.snorm: "  <<   algo_state.snorm
+        << " penalty_value_: "<< penalty_value_;
+
         algo_state.iterateVec->set(design_variables);
         algo_state.lagmultVec->set(lagrange_mult);
         algo_state.iter++;

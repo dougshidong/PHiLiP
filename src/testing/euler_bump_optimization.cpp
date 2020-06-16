@@ -12,7 +12,7 @@
 #include "ROL_Reduced_Objective_SimOpt.hpp"
 #include "ROL_OptimizationSolver.hpp"
 #include "ROL_LineSearchStep.hpp"
-//#include "ROL_StatusTest.hpp"
+#include "ROL_StatusTest.hpp"
 
 #include "euler_bump_optimization.h"
 
@@ -29,6 +29,8 @@
 #include "optimization/flow_constraints.hpp"
 #include "optimization/rol_objective.hpp"
 
+#include "optimization/full_space_step.hpp"
+
 namespace PHiLiP {
 namespace Tests {
 
@@ -41,14 +43,19 @@ const double CHANNEL_HEIGHT = 0.8;
 const unsigned int NY_CELL = 5;
 const unsigned int NX_CELL = 9*NY_CELL;
 
-const unsigned int n_des_var_start = 10;
-const unsigned int n_des_var_end   = 50;
-const unsigned int n_des_var_step  = 10;
+const unsigned int n_des_var_start = 20;
+const unsigned int n_des_var_end   = 100;
+const unsigned int n_des_var_step  = 20;
+
+const std::string opt_output_name
+    // = "reduced_space_bfgs";
+    = "reduced_space_newton";
 
 const bool full_space = false;
-const std::string descent_method = "Newton-Krylov";
+const std::string descent_method
+    = "Newton-Krylov";
+    //= "Quasi-Newton Method";
 const int cg_iteration_limit = 200;
-//const std::string descent_method = "Quasi-Newton Method";
 
 const std::string line_search_curvature =
     "Null Curvature Condition";
@@ -92,7 +99,8 @@ int EulerBumpOptimization<dim,nstate>
     // Output stream
     ROL::nullstream bhs; // outputs nothing
     std::filebuf filebuffer;
-    if (this->mpi_rank == 0) filebuffer.open ("optimization.log", std::ios::out|std::ios::app);
+    if (this->mpi_rank == 0) filebuffer.open ("optimization_"+opt_output_name+"_"+std::to_string(nx_ffd*2-4)+".log", std::ios::out);
+    //if (this->mpi_rank == 0) filebuffer.open ("optimization.log", std::ios::out|std::ios::app);
     std::ostream ostr(&filebuffer);
 
     Teuchos::RCP<std::ostream> outStream;
@@ -198,6 +206,7 @@ int EulerBumpOptimization<dim,nstate>
         target_bump_solution = dg->solution;
     }
 
+    double timing_start = MPI_Wtime();
     // Generate target design vector.
     DealiiVector target_ffd_solution;
     {
@@ -251,7 +260,7 @@ int EulerBumpOptimization<dim,nstate>
 
         Teuchos::ParameterList parlist;
         parlist.sublist("Status Test").set("Gradient Tolerance", 1e-8);
-        parlist.sublist("Status Test").set("Iteration Limit", 5000);
+        parlist.sublist("Status Test").set("Iteration Limit", 2);
 
         parlist.sublist("Step").set("Type","Line Search");
         parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Quasi-Newton Method");
@@ -268,15 +277,17 @@ int EulerBumpOptimization<dim,nstate>
         ROL::OptimizationSolver<double> solver( opt, parlist );
         solver.solve( *outStream );
 
-        ROL::Ptr< const ROL::AlgorithmState <double> > opt_state = solver.getAlgorithmState();
+        ROL::Ptr< const ROL::AlgorithmState <double> > algo_state = solver.getAlgorithmState();
 
-        test_error += opt_state->statusFlag;
+        test_error += algo_state->statusFlag;
 
         target_ffd_solution = dg->solution;
     }
     *outStream << " Done target optimization..." << std::endl;
     *outStream << " Resetting problem to initial conditions and target previous FFD points "<< std::endl;
     *outStream << " and aim for machine precision functional value...." << std::endl;
+    double timing_end = MPI_Wtime();
+    *outStream << "The process took " << timing_end - timing_start << " seconds to run." << std::endl;
 
     // Initial optimization point
     grid->clear();
@@ -319,11 +330,12 @@ int EulerBumpOptimization<dim,nstate>
     auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( target_ffd_functional, ffd, ffd_design_variables_indices_dim );
     auto con  = ROL::makePtr<FlowConstraints<dim>>(dg,ffd,ffd_design_variables_indices_dim);
 
+    timing_start = MPI_Wtime();
     // Verbosity setting
     parlist.sublist("General").set("Print Verbosity", 1);
+    auto des_var_p = ROL::makePtr<ROL::Vector_SimOpt<double>>(des_var_sim_rol_p, des_var_ctl_rol_p);
     if (full_space) {
         // Full space problem
-        auto des_var_p = ROL::makePtr<ROL::Vector_SimOpt<double>>(des_var_sim_rol_p, des_var_ctl_rol_p);
         auto dual_sim_p = des_var_sim_rol_p->clone();
         opt = ROL::OptimizationProblem<double> ( obj, des_var_p, con, dual_sim_p );
 
@@ -337,7 +349,7 @@ int EulerBumpOptimization<dim,nstate>
         steplist.set("Use Constraint Hessian", true); // default is true
         steplist.set("Output Level", 1);
 
-        steplist.sublist("Optimality System Solver").set("Nominal Relative Tolerance", 1e-8);
+        steplist.sublist("Optimality System Solver").set("Nominal Relative Tolerance", 1e-8); // default 1e-8
         steplist.sublist("Optimality System Solver").set("Fix Tolerance", true);
         steplist.sublist("Tangential Subproblem Solver").set("Iteration Limit", cg_iteration_limit);
         steplist.sublist("Tangential Subproblem Solver").set("Relative Tolerance", 1e-2);
@@ -397,6 +409,7 @@ int EulerBumpOptimization<dim,nstate>
         parlist.sublist("Status Test").set("Gradient Tolerance", 1e-10);
         parlist.sublist("Status Test").set("Iteration Limit", 5000);
         parlist.sublist("Step").set("Type","Line Search");
+        //parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",1e-0);
         parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",1e-0);
         parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
 
@@ -421,14 +434,25 @@ int EulerBumpOptimization<dim,nstate>
     }
 
     *outStream << "Starting optimization with " << n_design_variables << "..." << std::endl;
-    ROL::OptimizationSolver<double> solver( opt, parlist );
-    solver.solve( *outStream );
+    // ROL::OptimizationSolver<double> solver( opt, parlist );
+    // solver.solve( *outStream );
+    // ROL::Ptr< const ROL::AlgorithmState <double> > algo_state = solver.getAlgorithmState();
 
-    ROL::Ptr< const ROL::AlgorithmState <double> > opt_state = solver.getAlgorithmState();
+    auto full_space_step = ROL::makePtr<ROL::FullSpace_BirosGhattas<double>>(parlist);
+    auto status_test = ROL::makePtr<ROL::StatusTest<double>>(parlist);
+    const bool printHeader = true;
+    ROL::Algorithm<double> algorithm(full_space_step, status_test, printHeader);
+    algorithm.run(*des_var_p, *des_var_adj_rol_p, *obj, *con, true, *outStream);
+    ROL::Ptr< const ROL::AlgorithmState <double> > algo_state = algorithm.getState();
 
-    test_error += opt_state->statusFlag;
+    timing_end = MPI_Wtime();
+    *outStream << "The process took " << timing_end - timing_start << " seconds to run." << std::endl;
+
+
+    test_error += algo_state->statusFlag;
 
     filebuffer.close();
+
 
     return test_error;
 }

@@ -342,6 +342,8 @@ int main (int argc, char * argv[])
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, &grid);
     dg->allocate_system ();
     
+    double max_GCL = 0.0;
+
     const unsigned int n_quad_pts      = dg->volume_quadrature_collection[poly_degree].size();
     const unsigned int n_dofs_cell     =dg->fe_collection[poly_degree].dofs_per_cell;
     dealii::QGauss<dim> quad_val(poly_degree+1);
@@ -432,14 +434,23 @@ int main (int argc, char * argv[])
                     printf("\n GCL for derivative x_%d \n", idim);
                     for(unsigned int idof=0; idof<n_dofs_cell; idof++){
                         printf(" %.16g \n", GCL[idim][idof]);
+                        if( std::abs(GCL[idim][idof]) > max_GCL){
+                            max_GCL = GCL[idim][idof];
+                        }
                     }
                 }
 
             }
 
 
-
-    return 0;
+    if( max_GCL > 1e-10){
+        printf(" Metrics Do NOT Satisfy GCL Condition\n");
+        return 1;
+    }
+    else{
+        printf(" Metrics Satisfy GCL Condition\n");
+        return 0;
+    }
 }
 
 //}//end PHiLiP namespace

@@ -15,9 +15,111 @@
 #include <sstream>
 #include <iomanip>
 
+#include <deal.II/lac/precondition.h>
+#include <deal.II/lac/vector_memory.templates.h>
+#include <deal.II/lac/solver_gmres.h>
+#include <deal.II/lac/solver_control.h>
+
 #include "optimization/rol_to_dealii_vector.hpp"
 #include "optimization/flow_constraints.hpp"
 #include "optimization/rol_objective.hpp"
+
+template<typename Real = double>
+class dealiiSolverVectorWrappingROL
+{
+private:
+    ROL::Ptr<ROL::Vector<Real>> rol_vector_ptr;
+public:
+    using value_type = Real;
+
+    dealiiSolverVectorWrappingROL() {};
+
+    dealiiSolverVectorWrappingROL(ROL::Ptr<ROL::Vector<Real>> input_vector)
+    : rol_vector_ptr(input_vector)
+    {};
+
+    ROL::Ptr<ROL::Vector<Real>> getVector()
+    {
+        return rol_vector_ptr;
+    }
+    ROL::Ptr<const ROL::Vector<double>> getVector() const
+    {
+        return rol_vector_ptr;
+    }
+    
+    // Resize the current object to have the same size and layout as
+    // the model_vector argument provided. The second argument
+    // indicates whether to clear the current object after resizing.
+    // The second argument must have a default value equal to false.
+    void reinit (const dealiiSolverVectorWrappingROL &model_vector,
+                 const bool leave_elements_uninitialized = false)
+    {
+        (void) leave_elements_uninitialized;
+        rol_vector_ptr = model_vector.getVector()->clone();
+    }
+    // Inner product between the current object and the argument.
+    double operator * (const dealiiSolverVectorWrappingROL &v) const
+    {
+        return rol_vector_ptr->dot( *(v.getVector()) );
+    }
+    // Assignment of a scalar
+    dealiiSolverVectorWrappingROL & operator=(const double a)
+    {
+        rol_vector_ptr->setScalar(a);
+        return *this;
+    }
+    // Multiply the elements of the current object by a fixed value.
+    dealiiSolverVectorWrappingROL & operator*=(const double a)
+    {
+        rol_vector_ptr->scale(a);
+        return *this;
+    }
+    // Addition of vectors
+    void add (const dealiiSolverVectorWrappingROL &x)
+    {
+        rol_vector_ptr->plus( *(x.getVector()) );
+    }
+    // Scaled addition of vectors
+    void add (const double  a,
+              const dealiiSolverVectorWrappingROL &x)
+    {
+        rol_vector_ptr->axpy(a, *(x.getVector()) );
+    }
+    // Scaled addition of vectors
+    void sadd (const double  a,
+               const double  b,
+               const dealiiSolverVectorWrappingROL &x)
+    {
+        rol_vector_ptr->scale(a);
+        rol_vector_ptr->axpy(b, *(x.getVector()) );
+    }
+    // Scaled assignment of a vector
+    void equ (const double  a,
+              const dealiiSolverVectorWrappingROL &x)
+    {
+        rol_vector_ptr->set( *(x.getVector()) );
+        rol_vector_ptr->scale(a);
+    }
+    // Combined scaled addition of vector x into the current object and
+    // subsequent inner product of the current object with v.
+    double add_and_dot (const double  a,
+                        const dealiiSolverVectorWrappingROL &x,
+                        const dealiiSolverVectorWrappingROL &v)
+    {
+        this->add(a, x);
+        return (*this) * v;
+    }
+    // Return the l2 norm of the vector.
+    double l2_norm () const
+    {
+        return std::sqrt( (*this) * (*this) );
+    }
+};
+
+
+template class dealii::VectorMemory<dealiiSolverVectorWrappingROL<double>>;
+template class dealii::GrowingVectorMemory<dealiiSolverVectorWrappingROL<double>>;
+
 
 namespace ROL {
 
@@ -315,78 +417,86 @@ public:
         return penalty;
     }
 
-    class dealiiSolverVectorWrappingROL
-    {
-    private:
-        ROL::Ptr<ROL::Vector<Real>> rol_vector_ptr;
-    public:
-        ROL::Ptr<ROL::Vector<Real>> getVector()
-        {
-            return rol_vector_ptr;
-        }
-        ROL::Ptr<const ROL::Vector<double>> getVector() const
-        {
-            return rol_vector_ptr;
-        }
-        
-        // Resize the current object to have the same size and layout as
-        // the model_vector argument provided. The second argument
-        // indicates whether to clear the current object after resizing.
-        // The second argument must have a default value equal to false.
-        void reinit (const dealiiSolverVectorWrappingROL &model_vector,
-                     const bool leave_elements_uninitialized = false)
-        {
-            (void) leave_elements_uninitialized;
-            rol_vector_ptr = model_vector.getVector()->clone();
-        }
-        // Inner product between the current object and the argument.
-        double operator * (const dealiiSolverVectorWrappingROL &v) const
-        {
-            return rol_vector_ptr->dot( *(v.getVector()) );
-        }
-        // Addition of vectors
-        void add (const dealiiSolverVectorWrappingROL &x)
-        {
-            rol_vector_ptr->plus( *(x.getVector()) );
-        }
-        // Scaled addition of vectors
-        void add (const double  a,
-                  const dealiiSolverVectorWrappingROL &x)
-        {
-            rol_vector_ptr->axpy(a, *(x.getVector()) );
-        }
-        // Scaled addition of vectors
-        void sadd (const double  a,
-                   const double  b,
-                   const dealiiSolverVectorWrappingROL &x)
-        {
-            rol_vector_ptr->scale(a);
-            rol_vector_ptr->axpy(b, *(x.getVector()) );
-        }
-        // Scaled assignment of a vector
-        void equ (const double  a,
-                  const dealiiSolverVectorWrappingROL &x)
-        {
-            rol_vector_ptr->set( *(x.getVector()) );
-            rol_vector_ptr->scale(a);
-        }
-        // Combined scaled addition of vector x into the current object and
-        // subsequent inner product of the current object with v.
-        double add_and_dot (const double  a,
-                            const dealiiSolverVectorWrappingROL &x,
-                            const dealiiSolverVectorWrappingROL &v)
-        {
-            this->add(a, x);
-            return (*this) * ( *(x.getVector()) );
-        }
-        // Multiply the elements of the current object by a fixed value.
-        dealiiSolverVectorWrappingROL & operator *= (const double a);
-        // Return the l2 norm of the vector.
-        double l2_norm () const
-        {
-            return std::sqrt( (*this) * (*this) );
-        }
-    };
+    // class KKT_P2_Preconditioner
+    // {
+    // protected:
+
+    //     const Ptr<Objective<Real>> objective_;
+    //     const Ptr<Constraint<Real>> equal_constraints_;
+
+    //     const Ptr<const Vector<Real>> design_variables_;
+    //     const Ptr<const Vector<Real>> lagrange_mult_;
+
+
+    // private:
+
+    //     const Ptr<Vector<Real>> temp_design_variables_size_vector_;
+
+    // public:
+    //     KKT_Operator(
+    //         const Ptr<Objective<Real>> objective,
+    //         const Ptr<Constraint<Real>> equal_constraints,
+    //         const Ptr<const Vector<Real>> design_variables,
+    //         const Ptr<const Vector<Real>> lagrange_mult)
+    //         : objective_(objective)
+    //         , equal_constraints_(equal_constraints)
+    //         , design_variables_(design_variables)
+    //         , lagrange_mult_(lagrange_mult)
+    //         , temp_design_variables_size_vector_(design_variables->clone())
+    //     { };
+    //     // Application of matrix to vector src. Write result into dst.
+    //     void vmult (dealiiSolverVectorWrappingROL<double>       &dst,
+    //                 const dealiiSolverVectorWrappingROL<double> &src) const
+    //     {
+    //         static int number_of_times = 0;
+    //         number_of_times++;
+    //         std::cout << "Number of KKT vmult = " << number_of_times << std::endl;
+    //         Real tol = 1e-15;
+    //         const Real one = 1.0;
+
+    //         ROL::Ptr<ROL::Vector<Real>> dst_rol = dst.getVector();
+    //         auto &dst_split = dynamic_cast<Vector_SimOpt<Real>&>(*dst_rol);
+    //         Ptr<Vector<Real>> dst_design = dst_split.get_1();
+    //         auto &dst_design_split = dynamic_cast<Vector_SimOpt<Real>&>(*dst_design);
+    //         Ptr<Vector<Real>> dst_1 = dst_design_split.get_1();
+    //         Ptr<Vector<Real>> dst_2 = dst_design_split.get_2();
+    //         Ptr<Vector<Real>> dst_3 = dst_split.get_2();
+
+    //         const ROL::Ptr<const ROL::Vector<Real>> src_rol = src.getVector();
+    //         const auto &src_split = dynamic_cast<const Vector_SimOpt<Real>&>(*src_rol);
+    //         const Ptr<const Vector<Real>> src_design = src_split.get_1();
+    //         const auto &src_design_split = dynamic_cast<const Vector_SimOpt<Real>&>(*src_design);
+    //         const Ptr<const Vector<Real>> src_1 = src_design_split.get_1();
+    //         const Ptr<const Vector<Real>> src_2 = src_design_split.get_2();
+    //         const Ptr<const Vector<Real>> src_3 = src_split.get_2();
+
+
+    //         // Top left block times top vector
+    //         objective_->hessVec(*temp_design_variables_size_vector_, *src_design, *design_variables_, tol);
+    //         equal_constraints_->applyAdjointHessian(*dst_design, *lagrange_mult_, *src_design, *design_variables_, tol);
+
+    //         dst_design->axpy(one, *temp_design_variables_size_vector_);
+
+    //         // Top right block times bottom vector
+    //         equal_constraints_->applyAdjointJacobian(*temp_design_variables_size_vector_, *src_constraints, *design_variables_, tol);
+
+    //         // Bottom left left block times top vector
+    //         equal_constraints_->applyJacobian(*dst_3, *src_design, *design_variables_, tol);
+
+    //         // Bottom right block times bottom vector
+    //         // 0 block in KKT
+    //         dealii::deallog.depth_console(99);
+
+    //     }
+    //     // Application of transpose to a vector. This function is,
+    //     // however, only used by some iterative methods.
+    //     void Tvmult (dealiiSolverVectorWrappingROL<double>       &dst,
+    //                  const dealiiSolverVectorWrappingROL<double> &src) const
+    //     {
+    //         vmult(dst, src);
+    //     }
+    // };
+
   
     class KKT_Operator
     {
@@ -395,63 +505,69 @@ public:
         const Ptr<Objective<Real>> objective_;
         const Ptr<Constraint<Real>> equal_constraints_;
 
-        const Ptr<Vector<Real>> design_variables_;
-        const Ptr<Vector<Real>> lagrange_mult_;
+        const Ptr<const Vector<Real>> design_variables_;
+        const Ptr<const Vector<Real>> lagrange_mult_;
 
-        const Real tol_;
 
     private:
 
         const Ptr<Vector<Real>> temp_design_variables_size_vector_;
 
-
     public:
         KKT_Operator(
             const Ptr<Objective<Real>> objective,
             const Ptr<Constraint<Real>> equal_constraints,
-            const Ptr<Vector<Real>> design_variables,
-            const Ptr<Vector<Real>> lagrange_mult)
+            const Ptr<const Vector<Real>> design_variables,
+            const Ptr<const Vector<Real>> lagrange_mult)
             : objective_(objective)
             , equal_constraints_(equal_constraints)
             , design_variables_(design_variables)
             , lagrange_mult_(lagrange_mult)
-            , temp_design_variables_size_vector_(design_variables.clone())
+            , temp_design_variables_size_vector_(design_variables->clone())
         { };
         // Application of matrix to vector src. Write result into dst.
-        void vmult (Vector<Real>       &dst,
-                    const Vector<Real> &src) const
+        void vmult (dealiiSolverVectorWrappingROL<double>       &dst,
+                    const dealiiSolverVectorWrappingROL<double> &src) const
         {
+            static int number_of_times = 0;
+            number_of_times++;
+            std::cout << "Number of KKT vmult = " << number_of_times << std::endl;
+            Real tol = 1e-15;
             const Real one = 1.0;
 
-            auto &dst_split = dynamic_cast<Vector_SimOpt<Real>&>(dst);
-            const auto &src_split = dynamic_cast<const Vector_SimOpt<Real>&>(dst);
+            ROL::Ptr<ROL::Vector<Real>> dst_rol = dst.getVector();
+            const ROL::Ptr<const ROL::Vector<Real>> src_rol = src.getVector();
+
+            auto &dst_split = dynamic_cast<Vector_SimOpt<Real>&>(*dst_rol);
+            const auto &src_split = dynamic_cast<const Vector_SimOpt<Real>&>(*src_rol);
 
             Ptr<Vector<Real>> dst_design = dst_split.get_1();
-            Ptr<Vector<Real>> src_design = src_split.get_1();
+            const Ptr<const Vector<Real>> src_design = src_split.get_1();
 
             Ptr<Vector<Real>> dst_constraints = dst_split.get_2();
-            Ptr<Vector<Real>> src_constraints = src_split.get_2();
+            const Ptr<const Vector<Real>> src_constraints = src_split.get_2();
 
             // Top left block times top vector
-            objective_->hessVec(*temp_design_variables_size_vector_, *src_design, *design_variables_, tol_);
-            equal_constraints_->applyAdjointHessian(*dst_design, *lagrange_mult_, *src_design, *design_variables_, tol_);
+            objective_->hessVec(*temp_design_variables_size_vector_, *src_design, *design_variables_, tol);
+            equal_constraints_->applyAdjointHessian(*dst_design, *lagrange_mult_, *src_design, *design_variables_, tol);
 
-            dst_design->axpy(one, temp_design_variables_size_vector_);
+            dst_design->axpy(one, *temp_design_variables_size_vector_);
 
             // Top right block times bottom vector
-            equal_constraints_->applyAdjointJacobian(*temp_design_variables_size_vector_, *src_constraints, *design_variables_, tol_);
+            equal_constraints_->applyAdjointJacobian(*temp_design_variables_size_vector_, *src_constraints, *design_variables_, tol);
 
             // Bottom left left block times top vector
-            equal_constraints_->applyJacobian(*dst_constraints, *src_design, *design_variables_, tol_);
+            equal_constraints_->applyJacobian(*dst_constraints, *src_design, *design_variables_, tol);
 
             // Bottom right block times bottom vector
             // 0 block in KKT
+            dealii::deallog.depth_console(99);
 
         }
         // Application of transpose to a vector. This function is,
         // however, only used by some iterative methods.
-        void Tvmult (Vector<Real>       &dst,
-                     const Vector<Real> &src) const
+        void Tvmult (dealiiSolverVectorWrappingROL<double>       &dst,
+                     const dealiiSolverVectorWrappingROL<double> &src) const
         {
             vmult(dst, src);
         }
@@ -493,57 +609,91 @@ public:
     //     dealii::LinearAlgebra::distributed::BlockVector<double> Hv(3);
     //     dealii::LinearAlgebra::distributed::BlockVector<double> Htv(3);
     // }
+    template<typename MatrixType, typename VectorType>
+    std::pair<unsigned int, double>
+    solve_linear (
+        MatrixType &matrix_A,
+        VectorType &right_hand_side,
+        VectorType &solution)
+        //const PHiLiP::Parameters::LinearSolverParam & param = )
+    {
+        dealii::deallog.depth_console(999);
+        dealii::SolverControl solver_control(100000, 1.e-15, true, true);
+        const unsigned int 	max_n_tmp_vectors = 2000;
+        const bool 	right_preconditioning = false;
+        const bool 	use_default_residual = true;
+        const bool 	force_re_orthogonalization = false;
+        typedef typename dealii::SolverGMRES<VectorType>::AdditionalData AddiData;
 
-    // std::vector<Real> solve_KKT_system(
-    //     const Vector<Real> &search_direction,
-    //     const Vector<Real> &lag_search_direction,
-    //     const Vector<Real> &design_variables,
-    //     const Vector<Real> &lagrange_mult,
-    //     Objective<Real> &objective,
-    //     Constraint<Real> &equal_constraints)
-    // {
-    //     Real tol = std::sqrt(ROL_EPSILON<Real>());
-    //     const Real one = 1.0;
+        AddiData add_data( max_n_tmp_vectors, right_preconditioning, use_default_residual, force_re_orthogonalization);
+        //dealii::SolverGMRES<VectorType>::AdditionalData add_data( max_n_tmp_vectors, right_preconditioning, use_default_residual, force_re_orthogonalization);
+        //dealii::SolverGMRES<VectorType>::AdditionalData add_data();
+        //dealii::SolverGMRES::AdditionalData add_data( max_n_tmp_vectors, right_preconditioning, use_default_residual, force_re_orthogonalization);
+        dealii::SolverGMRES<VectorType> solver_gmres(solver_control, add_data);
 
-    //     /* Form gradient of the Lagrangian. */
-    //     ROL::Ptr<Vector<Real> > objective_gradient = gvec_->clone();
-    //     objective.gradient(*objective_gradient, design_variables, tol);
-    //     // Apply adjoint of equal_constraints Jacobian to current Lagrange multiplier.
-    //     ROL::Ptr<Vector<Real> > adjoint_jacobian_lagrange = gvec_->clone();
-    //     equal_constraints.applyAdjointJacobian(*adjoint_jacobian_lagrange, lagrange_mult, design_variables, tol);
+        // dealii::PreconditionIdentity precond();
+        // precond.initialize (matrix_A);
+
+        solver_gmres.solve(matrix_A, solution, right_hand_side
+        //, precond);
+        , dealii::PreconditionIdentity());
+
+        return {-1.0, -1.0};
+    }
+
+    std::vector<Real> solve_KKT_system(
+        Vector<Real> &search_direction,
+        Vector<Real> &lag_search_direction,
+        const Vector<Real> &design_variables,
+        const Vector<Real> &lagrange_mult,
+        Objective<Real> &objective,
+        Constraint<Real> &equal_constraints)
+    {
+        Real tol = std::sqrt(ROL_EPSILON<Real>());
+        const Real one = 1.0;
+
+        /* Form gradient of the Lagrangian. */
+        ROL::Ptr<Vector<Real> > objective_gradient = gvec_->clone();
+        objective.gradient(*objective_gradient, design_variables, tol);
+        // Apply adjoint of equal_constraints Jacobian to current Lagrange multiplier.
+        ROL::Ptr<Vector<Real> > adjoint_jacobian_lagrange = gvec_->clone();
+        equal_constraints.applyAdjointJacobian(*adjoint_jacobian_lagrange, lagrange_mult, design_variables, tol);
   
-    //     /* Form right-hand side of the augmented system. */
-    //     ROL::Ptr<Vector<Real> > rhs1 = gvec_->clone();
-    //     ROL::Ptr<Vector<Real> > rhs2 = cvec_->clone();
-    //     // rhs1 is the negative gradient of the Lagrangian
-    //     computeLagrangianGradient(*rhs1, design_variables, lagrange_mult, *objective_gradient, equal_constraints);
-    //     rhs1->scale(-one);
-    //     // rhs2 is the contraint value
-    //     equal_constraints.value(*rhs2, design_variables, tol);
-    //     rhs2->scale(-one);
+        /* Form right-hand side of the augmented system. */
+        ROL::Ptr<Vector<Real> > rhs1 = gvec_->clone();
+        ROL::Ptr<Vector<Real> > rhs2 = cvec_->clone();
+        // rhs1 is the negative gradient of the Lagrangian
+        computeLagrangianGradient(*rhs1, design_variables, lagrange_mult, *objective_gradient, equal_constraints);
+        rhs1->scale(-one);
+        // rhs2 is the contraint value
+        equal_constraints.value(*rhs2, design_variables, tol);
+        rhs2->scale(-one);
   
-    //     /* Declare left-hand side of augmented system. */
-    //     ROL::Ptr<Vector<Real> > lhs1 = xvec_->clone();
-    //     ROL::Ptr<Vector<Real> > lhs2 = lvec_->clone();
+        /* Declare left-hand side of augmented system. */
+        ROL::Ptr<Vector<Real> > lhs1 = xvec_->clone();
+        ROL::Ptr<Vector<Real> > lhs2 = lvec_->clone();
 
-    //     ROL::Vector_SimOpt lhs(lhs1, lhs2);
-    //     ROL::Vector_SimOpt rhs(rhs1, rhs2);
+        ROL::Vector_SimOpt lhs_rol(lhs1, lhs2);
+        ROL::Vector_SimOpt rhs_rol(rhs1, rhs2);
 
-    //     KKT_Operator(Ptr<Objective<Real>> objective,
-    //         makePtrFromRef<Objective<Real>>(objective),
-    //         makePtrFromRef<Constraint<Real>>(equal_constraints),
-    //         makePtrFromRef<Vector<Real>>(equal_constraints),
-    //         const Ptr<Vector<Real>> design_variables,
-    //         const Ptr<Vector<Real>> lagrange_mult)
-    //         : objective_(objective)
-    //         , equal_constraints_(equal_constraints)
-    //         , design_variables_(design_variables)
-    //         , lagrange_mult_(lagrange_mult)
-    //         , temp_design_variables_size_vector_(design_variables.clone())
-    //     { };
+        KKT_Operator kkt_operator(
+            makePtrFromRef<Objective<Real>>(objective),
+            makePtrFromRef<Constraint<Real>>(equal_constraints),
+            makePtrFromRef<const Vector<Real>>(design_variables),
+            makePtrFromRef<const Vector<Real>>(lagrange_mult));
 
-    //     
-    // }
+        dealiiSolverVectorWrappingROL<double> lhs(makePtrFromRef(lhs_rol));
+        dealiiSolverVectorWrappingROL<double> rhs(makePtrFromRef(lhs_rol));
+
+        (void) solve_linear (kkt_operator, rhs, lhs);
+
+        search_direction.set(*lhs1);
+        lag_search_direction.set(*lhs2);
+
+        std::vector<double> test(10);
+        return test;
+        
+    }
     void compute(
         Vector<Real> &search_direction,
         const Vector<Real> &design_variables,
@@ -601,9 +751,10 @@ public:
         std::cout 
             << "Startingto solve augmented system..."
             << std::endl;
-        const std::vector<Real> augIters = equal_constraints.solveAugmentedSystem(*lhs1, *lhs2, *rhs1, *rhs2, design_variables, tol);
-        //const std::vector<Real> kkt_iters = solve_KKT_system(design_variables, lagrange_mult, objective, equal_constraints);
-        step_state->SPiter = augIters.size();
+        //const std::vector<Real> kkt_iters = equal_constraints.solveAugmentedSystem(*lhs1, *lhs2, *rhs1, *rhs2, design_variables, tol);
+        const std::vector<Real> kkt_iters = solve_KKT_system(*lhs1, *lhs2, design_variables, lagrange_mult, objective, equal_constraints);
+
+        step_state->SPiter = kkt_iters.size();
         std::cout 
             << "Finished solving augmented system..."
             << std::endl;

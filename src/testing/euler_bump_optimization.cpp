@@ -303,9 +303,9 @@ int EulerBumpOptimization<dim,nstate>
     dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
     // Create ODE solver and ramp up the solution from p0
     std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-    ode_solver->initialize_steady_polynomial_ramping (POLY_DEGREE);
-    // Solve the steady state problem
-    ode_solver->steady_state();
+    // ode_solver->initialize_steady_polynomial_ramping (POLY_DEGREE);
+    // // Solve the steady state problem
+    // ode_solver->steady_state();
 
     // Reset to initial_grid
     DealiiVector des_var_sim = dg->solution;
@@ -413,6 +413,7 @@ int EulerBumpOptimization<dim,nstate>
         parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",1e-0);
         parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
 
+
         parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type",line_search_method);
 
         parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type",line_search_curvature);
@@ -438,6 +439,9 @@ int EulerBumpOptimization<dim,nstate>
     // solver.solve( *outStream );
     // ROL::Ptr< const ROL::AlgorithmState <double> > algo_state = solver.getAlgorithmState();
 
+    parlist.sublist("General").sublist("Secant").set("Type","Limited-Memory BFGS");
+    parlist.sublist("General").sublist("Secant").set("Maximum Storage",5000);
+    parlist.sublist("Step").sublist("Line Search").set("Function Evaluation Limit",100);
     auto full_space_step = ROL::makePtr<ROL::FullSpace_BirosGhattas<double>>(parlist);
     auto status_test = ROL::makePtr<ROL::StatusTest<double>>(parlist);
     const bool printHeader = true;

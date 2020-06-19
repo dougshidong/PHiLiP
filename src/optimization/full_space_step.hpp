@@ -812,6 +812,26 @@ public:
         search_direction.set(*lhs1);
         lagrange_mult_search_direction_->set(*lhs2);
 
+        {
+            // Top left block times top vector
+            objective.hessVec(*lhs1, search_direction, design_variables, tol);
+            rhs1->axpy(-1.0,*lhs1);
+            equal_constraints.applyAdjointHessian(*lhs1, lagrange_mult, search_direction, design_variables, tol);
+            rhs1->axpy(-1.0,*lhs1);
+
+            // Top right block times bottom vector
+            equal_constraints.applyAdjointJacobian(*lhs1, *lagrange_mult_search_direction_, design_variables, tol);
+            rhs1->axpy(-1.0,*lhs1);
+
+            // Bottom left left block times top vector
+            equal_constraints.applyJacobian(*lhs2, search_direction, design_variables, tol);
+            rhs2->axpy(-1.0,*lhs2);
+            std::cout << "rhs1->norm() " << rhs1->norm() << std::endl;
+            std::cout << "rhs2->norm() " << rhs2->norm() << std::endl;
+            MPI_Barrier(MPI_COMM_WORLD);
+            std::abort();
+        }
+
         //#pen_ = parlist.sublist("Step").sublist("Augmented Lagrangian").get("Initial Penalty Parameter",ten);
         /* Create merit function based on augmented Lagrangian */
         const Real penalty_offset = 1e-4;
@@ -869,14 +889,15 @@ public:
             << " Final merit function value = " << fval_
             << std::endl;
 
-        {
-            auto &search_simopt = dynamic_cast<Vector_SimOpt<Real>&>(*search_direction);
-            search_sim =
-            simulation_variables_(design_variables_->get_1())
-            control_variables_(design_variables_->get_2())
-            // Reduced step
-            secant_->applyH
-        }
+        // Implemente RQNSQP
+        // {
+        //     auto &search_simopt = dynamic_cast<Vector_SimOpt<Real>&>(*search_direction);
+        //     search_sim =
+        //     simulation_variables_(design_variables_->get_1())
+        //     control_variables_(design_variables_->get_2())
+        //     // Reduced step
+        //     secant_->applyH
+        // }
 
         // // Make correction if maximum function evaluations reached
         // if(!acceptLastAlpha_) {

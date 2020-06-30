@@ -28,7 +28,7 @@ FlowConstraints<dim>
     this->linear_solver_param.parse_parameters (parameter_handler);
     this->linear_solver_param.max_iterations = 1000;
     this->linear_solver_param.restart_number = 200;
-    this->linear_solver_param.linear_residual = 1e-13;
+    this->linear_solver_param.linear_residual = 1e-17;
     this->linear_solver_param.ilut_fill = 0;
     this->linear_solver_param.ilut_drop = 0.0;
     this->linear_solver_param.ilut_rtol = 1.0;
@@ -61,6 +61,11 @@ void FlowConstraints<dim>
     if (l2_norm != 0.0) {
         ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_des_var);
         ffd.deform_mesh(dg->high_order_grid);
+
+        static int iupdate = 0;
+        dg->output_results_vtk(iupdate);
+        ffd.output_ffd_vtu(iupdate);
+        iupdate++;
     }
 }
 

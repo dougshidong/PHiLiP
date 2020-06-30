@@ -353,6 +353,7 @@ namespace MeshMover {
 
         double input_vector_norm = input_vector.l2_norm();
         if (input_vector_norm == 0.0) {
+            pcout << "Zero input vector. Zero output vector." << std::endl;
             output_vector = 0.0;
             return;
         }
@@ -375,6 +376,13 @@ namespace MeshMover {
         dealii::deallog.depth_console(1);
         solver.solve(op_a, output_vector, rhs_vector, precondition);
 
+        pcout << "dXvdXvs Solver took " << solver_control.last_step() << " steps. "
+              << "Residual: " << solver_control.last_value() << ". "
+              << std::endl;
+        if (solver_control.last_check() != dealii::SolverControl::State::success) {
+            pcout << "Failed to converge." << std::endl;
+            std::abort();
+        }
     }
 
     template <int dim, typename real, typename VectorType , typename DoFHandlerType>
@@ -427,6 +435,7 @@ namespace MeshMover {
             output_vector.reinit(input_vector);
             double input_vector_norm = input_vector.l2_norm();
             if (input_vector_norm == 0.0) {
+                pcout << "Zero input vector. Zero output vector." << std::endl;
                 output_vector = 0.0;
             } else {
                 dealii::SolverControl solver_control(5000, 1e-14 * input_vector_norm);
@@ -456,6 +465,7 @@ namespace MeshMover {
 
         double input_vector_norm = input_vector.l2_norm();
         if (input_vector_norm == 0.0) {
+            pcout << "Zero input vector. Zero output vector." << std::endl;
             output_vector = 0.0;
             return;
         }
@@ -475,6 +485,15 @@ namespace MeshMover {
         // Solve system.
         dealii::deallog.depth_console(0);
         solver.solve(op_at, output_vector, input_vector, precondition);
+
+        pcout << "dXvdXvs_Transpose Solver took " << solver_control.last_step() << " steps. "
+              << "Residual: " << solver_control.last_value() << ". "
+              << std::endl;
+        if (solver_control.last_check() != dealii::SolverControl::State::success) {
+            pcout << "Failed to converge." << std::endl;
+            std::abort();
+        }
+
 
     }
 

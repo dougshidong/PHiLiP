@@ -905,12 +905,19 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
             const double l2_norm_node = diff_node.l2_norm();
 
             if (l2_norm_node == 0.0) {
-                pcout << " which is already assembled..." << std::endl;
-                return;
+
+                auto diff_dual = dual;
+                diff_dual -= dual_d2R;
+                const double l2_norm_dual = diff_dual.l2_norm();
+                if (l2_norm_dual == 0.0) {
+                    pcout << " which is already assembled..." << std::endl;
+                    return;
+                }
             }
         }
         solution_d2R = solution;
         volume_nodes_d2R = high_order_grid.volume_nodes;
+        dual_d2R = dual;
         d2RdWdW = 0;
         d2RdWdX = 0;
         d2RdXdX = 0;
@@ -1101,7 +1108,7 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     filename += ".vtu";
     std::ofstream output(filename);
     data_out.write_vtu(output);
-	std::cout << "Writing out file: " << filename << std::endl;
+	//std::cout << "Writing out file: " << filename << std::endl;
 
     if (iproc == 0) {
         std::vector<std::string> filenames;
@@ -1242,6 +1249,8 @@ void DGBase<dim,real>::allocate_system ()
     solution_d2R *= 0.0;
     volume_nodes_d2R.reinit(high_order_grid.volume_nodes);
     volume_nodes_d2R *= 0.0;
+    dual_d2R.reinit(dual);
+    dual_d2R *= 0.0;
 }
 
 template <int dim, typename real>

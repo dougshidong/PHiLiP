@@ -288,6 +288,9 @@ private:
     /// Modal coefficients of the grid nodes used to compute d2R last
     /// Will be used to avoid recomputing d2R.
     dealii::LinearAlgebra::distributed::Vector<double> volume_nodes_d2R;
+    /// Dual variables to compute d2R last
+    /// Will be used to avoid recomputing d2R.
+    dealii::LinearAlgebra::distributed::Vector<double> dual_d2R;
 public:
 
     /// Time it takes for the maximum wavespeed to cross the cell domain.

@@ -3,7 +3,7 @@
 
 #include "ROL_SecantStep.hpp"
 
-#include "ROL_Objective.hpp"
+#include "ROL_Objective_SimOpt.hpp"
 #include "ROL_Constraint_SimOpt.hpp"
 #include "ROL_Vector_SimOpt.hpp"
 
@@ -15,7 +15,7 @@ template<typename Real = double>
 class KKT_P2_Preconditioner
 {
     /// Objective function.
-    const ROL::Ptr<ROL::Objective<Real>> objective_;
+    const ROL::Ptr<ROL::Objective_SimOpt<Real>> objective_;
     /// Equality constraints.
     const ROL::Ptr<ROL::Constraint_SimOpt<Real>> equal_constraints_;
 
@@ -41,7 +41,8 @@ public:
         const ROL::Ptr<const ROL::Vector<Real>> design_variables,
         const ROL::Ptr<const ROL::Vector<Real>> lagrange_mult,
         const ROL::Ptr<ROL::Secant<Real> > secant)
-        : objective_(objective)
+        : objective_
+            (ROL::makePtrFromRef<ROL::Objective_SimOpt<Real>>(dynamic_cast<ROL::Objective_SimOpt<Real>&>(*objective)))
         , equal_constraints_
             (ROL::makePtrFromRef<ROL::Constraint_SimOpt<Real>>(dynamic_cast<ROL::Constraint_SimOpt<Real>&>(*equal_constraints)))
         , design_variables_
@@ -89,9 +90,9 @@ public:
         rhs_2->scale(-1.0);
         rhs_2->plus(*src_2);
         // Need to apply Hessian inverse on dst_2
-        secant_->applyH( *dst_2, *rhs_2);
+        //secant_->applyH( *dst_2, *rhs_2);
         // Identity
-        //dst_2->set(*rhs_2);
+        dst_2->set(*rhs_2);
 
         equal_constraints_->applyJacobian_2(*rhs_3, *dst_2, *simulation_variables_, *control_variables_, tol);
         rhs_3->scale(-1.0);
@@ -124,7 +125,7 @@ template<typename Real = double>
 class KKT_P4_Preconditioner
 {
     /// Objective function.
-    const ROL::Ptr<ROL::Objective<Real>> objective_;
+    const ROL::Ptr<ROL::Objective_SimOpt<Real>> objective_;
     /// Equality constraints.
     const ROL::Ptr<ROL::Constraint_SimOpt<Real>> equal_constraints_;
 
@@ -150,7 +151,8 @@ public:
         const ROL::Ptr<const ROL::Vector<Real>> design_variables,
         const ROL::Ptr<const ROL::Vector<Real>> lagrange_mult,
         const ROL::Ptr<ROL::Secant<Real> > secant)
-        : objective_(objective)
+        : objective_
+            (ROL::makePtrFromRef<ROL::Objective_SimOpt<Real>>(dynamic_cast<ROL::Objective_SimOpt<Real>&>(*objective)))
         , equal_constraints_
             (ROL::makePtrFromRef<ROL::Constraint_SimOpt<Real>>(dynamic_cast<ROL::Constraint_SimOpt<Real>&>(*equal_constraints)))
         , design_variables_
@@ -197,20 +199,52 @@ public:
         ROL::Ptr<ROL::Vector<Real>> y_2 = src_2->clone();
         ROL::Ptr<ROL::Vector<Real>> y_3 = src_3->clone();
 
-        equal_constraints_->applyInverseAdjointJacobian_1(*dst_3, *rhs_1, *simulation_variables_, *control_variables_, tol);
+        y_1->set(*src_3);
 
-        equal_constraints_->applyAdjointJacobian_2(*rhs_2, *dst_3, *simulation_variables_, *control_variables_, tol);
-        rhs_2->scale(-1.0);
-        rhs_2->plus(*src_2);
-        // Need to apply Hessian inverse on dst_2
-        secant_->applyH( *dst_2, *rhs_2);
-        // Identity
-        //dst_2->set(*rhs_2);
+        auto Asinv_y_1 = y_1->clone();
+        auto temp_1 = y_1->clone();
+        equal_constraints_->applyInverseJacobian_1(*Asinv_y_1, *y_1, *simulation_variables_, *control_variables_, tol);
 
-        equal_constraints_->applyJacobian_2(*rhs_3, *dst_2, *simulation_variables_, *control_variables_, tol);
-        rhs_3->scale(-1.0);
-        rhs_3->plus(*src_3);
-        equal_constraints_->applyInverseJacobian_1(*dst_1, *rhs_3, *simulation_variables_, *control_variables_, tol);
+        y_3->set(*src_1);
+        equal_constraints_->applyAdjointHessian_11 (*temp_1, *lagrange_mult_, *Asinv_y_1, *simulation_variables_, *control_variables_, tol);
+        y_3->axpy(-1.0, *temp_1);
+        objective_->hessVec_11(*temp_1, *Asinv_y_1, *simulation_variables_, *control_variables_, tol);
+        y_3->axpy(-1.0, *temp_1);
+
+        auto AsTinv_y_3 = y_3->clone();
+        equal_constraints_->applyInverseAdjointJacobian_1(*AsTinv_y_3, *y_3, *simulation_variables_, *control_variables_, tol);
+        equal_constraints_->applyAdjointJacobian_2(*y_2, *AsTinv_y_3, *simulation_variables_, *control_variables_, tol);
+        y_2->scale(-1.0);
+        y_2->plus(*src_2);
+
+        auto temp_2 = y_2->clone();
+        equal_constraints_->applyAdjointHessian_12(*temp_2, *lagrange_mult_, *Asinv_y_1, *simulation_variables_, *control_variables_, tol);
+        y_2->axpy(-1.0,*temp_2);
+        objective_->hessVec_21(*temp_2, *Asinv_y_1, *simulation_variables_, *control_variables_, tol);
+        y_2->axpy(-1.0,*temp_2);
+
+        //secant_->applyH( *dst_2, *y_2);
+        dst_2->set(*y_2);
+
+        auto Asinv_Ad_dst_2 = y_1->clone();
+        equal_constraints_->applyJacobian_2(*temp_1, *dst_2, *simulation_variables_, *control_variables_, tol);
+        equal_constraints_->applyInverseJacobian_1(*Asinv_Ad_dst_2, *temp_1, *simulation_variables_, *control_variables_, tol);
+
+        dst_1->set(*Asinv_y_1);
+        dst_1->axpy(-1.0, *Asinv_Ad_dst_2);
+
+        auto dst_3_rhs = y_3->clone();
+        equal_constraints_->applyAdjointHessian_11 (*temp_1, *lagrange_mult_, *Asinv_Ad_dst_2, *simulation_variables_, *control_variables_, tol);
+        dst_3_rhs->axpy(1.0, *temp_1);
+        objective_->hessVec_11(*temp_1, *Asinv_Ad_dst_2, *simulation_variables_, *control_variables_, tol);
+        dst_3_rhs->axpy(1.0, *temp_1);
+
+        equal_constraints_->applyAdjointHessian_21 (*temp_1, *lagrange_mult_, *dst_2, *simulation_variables_, *control_variables_, tol);
+        dst_3_rhs->axpy(-1.0, *temp_1);
+        objective_->hessVec_12(*temp_1, *dst_2, *simulation_variables_, *control_variables_, tol);
+        dst_3_rhs->axpy(-1.0, *temp_1);
+
+        equal_constraints_->applyInverseAdjointJacobian_1(*dst_3, *dst_3_rhs, *simulation_variables_, *control_variables_, tol);
 
         // Identity Preconditioner
         // dst_1->set(*src_1);

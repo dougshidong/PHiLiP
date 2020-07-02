@@ -258,10 +258,41 @@ std::vector<double> FullSpace_BirosGhattas<Real>::solve_linear (
     PreconditionerType &preconditioner)
     //const PHiLiP::Parameters::LinearSolverParam & param = )
 {
-    bool print_kkt_operator = false;
+    const bool print_kkt_operator = false;
+    const bool print_precond_kkt_operator = false;
     // This will only work with 1 process.
     if (print_kkt_operator) {
         matrix_A.print(right_hand_side);
+    }
+
+    if (print_precond_kkt_operator) {
+       const int do_full_matrix = (1 == dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD));
+       std::cout << "do_full_matrix: " << do_full_matrix << std::endl;
+       if (do_full_matrix) {
+           dealiiSolverVectorWrappingROL<Real> column_of_kkt_operator, column_of_precond_kkt_operator;
+           column_of_kkt_operator.reinit(right_hand_side);
+           column_of_precond_kkt_operator.reinit(right_hand_side);
+           dealii::FullMatrix<double> fullA(right_hand_side.size());
+           for (int i = 0; i < right_hand_side.size(); ++i) {
+               std::cout << "COLUMN NUMBER: " << i+1 << " OUT OF " << right_hand_side.size() << std::endl;
+               auto basis = right_hand_side.basis(i);
+               MPI_Barrier(MPI_COMM_WORLD);
+               {
+                   matrix_A.vmult(column_of_kkt_operator,*basis);
+                   preconditioner.vmult(column_of_precond_kkt_operator,column_of_kkt_operator);
+               }
+               //preconditioner.vmult(column_of_precond_kkt_operator,*basis);
+               if (do_full_matrix) {
+                   for (int j = 0; j < right_hand_side.size(); ++j) {
+                       fullA[j][i] = column_of_precond_kkt_operator[j];
+                       //fullA[j][i] = column_of_kkt_operator[j];
+                   }
+               }
+           }
+           std::cout<<"Dense matrix:"<<std::endl;
+           fullA.print_formatted(std::cout, 14, true, 10, "0", 1., 0.);
+           std::abort();
+       }
     }
 
     enum Solver_types { gmres, fgmres };
@@ -270,8 +301,9 @@ std::vector<double> FullSpace_BirosGhattas<Real>::solve_linear (
 
     
 
-    const double rhs_norm = right_hand_side.l2_norm();
-    const double tolerance = rhs_norm*rhs_norm;
+    // const double rhs_norm = right_hand_side.l2_norm();
+    // const double tolerance = rhs_norm*rhs_norm;
+    const double tolerance = 1e-16;
 
     dealii::SolverControl solver_control(100000, tolerance, true, true);
     solver_control.enable_history_data();
@@ -349,7 +381,8 @@ std::vector<Real> FullSpace_BirosGhattas<Real>::solve_KKT_system(
         makePtrFromRef<const Vector<Real>>(design_variables),
         makePtrFromRef<const Vector<Real>>(lagrange_mult));
 
-    KKT_P2_Preconditioner kkt_p2_precond(
+    //KKT_P4_Preconditioner kkt_precond(
+    KKT_P2_Preconditioner kkt_precond(
         makePtrFromRef<Objective<Real>>(objective),
         makePtrFromRef<Constraint<Real>>(equal_constraints),
         makePtrFromRef<const Vector<Real>>(design_variables),
@@ -359,7 +392,7 @@ std::vector<Real> FullSpace_BirosGhattas<Real>::solve_KKT_system(
     dealiiSolverVectorWrappingROL<double> lhs(makePtrFromRef(lhs_rol));
     dealiiSolverVectorWrappingROL<double> rhs(makePtrFromRef(rhs_rol));
 
-    std::vector<double> linear_residuals = solve_linear (kkt_operator, rhs, lhs, kkt_p2_precond);
+    std::vector<double> linear_residuals = solve_linear (kkt_operator, rhs, lhs, kkt_precond);
     std::cout << "Solving the KKT system took "
         << linear_residuals.size() << " iterations "
         << " to achieve a residual of " << linear_residuals.back() << std::endl;

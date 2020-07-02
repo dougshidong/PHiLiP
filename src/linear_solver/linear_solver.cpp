@@ -59,11 +59,12 @@ solve_linear (
         solver.SetAztecOption(AZ_overlap, 0);
         solver.SetAztecOption(AZ_reorder, 1); // RCM re-ordering
   
+        const double rhs_norm = right_hand_side.l2_norm();
         const double 
           ilut_drop = param.ilut_drop,
           ilut_rtol = param.ilut_rtol,//0.0,//1.1,
           ilut_atol = param.ilut_atol,//0.0,//1e-9,
-          linear_residual = param.linear_residual;//1e-4;
+          linear_residual = param.linear_residual * rhs_norm;//1e-4;
         const int 
           ilut_fill = param.ilut_fill,//1,
           max_iterations = param.max_iterations;//200

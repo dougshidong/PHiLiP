@@ -14,6 +14,8 @@
 
 #include "dg/dg.h"
 
+#include "Ifpack.h"
+
 namespace PHiLiP {
 
 using dealii_Vector = dealii::LinearAlgebra::distributed::Vector<double>;
@@ -48,6 +50,9 @@ private:
     /// Design variables values.
     dealii::LinearAlgebra::distributed::Vector<double> ffd_des_var;
 
+    Ifpack_Preconditioner *jacobian_prec;
+    Ifpack_Preconditioner *adjoint_jacobian_prec;
+
 protected:
     /// ID used when outputting the flow solution.
     int i_out = 1000;
@@ -79,6 +84,8 @@ public:
         std::shared_ptr<DGBase<dim,double>> &_dg, 
         const FreeFormDeformation<dim> &_ffd,
         std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim);
+    /// Destructor.
+    ~FlowConstraints();
 
     /// Update the simulation variables.
     void update_1( const ROL::Vector<double>& des_var_sim, bool flag = true, int iter = -1 );
@@ -133,6 +140,44 @@ public:
         const ROL::Vector<double>& des_var_ctl,
         double& /*tol*/ 
         ) override;
+
+    /// Constructs the Jacobian preconditioner.
+    int construct_JacobianPreconditioner_1(
+        const ROL::Vector<double>& des_var_sim,
+        const ROL::Vector<double>& des_var_ctl);
+
+    /// Frees Jacobian preconditioner from memory;
+    void destroy_JacobianPreconditioner_1();
+
+    /// Applies the inverse Jacobian preconditioner.
+    /** construct_JacobianPreconditioner_1 needs to be called beforehand.
+     */
+    void applyInverseJacobianPreconditioner_1(
+        ROL::Vector<double>& output_vector,
+        const ROL::Vector<double>& input_vector,
+        const ROL::Vector<double>& des_var_sim,
+        const ROL::Vector<double>& des_var_ctl,
+        double& /*tol*/ 
+        );
+
+    /// Constructs the Adjoint Jacobian preconditioner.
+    int construct_AdjointJacobianPreconditioner_1(
+        const ROL::Vector<double>& des_var_sim,
+        const ROL::Vector<double>& des_var_ctl);
+
+    /// Frees adjoint Jacobian preconditioner from memory;
+    void destroy_AdjointJacobianPreconditioner_1();
+
+    /// Applies the inverse Adjoint Jacobian preconditioner.
+    /** construct_AdjointJacobianPreconditioner_1 needs to be called beforehand.
+     */
+    void applyInverseAdjointJacobianPreconditioner_1(
+        ROL::Vector<double>& output_vector,
+        const ROL::Vector<double>& input_vector,
+        const ROL::Vector<double>& des_var_sim,
+        const ROL::Vector<double>& des_var_ctl,
+        double& /*tol*/ 
+        );
 
     /// Applies the adjoint Jacobian of the Constraints w.\ r.\ t.\ the simulation variables onto a vector.
     void applyInverseAdjointJacobian_1(

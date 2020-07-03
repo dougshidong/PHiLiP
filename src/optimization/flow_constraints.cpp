@@ -7,6 +7,8 @@
 
 #include <Epetra_RowMatrixTransposer.h>
 
+#include "Ifpack.h"
+
 namespace PHiLiP {
 
 template<int dim>
@@ -19,6 +21,8 @@ FlowConstraints<dim>
     , dg(_dg)
     , ffd(_ffd)
     , ffd_design_variables_indices_dim(_ffd_design_variables_indices_dim)
+    , jacobian_prec(nullptr)
+    , adjoint_jacobian_prec(nullptr)
 {
     ffd_des_var.reinit(ffd_design_variables_indices_dim.size());
     ffd.get_design_variables(ffd_design_variables_indices_dim, ffd_des_var);
@@ -35,6 +39,14 @@ FlowConstraints<dim>
     this->linear_solver_param.ilut_atol = 0.0;
     this->linear_solver_param.linear_solver_output = Parameters::OutputEnum::quiet;
     this->linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
+
+}
+
+template<int dim>
+FlowConstraints<dim>::~FlowConstraints()
+{
+    destroy_JacobianPreconditioner_1();
+    destroy_AdjointJacobianPreconditioner_1();
 }
 
 template<int dim>
@@ -179,31 +191,186 @@ void FlowConstraints<dim>
     //    output_vector.setScalar(1.0);
     //}
 }
+template<int dim>
+void FlowConstraints<dim>
+::destroy_JacobianPreconditioner_1()
+{
+    delete jacobian_prec;
+    jacobian_prec = nullptr;
+}
+template<int dim>
+void FlowConstraints<dim>
+::destroy_AdjointJacobianPreconditioner_1()
+{
+    delete adjoint_jacobian_prec;
+    adjoint_jacobian_prec = nullptr;
+}
 
-// template<int dim>
-// void FlowConstraints<dim>
-// ::applyInverseJacobian_1_preconditioner(
-//     ROL::Vector<double>& output_vector,
-//     const ROL::Vector<double>& input_vector,
-//     const ROL::Vector<double>& des_var_sim,
-//     const ROL::Vector<double>& des_var_ctl,
-//     double& /*tol*/ )
-// {
-// 
-//     update_1(des_var_sim);
-//     update_2(des_var_ctl);
-// 
-//     const bool compute_dRdW=true; const bool compute_dRdX=false; const bool compute_d2R=false;
-//     dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
-// 
-//     if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
-// 
-//     // Input vector is copied into temporary non-const vector.
-//     auto input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
-//     auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
-// 
-//     solve_linear (dg->system_matrix, input_vector_v, output_vector_v, this->linear_solver_param);
-// }
+template<int dim>
+int FlowConstraints<dim>
+::construct_JacobianPreconditioner_1(
+    const ROL::Vector<double>& des_var_sim,
+    const ROL::Vector<double>& des_var_ctl)
+{
+    update_1(des_var_sim);
+    update_2(des_var_ctl);
+
+    const bool compute_dRdW=true; const bool compute_dRdX=false; const bool compute_d2R=false;
+    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+
+    Epetra_CrsMatrix * jacobian = const_cast<Epetra_CrsMatrix *>(&(dg->system_matrix.trilinos_matrix()));
+
+    destroy_JacobianPreconditioner_1();
+    Ifpack Factory;
+    //const std::string PrecType = "ILUT"; 
+    const std::string PrecType = "ILU"; 
+    const int OverlapLevel = 1; // one row of overlap among the processes
+    jacobian_prec = Factory.Create(PrecType, jacobian, OverlapLevel);
+    assert (jacobian_prec != 0);
+
+    Teuchos::ParameterList List;
+    // "fact: level-of-fill":
+    //      defines the level of fill for ILU factorizations.
+    //      This is based on powers of the graph, so the value 0 means no-fill.
+    // "fact: ilut level-of-fill":
+    //      defines the level of fill for ILUT factorizations.
+    //      This is a ratio, so 1.0 means same number of nonzeros for
+    //      the ILU factors as in the original matrix.
+    // "fact: absolute threshold":
+    //      cdefines the value α to add to each diagonal element
+    //      (times the signum of the actual diagonal element),
+    //      for incomplete factorizations only.
+    // "fact: relative threshold":
+    //      defines ρ, so that the diagonal element of the matrix
+    //      (without the contribution specified by "fact: absolute threshold") is multiplied by rho.
+    // "fact: relax value":
+    //      if different from zero, the elements dropped during the factorization process
+    //      will be added to the diagonal term, multiplied by the specified value.
+
+    List.set("fact: level-of-fill", 1);
+    List.set("fact: ilut level-of-fill", 2.0);
+    // no modifications on the diagonal
+    List.set("fact: absolute threshold", 0.0);
+    List.set("fact: relative threshold", 1.0);
+    List.set("fact: relaxation value", 0.0);
+
+
+    IFPACK_CHK_ERR(jacobian_prec->SetParameters(List));
+    IFPACK_CHK_ERR(jacobian_prec->Initialize());
+    IFPACK_CHK_ERR(jacobian_prec->Compute());
+
+    return 0;
+
+}
+
+template<int dim>
+int FlowConstraints<dim>
+::construct_AdjointJacobianPreconditioner_1(
+    const ROL::Vector<double>& des_var_sim,
+    const ROL::Vector<double>& des_var_ctl)
+{
+    update_1(des_var_sim);
+    update_2(des_var_ctl);
+
+    const bool compute_dRdW=true; const bool compute_dRdX=false; const bool compute_d2R=false;
+    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+
+    Epetra_CrsMatrix * adjoint_jacobian = const_cast<Epetra_CrsMatrix *>(&(dg->system_matrix_transpose.trilinos_matrix()));
+
+    destroy_AdjointJacobianPreconditioner_1();
+    Ifpack Factory;
+    //const std::string PrecType = "ILUT"; 
+    const std::string PrecType = "ILU"; 
+    const int OverlapLevel = 1; // one row of overlap among the processes
+    adjoint_jacobian_prec = Factory.Create(PrecType, adjoint_jacobian, OverlapLevel);
+    assert (adjoint_jacobian_prec != 0);
+
+    Teuchos::ParameterList List;
+    // "fact: level-of-fill":
+    //      defines the level of fill for ILU factorizations.
+    //      This is based on powers of the graph, so the value 0 means no-fill.
+    // "fact: ilut level-of-fill":
+    //      defines the level of fill for ILUT factorizations.
+    //      This is a ratio, so 1.0 means same number of nonzeros for
+    //      the ILU factors as in the original matrix.
+    // "fact: absolute threshold":
+    //      cdefines the value α to add to each diagonal element
+    //      (times the signum of the actual diagonal element),
+    //      for incomplete factorizations only.
+    // "fact: relative threshold":
+    //      defines ρ, so that the diagonal element of the matrix
+    //      (without the contribution specified by "fact: absolute threshold") is multiplied by rho.
+    // "fact: relax value":
+    //      if different from zero, the elements dropped during the factorization process
+    //      will be added to the diagonal term, multiplied by the specified value.
+
+    List.set("fact: level-of-fill", 1);
+    List.set("fact: ilut level-of-fill", 1.0);
+    // no modifications on the diagonal
+    List.set("fact: absolute threshold", 0.0);
+    List.set("fact: relative threshold", 1.0);
+    List.set("fact: relaxation value", 0.0);
+
+
+    IFPACK_CHK_ERR(adjoint_jacobian_prec->SetParameters(List));
+    IFPACK_CHK_ERR(adjoint_jacobian_prec->Initialize());
+    IFPACK_CHK_ERR(adjoint_jacobian_prec->Compute());
+
+    return 0;
+
+}
+
+template<int dim>
+void FlowConstraints<dim>
+::applyInverseJacobianPreconditioner_1(
+    ROL::Vector<double>& output_vector,
+    const ROL::Vector<double>& input_vector,
+    const ROL::Vector<double>& des_var_sim,
+    const ROL::Vector<double>& des_var_ctl,
+    double& /*tol*/ )
+{
+    (void) des_var_sim; // Preconditioner should be built.
+    (void) des_var_ctl; // Preconditioner should be built.
+    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
+
+    // Input vector is copied into temporary non-const vector.
+    auto input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
+    auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
+
+    Epetra_Vector input_trilinos(View,
+                    dg->system_matrix.trilinos_matrix().DomainMap(),
+                    input_vector_v.begin());
+    Epetra_Vector output_trilinos(View,
+                    dg->system_matrix.trilinos_matrix().RangeMap(),
+                    output_vector_v.begin());
+    jacobian_prec->ApplyInverse (input_trilinos, output_trilinos);
+}
+
+template<int dim>
+void FlowConstraints<dim>
+::applyInverseAdjointJacobianPreconditioner_1(
+    ROL::Vector<double>& output_vector,
+    const ROL::Vector<double>& input_vector,
+    const ROL::Vector<double>& des_var_sim,
+    const ROL::Vector<double>& des_var_ctl,
+    double& /*tol*/ )
+{
+    (void) des_var_sim; // Preconditioner should be built.
+    (void) des_var_ctl; // Preconditioner should be built.
+    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
+
+    // Input vector is copied into temporary non-const vector.
+    auto input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
+    auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
+
+    Epetra_Vector input_trilinos(View,
+                    dg->system_matrix_transpose.trilinos_matrix().DomainMap(),
+                    input_vector_v.begin());
+    Epetra_Vector output_trilinos(View,
+                    dg->system_matrix_transpose.trilinos_matrix().RangeMap(),
+                    output_vector_v.begin());
+    adjoint_jacobian_prec->ApplyInverse (input_trilinos, output_trilinos);
+}
 
 template<int dim>
 void FlowConstraints<dim>

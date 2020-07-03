@@ -301,9 +301,9 @@ std::vector<double> FullSpace_BirosGhattas<Real>::solve_linear (
 
     
 
-    // const double rhs_norm = right_hand_side.l2_norm();
+    const double rhs_norm = right_hand_side.l2_norm();
     // const double tolerance = rhs_norm*rhs_norm;
-    const double tolerance = 1e-16;
+    const double tolerance = 1e-6 * rhs_norm;
 
     dealii::SolverControl solver_control(100000, tolerance, true, true);
     solver_control.enable_history_data();
@@ -381,13 +381,15 @@ std::vector<Real> FullSpace_BirosGhattas<Real>::solve_KKT_system(
         makePtrFromRef<const Vector<Real>>(design_variables),
         makePtrFromRef<const Vector<Real>>(lagrange_mult));
 
-    //KKT_P4_Preconditioner kkt_precond(
-    KKT_P2_Preconditioner kkt_precond(
+    const bool use_jacobian_preconditioner = false;//true;
+    KKT_P4_Preconditioner kkt_precond(
+    //KKT_P2_Preconditioner kkt_precond(
         makePtrFromRef<Objective<Real>>(objective),
         makePtrFromRef<Constraint<Real>>(equal_constraints),
         makePtrFromRef<const Vector<Real>>(design_variables),
         makePtrFromRef<const Vector<Real>>(lagrange_mult),
-        secant_);
+        secant_,
+        use_jacobian_preconditioner);
 
     dealiiSolverVectorWrappingROL<double> lhs(makePtrFromRef(lhs_rol));
     dealiiSolverVectorWrappingROL<double> rhs(makePtrFromRef(rhs_rol));

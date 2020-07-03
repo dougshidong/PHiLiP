@@ -7,6 +7,8 @@
 #include "ROL_Constraint_SimOpt.hpp"
 #include "ROL_Vector_SimOpt.hpp"
 
+#include "flow_constraints.hpp"
+
 /// P2 preconditioner from Biros & Ghattas 2005.
 /** Second order terms of the Lagrangian Hessian are ignored
  *  and exact inverses of the Jacobian (transpose) are used.
@@ -17,7 +19,8 @@ class KKT_P2_Preconditioner
     /// Objective function.
     const ROL::Ptr<ROL::Objective_SimOpt<Real>> objective_;
     /// Equality constraints.
-    const ROL::Ptr<ROL::Constraint_SimOpt<Real>> equal_constraints_;
+    //const ROL::Ptr<ROL::Constraint_SimOpt<Real>> equal_constraints_;
+    const ROL::Ptr<PHiLiP::FlowConstraints<PHILIP_DIM>> equal_constraints_;
 
     /// Design variables.
     const ROL::Ptr<const ROL::Vector_SimOpt<Real>> design_variables_;
@@ -33,6 +36,10 @@ class KKT_P2_Preconditioner
     /// Secant method used to precondition the reduced Hessian.
     const ROL::Ptr<ROL::Secant<Real> > secant_;
 
+    /// Use an approximate inverse of the Jacobian and Jacobian transpose using
+    /// the preconditioner to obtain the "tilde" operator version of Biros and Ghattas.
+    const bool use_jacobian_preconditioner_;
+
 public:
     /// Constructor.
     KKT_P2_Preconditioner(
@@ -40,18 +47,30 @@ public:
         const ROL::Ptr<ROL::Constraint<Real>> equal_constraints,
         const ROL::Ptr<const ROL::Vector<Real>> design_variables,
         const ROL::Ptr<const ROL::Vector<Real>> lagrange_mult,
-        const ROL::Ptr<ROL::Secant<Real> > secant)
+        const ROL::Ptr<ROL::Secant<Real> > secant,
+        const bool use_jacobian_preconditioner = false)
         : objective_
             (ROL::makePtrFromRef<ROL::Objective_SimOpt<Real>>(dynamic_cast<ROL::Objective_SimOpt<Real>&>(*objective)))
         , equal_constraints_
-            (ROL::makePtrFromRef<ROL::Constraint_SimOpt<Real>>(dynamic_cast<ROL::Constraint_SimOpt<Real>&>(*equal_constraints)))
+            //(ROL::makePtrFromRef<ROL::Constraint_SimOpt<Real>>(dynamic_cast<ROL::Constraint_SimOpt<Real>&>(*equal_constraints)))
+            (ROL::makePtrFromRef<PHiLiP::FlowConstraints<PHILIP_DIM>>(dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(*equal_constraints)))
         , design_variables_
             (ROL::makePtrFromRef<const ROL::Vector_SimOpt<Real>>(dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*design_variables)))
         , lagrange_mult_(lagrange_mult)
         , simulation_variables_(design_variables_->get_1())
         , control_variables_(design_variables_->get_2())
         , secant_(secant)
-    { };
+        , use_jacobian_preconditioner_(use_jacobian_preconditioner)
+    {
+        if (use_jacobian_preconditioner_) {
+            const int error_precond1 = equal_constraints_->construct_JacobianPreconditioner_1(*simulation_variables_, *control_variables_);
+            const int error_precond2 = equal_constraints_->construct_AdjointJacobianPreconditioner_1(*simulation_variables_, *control_variables_);
+            assert(error_precond1 == 0);
+            assert(error_precond2 == 0);
+            (void) error_precond1;
+            (void) error_precond2;
+        }
+    }
 
     /// Application of KKT preconditionner on vector src outputted into dst.
     void vmult (dealiiSolverVectorWrappingROL<Real>       &dst,
@@ -84,7 +103,11 @@ public:
         ROL::Ptr<ROL::Vector<Real>> rhs_1 = src_1->clone();
         ROL::Ptr<ROL::Vector<Real>> rhs_2 = src_2->clone();
         ROL::Ptr<ROL::Vector<Real>> rhs_3 = src_3->clone();
-        equal_constraints_->applyInverseAdjointJacobian_1(*dst_3, *rhs_1, *simulation_variables_, *control_variables_, tol);
+        if (use_jacobian_preconditioner_) {
+            equal_constraints_->applyInverseAdjointJacobianPreconditioner_1(*dst_3, *rhs_1, *simulation_variables_, *control_variables_, tol);
+        } else {
+            equal_constraints_->applyInverseAdjointJacobian_1(*dst_3, *rhs_1, *simulation_variables_, *control_variables_, tol);
+        }
 
         equal_constraints_->applyAdjointJacobian_2(*rhs_2, *dst_3, *simulation_variables_, *control_variables_, tol);
         rhs_2->scale(-1.0);
@@ -97,7 +120,11 @@ public:
         equal_constraints_->applyJacobian_2(*rhs_3, *dst_2, *simulation_variables_, *control_variables_, tol);
         rhs_3->scale(-1.0);
         rhs_3->plus(*src_3);
-        equal_constraints_->applyInverseJacobian_1(*dst_1, *rhs_3, *simulation_variables_, *control_variables_, tol);
+        if (use_jacobian_preconditioner_) {
+            equal_constraints_->applyInverseJacobianPreconditioner_1(*dst_1, *rhs_3, *simulation_variables_, *control_variables_, tol);
+        } else {
+            equal_constraints_->applyInverseJacobian_1(*dst_1, *rhs_3, *simulation_variables_, *control_variables_, tol);
+        }
 
         // Identity Preconditioner
         // dst_1->set(*src_1);
@@ -127,7 +154,8 @@ class KKT_P4_Preconditioner
     /// Objective function.
     const ROL::Ptr<ROL::Objective_SimOpt<Real>> objective_;
     /// Equality constraints.
-    const ROL::Ptr<ROL::Constraint_SimOpt<Real>> equal_constraints_;
+    //const ROL::Ptr<ROL::Constraint_SimOpt<Real>> equal_constraints_;
+    const ROL::Ptr<PHiLiP::FlowConstraints<PHILIP_DIM>> equal_constraints_;
 
     /// Design variables.
     const ROL::Ptr<const ROL::Vector_SimOpt<Real>> design_variables_;
@@ -143,6 +171,10 @@ class KKT_P4_Preconditioner
     /// Secant method used to precondition the reduced Hessian.
     const ROL::Ptr<ROL::Secant<Real> > secant_;
 
+    /// Use an approximate inverse of the Jacobian and Jacobian transpose using
+    /// the preconditioner to obtain the "tilde" operator version of Biros and Ghattas.
+    const bool use_jacobian_preconditioner_;
+
 public:
     /// Constructor.
     KKT_P4_Preconditioner(
@@ -150,18 +182,37 @@ public:
         const ROL::Ptr<ROL::Constraint<Real>> equal_constraints,
         const ROL::Ptr<const ROL::Vector<Real>> design_variables,
         const ROL::Ptr<const ROL::Vector<Real>> lagrange_mult,
-        const ROL::Ptr<ROL::Secant<Real> > secant)
+        const ROL::Ptr<ROL::Secant<Real> > secant,
+        const bool use_jacobian_preconditioner = false)
         : objective_
             (ROL::makePtrFromRef<ROL::Objective_SimOpt<Real>>(dynamic_cast<ROL::Objective_SimOpt<Real>&>(*objective)))
         , equal_constraints_
-            (ROL::makePtrFromRef<ROL::Constraint_SimOpt<Real>>(dynamic_cast<ROL::Constraint_SimOpt<Real>&>(*equal_constraints)))
+            //(ROL::makePtrFromRef<ROL::Constraint_SimOpt<Real>>(dynamic_cast<ROL::Constraint_SimOpt<Real>&>(*equal_constraints)))
+            (ROL::makePtrFromRef<PHiLiP::FlowConstraints<PHILIP_DIM>>(dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(*equal_constraints)))
         , design_variables_
             (ROL::makePtrFromRef<const ROL::Vector_SimOpt<Real>>(dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*design_variables)))
         , lagrange_mult_(lagrange_mult)
         , simulation_variables_(design_variables_->get_1())
         , control_variables_(design_variables_->get_2())
         , secant_(secant)
-    { };
+        , use_jacobian_preconditioner_(use_jacobian_preconditioner)
+    {
+        if (use_jacobian_preconditioner_) {
+            const int error_precond1 = equal_constraints_->construct_JacobianPreconditioner_1(*simulation_variables_, *control_variables_);
+            const int error_precond2 = equal_constraints_->construct_AdjointJacobianPreconditioner_1(*simulation_variables_, *control_variables_);
+            assert(error_precond1 == 0);
+            assert(error_precond2 == 0);
+            (void) error_precond1;
+            (void) error_precond2;
+        }
+    };
+    ~KKT_P4_Preconditioner()
+    {
+        if (use_jacobian_preconditioner_) {
+            equal_constraints_->destroy_JacobianPreconditioner_1();
+            equal_constraints_->destroy_AdjointJacobianPreconditioner_1();
+        }
+    };
 
     /// Application of KKT preconditionner on vector src outputted into dst.
     void vmult (dealiiSolverVectorWrappingROL<Real>       &dst,
@@ -203,7 +254,11 @@ public:
 
         auto Asinv_y_1 = y_1->clone();
         auto temp_1 = y_1->clone();
-        equal_constraints_->applyInverseJacobian_1(*Asinv_y_1, *y_1, *simulation_variables_, *control_variables_, tol);
+        if (use_jacobian_preconditioner_) {
+            equal_constraints_->applyInverseJacobianPreconditioner_1(*Asinv_y_1, *y_1, *simulation_variables_, *control_variables_, tol);
+        } else {
+            equal_constraints_->applyInverseJacobian_1(*Asinv_y_1, *y_1, *simulation_variables_, *control_variables_, tol);
+        }
 
         y_3->set(*src_1);
         equal_constraints_->applyAdjointHessian_11 (*temp_1, *lagrange_mult_, *Asinv_y_1, *simulation_variables_, *control_variables_, tol);
@@ -212,7 +267,11 @@ public:
         y_3->axpy(-1.0, *temp_1);
 
         auto AsTinv_y_3 = y_3->clone();
-        equal_constraints_->applyInverseAdjointJacobian_1(*AsTinv_y_3, *y_3, *simulation_variables_, *control_variables_, tol);
+        if (use_jacobian_preconditioner_) {
+            equal_constraints_->applyInverseAdjointJacobianPreconditioner_1(*AsTinv_y_3, *y_3, *simulation_variables_, *control_variables_, tol);
+        } else {
+            equal_constraints_->applyInverseAdjointJacobian_1(*AsTinv_y_3, *y_3, *simulation_variables_, *control_variables_, tol);
+        }
         equal_constraints_->applyAdjointJacobian_2(*y_2, *AsTinv_y_3, *simulation_variables_, *control_variables_, tol);
         y_2->scale(-1.0);
         y_2->plus(*src_2);
@@ -228,7 +287,11 @@ public:
 
         auto Asinv_Ad_dst_2 = y_1->clone();
         equal_constraints_->applyJacobian_2(*temp_1, *dst_2, *simulation_variables_, *control_variables_, tol);
-        equal_constraints_->applyInverseJacobian_1(*Asinv_Ad_dst_2, *temp_1, *simulation_variables_, *control_variables_, tol);
+        if (use_jacobian_preconditioner_) {
+            equal_constraints_->applyInverseJacobianPreconditioner_1(*Asinv_Ad_dst_2, *temp_1, *simulation_variables_, *control_variables_, tol);
+        } else {
+            equal_constraints_->applyInverseJacobian_1(*Asinv_Ad_dst_2, *temp_1, *simulation_variables_, *control_variables_, tol);
+        }
 
         dst_1->set(*Asinv_y_1);
         dst_1->axpy(-1.0, *Asinv_Ad_dst_2);
@@ -244,7 +307,11 @@ public:
         objective_->hessVec_12(*temp_1, *dst_2, *simulation_variables_, *control_variables_, tol);
         dst_3_rhs->axpy(-1.0, *temp_1);
 
-        equal_constraints_->applyInverseAdjointJacobian_1(*dst_3, *dst_3_rhs, *simulation_variables_, *control_variables_, tol);
+        if (use_jacobian_preconditioner_) {
+            equal_constraints_->applyInverseAdjointJacobianPreconditioner_1(*dst_3, *dst_3_rhs, *simulation_variables_, *control_variables_, tol);
+        } else {
+            equal_constraints_->applyInverseAdjointJacobian_1(*dst_3, *dst_3_rhs, *simulation_variables_, *control_variables_, tol);
+        }
 
         // Identity Preconditioner
         // dst_1->set(*src_1);

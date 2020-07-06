@@ -34,8 +34,8 @@ const int POLY_DEGREE = 2;
 const double BUMP_HEIGHT = 0.0625;
 const double CHANNEL_LENGTH = 3.0;
 const double CHANNEL_HEIGHT = 0.8;
-const unsigned int NY_CELL = 5;
-const unsigned int NX_CELL = 9*NY_CELL;
+const unsigned int NY_CELL = 3;
+const unsigned int NX_CELL = 4*NY_CELL;
 
 double check_max_rel_error(std::vector<std::vector<double>> rol_check_results) {
     double max_rel_err = 999999;

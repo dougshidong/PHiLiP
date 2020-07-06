@@ -28,10 +28,36 @@ Functional<dim,nstate,real>::Functional(
     : dg(_dg)
     , uses_solution_values(_uses_solution_values)
     , uses_solution_gradient(_uses_solution_gradient)
+    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 { 
     using ADtype = Sacado::Fad::DFad<real>;
     using ADADtype = Sacado::Fad::DFad<ADtype>;
     physics_fad_fad = Physics::PhysicsFactory<dim,nstate,ADADtype>::create_Physics(dg->all_parameters);
+
+    init_vectors();
+}
+template <int dim, int nstate, typename real>
+void Functional<dim,nstate,real>::init_vectors()
+{
+    solution_value.reinit(dg->solution);
+    solution_value *= 0.0;
+    volume_nodes_value.reinit(dg->high_order_grid.volume_nodes);
+    volume_nodes_value *= 0.0;
+
+    solution_dIdW.reinit(dg->solution);
+    solution_dIdW *= 0.0;
+    volume_nodes_dIdW.reinit(dg->high_order_grid.volume_nodes);
+    volume_nodes_dIdW *= 0.0;
+
+    solution_dIdX.reinit(dg->solution);
+    solution_dIdX *= 0.0;
+    volume_nodes_dIdX.reinit(dg->high_order_grid.volume_nodes);
+    volume_nodes_dIdX *= 0.0;
+
+    solution_d2I.reinit(dg->solution);
+    solution_d2I *= 0.0;
+    volume_nodes_d2I.reinit(dg->high_order_grid.volume_nodes);
+    volume_nodes_d2I *= 0.0;
 }
 
 template <int dim, int nstate, typename real>
@@ -40,11 +66,10 @@ Functional<dim,nstate,real>::Functional(
     std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>> >> _physics_fad_fad,
     const bool _uses_solution_values,
     const bool _uses_solution_gradient)
-    : dg(_dg)
-    , physics_fad_fad(_physics_fad_fad)
-    , uses_solution_values(_uses_solution_values)
-    , uses_solution_gradient(_uses_solution_gradient)
-{ }
+    : Functional(_dg, _uses_solution_values, _uses_solution_gradient)
+{
+    physics_fad_fad = _physics_fad_fad;
+}
 
 template <int dim, int nstate, typename real>
 void Functional<dim,nstate,real>::set_state(const dealii::LinearAlgebra::distributed::Vector<real> &solution_set)
@@ -258,6 +283,96 @@ Sacado::Fad::DFad<Sacado::Fad::DFad<real>> Functional<dim, nstate, real>::evalua
     return evaluate_volume_cell_functional<Sacado::Fad::DFad<Sacado::Fad::DFad<real>>>(physics_fad_fad, soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 }
 
+
+template <int dim, int nstate, typename real>
+void Functional<dim, nstate, real>::need_compute(bool &compute_value, bool &compute_dIdW, bool &compute_dIdX, bool &compute_d2I)
+{
+    if (compute_value) {
+        pcout << " with value...";
+
+        auto diff_sol = dg->solution;
+        diff_sol -= solution_value;
+        const double l2_norm_sol = diff_sol.l2_norm();
+
+        if (l2_norm_sol == 0.0) {
+
+            auto diff_node = dg->high_order_grid.volume_nodes;
+            diff_node -= volume_nodes_value;
+            const double l2_norm_node = diff_node.l2_norm();
+
+            if (l2_norm_node == 0.0) {
+                pcout << " which is already assembled...";
+                compute_value = false;
+            }
+        }
+        solution_value = dg->solution;
+        volume_nodes_value = dg->high_order_grid.volume_nodes;
+    }
+    if (compute_dIdW) {
+        pcout << " with dIdW...";
+
+        auto diff_sol = dg->solution;
+        diff_sol -= solution_dIdW;
+        const double l2_norm_sol = diff_sol.l2_norm();
+
+        if (l2_norm_sol == 0.0) {
+
+            auto diff_node = dg->high_order_grid.volume_nodes;
+            diff_node -= volume_nodes_dIdW;
+            const double l2_norm_node = diff_node.l2_norm();
+
+            if (l2_norm_node == 0.0) {
+                pcout << " which is already assembled...";
+                compute_dIdW = false;
+            }
+        }
+        solution_dIdW = dg->solution;
+        volume_nodes_dIdW = dg->high_order_grid.volume_nodes;
+    }
+    if (compute_dIdX) {
+        pcout << " with dIdX...";
+
+        auto diff_sol = dg->solution;
+        diff_sol -= solution_dIdX;
+        const double l2_norm_sol = diff_sol.l2_norm();
+
+        if (l2_norm_sol == 0.0) {
+
+            auto diff_node = dg->high_order_grid.volume_nodes;
+            diff_node -= volume_nodes_dIdX;
+            const double l2_norm_node = diff_node.l2_norm();
+
+            if (l2_norm_node == 0.0) {
+                pcout << " which is already assembled...";
+                compute_dIdX = false;
+            }
+        }
+        solution_dIdX = dg->solution;
+        volume_nodes_dIdX = dg->high_order_grid.volume_nodes;
+    }
+    if (compute_d2I) {
+        pcout << " with d2IdWdW, d2IdWdX, d2IdXdX...";
+        auto diff_sol = dg->solution;
+        diff_sol -= solution_d2I;
+        const double l2_norm_sol = diff_sol.l2_norm();
+
+        if (l2_norm_sol == 0.0) {
+
+            auto diff_node = dg->high_order_grid.volume_nodes;
+            diff_node -= volume_nodes_d2I;
+            const double l2_norm_node = diff_node.l2_norm();
+
+            if (l2_norm_node == 0.0) {
+
+                pcout << " which is already assembled...";
+                compute_d2I = false;
+            }
+        }
+        solution_d2I = dg->solution;
+        volume_nodes_d2I = dg->high_order_grid.volume_nodes;
+    }
+}
+
 template <int dim, int nstate, typename real>
 real Functional<dim, nstate, real>::evaluate_functional(
     const bool compute_dIdW,
@@ -266,6 +381,20 @@ real Functional<dim, nstate, real>::evaluate_functional(
 {
     using ADtype = Sacado::Fad::DFad<real>;
     using ADADtype = Sacado::Fad::DFad<ADtype>;
+
+    bool actually_compute_value = true;
+    bool actually_compute_dIdW = compute_dIdW;
+    bool actually_compute_dIdX = compute_dIdX;
+    bool actually_compute_d2I  = compute_d2I;
+
+    pcout << "Evaluating functional... ";
+    need_compute(actually_compute_value, actually_compute_dIdW, actually_compute_dIdX, actually_compute_d2I);
+    pcout << std::endl;
+
+    if (!actually_compute_value && !actually_compute_dIdW && !actually_compute_dIdX && !actually_compute_d2I) {
+        return current_functional_value;
+    }
+
     // Returned value
     real local_functional = 0.0;
 
@@ -287,7 +416,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
 
     dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg->fe_collection, dg->face_quadrature_collection,   this->face_update_flags);
 
-    allocate_derivatives(compute_dIdW, compute_dIdX, compute_d2I);
+    allocate_derivatives(actually_compute_dIdW, actually_compute_dIdX, actually_compute_d2I);
 
     dg->solution.update_ghost_values();
     auto metric_cell = dg->high_order_grid.dof_handler_grid.begin_active();
@@ -316,21 +445,21 @@ real Functional<dim, nstate, real>::evaluate_functional(
 
         // Setup automatic differentiation
         unsigned int n_total_indep = 0;
-        if (compute_dIdW || compute_d2I) n_total_indep += n_soln_dofs_cell;
-        if (compute_dIdX || compute_d2I) n_total_indep += n_metric_dofs_cell;
+        if (actually_compute_dIdW || actually_compute_d2I) n_total_indep += n_soln_dofs_cell;
+        if (actually_compute_dIdX || actually_compute_d2I) n_total_indep += n_metric_dofs_cell;
         unsigned int i_derivative = 0;
 		for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof) {
 			const real val = dg->solution[cell_soln_dofs_indices[idof]];
 			soln_coeff[idof] = val;
-			if (compute_dIdW || compute_d2I) soln_coeff[idof].diff(i_derivative++, n_total_indep);
+			if (actually_compute_dIdW || actually_compute_d2I) soln_coeff[idof].diff(i_derivative++, n_total_indep);
 		}
 		for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
 			const real val = dg->high_order_grid.volume_nodes[cell_metric_dofs_indices[idof]];
 			coords_coeff[idof] = val;
-			if (compute_dIdX || compute_d2I) coords_coeff[idof].diff(i_derivative++, n_total_indep);
+			if (actually_compute_dIdX || actually_compute_d2I) coords_coeff[idof].diff(i_derivative++, n_total_indep);
         }
         AssertDimension(i_derivative, n_total_indep);
-        if (compute_d2I) {
+        if (actually_compute_d2I) {
 			unsigned int i_derivative = 0;
             for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof) {
 				const real val = dg->solution[cell_soln_dofs_indices[idof]];
@@ -370,22 +499,22 @@ real Functional<dim, nstate, real>::evaluate_functional(
         // now getting the values and adding them to the derivaitve vector
 
         i_derivative = 0;
-        if (compute_dIdW) {
+        if (actually_compute_dIdW) {
             local_dIdw.resize(n_soln_dofs_cell);
             for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof){
                 local_dIdw[idof] = volume_local_sum.dx(i_derivative++).val();
             }
             dIdw.add(cell_soln_dofs_indices, local_dIdw);
         }
-        if (compute_dIdX) {
+        if (actually_compute_dIdX) {
             local_dIdX.resize(n_metric_dofs_cell);
             for(unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof){
                 local_dIdX[idof] = volume_local_sum.dx(i_derivative++).val();
             }
             dIdX.add(cell_metric_dofs_indices, local_dIdX);
         }
-		if (compute_dIdW || compute_dIdX) AssertDimension(i_derivative, n_total_indep);
-        if (compute_d2I) {
+		if (actually_compute_dIdW || actually_compute_dIdX) AssertDimension(i_derivative, n_total_indep);
+        if (actually_compute_d2I) {
 			std::vector<real> dWidW(n_soln_dofs_cell);
 			std::vector<real> dWidX(n_metric_dofs_cell);
 			std::vector<real> dXidX(n_metric_dofs_cell);
@@ -423,9 +552,9 @@ real Functional<dim, nstate, real>::evaluate_functional(
     }
     current_functional_value = dealii::Utilities::MPI::sum(local_functional, MPI_COMM_WORLD);
     // compress before the return
-    if (compute_dIdW) dIdw.compress(dealii::VectorOperation::add);
-    if (compute_dIdX) dIdX.compress(dealii::VectorOperation::add);
-    if (compute_d2I) {
+    if (actually_compute_dIdW) dIdw.compress(dealii::VectorOperation::add);
+    if (actually_compute_dIdX) dIdX.compress(dealii::VectorOperation::add);
+    if (actually_compute_d2I) {
 		d2IdWdW.compress(dealii::VectorOperation::add);
 		d2IdWdX.compress(dealii::VectorOperation::add);
 		d2IdXdX.compress(dealii::VectorOperation::add);

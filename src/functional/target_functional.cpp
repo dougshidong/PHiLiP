@@ -272,8 +272,18 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
 {
     using ADtype = Sacado::Fad::DFad<real>;
     using ADADtype = Sacado::Fad::DFad<ADtype>;
-    // Returned value
-    real local_functional = 0.0;
+
+    bool actually_compute_value = true;
+    bool actually_compute_dIdW = compute_dIdW;
+    bool actually_compute_dIdX = compute_dIdX;
+    bool actually_compute_d2I  = compute_d2I;
+
+    Functional<dim,nstate,real>::pcout << "Evaluating functional... ";
+    Functional<dim,nstate,real>::need_compute(actually_compute_value, actually_compute_dIdW, actually_compute_dIdX, actually_compute_d2I);
+    Functional<dim,nstate,real>::pcout << std::endl;
+    if (!actually_compute_value && !actually_compute_dIdW && !actually_compute_dIdX && !actually_compute_d2I) {
+        return current_functional_value;
+    }
 
     // for taking the local derivatives
     const dealii::FESystem<dim,dim> &fe_metric = dg->high_order_grid.fe_system;
@@ -294,11 +304,14 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
 
     dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg->fe_collection, dg->face_quadrature_collection,   this->face_update_flags);
 
-    this->allocate_derivatives(compute_dIdW, compute_dIdX, compute_d2I);
+    this->allocate_derivatives(actually_compute_dIdW, actually_compute_dIdX, actually_compute_d2I);
 
     dg->solution.update_ghost_values();
     auto metric_cell = dg->high_order_grid.dof_handler_grid.begin_active();
     auto soln_cell = dg->dof_handler.begin_active();
+
+    real local_functional = 0.0;
+
     for( ; soln_cell != dg->dof_handler.end(); ++soln_cell, ++metric_cell) {
         if(!soln_cell->is_locally_owned()) continue;
 
@@ -325,13 +338,13 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
 
         // Setup automatic differentiation
         unsigned int n_total_indep = 0;
-        if (compute_dIdW || compute_d2I) n_total_indep += n_soln_dofs_cell;
-        if (compute_dIdX || compute_d2I) n_total_indep += n_metric_dofs_cell;
+        if (actually_compute_dIdW || actually_compute_d2I) n_total_indep += n_soln_dofs_cell;
+        if (actually_compute_dIdX || actually_compute_d2I) n_total_indep += n_metric_dofs_cell;
         unsigned int i_derivative = 0;
 		for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof) {
 			const real val = dg->solution[cell_soln_dofs_indices[idof]];
 			soln_coeff[idof] = val;
-			if (compute_dIdW || compute_d2I) soln_coeff[idof].diff(i_derivative++, n_total_indep);
+			if (actually_compute_dIdW || actually_compute_d2I) soln_coeff[idof].diff(i_derivative++, n_total_indep);
 		}
 		for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof) {
 			const real val = target_solution[cell_soln_dofs_indices[idof]];
@@ -340,10 +353,10 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
 		for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
 			const real val = dg->high_order_grid.volume_nodes[cell_metric_dofs_indices[idof]];
 			coords_coeff[idof] = val;
-			if (compute_dIdX || compute_d2I) coords_coeff[idof].diff(i_derivative++, n_total_indep);
+			if (actually_compute_dIdX || actually_compute_d2I) coords_coeff[idof].diff(i_derivative++, n_total_indep);
         }
         AssertDimension(i_derivative, n_total_indep);
-        if (compute_d2I) {
+        if (actually_compute_d2I) {
 			unsigned int i_derivative = 0;
             for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof) {
 				const real val = dg->solution[cell_soln_dofs_indices[idof]];
@@ -384,15 +397,15 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
         local_functional += volume_local_sum.val().val();
         // now getting the values and adding them to the derivaitve vector
 
-        this->set_derivatives(compute_dIdW, compute_dIdX, compute_d2I, volume_local_sum, cell_soln_dofs_indices, cell_metric_dofs_indices);
+        this->set_derivatives(actually_compute_dIdW, actually_compute_dIdX, actually_compute_d2I, volume_local_sum, cell_soln_dofs_indices, cell_metric_dofs_indices);
     }
 	//std::cout << local_functional << std::endl;
     current_functional_value = dealii::Utilities::MPI::sum(local_functional, MPI_COMM_WORLD);
 	//std::cout << current_functional_value << std::endl;
     // compress before the return
-    if (compute_dIdW) dIdw.compress(dealii::VectorOperation::add);
-    if (compute_dIdX) dIdX.compress(dealii::VectorOperation::add);
-    if (compute_d2I) {
+    if (actually_compute_dIdW) dIdw.compress(dealii::VectorOperation::add);
+    if (actually_compute_dIdX) dIdX.compress(dealii::VectorOperation::add);
+    if (actually_compute_d2I) {
 		d2IdWdW.compress(dealii::VectorOperation::add);
 		d2IdWdX.compress(dealii::VectorOperation::add);
 		d2IdXdX.compress(dealii::VectorOperation::add);

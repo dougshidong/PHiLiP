@@ -127,6 +127,36 @@ public:
     /// Sparse matrix for storing the functional partial second derivatives.
     dealii::TrilinosWrappers::SparseMatrix d2IdXdX;
 
+private:
+    void init_vectors();
+    /// Modal coefficients of the solution used to compute dIdW last
+    /// Will be used to avoid recomputing dIdW.
+    dealii::LinearAlgebra::distributed::Vector<double> solution_value;
+    /// Modal coefficients of the grid nodes used to compute dIdW last
+    /// Will be used to avoid recomputing dIdW.
+    dealii::LinearAlgebra::distributed::Vector<double> volume_nodes_value;
+
+    /// Modal coefficients of the solution used to compute dIdW last
+    /// Will be used to avoid recomputing dIdW.
+    dealii::LinearAlgebra::distributed::Vector<double> solution_dIdW;
+    /// Modal coefficients of the grid nodes used to compute dIdW last
+    /// Will be used to avoid recomputing dIdW.
+    dealii::LinearAlgebra::distributed::Vector<double> volume_nodes_dIdW;
+
+    /// Modal coefficients of the solution used to compute dIdX last
+    /// Will be used to avoid recomputing dIdX.
+    dealii::LinearAlgebra::distributed::Vector<double> solution_dIdX;
+    /// Modal coefficients of the grid nodes used to compute dIdX last
+    /// Will be used to avoid recomputing dIdX.
+    dealii::LinearAlgebra::distributed::Vector<double> volume_nodes_dIdX;
+
+    /// Modal coefficients of the solution used to compute d2I last
+    /// Will be used to avoid recomputing d2I.
+    dealii::LinearAlgebra::distributed::Vector<double> solution_d2I;
+    /// Modal coefficients of the grid nodes used to compute d2I last
+    /// Will be used to avoid recomputing d2I.
+    dealii::LinearAlgebra::distributed::Vector<double> volume_nodes_d2I;
+
 protected:
     /// Allocate and setup the derivative vectors/matrices.
     /** Helper function to simplify the evaluate_functional */
@@ -143,6 +173,12 @@ protected:
         std::vector<dealii::types::global_dof_index> cell_metric_dofs_indices);
 
 protected:
+    /// Checks which derivatives actually need to be recomputed.
+    /** If the stored solution and mesh are the same as the one used to previously
+     *  compute the derivative, then we do not need to recompute them.
+     */
+    void need_compute(bool &compute_value, bool &compute_dIdW, bool &compute_dIdX, bool &compute_d2I);
+
     /// Templated function to evaluate a cell's volume functional.
     template <typename real2>
     real2 evaluate_volume_cell_functional(
@@ -212,6 +248,8 @@ protected:
 
     const bool uses_solution_values; ///< Will evaluate solution values at quadrature points
     const bool uses_solution_gradient; ///< Will evaluate solution gradient at quadrature points
+
+    dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
 }; // TargetFunctional class
 

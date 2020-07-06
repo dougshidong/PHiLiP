@@ -57,6 +57,8 @@ protected:
     /// ID used when outputting the flow solution.
     int i_out = 1000;
 
+    dealii::TrilinosWrappers::SparseMatrix dXvdXp;
+
 public:
     /// Avoid -Werror=overloaded-virtual.
     using ROL::Constraint_SimOpt<double>::value;

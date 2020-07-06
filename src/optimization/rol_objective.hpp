@@ -32,6 +32,8 @@ private:
     /// Design variables.
     dealii::LinearAlgebra::distributed::Vector<double> ffd_des_var;
 
+    dealii::TrilinosWrappers::SparseMatrix dXvdXp;
+
 public:
 
     /// Constructor.

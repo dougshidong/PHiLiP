@@ -43,16 +43,16 @@
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/vector_tools.templates.h>
 
-#include "parameters/all_parameters.h"
-#include "parameters/parameters.h"
-#include "dg/dg.h"
 #include <deal.II/grid/manifold_lib.h>
 #include <deal.II/fe/mapping_q.h>
-//#include <GCL_test.h>
+#include <deal.II/fe/mapping_q_generic.h>
+#include <deal.II/fe/fe_dgq.h>
+#include <deal.II/fe/fe_system.h>
+#include <deal.II/dofs/dof_handler.h>
+#include <deal.II/fe/mapping_fe_field.h> 
 
 const double TOLERANCE = 1E-6;
 using namespace std;
-//namespace PHiLiP {
 
 
 template <int dim>
@@ -77,38 +77,33 @@ dealii::Point<dim> CurvManifold<dim>::pull_back(const dealii::Point<dim> &space_
     }
     dealii::Vector<double> function(dim);
     dealii::FullMatrix<double> derivative(dim);
-    //for (int i=0; i<200; i++) {
     int flag =0;
     while(flag != dim){
 //#if 0
         for(int idim=0;idim<dim;idim++){
-            //function[idim] = 1.0 / 8.0; 
-            //function[idim] = 1.0 / 8.0 /2.0; 
             function[idim] = 1.0/20.0; 
             for(int idim2=0;idim2<dim;idim2++){
-                //function[idim] *= std::cos(3.0 * pi/2.0 * x_ref[idim2]);
                 function[idim] *= std::cos(2.0 * pi* x_ref[idim2]);
             }
             function[idim] += x_ref[idim] - x_phys[idim];
         }
 //#endif
+
 #if 0
         function[0] = x_ref[0] - x_phys[0] +1.0/40.0*std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(2.0*pi*(x_ref[2]));
         function[1] = x_ref[1] - x_phys[1] +1.0/40.0*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1])*std::sin(3.0*pi/2.0*(x_ref[2]));
         function[2] = x_ref[2] - x_phys[2] +1.0/40.0*std::sin(2.0*pi*(x_ref[0]))*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(5.0*pi/2.0*(x_ref[2]));
 #endif
-   // #if 0
+
+
+ //   #if 0
         for(int idim=0; idim<dim; idim++){
             for(int idim2=0; idim2<dim;idim2++){
-                //derivative[idim][idim2] = - 3.0 * pi / 16.0;
-                //derivative[idim][idim2] = - 3.0 * pi / 16.0 /2.0;
                 derivative[idim][idim2] = - 1.0/20.0*2.0 * pi;
                 for(int idim3 =0;idim3<dim; idim3++){
                     if(idim2 == idim3)
-                        //derivative[idim][idim2] *=std::sin(3.0 * pi/2.0 * x_ref[idim3]);
                         derivative[idim][idim2] *=std::sin(2.0 * pi * x_ref[idim3]);
                     else
-                        //derivative[idim][idim2] *=std::cos(3.0 * pi/2.0 * x_ref[idim3]);
                         derivative[idim][idim2] *=std::cos(2.0 * pi* x_ref[idim3]);
                 }
                 if(idim == idim2)
@@ -148,11 +143,8 @@ dealii::Point<dim> CurvManifold<dim>::pull_back(const dealii::Point<dim> &space_
     std::vector<double> function_check(dim);
 //#if 0
     for(int idim=0;idim<dim; idim++){
-        //function_check[idim] = 1.0/8.0;
-        //function_check[idim] = 1.0/8.0 /2.0;
         function_check[idim] = 1.0/20.0;
         for(int idim2=0; idim2<dim; idim2++){
-            //function_check[idim] *= std::cos(3.0 * pi/2.0 * x_ref[idim2]);
             function_check[idim] *= std::cos(2.0 * pi * x_ref[idim2]);
         }
         function_check[idim] += x_ref[idim];
@@ -187,11 +179,8 @@ dealii::Point<dim> CurvManifold<dim>::push_forward(const dealii::Point<dim> &cha
         x_ref[idim] = chart_point[idim];
 //#if 0
     for(int idim=0; idim<dim; idim++){
-        //x_phys[idim] = 1.0/8.0;
-       // x_phys[idim] = 1.0/8.0 /2.0;
         x_phys[idim] = 1.0/20.0;
         for(int idim2=0;idim2<dim; idim2++){
-           //x_phys[idim] *= std::cos( 3.0 * pi/2.0 * x_ref[idim2]);
            x_phys[idim] *= std::cos( 2.0 * pi * x_ref[idim2]);
         }
         x_phys[idim] += x_ref[idim];
@@ -216,15 +205,11 @@ dealii::DerivativeForm<1,dim,dim> CurvManifold<dim>::push_forward_gradient(const
         x[idim] = chart_point[idim];
     for(int idim=0; idim<dim; idim++){
         for(int idim2=0; idim2<dim;idim2++){
-            //dphys_dref[idim][idim2] = - 3.0 * pi / 16.0;
-            //dphys_dref[idim][idim2] = - 3.0 * pi / 16.0 /2.0;
             dphys_dref[idim][idim2] = - 1.0/20.0*2.0 * pi;
             for(int idim3 =0;idim3<dim; idim3++){
                 if(idim2 == idim3)
-                    //dphys_dref[idim][idim2] *=std::sin(3.0 * pi/2.0 * x[idim3]);
                     dphys_dref[idim][idim2] *=std::sin(2.0 * pi * x[idim3]);
                 else
-                   //  dphys_dref[idim][idim2] *=std::cos(3.0 * pi/2.0 * x[idim3]);
                      dphys_dref[idim][idim2] *=std::cos(2.0 * pi* x[idim3]);
             }     
             if(idim == idim2)
@@ -269,19 +254,13 @@ static dealii::Point<dim> warp (const dealii::Point<dim> &p)
     if (dim == 2){
         q[dim-1] = p[dim-1] + 1.0/8.0 * std::cos(3.0 * pi/2.0 * p[dim-1]) * std::cos(3.0 * pi/2.0 * p[dim-2]);
         q[dim-2] = p[dim-2] + 1.0/8.0 * std::cos(3.0 * pi/2.0 * p[dim-1]) * std::cos(3.0 * pi/2.0 * p[dim-2]);
-        //q[dim-1] = p[dim-1] +  std::cos(2.0 * pi * p[dim-1]) * std::cos(2.0 * pi* p[dim-2]);
-        //q[dim-2] = p[dim-2] +  std::cos(2.0 * pi * p[dim-1]) * std::cos(2.0 * pi* p[dim-2]);
     }
     if(dim==3){
-       //q[dim-1] = p[dim-1] + 1.0/16.0 * cos(3.0 * pi/2.0 * p[dim-1]) * cos(3.0 * pi/2.0 * p[dim-2]) * cos(3.0 * pi/2.0 * p[dim-3]);
-       //q[dim-2] = p[dim-2] + 1.0/16.0 * cos(3.0 * pi/2.0 * p[dim-1]) * cos(3.0 * pi/2.0 * p[dim-2]) * cos(3.0 * pi/2.0 * p[dim-3]);
-       //q[dim-3] = p[dim-3] + 1.0/16.0 * cos(3.0 * pi/2.0 * p[dim-1]) * cos(3.0 * pi/2.0 * p[dim-2]) * cos(3.0 * pi/2.0 * p[dim-3]);
-       //transform David
-   //    #if 0
+//        #if 0
         q[dim-1] =p[dim-1] + 1.0/20.0*  std::cos(2.0 * pi * p[dim-1]) * std::cos(2.0 * pi * p[dim-2]) * std::cos(2.0 * pi * p[dim-3]);
         q[dim-2] =p[dim-2] +  1.0/20.0* std::cos(2.0 * pi * p[dim-1]) * std::cos(2.0 * pi * p[dim-2]) * std::cos(2.0 * pi * p[dim-3]);
         q[dim-3] =p[dim-3] +  1.0/20.0* std::cos(2.0 * pi * p[dim-1]) * std::cos(2.0 * pi * p[dim-2]) * std::cos(2.0 * pi * p[dim-3]);
-    //    #endif
+ //       #endif
         //non sym transform
         #if 0
         q[dim-1] =p[dim-1] +  1.0/40.0*std::cos(pi/2.0 * p[dim-1]) * std::cos(3.0 * pi/2.0 * p[dim-2]) * std::sin(2.0 * pi * (p[dim-3]));
@@ -309,8 +288,6 @@ int main (int argc, char * argv[])
 
     PHiLiP::Parameters::AllParameters all_parameters_new;
     all_parameters_new.parse_parameters (parameter_handler);
-
-    all_parameters_new.use_collocated_nodes=true;
 
     unsigned int poly_degree = 3;
     double left = 0.0;
@@ -340,28 +317,42 @@ int main (int argc, char * argv[])
 //#endif
 //"END COMMENT" TO NOT WARP GRID
 
-//setup DG
-    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, &grid);
-    dg->allocate_system ();
+//build FE Collection
+            dealii::hp::FECollection<dim> fe_collection;
+            dealii::hp::QCollection<dim> volume_quadrature_collection;
+          //  const dealii::FE_DGQ<dim> fe_dg(poly_degree);
+            //dealii::QGauss<1> one_d_lag (poly_degree+1);
+            dealii::QGaussLobatto<1> one_d_lag (poly_degree+1);
+	    dealii::FE_DGQArbitraryNodes<dim,dim> fe_dg(one_d_lag);
+            const dealii::FESystem<dim,dim> fe_system(fe_dg, nstate);
+            fe_collection.push_back (fe_system);
+            //dealii::QGauss<dim> vol_quad_Gauss_Legendre (poly_degree+1);
+           // dealii::QGaussLobatto<dim> vol_quad_Gauss_Legendre (poly_degree+1);
+            dealii::Quadrature<dim> vol_quad_Gauss_Legendre (one_d_lag);
+            volume_quadrature_collection.push_back(vol_quad_Gauss_Legendre);
+            dealii::hp::DoFHandler<dim> dof_handler;
+            dealii::IndexSet locally_owned_dofs;
+            dealii::IndexSet ghost_dofs;
+            dealii::IndexSet locally_relevant_dofs;
+            dof_handler.initialize(grid, fe_collection);
+
+            dof_handler.distribute_dofs(fe_collection);
+            locally_owned_dofs = dof_handler.locally_owned_dofs();
+            dealii::DoFTools::extract_locally_relevant_dofs(dof_handler, ghost_dofs);
+            locally_relevant_dofs = ghost_dofs;
+            ghost_dofs.subtract_set(locally_owned_dofs);
+
+            const dealii::MappingQGeneric<dim, dim> mapping_collection (poly_degree+1);
     
     double max_GCL = 0.0;
 
-    const unsigned int n_quad_pts      = dg->volume_quadrature_collection[poly_degree].size();
-    const unsigned int n_dofs_cell     =dg->fe_collection[poly_degree].dofs_per_cell;
-   // dealii::QGauss<dim> quad_val(poly_degree+1);
-    //dealii::QGaussLobatto<dim> quad_val(poly_degree+1);
-   // const dealii::Mapping<dim> &mapping = (*(dg->high_order_grid.mapping_fe_field));
-    const auto mapping = (*(dg->high_order_grid.mapping_fe_field));
-    dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-    // dealii::FEValues<dim,dim> fe_values_vol(*(dg->high_order_grid.mapping_fe_field), dg->fe_collection[poly_degree], quad_val, 
-   // dealii::FEValues<dim,dim> fe_values_vol(mapping, dg->fe_collection[poly_degree], quad_val, 
-   // dealii::FEValues<dim,dim> fe_values_vol(mapping, dg->fe_collection[poly_degree], dg->volume_quadrature_collection[poly_degree], 
-   // dealii::hp::FEValues<dim,dim> fe_values_vol(mapping_collection, dg->fe_collection[poly_degree], dg->volume_quadrature_collection[poly_degree], 
-    dealii::hp::FEValues<dim,dim> fe_values_vol_collection(mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, 
+    const unsigned int n_quad_pts      = volume_quadrature_collection[0].size();
+    const unsigned int n_dofs_cell     =fe_collection[0].dofs_per_cell;
+    dealii::FEValues<dim,dim> fe_values_vol(mapping_collection, fe_collection[0], volume_quadrature_collection[0], 
                                 dealii::update_values | dealii::update_JxW_values | 
-                                 dealii::update_jacobians | 
+                                dealii::update_jacobians |  
                                 dealii::update_quadrature_points | dealii::update_inverse_jacobians);
-    const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
+    const unsigned int max_dofs_per_cell = dof_handler.get_fe_collection().max_dofs_per_cell();
     std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
     std::vector<dealii::FullMatrix<real>> local_derivative_operator(dim);
     dealii::FullMatrix<real> Chi(n_dofs_cell);
@@ -372,49 +363,129 @@ int main (int argc, char * argv[])
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
             dealii::Tensor<1,dim,real> derivative;
-            const dealii::Point<dim> qpoint  = dg->volume_quadrature_collection[poly_degree].point(iquad);
-            derivative = dg->fe_collection[poly_degree].shape_grad_component(idof, qpoint, istate);
-            Chi[iquad][idof] = dg->fe_collection[poly_degree].shape_value_component(idof,qpoint,istate);
+            const dealii::Point<dim> qpoint  = volume_quadrature_collection[0].point(iquad);
+            derivative = fe_collection[0].shape_grad_component(idof, qpoint, istate);
+            Chi[iquad][idof] = fe_collection[0].shape_value_component(idof,qpoint,istate);
             for (int idim=0; idim<dim; idim++){
                 local_derivative_operator[idim][iquad][idof] = derivative[idim];//store dChi/dXi
             }
         }
     }
     }
-
     dealii::FullMatrix<real> Chi_inv(n_dofs_cell);
     Chi_inv.invert(Chi);
-    for(int idim=0; idim<dim; idim++){
-        dealii::FullMatrix<real> derivative_temp(n_quad_pts, n_dofs_cell);
-        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-                derivative_temp[iquad][idof] = local_derivative_operator[idim][iquad][idof];
-            }
-        }
-        derivative_temp.mmult(local_derivative_operator[idim],Chi_inv);
-    }
-            for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell) {
+            for (auto current_cell = dof_handler.begin_active(); current_cell!=dof_handler.end(); ++current_cell) {
                 if (!current_cell->is_locally_owned()) continue;
 	
-               // fe_values_vol.reinit (current_cell);
-                const unsigned int mapping_index = 0;
-                const unsigned int fe_index_curr_cell = current_cell->active_fe_index();
-                const unsigned int quad_index = fe_index_curr_cell;
-                fe_values_vol_collection.reinit (current_cell);
-                fe_values_vol_collection.reinit (current_cell, quad_index, mapping_index, fe_index_curr_cell);
-                const dealii::FEValues<dim,dim> &fe_values_vol = fe_values_vol_collection.get_present_fe_values();
+                fe_values_vol.reinit (current_cell);
 
+#if 0
                 dealii::FullMatrix<real> Nodes_phys(n_quad_pts, dim);
                 for (unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-printf(" iquad %d\n",iquad);
                     const dealii::Point<dim> qpoint = (fe_values_vol.quadrature_point(iquad));
                     for(int idim=0; idim<dim; idim++){
                         Nodes_phys[iquad][idim] = qpoint[idim];
-                        printf(" %g ", Nodes_phys[iquad][idim]);
                     }
-                    printf("\n");
                 }
 
+                std::vector<dealii::FullMatrix<real>> Jacobian(n_quad_pts);
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                    Jacobian[iquad].reinit(dim, dim);
+                }
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                    dealii::DerivativeForm<1, dim, dim> temp;
+                    temp=fe_values_vol.jacobian(iquad);
+                    for(int idim=0; idim<dim; idim++){
+                        for(int idim2=0; idim2<dim; idim2++){
+                            Jacobian[iquad][idim][idim2] = temp[idim][idim2];
+                        }
+                    }
+                }
+
+                std::vector<dealii::DerivativeForm<1,dim,dim>> Xl_grad_Xm(n_quad_pts);
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                    for(int ndim=0; ndim<dim; ndim++){
+                        int mdim, ldim;//ndim, mdim, ldim cyclic
+                        if(ndim == dim-1){
+                            mdim = 0;
+                        }
+                        else{
+                            mdim = ndim + 1;
+                        }
+                        if(ndim == 0){
+                            ldim = dim - 1;
+                        }
+                        else{
+                            ldim = ndim - 1;
+                        }
+                        for(int i=0; i<dim; ++i){
+                            Xl_grad_Xm[iquad][ndim][i] = Nodes_phys[iquad][ldim] * Jacobian[iquad][mdim][i];
+                        }
+                     }          
+                }          
+                //Certain it is correct up to here
+
+                //project Xl_grad_Xm for modal coeff then rep gradient by basis function
+                std::vector<dealii::DerivativeForm<1,dim,dim>> proj_Xl_grad_Xm(n_quad_pts);
+                for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                    for(int idim=0; idim<dim; idim++){
+                        for(int jdim=0; jdim<dim; jdim++){
+                            proj_Xl_grad_Xm[idof][idim][jdim] = 0.0;
+                            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                                proj_Xl_grad_Xm[idof][idim][jdim] += Chi_inv[idof][iquad] * Xl_grad_Xm[iquad][idim][jdim];
+                            }
+                        }
+                    }
+                }
+                //Chi_inv.vmult(proj_Xl_grad_Xm, Xl_grad_Xm);
+
+
+                std::vector<dealii::DerivativeForm<2,dim,dim>> grad_Xl_grad_Xm(n_quad_pts);
+                for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                    for(int idim=0; idim<dim; idim++){
+                        for(int jdim=0; jdim<dim; jdim++){
+                            for(int kdim=0; kdim<dim; kdim++){
+                                grad_Xl_grad_Xm[idof][idim][jdim][kdim] =0.0;
+                                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                                    grad_Xl_grad_Xm[idof][idim][jdim][kdim] += 
+                                        local_derivative_operator[kdim][idof][iquad] 
+                                        * proj_Xl_grad_Xm[iquad][idim][jdim];
+printf(" %g ",local_derivative_operator[kdim][idof][iquad]); 
+                                }
+printf("\n");
+                            }
+                        }
+                    }
+                }
+                std::vector<dealii::DerivativeForm<1,dim,dim>> In_J_a_ni(n_quad_pts);
+printf("In J a_n^i\n");
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+printf("iquad %d\n",iquad);
+                     for(int ndim=0; ndim<dim; ndim++){
+                         for(int idim=0; idim<dim; ++idim){
+                            int jdim, kdim;//ndim, mdim, ldim cyclic
+                            if(idim == dim-1){
+                                jdim = 0;
+                            }
+                            else{
+                                jdim = idim + 1;
+                            }
+                            if(idim == 0){
+                                kdim = dim - 1;
+                            }
+                            else{
+                                kdim = idim - 1;
+                            }
+                            In_J_a_ni[iquad][ndim][idim]= - (grad_Xl_grad_Xm[iquad][ndim][kdim][jdim] - grad_Xl_grad_Xm[iquad][ndim][jdim][kdim]);
+printf(" %g ",In_J_a_ni[iquad][ndim][idim]);
+                        }
+printf("\n");
+                    }
+printf("\n");
+                } 
+#endif
+
+//#if 0
                 std::vector<dealii::FullMatrix<real>> Jacobian_inv(n_quad_pts);
                 for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
                     Jacobian_inv[iquad].reinit(dim, dim);
@@ -428,6 +499,7 @@ printf(" iquad %d\n",iquad);
                         }
                     }
                 }
+//#endif
 
                 std::vector< std::vector<dealii::FullMatrix<real>>>  Gij(dim);
                 for(int idim=0; idim<dim; idim++){
@@ -437,7 +509,7 @@ printf(" iquad %d\n",iquad);
                     }
                 }
 
-                const std::vector<real> &quad_weights = dg->volume_quadrature_collection[poly_degree].get_weights ();
+                const std::vector<real> &quad_weights = volume_quadrature_collection[0].get_weights ();
                 for(int idim=0; idim<dim;idim++){
                     for(int idim2=0; idim2<dim; idim2++){
 printf(" G i=%d j =%d\n",idim,idim2);
@@ -446,6 +518,8 @@ printf(" G i=%d j =%d\n",idim,idim2);
                                 if(idof==iquad){
                                     Gij[idim][idim2][idof][iquad] = fe_values_vol.JxW(iquad)/quad_weights[iquad]*Jacobian_inv[iquad][idim][idim2];
 printf("%g \n",Gij[idim][idim2][idof][iquad]);
+                                    //Gij[idim][idim2][idof][iquad] = In_J_a_ni[iquad][idim][idim2];
+                                    //Gij[idim][idim2][idof][iquad] = In_J_a_ni[iquad][idim2][idim];
                                 }
                             }
                         }
@@ -465,6 +539,7 @@ printf("%g \n",Gij[idim][idim2][idof][iquad]);
                     for(int idim2=0; idim2<dim;idim2++){
                         dealii::FullMatrix<real> temp(n_dofs_cell);
                         local_derivative_operator[idim2].mmult(temp, Gij[idim2][idim]);
+                        //local_derivative_operator[idim2].mmult(temp, Gij[idim][idim2]);
                         dealii::Vector<real> temp2(n_dofs_cell);
                         temp.vmult(temp2, ones);
                         GCL[idim].add(1, temp2);
@@ -476,7 +551,7 @@ printf("%g \n",Gij[idim][idim2][idof][iquad]);
                     for(unsigned int idof=0; idof<n_dofs_cell; idof++){
                         printf(" %.16g \n", GCL[idim][idof]);
                         if( std::abs(GCL[idim][idof]) > max_GCL){
-                            max_GCL = GCL[idim][idof];
+                            max_GCL = std::abs(GCL[idim][idof]);
                         }
                     }
                 }
@@ -494,4 +569,3 @@ printf("%g \n",Gij[idim][idim2][idof][iquad]);
     }
 }
 
-//}//end PHiLiP namespace

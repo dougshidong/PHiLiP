@@ -14,11 +14,11 @@ set use_split_form = false
 
 set use_periodic_bc = true
 
-set use_energy = false
+set use_energy = true
 
 set use_L2_norm = false
 
-set use_skew_sym_deriv = true
+set use_skew_sym_deriv = false
 
 set use_jac_sol_points = false
 

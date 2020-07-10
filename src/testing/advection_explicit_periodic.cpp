@@ -56,26 +56,56 @@ dealii::Point<dim> CurvManifold<dim>::pull_back(const dealii::Point<dim> &space_
     //for (int i=0; i<200; i++) {
     int flag =0;
     while(flag != dim){
+//#if 0
         for(int idim=0;idim<dim;idim++){
             function[idim] = 1.0 / 8.0; 
+            //function[idim] = 1.0 / 8.0 /2.0; 
+            //function[idim] = 1.0/20.0; 
             for(int idim2=0;idim2<dim;idim2++){
                 function[idim] *= std::cos(3.0 * pi/2.0 * x_ref[idim2]);
+                //function[idim] *= std::cos(2.0 * pi* x_ref[idim2]);
             }
             function[idim] += x_ref[idim] - x_phys[idim];
         }
+//#endif
+#if 0
+        function[0] = x_ref[0] - x_phys[0] +1.0/40.0*std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(2.0*pi*(x_ref[2]));
+        function[1] = x_ref[1] - x_phys[1] +1.0/40.0*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1])*std::sin(3.0*pi/2.0*(x_ref[2]));
+        function[2] = x_ref[2] - x_phys[2] +1.0/40.0*std::sin(2.0*pi*(x_ref[0]))*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(5.0*pi/2.0*(x_ref[2]));
+#endif
+   // #if 0
         for(int idim=0; idim<dim; idim++){
             for(int idim2=0; idim2<dim;idim2++){
                 derivative[idim][idim2] = - 3.0 * pi / 16.0;
+                //derivative[idim][idim2] = - 3.0 * pi / 16.0 /2.0;
+                //derivative[idim][idim2] = - 1.0/20.0*2.0 * pi;
                 for(int idim3 =0;idim3<dim; idim3++){
                     if(idim2 == idim3)
                         derivative[idim][idim2] *=std::sin(3.0 * pi/2.0 * x_ref[idim3]);
+                        //derivative[idim][idim2] *=std::sin(2.0 * pi * x_ref[idim3]);
                     else
                         derivative[idim][idim2] *=std::cos(3.0 * pi/2.0 * x_ref[idim3]);
+                        //derivative[idim][idim2] *=std::cos(2.0 * pi* x_ref[idim3]);
                 }
                 if(idim == idim2)
                     derivative[idim][idim2] += 1.0;
             }
         }
+//#endif
+#if 0
+        derivative[0][0] = 1.0 - 1.0/40.0* pi/2.0 * std::sin(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(2.0*pi*(x_ref[2]));
+        derivative[0][1] =  - 1.0/40.0*3.0 *pi/2.0 * std::cos(pi/2.0*x_ref[0])*std::sin(3.0*pi/2.0*x_ref[1])*std::sin(2.0*pi*(x_ref[2]));
+        derivative[0][2] =  1.0/40.0*2.0*pi * std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1])*std::cos(2.0*pi*(x_ref[2]));
+
+        derivative[1][0] =  1.0/40.0*2.0*pi*std::cos(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1])*std::sin(3.0*pi/2.0*(x_ref[2]));
+        derivative[1][1] =  1.0 -1.0/40.0*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::sin(pi/2.0*x_ref[1])*std::sin(3.0*pi/2.0*(x_ref[2]));  
+        derivative[1][2] =  1.0/40.0*3.0*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1])*std::cos(3.0*pi/2.0*(x_ref[2]));
+
+        derivative[2][0] = 1.0/40.0*2.0*pi*std::cos(2.0*pi*(x_ref[0]))*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(5.0*pi/2.0*(x_ref[2]));
+        derivative[2][1] = - 1.0/40.0*3.0*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::sin(3.0*pi/2.0*x_ref[1])*std::sin(5.0*pi/2.0*(x_ref[2]));
+        derivative[2][2] = 1.0 + 1.0/40.0*5.0*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::cos(3.0*pi/2.0*x_ref[1])*std::cos(5.0*pi/2.0*(x_ref[2]));
+#endif
+
         dealii::FullMatrix<double> Jacobian_inv(dim);
         Jacobian_inv.invert(derivative);
         dealii::Vector<double> Newton_Step(dim);
@@ -92,13 +122,23 @@ dealii::Point<dim> CurvManifold<dim>::pull_back(const dealii::Point<dim> &space_
             break;
     }
     std::vector<double> function_check(dim);
+//#if 0
     for(int idim=0;idim<dim; idim++){
         function_check[idim] = 1.0/8.0;
+        //function_check[idim] = 1.0/8.0 /2.0;
+        //function_check[idim] = 1.0/20.0;
         for(int idim2=0; idim2<dim; idim2++){
             function_check[idim] *= std::cos(3.0 * pi/2.0 * x_ref[idim2]);
+            //function_check[idim] *= std::cos(2.0 * pi * x_ref[idim2]);
         }
         function_check[idim] += x_ref[idim];
     }
+//#endif
+#if 0
+        function_check[0] = x_ref[0] + 1.0/40.0*std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(2.0*pi*(x_ref[2]));
+        function_check[1] = x_ref[1] + 1.0/40.0*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1])*std::sin(3.0*pi/2.0*(x_ref[2]));
+        function_check[2] = x_ref[2] + 1.0/40.0*std::sin(2.0*pi*(x_ref[0]))*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(5.0*pi/2.0*(x_ref[2]));
+#endif
     std::vector<double> error(dim);
     for(int idim=0; idim<dim; idim++) 
         error[idim] = std::abs(function_check[idim] - x_phys[idim]);
@@ -121,13 +161,23 @@ dealii::Point<dim> CurvManifold<dim>::push_forward(const dealii::Point<dim> &cha
     dealii::Point<dim> x_phys;
     for(int idim=0; idim<dim; idim++)
         x_ref[idim] = chart_point[idim];
+//#if 0
     for(int idim=0; idim<dim; idim++){
         x_phys[idim] = 1.0/8.0;
+       // x_phys[idim] = 1.0/8.0 /2.0;
+        //x_phys[idim] = 1.0/20.0;
         for(int idim2=0;idim2<dim; idim2++){
            x_phys[idim] *= std::cos( 3.0 * pi/2.0 * x_ref[idim2]);
+           //x_phys[idim] *= std::cos( 2.0 * pi * x_ref[idim2]);
         }
         x_phys[idim] += x_ref[idim];
     }
+//#endif
+#if 0
+        x_phys[0] = x_ref[0] + 1.0/40.0*std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(2.0*pi*(x_ref[2]));
+        x_phys[1] = x_ref[1] + 1.0/40.0*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1])*std::sin(3.0*pi/2.0*(x_ref[2]));
+        x_phys[2] = x_ref[2] + 1.0/40.0*std::sin(2.0*pi*(x_ref[0]))*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(5.0*pi/2.0*(x_ref[2]));
+#endif
     return dealii::Point<dim> (x_phys); // Trigonometric
 }
 
@@ -136,22 +186,46 @@ dealii::DerivativeForm<1,dim,dim> CurvManifold<dim>::push_forward_gradient(const
 {
     const double pi = atan(1)*4.0;
     dealii::DerivativeForm<1, dim, dim> dphys_dref;
+//#if 0
     dealii::Point<dim> x;
     for(int idim=0; idim<dim; idim++)
         x[idim] = chart_point[idim];
     for(int idim=0; idim<dim; idim++){
         for(int idim2=0; idim2<dim;idim2++){
             dphys_dref[idim][idim2] = - 3.0 * pi / 16.0;
+            //dphys_dref[idim][idim2] = - 3.0 * pi / 16.0 /2.0;
+            //dphys_dref[idim][idim2] = - 1.0/20.0*2.0 * pi;
             for(int idim3 =0;idim3<dim; idim3++){
                 if(idim2 == idim3)
                     dphys_dref[idim][idim2] *=std::sin(3.0 * pi/2.0 * x[idim3]);
+                    //dphys_dref[idim][idim2] *=std::sin(2.0 * pi * x[idim3]);
                 else
-                    dphys_dref[idim][idim2] *=std::cos(3.0 * pi/2.0 * x[idim3]);
-            }
+                     dphys_dref[idim][idim2] *=std::cos(3.0 * pi/2.0 * x[idim3]);
+                    // dphys_dref[idim][idim2] *=std::cos(2.0 * pi* x[idim3]);
+            }     
             if(idim == idim2)
                 dphys_dref[idim][idim2] += 1.0;
         }
     }
+//#endif
+#if 0
+    dealii::Point<dim> x_ref;
+    for(int idim=0; idim<dim; idim++){
+        x_ref[idim] = chart_point[idim];
+    }
+
+        dphys_dref[0][0] = 1.0 - 1.0/40.0*pi/2.0 * std::sin(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(2.0*pi*(x_ref[2]));
+        dphys_dref[0][1] =  - 1.0/40.0*3.0*pi/2.0 * std::cos(pi/2.0*x_ref[0])*std::sin(3.0*pi/2.0*x_ref[1])*std::sin(2.0*pi*(x_ref[2]));
+        dphys_dref[0][2] =  1.0/40.0*2.0*pi * std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1])*std::cos(2.0*pi*(x_ref[2]));
+
+        dphys_dref[1][0] =  1.0/40.0*2.0*pi*std::cos(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1])*std::sin(3.0*pi/2.0*(x_ref[2]));
+        dphys_dref[1][1] =  1.0 -1.0/40.0*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::sin(pi/2.0*x_ref[1])*std::sin(3.0*pi/2.0*(x_ref[2]));  
+        dphys_dref[1][2] =  1.0/40.0*3.0*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1])*std::cos(3.0*pi/2.0*(x_ref[2]));
+
+        dphys_dref[2][0] = 1.0/40.0*2.0*pi*std::cos(2.0*pi*(x_ref[0]))*std::cos(3.0*pi/2.0*x_ref[1])*std::sin(5.0*pi/2.0*(x_ref[2]));
+        dphys_dref[2][1] = -1.0/40.0*3.0*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::sin(3.0*pi/2.0*x_ref[1])*std::sin(5.0*pi/2.0*(x_ref[2]));
+        dphys_dref[2][2] = 1.0 + 1.0/40.0*5.0*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::cos(3.0*pi/2.0*x_ref[1])*std::cos(5.0*pi/2.0*(x_ref[2]));
+#endif
 
     return dphys_dref;
 }
@@ -170,16 +244,31 @@ dealii::Point<dim> AdvectionPeriodic<dim,nstate>
     dealii::Point<dim> q = p;
 
     if (dim == 1){
-        q[dim-1] = p[dim-1] + 1.0/8.0 * cos(3.0 * pi/2.0 * p[dim-1]);
+       // q[dim-1] = p[dim-1] + 1.0/8.0 * cos(3.0 * pi/2.0 * p[dim-1]);
+        q[dim-1] = p[dim-1] + cos(2.0 * pi* p[dim-1]);
     }
     if (dim == 2){
         q[dim-1] = p[dim-1] + 1.0/8.0 * std::cos(3.0 * pi/2.0 * p[dim-1]) * std::cos(3.0 * pi/2.0 * p[dim-2]);
         q[dim-2] = p[dim-2] + 1.0/8.0 * std::cos(3.0 * pi/2.0 * p[dim-1]) * std::cos(3.0 * pi/2.0 * p[dim-2]);
+        //q[dim-1] = p[dim-1] +  std::cos(2.0 * pi * p[dim-1]) * std::cos(2.0 * pi* p[dim-2]);
+        //q[dim-2] = p[dim-2] +  std::cos(2.0 * pi * p[dim-1]) * std::cos(2.0 * pi* p[dim-2]);
     }
     if(dim==3){
-        q[dim-1] = p[dim-1] + 1.0/8.0 * cos(3.0 * pi/2.0 * p[dim-1]) * cos(3.0 * pi/2.0 * p[dim-2]) * cos(3.0 * pi/2.0 * p[dim-3]);
-        q[dim-2] = p[dim-2] + 1.0/8.0 * cos(3.0 * pi/2.0 * p[dim-1]) * cos(3.0 * pi/2.0 * p[dim-2]) * cos(3.0 * pi/2.0 * p[dim-3]);
-        q[dim-3] = p[dim-2] + 1.0/8.0 * cos(3.0 * pi/2.0 * p[dim-1]) * cos(3.0 * pi/2.0 * p[dim-2]) * cos(3.0 * pi/2.0 * p[dim-3]);
+       //q[dim-1] = p[dim-1] + 1.0/16.0 * cos(3.0 * pi/2.0 * p[dim-1]) * cos(3.0 * pi/2.0 * p[dim-2]) * cos(3.0 * pi/2.0 * p[dim-3]);
+       //q[dim-2] = p[dim-2] + 1.0/16.0 * cos(3.0 * pi/2.0 * p[dim-1]) * cos(3.0 * pi/2.0 * p[dim-2]) * cos(3.0 * pi/2.0 * p[dim-3]);
+       //q[dim-3] = p[dim-3] + 1.0/16.0 * cos(3.0 * pi/2.0 * p[dim-1]) * cos(3.0 * pi/2.0 * p[dim-2]) * cos(3.0 * pi/2.0 * p[dim-3]);
+       //transform David
+   //    #if 0
+        q[dim-1] =p[dim-1] + 1.0/20.0*  std::cos(2.0 * pi * p[dim-1]) * std::cos(2.0 * pi * p[dim-2]) * std::cos(2.0 * pi * p[dim-3]);
+        q[dim-2] =p[dim-2] +  1.0/20.0* std::cos(2.0 * pi * p[dim-1]) * std::cos(2.0 * pi * p[dim-2]) * std::cos(2.0 * pi * p[dim-3]);
+        q[dim-3] =p[dim-3] +  1.0/20.0* std::cos(2.0 * pi * p[dim-1]) * std::cos(2.0 * pi * p[dim-2]) * std::cos(2.0 * pi * p[dim-3]);
+    //    #endif
+        //non sym transform
+        #if 0
+        q[dim-1] =p[dim-1] +  1.0/40.0*std::cos(pi/2.0 * p[dim-1]) * std::cos(3.0 * pi/2.0 * p[dim-2]) * std::sin(2.0 * pi * (p[dim-3]));
+        q[dim-2] =p[dim-2] +  1.0/40.0*std::sin(2.0 * pi * (p[dim-1])) * std::cos(pi /2.0 * p[dim-2]) * std::sin(3.0 * pi /2.0 * p[dim-3]);
+        q[dim-3] =p[dim-3] +  1.0/40.0*std::sin(2.0 * pi * (p[dim-1])) * std::cos(3.0 * pi/2.0 * p[dim-2]) * std::cos(5.0 * pi/2.0 * p[dim-3]);
+        #endif
     }
 
     return q;
@@ -229,7 +318,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
 
-    const unsigned int n_grids = 5;
+    const unsigned int n_grids = 4;
     std::array<double,n_grids> grid_size;
     std::array<double,n_grids> soln_error;
    // std::array<double,n_grids> output_error;
@@ -247,6 +336,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 //	double left = 0.0;
 //	double right = 2.0;
 	double left = -1.0;
+	//double left = 0.0;
 	double right = 1.0;
 	//double left = -5.0;
 	//double right = 5.0;
@@ -260,7 +350,7 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 //	dealii::GridGenerator::hyper_cube(grid, left, right, colorize);
 
         dealii::ConvergenceTable convergence_table;
-        const unsigned int igrid_start = 2;
+        const unsigned int igrid_start = 3;
 printf("NEW GRID\n");
 fflush(stdout);
 
@@ -283,29 +373,7 @@ fflush(stdout);
 
 //testing warping
 dealii::GridGenerator::hyper_cube (grid, left, right, colorize);
-//dealii::GridGenerator::subdivided_hyper_cube(grid,static_cast<int>(pow(2, igrid) + 4),left, right);
 
-
-
-#if 0
-const dealii::Point<dim> center1(0,1);
-const dealii::SphericalManifold<dim> m0(center1);
-//dealii::GridGenerator::hyper_cube (grid, left, right, colorize);
-//dealii::GridGenerator::subdivided_hyper_cube(grid,static_cast<int>(pow(2, 3) + 5*igrid),left, right);
-grid.set_manifold(0, m0);
-const dealii::Point<dim> center2(2,1);
-const dealii::SphericalManifold<dim> m02(center2);
-grid.set_manifold(1, m02);
-//#if 0
-for(int idim=0; idim<dim; idim++){
-grid.set_all_manifold_ids_on_boundary(2*(idim -1),2*(idim-1));
-grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
-}
-#endif
-//	grid.refine_global(igrid);
-
-//#endif
-//dealii::GridGenerator::hyper_cube (grid, left, right, colorize);
 
  #if PHILIP_DIM==1
 #else
@@ -316,20 +384,6 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
                 if(dim==3)
 		dealii::GridTools::collect_periodic_faces(grid,4,5,2,matched_pairs);
 		grid.add_periodicity(matched_pairs);
-#endif
-//dealii::GridTools::transform (&warp, grid);
-#if 0
-const dealii::Point<dim> center1(0,1);
-const dealii::SphericalManifold<dim> m0(center1);
-grid.set_manifold(0, m0);
-const dealii::Point<dim> center2(2,1);
-const dealii::SphericalManifold<dim> m02(center2);
-grid.set_manifold(1, m02);
-//#if 0
-for(int idim=0; idim<dim; idim++){
-grid.set_all_manifold_ids_on_boundary(2*(idim -1),2*(idim-1));
-grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
-}
 #endif
 
 	grid.refine_global(igrid);
@@ -365,7 +419,7 @@ dealii::GridTools::transform (&warp, grid);
     all_parameters_new.ode_solver_param.initial_time_step =  0.5*delta_x;
     //all_parameters_new.ode_solver_param.initial_time_step =  0.01;
    // all_parameters_new.ode_solver_param.initial_time_step =  1.0*delta_x;
-   // all_parameters_new.ode_solver_param.initial_time_step =  0.05*delta_x;
+    all_parameters_new.ode_solver_param.initial_time_step =  0.05*delta_x;
    // all_parameters_new.ode_solver_param.initial_time_step =  0.005*delta_x;
     std::cout << "dt " <<all_parameters_new.ode_solver_param.initial_time_step <<  std::endl;
     std::cout << "cells " <<n_global_active_cells2 <<  std::endl;
@@ -432,8 +486,11 @@ dealii::GridTools::transform (&warp, grid);
 //if use curvilinear grid to interpolate IC
                 const unsigned int n_quad_pts1      = dg->volume_quadrature_collection[poly_degree].size();
                 const unsigned int n_dofs_cell1     =dg->fe_collection[poly_degree].dofs_per_cell;
-            dealii::QGauss<dim> quad_val(poly_degree+1);
-            dealii::FEValues<dim,dim> fe_values_test(*(dg->high_order_grid.mapping_fe_field), dg->fe_collection[poly_degree], quad_val, 
+            //dealii::QGauss<dim> quad_val(poly_degree+1);
+            dealii::QGaussLobatto<dim> quad_val(poly_degree+1);
+            const dealii::Mapping<dim> &mapping = (*(dg->high_order_grid.mapping_fe_field));
+           // dealii::FEValues<dim,dim> fe_values_test(*(dg->high_order_grid.mapping_fe_field), dg->fe_collection[poly_degree], quad_val, 
+            dealii::FEValues<dim,dim> fe_values_test(mapping, dg->fe_collection[poly_degree], quad_val, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
            // const unsigned int n_quad_pts1 = fe_values_test.n_quadrature_points;
         dealii::FullMatrix<double> Chi_operator(n_quad_pts1, n_dofs_cell1);
@@ -457,6 +514,19 @@ dealii::GridTools::transform (&warp, grid);
                 fe_values_test.reinit (current_cell);
                 current_dofs_indices.resize(n_dofs_cell1);
                 current_cell->get_dof_indices (current_dofs_indices);
+#if 0
+    printf("NODES x, y, z\n");
+    for (unsigned int iquad=0; iquad<n_quad_pts1; iquad++){
+          //  const dealii::Point<dim> ppoint  = dg->volume_quadrature_collection[poly_degree].point(iquad);
+        //    const dealii::Point<dim> qpoint =  warp(ppoint);
+        const dealii::Point<dim> qpoint = (fe_values_test.quadrature_point(iquad));
+        for(int idim=0; idim<dim; idim++){
+        printf("%.16g ",qpoint[idim]);
+        }
+        printf("\n");
+
+    }
+#endif
                 for(unsigned int idof=0; idof<n_dofs_cell1; idof++){
                     dg->solution[current_dofs_indices[idof]]=0.0;
                     for(unsigned int iquad=0; iquad<n_quad_pts1; iquad++){
@@ -470,6 +540,7 @@ dealii::GridTools::transform (&warp, grid);
                             }
                             else{
                                 exact *= sin(pi2*qpoint[idim]);
+                                //exact *= exp(-(qpoint[idim])*(qpoint[idim]));
                                 //exact *= exp(-20.0*(qpoint[idim]+0.5)*(qpoint[idim]+0.5));
                             }
                        // exact = sin(2.0*pi2*((qpoint[0]) + (qpoint[dim-1])));//for grid 1-3
@@ -483,7 +554,11 @@ dealii::GridTools::transform (&warp, grid);
                        for (int idim=0; idim<dim; idim++){
                                 exact3 *= sin(4.0*pi2*qpoint[idim]);
                         }
-                        exact += exact2+exact3;
+                    double exact4 = 1.0;
+                       for (int idim=0; idim<dim; idim++){
+                                exact4 *= sin(6.0*pi2*qpoint[idim]);
+                        }
+                        exact += exact2+exact3+exact4;
 #endif
                         dg->solution[current_dofs_indices[idof]] +=Chi_inv_operator[idof][iquad] *exact; 
                     }   
@@ -521,7 +596,8 @@ finalTime = 10.0;
 	//but it works. I'll keep it for now and need to modify the output functions later to account for this.
 	//std::ofstream myfile ("energy_plot_Cplus_p3_central_curv_adv_skew_deirv.gpl" , std::ios::trunc);
 	//std::ofstream myfile ("energy_plot_10_seconds_upwind_flux_curv_grid_cPlus_p3_curv_normal.gpl" , std::ios::trunc);
-	std::ofstream myfile ("energy_plot_10_seconds_central_flux_curv_grid_cHU_2D_p4_dt05_L2.gpl" , std::ios::trunc);
+//	std::ofstream myfile ("energy_plot_10_seconds_central_flux_curv_grid_cHU_2D_p4_dt05_L2.gpl" , std::ios::trunc);
+	std::ofstream myfile ("energy_plot_10_seconds_central_flux_curv_grid_cPlus_2D_p3_dt05_L2_new.gpl" , std::ios::trunc);
 	//std::ofstream myfile ("energy_plot_c012D_p3_verification_2D_dt.gpl" , std::ios::trunc);
 	double dt = all_parameters_new.ode_solver_param.initial_time_step;
 
@@ -529,12 +605,12 @@ finalTime = 10.0;
 	{
 		ode_solver->advance_solution_time(dt);
 		double current_energy = compute_energy(dg);
-               // current_energy /=initial_energy;
+                current_energy /=initial_energy;
                 std::cout << std::setprecision(16) << std::fixed;
 		pcout << "Energy at time " << i * dt << " is " << current_energy<< std::endl;
 		myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_energy << std::endl;
-	//	if (current_energy*initial_energy - initial_energy >= 10.00)
-		if (current_energy - initial_energy >= 10.00)
+		if (current_energy*initial_energy - initial_energy >= 10.00)
+		//if (current_energy - initial_energy >= 10.00)
 		{
                     pcout << " Energy was not monotonically decreasing" << std::endl;
 			return 1;
@@ -545,11 +621,12 @@ finalTime = 10.0;
         }
         else{//do OOA
             finalTime = 2.0;
-            finalTime = 1.0;
-        //    finalTime = 0.5;
+          //  finalTime = 1.0;
+          //  finalTime = 0.5;
+          //  finalTime = 0.1;
            // finalTime = 2.5;
             //finalTime = 0.5;
-           // finalTime = all_parameters_new.ode_solver_param.initial_time_step;
+            finalTime = all_parameters_new.ode_solver_param.initial_time_step;
            // finalTime = 0.0;
 	    ode_solver->advance_solution_time(finalTime);
 //#endif
@@ -569,6 +646,7 @@ finalTime = 10.0;
 
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;
+            overintegrate = 0;
             //dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
             dealii::QGauss<dim> quad_extra(poly_degree+1+overintegrate);
             //dealii::MappingQ<dim,dim> mappingq(dg->max_degree+1);
@@ -577,12 +655,13 @@ finalTime = 10.0;
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;
 
-            double l2error = 0.0;
+       //     double l2error = 0.0;
 
             // Integrate solution error and output error
 
             const double pi = atan(1)*4.0;
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
+            double linf_error = 0.0;
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
 
                 if (!cell->is_locally_owned()) continue;
@@ -603,6 +682,7 @@ finalTime = 10.0;
                     double uexact=1.0;
                     for(int idim=0; idim<dim; idim++){
                         //uexact *= exp(-(20 * (qpoint[idim] - 2) * (qpoint[idim] - 2)));//for grid 1-3
+                       // uexact *= exp(-((qpoint[idim]-finalTime) * (qpoint[idim]-finalTime)));//for grid 1-3
                         uexact *= sin(pi*(qpoint[idim]-finalTime));//for grid 1-3
                        // uexact *= exp(-20.0*(qpoint[idim]+0.5-finalTime)*(qpoint[idim]+0.5-finalTime));//for grid 1-3
                     }
@@ -615,23 +695,36 @@ finalTime = 10.0;
                     for(int idim=0; idim<dim; idim++){
                         uexact3 *= sin(4.0*pi*(qpoint[idim]-finalTime));//for grid 1-3
                     }
-                    uexact += uexact2+uexact3;
+                    double uexact4=1.0;
+                    for(int idim=0; idim<dim; idim++){
+                        uexact4 *= sin(6.0*pi*(qpoint[idim]-finalTime));//for grid 1-3
+                    }
+                    uexact += uexact2+uexact3+uexact4;
 #endif
                      //   uexact = sin(2.0*pi*((qpoint[0]-finalTime) + (qpoint[dim-1]-finalTime)));//for grid 1-3
                         //std::cout << uexact - soln_at_q[istate] << std::endl;
-                        l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
+      //                  l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
+                
+                        double inf_temp = std::abs(soln_at_q[istate]-uexact);
+                            if(inf_temp > linf_error){
+                                linf_error = inf_temp;
+                            }
+            //            l2error += pow(soln_at_q[istate] - uexact, 2);
                     }
                 }
 
             }
-            const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
+           // l2error /= (n_global_active_cells *n_dofs); 
+     //       const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
+            const double linferror_mpi= (dealii::Utilities::MPI::max(linf_error, mpi_communicator));
 
            // double solution_integral = integrate_solution_over_domain(*dg);
 
             // Convergence table
             const double dx = 1.0/pow(n_dofs,(1.0/dim));
             grid_size[igrid] = dx;
-            soln_error[igrid] = l2error_mpi_sum;
+           // soln_error[igrid] = l2error_mpi_sum;
+            soln_error[igrid] = linferror_mpi;
      //       output_error[igrid] = std::abs(solution_integral - exact_solution_integral);
 
 //#if 0
@@ -639,13 +732,15 @@ finalTime = 10.0;
             convergence_table.add_value("cells", n_global_active_cells);
             convergence_table.add_value("DoFs", n_dofs);
             convergence_table.add_value("dx", dx);
-            convergence_table.add_value("soln_L2_error", l2error_mpi_sum);
+           // convergence_table.add_value("soln_L2_error", l2error_mpi_sum);
+            convergence_table.add_value("soln_L2_error", linferror_mpi);
  //           convergence_table.add_value("output_error", output_error[igrid]);
 //#endif
 
 
             pcout << " Grid size h: " << dx 
-                 << " L2-soln_error: " << l2error_mpi_sum
+                // << " L2-soln_error: " << l2error_mpi_sum
+                 << " L2-soln_error: " << linferror_mpi
                  << " Residual: " << ode_solver->residual_norm
                  << std::endl;
 

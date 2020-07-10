@@ -222,6 +222,26 @@ void DGStrong<dim,nstate,real>::get_flux_with_metric_terms(
         }
     }
 
+#if 0
+    printf("This is one element\n\n");
+    printf("Jac inv\n");
+    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+        printf("quad point %d\n",iquad+1);
+        for(int idim=0; idim<dim; idim++){
+            for(int idim2=0; idim2<dim; idim2++){
+                printf(" %g ",Jacobian_inv[iquad][idim][idim2]);
+            }
+            printf("\n");
+        } 
+    }
+    printf("jac det\n");
+    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+        printf(" %g\n", JxW[iquad]/quad_weights[iquad]);
+    }
+#endif
+    
+
+
 }
 /**************************************************************************/
 /**************************************************
@@ -1778,12 +1798,14 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
             dealii::Tensor<1,dim,real> derivative;
             derivative = fe_values_vol_flux.shape_grad_component(idof, iquad, istate);
             //derivative = DGBase<dim,real>::fe_collection_flux[fe_index_curr_cell].shape_grad_component(idof, qpoint, istate);
+                const std::vector<real> &quad_weights = DGBase<dim,real>::volume_quadrature_collection_flux[fe_index_curr_cell].get_weights ();
             for (int idim=0; idim<dim; idim++){
-                local_derivative_operator[idim][iquad][idof] = derivative[idim];//store dChi/dXi
+                local_derivative_operator[idim][iquad][idof] = derivative[idim] * JxW[iquad]/quad_weights[iquad];//store dChi/dXi
             }
         }
     }
     }
+#if 0
     for(int idim=0; idim<dim; idim++){
         dealii::FullMatrix<real> derivative_temp(n_quad_pts_flux, n_dofs_cell_flux);
         for(unsigned int iquad=0; iquad<n_quad_pts_flux; iquad++){
@@ -1795,6 +1817,26 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
        // projection_oper.mmult(local_derivative_operator[idim],derivative_temp);
         derivative_temp.mmult(local_derivative_operator[idim],projection_matrix);
     }
+#endif
+    for(int idim=0; idim<dim; idim++){
+            printf(" sum_j GIj*D_j  i = idim %d \n\n", idim);
+            fflush(stdout);
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                //    if(sum_KD[idof][iquad] < 1e-15)
+                 //       sum_KD[idof][iquad] = 0.0;
+                    printf(" %g ",local_derivative_operator[idim][idof][iquad]);
+                    fflush(stdout);
+                }
+                printf("\n");
+                fflush(stdout);
+            }
+
+                printf("\n\n\n");
+                fflush(stdout);
+    }
+#endif
+#if 0
 
 //Note split form will have to change since now in p+1 polynomial basis rather than nodal solutions of the flux
     // Evaluate flux divergence by interpolating the flux
@@ -1874,7 +1916,9 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
                 beta = 1.0/2.0;
                 const std::vector<real> &quad_weights = DGBase<dim,real>::volume_quadrature_collection_flux[fe_index_curr_cell].get_weights ();
                 //rhs = rhs - (1.0 - beta) * alpha * filter_chi[itest][iquad] * flux_divergence_metric[iquad][istate] *  quad_weights[iquad];
+                //
                 rhs = rhs - (1.0 - beta) * filter_chi[itest][iquad] * flux_divergence_metric[iquad][istate] *  quad_weights[iquad];
+                //rhs = rhs - (1.0 - beta) * filter_chi[itest][iquad] * flux_divergence_metric[iquad][istate] *  JxW_soln_flux[iquad];
             }
 
 
@@ -2211,6 +2255,8 @@ void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
         }
         convective_phys_flux_at_q_ext[iquad] = pde_physics_double->convective_flux (soln_at_q_ext[iquad]);
     }
+
+
     const unsigned int n_rows_dif_order_cells = DGBase<dim,real>::dif_order_cells.size() / 4;
     unsigned int idif_order_cell =0;
     for(; idif_order_cell<n_rows_dif_order_cells; idif_order_cell++){
@@ -2295,7 +2341,12 @@ void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
         //std::cout <<"evaluating numerical fluxes" <<std::endl;
        // conv_num_flux_dot_n[iquad] = conv_num_flux->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
 
+
+
         conv_num_flux_dot_n[iquad] = conv_num_flux_double->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
+
+
+//        conv_num_flux_dot_n[iquad] = conv_num_flux_double->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
 
 #if 0
    // std::array<dealii::Tensor<1,dim,real>,nstate> flux_avg;
@@ -2367,6 +2418,96 @@ void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
     }
 
 
+    //TEST ESFR num flux
+
+
+
+#if 0
+
+    dealii::FullMatrix<real> K_operator_int(n_dofs_int);
+    dealii::FullMatrix<real> K_operator_ext(n_dofs_ext);
+    std::vector<dealii::FullMatrix<real>> K_operator_aux(dim);
+    for(int idim=0; idim<dim; idim++){
+        K_operator_aux[idim].reinit(n_dofs_int, n_dofs_int);
+    }
+    const unsigned int fe_index_curr_cell = pow(n_dofs_int,1.0/dim) - 1;
+    DGBase<dim,real>::get_K_operator_FR(DGBase<dim,real>::fe_collection, fe_index_curr_cell, fe_values_vol_int, n_quad_pts_int, n_dofs_int, fe_index_curr_cell, K_operator_int, K_operator_aux);
+    DGBase<dim,real>::get_K_operator_FR(DGBase<dim,real>::fe_collection, fe_index_curr_cell, fe_values_vol_ext, n_quad_pts_ext, n_dofs_ext, fe_index_curr_cell, K_operator_ext, K_operator_aux);
+        dealii::FullMatrix<real> Mass_int(n_dofs_int);
+        dealii::FullMatrix<real> Mass_ext(n_dofs_ext);
+        for (unsigned int itest=0; itest<n_dofs_int; ++itest) {
+            const unsigned int istate_test = fe_values_vol_int.get_fe().system_to_component_index(itest).first;
+            for (unsigned int itrial=itest; itrial<n_dofs_int; ++itrial) {
+                const unsigned int istate_trial = fe_values_vol_int.get_fe().system_to_component_index(itrial).first;
+                real value = 0.0;
+                for (unsigned int iquad2=0; iquad2<n_quad_pts_int; ++iquad2) {
+                    value +=
+                        fe_values_vol_int.shape_value_component(itest,iquad2,istate_test)
+                        * fe_values_vol_int.shape_value_component(itrial,iquad2,istate_trial)
+                        * fe_values_vol_int.JxW(iquad2);
+                }
+                Mass_int[itrial][itest] = 0.0;
+                Mass_int[itest][itrial] = 0.0;
+                if(istate_test==istate_trial) { 
+                    Mass_int[itrial][itest] = value;
+                    Mass_int[itest][itrial] = value;
+                }
+            }
+        }
+        for (unsigned int itest=0; itest<n_dofs_ext; ++itest) {
+            const unsigned int istate_test = fe_values_vol_ext.get_fe().system_to_component_index(itest).first;
+            for (unsigned int itrial=itest; itrial<n_dofs_ext; ++itrial) {
+                const unsigned int istate_trial = fe_values_vol_ext.get_fe().system_to_component_index(itrial).first;
+                real value = 0.0;
+                for (unsigned int iquad2=0; iquad2<n_quad_pts_ext; ++iquad2) {
+                    value +=
+                        fe_values_vol_ext.shape_value_component(itest,iquad2,istate_test)
+                        * fe_values_vol_ext.shape_value_component(itrial,iquad2,istate_trial)
+                        * fe_values_vol_ext.JxW(iquad2);
+                }
+                Mass_ext[itrial][itest] = 0.0;
+                Mass_ext[itest][itrial] = 0.0;
+                if(istate_test==istate_trial) { 
+                    Mass_ext[itrial][itest] = value;
+                    Mass_ext[itest][itrial] = value;
+                }
+            }
+        }
+        dealii::FullMatrix<real> Mass_inv_int(n_dofs_int);
+        dealii::FullMatrix<real> Mass_inv_ext(n_dofs_ext);
+        Mass_inv_int.invert(Mass_int);
+        Mass_inv_ext.invert(Mass_ext);
+        dealii::FullMatrix<real> MK_int(n_dofs_int);
+        dealii::FullMatrix<real> MK_ext(n_dofs_ext);
+        Mass_inv_int.mmult(MK_int, K_operator_int);
+        Mass_inv_ext.mmult(MK_int, K_operator_ext);
+    std::vector< ADArrayTensor1 > MK_soln_int(n_dofs_int);
+    std::vector< ADArrayTensor1 > MK_soln_ext(n_dofs_ext);
+    for (unsigned int idof=0; idof<n_dofs_int; idof++){
+            MK_soln_int[idof][0] = 0.0;
+            MK_soln_ext[idof][0] = 0.0;
+            for (unsigned int itest=0; itest<n_dofs_int; itest++){
+                MK_soln_int[idof][0] += MK_int[idof][itest] * conv_projected_phys_flux_int[itest][0];
+                MK_soln_ext[idof][0] += MK_ext[idof][itest] * conv_projected_phys_flux_ext[itest][0];
+            }
+    } 
+    std::vector< ADArrayTensor1 > MK_sol_q_int(n_face_quad_pts);
+    std::vector< ADArrayTensor1 > MK_sol_q_ext(n_face_quad_pts);
+    for (unsigned int iquad2=0; iquad2<n_face_quad_pts; iquad2++){
+            MK_sol_q_int[iquad2][0] = 0.0;
+            MK_sol_q_ext[iquad2][0] = 0.0;
+            for (unsigned int idof=0; idof<n_dofs_int; idof++){
+                MK_sol_q_int[iquad2][0] += MK_soln_int[idof][0] * fe_values_int.shape_value_component(idof, iquad2, 0);
+                MK_sol_q_ext[iquad2][0] += MK_soln_ext[idof][0] * fe_values_ext.shape_value_component(idof, iquad2, 0);
+            }
+    } 
+
+ //   conv_num_flux_dot_n[iquad][0] -= 0.5*(MK_sol_q_int[iquad][0]+MK_sol_q_ext[iquad][0]) *normal_int;
+
+#endif
+
+
+    //end test ESFR num flux
 
 //Chi^T*P^T*Chi_face
 #if 0
@@ -2416,6 +2557,7 @@ void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
                 alpha = 2.0/3.0;
             }
             const ADtype flux_diff = conv_num_flux_dot_n[iquad][istate] - (alpha *conv_phys_flux_int[iquad][istate] +(1.0-alpha)*conv_face_flux_int[iquad][istate] )*normals_int[iquad];
+          //  const ADtype flux_diff = conv_num_flux_dot_n[iquad][istate] - (alpha *conv_phys_flux_int[iquad][istate] +(1.0-alpha)*conv_face_flux_int[iquad][istate] -0.5*MK_sol_q_int[iquad][istate] )*normals_int[iquad];
             
            // const ADtype flux_diff = conv_num_flux_dot_n[iquad][istate] - conv_phys_flux_int[iquad][istate]*normals_int[iquad];
             rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * flux_diff * JxW_int[iquad];
@@ -2454,6 +2596,7 @@ void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
                 alpha = 2.0/3.0;
             }
             const ADtype flux_diff = (-conv_num_flux_dot_n[iquad][istate]) - (alpha*conv_phys_flux_ext[iquad][istate]+(1.0-alpha)*conv_face_flux_ext[iquad][istate])*(-normals_int[iquad]);
+        //    const ADtype flux_diff = (-conv_num_flux_dot_n[iquad][istate]) - (alpha*conv_phys_flux_ext[iquad][istate]+(1.0-alpha)*conv_face_flux_ext[iquad][istate]- 0.5*MK_sol_q_ext[iquad][istate])*(-normals_int[iquad]);
            // const ADtype flux_diff = (-conv_num_flux_dot_n[iquad][istate]) - conv_phys_flux_ext[iquad][istate]*(-normals_int[iquad]);
             rhs = rhs - fe_values_ext.shape_value_component(itest_ext,iquad,istate) * flux_diff * JxW_int[iquad];
             // Diffusive

@@ -36,6 +36,7 @@
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/vector_tools.templates.h>
 
+#include <deal.II/dofs/dof_renumbering.h>
 
 #include "dg.h"
 #include "post_processor/physics_post_processor.h"
@@ -1247,6 +1248,7 @@ fflush(stdout);
         const unsigned int curr_cell_degree = current_fe_ref.tensor_degree();
         get_K_operator_FR(fe_collection, fe_index_curr_cell, fe_values_volume, n_quad_pts, n_dofs_cell, curr_cell_degree, K_operator, K_operator_aux);
 
+
         for(int idim=0; idim<dim; idim++){
             for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
                 for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
@@ -1282,6 +1284,40 @@ fflush(stdout);
                         }
                     }
                 }
+#if 0
+    dealii::FullMatrix<real> Chi_operator(n_quad_pts, n_dofs_cell);
+    dealii::FullMatrix<real> Chi_operator_with_Jac(n_quad_pts, n_dofs_cell);
+    const std::vector<real> &JxW = fe_values_volume.get_JxW_values ();
+    const std::vector<real> &quad_weights = volume_quadrature_collection[fe_index_curr_cell].get_weights ();
+    for(int istate=0; istate<nstate; istate++){
+    for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            const dealii::Point<dim> qpoint  = volume_quadrature_collection[fe_index_curr_cell].point(iquad);
+            Chi_operator[iquad][itest] = fe_collection[fe_index_curr_cell].shape_value_component(itest,qpoint,istate);
+            Chi_operator_with_Jac[iquad][itest] = fe_collection[fe_index_curr_cell].shape_value_component(itest,qpoint,istate) * JxW[iquad] / quad_weights[iquad];
+        }
+    }
+    }
+    dealii::FullMatrix<real> Chi_inv_operator(n_quad_pts, n_dofs_cell);
+    Chi_inv_operator.invert(Chi_operator);
+    dealii::FullMatrix<real> Jacobian_physical(n_dofs_cell);
+    Chi_inv_operator.mmult(Jacobian_physical, Chi_operator_with_Jac);//Chi^{-1}*Jm*Chi
+    dealii::FullMatrix<real> norm(n_dofs_cell);
+    for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+           // norm[itest][idof] = local_mass_matrix[itest][idof];
+            norm[itest][idof] = K_operator[itest][idof];
+        }
+    }
+    Jacobian_physical.Tmmult(K_operator, norm);
+                    for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+                        for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
+                            local_mass_matrix[itest][itrial] = local_mass_matrix[itest][itrial] + K_operator[itest][itrial];
+                        }
+                    }
+#endif
+
+        
                 global_mass_matrix.set (dofs_indices, local_mass_matrix);
             }
         } else {
@@ -1531,6 +1567,7 @@ void DGBase<dim,real>::get_K_operator_FR(
     dealii::FullMatrix<real> Chi_operator(n_quad_pts, n_dofs_cell);
     dealii::FullMatrix<real> Chi_operator_with_Jac(n_quad_pts, n_dofs_cell);
     dealii::FullMatrix<real> Chi_operator_with_Quad(n_quad_pts, n_dofs_cell);
+    dealii::FullMatrix<real> Chi_operator_with_Quad_Jac(n_quad_pts, n_dofs_cell);
     dealii::FullMatrix<real> Chi_inv_operator(n_quad_pts, n_dofs_cell);
     const std::vector<real> &JxW = fe_values_vol.get_JxW_values ();
     const std::vector<real> &quad_weights = volume_quadrature_collection[fe_index_curr_cell].get_weights ();
@@ -1540,8 +1577,9 @@ void DGBase<dim,real>::get_K_operator_FR(
             const dealii::Point<dim> qpoint  = volume_quadrature_collection[fe_index_curr_cell].point(iquad);
             Chi_operator[iquad][itest] = fe_collection[fe_index_curr_cell].shape_value_component(itest,qpoint,istate);
             Chi_operator_with_Jac[iquad][itest] = fe_collection[fe_index_curr_cell].shape_value_component(itest,qpoint,istate) * JxW[iquad] / quad_weights[iquad];
-            //Chi_operator_with_Quad[iquad][itest] = fe_collection[fe_index_curr_cell].shape_value_component(itest,qpoint,istate) * quad_weights[iquad];
-            Chi_operator_with_Quad[iquad][itest] = fe_collection[fe_index_curr_cell].shape_value_component(itest,qpoint,istate) * JxW[iquad];
+            //Chi_operator_with_Jac[iquad][itest] = fe_collection[fe_index_curr_cell].shape_value_component(itest,qpoint,istate) *  quad_weights[iquad];
+            Chi_operator_with_Quad[iquad][itest] = fe_collection[fe_index_curr_cell].shape_value_component(itest,qpoint,istate) * quad_weights[iquad];
+            Chi_operator_with_Quad_Jac[iquad][itest] = fe_collection[fe_index_curr_cell].shape_value_component(itest,qpoint,istate) * JxW[iquad];
         }
     }
     }
@@ -1549,11 +1587,10 @@ void DGBase<dim,real>::get_K_operator_FR(
     Chi_inv_operator.invert(Chi_operator);
     dealii::FullMatrix<real> Jacobian_physical(n_dofs_cell);
     dealii::FullMatrix<real> local_Mass_Matrix_no_Jac(n_dofs_cell);
-    //Chi_inv_operator.mmult(Jacobian_physical, Chi_operator_with_Jac);//Chi^{-1}*Jm*Chi
-    //Chi_operator.Tmmult(local_Mass_Matrix_no_Jac, Chi_operator_with_Quad);//M=Chi^T*W*Chi
-    Chi_inv_operator.mmult(Jacobian_physical, Chi_operator);//Chi^{-1}*Jm*Chi
+    Chi_inv_operator.mmult(Jacobian_physical, Chi_operator_with_Jac);//Chi^{-1}*Jm*Chi
     Chi_operator.Tmmult(local_Mass_Matrix_no_Jac, Chi_operator_with_Quad);//M=Chi^T*W*Chi
-
+  //  Chi_inv_operator.mmult(Jacobian_physical, Chi_operator);//Chi^{-1}*Jm*Chi
+   // Chi_operator.Tmmult(local_Mass_Matrix_no_Jac, Chi_operator_with_Quad_Jac);//M=Chi^T*W*Chi
 
 
 
@@ -1613,6 +1650,7 @@ fflush(stdout);
         }
     }
     }
+
 
     //turn derivative of basis function to derivative operator D=Chi^{-1}*dChi/dXi
     for(int idim=0; idim<dim; idim++){
@@ -1797,6 +1835,18 @@ fflush(stdout);
             local_derivative_operator[0].mmult(derivative_p, derivative_p_temp);
         }
 
+#if 0
+dealii::FullMatrix<real> deriv_temp_print(n_dofs_cell);
+Chi_operator.mmult(deriv_temp_print, derivative_p);
+printf("DP\n");
+for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+printf(" %g ",deriv_temp_print[idof][iquad]);
+}
+printf("\n");
+}
+#endif
+
         //c*(Chi^{-1}*dChi/dXi)^p
         dealii::FullMatrix<real> derivative_p_temp(n_quad_pts, n_dofs_cell);
         for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
@@ -1936,6 +1986,14 @@ fflush(stdout);
         for(int idim=0; idim<dim; idim++){
             K_operator_no_Jac_aux[idim].mmult(K_operator_aux[idim],Jacobian_physical);
         }
+
+        if (this->all_parameters->use_skew_sym_deriv == true){
+            dealii::FullMatrix<real> K_op_temp(n_dofs_cell);
+            K_operator_no_Jac.mmult(K_op_temp,Jacobian_physical);
+            dealii::FullMatrix<real> temp_W(n_dofs_cell);
+            Chi_inv_operator.mmult(temp_W, Chi_operator_with_Quad);
+            Jacobian_physical.Tmmult(K_operator, K_op_temp);
+        }
         
 #if 0
 printf("K operator \n\n");
@@ -1959,13 +2017,397 @@ fflush(stdout);
             sum_KD[idof][idof2] = 0.0;
         }
         }
+#if 0
+    std::vector<dealii::FullMatrix<real>> Jacobian_inv(n_quad_pts);
+    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+       Jacobian_inv[iquad].reinit(dim, dim);
+    }
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            dealii::DerivativeForm<1, dim, dim> temp;
+            temp=fe_values_vol.inverse_jacobian(iquad);
+            for(int idim=0; idim<dim; idim++){
+                for(int idim2=0; idim2<dim; idim2++){
+                    Jacobian_inv[iquad][idim][idim2] = temp[idim][idim2]*JxW[iquad]/quad_weights[iquad];
+                }
+            }
+        }
+#endif
+
+//#if 0
+    for(int istate=0; istate<nstate; istate++){
+    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+            dealii::Tensor<1,dim,real> derivative;
+            const dealii::Point<dim> qpoint  = volume_quadrature_collection[fe_index_curr_cell].point(iquad);
+            derivative = fe_collection[fe_index_curr_cell].shape_grad_component(idof, qpoint, istate);
+            //derivative = fe_values_vol.shape_grad_component(idof, iquad, istate);
+            for (int idim=0; idim<dim; idim++){
+                local_derivative_operator[idim][iquad][idof] = derivative[idim];//store dChi/dXi
+            }
+        }
+    }
+    }
+
+for( int idim=0; idim<dim; idim++){
+    printf(" D in idim %d\n\n", idim);
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %g ", local_derivative_operator[idim][idof][iquad]);
+        }
+        printf("\n");
+    }
+}
+
+
+
+//#endif
+    std::vector<dealii::FullMatrix<real>> Jacobian_inv(n_quad_pts);
+    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+       Jacobian_inv[iquad].reinit(dim, dim);
+    }
+    printf(" inverse metric\n");
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf("iquad %d\n", iquad);
+            dealii::DerivativeForm<1, dim, dim> temp;
+            temp=fe_values_vol.inverse_jacobian(iquad);
+            for(int idim=0; idim<dim; idim++){
+                for(int idim2=0; idim2<dim; idim2++){
+                    Jacobian_inv[iquad][idim][idim2] = temp[idim][idim2];
+                    printf(" %g ", Jacobian_inv[iquad][idim][idim2]);
+                }
+                printf("\n");
+            }
+        }
+
+        std::vector<dealii::FullMatrix<real>> Gij_1(dim);
+        std::vector<dealii::FullMatrix<real>> Gij_2(dim);
+        for(int idim=0; idim<dim; idim++){
+            Gij_1[idim].reinit(n_dofs_cell, n_dofs_cell);
+            Gij_2[idim].reinit(n_dofs_cell, n_dofs_cell);
+        }
+    for(int idim=0; idim<dim;idim++){
+        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                if(idof==iquad){
+                    Gij_1[idim][idof][iquad] = JxW[iquad]/quad_weights[iquad]*Jacobian_inv[iquad][0][idim];
+                    Gij_2[idim][idof][iquad] = JxW[iquad]/quad_weights[iquad]*Jacobian_inv[iquad][1][idim];
+                }
+            }
+        }
+    }
+
+for(int idim=0; idim<dim;idim++){
+    printf(" 1 diag(G_ij) idim %d\n\n", idim);
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %g ", Gij_1[idim][idof][iquad]);
+        }
+        printf("\n");
+    }
+    printf(" 2 diag(G_ij) idim %d\n\n", idim);
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %g ", Gij_2[idim][idof][iquad]);
+        }
+        printf("\n");
+    }
+}
+
+//TEST Dp G_ij
+    for(int idim=0; idim<dim;idim++){
+        dealii::FullMatrix<real> derivative_temp(n_quad_pts, n_dofs_cell);
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                derivative_temp[iquad][idof] = local_derivative_operator[idim][iquad][idof];
+            }
+        }
+        Chi_inv_operator.mmult(local_derivative_operator[idim],derivative_temp);
+    }
+
+    dealii::FullMatrix<real> sum_Dp_Gij(n_dofs_cell);
+for (int idim=0; idim<dim; idim++){
+
+
+            dealii::FullMatrix<real> derivative_p(n_quad_pts, n_dofs_cell);
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                    if(idof == iquad){
+                        derivative_p[idof][iquad] = 1.0;//set it equal to identity
+                    }
+                    else{
+                        derivative_p[idof][iquad] = 0.0;//set it equal to identity
+                    }
+                }
+            }
+        
+           // for(unsigned int idegree=0; idegree< curr_cell_degree; idegree++){
+            for(unsigned int idegree=0; idegree< 1; idegree++){
+                dealii::FullMatrix<real> derivative_p_temp(n_quad_pts, n_dofs_cell);
+                derivative_p_temp.add(1, derivative_p);
+                local_derivative_operator[idim].mmult(derivative_p, derivative_p_temp);
+            }
+        dealii::FullMatrix<real> derivative_temp(n_quad_pts, n_dofs_cell);
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                derivative_temp[iquad][idof] = derivative_p[iquad][idof];
+            }
+        }
+        Chi_operator.mmult(derivative_p,derivative_temp);
+        dealii::FullMatrix<real> Dp_Gij_1(n_dofs_cell);
+        dealii::FullMatrix<real> Dp_Gij_2(n_dofs_cell);
+        dealii::FullMatrix<real> Gij_1_Dp(n_dofs_cell);
+        dealii::FullMatrix<real> Gij_2_Dp(n_dofs_cell);
+       // derivative_p.mmult(Dp_Gij_1, Gij_1[idim]);
+       // derivative_p.mmult(Dp_Gij_2, Gij_2[idim]);
+       if(idim==0){
+        derivative_p.mmult(Dp_Gij_1, Gij_1[0]);
+        derivative_p.mmult(Dp_Gij_2, Gij_1[1]);
+        Gij_1[0].mmult(Gij_1_Dp,derivative_p );
+        Gij_1[1].mmult(Gij_2_Dp,derivative_p );
+        }
+        else{
+        derivative_p.mmult(Dp_Gij_1, Gij_2[0]);
+        derivative_p.mmult(Dp_Gij_2, Gij_2[1]);
+        Gij_2[0].mmult(Gij_1_Dp,derivative_p );
+        Gij_2[1].mmult(Gij_2_Dp,derivative_p );
+        }
+        sum_Dp_Gij.add(1, Dp_Gij_1);
+        sum_Dp_Gij.add(1, Dp_Gij_2);
+    printf(" 1 D * diag(G_ij) idim %d\n\n", idim);
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %g ", Dp_Gij_1[idof][iquad]);
+        }
+        printf("\n");
+    }
+    printf(" 2 D * diag(G_ij) idim %d\n\n", idim);
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %g ", Dp_Gij_2[idof][iquad]);
+        }
+        printf("\n");
+    }
+    printf(" 1 diag(G_ij) * D idim %d\n\n", idim);
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %g ", Gij_1_Dp[idof][iquad]);
+        }
+        printf("\n");
+    }
+    printf(" 2 diag(G_ij)* D idim %d\n\n", idim);
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %g ", Gij_2_Dp[idof][iquad]);
+        }
+        printf("\n");
+    }
+}
+
+    printf(" sum D * diag(G_ij)\n\n");
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %g ", sum_Dp_Gij[idof][iquad]);
+        }
+        printf("\n");
+    }
+    dealii::Vector<real> ones(n_dofs_cell);
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        ones[idof] = 1.0;
+    }
+    dealii::Vector<real> Dp_ones(n_dofs_cell);
+    sum_Dp_Gij.vmult(Dp_ones, ones);
+    printf(" sum Dp * diag(G_ij)*1\n\n");
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+            printf(" %g ", Dp_ones[idof]);
+        printf("\n");
+    }
+//end dp Gij
+
+        printf(" determinant of jacobian\n");
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %g \n", JxW[iquad]/quad_weights[iquad]);
+        }
+        
+#if 0
+    for(int istate=0; istate<nstate; istate++){
+    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+            dealii::Tensor<1,dim,real> derivative;
+            const dealii::Point<dim> qpoint  = volume_quadrature_collection[fe_index_curr_cell].point(iquad);
+            derivative = fe_collection[fe_index_curr_cell].shape_grad_component(idof, qpoint, istate);
+            derivative = fe_values_vol.shape_grad_component(idof, iquad, istate);
+#if 0
+            dealii::Tensor<1,dim,real> derivative2;
+            for(int idim=0; idim<dim; idim++){
+                for(int idim2=0; idim2<dim; idim2++){
+                    derivative2[idim] += Jacobian_inv[iquad][idim2][idim] * derivative[idim2]*fe_values_vol.JxW(iquad)/quad_weights[iquad];
+                    //derivative2[idim] += Jacobian_inv[iquad][idim2][idim] * derivative[idim2];
+                }
+            }
+#endif
+
+            for (int idim=0; idim<dim; idim++){
+                local_derivative_operator[idim][iquad][idof] = derivative[idim];//store dChi/dXi
+               // local_derivative_operator[idim][iquad][idof] = derivative[idim]*fe_values_vol.JxW(iquad)/quad_weights[iquad];//store dChi/dXi
+               // local_derivative_operator[idim][iquad][idof] = derivative2[idim];//store dChi/dXi
+            }
+        }
+    }
+    }
+            printf("c_m*D in dim 0 \n\n");
+            fflush(stdout);
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                    printf(" %g ",local_derivative_operator[0][idof][iquad]);
+                    fflush(stdout);
+                }
+                printf("\n");
+                fflush(stdout);
+            }
+                printf("\n\n\n");
+                fflush(stdout);
+            printf("c_m*D in dim 1 \n\n");
+            fflush(stdout);
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                    printf(" %g ",local_derivative_operator[1][idof][iquad]);
+                    fflush(stdout);
+                }
+                printf("\n");
+                fflush(stdout);
+            }
+                printf("\n\n\n");
+                fflush(stdout);
+#if 0
+    for(int istate=0; istate<nstate; istate++){
+    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+            dealii::Tensor<1,dim,real> derivative;
+            const dealii::Point<dim> qpoint  = volume_quadrature_collection[fe_index_curr_cell].point(iquad);
+            derivative = fe_collection[fe_index_curr_cell].shape_grad_component(idof, qpoint, istate);
+ //           derivative = fe_values_vol.shape_grad_component(idof, iquad, istate);
+//#if 0
+            dealii::Tensor<1,dim,real> derivative2;
+            for(int idim=0; idim<dim; idim++){
+                for(int idim2=0; idim2<dim; idim2++){
+                    derivative2[idim] += Jacobian_inv[iquad][idim2][idim] * derivative[idim2]*fe_values_vol.JxW(iquad)/quad_weights[iquad];
+                    //derivative2[idim] += Jacobian_inv[iquad][idim2][idim] * derivative[idim2];
+                }
+            }
+//#endif
+
+            for (int idim=0; idim<dim; idim++){
+              //  local_derivative_operator[idim][iquad][idof] = derivative[idim];//store dChi/dXi
+               // local_derivative_operator[idim][iquad][idof] = derivative[idim]*fe_values_vol.JxW(iquad)/quad_weights[iquad];//store dChi/dXi
+                local_derivative_operator[idim][iquad][idof] = derivative2[idim];//store dChi/dXi
+            }
+        }
+    }
+    }
+            printf("D*C_m in dim \n\n");
+            fflush(stdout);
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                    printf(" %g ",local_derivative_operator[0][idof][iquad]);
+                    fflush(stdout);
+                }
+                printf("\n");
+                fflush(stdout);
+            }
+                printf("\n\n\n");
+                fflush(stdout);
+#endif
+
+
+
         for (int idim=0; idim<dim; idim++){
             dealii::FullMatrix<real> KD(n_dofs_cell);
             dealii::FullMatrix<real> temp(n_dofs_cell);
             dealii::FullMatrix<real> Jac_phys_inv(n_dofs_cell);
+
+            dealii::FullMatrix<real> int_D(n_dofs_cell);
+            //Chi_operator_with_Quad.Tmmult(int_D, local_derivative_operator[idim]);
+            Chi_operator_with_Quad_Jac.Tmmult(int_D, local_derivative_operator[idim]);
+            printf(" int D dim %d\n",idim);
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                for(unsigned int idof2=0; idof2<n_dofs_cell; idof2++){
+                printf(" %g ", int_D[idof][idof2]);
+                }
+                printf("\n");
+            }
+            
+#if 0
+            dealii::FullMatrix<real> trans_int_D(n_dofs_cell);
+            dealii::FullMatrix<real> SBP(n_dofs_cell);
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                for(unsigned int idof2=0; idof2<n_dofs_cell; idof2++){
+                    trans_int_D[idof][idof2] = int_D[idof2][idof];
+                    SBP[idof][idof2] = trans_int_D[idof][idof2] + int_D[idof][idof2];
+                }
+            }
+            printf("SBP %d\n\n",idim);
+            fflush(stdout);
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                    printf(" %g ",SBP[idof][iquad]);
+                    fflush(stdout);
+                }
+                printf("\n");
+                fflush(stdout);
+            }
+                printf("\n\n\n");
+                fflush(stdout);
+
+            dealii::FullMatrix<real> K_SBP(n_dofs_cell);
+            K_operator.mmult(K_SBP, SBP);
+            printf("K*SBP %d\n\n",idim);
+            fflush(stdout);
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                    printf(" %g ",K_SBP[idof][iquad]);
+                    fflush(stdout);
+                }
+                printf("\n");
+                fflush(stdout);
+            }
+                printf("\n\n\n");
+                fflush(stdout);
+#endif
+#if 0
             Jac_phys_inv.invert(Jacobian_physical);
             Jac_phys_inv.mmult(temp,local_derivative_operator[idim]);
            // K_operator.mmult(KD, local_derivative_operator[idim]);
+           #endif
+            dealii::FullMatrix<real> m_inv_temp(n_dofs_cell);
+            dealii::FullMatrix<real> m_with_jac(n_dofs_cell);
+            local_Mass_Matrix_no_Jac.mmult(m_with_jac, Jacobian_physical);
+           // m_inv_temp.invert(local_Mass_Matrix_no_Jac);
+            m_inv_temp.invert(m_with_jac);
+
+            printf(" Mass dim %d\n",idim);
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                for(unsigned int idof2=0; idof2<n_dofs_cell; idof2++){
+                printf(" %g ", m_with_jac[idof][idof2]);
+                }
+                printf("\n");
+            }
+            printf(" Mass inverse dim %d\n",idim);
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                for(unsigned int idof2=0; idof2<n_dofs_cell; idof2++){
+                printf(" %g ", m_inv_temp[idof][idof2]);
+                }
+                printf("\n");
+            }
+            
+
+            m_inv_temp.mmult(temp, int_D);
+            printf(" P_m* C_m*D dim %d\n",idim);
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                for(unsigned int idof2=0; idof2<n_dofs_cell; idof2++){
+                printf(" %g ", temp[idof][idof2]);
+                }
+                printf("\n");
+            }
             K_operator.mmult(KD, temp);
             sum_KD.add(1.0, KD);
             printf("KD in dim %d\n\n",idim);
@@ -1980,13 +2422,43 @@ fflush(stdout);
             }
                 printf("\n\n\n");
                 fflush(stdout);
+#if 0
+            printf("KD minus KD transpose %d\n\n",idim);
+            fflush(stdout);
+dealii::FullMatrix<real> KD_trans(n_dofs_cell);
+            dealii::FullMatrix<real> temp_int_M(n_dofs_cell);
+            int_D.mmult(temp_int_M,m_inv_temp);
+            m_inv_temp.mmult(KD_trans, K_operator); 
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                    printf(" %g ",KD[idof][iquad] - KD_trans[idof][iquad]);
+                    fflush(stdout);
+                }
+                printf("\n");
+                fflush(stdout);
+            }
+                printf("\n\n\n");
+                fflush(stdout);
+            printf("int D \n\n");
+            fflush(stdout);
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                    printf(" %g ",int_D[idof][iquad]);
+                    fflush(stdout);
+                }
+                printf("\n");
+                fflush(stdout);
+            }
+                printf("\n\n\n");
+                fflush(stdout);
+#endif
         }
             printf("sum of KD \n\n");
             fflush(stdout);
             for(unsigned int idof=0; idof<n_dofs_cell; idof++){
                 for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                    if(sum_KD[idof][iquad] < 1e-9)
-                        sum_KD[idof][iquad] = 0.0;
+                //    if(sum_KD[idof][iquad] < 1e-15)
+                 //       sum_KD[idof][iquad] = 0.0;
                     printf(" %g ",sum_KD[idof][iquad]);
                     fflush(stdout);
                 }
@@ -1995,6 +2467,7 @@ fflush(stdout);
             }
                 printf("\n\n\n");
                 fflush(stdout);
+#endif
 #endif
 
 
@@ -2079,8 +2552,340 @@ fflush(stdout);
         //Include Jac dependence
         K_operator_no_Jac.mmult(K_operator,Jacobian_physical);
         K_operator_no_Jac_aux.mmult(K_operator_aux[0],Jacobian_physical);
+//KD check
+#if 0
+        dealii::FullMatrix<real> sum_KD(n_dofs_cell);
+        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int idof2=0; idof2<n_dofs_cell; idof2++){
+            sum_KD[idof][idof2] = 0.0;
+        }
+        }
+
+
+    printf("GLL NODES xi, eta, zeta\n");
+    for (unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+        const dealii::Point<dim> qpoint  = volume_quadrature_collection[fe_index_curr_cell].point(iquad);
+        for(int idim=0; idim<dim; idim++){
+        printf("%.16g ",qpoint[idim]);
+        }
+        printf("\n");
+
+    }
+
+
+//#if 0
+    for(int istate=0; istate<nstate; istate++){
+    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
+            dealii::Tensor<1,dim,real> derivative;
+            const dealii::Point<dim> qpoint  = volume_quadrature_collection[fe_index_curr_cell].point(iquad);
+            derivative = fe_collection[fe_index_curr_cell].shape_grad_component(idof, qpoint, istate);
+            //derivative = fe_values_vol.shape_grad_component(idof, iquad, istate);
+            for (int idim=0; idim<dim; idim++){
+                local_derivative_operator[idim][iquad][idof] = derivative[idim];//store dChi/dXi
+            }
+        }
+    }
+    }
+
+for( int idim=0; idim<dim; idim++){
+    printf(" D in idim %d\n\n", idim);
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %.16g ", local_derivative_operator[idim][idof][iquad]);
+        }
+        printf("\n");
     }
 }
+
+
+
+//#endif
+    std::vector<dealii::FullMatrix<real>> Jacobian_inv(n_quad_pts);
+    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+       Jacobian_inv[iquad].reinit(dim, dim);
+    }
+    printf(" inverse metric\n");
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf("iquad %d\n", iquad);
+            dealii::DerivativeForm<1, dim, dim> temp;
+            temp=fe_values_vol.inverse_jacobian(iquad);
+            for(int idim=0; idim<dim; idim++){
+                for(int idim2=0; idim2<dim; idim2++){
+                    Jacobian_inv[iquad][idim][idim2] = temp[idim][idim2];
+                    printf(" %g ", Jacobian_inv[iquad][idim][idim2]);
+                }
+                printf("\n");
+            }
+        }
+
+        std::vector<dealii::FullMatrix<real>> Gij_1(dim);
+        std::vector<dealii::FullMatrix<real>> Gij_2(dim);
+        std::vector<dealii::FullMatrix<real>> Gij_3(dim);
+        for(int idim=0; idim<dim; idim++){
+            Gij_1[idim].reinit(n_dofs_cell, n_dofs_cell);
+            Gij_2[idim].reinit(n_dofs_cell, n_dofs_cell);
+            Gij_3[idim].reinit(n_dofs_cell, n_dofs_cell);
+        }
+    for(int idim=0; idim<dim;idim++){
+        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                if(idof==iquad){
+                    Gij_1[idim][idof][iquad] = JxW[iquad]/quad_weights[iquad]*Jacobian_inv[iquad][0][idim];
+                    Gij_2[idim][idof][iquad] = JxW[iquad]/quad_weights[iquad]*Jacobian_inv[iquad][1][idim];
+                    Gij_3[idim][idof][iquad] = JxW[iquad]/quad_weights[iquad]*Jacobian_inv[iquad][2][idim];
+                }
+            }
+        }
+    }
+
+for(int idim=0; idim<dim;idim++){
+    printf(" j=1 diag(G_ij) idim %d\n\n", idim);
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %.16g ", Gij_1[idim][idof][iquad]);
+        }
+        printf("\n");
+    }
+    printf(" j=2 diag(G_ij) idim %d\n\n", idim);
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %.16g ", Gij_2[idim][idof][iquad]);
+        }
+        printf("\n");
+    }
+    printf("j= 3 diag(G_ij) idim %d\n\n", idim);
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %.16g ", Gij_3[idim][idof][iquad]);
+        }
+        printf("\n");
+    }
+}
+
+//TEST Dp G_ij
+    for(int idim=0; idim<dim;idim++){
+        dealii::FullMatrix<real> derivative_temp(n_quad_pts, n_dofs_cell);
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                derivative_temp[iquad][idof] = local_derivative_operator[idim][iquad][idof];
+            }
+        }
+        Chi_inv_operator.mmult(local_derivative_operator[idim],derivative_temp);
+    }
+
+    dealii::FullMatrix<real> sum_Dp_Gij(n_dofs_cell);
+    dealii::FullMatrix<real> sum_Gij_Dp(n_dofs_cell);
+    dealii::FullMatrix<real> strong_1(n_dofs_cell);
+    dealii::FullMatrix<real> strong_2(n_dofs_cell);
+    dealii::FullMatrix<real> strong_3(n_dofs_cell);
+    dealii::FullMatrix<real> chain_1(n_dofs_cell);
+    dealii::FullMatrix<real> chain_2(n_dofs_cell);
+    dealii::FullMatrix<real> chain_3(n_dofs_cell);
+for (int idim=0; idim<dim; idim++){
+
+
+            dealii::FullMatrix<real> derivative_p(n_quad_pts, n_dofs_cell);
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                    if(idof == iquad){
+                        derivative_p[idof][iquad] = 1.0;//set it equal to identity
+                    }
+                    else{
+                        derivative_p[idof][iquad] = 0.0;//set it equal to identity
+                    }
+                }
+            }
+        
+           // for(unsigned int idegree=0; idegree< curr_cell_degree; idegree++){
+            for(unsigned int idegree=0; idegree< 1; idegree++){
+                dealii::FullMatrix<real> derivative_p_temp(n_quad_pts, n_dofs_cell);
+                derivative_p_temp.add(1, derivative_p);
+                local_derivative_operator[idim].mmult(derivative_p, derivative_p_temp);
+            }
+        dealii::FullMatrix<real> derivative_temp(n_quad_pts, n_dofs_cell);
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                derivative_temp[iquad][idof] = derivative_p[iquad][idof];
+            }
+        }
+        Chi_operator.mmult(derivative_p,derivative_temp);
+        dealii::FullMatrix<real> Dp_Gij_1(n_dofs_cell);
+        dealii::FullMatrix<real> Dp_Gij_2(n_dofs_cell);
+        dealii::FullMatrix<real> Dp_Gij_3(n_dofs_cell);
+        dealii::FullMatrix<real> Gij_1_Dp(n_dofs_cell);
+        dealii::FullMatrix<real> Gij_2_Dp(n_dofs_cell);
+        dealii::FullMatrix<real> Gij_3_Dp(n_dofs_cell);
+       // derivative_p.mmult(Dp_Gij_1, Gij_1[idim]);
+       // derivative_p.mmult(Dp_Gij_2, Gij_2[idim]);
+       if(idim==0){
+        derivative_p.mmult(Dp_Gij_1, Gij_1[0]);
+        derivative_p.mmult(Dp_Gij_2, Gij_1[1]);
+        derivative_p.mmult(Dp_Gij_3, Gij_1[2]);
+        Gij_1[0].mmult(Gij_1_Dp,derivative_p );
+        Gij_1[1].mmult(Gij_2_Dp,derivative_p );
+        Gij_1[2].mmult(Gij_3_Dp,derivative_p );
+        strong_1.add(1, Dp_Gij_1);
+        strong_1.add(1, Dp_Gij_2);
+        strong_1.add(1, Dp_Gij_3);
+        chain_1.add(1, Gij_1_Dp);
+        chain_1.add(1, Gij_2_Dp);
+        chain_1.add(1, Gij_3_Dp);
+        }
+        if(idim==1){
+        derivative_p.mmult(Dp_Gij_1, Gij_2[0]);
+        derivative_p.mmult(Dp_Gij_2, Gij_2[1]);
+        derivative_p.mmult(Dp_Gij_3, Gij_2[2]);
+        Gij_2[0].mmult(Gij_1_Dp,derivative_p );
+        Gij_2[1].mmult(Gij_2_Dp,derivative_p );
+        Gij_2[2].mmult(Gij_3_Dp,derivative_p );
+        strong_2.add(1, Dp_Gij_1);
+        strong_2.add(1, Dp_Gij_2);
+        strong_2.add(1, Dp_Gij_3);
+        chain_2.add(1, Gij_1_Dp);
+        chain_2.add(1, Gij_2_Dp);
+        chain_2.add(1, Gij_3_Dp);
+        }
+        if(idim==2){
+        derivative_p.mmult(Dp_Gij_1, Gij_3[0]);
+        derivative_p.mmult(Dp_Gij_2, Gij_3[1]);
+        derivative_p.mmult(Dp_Gij_3, Gij_3[2]);
+        Gij_3[0].mmult(Gij_1_Dp,derivative_p );
+        Gij_3[1].mmult(Gij_2_Dp,derivative_p );
+        Gij_3[2].mmult(Gij_3_Dp,derivative_p );
+        strong_3.add(1, Dp_Gij_1);
+        strong_3.add(1, Dp_Gij_2);
+        strong_3.add(1, Dp_Gij_3);
+        chain_3.add(1, Gij_1_Dp);
+        chain_3.add(1, Gij_2_Dp);
+        chain_3.add(1, Gij_3_Dp);
+        }
+        sum_Dp_Gij.add(1, Dp_Gij_1);
+        sum_Dp_Gij.add(1, Dp_Gij_2);
+        sum_Dp_Gij.add(1, Dp_Gij_3);
+        sum_Gij_Dp.add(1, Gij_1_Dp);
+        sum_Gij_Dp.add(1, Gij_2_Dp);
+        sum_Gij_Dp.add(1, Gij_3_Dp);
+    printf(" j=%d D * diag(G_ij) i=1 \n\n", idim);
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %g ", Dp_Gij_1[idof][iquad]);
+        }
+        printf("\n");
+    }
+    printf(" j=%d D * diag(G_ij) i=2 \n\n", idim);
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %g ", Dp_Gij_2[idof][iquad]);
+        }
+        printf("\n");
+    }
+    printf(" j=%d D * diag(G_ij) i=3 \n\n", idim);
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %g ", Dp_Gij_3[idof][iquad]);
+        }
+        printf("\n");
+    }
+    printf(" j=1 diag(G_ij) * D idim %d\n\n", idim);
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %g ", Gij_1_Dp[idof][iquad]);
+        }
+        printf("\n");
+    }
+    printf(" j=2 diag(G_ij)* D idim %d\n\n", idim);
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %g ", Gij_2_Dp[idof][iquad]);
+        }
+        printf("\n");
+    }
+    printf(" j=3 diag(G_ij)* D idim %d\n\n", idim);
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %g ", Gij_3_Dp[idof][iquad]);
+        }
+        printf("\n");
+    }
+}
+
+    printf(" sum D * diag(G_ij)\n\n");
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %g ", sum_Dp_Gij[idof][iquad]);
+        }
+        printf("\n");
+    }
+    printf(" sum diag(G_ij) *D  \n\n");
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %g ", sum_Gij_Dp[idof][iquad]);
+        }
+        printf("\n");
+    }
+        sum_Dp_Gij.add(-1, sum_Gij_Dp);
+    printf(" sum D * diag(G_ij) - sum diag(G_{ij}) * D\n\n");
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %g ", sum_Dp_Gij[idof][iquad]);
+        }
+        printf("\n");
+    }
+    dealii::Vector<real> ones(n_dofs_cell);
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        ones[idof] = 1.0;
+    }
+    dealii::Vector<real> Dp_ones(n_dofs_cell);
+    sum_Dp_Gij.vmult(Dp_ones, ones);
+    printf(" sum D * diag(G_ij)*1\n\n");
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+            printf(" %g ", Dp_ones[idof]);
+        printf("\n");
+    }
+    dealii::Vector<real> D_ones(n_dofs_cell);
+    sum_Gij_Dp.vmult(D_ones, ones);
+    printf(" sum diag(G_ij)*D * 1\n\n");
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+            printf(" %g ", D_ones[idof]);
+        printf("\n");
+    }
+
+    strong_1.add(-1, chain_1);
+    printf(" strong 1 minus chain 1 \n\n");
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %g ", strong_1[idof][iquad]);
+        }
+        printf("\n");
+    }
+    strong_2.add(-1, chain_2);
+    printf(" strong 2 minus chain 2\n\n");
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %g ", strong_2[idof][iquad]);
+        }
+        printf("\n");
+    }
+    strong_3.add(-1, chain_3);
+    printf(" strong 3 minus chain 3\n\n");
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %g ", strong_3[idof][iquad]);
+        }
+        printf("\n");
+    }
+//end dp Gij
+
+        printf(" determinant of jacobian\n");
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            printf(" %g \n", JxW[iquad]/quad_weights[iquad]);
+        }
+        
+#endif
+    }
+}
+
 
 template <int dim, typename real>
 double DGBase<dim,real>::factorial_DG(double n)

@@ -183,6 +183,7 @@ public:
                            const unsigned int curr_cell_degree, dealii::FullMatrix<real> &K_operator,
                            std::vector< dealii::FullMatrix<real>> &K_operator_aux /*std::string correction*/);
                            // dealii::FullMatrix<real> &K_operator_aux /*std::string correction*/);
+
     double factorial_DG(double n);
 
 

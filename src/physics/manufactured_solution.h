@@ -376,13 +376,39 @@ protected:
     using dealii::Function<dim,real>::hessian;
 public:
     ManufacturedSolutionSShock(const unsigned int nstate = 1)
-        :   ManufacturedSolutionFunction<dim,real>(nstate){}
+        :   ManufacturedSolutionFunction<dim,real>(nstate)
+    {
+        // setting constant for function
+        // f(x,y) = a * arctan(b*sin(c*y + d) + e*x + f)
+
+        // Ekelschot
+        // a =  0.75;
+        // b =  2.0;
+        // c =  5.0;
+        // d =  0.0;
+        // e = -3.0;
+        // f =  0.0;
+
+        // shifted from [-1,1]^2 -> [0,1]
+        a =  0.75;
+        b =  2.0;
+        c = 10.0;
+        d = -5.0;
+        e = -6.0;
+        f =  3.0;
+
+    }
 
     real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 
     dealii::Tensor<1,dim,real> gradient(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 
     dealii::SymmetricTensor<2,dim,real> hessian(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+
+private:
+    // equation constants
+    real a, b, c, d, e, f; 
+
 };
 
 template <int dim, typename real>

@@ -10,7 +10,8 @@ namespace PHiLiP {
 
 namespace GridRefinement {
 
-// wrapper for the set of functions output to gmsh through pos
+// wrapper for the set of functions to determine mesh size density functions
+// based on input of spatial error data (and possibly anisotropy)
 template <int dim, typename real>
 class SizeField
 {

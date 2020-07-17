@@ -68,16 +68,16 @@ subsection grid refinement study
   end
 
   # number of refinements
-  set num_refinements = 4
+  set num_refinements = 2
 
   # grid refinement - 0
-  subsection grid refinement [0]
+  subsection grid refinement [1]
     set refinement_steps  = 6
     set refinement_method = uniform
   end
 
   # grid refinement - 1
-  subsection grid refinement [1]
+  subsection grid refinement [2]
     set refinement_steps    = 9
     set refinement_method   = fixed_fraction
     set refinement_type     = h
@@ -90,15 +90,17 @@ subsection grid refinement study
     set complexity_add      = 0.0
   end
 
-  subsection grid refinement [2]
+  subsection grid refinement [0]
     set refinement_steps    = 8
     set refinement_method   = continuous
     set refinement_type     = h
     set isotropic           = true
-    set error_indicator     = error_based
+    set error_indicator     = hessian_based
     set norm_Lq             = 2.0
     set complexity_scale    = 2.0
     set complexity_add      = 0.0
+
+    set output_type      = gmsh_out
   end
 
   subsection grid refinement [3]
@@ -113,11 +115,11 @@ subsection grid refinement study
   end
 
   # output options
-
 end
 
 subsection manufactured solution convergence study
   set use_manufactured_source_term = true
-  set manufactured_solution_type   = boundary_layer_solution # s_shock_solution  #
+  set manufactured_solution_type = atan_solution
+  # set manufactured_solution_type   = s_shock_solution # boundary_layer_solution # 
 end
 

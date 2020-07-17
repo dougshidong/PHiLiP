@@ -1,4 +1,5 @@
 set(GRID_REFINEMENT_SOURCE
+    field.cpp
     grid_refinement.cpp
     gmsh_out.cpp
     msh_out.cpp

@@ -5,6 +5,8 @@
 
 #include "mesh/meshmover_linear_elasticity.hpp"
 
+#include "global_counter.hpp"
+
 namespace PHiLiP {
 
 template <int dim, int nstate>
@@ -92,6 +94,8 @@ void ROLObjectiveSimOpt<dim,nstate>::gradient_2(
     auto &dealii_output = ROL_vector_to_dealii_vector_reference(gradient_ctl);
     dXvdXp.Tvmult(dealii_output, dIdXv);
 
+    //n_vmult += 1;
+
     // auto dIdXvs = dIdXv;
     // {
     //     dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(functional.dg->high_order_grid.surface_nodes);
@@ -132,6 +136,8 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_11(
     auto &hv = ROL_vector_to_dealii_vector_reference(output_vector);
 
     functional.d2IdWdW.vmult(hv, dealii_input);
+
+    //n_vmult += 1;
 }
 
 template <int dim, int nstate>
@@ -182,6 +188,7 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_12(
         functional.d2IdWdX.vmult(dealii_output, dXvdXp_input);
     }
 
+    //n_vmult += 2;
 
 }
 
@@ -226,6 +233,8 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_21(
 
     auto &dealii_output = ROL_vector_to_dealii_vector_reference(output_vector);
     dXvdXp.Tvmult(dealii_output, d2IdXdW_input);
+
+    //n_vmult += 2;
 }
 
 template <int dim, int nstate>
@@ -291,6 +300,7 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_22(
     auto &dealii_output = ROL_vector_to_dealii_vector_reference(output_vector);
     dXvdXp.Tvmult(dealii_output, d2IdXdXp_input);
 
+    //n_vmult += 3;
 }
 
 template class ROLObjectiveSimOpt <PHILIP_DIM,1>;

@@ -63,6 +63,7 @@ public:
     /// Avoid -Werror=overloaded-virtual.
     using ROL::Constraint_SimOpt<double>::value;
 
+    double flow_CFL_;
     /// Avoid -Werror=overloaded-virtual.
     using ROL::Constraint_SimOpt<double>::applyAdjointJacobian_1;
         //(

@@ -33,9 +33,6 @@ public:
      */
     EulerBumpOptimization(const Parameters::AllParameters *const parameters_input);
 
-    /// Warp grid into Gaussian bump
-    static dealii::Point<dim> warp (const dealii::Point<dim> &p);
-
     /// Grid convergence on Euler Gaussian Bump
     /** Will run the a grid convergence test for various p
      *  on multiple grids to determine the order of convergence.
@@ -51,7 +48,7 @@ public:
 
 private:
     /// Actual test for which the number of design variables can be inputted.
-    int optimize_target_bump (const unsigned int nx_ffd) const;
+    int optimize_target_bump (const unsigned int nx_ffd, const unsigned int poly_degree) const;
 
 protected:
 

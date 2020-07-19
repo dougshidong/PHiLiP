@@ -68,7 +68,15 @@ private:
   
     std::string lineSearchName_;  
     std::string secantName_;
+
+    bool use_approximate_full_space_preconditioner_;
+    std::string preconditioner_name_;
   
+    double search_ctl_norm;
+    double search_sim_norm;
+    double search_adj_norm;
+
+    int n_linesearches;
 public:
   
     using Step<Real>::initialize;
@@ -217,6 +225,9 @@ public:
         @param[in]     printHeader   if set to true will print the header at each iteration
     */
     std::string print( AlgorithmState<Real> & algo_state, bool print_header = false ) const override;
+
+private:
+    dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
 }; // class FullSpace_BirosGhattas
 

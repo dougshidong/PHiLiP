@@ -9,6 +9,8 @@
 
 #include "Ifpack.h"
 
+#include "global_counter.hpp"
+
 namespace PHiLiP {
 
 template<int dim>
@@ -24,6 +26,7 @@ FlowConstraints<dim>
     , jacobian_prec(nullptr)
     , adjoint_jacobian_prec(nullptr)
 {
+    flow_CFL_ = 0.0;
     ffd_des_var.reinit(ffd_design_variables_indices_dim.size());
     ffd.get_design_variables(ffd_design_variables_indices_dim, ffd_des_var);
 
@@ -140,11 +143,13 @@ void FlowConstraints<dim>
     update_2(des_var_ctl);
 
     const bool compute_dRdW=true; const bool compute_dRdX=false; const bool compute_d2R=false;
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
 
     const auto &input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
     auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
     this->dg->system_matrix.vmult(output_vector_v, input_vector_v);
+
+    n_vmult += 1;
 }
 
 template<int dim>
@@ -161,7 +166,7 @@ void FlowConstraints<dim>
     update_2(des_var_ctl);
 
     const bool compute_dRdW=true; const bool compute_dRdX=false; const bool compute_d2R=false;
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
 
     if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     //solve_linear_2 (
@@ -218,14 +223,14 @@ int FlowConstraints<dim>
     update_2(des_var_ctl);
 
     const bool compute_dRdW=true; const bool compute_dRdX=false; const bool compute_d2R=false;
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
 
     Epetra_CrsMatrix * jacobian = const_cast<Epetra_CrsMatrix *>(&(dg->system_matrix.trilinos_matrix()));
 
     destroy_JacobianPreconditioner_1();
     Ifpack Factory;
-    //const std::string PrecType = "ILUT"; 
-    const std::string PrecType = "ILU"; 
+    const std::string PrecType = "ILUT"; 
+    //const std::string PrecType = "ILU"; 
     const int OverlapLevel = 1; // one row of overlap among the processes
     jacobian_prec = Factory.Create(PrecType, jacobian, OverlapLevel);
     assert (jacobian_prec != 0);
@@ -249,12 +254,14 @@ int FlowConstraints<dim>
     //      if different from zero, the elements dropped during the factorization process
     //      will be added to the diagonal term, multiplied by the specified value.
 
-    List.set("fact: level-of-fill", 1);
+    List.set("fact: level-of-fill", 2);
     List.set("fact: ilut level-of-fill", 2.0);
     // no modifications on the diagonal
-    List.set("fact: absolute threshold", 0.0);
+    List.set("fact: absolute threshold", 1e-4);
     List.set("fact: relative threshold", 1.0);
-    List.set("fact: relaxation value", 0.0);
+    List.set("fact: drop tolerance", 1e-10);
+
+    List.set("schwarz: reordering type", "rcm");
 
 
     IFPACK_CHK_ERR(jacobian_prec->SetParameters(List));
@@ -275,14 +282,14 @@ int FlowConstraints<dim>
     update_2(des_var_ctl);
 
     const bool compute_dRdW=true; const bool compute_dRdX=false; const bool compute_d2R=false;
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
 
     Epetra_CrsMatrix * adjoint_jacobian = const_cast<Epetra_CrsMatrix *>(&(dg->system_matrix_transpose.trilinos_matrix()));
 
     destroy_AdjointJacobianPreconditioner_1();
     Ifpack Factory;
-    //const std::string PrecType = "ILUT"; 
-    const std::string PrecType = "ILU"; 
+    const std::string PrecType = "ILUT"; 
+    //const std::string PrecType = "ILU"; 
     const int OverlapLevel = 1; // one row of overlap among the processes
     adjoint_jacobian_prec = Factory.Create(PrecType, adjoint_jacobian, OverlapLevel);
     assert (adjoint_jacobian_prec != 0);
@@ -306,13 +313,14 @@ int FlowConstraints<dim>
     //      if different from zero, the elements dropped during the factorization process
     //      will be added to the diagonal term, multiplied by the specified value.
 
-    List.set("fact: level-of-fill", 1);
-    List.set("fact: ilut level-of-fill", 1.0);
+    List.set("fact: level-of-fill", 2);
+    List.set("fact: ilut level-of-fill", 2.0);
     // no modifications on the diagonal
-    List.set("fact: absolute threshold", 0.0);
+    List.set("fact: absolute threshold", 1e-4);
     List.set("fact: relative threshold", 1.0);
-    List.set("fact: relaxation value", 0.0);
+    List.set("fact: drop tolerance", 1e-10);
 
+    List.set("schwarz: reordering type", "rcm");
 
     IFPACK_CHK_ERR(adjoint_jacobian_prec->SetParameters(List));
     IFPACK_CHK_ERR(adjoint_jacobian_prec->Initialize());
@@ -346,6 +354,8 @@ void FlowConstraints<dim>
                     dg->system_matrix.trilinos_matrix().RangeMap(),
                     output_vector_v.begin());
     jacobian_prec->ApplyInverse (input_trilinos, output_trilinos);
+
+    n_vmult += 2;
 }
 
 template<int dim>
@@ -372,6 +382,8 @@ void FlowConstraints<dim>
                     dg->system_matrix_transpose.trilinos_matrix().RangeMap(),
                     output_vector_v.begin());
     adjoint_jacobian_prec->ApplyInverse (input_trilinos, output_trilinos);
+
+    n_vmult += 2;
 }
 
 template<int dim>
@@ -388,7 +400,7 @@ double& /*tol*/ )
     update_2(des_var_ctl);
 
     const bool compute_dRdW=true; const bool compute_dRdX=false; const bool compute_d2R=false;
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
 
     // Input vector is copied into temporary non-const vector.
     auto input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
@@ -469,10 +481,11 @@ double& /*tol*/ )
 
     {
         const bool compute_dRdW=false; const bool compute_dRdX=true; const bool compute_d2R=false;
-        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
         dg->dRdXv.vmult(output_vector_v, dXvdXp_input);
     }
 
+    n_vmult += 7;
 }
 
 template<int dim>
@@ -489,11 +502,13 @@ double& /*tol*/ )
     update_2(des_var_ctl);
 
     const bool compute_dRdW=true; const bool compute_dRdX=false; const bool compute_d2R=false;
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
 
     const auto &input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
     auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
     this->dg->system_matrix.Tvmult(output_vector_v, input_vector_v);
+
+    n_vmult += 1;
 }
 
 template<int dim>
@@ -515,7 +530,7 @@ double& /*tol*/ )
     auto input_dRdXv = dg->high_order_grid.volume_nodes;
     {
         const bool compute_dRdW=false; const bool compute_dRdX=true; const bool compute_d2R=false;
-        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
         dg->dRdXv.Tvmult(input_dRdXv, input_vector_v);
     }
 
@@ -541,6 +556,7 @@ double& /*tol*/ )
     auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
     dXvdXp.Tvmult(output_vector_v, input_dRdXv);
 
+    n_vmult += 7;
 }
 
 template<int dim>
@@ -563,8 +579,10 @@ void FlowConstraints<dim>
     update_2(des_var_ctl);
 
     const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
     dg->d2RdWdW.vmult(ROL_vector_to_dealii_vector_reference(output_vector), ROL_vector_to_dealii_vector_reference(input_vector));
+
+    n_vmult += 6;
 }
 
 template<int dim>
@@ -592,7 +610,7 @@ void FlowConstraints<dim>
     auto input_d2RdWdX = dg->high_order_grid.volume_nodes;
     {
         const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
-        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
         dg->d2RdWdX.Tvmult(input_d2RdWdX, input_vector_v);
     }
 
@@ -617,6 +635,8 @@ void FlowConstraints<dim>
 
     auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
     dXvdXp.Tvmult(output_vector_v, input_d2RdWdX);
+
+    n_vmult += 7;
 }
 
 template<int dim>
@@ -669,9 +689,11 @@ void FlowConstraints<dim>
     auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
     {
         const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
-        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
         dg->d2RdWdX.vmult(output_vector_v, dXvdXp_input);
     }
+
+    n_vmult += 7;
 }
 
 
@@ -726,7 +748,7 @@ void FlowConstraints<dim>
     auto d2RdXdX_dXvdXp_input = dg->high_order_grid.volume_nodes;
     {
         const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
-        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
         dg->d2RdXdX.vmult(d2RdXdX_dXvdXp_input, dXvdXp_input);
     }
 
@@ -751,6 +773,8 @@ void FlowConstraints<dim>
 
     auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
     dXvdXp.Tvmult(output_vector_v, d2RdXdX_dXvdXp_input);
+
+    n_vmult += 8;
 }
 
 // template<int dim>

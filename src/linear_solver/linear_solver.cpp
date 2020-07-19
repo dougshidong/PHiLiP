@@ -7,6 +7,9 @@
 #include <deal.II/lac/solver_gmres.h>
 
 #include "linear_solver.h"
+
+#include "global_counter.hpp"
+
 namespace PHiLiP {
 
 std::pair<unsigned int, double>
@@ -84,6 +87,8 @@ solve_linear (
               << " iterations resulting in a linear residual of " << solver.ScaledResidual() << std::endl
               << " Current RHS norm: " << right_hand_side.l2_norm()
               << " Linear solution norm: " << solution.l2_norm() << std::endl;
+
+        n_vmult += 3*solver.NumIters();
 
         return {solver.NumIters(), solver.TrueResidual()};
     }

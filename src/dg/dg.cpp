@@ -47,6 +47,11 @@
 #include "dg.h"
 #include "post_processor/physics_post_processor.h"
 
+#include "global_counter.hpp"
+
+unsigned int n_vmult;
+
+
 //template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<PHILIP_DIM> >;
 namespace PHiLiP {
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
@@ -838,7 +843,7 @@ void DGBase<dim,real>::set_dual(const dealii::LinearAlgebra::distributed::Vector
 
 
 template <int dim, typename real>
-void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
+void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R, const double CFL_mass)
 {
     dealii::deal_II_exceptions::disable_abort_on_exception(); // Allows us to catch negative Jacobians.
     Assert( !(compute_dRdW && compute_dRdX)
@@ -864,6 +869,11 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
                 pcout << " which is already assembled..." << std::endl;
                 return;
             }
+        }
+        {
+            int n_stencil = 1 + std::pow(2,dim);
+            int n_dofs_cell = nstate*std::pow(max_degree+1,dim);
+            n_vmult += n_stencil*n_dofs_cell;
         }
         solution_dRdW = solution;
         volume_nodes_dRdW = high_order_grid.volume_nodes;
@@ -990,6 +1000,11 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
     right_hand_side.compress(dealii::VectorOperation::add);
     if ( compute_dRdW ) {
         system_matrix.compress(dealii::VectorOperation::add);
+
+        if (CFL_mass != 0.0) {
+            time_scaled_mass_matrices(CFL_mass);
+            add_time_scaled_mass_matrices();
+        }
 
         Epetra_CrsMatrix *input_matrix  = const_cast<Epetra_CrsMatrix *>(&(system_matrix.trilinos_matrix()));
         Epetra_CrsMatrix *output_matrix;

@@ -31,17 +31,18 @@
 
 #include "optimization/full_space_step.hpp"
 
+#include "global_counter.hpp"
+
 namespace PHiLiP {
 namespace Tests {
 
 enum OptimizationAlgorithm { full_space_birosghattas, full_space_composite_step, reduced_space_bfgs, reduced_space_newton };
-const OptimizationAlgorithm opt_type
-    // = full_space_birosghattas;
-    // = full_space_composite_step;
-    // = reduced_space_bfgs;
-    = reduced_space_newton;
+enum BirosGhattasPreconditioner { P2, P2A, P4, P4A, identity };
 
-const int POLY_DEGREE = 1;
+//const std::vector<BirosGhattasPreconditioner> precond_list { P2, P2A, P4, P4A };
+const std::vector<BirosGhattasPreconditioner> precond_list { P2A };
+const std::vector<OptimizationAlgorithm> opt_list { full_space_birosghattas, reduced_space_newton };
+
 const double BUMP_HEIGHT = 0.0625;
 const double TARGET_BUMP_HEIGHT = 0.5*BUMP_HEIGHT;
 const double CHANNEL_LENGTH = 3.0;
@@ -49,10 +50,14 @@ const double CHANNEL_HEIGHT = 0.8;
 const unsigned int NY_CELL = 5;
 const unsigned int NX_CELL = 10*NY_CELL;
 
-const unsigned int n_des_var_start = 20;
-const unsigned int n_des_var_end   = 100;
-const unsigned int n_des_var_step  = 20;
+const unsigned int POLY_START = 1;
+const unsigned int POLY_END = 3;
 
+const unsigned int n_des_var_start = 640;//20;
+const unsigned int n_des_var_end   = 640;//100;
+const unsigned int n_des_var_step  = 20;//20;
+
+const int max_design_cycle = 1000;
 const int cg_iteration_limit = 200;
 
 const std::string line_search_curvature =
@@ -79,27 +84,61 @@ int EulerBumpOptimization<dim,nstate>
     if (this->mpi_rank == 0) filebuffer.open ("optimization.log", std::ios::out);
     if (this->mpi_rank == 0) filebuffer.close();
 
-    for (unsigned int n_des_var = n_des_var_start; n_des_var <= n_des_var_end; n_des_var += n_des_var_step) {
-        assert(n_des_var%2 == 0);
-        assert(n_des_var>=2);
-        //const unsigned int nx_ffd = n_des_var / 2 + 2;
-        const unsigned int nx_ffd = n_des_var + 2;
-        test_error += optimize_target_bump(nx_ffd);
+    for (unsigned int poly_degree = POLY_START; poly_degree <= POLY_END; ++poly_degree) {
+        //for (unsigned int n_des_var = n_des_var_start; n_des_var <= n_des_var_end; n_des_var += n_des_var_step) {
+        for (unsigned int n_des_var = n_des_var_start; n_des_var <= n_des_var_end; n_des_var *= 2) {
+            // assert(n_des_var%2 == 0);
+            // assert(n_des_var>=2);
+            // const unsigned int nx_ffd = n_des_var / 2 + 2;
+            const unsigned int nx_ffd = n_des_var + 2;
+            test_error += optimize_target_bump(nx_ffd, poly_degree);
+        }
     }
     return test_error;
 }
 
 template<int dim, int nstate>
 int EulerBumpOptimization<dim,nstate>
-::optimize_target_bump (const unsigned int nx_ffd) const
+::optimize_target_bump (const unsigned int nx_ffd, const unsigned int poly_degree) const
 {
     int test_error = 0;
 
+    for (auto const opt_type : opt_list) {
+    for (auto const precond_type : precond_list) {
+
     std::string opt_output_name = "";
     std::string descent_method = "";
+    std::string preconditioner_string = "";
     switch(opt_type) {
         case full_space_birosghattas: {
-            opt_output_name = "full_space_birosghattas";
+            opt_output_name = "full_space";
+            switch(precond_type) {
+                case P2: {
+                    opt_output_name += "_p2";
+                    preconditioner_string = "P2";
+                    break;
+                }
+                case P2A: {
+                    opt_output_name += "_p2a";
+                    preconditioner_string = "P2A";
+                    break;
+                }
+                case P4: {
+                    opt_output_name += "_p4";
+                    preconditioner_string = "P4";
+                    break;
+                }
+                case P4A: {
+                    opt_output_name += "_p4a";
+                    preconditioner_string = "P4A";
+                    break;
+                }
+                case identity: {
+                    opt_output_name += "_identity";
+                    preconditioner_string = "identity";
+                    break;
+                }
+            }
             break;
         }
         case full_space_composite_step: {
@@ -117,6 +156,9 @@ int EulerBumpOptimization<dim,nstate>
             break;
         }
     }
+    opt_output_name = opt_output_name + "_"
+                      + std::to_string(NX_CELL) + "X" + std::to_string(NY_CELL) + "_"
+                      + "P" + std::to_string(poly_degree);
 
     // Output stream
     ROL::nullstream bhs; // outputs nothing
@@ -213,14 +255,14 @@ int EulerBumpOptimization<dim,nstate>
         grid->clear();
         Grids::gaussian_bump(*grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, 0.5*BUMP_HEIGHT);
         // Create DG object
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, grid);
+        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
 
         // Initialize coarse grid solution with free-stream
         dg->allocate_system ();
         dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
         // Create ODE solver and ramp up the solution from p0
         std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-        ode_solver->initialize_steady_polynomial_ramping (POLY_DEGREE);
+        ode_solver->initialize_steady_polynomial_ramping (poly_degree);
         // Solve the steady state problem
         ode_solver->steady_state();
         // Output target_bump_solution
@@ -242,12 +284,12 @@ int EulerBumpOptimization<dim,nstate>
         ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
         // Initialize flow solution with free-stream
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, grid);
+        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
         dg->allocate_system ();
         dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
         // Create ODE solver and ramp up the solution from p0
         std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-        ode_solver->initialize_steady_polynomial_ramping (POLY_DEGREE);
+        ode_solver->initialize_steady_polynomial_ramping (poly_degree);
         // Solve the steady state problem
         ode_solver->steady_state();
         // Output target_ffd_solution
@@ -282,18 +324,18 @@ int EulerBumpOptimization<dim,nstate>
         std::cout << ROL::EProblemToString(problemType) << std::endl;
 
         Teuchos::ParameterList parlist;
-        parlist.sublist("Status Test").set("Gradient Tolerance", 1e-8);
-        parlist.sublist("Status Test").set("Iteration Limit", 5);
+        parlist.sublist("Status Test").set("Gradient Tolerance", 1e-5);
+        parlist.sublist("Status Test").set("Iteration Limit", max_design_cycle);
 
         parlist.sublist("Step").set("Type","Line Search");
         parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Quasi-Newton Method");
-        parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",1e-0);
+        parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",0.1);
         parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
         parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type",line_search_method);
         parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type",line_search_curvature);
 
         parlist.sublist("General").sublist("Secant").set("Type","Limited-Memory BFGS");
-        parlist.sublist("General").sublist("Secant").set("Maximum Storage",5000);
+        parlist.sublist("General").sublist("Secant").set("Maximum Storage",max_design_cycle);
 
         *outStream << "Starting optimization with " << n_design_variables << "..." << std::endl;
         *outStream << "Optimizing FFD points to obtain target Gaussian bump..." << std::endl;
@@ -321,13 +363,13 @@ int EulerBumpOptimization<dim,nstate>
     ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
     // Initialize flow solution with free-stream
-    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, grid);
+    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
     dg->allocate_system ();
     dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
     // Create ODE solver and ramp up the solution from p0
     std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
     //param.ode_solver_param.nonlinear_steady_residual_tolerance = 1e-4;
-    ode_solver->initialize_steady_polynomial_ramping (POLY_DEGREE);
+    ode_solver->initialize_steady_polynomial_ramping (poly_degree);
     // // Solve the steady state problem
     ode_solver->steady_state();
 
@@ -359,10 +401,25 @@ int EulerBumpOptimization<dim,nstate>
     parlist.sublist("General").set("Print Verbosity", 1);
     auto des_var_p = ROL::makePtr<ROL::Vector_SimOpt<double>>(des_var_sim_rol_p, des_var_ctl_rol_p);
 
-    parlist.sublist("Status Test").set("Gradient Tolerance", 1e-11);
-    parlist.sublist("Status Test").set("Iteration Limit", 5000);
+    parlist.sublist("Status Test").set("Gradient Tolerance", 1e-9);
+    parlist.sublist("Status Test").set("Iteration Limit", max_design_cycle);
+
+    parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
+    parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",1e-0);
+    parlist.sublist("Step").sublist("Line Search").set("Function Evaluation Limit",30); // 0.5^30 ~  1e-10
+    parlist.sublist("Step").sublist("Line Search").set("Accept Linesearch Minimizer",true);//false);
+    parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type",line_search_method);
+    parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type",line_search_curvature);
+
+
+    parlist.sublist("General").sublist("Secant").set("Type","Limited-Memory BFGS");
+    parlist.sublist("General").sublist("Secant").set("Maximum Storage",max_design_cycle);
+
+    parlist.sublist("Full Space").set("Preconditioner",preconditioner_string);
 
     ROL::Ptr< const ROL::AlgorithmState <double> > algo_state;
+    n_vmult = 0;
+
     switch (opt_type) {
         case full_space_composite_step: {
             // Full space problem
@@ -382,9 +439,6 @@ int EulerBumpOptimization<dim,nstate>
             steplist.sublist("Tangential Subproblem Solver").set("Iteration Limit", cg_iteration_limit);
             steplist.sublist("Tangential Subproblem Solver").set("Relative Tolerance", 1e-2);
 
-            parlist.sublist("General").sublist("Secant").set("Type","Limited-Memory BFGS");
-            parlist.sublist("General").sublist("Secant").set("Maximum Storage",5000);
-
             *outStream << "Starting optimization with " << n_design_variables << "..." << std::endl;
             ROL::OptimizationSolver<double> solver( opt, parlist );
             solver.solve( *outStream );
@@ -396,7 +450,7 @@ int EulerBumpOptimization<dim,nstate>
             [[fallthrough]];
         case reduced_space_newton: {
             // Reduced space problem
-            const bool storage = false;
+            const bool storage = true;
             const bool useFDHessian = false;
             auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p, storage, useFDHessian);
             opt = ROL::OptimizationProblem<double> ( robj, des_var_ctl_rol_p );
@@ -404,19 +458,12 @@ int EulerBumpOptimization<dim,nstate>
             std::cout << ROL::EProblemToString(problemType) << std::endl;
 
             parlist.sublist("Step").set("Type","Line Search");
-            //parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",1e-0);
-            parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",1e-0);
-            parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
-
-
-            parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type",line_search_method);
-
-            parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type",line_search_curvature);
 
             parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type", descent_method);
             if (descent_method == "Newton-Krylov") {
                 parlist.sublist("General").sublist("Secant").set("Use as Preconditioner", true);
-                const double em4 = 1e-4, em2 = 1e-2;
+                //const double em4 = 1e-4, em2 = 1e-2;
+                const double em4 = 1e-8, em2 = 1e-6;
                 //parlist.sublist("General").sublist("Krylov").set("Type","Conjugate Gradients");
                 parlist.sublist("General").sublist("Krylov").set("Type","GMRES");
                 parlist.sublist("General").sublist("Krylov").set("Absolute Tolerance", em4);
@@ -425,9 +472,6 @@ int EulerBumpOptimization<dim,nstate>
                 parlist.sublist("General").set("Inexact Hessian-Times-A-Vector",false);
             }
 
-            parlist.sublist("General").sublist("Secant").set("Type","Limited-Memory BFGS");
-            parlist.sublist("General").sublist("Secant").set("Maximum Storage",5000);
-
             *outStream << "Starting optimization with " << n_design_variables << "..." << std::endl;
             ROL::OptimizationSolver<double> solver( opt, parlist );
             solver.solve( *outStream );
@@ -435,16 +479,13 @@ int EulerBumpOptimization<dim,nstate>
             break;
         }
         case full_space_birosghattas: {
-            parlist.sublist("General").sublist("Secant").set("Type","Limited-Memory BFGS");
-            parlist.sublist("General").sublist("Secant").set("Maximum Storage",5000);
-            parlist.sublist("Step").sublist("Line Search").set("Function Evaluation Limit",100);
             auto full_space_step = ROL::makePtr<ROL::FullSpace_BirosGhattas<double>>(parlist);
             auto status_test = ROL::makePtr<ROL::StatusTest<double>>(parlist);
             const bool printHeader = true;
             ROL::Algorithm<double> algorithm(full_space_step, status_test, printHeader);
             //des_var_adj_rol_p->setScalar(1.0);
             algorithm.run(*des_var_p, *des_var_adj_rol_p, *obj, *con, true, *outStream);
-            ROL::Ptr< const ROL::AlgorithmState <double> > algo_state = algorithm.getState();
+            algo_state = algorithm.getState();
 
             break;
         }
@@ -454,11 +495,14 @@ int EulerBumpOptimization<dim,nstate>
     timing_end = MPI_Wtime();
     *outStream << "The process took " << timing_end - timing_start << " seconds to run." << std::endl;
 
+    *outStream << "Total n_vmult for algorithm " << n_vmult << std::endl;
 
     test_error += algo_state->statusFlag;
 
     filebuffer.close();
 
+    }
+    }
 
     return test_error;
 }

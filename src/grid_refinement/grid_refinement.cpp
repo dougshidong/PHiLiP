@@ -681,7 +681,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_gmsh()
                                 dealii::Utilities::int_to_string(this->iteration, 4) + "." + 
                                 dealii::Utilities::int_to_string(iproc, 4) + ".pos";
     std::ofstream outpos(write_posname);
-    GmshOut<dim,real>::write_pos(*(this->tria),this->h_field->get_scale_vector(),outpos);
+    GmshOut<dim,real>::write_pos(*(this->tria),this->h_field->get_scale_vector_dealii(),outpos);
 
     // writing the geo file on the 1st processor and running
     std::string output_name = "grid-" + 
@@ -732,23 +732,54 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_msh()
     
     std::ofstream out_msh(write_msh_name);
 
+    // setting up output handler
+    PHiLiP::GridRefinement::MshOut<dim,real> msh_out(this->dg->dof_handler);
+
     if(output_data_type == OutputDataType::size_field){
         // outputting the h_field size (no orientation), single value
-        std::vector<real> size_field = get_size_field();
 
-        // setting up output handler
-        PHiLiP::GridRefinement::MshOut<dim,real> msh_out(this->dg->dof_handler);
-        msh_out.add_data_vector(size_field, storage_type, "size_field");
-        msh_out.write_msh(out_msh);
-
-        std::cout << ".msh file written. (" << write_msh_name << ")" << std::endl;
+        // adding data to output
+        msh_out.add_data_vector(this->h_field->get_scale_vector(), 
+                                storage_type, 
+                                "size_field");
+        
     }else if(output_data_type == OutputDataType::frame_field){
         // outputting the h_field frame vectors (d, 1xd vectors)
+        
+        // adding data to output
+        for(unsigned int j = 0; j < dim; ++j)
+            msh_out.add_data_vector(this->h_field->get_axis_vector(j),
+                                    storage_type,
+                                    "frame_field_" + std::to_string(j));
+
+
     }else if(output_data_type == OutputDataType::metric_field){
-        // outputting the h_frame using metric representation (dxd matrix)
+        // outputting the h_field using metric representation (dxd matrix)
+
+        // adding data to output
+        msh_out.add_data_vector(this->h_field->get_metric_vector(),
+                                storage_type,
+                                "metric_field");
+
+        // // for testing
+        // std::vector<dealii::SymmetricTensor<2,dim,real>> quadratic_metric_sym = this->h_field->get_quadratic_metric_vector();
+        // std::vector<dealii::Tensor<2,dim,real>> quadratic_metric;
+        
+        // quadratic_metric.reserve(quadratic_metric_sym.size());
+        // for(auto metric: quadratic_metric_sym)
+        //     quadratic_metric.push_back(metric);
+
+        // msh_out.add_data_vector(quadratic_metric,
+        //                         storage_type,
+        //                         "metric_field_sym");
+
     }
 
+    // writing the msh file
+    msh_out.write_msh(out_msh);
+
     // full cycle-not yet implemented
+    std::cout << ".msh file written. (" << write_msh_name << ")" << std::endl;
     throw;
 }
 
@@ -1250,7 +1281,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::output_results_vtk_met
 {
     // getting the current field sizes
     get_current_field_h();
-    dat_vec_vec[0] = this->h_field->get_scale_vector();
+    dat_vec_vec[0] = this->h_field->get_scale_vector_dealii();
     // dat_vec_vec.push_back(h_field);
     data_out.add_data_vector(dat_vec_vec[0], "h_field_curr", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
@@ -1261,7 +1292,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::output_results_vtk_met
 
     // computing the (next) update to the fields
     field();
-    dat_vec_vec[2] = this->h_field->get_scale_vector(); 
+    dat_vec_vec[2] = this->h_field->get_scale_vector_dealii(); 
     // dat_vec_vec.push_back(h_field);
     data_out.add_data_vector(dat_vec_vec[2], "h_field_next", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
     dat_vec_vec[3] = p_field;

@@ -1,4 +1,5 @@
 #include <deal.II/base/tensor.h>
+#include <deal.II/base/symmetric_tensor.h>
 #include <deal.II/lac/vector.h>
 
 #include "field.h"
@@ -10,7 +11,23 @@ namespace GridRefinement {
 /***** ***** Field ***** *****/
 
 template <int dim, typename real>
-dealii::Vector<real> Field<dim,real>::get_scale_vector()
+void Field<dim,real>::set_scale_vector_dealii(
+	const dealii::Vector<real>& vec)
+{
+	for(unsigned int i = 0; i < this->size(); ++i)
+		this->set_scale(i, vec[i]);
+}
+
+template <int dim, typename real>
+void Field<dim,real>::set_scale_vector(
+	const std::vector<real>& vec)
+{
+	for(unsigned int i = 0; i < this->size(); ++i)
+		this->set_scale(i, vec[i]);
+}
+
+template <int dim, typename real>
+dealii::Vector<real> Field<dim,real>::get_scale_vector_dealii()
 {
 	dealii::Vector<real> vec(this->size());
 
@@ -21,11 +38,76 @@ dealii::Vector<real> Field<dim,real>::get_scale_vector()
 }
 
 template <int dim, typename real>
-void Field<dim,real>::set_scale_vector(
-	dealii::Vector<real>& vec)
+std::vector<real> Field<dim,real>::get_scale_vector()
+{
+	std::vector<real> vec(this->size());
+
+	for(unsigned int i = 0; i < this->size(); ++i)
+		vec[i] = this->get_scale(i);
+
+	return vec;
+}
+
+template <int dim, typename real>
+void Field<dim,real>::set_axis_vector(
+	const unsigned int                             j,
+	const std::vector<dealii::Tensor<1,dim,real>>& vec)
 {
 	for(unsigned int i = 0; i < this->size(); ++i)
-		this->set_scale(i, vec[i]);
+		this->set_axis(i, j, vec[i]);
+}
+
+template <int dim, typename real>
+std::vector<dealii::Tensor<1,dim,real>> Field<dim,real>::get_axis_vector(
+	const unsigned int j)
+{
+	std::vector<dealii::Tensor<1,dim,real>> vec(this->size());
+
+	for(unsigned int i = 0; i < this->size(); ++i)
+		vec[i] = this->get_axis(i, j);
+
+	return vec;
+}
+
+template <int dim, typename real>
+std::vector<dealii::Tensor<2,dim,real>> Field<dim,real>::get_metric_vector()
+{
+	std::vector<dealii::Tensor<2,dim,real>> vec(this->size());
+
+	for(unsigned int i = 0; i < this->size(); ++i)
+		vec[i] = this->get_metric(i);
+
+	return vec;
+}
+
+template <int dim, typename real>
+dealii::SymmetricTensor<2,dim,real> Field<dim,real>::get_quadratic_metric(
+	const unsigned int index)
+{
+	dealii::SymmetricTensor<2,dim,real> quadratic_metric;
+
+	dealii::Tensor<2,dim,real> metric = this->get_metric(index);
+
+	// looping over the upper triangular part
+	for(unsigned int i = 0; i < dim; ++i){
+		for(unsigned int j = i; j < dim; ++j){
+			// assigning compoennts of A = M^T M from a_ij = v_i^T v_j where M = [v_1, ..., v_n]
+			quadratic_metric[i][j] = scalar_product(metric[i], metric[j]);
+		}
+	}
+
+	return quadratic_metric;
+}
+
+template <int dim, typename real>
+std::vector<dealii::SymmetricTensor<2,dim,real>> Field<dim,real>::get_quadratic_metric_vector()
+{
+	std::vector<dealii::SymmetricTensor<2,dim,real>> vec(this->size());
+
+	for(unsigned int i = 0; i < this->size(); ++i)
+		vec[i] = this->get_quadratic_metric(i);
+
+	return vec;
 }
 
 /***** ***** FieldIsotropic ***** *****/
@@ -84,9 +166,9 @@ real FieldIsotropic<dim,real>::get_anisotropic_ratio(
 
 template <int dim, typename real>
 void FieldIsotropic<dim,real>::set_unit_axis(
-	const unsigned int               /* index */,
-	const unsigned int               /* j */,
-	const dealii::Tensor<1,dim,real> /* unit_axis */)
+	const unsigned int                /* index */,
+	const unsigned int                /* j */,
+	const dealii::Tensor<1,dim,real>& /* unit_axis */)
 {
 	assert(0); // unit axis cannot be modified
 }
@@ -105,9 +187,9 @@ dealii::Tensor<1,dim,real> FieldIsotropic<dim,real>::get_unit_axis(
 
 template <int dim, typename real>
 void FieldIsotropic<dim,real>::set_axis(
-	const unsigned int               /* index */,
-	const unsigned int               /* j */,
-	const dealii::Tensor<1,dim,real> /* axis */)
+	const unsigned int                /* index */,
+	const unsigned int                /* j */,
+	const dealii::Tensor<1,dim,real>& /* axis */)
 {
 	assert(0); // axis cannot be modified
 }
@@ -115,10 +197,10 @@ void FieldIsotropic<dim,real>::set_axis(
 
 template <int dim, typename real>
 dealii::Tensor<1,dim,real> FieldIsotropic<dim,real>::get_axis(
-	const unsigned int               /* index */,
-	const unsigned int               /* j */)
+	const unsigned int               index,
+	const unsigned int               j)
 {
-	assert(0); // unit axis cannot be modified
+	return get_unit_axis(index, j) * get_scale(index);
 }
 
 template <int dim, typename real>

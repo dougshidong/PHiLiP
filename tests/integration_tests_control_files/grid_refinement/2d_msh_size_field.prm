@@ -66,7 +66,7 @@ subsection grid refinement study
 
     # output options
     set output_type      = msh_out
-    set output_data_type = size_field
+    set output_data_type = metric_field #<size_field, frame_field, metric_field>
   end
 
 end

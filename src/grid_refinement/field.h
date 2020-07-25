@@ -2,6 +2,7 @@
 #define __FIELD_H__
 
 #include <deal.II/base/tensor.h>
+#include <deal.II/base/symmetric_tensor.h>
 #include <deal.II/lac/vector.h>
 
 namespace PHiLiP {
@@ -33,13 +34,20 @@ public:
 	virtual real get_scale(
 		const unsigned int index) = 0;
 
-	// getting the scale vector (dealii::Vector)
-	dealii::Vector<real> get_scale_vector();
-
 	// setting the scale vector (dealii::Vector)
-	void set_scale_vector(
-		dealii::Vector<real>& vec);
+	void set_scale_vector_dealii(
+		const dealii::Vector<real>& vec);
 	
+	// setting the scale vector (std::vector)
+	void set_scale_vector(
+		const std::vector<real>& vec);
+
+	// getting the scale vector (dealii::Vector)
+	dealii::Vector<real> get_scale_vector_dealii();
+
+	// getting the scale vector (std::vector)
+	std::vector<real> get_scale_vector();
+
 	// setting the anisotropic ratio
 	virtual void set_anisotropic_ratio(
 		const unsigned int index,
@@ -53,9 +61,9 @@ public:
 
 	// setting the (unit) axis direction
 	virtual void set_unit_axis(
-		const unsigned int               index,
-		const unsigned int               j,
-		const dealii::Tensor<1,dim,real> unit_axis) = 0;
+		const unsigned int                index,
+		const unsigned int                j,
+		const dealii::Tensor<1,dim,real>& unit_axis) = 0;
 
 	// getting the (unit) axis direction
 	virtual dealii::Tensor<1,dim,real> get_unit_axis(
@@ -64,18 +72,36 @@ public:
 
 	// setting frame axis j (scaled) at index
 	virtual void set_axis(
-		const unsigned int               index,
-		const unsigned int               j,
-		const dealii::Tensor<1,dim,real> axis) = 0;
+		const unsigned int                index,
+		const unsigned int                j,
+		const dealii::Tensor<1,dim,real>& axis) = 0;
 
 	// getting frame axis j (scaled) at index
 	virtual dealii::Tensor<1,dim,real> get_axis(
 		const unsigned int index,
 		const unsigned int j) = 0;
 
+	// setting frame axis j (scaled) vector (std::vector)
+	void set_axis_vector(
+		const unsigned int                             j,
+		const std::vector<dealii::Tensor<1,dim,real>>& vec);
+
+	// getting frame axis j (scaled) vector (std::vector)
+	std::vector<dealii::Tensor<1,dim,real>> get_axis_vector(
+		const unsigned int j);
+
 	// get metric value at index
 	virtual dealii::Tensor<2,dim,real> get_metric(
 		const unsigned int index) = 0;
+
+	// getting the metric vector (std::vector)
+	std::vector<dealii::Tensor<2,dim,real>> get_metric_vector();
+
+	// get riemanian quadratic metric \mathcal{M} = M^T M
+	dealii::SymmetricTensor<2,dim,real> get_quadratic_metric(
+		const unsigned int index);
+
+	std::vector<dealii::SymmetricTensor<2,dim,real>> get_quadratic_metric_vector();
 
 };
 
@@ -118,9 +144,9 @@ public:
 
 	// setting the (unit) axis direction
 	void set_unit_axis(
-		const unsigned int               index,
-		const unsigned int               j,
-		const dealii::Tensor<1,dim,real> unit_axis) override;
+		const unsigned int                index,
+		const unsigned int                j,
+		const dealii::Tensor<1,dim,real>& unit_axis) override;
 
 	// getting the (unit) axis direction
 	dealii::Tensor<1,dim,real> get_unit_axis(
@@ -129,9 +155,9 @@ public:
 
 	// setting frame axis j (scaled) at index
 	void set_axis(
-		const unsigned int               index,
-		const unsigned int               j,
-		const dealii::Tensor<1,dim,real> axis) override;
+		const unsigned int                index,
+		const unsigned int                j,
+		const dealii::Tensor<1,dim,real>& axis) override;
 
 	// getting frame axis j (scaled) at index
 	dealii::Tensor<1,dim,real> get_axis(

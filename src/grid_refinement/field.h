@@ -17,6 +17,9 @@ public:
 	virtual void reinit(
 		const unsigned int size) = 0;
 
+	// returns the internal vector size
+	virtual unsigned int size() = 0;
+
 	// reference for element size
 	virtual real& scale(
 		const unsigned int index) = 0;
@@ -30,6 +33,13 @@ public:
 	virtual real get_scale(
 		const unsigned int index) = 0;
 
+	// getting the scale vector (dealii::Vector)
+	dealii::Vector<real> get_scale_vector();
+
+	// setting the scale vector (dealii::Vector)
+	void set_scale_vector(
+		dealii::Vector<real>& vec);
+	
 	// setting the anisotropic ratio
 	virtual void set_anisotropic_ratio(
 		const unsigned int index,
@@ -66,7 +76,7 @@ public:
 	// get metric value at index
 	virtual dealii::Tensor<2,dim,real> get_metric(
 		const unsigned int index) = 0;
-		
+
 };
 
 // isotropic element case (element scale only)
@@ -74,9 +84,13 @@ template <int dim, typename real>
 class FieldIsotropic : public Field<dim,real>
 {
 public:
+
 	// reinitialize the internal vector
 	void reinit(
-		const unsigned int size) override;
+		const unsigned int size);
+
+	// returns the internal vector size
+	unsigned int size();
 
 	// reference for element size
 	real& scale(
@@ -129,7 +143,7 @@ public:
 		const unsigned int index) override;
 
 private:
-	// element data
+	// internel storage for each element size
 	class ElementIsotropic
 	{
 	public:
@@ -138,7 +152,7 @@ private:
 	};
 
 	// vector of element data
-	dealii::Vector<ElementIsotropic> field;
+	std::vector<ElementIsotropic> field;
 };
 
 } // namespace GridRefinement

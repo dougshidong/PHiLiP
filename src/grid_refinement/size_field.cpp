@@ -21,6 +21,7 @@
 
 #include "physics/manufactured_solution.h"
 
+#include "grid_refinement/field.h"
 #include "size_field.h"
 
 namespace PHiLiP {
@@ -38,7 +39,7 @@ void SizeField<dim,real>::isotropic_uniform(
     const real &                               complexity,  // (input) complexity target
     const dealii::Vector<real> &               B,           // only one since p is constant
     const dealii::hp::DoFHandler<dim> &        dof_handler, // dof_handler
-    dealii::Vector<real> &                     h_field,     // (output) size field
+    std::unique_ptr<Field<dim,real>> &         h_field,     // (output) size field
     const real &                               poly_degree) // (input)  polynomial degree
 {
     const real q = 2.0; 
@@ -59,10 +60,10 @@ void SizeField<dim,real>::isotropic_uniform(
     const real K = complexity/integral_value_mpi;
 
     // looping over the elements to define the sizes
-    h_field.reinit(dof_handler.get_triangulation().n_active_cells());
+    h_field->reinit(dof_handler.get_triangulation().n_active_cells());
     for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell)
         if(cell->is_locally_owned())
-            h_field[cell->active_cell_index()] = pow(K*pow(B[cell->active_cell_index()], exponent), -1.0/dim);
+            h_field->set_scale(cell->active_cell_index(), pow(K*pow(B[cell->active_cell_index()], exponent), -1.0/dim));
 }
 
 template <int dim, typename real>
@@ -74,7 +75,7 @@ void SizeField<dim,real>::isotropic_h(
     const dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
     const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
     const dealii::UpdateFlags &                update_flags,          // update flags for for volume fe
-    dealii::Vector<real> &                     h_field,               // (output) size field
+    std::unique_ptr<Field<dim,real>> &         h_field,               // (output) size field
     const dealii::Vector<real> &               p_field)               // (input)  poly field
 {
     // setting up lambda function which, given a constant for the size field, 
@@ -101,7 +102,7 @@ real SizeField<dim,real>::evaluate_complexity(
     const dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
     const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
     const dealii::UpdateFlags &                update_flags,          // update flags for for volume fe
-    const dealii::Vector<real> &               h_field,               // (input) size field
+    const std::unique_ptr<Field<dim,real>> &   h_field,               // (input) size field
     const dealii::Vector<real> &               p_field)               // (input)  poly field    
 {
     real complexity_sum = 0.0;
@@ -132,7 +133,7 @@ real SizeField<dim,real>::evaluate_complexity(
         for(unsigned int iquad = 0; iquad < n_quad; ++iquad)
             JxW += fe_values.JxW(iquad);
 
-        complexity_sum += pow((p_field[index]+1)/h_field[index], dim) * JxW;
+        complexity_sum += pow((p_field[index]+1)/h_field->get_scale(index), dim) * JxW;
     }
 
     return dealii::Utilities::MPI::sum(complexity_sum, MPI_COMM_WORLD);
@@ -143,7 +144,7 @@ void SizeField<dim,real>::update_h_optimal(
     const real                          lam,         // (input) bisection parameter
     const dealii::Vector<real> &        B,           // constant for current p
     const dealii::hp::DoFHandler<dim> & dof_handler, // dof_handler
-    dealii::Vector<real> &              h_field,     // (output) size field
+    std::unique_ptr<Field<dim,real>> &  h_field,     // (output) size field
     const dealii::Vector<real> &        p_field)     // (input)  poly field
 {
     const real q = 2.0;
@@ -159,7 +160,7 @@ void SizeField<dim,real>::update_h_optimal(
         const real exponent  = -1.0/(q*(p+1)+2.0);
         const real component = q*(p+1.0)/(q*(p+1)+2.0) * B[index]/pow(p+1, dim);
 
-        h_field[index] = lam * pow(exponent, component);
+        h_field->set_scale(index, lam * pow(exponent, component));
     }
 }
 
@@ -173,7 +174,7 @@ void SizeField<dim,real>::isotropic_p(
     const dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
     const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
     const dealii::UpdateFlags &                update_flags,          // update flags for for volume fe
-    const dealii::Vector<real> &               h_field,               // (input) size field
+    const std::unique_ptr<Field<dim,real>> &   h_field,               // (input) size field
     dealii::Vector<real> &                     p_field)               // (output) poly field
 {
     (void)Bm;
@@ -208,7 +209,7 @@ void SizeField<dim,real>::isotropic_hp(
     const dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
     const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
     const dealii::UpdateFlags &                update_flags,          // update flags for for volume fe
-    dealii::Vector<real> &                     h_field,               // (output) size field
+    std::unique_ptr<Field<dim,real>> &         h_field,               // (output) size field
     dealii::Vector<real> &                     p_field)               // (output) poly field
 {
     isotropic_h(
@@ -233,10 +234,10 @@ void SizeField<dim,real>::isotropic_hp(
 
         // computing the reference error
         const real e_ref = pow(abs(B[index]), q) 
-                         * pow(h_field[index], dim*q*(p_field[index]+1)/2);
+                         * pow(h_field->get_scale(index), dim*q*(p_field[index]+1)/2);
         
         // local complexity
-        const real N_ref = pow((p_field[index]+1)/h_field[index], dim);
+        const real N_ref = pow((p_field[index]+1)/h_field->get_scale(index), dim);
 
         // constant error
         // computing the error for increased/decreased p with the same local complexity
@@ -251,10 +252,10 @@ void SizeField<dim,real>::isotropic_hp(
         
         // determining which is the smallest and adjusting
         if(e_m < e_ref && e_m <= e_p){
-            h_field[index] = h_m;
+            h_field->set_scale(index, h_m);
             p_field[index]--;
         }else if(e_p < e_ref && e_p <= e_m){
-            h_field[index] = h_p;
+            h_field->set_scale(index, h_p);
             p_field[index]++;
         }// else, p stays the same
     }
@@ -302,7 +303,6 @@ real SizeField<dim,real>::bisection(
 
     return x;
 }
-
 
 template class SizeField <PHILIP_DIM, double>;
 // template class SizeField <PHILIP_DIM, float>; // manufactured solution isn't defined for this

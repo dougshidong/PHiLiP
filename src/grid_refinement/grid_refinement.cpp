@@ -35,6 +35,7 @@
 #include "grid_refinement/msh_out.h"
 #include "grid_refinement/size_field.h"
 #include "grid_refinement/reconstruct_poly.h"
+#include "grid_refinement/field.h"
 #include "grid_refinement.h"
 
 namespace PHiLiP {
@@ -680,7 +681,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_gmsh()
                                 dealii::Utilities::int_to_string(this->iteration, 4) + "." + 
                                 dealii::Utilities::int_to_string(iproc, 4) + ".pos";
     std::ofstream outpos(write_posname);
-    GmshOut<dim,real>::write_pos(*(this->tria),this->h_field,outpos);
+    GmshOut<dim,real>::write_pos(*(this->tria),this->h_field->get_scale_vector(),outpos);
 
     // writing the geo file on the 1st processor and running
     std::string output_name = "grid-" + 
@@ -732,7 +733,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_msh()
     std::ofstream out_msh(write_msh_name);
 
     if(output_data_type == OutputDataType::size_field){
-        // outputting the h_field (no orientation)
+        // outputting the h_field size (no orientation), single value
         std::vector<real> size_field = get_size_field();
 
         // setting up output handler
@@ -740,9 +741,11 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_msh()
         msh_out.add_data_vector(size_field, storage_type, "size_field");
         msh_out.write_msh(out_msh);
 
-        std::cout << "msh file written." << std::endl;
+        std::cout << ".msh file written. (" << write_msh_name << ")" << std::endl;
     }else if(output_data_type == OutputDataType::frame_field){
+        // outputting the h_field frame vectors (d, 1xd vectors)
     }else if(output_data_type == OutputDataType::metric_field){
+        // outputting the h_frame using metric representation (dxd matrix)
     }
 
     // full cycle-not yet implemented
@@ -809,10 +812,10 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::get_current_field_h()
 {
     // gets the current size and copy it into field_h
     // for isotropic, sets the size to be the h = volume ^ (1/dim)
-    h_field.reinit(this->tria->n_active_cells());
+    this->h_field->reinit(this->tria->n_active_cells());
     for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
         if(cell->is_locally_owned())
-            this->h_field[cell->active_cell_index()] = pow(cell->measure(), 1.0/dim);
+            this->h_field->set_scale(cell->active_cell_index(), pow(cell->measure(), 1.0/dim));
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -829,11 +832,11 @@ template <int dim, int nstate, typename real, typename MeshType>
 std::vector<real> GridRefinement_Continuous<dim,nstate,real,MeshType>::get_size_field()
 {
     // allocating
-    std::vector<real> size_field(h_field.size());
+    std::vector<real> size_field(h_field->size());
 
     // iterating over the dof_handler to convert
     for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++ cell)
-        size_field[cell->active_cell_index()] = this->h_field[cell->active_cell_index()];
+        size_field[cell->active_cell_index()] = this->h_field->get_scale(cell->active_cell_index());
     
     return size_field;
 }
@@ -942,6 +945,7 @@ void GridRefinement_Continuous_Hessian<dim,nstate,real,MeshType>::field_h()
             this->dg->dof_handler,
             this->h_field,
             poly_degree);
+
     }else{
         // the case of non-uniform p
         GridRefinement_Continuous<dim,nstate,real,MeshType>::get_current_field_p();
@@ -956,6 +960,7 @@ void GridRefinement_Continuous_Hessian<dim,nstate,real,MeshType>::field_h()
             this->volume_update_flags,
             this->h_field,
             this->p_field);
+
     }
 }
 
@@ -1245,7 +1250,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::output_results_vtk_met
 {
     // getting the current field sizes
     get_current_field_h();
-    dat_vec_vec[0] = h_field;
+    dat_vec_vec[0] = this->h_field->get_scale_vector();
     // dat_vec_vec.push_back(h_field);
     data_out.add_data_vector(dat_vec_vec[0], "h_field_curr", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
@@ -1256,7 +1261,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::output_results_vtk_met
 
     // computing the (next) update to the fields
     field();
-    dat_vec_vec[2] = h_field; 
+    dat_vec_vec[2] = this->h_field->get_scale_vector(); 
     // dat_vec_vec.push_back(h_field);
     data_out.add_data_vector(dat_vec_vec[2], "h_field_next", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
     dat_vec_vec[3] = p_field;

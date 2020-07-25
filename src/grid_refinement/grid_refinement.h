@@ -13,6 +13,8 @@
 
 #include "physics/physics.h"
 
+#include "grid_refinement/field.h"
+
 namespace PHiLiP {
 
 namespace GridRefinement {
@@ -336,6 +338,9 @@ protected:
                 dg_input,
                 physics_input)
     {
+        // sets the Field to default to isotropic field
+        h_field = std::make_unique<FieldIsotropic<dim,real>>();
+
         // set the initial complexity
         complexity_initial = current_complexity();
 
@@ -381,11 +386,14 @@ protected:
 
     void get_current_field_h();
     void get_current_field_p();
-    dealii::Vector<real> h_field;
+    // dealii::Vector<real> h_field;
+    std::unique_ptr<Field<dim,real>> h_field;
     dealii::Vector<real> p_field;
 
     // functions for getting the output data
     std::vector<real> get_size_field();
+    std::vector<real> get_frame_field();
+    std::vector<real> get_metric_field();
     // to be added
     // frame_field();
     // metric_field();
@@ -488,6 +496,6 @@ public:
 
 } // namespace GridRefinement
 
-} //namespace PHiLiP
+} // namespace PHiLiP
 
 #endif // __GRID_REFINEMENT_H__

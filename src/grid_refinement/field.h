@@ -9,6 +9,193 @@ namespace PHiLiP {
 
 namespace GridRefinement {
 
+// element base class that accesses field information at a point (corresponding element)
+template <int dim, typename real>
+class Element
+{
+public:
+	// reference for element size
+	virtual real& scale() = 0;
+
+	// setting the scale
+	virtual void set_scale(
+		const real val) = 0;
+
+	// getting the scale
+	virtual real get_scale() = 0;
+
+	// setting the anisotropic ratio
+	virtual void set_anisotropic_ratio(
+		const std::array<real,dim>& ratio) = 0;
+
+	// getting the anisotropic ratio (array)
+	virtual std::array<real,dim> get_anisotropic_ratio() = 0;
+
+	// getting the anisotropic ratio
+	virtual real get_anisotropic_ratio(
+		const unsigned int j) = 0;
+
+	// setting the (unit) axis direction
+	virtual void set_unit_axis(
+		const std::array<dealii::Tensor<1,dim,real>,dim>& unit_axis) = 0;
+
+	// getting the (unit) axis direction (array)
+	virtual std::array<dealii::Tensor<1,dim,real>,dim> get_unit_axis() = 0;
+
+	// getting the (unit) axis direction
+	virtual dealii::Tensor<1,dim,real> get_unit_axis(
+		const unsigned int j) = 0;
+
+	// setting frame axis j (scaled) at index
+	virtual void set_axis(
+		const std::array<dealii::Tensor<1,dim,real>,dim>& axis) = 0;
+
+	// getting frame axis j (scaled) at index (array)
+	virtual std::array<dealii::Tensor<1,dim,real>,dim> get_axis() = 0;
+
+	// getting frame axis j (scaled) at index
+	virtual dealii::Tensor<1,dim,real> get_axis(
+		const unsigned int j) = 0;
+
+	// get metric value at index
+	virtual dealii::Tensor<2,dim,real> get_metric() = 0;
+};
+
+// isotropic element case (element scale only)
+template <int dim, typename real>
+class ElementIsotropic : public Element<dim,real>
+{
+public:
+	// reference for element size
+	real& scale() override;
+
+	// setting the scale
+	void set_scale(
+		const real val) override;
+
+	// getting the scale
+	real get_scale() override;
+
+	// setting the anisotropic ratio
+	void set_anisotropic_ratio(
+		const std::array<real,dim>& ratio) override;
+
+	// getting the anisotropic ratio (array)
+	std::array<real,dim> get_anisotropic_ratio() override;
+
+	// getting the anisotropic ratio
+	real get_anisotropic_ratio(
+		const unsigned int j) override;
+
+	// setting the (unit) axis direction
+	void set_unit_axis(
+		const std::array<dealii::Tensor<1,dim,real>,dim>& unit_axis) override;
+
+	// getting the (unit) axis direction (array)
+	std::array<dealii::Tensor<1,dim,real>,dim> get_unit_axis() override;
+
+	// getting the (unit) axis direction
+	dealii::Tensor<1,dim,real> get_unit_axis(
+		const unsigned int j) override;
+
+	// setting frame axis j (scaled) at index
+	void set_axis(
+		const std::array<dealii::Tensor<1,dim,real>,dim>& axis) override;
+
+	// getting frame axis j (scaled) at index (array)
+	std::array<dealii::Tensor<1,dim,real>,dim> get_axis() override;
+
+	// getting frame axis j (scaled) at index
+	dealii::Tensor<1,dim,real> get_axis(
+		const unsigned int j) override;
+
+	// get metric value at index
+	dealii::Tensor<2,dim,real> get_metric() override;
+
+private:
+	// element size
+	real m_scale;
+};
+
+// anisotropic element case (stores frame axes)
+template <int dim, typename real>
+class ElementAnisotropic : public Element<dim,real>
+{
+public:
+	// constructor
+	ElementAnisotropic();
+
+	// reference for element size
+	real& scale() override;
+
+	// setting the scale
+	void set_scale(
+		const real val) override;
+
+	// getting the scale
+	real get_scale() override;
+
+	// setting the anisotropic ratio
+	void set_anisotropic_ratio(
+		const std::array<real,dim>& ratio) override;
+
+	// getting the anisotropic ratio (array)
+	std::array<real,dim> get_anisotropic_ratio() override;
+
+	// getting the anisotropic ratio
+	real get_anisotropic_ratio(
+		const unsigned int j) override;
+
+	// setting the (unit) axis direction
+	void set_unit_axis(
+		const std::array<dealii::Tensor<1,dim,real>,dim>& unit_axis) override;
+
+	// getting the (unit) axis direction (array)
+	std::array<dealii::Tensor<1,dim,real>,dim> get_unit_axis() override;
+
+	// getting the (unit) axis direction
+	dealii::Tensor<1,dim,real> get_unit_axis(
+		const unsigned int j) override;
+
+	// setting frame axis j (scaled) at index
+	void set_axis(
+		const std::array<dealii::Tensor<1,dim,real>,dim>& axis) override;
+
+	// getting frame axis j (scaled) at index (array)
+	std::array<dealii::Tensor<1,dim,real>,dim> get_axis() override;
+
+	// getting frame axis j (scaled) at index
+	dealii::Tensor<1,dim,real> get_axis(
+		const unsigned int j) override;
+
+	// get metric value at index
+	dealii::Tensor<2,dim,real> get_metric() override;
+
+private:
+
+	// resets the element
+	void clear();
+
+	// corrects the values stored internally
+	void correct_element();
+
+	// renormalize the unit_axis by factoring any scaling into anisotropic ratio
+	// correct_anisotropic_ratio() should be called immediately afterward
+	void correct_unit_axis();
+
+	// adjust the ratio values s.t. product of anisotropic ratios equals 1 
+	void correct_anisotropic_ratio();
+
+	// element size
+	real m_scale;
+
+	// axes ratios
+	std::array<real, dim> m_anisotropic_ratio;
+
+	// axes directions
+	std::array<dealii::Tensor<1,dim,real>, dim> m_unit_axis;
+};
+
 // object to store the anisotropic description of the field
 template <int dim, typename real>
 class Field 
@@ -50,9 +237,12 @@ public:
 
 	// setting the anisotropic ratio
 	virtual void set_anisotropic_ratio(
-		const unsigned int index,
-		const unsigned int j,
-		const real         ratio) = 0;
+		const unsigned int          index,
+		const std::array<real,dim>& ratio) = 0;
+
+	// getting the anisotropic ratio
+	virtual std::array<real,dim> get_anisotropic_ratio(
+		const unsigned int index) = 0;
 
 	// getting the anisotropic ratio
 	virtual real get_anisotropic_ratio(
@@ -61,9 +251,12 @@ public:
 
 	// setting the (unit) axis direction
 	virtual void set_unit_axis(
-		const unsigned int                index,
-		const unsigned int                j,
-		const dealii::Tensor<1,dim,real>& unit_axis) = 0;
+		const unsigned int                                index,
+		const std::array<dealii::Tensor<1,dim,real>,dim>& unit_axis) = 0;
+
+	// getting the (unit) axis direction
+	virtual std::array<dealii::Tensor<1,dim,real>,dim> get_unit_axis(
+		const unsigned int index) = 0;
 
 	// getting the (unit) axis direction
 	virtual dealii::Tensor<1,dim,real> get_unit_axis(
@@ -72,9 +265,12 @@ public:
 
 	// setting frame axis j (scaled) at index
 	virtual void set_axis(
-		const unsigned int                index,
-		const unsigned int                j,
-		const dealii::Tensor<1,dim,real>& axis) = 0;
+		const unsigned int                                index,
+		const std::array<dealii::Tensor<1,dim,real>,dim>& axis) = 0;
+
+	// getting frame axis j (scaled) at index
+	virtual std::array<dealii::Tensor<1,dim,real>,dim> get_axis(
+		const unsigned int index) = 0;
 
 	// getting frame axis j (scaled) at index
 	virtual dealii::Tensor<1,dim,real> get_axis(
@@ -83,8 +279,10 @@ public:
 
 	// setting frame axis j (scaled) vector (std::vector)
 	void set_axis_vector(
-		const unsigned int                             j,
-		const std::vector<dealii::Tensor<1,dim,real>>& vec);
+		const std::vector<std::array<dealii::Tensor<1,dim,real>,dim>>& vec);
+
+	// getting frame axis j (scaled) vector (std::vector)
+	std::vector<std::array<dealii::Tensor<1,dim,real>,dim>> get_axis_vector();
 
 	// getting frame axis j (scaled) vector (std::vector)
 	std::vector<dealii::Tensor<1,dim,real>> get_axis_vector(
@@ -105,12 +303,11 @@ public:
 
 };
 
-// isotropic element case (element scale only)
-template <int dim, typename real>
-class FieldIsotropic : public Field<dim,real>
+// wrapper to hide element type
+template <int dim, typename real, typename ElementType>
+class FieldInternal : public Field<dim,real>
 {
 public:
-
 	// reinitialize the internal vector
 	void reinit(
 		const unsigned int size);
@@ -133,9 +330,12 @@ public:
 
 	// setting the anisotropic ratio
 	void set_anisotropic_ratio(
-		const unsigned int index,
-		const unsigned int j,
-		const real         ratio) override;
+		const unsigned int          index,
+		const std::array<real,dim>& ratio) override;
+
+	// getting the anisotropic ratio
+	std::array<real,dim> get_anisotropic_ratio(
+		const unsigned int index) override;
 
 	// getting the anisotropic ratio
 	real get_anisotropic_ratio(
@@ -145,8 +345,11 @@ public:
 	// setting the (unit) axis direction
 	void set_unit_axis(
 		const unsigned int                index,
-		const unsigned int                j,
-		const dealii::Tensor<1,dim,real>& unit_axis) override;
+		const std::array<dealii::Tensor<1,dim,real>,dim>& unit_axis) override;
+
+	// getting the (unit) axis direction
+	std::array<dealii::Tensor<1,dim,real>,dim> get_unit_axis(
+		const unsigned int index) override;
 
 	// getting the (unit) axis direction
 	dealii::Tensor<1,dim,real> get_unit_axis(
@@ -155,9 +358,12 @@ public:
 
 	// setting frame axis j (scaled) at index
 	void set_axis(
-		const unsigned int                index,
-		const unsigned int                j,
-		const dealii::Tensor<1,dim,real>& axis) override;
+		const unsigned int                                index,
+		const std::array<dealii::Tensor<1,dim,real>,dim>& axis) override;
+
+	// getting frame axis j (scaled) at index
+	std::array<dealii::Tensor<1,dim,real>,dim> get_axis(
+		const unsigned int index) override;
 
 	// getting frame axis j (scaled) at index
 	dealii::Tensor<1,dim,real> get_axis(
@@ -169,17 +375,17 @@ public:
 		const unsigned int index) override;
 
 private:
-	// internel storage for each element size
-	class ElementIsotropic
-	{
-	public:
-		// element size
-		real scale;
-	};
-
 	// vector of element data
-	std::vector<ElementIsotropic> field;
+	std::vector<ElementType> field;
 };
+
+// isotropic element case (element scale only)
+template <int dim, typename real>
+using FieldIsotropic = FieldInternal<dim,real,ElementIsotropic<dim,real>>;
+
+// anisotropic element case (stores frame axes)
+template <int dim, typename real>
+using FieldAnisotropic = FieldInternal<dim,real,ElementAnisotropic<dim,real>>;
 
 } // namespace GridRefinement
 

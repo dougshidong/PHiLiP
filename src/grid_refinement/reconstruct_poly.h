@@ -2,6 +2,13 @@
 #ifndef __RECONSTRUCT_POLY_H__
 #define __RECONSTRUCT_POLY_H__
 
+#include <deal.II/lac/la_parallel_vector.h>
+
+#include <deal.II/hp/mapping_collection.h>
+#include <deal.II/hp/q_collection.h>
+
+#include <deal.II/base/polynomial_space.h>
+
 #include <deal.II/grid/tria.h>
 
 #include <deal.II/fe/fe.h>

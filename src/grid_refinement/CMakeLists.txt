@@ -1,6 +1,9 @@
 set(GRID_REFINEMENT_SOURCE
     field.cpp
     grid_refinement.cpp
+    grid_refinement_uniform.cpp
+    grid_refinement_fixed_fraction.cpp
+    grid_refinement_continuous.cpp
     gmsh_out.cpp
     msh_out.cpp
     gnu_out.cpp

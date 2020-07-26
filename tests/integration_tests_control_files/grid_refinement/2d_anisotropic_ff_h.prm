@@ -57,7 +57,7 @@ subsection grid refinement study
     set refinement_steps      = 9
     set refinement_method     = fixed_fraction
     set refinement_type       = h
-    set isotropic             = false
+    set anisotropic           = true
     set anisotropic_indicator = reconstruction_based
     set error_indicator       = hessian_based
     set refinement_fraction   = 0.3

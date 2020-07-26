@@ -42,9 +42,9 @@ void GridRefinementParam::declare_parameters(dealii::ParameterHandler &prm)
                           "  p | "
                           "  hp>.");
 
-        prm.declare_entry("isotropic", "true",
+        prm.declare_entry("anisotropic", "false",
                           dealii::Patterns::Bool(),
-                          "Inidcates whether the refinement should be done isotropically.");
+                          "Inidcates whether the refinement should be done anisotropically.");
 
         prm.declare_entry("anisotropic_threshold_ratio", "3.0",
                           dealii::Patterns::Double(1.0, dealii::Patterns::Double::max_double_value),
@@ -138,7 +138,7 @@ void GridRefinementParam::parse_parameters(dealii::ParameterHandler &prm)
         else if(refinement_type_string == "p") {refinement_type = RefinementType::p;}
         else if(refinement_type_string == "hp"){refinement_type = RefinementType::hp;}
 
-        isotropic = prm.get_bool("isotropic");
+        anisotropic = prm.get_bool("anisotropic");
 
         anisotropic_threshold_ratio = prm.get_double("anisotropic_threshold_ratio");
 

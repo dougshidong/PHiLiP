@@ -29,7 +29,7 @@ public:
         };
     RefinementType refinement_type;
     
-    bool isotropic;
+    bool anisotropic;
 
     double anisotropic_threshold_ratio;
 

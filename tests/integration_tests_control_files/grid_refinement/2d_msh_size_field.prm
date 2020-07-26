@@ -58,7 +58,7 @@ subsection grid refinement study
     set refinement_steps  = 2
     set refinement_method = continuous
     set refinement_type   = h
-    set isotropic         = true
+    set anisotropic       = false
     set error_indicator   = error_based
     set norm_Lq           = 2.0
     set complexity_scale  = 2.0

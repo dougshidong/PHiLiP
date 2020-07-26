@@ -76,8 +76,12 @@ GridRefinement_Continuous<dim,nstate,real,MeshType>::GridRefinement_Continuous(
             dg_input,
             physics_input)
 {
-    // sets the Field to default to isotropic field
-    h_field = std::make_unique<FieldIsotropic<dim,real>>();
+    // sets the Field to default to either anisotropic or isotropic field
+    if(this->grid_refinement_param.anisotropic){
+        h_field = std::make_unique<FieldAnisotropic<dim,real>>();
+    }else{
+        h_field = std::make_unique<FieldIsotropic<dim,real>>();
+    }
 
     // set the initial complexity
     complexity_initial = current_complexity();

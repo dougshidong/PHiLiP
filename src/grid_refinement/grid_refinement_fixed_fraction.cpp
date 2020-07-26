@@ -55,7 +55,7 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::refine_grid()
     std::cout << "Checking for aniso option" << std::endl;
 
     // check for anisotropic h-adaptation
-    if(!this->grid_refinement_param.isotropic){
+    if(this->grid_refinement_param.anisotropic){
         std::cout << "beginning anistropic flagging" << std::endl;
         anisotropic_h();
     }

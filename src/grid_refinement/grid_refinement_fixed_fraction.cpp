@@ -295,7 +295,7 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h_recon
     const unsigned int rel_order = 1;
 
     // call to reconstruct the derivatives
-    PHiLiP::GridRefinement::ReconstructPoly<dim,real>::reconstruct_chord_derivative(
+    PHiLiP::GridRefinement::ReconstructPoly<dim,nstate,real>::reconstruct_chord_derivative(
         this->dg->solution,
         this->dg->dof_handler,
         mapping_collection,
@@ -418,7 +418,7 @@ void GridRefinement_FixedFraction_Hessian<dim,nstate,real,MeshType>::error_indic
     const unsigned int rel_order = 1;
 
     // call to the function to reconstruct the derivatives onto A
-    PHiLiP::GridRefinement::ReconstructPoly<dim,real>::reconstruct_directional_derivative(
+    PHiLiP::GridRefinement::ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
         this->dg->solution,
         this->dg->dof_handler,
         mapping_collection,

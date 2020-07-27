@@ -417,7 +417,7 @@ void GridRefinement_Continuous_Hessian<dim,nstate,real,MeshType>::field_h()
     const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid.mapping_fe_field));
 
     // call to the function to reconstruct the derivatives onto A
-    PHiLiP::GridRefinement::ReconstructPoly<dim,real>::reconstruct_directional_derivative(
+    PHiLiP::GridRefinement::ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
         this->dg->solution,
         this->dg->dof_handler,
         mapping_collection,

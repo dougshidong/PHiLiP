@@ -195,6 +195,7 @@ std::array<real,nstate> Burgers<dim,nstate,real>
 template class Burgers < PHILIP_DIM, PHILIP_DIM, double >;
 template class Burgers < PHILIP_DIM, PHILIP_DIM, Sacado::Fad::DFad<double>  >;
 template class Burgers < PHILIP_DIM, PHILIP_DIM, Sacado::Fad::DFad<Sacado::Fad::DFad<double>>  >;
+template class Burgers < PHILIP_DIM, PHILIP_DIM, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>>  >;
 
 } // Physics namespace
 } // PHiLiP namespace

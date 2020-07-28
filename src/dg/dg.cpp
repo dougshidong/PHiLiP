@@ -1620,5 +1620,7 @@ template Sacado::Fad::DFad<double>
 DGBase<PHILIP_DIM,double>::discontinuity_sensor(const double diameter, const std::vector< Sacado::Fad::DFad<double> > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high);
 template Sacado::Fad::DFad<Sacado::Fad::DFad<double>>
 DGBase<PHILIP_DIM,double>::discontinuity_sensor(const double diameter, const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<double>> > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high);
+template Sacado::Rad::ADvar<Sacado::Fad::DFad<double>>
+DGBase<PHILIP_DIM,double>::discontinuity_sensor(const double diameter, const std::vector< Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high);
 
 } // PHiLiP namespace

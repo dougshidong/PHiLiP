@@ -52,6 +52,11 @@ DGWeak<dim,nstate,real>::DGWeak(
     pde_physics_fad_fad = Physics::PhysicsFactory<dim,nstate,ADADtype> ::create_Physics(parameters_input);
     conv_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, ADADtype> ::create_convective_numerical_flux (parameters_input->conv_num_flux_type, pde_physics_fad_fad);
     diss_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, ADADtype> ::create_dissipative_numerical_flux (parameters_input->diss_num_flux_type, pde_physics_fad_fad);
+
+    using RadFadtype = Sacado::Rad::ADvar<ADtype>;
+    pde_physics_rad_fad = Physics::PhysicsFactory<dim,nstate,RadFadtype> ::create_Physics(parameters_input);
+    conv_num_flux_rad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadtype> ::create_convective_numerical_flux (parameters_input->conv_num_flux_type, pde_physics_rad_fad);
+    diss_num_flux_rad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadtype> ::create_dissipative_numerical_flux (parameters_input->diss_num_flux_type, pde_physics_rad_fad);
 }
 // Destructor
 template <int dim, int nstate, typename real>
@@ -66,6 +71,9 @@ DGWeak<dim,nstate,real>::~DGWeak ()
 
     delete conv_num_flux_fad_fad;
     delete diss_num_flux_fad_fad;
+
+    delete conv_num_flux_rad_fad;
+    delete diss_num_flux_rad_fad;
 }
 
 template <int dim, typename real>
@@ -1675,6 +1683,17 @@ void DGWeak<dim,nstate,real>::set_physics(
     pde_physics_fad_fad = pde_physics_input;
     conv_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, ADADtype> ::create_convective_numerical_flux (DGBase<dim,real>::all_parameters->conv_num_flux_type, pde_physics_fad_fad);
     diss_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, ADADtype> ::create_dissipative_numerical_flux (DGBase<dim,real>::all_parameters->diss_num_flux_type, pde_physics_fad_fad);
+}
+
+template <int dim, int nstate, typename real>
+void DGWeak<dim,nstate,real>::set_physics(
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Rad::ADvar<Sacado::Fad::DFad<real>> > >pde_physics_input)
+{
+    using ADtype = Sacado::Fad::DFad<real>;
+    using RadFadtype = Sacado::Rad::ADvar<ADtype>;
+    pde_physics_rad_fad = pde_physics_input;
+    conv_num_flux_rad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadtype> ::create_convective_numerical_flux (DGBase<dim,real>::all_parameters->conv_num_flux_type, pde_physics_rad_fad);
+    diss_num_flux_rad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadtype> ::create_dissipative_numerical_flux (DGBase<dim,real>::all_parameters->diss_num_flux_type, pde_physics_rad_fad);
 }
 
 template class DGWeak <PHILIP_DIM, 1, double>;

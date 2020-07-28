@@ -634,7 +634,8 @@ public:
     ~DGWeak(); ///< Destructor.
 
     using ADType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
-    using ADADType = Sacado::Fad::DFad<Sacado::Fad::DFad<real>>; ///< Sacado AD type that allows 2nd derivatives.
+    using ADADType = Sacado::Fad::DFad<ADType>; ///< Sacado AD type that allows 2nd derivatives.
+    using RadFadType = Sacado::Rad::ADvar<ADType>; ///< Sacado AD type that allows 2nd derivatives.
 
     /// Contains the physics of the PDE with real type
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, real > > pde_physics_double;
@@ -656,6 +657,13 @@ public:
     NumericalFlux::NumericalFluxConvective<dim, nstate, ADADType > *conv_num_flux_fad_fad;
     /// Dissipative numerical flux with ADADtype
     NumericalFlux::NumericalFluxDissipative<dim, nstate, ADADType > *diss_num_flux_fad_fad;
+
+    /// Contains the physics of the PDE with RadFadDtype
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, RadFadType > > pde_physics_rad_fad;
+    /// Convective numerical flux with RadFadDtype
+    NumericalFlux::NumericalFluxConvective<dim, nstate, RadFadType > *conv_num_flux_rad_fad;
+    /// Dissipative numerical flux with RadFadDtype
+    NumericalFlux::NumericalFluxDissipative<dim, nstate, RadFadType > *diss_num_flux_rad_fad;
 
 private:
     /// Evaluate the time it takes for the maximum wavespeed to cross the cell domain.
@@ -749,6 +757,8 @@ public:
     /// Change the physics object
     void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, ADType > >pde_physics_input);
     /// Change the physics object
+    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Rad::ADvar<Sacado::Fad::DFad<real>> > >pde_physics_input);
+    /// Change the physics object
     void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, real > >pde_physics_double_input);
 }; // end of DGWeak class
 
@@ -785,7 +795,8 @@ public:
 
 private:
     using ADType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
-    using ADADType = Sacado::Fad::DFad<Sacado::Fad::DFad<real>>; ///< Sacado AD type that allows 2nd derivatives.
+    using ADADType = Sacado::Fad::DFad<ADType>; ///< Sacado AD type that allows 2nd derivatives.
+    using RadFadType = Sacado::Rad::ADvar<ADType>; ///< Sacado AD type that allows 2nd derivatives.
 
     /// Evaluate the time it takes for the maximum wavespeed to cross the cell domain.
     /** Currently only uses the convective eigenvalues. Future changes would take in account
@@ -817,6 +828,13 @@ private:
     NumericalFlux::NumericalFluxConvective<dim, nstate, ADADType > *conv_num_flux_fad_fad;
     /// Dissipative numerical flux with ADADtype
     NumericalFlux::NumericalFluxDissipative<dim, nstate, ADADType > *diss_num_flux_fad_fad;
+
+    /// Contains the physics of the PDE with ADADtype
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, RadFadType > > pde_physics_rad_fad;
+    /// Convective numerical flux with ADADtype
+    NumericalFlux::NumericalFluxConvective<dim, nstate, RadFadType > *conv_num_flux_rad_fad;
+    /// Dissipative numerical flux with ADADtype
+    NumericalFlux::NumericalFluxDissipative<dim, nstate, RadFadType > *diss_num_flux_rad_fad;
 
     /// Evaluate the integral over the cell volume and the specified derivatives.
     /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
@@ -896,6 +914,8 @@ public:
     void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > >pde_physics_input);
     /// Change the physics object
     void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<real> > >pde_physics_input);
+    /// Change the physics object
+    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Rad::ADvar<Sacado::Fad::DFad<real>> > >pde_physics_input);
     /// Change the physics object
     void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, real > >pde_physics_double_input);
 }; // end of DGStrong class

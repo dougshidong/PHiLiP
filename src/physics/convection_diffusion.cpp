@@ -194,6 +194,8 @@ template class ConvectionDiffusion < PHILIP_DIM, 1, Sacado::Fad::DFad<double>  >
 template class ConvectionDiffusion < PHILIP_DIM, 2, Sacado::Fad::DFad<double>  >;
 template class ConvectionDiffusion < PHILIP_DIM, 1, Sacado::Fad::DFad<Sacado::Fad::DFad<double>>  >;
 template class ConvectionDiffusion < PHILIP_DIM, 2, Sacado::Fad::DFad<Sacado::Fad::DFad<double>>  >;
+template class ConvectionDiffusion < PHILIP_DIM, 1, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>>  >;
+template class ConvectionDiffusion < PHILIP_DIM, 2, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>>  >;
 
 } // Physics namespace
 } // PHiLiP namespace

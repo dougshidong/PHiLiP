@@ -128,8 +128,8 @@ private:
     //@{
     /** Constants used to manufactured solution.
      */
-    std::vector<real> base_values;
-    std::vector<real> amplitudes;
+    std::vector<double> base_values;
+    std::vector<double> amplitudes;
     std::vector<dealii::Tensor<1,dim,real>> frequencies;
     //@}
 };

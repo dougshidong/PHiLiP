@@ -14,7 +14,7 @@ namespace Physics {
 
 template <int dim, int nstate, typename real>
 PhysicsBase<dim,nstate,real>::PhysicsBase()
-    : manufactured_solution_function(std::shared_ptr< ManufacturedSolutionFunction<dim,real> >(new ManufacturedSolutionFunction<dim,real>(nstate)))
+    : manufactured_solution_function(std::make_shared< ManufacturedSolutionFunction<dim,real> >(nstate))
     , diffusion_tensor(eval_diffusion_tensor())
 { }
 
@@ -230,6 +230,13 @@ template class PhysicsBase < PHILIP_DIM, 3, Sacado::Fad::DFad<Sacado::Fad::DFad<
 template class PhysicsBase < PHILIP_DIM, 4, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
 template class PhysicsBase < PHILIP_DIM, 5, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
 template class PhysicsBase < PHILIP_DIM, 8, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+
+template class PhysicsBase < PHILIP_DIM, 1, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
+template class PhysicsBase < PHILIP_DIM, 2, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
+template class PhysicsBase < PHILIP_DIM, 3, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
+template class PhysicsBase < PHILIP_DIM, 4, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
+template class PhysicsBase < PHILIP_DIM, 5, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
+template class PhysicsBase < PHILIP_DIM, 8, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
 
 } // Physics namespace
 } // PHiLiP namespace

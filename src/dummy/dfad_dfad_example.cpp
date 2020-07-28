@@ -64,9 +64,10 @@ void func_deriv2(double a, double b, double c, double& d2rda2, double& d2rdb2,
   d2rdadb = -c / ((b+1.)*std::pow(std::sin(a),2.))*std::cos(a);
 }
 
-int main(int argc, char **argv)
+int main(int /*argc*/, char ** /*argv*/)
 {
-  for (int k = 0; k < 2; k++) {
+  int k_last = 2;
+  for (int k = 0; k < k_last; k++) {
 
       double pi = std::atan(1.0)*4.0;
 
@@ -111,32 +112,34 @@ int main(int argc, char **argv)
       double d2rdbda_ad = rfad.dx(1).dx(0); // d^2r/dbda
       double d2rdb2_ad = rfad.dx(1).dx(1);  // d^2/db^2
 
+      if (k == k_last-1) {
       // Print the results
-      // int p = 4;
-      // int w = p+7;
-      // std::cout.setf(std::ios::scientific);
-      // std::cout.precision(p);
-      // std::cout << "        r = " << std::setw(w) << r << " (original) == "
-      //           << std::setw(w) << r_ad << " (AD) Error = " << std::setw(w)
-      //           << r - r_ad << std::endl
-      //           << "    dr/da = " << std::setw(w) << drda << " (analytic) == "
-      //           << std::setw(w) << drda_ad << " (AD) Error = " << std::setw(w)
-      //           << drda - drda_ad << std::endl
-      //           << "    dr/db = " << std::setw(w) << drdb << " (analytic) == "
-      //           << std::setw(w) << drdb_ad << " (AD) Error = " << std::setw(w)
-      //           << drdb - drdb_ad << std::endl
-      //           << "d^2r/da^2 = " << std::setw(w) << d2rda2 << " (analytic) == "
-      //           << std::setw(w) << d2rda2_ad << " (AD) Error = " << std::setw(w)
-      //           << d2rda2 - d2rda2_ad << std::endl
-      //           << "d^2r/db^2 = " << std::setw(w) << d2rdb2 << " (analytic) == "
-      //           << std::setw(w) << d2rdb2_ad << " (AD) Error = " << std::setw(w)
-      //           << d2rdb2 - d2rdb2_ad << std::endl
-      //           << "d^2r/dadb = " << std::setw(w) << d2rdadb << " (analytic) == "
-      //           << std::setw(w) << d2rdadb_ad << " (AD) Error = " << std::setw(w)
-      //           << d2rdadb - d2rdadb_ad << std::endl
-      //           << "d^2r/dbda = " << std::setw(w) << d2rdadb << " (analytic) == "
-      //           << std::setw(w) << d2rdbda_ad << " (AD) Error = " << std::setw(w)
-      //           << d2rdadb - d2rdbda_ad << std::endl;
+      int p = 4;
+      int w = p+7;
+      std::cout.setf(std::ios::scientific);
+      std::cout.precision(p);
+      std::cout << "        r = " << std::setw(w) << r << " (original) == "
+                << std::setw(w) << r_ad << " (AD) Error = " << std::setw(w)
+                << r - r_ad << std::endl
+                << "    dr/da = " << std::setw(w) << drda << " (analytic) == "
+                << std::setw(w) << drda_ad << " (AD) Error = " << std::setw(w)
+                << drda - drda_ad << std::endl
+                << "    dr/db = " << std::setw(w) << drdb << " (analytic) == "
+                << std::setw(w) << drdb_ad << " (AD) Error = " << std::setw(w)
+                << drdb - drdb_ad << std::endl
+                << "d^2r/da^2 = " << std::setw(w) << d2rda2 << " (analytic) == "
+                << std::setw(w) << d2rda2_ad << " (AD) Error = " << std::setw(w)
+                << d2rda2 - d2rda2_ad << std::endl
+                << "d^2r/db^2 = " << std::setw(w) << d2rdb2 << " (analytic) == "
+                << std::setw(w) << d2rdb2_ad << " (AD) Error = " << std::setw(w)
+                << d2rdb2 - d2rdb2_ad << std::endl
+                << "d^2r/dadb = " << std::setw(w) << d2rdadb << " (analytic) == "
+                << std::setw(w) << d2rdadb_ad << " (AD) Error = " << std::setw(w)
+                << d2rdadb - d2rdadb_ad << std::endl
+                << "d^2r/dbda = " << std::setw(w) << d2rdadb << " (analytic) == "
+                << std::setw(w) << d2rdbda_ad << " (AD) Error = " << std::setw(w)
+                << d2rdadb - d2rdbda_ad << std::endl;
+       }
 
        double tol = 1.0e-14;
        if (std::fabs(r - r_ad)             < tol &&

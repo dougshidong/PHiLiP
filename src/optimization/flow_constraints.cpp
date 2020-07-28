@@ -150,6 +150,8 @@ void FlowConstraints<dim>
     this->dg->system_matrix.vmult(output_vector_v, input_vector_v);
 
     n_vmult += 1;
+    dRdW_mult += 1;
+
 }
 
 template<int dim>
@@ -356,6 +358,8 @@ void FlowConstraints<dim>
     jacobian_prec->ApplyInverse (input_trilinos, output_trilinos);
 
     n_vmult += 2;
+    dRdW_mult += 2;
+
 }
 
 template<int dim>
@@ -384,6 +388,7 @@ void FlowConstraints<dim>
     adjoint_jacobian_prec->ApplyInverse (input_trilinos, output_trilinos);
 
     n_vmult += 2;
+    dRdW_mult += 2;
 }
 
 template<int dim>
@@ -486,6 +491,7 @@ double& /*tol*/ )
     }
 
     n_vmult += 7;
+    dRdX_mult += 1;
 }
 
 template<int dim>
@@ -509,6 +515,7 @@ double& /*tol*/ )
     this->dg->system_matrix.Tvmult(output_vector_v, input_vector_v);
 
     n_vmult += 1;
+    dRdW_mult += 1;
 }
 
 template<int dim>
@@ -557,6 +564,7 @@ double& /*tol*/ )
     dXvdXp.Tvmult(output_vector_v, input_dRdXv);
 
     n_vmult += 7;
+    dRdX_mult += 1;
 }
 
 template<int dim>
@@ -583,6 +591,7 @@ void FlowConstraints<dim>
     dg->d2RdWdW.vmult(ROL_vector_to_dealii_vector_reference(output_vector), ROL_vector_to_dealii_vector_reference(input_vector));
 
     n_vmult += 6;
+    d2R_mult += 1;
 }
 
 template<int dim>
@@ -637,6 +646,7 @@ void FlowConstraints<dim>
     dXvdXp.Tvmult(output_vector_v, input_d2RdWdX);
 
     n_vmult += 7;
+    d2R_mult += 1;
 }
 
 template<int dim>
@@ -694,6 +704,7 @@ void FlowConstraints<dim>
     }
 
     n_vmult += 7;
+    d2R_mult += 1;
 }
 
 
@@ -775,6 +786,7 @@ void FlowConstraints<dim>
     dXvdXp.Tvmult(output_vector_v, d2RdXdX_dXvdXp_input);
 
     n_vmult += 8;
+    d2R_mult += 1;
 }
 
 // template<int dim>

@@ -795,6 +795,10 @@ void FullSpace_BirosGhattas<Real>::update(
         << " algo_state.cnorm: "  <<   algo_state.cnorm << std::endl
         << " algo_state.snorm: "  <<   algo_state.snorm << std::endl
         << " n_vmult_total: "  <<   n_vmult << std::endl
+        << "  dRdW_form " << dRdW_form << std::endl
+        << "  dRdW_mult " << dRdW_mult << std::endl
+        << "  dRdX_mult " << dRdX_mult << std::endl
+        << "  d2R_mult  " << d2R_mult  << std::endl
         ;
     }
     MPI_Barrier(MPI_COMM_WORLD);
@@ -819,7 +823,11 @@ std::string FullSpace_BirosGhattas<Real>::printHeader( void ) const
   hist << std::setw(18) << std::left << "n_kkt_iter";
   hist << std::setw(18) << std::left << "n_linesearches";
   hist << std::setw(18) << std::left << "n_grad";
-  hist << std::setw(18) << std::left << "n_vmult_total";
+  hist << std::setw(18) << std::left << "n_vmult";
+  hist << std::setw(18) << std::left << "dRdW_form";
+  hist << std::setw(18) << std::left << "dRdW_mult";
+  hist << std::setw(18) << std::left << "dRdX_mult";
+  hist << std::setw(18) << std::left << "d2R_mult";
   hist << "\n";
   return hist.str();
 }
@@ -866,12 +874,14 @@ std::string FullSpace_BirosGhattas<Real>::print( AlgorithmState<Real> & algo_sta
   if ( algo_state.iter == 0 ) {
     hist << printName();
   }
-  if ( print_header ) {
+  (void) print_header;
+  if ( algo_state.iter == 0 ) {
+  //if ( print_header ) {
     hist << printHeader();
   }
   //hist << desc;
   if ( algo_state.iter == 0 ) {
-    hist << "\n";
+    //hist << "\n";
   }
   else {
     hist << std::setw(18) << std::left << algo_state.iter;
@@ -886,6 +896,10 @@ std::string FullSpace_BirosGhattas<Real>::print( AlgorithmState<Real> & algo_sta
     hist << std::setw(18) << std::left << step_state->nfval;
     hist << std::setw(18) << std::left << step_state->ngrad;
     hist << std::setw(18) << std::left << n_vmult;
+    hist << std::setw(18) << std::left << dRdW_form;
+    hist << std::setw(18) << std::left << dRdW_mult;
+    hist << std::setw(18) << std::left << dRdX_mult;
+    hist << std::setw(18) << std::left << d2R_mult;
     hist << std::endl;
   }
   return hist.str();

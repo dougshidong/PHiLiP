@@ -50,6 +50,10 @@
 #include "global_counter.hpp"
 
 unsigned int n_vmult;
+unsigned int dRdW_form;
+unsigned int dRdW_mult;
+unsigned int dRdX_mult;
+unsigned int d2R_mult;
 
 
 //template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<PHILIP_DIM> >;
@@ -874,6 +878,7 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
             int n_stencil = 1 + std::pow(2,dim);
             int n_dofs_cell = nstate*std::pow(max_degree+1,dim);
             n_vmult += n_stencil*n_dofs_cell;
+            dRdW_form += 1;
         }
         solution_dRdW = solution;
         volume_nodes_dRdW = high_order_grid.volume_nodes;

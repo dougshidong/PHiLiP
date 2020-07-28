@@ -40,8 +40,9 @@ enum OptimizationAlgorithm { full_space_birosghattas, full_space_composite_step,
 enum BirosGhattasPreconditioner { P2, P2A, P4, P4A, identity };
 
 //const std::vector<BirosGhattasPreconditioner> precond_list { P2, P2A, P4, P4A };
+//const std::vector<OptimizationAlgorithm> opt_list { full_space_birosghattas, reduced_space_newton };
 const std::vector<BirosGhattasPreconditioner> precond_list { P2A };
-const std::vector<OptimizationAlgorithm> opt_list { full_space_birosghattas, reduced_space_newton };
+const std::vector<OptimizationAlgorithm> opt_list { full_space_birosghattas };
 
 const double BUMP_HEIGHT = 0.0625;
 const double TARGET_BUMP_HEIGHT = 0.5*BUMP_HEIGHT;
@@ -50,11 +51,11 @@ const double CHANNEL_HEIGHT = 0.8;
 const unsigned int NY_CELL = 5;
 const unsigned int NX_CELL = 10*NY_CELL;
 
-const unsigned int POLY_START = 1;
+const unsigned int POLY_START = 3;
 const unsigned int POLY_END = 3;
 
-const unsigned int n_des_var_start = 640;//20;
-const unsigned int n_des_var_end   = 640;//100;
+const unsigned int n_des_var_start = 100;//20;
+const unsigned int n_des_var_end   = 100;//100;
 const unsigned int n_des_var_step  = 20;//20;
 
 const int max_design_cycle = 1000;
@@ -419,6 +420,10 @@ int EulerBumpOptimization<dim,nstate>
 
     ROL::Ptr< const ROL::AlgorithmState <double> > algo_state;
     n_vmult = 0;
+    dRdW_form = 0;
+    dRdW_mult = 0;
+    dRdX_mult = 0;
+    d2R_mult = 0;
 
     switch (opt_type) {
         case full_space_composite_step: {
@@ -501,6 +506,7 @@ int EulerBumpOptimization<dim,nstate>
 
     filebuffer.close();
 
+    if (opt_type != OptimizationAlgorithm::full_space_birosghattas) break;
     }
     }
 

@@ -38,6 +38,12 @@ using serial_Vector = typename dealii::Vector<double>;
 using distributed_Vector = typename dealii::LinearAlgebra::distributed::Vector<double>;
 // Use ROL to minimize the objective function, f(x,y) = x^2 + y^2.
 
+unsigned int n_vmult;
+unsigned int dRdW_form;
+unsigned int dRdW_mult;
+unsigned int dRdX_mult;
+unsigned int d2R_mult;
+
 /// Rosensenbrock objective function
 template <typename VectorType, class Real = double, typename AdaptVector = dealii::Rol::VectorAdaptor<VectorType>>
 class RosenbrockObjective : public ROL::Objective<Real>

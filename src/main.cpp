@@ -20,6 +20,11 @@ int main (int argc, char *argv[])
 // #endif
 
     n_vmult = 0;
+    dRdW_form = 0;
+    dRdW_mult = 0;
+    dRdX_mult = 0;
+    d2R_mult = 0;
+
     dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
     const int n_mpi = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
     const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);

@@ -89,6 +89,7 @@ solve_linear (
               << " Linear solution norm: " << solution.l2_norm() << std::endl;
 
         n_vmult += 3*solver.NumIters();
+        dRdW_mult += 3*solver.NumIters();
 
         return {solver.NumIters(), solver.TrueResidual()};
     }

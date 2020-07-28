@@ -58,9 +58,10 @@ void func_deriv(double a, double b, double c, double& drda, double& drdb)
   drdb = c / ((b+1.)*std::sin(a));
 }
 
-int main(int argc, char **argv)
+int main(int /*argc*/, char ** /*argv*/)
 {
-    for (int k = 0; k < 2; k++) {
+    int k_last = 2;
+    for (int k = 0; k < k_last; k++) {
       double pi = std::atan(1.0)*4.0;
 
       // Values of function arguments
@@ -91,19 +92,21 @@ int main(int argc, char **argv)
       double drda_ad = arad.adj();  // dr/da
       double drdb_ad = brad.adj();  // dr/db
 
-      // Print the results
-      // int p = 4;
-      // int w = p+7;
-      // std::cout.setf(std::ios::scientific);
-      // std::cout.precision(p);
-      // std::cout << "    r =  " << r << " (original) == " << std::setw(w) << r_ad
-      //       << " (AD) Error = " << std::setw(w) << r - r_ad << std::endl
-      //       << "dr/da = " << std::setw(w) << drda << " (analytic) == " 
-      //       << std::setw(w) << drda_ad << " (AD) Error = " << std::setw(w) 
-      //       << drda - drda_ad << std::endl
-      //       << "dr/db = " << std::setw(w) << drdb << " (analytic) == " 
-      //       << std::setw(w) << drdb_ad << " (AD) Error = " << std::setw(w) 
-      //       << drdb - drdb_ad << std::endl;
+      if (k == k_last-1) {
+          // Print the results
+          int p = 4;
+          int w = p+7;
+          std::cout.setf(std::ios::scientific);
+          std::cout.precision(p);
+          std::cout << "    r =  " << r << " (original) == " << std::setw(w) << r_ad
+                << " (AD) Error = " << std::setw(w) << r - r_ad << std::endl
+                << "dr/da = " << std::setw(w) << drda << " (analytic) == " 
+                << std::setw(w) << drda_ad << " (AD) Error = " << std::setw(w) 
+                << drda - drda_ad << std::endl
+                << "dr/db = " << std::setw(w) << drdb << " (analytic) == " 
+                << std::setw(w) << drdb_ad << " (AD) Error = " << std::setw(w) 
+                << drdb - drdb_ad << std::endl;
+      }
 
       double tol = 1.0e-14;
       

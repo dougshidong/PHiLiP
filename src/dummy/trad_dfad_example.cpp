@@ -78,7 +78,8 @@ int main(int /*argc*/, char ** /*argv*/)
   double r;
   double drda, drdb;
   double d2rda2, d2rdb2, d2rdadb;
-  for (int k = 0; k < 2; k++) {
+  int k_last = 2;
+  for (int k = 0; k < k_last; k++) {
 
       double pi = std::atan(1.0)*4.0;
 
@@ -123,34 +124,35 @@ int main(int /*argc*/, char ** /*argv*/)
       //Sacado::Rad::ADvar< Sacado::Fad::DFad<double> >:: aval_reset ();
       //Sacado::Rad::ADcontext< Sacado::Fad::DFad<double> >:: re_init();
 
-      // Print the results
-     //  int p = 4;
-     //  int w = p+7;
-     //  std::cout.setf(std::ios::scientific);
-     //  std::cout.precision(p);
-     //  std::cout << "        r = " << std::setw(w) << r << " (original) == " 
-     //        << std::setw(w) << r_ad << " (AD) Error = " << std::setw(w) 
-     //        << r - r_ad << std::endl
-     //        << "    dr/da = " << std::setw(w) << drda << " (analytic) == " 
-     //        << std::setw(w) << drda_ad << " (AD) Error = " << std::setw(w) 
-     //        << drda - drda_ad << std::endl
-     //        << "    dr/db = " << std::setw(w) << drdb << " (analytic) == " 
-     //        << std::setw(w) << drdb_ad << " (AD) Error = " << std::setw(w) 
-     //        << drdb - drdb_ad << std::endl
-     //        << "d^2r/da^2 = " << std::setw(w) << d2rda2 << " (analytic) == " 
-     //        << std::setw(w) << d2rda2_ad << " (AD) Error = " << std::setw(w) 
-     //        << d2rda2 - d2rda2_ad << std::endl
-     //        << "d^2r/db^2 = " << std::setw(w) << d2rdb2 << " (analytic) == " 
-     //        << std::setw(w) << d2rdb2_ad << " (AD) Error = " << std::setw(w) 
-     //        << d2rdb2 - d2rdb2_ad << std::endl
-     //        << "d^2r/dadb = " << std::setw(w) << d2rdadb << " (analytic) == " 
-     //        << std::setw(w) << d2rdadb_ad << " (AD) Error = " << std::setw(w) 
-     //        << d2rdadb - d2rdadb_ad << std::endl
-     //        << "d^2r/dbda = " << std::setw(w) << d2rdadb << " (analytic) == " 
-     //        << std::setw(w) << d2rdbda_ad << " (AD) Error = " << std::setw(w) 
-     //        << d2rdadb - d2rdbda_ad << std::endl;
+      if (k == k_last - 1) {
+          // Print the results
+          int p = 4;
+          int w = p+7;
+          std::cout.setf(std::ios::scientific);
+          std::cout.precision(p);
+          std::cout << "        r = " << std::setw(w) << r << " (original) == " 
+                << std::setw(w) << r_ad << " (AD) Error = " << std::setw(w) 
+                << r - r_ad << std::endl
+                << "    dr/da = " << std::setw(w) << drda << " (analytic) == " 
+                << std::setw(w) << drda_ad << " (AD) Error = " << std::setw(w) 
+                << drda - drda_ad << std::endl
+                << "    dr/db = " << std::setw(w) << drdb << " (analytic) == " 
+                << std::setw(w) << drdb_ad << " (AD) Error = " << std::setw(w) 
+                << drdb - drdb_ad << std::endl
+                << "d^2r/da^2 = " << std::setw(w) << d2rda2 << " (analytic) == " 
+                << std::setw(w) << d2rda2_ad << " (AD) Error = " << std::setw(w) 
+                << d2rda2 - d2rda2_ad << std::endl
+                << "d^2r/db^2 = " << std::setw(w) << d2rdb2 << " (analytic) == " 
+                << std::setw(w) << d2rdb2_ad << " (AD) Error = " << std::setw(w) 
+                << d2rdb2 - d2rdb2_ad << std::endl
+                << "d^2r/dadb = " << std::setw(w) << d2rdadb << " (analytic) == " 
+                << std::setw(w) << d2rdadb_ad << " (AD) Error = " << std::setw(w) 
+                << d2rdadb - d2rdadb_ad << std::endl
+                << "d^2r/dbda = " << std::setw(w) << d2rdadb << " (analytic) == " 
+                << std::setw(w) << d2rdbda_ad << " (AD) Error = " << std::setw(w) 
+                << d2rdadb - d2rdbda_ad << std::endl;
+      }
   }
-  Sacado::Rad::ADcontext< Sacado::Fad::DFad<double> >:: re_init();
 
   double tol = 1.0e-14;
   if (std::fabs(r - r_ad)             < tol &&

@@ -1,0 +1,3 @@
+[submodule "submodules/CoDiPack"]
+	path = submodules/CoDiPack
+	url = https://github.com/SciCompKL/CoDiPack.git

@@ -1,12 +1,69 @@
 #include <deal.II/base/tensor.h>
 #include <deal.II/base/symmetric_tensor.h>
 #include <deal.II/lac/vector.h>
+#include <deal.II/base/geometry_info.h>
 
 #include "field.h"
 
 namespace PHiLiP {
 
 namespace GridRefinement {
+
+/***** ***** Element ***** *****/
+template <int dim, typename real>
+typename Element<dim,real>::ChordList Element<dim,real>::get_chord_list(
+	const typename Element<dim,real>::VertexList& vertices)
+{
+
+	// example notation from 2D (for nodes and chords) 
+    /*      ^ chord_list[1]
+            |
+        2---+---3
+        |   |   |
+        +---o---+---> chord_list[0]
+        |   |   |
+        0---+---1
+    */
+
+	// construcing the list of chords
+	Element<dim,real>::ChordList chord_list;
+
+	// to determine distance from face center to face center
+	// can use the difference of average node positions on each face
+	// taking average (divide by number of face nodes) after summation
+
+	// looping over the nodes and adding either their +/- weighting to the corresponding chords
+	for(unsigned int vertex = 0; vertex < dealii::GeometryInfo<dim>::vertices_per_cell; ++vertex){
+
+		// each vertex should have an impact on the chord of each axis
+		for(unsigned int i = 0; i < dim; ++i){
+
+			// adding either positive or negative weighting
+			// can be determined by sign of i^th bit in vertex id binary
+			if(vertex>>i % 2 == 0){
+
+				// lies on +ve direction of axis
+				chord_list[i] += vertices[vertex];
+
+			}else{
+
+				// lies on -ve face of axis
+				chord_list[i] -= vertices[vertex];
+
+			}
+
+		}
+
+	}
+
+	// applying averaging for each node position (based on number on each face)
+	for(unsigned int i = 0; i < dim; ++i)
+		chord_list[i] /= dealii::GeometryInfo<dim>::vertices_per_face;
+
+	// chord vectors should be fully computed
+	return chord_list;
+
+}
 
 /***** ***** ElementIsotropic ***** *****/
 
@@ -116,6 +173,23 @@ dealii::Tensor<2,dim,real> ElementIsotropic<dim,real>::get_metric()
 		M[i] = m_scale * get_unit_axis(i);
 
 	return M;
+}
+
+template <int dim, typename real>
+void ElementIsotropic<dim,real>::set_cell_internal(
+	const typename Element<dim,real>::VertexList& vertices)
+{
+	// to be consistent with anisotropic case using the average from chord lengths
+	typename Element<dim,real>::ChordList chord_list = Element<dim,real>::get_chord_list(vertices);
+	
+	// based on \Prod{L_i} = \Prod{h r_i} = h^dim \Prod{r_i}
+	// where the product of axes anisotropy should be 1.
+	real product = 1.0;
+	for(unsigned int i = 0; i < dim; ++i)
+		product *= chord_list[i].norm();
+
+	// setting the scale from h (ignoring axes alignment)
+	m_scale = pow(product, -1.0/dim);
 }
 
 /***** ***** ElementAnisotropic ***** *****/
@@ -289,6 +363,24 @@ void ElementAnisotropic<dim,real>::correct_anisotropic_ratio()
 
 	// scaling the length
 	m_scale *= alpha;
+}
+
+template <int dim, typename real>
+void ElementAnisotropic<dim,real>::set_cell_internal(
+	const typename Element<dim,real>::VertexList& vertices)
+{
+	// to be consistent with anisotropic case using the average from chord lengths
+	typename Element<dim,real>::ChordList chord_list = Element<dim,real>::get_chord_list(vertices);
+	
+	// setting the axes to the chord values and correcting
+	clear();
+
+	// overall scale is 1.0 with unit axes as the unscaled chords
+	m_scale = 1.0;
+	m_unit_axis = chord_list;
+
+	// correcting to fix scaling issues
+	correct_element();
 }
 
 /***** ***** Field ***** *****/

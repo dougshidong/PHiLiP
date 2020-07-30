@@ -52,10 +52,11 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_chord_derivative(
     const unsigned int                                      rel_order) // order of the apporximation
 {
     /* based on the dealii numbering, chords defined along nth axis
-          dir[1]
+            ^ dir[1]
+            |
         2---+---3
         |   |   |
-        +---o---+ dir[0]
+        +---o---+---> dir[0]
         |   |   |
         0---+---1
     */
@@ -106,13 +107,29 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_chord_derivative(
         // holds the nodes that form the chord
         // summing over all the nodes onto each (dim) neighbouring faces/edges
         std::array<std::pair<dealii::Tensor<1,dim,real>, dealii::Tensor<1,dim,real>>,dim> chord_nodes;
-        for(unsigned int vertex = 0; vertex < dealii::GeometryInfo<dim>::vertices_per_cell; ++vertex)
-            for(unsigned int i = 0; i < dim; ++i)
-                if(vertex % (unsigned int)pow(2,i) == 0){
+        for(unsigned int vertex = 0; vertex < dealii::GeometryInfo<dim>::vertices_per_cell; ++vertex){
+            
+            // logic decides what side of each axis vertex is on
+            for(unsigned int i = 0; i < dim; ++i){
+
+                // chord side equivalent to sign of i^th bit in binary
+                // uses bit-shift and remainder to determine if this bit is 0/1
+                /* example for 2D (see figure above):
+                    vertex  b0  b1 
+                    0       0   0
+                    1       1   0
+                    2       0   1
+                    3       1   1
+                 */
+                if(vertex>>i % 2 == 0){
                     chord_nodes[i].first  += cell->vertex(vertex);
                 }else{
                     chord_nodes[i].second += cell->vertex(vertex);
                 }
+
+            }
+
+        }
 
         // computing the direction, the chords could also be divided by 2^{i-1} first to get the actual physical coordinates
         for(unsigned int i = 0; i < dim; ++i)
@@ -134,7 +151,9 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_chord_derivative(
                 A_cell[i] += poly_val;
             }
 
-        derivative_value[cell->active_cell_index()] = A_cell;
+        const unsigned int index = cell->active_cell_index();
+        derivative_value[index]     = A_cell;
+        derivative_direction[index] = chord_vec;
     }
 
 }
@@ -187,12 +206,17 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
             }
         }
 
-        std::array<real,dim> A_cell;
+        std::array<real,dim>                       value_cell;
+        std::array<dealii::Tensor<1,dim,real>,dim> direction_cell;
         if(dim == 1){
+
             Assert(n_vec == 1, dealii::ExcInternalError());
 
-            A_cell[0] = coeffs[0];
+            value_cell[0]        = coeffs[0];
+            direction_cell[0][0] = 1.0;
+
         }else if(order == 2){
+
             // if current order is 2, can be solved by the eigenvalue problem
             Assert(n_vec == dim*(dim+1)/2, dealii::ExcInternalError());
 
@@ -203,13 +227,16 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
                         if(indices[n][i] && indices[n][j])
                             hessian[i][j] = coeffs[n] * (i==j ? 1.0 : 0.5);
 
-            // see also dealii::eigenvectors(SymmetricTensor T)
-            // https://www.dealii.org/current/doxygen/deal.II/symmetric__tensor_8h.html#a45c9cd0a3fecbd58ae133dfdd104f9f9
-            std::array<real,dim> eig = dealii::eigenvalues(hessian);
+            // https://www.dealii.org/current/doxygen/deal.II/symmetric__tensor_8h.html#aa18a9d623fcd520f022421fd1d6c7a14
+            std::array<std::pair<real,dealii::Tensor<1,dim,real>>,dim> eig = dealii::eigenvectors(hessian); 
             
-            for(int d = 0; d < dim; ++d)
-                A_cell[d] = abs(eig[d]);
+            for(int d = 0; d < dim; ++d){
+                value_cell[d]     = abs(eig[d].first);
+                direction_cell[d] = eig[d].second;
+            }
+
         }else{
+
             // evaluating any point requires sum over power of the multindices
             auto eval = [&](const dealii::Tensor<1,dim,real>& point) -> real{
                 real val = 0.0;
@@ -224,6 +251,7 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
 
             // looping over the range
             if(dim == 2){
+
                 // number of sampling points in each direciton
                 const unsigned int n_sample = 180;
 
@@ -246,14 +274,23 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
                     }
                 }
 
+                dealii::Tensor<1,dim,real> p_1;
+                p_1[0] = r*cos(t_max);
+                p_1[1] = r*sin(t_max);
+
                 // Taking A_2 to be at an angle of 90 degrees relative to first
                 dealii::Tensor<1,dim,real> p_2;
                 p_2[0] = r*cos(t_max+pi/2.0);
                 p_2[1] = r*sin(t_max+pi/2.0);
                 
-                A_cell[0] = A_max;
-                A_cell[1] = abs(eval(p_2));
+                value_cell[0] = A_max;
+                value_cell[1] = abs(eval(p_2));
+
+                direction_cell[0] = p_1;
+                direction_cell[1] = p_2;
+
             }else if(dim == 3){
+
                 // using fibbonaci sphere algorithm, with ~ n^2/2 points compared to 2d for equal points in theta and phi as before
                 // https://stackoverflow.com/questions/9600801/evenly-distributing-n-points-on-a-sphere/26127012#26127012
                 const unsigned int n_sample = 180, n_sample_3d = 180*90;
@@ -304,6 +341,10 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
                 }
                 // second orthogonal to form the basis
                 v = dealii::cross_product_3d(p_1, u);
+
+                // normalizing 
+                u = u / u.norm();
+                v = v / v.norm();
                 
                 // now performing the 2d analysis in the plane uv
                 real A_2 = 0.0, t_2 = 0.0;
@@ -313,7 +354,7 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
                 dealii::Tensor<1,dim,real> p_2;
                 for(unsigned int i = 0; i < n_sample; ++i){
                     theta = i*pi/n_sample;
-                    p_2 = r*cos(theta)*u + r*sin(theta)*v;
+                    p_2 = cos(theta)*u + sin(theta)*v;
                     
                     val = abs(eval(p_2));
                     if(val > A_2){
@@ -322,20 +363,33 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
                     }
                 }
 
+                // reassinging the largest value to p_2
+                p_2 = cos(t_2)*u + sin(t_2)*v;
+
                 // Taking A_2 to be at an angle of 90 degrees relative to first
-                dealii::Tensor<1,dim,real> p_3 = r*cos(t_2+pi/2.0)*u + r*sin(t_2+pi/2.0)*v;
+                dealii::Tensor<1,dim,real> p_3 = cos(t_2+pi/2.0)*u + sin(t_2+pi/2.0)*v;
                 
                 // assigning the results
-                A_cell[0] = A_1;
-                A_cell[1] = A_2;
-                A_cell[2] = abs(eval(p_3));
-            }else{ // no other dimensions should appear
+                value_cell[0] = A_1;
+                value_cell[1] = A_2;
+                value_cell[2] = abs(eval(p_3));
+
+                direction_cell[0] = p_1;
+                direction_cell[1] = p_2;
+                direction_cell[2] = p_3;
+
+            }else{ 
+                
+                // no other dimensions should appear
                 Assert(false, dealii::ExcInternalError());
+
             }
         }
 
         // storing the tensor of results
-        derivative_value[cell->active_cell_index()] = A_cell;
+        const unsigned int index = cell->active_cell_index(); 
+        derivative_value[index]     = value_cell;
+        derivative_direction[index] = direction_cell;
     }
 }
 

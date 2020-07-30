@@ -4,6 +4,8 @@
 #include <deal.II/base/tensor.h>
 #include <deal.II/base/symmetric_tensor.h>
 #include <deal.II/lac/vector.h>
+#include <deal.II/base/geometry_info.h>
+#include <deal.II/hp/dof_handler.h>
 
 namespace PHiLiP {
 
@@ -59,6 +61,36 @@ public:
 
 	// get metric value at index
 	virtual dealii::Tensor<2,dim,real> get_metric() = 0;
+
+	// defining the type of the vertices and chord lists for easier definition
+	using VertexList = std::array<dealii::Tensor<1,dim,real>, dealii::GeometryInfo<dim>::vertices_per_cell>;
+	using ChordList  = std::array<dealii::Tensor<1,dim,real>, dim>;
+
+protected:
+	// gets the chord list from an input set of vertices
+	ChordList get_chord_list(
+		const VertexList& vertices);
+
+	// sets the element based on a list of vertices
+	// internal function for handling set_cell below
+	virtual void set_cell_internal(
+		const VertexList& vertices) = 0;
+
+public:
+
+	// sets the Element based on the input cell (from current mesh)
+	template <typename DoFCellAccessorType>
+	void set_cell(
+		const DoFCellAccessorType& cell)
+	{
+		VertexList vertices;
+
+		for(unsigned int vertex = 0; vertex < dealii::GeometryInfo<dim>::vertices_per_cell; ++vertex)
+			vertices[vertex] = cell->vertex(vertex);
+
+		set_cell_internal(vertices);
+	}
+
 };
 
 // isotropic element case (element scale only)
@@ -111,6 +143,12 @@ public:
 
 	// get metric value at index
 	dealii::Tensor<2,dim,real> get_metric() override;
+
+protected:
+	// sets the element based on a list of vertices
+	// internal function for handling set_cell below
+	void set_cell_internal(
+		const typename Element<dim,real>::VertexList& vertices) override;
 
 private:
 	// element size
@@ -170,6 +208,12 @@ public:
 
 	// get metric value at index
 	dealii::Tensor<2,dim,real> get_metric() override;
+
+protected:
+	// sets the element based on a list of vertices
+	// internal function for handling set_cell below
+	void set_cell_internal(
+		const typename Element<dim,real>::VertexList& vertices) override;
 
 private:
 
@@ -299,7 +343,15 @@ public:
 	dealii::SymmetricTensor<2,dim,real> get_quadratic_metric(
 		const unsigned int index);
 
+	// gets the riemanian quadratic metric \mathcal{M} = M^T M in vector format
 	std::vector<dealii::SymmetricTensor<2,dim,real>> get_quadratic_metric_vector();
+
+	// defining the associated DofHandler type
+	using DoFHandlerType = dealii::hp::DoFHandler<dim>;
+
+	// asigns the field based on an input DoFHandlerType
+	virtual void set_cell(
+		const DoFHandlerType& dof_handler) = 0;
 
 };
 
@@ -373,6 +425,17 @@ public:
 	// get metric value at index
 	dealii::Tensor<2,dim,real> get_metric(
 		const unsigned int index) override;
+
+	// asigns the field based on an input DoFHandlerType
+	void set_cell(
+		const typename Field<dim,real>::DoFHandlerType& dof_handler) override
+	{
+		reinit(dof_handler.get_triangulation().n_active_cells());
+
+		for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell)
+			if(cell->is_locally_owned())
+				field[cell->active_cell_index()].set_cell(cell);
+	}
 
 private:
 	// vector of element data

@@ -285,25 +285,24 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h_jump_
 template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h_reconstruction_based()
 {
-    // for storing the derivatives
-    std::vector<dealii::Tensor<1,dim,real>> A(this->tria->n_active_cells());
-
     // mapping
     const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid.mapping_fe_field));
 
     // using p+1 reconstruction
     const unsigned int rel_order = 1;
 
-    // call to reconstruct the derivatives
-    PHiLiP::GridRefinement::ReconstructPoly<dim,nstate,real>::reconstruct_chord_derivative(
-        this->dg->solution,
+    // generating object to reconstruct derivatives
+    ReconstructPoly<dim,nstate,real> reconstruct_poly(
         this->dg->dof_handler,
         mapping_collection,
         this->dg->fe_collection,
         this->dg->volume_quadrature_collection,
-        this->volume_update_flags,
-        rel_order,
-        A);
+        this->volume_update_flags);
+    
+    // call to reconstruct the derivatives
+    reconstruct_poly.reconstruct_chord_derivative(
+        this->dg->solution,
+        rel_order);
 
     // controls degree of anisotropy required to flag cell for cut in x
     real anisotropic_threshold_ratio = this->grid_refinement_param.anisotropic_threshold_ratio;
@@ -339,7 +338,7 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h_recon
         // computing the indicator scaled to the chord length
         dealii::Tensor<1,dim,real> indicator;
         for(unsigned int i = 0; i < dim; ++i)
-            indicator[i] += A[cell->active_cell_index()][i] * pow(chord_vec[i].norm(), cell->active_fe_index()+rel_order);
+            indicator[i] += reconstruct_poly.derivative_value[cell->active_cell_index()][i] * pow(chord_vec[i].norm(), cell->active_fe_index()+rel_order);
 
         real sum = 0.0;
         for(unsigned int i = 0; i < dim; ++i)
@@ -407,9 +406,7 @@ void GridRefinement_FixedFraction_Error<dim,nstate,real,MeshType>::error_indicat
 template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinement_FixedFraction_Hessian<dim,nstate,real,MeshType>::error_indicator()
 {
-    // TODO: Feature based, should use the reconstructed next mode as an indication
-    // call to reconstruct poly
-    std::vector<dealii::Tensor<1,dim,real>> A(this->tria->n_active_cells());
+    // TODO: Feature based, should use the reconstructed next mode as an indicator
 
     // mapping
     const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid.mapping_fe_field));
@@ -418,15 +415,16 @@ void GridRefinement_FixedFraction_Hessian<dim,nstate,real,MeshType>::error_indic
     const unsigned int rel_order = 1;
 
     // call to the function to reconstruct the derivatives onto A
-    PHiLiP::GridRefinement::ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
-        this->dg->solution,
+    ReconstructPoly<dim,nstate,real> reconstruct_poly(
         this->dg->dof_handler,
         mapping_collection,
         this->dg->fe_collection,
         this->dg->volume_quadrature_collection,
-        this->volume_update_flags,
-        rel_order,
-        A);
+        this->volume_update_flags);
+
+    reconstruct_poly.reconstruct_directional_derivative(
+        this->dg->solution,
+        rel_order);
 
     // looping over the vector and taking the product of the eigenvalues as the size measure
     this->indicator.reinit(this->tria->n_active_cells());
@@ -440,9 +438,16 @@ void GridRefinement_FixedFraction_Hessian<dim,nstate,real,MeshType>::error_indic
 
             // using max value of the derivative
             this->indicator[cell->active_cell_index()] = 0.0;
-            for(unsigned int d = 0; d < dim; ++d)
-                if(this->indicator[cell->active_cell_index()] < A[cell->active_cell_index()][d])
-                    this->indicator[cell->active_cell_index()] = A[cell->active_cell_index()][d];
+            for(unsigned int d = 0; d < dim; ++d){
+
+                // getting derivative value
+                real derivative_value = reconstruct_poly.derivative_value[cell->active_cell_index()][d];
+
+                // check and update
+                if(this->indicator[cell->active_cell_index()] < derivative_value)
+                    this->indicator[cell->active_cell_index()] = derivative_value;
+
+            }
 
             this->indicator[cell->active_cell_index()] *= pow(cell->measure(), (cell->active_fe_index()+rel_order)/dim);
         }

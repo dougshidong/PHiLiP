@@ -410,24 +410,26 @@ void GridRefinement_Continuous_Error<dim,nstate,real,MeshType>::field_hp(){}
 template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinement_Continuous_Hessian<dim,nstate,real,MeshType>::field_h()
 {
-    // call to reconstruct poly
-    std::vector<dealii::Tensor<1,dim,real>> A(this->tria->n_active_cells());
-
     // mapping
     const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid.mapping_fe_field));
 
-    // call to the function to reconstruct the derivatives onto A
-    PHiLiP::GridRefinement::ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
-        this->dg->solution,
+    // using p+1 reconstruction
+    const unsigned int rel_order = 1;
+
+    // construct object to reconstruct the derivatives onto A
+    ReconstructPoly<dim,nstate,real> reconstruct_poly(
         this->dg->dof_handler,
         mapping_collection,
         this->dg->fe_collection,
         this->dg->volume_quadrature_collection,
-        this->volume_update_flags,
-        1, // p+1
-        A);
+        this->volume_update_flags);
 
-    // vector to store the results
+    // constructing the largest directional derivatives
+    reconstruct_poly.reconstruct_directional_derivative(
+        this->dg->solution,
+        rel_order);
+
+    // vector to store the results for local scaling parameter
     dealii::Vector<real> B(this->tria->n_active_cells());
 
     // looping over the vector and taking the product of the eigenvalues as the size measure
@@ -435,7 +437,7 @@ void GridRefinement_Continuous_Hessian<dim,nstate,real,MeshType>::field_h()
         if(cell->is_locally_owned()){
             B[cell->active_cell_index()] = 1.0;
             for(unsigned int d = 0; d < dim; ++d)
-                B[cell->active_cell_index()] *= A[cell->active_cell_index()][d];
+                B[cell->active_cell_index()] *= reconstruct_poly.derivative_value[cell->active_cell_index()][d];
         }
 
     // setting the current p-field

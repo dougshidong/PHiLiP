@@ -15,102 +15,41 @@ namespace PHiLiP {
 
 namespace GridRefinement {
 
-// handles type interpretation from NormType and implicitly instantiates cases
 template <int dim, int nstate, typename real>
-void ReconstructPoly<dim,nstate,real>::reconstruct_chord_derivative(
-    const NormType&                                        norm_type,
-    const dealii::LinearAlgebra::distributed::Vector<real>&solution,              // approximation to be reconstructed
-    const dealii::hp::DoFHandler<dim>&                     dof_handler,           // dof_handler
-    const dealii::hp::MappingCollection<dim>&              mapping_collection,    // mapping collection
-    const dealii::hp::FECollection<dim>&                   fe_collection,         // fe collection
-    const dealii::hp::QCollection<dim>&                    quadrature_collection, // quadrature collection
-    const dealii::UpdateFlags&                             update_flags,          // update flags for for volume fe
-    const unsigned int&                                    rel_order,             // order of the reconstruction
-    std::vector<dealii::Tensor<1,dim,real>>&               A)                     // holds the reconstructed directional derivative along each centerline chord
+ReconstructPoly<dim,nstate,real>::ReconstructPoly(
+        const dealii::hp::DoFHandler<dim>&        dof_handler,           // dof_handler
+        const dealii::hp::MappingCollection<dim>& mapping_collection,    // mapping collection
+        const dealii::hp::FECollection<dim>&      fe_collection,         // fe collection
+        const dealii::hp::QCollection<dim>&       quadrature_collection, // quadrature collection
+        const dealii::UpdateFlags&                update_flags) :        // update flags for for volume fe
+            dof_handler(dof_handler),
+            mapping_collection(mapping_collection),
+            fe_collection(fe_collection),
+            quadrature_collection(quadrature_collection),
+            update_flags(update_flags),
+            norm_type(NormType::H1)
 {
-
-    if(norm_type == NormType::H1){
-
-        ReconstructPoly<dim,nstate,real>::reconstruct_chord_derivative<NormType::H1>(
-            solution,
-            dof_handler,
-            mapping_collection,
-            fe_collection,
-            quadrature_collection,
-            update_flags,
-            rel_order,
-            A);
-
-    }else if(norm_type == NormType::L2){
-
-        ReconstructPoly<dim,nstate,real>::reconstruct_chord_derivative<NormType::L2>(
-            solution,
-            dof_handler,
-            mapping_collection,
-            fe_collection,
-            quadrature_collection,
-            update_flags,
-            rel_order,
-            A);
-
-    }
-
+    reinit(dof_handler.get_triangulation().n_active_cells());
 }
 
-// handles type interpretation from NormType and implicitly instantiates cases
 template <int dim, int nstate, typename real>
-void ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
-        const NormType&                                        norm_type,
-        const dealii::LinearAlgebra::distributed::Vector<real>&solution,              // approximation to be reconstructed
-        const dealii::hp::DoFHandler<dim>&                     dof_handler,           // dof_handler
-        const dealii::hp::MappingCollection<dim>&              mapping_collection,    // mapping collection
-        const dealii::hp::FECollection<dim>&                   fe_collection,         // fe collection
-        const dealii::hp::QCollection<dim>&                    quadrature_collection, // quadrature collection
-        const dealii::UpdateFlags&                             update_flags,          // update flags for for volume fe
-        const unsigned int&                                    rel_order,             // order of the reconstruction
-        std::vector<dealii::Tensor<1,dim,real>>&               A)                     // (output) holds the largest (scaled) derivative in each direction and then in each orthogonal plane
+void ReconstructPoly<dim,nstate,real>::set_norm_type(const NormType norm_type)
 {
+    this->norm_type = norm_type;
+}
 
-    if(norm_type == NormType::H1){
-
-        ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative<NormType::H1>(
-            solution,
-            dof_handler,
-            mapping_collection,
-            fe_collection,
-            quadrature_collection,
-            update_flags,
-            rel_order,
-            A);
-
-    }else if(norm_type == NormType::L2){
-
-        ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative<NormType::L2>(
-            solution,
-            dof_handler,
-            mapping_collection,
-            fe_collection,
-            quadrature_collection,
-            update_flags,
-            rel_order,
-            A);
-
-    }
-
+template <int dim, int nstate, typename real>
+void ReconstructPoly<dim,nstate,real>::reinit(const unsigned int n)
+{
+    derivative_value.resize(n);
+    derivative_direction.resize(n);
 }
 
 // reconstruct the directional derivatives of the reconstructed solution along each of the quad chords
 template <int dim, int nstate, typename real>
-template <NormType norm_type>
 void ReconstructPoly<dim,nstate,real>::reconstruct_chord_derivative(
-    const dealii::LinearAlgebra::distributed::Vector<real>&solution,              // approximation to be reconstructed
-    const dealii::hp::DoFHandler<dim>&                     dof_handler,           // dof_handler
-    const dealii::hp::MappingCollection<dim>&              mapping_collection,    // mapping collection
-    const dealii::hp::FECollection<dim>&                   fe_collection,         // fe collection
-    const dealii::hp::QCollection<dim>&                    quadrature_collection, // quadrature collection
-    const dealii::UpdateFlags&                             update_flags,          // update flags for for volume fe
-    const unsigned int&                                    rel_order,             // order of the reconstruction
-    std::vector<dealii::Tensor<1,dim,real>>&               A)                     // holds the reconstructed directional derivative along each centerline chord
+    const dealii::LinearAlgebra::distributed::Vector<real>& solution,  // solution approximation to be reconstructed
+    const unsigned int                                      rel_order) // order of the apporximation
 {
     /* based on the dealii numbering, chords defined along nth axis
           dir[1]
@@ -129,14 +68,11 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_chord_derivative(
         dealii::PolynomialSpace<dim> poly_space(dealii::Polynomials::Monomial<double>::generate_complete_basis(order));
 
         // getting the vector of polynomial coefficients from the p+1 expansion
-        dealii::Vector<real> coeffs_non_hom = reconstruct_norm<norm_type>(
+        dealii::Vector<real> coeffs_non_hom = reconstruct_norm(
+            norm_type,
             cell,
             poly_space,
-            solution,
-            mapping_collection,
-            fe_collection,
-            quadrature_collection,
-            update_flags);
+            solution);
 
         const unsigned int n_poly   = poly_space.n();
         const unsigned int n_degree = poly_space.degree();
@@ -164,10 +100,10 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_chord_derivative(
             }
         }
 
-        dealii::Tensor<1,dim,real> A_cell;
+        std::array<real,dim> A_cell;
         std::array<dealii::Tensor<1,dim,real>,dim> chord_vec;
 
-        // holds the nodes that form the coord
+        // holds the nodes that form the chord
         // summing over all the nodes onto each (dim) neighbouring faces/edges
         std::array<std::pair<dealii::Tensor<1,dim,real>, dealii::Tensor<1,dim,real>>,dim> chord_nodes;
         for(unsigned int vertex = 0; vertex < dealii::GeometryInfo<dim>::vertices_per_cell; ++vertex)
@@ -198,23 +134,16 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_chord_derivative(
                 A_cell[i] += poly_val;
             }
 
-        A[cell->active_cell_index()] = A_cell;
+        derivative_value[cell->active_cell_index()] = A_cell;
     }
 
 }
 
 // takes an input field and polynomial space and output the largest directional derivative and coresponding normal direction
 template <int dim, int nstate, typename real>
-template <NormType norm_type>
 void ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
-    const dealii::LinearAlgebra::distributed::Vector<real>&solution,              // approximation to be reconstructed
-    const dealii::hp::DoFHandler<dim>&                     dof_handler,           // dof_handler
-    const dealii::hp::MappingCollection<dim>&              mapping_collection,    // mapping collection
-    const dealii::hp::FECollection<dim>&                   fe_collection,         // fe collection
-    const dealii::hp::QCollection<dim>&                    quadrature_collection, // quadrature collection
-    const dealii::UpdateFlags&                             update_flags,          // update flags for for volume fe
-    const unsigned int&                                    rel_order,             // order of the reconstruction
-    std::vector<dealii::Tensor<1,dim,real>>&               A)                     // (output) holds the largest (scaled) derivative in each direction and then in each orthogonal plane
+    const dealii::LinearAlgebra::distributed::Vector<real>&  solution,  // solution approximation to be reconstructed
+    const unsigned int                                       rel_order) // order of the apporximation
 {
     const real pi = atan(1)*4.0;
 
@@ -226,14 +155,11 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
         dealii::PolynomialSpace<dim> poly_space(dealii::Polynomials::Monomial<double>::generate_complete_basis(order));
 
         // getting the vector of polynomial coefficients from the p+1 expansion
-        dealii::Vector<real> coeffs_non_hom = reconstruct_norm<norm_type>(
+        dealii::Vector<real> coeffs_non_hom = reconstruct_norm(
+            norm_type,
             cell,
             poly_space,
-            solution,
-            mapping_collection,
-            fe_collection,
-            quadrature_collection,
-            update_flags);
+            solution);
 
         const unsigned int n_poly   = poly_space.n();
         const unsigned int n_degree = poly_space.degree();
@@ -261,7 +187,7 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
             }
         }
 
-        dealii::Tensor<1,dim,real> A_cell;
+        std::array<real,dim> A_cell;
         if(dim == 1){
             Assert(n_vec == 1, dealii::ExcInternalError());
 
@@ -409,7 +335,7 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
         }
 
         // storing the tensor of results
-        A[cell->active_cell_index()] = A_cell;
+        derivative_value[cell->active_cell_index()] = A_cell;
     }
 }
 
@@ -460,15 +386,12 @@ std::array<unsigned int, 3> compute_index<3>(
 }
 
 template <int dim, int nstate, typename real>
-template <NormType norm_type, typename DoFCellAccessorType>
+template <typename DoFCellAccessorType>
 dealii::Vector<real> ReconstructPoly<dim,nstate,real>::reconstruct_norm(
+    const NormType                                          norm_type,
     const DoFCellAccessorType &                             curr_cell,
     const dealii::PolynomialSpace<dim>                      ps,
-    const dealii::LinearAlgebra::distributed::Vector<real> &solution,
-    const dealii::hp::MappingCollection<dim> &              mapping_collection,
-    const dealii::hp::FECollection<dim> &                   fe_collection,
-    const dealii::hp::QCollection<dim> &                    quadrature_collection,
-    const dealii::UpdateFlags &                             update_flags)
+    const dealii::LinearAlgebra::distributed::Vector<real> &solution)
 {
 
     if(norm_type == NormType::H1){
@@ -476,22 +399,14 @@ dealii::Vector<real> ReconstructPoly<dim,nstate,real>::reconstruct_norm(
         return reconstruct_H1_norm(
             curr_cell,
             ps,
-            solution,
-            mapping_collection,
-            fe_collection,
-            quadrature_collection,
-            update_flags);
+            solution);
 
     }else if(norm_type == NormType::L2){
 
         return reconstruct_L2_norm(
             curr_cell,
             ps,
-            solution,
-            mapping_collection,
-            fe_collection,
-            quadrature_collection,
-            update_flags);
+            solution);
 
     }else{
 
@@ -508,11 +423,7 @@ template <typename DoFCellAccessorType>
 dealii::Vector<real> ReconstructPoly<dim,nstate,real>::reconstruct_H1_norm(
     const DoFCellAccessorType &                             curr_cell,
     const dealii::PolynomialSpace<dim>                      ps,
-    const dealii::LinearAlgebra::distributed::Vector<real> &solution,
-    const dealii::hp::MappingCollection<dim> &              mapping_collection,
-    const dealii::hp::FECollection<dim> &                   fe_collection,
-    const dealii::hp::QCollection<dim> &                    quadrature_collection,
-    const dealii::UpdateFlags &                             update_flags)
+    const dealii::LinearAlgebra::distributed::Vector<real> &solution)
 {
 
     // center point of the current cell
@@ -624,11 +535,7 @@ template <typename DoFCellAccessorType>
 dealii::Vector<real> ReconstructPoly<dim,nstate,real>::reconstruct_L2_norm(
     const DoFCellAccessorType &                             curr_cell,
     const dealii::PolynomialSpace<dim>                      ps,
-    const dealii::LinearAlgebra::distributed::Vector<real> &solution,
-    const dealii::hp::MappingCollection<dim> &              mapping_collection,
-    const dealii::hp::FECollection<dim> &                   fe_collection,
-    const dealii::hp::QCollection<dim> &                    quadrature_collection,
-    const dealii::UpdateFlags &                             update_flags)
+    const dealii::LinearAlgebra::distributed::Vector<real> &solution)
 {
     // center point of the current cell
     dealii::Point<dim,real> center_point = curr_cell->center();

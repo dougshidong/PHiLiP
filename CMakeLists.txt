@@ -75,6 +75,7 @@ add_custom_target(unit_tests)
 
 # Source code
 include_directories(src)
+include_directories(../submodules/CoDiPack/include)
 add_subdirectory(src)
 
 # Test directory

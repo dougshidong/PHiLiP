@@ -192,6 +192,16 @@ void ElementIsotropic<dim,real>::set_cell_internal(
 	m_scale = pow(product, -1.0/dim);
 }
 
+template <int dim, typename real>
+void ElementIsotropic<dim,real>::set_anisotropy(
+	const std::array<real,dim>&                       /* derivative_value */,
+	const std::array<dealii::Tensor<1,dim,real>,dim>& /* derivative_direction */,
+	const unsigned int                                /* order */)
+{
+	// invalid, cannot set anisotropy on isotropic cell
+	assert(0);
+}
+
 /***** ***** ElementAnisotropic ***** *****/
 
 template <int dim, typename real>
@@ -381,6 +391,45 @@ void ElementAnisotropic<dim,real>::set_cell_internal(
 
 	// correcting to fix scaling issues
 	correct_element();
+}
+
+template <int dim, typename real>
+void ElementAnisotropic<dim,real>::set_anisotropy(
+	const std::array<real,dim>&                       derivative_value,
+	const std::array<dealii::Tensor<1,dim,real>,dim>& derivative_direction,
+	const unsigned int                                order)
+{
+	// currently only implemented for dim == 2
+	assert(dim == 2);
+
+	// derivative value and direction should be an ordered set
+	
+	// computing the product of all
+	real product = 1.0;
+	for(unsigned int i = 0; i < dim; ++i)
+		product *= derivative_value[i];
+
+	real denominator = pow(product, 1.0/dim);
+
+	// computing anisotropy A_i/(\Prod A)^{1/dim}
+	std::array<real,dim> rho;
+	for(unsigned int i = 0; i < dim; ++i)
+		rho[i] = derivative_value[i]/denominator;
+
+	// anisotropy in each axis becomes \rho^{-1/(p+1)}
+	std::array<real,dim> anisotropic_ratio;
+	for(unsigned int i = 0; i < dim; ++i)
+		anisotropic_ratio[i] = pow(rho[i], -1.0/order);
+
+	// keeping direction values as is (anisotropic ratios should be swapped)
+	
+	// setting values for the cell
+	m_anisotropic_ratio = anisotropic_ratio;
+	m_unit_axis         = derivative_direction;
+
+	// correcting
+	correct_element();
+
 }
 
 /***** ***** Field ***** *****/
@@ -607,6 +656,37 @@ dealii::Tensor<2,dim,real> FieldInternal<dim,real,ElementType>::get_metric(
 	const unsigned int index)
 {
 	return field[index].get_metric();
+}
+
+template <int dim, typename real, typename ElementType>
+void FieldInternal<dim,real,ElementType>::set_anisotropy(
+	const dealii::hp::DoFHandler<dim>&                             dof_handler,
+	const std::vector<std::array<real,dim>>&                       derivative_value,
+	const std::vector<std::array<dealii::Tensor<1,dim,real>,dim>>& derivative_direction,
+	const int                                                      relative_order)
+{
+	// sizes must match
+	assert(size() == dof_handler.get_triangulation().n_active_cells());
+	assert(size() == derivative_value.size());
+	assert(size() == derivative_direction.size());
+
+	// looping through the cells
+	for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell){
+		if(!cell->is_locally_owned()) continue;
+
+		// getting the index
+		const unsigned int index = cell->active_cell_index();
+
+		// getting the order
+		const unsigned int order = cell->active_fe_index() + relative_order;
+
+		// performing the call to update the anisotropy
+		field[index].set_anisotropy(
+			derivative_value[index],
+			derivative_direction[index],
+			order);
+	}
+
 }
 
 template class Field <PHILIP_DIM, double>;

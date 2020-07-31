@@ -91,6 +91,12 @@ public:
 		set_cell_internal(vertices);
 	}
 
+	// Dolejsi's anisotropy from reconstructed directional derivatives (reconstruct_poly)
+	virtual void set_anisotropy(
+		const std::array<real,dim>&                       derivative_value,
+		const std::array<dealii::Tensor<1,dim,real>,dim>& derivative_direction,
+		const unsigned int                                order) = 0;
+
 };
 
 // isotropic element case (element scale only)
@@ -149,6 +155,13 @@ protected:
 	// internal function for handling set_cell below
 	void set_cell_internal(
 		const typename Element<dim,real>::VertexList& vertices) override;
+
+public:
+	// Dolejsi's anisotropy from reconstructed directional derivatives (reconstruct_poly)
+	void set_anisotropy(
+		const std::array<real,dim>&                       derivative_value,
+		const std::array<dealii::Tensor<1,dim,real>,dim>& derivative_direction,
+		const unsigned int                                order) override;
 
 private:
 	// element size
@@ -214,6 +227,13 @@ protected:
 	// internal function for handling set_cell below
 	void set_cell_internal(
 		const typename Element<dim,real>::VertexList& vertices) override;
+
+public:
+	// Dolejsi's anisotropy from reconstructed directional derivatives (reconstruct_poly)
+	void set_anisotropy(
+		const std::array<real,dim>&                       derivative_value,
+		const std::array<dealii::Tensor<1,dim,real>,dim>& derivative_direction,
+		const unsigned int                                order) override;
 
 private:
 
@@ -353,6 +373,13 @@ public:
 	virtual void set_cell(
 		const DoFHandlerType& dof_handler) = 0;
 
+	// Dolejsi's anisotropy from reconstructed directional derivatives (reconstruct_poly)
+	virtual void set_anisotropy(
+		const dealii::hp::DoFHandler<dim>&                             dof_handler,
+		const std::vector<std::array<real,dim>>&                       derivative_value,
+		const std::vector<std::array<dealii::Tensor<1,dim,real>,dim>>& derivative_direction,
+		const int                                                      relative_order) = 0;
+
 };
 
 // wrapper to hide element type
@@ -436,6 +463,13 @@ public:
 			if(cell->is_locally_owned())
 				field[cell->active_cell_index()].set_cell(cell);
 	}
+
+	// Dolejsi's anisotropy from reconstructed directional derivatives (reconstruct_poly)
+	void set_anisotropy(
+		const dealii::hp::DoFHandler<dim>&                             dof_handler,
+		const std::vector<std::array<real,dim>>&                       derivative_value,
+		const std::vector<std::array<dealii::Tensor<1,dim,real>,dim>>& derivative_direction,
+		const int                                                      relative_order) override;
 
 private:
 	// vector of element data

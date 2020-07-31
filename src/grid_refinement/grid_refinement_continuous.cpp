@@ -76,6 +76,8 @@ GridRefinement_Continuous<dim,nstate,real,MeshType>::GridRefinement_Continuous(
             dg_input,
             physics_input)
 {
+    std::cout << "Initializing grid_refinement with anisotropic = " << this->grid_refinement_param.anisotropic << std::endl;
+
     // sets the Field to default to either anisotropic or isotropic field
     if(this->grid_refinement_param.anisotropic){
         h_field = std::make_unique<FieldAnisotropic<dim,real>>();
@@ -226,6 +228,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_msh()
 
     if(output_data_type == OutputDataType::size_field){
         // outputting the h_field size (no orientation), single value
+        std::cout << "Writing the size_field to .msh file." << std::endl;
 
         // adding data to output
         msh_out.add_data_vector(this->h_field->get_scale_vector(), 
@@ -234,7 +237,8 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_msh()
         
     }else if(output_data_type == OutputDataType::frame_field){
         // outputting the h_field frame vectors (d, 1xd vectors)
-        
+        std::cout << "Writing the frame_field to .msh file." << std::endl;
+
         // adding data to output
         for(unsigned int j = 0; j < dim; ++j)
             msh_out.add_data_vector(this->h_field->get_axis_vector(j),
@@ -244,6 +248,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_msh()
 
     }else if(output_data_type == OutputDataType::metric_field){
         // outputting the h_field using metric representation (dxd matrix)
+        std::cout << "Writing the metric_field to .msh file." << std::endl;
 
         // adding data to output
         msh_out.add_data_vector(this->h_field->get_metric_vector(),
@@ -268,7 +273,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_msh()
     msh_out.write_msh(out_msh);
 
     // full cycle-not yet implemented
-    std::cout << ".msh file written. (" << write_msh_name << ")" << std::endl;
+    std::cout << ".msh file written. (" << "/" << write_msh_name << ")" << std::endl;
     throw;
 }
 
@@ -410,6 +415,9 @@ void GridRefinement_Continuous_Error<dim,nstate,real,MeshType>::field_hp(){}
 template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinement_Continuous_Hessian<dim,nstate,real,MeshType>::field_h()
 {
+    // beginning h_field computation
+    std::cout << "Beggining field_h() computation" << std::endl;
+
     // mapping
     const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid.mapping_fe_field));
 
@@ -428,6 +436,18 @@ void GridRefinement_Continuous_Hessian<dim,nstate,real,MeshType>::field_h()
     reconstruct_poly.reconstruct_directional_derivative(
         this->dg->solution,
         rel_order);
+
+    // if anisotropic, setting the cell anisotropy
+    if(this->grid_refinement_param.anisotropic){
+        std::cout << "Setting cell anisotropy" << std::endl;
+
+        // builds the anisotropy from Dolejsi's anisotropic ellipse size
+        this->h_field->set_anisotropy(
+            this->dg->dof_handler,
+            reconstruct_poly.derivative_value,
+            reconstruct_poly.derivative_direction,
+            rel_order);
+    }
 
     // vector to store the results for local scaling parameter
     dealii::Vector<real> B(this->tria->n_active_cells());

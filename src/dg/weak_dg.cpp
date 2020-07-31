@@ -1365,6 +1365,30 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
 }
 
 template <int dim, int nstate, typename real>
+void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives2(
+    const dealii::FEValues<dim,dim> &fe_values_vol,
+    const dealii::FESystem<dim,dim> &fe,
+    const dealii::Quadrature<dim> &quadrature,
+    const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
+    const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
+    dealii::Vector<real> &local_rhs_cell,
+    const dealii::FEValues<dim,dim> &fe_values_lagrange,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
+{
+    (void) fe_values_vol;
+    (void) fe;
+    (void) quadrature;
+    (void) metric_dof_indices;
+    (void) soln_dof_indices;
+    (void) local_rhs_cell;
+    (void) fe_values_lagrange;
+    (void) compute_dRdW;
+    (void) compute_dRdX;
+    (void) compute_d2R;
+    
+}
+
+template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const dealii::FESystem<dim,dim> &fe,
@@ -1372,9 +1396,14 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
     const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
     dealii::Vector<real> &local_rhs_cell,
-    const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/,
+    const dealii::FEValues<dim,dim> &fe_values_lagrange,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
+
+    (void) fe_values_lagrange;
+    // assemble_volume_terms_derivatives2( fe_values_vol, fe, quadrature, metric_dof_indices, soln_dof_indices, local_rhs_cell, fe_values_lagrange, compute_dRdW, compute_dRdX, compute_d2R);
+    // return;
+
     using ADArray = std::array<FadFadType,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,FadFadType>, nstate >;
 

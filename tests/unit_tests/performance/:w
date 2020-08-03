@@ -100,23 +100,13 @@ dealii::Point<dim,real> BumpManifold<dim>::mapping(const dealii::Point<dim,real>
 
     //const real y_phys = channel_height*y_ref + exp(coeff_expy*y_ref*y_ref)*bump_height*exp(coeff_expx*x_phys*x_phys) * (1.0+0.7*x_phys);
 
-    real y_phys;
-
-    if (dim == 2) {
-        const double coeff2 = 2; // Increase for more aggressive INITIAL exponential spacing.
-        real y_scaled = channel_height;
-        y_scaled *= (exp(std::pow(y_ref,coeff2))-1.0);
-        y_scaled /= (exp(std::pow(channel_height,coeff2))-1.0); // [0,channel_height]
-        const real y_lower = bump_height*exp(coeff_expx*x_ref*x_ref);
-        const real perturbation = y_lower * exp(coeff_expy*y_scaled*y_scaled);
-        y_phys = y_scaled + perturbation;
-    } else if (dim==3) {
-        const real y_lower = bump_height*exp(coeff_expx*x_ref*x_ref);
-        const real y_higher = channel_height;
-        const real y_prop = std::pow(y_ref/channel_height,1);
-        y_phys = y_lower + (y_higher - y_lower) * y_prop;
-    }
-
+    const double coeff2 = 2; // Increase for more aggressive INITIAL exponential spacing.
+    real y_scaled = channel_height;
+    y_scaled *= (exp(std::pow(y_ref,coeff2))-1.0);
+    y_scaled /= (exp(std::pow(channel_height,coeff2))-1.0); // [0,channel_height]
+    const real y_lower = bump_height*exp(coeff_expx*x_ref*x_ref);
+    const real perturbation = y_lower * exp(coeff_expy*y_scaled*y_scaled);
+    const real y_phys = y_scaled + perturbation;
 
     //std::cout << x_ref << " " << y_ref << " " << x_phys << " " << y_phys << std::endl;
     dealii::Point<dim,real> phys_point;
@@ -132,9 +122,9 @@ dealii::Point<dim> BumpManifold<dim>::pull_back(const dealii::Point<dim> &space_
     const double target_y_phys = space_point[1];
     const double z_phys = (dim==3) ? space_point[2] : 0;
 
-    double x_ref = x_phys + 0.001;
+    double x_ref = x_phys;
     double y_ref = target_y_phys;
-    double z_ref = z_phys + 0.001;
+    double z_ref = z_phys;
 
     using ADtype = Sacado::Fad::DFad<double>;
     ADtype x_ref_ad = x_ref;
@@ -194,127 +184,68 @@ dealii::Point<dim> BumpManifold<dim>::pull_back(const dealii::Point<dim> &space_
     //     }
     // }
     // Perform a Newton iterations.
-    int it_newton = 0;
-    // std::cout << "Starting Newton: " << std::endl;
-    // for (it_newton=0; it_newton<200; it_newton++) {
-    //     dealii::Point<dim,ADtype> chart_point_ad;
-    //     y_ref_ad.diff(0,1);
-    //     chart_point_ad[0] = x_ref_ad;
-    //     chart_point_ad[1] = y_ref_ad;
-    //     if (dim==3) chart_point_ad[2] = z_ref_ad;
-    //     dealii::Point<dim,ADtype> new_point = mapping<ADtype>(chart_point_ad);
-
-    //     const double fun = new_point[1].val() - target_y_phys;
-    //     std::cout
-    //         << " y_ref " << y_ref_ad.val()
-    //         << " yref_to_yphys " << new_point[1].val()
-    //         << " target_y_phys " << target_y_phys
-    //         << " diff " << fun
-    //         << std::endl;
-    //     const double derivative = new_point[1].dx(0);
-    //     if(std::abs(fun) < 1e-15) break;
-    //     y_ref_ad = y_ref_ad - fun/derivative;
-    // }
-
-    for (it_newton=0; it_newton<200; it_newton++) {
+    std::cout << "Starting Newton: " << std::endl;
+    for (int i=0; i<200; i++) {
         dealii::Point<dim,ADtype> chart_point_ad;
-        x_ref_ad.diff(0,dim);
-        y_ref_ad.diff(1,dim);
-        if (dim==3) z_ref_ad.diff(2,dim);
+        y_ref_ad.diff(0,1);
         chart_point_ad[0] = x_ref_ad;
         chart_point_ad[1] = y_ref_ad;
         if (dim==3) chart_point_ad[2] = z_ref_ad;
         dealii::Point<dim,ADtype> new_point = mapping<ADtype>(chart_point_ad);
 
-        dealii::Tensor<1,dim,double> fun;
-        fun[0] = new_point[0].val() - space_point[0];
-        fun[1] = new_point[1].val() - space_point[1];
-        if (dim==3) fun[2] = new_point[2].val() - space_point[2];
-        dealii::Tensor<2,dim,double> jac;
-        for (int id = 0; id < dim; ++id) {
-            for (int jd = 0; jd < dim; ++jd) {
-                jac[id][jd] = new_point[id].dx(jd);
-            }
-        }
-        dealii::Tensor<2,dim,double> inv_jac = invert(jac);
-        // std::cout << fun << std::endl;
-        // std::cout << jac << std::endl;
-        // std::cout << inv_jac << std::endl;
-        // std::cout
-        //     << " y_ref " << y_ref_ad.val()
-        //     << " yref_to_yphys " << new_point[1].val()
-        //     << " target_y_phys " << target_y_phys
-        //     << " diff " << fun
-        //     << std::endl;
-        if(fun.norm() < 1e-15) break;
-
-        dealii::Tensor<1,dim,double> old_ref;
-        old_ref[0] = x_ref_ad.val();
-        old_ref[1] = y_ref_ad.val();
-        if (dim==3) old_ref[2] = z_ref_ad.val();
-
-        dealii::Tensor<1,dim,double> new_ref;
-        new_ref = old_ref - inv_jac*fun;
-
-        x_ref_ad.val() = new_ref[0];
-        y_ref_ad.val() = new_ref[1];
-        if(dim==3) z_ref_ad.val() = new_ref[2];
+        const double fun = new_point[1].val() - target_y_phys;
+        std::cout
+            << " y_ref " << y_ref_ad.val()
+            << " yref_to_yphys " << new_point[1].val()
+            << " target_y_phys " << target_y_phys
+            << " diff " << fun
+            << std::endl;
+        const double derivative = new_point[1].dx(0);
+        if(std::abs(fun) < 1e-15) break;
+        y_ref_ad = y_ref_ad - fun/derivative;
     }
 
-    if (it_newton > 198) {
+    double x1=-0.1, double x2=1.0, double E=1e-14;
+    double n = 0, xm, x0, c;
+    do {
         dealii::Point<dim,double> chart_point;
         chart_point[0] = x_ref;
-        if (dim==3) chart_point[2] = 0.0;//z_ref;
-        double low = -0.1, high = 0.1;
-        int n = 1000;
-        std::cout << "Failed to find point..." << std::endl;
-        std::cout << "Last point was... " << y_ref_ad.val() << " for a target_y_phys= " << target_y_phys <<  std::endl;
-        for (int i = 0; i < n; ++i) {
-            chart_point[1] = low + i * (high-low) / n;
-            dealii::Point<dim,double> new_midpoint = mapping<double>(chart_point);
-            std::cout << chart_point[1] << " " << new_midpoint[1] - target_y_phys << std::endl;
-        }
-    }
+        if (dim==3) chart_point[2] = z_ref;
 
-    // double x1=y_ref_ad.val()-0.1, x2=y_ref_ad.val(), E=1e-14;
-    // double n = 0, x0, c = 1.0;
-    // while (std::abs(c) >= E) {
-    //     dealii::Point<dim,double> chart_point;
-    //     chart_point[0] = x_ref;
-    //     if (dim==3) chart_point[2] = z_ref;
+        chart_point[1] = x0;
+        dealii::Point<dim,double> new_midpoint = mapping<double>(chart_point);
+        double fx0 = new_midpoint[1] - target_y_phys;
 
-    //     chart_point[1] = x0;
-    //     dealii::Point<dim,double> new_midpoint = mapping<double>(chart_point);
-    //     double fx0 = new_midpoint[1] - target_y_phys;
+        chart_point[1] = x1;
+        dealii::Point<dim,double> new_midpoint = mapping<double>(chart_point);
+        double fx1 = new_midpoint[1] - target_y_phys;
 
-    //     chart_point[1] = x1;
-    //     new_midpoint = mapping<double>(chart_point);
-    //     double fx1 = new_midpoint[1] - target_y_phys;
+        chart_point[1] = x2;
+        dealii::Point<dim,double> new_midpoint = mapping<double>(chart_point);
+        double fx2 = new_midpoint[1] - target_y_phys;
 
-    //     chart_point[1] = x2;
-    //     new_midpoint = mapping<double>(chart_point);
-    //     double fx2 = new_midpoint[1] - target_y_phys;
+        // calculate the intermediate value
+        x0 = (x1 * fx2 - x2 * fx1) / (fx2 - fx1);
 
-    //     // calculate the intermediate value
-    //     x0 = (x1 * fx2 - x2 * fx1) / (fx2 - fx1);
+        // check if x0 is root of equation or not
+        c = fx1 * fx0;
 
-    //     // check if x0 is root of equation or not
-    //     c = fx1 * fx0;
+        // update the value of interval
+        x1 = x2;
+        x2 = x0;
 
-    //     // update the value of interval
-    //     x1 = x2;
-    //     x2 = x0;
+        // update number of iteration
+        n++;
 
-    //     // update number of iteration
-    //     n++;
+        // if x0 is the root of equation then break the loop
+        if (c == 0)
+            break;
+        xm = (x1 * fx2 - x2 * fx1) / (fx2 - fx1);
+    } while (fabs(xm - x0) >= E); // repeat the loop
+                                // until the convergence
 
-    //     // if x0 is the root of equation then break the loop
-    //     if (std::abs(c) <= E)
-    //         break;
-    // }
-    // y_ref_ad.val() = x0;
-    // std::cout << "Root of the given equation=" << x0 << std::endl;
-    // std::cout << "No. of iterations = " << n << std::endl;
+    std::cout << "Root of the given equation=" << x0 << endl;
+    std::cout << "No. of iterations = " << n << endl;
 
     dealii::Point<dim,double> chart_point;
     chart_point[0] = x_ref_ad.val();

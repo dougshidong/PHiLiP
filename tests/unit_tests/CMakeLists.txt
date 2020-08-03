@@ -6,3 +6,5 @@ add_subdirectory(grid)
 add_subdirectory(functional_derivatives)
 add_subdirectory(sensitivities)
 add_subdirectory(optimization)
+
+add_subdirectory(performance)

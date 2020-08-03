@@ -141,11 +141,11 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
     const std::vector<real> &JxW = fe_values_vol.get_JxW_values ();
 
     std::vector< doubleArray > soln_at_q(n_quad_pts);
-    std::vector< ADArrayTensor1 > soln_grad_at_q(n_quad_pts);
+    //std::vector< ADArrayTensor1 > soln_grad_at_q(n_quad_pts);
 
     std::vector< ADArrayTensor1 > conv_phys_flux_at_q(n_quad_pts);
-    std::vector< ADArrayTensor1 > diss_phys_flux_at_q(n_quad_pts);
-    std::vector< doubleArray > source_at_q(n_quad_pts);
+    //std::vector< ADArrayTensor1 > diss_phys_flux_at_q(n_quad_pts);
+    //std::vector< doubleArray > source_at_q(n_quad_pts);
 
 
     // AD variable
@@ -154,16 +154,16 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
         soln_coeff[idof] = DGBase<dim,real>::solution(soln_dof_indices_int[idof]);
     }
 
-    const double cell_diameter = fe_values_vol.get_cell()->diameter();
-    const real artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
-                                       this->discontinuity_sensor(cell_diameter, soln_coeff, fe_values_vol.get_fe())
-                                       : 0.0;
+    // const double cell_diameter = fe_values_vol.get_cell()->diameter();
+    // const real artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
+    //                                    this->discontinuity_sensor(cell_diameter, soln_coeff, fe_values_vol.get_fe())
+    //                                    : 0.0;
 
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         for (int istate=0; istate<nstate; istate++) { 
             // Interpolate solution to the face quadrature points
             soln_at_q[iquad][istate]      = 0;
-            soln_grad_at_q[iquad][istate] = 0;
+    //        soln_grad_at_q[iquad][istate] = 0;
         }
     }
     // Interpolate solution to face
@@ -171,27 +171,27 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
         for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
               const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(idof).first;
               soln_at_q[iquad][istate]      += soln_coeff[idof] * fe_values_vol.shape_value_component(idof, iquad, istate);
-              soln_grad_at_q[iquad][istate] += soln_coeff[idof] * fe_values_vol.shape_grad_component(idof, iquad, istate);
+        //      soln_grad_at_q[iquad][istate] += soln_coeff[idof] * fe_values_vol.shape_grad_component(idof, iquad, istate);
         }
         // Evaluate physical convective flux and source term
         conv_phys_flux_at_q[iquad] = pde_physics_double->convective_flux (soln_at_q[iquad]);
-        diss_phys_flux_at_q[iquad] = pde_physics_double->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
-        if(this->all_parameters->add_artificial_dissipation) {
-            const ADArrayTensor1 artificial_diss_phys_flux_at_q = pde_physics_double->artificial_dissipative_flux (artificial_diss_coeff, soln_at_q[iquad], soln_grad_at_q[iquad]);
-            for (int istate=0; istate<nstate; istate++) { 
-                diss_phys_flux_at_q[iquad][istate] += artificial_diss_phys_flux_at_q[istate];
-            }
-        }
-        if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
-            const dealii::Point<dim,real> point = fe_values_vol.quadrature_point(iquad);
-            source_at_q[iquad] = pde_physics_double->source_term (point, soln_at_q[iquad]);
-            //std::array<real,nstate> artificial_source_at_q = pde_physics_double->artificial_source_term (artificial_diss_coeff, point, soln_at_q[iquad]);
-            //for (int s=0;s<nstate;++s) source_at_q[iquad][s] += artificial_source_at_q[s];
-        }
+        //diss_phys_flux_at_q[iquad] = pde_physics_double->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
+        //if(this->all_parameters->add_artificial_dissipation) {
+        //    const ADArrayTensor1 artificial_diss_phys_flux_at_q = pde_physics_double->artificial_dissipative_flux (artificial_diss_coeff, soln_at_q[iquad], soln_grad_at_q[iquad]);
+        //    for (int istate=0; istate<nstate; istate++) { 
+        //        diss_phys_flux_at_q[iquad][istate] += artificial_diss_phys_flux_at_q[istate];
+        //    }
+        //}
+        //if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
+        //    const dealii::Point<dim,real> point = fe_values_vol.quadrature_point(iquad);
+        //    source_at_q[iquad] = pde_physics_double->source_term (point, soln_at_q[iquad]);
+        //    //std::array<real,nstate> artificial_source_at_q = pde_physics_double->artificial_source_term (artificial_diss_coeff, point, soln_at_q[iquad]);
+        //    //for (int s=0;s<nstate;++s) source_at_q[iquad][s] += artificial_source_at_q[s];
+        //}
     }
 
-    const unsigned int cell_index = fe_values_vol.get_cell()->active_cell_index();
-    this->max_dt_cell[cell_index] = evaluate_CFL ( soln_at_q, cell_diameter );
+    //const unsigned int cell_index = fe_values_vol.get_cell()->active_cell_index();
+    //this->max_dt_cell[cell_index] = evaluate_CFL ( soln_at_q, cell_diameter );
 
     // Weak form
     // The right-hand side sends all the term to the side of the source term
@@ -213,11 +213,11 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
             rhs = rhs + fe_values_vol.shape_grad_component(itest,iquad,istate) * conv_phys_flux_at_q[iquad][istate] * JxW[iquad];
             //// Diffusive
             //// Note that for diffusion, the negative is defined in the physics_double
-            rhs = rhs + fe_values_vol.shape_grad_component(itest,iquad,istate) * diss_phys_flux_at_q[iquad][istate] * JxW[iquad];
-            // Source
-            if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
-                rhs = rhs + fe_values_vol.shape_value_component(itest,iquad,istate) * source_at_q[iquad][istate] * JxW[iquad];
-            }
+            //rhs = rhs + fe_values_vol.shape_grad_component(itest,iquad,istate) * diss_phys_flux_at_q[iquad][istate] * JxW[iquad];
+            //// Source
+            //if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
+            //    rhs = rhs + fe_values_vol.shape_value_component(itest,iquad,istate) * source_at_q[iquad][istate] * JxW[iquad];
+            //}
         }
 
         local_rhs_int_cell(itest) += rhs;

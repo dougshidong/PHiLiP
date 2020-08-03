@@ -1,5 +1,3 @@
-set(MAIN_SRC 
-    main.cpp)
 add_subdirectory(dummy)
 add_subdirectory(linear_solver)
 add_subdirectory(parameters)
@@ -14,6 +12,38 @@ add_subdirectory(optimization)
 
 add_subdirectory(testing)
 
+foreach(dim RANGE 1 3)
+    # Empty cpp file to allow building big library.
+    file(WRITE null.cpp "")
+    set(SOURCE null.cpp)
+
+    # Output library
+    string(CONCAT PHiLiP_lib PHiLiP_${dim}D_lib)
+    add_library(${PHiLiP_lib} STATIC ${SOURCE})
+
+    target_link_libraries(${PHiLiP_lib} LinearSolver)
+    target_link_libraries(${PHiLiP_lib} ParametersLibrary)
+    target_link_libraries(${PHiLiP_lib} DiscontinuousGalerkin_${dim}D)
+    target_link_libraries(${PHiLiP_lib} Tests_${dim}D)
+    target_link_libraries(${PHiLiP_lib} HighOrderGrid_${dim}D)
+    target_link_libraries(${PHiLiP_lib} Postprocessing_${dim}D)
+    target_link_libraries(${PHiLiP_lib} NumericalFlux_${dim}D)
+    target_link_libraries(${PHiLiP_lib} Physics_${dim}D)
+
+    # Setup target with deal.II
+    if(NOT DOC_ONLY)
+        DEAL_II_SETUP_TARGET(${PHiLiP_lib})
+    endif()
+
+    target_compile_definitions(${PHiLiP_lib} PRIVATE PHILIP_DIM=${dim})
+
+    # Setup target with deal.II
+    unset(PHiLiP_lib)
+
+endforeach()
+
+set(MAIN_SRC 
+    main.cpp)
 foreach(dim RANGE 1 3)
 
     # #####################################################
@@ -62,17 +92,13 @@ foreach(dim RANGE 1 3)
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${MAIN_TARGET} PRIVATE PHILIP_DIM=${dim})
     # Library dependency
-    set(ParameterLib ParametersLibrary)
-    string(CONCAT TestsLib Tests_${dim}D)
-    target_link_libraries(${MAIN_TARGET} ${ParameterLib})
-    target_link_libraries(${MAIN_TARGET} ${TestsLib})
+    string(CONCAT PHiLiPLib PHiLiP_${dim}D)
     target_link_libraries(${MAIN_TARGET} m mpi)
+    target_link_libraries(${MAIN_TARGET} PHiLiP_${dim}D_lib)
     if(NOT DOC_ONLY)
         DEAL_II_SETUP_TARGET(${MAIN_TARGET})
     endif()
     
     unset(MAIN_TARGET)
-    unset(ParameterLib)
-    unset(TestsLib)
 
 endforeach()

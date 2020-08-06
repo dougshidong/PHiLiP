@@ -65,7 +65,9 @@ int EulerBumpResidualAssembly<dim,nstate>::run_test () const
     Physics::FreeStreamInitialConditions<dim,nstate> initial_conditions(euler_physics_double);
 
     std::vector<dealii::ConvergenceTable> convergence_table_vector_residual_assembly;
-    std::vector<dealii::ConvergenceTable> convergence_table_vector_vmult;
+    std::vector<dealii::ConvergenceTable> convergence_table_vector_dRdW_vmult;
+    std::vector<dealii::ConvergenceTable> convergence_table_vector_dRdX_vmult;
+    std::vector<dealii::ConvergenceTable> convergence_table_vector_dRdW;
 
     // p0 tends to require a finer grid to reach asymptotic region
     unsigned int n_grids = n_grids_input;
@@ -83,7 +85,9 @@ int EulerBumpResidualAssembly<dim,nstate>::run_test () const
     for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
 
         dealii::ConvergenceTable convergence_table_residual_assembly;
-        dealii::ConvergenceTable convergence_table_vmult;
+        dealii::ConvergenceTable convergence_table_dRdW_vmult;
+        dealii::ConvergenceTable convergence_table_dRdX_vmult;
+        dealii::ConvergenceTable convergence_table_dRdW;
 
         for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
 
@@ -116,14 +120,15 @@ int EulerBumpResidualAssembly<dim,nstate>::run_test () const
                  << ". Number of degrees of freedom: " << n_dofs
                  << std::endl;
 
+            double timing_residual;
             { 
                 double timing_start = MPI_Wtime();
                 for (int i = 0; i < 10; ++i) {
                     dg->assemble_residual ();
                 }
                 double timing_end = MPI_Wtime();
-                double timing = timing_end - timing_start;
-                pcout << "It took " << timing << " seconds to run." << std::endl;
+                timing_residual = timing_end - timing_start;
+                pcout << "It took " << timing_residual << " seconds to run." << std::endl;
 
                 // Convergence table
                 double dx = 1.0/pow(n_dofs,(1.0/dim));
@@ -134,44 +139,104 @@ int EulerBumpResidualAssembly<dim,nstate>::run_test () const
                 convergence_table_residual_assembly.add_value("cells", n_global_active_cells);
                 convergence_table_residual_assembly.add_value("DoFs", n_dofs);
                 convergence_table_residual_assembly.add_value("dx", dx);
-                convergence_table_residual_assembly.add_value("Timing", timing);
+                convergence_table_residual_assembly.add_value("Timing", timing_residual);
             }
-            //{ 
-            //    const bool compute_dRdW = true;
-            //    dg->assemble_residual (compute_dRdW);
-            //    const int n_nonzero_elements = dg->system_matrix.n_nonzero_elements();
-            //    double timing_start = MPI_Wtime();
-            //    for (int i = 0; i < 10; ++i) {
-            //        dg->system_matrix.vmult(dg->right_hand_side, dg->solution);
-            //        //const bool compute_dRdW = true;
-            //    }
-            //    double timing_end = MPI_Wtime();
-            //    double timing = timing_end - timing_start;
-            //    pcout << "It took " << timing << " seconds to run." << std::endl;
+            { 
+                const bool compute_dRdW = true;
+                double timing_start = MPI_Wtime();
+                dg->assemble_residual (compute_dRdW);
+                double timing_end = MPI_Wtime();
+                const int n_nonzero_elements = dg->system_matrix.n_nonzero_elements();
+                pcout << "Number of nonzeros in dRdW: " << n_nonzero_elements << std::endl;
+                double timing = timing_end - timing_start;
+                pcout << "It took " << 10*timing << " seconds to run." << std::endl;
 
-            //    // Convergence table
-            //    double dx = 1.0/pow(n_dofs,(1.0/dim));
-            //    //dx = dealii::GridTools::maximal_cell_diameter(*grid);
-            //    grid_size[igrid] = dx;
+                // Convergence table
+                double dx = 1.0/pow(n_dofs,(1.0/dim));
+                //dx = dealii::GridTools::maximal_cell_diameter(*grid);
+                grid_size[igrid] = dx;
 
-            //    convergence_table_vmult.add_value("p", poly_degree);
-            //    convergence_table_vmult.add_value("cells", n_global_active_cells);
-            //    convergence_table_vmult.add_value("DoFs", n_dofs);
-            //    convergence_table_vmult.add_value("dx", dx);
-            //    convergence_table_vmult.add_value("Timing", timing);
-            //}
+                convergence_table_dRdW.add_value("p", poly_degree);
+                convergence_table_dRdW.add_value("cells", n_global_active_cells);
+                convergence_table_dRdW.add_value("DoFs", n_dofs);
+                convergence_table_dRdW.add_value("dx", dx);
+                convergence_table_dRdW.add_value("Timing", timing);
+                convergence_table_dRdW.add_value("Relative Timing", timing/timing_residual);
+            }
+            { 
+                double timing_start = MPI_Wtime();
+                for (int i = 0; i < 10; ++i) {
+                    dg->system_matrix.vmult(dg->right_hand_side, dg->solution);
+                }
+                double timing_end = MPI_Wtime();
+                double timing = timing_end - timing_start;
+                pcout << "It took " << timing << " seconds to run." << std::endl;
+
+                // Convergence table
+                double dx = 1.0/pow(n_dofs,(1.0/dim));
+                //dx = dealii::GridTools::maximal_cell_diameter(*grid);
+                grid_size[igrid] = dx;
+
+                convergence_table_dRdW_vmult.add_value("p", poly_degree);
+                convergence_table_dRdW_vmult.add_value("cells", n_global_active_cells);
+                convergence_table_dRdW_vmult.add_value("DoFs", n_dofs);
+                convergence_table_dRdW_vmult.add_value("dx", dx);
+                convergence_table_dRdW_vmult.add_value("Timing", timing);
+                convergence_table_dRdW_vmult.add_value("Relative Timing", timing/timing_residual);
+            }
+            { 
+                const bool compute_dRdW = false;
+                const bool compute_dRdX = true;
+                int n_nonzero_elements = dg->dRdXv.n_nonzero_elements();
+                pcout << "Number of nonzeros in dRdX: " << n_nonzero_elements << std::endl;
+                dg->assemble_residual (compute_dRdW, compute_dRdX);
+                n_nonzero_elements = dg->dRdXv.n_nonzero_elements();
+                pcout << "Number of nonzeros in dRdX: " << n_nonzero_elements << std::endl;
+                double timing_start = MPI_Wtime();
+                for (int i = 0; i < 10; ++i) {
+                    dg->dRdXv.vmult(dg->right_hand_side, dg->high_order_grid.volume_nodes);
+                }
+                double timing_end = MPI_Wtime();
+                double timing = timing_end - timing_start;
+                pcout << "It took " << timing << " seconds to run." << std::endl;
+
+                // Convergence table
+                double dx = 1.0/pow(n_dofs,(1.0/dim));
+                //dx = dealii::GridTools::maximal_cell_diameter(*grid);
+                grid_size[igrid] = dx;
+
+                convergence_table_dRdX_vmult.add_value("p", poly_degree);
+                convergence_table_dRdX_vmult.add_value("cells", n_global_active_cells);
+                convergence_table_dRdX_vmult.add_value("DoFs", n_dofs);
+                convergence_table_dRdX_vmult.add_value("dx", dx);
+                convergence_table_dRdX_vmult.add_value("Timing", timing);
+                convergence_table_dRdX_vmult.add_value("Relative Timing", timing/timing_residual);
+            }
+
         }
-        convergence_table_residual_assembly.evaluate_convergence_rates("Timing", "p", dealii::ConvergenceTable::reduction_rate_log2, dim);
+        convergence_table_residual_assembly.evaluate_convergence_rates("Timing", "p", dealii::ConvergenceTable::reduction_rate, dim);
         convergence_table_residual_assembly.set_scientific("dx", true);
         convergence_table_residual_assembly.set_scientific("Timing", true);
         if (pcout.is_active()) convergence_table_residual_assembly.write_text(pcout.get_stream());
         convergence_table_vector_residual_assembly.push_back(convergence_table_residual_assembly);
 
-        convergence_table_vmult.evaluate_convergence_rates("Timing", "p", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        convergence_table_vmult.set_scientific("dx", true);
-        convergence_table_vmult.set_scientific("Timing", true);
-        if (pcout.is_active()) convergence_table_vmult.write_text(pcout.get_stream());
-        convergence_table_vector_vmult.push_back(convergence_table_vmult);
+        convergence_table_dRdW_vmult.evaluate_convergence_rates("Timing", "p", dealii::ConvergenceTable::reduction_rate, dim);
+        convergence_table_dRdW_vmult.set_scientific("dx", true);
+        convergence_table_dRdW_vmult.set_scientific("Timing", true);
+        if (pcout.is_active()) convergence_table_dRdW_vmult.write_text(pcout.get_stream());
+        convergence_table_vector_dRdW_vmult.push_back(convergence_table_dRdW_vmult);
+
+        convergence_table_dRdW.evaluate_convergence_rates("Timing", "p", dealii::ConvergenceTable::reduction_rate, dim);
+        convergence_table_dRdW.set_scientific("dx", true);
+        convergence_table_dRdW.set_scientific("Timing", true);
+        if (pcout.is_active()) convergence_table_dRdW.write_text(pcout.get_stream());
+        convergence_table_vector_dRdW.push_back(convergence_table_dRdW);
+
+        convergence_table_dRdX_vmult.evaluate_convergence_rates("Timing", "p", dealii::ConvergenceTable::reduction_rate, dim);
+        convergence_table_dRdX_vmult.set_scientific("dx", true);
+        convergence_table_dRdX_vmult.set_scientific("Timing", true);
+        if (pcout.is_active()) convergence_table_dRdX_vmult.write_text(pcout.get_stream());
+        convergence_table_vector_dRdX_vmult.push_back(convergence_table_dRdX_vmult);
     }
     pcout << std::endl << std::endl << std::endl << std::endl;
     pcout << " ********************************************" << std::endl;
@@ -186,10 +251,29 @@ int EulerBumpResidualAssembly<dim,nstate>::run_test () const
     pcout << " ********************************************" << std::endl;
     pcout << " dRdW vmult timing summary" << std::endl;
     pcout << " ********************************************" << std::endl;
-    for (auto conv = convergence_table_vector_vmult.begin(); conv!=convergence_table_vector_vmult.end(); conv++) {
+    for (auto conv = convergence_table_vector_dRdW_vmult.begin(); conv!=convergence_table_vector_dRdW_vmult.end(); conv++) {
         if (pcout.is_active()) conv->write_text(pcout.get_stream());
         pcout << " ********************************************" << std::endl;
     }
+
+    pcout << std::endl << std::endl << std::endl << std::endl;
+    pcout << " ********************************************" << std::endl;
+    pcout << " dRdX vmult timing summary" << std::endl;
+    pcout << " ********************************************" << std::endl;
+    for (auto conv = convergence_table_vector_dRdX_vmult.begin(); conv!=convergence_table_vector_dRdX_vmult.end(); conv++) {
+        if (pcout.is_active()) conv->write_text(pcout.get_stream());
+        pcout << " ********************************************" << std::endl;
+    }
+
+    pcout << std::endl << std::endl << std::endl << std::endl;
+    pcout << " ********************************************" << std::endl;
+    pcout << " dRdW timing summary" << std::endl;
+    pcout << " ********************************************" << std::endl;
+    for (auto conv = convergence_table_vector_dRdW.begin(); conv!=convergence_table_vector_dRdW.end(); conv++) {
+        if (pcout.is_active()) conv->write_text(pcout.get_stream());
+        pcout << " ********************************************" << std::endl;
+    }
+
     const int no_error = 0;
     return no_error;
 }

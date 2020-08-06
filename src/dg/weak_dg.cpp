@@ -405,20 +405,20 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
         for (int istate=0; istate<nstate; istate++) { 
             soln_int[iquad][istate]      = 0;
-            soln_grad_int[iquad][istate] = 0;
+    //        soln_grad_int[iquad][istate] = 0;
             soln_ext[iquad][istate]      = 0;
-            soln_grad_ext[iquad][istate] = 0;
+    //        soln_grad_ext[iquad][istate] = 0;
         }
     }
 
-    const double cell_diameter_int = fe_values_int.get_cell()->diameter();
-    const double cell_diameter_ext = fe_values_ext.get_cell()->diameter();
-    const real artificial_diss_coeff_int = this->all_parameters->add_artificial_dissipation ?
-                                           this->discontinuity_sensor(cell_diameter_int, soln_coeff_int, fe_values_int.get_fe())
-                                           : 0.0;
-    const real artificial_diss_coeff_ext = this->all_parameters->add_artificial_dissipation ?
-                                           this->discontinuity_sensor(cell_diameter_ext, soln_coeff_ext, fe_values_ext.get_fe())
-                                           : 0.0;
+    //const double cell_diameter_int = fe_values_int.get_cell()->diameter();
+    //const double cell_diameter_ext = fe_values_ext.get_cell()->diameter();
+    //const real artificial_diss_coeff_int = this->all_parameters->add_artificial_dissipation ?
+    //                                       this->discontinuity_sensor(cell_diameter_int, soln_coeff_int, fe_values_int.get_fe())
+    //                                       : 0.0;
+    //const real artificial_diss_coeff_ext = this->all_parameters->add_artificial_dissipation ?
+    //                                       this->discontinuity_sensor(cell_diameter_ext, soln_coeff_ext, fe_values_ext.get_fe())
+    //                                       : 0.0;
 
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
 
@@ -429,41 +429,41 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
         for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
             const unsigned int istate = fe_values_int.get_fe().system_to_component_index(idof).first;
             soln_int[iquad][istate]      += soln_coeff_int[idof] * fe_values_int.shape_value_component(idof, iquad, istate);
-            soln_grad_int[iquad][istate] += soln_coeff_int[idof] * fe_values_int.shape_grad_component(idof, iquad, istate);
+    //        soln_grad_int[iquad][istate] += soln_coeff_int[idof] * fe_values_int.shape_grad_component(idof, iquad, istate);
         }
         for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
             const unsigned int istate = fe_values_ext.get_fe().system_to_component_index(idof).first;
             soln_ext[iquad][istate]      += soln_coeff_ext[idof] * fe_values_ext.shape_value_component(idof, iquad, istate);
-            soln_grad_ext[iquad][istate] += soln_coeff_ext[idof] * fe_values_ext.shape_grad_component(idof, iquad, istate);
+    //        soln_grad_ext[iquad][istate] += soln_coeff_ext[idof] * fe_values_ext.shape_grad_component(idof, iquad, istate);
         }
 
         // Evaluate physical convective flux, physical dissipative flux, and source term
         conv_num_flux_dot_n[iquad] = conv_num_flux_double->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
-        diss_soln_num_flux[iquad] = diss_num_flux_double->evaluate_solution_flux(soln_int[iquad], soln_ext[iquad], normal_int);
+    //    diss_soln_num_flux[iquad] = diss_num_flux_double->evaluate_solution_flux(soln_int[iquad], soln_ext[iquad], normal_int);
 
-        doubleArrayTensor1 diss_soln_jump_int, diss_soln_jump_ext;
-        for (int s=0; s<nstate; s++) {
-            diss_soln_jump_int[s] = (diss_soln_num_flux[iquad][s] - soln_int[iquad][s]) * normal_int;
-            diss_soln_jump_ext[s] = (diss_soln_num_flux[iquad][s] - soln_ext[iquad][s]) * normal_ext;
-        }
-        diss_flux_jump_int[iquad] = pde_physics_double->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
-        diss_flux_jump_ext[iquad] = pde_physics_double->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext);
+    //    doubleArrayTensor1 diss_soln_jump_int, diss_soln_jump_ext;
+    //    for (int s=0; s<nstate; s++) {
+    //        diss_soln_jump_int[s] = (diss_soln_num_flux[iquad][s] - soln_int[iquad][s]) * normal_int;
+    //        diss_soln_jump_ext[s] = (diss_soln_num_flux[iquad][s] - soln_ext[iquad][s]) * normal_ext;
+    //    }
+    //    diss_flux_jump_int[iquad] = pde_physics_double->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
+    //    diss_flux_jump_ext[iquad] = pde_physics_double->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext);
 
-        if (this->all_parameters->add_artificial_dissipation) {
-            const doubleArrayTensor1 artificial_diss_flux_jump_int = pde_physics_double->artificial_dissipative_flux (artificial_diss_coeff_int, soln_int[iquad], diss_soln_jump_int);
-            const doubleArrayTensor1 artificial_diss_flux_jump_ext = pde_physics_double->artificial_dissipative_flux (artificial_diss_coeff_ext, soln_ext[iquad], diss_soln_jump_ext);
-            for (int s=0; s<nstate; s++) {
-                diss_flux_jump_int[iquad][s] += artificial_diss_flux_jump_int[s];
-                diss_flux_jump_ext[iquad][s] += artificial_diss_flux_jump_ext[s];
-            }
-        }
+    //    if (this->all_parameters->add_artificial_dissipation) {
+    //        const doubleArrayTensor1 artificial_diss_flux_jump_int = pde_physics_double->artificial_dissipative_flux (artificial_diss_coeff_int, soln_int[iquad], diss_soln_jump_int);
+    //        const doubleArrayTensor1 artificial_diss_flux_jump_ext = pde_physics_double->artificial_dissipative_flux (artificial_diss_coeff_ext, soln_ext[iquad], diss_soln_jump_ext);
+    //        for (int s=0; s<nstate; s++) {
+    //            diss_flux_jump_int[iquad][s] += artificial_diss_flux_jump_int[s];
+    //            diss_flux_jump_ext[iquad][s] += artificial_diss_flux_jump_ext[s];
+    //        }
+    //    }
 
-        diss_auxi_num_flux_dot_n[iquad] = diss_num_flux_double->evaluate_auxiliary_flux(
-            artificial_diss_coeff_int,
-            artificial_diss_coeff_ext,
-            soln_int[iquad], soln_ext[iquad],
-            soln_grad_int[iquad], soln_grad_ext[iquad],
-            normal_int, penalty);
+    //    diss_auxi_num_flux_dot_n[iquad] = diss_num_flux_double->evaluate_auxiliary_flux(
+    //        artificial_diss_coeff_int,
+    //        artificial_diss_coeff_ext,
+    //        soln_int[iquad], soln_ext[iquad],
+    //        soln_grad_int[iquad], soln_grad_ext[iquad],
+    //        normal_int, penalty);
     }
 
     // From test functions associated with interior cell point of view
@@ -474,9 +474,9 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
         for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
             // Convection
             rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * conv_num_flux_dot_n[iquad][istate] * JxW_int[iquad];
-            // Diffusive
-            rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW_int[iquad];
-            rhs = rhs + fe_values_int.shape_grad_component(itest_int,iquad,istate) * diss_flux_jump_int[iquad][istate] * JxW_int[iquad];
+    //        // Diffusive
+    //        rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW_int[iquad];
+    //        rhs = rhs + fe_values_int.shape_grad_component(itest_int,iquad,istate) * diss_flux_jump_int[iquad][istate] * JxW_int[iquad];
         }
 
         local_rhs_int_cell(itest_int) += rhs;
@@ -490,9 +490,9 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
         for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
             // Convection
             rhs = rhs - fe_values_ext.shape_value_component(itest_ext,iquad,istate) * (-conv_num_flux_dot_n[iquad][istate]) * JxW_int[iquad];
-            // Diffusive
-            rhs = rhs - fe_values_ext.shape_value_component(itest_ext,iquad,istate) * (-diss_auxi_num_flux_dot_n[iquad][istate]) * JxW_int[iquad];
-            rhs = rhs + fe_values_ext.shape_grad_component(itest_ext,iquad,istate) * diss_flux_jump_ext[iquad][istate] * JxW_int[iquad];
+    //        // Diffusive
+    //        rhs = rhs - fe_values_ext.shape_value_component(itest_ext,iquad,istate) * (-diss_auxi_num_flux_dot_n[iquad][istate]) * JxW_int[iquad];
+    //        rhs = rhs + fe_values_ext.shape_grad_component(itest_ext,iquad,istate) * diss_flux_jump_ext[iquad][istate] * JxW_int[iquad];
         }
 
         local_rhs_ext_cell(itest_ext) += rhs;
@@ -1075,11 +1075,11 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
             for (int d=0;d<dim;++d) {
                 for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
                     const unsigned int istate = fe_int.system_to_component_index(idof).first;
-                    gradient_operator_int[d][idof] = fe_values_int.shape_grad_component(idof, iquad, istate)[d];
+                    gradient_operator_int[d][idof] = 1.0;//fe_values_int.shape_grad_component(idof, iquad, istate)[d];
                 }
                 for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
                     const unsigned int istate = fe_ext.system_to_component_index(idof).first;
-                    gradient_operator_ext[d][idof] = fe_values_ext.shape_grad_component(idof, iquad, istate)[d];
+                    gradient_operator_ext[d][idof] = 1.0;//fe_values_ext.shape_grad_component(idof, iquad, istate)[d];
                 }
             }
             surface_jac_det_int = fe_values_int.JxW(iquad)/face_quadrature_int.weight(iquad);

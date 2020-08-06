@@ -555,16 +555,25 @@ protected:
     // // const dealii::QGaussLobatto<dim>   volume_quadrature;
     // // const dealii::QGaussLobatto<dim-1> face_quadrature;
 
+    // /// Update flags needed at volume points.
+    // const dealii::UpdateFlags volume_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values
+    //     | dealii::update_inverse_jacobians;
+    // /// Update flags needed at face points.
+    // const dealii::UpdateFlags face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_normal_vectors
+    //     | dealii::update_jacobians;
+    // /// Update flags needed at neighbor' face points. 
+    // /** NOTE: With hp-adaptation, might need to query neighbor's quadrature points depending on the order of the cells. */
+    // const dealii::UpdateFlags neighbor_face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values;
+
     /// Update flags needed at volume points.
     const dealii::UpdateFlags volume_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values
         | dealii::update_inverse_jacobians;
     /// Update flags needed at face points.
-    const dealii::UpdateFlags face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_normal_vectors
+    const dealii::UpdateFlags face_update_flags = dealii::update_values | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_normal_vectors
         | dealii::update_jacobians;
     /// Update flags needed at neighbor' face points. 
     /** NOTE: With hp-adaptation, might need to query neighbor's quadrature points depending on the order of the cells. */
-    const dealii::UpdateFlags neighbor_face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values;
-
+    const dealii::UpdateFlags neighbor_face_update_flags = dealii::update_values | dealii::update_quadrature_points | dealii::update_JxW_values;
 
 
 protected:

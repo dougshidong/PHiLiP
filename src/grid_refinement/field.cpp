@@ -1,3 +1,5 @@
+#include <ostream>
+
 #include <deal.II/base/tensor.h>
 #include <deal.II/base/symmetric_tensor.h>
 #include <deal.II/lac/vector.h>
@@ -554,7 +556,7 @@ void FieldInternal<dim,real,ElementType>::reinit(
 }
 
 template <int dim, typename real, typename ElementType>
-unsigned int FieldInternal<dim,real,ElementType>::size()
+unsigned int FieldInternal<dim,real,ElementType>::size() const
 {
 	return field.size();
 }
@@ -687,6 +689,16 @@ void FieldInternal<dim,real,ElementType>::set_anisotropy(
 			order);
 	}
 
+}
+
+template <int dim, typename real, typename ElementType>
+std::ostream& FieldInternal<dim,real,ElementType>::serialize(
+	std::ostream& os) const 
+{
+	for(unsigned int index = 0; index < this->size(); ++index)
+		os << field[index] << std::endl;
+
+	return os;
 }
 
 template class Field <PHILIP_DIM, double>;

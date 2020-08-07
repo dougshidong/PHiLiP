@@ -1,6 +1,8 @@
 #ifndef __FIELD_H__
 #define __FIELD_H__
 
+#include <ostream>
+
 #include <deal.II/base/tensor.h>
 #include <deal.II/base/symmetric_tensor.h>
 #include <deal.II/lac/vector.h>
@@ -163,6 +165,17 @@ public:
 		const std::array<dealii::Tensor<1,dim,real>,dim>& derivative_direction,
 		const unsigned int                                order) override;
 
+	// output to ostream
+	friend std::ostream& operator<<(
+		std::ostream&                     os,
+		const ElementIsotropic<dim,real>& element) 
+	{
+		os << "Isotropic element with properties:" << std::endl
+		   << '\t' << "m_scale = " << element.m_scale << std::endl;
+
+		return os;
+	}
+
 private:
 	// element size
 	real m_scale;
@@ -235,6 +248,29 @@ public:
 		const std::array<dealii::Tensor<1,dim,real>,dim>& derivative_direction,
 		const unsigned int                                order) override;
 
+	// output to ostream
+	friend std::ostream& operator<<(
+		std::ostream&                       os,
+		const ElementAnisotropic<dim,real>& element)
+	{
+		os << "Anisotropic element with properties:" << std::endl
+		   << '\t' << "m_scale = " << element.m_scale << std::endl
+		   << '\t' << "m_anisotropic_ratio = {" << element.m_anisotropic_ratio[0];
+		
+		for(unsigned int i = 1; i < dim; ++i)
+			os << ", " << element.m_anisotropic_ratio[i];
+
+		os << "}" << std::endl
+		   << '\t' << "m_unit_axis = {" << element.m_unit_axis[0];
+
+		for(unsigned int i = 1; i < dim; ++i)
+			os << ", " << element.m_unit_axis[i];
+
+		os << "}" << std::endl;
+
+		return os;
+	}
+
 private:
 
 	// resets the element
@@ -270,7 +306,7 @@ public:
 		const unsigned int size) = 0;
 
 	// returns the internal vector size
-	virtual unsigned int size() = 0;
+	virtual unsigned int size() const = 0;
 
 	// reference for element size
 	virtual real& scale(
@@ -379,6 +415,18 @@ public:
 		const std::vector<std::array<real,dim>>&                       derivative_value,
 		const std::vector<std::array<dealii::Tensor<1,dim,real>,dim>>& derivative_direction,
 		const int                                                      relative_order) = 0;
+	
+	// performs the internal call to writing to an ostream from the field
+	virtual std::ostream& serialize(
+		std::ostream& os) const = 0;
+
+	// outputs to ostream
+	friend std::ostream& operator<<(
+		std::ostream&          os,
+		const Field<dim,real>& field)
+	{
+		return field.serialize(os);
+	}
 
 };
 
@@ -392,7 +440,7 @@ public:
 		const unsigned int size);
 
 	// returns the internal vector size
-	unsigned int size();
+	unsigned int size() const;
 
 	// reference for element size
 	real& scale(
@@ -470,6 +518,10 @@ public:
 		const std::vector<std::array<real,dim>>&                       derivative_value,
 		const std::vector<std::array<dealii::Tensor<1,dim,real>,dim>>& derivative_direction,
 		const int                                                      relative_order) override;
+
+	// performs the internal call to writing to an ostream from the field
+	std::ostream& serialize(
+		std::ostream& os) const override;
 
 private:
 	// vector of element data

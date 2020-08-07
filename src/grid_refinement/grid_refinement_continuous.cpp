@@ -226,6 +226,9 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_msh()
     // setting up output handler
     PHiLiP::GridRefinement::MshOut<dim,real> msh_out(this->dg->dof_handler);
 
+    // writing the field to output
+    std::cout << *(this->h_field) << std::endl;
+
     if(output_data_type == OutputDataType::size_field){
         // outputting the h_field size (no orientation), single value
         std::cout << "Writing the size_field to .msh file." << std::endl;

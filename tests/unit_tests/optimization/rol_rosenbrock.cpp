@@ -25,6 +25,8 @@
 #include <iostream>
 #include <sstream>
 
+#include "ROL_OptimizationProblem.hpp"
+#include "ROL_OptimizationSolver.hpp"
 #include "ROL_Algorithm.hpp"
 #include "ROL_LineSearchStep.hpp"
 #include "ROL_Objective.hpp"
@@ -154,8 +156,7 @@ int test(const unsigned int n_des_var)
     x_rcp->update_ghost_values();
 
     dealii::Rol::VectorAdaptor<VectorType> x_rol(x_rcp);
-  
-    RosenbrockObjective<VectorType, RealT> rosenbrock_objective;
+    auto x_rol_ptr = ROL::makePtrFromRef<dealii::Rol::VectorAdaptor<VectorType>>(x_rol);
   
     // Set parameters.
     Teuchos::ParameterList parlist;
@@ -163,17 +164,23 @@ int test(const unsigned int n_des_var)
     parlist.sublist("Status Test").set("Gradient Tolerance", 1e-10);
     parlist.sublist("Status Test").set("Iteration Limit", 1000);
 
-    // Define algorithm.
-    ROL::Algorithm<RealT> algo("Line Search", parlist);
   
+    auto rosenbrock_objective = ROL::makePtr<RosenbrockObjective<VectorType, RealT>>();
+    //auto opt_problem = ROL::makePtr<ROL::OptimizationProblem<RealT>> (rosenbrock_objective, x_rol);
+    ROL::OptimizationProblem<RealT> opt_problem (rosenbrock_objective, x_rol_ptr);
+    ROL::OptimizationSolver<RealT> opt_solver(opt_problem, parlist);
+
     // Output stream
     ROL::nullstream bhs; // outputs nothing
     Teuchos::RCP<std::ostream> outStream;
     if (mpi_rank == 0) outStream = ROL::makePtrFromRef(std::cout);
     else outStream = ROL::makePtrFromRef(bhs);
 
-    // Run Algorithm
-    algo.run(x_rol, rosenbrock_objective, true, *outStream);
+    // // Define algorithm.
+    // ROL::Algorithm<RealT> algo("Line Search", parlist);
+    // // Run Algorithm
+    // algo.run(x_rol, rosenbrock_objective, true, *outStream);
+    opt_solver.solve(*outStream);
   
     Teuchos::RCP<const VectorType> xg = x_rol.getVector();
     *outStream << "The solution to minimization problem is: ";
@@ -189,7 +196,7 @@ int test(const unsigned int n_des_var)
     std::cout << std::flush;
     *outStream << std::endl;
 
-    return algo.getState()->statusFlag;
+    return opt_solver.getAlgorithmState()->statusFlag;
 }
 
 int main (int argc, char * argv[])

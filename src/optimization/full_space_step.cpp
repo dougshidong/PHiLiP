@@ -1,3 +1,4 @@
+#include "ROL_AugmentedLagrangian.hpp"
 #include "optimization/full_space_step.hpp"
 #include "optimization/kkt_operator.hpp"
 #include "optimization/kkt_birosghattas_preconditioners.hpp"

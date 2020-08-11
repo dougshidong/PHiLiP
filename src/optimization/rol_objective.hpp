@@ -32,6 +32,7 @@ private:
     /// Design variables.
     dealii::LinearAlgebra::distributed::Vector<double> ffd_des_var;
 
+    /// Stored mesh sensitivity evaluated at initialization.
     dealii::TrilinosWrappers::SparseMatrix dXvdXp;
 
 public:

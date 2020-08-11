@@ -209,7 +209,7 @@ public:
     /// Epetra_RowMatrixTransposer used to transpose the system_matrix.
     std::unique_ptr<Epetra_RowMatrixTransposer> epetra_rowmatrixtransposer_dRdW;
 
-    AztecOO dRdW_preconditioner_builder;
+    //AztecOO dRdW_preconditioner_builder;
 
     /// System matrix corresponding to the derivative of the right_hand_side with
     /// respect to the volume volume_nodes Xv

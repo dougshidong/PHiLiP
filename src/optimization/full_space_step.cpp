@@ -697,17 +697,6 @@ void FullSpace_BirosGhattas<Real>::compute(
 
 }
 
-/** \brief Update step, if successful.
-
-    Given a trial step, \f$s_k\f$, this function updates \f$x_{k+1}=x_k+s_k\f$. 
-    This function also updates the secant approximation.
-
-    @param[in,out]   design_variables        is the updated iterate
-    @param[in]       search_direction        is the computed trial step
-    @param[in]       objective               is the objective function
-    @param[in]       equal_constraints       are the bound equal_constraints
-    @param[in]       algo_state              contains the current state of the algorithm
-*/
 template <class Real>
 void FullSpace_BirosGhattas<Real>::update(
     Vector<Real> &design_variables,
@@ -854,13 +843,6 @@ std::string FullSpace_BirosGhattas<Real>::printName( void ) const
   return hist.str();
 }
 
-/** \brief Print iterate status.
-
-    This function prints the iteration status.
-
-    @param[in]     algo_state    is the current state of the algorithm
-    @param[in]     printHeader   if set to true will print the header at each iteration
-*/
 template <class Real>
 std::string FullSpace_BirosGhattas<Real>::print( AlgorithmState<Real> & algo_state, bool print_header) const
 {

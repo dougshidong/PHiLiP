@@ -128,6 +128,8 @@ public:
     dealii::TrilinosWrappers::SparseMatrix d2IdXdX;
 
 private:
+    /// Initializes/allocates the vectors used to check if we recompute
+    /// the functional or its derivatives.
     void init_vectors();
     /// Modal coefficients of the solution used to compute dIdW last
     /// Will be used to avoid recomputing dIdW.

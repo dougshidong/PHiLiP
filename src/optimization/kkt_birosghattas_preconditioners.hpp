@@ -9,6 +9,9 @@
 
 #include "flow_constraints.hpp"
 
+/// Full-space system preconditioner based on the reduced-space.
+/** See Biros and Ghattas' 2005 paper.
+ */
 template<typename Real = double>
 class BirosGhattasPreconditioner
 {

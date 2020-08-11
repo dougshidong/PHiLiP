@@ -387,7 +387,10 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
             
             if(face->at_boundary()){
                 const dealii::Quadrature<dim-1> &used_face_quadrature = dg->face_quadrature_collection[i_quad]; // or i_quad
-                const dealii::Quadrature<dim> face_quadrature = dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
+                const dealii::Quadrature<dim> face_quadrature
+                = dealii::QProjector<dim>::project_to_face(
+                    dealii::ReferenceCell::get_hypercube(dim),
+                    used_face_quadrature,iface);
 
                 volume_local_sum += evaluate_face_cell_functional(*physics_fad_fad, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
             }
@@ -492,7 +495,10 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
             if(face->at_boundary()){
 
                 const dealii::Quadrature<dim-1> &used_face_quadrature = dg.face_quadrature_collection[i_quad]; // or i_quad
-                const dealii::Quadrature<dim> face_quadrature = dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
+                const dealii::Quadrature<dim> face_quadrature
+                    = dealii::QProjector<dim>::project_to_face(
+                        dealii::ReferenceCell::get_hypercube(dim),
+                        used_face_quadrature,iface);
 
                 local_sum_old += evaluate_face_cell_functional(physics, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 
@@ -519,7 +525,10 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
                 
                 if(face->at_boundary()){
                     const dealii::Quadrature<dim-1> &used_face_quadrature = dg.face_quadrature_collection[i_quad]; // or i_quad
-                    const dealii::Quadrature<dim> face_quadrature = dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
+                    const dealii::Quadrature<dim> face_quadrature
+                        = dealii::QProjector<dim>::project_to_face(
+                            dealii::ReferenceCell::get_hypercube(dim),
+                            used_face_quadrature,iface);
 
                     local_sum_new += evaluate_face_cell_functional(physics, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
                 }
@@ -611,7 +620,10 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
             
             if(face->at_boundary()){
                 const dealii::Quadrature<dim-1> &used_face_quadrature = dg.face_quadrature_collection[i_quad]; // or i_quad
-                const dealii::Quadrature<dim> face_quadrature = dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
+                const dealii::Quadrature<dim> face_quadrature
+                    = dealii::QProjector<dim>::project_to_face(
+                        dealii::ReferenceCell::get_hypercube(dim),
+                        used_face_quadrature,iface);
 
                 local_sum_old += evaluate_face_cell_functional(physics, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
             }
@@ -636,7 +648,10 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
                 
                 if(face->at_boundary()){
                     const dealii::Quadrature<dim-1> &used_face_quadrature = dg.face_quadrature_collection[i_quad]; // or i_quad
-                    const dealii::Quadrature<dim> face_quadrature = dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
+                    const dealii::Quadrature<dim> face_quadrature
+                        = dealii::QProjector<dim>::project_to_face(
+                            dealii::ReferenceCell::get_hypercube(dim),
+                            used_face_quadrature,iface);
 
                     local_sum_new += evaluate_face_cell_functional(physics, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
                 }

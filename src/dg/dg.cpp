@@ -56,7 +56,7 @@ unsigned int dRdX_mult;
 unsigned int d2R_mult;
 
 
-//template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<PHILIP_DIM> >;
+//template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM> >;
 namespace PHiLiP {
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
     template <int dim> using Triangulation = dealii::Triangulation<dim>;
@@ -164,7 +164,7 @@ DGBase<dim,real>::DGBase(
     , face_quadrature_collection(std::get<2>(collection_tuple))
     , oned_quadrature_collection(std::get<3>(collection_tuple))
     , fe_collection_lagrange(std::get<4>(collection_tuple))
-    , dof_handler(*triangulation)
+    , dof_handler(*triangulation, true)
     , high_order_grid(grid_degree_input, triangulation)
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
@@ -505,9 +505,15 @@ void DGBase<dim,real>::assemble_cell_residual (
                     metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
                     const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
                     const dealii::Quadrature<dim> quadrature_int =
-                        dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
+                        dealii::QProjector<dim>::project_to_face(
+                            dealii::ReferenceCell::get_hypercube(dim),
+                            used_face_quadrature,
+                            iface);
                     const dealii::Quadrature<dim> quadrature_ext =
-                        dealii::QProjector<dim>::project_to_face(used_face_quadrature,neighbor_iface);
+                        dealii::QProjector<dim>::project_to_face(
+                            dealii::ReferenceCell::get_hypercube(dim),
+                            used_face_quadrature,
+                            neighbor_iface);
                     assemble_face_term_derivatives (   iface, neighbor_iface,
                                                 fe_values_face_int, fe_values_face_ext,
                                                 penalty,
@@ -584,9 +590,13 @@ void DGBase<dim,real>::assemble_cell_residual (
                     metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
                     const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
                     const dealii::Quadrature<dim> quadrature_int =
-                        dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
+                        dealii::QProjector<dim>::project_to_face(
+                        dealii::ReferenceCell::get_hypercube(dim),
+                        used_face_quadrature,iface);
                     const dealii::Quadrature<dim> quadrature_ext =
-                        dealii::QProjector<dim>::project_to_face(used_face_quadrature,neighbor_iface);
+                        dealii::QProjector<dim>::project_to_face(
+                        dealii::ReferenceCell::get_hypercube(dim),
+                        used_face_quadrature,neighbor_iface);
                     assemble_face_term_derivatives (   iface, neighbor_iface,
                                                 fe_values_face_int, fe_values_face_ext,
                                                 penalty,
@@ -664,9 +674,13 @@ void DGBase<dim,real>::assemble_cell_residual (
 //                    metric_neighbor_cell.get_dof_indices(neighbor_metric_dofs_indices);
 //                    const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
 //                    const dealii::Quadrature<dim> quadrature_int =
-//                        dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
+//                        dealii::QProjector<dim>::project_to_face(
+//                          dealii::ReferenceCell::get_hypercube(dim),
+//                          used_face_quadrature,iface);
 //                    const dealii::Quadrature<dim> quadrature_ext =
-//                        dealii::QProjector<dim>::project_to_face(used_face_quadrature,neighbor_iface);
+//                        dealii::QProjector<dim>::project_to_face(
+//                          dealii::ReferenceCell::get_hypercube(dim),
+//                          used_face_quadrature,neighbor_iface);
 //                    assemble_face_term_dRdX (   iface, neighbor_iface,
 //                                                fe_values_face_int, fe_values_face_ext,
 //                                                penalty,
@@ -739,9 +753,16 @@ void DGBase<dim,real>::assemble_cell_residual (
 
                 const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
                 const dealii::Quadrature<dim> quadrature_int =
-                    dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
+                    dealii::QProjector<dim>::project_to_face(
+                        dealii::ReferenceCell::get_hypercube(dim),
+                        used_face_quadrature,iface);
                 const dealii::Quadrature<dim> quadrature_ext =
-                    dealii::QProjector<dim>::project_to_subface(used_face_quadrature,neighbor_iface,i_subface, dealii::RefinementCase<dim-1>::isotropic_refinement);
+                    dealii::QProjector<dim>::project_to_subface(
+                        dealii::ReferenceCell::get_hypercube(dim),
+                        used_face_quadrature,
+                        neighbor_iface,
+                        i_subface,
+                        dealii::RefinementCase<dim-1>::isotropic_refinement);
                 assemble_face_term_derivatives (   iface, neighbor_iface,
                                             fe_values_face_int, fe_values_face_ext,
                                             penalty,
@@ -801,9 +822,13 @@ void DGBase<dim,real>::assemble_cell_residual (
                 metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
                 const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
                 const dealii::Quadrature<dim> quadrature_int =
-                    dealii::QProjector<dim>::project_to_face(used_face_quadrature,iface);
+                    dealii::QProjector<dim>::project_to_face(
+                        dealii::ReferenceCell::get_hypercube(dim),
+                        used_face_quadrature,iface);
                 const dealii::Quadrature<dim> quadrature_ext =
-                    dealii::QProjector<dim>::project_to_face(used_face_quadrature,neighbor_iface);
+                    dealii::QProjector<dim>::project_to_face(
+                        dealii::ReferenceCell::get_hypercube(dim),
+                        used_face_quadrature,neighbor_iface);
                 assemble_face_term_derivatives (   iface, neighbor_iface,
                                             fe_values_face_int, fe_values_face_ext,
                                             penalty,
@@ -1050,7 +1075,7 @@ template <int dim, typename real>
 void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
 {
 
-    dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> data_out;
+    dealii::DataOut<dim, dealii::DoFHandler<dim>> data_out;
     data_out.attach_dof_handler (dof_handler);
 
     //std::vector<std::string> solution_names;
@@ -1065,13 +1090,13 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     for (unsigned int i = 0; i < subdomain.size(); ++i) {
         subdomain(i) = triangulation->locally_owned_subdomain();
     }
-    data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
     if (all_parameters->add_artificial_dissipation) {
-        data_out.add_data_vector(artificial_dissipation_coeffs, "artificial_dissipation_coeffs", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+        data_out.add_data_vector(artificial_dissipation_coeffs, "artificial_dissipation_coeffs", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
     }
 
-    data_out.add_data_vector(max_dt_cell, "max_dt_cell", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector(max_dt_cell, "max_dt_cell", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
 
     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
@@ -1088,9 +1113,9 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
 //        current_cell_poly[index] = fe_collection[active_fe_indices_dealiivector[index]].tensor_degree();
 //        index++;
 //    }
-//    //using DVTenum = dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType;
-//    data_out.add_data_vector (cell_poly_degree, "PolynomialDegree", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
-    data_out.add_data_vector (active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+//    //using DVTenum = dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType;
+//    data_out.add_data_vector (cell_poly_degree, "PolynomialDegree", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector (active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
 
     //assemble_residual (false);
@@ -1100,16 +1125,16 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
         residual_names.push_back(varname);
     }
     //std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> data_component_interpretation(nstate, dealii::DataComponentInterpretation::component_is_scalar);
-    //data_out.add_data_vector (right_hand_side, residual_names, dealii::DataOut<dim, dealii::hp::DoFHandler<dim>>::type_dof_data, data_component_interpretation);
-    data_out.add_data_vector (right_hand_side, residual_names, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+    //data_out.add_data_vector (right_hand_side, residual_names, dealii::DataOut<dim, dealii::DoFHandler<dim>>::type_dof_data, data_component_interpretation);
+    data_out.add_data_vector (right_hand_side, residual_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
 
 
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
     // //data_out.build_patches (mapping_collection[mapping_collection.size()-1]);
-    // data_out.build_patches(*(high_order_grid.mapping_fe_field), max_degree, dealii::DataOut<dim, dealii::hp::DoFHandler<dim>>::CurvedCellRegion::no_curved_cells);
+    // data_out.build_patches(*(high_order_grid.mapping_fe_field), max_degree, dealii::DataOut<dim, dealii::DoFHandler<dim>>::CurvedCellRegion::no_curved_cells);
     // //data_out.build_patches(*(high_order_grid.mapping_fe_field), fe_collection.size(), dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells);
 
-    typename dealii::DataOut<dim,dealii::hp::DoFHandler<dim>>::CurvedCellRegion curved = dealii::DataOut<dim,dealii::hp::DoFHandler<dim>>::CurvedCellRegion::curved_inner_cells;
+    typename dealii::DataOut<dim,dealii::DoFHandler<dim>>::CurvedCellRegion curved = dealii::DataOut<dim,dealii::DoFHandler<dim>>::CurvedCellRegion::curved_inner_cells;
     //typename dealii::DataOut<dim>::CurvedCellRegion curved = dealii::DataOut<dim>::CurvedCellRegion::curved_boundary;
     //typename dealii::DataOut<dim>::CurvedCellRegion curved = dealii::DataOut<dim>::CurvedCellRegion::no_curved_cells;
 

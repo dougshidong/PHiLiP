@@ -34,7 +34,7 @@
 #include "parameters/all_parameters.h"
 
 // Template specialization of MappingFEField
-//extern template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<PHILIP_DIM> >;
+//extern template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM> >;
 namespace PHiLiP {
 
 //#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
@@ -451,7 +451,7 @@ public:
      *  Must be defined after fe_dg since it is a subscriptor of fe_dg.
      *  Destructor are called in reverse order in which they appear in class definition. 
      */ 
-    dealii::hp::DoFHandler<dim> dof_handler;
+    dealii::DoFHandler<dim> dof_handler;
 
     /// High order grid that will provide the MappingFEField
     HighOrderGrid<dim,real> high_order_grid;

@@ -527,7 +527,11 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
     //const std::vector<real> &JxW = fe_values_boundary.get_JxW_values ();
     std::vector<dealii::Tensor<1,dim,ADADtype>> normals(n_quad_pts);
 
-    const dealii::Quadrature<dim> face_quadrature = dealii::QProjector<dim>::project_to_face(quadrature,face_number);
+    const dealii::Quadrature<dim> face_quadrature
+        = dealii::QProjector<dim>::project_to_face(
+            dealii::ReferenceCell::get_hypercube(dim),
+            quadrature,
+            face_number);
 
     const std::vector<dealii::Point<dim,double>> &unit_quad_pts = face_quadrature.get_points();
     std::vector<dealii::Point<dim,ADADtype>> real_quad_pts(unit_quad_pts.size());

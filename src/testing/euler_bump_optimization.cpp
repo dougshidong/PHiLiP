@@ -41,8 +41,9 @@ enum BirosGhattasPreconditioner { P2, P2A, P4, P4A, identity };
 
 //const std::vector<BirosGhattasPreconditioner> precond_list { P2, P2A, P4, P4A };
 //const std::vector<OptimizationAlgorithm> opt_list { full_space_birosghattas, reduced_space_newton };
-const std::vector<BirosGhattasPreconditioner> precond_list { P2A };
-const std::vector<OptimizationAlgorithm> opt_list { full_space_birosghattas };
+const std::vector<BirosGhattasPreconditioner> precond_list { P2, P2A, P4, P4A };
+const std::vector<OptimizationAlgorithm> opt_list { full_space_birosghattas, reduced_space_bfgs, reduced_space_newton };
+//const std::vector<OptimizationAlgorithm> opt_list { full_space_birosghattas };
 
 const double BUMP_HEIGHT = 0.0625;
 const double TARGET_BUMP_HEIGHT = 0.5*BUMP_HEIGHT;
@@ -51,11 +52,11 @@ const double CHANNEL_HEIGHT = 0.8;
 const unsigned int NY_CELL = 5;
 const unsigned int NX_CELL = 10*NY_CELL;
 
-const unsigned int POLY_START = 3;
-const unsigned int POLY_END = 3;
+const unsigned int POLY_START = 1;
+const unsigned int POLY_END = 1;
 
-const unsigned int n_des_var_start = 100;//20;
-const unsigned int n_des_var_end   = 100;//100;
+const unsigned int n_des_var_start = 20;//20;
+const unsigned int n_des_var_end   = 20;//100;
 const unsigned int n_des_var_step  = 20;//20;
 
 const int max_design_cycle = 1000;
@@ -86,8 +87,8 @@ int EulerBumpOptimization<dim,nstate>
     if (this->mpi_rank == 0) filebuffer.close();
 
     for (unsigned int poly_degree = POLY_START; poly_degree <= POLY_END; ++poly_degree) {
-        //for (unsigned int n_des_var = n_des_var_start; n_des_var <= n_des_var_end; n_des_var += n_des_var_step) {
-        for (unsigned int n_des_var = n_des_var_start; n_des_var <= n_des_var_end; n_des_var *= 2) {
+        for (unsigned int n_des_var = n_des_var_start; n_des_var <= n_des_var_end; n_des_var += n_des_var_step) {
+        //for (unsigned int n_des_var = n_des_var_start; n_des_var <= n_des_var_end; n_des_var *= 2) {
             // assert(n_des_var%2 == 0);
             // assert(n_des_var>=2);
             // const unsigned int nx_ffd = n_des_var / 2 + 2;
@@ -215,8 +216,8 @@ int EulerBumpOptimization<dim,nstate>
 
 
     const dealii::Point<dim> ffd_origin(-1.4,-0.1);
-    const std::array<double,dim> ffd_rectangle_lengths = {2.8,0.6};
-    const std::array<unsigned int,dim> ffd_ndim_control_pts = {nx_ffd,2};
+    const std::array<double,dim> ffd_rectangle_lengths = {{2.8,0.6}};
+    const std::array<unsigned int,dim> ffd_ndim_control_pts = {{nx_ffd,2}};
     FreeFormDeformation<dim> ffd( ffd_origin, ffd_rectangle_lengths, ffd_ndim_control_pts);
 
     unsigned int n_design_variables = 0;

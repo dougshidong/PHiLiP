@@ -31,7 +31,7 @@ void ODESolver<dim,real>::initialize_steady_polynomial_ramping (const unsigned i
         dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
         old_solution.update_ghost_values();
 
-        dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+        dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
         solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
 
         dg->set_all_cells_fe_degree(degree);
@@ -81,7 +81,11 @@ int ODESolver<dim,real>::steady_state ()
     CFL = all_parameters->ode_solver_param.initial_time_step;
 
     // Output initial solution
-    do {
+    while (    this->residual_norm     > ode_param.nonlinear_steady_residual_tolerance 
+            && this->residual_norm_decrease > ode_param.nonlinear_steady_residual_tolerance 
+            //&& update_norm             > ode_param.nonlinear_steady_residual_tolerance 
+            && this->current_iteration < ode_param.nonlinear_max_iterations )
+    {
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose
             && (this->current_iteration%ode_param.print_iteration_modulo) == 0 
             && dealii::Utilities::MPI::this_mpi_process(mpi_communicator) == 0 )
@@ -121,10 +125,7 @@ int ODESolver<dim,real>::steady_state ()
                 this->dg->output_results_vtk(file_number);
             }
         }
-    } while (    this->residual_norm     > ode_param.nonlinear_steady_residual_tolerance 
-            && this->residual_norm_decrease > ode_param.nonlinear_steady_residual_tolerance 
-            //&& update_norm             > ode_param.nonlinear_steady_residual_tolerance 
-            && this->current_iteration < ode_param.nonlinear_max_iterations );
+    }
 
     pcout << " ********************************************************** "
           << std::endl

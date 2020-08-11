@@ -69,7 +69,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,rea
 ::convective_flux (const std::array<real,nstate> &solution) const
 {
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
-    const dealii::Tensor<1,dim,real> velocity_field = this->advection_speed();
+    const dealii::Tensor<1,dim,real> velocity_field = advection_speed();
     for (int i=0; i<nstate; ++i) {
         conv_flux[i] = velocity_field * solution[i];
     }
@@ -95,9 +95,9 @@ dealii::Tensor<1,dim,real> ConvectionDiffusion<dim,nstate,real>
 {
     dealii::Tensor<1,dim,real> advection_speed;
     if (hasConvection) {
-        if(dim >= 1) advection_speed[0] = this->velo_x;
-        if(dim >= 2) advection_speed[1] = this->velo_y;
-        if(dim >= 3) advection_speed[2] = this->velo_z;
+        if(dim >= 1) advection_speed[0] = linear_advection_velocity[0];
+        if(dim >= 2) advection_speed[1] = linear_advection_velocity[1];
+        if(dim >= 3) advection_speed[2] = linear_advection_velocity[2];
     } else {
         const real zero = 0.0;
         if(dim >= 1) advection_speed[0] = zero;
@@ -110,7 +110,7 @@ template <int dim, int nstate, typename real>
 real ConvectionDiffusion<dim,nstate,real>
 ::diffusion_coefficient () const
 {
-    if(hasDiffusion) return this->diff_coeff;
+    if(hasDiffusion) return diffusion_scaling_coeff;
     const real zero = 0.0;
     return zero;
 }
@@ -150,7 +150,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,rea
     std::array<dealii::Tensor<1,dim,real>,nstate> diss_flux;
     const real diff_coeff = diffusion_coefficient();
     for (int i=0; i<nstate; i++) {
-        diss_flux[i] = -diff_coeff*((this->diffusion_tensor)*solution_gradient[i]);
+        diss_flux[i] = -diff_coeff*(this->diffusion_tensor*solution_gradient[i]);
     }
     return diss_flux;
 }
@@ -194,6 +194,8 @@ template class ConvectionDiffusion < PHILIP_DIM, 1, Sacado::Fad::DFad<double>  >
 template class ConvectionDiffusion < PHILIP_DIM, 2, Sacado::Fad::DFad<double>  >;
 template class ConvectionDiffusion < PHILIP_DIM, 1, Sacado::Fad::DFad<Sacado::Fad::DFad<double>>  >;
 template class ConvectionDiffusion < PHILIP_DIM, 2, Sacado::Fad::DFad<Sacado::Fad::DFad<double>>  >;
+template class ConvectionDiffusion < PHILIP_DIM, 1, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>>  >;
+template class ConvectionDiffusion < PHILIP_DIM, 2, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>>  >;
 
 } // Physics namespace
 } // PHiLiP namespace

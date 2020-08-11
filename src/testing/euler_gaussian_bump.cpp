@@ -46,6 +46,7 @@ int EulerGaussianBump<dim,nstate>
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
     Assert(dim == param.dimension, dealii::ExcDimensionMismatch(dim, param.dimension));
+    Assert(dim == 2, dealii::ExcDimensionMismatch(dim, param.dimension));
     //Assert(param.pde_type != param.PartialDifferentialEquation::euler, dealii::ExcNotImplemented());
     //if (param.pde_type == param.PartialDifferentialEquation::euler) return 1;
 
@@ -92,7 +93,7 @@ int EulerGaussianBump<dim,nstate>
 
         // const double channel_length = 3.0;
         // const double channel_height = 0.8;
-        // Grids::gaussian_bump(grid, n_subdivisions, channel_length, channel_height);
+        // Grids::gaussian_bump(*grid, n_subdivisions, channel_length, channel_height);
 
         // const double solution_degree = poly_degree;
         // const double grid_degree = 3;
@@ -115,7 +116,7 @@ int EulerGaussianBump<dim,nstate>
             //    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
             //    solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
             //    dg->high_order_grid.prepare_for_coarsening_and_refinement();
-            //    grid.refine_global (1);
+            //    grid->refine_global (1);
             //    dg->high_order_grid.execute_coarsening_and_refinement(true);
             //    dg->allocate_system ();
             //    dg->solution.zero_out_ghosts();
@@ -123,25 +124,27 @@ int EulerGaussianBump<dim,nstate>
             //    dg->solution.update_ghost_values();
             //}
 
-            dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator,
+            using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+            std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+                MPI_COMM_WORLD,
                 typename dealii::Triangulation<dim>::MeshSmoothing(
                     dealii::Triangulation<dim>::smoothing_on_refinement |
                     dealii::Triangulation<dim>::smoothing_on_coarsening));
 
             const double channel_length = 3.0;
             const double channel_height = 0.8;
-            Grids::gaussian_bump(grid, n_subdivisions, channel_length, channel_height);
-            grid.refine_global(igrid);
+            Grids::gaussian_bump(*grid, n_subdivisions, channel_length, channel_height);
+            grid->refine_global(igrid);
 
             const double solution_degree = poly_degree;
             const double grid_degree = solution_degree+1;
-            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, solution_degree, solution_degree, grid_degree, &grid);
+            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, solution_degree, solution_degree, grid_degree, grid);
 
             // Initialize coarse grid solution with free-stream
             dg->allocate_system ();
             dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
-            const unsigned int n_global_active_cells = grid.n_global_active_cells();
+            const unsigned int n_global_active_cells = grid->n_global_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
             pcout << "Dimension: " << dim << "\t Polynomial degree p: " << poly_degree << std::endl
                  << "Grid number: " << igrid+1 << "/" << n_grids
@@ -196,7 +199,7 @@ int EulerGaussianBump<dim,nstate>
 
             // Convergence table
             double dx = 1.0/pow(n_dofs,(1.0/dim));
-            //dx = dealii::GridTools::maximal_cell_diameter(grid);
+            //dx = dealii::GridTools::maximal_cell_diameter(*grid);
             grid_size[igrid] = dx;
             entropy_error[igrid] = l2error_mpi_sum;
 

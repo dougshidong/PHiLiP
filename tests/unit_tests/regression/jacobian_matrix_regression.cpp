@@ -47,22 +47,22 @@ int main (int argc, char * argv[])
             for (unsigned int igrid=2; igrid<5; ++igrid) {
                 // Generate grids
 #if PHILIP_DIM==1
-                dealii::Triangulation<dim> grid(
-                    typename dealii::Triangulation<dim>::MeshSmoothing(
-                        dealii::Triangulation<dim>::smoothing_on_refinement |
-                        dealii::Triangulation<dim>::smoothing_on_coarsening));
+                using Triangulation = dealii::Triangulation<dim>;
 #else
-                dealii::parallel::distributed::Triangulation<dim> grid(
+                using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+#endif
+                std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+#if PHILIP_DIM!=1
                     MPI_COMM_WORLD,
+#endif
                     typename dealii::Triangulation<dim>::MeshSmoothing(
                         dealii::Triangulation<dim>::smoothing_on_refinement |
                         dealii::Triangulation<dim>::smoothing_on_coarsening));
-#endif
-                GridGenerator::subdivided_hyper_cube(grid, igrid);
+                GridGenerator::subdivided_hyper_cube(*grid, igrid);
 
                 // Assemble Jacobian
                 all_parameters.pde_type = *pde;
-                std::shared_ptr < DGBase<PHILIP_DIM, double> > dg = DGFactory<PHILIP_DIM,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, &grid);
+                std::shared_ptr < DGBase<PHILIP_DIM, double> > dg = DGFactory<PHILIP_DIM,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, grid);
                 dg->allocate_system ();
                 dg->assemble_residual(true);
 

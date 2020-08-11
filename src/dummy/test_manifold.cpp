@@ -82,7 +82,7 @@ namespace Step10
   
     std::unique_ptr<Manifold<2,2> > UpperManifold::clone() const
     {
-        return std_cxx14::make_unique<UpperManifold>();
+        return std::make_unique<UpperManifold>();
     }
   
     template <int dim>

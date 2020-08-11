@@ -18,33 +18,35 @@ using PDEType  = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
 using ConvType = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;
 using DissType = PHiLiP::Parameters::AllParameters::DissipativeNumericalFlux;
 
+#if PHILIP_DIM==1
+    using Triangulation = dealii::Triangulation<PHILIP_DIM>;
+#else
+    using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
+#endif
+
 const double TOLERANCE = 1E-12;
 
 template<int dim, int nstate>
 int test (
     const unsigned int poly_degree,
-#if PHILIP_DIM==1
-    dealii::Triangulation<dim> &grid,
-#else
-    dealii::parallel::distributed::Triangulation<dim> &grid,
-#endif
+    std::shared_ptr<Triangulation> grid,
     const PHiLiP::Parameters::AllParameters &all_parameters)
 {
     int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
     dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
     using namespace PHiLiP;
     // Assemble Jacobian
-    std::shared_ptr < DGBase<PHILIP_DIM, double> > dg = DGFactory<PHILIP_DIM,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, &grid);
+    std::shared_ptr < DGBase<PHILIP_DIM, double> > dg = DGFactory<PHILIP_DIM,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, grid);
     dg->allocate_system ();
     const int n_refine = 2;
     for (int i=0; i<n_refine;i++) {
         dg->high_order_grid.prepare_for_coarsening_and_refinement();
-        grid.prepare_coarsening_and_refinement();
+        grid->prepare_coarsening_and_refinement();
         unsigned int icell = 0;
-        for (auto cell = grid.begin_active(); cell!=grid.end(); ++cell) {
+        for (auto cell = grid->begin_active(); cell!=grid->end(); ++cell) {
             if (!cell->is_locally_owned()) continue;
             icell++;
-            if (icell < grid.n_active_cells()/2) {
+            if (icell < grid->n_active_cells()/2) {
                 cell->set_refine_flag();
             }
             //else if (icell%2 == 0) {
@@ -53,11 +55,11 @@ int test (
             //    //cell->set_coarsen_flag();
             //}
         }
-        grid.execute_coarsening_and_refinement();
+        grid->execute_coarsening_and_refinement();
         bool mesh_out = (i==n_refine-1);
         dg->high_order_grid.execute_coarsening_and_refinement(mesh_out);
     }
-    pcout << "Poly degree " << poly_degree << " ncells " << grid.n_active_cells() << " ndofs: " << dg->dof_handler.n_dofs() << std::endl;
+    pcout << "Poly degree " << poly_degree << " ncells " << grid->n_active_cells() << " ndofs: " << dg->dof_handler.n_dofs() << std::endl;
     dg->allocate_system ();
 
     // Initialize solution with something
@@ -160,35 +162,31 @@ int main (int argc, char * argv[])
                 all_parameters.pde_type = *pde;
                 // Generate grids
 #if PHILIP_DIM==1
-                dealii::Triangulation<dim> grid(
+                std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
                     typename dealii::Triangulation<dim>::MeshSmoothing(
-                        dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_refinement |
-                        dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_coarsening));
-                dealii::GridGenerator::subdivided_hyper_cube(grid, igrid);
+                        dealii::Triangulation<dim>::smoothing_on_refinement |
+                        dealii::Triangulation<dim>::smoothing_on_coarsening));
+                dealii::GridGenerator::subdivided_hyper_cube(*grid, igrid);
                 const double random_factor = 0.3;
                 const bool keep_boundary = false;
-                if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, grid, keep_boundary);
-                for (auto &cell : grid.active_cell_iterators()) {
+                if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, *grid, keep_boundary);
+                for (auto &cell : grid->active_cell_iterators()) {
                     for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
                         if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
                     }
                 }
 #else
-                dealii::parallel::distributed::Triangulation<dim> grid(MPI_COMM_WORLD,
+                std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+                    MPI_COMM_WORLD,
                     typename dealii::Triangulation<dim>::MeshSmoothing(
-                        dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_refinement |
-                        dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_coarsening));
-                // std::vector<unsigned int> n_subdivisions(dim);
-                // n_subdivisions[1] = 4; // y-direction
-                // n_subdivisions[0] = 9*n_subdivisions[1]; // x-direction
-                // const double channel_length = 3.0;
-                // const double channel_height = 0.8;
-                // Grids::gaussian_bump(grid, n_subdivisions, channel_length, channel_height);
-                dealii::GridGenerator::subdivided_hyper_cube(grid, igrid);
+                        dealii::Triangulation<dim>::smoothing_on_refinement |
+                        dealii::Triangulation<dim>::smoothing_on_coarsening));
+
+                dealii::GridGenerator::subdivided_hyper_cube(*grid, igrid);
                 const double random_factor = 0.3;
                 const bool keep_boundary = false;
-                if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, grid, keep_boundary);
-                for (auto &cell : grid.active_cell_iterators()) {
+                if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, *grid, keep_boundary);
+                for (auto &cell : grid->active_cell_iterators()) {
                     for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
                         if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
                     }

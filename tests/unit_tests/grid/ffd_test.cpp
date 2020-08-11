@@ -19,8 +19,8 @@ int main (int argc, char * argv [])
     // such that each interval is of length 1.
     const int dim = PHILIP_DIM;
     const dealii::Point<3>            _origin = {1,2,3};
-    const std::array<double,3>        _rectangle_lengths = {2,3,4};
-    const std::array<unsigned int,3>  _ndim_control_pts = {3,4,5};
+    const std::array<double,3>        _rectangle_lengths = {{2,3,4}};
+    const std::array<unsigned int,3>  _ndim_control_pts = {{3,4,5}};
 
     // We will not move the first section.
     dealii::Point<3> _undisplaced_point_location;

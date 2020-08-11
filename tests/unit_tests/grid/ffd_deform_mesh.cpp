@@ -39,56 +39,58 @@ int main (int argc, char * argv[])
 
             for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
 
-                dealii::parallel::distributed::Triangulation<dim> grid(
+                using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+                std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
                     MPI_COMM_WORLD,
                     typename dealii::Triangulation<dim>::MeshSmoothing(
                         dealii::Triangulation<dim>::smoothing_on_refinement |
                         dealii::Triangulation<dim>::smoothing_on_coarsening));
-                dealii::GridGenerator::subdivided_hyper_cube(grid, initial_n_cells);
+
+                dealii::GridGenerator::subdivided_hyper_cube(*grid, initial_n_cells);
 
 
-                HighOrderGrid<dim,double> high_order_grid(poly_degree, &grid);
+                HighOrderGrid<dim,double> high_order_grid(poly_degree, grid);
 
                 for (unsigned int i=0; i<igrid; ++i) {
                     high_order_grid.prepare_for_coarsening_and_refinement();
-                    grid.refine_global (1);
+                    grid->refine_global (1);
                     high_order_grid.execute_coarsening_and_refinement();
                 }
                 const int n_refine = 2;
                 for (int i=0; i<n_refine;i++) {
                     high_order_grid.prepare_for_coarsening_and_refinement();
-                    grid.prepare_coarsening_and_refinement();
+                    grid->prepare_coarsening_and_refinement();
                     unsigned int icell = 0;
-                    for (auto cell = grid.begin_active(); cell!=grid.end(); ++cell) {
+                    for (auto cell = grid->begin_active(); cell!=grid->end(); ++cell) {
                         if (!cell->is_locally_owned()) continue;
                         icell++;
-                        if (icell > grid.n_active_cells()/2) {
+                        if (icell > grid->n_active_cells()/2) {
                             cell->set_refine_flag();
                         }
                     }
-                    grid.execute_coarsening_and_refinement();
+                    grid->execute_coarsening_and_refinement();
                     bool mesh_out = (i==n_refine-1);
                     high_order_grid.execute_coarsening_and_refinement(mesh_out);
                 }
 
                 high_order_grid.prepare_for_coarsening_and_refinement();
-                grid.repartition();
+                grid->repartition();
                 high_order_grid.execute_coarsening_and_refinement();
 
                 high_order_grid.reset_initial_nodes();
                 high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
 
                 const dealii::Point<dim> ffd_origin(0.0,0.0);
-                const std::array<double,dim> ffd_rectangle_lengths = {1.0,0.5};
+                const std::array<double,dim> ffd_rectangle_lengths = {{1.0,0.5}};
                 const unsigned int nj_ffd = 2;
-                const std::array<unsigned int,dim> ffd_ndim_control_pts = {ni_ffd,nj_ffd};
+                const std::array<unsigned int,dim> ffd_ndim_control_pts = {{ni_ffd,nj_ffd}};
                 FreeFormDeformation<dim> ffd( ffd_origin, ffd_rectangle_lengths, ffd_ndim_control_pts);
 
                 ffd.output_ffd_vtu(iffd_output++);
 
                 for (unsigned int i_ffd = 0; i_ffd < ffd_ndim_control_pts[0]; ++i_ffd) {
                     unsigned int j_ffd = 0;
-                    const std::array<unsigned int,dim> ijk_ffd = {i_ffd, j_ffd};
+                    const std::array<unsigned int,dim> ijk_ffd = {{i_ffd, j_ffd}};
                     const unsigned int ictl_ffd = ffd.grid_to_global(ijk_ffd);
                     const dealii::Point<dim> old_ffd_point = ffd.control_pts[ictl_ffd];
                     dealii::Point<dim> new_ffd_point = old_ffd_point;

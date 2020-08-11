@@ -14,6 +14,8 @@
 
 #include "mesh/high_order_grid.h"
 
+using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
+
 dealii::Point<2> center(0.0,0.0);
 const double inner_radius = 1, outer_radius = inner_radius*20;
 
@@ -97,19 +99,20 @@ int main (int argc, char * argv[])
     for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
 
         // Generate grid and mapping
-        dealii::parallel::distributed::Triangulation<dim> grid(MPI_COMM_WORLD,
+        std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+            MPI_COMM_WORLD,
             typename dealii::Triangulation<dim>::MeshSmoothing(
-                dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_refinement |
-                dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_coarsening));
+                dealii::Triangulation<dim>::smoothing_on_refinement |
+                dealii::Triangulation<dim>::smoothing_on_coarsening));
 
         // This grid is known to generated a negative Jacobian as seen
         // in the EulerCylinder test case described in 
         // https://github.com/dougshidong/PHiLiP/issues/27
         const unsigned int n_cells_circle = 2;
         const unsigned int n_cells_radial = 2*n_cells_circle;
-        half_cylinder(grid, n_cells_circle, n_cells_radial);
+        half_cylinder(*grid, n_cells_circle, n_cells_radial);
 
-        PHiLiP::HighOrderGrid<dim,double> high_order_grid(poly_degree, &grid);
+        PHiLiP::HighOrderGrid<dim,double> high_order_grid(poly_degree, grid);
 
         //bool has_invalid_grid = false;
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
@@ -117,11 +120,11 @@ int main (int argc, char * argv[])
             // Interpolate solution from previous grid
             if (igrid>0) {
                 high_order_grid.prepare_for_coarsening_and_refinement();
-                grid.refine_global (1);
+                grid->refine_global (1);
                 high_order_grid.execute_coarsening_and_refinement();
 
                 high_order_grid.prepare_for_coarsening_and_refinement();
-                grid.repartition();
+                grid->repartition();
                 high_order_grid.execute_coarsening_and_refinement(true);
             }
 

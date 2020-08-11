@@ -46,7 +46,7 @@ unsigned int HighOrderGrid<dim,real,VectorType,DoFHandlerType>::nth_refinement=0
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
 HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
         const unsigned int max_degree,
-        Triangulation *const triangulation_input)
+        const std::shared_ptr<Triangulation> triangulation_input)
     : max_degree(max_degree)
     , triangulation(triangulation_input)
     , dof_handler_grid(*triangulation)

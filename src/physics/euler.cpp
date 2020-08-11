@@ -14,6 +14,50 @@ namespace PHiLiP {
 namespace Physics {
 
 template <int dim, int nstate, typename real>
+Euler<dim,nstate,real>::Euler ( const double ref_length,
+                                const double gamma_gas,
+                                const double mach_inf,
+                                const double angle_of_attack,
+                                const double side_slip_angle)
+    : ref_length(ref_length)
+    , gam(gamma_gas)
+    , gamm1(gam-1.0)
+    , density_inf(1.0)
+    , mach_inf(mach_inf)
+    , mach_inf_sqr(mach_inf*mach_inf)
+    , angle_of_attack(angle_of_attack)
+    , side_slip_angle(side_slip_angle)
+    , sound_inf(1.0/(mach_inf))
+    , pressure_inf(1.0/(gam*mach_inf_sqr))
+    , entropy_inf(pressure_inf*pow(density_inf,-gam))
+    //, internal_energy_inf(mach_inf_sqr/(gam*(gam-1.0)))
+{
+    static_assert(nstate==dim+2, "Physics::Euler() should be created with nstate=dim+2");
+
+    temperature_inf = gam*pressure_inf/density_inf * mach_inf_sqr;
+
+    // For now, don't allow side-slip angle
+    if (std::abs(side_slip_angle) >= 1e-14) {
+        std::cout << "Side slip angle = " << side_slip_angle << ". Side_slip_angle must be zero. " << std::endl;
+        std::cout << "I have not figured out the side slip angles just yet." << std::endl;
+        std::abort();
+    }
+    if(dim==1) {
+        velocities_inf[0] = 1.0;
+    } else if(dim==2) {
+        velocities_inf[0] = cos(angle_of_attack);
+        velocities_inf[1] = sin(angle_of_attack); // Maybe minus??
+    } else if (dim==3) {
+        velocities_inf[0] = cos(angle_of_attack)*cos(side_slip_angle);
+        velocities_inf[1] = sin(angle_of_attack)*cos(side_slip_angle);
+        velocities_inf[2] = sin(side_slip_angle);
+    }
+    assert(std::abs(velocities_inf.norm() - 1.0) < 1e-14);
+
+
+}
+
+template <int dim, int nstate, typename real>
 std::array<real,nstate> Euler<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,
@@ -513,7 +557,8 @@ void Euler<dim,nstate,real>
                 // for(int d=0;d<dim;d++){
                 //    primitive_boundary_values[1+d] = soln_int[1+d]/soln_int[0];;
                 //}
-                conservative_boundary_values = convert_primitive_to_conservative(primitive_boundary_values);
+                const std::array<real,nstate> modified_conservative_boundary_values = convert_primitive_to_conservative(primitive_boundary_values);
+                (void) modified_conservative_boundary_values;
                 //conservative_boundary_values[nstate-1] = soln_int[nstate-1];
                 soln_bc[istate] = conservative_boundary_values[istate];
 
@@ -555,7 +600,10 @@ void Euler<dim,nstate,real>
             primitive_boundary_values[1+d] = velocities_bc[d];
         }
 
-        soln_bc = convert_primitive_to_conservative(primitive_boundary_values);
+        const std::array<real,nstate> modified_conservative_boundary_values = convert_primitive_to_conservative(primitive_boundary_values);
+        for (int istate=0; istate<nstate; ++istate) {
+            soln_bc[istate] = modified_conservative_boundary_values[istate];
+        }
 
     } else if (boundary_type == 1002) {
         // Pressure Outflow Boundary Condition (back pressure)
@@ -564,25 +612,31 @@ void Euler<dim,nstate,real>
         const real back_pressure = 0.99; // Make it as an input later on
         
         const real mach_int = compute_mach_number(soln_int);
-        const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(soln_int);
-        const real pressure_int = primitive_interior_values[nstate-1];
-
-        const real radicant = 1.0+0.5*gamm1*mach_inf_sqr;
-        const real pressure_inlet = total_inlet_pressure * pow(radicant, -gam/gamm1);
-        const real pressure_bc = (mach_int >= 1) ? pressure_int : back_pressure*pressure_inlet;
-        const real temperature_int = compute_temperature(primitive_interior_values);
-
-        // Assign primitive boundary values
-        std::array<real,nstate> primitive_boundary_values;
-        primitive_boundary_values[0] = compute_density_from_pressure_temperature(pressure_bc, temperature_int);
-        for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = primitive_interior_values[1+d]; }
-        primitive_boundary_values[nstate-1] = pressure_bc;
-
-        soln_bc = convert_primitive_to_conservative(primitive_boundary_values);
-
-        // Supersonic, simply extrapolate
         if (mach_int > 1.0) {
-            soln_bc = soln_int;
+            // Supersonic, simply extrapolate
+            for (int istate=0; istate<nstate; ++istate) {
+                soln_bc[istate] = soln_int[istate];
+            }
+        } else {
+
+            const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(soln_int);
+            const real pressure_int = primitive_interior_values[nstate-1];
+
+            const real radicant = 1.0+0.5*gamm1*mach_inf_sqr;
+            const real pressure_inlet = total_inlet_pressure * pow(radicant, -gam/gamm1);
+            const real pressure_bc = (mach_int >= 1) * pressure_int + (1-(mach_int >= 1)) * back_pressure*pressure_inlet;
+            const real temperature_int = compute_temperature(primitive_interior_values);
+
+            // Assign primitive boundary values
+            std::array<real,nstate> primitive_boundary_values;
+            primitive_boundary_values[0] = compute_density_from_pressure_temperature(pressure_bc, temperature_int);
+            for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = primitive_interior_values[1+d]; }
+            primitive_boundary_values[nstate-1] = pressure_bc;
+
+            const std::array<real,nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
+            for (int istate=0; istate<nstate; ++istate) {
+                soln_bc[istate] = conservative_bc[istate];
+            }
         }
 
     } else if (boundary_type == 1003) {
@@ -644,7 +698,10 @@ void Euler<dim,nstate,real>
             primitive_boundary_values[0] = density_bc;
             for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = velocity_magnitude_bc*normal[d]; }
             primitive_boundary_values[nstate-1] = pressure_bc;
-            soln_bc = convert_primitive_to_conservative(primitive_boundary_values);
+            const std::array<real,nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
+            for (int istate=0; istate<nstate; ++istate) {
+                soln_bc[istate] = conservative_bc[istate];
+            }
 
             //std::cout << " entropy_bc " << compute_entropy_measure(soln_bc) << "entropy_inf" << entropy_inf << std::endl;
 
@@ -668,11 +725,10 @@ void Euler<dim,nstate,real>
             primitive_boundary_values[0] = density_bc;
             for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = -velocity_magnitude_bc*normal_int[d]; } // minus since it's inflow
             primitive_boundary_values[nstate-1] = pressure_bc;
-            soln_bc = convert_primitive_to_conservative(primitive_boundary_values);
-            //std::cout << "Inlet density : " << density_bc << std::endl;
-            //std::cout << "Inlet vel_x   : " << primitive_boundary_values[1] << std::endl;
-            //std::cout << "Inlet vel_y   : " << primitive_boundary_values[2] << std::endl;
-            //std::cout << "Inlet pressure: " << pressure_bc << std::endl;
+            const std::array<real,nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
+            for (int istate=0; istate<nstate; ++istate) {
+                soln_bc[istate] = conservative_bc[istate];
+            }
         }
 
     } else if (boundary_type == 1004) {
@@ -683,11 +739,10 @@ void Euler<dim,nstate,real>
         primitive_boundary_values[0] = density_bc;
         for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = velocities_inf[d]; } // minus since it's inflow
         primitive_boundary_values[nstate-1] = pressure_bc;
-        soln_bc = convert_primitive_to_conservative(primitive_boundary_values);
-        //std::cout << "Density inf " << soln_bc[0] << std::endl;
-        //std::cout << "momxinf " << soln_bc[1] << std::endl;
-        //std::cout << "momxinf " << soln_bc[2] << std::endl;
-        //std::cout << "energy inf " << soln_bc[3] << std::endl;
+        const std::array<real,nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
+        for (int istate=0; istate<nstate; ++istate) {
+            soln_bc[istate] = conservative_bc[istate];
+        }
     } else{
         std::cout << "Invalid boundary_type: " << boundary_type << std::endl;
         std::abort();
@@ -808,6 +863,7 @@ dealii::UpdateFlags Euler<dim,nstate,real>
 template class Euler < PHILIP_DIM, PHILIP_DIM+2, double >;
 template class Euler < PHILIP_DIM, PHILIP_DIM+2, Sacado::Fad::DFad<double>  >;
 template class Euler < PHILIP_DIM, PHILIP_DIM+2, Sacado::Fad::DFad<Sacado::Fad::DFad<double>>  >;
+template class Euler < PHILIP_DIM, PHILIP_DIM+2, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>>  >;
 
 } // Physics namespace
 } // PHiLiP namespace

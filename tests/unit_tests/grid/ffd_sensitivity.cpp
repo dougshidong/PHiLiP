@@ -33,7 +33,7 @@ int main (int argc, char * argv[])
     const unsigned int ni_ffd_interval = 10;
 
     const dealii::Point<dim> ffd_origin(-0.01,-0.01);
-    const std::array<double,dim> ffd_rectangle_lengths = {1.0,0.5};
+    const std::array<double,dim> ffd_rectangle_lengths = {{1.0,0.5}};
     const unsigned int nj_ffd = 3;
 
     for (unsigned int ni_ffd = ni_ffd_start; ni_ffd <= ni_ffd_end; ni_ffd+=ni_ffd_interval) {
@@ -82,7 +82,7 @@ int main (int argc, char * argv[])
                 high_order_grid.reset_initial_nodes();
                 high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
 
-                const std::array<unsigned int,dim> ffd_ndim_control_pts = {ni_ffd,nj_ffd};
+                const std::array<unsigned int,dim> ffd_ndim_control_pts = {{ni_ffd,nj_ffd}};
                 FreeFormDeformation<dim> ffd( ffd_origin, ffd_rectangle_lengths, ffd_ndim_control_pts);
 
                 ffd.output_ffd_vtu(iffd_output++);

@@ -131,8 +131,8 @@ int test(const unsigned int nx_ffd)
     Grids::gaussian_bump(*grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, BUMP_HEIGHT);
 
     const dealii::Point<dim> ffd_origin(-1.4,-0.1);
-    const std::array<double,dim> ffd_rectangle_lengths = {2.8,0.6};
-    const std::array<unsigned int,dim> ffd_ndim_control_pts = {nx_ffd,2};
+    const std::array<double,dim> ffd_rectangle_lengths = {{2.8,0.6}};
+    const std::array<unsigned int,dim> ffd_ndim_control_pts = {{nx_ffd,2}};
     FreeFormDeformation<dim> ffd( ffd_origin, ffd_rectangle_lengths, ffd_ndim_control_pts);
 
     unsigned int n_design_variables = 0;

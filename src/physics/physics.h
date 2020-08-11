@@ -137,19 +137,15 @@ public:
      */
     virtual dealii::UpdateFlags post_get_needed_update_flags () const;
 protected:
-
-    //@{
-    /** Velocity constants used to define convection-diffusion type of manufactured solution
-     */
-    double velo_x, velo_y, velo_z;
-    //@}
-    double diff_coeff; ///< Diffusion constant used to define convection-diffusion type of manufactured solution
-
     /// Anisotropic diffusion matrix
     /** As long as the diagonal components are positive and diagonally dominant
      *  we should have a stable diffusive system
      */
     dealii::Tensor<2,dim,double> diffusion_tensor;
+private:
+    /// Used to initialize @ref diffusion_tensor in constructor initializer list.
+    dealii::Tensor<2,dim,double> eval_diffusion_tensor();
+    
 };
 } // Physics namespace
 } // PHiLiP namespace

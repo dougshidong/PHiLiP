@@ -408,19 +408,18 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
 
         dealii::ConvergenceTable convergence_table;
 
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-        dealii::Triangulation<dim> grid(
+#if PHILIP_DIM==1
+        using Triangulation = dealii::Triangulation<PHILIP_DIM>;
+#else
+        using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
+#endif
+        std::shared_ptr <Triangulation> grid = std::make_shared<Triangulation> (
+#if PHILIP_DIM!=1
+            this->mpi_communicator,
+#endif
             typename dealii::Triangulation<dim>::MeshSmoothing(
                 dealii::Triangulation<dim>::smoothing_on_refinement |
                 dealii::Triangulation<dim>::smoothing_on_coarsening));
-#else
-        dealii::parallel::distributed::Triangulation<dim> grid(
-            this->mpi_communicator,
-            typename dealii::Triangulation<dim>::MeshSmoothing(
-                dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_refinement));
-                //dealii::Triangulation<dim>::smoothing_on_refinement |
-                //dealii::Triangulation<dim>::smoothing_on_coarsening));
-#endif
 
         // dimensions of the mesh
         const double left  = 0.0;
@@ -428,9 +427,9 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
 
         for(unsigned int igrid = 0; igrid < n_grids; ++igrid){
             // grid generation
-            grid.clear();
-            dealii::GridGenerator::subdivided_hyper_cube(grid, n_1d_cells[igrid], left, right);
-            for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
+            grid->clear();
+            dealii::GridGenerator::subdivided_hyper_cube(*grid, n_1d_cells[igrid], left, right);
+            for (auto cell = grid->begin_active(); cell != grid->end(); ++cell) {
                 cell->set_material_id(9002);
                 for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
                     if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
@@ -439,8 +438,8 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
 
             // since a different grid is constructed each time, need to also generate a new DG
             // I don't think this would work outside loop since grid.clear() req's no subscriptors
-            std::shared_ptr < DGBase<dim, double> > dg_u = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
-            std::shared_ptr < DGBase<dim, double> > dg_v = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
+            std::shared_ptr < DGBase<dim, double> > dg_u = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+            std::shared_ptr < DGBase<dim, double> > dg_v = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
 
             // casting to dg weak    
             std::shared_ptr< DGWeak<dim,nstate,double> > dg_weak_u = std::dynamic_pointer_cast< DGWeak<dim,nstate,double> >(dg_u);
@@ -516,10 +515,10 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             std::array<double,nstate> adj_at_q_v;
 
             // reinit vectors for error distribution
-            cellError_soln_u.reinit(grid.n_active_cells());
-            cellError_soln_v.reinit(grid.n_active_cells());
-            cellError_adj_u.reinit(grid.n_active_cells());
-            cellError_adj_v.reinit(grid.n_active_cells());
+            cellError_soln_u.reinit(grid->n_active_cells());
+            cellError_soln_v.reinit(grid->n_active_cells());
+            cellError_adj_u.reinit(grid->n_active_cells());
+            cellError_adj_v.reinit(grid->n_active_cells());
 
             std::vector<dealii::types::global_dof_index> dofs_indices(fe_values_extra.dofs_per_cell);
             for(auto cell = dg_u->dof_handler.begin_active(); cell != dg_u->dof_handler.end(); ++cell){
@@ -587,7 +586,7 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             if(dim == 1){
                 const std::string filename_u = "sol-u-" + std::to_string(igrid) + ".gnuplot";
                 std::ofstream gnuplot_output_u(filename_u);
-                dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> data_out_u;
+                dealii::DataOut<dim, dealii::DoFHandler<dim>> data_out_u;
                 data_out_u.attach_dof_handler(dg_u->dof_handler);
                 data_out_u.add_data_vector(dg_u->solution, "u");
                 data_out_u.build_patches();
@@ -595,7 +594,7 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
 
                 const std::string filename_v = "sol-v-" + std::to_string(igrid) + ".gnuplot";
                 std::ofstream gnuplot_output_v(filename_v);
-                dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> data_out_v;
+                dealii::DataOut<dim, dealii::DoFHandler<dim>> data_out_v;
                 data_out_v.attach_dof_handler(dg_v->dof_handler);
                 data_out_v.add_data_vector(dg_v->solution, "u");
                 data_out_v.build_patches();
@@ -614,7 +613,7 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
                 // need to add a dof-wise loop to output these quantities. Haven't figured out how yet that doesn't rely on interpolation of a dealii::Function
 
                 // setting up dataout and outputing results
-                dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> data_out;
+                dealii::DataOut<dim, dealii::DoFHandler<dim>> data_out;
                 data_out.attach_dof_handler(dg_u->dof_handler);
 
                 // // can't use this post processor as it gives them the same name
@@ -627,14 +626,14 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
                 for (unsigned int i = 0; i < subdomain.size(); ++i) {
                     subdomain(i) = dg_u->triangulation->locally_owned_subdomain();
                 }
-                data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+                data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
                 std::vector<unsigned int> active_fe_indices;
                 dg_u->dof_handler.get_active_fe_indices(active_fe_indices);
                 dealii::Vector<double> active_fe_indices_dealiivector(active_fe_indices.begin(), active_fe_indices.end());
                 dealii::Vector<double> cell_poly_degree = active_fe_indices_dealiivector;
 
-                data_out.add_data_vector(active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+                data_out.add_data_vector(active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
                 std::vector<std::string> solution_names_u;
                 std::vector<std::string> solution_names_v;
@@ -664,19 +663,19 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
                     adjoint_names_v.push_back(varname3_v);
                 }
 
-                data_out.add_data_vector(dg_u->solution, solution_names_u, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
-                data_out.add_data_vector(dg_v->solution, solution_names_v, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
-                data_out.add_data_vector(dg_u->right_hand_side, residual_names_u, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
-                data_out.add_data_vector(dg_v->right_hand_side, residual_names_v, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
-                data_out.add_data_vector(adj_u.dIdw_coarse, dIdw_names_u, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
-                data_out.add_data_vector(adj_v.dIdw_coarse, dIdw_names_v, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
-                data_out.add_data_vector(adj_u.adjoint_coarse, adjoint_names_u, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
-                data_out.add_data_vector(adj_v.adjoint_coarse, adjoint_names_v, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+                data_out.add_data_vector(dg_u->solution, solution_names_u, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+                data_out.add_data_vector(dg_v->solution, solution_names_v, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+                data_out.add_data_vector(dg_u->right_hand_side, residual_names_u, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+                data_out.add_data_vector(dg_v->right_hand_side, residual_names_v, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+                data_out.add_data_vector(adj_u.dIdw_coarse, dIdw_names_u, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+                data_out.add_data_vector(adj_v.dIdw_coarse, dIdw_names_v, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+                data_out.add_data_vector(adj_u.adjoint_coarse, adjoint_names_u, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+                data_out.add_data_vector(adj_v.adjoint_coarse, adjoint_names_v, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
 
-                data_out.add_data_vector(cellError_soln_u, "soln_u_err", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
-                data_out.add_data_vector(cellError_soln_v, "soln_v_err", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
-                data_out.add_data_vector(cellError_adj_u, "adj_u_err", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
-                data_out.add_data_vector(cellError_adj_v, "adj_v_err", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+                data_out.add_data_vector(cellError_soln_u, "soln_u_err", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+                data_out.add_data_vector(cellError_soln_v, "soln_v_err", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+                data_out.add_data_vector(cellError_adj_u, "adj_u_err", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+                data_out.add_data_vector(cellError_adj_v, "adj_v_err", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
                 const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
                 data_out.build_patches();
@@ -717,7 +716,7 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
 
             // adding terms to the table
             convergence_table.add_value("p", poly_degree);
-            convergence_table.add_value("cells", grid.n_global_active_cells());
+            convergence_table.add_value("cells", grid->n_global_active_cells());
             convergence_table.add_value("DoFs", n_dofs);
             convergence_table.add_value("dx", dx);
             convergence_table.add_value("soln_u_val", functional_val_u);

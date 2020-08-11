@@ -31,6 +31,10 @@ bool isfinite(Sacado::Fad::DFad<Sacado::Fad::DFad<double>> value)
 {
     return std::isfinite(static_cast<double>(value.val().val()));
 }
+bool isfinite(Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> value)
+{
+    return std::isfinite(static_cast<double>(value.val().val()));
+}
 
 template <int dim, typename real>
 ManufacturedSolutionFunction<dim,real>
@@ -570,5 +574,6 @@ inline std::vector<real> ManufacturedSolutionFunction<dim,real>
 template class ManufacturedSolutionFunction<PHILIP_DIM,double>;
 template class ManufacturedSolutionFunction<PHILIP_DIM,Sacado::Fad::DFad<double>>;
 template class ManufacturedSolutionFunction<PHILIP_DIM,Sacado::Fad::DFad<Sacado::Fad::DFad<double>>>;
+template class ManufacturedSolutionFunction<PHILIP_DIM,Sacado::Rad::ADvar<Sacado::Fad::DFad<double>>>;
 
 }

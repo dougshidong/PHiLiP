@@ -47,17 +47,18 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
 //	                typename dealii::Triangulation<dim>::MeshSmoothing(
 //	                    dealii::Triangulation<dim>::smoothing_on_refinement |
 //	                    dealii::Triangulation<dim>::smoothing_on_coarsening));
-	dealii::Triangulation<dim> grid;
+	using Triangulation = dealii::Triangulation<dim>;
+	std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>();
 
 	double left = 0.0;
 	double right = 2.0;
 	const bool colorize = true;
 	int n_refinements = 5;
 	unsigned int poly_degree = 7;
-	dealii::GridGenerator::hyper_cube(grid, left, right, colorize);
-	grid.refine_global(n_refinements);
+	dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
+	grid->refine_global(n_refinements);
 	pcout << "Grid generated and refined" << std::endl;
-	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, &grid);
+	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);
 	pcout << "dg created" <<std::endl;
 	dg->allocate_system ();
 

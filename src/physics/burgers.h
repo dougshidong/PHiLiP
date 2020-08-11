@@ -28,6 +28,9 @@ namespace Physics {
 template <int dim, int nstate, typename real>
 class Burgers : public PhysicsBase <dim, nstate, real>
 {
+protected:
+    /// Diffusion scaling coefficient in front of the diffusion tensor.
+    double diffusion_scaling_coeff = 0.1*atan(1)*4.0/exp(1);
 public:
     /// Turns on convective part of the Burgers problem.
     /** Without the nonlinear convection, it's simply diffusion */

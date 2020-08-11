@@ -23,6 +23,9 @@
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/trilinos_vector.h>
 
+#include <Epetra_RowMatrixTransposer.h>
+#include <AztecOO.h>
+
 #include <Sacado.hpp>
 
 #include "mesh/high_order_grid.h"
@@ -31,7 +34,7 @@
 #include "parameters/all_parameters.h"
 
 // Template specialization of MappingFEField
-//extern template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<PHILIP_DIM> >;
+//extern template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM> >;
 namespace PHiLiP {
 
 //#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
@@ -104,7 +107,7 @@ public:
            const unsigned int degree,
            const unsigned int max_degree_input,
            const unsigned int grid_degree_input,
-           Triangulation *const triangulation_input);
+           const std::shared_ptr<Triangulation> triangulation_input);
 
 
     /// Makes for cleaner doxygen documentation
@@ -126,14 +129,12 @@ public:
             const unsigned int degree,
             const unsigned int max_degree_input,
             const unsigned int grid_degree_input,
-            Triangulation *const triangulation_input,
+            const std::shared_ptr<Triangulation> triangulation_input,
             const MassiveCollectionTuple collection_tuple);
 
     virtual ~DGBase(); ///< Destructor.
 
-    Triangulation *const triangulation; ///< Mesh
-    /// Sets the triangulation for 2D and 3D. Should be done before allocate system
-    //void set_triangulation(Triangulation *triangulation_input);
+    const std::shared_ptr<Triangulation> triangulation; ///< Mesh
 
     /// Refers to a collection Mappings, which represents the high-order grid.
     /** Since we are interested in performing mesh movement for optimization purposes,
@@ -202,6 +203,15 @@ public:
     dealii::TrilinosWrappers::SparseMatrix system_matrix;
 
     /// System matrix corresponding to the derivative of the right_hand_side with
+    /// respect to the solution TRANSPOSED.
+    dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose;
+
+    /// Epetra_RowMatrixTransposer used to transpose the system_matrix.
+    std::unique_ptr<Epetra_RowMatrixTransposer> epetra_rowmatrixtransposer_dRdW;
+
+    //AztecOO dRdW_preconditioner_builder;
+
+    /// System matrix corresponding to the derivative of the right_hand_side with
     /// respect to the volume volume_nodes Xv
     dealii::TrilinosWrappers::SparseMatrix dRdXv;
 
@@ -257,6 +267,31 @@ public:
      *  and has write-access to all locally_owned_dofs
      */
     dealii::LinearAlgebra::distributed::Vector<double> solution;
+private:
+    /// Modal coefficients of the solution used to compute dRdW last
+    /// Will be used to avoid recomputing dRdW.
+    dealii::LinearAlgebra::distributed::Vector<double> solution_dRdW;
+    /// Modal coefficients of the grid nodes used to compute dRdW last
+    /// Will be used to avoid recomputing dRdW.
+    dealii::LinearAlgebra::distributed::Vector<double> volume_nodes_dRdW;
+
+    /// Modal coefficients of the solution used to compute dRdX last
+    /// Will be used to avoid recomputing dRdX.
+    dealii::LinearAlgebra::distributed::Vector<double> solution_dRdX;
+    /// Modal coefficients of the grid nodes used to compute dRdX last
+    /// Will be used to avoid recomputing dRdX.
+    dealii::LinearAlgebra::distributed::Vector<double> volume_nodes_dRdX;
+
+    /// Modal coefficients of the solution used to compute d2R last
+    /// Will be used to avoid recomputing d2R.
+    dealii::LinearAlgebra::distributed::Vector<double> solution_d2R;
+    /// Modal coefficients of the grid nodes used to compute d2R last
+    /// Will be used to avoid recomputing d2R.
+    dealii::LinearAlgebra::distributed::Vector<double> volume_nodes_d2R;
+    /// Dual variables to compute d2R last
+    /// Will be used to avoid recomputing d2R.
+    dealii::LinearAlgebra::distributed::Vector<double> dual_d2R;
+public:
 
     /// Time it takes for the maximum wavespeed to cross the cell domain.
     /** Uses evaluate_CFL() which would be defined in the subclasses.
@@ -364,7 +399,7 @@ public:
      *    
      */
     //void assemble_residual_dRdW ();
-    void assemble_residual (const bool compute_dRdW=false, const bool compute_dRdX=false, const bool compute_d2R=false);
+    void assemble_residual (const bool compute_dRdW=false, const bool compute_dRdX=false, const bool compute_d2R=false, const double CFL_mass = 0.0);
 
     /// Used in assemble_residual(). 
     /** IMPORTANT: This does not fully compute the cell residual since it might not
@@ -416,7 +451,7 @@ public:
      *  Must be defined after fe_dg since it is a subscriptor of fe_dg.
      *  Destructor are called in reverse order in which they appear in class definition. 
      */ 
-    dealii::hp::DoFHandler<dim> dof_handler;
+    dealii::DoFHandler<dim> dof_handler;
 
     /// High order grid that will provide the MappingFEField
     HighOrderGrid<dim,real> high_order_grid;
@@ -594,12 +629,13 @@ public:
         const unsigned int degree,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
-        Triangulation *const triangulation_input);
+        const std::shared_ptr<Triangulation> triangulation_input);
 
     ~DGWeak(); ///< Destructor.
 
     using ADType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
-    using ADADType = Sacado::Fad::DFad<Sacado::Fad::DFad<real>>; ///< Sacado AD type that allows 2nd derivatives.
+    using ADADType = Sacado::Fad::DFad<ADType>; ///< Sacado AD type that allows 2nd derivatives.
+    using RadFadType = Sacado::Rad::ADvar<ADType>; ///< Sacado AD type that allows 2nd derivatives.
 
     /// Contains the physics of the PDE with real type
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, real > > pde_physics_double;
@@ -621,6 +657,13 @@ public:
     NumericalFlux::NumericalFluxConvective<dim, nstate, ADADType > *conv_num_flux_fad_fad;
     /// Dissipative numerical flux with ADADtype
     NumericalFlux::NumericalFluxDissipative<dim, nstate, ADADType > *diss_num_flux_fad_fad;
+
+    /// Contains the physics of the PDE with RadFadDtype
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, RadFadType > > pde_physics_rad_fad;
+    /// Convective numerical flux with RadFadDtype
+    NumericalFlux::NumericalFluxConvective<dim, nstate, RadFadType > *conv_num_flux_rad_fad;
+    /// Dissipative numerical flux with RadFadDtype
+    NumericalFlux::NumericalFluxDissipative<dim, nstate, RadFadType > *diss_num_flux_rad_fad;
 
 private:
     /// Evaluate the time it takes for the maximum wavespeed to cross the cell domain.
@@ -714,6 +757,8 @@ public:
     /// Change the physics object
     void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, ADType > >pde_physics_input);
     /// Change the physics object
+    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Rad::ADvar<Sacado::Fad::DFad<real>> > >pde_physics_input);
+    /// Change the physics object
     void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, real > >pde_physics_double_input);
 }; // end of DGWeak class
 
@@ -743,14 +788,15 @@ public:
         const unsigned int degree,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
-        Triangulation *const triangulation_input);
+        const std::shared_ptr<Triangulation> triangulation_input);
 
     /// Destructor
     ~DGStrong();
 
 private:
     using ADType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
-    using ADADType = Sacado::Fad::DFad<Sacado::Fad::DFad<real>>; ///< Sacado AD type that allows 2nd derivatives.
+    using ADADType = Sacado::Fad::DFad<ADType>; ///< Sacado AD type that allows 2nd derivatives.
+    using RadFadType = Sacado::Rad::ADvar<ADType>; ///< Sacado AD type that allows 2nd derivatives.
 
     /// Evaluate the time it takes for the maximum wavespeed to cross the cell domain.
     /** Currently only uses the convective eigenvalues. Future changes would take in account
@@ -782,6 +828,13 @@ private:
     NumericalFlux::NumericalFluxConvective<dim, nstate, ADADType > *conv_num_flux_fad_fad;
     /// Dissipative numerical flux with ADADtype
     NumericalFlux::NumericalFluxDissipative<dim, nstate, ADADType > *diss_num_flux_fad_fad;
+
+    /// Contains the physics of the PDE with ADADtype
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, RadFadType > > pde_physics_rad_fad;
+    /// Convective numerical flux with ADADtype
+    NumericalFlux::NumericalFluxConvective<dim, nstate, RadFadType > *conv_num_flux_rad_fad;
+    /// Dissipative numerical flux with ADADtype
+    NumericalFlux::NumericalFluxDissipative<dim, nstate, RadFadType > *diss_num_flux_rad_fad;
 
     /// Evaluate the integral over the cell volume and the specified derivatives.
     /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
@@ -862,6 +915,8 @@ public:
     /// Change the physics object
     void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<real> > >pde_physics_input);
     /// Change the physics object
+    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Rad::ADvar<Sacado::Fad::DFad<real>> > >pde_physics_input);
+    /// Change the physics object
     void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, real > >pde_physics_double_input);
 }; // end of DGStrong class
 
@@ -893,7 +948,7 @@ public:
         const unsigned int degree,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
-        Triangulation *const triangulation_input);
+        const std::shared_ptr<Triangulation> triangulation_input);
 
     /// calls the above dg factory with grid_degree_input = degree + 1
     static std::shared_ptr< DGBase<dim,real> >
@@ -901,14 +956,14 @@ public:
         const Parameters::AllParameters *const parameters_input, 
         const unsigned int degree,
         const unsigned int max_degree_input,
-        Triangulation *const triangulation_input);
+        const std::shared_ptr<Triangulation> triangulation_input);
 
     /// calls the above dg factory with max_degree_input = degree
     static std::shared_ptr< DGBase<dim,real> >
         create_discontinuous_galerkin(
         const Parameters::AllParameters *const parameters_input, 
         const unsigned int degree,
-        Triangulation *const triangulation_input);
+        const std::shared_ptr<Triangulation> triangulation_input);
 };
 
 } // PHiLiP namespace

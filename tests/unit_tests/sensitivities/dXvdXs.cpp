@@ -58,9 +58,9 @@ int main (int argc, char * argv[])
 
     const double amplitude = 0.1;
     const int initial_n_cells = 3;
-    const unsigned int n_grids = 3;
-    const unsigned int p_start = 2;
-    const unsigned int p_end = 3;
+    const unsigned int n_grids = 2;
+    const unsigned int p_start = 1;
+    const unsigned int p_end = 2;
     const double fd_eps = 1e-1;
     std::vector<int> fail_poly;
     std::vector<double> fail_area;
@@ -74,41 +74,42 @@ int main (int argc, char * argv[])
         dealii::ConvergenceTable convergence_table;
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
 
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-            dealii::Triangulation<dim> grid(
-                typename dealii::Triangulation<dim>::MeshSmoothing(
-                    dealii::Triangulation<dim>::smoothing_on_refinement |
-                    dealii::Triangulation<dim>::smoothing_on_coarsening));
+#if PHILIP_DIM==1
+            using Triangulation = dealii::Triangulation<dim>;
 #else
-            dealii::parallel::distributed::Triangulation<dim> grid(
+            using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+#endif
+            std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+#if PHILIP_DIM!=1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
                 MPI_COMM_WORLD,
+#endif
                 typename dealii::Triangulation<dim>::MeshSmoothing(
                     dealii::Triangulation<dim>::smoothing_on_refinement |
                     dealii::Triangulation<dim>::smoothing_on_coarsening));
-#endif
-            dealii::GridGenerator::subdivided_hyper_cube(grid, initial_n_cells);
+
+            dealii::GridGenerator::subdivided_hyper_cube(*grid, initial_n_cells);
 
 
-            HighOrderGrid<dim,double> high_order_grid(poly_degree, &grid);
+            HighOrderGrid<dim,double> high_order_grid(poly_degree, grid);
 
             for (unsigned int i=0; i<igrid; ++i) {
                 high_order_grid.prepare_for_coarsening_and_refinement();
-                grid.refine_global (1);
+                grid->refine_global (1);
                 high_order_grid.execute_coarsening_and_refinement();
             }
 			const int n_refine = 2;
 			for (int i=0; i<n_refine;i++) {
 				high_order_grid.prepare_for_coarsening_and_refinement();
-				grid.prepare_coarsening_and_refinement();
+				grid->prepare_coarsening_and_refinement();
 				unsigned int icell = 0;
-				for (auto cell = grid.begin_active(); cell!=grid.end(); ++cell) {
+				for (auto cell = grid->begin_active(); cell!=grid->end(); ++cell) {
 					if (!cell->is_locally_owned()) continue;
 					icell++;
-					if (icell > grid.n_active_cells()/2) {
+					if (icell > grid->n_active_cells()/2) {
 						cell->set_refine_flag();
 					}
 				}
-				grid.execute_coarsening_and_refinement();
+				grid->execute_coarsening_and_refinement();
 				bool mesh_out = (i==n_refine-1);
 				high_order_grid.execute_coarsening_and_refinement(mesh_out);
 			}
@@ -117,7 +118,7 @@ int main (int argc, char * argv[])
 
 #if PHILIP_DIM!=1
             high_order_grid.prepare_for_coarsening_and_refinement();
-            grid.repartition();
+            grid->repartition();
             high_order_grid.execute_coarsening_and_refinement();
 #endif
 
@@ -185,19 +186,19 @@ int main (int argc, char * argv[])
             for (int impi=0;impi<n_mpi;++impi) {
                 if (impi == mpi_rank) {
                     std::vector<double> v1, v2;
-                    std::cout << "List " << std::endl;
+                    //std::cout << "List " << std::endl;
                     for (const auto &i: surface_node_displacements) {
-                        std::cout << i << std::endl;
+                        //std::cout << i << std::endl;
                         v1.push_back(i);
                     }
 
                     const dealii::IndexSet owned = surface_node_displacements_vector.locally_owned_elements();
                     const dealii::IndexSet ghosted = surface_node_displacements_vector.get_partitioner()->ghost_indices();
-                    std::cout << "Vector " << std::endl;
+                    //std::cout << "Vector " << std::endl;
                     for (unsigned int i=0; i<surface_node_displacements_vector.size(); ++i) {
                         if(owned.is_element(i) || ghosted.is_element(i)) {
                             v2.push_back(surface_node_displacements_vector[i]);
-                            std::cout << surface_node_displacements_vector[i] << std::endl;
+                            //std::cout << surface_node_displacements_vector[i] << std::endl;
                         }
                     }
                     std::sort(v1.begin(),v1.end());
@@ -271,9 +272,9 @@ int main (int argc, char * argv[])
 
                 dXvdXs_FD.push_back(volume_displacements_p);
                 pcout << "Finite difference: " << std::endl;
-                dXvdXs_FD.back().print(std::cout);
+                //dXvdXs_FD.back().print(std::cout);
                 pcout << "Analytical difference: " << std::endl;
-                meshmover.dXvdXs[isurface].print(std::cout);
+                //meshmover.dXvdXs[isurface].print(std::cout);
 
                 if (iown) {
                     const double surface_deri_FD = dXvdXs_FD.back()[corresponding_volume_dof];

@@ -7,11 +7,14 @@
 #include <deal.II/lac/solver_gmres.h>
 
 #include "linear_solver.h"
+
+#include "global_counter.hpp"
+
 namespace PHiLiP {
 
 std::pair<unsigned int, double>
 solve_linear (
-    dealii::TrilinosWrappers::SparseMatrix &system_matrix,
+    const dealii::TrilinosWrappers::SparseMatrix &system_matrix,
     dealii::LinearAlgebra::distributed::Vector<double> &right_hand_side,
     dealii::LinearAlgebra::distributed::Vector<double> &solution,
     const Parameters::LinearSolverParam &param)
@@ -59,11 +62,12 @@ solve_linear (
         solver.SetAztecOption(AZ_overlap, 0);
         solver.SetAztecOption(AZ_reorder, 1); // RCM re-ordering
   
+        const double rhs_norm = right_hand_side.l2_norm();
         const double 
           ilut_drop = param.ilut_drop,
           ilut_rtol = param.ilut_rtol,//0.0,//1.1,
           ilut_atol = param.ilut_atol,//0.0,//1e-9,
-          linear_residual = param.linear_residual;//1e-4;
+          linear_residual = param.linear_residual * rhs_norm;//1e-4;
         const int 
           ilut_fill = param.ilut_fill,//1,
           max_iterations = param.max_iterations;//200
@@ -74,15 +78,18 @@ solve_linear (
         solver.SetAztecParam(AZ_rthresh, ilut_rtol);
         solver.SetUserMatrix(const_cast<Epetra_CrsMatrix *>(&system_matrix.trilinos_matrix()));
         dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
-        pcout << " Linear solver max its: " << max_iterations 
-              << " Linear residual tolerance: " << linear_residual << std::endl;
+        pcout << " Solving linear system with max_iterations = " << max_iterations 
+              << " and linear residual tolerance: " << linear_residual << std::endl;
         solver.Iterate(max_iterations,
                        linear_residual);
   
         pcout << " Linear solver took " << solver.NumIters()
               << " iterations resulting in a linear residual of " << solver.ScaledResidual() << std::endl
               << " Current RHS norm: " << right_hand_side.l2_norm()
-              << " Newton update norm: " << solution.l2_norm() << std::endl;
+              << " Linear solution norm: " << solution.l2_norm() << std::endl;
+
+        n_vmult += 3*solver.NumIters();
+        dRdW_mult += 3*solver.NumIters();
 
         return {solver.NumIters(), solver.TrueResidual()};
     }

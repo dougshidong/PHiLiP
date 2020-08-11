@@ -118,7 +118,8 @@ EXCLUDE_PATTERNS       = */build/* \
                          */src/deprecated/* \
                          */src/dummy/* \
                          */deprecated/* \
-                         */external/*
+                         */external/* \
+                         */submodules/*
 EXCLUDE_SYMBOLS        =
 EXAMPLE_PATH           =
 EXAMPLE_PATTERNS       =

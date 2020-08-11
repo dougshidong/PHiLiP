@@ -1,5 +1,9 @@
 set(TESTS_SOURCE
+    rol_to_dealii_vector.cpp
+    dealii_solver_rol_vector.cpp
     flow_constraints.cpp
+    rol_objective.cpp
+    full_space_step.cpp
 )
 
 foreach(dim RANGE 1 3)

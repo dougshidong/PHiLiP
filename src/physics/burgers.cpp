@@ -87,7 +87,7 @@ template <int dim, int nstate, typename real>
 real Burgers<dim,nstate,real>
 ::diffusion_coefficient () const
 {
-    if(hasDiffusion) return this->diff_coeff;
+    if(hasDiffusion) return this->diffusion_scaling_coeff;
     const real zero = 0.0;
     return zero;
 }
@@ -195,6 +195,7 @@ std::array<real,nstate> Burgers<dim,nstate,real>
 template class Burgers < PHILIP_DIM, PHILIP_DIM, double >;
 template class Burgers < PHILIP_DIM, PHILIP_DIM, Sacado::Fad::DFad<double>  >;
 template class Burgers < PHILIP_DIM, PHILIP_DIM, Sacado::Fad::DFad<Sacado::Fad::DFad<double>>  >;
+template class Burgers < PHILIP_DIM, PHILIP_DIM, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>>  >;
 
 } // Physics namespace
 } // PHiLiP namespace

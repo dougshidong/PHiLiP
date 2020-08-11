@@ -36,7 +36,7 @@ DGWeak<dim,nstate,real>::DGWeak(
     const unsigned int degree,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
-    Triangulation *const triangulation_input)
+    const std::shared_ptr<Triangulation> triangulation_input)
     : DGBase<dim,real>::DGBase(nstate, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input) // Use DGBase constructor
 {
     pde_physics_double = Physics::PhysicsFactory<dim,nstate,real> ::create_Physics(parameters_input);
@@ -52,6 +52,11 @@ DGWeak<dim,nstate,real>::DGWeak(
     pde_physics_fad_fad = Physics::PhysicsFactory<dim,nstate,ADADtype> ::create_Physics(parameters_input);
     conv_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, ADADtype> ::create_convective_numerical_flux (parameters_input->conv_num_flux_type, pde_physics_fad_fad);
     diss_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, ADADtype> ::create_dissipative_numerical_flux (parameters_input->diss_num_flux_type, pde_physics_fad_fad);
+
+    using RadFadtype = Sacado::Rad::ADvar<ADtype>;
+    pde_physics_rad_fad = Physics::PhysicsFactory<dim,nstate,RadFadtype> ::create_Physics(parameters_input);
+    conv_num_flux_rad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadtype> ::create_convective_numerical_flux (parameters_input->conv_num_flux_type, pde_physics_rad_fad);
+    diss_num_flux_rad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadtype> ::create_dissipative_numerical_flux (parameters_input->diss_num_flux_type, pde_physics_rad_fad);
 }
 // Destructor
 template <int dim, int nstate, typename real>
@@ -66,6 +71,9 @@ DGWeak<dim,nstate,real>::~DGWeak ()
 
     delete conv_num_flux_fad_fad;
     delete diss_num_flux_fad_fad;
+
+    delete conv_num_flux_rad_fad;
+    delete diss_num_flux_rad_fad;
 }
 
 template <int dim, typename real>
@@ -519,7 +527,11 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
     //const std::vector<real> &JxW = fe_values_boundary.get_JxW_values ();
     std::vector<dealii::Tensor<1,dim,ADADtype>> normals(n_quad_pts);
 
-    const dealii::Quadrature<dim> face_quadrature = dealii::QProjector<dim>::project_to_face(quadrature,face_number);
+    const dealii::Quadrature<dim> face_quadrature
+        = dealii::QProjector<dim>::project_to_face(
+            dealii::ReferenceCell::get_hypercube(dim),
+            quadrature,
+            face_number);
 
     const std::vector<dealii::Point<dim,double>> &unit_quad_pts = face_quadrature.get_points();
     std::vector<dealii::Point<dim,ADADtype>> real_quad_pts(unit_quad_pts.size());
@@ -1675,6 +1687,17 @@ void DGWeak<dim,nstate,real>::set_physics(
     pde_physics_fad_fad = pde_physics_input;
     conv_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, ADADtype> ::create_convective_numerical_flux (DGBase<dim,real>::all_parameters->conv_num_flux_type, pde_physics_fad_fad);
     diss_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, ADADtype> ::create_dissipative_numerical_flux (DGBase<dim,real>::all_parameters->diss_num_flux_type, pde_physics_fad_fad);
+}
+
+template <int dim, int nstate, typename real>
+void DGWeak<dim,nstate,real>::set_physics(
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Rad::ADvar<Sacado::Fad::DFad<real>> > >pde_physics_input)
+{
+    using ADtype = Sacado::Fad::DFad<real>;
+    using RadFadtype = Sacado::Rad::ADvar<ADtype>;
+    pde_physics_rad_fad = pde_physics_input;
+    conv_num_flux_rad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadtype> ::create_convective_numerical_flux (DGBase<dim,real>::all_parameters->conv_num_flux_type, pde_physics_rad_fad);
+    diss_num_flux_rad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadtype> ::create_dissipative_numerical_flux (DGBase<dim,real>::all_parameters->diss_num_flux_type, pde_physics_rad_fad);
 }
 
 template class DGWeak <PHILIP_DIM, 1, double>;

@@ -335,19 +335,23 @@ int OptimizationInverseManufactured<dim,nstate>
 	// *****************************************************************************
 	//const unsigned int initial_n_cells = 10;
 	const unsigned int initial_n_cells = 4;
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    dealii::Triangulation<dim> grid(
-        typename dealii::Triangulation<dim>::MeshSmoothing(
-        dealii::Triangulation<dim>::smoothing_on_refinement |
-        dealii::Triangulation<dim>::smoothing_on_coarsening));
+
+#if PHILIP_DIM==1
+    using Triangulation = dealii::Triangulation<dim>;
 #else
-	dealii::parallel::distributed::Triangulation<dim> grid( MPI_COMM_WORLD,
-        typename dealii::Triangulation<dim>::MeshSmoothing(
-        dealii::Triangulation<dim>::smoothing_on_refinement |
-        dealii::Triangulation<dim>::smoothing_on_coarsening));
+    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
 #endif
-	dealii::GridGenerator::subdivided_hyper_cube(grid, initial_n_cells);
-	for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
+
+    std::shared_ptr <Triangulation> grid = std::make_shared<Triangulation> (
+#if PHILIP_DIM!=1
+        this->mpi_communicator,
+#endif
+        typename dealii::Triangulation<dim>::MeshSmoothing(
+            dealii::Triangulation<dim>::smoothing_on_refinement |
+            dealii::Triangulation<dim>::smoothing_on_coarsening));
+
+	dealii::GridGenerator::subdivided_hyper_cube(*grid, initial_n_cells);
+	for (auto cell = grid->begin_active(); cell != grid->end(); ++cell) {
 		// Set a dummy boundary ID
 		cell->set_material_id(9002);
 		for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
@@ -356,13 +360,13 @@ int OptimizationInverseManufactured<dim,nstate>
 	}
 
 	// Create DG from which we'll modify the HighOrderGrid
-	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, &grid);
+	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);
     dg->allocate_system ();
 
 	HighOrderGrid<dim,double> &high_order_grid = dg->high_order_grid;
 #if PHILIP_DIM!=1
 	high_order_grid.prepare_for_coarsening_and_refinement();
-	grid.repartition();
+	grid->repartition();
 	high_order_grid.execute_coarsening_and_refinement();
 	high_order_grid.output_results_vtk(high_order_grid.nth_refinement++);
 #endif

@@ -31,8 +31,9 @@ using AdaptVector = dealii::Rol::VectorAdaptor<dealii_Vector>;
 template<int dim>
 class FlowConstraints : public ROL::Constraint_SimOpt<double> {
 private:
-    /// MPI rank used for printing
+    /// MPI rank used for printing.
     const int mpi_rank;
+    /// Whether the current processor should print or not.
     const bool i_print;
     /// Smart pointer to DGBase
     std::shared_ptr<DGBase<dim,double>> dg;
@@ -50,19 +51,25 @@ private:
     /// Design variables values.
     dealii::LinearAlgebra::distributed::Vector<double> ffd_des_var;
 
+    /// Jacobian preconditioner.
+    /** Currently uses ILUT */
     Ifpack_Preconditioner *jacobian_prec;
+    /// Adjoint Jacobian preconditioner.
+    /** Currently uses ILUT */
     Ifpack_Preconditioner *adjoint_jacobian_prec;
 
 protected:
     /// ID used when outputting the flow solution.
     int i_out = 1000;
 
+    /// Stores the mesh sensitivities.
     dealii::TrilinosWrappers::SparseMatrix dXvdXp;
 
 public:
     /// Avoid -Werror=overloaded-virtual.
     using ROL::Constraint_SimOpt<double>::value;
 
+    /// Regularization of the constraint by adding flow_CFL_ times the mass matrix.
     double flow_CFL_;
     /// Avoid -Werror=overloaded-virtual.
     using ROL::Constraint_SimOpt<double>::applyAdjointJacobian_1;

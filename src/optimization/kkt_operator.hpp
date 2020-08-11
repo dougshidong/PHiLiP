@@ -42,6 +42,7 @@ public:
         , temp_design_variables_size_vector_(design_variables->clone())
     { };
 
+    /// Returns the size of the KKT system.
     unsigned int size()
     {
         return (design_variables_->dimension() + lagrange_mult_->dimension());
@@ -106,6 +107,10 @@ public:
         vmult(dst, src);
     }
 
+    /// Print the KKT system if the program is run with 1 MPI process.
+    /** If more than 1 MPI process is used, we can't print out the matrix since
+     *  the information is distributed
+     */
     void print(const dealiiSolverVectorWrappingROL<Real> &vector_format)
     {
        const int do_full_matrix = (1 == dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD));

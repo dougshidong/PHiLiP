@@ -7,6 +7,10 @@
 
 #include "optimization/rol_to_dealii_vector.hpp"
 
+/// Wrap the ROL vector into a vector that can be used by deal.II's solver.
+/** Ironically, the ROL vector is a wrapper around the deal.II vector such that
+ *  we can use deal.II's finite element class.
+ */
 template<typename Real = double>
 class dealiiSolverVectorWrappingROL
 {
@@ -15,6 +19,7 @@ private:
     ROL::Ptr<ROL::Vector<Real>> rol_vector_ptr;
 
 
+    /// Prints out the vector to std::cout.
     void print(const ROL::Vector<Real> &rol_vector) const
     {
         const ROL::Vector_SimOpt<Real> *vec_split12 = dynamic_cast<const ROL::Vector_SimOpt<Real> *>(&rol_vector);

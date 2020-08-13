@@ -1,6 +1,6 @@
 cmake \
 ../ \
--DCMAKE_INSTALL_PREFIX=/home/ddong/Libraries/dealii/install \
+-DCMAKE_INSTALL_PREFIX="$DEAL_II_DIR" \
 -DDEAL_II_COMPONENT_DOCUMENTATION=ON \
 -DDEAL_II_WITH_MPI=ON \
 -DCMAKE_CXX_COMPILER=mpicxx \
@@ -14,5 +14,5 @@ cmake \
 -DDEAL_II_WITH_METIS=ON \
 -DDEAL_II_WITH_TRILINOS=ON \
 -DDEAL_II_WITH_P4EST=ON \
--DP4EST_DIR=/home/ddong/Libraries/p4est/install \
+-DP4EST_DIR="$P4EST_DIR" \
 #-DTRILINOS_DIR=/home/ddong/Libraries/Trilinos/install-dealii

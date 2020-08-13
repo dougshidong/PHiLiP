@@ -595,7 +595,15 @@ void Euler<dim,nstate,real>
 
         const dealii::Tensor<1,dim,real> surface_normal = -normal_int;
         const dealii::Tensor<1,dim,real> velocities_int = extract_velocities_from_primitive(primitive_interior_values);
-        const dealii::Tensor<1,dim,real> velocities_bc = velocities_int - 2.0*(velocities_int*surface_normal)*surface_normal;
+        //const dealii::Tensor<1,dim,real> velocities_bc = velocities_int - 2.0*(velocities_int*surface_normal)*surface_normal;
+		real vel_int_dot_normal = 0.0;
+		for (int d=0; d<dim; d++) {
+			vel_int_dot_normal = vel_int_dot_normal + velocities_int[d]*surface_normal[d];
+		}
+        dealii::Tensor<1,dim,real> velocities_bc;
+		for (int d=0; d<dim; d++) {
+			velocities_bc[d] = velocities_int[d] - 2.0*(vel_int_dot_normal)*surface_normal[d];
+		}
         for (int d=0; d<dim; ++d) {
             primitive_boundary_values[1+d] = velocities_bc[d];
         }

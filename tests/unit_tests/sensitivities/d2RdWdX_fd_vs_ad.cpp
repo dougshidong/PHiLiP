@@ -105,10 +105,6 @@ int test (
     pcout << "Evaluating AD..." << std::endl;
     dg->assemble_residual(false, false, true);
 
-    // 0 perturbation
-    //dg->assemble_residual(false, false, false);
-    //double perturbed_dual_dot_residual_0 = dg->right_hand_side * dg->dual;
-
     pcout << "Evaluating FD..." << std::endl;
     for (unsigned int iw = 0; iw<dg->dof_handler.n_dofs(); ++iw) {
 

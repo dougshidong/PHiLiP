@@ -137,10 +137,6 @@ int test (
     pcout << "Evaluating AD..." << std::endl;
     dg->assemble_residual(false, false, true);
 
-    // 0 perturbation
-    dg->assemble_residual(false, false, false);
-    double perturbed_dual_dot_residual_0 = dg->right_hand_side * dg->dual;
-
     pcout << "Evaluating FD..." << std::endl;
     for (unsigned int iw = 0; iw<dg->dof_handler.n_dofs(); ++iw) {
 
@@ -158,227 +154,123 @@ int test (
             double old_iw = -99999;
             double old_jw = -99999;
 
-            if (iw < 0) {
-            //if (iw == jw) {
-                // +
-                if (iw_relevant) {
-                    old_iw = dg->solution[iw];
-                    dg->solution[iw] = old_iw+EPS;
+            if (iw_relevant) {
+                old_iw = dg->solution[iw];
+            }
+            if (jw_relevant) {
+                old_jw = dg->solution[jw];
+            }
+            std::array<std::array<int, 2>, 25> pert;
+            for (int i=-2; i<3; ++i) {
+                for (int j=-2; j<3; ++j) {
+                    int ij = (i+2)*5 + (j+2);
+                    pert[ij][0] = i;
+                    pert[ij][1] = j;
                 }
-                dg->assemble_residual(false, false, false);
-                double perturbed_dual_dot_residual_p = dg->right_hand_side * dg->dual;
+            }
 
-                // -
-                if (iw_relevant) {
-                    dg->solution[iw] = old_iw-EPS;
-                }
-                dg->assemble_residual(false, false, false);
-                double perturbed_dual_dot_residual_m = dg->right_hand_side * dg->dual;
+            std::array<double, 25> perturbed_dual_dot_residual;
 
-                double fd_entry = 0.0;
-                fd_entry += perturbed_dual_dot_residual_p;
-                fd_entry -= 2.0*perturbed_dual_dot_residual_0;
-                fd_entry += perturbed_dual_dot_residual_m;
-                fd_entry /= (EPS*EPS);
+            for (int i=-2; i<3; ++i) {
+                for (int j=-2; j<3; ++j) {
+                    int ij = (i+2)*5 + (j+2);
 
-                // Reset node
-                if (iw_relevant) {
-                    dg->solution[iw] = old_iw;
-                }
-
-                // Set
-                if (dg->high_order_grid.locally_owned_dofs_grid.is_element(iw) ) {
-                    if (std::abs(fd_entry) >= 1e-12) {
-                        d2RdWdW_fd.add(iw,jw,fd_entry);
+                    if (iw_relevant) {
+                        dg->solution[iw] = old_iw+i*EPS;
                     }
-                }
-
-            //} else {
-
-            //    // + +
-            //    if (iw_relevant) {
-            //        old_iw = dg->solution[iw];
-            //        dg->solution[iw] = old_iw+EPS;
-            //    }
-            //    if (jw_relevant) {
-            //        old_jw = dg->solution[jw];
-            //        dg->solution[jw] = old_jw+EPS;
-            //    }
-            //    dg->assemble_residual(false, false, false);
-            //    double perturbed_dual_dot_residual_p_p = dg->right_hand_side * dg->dual;
-
-            //    // + -
-            //    if (iw_relevant) {
-            //        dg->solution[iw] = old_iw+EPS;
-            //    }
-            //    if (jw_relevant) {
-            //        dg->solution[jw] = old_jw-EPS;
-            //    }
-            //    dg->assemble_residual(false, false, false);
-            //    double perturbed_dual_dot_residual_p_m = dg->right_hand_side * dg->dual;
-
-            //    // - +
-            //    if (iw_relevant) {
-            //        dg->solution[iw] = old_iw-EPS;
-            //    }
-            //    if (jw_relevant) {
-            //        dg->solution[iw] = old_jw+EPS;
-            //    }
-            //    dg->assemble_residual(false, false, false);
-            //    double perturbed_dual_dot_residual_m_p = dg->right_hand_side * dg->dual;
-
-            //    // - -
-            //    if (iw_relevant) {
-            //        dg->solution[iw] = old_iw-EPS;
-            //    }
-            //    if (jw_relevant) {
-            //        dg->solution[jw] = old_jw-EPS;
-            //    }
-            //    dg->assemble_residual(false, false, false);
-            //    double perturbed_dual_dot_residual_m_m = dg->right_hand_side * dg->dual;
-
-            //    double fd_entry = 0.0;
-            //    fd_entry += perturbed_dual_dot_residual_p_p;
-            //    fd_entry -= perturbed_dual_dot_residual_p_m;
-            //    fd_entry -= perturbed_dual_dot_residual_m_p;
-            //    fd_entry += perturbed_dual_dot_residual_m_m;
-            //    fd_entry /= (4.0*EPS*EPS);
-
-            //    // Reset node
-            //    if (iw_relevant) {
-            //        dg->solution[iw] = old_iw;
-            //    }
-            //    if (jw_relevant) {
-            //        dg->solution[jw] = old_jw;
-            //    }
-
-            //    // Set
-            //    if (dg->high_order_grid.locally_owned_dofs_grid.is_element(iw) ) {
-            //        if (std::abs(fd_entry) >= 1e-12) {
-            //            d2RdWdW_fd.add(iw,jw,fd_entry);
-            //        }
-            //    }
-            //} // end of off-diagonal FD
-            } else {
-
-                if (iw_relevant) {
-                    old_iw = dg->solution[iw];
-                }
-                if (jw_relevant) {
-                    old_jw = dg->solution[jw];
-                }
-                std::array<std::array<int, 2>, 25> pert;
-                for (int i=-2; i<3; ++i) {
-                    for (int j=-2; j<3; ++j) {
-                        int ij = (i+2)*5 + (j+2);
-                        pert[ij][0] = i;
-                        pert[ij][1] = j;
-                    }
-                }
-
-                std::array<double, 25> perturbed_dual_dot_residual;
-
-                for (int i=-2; i<3; ++i) {
-                    for (int j=-2; j<3; ++j) {
-                        int ij = (i+2)*5 + (j+2);
-
-                        if (iw_relevant) {
-                            dg->solution[iw] = old_iw+i*EPS;
-                        }
-                        if (jw_relevant) {
-                            if (iw == jw) {
-                                dg->solution[jw] += j*EPS;
-                            } else {
-                                dg->solution[jw] = old_jw+j*EPS;
-                            }
-                        }
-                        dg->assemble_residual(false, false, false);
-                        perturbed_dual_dot_residual[ij] = dg->right_hand_side * dg->dual;
-
-                        if (iw_relevant) {
-                            dg->solution[iw] = old_iw;
-                        }
-                        if (jw_relevant) {
-                            dg->solution[jw] = old_jw;
+                    if (jw_relevant) {
+                        if (iw == jw) {
+                            dg->solution[jw] += j*EPS;
+                        } else {
+                            dg->solution[jw] = old_jw+j*EPS;
                         }
                     }
-                }
+                    dg->assemble_residual(false, false, false);
+                    perturbed_dual_dot_residual[ij] = dg->right_hand_side * dg->dual;
 
-                // http://www.holoborodko.com/pavel/2014/11/04/computing-mixed-derivatives-by-finite-differences/
-                double fd_entry = 0.0;
-                int i,j, ij;
-
-                // http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/central-differences/#comment-5289
-                fd_entry = 0.0;
-
-                double term[4] = { 0.0,0.0,0.0,0.0 };
-                i =  1; j = -2 ; ij = (i+2)*5 + (j+2);
-                term[0] += perturbed_dual_dot_residual[ij];
-                i =  2; j = -1 ; ij = (i+2)*5 + (j+2);
-                term[0] += perturbed_dual_dot_residual[ij];
-                i = -2; j =  1 ; ij = (i+2)*5 + (j+2);
-                term[0] += perturbed_dual_dot_residual[ij];
-                i = -1; j =  2 ; ij = (i+2)*5 + (j+2);
-                term[0] += perturbed_dual_dot_residual[ij];
-
-                term[0] *= -63.0;
-
-                i = -1; j = -2 ; ij = (i+2)*5 + (j+2);
-                term[1] += perturbed_dual_dot_residual[ij];
-                i = -2; j = -1 ; ij = (i+2)*5 + (j+2);
-                term[1] += perturbed_dual_dot_residual[ij];
-                i =  2; j =  1 ; ij = (i+2)*5 + (j+2);
-                term[1] += perturbed_dual_dot_residual[ij];
-                i =  1; j =  2 ; ij = (i+2)*5 + (j+2);
-                term[1] += perturbed_dual_dot_residual[ij];
-
-                term[1] *= 63.0;
-
-                i =  2; j = -2 ; ij = (i+2)*5 + (j+2);
-                term[2] += perturbed_dual_dot_residual[ij];
-                i = -2; j =  2 ; ij = (i+2)*5 + (j+2);
-                term[2] += perturbed_dual_dot_residual[ij];
-                i = -2; j = -2 ; ij = (i+2)*5 + (j+2);
-                term[2] -= perturbed_dual_dot_residual[ij];
-                i =  2; j =  2 ; ij = (i+2)*5 + (j+2);
-                term[2] -= perturbed_dual_dot_residual[ij];
-
-                term[2] *= 44.0;
-
-                i = -1; j = -1 ; ij = (i+2)*5 + (j+2);
-                term[3] += perturbed_dual_dot_residual[ij];
-                i =  1; j =  1 ; ij = (i+2)*5 + (j+2);
-                term[3] += perturbed_dual_dot_residual[ij];
-                i =  1; j = -1 ; ij = (i+2)*5 + (j+2);
-                term[3] -= perturbed_dual_dot_residual[ij];
-                i = -1; j =  1 ; ij = (i+2)*5 + (j+2);
-                term[3] -= perturbed_dual_dot_residual[ij];
-
-                term[3] *= 74.0;
-
-                fd_entry = term[0] + term[1] + term[2] + term[3];
-                fd_entry /= (600.0*EPS*EPS);
-
-                // Reset node
-                if (iw_relevant) {
-                    dg->solution[iw] = old_iw;
-                }
-                if (jw_relevant) {
-                    dg->solution[jw] = old_jw;
-                }
-
-                // Set
-                if (dg->locally_owned_dofs.is_element(iw) ) {
-                    if (std::abs(fd_entry) >= 1e-12) {
-                        d2RdWdW_fd.add(iw,jw,fd_entry);
+                    if (iw_relevant) {
+                        dg->solution[iw] = old_iw;
+                    }
+                    if (jw_relevant) {
+                        dg->solution[jw] = old_jw;
                     }
                 }
-                if (iw != jw && dg->locally_owned_dofs.is_element(jw) ) {
-                    if (std::abs(fd_entry) >= 1e-12) {
-                        d2RdWdW_fd.add(jw,iw,fd_entry);
-                    }
+            }
+
+            // http://www.holoborodko.com/pavel/2014/11/04/computing-mixed-derivatives-by-finite-differences/
+            double fd_entry = 0.0;
+            int i,j, ij;
+
+            // http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/central-differences/#comment-5289
+            fd_entry = 0.0;
+
+            double term[4] = { 0.0,0.0,0.0,0.0 };
+            i =  1; j = -2 ; ij = (i+2)*5 + (j+2);
+            term[0] += perturbed_dual_dot_residual[ij];
+            i =  2; j = -1 ; ij = (i+2)*5 + (j+2);
+            term[0] += perturbed_dual_dot_residual[ij];
+            i = -2; j =  1 ; ij = (i+2)*5 + (j+2);
+            term[0] += perturbed_dual_dot_residual[ij];
+            i = -1; j =  2 ; ij = (i+2)*5 + (j+2);
+            term[0] += perturbed_dual_dot_residual[ij];
+
+            term[0] *= -63.0;
+
+            i = -1; j = -2 ; ij = (i+2)*5 + (j+2);
+            term[1] += perturbed_dual_dot_residual[ij];
+            i = -2; j = -1 ; ij = (i+2)*5 + (j+2);
+            term[1] += perturbed_dual_dot_residual[ij];
+            i =  2; j =  1 ; ij = (i+2)*5 + (j+2);
+            term[1] += perturbed_dual_dot_residual[ij];
+            i =  1; j =  2 ; ij = (i+2)*5 + (j+2);
+            term[1] += perturbed_dual_dot_residual[ij];
+
+            term[1] *= 63.0;
+
+            i =  2; j = -2 ; ij = (i+2)*5 + (j+2);
+            term[2] += perturbed_dual_dot_residual[ij];
+            i = -2; j =  2 ; ij = (i+2)*5 + (j+2);
+            term[2] += perturbed_dual_dot_residual[ij];
+            i = -2; j = -2 ; ij = (i+2)*5 + (j+2);
+            term[2] -= perturbed_dual_dot_residual[ij];
+            i =  2; j =  2 ; ij = (i+2)*5 + (j+2);
+            term[2] -= perturbed_dual_dot_residual[ij];
+
+            term[2] *= 44.0;
+
+            i = -1; j = -1 ; ij = (i+2)*5 + (j+2);
+            term[3] += perturbed_dual_dot_residual[ij];
+            i =  1; j =  1 ; ij = (i+2)*5 + (j+2);
+            term[3] += perturbed_dual_dot_residual[ij];
+            i =  1; j = -1 ; ij = (i+2)*5 + (j+2);
+            term[3] -= perturbed_dual_dot_residual[ij];
+            i = -1; j =  1 ; ij = (i+2)*5 + (j+2);
+            term[3] -= perturbed_dual_dot_residual[ij];
+
+            term[3] *= 74.0;
+
+            fd_entry = term[0] + term[1] + term[2] + term[3];
+            fd_entry /= (600.0*EPS*EPS);
+
+            // Reset node
+            if (iw_relevant) {
+                dg->solution[iw] = old_iw;
+            }
+            if (jw_relevant) {
+                dg->solution[jw] = old_jw;
+            }
+
+            // Set
+            if (dg->locally_owned_dofs.is_element(iw) ) {
+                if (std::abs(fd_entry) >= 1e-12) {
+                    d2RdWdW_fd.add(iw,jw,fd_entry);
                 }
-            } // end of off-diagonal FD
+            }
+            if (iw != jw && dg->locally_owned_dofs.is_element(jw) ) {
+                if (std::abs(fd_entry) >= 1e-12) {
+                    d2RdWdW_fd.add(jw,iw,fd_entry);
+                }
+            }
         }
     }
     d2RdWdW_fd.compress(dealii::VectorOperation::add);

@@ -119,7 +119,7 @@ solve_linear (
 		const auto op_L11_inv = dealii::inverse_operator(op_L11, solver_L11, preconditioner_L11);
 		const auto op_Schur = op_L22 - op_L21 * op_L11_inv * op_L12;
 
-		const auto op_preconditioner_L11 = dealii::linear_operator<trilinos_vector_type,trilinos_vector_type,payload_type>(preconditioner_L11);
+		const auto op_preconditioner_L11 = dealii::linear_operator<trilinos_vector_type,trilinos_vector_type,payload_type>(L11,preconditioner_L11);
 		const auto op_approxSchur = op_L22 - op_L21 * op_preconditioner_L11 * op_L12;
 
 		const trilinos_vector_type schur_rhs = rhs2 - op_L21 * op_L11_inv * rhs1;

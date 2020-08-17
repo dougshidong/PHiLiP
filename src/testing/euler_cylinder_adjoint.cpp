@@ -82,15 +82,15 @@ public:
         return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
     }
 
-    using ADType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
-    using ADADType = Sacado::Fad::DFad<ADType>; ///< Sacado AD type that allows 2nd derivatives.
+    using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
+    using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
 
     /// non-template functions to override the template classes
-    ADADType evaluate_volume_integrand(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADType> &physics,
-        const dealii::Point<dim,ADADType> &phys_coord,
-        const std::array<ADADType,nstate> &soln_at_q,
-        const std::array<dealii::Tensor<1,dim,ADADType>,nstate> &soln_grad_at_q) const override
+    FadFadType evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,
+        const dealii::Point<dim,FadFadType> &phys_coord,
+        const std::array<FadFadType,nstate> &soln_at_q,
+        const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &soln_grad_at_q) const override
     {
         return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
     }

@@ -397,10 +397,10 @@ bool HighOrderGrid<dim,real,VectorType,DoFHandlerType>::fix_invalid_cell(const t
     cell->get_dof_indices (dofs_indices);
 
     // Use reverse mode for more efficiency
-    using ADtype = Sacado::Fad::DFad<real>;
-    std::vector<ADtype> cell_nodes(n_dofs_coords);
-    std::vector<ADtype> lagrange_coeff(n_lagrange_pts);
-    std::vector<ADtype> bernstein_coeff(n_bernstein);
+    using FadType = Sacado::Fad::DFad<real>;
+    std::vector<FadType> cell_nodes(n_dofs_coords);
+    std::vector<FadType> lagrange_coeff(n_lagrange_pts);
+    std::vector<FadType> bernstein_coeff(n_bernstein);
 
     // Count and tag movable volume_nodes
     std::vector< bool > movable(n_dofs_coords);
@@ -478,16 +478,16 @@ bool HighOrderGrid<dim,real,VectorType,DoFHandlerType>::fix_invalid_cell(const t
             evaluate_jacobian_at_points(cell_nodes, fe_coords, lagrange_pts, lagrange_coeff);
             bernstein_coeff = matrix_stdvector_mult(lagrange_to_bernstein_operator, lagrange_coeff);
 
-            ADtype functional = 0.0;
+            FadType functional = 0.0;
             min_ratio = bernstein_coeff[0].val();
             for (unsigned int i=0; i<n_bernstein;++i) {
-                ADtype logterm = std::log((bernstein_coeff[i] - barrierJac) / (straight_sided_jacobian - barrierJac));
-                ADtype quadraticterm = bernstein_coeff[i] / straight_sided_jacobian - 1.0;
+                FadType logterm = std::log((bernstein_coeff[i] - barrierJac) / (straight_sided_jacobian - barrierJac));
+                FadType quadraticterm = bernstein_coeff[i] / straight_sided_jacobian - 1.0;
                 functional += std::pow(logterm,2) + std::pow(quadraticterm,2);
                 min_ratio = std::min(bernstein_coeff[i].val(), min_ratio);
             }
             min_ratio /= straight_sided_jacobian;
-            //ADtype functional = bernstein_coeff[0];
+            //FadType functional = bernstein_coeff[0];
             //for (unsigned int i=0; i<n_bernstein;++i) {
             //    functional = std::min(functional, bernstein_coeff[i]);
             //}

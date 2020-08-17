@@ -217,14 +217,14 @@ int Shock1D<dim,nstate>
     const unsigned int n_grids_input       = manu_grid_conv_param.number_of_grids;
 
     // Set the physics' manufactured solution to be the Shocked1D1State manufactured solution
-    using ADtype = Sacado::Fad::DFad<double>;
-    using ADADtype = Sacado::Fad::DFad<ADtype>;
+    using FadType = Sacado::Fad::DFad<double>;
+    using FadFadType = Sacado::Fad::DFad<FadType>;
     std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&param);
-    std::shared_ptr <Physics::PhysicsBase<dim,nstate,ADtype>> physics_ADtype = Physics::PhysicsFactory<dim, nstate, ADtype>::create_Physics(&param);
-    std::shared_ptr <Physics::PhysicsBase<dim,nstate,ADADtype>> physics_ADADtype = Physics::PhysicsFactory<dim, nstate, ADADtype>::create_Physics(&param);
+    std::shared_ptr <Physics::PhysicsBase<dim,nstate,FadType>> physics_ADtype = Physics::PhysicsFactory<dim, nstate, FadType>::create_Physics(&param);
+    std::shared_ptr <Physics::PhysicsBase<dim,nstate,FadFadType>> physics_ADADtype = Physics::PhysicsFactory<dim, nstate, FadFadType>::create_Physics(&param);
     std::shared_ptr shocked_1d1state_double = std::make_shared < Shocked1D1State<dim,double> > (nstate);
-    std::shared_ptr shocked_1d1state_ADtype = std::make_shared < Shocked1D1State<dim,ADtype> > (nstate);
-    std::shared_ptr shocked_1d1state_ADADtype = std::make_shared < Shocked1D1State<dim,ADADtype> > (nstate);
+    std::shared_ptr shocked_1d1state_ADtype = std::make_shared < Shocked1D1State<dim,FadType> > (nstate);
+    std::shared_ptr shocked_1d1state_ADADtype = std::make_shared < Shocked1D1State<dim,FadFadType> > (nstate);
     physics_double->manufactured_solution_function = shocked_1d1state_double;
     physics_ADtype->manufactured_solution_function = shocked_1d1state_ADtype;
     physics_ADADtype->manufactured_solution_function = shocked_1d1state_ADADtype;

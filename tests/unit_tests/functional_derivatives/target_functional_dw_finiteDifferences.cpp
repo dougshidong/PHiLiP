@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
     dg->allocate_system ();
 
 	// manufactured solution function
-    using ADtype = Sacado::Fad::DFad<double>;
+    using FadType = Sacado::Fad::DFad<double>;
 	std::shared_ptr <PHiLiP::Physics::PhysicsBase<dim,nstate,double>> physics_double = PHiLiP::Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&all_parameters);
 	pcout << "Physics created" << std::endl;
 	

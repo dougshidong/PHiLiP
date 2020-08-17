@@ -30,9 +30,9 @@ Functional<dim,nstate,real>::Functional(
     , uses_solution_gradient(_uses_solution_gradient)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 { 
-    using ADtype = Sacado::Fad::DFad<real>;
-    using ADADtype = Sacado::Fad::DFad<ADtype>;
-    physics_fad_fad = Physics::PhysicsFactory<dim,nstate,ADADtype>::create_Physics(dg->all_parameters);
+    using FadType = Sacado::Fad::DFad<real>;
+    using FadFadType = Sacado::Fad::DFad<FadType>;
+    physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType>::create_Physics(dg->all_parameters);
 
     init_vectors();
 }
@@ -138,7 +138,7 @@ void Functional<dim,nstate,real>::set_derivatives(
     std::vector<dealii::types::global_dof_index> cell_soln_dofs_indices,
     std::vector<dealii::types::global_dof_index> cell_metric_dofs_indices)
 {
-    using ADtype = Sacado::Fad::DFad<real>;
+    using FadType = Sacado::Fad::DFad<real>;
 
     const unsigned int n_total_indep = volume_local_sum.size();
     (void) n_total_indep; // Not used apart from assert.
@@ -171,7 +171,7 @@ void Functional<dim,nstate,real>::set_derivatives(
         for (unsigned int idof=0; idof<n_soln_dofs_cell; ++idof) {
 
             unsigned int j_derivative = 0;
-            const ADtype dWi = volume_local_sum.dx(i_derivative++);
+            const FadType dWi = volume_local_sum.dx(i_derivative++);
 
             for (unsigned int jdof=0; jdof<n_soln_dofs_cell; ++jdof) {
                 dWidW[jdof] = dWi.dx(j_derivative++);
@@ -186,7 +186,7 @@ void Functional<dim,nstate,real>::set_derivatives(
 
         for (unsigned int idof=0; idof<n_metric_dofs_cell; ++idof) {
 
-            const ADtype dXi = volume_local_sum.dx(i_derivative++);
+            const FadType dXi = volume_local_sum.dx(i_derivative++);
 
             unsigned int j_derivative = n_soln_dofs_cell;
             for (unsigned int jdof=0; jdof<n_metric_dofs_cell; ++jdof) {
@@ -379,8 +379,8 @@ real Functional<dim, nstate, real>::evaluate_functional(
     const bool compute_dIdX,
     const bool compute_d2I)
 {
-    using ADtype = Sacado::Fad::DFad<real>;
-    using ADADtype = Sacado::Fad::DFad<ADtype>;
+    using FadType = Sacado::Fad::DFad<real>;
+    using FadFadType = Sacado::Fad::DFad<FadType>;
 
     bool actually_compute_value = true;
     bool actually_compute_dIdW = compute_dIdW;
@@ -406,7 +406,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
     // setup it mostly the same as evaluating the value (with exception that local solution is also AD)
     const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
     std::vector<dealii::types::global_dof_index> cell_soln_dofs_indices(max_dofs_per_cell);
-    std::vector<ADADtype> soln_coeff(max_dofs_per_cell); // for obtaining the local derivatives (to be copied back afterwards)
+    std::vector<FadFadType> soln_coeff(max_dofs_per_cell); // for obtaining the local derivatives (to be copied back afterwards)
     std::vector<real>   local_dIdw(max_dofs_per_cell);
 
     std::vector<real>   local_dIdX(n_metric_dofs_cell);
@@ -438,7 +438,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
 
         // Get metric coefficients
         metric_cell->get_dof_indices (cell_metric_dofs_indices);
-        std::vector< ADADtype > coords_coeff(n_metric_dofs_cell);
+        std::vector< FadFadType > coords_coeff(n_metric_dofs_cell);
         for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
             coords_coeff[idof] = dg->high_order_grid.volume_nodes[cell_metric_dofs_indices[idof]];
         }
@@ -478,7 +478,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
         const dealii::Quadrature<dim> &volume_quadrature = dg->volume_quadrature_collection[i_quad];
 
         // Evaluate integral on the cell volume
-        ADADtype volume_local_sum = evaluate_volume_cell_functional(*physics_fad_fad, soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
+        FadFadType volume_local_sum = evaluate_volume_cell_functional(*physics_fad_fad, soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 
         // next looping over the faces of the cell checking for boundary elements
         for(unsigned int iface = 0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface){
@@ -524,7 +524,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
 			for (unsigned int idof=0; idof<n_soln_dofs_cell; ++idof) {
 
 				unsigned int j_derivative = 0;
-				const ADtype dWi = volume_local_sum.dx(i_derivative++);
+				const FadType dWi = volume_local_sum.dx(i_derivative++);
 
 				for (unsigned int jdof=0; jdof<n_soln_dofs_cell; ++jdof) {
 					dWidW[jdof] = dWi.dx(j_derivative++);
@@ -539,7 +539,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
 
 			for (unsigned int idof=0; idof<n_metric_dofs_cell; ++idof) {
 
-				const ADtype dXi = volume_local_sum.dx(i_derivative++);
+				const FadType dXi = volume_local_sum.dx(i_derivative++);
 
 				unsigned int j_derivative = n_soln_dofs_cell;
 				for (unsigned int jdof=0; jdof<n_metric_dofs_cell; ++jdof) {

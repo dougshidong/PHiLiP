@@ -8,8 +8,8 @@ namespace PHiLiP {
 template <int dim, int nstate, typename real>
 class TargetBoundaryFunctional : public TargetFunctional<dim, nstate, real>
 {
-    using ADType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
-    using ADADType = Sacado::Fad::DFad<ADType>; ///< Sacado AD type that allows 2nd derivatives.
+    using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
+    using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
 
     /// Avoid warning that the function was hidden [-Woverloaded-virtual].
     /** The compiler would otherwise hide Functional::evaluate_volume_integrand, which is fine for 
@@ -55,13 +55,13 @@ public:
 		return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, target_soln_at_q, soln_grad_at_q, target_soln_grad_at_q);
 	}
 	/// non-template functions to override the template classes
-	ADADType evaluate_volume_integrand(
-		const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADType> &physics,
-		const dealii::Point<dim,ADADType> &phys_coord,
-		const std::array<ADADType,nstate> &soln_at_q,
+	FadFadType evaluate_volume_integrand(
+		const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,
+		const dealii::Point<dim,FadFadType> &phys_coord,
+		const std::array<FadFadType,nstate> &soln_at_q,
         const std::array<real,nstate> &target_soln_at_q,
-		const std::array<dealii::Tensor<1,dim,ADADType>,nstate> &soln_grad_at_q,
-        const std::array<dealii::Tensor<1,dim,ADADType>,nstate> &target_soln_grad_at_q) const override
+		const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &soln_grad_at_q,
+        const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &target_soln_grad_at_q) const override
 	{
 		return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, target_soln_at_q, soln_grad_at_q, target_soln_grad_at_q);
 	}

@@ -357,17 +357,17 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
           = std::make_shared< diffusion_v<dim, nstate, double> >(convection, diffusion);
 
     // for adjoint, also need the AD'd physics
-    using ADtype = Sacado::Fad::DFad<double>;
-    std::shared_ptr< Physics::PhysicsBase<dim, nstate, ADtype> > physics_u_adtype 
-          = std::make_shared< diffusion_u<dim, nstate, ADtype> >(convection, diffusion);
-    std::shared_ptr< Physics::PhysicsBase<dim, nstate, ADtype> > physics_v_adtype 
-          = std::make_shared< diffusion_v<dim, nstate, ADtype> >(convection, diffusion);
+    using FadType = Sacado::Fad::DFad<double>;
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadType> > physics_u_adtype 
+          = std::make_shared< diffusion_u<dim, nstate, FadType> >(convection, diffusion);
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadType> > physics_v_adtype 
+          = std::make_shared< diffusion_v<dim, nstate, FadType> >(convection, diffusion);
 
-    using ADADtype = Sacado::Fad::DFad<ADtype>;
-    std::shared_ptr< Physics::PhysicsBase<dim, nstate, ADADtype> > physics_u_adadtype 
-          = std::make_shared< diffusion_u<dim, nstate, ADADtype> >(convection, diffusion);
-    std::shared_ptr< Physics::PhysicsBase<dim, nstate, ADADtype> > physics_v_adadtype 
-          = std::make_shared< diffusion_v<dim, nstate, ADADtype> >(convection, diffusion);
+    using FadFadType = Sacado::Fad::DFad<FadType>;
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadFadType> > physics_u_adadtype 
+          = std::make_shared< diffusion_u<dim, nstate, FadFadType> >(convection, diffusion);
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadFadType> > physics_v_adadtype 
+          = std::make_shared< diffusion_v<dim, nstate, FadFadType> >(convection, diffusion);
 
     // exact value to be used in checks below
     const double pi = std::acos(-1);

@@ -41,8 +41,8 @@ namespace PHiLiP {
 template <int dim, int nstate, typename real>
 class Functional 
 {
-    using ADType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
-    using ADADType = Sacado::Fad::DFad<ADType>; ///< Sacado AD type that allows 2nd derivatives.
+    using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
+    using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
 
 public:
     /// Smart pointer to DGBase
@@ -50,7 +50,7 @@ public:
 
 protected:
     /// Physics that should correspond to the one in DGBase
-    std::shared_ptr<Physics::PhysicsBase<dim,nstate,ADADType>> physics_fad_fad;
+    std::shared_ptr<Physics::PhysicsBase<dim,nstate,FadFadType>> physics_fad_fad;
 
 public:
     /** Constructor.
@@ -198,7 +198,7 @@ protected:
         const std::vector< real > &coords_coeff,
         const dealii::FESystem<dim> &fe_metric,
         const dealii::Quadrature<dim> &volume_quadrature) const;
-    /// Corresponding ADADType function to evaluate a cell's volume functional.
+    /// Corresponding FadFadType function to evaluate a cell's volume functional.
     virtual Sacado::Fad::DFad<Sacado::Fad::DFad<real>> evaluate_volume_cell_functional(
         const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> &physics_fad_fad,
         const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &soln_coeff,
@@ -218,12 +218,12 @@ protected:
 
     /// Virtual function for Sacado computation of cell boundary functional term and derivatives
     /** Used only in the computation of evaluate_dIdw(). If not overriden returns 0. */
-    virtual ADADType evaluate_cell_boundary(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADType> &/*physics*/,
+    virtual FadFadType evaluate_cell_boundary(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &/*physics*/,
         const unsigned int /*boundary_id*/,
         const dealii::FEFaceValues<dim,dim> &/*fe_values_boundary*/,
-        const std::vector<ADADType> &/*local_solution*/) const
-    { return (ADADType) 0.0; }
+        const std::vector<FadFadType> &/*local_solution*/) const
+    { return (FadFadType) 0.0; }
 
     /// Virtual function for computation of cell volume functional term
     /** Used only in the computation of evaluate_function(). If not overriden returns 0. */
@@ -235,10 +235,10 @@ protected:
     { return (real) 0.0; }
     /// Virtual function for Sacado computation of cell volume functional term and derivatives
     /** Used only in the computation of evaluate_dIdw(). If not overriden returns 0. */
-    virtual ADADType evaluate_volume_integrand(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,ADADType> &/*physics*/,
-        const dealii::Point<dim,ADADType> &/*phys_coord*/, const std::array<ADADType,nstate> &/*soln_at_q*/,
-        const std::array<dealii::Tensor<1,dim,ADADType>,nstate> &/*soln_grad_at_q*/) const
+    virtual FadFadType evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &/*physics*/,
+        const dealii::Point<dim,FadFadType> &/*phys_coord*/, const std::array<FadFadType,nstate> &/*soln_at_q*/,
+        const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &/*soln_grad_at_q*/) const
     { return (real) 0.0; }
 
 

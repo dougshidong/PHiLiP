@@ -241,14 +241,14 @@ dealii::Point<dim,double> FreeFormDeformation<dim>
 {
     assert(ctl_axis < dim);
     assert(ctl_index < n_control_pts);
-    using ADtype = Sacado::Fad::DFad<double>;
-    std::vector<dealii::Point<dim,ADtype>> control_pts_ad(control_pts.size());
+    using FadType = Sacado::Fad::DFad<double>;
+    std::vector<dealii::Point<dim,FadType>> control_pts_ad(control_pts.size());
     for (unsigned int i=0; i<n_control_pts; ++i) {
         control_pts_ad[i] = control_pts[i];
     }
     control_pts_ad[ctl_index][ctl_axis].diff(0,1);
 
-    dealii::Point<dim, ADtype> new_point_ad = new_point_location(initial_point, control_pts_ad);
+    dealii::Point<dim, FadType> new_point_ad = new_point_location(initial_point, control_pts_ad);
 
     dealii::Point<dim,double> dXdXp;
     for (int d=0; d<dim; ++d) {

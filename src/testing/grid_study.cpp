@@ -261,7 +261,7 @@ int GridStudy<dim,nstate>
             //std::string gridname = "grid-"+std::to_string(igrid)+".eps";
             //if (dim == 2) print_mesh_info (*grid, gridname);
 
-            using ADtype = Sacado::Fad::DFad<double>;
+            using FadType = Sacado::Fad::DFad<double>;
 
             // Create DG object using the factory
             std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);

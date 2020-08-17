@@ -85,13 +85,13 @@ dealii::Point<2> BumpManifold::pull_back(const dealii::Point<2> &space_point) co
 
     double y_ref = y_phys;
 
-    using ADtype = Sacado::Fad::DFad<double>;
-    ADtype x_ref_ad = x_ref;
-    ADtype y_ref_ad = y_ref;
+    using FadType = Sacado::Fad::DFad<double>;
+    FadType x_ref_ad = x_ref;
+    FadType y_ref_ad = y_ref;
     y_ref_ad.diff(0,1);
     for (int i=0; i<200; i++) {
-        dealii::Point<2,ADtype> chart_point_ad(x_ref_ad,y_ref_ad);
-        dealii::Point<2,ADtype> new_point = mapping<ADtype>(chart_point_ad);
+        dealii::Point<2,FadType> chart_point_ad(x_ref_ad,y_ref_ad);
+        dealii::Point<2,FadType> new_point = mapping<FadType>(chart_point_ad);
 
         const double fun = new_point[1].val() - y_phys;
         const double derivative = new_point[1].dx(0);
@@ -99,8 +99,8 @@ dealii::Point<2> BumpManifold::pull_back(const dealii::Point<2> &space_point) co
         if(std::abs(fun) < 1e-15) break;
     }
 
-    dealii::Point<2,ADtype> chart_point_ad(x_ref_ad,y_ref_ad);
-    dealii::Point<2,ADtype> new_point = mapping<ADtype>(chart_point_ad);
+    dealii::Point<2,FadType> chart_point_ad(x_ref_ad,y_ref_ad);
+    dealii::Point<2,FadType> new_point = mapping<FadType>(chart_point_ad);
     const double fun = new_point[1].val();
     const double error = std::abs(fun - y_phys);
     x_ref = x_ref_ad.val();
@@ -121,13 +121,13 @@ dealii::Point<2> BumpManifold::push_forward(const dealii::Point<2> &chart_point)
 
 dealii::DerivativeForm<1,2,2> BumpManifold::push_forward_gradient(const dealii::Point<2> &chart_point) const
 {
-    using ADtype = Sacado::Fad::DFad<double>;
-    ADtype x_ref = chart_point[0];
-    ADtype y_ref = chart_point[1];
+    using FadType = Sacado::Fad::DFad<double>;
+    FadType x_ref = chart_point[0];
+    FadType y_ref = chart_point[1];
     x_ref.diff(0,2);
     y_ref.diff(1,2);
-    dealii::Point<2,ADtype> chart_point_ad(x_ref,y_ref);
-    dealii::Point<2,ADtype> new_point = mapping<ADtype>(chart_point_ad);
+    dealii::Point<2,FadType> chart_point_ad(x_ref,y_ref);
+    dealii::Point<2,FadType> new_point = mapping<FadType>(chart_point_ad);
 
     dealii::DerivativeForm<1, 2, 2> dphys_dref;
     dphys_dref[0][0] = new_point[0].dx(0);

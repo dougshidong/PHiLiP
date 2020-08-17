@@ -89,7 +89,7 @@ public:
     /// Return the Rosenbrock objective gradient.
     void gradient(ROL::Vector<Real> &g, const ROL::Vector<Real> &x, Real & /*tol*/)
     {
-      using ADtype = Sacado::Fad::DFad<double>;
+      using FadType = Sacado::Fad::DFad<double>;
 
 
       Teuchos::RCP<const VectorType> xp = this->get_rcp_to_VectorType(x);

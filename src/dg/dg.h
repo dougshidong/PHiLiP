@@ -633,9 +633,9 @@ public:
 
     ~DGWeak(); ///< Destructor.
 
-    using ADType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
-    using ADADType = Sacado::Fad::DFad<ADType>; ///< Sacado AD type that allows 2nd derivatives.
-    using RadFadType = Sacado::Rad::ADvar<ADType>; ///< Sacado AD type that allows 2nd derivatives.
+    using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
+    using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
+    using RadFadType = Sacado::Rad::ADvar<FadType>; ///< Sacado AD type that allows 2nd derivatives.
 
     /// Contains the physics of the PDE with real type
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, real > > pde_physics_double;
@@ -644,19 +644,19 @@ public:
     /// Dissipative numerical flux with real type
     NumericalFlux::NumericalFluxDissipative<dim, nstate, real > *diss_num_flux_double;
 
-    /// Contains the physics of the PDE with ADtype
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, ADType > > pde_physics;
-    /// Convective numerical flux with ADtype
-    NumericalFlux::NumericalFluxConvective<dim, nstate, ADType > *conv_num_flux;
-    /// Dissipative numerical flux with ADtype
-    NumericalFlux::NumericalFluxDissipative<dim, nstate, ADType > *diss_num_flux;
+    /// Contains the physics of the PDE with FadType
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, FadType > > pde_physics;
+    /// Convective numerical flux with FadType
+    NumericalFlux::NumericalFluxConvective<dim, nstate, FadType > *conv_num_flux;
+    /// Dissipative numerical flux with FadType
+    NumericalFlux::NumericalFluxDissipative<dim, nstate, FadType > *diss_num_flux;
 
-    /// Contains the physics of the PDE with ADADtype
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, ADADType > > pde_physics_fad_fad;
-    /// Convective numerical flux with ADADtype
-    NumericalFlux::NumericalFluxConvective<dim, nstate, ADADType > *conv_num_flux_fad_fad;
-    /// Dissipative numerical flux with ADADtype
-    NumericalFlux::NumericalFluxDissipative<dim, nstate, ADADType > *diss_num_flux_fad_fad;
+    /// Contains the physics of the PDE with FadFadType
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, FadFadType > > pde_physics_fad_fad;
+    /// Convective numerical flux with FadFadType
+    NumericalFlux::NumericalFluxConvective<dim, nstate, FadFadType > *conv_num_flux_fad_fad;
+    /// Dissipative numerical flux with FadFadType
+    NumericalFlux::NumericalFluxDissipative<dim, nstate, FadFadType > *diss_num_flux_fad_fad;
 
     /// Contains the physics of the PDE with RadFadDtype
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, RadFadType > > pde_physics_rad_fad;
@@ -751,11 +751,11 @@ private:
 
 public:
     /** Change the physics object.
-     *  Don't know why Doxygen won't allow the use of ADADType instead of the explicit nested Sacado AD type.
+     *  Don't know why Doxygen won't allow the use of FadFadType instead of the explicit nested Sacado AD type.
      */
     void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > >pde_physics_input);
     /// Change the physics object
-    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, ADType > >pde_physics_input);
+    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadType > >pde_physics_input);
     /// Change the physics object
     void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Rad::ADvar<Sacado::Fad::DFad<real>> > >pde_physics_input);
     /// Change the physics object
@@ -794,9 +794,9 @@ public:
     ~DGStrong();
 
 private:
-    using ADType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
-    using ADADType = Sacado::Fad::DFad<ADType>; ///< Sacado AD type that allows 2nd derivatives.
-    using RadFadType = Sacado::Rad::ADvar<ADType>; ///< Sacado AD type that allows 2nd derivatives.
+    using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
+    using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
+    using RadFadType = Sacado::Rad::ADvar<FadType>; ///< Sacado AD type that allows 2nd derivatives.
 
     /// Evaluate the time it takes for the maximum wavespeed to cross the cell domain.
     /** Currently only uses the convective eigenvalues. Future changes would take in account
@@ -815,25 +815,25 @@ private:
     /// Dissipative numerical flux with real type
     NumericalFlux::NumericalFluxDissipative<dim, nstate, real > *diss_num_flux_double;
 
-    /// Contains the physics of the PDE with ADtype
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, ADType > > pde_physics;
-    /// Convective numerical flux with ADtype
-    NumericalFlux::NumericalFluxConvective<dim, nstate, ADType > *conv_num_flux;
-    /// Dissipative numerical flux with ADtype
-    NumericalFlux::NumericalFluxDissipative<dim, nstate, ADType > *diss_num_flux;
+    /// Contains the physics of the PDE with FadType
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, FadType > > pde_physics;
+    /// Convective numerical flux with FadType
+    NumericalFlux::NumericalFluxConvective<dim, nstate, FadType > *conv_num_flux;
+    /// Dissipative numerical flux with FadType
+    NumericalFlux::NumericalFluxDissipative<dim, nstate, FadType > *diss_num_flux;
 
-    /// Contains the physics of the PDE with ADADtype
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, ADADType > > pde_physics_fad_fad;
-    /// Convective numerical flux with ADADtype
-    NumericalFlux::NumericalFluxConvective<dim, nstate, ADADType > *conv_num_flux_fad_fad;
-    /// Dissipative numerical flux with ADADtype
-    NumericalFlux::NumericalFluxDissipative<dim, nstate, ADADType > *diss_num_flux_fad_fad;
+    /// Contains the physics of the PDE with FadFadType
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, FadFadType > > pde_physics_fad_fad;
+    /// Convective numerical flux with FadFadType
+    NumericalFlux::NumericalFluxConvective<dim, nstate, FadFadType > *conv_num_flux_fad_fad;
+    /// Dissipative numerical flux with FadFadType
+    NumericalFlux::NumericalFluxDissipative<dim, nstate, FadFadType > *diss_num_flux_fad_fad;
 
-    /// Contains the physics of the PDE with ADADtype
+    /// Contains the physics of the PDE with RadFadType
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, RadFadType > > pde_physics_rad_fad;
-    /// Convective numerical flux with ADADtype
+    /// Convective numerical flux with RadFadType
     NumericalFlux::NumericalFluxConvective<dim, nstate, RadFadType > *conv_num_flux_rad_fad;
-    /// Dissipative numerical flux with ADADtype
+    /// Dissipative numerical flux with RadFadType
     NumericalFlux::NumericalFluxDissipative<dim, nstate, RadFadType > *diss_num_flux_rad_fad;
 
     /// Evaluate the integral over the cell volume and the specified derivatives.
@@ -909,7 +909,7 @@ private:
 
 public:
     /** Change the physics object.
-     *  Don't know why Doxygen won't allow the use of ADADType instead of the explicit nested Sacado AD type.
+     *  Don't know why Doxygen won't allow the use of FadFadType instead of the explicit nested Sacado AD type.
      */
     void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > >pde_physics_input);
     /// Change the physics object

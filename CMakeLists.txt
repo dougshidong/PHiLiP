@@ -74,6 +74,7 @@ SET(_philip_targets "#
 add_custom_target(unit_tests)
 
 # Source code
+include_directories(submodules)
 include_directories(src)
 add_subdirectory(src)
 

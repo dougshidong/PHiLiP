@@ -253,13 +253,13 @@ dealii::Point<dim,real> BSplineManifold<dim,chartdim>::DeBoor(
 // 
 //     double y_ref = y_phys;
 // 
-//     using ADtype = Sacado::Fad::DFad<double>;
-//     ADtype x_ref_ad = x_ref;
-//     ADtype y_ref_ad = y_ref;
+//     using FadType = Sacado::Fad::DFad<double>;
+//     FadType x_ref_ad = x_ref;
+//     FadType y_ref_ad = y_ref;
 //     y_ref_ad.diff(0,1);
 //     for (int i=0; i<200; i++) {
-//         dealii::Point<2,ADtype> chart_point_ad(x_ref_ad,y_ref_ad);
-//         dealii::Point<2,ADtype> new_point = DeBoor<ADtype>(chart_point_ad);
+//         dealii::Point<2,FadType> chart_point_ad(x_ref_ad,y_ref_ad);
+//         dealii::Point<2,FadType> new_point = DeBoor<FadType>(chart_point_ad);
 // 
 //         const double fun = new_point[1].val() - y_phys;
 //         const double derivative = new_point[1].dx(0);
@@ -267,8 +267,8 @@ dealii::Point<dim,real> BSplineManifold<dim,chartdim>::DeBoor(
 //         if(std::abs(fun) < 1e-15) break;
 //     }
 // 
-//     dealii::Point<2,ADtype> chart_point_ad(x_ref_ad,y_ref_ad);
-//     dealii::Point<2,ADtype> new_point = DeBoor<ADtype>(chart_point_ad);
+//     dealii::Point<2,FadType> chart_point_ad(x_ref_ad,y_ref_ad);
+//     dealii::Point<2,FadType> new_point = DeBoor<FadType>(chart_point_ad);
 //     const double fun = new_point[1].val();
 //     const double error = std::abs(fun - y_phys);
 //     x_ref = x_ref_ad.val();
@@ -331,21 +331,21 @@ double BSplineManifold<dim,chartdim>::fit_spline(
 template<int dim, int chartdim>
 dealii::DerivativeForm<1,chartdim,dim> BSplineManifold<dim,chartdim>::push_forward_gradient(const dealii::Point<chartdim> &chart_point) const
 {
-    using ADtype = Sacado::Fad::DFad<double>;
+    using FadType = Sacado::Fad::DFad<double>;
 
-    dealii::Point<chartdim,ADtype> chart_point_ad;
+    dealii::Point<chartdim,FadType> chart_point_ad;
 
     for (int cdim=0; cdim<chartdim; ++cdim) {
         chart_point_ad[cdim] = chart_point[cdim];
         chart_point_ad[cdim].diff(cdim,chartdim);
     }
 
-    std::vector<dealii::Point<dim,ADtype>> control_points_ad(control_points.size());
+    std::vector<dealii::Point<dim,FadType>> control_points_ad(control_points.size());
     for (unsigned int ictl = 0; ictl < control_points.size(); ++ictl) {
         control_points_ad[ictl] = control_points[ictl];
     }
 
-    dealii::Point<dim,ADtype> new_point = DeBoor(chart_point_ad, spline_degree, knot_vector, control_points_ad);
+    dealii::Point<dim,FadType> new_point = DeBoor(chart_point_ad, spline_degree, knot_vector, control_points_ad);
 
     dealii::DerivativeForm<1, chartdim, dim> dphys_dref;
 

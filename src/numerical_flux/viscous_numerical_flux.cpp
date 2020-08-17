@@ -62,7 +62,7 @@ NumericalFluxDissipative<dim,nstate,real>::~NumericalFluxDissipative() {}
 //    std::vector< ADArrayVector > soln_grad_ext(n_face_quad_pts); // Tensor initialize with zeros
 //    for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
 
-//        const dealii::Tensor<1,dim,ADtype> normal_int = normals_int[iquad];
+//        const dealii::Tensor<1,dim,FadType> normal_int = normals_int[iquad];
 
 //        for (int istate=0; istate<nstate; ++istate) {
 //            soln_int[iquad][istate]      = 0;

@@ -35,10 +35,10 @@ DGStrong<dim,nstate,real>::DGStrong(
     const std::shared_ptr<Triangulation> triangulation_input)
     : DGBase<dim,real>::DGBase(nstate, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input) // Use DGBase constructor
 {
-    using ADtype = Sacado::Fad::DFad<real>;
-    pde_physics = Physics::PhysicsFactory<dim,nstate,ADtype> ::create_Physics(parameters_input);
-    conv_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, ADtype> ::create_convective_numerical_flux (parameters_input->conv_num_flux_type, pde_physics);
-    diss_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, ADtype> ::create_dissipative_numerical_flux (parameters_input->diss_num_flux_type, pde_physics);
+    using FadType = Sacado::Fad::DFad<real>;
+    pde_physics = Physics::PhysicsFactory<dim,nstate,FadType> ::create_Physics(parameters_input);
+    conv_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, FadType> ::create_convective_numerical_flux (parameters_input->conv_num_flux_type, pde_physics);
+    diss_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, FadType> ::create_dissipative_numerical_flux (parameters_input->diss_num_flux_type, pde_physics);
 
     pde_physics_double = Physics::PhysicsFactory<dim,nstate,real> ::create_Physics(parameters_input);
     conv_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_convective_numerical_flux (parameters_input->conv_num_flux_type, pde_physics_double);
@@ -91,9 +91,9 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_derivatives(
 { 
     assert(compute_dRdW); assert(!compute_dRdX); assert(!compute_d2R);
     (void) compute_dRdW; (void) compute_dRdX; (void) compute_d2R;
-    using ADtype = Sacado::Fad::DFad<real>;
-    using ADArray = std::array<ADtype,nstate>;
-    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
+    using FadType = Sacado::Fad::DFad<real>;
+    using ADArray = std::array<FadType,nstate>;
+    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,FadType>, nstate >;
  
     const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
     const unsigned int n_face_quad_pts = fe_values_boundary.n_quadrature_points;
@@ -119,7 +119,7 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_derivatives(
     std::vector<ADArrayTensor1> conv_phys_flux(n_face_quad_pts);
  
     // AD variable
-    std::vector< ADtype > soln_coeff_int(n_dofs_cell);
+    std::vector< FadType > soln_coeff_int(n_dofs_cell);
     const unsigned int n_total_indep = n_dofs_cell;
     for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
         soln_coeff_int[idof] = DGBase<dim,real>::solution(soln_dof_indices[idof]);
@@ -137,8 +137,8 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_derivatives(
     const std::vector< dealii::Point<dim,real> > quad_pts = fe_values_boundary.get_quadrature_points();
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
  
-        const dealii::Tensor<1,dim,ADtype> normal_int = normals[iquad];
-        const dealii::Tensor<1,dim,ADtype> normal_ext = -normal_int;
+        const dealii::Tensor<1,dim,FadType> normal_int = normals[iquad];
+        const dealii::Tensor<1,dim,FadType> normal_ext = -normal_int;
  
         for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
             const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
@@ -147,7 +147,7 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_derivatives(
         }
  
         const dealii::Point<dim, real> real_quad_point = quad_pts[iquad];
-        dealii::Point<dim,ADtype> ad_point;
+        dealii::Point<dim,FadType> ad_point;
         for (int d=0;d<dim;++d) { ad_point[d] = real_quad_point[d]; }
         pde_physics->boundary_face_values (boundary_id, ad_point, normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
  
@@ -190,14 +190,14 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_derivatives(
     // Boundary integral
     for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
  
-        ADtype rhs = 0.0;
+        FadType rhs = 0.0;
  
         const unsigned int istate = fe_values_boundary.get_fe().system_to_component_index(itest).first;
  
         for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
  
             // Convection
-            const ADtype flux_diff = conv_num_flux_dot_n[iquad][istate] - conv_phys_flux[iquad][istate]*normals[iquad];
+            const FadType flux_diff = conv_num_flux_dot_n[iquad][istate] - conv_phys_flux[iquad][istate]*normals[iquad];
             rhs = rhs - fe_values_boundary.shape_value_component(itest,iquad,istate) * flux_diff * JxW[iquad];
             // Diffusive
             rhs = rhs - fe_values_boundary.shape_value_component(itest,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW[iquad];
@@ -231,9 +231,9 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_derivatives(
 {
     assert(compute_dRdW); assert(!compute_dRdX); assert(!compute_d2R);
     (void) compute_dRdW; (void) compute_dRdX; (void) compute_d2R;
-    using ADtype = Sacado::Fad::DFad<real>;
-    using ADArray = std::array<ADtype,nstate>;
-    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
+    using FadType = Sacado::Fad::DFad<real>;
+    using ADArray = std::array<FadType,nstate>;
+    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,FadType>, nstate >;
 
     const unsigned int n_quad_pts      = fe_values_vol.n_quadrature_points;
     const unsigned int n_dofs_cell     = fe_values_vol.dofs_per_cell;
@@ -254,7 +254,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_derivatives(
 
 
     // AD variable
-    std::vector< ADtype > soln_coeff(n_dofs_cell);
+    std::vector< FadType > soln_coeff(n_dofs_cell);
     for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
         soln_coeff[idof] = DGBase<dim,real>::solution(cell_dofs_indices[idof]);
         soln_coeff[idof].diff(idof, n_dofs_cell);
@@ -282,7 +282,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_derivatives(
 
         if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
             const dealii::Point<dim,real> real_quad_point = fe_values_vol.quadrature_point(iquad);
-            dealii::Point<dim,ADtype> ad_point;
+            dealii::Point<dim,FadType> ad_point;
             for (int d=0;d<dim;++d) { ad_point[d] = real_quad_point[d]; }
             source_at_q[iquad] = pde_physics->source_term (ad_point, soln_at_q[iquad]);
         }
@@ -294,8 +294,8 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_derivatives(
     //const dealii::FEValues<dim,dim> &fe_values_lagrange = this->fe_values_collection_volume_lagrange.get_present_fe_values();
     std::vector<ADArray> flux_divergence(n_quad_pts);
 
-    std::array<std::array<std::vector<ADtype>,nstate>,dim> f;
-    std::array<std::array<std::vector<ADtype>,nstate>,dim> g;
+    std::array<std::array<std::vector<FadType>,nstate>,dim> f;
+    std::array<std::array<std::vector<FadType>,nstate>,dim> g;
 
     for (int istate = 0; istate<nstate; ++istate) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
@@ -317,7 +317,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_derivatives(
     // is negative. Therefore, negative of negative means we add that volume term to the right-hand-side
     for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
 
-        ADtype rhs = 0;
+        FadType rhs = 0;
 
 
         const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(itest).first;
@@ -374,9 +374,9 @@ void DGStrong<dim,nstate,real>::assemble_face_term_derivatives(
 {
     assert(compute_dRdW); assert(!compute_dRdX); assert(!compute_d2R);
     (void) compute_dRdW; (void) compute_dRdX; (void) compute_d2R;
-    using ADtype = Sacado::Fad::DFad<real>;
-    using ADArray = std::array<ADtype,nstate>;
-    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
+    using FadType = Sacado::Fad::DFad<real>;
+    using ADArray = std::array<FadType,nstate>;
+    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,FadType>, nstate >;
 
     // Use quadrature points of neighbor cell
     // Might want to use the maximum n_quad_pts1 and n_quad_pts2
@@ -394,8 +394,8 @@ void DGStrong<dim,nstate,real>::assemble_face_term_derivatives(
     const std::vector<dealii::Tensor<1,dim> > &normals_int = fe_values_int.get_normal_vectors ();
 
     // AD variable
-    std::vector<ADtype> soln_coeff_int_ad(n_dofs_int);
-    std::vector<ADtype> soln_coeff_ext_ad(n_dofs_ext);
+    std::vector<FadType> soln_coeff_int_ad(n_dofs_int);
+    std::vector<FadType> soln_coeff_ext_ad(n_dofs_ext);
 
 
     // Jacobian blocks
@@ -440,8 +440,8 @@ void DGStrong<dim,nstate,real>::assemble_face_term_derivatives(
     }
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
 
-        const dealii::Tensor<1,dim,ADtype> normal_int = normals_int[iquad];
-        const dealii::Tensor<1,dim,ADtype> normal_ext = -normal_int;
+        const dealii::Tensor<1,dim,FadType> normal_int = normals_int[iquad];
+        const dealii::Tensor<1,dim,FadType> normal_ext = -normal_int;
 
         // Interpolate solution to face
         for (unsigned int idof=0; idof<n_dofs_int; ++idof) {
@@ -488,12 +488,12 @@ void DGStrong<dim,nstate,real>::assemble_face_term_derivatives(
 
     // From test functions associated with interior cell point of view
     for (unsigned int itest_int=0; itest_int<n_dofs_int; ++itest_int) {
-        ADtype rhs = 0.0;
+        FadType rhs = 0.0;
         const unsigned int istate = fe_values_int.get_fe().system_to_component_index(itest_int).first;
 
         for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
             // Convection
-            const ADtype flux_diff = conv_num_flux_dot_n[iquad][istate] - conv_phys_flux_int[iquad][istate]*normals_int[iquad];
+            const FadType flux_diff = conv_num_flux_dot_n[iquad][istate] - conv_phys_flux_int[iquad][istate]*normals_int[iquad];
             rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * flux_diff * JxW_int[iquad];
             // Diffusive
             rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW_int[iquad];
@@ -515,12 +515,12 @@ void DGStrong<dim,nstate,real>::assemble_face_term_derivatives(
 
     // From test functions associated with neighbour cell point of view
     for (unsigned int itest_ext=0; itest_ext<n_dofs_ext; ++itest_ext) {
-        ADtype rhs = 0.0;
+        FadType rhs = 0.0;
         const unsigned int istate = fe_values_int.get_fe().system_to_component_index(itest_ext).first;
 
         for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
             // Convection
-            const ADtype flux_diff = (-conv_num_flux_dot_n[iquad][istate]) - conv_phys_flux_ext[iquad][istate]*(-normals_int[iquad]);
+            const FadType flux_diff = (-conv_num_flux_dot_n[iquad][istate]) - conv_phys_flux_ext[iquad][istate]*(-normals_int[iquad]);
             rhs = rhs - fe_values_ext.shape_value_component(itest_ext,iquad,istate) * flux_diff * JxW_int[iquad];
             // Diffusive
             rhs = rhs - fe_values_ext.shape_value_component(itest_ext,iquad,istate) * (-diss_auxi_num_flux_dot_n[iquad][istate]) * JxW_int[iquad];
@@ -670,9 +670,9 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_explicit(
     const std::vector<dealii::types::global_dof_index> &dof_indices_int,
     dealii::Vector<real> &local_rhs_int_cell)
 {
-    using ADtype = Sacado::Fad::DFad<real>;
-    using ADArray = std::array<ADtype,nstate>;
-    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
+    using FadType = Sacado::Fad::DFad<real>;
+    using ADArray = std::array<FadType,nstate>;
+    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,FadType>, nstate >;
 
     const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
     const unsigned int n_face_quad_pts = fe_values_boundary.n_quadrature_points;
@@ -698,7 +698,7 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_explicit(
     std::vector<ADArrayTensor1> conv_phys_flux(n_face_quad_pts);
 
     // AD variable
-    std::vector< ADtype > soln_coeff_int(n_dofs_cell);
+    std::vector< FadType > soln_coeff_int(n_dofs_cell);
     const unsigned int n_total_indep = n_dofs_cell;
     for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
         soln_coeff_int[idof] = DGBase<dim,real>::solution(dof_indices_int[idof]);
@@ -716,8 +716,8 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_explicit(
     const std::vector< dealii::Point<dim,real> > quad_pts = fe_values_boundary.get_quadrature_points();
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
 
-        const dealii::Tensor<1,dim,ADtype> normal_int = normals[iquad];
-        const dealii::Tensor<1,dim,ADtype> normal_ext = -normal_int;
+        const dealii::Tensor<1,dim,FadType> normal_int = normals[iquad];
+        const dealii::Tensor<1,dim,FadType> normal_ext = -normal_int;
 
         for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
             const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
@@ -726,7 +726,7 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_explicit(
         }
 
         const dealii::Point<dim, real> real_quad_point = quad_pts[iquad];
-        dealii::Point<dim,ADtype> ad_point;
+        dealii::Point<dim,FadType> ad_point;
         for (int d=0;d<dim;++d) { ad_point[d] = real_quad_point[d]; }
         pde_physics->boundary_face_values (boundary_id, ad_point, normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
 
@@ -769,14 +769,14 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_explicit(
     // Boundary integral
     for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
 
-        ADtype rhs = 0.0;
+        FadType rhs = 0.0;
 
         const unsigned int istate = fe_values_boundary.get_fe().system_to_component_index(itest).first;
 
         for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
 
             // Convection
-            const ADtype flux_diff = conv_num_flux_dot_n[iquad][istate] - conv_phys_flux[iquad][istate]*normals[iquad];
+            const FadType flux_diff = conv_num_flux_dot_n[iquad][istate] - conv_phys_flux[iquad][istate]*normals[iquad];
             rhs = rhs - fe_values_boundary.shape_value_component(itest,iquad,istate) * flux_diff * JxW[iquad];
             // Diffusive
             rhs = rhs - fe_values_boundary.shape_value_component(itest,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW[iquad];
@@ -807,9 +807,9 @@ void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
     dealii::Vector<real>          &local_rhs_ext_cell)
 {
     //std::cout << "assembling face terms" << std::endl;
-    using ADtype = Sacado::Fad::DFad<real>;
-    using ADArray = std::array<ADtype,nstate>;
-    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
+    using FadType = Sacado::Fad::DFad<real>;
+    using ADArray = std::array<FadType,nstate>;
+    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,FadType>, nstate >;
 
     // Use quadrature points of neighbor cell
     // Might want to use the maximum n_quad_pts1 and n_quad_pts2
@@ -827,8 +827,8 @@ void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
     const std::vector<dealii::Tensor<1,dim> > &normals_int = fe_values_int.get_normal_vectors ();
 
     // AD variable
-    std::vector<ADtype> soln_coeff_int_ad(n_dofs_int);
-    std::vector<ADtype> soln_coeff_ext_ad(n_dofs_ext);
+    std::vector<FadType> soln_coeff_int_ad(n_dofs_int);
+    std::vector<FadType> soln_coeff_ext_ad(n_dofs_ext);
 
 
     // Jacobian blocks
@@ -873,8 +873,8 @@ void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
     }
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
 
-        const dealii::Tensor<1,dim,ADtype> normal_int = normals_int[iquad];
-        const dealii::Tensor<1,dim,ADtype> normal_ext = -normal_int;
+        const dealii::Tensor<1,dim,FadType> normal_int = normals_int[iquad];
+        const dealii::Tensor<1,dim,FadType> normal_ext = -normal_int;
 
         // Interpolate solution to face
         for (unsigned int idof=0; idof<n_dofs_int; ++idof) {
@@ -926,12 +926,12 @@ void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
 
     // From test functions associated with interior cell point of view
     for (unsigned int itest_int=0; itest_int<n_dofs_int; ++itest_int) {
-        ADtype rhs = 0.0;
+        FadType rhs = 0.0;
         const unsigned int istate = fe_values_int.get_fe().system_to_component_index(itest_int).first;
 
         for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
             // Convection
-            const ADtype flux_diff = conv_num_flux_dot_n[iquad][istate] - conv_phys_flux_int[iquad][istate]*normals_int[iquad];
+            const FadType flux_diff = conv_num_flux_dot_n[iquad][istate] - conv_phys_flux_int[iquad][istate]*normals_int[iquad];
             rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * flux_diff * JxW_int[iquad];
             // Diffusive
             rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW_int[iquad];
@@ -953,12 +953,12 @@ void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
 
     // From test functions associated with neighbour cell point of view
     for (unsigned int itest_ext=0; itest_ext<n_dofs_ext; ++itest_ext) {
-        ADtype rhs = 0.0;
+        FadType rhs = 0.0;
         const unsigned int istate = fe_values_int.get_fe().system_to_component_index(itest_ext).first;
 
         for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
             // Convection
-            const ADtype flux_diff = (-conv_num_flux_dot_n[iquad][istate]) - conv_phys_flux_ext[iquad][istate]*(-normals_int[iquad]);
+            const FadType flux_diff = (-conv_num_flux_dot_n[iquad][istate]) - conv_phys_flux_ext[iquad][istate]*(-normals_int[iquad]);
             rhs = rhs - fe_values_ext.shape_value_component(itest_ext,iquad,istate) * flux_diff * JxW_int[iquad];
             // Diffusive
             rhs = rhs - fe_values_ext.shape_value_component(itest_ext,iquad,istate) * (-diss_auxi_num_flux_dot_n[iquad][istate]) * JxW_int[iquad];
@@ -1002,11 +1002,11 @@ template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::set_physics(
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > >pde_physics_input)
 {
-    using ADtype = Sacado::Fad::DFad<real>;
-    using ADADtype = Sacado::Fad::DFad<ADtype>;
+    using FadType = Sacado::Fad::DFad<real>;
+    using FadFadType = Sacado::Fad::DFad<FadType>;
     pde_physics_fad_fad = pde_physics_input;
-    conv_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, ADADtype> ::create_convective_numerical_flux (DGBase<dim,real>::all_parameters->conv_num_flux_type, pde_physics_fad_fad);
-    diss_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, ADADtype> ::create_dissipative_numerical_flux (DGBase<dim,real>::all_parameters->diss_num_flux_type, pde_physics_fad_fad);
+    conv_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadFadType> ::create_convective_numerical_flux (DGBase<dim,real>::all_parameters->conv_num_flux_type, pde_physics_fad_fad);
+    diss_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadFadType> ::create_dissipative_numerical_flux (DGBase<dim,real>::all_parameters->diss_num_flux_type, pde_physics_fad_fad);
 }
 
 template class DGStrong <PHILIP_DIM, 1, double>;

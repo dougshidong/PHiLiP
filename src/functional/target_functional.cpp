@@ -30,9 +30,9 @@ TargetFunctional<dim,nstate,real>::TargetFunctional(
     : Functional<dim,nstate,real>::Functional(_dg, _uses_solution_values, _uses_solution_gradient)
 	, target_solution(dg->solution)
 { 
-    using ADtype = Sacado::Fad::DFad<real>;
-    using ADADtype = Sacado::Fad::DFad<ADtype>;
-    physics_fad_fad = Physics::PhysicsFactory<dim,nstate,ADADtype>::create_Physics(dg->all_parameters);
+    using FadType = Sacado::Fad::DFad<real>;
+    using FadFadType = Sacado::Fad::DFad<FadType>;
+    physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType>::create_Physics(dg->all_parameters);
 }
 
 template <int dim, int nstate, typename real>
@@ -44,9 +44,9 @@ TargetFunctional<dim,nstate,real>::TargetFunctional(
     : Functional<dim,nstate,real>::Functional(_dg, _uses_solution_values, _uses_solution_gradient)
 	, target_solution(target_solution)
 { 
-    using ADtype = Sacado::Fad::DFad<real>;
-    using ADADtype = Sacado::Fad::DFad<ADtype>;
-    physics_fad_fad = Physics::PhysicsFactory<dim,nstate,ADADtype>::create_Physics(dg->all_parameters);
+    using FadType = Sacado::Fad::DFad<real>;
+    using FadFadType = Sacado::Fad::DFad<FadType>;
+    physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType>::create_Physics(dg->all_parameters);
 }
 
 template <int dim, int nstate, typename real>
@@ -118,7 +118,7 @@ real2 TargetFunctional<dim, nstate, real>::evaluate_volume_cell_functional(
         soln_at_q.fill(0.0);
         target_soln_at_q.fill(0.0);
         std::array< dealii::Tensor<1,dim,real2>, nstate > soln_grad_at_q;
-        std::array< dealii::Tensor<1,dim,real2>, nstate > target_soln_grad_at_q; // Target solution grad needs to be ADType since metric term involve mesh DoFs
+        std::array< dealii::Tensor<1,dim,real2>, nstate > target_soln_grad_at_q; // Target solution grad needs to be FadType since metric term involve mesh DoFs
         for (unsigned int idof=0; idof<n_soln_dofs_cell; ++idof) {
             const unsigned int istate = fe_solution.system_to_component_index(idof).first;
             if (uses_solution_values) {
@@ -214,7 +214,7 @@ real2 TargetFunctional<dim, nstate, real>::evaluate_face_cell_functional(
         soln_at_q.fill(0.0);
         target_soln_at_q.fill(0.0);
         std::array< dealii::Tensor<1,dim,real2>, nstate > soln_grad_at_q;
-        std::array< dealii::Tensor<1,dim,real2>, nstate > target_soln_grad_at_q; // Target solution grad needs to be ADType since metric term involve mesh DoFs
+        std::array< dealii::Tensor<1,dim,real2>, nstate > target_soln_grad_at_q; // Target solution grad needs to be FadType since metric term involve mesh DoFs
         for (unsigned int idof=0; idof<n_soln_dofs_cell; ++idof) {
             const unsigned int istate = fe_solution.system_to_component_index(idof).first;
             if (uses_solution_values) {
@@ -270,8 +270,8 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
     const bool compute_dIdX,
     const bool compute_d2I)
 {
-    using ADtype = Sacado::Fad::DFad<real>;
-    using ADADtype = Sacado::Fad::DFad<ADtype>;
+    using FadType = Sacado::Fad::DFad<real>;
+    using FadFadType = Sacado::Fad::DFad<FadType>;
 
     bool actually_compute_value = true;
     bool actually_compute_dIdW = compute_dIdW;
@@ -293,7 +293,7 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
     // setup it mostly the same as evaluating the value (with exception that local solution is also AD)
     const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
     std::vector<dealii::types::global_dof_index> cell_soln_dofs_indices(max_dofs_per_cell);
-    std::vector<ADADtype> soln_coeff(max_dofs_per_cell); // for obtaining the local derivatives (to be copied back afterwards)
+    std::vector<FadFadType> soln_coeff(max_dofs_per_cell); // for obtaining the local derivatives (to be copied back afterwards)
     std::vector<real> target_soln_coeff(max_dofs_per_cell); // for obtaining the local derivatives (to be copied back afterwards)
     std::vector<real>   local_dIdw(max_dofs_per_cell);
 
@@ -331,7 +331,7 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
 
         // Get metric coefficients
         metric_cell->get_dof_indices (cell_metric_dofs_indices);
-        std::vector< ADADtype > coords_coeff(n_metric_dofs_cell);
+        std::vector< FadFadType > coords_coeff(n_metric_dofs_cell);
         for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
             coords_coeff[idof] = dg->high_order_grid.volume_nodes[cell_metric_dofs_indices[idof]];
         }
@@ -375,7 +375,7 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
         const dealii::Quadrature<dim> &volume_quadrature = dg->volume_quadrature_collection[i_quad];
 
         // Evaluate integral on the cell volume
-        ADADtype volume_local_sum;
+        FadFadType volume_local_sum;
         volume_local_sum.resizeAndZero(n_total_indep);
         volume_local_sum += evaluate_volume_cell_functional(*physics_fad_fad, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 

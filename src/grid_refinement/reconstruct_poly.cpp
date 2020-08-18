@@ -223,7 +223,7 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
             dealii::SymmetricTensor<2,dim,real> hessian;
             for(unsigned int n = 0; n < n_vec; ++n)
                 for(unsigned int i = 0; i < dim; ++i)
-                    for(unsigned int j = i+1; j < dim; ++j)
+                    for(unsigned int j = i; j < dim; ++j)
                         if(indices[n][i] && indices[n][j])
                             hessian[i][j] = coeffs[n] * (i==j ? 1.0 : 0.5);
 

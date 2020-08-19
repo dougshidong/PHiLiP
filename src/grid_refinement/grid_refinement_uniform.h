@@ -19,15 +19,12 @@ class GridRefinement_Uniform : public GridRefinementBase<dim,nstate,real,MeshTyp
 {
 public:
     using GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase;
-    using GridRefinementBase<dim,nstate,real,MeshType>::MAX_METHOD_VEC;
     void refine_grid()    override;
 protected:
     void refine_grid_h()  override;
     void refine_grid_p()  override;
     void refine_grid_hp() override;
-    void output_results_vtk_method(
-        dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out,
-        std::array<dealii::Vector<real>,MAX_METHOD_VEC>   &dat_vec_vec) override;
+    std::vector< std::pair<dealii::Vector<real>, std::string> > output_results_vtk_method() override;
 };
 
 } // namespace GridRefinement

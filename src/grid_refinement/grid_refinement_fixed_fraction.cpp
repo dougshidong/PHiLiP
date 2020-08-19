@@ -519,20 +519,24 @@ void GridRefinement_FixedFraction_Adjoint<dim,nstate,real,MeshType>::error_indic
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::output_results_vtk_method(
-    dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out,
-    std::array<dealii::Vector<real>,MAX_METHOD_VEC> &  dat_vec_vec)
+std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_FixedFraction<dim,nstate,real,MeshType>::output_results_vtk_method()
 {
+    std::vector< std::pair<dealii::Vector<real>, std::string> > data_out_vector;
+
     // error indicator for adaptation
     error_indicator();
-    dat_vec_vec[0] = indicator;
-    // dat_vec_vec.push_back(indicator);
-    data_out.add_data_vector(dat_vec_vec[0], "error_indicator", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out_vector.push_back(
+        std::make_pair(
+            indicator,
+            "error_indicator"));
 
     smoothness_indicator();
-    dat_vec_vec[1] = indicator;
-    // dat_vec_vec.push_back(smoothness);
-    data_out.add_data_vector(dat_vec_vec[1], "smoothness_indicator", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out_vector.push_back(
+        std::make_pair(
+            indicator,
+            "smoothness_indicator"));
+
+    return data_out_vector;
 }
 
 // dealii::Triangulation<PHILIP_DIM>

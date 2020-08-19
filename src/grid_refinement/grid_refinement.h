@@ -103,15 +103,9 @@ protected:
         dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out,
         dealii::Vector<real> &                             l2_error_vec);  
 
-public:
-    // setting the size of the array used for referencing values in output_results_vtk_method 
-    const static unsigned int MAX_METHOD_VEC = 10;
-
 protected:
     // refinement method dependent outputs (to be overrided in derived classes)
-    virtual void output_results_vtk_method(
-        dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out,
-        std::array<dealii::Vector<real>,MAX_METHOD_VEC> &  dat_vec_vec) = 0; 
+    virtual std::vector< std::pair<dealii::Vector<real>, std::string> > output_results_vtk_method() = 0; 
 
     // parameters
     PHiLiP::Parameters::GridRefinementParam grid_refinement_param;

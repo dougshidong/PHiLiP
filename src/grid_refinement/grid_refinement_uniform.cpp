@@ -78,13 +78,12 @@ void GridRefinement_Uniform<dim,nstate,real,MeshType>::refine_grid_hp()
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Uniform<dim,nstate,real,MeshType>::output_results_vtk_method(
-    dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out,
-    std::array<dealii::Vector<real>,MAX_METHOD_VEC> & dat_vec_vec)
+std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_Uniform<dim,nstate,real,MeshType>::output_results_vtk_method()
 {
     // nothing special to do here
-    (void) data_out;
-    (void) dat_vec_vec;
+    std::vector< std::pair<dealii::Vector<real>, std::string> > data_out_vector;
+
+    return data_out_vector;
 }
 
 // large amount of templating to be done, move to an .inst file

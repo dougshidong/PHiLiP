@@ -516,35 +516,42 @@ template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinement_Continuous_Adjoint<dim,nstate,real,MeshType>::field_hp(){}
 
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::output_results_vtk_method(
-    dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out,
-    std::array<dealii::Vector<real>,MAX_METHOD_VEC> &  dat_vec_vec)
+std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_Continuous<dim,nstate,real,MeshType>::output_results_vtk_method()
 {
+    std::vector< std::pair<dealii::Vector<real>, std::string> > data_out_vector;
+
     // getting the current field sizes
     get_current_field_h();
-    dat_vec_vec[0] = this->h_field->get_scale_vector_dealii();
-    // dat_vec_vec.push_back(h_field);
-    data_out.add_data_vector(dat_vec_vec[0], "h_field_curr", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out_vector.push_back(
+        std::make_pair(
+            this->h_field->get_scale_vector_dealii(), 
+            "h_field_curr"));
 
     get_current_field_p();
-    dat_vec_vec[1] = p_field;
-    // dat_vec_vec.push_back(p_field);
-    data_out.add_data_vector(dat_vec_vec[1], "p_field_curr", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out_vector.push_back(
+        std::make_pair(
+            p_field, 
+            "p_field_curr"));
 
     // computing the (next) update to the fields
     field();
-    dat_vec_vec[2] = this->h_field->get_scale_vector_dealii(); 
-    // dat_vec_vec.push_back(h_field);
-    data_out.add_data_vector(dat_vec_vec[2], "h_field_next", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
-    dat_vec_vec[3] = p_field;
-    // dat_vec_vec.push_back(p_field);
-    data_out.add_data_vector(dat_vec_vec[3], "p_field_next", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out_vector.push_back(
+        std::make_pair(
+            this->h_field->get_scale_vector_dealii(), 
+            "h_field_next"));
+
+    data_out_vector.push_back(
+        std::make_pair(
+            p_field, 
+            "p_field_next"));
 
     // if field is anisotropic
     if(this->grid_refinement_param.anisotropic){
         // also outputting the anisotropic ratio of each cell
-        dat_vec_vec[4] = this->h_field->get_max_anisotropic_ratio_vector_dealii();
-        data_out.add_data_vector(dat_vec_vec[4], "anisotropic_ratio_next", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+        data_out_vector.push_back(
+            std::make_pair(
+                this->h_field->get_max_anisotropic_ratio_vector_dealii(), 
+                "anisotropic_ratio_next"));
     
         // reconstructing the directional derivatives again
         // mapping
@@ -567,12 +574,15 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::output_results_vtk_met
             rel_order);
 
         // getting the derivative_values as a dealii vector (in order)
-        for(unsigned int i = 0; i < dim; ++i){
-            dat_vec_vec[5+i] = reconstruct_poly.get_derivative_value_vector_dealii(i);
-            data_out.add_data_vector(dat_vec_vec[5+i], "derivative_value_" + dealii::Utilities::int_to_string(i, 1));
-        }
+        for(unsigned int i = 0; i < dim; ++i)
+            data_out_vector.push_back(
+                std::make_pair(
+                    reconstruct_poly.get_derivative_value_vector_dealii(i), 
+                    "derivative_value_" + dealii::Utilities::int_to_string(i, 1)));
 
     }
+
+    return data_out_vector;
 
 }
 

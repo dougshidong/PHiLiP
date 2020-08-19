@@ -87,9 +87,16 @@ void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk(const unsi
         output_results_vtk_error(data_out, l2_error_vec);
 
     // virtual method to call each refinement type 
-    // passing an std::array to copy and hold references to method specific values
-    std::array<dealii::Vector<real>,MAX_METHOD_VEC> dat_vec_vec;
-    output_results_vtk_method(data_out, dat_vec_vec);
+    // gets a vector of pairs and strings to be returned (needed to be kept in scope for output)
+    std::vector< std::pair<dealii::Vector<real>, std::string> > data_out_vector = output_results_vtk_method();
+
+    // looping through the vector list to assign the items
+    for(unsigned int index = 0; index < data_out_vector.size(); index++){
+        data_out.add_data_vector(
+            data_out_vector[index].first,
+            data_out_vector[index].second,
+            dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    }
 
     // performing the ouput on each core
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);

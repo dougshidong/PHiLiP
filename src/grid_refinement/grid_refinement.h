@@ -105,7 +105,7 @@ protected:
 
 public:
     // setting the size of the array used for referencing values in output_results_vtk_method 
-    const static unsigned int MAX_METHOD_VEC = 4;
+    const static unsigned int MAX_METHOD_VEC = 10;
 
 protected:
     // refinement method dependent outputs (to be overrided in derived classes)

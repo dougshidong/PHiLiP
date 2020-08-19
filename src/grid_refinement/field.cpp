@@ -475,6 +475,22 @@ std::vector<real> Field<dim,real>::get_scale_vector()
 }
 
 template <int dim, typename real>
+dealii::Vector<real> Field<dim,real>::get_max_anisotropic_ratio_vector_dealii()
+{
+	dealii::Vector<real> vec(this->size());
+
+	for(unsigned int i = 0; i < this->size(); ++i){
+		// getting the cell anisotropic ratios
+		std::array<real,dim> anisotropic_ratio = get_anisotropic_ratio(i);
+
+		// finding the maximum value from iterators for the cell
+		vec[i] = *std::max_element(anisotropic_ratio.begin(), anisotropic_ratio.end());
+	}
+
+	return vec;
+}
+
+template <int dim, typename real>
 void Field<dim,real>::set_axis_vector(
 	const std::vector<std::array<dealii::Tensor<1,dim,real>,dim>>& vec)
 {

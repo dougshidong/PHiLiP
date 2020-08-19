@@ -539,6 +539,41 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::output_results_vtk_met
     dat_vec_vec[3] = p_field;
     // dat_vec_vec.push_back(p_field);
     data_out.add_data_vector(dat_vec_vec[3], "p_field_next", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+
+    // if field is anisotropic
+    if(this->grid_refinement_param.anisotropic){
+        // also outputting the anisotropic ratio of each cell
+        dat_vec_vec[4] = this->h_field->get_max_anisotropic_ratio_vector_dealii();
+        data_out.add_data_vector(dat_vec_vec[4], "anisotropic_ratio_next", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    
+        // reconstructing the directional derivatives again
+        // mapping
+        const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid.mapping_fe_field));
+
+        // using p+1 reconstruction
+        const unsigned int rel_order = 1;
+
+        // construct object to reconstruct the derivatives onto A
+        ReconstructPoly<dim,nstate,real> reconstruct_poly(
+            this->dg->dof_handler,
+            mapping_collection,
+            this->dg->fe_collection,
+            this->dg->volume_quadrature_collection,
+            this->volume_update_flags);
+
+        // constructing the largest directional derivatives
+        reconstruct_poly.reconstruct_directional_derivative(
+            this->dg->solution,
+            rel_order);
+
+        // getting the derivative_values as a dealii vector (in order)
+        for(unsigned int i = 0; i < dim; ++i){
+            dat_vec_vec[5+i] = reconstruct_poly.get_derivative_value_vector_dealii(i);
+            data_out.add_data_vector(dat_vec_vec[5+i], "derivative_value_" + dealii::Utilities::int_to_string(i, 1));
+        }
+
+    }
+
 }
 
 // dealii::Triangulation<PHILIP_DIM>

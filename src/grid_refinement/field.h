@@ -349,6 +349,9 @@ public:
 		const unsigned int index,
 		const unsigned int j) = 0;
 
+	// gets the dealii vector of max anisotropic ratio for each cell
+	dealii::Vector<real> get_max_anisotropic_ratio_vector_dealii();
+
 	// setting the (unit) axis direction
 	virtual void set_unit_axis(
 		const unsigned int                                index,

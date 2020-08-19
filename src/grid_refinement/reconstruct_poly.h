@@ -101,6 +101,10 @@ public:
     // values for return
     std::vector<std::array<real,dim>>                       derivative_value;
     std::vector<std::array<dealii::Tensor<1,dim,real>,dim>> derivative_direction;
+
+    // returning the directional derivative dealii::Vector for the i^th largest component
+    dealii::Vector<real> get_derivative_value_vector_dealii(
+        const unsigned int index);
 };
 
 } // namespace GridRefinement

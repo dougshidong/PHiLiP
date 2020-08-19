@@ -728,6 +728,19 @@ std::vector<DoFCellAccessorType> ReconstructPoly<dim,nstate,real>::get_patch_aro
     return patch;
 }
 
+template <int dim, int nstate, typename real>
+dealii::Vector<real> ReconstructPoly<dim,nstate,real>::get_derivative_value_vector_dealii(
+    const unsigned int index)
+{
+    dealii::Vector<real> vec(derivative_value.size());
+
+    for(unsigned int i = 0; i < derivative_value.size(); i++){
+        vec[i] = derivative_value[i][index];
+    }
+
+    return vec;
+}
+
 template class ReconstructPoly<PHILIP_DIM, 1, double>;
 template class ReconstructPoly<PHILIP_DIM, 2, double>;
 template class ReconstructPoly<PHILIP_DIM, 3, double>;

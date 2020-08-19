@@ -228,8 +228,18 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
                             hessian[i][j] = coeffs[n] * (i==j ? 1.0 : 0.5);
 
             // https://www.dealii.org/current/doxygen/deal.II/symmetric__tensor_8h.html#aa18a9d623fcd520f022421fd1d6c7a14
-            std::array<std::pair<real,dealii::Tensor<1,dim,real>>,dim> eig = dealii::eigenvectors(hessian); 
+            using eigenpair = std::pair<real,dealii::Tensor<1,dim,real>>;
+            std::array<eigenpair,dim> eig = dealii::eigenvectors(hessian); 
             
+            // resorting the list based on the absolute value of the eigenvalue
+            std::sort(eig.begin(), eig.end(), [](
+                eigenpair left,
+                eigenpair right)
+            {
+                return abs(left.first) > abs(right.first);
+            });
+
+            // storing the values
             for(int d = 0; d < dim; ++d){
                 value_cell[d]     = abs(eig[d].first);
                 direction_cell[d] = eig[d].second;

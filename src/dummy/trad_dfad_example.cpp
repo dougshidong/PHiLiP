@@ -41,29 +41,29 @@
 #include <iostream>
 #include <iomanip>
 
-#include "Sacado_No_Kokkos.hpp"
+#include "Sacado.hpp"
 
 // The function to differentiate
 template <typename ScalarT>
 ScalarT func(const ScalarT& a, const ScalarT& b, const ScalarT& c) {
-  ScalarT r = c*std::log(b+1.)/std::sin(a);
+  ScalarT r = c*std::log(b+1.)/sin(a);
   return r;
 }
 
 // The analytic derivative of func(a,b,c) with respect to a and b
 void func_deriv(double a, double b, double c, double& drda, double& drdb)
 {
-  drda = -(c*std::log(b+1.)/std::pow(std::sin(a),2.))*std::cos(a);
-  drdb = c / ((b+1.)*std::sin(a));
+  drda = -(c*std::log(b+1.)/std::pow(sin(a),2.))*std::cos(a);
+  drdb = c / ((b+1.)*sin(a));
 }
 
 // The analytic second derivative of func(a,b,c) with respect to a and b
 void func_deriv2(double a, double b, double c, double& d2rda2, double& d2rdb2,
 		 double& d2rdadb)
 {
-  d2rda2 = c*std::log(b+1.)/std::sin(a) + 2.*(c*std::log(b+1.)/std::pow(std::sin(a),3.))*std::pow(std::cos(a),2.);
-  d2rdb2 = -c / (std::pow(b+1.,2.)*std::sin(a));
-  d2rdadb = -c / ((b+1.)*std::pow(std::sin(a),2.))*std::cos(a);
+  d2rda2 = c*std::log(b+1.)/sin(a) + 2.*(c*std::log(b+1.)/std::pow(sin(a),3.))*std::pow(std::cos(a),2.);
+  d2rdb2 = -c / (std::pow(b+1.,2.)*sin(a));
+  d2rdadb = -c / ((b+1.)*std::pow(sin(a),2.))*std::cos(a);
 }
 
 int main(int /*argc*/, char ** /*argv*/)
@@ -91,11 +91,11 @@ int main(int /*argc*/, char ** /*argv*/)
       // Number of independent variables
       int num_deriv = 2;
 
+      Sacado::Fad::DFad<double> a_temp(num_deriv, 0, a);
+      Sacado::Fad::DFad<double> b_temp(num_deriv, 1, b);
       // Fad objects
-      Sacado::Rad::ADvar< Sacado::Fad::DFad<double> > arad = 
-        Sacado::Fad::DFad<double>(num_deriv, 0, a);
-      Sacado::Rad::ADvar< Sacado::Fad::DFad<double> > brad = 
-        Sacado::Fad::DFad<double>(num_deriv, 1, b);
+      Sacado::Rad::ADvar< Sacado::Fad::DFad<double> > arad = a_temp;
+      Sacado::Rad::ADvar< Sacado::Fad::DFad<double> > brad = b_temp;
       Sacado::Rad::ADvar< Sacado::Fad::DFad<double> > crad = c;
       Sacado::Rad::ADvar< Sacado::Fad::DFad<double> > rrad;
 

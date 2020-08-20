@@ -77,11 +77,11 @@ int main(int nargs, char** args) {
   if(3 <= nargs) {
       n = atoi(args[2]);
   }
-  using 	AHessianComputationType = codi::RealReversePrimalIndexGen< codi::RealReverseVec< 4 >, codi::Direction< codi::RealForwardVec< 4 >, 4 > >;
-  using TH = codi::TapeHelper<AHessianComputationType>;
+  //using codi::AHessianComputationType = codi::RealReversePrimalIndexGen< codi::RealReverseVec< 4 >, codi::Direction< codi::RealForwardVec< 4 >, 4 > >;
+  using TH = codi::TapeHelper<codi::HessianComputationType>;
   TH th;
-  std::vector<AHessianComputationType> a(n);
-  std::vector<AHessianComputationType> b(n);
+  std::vector<codi::HessianComputationType> a(n);
+  std::vector<codi::HessianComputationType> b(n);
   for(size_t i = 0; i < n; i += 1) {
     a[i] = i;
     b[i] = pow(-1, i);
@@ -93,7 +93,7 @@ int main(int nargs, char** args) {
   for(size_t i = 0; i < n; i += 1) {
     th.registerInput(b[i]);
   }
-  AHessianComputationType alpha, aNorm, bNorm;
+  codi::HessianComputationType alpha, aNorm, bNorm;
   dotWithNorms(a.data(), b.data(), n, alpha, aNorm, bNorm);
   th.registerOutput(alpha);
   th.registerOutput(aNorm);

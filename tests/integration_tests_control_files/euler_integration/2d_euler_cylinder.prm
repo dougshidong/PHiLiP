@@ -27,11 +27,11 @@ end
 subsection linear solver
 #set linear_solver_type = direct
   subsection gmres options
-    set linear_residual_tolerance = 1e-4
+    set linear_residual_tolerance = 1e-5
     set max_iterations = 2000
-    set restart_number = 50
+    set restart_number = 100
     set ilut_fill = 2
-    set ilut_drop = 1e-2
+    set ilut_drop = 1e-4
   end 
 end
 

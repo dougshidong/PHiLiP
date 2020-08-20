@@ -31,6 +31,14 @@ public:
     
     bool anisotropic;
 
+    // maximum anisotropic ratio for continuous size field targets
+    double anisotropic_ratio_max;
+
+    // minimum anisotropic ratio for continuous zie field targets
+    double anisotropic_ratio_min;
+
+    // threshold value in anisotropic indicator to enable
+    // anisotropic splitting (for fixed fraction methods)
     double anisotropic_threshold_ratio;
 
     enum AnisoIndicator{

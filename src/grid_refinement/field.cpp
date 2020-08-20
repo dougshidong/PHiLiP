@@ -204,6 +204,15 @@ void ElementIsotropic<dim,real>::set_anisotropy(
 	assert(0);
 }
 
+template <int dim, typename real>
+void ElementIsotropic<dim,real>::apply_anisotropic_limit(
+	const real /* anisotropic_ratio_min */,
+	const real /* anisotropic_ratio_max */)
+{
+	// invalid, cannot set anisotropy on isotropic cell
+	assert(0);
+}
+
 /***** ***** ElementAnisotropic ***** *****/
 
 template <int dim, typename real>
@@ -375,6 +384,39 @@ void ElementAnisotropic<dim,real>::correct_anisotropic_ratio()
 
 	// scaling the length
 	m_scale *= alpha;
+
+	// perform sorting on the anisotropic ratios
+	sort_anisotropic_ratio();
+}
+
+template <int dim, typename real>
+void ElementAnisotropic<dim,real>::sort_anisotropic_ratio()
+{
+	
+	// checking the sorting of the ansitropic ratio
+	using anisopair = std::pair< real, dealii::Tensor<1,dim,real> >;
+	std::array<anisopair, dim > sort_array;
+
+	// storing the anisotropic ratio and their unit vectors
+	for(unsigned int j = 0; j < dim; ++j)
+		sort_array[j] = std::make_pair(
+			m_anisotropic_ratio[j],
+			m_unit_axis[j]);
+
+	// performing the sort
+	std::sort(sort_array.begin(), sort_array.end(), [](
+		anisopair left,
+		anisopair right)
+	{
+		return left.first > right.first;
+	});
+
+	// copying back into the corresponding array 
+	for(unsigned int j = 0; j < dim; ++j){
+		m_anisotropic_ratio[j] = sort_array[j].first;
+		m_unit_axis[j]         = sort_array[j].second;
+	}
+
 }
 
 template <int dim, typename real>
@@ -431,6 +473,84 @@ void ElementAnisotropic<dim,real>::set_anisotropy(
 
 	// correcting
 	correct_element();
+
+}
+
+template <int dim, typename real>
+void ElementAnisotropic<dim,real>::apply_anisotropic_limit(
+	const real anisotropic_ratio_min,
+	const real anisotropic_ratio_max)
+{
+	// boolean to keep track of if any terms have been updated
+	bool changed = false;
+
+	// loops assume that refinements can chain together
+	// this requires that the anisotropic ratios are ordered in descending axis length
+
+	// looping through in descending order to limit upper axes
+	for(unsigned int index = 0; index < dim; ++index){
+		// using the loop index
+		int j = index;
+
+		if(m_anisotropic_ratio[j] > anisotropic_ratio_max){
+			// check, this should never occur on the last axis
+			assert(index != dim-1);
+
+			// capping the value to this axis and redistributing to all subsequent axes
+			real factor = pow(m_anisotropic_ratio[j]/anisotropic_ratio_max, 1.0/(dim-1.0-index));
+			changed = true;
+
+			// setting to the new value (the upper limit)
+			m_anisotropic_ratio[j] = anisotropic_ratio_max;
+
+			// looping through for redistribution
+			for(unsigned int index_internal = index+1; index_internal < dim; ++index_internal){
+
+				// getting the corresponding index (same)
+				int j_internal = index_internal;
+
+				// applying the factor change
+				m_anisotropic_ratio[j_internal] *= factor;
+
+			}
+
+		}
+	}
+
+	// looping through in ascending order to limit the lower axes
+	for(unsigned int index = 0; index < dim; ++index){
+
+		// reversing the index
+		int j = dim-1-index;
+
+		if(m_anisotropic_ratio[j] < anisotropic_ratio_min){
+			// check, this should never occur on the last axis
+			assert(index != dim-1);
+
+			// capping the value to this axis and redistributing to all subsequent axes
+			real factor = pow(m_anisotropic_ratio[j]/anisotropic_ratio_min, 1.0/(dim-1.0-index));
+			changed = true;
+
+			// setting to the new value (the upper limit)
+			m_anisotropic_ratio[j] = anisotropic_ratio_min;
+
+			// looping through for redistribution
+			for(unsigned int index_internal = index+1; index_internal < dim; ++index_internal){
+
+				// getting the corresponding reversed index
+				int j_internal = dim-1-index_internal;
+
+				// applying the factor change
+				m_anisotropic_ratio[j_internal] *= factor;
+
+			}
+
+		}
+	}
+
+	// if values have changed, correcting the anisotropic ratios just in case of rounding errors
+	if(changed)
+		correct_anisotropic_ratio();
 
 }
 
@@ -704,6 +824,19 @@ void FieldInternal<dim,real,ElementType>::set_anisotropy(
 			derivative_direction[index],
 			order);
 	}
+
+}
+
+template <int dim, typename real, typename ElementType>
+void FieldInternal<dim,real,ElementType>::apply_anisotropic_limit(
+	const real anisotropic_ratio_min,
+	const real anisotropic_ratio_max)
+{
+
+	for(unsigned int index = 0; index < this->size(); ++index)
+		field[index].apply_anisotropic_limit(
+			anisotropic_ratio_min,
+			anisotropic_ratio_max);
 
 }
 

@@ -390,6 +390,7 @@ void GridRefinement_Continuous_Error<dim,nstate,real,MeshType>::field_h()
             this->dg->dof_handler,
             this->h_field,
             poly_degree);
+
     }else{
         // call the non-uniform hp-version without the p-update
         GridRefinement_Continuous<dim,nstate,real,MeshType>::get_current_field_p();
@@ -407,6 +408,7 @@ void GridRefinement_Continuous_Error<dim,nstate,real,MeshType>::field_h()
             this->volume_update_flags,
             this->h_field,
             this->p_field);
+
     }
 }
 
@@ -450,6 +452,15 @@ void GridRefinement_Continuous_Hessian<dim,nstate,real,MeshType>::field_h()
             reconstruct_poly.derivative_value,
             reconstruct_poly.derivative_direction,
             rel_order);
+
+        std::cout << "Applying anisotropy limits: \\rho = [" << 
+            this->grid_refinement_param.anisotropic_ratio_min << ", " <<
+            this->grid_refinement_param.anisotropic_ratio_max << "]" << std::endl;
+
+        this->h_field->apply_anisotropic_limit(
+            this->grid_refinement_param.anisotropic_ratio_min,
+            this->grid_refinement_param.anisotropic_ratio_max);
+
     }
 
     // vector to store the results for local scaling parameter

@@ -99,6 +99,11 @@ public:
 		const std::array<dealii::Tensor<1,dim,real>,dim>& derivative_direction,
 		const unsigned int                                order) = 0;
 
+	// limits the anisotropic ratios to a given bandwidth
+	virtual void apply_anisotropic_limit(
+		const real anisotropic_ratio_min,
+		const real anisotropic_ratio_max) = 0;
+
 };
 
 // isotropic element case (element scale only)
@@ -164,6 +169,11 @@ public:
 		const std::array<real,dim>&                       derivative_value,
 		const std::array<dealii::Tensor<1,dim,real>,dim>& derivative_direction,
 		const unsigned int                                order) override;
+
+	// limits the anisotropic ratios to a given bandwidth
+	void apply_anisotropic_limit(
+		const real anisotropic_ratio_min,
+		const real anisotropic_ratio_max);
 
 	// output to ostream
 	friend std::ostream& operator<<(
@@ -248,6 +258,11 @@ public:
 		const std::array<dealii::Tensor<1,dim,real>,dim>& derivative_direction,
 		const unsigned int                                order) override;
 
+	// limits the anisotropic ratios to a given bandwidth
+	void apply_anisotropic_limit(
+		const real anisotropic_ratio_min,
+		const real anisotropic_ratio_max);
+
 	// output to ostream
 	friend std::ostream& operator<<(
 		std::ostream&                       os,
@@ -285,6 +300,9 @@ private:
 
 	// adjust the ratio values s.t. product of anisotropic ratios equals 1 
 	void correct_anisotropic_ratio();
+
+	// sorts the anisotropic ratio values (and corresponding unit axis)
+	void sort_anisotropic_ratio();
 
 	// element size
 	real m_scale;
@@ -419,6 +437,11 @@ public:
 		const std::vector<std::array<dealii::Tensor<1,dim,real>,dim>>& derivative_direction,
 		const int                                                      relative_order) = 0;
 	
+	// limits the anisotropic ratios to a given bandwidth
+	virtual void apply_anisotropic_limit(
+		const real anisotropic_ratio_min,
+		const real anisotropic_ratio_max) = 0;
+
 	// performs the internal call to writing to an ostream from the field
 	virtual std::ostream& serialize(
 		std::ostream& os) const = 0;
@@ -521,6 +544,11 @@ public:
 		const std::vector<std::array<real,dim>>&                       derivative_value,
 		const std::vector<std::array<dealii::Tensor<1,dim,real>,dim>>& derivative_direction,
 		const int                                                      relative_order) override;
+
+	// limits the anisotropic ratios to a given bandwidth
+	void apply_anisotropic_limit(
+		const real anisotropic_ratio_min,
+		const real anisotropic_ratio_max) override;
 
 	// performs the internal call to writing to an ostream from the field
 	std::ostream& serialize(

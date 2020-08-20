@@ -53,13 +53,17 @@ subsection grid refinement study
   # enabling interpolation for error measurement
   set use_interpolation = true
 
-  # grid refinement - 
+  # grid refinement
   subsection grid refinement
     set refinement_steps  = 2
     set refinement_method = continuous
     set refinement_type   = h
+    
     #set anisotropic       = false
     set anisotropic       = true
+    set anisotropic_ratio_min = 0.5
+    set anisotropic_ratio_max = 2.0
+
     set error_indicator   = hessian_based #error_based
     set norm_Lq           = 2.0
     set complexity_scale  = 2.0

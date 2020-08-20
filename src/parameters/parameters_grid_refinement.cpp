@@ -46,6 +46,14 @@ void GridRefinementParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Bool(),
                           "Inidcates whether the refinement should be done anisotropically.");
 
+        prm.declare_entry("anisotropic_ratio_max", "1.0e+12",
+                          dealii::Patterns::Double(1.0, dealii::Patterns::Double::max_double_value),
+                          "maximum anisotropic ratio for continuous size field targets.");
+
+        prm.declare_entry("anisotropic_ratio_min", "1.0e-12",
+                          dealii::Patterns::Double(dealii::Patterns::Double::min_double_value, 1.0),
+                          "miniumum anistropic ratio for continuous size field targets.");
+
         prm.declare_entry("anisotropic_threshold_ratio", "3.0",
                           dealii::Patterns::Double(1.0, dealii::Patterns::Double::max_double_value),
                           "Threshold for flagging cells with anisotropic refinement.");
@@ -139,6 +147,9 @@ void GridRefinementParam::parse_parameters(dealii::ParameterHandler &prm)
         else if(refinement_type_string == "hp"){refinement_type = RefinementType::hp;}
 
         anisotropic = prm.get_bool("anisotropic");
+
+        anisotropic_ratio_max = prm.get_double("anisotropic_ratio_max");
+        anisotropic_ratio_min = prm.get_double("anisotropic_ratio_min");
 
         anisotropic_threshold_ratio = prm.get_double("anisotropic_threshold_ratio");
 

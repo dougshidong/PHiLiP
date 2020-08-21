@@ -31,6 +31,81 @@ namespace PHiLiP {
     template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
 #endif
 
+// Derivatives are ordered such that w comes first with index 0, then x.
+// If derivatives with respect to w are not needed, then derivatives
+// with respect to x will start at index 0. This function is for a single
+// cell's DoFs.
+void automatic_differentiation_indexing_1(
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+    const unsigned int n_soln_dofs, const unsigned int n_metric_dofs,
+    unsigned int &w_start, unsigned int &w_end,
+    unsigned int &x_start, unsigned int &x_end)
+{
+    w_start = 0;
+    w_end = 0;
+    x_start = 0;
+    x_end = 0;
+    if (compute_d2R || (compute_dRdW && compute_dRdX)) {
+        w_start = 0;
+        w_end   = w_start + n_soln_dofs;
+        x_start = w_end;
+        x_end   = x_start + n_metric_dofs;
+    } else if (compute_dRdW) {
+        w_start = 0;
+        w_end   = w_start + n_soln_dofs;
+        x_start = w_end;
+        x_end   = x_start + 0;
+    } else if (compute_dRdX) {
+        w_start = 0;
+        w_end   = w_start + 0;
+        x_start = w_end;
+        x_end   = x_start + n_metric_dofs;
+    } else {
+        std::cout << "Called the derivative version of the residual without requesting the derivative" << std::endl;
+    }
+}
+
+void automatic_differentiation_indexing_2(
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+    const unsigned int n_soln_dofs_int, const unsigned int n_soln_dofs_ext, const unsigned int n_metric_dofs,
+    unsigned int &w_int_start, unsigned int &w_int_end, unsigned int &w_ext_start, unsigned int &w_ext_end,
+    unsigned int &x_int_start, unsigned int &x_int_end, unsigned int &x_ext_start, unsigned int &x_ext_end)
+{
+    // Current derivative order is: soln_int, soln_ext, metric_int, metric_ext
+    w_int_start = 0; w_int_end = 0; w_ext_start = 0; w_ext_end = 0;
+    x_int_start = 0; x_int_end = 0; x_ext_start = 0; x_ext_end = 0;
+    if (compute_d2R || (compute_dRdW && compute_dRdX)) {
+        w_int_start = 0;
+        w_int_end   = w_int_start + n_soln_dofs_int;
+        w_ext_start = w_int_end;
+        w_ext_end   = w_ext_start + n_soln_dofs_ext;
+        x_int_start = w_ext_end;
+        x_int_end   = x_int_start + n_metric_dofs;
+        x_ext_start = x_int_end;
+        x_ext_end   = x_ext_start + n_metric_dofs;
+    } else if (compute_dRdW) {
+        w_int_start = 0;
+        w_int_end   = w_int_start + n_soln_dofs_int;
+        w_ext_start = w_int_end;
+        w_ext_end   = w_ext_start + n_soln_dofs_ext;
+        x_int_start = w_ext_end;
+        x_int_end   = x_int_start + 0;
+        x_ext_start = x_int_end;
+        x_ext_end   = x_ext_start + 0;
+    } else if (compute_dRdX) {
+        w_int_start = 0;
+        w_int_end   = w_int_start + 0;
+        w_ext_start = w_int_end;
+        w_ext_end   = w_ext_start + 0;
+        x_int_start = w_ext_end;
+        x_int_end   = x_int_start + n_metric_dofs;
+        x_ext_start = x_int_end;
+        x_ext_end   = x_ext_start + n_metric_dofs;
+    } else {
+        std::cout << "Called the derivative version of the residual without requesting the derivative" << std::endl;
+    }
+}
+
 
 template <int dim, int nstate, typename real>
 DGWeak<dim,nstate,real>::DGWeak(
@@ -550,28 +625,10 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
     std::vector< FadFadType > coords_coeff(n_metric_dofs);
     std::vector< FadFadType > soln_coeff(n_soln_dofs);
 
-    // Derivatives are ordered such that w comes first with index 0, then x.
-    // If derivatives with respect to w are not needed, then derivatives
-    // with respect to x will start at index 0.
-    unsigned int w_start = 0, w_end = 0, x_start = 0, x_end = 0;
-    if (compute_d2R || (compute_dRdW && compute_dRdX)) {
-        w_start = 0;
-        w_end   = w_start + n_soln_dofs;
-        x_start = w_end;
-        x_end   = x_start + n_metric_dofs;
-    } else if (compute_dRdW) {
-        w_start = 0;
-        w_end   = w_start + n_soln_dofs;
-        x_start = w_end;
-        x_end   = x_start + 0;
-    } else if (compute_dRdX) {
-        w_start = 0;
-        w_end   = w_start + 0;
-        x_start = w_end;
-        x_end   = x_start + n_metric_dofs;
-    } else {
-        std::cout << "Called the derivative version of the residual without requesting the derivative" << std::endl;
-    }
+    unsigned int w_start, w_end, x_start, x_end;
+    automatic_differentiation_indexing_1( compute_dRdW, compute_dRdX, compute_d2R,
+                                          n_soln_dofs, n_metric_dofs,
+                                          w_start, w_end, x_start, x_end );
 
     unsigned int i_derivative = 0;
     const unsigned int n_total_indep = x_end;
@@ -872,39 +929,14 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
     std::vector< FadFadType > soln_coeff_int(n_soln_dofs_int);
     std::vector< FadFadType > soln_coeff_ext(n_soln_dofs_ext);
 
-    // Current derivative order is: soln_int, soln_ext, metric_int, metric_ext
-    unsigned int w_int_start = 0, w_int_end = 0, w_ext_start = 0, w_ext_end = 0,
-                 x_int_start = 0, x_int_end = 0, x_ext_start = 0, x_ext_end = 0;
-    if (compute_d2R || (compute_dRdW && compute_dRdX)) {
-        w_int_start = 0;
-        w_int_end   = w_int_start + n_soln_dofs_int;
-        w_ext_start = w_int_end;
-        w_ext_end   = w_ext_start + n_soln_dofs_ext;
-        x_int_start = w_ext_end;
-        x_int_end   = x_int_start + n_metric_dofs;
-        x_ext_start = x_int_end;
-        x_ext_end   = x_ext_start + n_metric_dofs;
-    } else if (compute_dRdW) {
-        w_int_start = 0;
-        w_int_end   = w_int_start + n_soln_dofs_int;
-        w_ext_start = w_int_end;
-        w_ext_end   = w_ext_start + n_soln_dofs_ext;
-        x_int_start = w_ext_end;
-        x_int_end   = x_int_start + 0;
-        x_ext_start = x_int_end;
-        x_ext_end   = x_ext_start + 0;
-    } else if (compute_dRdX) {
-        w_int_start = 0;
-        w_int_end   = w_int_start + 0;
-        w_ext_start = w_int_end;
-        w_ext_end   = w_ext_start + 0;
-        x_int_start = w_ext_end;
-        x_int_end   = x_int_start + n_metric_dofs;
-        x_ext_start = x_int_end;
-        x_ext_end   = x_ext_start + n_metric_dofs;
-    } else {
-        std::cout << "Called the derivative version of the residual without requesting the derivative" << std::endl;
-    }
+    // Current derivative ordering is: soln_int, soln_ext, metric_int, metric_ext
+    unsigned int w_int_start, w_int_end, w_ext_start, w_ext_end,
+                 x_int_start, x_int_end, x_ext_start, x_ext_end;
+    automatic_differentiation_indexing_2(
+        compute_dRdW, compute_dRdX, compute_d2R,
+        n_soln_dofs_int, n_soln_dofs_ext, n_metric_dofs,
+        w_int_start, w_int_end, w_ext_start, w_ext_end,
+        x_int_start, x_int_end, x_ext_start, x_ext_end);
 
     const unsigned int n_total_indep = x_ext_end;
     unsigned int i_derivative = 0;

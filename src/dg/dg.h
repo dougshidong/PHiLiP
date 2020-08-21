@@ -305,7 +305,7 @@ public:
     /// Discontinuity sensor based on projecting to p-1
     template <typename real2>
     real2 discontinuity_sensor(
-        const double diameter,
+        const real2 diameter,
         const std::vector< real2 > &soln_coeff_high,
         const dealii::FiniteElement<dim,dim> &fe_high);
 
@@ -687,6 +687,21 @@ private:
         dealii::Vector<real> &local_rhs_cell,
         const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
+
+    /// Evaluate the integral over the cell volume and the specified derivatives.
+    /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
+    template <typename real2>
+    void assemble_volume_terms_derivatives_2(
+        const std::vector<real2> &coords_coeff,
+        const std::vector<real2> &soln_coeff,
+        const std::vector<real> &local_dual,
+        const dealii::FESystem<dim,dim> &fe,
+        const dealii::Quadrature<dim> &quadrature,
+        std::vector<real2> &rhs,
+        real2 &dual_dot_residual,
+        const bool compute_metric_derivatives,
+        const dealii::FEValues<dim,dim> &fe_values_vol);
+
     /// Evaluate the integral over the cell edges that are on domain boundaries and the specified derivatives.
     /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
     void assemble_boundary_term_derivatives(

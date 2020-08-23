@@ -19,6 +19,7 @@
 #include "optimization_inverse_manufactured/optimization_inverse_manufactured.h"
 #include "euler_bump_optimization.h"
 #include "shock_1d.h"
+#include "euler_naca0012.hpp"
 
 namespace PHiLiP {
 namespace Tests {
@@ -91,6 +92,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerBumpOptimization<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::shock_1d) {
         if constexpr (dim==1 && nstate==1) return std::make_unique<Shock1D<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::euler_naca0012) {
+        if constexpr (dim==2 && nstate==4) return std::make_unique<EulerNACA0012<dim,nstate>>(parameters_input);
     } else{
         std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
     }

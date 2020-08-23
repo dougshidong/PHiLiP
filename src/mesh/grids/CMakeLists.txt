@@ -2,6 +2,7 @@
 
 set(GRIDS_SOURCE
     gaussian_bump.cpp
+    naca_airfoil_grid.cpp
     spline_channel.cpp
     )
 

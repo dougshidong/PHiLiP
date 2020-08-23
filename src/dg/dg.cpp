@@ -1140,7 +1140,7 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
 
     const dealii::Mapping<dim> &mapping = (*(high_order_grid.mapping_fe_field));
     //const int n_subdivisions = max_degree;;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
-    const int n_subdivisions = 0;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
+    const int n_subdivisions = max_degree;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
     data_out.build_patches(mapping, n_subdivisions, curved);
     const bool write_higher_order_cells = (dim>1 && max_degree > 1) ? true : false; 
     dealii::DataOutBase::VtkFlags vtkflags(0.0,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);

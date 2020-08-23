@@ -71,6 +71,7 @@ public:
 		optimization_inverse_manufactured,
         euler_bump_optimization,
         shock_1d,
+        euler_naca0012,
         advection_periodicity,
         };
     TestType test_type; ///< Selected TestType from the input file.

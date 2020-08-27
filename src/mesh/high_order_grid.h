@@ -149,12 +149,6 @@ public:
      *  point.
      */
     std::vector<real> locally_relevant_surface_nodes;
-    /// List of all surface nodes
-    /** Same as locally_relevant_surface_nodes except that it stores a global vector of all the
-     *  surface nodes that will be needed to evaluate the A matrix in the RBF 
-     *  deformation dxv = A * coeff = A * (Minv*dxs)
-     */
-    std::vector<real> all_locally_relevant_surface_nodes;
 
     /// List of surface node indices
     std::vector<dealii::types::global_dof_index> locally_relevant_surface_nodes_indices;
@@ -186,8 +180,6 @@ public:
 
     /// List of surface node indices
     std::vector<dealii::types::global_dof_index> locally_owned_surface_nodes_indices;
-    /// List of surface node boundary IDs, corresponding to locally_owned_surface_nodes_indices
-    std::vector<dealii::types::global_dof_index> locally_owned_surface_nodes_boundary_id;
 
     // /// List of cells associated with locally_relevant_surface_nodes_indices
     // std::vector<dealii::types::global_dof_index> locally_relevant_surface_nodes_cells;

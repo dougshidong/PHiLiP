@@ -48,6 +48,10 @@
 #include "dg.h"
 #include "post_processor/physics_post_processor.h"
 
+#include <deal.II/numerics/derivative_approximation.h>
+#include <deal.II/grid/grid_refinement.h>
+
+
 #include "global_counter.hpp"
 
 unsigned int n_vmult;
@@ -1643,6 +1647,200 @@ real2 DGBase<dim,real>::discontinuity_sensor(
     return eps;
 
 }
+
+template<int dim, typename real>
+void DGBase<dim,real>::refine_residual_based()
+{
+    dealii::Vector<float> gradient_indicator(high_order_grid.triangulation->n_active_cells());
+
+    const auto mapping = (*(high_order_grid.mapping_fe_field));
+    dealii::DerivativeApproximation::approximate_gradient(mapping,
+                                                  dof_handler,
+                                                  solution,
+                                                  gradient_indicator);
+
+    for (const auto &cell : high_order_grid.triangulation->active_cell_iterators()) {
+        gradient_indicator[cell->active_cell_index()] *= std::pow(cell->diameter(), 1 + 1.0 * dim / 2);
+    }
+    std::vector<dealii::types::global_dof_index> dofs_indices;
+    for (const auto &cell : dof_handler.active_cell_iterators()) {
+        if (!cell->is_locally_owned()) continue;
+
+        const int i_fele = cell->active_fe_index();
+        const dealii::FESystem<dim,dim> &fe_ref = fe_collection[i_fele];
+        const unsigned int n_dofs_cell = fe_ref.n_dofs_per_cell();
+        dofs_indices.resize(n_dofs_cell);
+        cell->get_dof_indices (dofs_indices);
+        double max_residual = 0;
+        for (const auto &idof : dofs_indices) {
+            const double res = std::abs(right_hand_side[idof]);
+            if (res > max_residual) max_residual = res;
+        }
+        gradient_indicator[cell->active_cell_index()] = max_residual;
+    }
+
+    dealii::LinearAlgebra::distributed::Vector<double> old_solution(solution);
+    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dof_handler);
+    solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
+    high_order_grid.prepare_for_coarsening_and_refinement();
+
+    //high_order_grid.triangulation->refine_global (1);
+    dealii::GridRefinement::refine_and_coarsen_fixed_number(*high_order_grid.triangulation,
+                                                    gradient_indicator,
+                                                    0.01,
+                                                    0.005);
+    high_order_grid.triangulation->execute_coarsening_and_refinement();
+    high_order_grid.execute_coarsening_and_refinement();
+    allocate_system ();
+    solution.zero_out_ghosts();
+    solution_transfer.interpolate(solution);
+    solution.update_ghost_values();
+
+    assemble_residual ();
+
+}
+
+// No support for anisotropic mesh refinement with parallel::distributed::Triangulation
+// template<int dim, typename real>
+// void DGBase<dim,real>::set_anisotropic_flags()
+// {
+//     dealii::UpdateFlags face_update_flags = dealii::UpdateFlags(dealii::update_values | dealii::update_JxW_values);
+//   
+//     const auto mapping = (*(high_order_grid.mapping_fe_field));
+// 
+//     dealii::hp::MappingCollection<dim>   mapping_collection(mapping);
+//     dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_int (mapping_collection, fe_collection, face_quadrature_collection, face_update_flags);
+//     dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_ext (mapping_collection, fe_collection, face_quadrature_collection, face_update_flags);
+//     dealii::hp::FESubfaceValues<dim,dim> fe_values_collection_subface  (mapping_collection, fe_collection, face_quadrature_collection, face_update_flags);
+//   
+//     for (const auto &cell : dof_handler.active_cell_iterators()) {
+//         if (!cell->is_locally_owned()) continue;
+//         if (cell->refine_flag_set()) {
+//             dealii::Point<dim> jump;
+//             dealii::Point<dim> area;
+// 
+//             // Current reference element related to this physical cell
+//             const int i_fele = cell->active_fe_index();
+//             const int i_quad = i_fele;
+//             const int i_mapp = 0;
+//   
+//             for (const auto face_no : cell->face_indices()) {
+// 
+//                 const auto face = cell->face(face_no);
+//   
+//                 if (!face->at_boundary()) {
+// 
+//                     Assert(cell->neighbor(face_no).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
+//                     const auto neighbor = cell->neighbor(face_no);
+//   
+//                     if (face->has_children()) {
+// 
+//                         unsigned int neighbor_iface = cell->neighbor_face_no(face_no);
+//                         for (unsigned int subface_no = 0; subface_no < face->number_of_children(); ++subface_no) {
+// 
+//                             const auto neighbor_child = cell->neighbor_child_on_subface(face_no, subface_no);
+//                             const int i_fele_n = neighbor_child->active_fe_index(), i_quad_n = i_fele_n, i_mapp_n = 0;
+//                             Assert(!neighbor_child->has_children(), dealii::ExcInternalError());
+// 
+//                             fe_values_collection_subface.reinit(cell, face_no, subface_no, i_fele, i_quad, i_mapp);
+//                             fe_values_collection_face_ext.reinit(neighbor_child, neighbor_iface, i_fele_n, i_quad_n, i_mapp_n);
+// 
+//                             const dealii::FESubfaceValues<dim,dim> &fe_values_face_int = fe_values_collection_subface.get_present_fe_values();
+//                             const dealii::FEFaceValues<dim,dim>    &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
+// 
+//                             std::vector<dealii::Vector<double>> u(fe_values_face_int.n_quadrature_points);
+//                             std::vector<dealii::Vector<double>> u_neighbor(fe_values_face_int.n_quadrature_points);
+//                             std::fill(u.begin(), u.end(), dealii::Vector<double>(nstate));
+//                             std::fill(u_neighbor.begin(), u_neighbor.end(), dealii::Vector<double>(nstate));
+//   
+//                             fe_values_face_int.get_function_values(solution, u);
+//                             fe_values_face_ext.get_function_values(solution, u_neighbor);
+// 
+//                             const std::vector<double> &JxW = fe_values_face_int.get_JxW_values();
+// 
+//                             for (unsigned int iquad = 0; iquad < fe_values_face_int.n_quadrature_points; ++iquad) {
+//                                 u[iquad].add(-1.0, u_neighbor[iquad]);
+//                                 const double diff_u = (u[iquad]).l2_norm();
+//                                 jump[face_no / 2] += std::abs(diff_u) * JxW[iquad];
+//                                 area[face_no / 2] += JxW[iquad];
+//                             }
+//                         }
+// 
+//                     } else if (!cell->neighbor_is_coarser(face_no)) {
+//                         unsigned int neighbor_iface = cell->neighbor_of_neighbor(face_no);
+//                         const int i_fele_n = neighbor->active_fe_index(), i_quad_n = i_fele_n, i_mapp_n = 0;
+//   
+//                         fe_values_collection_face_int.reinit(cell, face_no, i_fele, i_quad, i_mapp);
+//                         fe_values_collection_face_ext.reinit(neighbor, neighbor_iface, i_fele_n, i_quad_n, i_mapp_n);
+// 
+//                         const dealii::FEFaceValues<dim,dim>    &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
+//                         const dealii::FEFaceValues<dim,dim>    &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
+// 
+//                         std::vector<dealii::Vector<double>> u(fe_values_face_int.n_quadrature_points);
+//                         std::vector<dealii::Vector<double>> u_neighbor(fe_values_face_int.n_quadrature_points);
+//                         std::fill(u.begin(), u.end(), dealii::Vector<double>(nstate));
+//                         std::fill(u_neighbor.begin(), u_neighbor.end(), dealii::Vector<double>(nstate));
+// 
+//                         fe_values_face_int.get_function_values(solution, u);
+//                         fe_values_face_ext.get_function_values(solution, u_neighbor);
+//   
+//                         const std::vector<double> &JxW = fe_values_face_int.get_JxW_values();
+//   
+//                         for (unsigned int iquad = 0; iquad < fe_values_face_int.n_quadrature_points; ++iquad) {
+//                             u[iquad].add(-1.0, u_neighbor[iquad]);
+//                             const double diff_u = (u[iquad]).l2_norm();
+//                             jump[face_no / 2] += std::abs(diff_u) * JxW[iquad];
+//                             area[face_no / 2] += JxW[iquad];
+//                         }
+//                     } else { // i.e. neighbor is coarser than cell
+//                         std::pair<unsigned int, unsigned int> neighbor_face_subface = cell->neighbor_of_coarser_neighbor(face_no);
+//                         Assert(neighbor_face_subface.first < cell->n_faces(), dealii::ExcInternalError());
+//                         Assert(neighbor_face_subface.second < neighbor->face(neighbor_face_subface.first) ->number_of_children(), dealii::ExcInternalError());
+//                         Assert(neighbor->neighbor_child_on_subface( neighbor_face_subface.first, neighbor_face_subface.second) == cell, dealii::ExcInternalError());
+// 
+//                         const int i_fele_n = neighbor->active_fe_index(), i_quad_n = i_fele_n, i_mapp_n = 0;
+//   
+//                         fe_values_collection_face_int.reinit(cell, face_no, i_fele, i_quad, i_mapp);
+//                         fe_values_collection_subface.reinit(neighbor, neighbor_face_subface.first, neighbor_face_subface.second, i_fele_n, i_quad_n, i_mapp_n);
+// 
+//                         const dealii::FEFaceValues<dim,dim>       &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
+//                         const dealii::FESubfaceValues<dim,dim>    &fe_values_face_ext = fe_values_collection_subface.get_present_fe_values();
+//   
+//                         std::vector<dealii::Vector<double>> u(fe_values_face_int.n_quadrature_points);
+//                         std::vector<dealii::Vector<double>> u_neighbor(fe_values_face_int.n_quadrature_points);
+//                         std::fill(u.begin(), u.end(), dealii::Vector<double>(nstate));
+//                         std::fill(u_neighbor.begin(), u_neighbor.end(), dealii::Vector<double>(nstate));
+// 
+//                         fe_values_face_int.get_function_values(solution, u);
+//                         fe_values_face_ext.get_function_values(solution, u_neighbor);
+//   
+//                         const std::vector<double> &JxW = fe_values_face_int.get_JxW_values();
+//   
+//                         for (unsigned int iquad = 0; iquad < fe_values_face_int.n_quadrature_points; ++iquad) {
+//                             u[iquad].add(-1.0, u_neighbor[iquad]);
+//                             const double diff_u = (u[iquad]).l2_norm();
+//                             jump[face_no / 2] += std::abs(diff_u) * JxW[iquad];
+//                             area[face_no / 2] += JxW[iquad];
+//                         }
+//                     }
+//                 }
+//             }
+//             std::array<double, dim> average_jumps;
+//             double                  sum_of_average_jumps = 0.;
+//             for (unsigned int i = 0; i < dim; ++i) {
+//                 average_jumps[i] = jump(i) / area(i);
+//                 sum_of_average_jumps += average_jumps[i];
+//             }
+//   
+//             const double anisotropic_threshold_ratio = 3.0;
+//             for (unsigned int i = 0; i < dim; ++i) {
+//                 if (average_jumps[i] > anisotropic_threshold_ratio * (sum_of_average_jumps - average_jumps[i])) {
+//                     cell->set_refine_flag(dealii::RefinementCase<dim>::cut_axis(i));
+//                 }
+//             }
+//         }
+//     }
+// }
 
 
 template class DGBase <PHILIP_DIM, double>;

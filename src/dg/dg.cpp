@@ -1619,7 +1619,7 @@ real2 DGBase<dim,real>::discontinuity_sensor(
     if (soln_norm < 1e-12) return 0.0;
 
     real2 S_e, s_e;
-    S_e = error / soln_norm;
+    S_e = std::sqrt(error / soln_norm);
     s_e = std::log10(S_e);
 
     //double S_0, s_0;
@@ -1627,22 +1627,36 @@ real2 DGBase<dim,real>::discontinuity_sensor(
     //s_0 = std::log10(S_0);
     //const double kappa = 0.1 * std::abs(s_0);
 
-    const double skappa = -2.3;
-    const double s_0 = skappa-4.25*std::log10(degree);
-    const double kappa = 10.2; // 1.2
-    const double mu_scale = 1.0;
+    //const double skappa = -2.3;
+    //const double s_0 = skappa-4.25*std::log10(degree);
+    //const double kappa = 10.2; // 1.2
+    //const double mu_scale = 1.0;
 
-    const double low = s_0 - kappa;
-    const double upp = s_0 + kappa;
+    // log10(a/p^4) = log10(a) - 4*log10(p)
+    //const real2 s_0 = -1.5 - 4.25*std::log10(degree);
+    const double mu_scale = 1.0;
+    const real2 s_0 = std::log10(0.1) - 4.25*std::log10(degree);
+    const double kappa = 1.0;
+    const real2 low = s_0 - kappa;
+    const real2 upp = s_0 + kappa;
+
+    // const double m_Skappa = -2.5;
+    // const double m_Kappa = 0.50;
+    // const double Skappa = m_Skappa - 4.25 * log10((double)degree);
+    // const real2 low = Skappa - m_Kappa;
+    // const real2 upp = Skappa + m_Kappa;
+
     const real2 eps_0 = mu_scale * diameter / (double)degree;
 
     if ( s_e < low) return 0.0;
-    //std::cout << "error: " << error << " norm: " << soln_norm << " s_e " << s_e << " low: " << low << " upp: " << upp << std::endl;
+
     if ( s_e > upp) return eps_0;
 
     const double PI = 4*atan(1);
+    //real2 eps = 1.0 + std::sin(PI * (s_e - Skappa) * 0.5 / m_Kappa);
     real2 eps = 1.0 + std::sin(PI * (s_e - s_0) * 0.5 / kappa);
     eps *= eps_0 * 0.5;
+
 
     return eps;
 

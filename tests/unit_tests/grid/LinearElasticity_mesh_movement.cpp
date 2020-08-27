@@ -102,27 +102,27 @@ int main (int argc, char * argv[])
                 grid->refine_global (1);
                 high_order_grid.execute_coarsening_and_refinement();
             }
-			const int n_refine = 2;
-			for (int i=0; i<n_refine;i++) {
-				high_order_grid.prepare_for_coarsening_and_refinement();
-				grid->prepare_coarsening_and_refinement();
-				unsigned int icell = 0;
-				for (auto cell = grid->begin_active(); cell!=grid->end(); ++cell) {
-					if (!cell->is_locally_owned()) continue;
-					icell++;
-					if (icell > grid->n_active_cells()/2) {
-						cell->set_refine_flag();
-					}
-					//else if (icell%2 == 0) {
-					//    cell->set_refine_flag();
-					//} else if (icell%3 == 0) {
-					//    //cell->set_coarsen_flag();
-					//}
-				}
-				grid->execute_coarsening_and_refinement();
-				bool mesh_out = (i==n_refine-1);
-				high_order_grid.execute_coarsening_and_refinement(mesh_out);
-			}
+   const int n_refine = 2;
+   for (int i=0; i<n_refine;i++) {
+    high_order_grid.prepare_for_coarsening_and_refinement();
+    grid->prepare_coarsening_and_refinement();
+    unsigned int icell = 0;
+    for (auto cell = grid->begin_active(); cell!=grid->end(); ++cell) {
+     if (!cell->is_locally_owned()) continue;
+     icell++;
+     if (icell > grid->n_active_cells()/2) {
+      cell->set_refine_flag();
+     }
+     //else if (icell%2 == 0) {
+     //    cell->set_refine_flag();
+     //} else if (icell%3 == 0) {
+     //    //cell->set_coarsen_flag();
+     //}
+    }
+    grid->execute_coarsening_and_refinement();
+    bool mesh_out = (i==n_refine-1);
+    high_order_grid.execute_coarsening_and_refinement(mesh_out);
+   }
             //const unsigned int n_cell_grid = grid->n_active_cells();
             //for (auto &cell: grid->active_cell_iterators()) {
             //    if (cell->active_cell_index()<n_cell_grid/2) cell->set_refine_flag();

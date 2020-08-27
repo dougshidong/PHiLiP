@@ -64,10 +64,10 @@ solve_linear (
     using block_vec = dealii::LinearAlgebra::distributed::BlockVector<double>;
     const auto kkt_operator = dealii::block_operator<block_vec> (matrix_A);
     dealii::SolverControl solver_control(100000, 1.e-15, true, true);
-    const unsigned int 	max_n_tmp_vectors = 2000;
-    const bool 	right_preconditioning = false;
-    const bool 	use_default_residual = true;
-    const bool 	force_re_orthogonalization = false;
+    const unsigned int  max_n_tmp_vectors = 2000;
+    const bool  right_preconditioning = false;
+    const bool  use_default_residual = true;
+    const bool  force_re_orthogonalization = false;
     dealii::SolverGMRES<block_vec>::AdditionalData add_data( max_n_tmp_vectors, right_preconditioning, use_default_residual, force_re_orthogonalization);
     dealii::SolverGMRES<block_vec> solver_gmres(solver_control, add_data);
     auto kkt_inv = inverse_operator(kkt_operator, solver_gmres, dealii::PreconditionIdentity());
@@ -80,7 +80,7 @@ solve_linear (
 template <int dim, int nstate, typename real>
 class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
 {
-	public:
+ public:
         /// Constructor
         L2_Norm_Functional(
             std::shared_ptr<PHiLiP::DGBase<dim,real>> dg_input,
@@ -91,21 +91,21 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
 
         /// Templated volume integrand.
         template <typename real2>
-		real2 evaluate_volume_integrand(
+  real2 evaluate_volume_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
             const dealii::Point<dim,real2> &phys_coord,
             const std::array<real2,nstate> &soln_at_q,
             const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
-		{
-			real2 l2error = 0;
-			
-			for (int istate=0; istate<nstate; ++istate) {
-				const real2 uexact = physics.manufactured_solution_function->value(phys_coord, istate);
-				l2error += std::pow(soln_at_q[istate] - uexact, 2);
-			}
+  {
+   real2 l2error = 0;
+   
+   for (int istate=0; istate<nstate; ++istate) {
+    const real2 uexact = physics.manufactured_solution_function->value(phys_coord, istate);
+    l2error += std::pow(soln_at_q[istate] - uexact, 2);
+   }
 
-			return l2error;
-		}
+   return l2error;
+  }
 
         /// Templated boundary integral
         template <typename real2>
@@ -135,7 +135,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
         using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
         using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
 
-    	/// non-template functions to override the template classes
+     /// non-template functions to override the template classes
         real evaluate_cell_boundary(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
             const unsigned int boundary_id,
@@ -146,7 +146,7 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
         }
 
 
-    	/// non-template functions to override the template classes
+     /// non-template functions to override the template classes
         FadFadType evaluate_cell_boundary(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,
             const unsigned int boundary_id,
@@ -156,24 +156,24 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
             return evaluate_cell_boundary<>(physics, boundary_id, fe_values_boundary, local_solution);
         }
 
-    	/// non-template functions to override the template classes
-		real evaluate_volume_integrand(
+     /// non-template functions to override the template classes
+  real evaluate_volume_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
             const dealii::Point<dim,real> &phys_coord,
             const std::array<real,nstate> &soln_at_q,
             const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override
-		{
-			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
-		}
-    	/// non-template functions to override the template classes
-		FadFadType evaluate_volume_integrand(
+  {
+   return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
+  }
+     /// non-template functions to override the template classes
+  FadFadType evaluate_volume_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,
             const dealii::Point<dim,FadFadType> &phys_coord,
             const std::array<FadFadType,nstate> &soln_at_q,
             const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &soln_grad_at_q) const override
-		{
-			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
-		}
+  {
+   return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
+  }
 
 };
 
@@ -190,25 +190,25 @@ void initialize_perturbed_solution(PHiLiP::DGBase<dim,double> &dg, const PHiLiP:
 int main(int argc, char *argv[])
 {
 
-	const int dim = PHILIP_DIM;
-	const int nstate = 1;
-	int fail_bool = false;
+ const int dim = PHILIP_DIM;
+ const int nstate = 1;
+ int fail_bool = false;
 
-	// Initializing MPI
-	dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
-	const int this_mpi_process = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
-	dealii::ConditionalOStream pcout(std::cout, this_mpi_process==0);
+ // Initializing MPI
+ dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
+ const int this_mpi_process = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+ dealii::ConditionalOStream pcout(std::cout, this_mpi_process==0);
 
-	// Initializing parameter handling
-	dealii::ParameterHandler parameter_handler;
-	PHiLiP::Parameters::AllParameters::declare_parameters(parameter_handler);
-	PHiLiP::Parameters::AllParameters all_parameters;
-	all_parameters.parse_parameters(parameter_handler);
+ // Initializing parameter handling
+ dealii::ParameterHandler parameter_handler;
+ PHiLiP::Parameters::AllParameters::declare_parameters(parameter_handler);
+ PHiLiP::Parameters::AllParameters all_parameters;
+ all_parameters.parse_parameters(parameter_handler);
 
-	// polynomial order and mesh size
-	const unsigned poly_degree = 1;
+ // polynomial order and mesh size
+ const unsigned poly_degree = 1;
 
-	// creating the grid
+ // creating the grid
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
 #if PHILIP_DIM!=1
         MPI_COMM_WORLD,
@@ -218,24 +218,24 @@ int main(int argc, char *argv[])
             dealii::Triangulation<dim>::smoothing_on_coarsening));
 
     const unsigned int n_refinements = 2;
-	double left = 0.0;
-	double right = 2.0;
-	const bool colorize = true;
+ double left = 0.0;
+ double right = 2.0;
+ const bool colorize = true;
 
-	dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
+ dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
     grid->refine_global(n_refinements);
     const double random_factor = 0.2;
     const bool keep_boundary = false;
     if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, *grid, keep_boundary);
 
-	pcout << "Grid generated and refined" << std::endl;
+ pcout << "Grid generated and refined" << std::endl;
 
-	// creating the dg
-	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, grid);
-	pcout << "dg created" << std::endl;
+ // creating the dg
+ std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, grid);
+ pcout << "dg created" << std::endl;
 
-	dg->allocate_system();
-	pcout << "dg allocated" << std::endl;
+ dg->allocate_system();
+ pcout << "dg allocated" << std::endl;
 
     const int n_refine = 2;
     for (int i=0; i<n_refine;i++) {
@@ -255,22 +255,22 @@ int main(int argc, char *argv[])
     }
     dg->allocate_system ();
 
-	// manufactured solution function
-	std::shared_ptr <PHiLiP::Physics::PhysicsBase<dim,nstate,double>> physics_double = PHiLiP::Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&all_parameters);
-	pcout << "Physics created" << std::endl;
-	
-	// performing the interpolation for the intial conditions
-	initialize_perturbed_solution(*dg, *physics_double);
-	pcout << "solution initialized" << std::endl;
+ // manufactured solution function
+ std::shared_ptr <PHiLiP::Physics::PhysicsBase<dim,nstate,double>> physics_double = PHiLiP::Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&all_parameters);
+ pcout << "Physics created" << std::endl;
+ 
+ // performing the interpolation for the intial conditions
+ initialize_perturbed_solution(*dg, *physics_double);
+ pcout << "solution initialized" << std::endl;
 
-	// evaluating the derivative (using SACADO)
-	pcout << std::endl << "Starting Hessian AD... " << std::endl;
-	L2_Norm_Functional<dim,nstate,double> functional(dg,true,false);
-	const bool compute_dIdW = false, compute_dIdX = false, compute_d2I = true;
-	double functional_value = functional.evaluate_functional(compute_dIdW, compute_dIdX, compute_d2I);
-	(void) functional_value;
+ // evaluating the derivative (using SACADO)
+ pcout << std::endl << "Starting Hessian AD... " << std::endl;
+ L2_Norm_Functional<dim,nstate,double> functional(dg,true,false);
+ const bool compute_dIdW = false, compute_dIdX = false, compute_d2I = true;
+ double functional_value = functional.evaluate_functional(compute_dIdW, compute_dIdX, compute_d2I);
+ (void) functional_value;
 
-	// Evaluate residual Hessians
+ // Evaluate residual Hessians
     bool compute_dRdW, compute_dRdX, compute_d2R;
 
     pcout << "Evaluating RHS only to use as dual variables..." << std::endl;
@@ -320,21 +320,21 @@ int main(int argc, char *argv[])
         d2IdXdW.reinit(*transpose_CrsMatrix);
     }
 
-	// Form Lagrangian Hessian
-	functional.d2IdWdW.add(1.0,dg->d2RdWdW);
-	functional.d2IdWdX.add(1.0,dg->d2RdWdX);
-	d2IdXdW.add(1.0,d2RdXdW);
-	functional.d2IdXdX.add(1.0,dg->d2RdXdX);
+ // Form Lagrangian Hessian
+ functional.d2IdWdW.add(1.0,dg->d2RdWdW);
+ functional.d2IdWdX.add(1.0,dg->d2RdWdX);
+ d2IdXdW.add(1.0,d2RdXdW);
+ functional.d2IdXdX.add(1.0,dg->d2RdXdX);
 
 
-	// Block Sparsity pattern
-	// L_ww  L_wx  R_w^T
-	// L_xw  L_xx  R_x^T
-	// R_w   R_x   0
-	// const unsigned int n_constraints = rhs_only.size();
-	// const unsigned int n_flow_var    = dg->dof_handler.n_dofs();
-	// const unsigned int n_geom_var    = dg->high_order_grid.dof_handler_grid.n_dofs();
-	//BlockDynamicSparsityPattern dsp(3, 3);
+ // Block Sparsity pattern
+ // L_ww  L_wx  R_w^T
+ // L_xw  L_xx  R_x^T
+ // R_w   R_x   0
+ // const unsigned int n_constraints = rhs_only.size();
+ // const unsigned int n_flow_var    = dg->dof_handler.n_dofs();
+ // const unsigned int n_geom_var    = dg->high_order_grid.dof_handler_grid.n_dofs();
+ //BlockDynamicSparsityPattern dsp(3, 3);
     //dsp.block(0, 0).reinit(n_flow_var, n_flow_var);
     //dsp.block(0, 1).reinit(n_flow_var, n_geom_var);
     //dsp.block(0, 2).reinit(n_flow_var, n_constraints);
@@ -347,8 +347,8 @@ int main(int argc, char *argv[])
     //dsp.block(2, 1).reinit(n_constraints, n_geom_var);
     //dsp.block(2, 2).reinit(n_constraints, n_constraints);
 
-	dealii::TrilinosWrappers::BlockSparseMatrix kkt_hessian;
-	kkt_hessian.reinit(3,3);
+ dealii::TrilinosWrappers::BlockSparseMatrix kkt_hessian;
+ kkt_hessian.reinit(3,3);
     kkt_hessian.block(0, 0).copy_from( functional.d2IdWdW);
     kkt_hessian.block(0, 1).copy_from( functional.d2IdWdX);
     kkt_hessian.block(0, 2).copy_from( dRdW_transpose);
@@ -360,19 +360,19 @@ int main(int argc, char *argv[])
     kkt_hessian.block(2, 0).copy_from( dg->system_matrix);
     kkt_hessian.block(2, 1).copy_from( dg->dRdXv);
     dealii::TrilinosWrappers::SparsityPattern zero_sparsity_pattern(dg->locally_owned_dofs, MPI_COMM_WORLD, 0);
-	//dealii::TrilinosWrappers::SparseMatrix zero_block;//(n_constraints, n_constraints, 0);
+ //dealii::TrilinosWrappers::SparseMatrix zero_block;//(n_constraints, n_constraints, 0);
     //zero_block.reinit(dg->locally_owned_dofs, zero_sparsity_pattern, MPI_COMM_WORLD);
-	// zero_block.reinit(dg->locally_owned_dofs);
-	// dealii::TrilinosWrappers::SparseMatrix zero_block(dg->locally_owned_dofs);
+ // zero_block.reinit(dg->locally_owned_dofs);
+ // dealii::TrilinosWrappers::SparseMatrix zero_block(dg->locally_owned_dofs);
     // kkt_hessian.block(2, 2).copy_from( zero_block );
-	zero_sparsity_pattern.compress();
+ zero_sparsity_pattern.compress();
     kkt_hessian.block(2, 2).reinit(zero_sparsity_pattern);
 
     kkt_hessian.collect_sizes();
 
     pcout << "kkt_hessian.frobenius_norm()  " << kkt_hessian.frobenius_norm() << std::endl;
 
-	// const int n_mpi_processes = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
+ // const int n_mpi_processes = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
     // if (n_mpi_processes == 1) {
     //     dealii::FullMatrix<double> fullA(kkt_hessian.m());
     //     fullA.copy_from(kkt_hessian);
@@ -381,18 +381,18 @@ int main(int argc, char *argv[])
     // }
 
     dealii::LinearAlgebra::distributed::BlockVector<double> block_vector(3);
-	block_vector.block(0) = dg->solution;
-	block_vector.block(1) = dg->high_order_grid.volume_nodes;
-	block_vector.block(2) = dummy_dual;
+ block_vector.block(0) = dg->solution;
+ block_vector.block(1) = dg->high_order_grid.volume_nodes;
+ block_vector.block(2) = dummy_dual;
     dealii::LinearAlgebra::distributed::BlockVector<double> Hv(3);
     dealii::LinearAlgebra::distributed::BlockVector<double> Htv(3);
-	Hv.reinit(block_vector);
-	Htv.reinit(block_vector);
+ Hv.reinit(block_vector);
+ Htv.reinit(block_vector);
 
-	kkt_hessian.vmult(Hv,block_vector);
-	kkt_hessian.Tvmult(Htv,block_vector);
+ kkt_hessian.vmult(Hv,block_vector);
+ kkt_hessian.Tvmult(Htv,block_vector);
 
-	Htv.sadd(-1.0, Hv);
+ Htv.sadd(-1.0, Hv);
 
     const double vector_norm = Hv.l2_norm();
     const double vector_abs_diff = Htv.l2_norm();
@@ -408,11 +408,11 @@ int main(int argc, char *argv[])
                     << std::endl;
     if (vector_abs_diff > tol && vector_rel_diff > tol) fail_bool = true;
 
-	const int n_mpi_processes = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
+ const int n_mpi_processes = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
     if (n_mpi_processes == 1) {
         dealii::FullMatrix<double> fullA(kkt_hessian.m());
         fullA.copy_from(kkt_hessian);
-		const int n_digits = 8;
+  const int n_digits = 8;
         if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), n_digits, true, n_digits+7, "0", 1., 0.);
     }
 
@@ -424,15 +424,15 @@ int main(int argc, char *argv[])
         all_parameters.linear_solver_param);
 
     dealii::LinearAlgebra::distributed::BlockVector<double> diff(3);
-	diff.reinit(block_vector);
+ diff.reinit(block_vector);
     kkt_hessian.vmult(diff,Htv);
-	diff -= Hv;
+ diff -= Hv;
     double diff_norm = diff.l2_norm();
     std::cout
         << " diff_norm "
         << diff_norm
         << std::endl;
 
-	return fail_bool;
+ return fail_bool;
 }
 

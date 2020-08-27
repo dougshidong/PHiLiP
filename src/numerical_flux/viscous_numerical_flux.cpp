@@ -28,9 +28,9 @@ std::array<dealii::Tensor<1,dim,real>,nstate> array_jump(
 {
     std::array<dealii::Tensor<1,dim,real>,nstate> array_jump;
     for (int s=0; s<nstate; s++) {
-		for (int d=0; d<dim; d++) {
-			array_jump[s][d] = (array1[s] - array2[s])*normal1[d];
-		}
+  for (int d=0; d<dim; d++) {
+   array_jump[s][d] = (array1[s] - array2[s])*normal1[d];
+  }
     }
     return array_jump;
 }

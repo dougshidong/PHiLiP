@@ -46,53 +46,53 @@ namespace Tests {
 // template <int dim, int nstate, typename real>
 // class L2_Norm_Functional : public Functional<dim, nstate, real>
 // {
-// 	public:
-// 		template <typename real2>
-// 		real2 evaluate_cell_volume(
-// 			const Physics::PhysicsBase<dim,nstate,real> &physics,
-// 			const dealii::FEValues<dim,dim> &fe_values_volume,
-// 			std::vector<real2> local_solution)
-// 		{
-// 			unsigned int n_quad_pts = fe_values_volume.n_quadrature_points;
+//  public:
+//   template <typename real2>
+//   real2 evaluate_cell_volume(
+//    const Physics::PhysicsBase<dim,nstate,real> &physics,
+//    const dealii::FEValues<dim,dim> &fe_values_volume,
+//    std::vector<real2> local_solution)
+//   {
+//    unsigned int n_quad_pts = fe_values_volume.n_quadrature_points;
 
-// 			std::array<real2,nstate> soln_at_q;
+//    std::array<real2,nstate> soln_at_q;
 
-// 			real2 l2error = 0;
+//    real2 l2error = 0;
 
-// 			// looping over the quadrature points
-// 			for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-// 				std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
-// 				for (unsigned int idof=0; idof<fe_values_volume.dofs_per_cell; ++idof) {
-// 					const unsigned int istate = fe_values_volume.get_fe().system_to_component_index(idof).first;
-// 					soln_at_q[istate] += local_solution[idof] * fe_values_volume.shape_value_component(idof, iquad, istate);
-// 				}
-			
-// 				const dealii::Point<dim> qpoint = (fe_values_volume.quadrature_point(iquad));
+//    // looping over the quadrature points
+//    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+//     std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
+//     for (unsigned int idof=0; idof<fe_values_volume.dofs_per_cell; ++idof) {
+//      const unsigned int istate = fe_values_volume.get_fe().system_to_component_index(idof).first;
+//      soln_at_q[istate] += local_solution[idof] * fe_values_volume.shape_value_component(idof, iquad, istate);
+//     }
+   
+//     const dealii::Point<dim> qpoint = (fe_values_volume.quadrature_point(iquad));
 
-// 				for (int istate=0; istate<nstate; ++istate) {
-// 					const double uexact = physics.manufactured_solution_function.value(qpoint, istate);
-// 					l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_volume.JxW(iquad);
-// 				}
-// 			}
+//     for (int istate=0; istate<nstate; ++istate) {
+//      const double uexact = physics.manufactured_solution_function.value(qpoint, istate);
+//      l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_volume.JxW(iquad);
+//     }
+//    }
 
-// 			return l2error;
-// 		}
+//    return l2error;
+//   }
 
-// 		// non-template functions to override the template classes
-// 		real evaluate_cell_volume(
-// 			const Physics::PhysicsBase<dim,nstate,real> &physics,
-// 			const dealii::FEValues<dim,dim> &fe_values_volume,
-// 			std::vector<real> local_solution) override
-// 		{
-// 			return evaluate_cell_volume<>(physics, fe_values_volume, local_solution);
-// 		}
-// 		Sacado::Fad::DFad<real> evaluate_cell_volume(
-// 			const Physics::PhysicsBase<dim,nstate,real> &physics,
-// 			const dealii::FEValues<dim,dim> &fe_values_volume,
-// 			std::vector<Sacado::Fad::DFad<real>> local_solution) override
-// 		{
-// 			return evaluate_cell_volume<>(physics, fe_values_volume, local_solution);
-// 		}
+//   // non-template functions to override the template classes
+//   real evaluate_cell_volume(
+//    const Physics::PhysicsBase<dim,nstate,real> &physics,
+//    const dealii::FEValues<dim,dim> &fe_values_volume,
+//    std::vector<real> local_solution) override
+//   {
+//    return evaluate_cell_volume<>(physics, fe_values_volume, local_solution);
+//   }
+//   Sacado::Fad::DFad<real> evaluate_cell_volume(
+//    const Physics::PhysicsBase<dim,nstate,real> &physics,
+//    const dealii::FEValues<dim,dim> &fe_values_volume,
+//    std::vector<Sacado::Fad::DFad<real>> local_solution) override
+//   {
+//    return evaluate_cell_volume<>(physics, fe_values_volume, local_solution);
+//   }
 // };
 
 /** Boundary integral for the Euler Gaussian bump.
@@ -101,7 +101,7 @@ namespace Tests {
 template <int dim, int nstate, typename real>
 class BoundaryIntegral : public PHiLiP::Functional<dim, nstate, real>
 {
-	public:
+ public:
         /// Templated function to evaluate exit pressure integral.
         template <typename real2>
         real2 evaluate_cell_boundary(
@@ -155,9 +155,9 @@ class BoundaryIntegral : public PHiLiP::Functional<dim, nstate, real>
             // }
             // const dealii::Point<dim> qpoint = (fe_values_boundary.quadrature_point(iquad));
             // for (int istate=0; istate<nstate; ++istate) {
-			// 	const double uexact = physics.manufactured_solution_function.value(qpoint, istate);
-			// 	l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_boundary.JxW(iquad);
-			// }
+   //  const double uexact = physics.manufactured_solution_function.value(qpoint, istate);
+   //  l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_boundary.JxW(iquad);
+   // }
 
             // }
 
@@ -180,14 +180,14 @@ class BoundaryIntegral : public PHiLiP::Functional<dim, nstate, real>
         }
 
         /// Corresponding non-templated function for evaluate_cell_boundary.
-		real evaluate_cell_boundary(
+  real evaluate_cell_boundary(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
             const unsigned int boundary_id,
             const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
             std::vector<real> local_solution) override {return evaluate_cell_boundary<>(physics, boundary_id, fe_values_boundary, local_solution);}
 
         /// Corresponding non-templated function for evaluate_cell_boundary.
-		Sacado::Fad::DFad<real> evaluate_cell_boundary(
+  Sacado::Fad::DFad<real> evaluate_cell_boundary(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> &physics,
             const unsigned int boundary_id,
             const dealii::FEFaceValues<dim,dim> &fe_values_boundary,

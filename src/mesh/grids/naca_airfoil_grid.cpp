@@ -89,10 +89,10 @@ NACAManifold<dim,chartdim>::NACAManifold(const std::string serial_number, const 
 
 template<int dim, int chartdim>
 template<typename real>
-dealii::Point<dim,real> NACAManifold<dim,chartdim>::push_forward_mapping(const dealii::Point<chartdim,real> &chart_point) const 
+dealii::Point<dim,real> NACAManifold<dim,chartdim>::push_forward_mapping(const dealii::Point<chartdim,real> &chart_point) const
 {
     dealii::Point<dim,real> physical_point;
-  
+
     const real x = chart_point[0];
     if (x > 1.0) {
         physical_point[0] = x;
@@ -115,7 +115,7 @@ dealii::Point<dim,real> NACAManifold<dim,chartdim>::push_forward_mapping(const d
     } else { // is asymmetric
         const real m = 1.0 * serial_digits[0] / 100; // max. chamber
         const real p = 1.0 * serial_digits[1] / 10; // location of max. chamber
-  
+
         real y_c, dy_c;
         if (x <= p) {
             y_c = m / std::pow(p, 2) * (2 * p * x - std::pow(x, 2));
@@ -124,9 +124,9 @@ dealii::Point<dim,real> NACAManifold<dim,chartdim>::push_forward_mapping(const d
             y_c = m / std::pow(1 - p, 2) * ((1 - 2 * p) + 2 * p * x - std::pow(x, 2));
             dy_c = 2 * m / std::pow(1 - p, 2) * (p - x);
         }
-  
+
         const real theta = std::atan(dy_c);
-  
+
         physical_point[0] = x - y_t * std::sin(theta);
         physical_point[1] = y_c + y_t * std::cos(theta);
     }
@@ -136,7 +136,7 @@ dealii::Point<dim,real> NACAManifold<dim,chartdim>::push_forward_mapping(const d
 
 
 template<int dim, int chartdim>
-dealii::Point<dim> NACAManifold<dim,chartdim>::push_forward(const dealii::Point<chartdim> &chart_point) const 
+dealii::Point<dim> NACAManifold<dim,chartdim>::push_forward(const dealii::Point<chartdim> &chart_point) const
 {
     return push_forward_mapping<double>(chart_point);
 }

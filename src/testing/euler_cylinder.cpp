@@ -224,7 +224,7 @@ int EulerCylinder<dim,nstate>
             // Overintegrate the error to make sure there is not integration error in the error estimate
             //int overintegrate = 0;
             //dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
-            //dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid.mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
+            //dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid.mapping_fe_field), dg->fe_collection[poly_degree], quad_extra,
             //        dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             std::array<double,nstate> soln_at_q;
 
@@ -286,7 +286,7 @@ int EulerCylinder<dim,nstate>
             convergence_table.add_value("area_error", std::abs(area_mpi_sum-exact_area));
 
 
-            pcout << " Grid size h: " << dx 
+            pcout << " Grid size h: " << dx
                  << " L2-entropy_error: " << l2error_mpi_sum
                  << " Residual: " << ode_solver->residual_norm
                  << std::endl;

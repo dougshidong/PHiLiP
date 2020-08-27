@@ -61,28 +61,28 @@ solve_linear (
         solver.SetAztecOption(AZ_subdomain_solve, AZ_ilut);
         solver.SetAztecOption(AZ_overlap, 0);
         solver.SetAztecOption(AZ_reorder, 1); // RCM re-ordering
-  
+
         const double rhs_norm = right_hand_side.l2_norm();
-        const double 
+        const double
           ilut_drop = param.ilut_drop,
           ilut_rtol = param.ilut_rtol,//0.0,//1.1,
           ilut_atol = param.ilut_atol,//0.0,//1e-9,
           linear_residual = param.linear_residual * rhs_norm;//1e-4;
-        const int 
+        const int
           ilut_fill = param.ilut_fill,//1,
           max_iterations = param.max_iterations;//200
-  
+
         solver.SetAztecParam(AZ_drop, ilut_drop);
         solver.SetAztecParam(AZ_ilut_fill, ilut_fill);
         solver.SetAztecParam(AZ_athresh, ilut_atol);
         solver.SetAztecParam(AZ_rthresh, ilut_rtol);
         solver.SetUserMatrix(const_cast<Epetra_CrsMatrix *>(&system_matrix.trilinos_matrix()));
         dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
-        pcout << " Solving linear system with max_iterations = " << max_iterations 
+        pcout << " Solving linear system with max_iterations = " << max_iterations
               << " and linear residual tolerance: " << linear_residual << std::endl;
         solver.Iterate(max_iterations,
                        linear_residual);
-  
+
         pcout << " Linear solver took " << solver.NumIters()
               << " iterations resulting in a linear residual of " << solver.ScaledResidual() << std::endl
               << " Current RHS norm: " << right_hand_side.l2_norm()
@@ -110,12 +110,12 @@ solve_linear (
 //     const unsigned int overlap = 1;
 //     dealii::TrilinosWrappers::PreconditionILUT::AdditionalData additional_data(ilut_drop, ilut_fill, ilut_atol, ilut_rtol, overlap);
 //     dealii::TrilinosWrappers::PreconditionILUT preconditioner;
-// 
+//
 //     //dealii::TrilinosWrappers::PreconditionIdentity preconditioner;
 //     //dealii::TrilinosWrappers::PreconditionIdentity::AdditionalData additional_data;
-// 
+//
 //     preconditioner.initialize(system_matrix, additional_data);
-// 
+//
 //         // dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
 //         // if (pcout.is_active()) right_hand_side.print(pcout.get_stream());
 //         // if (pcout.is_active()) solution.print(pcout.get_stream());
@@ -123,13 +123,13 @@ solve_linear (
 //         // fullA.copy_from(system_matrix);
 //         // pcout<<"Dense matrix:"<<std::endl;
 //         // if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), 3, true, 10, "0", 1., 0.);
-// 
+//
 //     dealii::SolverControl solver_control(param.max_iterations, param.linear_residual);
-// 
+//
 //     const bool output_solver_details=false;
 //     const unsigned int restart_parameter=100;
 //     dealii::TrilinosWrappers::SolverGMRES::AdditionalData solver_add_data(output_solver_details, restart_parameter);
-// 
+//
 //     dealii::TrilinosWrappers::SolverGMRES solver(solver_control, solver_add_data);
 //     solver.solve(system_matrix, solution, right_hand_side, preconditioner);
 //     return {solver_control.last_step(), solver_control.last_value()};

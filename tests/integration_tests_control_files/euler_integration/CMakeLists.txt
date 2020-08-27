@@ -12,7 +12,7 @@ add_test(
 
 configure_file(1d_euler_laxfriedrichs_manufactured_collocated.prm 1d_euler_laxfriedrichs_manufactured_collocated.prm COPYONLY)
 add_test(
-	NAME 1D_EULER_LAXFRIEDRICHS_COLLOCATED_MANUFACTURED_SOLUTION
+ NAME 1D_EULER_LAXFRIEDRICHS_COLLOCATED_MANUFACTURED_SOLUTION
   COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_euler_laxfriedrichs_manufactured_collocated.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
@@ -27,7 +27,7 @@ add_test(
 
 configure_file(2d_euler_laxfriedrichs_manufactured_collocated.prm 2d_euler_laxfriedrichs_manufactured_collocated.prm COPYONLY)
 add_test(
-	NAME 2D_EULER_LAXFRIEDRICHS_COLLOCATED_MANUFACTURED_SOLUTION
+ NAME 2D_EULER_LAXFRIEDRICHS_COLLOCATED_MANUFACTURED_SOLUTION
   COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_laxfriedrichs_manufactured_collocated.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )

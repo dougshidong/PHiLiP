@@ -138,7 +138,7 @@ DGWeak<dim,nstate,real>::DGWeak(
 // Destructor
 template <int dim, int nstate, typename real>
 DGWeak<dim,nstate,real>::~DGWeak ()
-{ 
+{
     pcout << "Destructing DGWeak..." << std::endl;
     delete conv_num_flux;
     delete diss_num_flux;
@@ -242,7 +242,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
                                        : 0.0;
 
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        for (int istate=0; istate<nstate; istate++) { 
+        for (int istate=0; istate<nstate; istate++) {
             // Interpolate solution to the face quadrature points
             soln_at_q[iquad][istate]      = 0;
             soln_grad_at_q[iquad][istate] = 0;
@@ -260,7 +260,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
         diss_phys_flux_at_q[iquad] = pde_physics_double->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
         if(this->all_parameters->add_artificial_dissipation) {
             const ADArrayTensor1 artificial_diss_phys_flux_at_q = pde_physics_double->artificial_dissipative_flux (artificial_diss_coeff, soln_at_q[iquad], soln_grad_at_q[iquad]);
-            for (int istate=0; istate<nstate; istate++) { 
+            for (int istate=0; istate<nstate; istate++) {
                 diss_phys_flux_at_q[iquad][istate] += artificial_diss_phys_flux_at_q[istate];
             }
         }
@@ -277,10 +277,10 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
 
     // Weak form
     // The right-hand side sends all the term to the side of the source term
-    // Therefore, 
-    // \divergence ( Fconv + Fdiss ) = source 
+    // Therefore,
+    // \divergence ( Fconv + Fdiss ) = source
     // has the right-hand side
-    // rhs = - \divergence( Fconv + Fdiss ) + source 
+    // rhs = - \divergence( Fconv + Fdiss ) + source
     // Since we have done an integration by parts, the volume term resulting from the divergence of Fconv and Fdiss
     // is negative. Therefore, negative of negative means we add that volume term to the right-hand-side
     for (unsigned int itest=0; itest<n_soln_dofs_int; ++itest) {
@@ -346,7 +346,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_explicit(
     }
 
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
-        for (int istate=0; istate<nstate; istate++) { 
+        for (int istate=0; istate<nstate; istate++) {
             soln_int[iquad][istate]      = 0;
             soln_grad_int[iquad][istate] = 0;
         }
@@ -373,7 +373,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_explicit(
         pde_physics_double->boundary_face_values (boundary_id, real_quad_point, normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
 
         // Evaluate physical convective flux, physical dissipative flux
-        // Following the the boundary treatment given by 
+        // Following the the boundary treatment given by
         //      Hartmann, R., Numerical Analysis of Higher Order Discontinuous Galerkin Finite Element Methods,
         //      Institute of Aerodynamics and Flow Technology, DLR (German Aerospace Center), 2008.
         //      Details given on page 93
@@ -389,9 +389,9 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_explicit(
 
         ADArrayTensor1 diss_soln_jump_int;
         for (int s=0; s<nstate; s++) {
-			for (int d=0; d<dim; d++) {
-				diss_soln_jump_int[s][d] = (diss_soln_num_flux[iquad][s] - soln_int[iquad][s]) * normal_int[d];
-			}
+            for (int d=0; d<dim; d++) {
+                diss_soln_jump_int[s][d] = (diss_soln_num_flux[iquad][s] - soln_int[iquad][s]) * normal_int[d];
+            }
         }
         diss_flux_jump_int[iquad] = pde_physics_double->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
         if (this->all_parameters->add_artificial_dissipation) {
@@ -487,7 +487,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
         soln_coeff_ext[idof] = DGBase<dim,real>::solution(soln_dof_indices_ext[idof]);
     }
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
-        for (int istate=0; istate<nstate; istate++) { 
+        for (int istate=0; istate<nstate; istate++) {
             soln_int[iquad][istate]      = 0;
             soln_grad_int[iquad][istate] = 0;
             soln_ext[iquad][istate]      = 0;
@@ -527,10 +527,10 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
 
         doubleArrayTensor1 diss_soln_jump_int, diss_soln_jump_ext;
         for (int s=0; s<nstate; s++) {
-			for (int d=0; d<dim; d++) {
-				diss_soln_jump_int[s][d] = (diss_soln_num_flux[iquad][s] - soln_int[iquad][s]) * normal_int[d];
-				diss_soln_jump_ext[s][d] = (diss_soln_num_flux[iquad][s] - soln_ext[iquad][s]) * normal_ext[d];
-			}
+            for (int d=0; d<dim; d++) {
+                diss_soln_jump_int[s][d] = (diss_soln_num_flux[iquad][s] - soln_int[iquad][s]) * normal_int[d];
+                diss_soln_jump_ext[s][d] = (diss_soln_num_flux[iquad][s] - soln_ext[iquad][s]) * normal_ext[d];
+            }
         }
         diss_flux_jump_int[iquad] = pde_physics_double->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
         diss_flux_jump_ext[iquad] = pde_physics_double->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext);
@@ -757,7 +757,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
         std::array<FadFadType,nstate> soln_ext;
         std::array< dealii::Tensor<1,dim,FadFadType>, nstate > soln_grad_int;
         std::array< dealii::Tensor<1,dim,FadFadType>, nstate > soln_grad_ext;
-        for (int istate=0; istate<nstate; istate++) { 
+        for (int istate=0; istate<nstate; istate++) {
             soln_int[istate]      = 0;
             soln_grad_int[istate] = 0;
         }
@@ -772,7 +772,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
         pde_physics_fad_fad->boundary_face_values (boundary_id, real_quad_pts[iquad], normal_int, soln_int, soln_grad_int, soln_ext, soln_grad_ext);
 
         // Evaluate physical convective flux, physical dissipative flux
-        // Following the the boundary treatment given by 
+        // Following the the boundary treatment given by
         //      Hartmann, R., Numerical Analysis of Higher Order Discontinuous Galerkin Finite Element Methods,
         //      Institute of Aerodynamics and Flow Technology, DLR (German Aerospace Center), 2008.
         //      Details given on page 93
@@ -788,9 +788,9 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
 
         ADArrayTensor1 diss_soln_jump_int;
         for (int s=0; s<nstate; s++) {
-			for (int d=0; d<dim; d++) {
-				diss_soln_jump_int[s][d] = (diss_soln_num_flux[iquad][s] - soln_int[s]) * normal_int[d];
-			}
+            for (int d=0; d<dim; d++) {
+                diss_soln_jump_int[s][d] = (diss_soln_num_flux[iquad][s] - soln_int[s]) * normal_int[d];
+            }
         }
         diss_flux_jump_int[iquad] = pde_physics_fad_fad->dissipative_flux (soln_int, diss_soln_jump_int);
 
@@ -1140,7 +1140,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
             normal_normalized_ext = -normal_normalized_int; // Must use opposite normal to be consistent with explicit
         }
 
-        for (int istate=0; istate<nstate; istate++) { 
+        for (int istate=0; istate<nstate; istate++) {
             soln_int[istate]      = 0;
             soln_grad_int[istate] = 0;
             soln_ext[istate]      = 0;
@@ -1169,10 +1169,10 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
 
         ADArrayTensor1 diss_soln_jump_int, diss_soln_jump_ext;
         for (int s=0; s<nstate; s++) {
-			for (int d=0; d<dim; d++) {
-				diss_soln_jump_int[s][d] = (diss_soln_num_flux[s] - soln_int[s]) * normal_normalized_int[d];
-				diss_soln_jump_ext[s][d] = (diss_soln_num_flux[s] - soln_ext[s]) * normal_normalized_ext[d];
-			}
+            for (int d=0; d<dim; d++) {
+                diss_soln_jump_int[s][d] = (diss_soln_num_flux[s] - soln_int[s]) * normal_normalized_int[d];
+                diss_soln_jump_ext[s][d] = (diss_soln_num_flux[s] - soln_ext[s]) * normal_normalized_ext[d];
+            }
         }
         diss_flux_jump_int = pde_physics_fad_fad->dissipative_flux (soln_int, diss_soln_jump_int);
         diss_flux_jump_ext = pde_physics_fad_fad->dissipative_flux (soln_ext, diss_soln_jump_ext);
@@ -1505,7 +1505,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives_2(
                  for (int d=0;d<dim;++d) {
                      gradient_operator[d][idof][iquad] = phys_shape_grad[d];
                  }
- 
+
                  // Exact mapping
                  // for (int d=0;d<dim;++d) {
                  //     const unsigned int istate = fe_soln.system_to_component_index(idof).first;
@@ -1542,7 +1542,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives_2(
     std::vector< ArrayTensor > diss_phys_flux_at_q(n_quad_pts);
     std::vector< Array > source_at_q(n_quad_pts);
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        for (int istate=0; istate<nstate; istate++) { 
+        for (int istate=0; istate<nstate; istate++) {
             soln_at_q[iquad][istate]      = 0;
             soln_grad_at_q[iquad][istate] = 0;
         }
@@ -1558,7 +1558,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives_2(
 
         if (this->all_parameters->add_artificial_dissipation) {
             const ArrayTensor artificial_diss_phys_flux_at_q = pde_physics_fad_fad->artificial_dissipative_flux (artificial_diss_coeff, soln_at_q[iquad], soln_grad_at_q[iquad]);
-            for (int s=0; s<nstate; s++) { 
+            for (int s=0; s<nstate; s++) {
                 diss_phys_flux_at_q[iquad][s] += artificial_diss_phys_flux_at_q[s];
             }
         }
@@ -1578,10 +1578,10 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives_2(
 
     // Weak form
     // The right-hand side sends all the term to the side of the source term
-    // Therefore, 
-    // \divergence ( Fconv + Fdiss ) = source 
+    // Therefore,
+    // \divergence ( Fconv + Fdiss ) = source
     // has the right-hand side
-    // rhs = - \divergence( Fconv + Fdiss ) + source 
+    // rhs = - \divergence( Fconv + Fdiss ) + source
     // Since we have done an integration by parts, the volume term resulting from the divergence of Fconv and Fdiss
     // is negative. Therefore, negative of negative means we add that volume term to the right-hand-side
     for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
@@ -1683,10 +1683,10 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
 
     // Weak form
     // The right-hand side sends all the term to the side of the source term
-    // Therefore, 
-    // \divergence ( Fconv + Fdiss ) = source 
+    // Therefore,
+    // \divergence ( Fconv + Fdiss ) = source
     // has the right-hand side
-    // rhs = - \divergence( Fconv + Fdiss ) + source 
+    // rhs = - \divergence( Fconv + Fdiss ) + source
     // Since we have done an integration by parts, the volume term resulting from the divergence of Fconv and Fdiss
     // is negative. Therefore, negative of negative means we add that volume term to the right-hand-side
     for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {

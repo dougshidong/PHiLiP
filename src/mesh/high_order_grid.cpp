@@ -100,8 +100,8 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_mapping_fe_field(
 }
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-void 
-HighOrderGrid<dim,real,VectorType,DoFHandlerType>::allocate() 
+void
+HighOrderGrid<dim,real,VectorType,DoFHandlerType>::allocate()
 {
     dof_handler_grid.initialize(*triangulation, fe_system);
     dof_handler_grid.distribute_dofs(fe_system);
@@ -116,7 +116,7 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::allocate()
 }
 
 //template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-//dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> 
+//dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>
 //HighOrderGrid<dim,real,VectorType,DoFHandlerType>::get_MappingFEField() {
 //    const dealii::ComponentMask mask(dim, true);
 //    dealii::VectorTools::get_position_vector(dof_handler_grid, volume_nodes, mask);
@@ -134,28 +134,28 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>
 {
     AssertDimension(position_vector.size(), dh.n_dofs());
     const dealii::FESystem<dim, dim> &fe = dh.get_fe();
-  
+
     // Construct default fe_mask;
     const dealii::ComponentMask fe_mask(mask.size() ? mask : dealii::ComponentMask(fe.get_nonzero_components(0).size(), true));
-  
+
     AssertDimension(fe_mask.size(), fe.get_nonzero_components(0).size());
-  
+
     std::vector<unsigned int> fe_to_real(fe_mask.size(), dealii::numbers::invalid_unsigned_int);
     unsigned int              size = 0;
     for (unsigned int i = 0; i < fe_mask.size(); ++i) {
         if (fe_mask[i]) fe_to_real[i] = size++;
     }
     Assert(size == dim, dealii::ExcMessage("The Component Mask you provided is invalid. It has to select exactly dim entries."));
-  
+
     const dealii::Quadrature<dim> quad(fe.get_unit_support_points());
-  
+
     dealii::MappingQGeneric<dim, dim> map_q(fe.degree);
     dealii::FEValues<dim, dim> fe_v(map_q, fe, quad, dealii::update_quadrature_points);
     std::vector<dealii::types::global_dof_index> dofs(fe.dofs_per_cell);
-  
+
     AssertDimension(fe.dofs_per_cell, fe.get_unit_support_points().size());
     Assert(fe.is_primitive(), dealii::ExcMessage("FE is not Primitive! This won't work."));
-  
+
     for (const auto &cell : dh.active_cell_iterators()) {
         if (cell->is_locally_owned()) {
             fe_v.reinit(cell);
@@ -208,7 +208,7 @@ std::vector<real> HighOrderGrid<dim,real,VectorType,DoFHandlerType>::evaluate_ja
 
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
-        for (unsigned int iaxis=0; iaxis<n_axis; ++iaxis) { 
+        for (unsigned int iaxis=0; iaxis<n_axis; ++iaxis) {
             coords[iaxis]      = 0;
             coords_grad[iaxis] = 0;
         }
@@ -328,7 +328,7 @@ bool HighOrderGrid<dim,real,VectorType,DoFHandlerType>::check_valid_cell(const t
     for (unsigned int idof = 0; idof < n_dofs_coords; ++idof) {
         cell_nodes[idof] = volume_nodes(dofs_indices[idof]);
     }
-    
+
     const dealii::FE_Q<dim> lagrange_basis(used_jacobian_order);
     const std::vector< dealii::Point<dim> > &lagrange_pts = lagrange_basis.get_unit_support_points();
     const unsigned int n_lagrange_pts = lagrange_pts.size();
@@ -463,7 +463,7 @@ bool HighOrderGrid<dim,real,VectorType,DoFHandlerType>::fix_invalid_cell(const t
 
         const double barrier = min_ratio - 0.10*std::abs(min_ratio);
         const double barrierJac = barrier*straight_sided_jacobian;
-        
+
         std::function<real (const dealii::Vector<real> &, dealii::Vector<real> &)> func =
             [&](const dealii::Vector<real> &movable_nodes, dealii::Vector<real> &gradient) {
 
@@ -532,7 +532,7 @@ bool HighOrderGrid<dim,real,VectorType,DoFHandlerType>::fix_invalid_cell(const t
 
         const double gradient_drop = 1e-2;
         for (unsigned int i=0;i<max_opt_iterations && grad_norm/initial_grad_norm > gradient_drop;++i) {
-        
+
             old_movable_nodes = movable_nodes;
             old_grad = grad;
 
@@ -627,23 +627,23 @@ bool HighOrderGrid<dim,real,VectorType,DoFHandlerType>::fix_invalid_cell(const t
 //     const jacobian_order = std::pow(fe_coords.tensor_degree()-1, dim);
 //     const dealii::FE_Q<dim> lagrange_basis(jacobian_order);
 //     const std::vector< dealii::Point<dim> > &jacobian_points = lagrange_basis.get_unit_support_points();
-// 
+//
 //     const dealii::FE_Bernstein<dim> bernstein_basis(jacobian_order);
-// 
+//
 //     const unsigned int n_lagrange_pts = jacobian_points.size();
 //     const unsigned int n_dofs_coords = fe_coords.n_dofs_per_cell();
 //     const unsigned int n_axis = dim;
-// 
+//
 //     // Evaluate Jacobian at Lagrange interpolation points
 //     std::vector<dealii::types::global_dof_index> dofs_indices(n_dofs_cell);
 //     cell->get_dof_indices (dofs_indices);
-// 
+//
 //     dealii::Vector<double> lagrange_coeff(n_lagrange_pts);
-// 
+//
 //     for (unsigned int i_lagrange=0; i_lagrange<n_lagrange_pts; ++i_lagrange) {
-// 
+//
 //         const dealii::Point<dim> &point = jacobian_points[i_lagrange];
-// 
+//
 //         std::array< dealii::Tensor<1,dim,real>, n_axis > > coords_grad; // Tensor initialize with zeros
 //         for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
 //             const unsigned int axis = fe.system_to_component_index(idof).first;
@@ -657,7 +657,7 @@ bool HighOrderGrid<dim,real,VectorType,DoFHandlerType>::fix_invalid_cell(const t
 //         }
 //         dealii::Vector<double> lagrange_coeff(i_lagrange);
 //     }
-// 
+//
 //     const unsigned int n_bernstein = bernstein_basis.n_dofs_per_cell();
 //     AssertDimension(n_bernstein == n_lagrange_pts);
 //     // Evaluate Vandermonde matrix such that V u_bernstein = u_lagrange
@@ -672,10 +672,10 @@ bool HighOrderGrid<dim,real,VectorType,DoFHandlerType>::fix_invalid_cell(const t
 //     }
 //     dealii::FullMatrix<double> lagrange_to_bernstein;
 //     lagrange_to_bernstein.invert(bernstein_to_lagrange);
-// 
+//
 //     dealii::Vector<double> bernstein_coeff(n_bernstein);
 //     lagrange_to_bernstein.vmult(bernstein_coeff, lagrange_coeff);
-// 
+//
 //     return false;
 // }
 
@@ -1007,7 +1007,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices()
                 // Even though the set is unique, we are really only creating a vector of indices and boundary ID,
                 // and therefore can't just insert.
                 // However, do not add if it is not locally owned, it will get picked up by another processor
-                
+
 
                 // For linear elasticity, need access to locally RELEVANT volume_nodes. Not just the locally owned ones.
                 if ( locally_relevant_surface_dof_indices_set.find(global_idof_index) == locally_relevant_surface_dof_indices_set.end() ) {
@@ -1139,7 +1139,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::output_results_vtk (cons
     const dealii::Mapping<dim> &mapping = (*(mapping_fe_field));
     const int n_subdivisions = max_degree;;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
     data_out.build_patches(mapping, n_subdivisions, curved);
-    const bool write_higher_order_cells = (dim>1) ? true : false; 
+    const bool write_higher_order_cells = (dim>1) ? true : false;
     dealii::DataOutBase::VtkFlags vtkflags(0.0,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
     data_out.set_flags(vtkflags);
 

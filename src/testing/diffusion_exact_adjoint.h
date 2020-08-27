@@ -185,24 +185,24 @@ class DiffusionFunctional : public Functional<dim, nstate, real>
             const std::array<real2,nstate> &soln_at_q,
             const std::array<dealii::Tensor<1,dim,real2>,nstate> &soln_grad_at_q) const;
 
-    	/// Non-template functions to override the template classes
-		real evaluate_volume_integrand(
+     /// Non-template functions to override the template classes
+  real evaluate_volume_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
             const dealii::Point<dim,real> &phys_coord,
             const std::array<real,nstate> &soln_at_q,
             const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override
-		{
-			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
-		}
-    	/// Non-template functions to override the template classes
-		FadFadType evaluate_volume_integrand(
+  {
+   return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
+  }
+     /// Non-template functions to override the template classes
+  FadFadType evaluate_volume_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,
             const dealii::Point<dim,FadFadType> &phys_coord,
             const std::array<FadFadType,nstate> &soln_at_q,
             const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &soln_grad_at_q) const override
-		{
-			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
-		}
+  {
+   return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
+  }
 };
 
 /// test case

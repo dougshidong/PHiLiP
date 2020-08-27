@@ -26,18 +26,18 @@ FullSpace_BirosGhattas(
     ROL::ParameterList& Llist = parlist.sublist("Step").sublist("Line Search");
     ROL::ParameterList& Glist = parlist.sublist("General");
     econd_ = StringToECurvatureCondition(Llist.sublist("Curvature Condition").get("Type","Strong Wolfe Conditions") );
-    acceptLastAlpha_ = Llist.get("Accept Last Alpha", false); 
+    acceptLastAlpha_ = Llist.get("Accept Last Alpha", false);
     verbosity_ = Glist.get("Print Verbosity",0);
 
-    preconditioner_name_ = parlist.sublist("Full Space").get("Preconditioner","P4"); 
+    preconditioner_name_ = parlist.sublist("Full Space").get("Preconditioner","P4");
     use_approximate_full_space_preconditioner_ = (preconditioner_name_ == "P2A" || preconditioner_name_ == "P4A");
 
     // Initialize Line Search
     if (lineSearch_ == ROL::nullPtr) {
-        lineSearchName_ = Llist.sublist("Line-Search Method").get("Type","Backtracking"); 
+        lineSearchName_ = Llist.sublist("Line-Search Method").get("Type","Backtracking");
         els_ = StringToELineSearch(lineSearchName_);
         lineSearch_ = LineSearchFactory<Real>(parlist);
-    } 
+    }
     else { // User-defined linesearch provided
         lineSearchName_ = Llist.sublist("Line-Search Method").get("User Defined Line-Search Name",
                                                                   "Unspecified User Defined Line-Search");
@@ -105,7 +105,7 @@ void FullSpace_BirosGhattas<Real>::computeInitialLagrangeMultiplier(
 
 }
 
-  
+
 template <class Real>
 void FullSpace_BirosGhattas<Real>::initialize(
     Vector<Real> &design_variables,
@@ -324,7 +324,7 @@ std::vector<double> FullSpace_BirosGhattas<Real>::solve_linear (
     enum Solver_types { gmres, fgmres };
 
 
-    
+
 
     const double rhs_norm = right_hand_side.l2_norm();
     (void) rhs_norm;
@@ -341,16 +341,16 @@ std::vector<double> FullSpace_BirosGhattas<Real>::solve_linear (
     solver_control.enable_history_data();
 
     (void) preconditioner;
-    const unsigned int 	max_n_tmp_vectors = 1000;
+    const unsigned int     max_n_tmp_vectors = 1000;
     //Solver_types solver_type = gmres;
     // Used for most results
     Solver_types solver_type = fgmres;
     switch(solver_type) {
 
         case gmres: {
-            const bool 	right_preconditioning = true; // default: false
-            const bool 	use_default_residual = true;//false; // default: true
-            const bool 	force_re_orthogonalization = false; // default: false
+            const bool     right_preconditioning = true; // default: false
+            const bool     use_default_residual = true;//false; // default: true
+            const bool     force_re_orthogonalization = false; // default: false
             typedef typename dealii::SolverGMRES<VectorType>::AdditionalData AddiData_GMRES;
             AddiData_GMRES add_data_gmres( max_n_tmp_vectors, right_preconditioning, use_default_residual, force_re_orthogonalization);
             dealii::SolverGMRES<VectorType> solver_gmres(solver_control, add_data_gmres);
@@ -417,7 +417,7 @@ std::vector<Real> FullSpace_BirosGhattas<Real>::solve_KKT_system(
         makePtrFromRef<const Vector<Real>>(lagrange_mult));
 
 
-    std::shared_ptr<BirosGhattasPreconditioner<Real>> kkt_precond = 
+    std::shared_ptr<BirosGhattasPreconditioner<Real>> kkt_precond =
         BirosGhattasPreconditionerFactory<Real>::create_KKT_preconditioner( parlist_,
                                    objective,
                                    equal_constraints,
@@ -453,7 +453,7 @@ std::vector<Real> FullSpace_BirosGhattas<Real>::solve_KKT_system(
 
 
     return linear_residuals;
-    
+
 }
 
 template <class Real>
@@ -515,7 +515,7 @@ void FullSpace_BirosGhattas<Real>::compute(
 
     /* Solve augmented system. */
     //const std::vector<Real> augiters = equal_constraints.solveAugmentedSystem(*lhs1, *lhs2, *rhs1, *rhs2, design_variables, tol);
-    pcout 
+    pcout
         << "Startingto solve augmented system..."
         << std::endl;
     //const std::vector<Real> kkt_iters = equal_constraints.solveAugmentedSystem(*lhs1, *lhs2, *rhs1, *rhs2, design_variables, tol);
@@ -597,7 +597,7 @@ void FullSpace_BirosGhattas<Real>::compute(
     const auto reduced_gradient = (dynamic_cast<Vector_SimOpt<Real>&>(*lagrangian_gradient)).get_2();
     penalty_value_ = std::max(1e-2/reduced_gradient->norm(), 1.0);
     //penalty_value_ = std::max(1e-2/lagrangian_gradient->norm(), 1.0);
-    pcout 
+    pcout
         << "Finished computeAugmentedLagrangianPenalty..."
         << std::endl;
     AugmentedLagrangian<Real> &augLag = dynamic_cast<AugmentedLagrangian<Real>&>(*merit_function_);
@@ -619,14 +619,14 @@ void FullSpace_BirosGhattas<Real>::compute(
         merit_function_->gradient( *merit_function_gradient, design_variables, tol );
         Real directional_derivative_step = merit_function_gradient->dot(search_direction);
         directional_derivative_step += step_state->constraintVec->dot(*lagrange_mult_search_direction_);
-        pcout 
+        pcout
             << "Directional_derivative_step (Should be negative for descent direction)"
             << directional_derivative_step
             << std::endl;
 
         /* Perform line-search */
         merit_function_value = merit_function_->value(design_variables, tol );
-        pcout 
+        pcout
             << "Performing line search..."
             << " Initial merit function value = " << merit_function_value
             << std::endl;
@@ -646,7 +646,7 @@ void FullSpace_BirosGhattas<Real>::compute(
         const int max_line_searches = parlist_.sublist("Step").sublist("Line Search").get("Function Evaluation Limit",20);
         if (n_linesearches < max_line_searches) {
             linesearch_success = true;
-            pcout 
+            pcout
                 << "End of line search... searchSize is..."
                 << step_state->searchSize
                 << " and number of function evaluations: "
@@ -658,7 +658,7 @@ void FullSpace_BirosGhattas<Real>::compute(
                 << std::endl;
         } else {
             const Real penalty_reduction = 0.1;
-            pcout 
+            pcout
                 << " Max linesearches achieved: " << max_line_searches
                 << " Reducing penalty value from " << penalty_value_
                 << " to " << penalty_value_ * penalty_reduction
@@ -671,7 +671,7 @@ void FullSpace_BirosGhattas<Real>::compute(
         lineSearch_->setMaxitUpdate(step_state->searchSize, merit_function_value, fold);
     }
 
-    pcout 
+    pcout
         << "End of line search... searchSize is..."
         << step_state->searchSize
         << " and number of function evaluations: "

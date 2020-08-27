@@ -71,11 +71,11 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_vortex | "
                       "  euler_entropy_waves | "
                       "  euler_cylinder_adjoint "
-					  "  euler_split_taylor_green |"
+       "  euler_split_taylor_green |"
                       "  euler_bump_optimization | "
                       "  shock_1d | "
                       "  euler_naca0012 | "
-					  "  advection_periodicity >.");
+       "  advection_periodicity >.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(

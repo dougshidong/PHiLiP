@@ -22,7 +22,7 @@ protected:
     const bool is_upper;
 
     const std::array<unsigned int,4> serial_digits; ///< Conversion NACA string serial number (char * ) to int
-  
+
     const double thickness; ///< Maximum thickness in percentage of the cord
 
     /// Templated push-forward mapping.
@@ -36,7 +36,7 @@ public:
     virtual dealii::Point<chartdim> pull_back(const dealii::Point<dim> &space_point) const override; ///< See dealii::Manifold.
     virtual dealii::Point<dim> push_forward(const dealii::Point<chartdim> &chart_point) const override; ///< See dealii::Manifold.
     virtual dealii::DerivativeForm<1,chartdim,dim> push_forward_gradient(const dealii::Point<chartdim> &chart_point) const override; ///< See dealii::Manifold.
-    
+
     virtual std::unique_ptr<dealii::Manifold<dim,dim> > clone() const override; ///< See dealii::Manifold.
 };
 

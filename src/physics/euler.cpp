@@ -587,7 +587,7 @@ void Euler<dim,nstate,real>
         // “High-order accurate implementation of solid wall boundary conditions in curved geometries,”
         // Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
         const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(soln_int);
-        
+
         // Copy density and pressure
         std::array<real,nstate> primitive_boundary_values;
         primitive_boundary_values[0] = primitive_interior_values[0];
@@ -596,16 +596,16 @@ void Euler<dim,nstate,real>
         const dealii::Tensor<1,dim,real> surface_normal = -normal_int;
         const dealii::Tensor<1,dim,real> velocities_int = extract_velocities_from_primitive(primitive_interior_values);
         //const dealii::Tensor<1,dim,real> velocities_bc = velocities_int - 2.0*(velocities_int*surface_normal)*surface_normal;
-		real vel_int_dot_normal = 0.0;
-		for (int d=0; d<dim; d++) {
-			vel_int_dot_normal = vel_int_dot_normal + velocities_int[d]*surface_normal[d];
-		}
+        real vel_int_dot_normal = 0.0;
+        for (int d=0; d<dim; d++) {
+            vel_int_dot_normal = vel_int_dot_normal + velocities_int[d]*surface_normal[d];
+        }
         dealii::Tensor<1,dim,real> velocities_bc;
-		for (int d=0; d<dim; d++) {
-			velocities_bc[d] = velocities_int[d] - 2.0*(vel_int_dot_normal)*surface_normal[d];
-			//velocities_bc[d] = velocities_int[d] - (vel_int_dot_normal)*surface_normal[d];
+        for (int d=0; d<dim; d++) {
+            velocities_bc[d] = velocities_int[d] - 2.0*(vel_int_dot_normal)*surface_normal[d];
+            //velocities_bc[d] = velocities_int[d] - (vel_int_dot_normal)*surface_normal[d];
             //velocities_bc[d] += velocities_int[d] * surface_normal.norm_square();
-		}
+        }
         for (int d=0; d<dim; ++d) {
             primitive_boundary_values[1+d] = velocities_bc[d];
         }
@@ -620,7 +620,7 @@ void Euler<dim,nstate,real>
         // Carlson 2011, sec. 2.4
 
         const real back_pressure = 0.99; // Make it as an input later on
-        
+
         const real mach_int = compute_mach_number(soln_int);
         if (mach_int > 1.0) {
             // Supersonic, simply extrapolate
@@ -702,7 +702,7 @@ void Euler<dim,nstate,real>
             //std::cout << " pressure_bc " << pressure_bc << "pressure_inf" << pressure_inf << std::endl;
             //std::cout << " temperature_bc " << temperature_bc << "temperature_inf" << temperature_inf << std::endl;
             //
-   
+
             const real density_bc  = compute_density_from_pressure_temperature(pressure_bc, temperature_bc);
             std::array<real,nstate> primitive_boundary_values;
             primitive_boundary_values[0] = density_bc;
@@ -729,7 +729,7 @@ void Euler<dim,nstate,real>
             const real density_bc  = compute_density_from_pressure_temperature(pressure_bc, temperature_bc);
             const real sound_bc = sqrt(gam * pressure_bc / density_bc);
             const real velocity_magnitude_bc = mach_inf * sound_bc;
-   
+
             // Assign primitive boundary values
             std::array<real,nstate> primitive_boundary_values;
             primitive_boundary_values[0] = density_bc;

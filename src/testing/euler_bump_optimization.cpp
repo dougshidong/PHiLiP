@@ -452,7 +452,7 @@ int EulerBumpOptimization<dim,nstate>
 
             break;
         }
-        case reduced_space_bfgs: 
+        case reduced_space_bfgs:
             [[fallthrough]];
         case reduced_space_newton: {
             // Reduced space problem

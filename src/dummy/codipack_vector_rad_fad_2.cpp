@@ -584,6 +584,71 @@ void vectorHelperInterface(int nx, int ny) {
 
 }
 
+void vectorHelperInterface(int nx, int ny) {
+
+    //using codiType = codi::RealForward;
+    using codiType = codi::RealReverse;
+    std::cout << "codiType( vector helper interface):" << std::endl;
+    std::vector<double> xR_double(nx);
+    std::vector<double> dual(ny);
+    for (int i = 0; i < nx; ++i) {
+        xR_double[i] = 0.333*i + 1.0;
+    }
+    for (int j = 0; j < ny; ++j) {
+        dual[j] = 0.75/(1+j);
+    }
+
+    // Reverse vector mode
+    std::vector<codiType> xR(nx);
+    std::vector<codiType> yR(ny);
+    for (int i = 0; i < nx; ++i) {
+      xR[i] = xR_double[i];
+    }
+    codiType::TapeType& tape = codiType::getGlobalTape();
+    tape.setActive();
+    for(int i = 0; i < nx; ++i) {
+      tape.registerInput(xR[i]);
+    }
+
+    codiType psi_dot_y = 0;
+    func_2(xR, dual, nx, ny, yR, psi_dot_y);
+
+    for(int i = 0; i < ny; ++i) {
+        tape.registerOutput(yR[i]);
+    }
+    tape.setPassive();
+    //codi::TapeVectorHelperInterface<codiType>* vh = new codi::TapeVectorHelper<codiType, codi::Direction<double, 2> >();
+
+    std::unique_ptr<codi::TapeVectorHelperInterface<codiType>> vh = create_TapeVectorHelper<10,codiType>(ny);
+    codi::AdjointInterface<codiType::Real, codiType::GradientData>* ai = vh->getAdjointInterface();
+    for(int j = 0; j < ny; ++j) {
+        ai->updateAdjoint(yR[j].getGradientData(), j, 1.0);
+    }
+    vh->evaluate();
+
+    std::vector<double> jacobiR(nx*ny); // default construction
+    std::cout << ai->getVectorSize() << std::endl;
+    for(int i = 0; i < nx; ++i) {
+      for(int j = 0; j < ny; ++j) {
+        jacobiR[i*ny+j] = ai->getAdjoint(xR[i].getGradientData(), j);
+      }
+    }
+
+    std::cout << "Reverse vector mode:" << std::endl;
+    std::cout << "f(1 .. nx) = (" << yR[0];
+    for(int j = 1; j < ny; ++j) {
+        std::cout << ", " << yR[j];
+    }
+    std::cout << ")" << std::endl;
+    for(int i = 0; i < nx; ++i) {
+      std::cout << "df/dx_" << (i + 1) << " (1 .. nx) = (" << jacobiR[i*ny+0];
+      for(int j = 1; j < ny; ++j) {
+          std::cout << ", " << jacobiR[i*ny+j];
+      }
+      std::cout << ")" << std::endl;
+    }
+}
+
 void forward(int nx, int ny) {
 
     //using codiType = codi::RealForward;

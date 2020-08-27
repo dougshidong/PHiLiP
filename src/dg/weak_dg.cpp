@@ -831,12 +831,14 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
 
 
         local_rhs_cell(itest) += rhs.val().val();
+        AssertIsFinite(local_rhs_cell(itest));
 
         if (compute_dRdW) {
             std::vector<real> residual_derivatives(n_soln_dofs);
             for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
                 const unsigned int i_dx = idof+w_start;
                 residual_derivatives[idof] = rhs.dx(i_dx).val();
+                AssertIsFinite(residual_derivatives[idof]);
             }
             this->system_matrix.add(soln_dof_indices[itest], soln_dof_indices, residual_derivatives);
         }
@@ -1207,6 +1209,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
             }
 
             local_rhs_int_cell(itest_int) += rhs.val().val();
+            AssertIsFinite(local_rhs_int_cell(itest_int));
 
             if (compute_dRdW) {
                 // dR_int_dW_int
@@ -1214,6 +1217,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
                 for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
                     const unsigned int i_dx = idof+w_int_start;
                     residual_derivatives[idof] = rhs.dx(i_dx).val();
+                    AssertIsFinite(residual_derivatives[idof]);
                 }
                 this->system_matrix.add(soln_dof_indices_int[itest_int], soln_dof_indices_int, residual_derivatives);
 
@@ -1222,6 +1226,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
                 for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
                     const unsigned int i_dx = idof+w_ext_start;
                     residual_derivatives[idof] = rhs.dx(i_dx).val();
+                    AssertIsFinite(residual_derivatives[idof]);
                 }
                 this->system_matrix.add(soln_dof_indices_int[itest_int], soln_dof_indices_ext, residual_derivatives);
             }
@@ -1263,6 +1268,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
             }
 
             local_rhs_ext_cell(itest_ext) += rhs.val().val();
+            AssertIsFinite(local_rhs_ext_cell(itest_ext));
 
             if (compute_dRdW) {
                 // dR_ext_dW_int
@@ -1270,6 +1276,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
                 for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
                     const unsigned int i_dx = idof+w_int_start;
                     residual_derivatives[idof] = rhs.dx(i_dx).val();
+                    AssertIsFinite(residual_derivatives[idof]);
                 }
                 this->system_matrix.add(soln_dof_indices_ext[itest_ext], soln_dof_indices_int, residual_derivatives);
 
@@ -1278,6 +1285,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
                 for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
                     const unsigned int i_dx = idof+w_ext_start;
                     residual_derivatives[idof] = rhs.dx(i_dx).val();
+                    AssertIsFinite(residual_derivatives[idof]);
                 }
                 this->system_matrix.add(soln_dof_indices_ext[itest_ext], soln_dof_indices_ext, residual_derivatives);
             }
@@ -1688,6 +1696,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
             for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
                 const unsigned int i_dx = idof+w_start;
                 residual_derivatives[idof] = rhs[itest].dx(i_dx).val();
+                AssertIsFinite(residual_derivatives[idof]);
             }
             this->system_matrix.add(soln_dof_indices[itest], soln_dof_indices, residual_derivatives);
         }
@@ -1705,6 +1714,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
         //}
 
         local_rhs_cell(itest) += rhs[itest].val().val();
+        AssertIsFinite(local_rhs_cell(itest));
 
     }
 

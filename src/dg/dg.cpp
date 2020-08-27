@@ -1452,6 +1452,7 @@ void DGBase<dim,real>::time_scaled_mass_matrices(const real dt_scale)
                 if(istate_test==istate_trial) { 
                     const double value = global_mass_matrix.el(dofs_indices[itest],dofs_indices[itrial]);
                     const double new_val = value / (dt_scale * max_dt);
+                    AssertIsFinite(new_val);
                     time_scaled_global_mass_matrix.set(dofs_indices[itest],dofs_indices[itrial],new_val);
                     time_scaled_global_mass_matrix.set(dofs_indices[itrial],dofs_indices[itest],new_val);
                 }

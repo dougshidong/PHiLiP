@@ -1,3 +1,4 @@
+#include<limits>
 #include<fstream>
 #include <deal.II/base/parameter_handler.h>
 #include <deal.II/base/tensor.h>
@@ -1126,7 +1127,14 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     }
     //std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> data_component_interpretation(nstate, dealii::DataComponentInterpretation::component_is_scalar);
     //data_out.add_data_vector (right_hand_side, residual_names, dealii::DataOut<dim, dealii::DoFHandler<dim>>::type_dof_data, data_component_interpretation);
-    data_out.add_data_vector (right_hand_side, residual_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+    auto residual = right_hand_side;
+    for (auto &&rhs_value : residual) {
+        // Make residual strictly positive so that we can visualize it on a logscale.
+        if (std::signbit(rhs_value)) rhs_value = -rhs_value;
+        if (rhs_value == 0.0) rhs_value = std::numeric_limits<double>::min();
+    }
+    residual.update_ghost_values();
+    data_out.add_data_vector (residual, residual_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
 
 
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);

@@ -106,7 +106,9 @@ int ODESolver<dim,real>::steady_state ()
         }
 
         double dt = std::max(CFL,all_parameters->ode_solver_param.initial_time_step);
-        dt *= pow((1.0-std::log10(this->residual_norm_decrease)*ode_param.time_step_factor_residual), ode_param.time_step_factor_residual_exp);
+        if (this->residual_norm_decrease < 1.0) {
+            dt *= pow((1.0-std::log10(this->residual_norm_decrease)*ode_param.time_step_factor_residual), ode_param.time_step_factor_residual_exp);
+        }
         dt = std::max(dt,CFL);
         pcout << "CFL = " << CFL << " Time step = " << dt << std::endl;
 
@@ -231,7 +233,7 @@ double Implicit_ODESolver<dim,real>::linesearch ()
 
     const double step_reduction = 0.5;
     const int maxline = 30;
-    const double reduction_tolerance = 50.0;
+    const double reduction_tolerance = 1.5;
 
     const double initial_residual = this->dg->get_residual_l2norm();
 

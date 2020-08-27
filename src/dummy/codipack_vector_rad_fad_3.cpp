@@ -1,5 +1,7 @@
 #include <CoDiPack/include/codi.hpp>
 #include <iostream>
+#include <chrono>
+#include <ctime>
 template<typename Real>
 void dotWithNorms(Real const* a, Real const* b, size_t n, Real& alpha, Real& aNorm, Real& bNorm) {
   alpha = Real(); // Dot product is accumulated in alpha
@@ -62,6 +64,107 @@ void printHesForOutput(std::string const& text, Hes const &hes, size_t output) {
   }
   std::cout << "}" << std::endl;
 }
+int ad(const int mode, const size_t n)
+{
+  const int D1 = 10;
+  const int D2 = 1;
+  using HessType = codi::RealReversePrimalIndexGen<codi::RealForwardVec<D1>,
+                                                   codi::Direction< codi::RealForwardVec<D1>, D2>>;
+  using JacType = codi::RealReverseIndexVec<D1>;
+  //using HessType = codi::HessianComputationType;
+
+  //using TH = codi::TapeHelper<HessType, JacType>;
+  using TH = codi::TapeHelper<HessType>;
+  TH th;
+  std::vector<HessType> a(n);
+  std::vector<HessType> b(n);
+  for(size_t i = 0; i < n; i += 1) {
+    a[i] = i;
+    b[i] = pow(-1, i);
+  }
+  th.startRecording();
+  for(size_t i = 0; i < n; i += 1) {
+    th.registerInput(a[i]);
+  }
+  for(size_t i = 0; i < n; i += 1) {
+    th.registerInput(b[i]);
+  }
+  HessType alpha, aNorm, bNorm;
+  dotWithNorms(a.data(), b.data(), n, alpha, aNorm, bNorm);
+  th.registerOutput(alpha);
+  th.registerOutput(aNorm);
+  th.registerOutput(bNorm);
+  th.stopRecording();
+  TH::JacobianType& jac = th.createJacobian();
+  TH::HessianType& hes = th.createHessian();
+  if(1 == mode) {
+    th.evalJacobian(jac);
+    th.evalHessian(hes);
+  } else {
+    th.evalHessian(hes, jac);
+  }
+  //printVector("a", a, n, 0);
+  //printVector("b", b, n, 0);
+  //std::cout << std::endl;
+  //printJacCol("Jacobian with respect to alpha: ", jac, 0);
+  //printJacCol("Jacobian with respect to aNorm: ", jac, 1);
+  //printJacCol("Jacobian with respect to bNorm: ", jac, 2);
+  //std::cout << std::endl;
+  //printHesForOutput("Hessian with respect to alpha: ", hes, 0);
+  //printHesForOutput("Hessian with respect to aNorm: ", hes, 1);
+  //printHesForOutput("Hessian with respect to bNorm: ", hes, 2);
+  // Evaluate at different position
+  TH::Real* x = th.createPrimalVectorInput();
+  TH::Real* y = th.createPrimalVectorOutput();
+  for(size_t i = 0; i < n; i += 1) {
+    x[0 + i] = i * i;
+    x[n + i] = pow(-1, i + 1);
+  }
+  if(1 == mode) {
+    th.evalJacobianAt(x, jac, y);
+    // Jacobian evaluation already shifted the point for the evaluation. No second ...At call is required here
+    th.evalHessian(hes);
+  } else {
+    th.evalHessianAt(x, hes, y, jac);
+  }
+  //printVector("a", a, n, 0);
+  //printVector("b", b, n, 0);
+  //std::cout << std::endl;
+  //printJacCol("Jacobian with respect to alpha: ", jac, 0);
+  //printJacCol("Jacobian with respect to aNorm: ", jac, 1);
+  //printJacCol("Jacobian with respect to bNorm: ", jac, 2);
+  //std::cout << std::endl;
+  //printHesForOutput("Hessian with respect to alpha: ", hes, 0);
+  //printHesForOutput("Hessian with respect to aNorm: ", hes, 1);
+  //printHesForOutput("Hessian with respect to bNorm: ", hes, 2);
+  // Evaluate gradient
+  TH::GradientValue* x_b = th.createGradientVectorInput();
+  TH::GradientValue* y_b = th.createGradientVectorOutput();
+  y_b[0] = {1.0, 0.0, 0.0, 0.0};
+  y_b[1] = {0.0, 1.0, 0.0, 0.0};
+  y_b[2] = {0.0, 0.0, 1.0, 0.0};
+  th.evalReverse(y_b, x_b);
+  //std::cout << "Reverse evaluation for alpha_b:" << std::endl;
+  //printVectorDim("a_b", x_b, n, 0, 0);
+  //printVectorDim("b_b", x_b, n, n, 0);
+  //std::cout << std::endl;
+  //std::cout << "Reverse evaluation for aNorm_b:" << std::endl;
+  //printVectorDim("a_b", x_b, n, 0, 1);
+  //printVectorDim("b_b", x_b, n, n, 1);
+  //std::cout << std::endl;
+  //std::cout << "Reverse evaluation for bNorm_b:" << std::endl;
+  //printVectorDim("a_b", x_b, n, 0, 2);
+  //printVectorDim("b_b", x_b, n, n, 2);
+  // Clean up vectors
+  th.deleteGradientVector(x_b);
+  th.deleteGradientVector(y_b);
+  th.deletePrimalVector(x);
+  th.deletePrimalVector(y);
+  th.deleteJacobian(jac);
+  th.deleteHessian(hes);
+  return 0;
+}
+
 int main(int nargs, char** args) {
   int mode = 1;
   if(2 <= nargs) {
@@ -77,94 +180,21 @@ int main(int nargs, char** args) {
   if(3 <= nargs) {
       n = atoi(args[2]);
   }
-  //using codi::AHessianComputationType = codi::RealReversePrimalIndexGen< codi::RealReverseVec< 4 >, codi::Direction< codi::RealForwardVec< 4 >, 4 > >;
-  using TH = codi::TapeHelper<codi::HessianComputationType>;
-  TH th;
-  std::vector<codi::HessianComputationType> a(n);
-  std::vector<codi::HessianComputationType> b(n);
-  for(size_t i = 0; i < n; i += 1) {
-    a[i] = i;
-    b[i] = pow(-1, i);
+  std::clock_t c_start = std::clock();
+  auto t_start = std::chrono::high_resolution_clock::now();
+
+  const int ntimes = 1000;
+  for (int i = 0; i < ntimes; ++i) {
+      (void) ad(mode,n);
   }
-  th.startRecording();
-  for(size_t i = 0; i < n; i += 1) {
-    th.registerInput(a[i]);
-  }
-  for(size_t i = 0; i < n; i += 1) {
-    th.registerInput(b[i]);
-  }
-  codi::HessianComputationType alpha, aNorm, bNorm;
-  dotWithNorms(a.data(), b.data(), n, alpha, aNorm, bNorm);
-  th.registerOutput(alpha);
-  th.registerOutput(aNorm);
-  th.registerOutput(bNorm);
-  th.stopRecording();
-  TH::JacobianType& jac = th.createJacobian();
-  TH::HessianType& hes = th.createHessian();
-  if(1 == mode) {
-    th.evalJacobian(jac);
-    th.evalHessian(hes);
-  } else {
-    th.evalHessian(hes, jac);
-  }
-  printVector("a", a, n, 0);
-  printVector("b", b, n, 0);
-  std::cout << std::endl;
-  printJacCol("Jacobian with respect to alpha: ", jac, 0);
-  printJacCol("Jacobian with respect to aNorm: ", jac, 1);
-  printJacCol("Jacobian with respect to bNorm: ", jac, 2);
-  std::cout << std::endl;
-  printHesForOutput("Hessian with respect to alpha: ", hes, 0);
-  printHesForOutput("Hessian with respect to aNorm: ", hes, 1);
-  printHesForOutput("Hessian with respect to bNorm: ", hes, 2);
-  // Evaluate at different position
-  TH::Real* x = th.createPrimalVectorInput();
-  TH::Real* y = th.createPrimalVectorOutput();
-  for(size_t i = 0; i < n; i += 1) {
-    x[0 + i] = i * i;
-    x[n + i] = pow(-1, i + 1);
-  }
-  if(1 == mode) {
-    th.evalJacobianAt(x, jac, y);
-    // Jacobian evaluation already shifted the point for the evaluation. No second ...At call is required here
-    th.evalHessian(hes);
-  } else {
-    th.evalHessianAt(x, hes, y, jac);
-  }
-  printVector("a", a, n, 0);
-  printVector("b", b, n, 0);
-  std::cout << std::endl;
-  printJacCol("Jacobian with respect to alpha: ", jac, 0);
-  printJacCol("Jacobian with respect to aNorm: ", jac, 1);
-  printJacCol("Jacobian with respect to bNorm: ", jac, 2);
-  std::cout << std::endl;
-  printHesForOutput("Hessian with respect to alpha: ", hes, 0);
-  printHesForOutput("Hessian with respect to aNorm: ", hes, 1);
-  printHesForOutput("Hessian with respect to bNorm: ", hes, 2);
-  // Evaluate gradient
-  TH::GradientValue* x_b = th.createGradientVectorInput();
-  TH::GradientValue* y_b = th.createGradientVectorOutput();
-  y_b[0] = {1.0, 0.0, 0.0, 0.0};
-  y_b[1] = {0.0, 1.0, 0.0, 0.0};
-  y_b[2] = {0.0, 0.0, 1.0, 0.0};
-  th.evalReverse(y_b, x_b);
-  std::cout << "Reverse evaluation for alpha_b:" << std::endl;
-  printVectorDim("a_b", x_b, n, 0, 0);
-  printVectorDim("b_b", x_b, n, n, 0);
-  std::cout << std::endl;
-  std::cout << "Reverse evaluation for aNorm_b:" << std::endl;
-  printVectorDim("a_b", x_b, n, 0, 1);
-  printVectorDim("b_b", x_b, n, n, 1);
-  std::cout << std::endl;
-  std::cout << "Reverse evaluation for bNorm_b:" << std::endl;
-  printVectorDim("a_b", x_b, n, 0, 2);
-  printVectorDim("b_b", x_b, n, n, 2);
-  // Clean up vectors
-  th.deleteGradientVector(x_b);
-  th.deleteGradientVector(y_b);
-  th.deletePrimalVector(x);
-  th.deletePrimalVector(y);
-  th.deleteJacobian(jac);
-  th.deleteHessian(hes);
+
+  std::clock_t c_end = std::clock();
+  auto t_end = std::chrono::high_resolution_clock::now();
+  std::cout << std::fixed << std::setprecision(2) << "CPU time used: "
+          << 1000.0 * (c_end-c_start) / CLOCKS_PER_SEC << " ms\n"
+          << "Wall clock time passed: "
+          << std::chrono::duration<double, std::milli>(t_end-t_start).count()
+          << " ms\n";
+
   return 0;
 }

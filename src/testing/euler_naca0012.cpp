@@ -138,12 +138,12 @@ int EulerNACA0012<dim,nstate>
             airfoil_data.height         = 150.0; // Farfield radius.
             airfoil_data.length_b2      = 150.0;
             airfoil_data.incline_factor = 0.0;
-            airfoil_data.bias_factor    = 4.5; // default good enough?
+            airfoil_data.bias_factor    = 5.0;
             airfoil_data.refinements    = 0;
-            airfoil_data.n_subdivision_x_0 = 20;
-            airfoil_data.n_subdivision_x_1 = 20;
-            airfoil_data.n_subdivision_x_2 = 20;
-            airfoil_data.n_subdivision_y = 20;
+            airfoil_data.n_subdivision_x_0 = 15;
+            airfoil_data.n_subdivision_x_1 = 7;
+            airfoil_data.n_subdivision_x_2 = 15;
+            airfoil_data.n_subdivision_y = 10;
             airfoil_data.airfoil_sampling_factor = 3; // default 2
 
             // dealii::GridGenerator::Airfoil::create_triangulation(*grid, airfoil_data);
@@ -170,11 +170,16 @@ int EulerNACA0012<dim,nstate>
 
             n_subdivisions[0] = airfoil_data.n_subdivision_x_0 + airfoil_data.n_subdivision_x_1 + airfoil_data.n_subdivision_x_2;
             n_subdivisions[1] = airfoil_data.n_subdivision_y;
-            Grids::naca_airfoil(*grid, airfoil_data.naca_id, n_subdivisions, airfoil_data.height);
+            //Grids::naca_airfoil(*grid, airfoil_data.naca_id, n_subdivisions, airfoil_data.height);
+            Grids::naca_airfoil(*grid, airfoil_data);
 
             const double solution_degree = poly_degree;
             const double grid_degree = solution_degree+1;
             std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, solution_degree, solution_degree, grid_degree, grid);
+
+            dg->high_order_grid.prepare_for_coarsening_and_refinement();
+            grid->refine_global (1);
+            dg->high_order_grid.execute_coarsening_and_refinement(true);
 
             // Initialize coarse grid solution with free-stream
             dg->allocate_system ();

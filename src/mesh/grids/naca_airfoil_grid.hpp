@@ -12,9 +12,7 @@ namespace Grids {
  */
 void naca_airfoil(
     dealii::parallel::distributed::Triangulation<2> &grid,
-    const std::string naca_id,
-    const std::vector<unsigned int> n_subdivisions,
-    const double farfield_length);
+    dealii::GridGenerator::Airfoil::AdditionalData airfoil_data);
 
 /// NACA airfoil manifold.
 template<int dim = 2, int chartdim = 1>

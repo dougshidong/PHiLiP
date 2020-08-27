@@ -59,7 +59,7 @@ void func_deriv(double a, double b, double c, double& drda, double& drdb)
 
 // The analytic second derivative of func(a,b,c) with respect to a and b
 void func_deriv2(double a, double b, double c, double& d2rda2, double& d2rdb2,
-		 double& d2rdadb)
+   double& d2rdadb)
 {
   d2rda2 = c*std::log(b+1.)/sin(a) + 2.*(c*std::log(b+1.)/std::pow(sin(a),3.))*std::pow(std::cos(a),2.);
   d2rdb2 = -c / (std::pow(b+1.,2.)*sin(a));

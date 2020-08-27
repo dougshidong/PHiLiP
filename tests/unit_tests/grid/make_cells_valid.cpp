@@ -140,8 +140,8 @@ int main (int argc, char * argv[])
                               << " Grid: " << igrid
                               << " Cell: " << cell->active_cell_index() << " has an invalid Jacobian." << std::endl;
                     //has_invalid_grid = true;
-					bool fixed_invalid_cell = high_order_grid.fix_invalid_cell(cell);
-					if (fixed_invalid_cell) std::cout << "Fixed it." << std::endl;
+     bool fixed_invalid_cell = high_order_grid.fix_invalid_cell(cell);
+     if (fixed_invalid_cell) std::cout << "Fixed it." << std::endl;
                     else has_invalid_poly = true;
                 }
             }

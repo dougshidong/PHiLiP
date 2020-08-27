@@ -31,7 +31,7 @@ const double TOLERANCE = 1e-6;
 template <int dim, int nstate, typename real>
 class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
 {
-	public:
+ public:
         /// Constructor
         L2_Norm_Functional(
             std::shared_ptr<PHiLiP::DGBase<dim,real>> dg_input,
@@ -42,21 +42,21 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
 
         /// Templated L2 norm integrand.
         template <typename real2>
-		real2 evaluate_volume_integrand(
+  real2 evaluate_volume_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
             const dealii::Point<dim,real2> &phys_coord,
             const std::array<real2,nstate> &soln_at_q,
             const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
-		{
-			real2 l2error = 0;
-			
-			for (int istate=0; istate<nstate; ++istate) {
-				const real2 uexact = physics.manufactured_solution_function->value(phys_coord, istate);
-				l2error += std::pow(soln_at_q[istate] - uexact, 2);
-			}
+  {
+   real2 l2error = 0;
+   
+   for (int istate=0; istate<nstate; ++istate) {
+    const real2 uexact = physics.manufactured_solution_function->value(phys_coord, istate);
+    l2error += std::pow(soln_at_q[istate] - uexact, 2);
+   }
 
-			return l2error;
-		}
+   return l2error;
+  }
 
         /// Templated cell boundary integral.
         template <typename real2>
@@ -106,24 +106,24 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
             return evaluate_cell_boundary<>(physics, boundary_id, fe_values_boundary, local_solution);
         }
 
-    	/// non-template functions to override the template classes
-		real evaluate_volume_integrand(
+     /// non-template functions to override the template classes
+  real evaluate_volume_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
             const dealii::Point<dim,real> &phys_coord,
             const std::array<real,nstate> &soln_at_q,
             const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override
-		{
-			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
-		}
-    	/// non-template functions to override the template classes
-		FadFadType evaluate_volume_integrand(
+  {
+   return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
+  }
+     /// non-template functions to override the template classes
+  FadFadType evaluate_volume_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,
             const dealii::Point<dim,FadFadType> &phys_coord,
             const std::array<FadFadType,nstate> &soln_at_q,
             const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &soln_grad_at_q) const override
-		{
-			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
-		}
+  {
+   return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
+  }
 
 };
 
@@ -140,25 +140,25 @@ void initialize_perturbed_solution(PHiLiP::DGBase<dim,double> &dg, const PHiLiP:
 int main(int argc, char *argv[])
 {
 
-	const int dim = PHILIP_DIM;
-	const int nstate = 1;
-	int fail_bool = false;
+ const int dim = PHILIP_DIM;
+ const int nstate = 1;
+ int fail_bool = false;
 
-	// Initializing MPI
-	dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
-	const int this_mpi_process = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
-	dealii::ConditionalOStream pcout(std::cout, this_mpi_process==0);
+ // Initializing MPI
+ dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
+ const int this_mpi_process = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+ dealii::ConditionalOStream pcout(std::cout, this_mpi_process==0);
 
-	// Initializing parameter handling
-	dealii::ParameterHandler parameter_handler;
-	PHiLiP::Parameters::AllParameters::declare_parameters(parameter_handler);
-	PHiLiP::Parameters::AllParameters all_parameters;
-	all_parameters.parse_parameters(parameter_handler);
+ // Initializing parameter handling
+ dealii::ParameterHandler parameter_handler;
+ PHiLiP::Parameters::AllParameters::declare_parameters(parameter_handler);
+ PHiLiP::Parameters::AllParameters all_parameters;
+ all_parameters.parse_parameters(parameter_handler);
 
-	// polynomial order and mesh size
-	const unsigned poly_degree = 1;
+ // polynomial order and mesh size
+ const unsigned poly_degree = 1;
 
-	// creating the grid
+ // creating the grid
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
 #if PHILIP_DIM!=1
         MPI_COMM_WORLD,
@@ -168,24 +168,24 @@ int main(int argc, char *argv[])
             dealii::Triangulation<dim>::smoothing_on_coarsening));
 
     const unsigned int n_refinements = 2;
-	double left = 0.0;
-	double right = 2.0;
-	const bool colorize = true;
+ double left = 0.0;
+ double right = 2.0;
+ const bool colorize = true;
 
-	dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
+ dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
     grid->refine_global(n_refinements);
     const double random_factor = 0.2;
     const bool keep_boundary = false;
     if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, *grid, keep_boundary);
 
-	pcout << "Grid generated and refined" << std::endl;
+ pcout << "Grid generated and refined" << std::endl;
 
-	// creating the dg
-	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, grid);
-	pcout << "dg created" << std::endl;
+ // creating the dg
+ std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, grid);
+ pcout << "dg created" << std::endl;
 
-	dg->allocate_system();
-	pcout << "dg allocated" << std::endl;
+ dg->allocate_system();
+ pcout << "dg allocated" << std::endl;
 
     const int n_refine = 2;
     for (int i=0; i<n_refine;i++) {
@@ -205,45 +205,45 @@ int main(int argc, char *argv[])
     }
     dg->allocate_system ();
 
-	// manufactured solution function
+ // manufactured solution function
     using FadType = Sacado::Fad::DFad<double>;
-	std::shared_ptr <PHiLiP::Physics::PhysicsBase<dim,nstate,double>> physics_double = PHiLiP::Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&all_parameters);
-	pcout << "Physics created" << std::endl;
-	
-	// performing the interpolation for the intial conditions
-	initialize_perturbed_solution(*dg, *physics_double);
-	pcout << "solution initialized" << std::endl;
+ std::shared_ptr <PHiLiP::Physics::PhysicsBase<dim,nstate,double>> physics_double = PHiLiP::Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&all_parameters);
+ pcout << "Physics created" << std::endl;
+ 
+ // performing the interpolation for the intial conditions
+ initialize_perturbed_solution(*dg, *physics_double);
+ pcout << "solution initialized" << std::endl;
 
-	// evaluating the derivative (using SACADO)
-	pcout << std::endl << "Starting AD... " << std::endl;
-	L2_Norm_Functional<dim,nstate,double> l2norm(dg,true,false);
-	double l2error_mpi_sum2 = std::sqrt(l2norm.evaluate_functional(true,true));
+ // evaluating the derivative (using SACADO)
+ pcout << std::endl << "Starting AD... " << std::endl;
+ L2_Norm_Functional<dim,nstate,double> l2norm(dg,true,false);
+ double l2error_mpi_sum2 = std::sqrt(l2norm.evaluate_functional(true,true));
 
-	dealii::LinearAlgebra::distributed::Vector<double> dIdw = l2norm.dIdw;
-	dealii::LinearAlgebra::distributed::Vector<double> dIdX = l2norm.dIdX;
+ dealii::LinearAlgebra::distributed::Vector<double> dIdw = l2norm.dIdw;
+ dealii::LinearAlgebra::distributed::Vector<double> dIdX = l2norm.dIdX;
 
-	pcout << std::endl << "Overall error (its ok that it's high since we have extraneous boundary terms): " << l2error_mpi_sum2 << std::endl;
+ pcout << std::endl << "Overall error (its ok that it's high since we have extraneous boundary terms): " << l2error_mpi_sum2 << std::endl;
 
-	// evaluating the derivative (using finite differences)
-	pcout << std::endl << "Starting FD dIdW... " << std::endl;
-	dealii::LinearAlgebra::distributed::Vector<double> dIdw_FD = l2norm.evaluate_dIdw_finiteDifferences(*dg, *physics_double, STEPSIZE);
-	// dIdw_FD.print(std::cout);
+ // evaluating the derivative (using finite differences)
+ pcout << std::endl << "Starting FD dIdW... " << std::endl;
+ dealii::LinearAlgebra::distributed::Vector<double> dIdw_FD = l2norm.evaluate_dIdw_finiteDifferences(*dg, *physics_double, STEPSIZE);
+ // dIdw_FD.print(std::cout);
 
-	pcout << std::endl << "Starting FD dIdX... " << std::endl;
-	dealii::LinearAlgebra::distributed::Vector<double> dIdX_FD = l2norm.evaluate_dIdX_finiteDifferences(*dg, *physics_double, STEPSIZE);
+ pcout << std::endl << "Starting FD dIdX... " << std::endl;
+ dealii::LinearAlgebra::distributed::Vector<double> dIdX_FD = l2norm.evaluate_dIdX_finiteDifferences(*dg, *physics_double, STEPSIZE);
 
-	// comparing the results and checking its within the specified tolerance
-	dealii::LinearAlgebra::distributed::Vector<double> dIdw_difference = dIdw;
-	dIdw_difference -= dIdw_FD;
-	double dIdW_L2_diff = dIdw_difference.l2_norm();
-	pcout << "L2 norm of FD-AD dIdW: " << dIdW_L2_diff << std::endl;
+ // comparing the results and checking its within the specified tolerance
+ dealii::LinearAlgebra::distributed::Vector<double> dIdw_difference = dIdw;
+ dIdw_difference -= dIdw_FD;
+ double dIdW_L2_diff = dIdw_difference.l2_norm();
+ pcout << "L2 norm of FD-AD dIdW: " << dIdW_L2_diff << std::endl;
 
-	// comparing the results and checking its within the specified tolerance
-	dealii::LinearAlgebra::distributed::Vector<double> dIdX_difference = dIdX;
-	dIdX_difference -= dIdX_FD;
-	double dIdX_L2_diff = dIdX_difference.l2_norm();
-	pcout << "L2 norm of FD-AD dIdX: " << dIdX_L2_diff << std::endl;
+ // comparing the results and checking its within the specified tolerance
+ dealii::LinearAlgebra::distributed::Vector<double> dIdX_difference = dIdX;
+ dIdX_difference -= dIdX_FD;
+ double dIdX_L2_diff = dIdX_difference.l2_norm();
+ pcout << "L2 norm of FD-AD dIdX: " << dIdX_L2_diff << std::endl;
 
-	fail_bool = dIdW_L2_diff > TOLERANCE || dIdX_L2_diff > TOLERANCE;
-	return fail_bool;
+ fail_bool = dIdW_L2_diff > TOLERANCE || dIdX_L2_diff > TOLERANCE;
+ return fail_bool;
 }

@@ -54,7 +54,7 @@ public:
     using Functional<dim,nstate,real>::dIdw;
     /// Vector for storing the derivatives with respect to each grid DoF
     using Functional<dim,nstate,real>::dIdX;
-	/// Store the functional value from the last time evaluate_functional() was called.
+ /// Store the functional value from the last time evaluate_functional() was called.
     using Functional<dim,nstate,real>::current_functional_value;
     /// Sparse matrix for storing the functional partial second derivatives.
     using Functional<dim,nstate,real>::d2IdWdW;
@@ -97,7 +97,7 @@ protected:
 
 
 protected:
-	/// Solution used to evaluate target functional
+ /// Solution used to evaluate target functional
     const dealii::LinearAlgebra::distributed::Vector<real> target_solution;
 
 public:
@@ -121,7 +121,7 @@ public:
      */
     TargetFunctional(
         std::shared_ptr<DGBase<dim,real>> dg_input,
-		const dealii::LinearAlgebra::distributed::Vector<real> &target_solution,
+  const dealii::LinearAlgebra::distributed::Vector<real> &target_solution,
         const bool uses_solution_values = true,
         const bool uses_solution_gradient = true);
 
@@ -138,10 +138,10 @@ public:
     /// Constructor
     /** Uses provided physics instead of creating a new one base on DGBase 
      *  The target solution is provided instead of using the current solution in the DG object.
-	 */
+  */
     TargetFunctional(
         std::shared_ptr<DGBase<dim,real>> dg_input,
-		const dealii::LinearAlgebra::distributed::Vector<real> &target_solution,
+  const dealii::LinearAlgebra::distributed::Vector<real> &target_solution,
         std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> > _physics_fad_fad,
         const bool uses_solution_values = true,
         const bool uses_solution_gradient = true);
@@ -257,13 +257,13 @@ protected:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_at_q*/,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &/*target_soln_grad_at_q*/) const
     {
-		real l2error = 0;
-		
-		for (int istate=0; istate<nstate; ++istate) {
-			l2error += std::pow(soln_at_q[istate] - target_soln_at_q[istate], 2);
-		}
+  real l2error = 0;
+  
+  for (int istate=0; istate<nstate; ++istate) {
+   l2error += std::pow(soln_at_q[istate] - target_soln_at_q[istate], 2);
+  }
 
-		return l2error;
+  return l2error;
     }
     /// Virtual function for Sacado computation of cell volume functional term and derivatives
     /** Used only in the computation of evaluate_dIdw(). If not overriden returns 0. */
@@ -275,13 +275,13 @@ protected:
         const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &/*soln_grad_at_q*/,
         const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &/*target_soln_grad_at_q*/) const
     {
-		FadFadType l2error = 0;
-		
-		for (int istate=0; istate<nstate; ++istate) {
-			l2error += std::pow(soln_at_q[istate] - target_soln_at_q[istate], 2);
-		}
+  FadFadType l2error = 0;
+  
+  for (int istate=0; istate<nstate; ++istate) {
+   l2error += std::pow(soln_at_q[istate] - target_soln_at_q[istate], 2);
+  }
 
-		return l2error;
+  return l2error;
     }
 
     /// Virtual function for computation of cell face functional term
@@ -295,13 +295,13 @@ protected:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &)//target_soln_grad_at_q)
         const
     {
-		real l2error = 0;
-		
-		for (int istate=0; istate<nstate; ++istate) {
-			l2error += std::pow(soln_at_q[istate] - target_soln_at_q[istate], 2);
-		}
+  real l2error = 0;
+  
+  for (int istate=0; istate<nstate; ++istate) {
+   l2error += std::pow(soln_at_q[istate] - target_soln_at_q[istate], 2);
+  }
 
-		return l2error;
+  return l2error;
     }
     /// Virtual function for Sacado computation of cell face functional term and derivatives
     /** Used only in the computation of evaluate_dIdw(). If not overriden returns 0. */
@@ -314,13 +314,13 @@ protected:
         const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &)//target_soln_grad_at_q)
         const
     {
-		FadFadType l2error = 0;
-		
-		for (int istate=0; istate<nstate; ++istate) {
-			l2error += std::pow(soln_at_q[istate] - target_soln_at_q[istate], 2);
-		}
+  FadFadType l2error = 0;
+  
+  for (int istate=0; istate<nstate; ++istate) {
+   l2error += std::pow(soln_at_q[istate] - target_soln_at_q[istate], 2);
+  }
 
-		return l2error;
+  return l2error;
     }
 
     /// Virtual function for computation of cell boundary functional term
@@ -331,7 +331,7 @@ protected:
         const dealii::FEFaceValues<dim,dim> &/*fe_values_boundary*/,
         std::vector<real> /*soln_coeff*/,
         std::vector<real> /*target_soln_coeff*/)
-	{return (real) 0.0;}
+ {return (real) 0.0;}
 
     /// Virtual function for Sacado computation of cell boundary functional term and derivatives
     /** Used only in the computation of evaluate_dIdw(). If not overriden returns 0. */
@@ -341,7 +341,7 @@ protected:
         const dealii::FEFaceValues<dim,dim> &/*fe_values_boundary*/,
         std::vector<FadFadType> /*soln_coeff*/,
         std::vector<real> /*target_soln_coeff*/)
-	{return (FadFadType) 0.0;}
+ {return (FadFadType) 0.0;}
 
 }; // TargetFunctional class
 } // PHiLiP namespace

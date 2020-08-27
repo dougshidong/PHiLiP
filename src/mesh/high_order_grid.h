@@ -7,7 +7,7 @@
 
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_system.h>
-#include <deal.II/fe/mapping_fe_field.h> 
+#include <deal.II/fe/mapping_fe_field.h>
 
 #include <deal.II/dofs/dof_handler.h>
 
@@ -35,7 +35,7 @@ namespace PHiLiP {
  *  a dealii::MappingFEField that corresponds to the current Triangulation and attached Manifold.
  *  Once the high order grid is generated, the mesh can be deformed by assigning different values to the
  *  volume_nodes vector. The dof_handler_grid is used to access and loop through those volume_nodes.
- *  This will especially be useful when performing shape optimization, where the surface and volume 
+ *  This will especially be useful when performing shape optimization, where the surface and volume
  *  volume_nodes will need to be displaced.
  *  Note that there are a lot of pre-processor statements, and that is because the SolutionTransfer class
  *  and the Vector class act quite differently between serial and parallel implementation. Hopefully,
@@ -133,13 +133,13 @@ public:
 
     /** Locally owned surface nodes dealii::IndexSet
      */
-	dealii::IndexSet locally_owned_surface_nodes_indexset;
+    dealii::IndexSet locally_owned_surface_nodes_indexset;
     /** Ghost surface nodes dealii::IndexSet
      */
-	dealii::IndexSet ghost_surface_nodes_indexset;
+    dealii::IndexSet ghost_surface_nodes_indexset;
 
     /** Number of locally_relevant_surface_nodes per process */
-	std::vector<unsigned int> n_locally_owned_surface_nodes_per_mpi;
+    std::vector<unsigned int> n_locally_owned_surface_nodes_per_mpi;
 
     /// List of surface nodes.
     /** Note that this contains all \<dim\> directions.
@@ -168,7 +168,7 @@ public:
     std::vector<real> locally_owned_surface_nodes;
     /// List of all surface nodes
     /** Same as locally_owned_surface_nodes except that it stores a global vector of all the
-     *  surface nodes that will be needed to evaluate the A matrix in the RBF 
+     *  surface nodes that will be needed to evaluate the A matrix in the RBF
      *  deformation dxv = A * coeff = A * (Minv*dxs)
      */
     std::vector<real> all_surface_nodes;
@@ -213,7 +213,7 @@ public:
 
     // /** Given the Point index within the locally_relevant_surface_points and its component,
     //  *  this will return the index of the surface_nodes' index.
-    //  *  This allows us to obtain a deformation vector matching the locally_relevant_surface_points, and then copy 
+    //  *  This allows us to obtain a deformation vector matching the locally_relevant_surface_points, and then copy
     //  *  its results to the surface_nodes.
     //  */
     // std::map<std::pair<unsigned int, unsigned int>, dealii::types::global_dof_index> point_and_axis_to_surface_nodes_index;
@@ -225,7 +225,7 @@ public:
 
     /** Transforms the surface_nodes vector using a std::function tranformation.
      */
-	VectorType transform_surface_nodes(std::function<dealii::Point<dim>(dealii::Point<dim>)> transformation) const;
+    VectorType transform_surface_nodes(std::function<dealii::Point<dim>(dealii::Point<dim>)> transformation) const;
 
     /// RBF mesh deformation  -  To be done
     //void deform_mesh(Vector surface_displacements);
@@ -264,13 +264,13 @@ public:
     /// Evaluate exact Jacobian determinant polynomial and uses Bernstein polynomials to determine positivity
     bool fix_invalid_cell(const typename DoFHandlerType::cell_iterator &cell);
 
-	/// Used to transform coefficients from a Lagrange basis to a Bernstein basis
+    /// Used to transform coefficients from a Lagrange basis to a Bernstein basis
     dealii::FullMatrix<double> lagrange_to_bernstein_operator;
-	/// Evaluates the operator to obtain Bernstein coefficients from a set of Lagrange coefficients
-	/** This is used in the evaluation of the Jacobian positivity by checking the convex hull of the
+    /// Evaluates the operator to obtain Bernstein coefficients from a set of Lagrange coefficients
+    /** This is used in the evaluation of the Jacobian positivity by checking the convex hull of the
      *  resulting Bezier curve.
      */
-	void evaluate_lagrange_to_bernstein_operator(const unsigned int order);
+    void evaluate_lagrange_to_bernstein_operator(const unsigned int order);
 
     void output_results_vtk (const unsigned int cycle) const; ///< Output mesh with metric informations
 
@@ -278,7 +278,7 @@ public:
     // /// Evaluate cell metric Jacobian
     // /** The metric Jacobian is given by the gradient of the physical location
     //  *  with respect to the reference locations
-    //  */ 
+    //  */
     //  dealii::Tensor<2,dim,real> cell_jacobian (const typename dealii::Triangulation<dim,spacedim>::cell_iterator &cell, const dealii::Point<dim> &point) const override
     //  {
     //  }
@@ -290,7 +290,7 @@ public:
      */
     void prepare_for_coarsening_and_refinement();
     /// Executes the solution transfer such that the curved refined grid is on top of the curved coarse grid.
-    /** This function needs to be after this->prepare_for_coarsening_and_refinement() and 
+    /** This function needs to be after this->prepare_for_coarsening_and_refinement() and
      *  dealii::Triangulation::execute_coarsening_and_refinement() or dealii::Triangulation::refine_global().
      */
     void execute_coarsening_and_refinement(const bool output_mesh = false);
@@ -303,7 +303,7 @@ public:
 
     /// MappingFEField that will provide the polynomial-based grid.
     /** It is a shared smart pointer because the constructor requires the dof_handler_grid to be properly initialized.
-     *  See discussion in the following 
+     *  See discussion in the following
      *  <a href=" https://stackoverflow.com/questions/7557153/defining-an-object-without-calling-its-constructor-in-c">thread</a>.
      */
     std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field;
@@ -311,7 +311,7 @@ public:
     /// MappingFEField that will provide the polynomial-based grid for the initial volume_nodes.
     /** Will likely be used for deformations based on initial grids.
      *  It is a shared smart pointer because the constructor requires the dof_handler_grid to be properly initialized.
-     *  See discussion in the following 
+     *  See discussion in the following
      *  <a href=" https://stackoverflow.com/questions/7557153/defining-an-object-without-calling-its-constructor-in-c">thread</a>.
      */
     std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> initial_mapping_fe_field;

@@ -41,7 +41,7 @@ namespace MeshMover
         /// Constructor that uses information from HighOrderGrid and uses current volume_nodes from HighOrderGrid.
         LinearElasticity(
             const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
-			const dealii::LinearAlgebra::distributed::Vector<double> &boundary_displacements_vector);
+   const dealii::LinearAlgebra::distributed::Vector<double> &boundary_displacements_vector);
 
         /** Evaluate and return volume displacements given boundary displacements.
          */
@@ -50,7 +50,7 @@ namespace MeshMover
         /** Evaluates the analytical derivatives of volume displacements with respect
          *  to surface displacements.
          */
-		void evaluate_dXvdXs();
+  void evaluate_dXvdXs();
 
         /** Apply the analytical derivatives of volume displacements with respect
          *  to surface displacements onto a set of various right-hand sides.

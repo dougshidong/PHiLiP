@@ -85,9 +85,9 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
     } else if(test_type == Test_enum::euler_entropy_waves) {
         if constexpr (dim>=2 && nstate==PHILIP_DIM+2) return std::make_unique<EulerEntropyWaves<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_split_taylor_green) {
-    	if constexpr (dim==3 && nstate == dim+2) return std::make_unique<EulerTaylorGreen<dim,nstate>>(parameters_input);
+     if constexpr (dim==3 && nstate == dim+2) return std::make_unique<EulerTaylorGreen<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::optimization_inverse_manufactured) {
-    	return std::make_unique<OptimizationInverseManufactured<dim,nstate>>(parameters_input);
+     return std::make_unique<OptimizationInverseManufactured<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_bump_optimization) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerBumpOptimization<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::shock_1d) {

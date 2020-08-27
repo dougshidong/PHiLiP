@@ -9,7 +9,7 @@
 #include <deal.II/fe/fe_dgq.h>
 #include <deal.II/fe/fe_dgp.h>
 #include <deal.II/fe/fe_system.h>
-#include <deal.II/fe/mapping_fe_field.h> 
+#include <deal.II/fe/mapping_fe_field.h>
 
 
 #include <deal.II/dofs/dof_handler.h>
@@ -57,17 +57,17 @@ namespace PHiLiP {
   *
   *  Discretizes the problem
   *  \f[
-  *      \frac{\partial \mathbf{u}}{\partial t} 
+  *      \frac{\partial \mathbf{u}}{\partial t}
   *      + \boldsymbol\nabla \cdot
   *      ( \mathbf{F}_{conv}(\mathbf{u})
   *      + \mathbf{F}_{diss}(\mathbf{u},\boldsymbol\nabla\mathbf{u}) )
   *      = \mathbf{q}
   *  \f]
-  *  
+  *
   *  Also defines the main loop of the DGWeak class which is assemble_residual
   */
 template <int dim, typename real>
-class DGBase 
+class DGBase
 {
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
     /** Triangulation to store the grid.
@@ -122,7 +122,7 @@ public:
     /// Delegated constructor that initializes collections.
     /** Since a function is used to generate multiple different objects, a delegated
      *  constructor is used to unwrap the tuple and initialize the collections.
-     *  
+     *
      *  The tuple is built from create_collection_tuple(). */
     DGBase( const int nstate_input,
             const Parameters::AllParameters *const parameters_input,
@@ -179,6 +179,13 @@ public:
 
     unsigned int n_dofs() const; ///< Number of degrees of freedom
 
+    /// Refine cells with the highest residuals.
+    void refine_residual_based();
+
+    /// Set anisotropic flags based on jump indicator.
+    /** Some cells must have already been tagged for refinement through some other indicator
+     */
+    void set_anisotropic_flags();
 
     /// Sparsity pattern used on the system_matrix
     /** Not sure we need to store it.  */
@@ -229,12 +236,12 @@ public:
 
     /// Residual of the current solution
     /** Weak form.
-     * 
+     *
      *  The right-hand side sends all the term to the side of the source term.
-     * 
+     *
      *  Given
      *  \f[
-     *      \frac{\partial \mathbf{u}}{\partial t} 
+     *      \frac{\partial \mathbf{u}}{\partial t}
      *      + \boldsymbol\nabla \cdot
      *      ( \mathbf{F}_{conv}(\mathbf{u})
      *      + \mathbf{F}_{diss}(\mathbf{u},\boldsymbol\nabla\mathbf{u}) )
@@ -251,7 +258,7 @@ public:
      *  It is important to note that the \f$\mathbf{F}_{diss}\f$ is positive in the DG
      *  formulation. Therefore, the PhysicsBase class should have a negative when
      *  considering stable applications of diffusion.
-     * 
+     *
      */
     dealii::LinearAlgebra::distributed::Vector<double> right_hand_side;
 
@@ -310,9 +317,9 @@ public:
         const dealii::FiniteElement<dim,dim> &fe_high);
 
     /// Current optimization dual variables corresponding to the residual constraints also known as the adjoint
-	/** This is used to evaluate the dot-product between the dual and the 2nd derivatives of the residual
-	 *  since storing the 2nd order partials of the residual is a very large 3rd order tensor.
-	 */
+    /** This is used to evaluate the dot-product between the dual and the 2nd derivatives of the residual
+     *  since storing the 2nd order partials of the residual is a very large 3rd order tensor.
+     */
     dealii::LinearAlgebra::distributed::Vector<real> dual;
 
     /// Sets the stored dual variables used to compute the dual dotted with the residual Hessians
@@ -371,7 +378,7 @@ public:
     /** Evaluates the right-hand-side \f$ \mathbf{R(\mathbf{u}}) \f$ of the system
      *
      *  \f[
-     *      \frac{\partial \mathbf{u}}{\partial t} = \mathbf{R(\mathbf{u}}) = 
+     *      \frac{\partial \mathbf{u}}{\partial t} = \mathbf{R(\mathbf{u}}) =
      *      - \boldsymbol\nabla \cdot
      *      ( \mathbf{F}_{conv}(\mathbf{u})
      *      + \mathbf{F}_{diss}(\mathbf{u},\boldsymbol\nabla\mathbf{u}) )
@@ -396,12 +403,12 @@ public:
      *
      * 4. Neighbor is coarser. Therefore, the current cell is the finer one.
      * Do nothing since this cell will be taken care of by scenario 2.
-     *    
+     *
      */
     //void assemble_residual_dRdW ();
     void assemble_residual (const bool compute_dRdW=false, const bool compute_dRdX=false, const bool compute_d2R=false, const double CFL_mass = 0.0);
 
-    /// Used in assemble_residual(). 
+    /// Used in assemble_residual().
     /** IMPORTANT: This does not fully compute the cell residual since it might not
      *  perform the work on all the faces.
      *  All the active cells must be traversed to ensure that the right hand side is correct.
@@ -449,8 +456,8 @@ public:
      *  the index by a factor of "nstate"
      *
      *  Must be defined after fe_dg since it is a subscriptor of fe_dg.
-     *  Destructor are called in reverse order in which they appear in class definition. 
-     */ 
+     *  Destructor are called in reverse order in which they appear in class definition.
+     */
     dealii::DoFHandler<dim> dof_handler;
 
     /// High order grid that will provide the MappingFEField
@@ -483,7 +490,7 @@ protected:
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R) = 0;
     /// Evaluate the integral over the internal cell edges and its specified derivatives.
     /** Compute both the right-hand side and the block of the Jacobian.
-     *  This adds the contribution to both cell's residual and effectively 
+     *  This adds the contribution to both cell's residual and effectively
      *  computes 4 block contributions to dRdX blocks. */
     virtual void assemble_face_term_derivatives(
         const unsigned int interior_face_number,
@@ -540,7 +547,7 @@ protected:
 
     // /// Finite Element System used for vector-valued problems
     // /** Note that we will use the same set of polynomials for all state equations
-    //  *  therefore, FESystem is only used for the ease of obtaining sizes and 
+    //  *  therefore, FESystem is only used for the ease of obtaining sizes and
     //  *  global indexing.
     //  *
     //  *  When evaluating the function values, we will still be using fe_dg
@@ -561,7 +568,7 @@ protected:
     /// Update flags needed at face points.
     const dealii::UpdateFlags face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_normal_vectors
         | dealii::update_jacobians;
-    /// Update flags needed at neighbor' face points. 
+    /// Update flags needed at neighbor' face points.
     /** NOTE: With hp-adaptation, might need to query neighbor's quadrature points depending on the order of the cells. */
     const dealii::UpdateFlags neighbor_face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values;
 
@@ -625,7 +632,7 @@ class DGWeak : public DGBase<dim, real>
 public:
     /// Constructor.
     DGWeak(
-        const Parameters::AllParameters *const parameters_input, 
+        const Parameters::AllParameters *const parameters_input,
         const unsigned int degree,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
@@ -670,7 +677,7 @@ private:
     /** Currently only uses the convective eigenvalues. Future changes would take in account
      *  the maximum diffusivity and take the minimum time between dx/conv_eig and dx*dx/max_visc
      *  to determine the minimum travel time of information.
-     *  
+     *
      *  Furthermore, a more robust implementation would convert the values to a Bezier basis where
      *  the maximum and minimum values would be bounded by the Bernstein modal coefficients.
      */
@@ -717,7 +724,7 @@ private:
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
     /// Evaluate the integral over the internal cell edges and its specified derivatives.
     /** Compute both the right-hand side and the block of the Jacobian.
-     *  This adds the contribution to both cell's residual and effectively 
+     *  This adds the contribution to both cell's residual and effectively
      *  computes 4 block contributions to dRdX blocks. */
     void assemble_face_term_derivatives(
         const unsigned int interior_face_number,
@@ -742,7 +749,7 @@ private:
     void assemble_volume_terms_explicit(
         const dealii::FEValues<dim,dim> &fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        dealii::Vector<real> &current_cell_rhs, 
+        dealii::Vector<real> &current_cell_rhs,
         const dealii::FEValues<dim,dim> &fe_values_lagrange);
     /// Evaluate the integral over the cell edges that are on domain boundaries
     void assemble_boundary_term_explicit(
@@ -799,7 +806,7 @@ class DGStrong : public DGBase<dim, real>
 public:
     /// Constructor
     DGStrong(
-        const Parameters::AllParameters *const parameters_input, 
+        const Parameters::AllParameters *const parameters_input,
         const unsigned int degree,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
@@ -817,7 +824,7 @@ private:
     /** Currently only uses the convective eigenvalues. Future changes would take in account
      *  the maximum diffusivity and take the minimum time between dx/conv_eig and dx*dx/max_visc
      *  to determine the minimum travel time of information.
-     *  
+     *
      *  Furthermore, a more robust implementation would convert the values to a Bezier basis where
      *  the maximum and minimum values would be bounded by the Bernstein modal coefficients.
      */
@@ -875,7 +882,7 @@ private:
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
     /// Evaluate the integral over the internal cell edges and its specified derivatives.
     /** Compute both the right-hand side and the block of the Jacobian.
-     *  This adds the contribution to both cell's residual and effectively 
+     *  This adds the contribution to both cell's residual and effectively
      *  computes 4 block contributions to dRdX blocks. */
     void assemble_face_term_derivatives(
         const unsigned int interior_face_number,
@@ -959,7 +966,7 @@ public:
     /** That way, the caller is agnostic to the number of state variables */
     static std::shared_ptr< DGBase<dim,real> >
         create_discontinuous_galerkin(
-        const Parameters::AllParameters *const parameters_input, 
+        const Parameters::AllParameters *const parameters_input,
         const unsigned int degree,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
@@ -968,7 +975,7 @@ public:
     /// calls the above dg factory with grid_degree_input = degree + 1
     static std::shared_ptr< DGBase<dim,real> >
         create_discontinuous_galerkin(
-        const Parameters::AllParameters *const parameters_input, 
+        const Parameters::AllParameters *const parameters_input,
         const unsigned int degree,
         const unsigned int max_degree_input,
         const std::shared_ptr<Triangulation> triangulation_input);
@@ -976,7 +983,7 @@ public:
     /// calls the above dg factory with max_degree_input = degree
     static std::shared_ptr< DGBase<dim,real> >
         create_discontinuous_galerkin(
-        const Parameters::AllParameters *const parameters_input, 
+        const Parameters::AllParameters *const parameters_input,
         const unsigned int degree,
         const std::shared_ptr<Triangulation> triangulation_input);
 };

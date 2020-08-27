@@ -80,14 +80,15 @@ int ODESolver<dim,real>::steady_state ()
 
     CFL = all_parameters->ode_solver_param.initial_time_step;
 
+    double old_residual_norm = this->residual_norm; (void) old_residual_norm;
     // Output initial solution
-    while (    this->residual_norm     > ode_param.nonlinear_steady_residual_tolerance 
-            && this->residual_norm_decrease > ode_param.nonlinear_steady_residual_tolerance 
-            //&& update_norm             > ode_param.nonlinear_steady_residual_tolerance 
+    while (    this->residual_norm     > ode_param.nonlinear_steady_residual_tolerance
+            && this->residual_norm_decrease > ode_param.nonlinear_steady_residual_tolerance
+            //&& update_norm             > ode_param.nonlinear_steady_residual_tolerance
             && this->current_iteration < ode_param.nonlinear_max_iterations )
     {
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose
-            && (this->current_iteration%ode_param.print_iteration_modulo) == 0 
+            && (this->current_iteration%ode_param.print_iteration_modulo) == 0
             && dealii::Utilities::MPI::this_mpi_process(mpi_communicator) == 0 )
         {
             pcout.set_condition(true);
@@ -115,6 +116,7 @@ int ODESolver<dim,real>::steady_state ()
         step_in_time(dt);
 
         this->dg->assemble_residual ();
+        old_residual_norm = this->residual_norm;
         this->residual_norm = this->dg->get_residual_l2norm();
         this->residual_norm_decrease = this->residual_norm / this->initial_residual_norm;
 
@@ -127,6 +129,14 @@ int ODESolver<dim,real>::steady_state ()
                 this->dg->output_results_vtk(file_number);
             }
         }
+        // if (this->residual_norm > old_residual_norm) {
+        //     dg->refine_residual_based();
+        //     allocate_ode_system ();
+        // }
+        //if ((current_iteration+1) % 20 == 0 || this->residual_norm > old_residual_norm) {
+        //    dg->refine_residual_based();
+        //    allocate_ode_system ();
+        //}
     }
 
     pcout << " ********************************************************** "
@@ -215,7 +225,7 @@ void Implicit_ODESolver<dim,real>::step_in_time (real dt)
 
     solve_linear (
         this->dg->system_matrix,
-        this->dg->right_hand_side, 
+        this->dg->right_hand_side,
         this->solution_update,
         this->ODESolver<dim,real>::all_parameters->linear_solver_param);
 
@@ -250,6 +260,7 @@ double Implicit_ODESolver<dim,real>::linesearch ()
         this->dg->assemble_residual ();
         new_residual = this->dg->get_residual_l2norm();
     }
+
     if (step_length > std::pow(step_reduction,maxline/2)) {
         //this->CFL *= 1.2;
     } else {

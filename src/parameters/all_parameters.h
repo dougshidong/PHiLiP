@@ -68,7 +68,7 @@ public:
         euler_entropy_waves,
         euler_split_taylor_green,
         burgers_split_form,
-		optimization_inverse_manufactured,
+  optimization_inverse_manufactured,
         euler_bump_optimization,
         shock_1d,
         euler_naca0012,

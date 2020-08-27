@@ -112,8 +112,8 @@ public:
         const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
         const double stepsize);
 
-	/// Store the functional value from the last time evaluate_functional() was called.
-	real current_functional_value;
+ /// Store the functional value from the last time evaluate_functional() was called.
+ real current_functional_value;
 
     /// Vector for storing the derivatives with respect to each solution DoF
     dealii::LinearAlgebra::distributed::Vector<real> dIdw;

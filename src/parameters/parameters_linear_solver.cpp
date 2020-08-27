@@ -64,7 +64,7 @@ void LinearSolverParam ::parse_parameters (dealii::ParameterHandler &prm)
         const std::string solver_string = prm.get("linear_solver_type");
         if (solver_string == "direct") linear_solver_type = LinearSolverEnum::direct;
 
-        if (solver_string == "gmres") 
+        if (solver_string == "gmres")
         {
             linear_solver_type = LinearSolverEnum::gmres;
             prm.enter_subsection("gmres options");

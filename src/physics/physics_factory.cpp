@@ -1,5 +1,7 @@
 #include "parameters/all_parameters.h"
 
+#include "ADTypes.hpp"
+
 #include "physics_factory.h"
 #include "physics.h"
 #include "convection_diffusion.h"
@@ -50,26 +52,26 @@ template class PhysicsFactory<PHILIP_DIM, 3, double>;
 template class PhysicsFactory<PHILIP_DIM, 4, double>;
 template class PhysicsFactory<PHILIP_DIM, 5, double>;
 template class PhysicsFactory<PHILIP_DIM, 8, double>;
-template class PhysicsFactory<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
-template class PhysicsFactory<PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
-template class PhysicsFactory<PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
-template class PhysicsFactory<PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
-template class PhysicsFactory<PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
-template class PhysicsFactory<PHILIP_DIM, 8, Sacado::Fad::DFad<double> >;
+template class PhysicsFactory<PHILIP_DIM, 1, FadType >;
+template class PhysicsFactory<PHILIP_DIM, 2, FadType >;
+template class PhysicsFactory<PHILIP_DIM, 3, FadType >;
+template class PhysicsFactory<PHILIP_DIM, 4, FadType >;
+template class PhysicsFactory<PHILIP_DIM, 5, FadType >;
+template class PhysicsFactory<PHILIP_DIM, 8, FadType >;
 
-template class PhysicsFactory<PHILIP_DIM, 1, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class PhysicsFactory<PHILIP_DIM, 2, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class PhysicsFactory<PHILIP_DIM, 3, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class PhysicsFactory<PHILIP_DIM, 4, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class PhysicsFactory<PHILIP_DIM, 5, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class PhysicsFactory<PHILIP_DIM, 8, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class PhysicsFactory<PHILIP_DIM, 1, FadFadType >;
+template class PhysicsFactory<PHILIP_DIM, 2, FadFadType >;
+template class PhysicsFactory<PHILIP_DIM, 3, FadFadType >;
+template class PhysicsFactory<PHILIP_DIM, 4, FadFadType >;
+template class PhysicsFactory<PHILIP_DIM, 5, FadFadType >;
+template class PhysicsFactory<PHILIP_DIM, 8, FadFadType >;
 
-template class PhysicsFactory<PHILIP_DIM, 1, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class PhysicsFactory<PHILIP_DIM, 2, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class PhysicsFactory<PHILIP_DIM, 3, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class PhysicsFactory<PHILIP_DIM, 4, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class PhysicsFactory<PHILIP_DIM, 5, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class PhysicsFactory<PHILIP_DIM, 8, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
+template class PhysicsFactory<PHILIP_DIM, 1, RadFadType >;
+template class PhysicsFactory<PHILIP_DIM, 2, RadFadType >;
+template class PhysicsFactory<PHILIP_DIM, 3, RadFadType >;
+template class PhysicsFactory<PHILIP_DIM, 4, RadFadType >;
+template class PhysicsFactory<PHILIP_DIM, 5, RadFadType >;
+template class PhysicsFactory<PHILIP_DIM, 8, RadFadType >;
 
 
 

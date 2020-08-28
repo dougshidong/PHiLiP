@@ -1,3 +1,4 @@
+#include <CoDiPack/include/codi.hpp>
 #include <Sacado.hpp>
 #include <deal.II/base/function.h>
 #include <deal.II/base/function.templates.h> // Needed to instantiate dealii::Function<PHILIP_DIM,Sacado::Fad::DFad<double>>
@@ -12,8 +13,8 @@
 //#define EVENPOLY_SOLUTION
 //#define POLY_SOLUTION
 
-template class dealii::FunctionTime<Sacado::Fad::DFad<double>>; // Needed by Function
-template class dealii::Function<PHILIP_DIM,Sacado::Fad::DFad<double>>;
+//template class dealii::FunctionTime<Sacado::Fad::DFad<double>>; // Needed by Function
+//template class dealii::Function<PHILIP_DIM,Sacado::Fad::DFad<double>>;
 
 namespace PHiLiP {
 
@@ -575,5 +576,12 @@ template class ManufacturedSolutionFunction<PHILIP_DIM,double>;
 template class ManufacturedSolutionFunction<PHILIP_DIM,Sacado::Fad::DFad<double>>;
 template class ManufacturedSolutionFunction<PHILIP_DIM,Sacado::Fad::DFad<Sacado::Fad::DFad<double>>>;
 template class ManufacturedSolutionFunction<PHILIP_DIM,Sacado::Rad::ADvar<Sacado::Fad::DFad<double>>>;
+
+static constexpr int dimForwardAD = 10;
+static constexpr int dimReverseAD = 1;
+//using RadFadType = Sacado::Rad::ADvar<FadType>; ///< Sacado AD type that allows 2nd derivatives.
+using HessType = codi::RealReversePrimalIndexGen<codi::RealForwardVec<dimForwardAD>,
+                                                 codi::Direction< codi::RealForwardVec<dimForwardAD>, dimReverseAD>>;
+template class ManufacturedSolutionFunction<PHILIP_DIM,HessType>;
 
 }

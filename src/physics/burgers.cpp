@@ -1,7 +1,4 @@
-#include <Sacado.hpp>
-#include <deal.II/differentiation/ad/sacado_math.h>
-#include <deal.II/differentiation/ad/sacado_number_types.h>
-#include <deal.II/differentiation/ad/sacado_product_types.h>
+#include "ADTypes.hpp"
 
 #include "burgers.h"
 
@@ -114,7 +111,9 @@ real Burgers<dim,nstate,real>
 {
     real max_eig = 0;
     for (int i=0; i<dim; i++) {
-        max_eig = std::max(max_eig,std::abs(soln[i]));
+        //max_eig = std::max(max_eig,std::abs(soln[i]));
+        const real abs_soln = abs(soln[i]);
+        max_eig = std::max(max_eig, abs_soln);
         //max_eig += soln[i] * soln[i];
     }
     return max_eig;
@@ -130,11 +129,11 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>
     const real diff_coeff = diffusion_coefficient();
     for (int i=0; i<nstate; i++) {
         for (int d1=0; d1<dim; d1++) {
-   diss_flux[i][d1] = 0.0;
+            diss_flux[i][d1] = 0.0;
             for (int d2=0; d2<dim; d2++) {
                 diss_flux[i][d1] += -diff_coeff*((this->diffusion_tensor[d1][d2])*solution_gradient[i][d2]);
             }
-  }
+        }
     }
     return diss_flux;
 }
@@ -165,7 +164,14 @@ std::array<real,nstate> Burgers<dim,nstate,real>
             real manufactured_solution = this->manufactured_solution_function->value (pos, d);
             source[istate] += 0.5*manufactured_solution*manufactured_gradient[d];
         }
-        source[istate] += -diff_coeff*scalar_product((this->diffusion_tensor),manufactured_hessian);
+        //source[istate] += -diff_coeff*scalar_product((this->diffusion_tensor),manufactured_hessian);
+        real hess = 0.0;
+        for (int dr=0; dr<dim; ++dr) {
+            for (int dc=0; dc<dim; ++dc) {
+                hess += (this->diffusion_tensor)[dr][dc] * manufactured_hessian[dr][dc];
+            }
+        }
+        source[istate] += -diff_coeff*hess;
     }
     for (int istate=0; istate<nstate; istate++) {
         real manufactured_solution = this->manufactured_solution_function->value (pos, istate);
@@ -198,9 +204,9 @@ std::array<real,nstate> Burgers<dim,nstate,real>
 }
 
 template class Burgers < PHILIP_DIM, PHILIP_DIM, double >;
-template class Burgers < PHILIP_DIM, PHILIP_DIM, Sacado::Fad::DFad<double>  >;
-template class Burgers < PHILIP_DIM, PHILIP_DIM, Sacado::Fad::DFad<Sacado::Fad::DFad<double>>  >;
-template class Burgers < PHILIP_DIM, PHILIP_DIM, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>>  >;
+template class Burgers < PHILIP_DIM, PHILIP_DIM, FadType  >;
+template class Burgers < PHILIP_DIM, PHILIP_DIM, FadFadType >;
+template class Burgers < PHILIP_DIM, PHILIP_DIM, RadFadType >;
 
 } // Physics namespace
 } // PHiLiP namespace

@@ -26,7 +26,9 @@
 #include <Epetra_RowMatrixTransposer.h>
 #include <AztecOO.h>
 
+#include "ADTypes.hpp"
 #include <Sacado.hpp>
+#include <CoDiPack/include/codi.hpp>
 
 #include "mesh/high_order_grid.h"
 #include "physics/physics.h"
@@ -642,7 +644,11 @@ public:
 
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
-    using RadFadType = Sacado::Rad::ADvar<FadType>; ///< Sacado AD type that allows 2nd derivatives.
+    //using RadFadType = Sacado::Rad::ADvar<FadType>; ///< Sacado AD type that allows 2nd derivatives.
+    using RadFadType = HessType;
+    //using HessType = codi::RealReversePrimalIndexGen<codi::RealForwardVec<dimForwardAD>,
+    //                                                 codi::Direction< codi::RealForwardVec<dimForwardAD>, dimReverseAD>>;
+    //using RadFadType = HessType; ///< Sacado AD type that allows 2nd derivatives.
 
     /// Contains the physics of the PDE with real type
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, real > > pde_physics_double;
@@ -775,11 +781,11 @@ public:
     /** Change the physics object.
      *  Don't know why Doxygen won't allow the use of FadFadType instead of the explicit nested Sacado AD type.
      */
-    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > >pde_physics_input);
+    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadFadType > >pde_physics_input);
     /// Change the physics object
     void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadType > >pde_physics_input);
     /// Change the physics object
-    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Rad::ADvar<Sacado::Fad::DFad<real>> > >pde_physics_input);
+    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadFadType > >pde_physics_input);
     /// Change the physics object
     void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, real > >pde_physics_double_input);
 }; // end of DGWeak class
@@ -818,7 +824,8 @@ public:
 private:
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
-    using RadFadType = Sacado::Rad::ADvar<FadType>; ///< Sacado AD type that allows 2nd derivatives.
+    //using RadFadType = Sacado::Rad::ADvar<FadType>; ///< Sacado AD type that allows 2nd derivatives.
+    using RadFadType = HessType;
 
     /// Evaluate the time it takes for the maximum wavespeed to cross the cell domain.
     /** Currently only uses the convective eigenvalues. Future changes would take in account
@@ -933,11 +940,11 @@ public:
     /** Change the physics object.
      *  Don't know why Doxygen won't allow the use of FadFadType instead of the explicit nested Sacado AD type.
      */
-    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > >pde_physics_input);
+    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadFadType > >pde_physics_input);
     /// Change the physics object
-    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Fad::DFad<real> > >pde_physics_input);
+    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadType > >pde_physics_input);
     /// Change the physics object
-    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Rad::ADvar<Sacado::Fad::DFad<real>> > >pde_physics_input);
+    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadFadType > >pde_physics_input);
     /// Change the physics object
     void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, real > >pde_physics_double_input);
 }; // end of DGStrong class

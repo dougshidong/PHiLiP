@@ -1,6 +1,7 @@
 #include "split_form_numerical_flux.h"
-#include <Sacado.hpp>
-#include <deal.II/differentiation/ad/sacado_product_types.h>
+#include "ADTypes.hpp"
+//#include <Sacado.hpp>
+//#include <deal.II/differentiation/ad/sacado_product_types.h>
 
 namespace PHiLiP {
 namespace NumericalFlux {
@@ -28,7 +29,11 @@ std::array<real, nstate> SplitFormNumFlux<dim,nstate,real>::evaluate_flux(
      // Scalar dissipation
      std::array<real, nstate> numerical_flux_dot_n;
      for (int s=0; s<nstate; s++) {
-         numerical_flux_dot_n[s] = conv_phys_split_flux[s]*normal_int - 0.5 * conv_max_eig * (soln_ext[s]-soln_int[s]);
+         real flux_dot_n = 0.0;
+         for (int d=0; d<dim; ++d) {
+             flux_dot_n += conv_phys_split_flux[s][d] * normal_int[d];
+         }
+         numerical_flux_dot_n[s] = flux_dot_n - 0.5 * conv_max_eig * (soln_ext[s]-soln_int[s]);
      }
     // std::cout << "about to return split num flux" <<std::endl;
      return numerical_flux_dot_n;
@@ -39,21 +44,21 @@ template class SplitFormNumFlux<PHILIP_DIM, 2, double>;
 template class SplitFormNumFlux<PHILIP_DIM, 3, double>;
 template class SplitFormNumFlux<PHILIP_DIM, 4, double>;
 template class SplitFormNumFlux<PHILIP_DIM, 5, double>;
-template class SplitFormNumFlux<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
-template class SplitFormNumFlux<PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
-template class SplitFormNumFlux<PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
-template class SplitFormNumFlux<PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
-template class SplitFormNumFlux<PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
-template class SplitFormNumFlux<PHILIP_DIM, 1, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class SplitFormNumFlux<PHILIP_DIM, 2, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class SplitFormNumFlux<PHILIP_DIM, 3, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class SplitFormNumFlux<PHILIP_DIM, 4, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class SplitFormNumFlux<PHILIP_DIM, 5, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class SplitFormNumFlux<PHILIP_DIM, 1, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class SplitFormNumFlux<PHILIP_DIM, 2, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class SplitFormNumFlux<PHILIP_DIM, 3, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class SplitFormNumFlux<PHILIP_DIM, 4, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class SplitFormNumFlux<PHILIP_DIM, 5, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
+template class SplitFormNumFlux<PHILIP_DIM, 1, FadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 2, FadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 3, FadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 4, FadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 5, FadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 1, FadFadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 2, FadFadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 3, FadFadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 4, FadFadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 5, FadFadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 1, RadFadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 2, RadFadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 3, RadFadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 4, RadFadType >;
+template class SplitFormNumFlux<PHILIP_DIM, 5, RadFadType >;
 
 }
 }

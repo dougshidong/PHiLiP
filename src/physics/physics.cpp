@@ -2,10 +2,7 @@
 #include <cmath>
 #include <vector>
 
-#include <Sacado.hpp>
-#include <deal.II/differentiation/ad/sacado_math.h>
-#include <deal.II/differentiation/ad/sacado_number_types.h>
-#include <deal.II/differentiation/ad/sacado_product_types.h>
+#include "ADTypes.hpp"
 
 #include "physics.h"
 
@@ -96,7 +93,14 @@ std::array<real,nstate> PhysicsBase<dim,nstate,real>
 
     for (int istate=0; istate<nstate; istate++) {
         dealii::SymmetricTensor<2,dim,real> manufactured_hessian = this->manufactured_solution_function->hessian (pos, istate);
-        source[istate] = -viscosity_coefficient*scalar_product(artificial_diffusion_tensor,manufactured_hessian);
+        //source[istate] = -viscosity_coefficient*scalar_product(artificial_diffusion_tensor,manufactured_hessian);
+        source[istate] = 0.0;
+        for (int dr=0; dr<dim; ++dr) {
+            for (int dc=0; dc<dim; ++dc) {
+                source[istate] += artificial_diffusion_tensor[dr][dc] * manufactured_hessian[dr][dc];
+            }
+        }
+        source[istate] *= -viscosity_coefficient;
     }
     return source;
 }
@@ -211,7 +215,6 @@ dealii::UpdateFlags PhysicsBase<dim,nstate,real>
     return dealii::update_values;
 }
 
-
 template class PhysicsBase < PHILIP_DIM, 1, double >;
 template class PhysicsBase < PHILIP_DIM, 2, double >;
 template class PhysicsBase < PHILIP_DIM, 3, double >;
@@ -219,26 +222,26 @@ template class PhysicsBase < PHILIP_DIM, 4, double >;
 template class PhysicsBase < PHILIP_DIM, 5, double >;
 template class PhysicsBase < PHILIP_DIM, 8, double >;
 
-template class PhysicsBase < PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
-template class PhysicsBase < PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
-template class PhysicsBase < PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
-template class PhysicsBase < PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
-template class PhysicsBase < PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
-template class PhysicsBase < PHILIP_DIM, 8, Sacado::Fad::DFad<double> >;
+template class PhysicsBase < PHILIP_DIM, 1, FadType >;
+template class PhysicsBase < PHILIP_DIM, 2, FadType >;
+template class PhysicsBase < PHILIP_DIM, 3, FadType >;
+template class PhysicsBase < PHILIP_DIM, 4, FadType >;
+template class PhysicsBase < PHILIP_DIM, 5, FadType >;
+template class PhysicsBase < PHILIP_DIM, 8, FadType >;
 
-template class PhysicsBase < PHILIP_DIM, 1, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class PhysicsBase < PHILIP_DIM, 2, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class PhysicsBase < PHILIP_DIM, 3, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class PhysicsBase < PHILIP_DIM, 4, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class PhysicsBase < PHILIP_DIM, 5, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class PhysicsBase < PHILIP_DIM, 8, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
+template class PhysicsBase < PHILIP_DIM, 1, FadFadType >;
+template class PhysicsBase < PHILIP_DIM, 2, FadFadType >;
+template class PhysicsBase < PHILIP_DIM, 3, FadFadType >;
+template class PhysicsBase < PHILIP_DIM, 4, FadFadType >;
+template class PhysicsBase < PHILIP_DIM, 5, FadFadType >;
+template class PhysicsBase < PHILIP_DIM, 8, FadFadType >;
 
-template class PhysicsBase < PHILIP_DIM, 1, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class PhysicsBase < PHILIP_DIM, 2, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class PhysicsBase < PHILIP_DIM, 3, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class PhysicsBase < PHILIP_DIM, 4, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class PhysicsBase < PHILIP_DIM, 5, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class PhysicsBase < PHILIP_DIM, 8, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
+template class PhysicsBase < PHILIP_DIM, 1, RadFadType >;
+template class PhysicsBase < PHILIP_DIM, 2, RadFadType >;
+template class PhysicsBase < PHILIP_DIM, 3, RadFadType >;
+template class PhysicsBase < PHILIP_DIM, 4, RadFadType >;
+template class PhysicsBase < PHILIP_DIM, 5, RadFadType >;
+template class PhysicsBase < PHILIP_DIM, 8, RadFadType >;
 
 } // Physics namespace
 } // PHiLiP namespace

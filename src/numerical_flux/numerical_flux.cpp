@@ -1,5 +1,5 @@
-#include <Sacado.hpp>
-#include <deal.II/differentiation/ad/sacado_product_types.h>
+#include "ADTypes.hpp"
+
 #include "numerical_flux.h"
 #include "viscous_numerical_flux.h"
 #include "split_form_numerical_flux.h"
@@ -73,7 +73,14 @@ std::array<real, nstate> LaxFriedrichs<dim,nstate,real>
     conv_phys_flux_int = pde_physics->convective_flux (soln_int);
     conv_phys_flux_ext = pde_physics->convective_flux (soln_ext);
     
-    RealArrayVector flux_avg = array_average<nstate, dealii::Tensor<1,dim,real>> (conv_phys_flux_int, conv_phys_flux_ext);
+    //RealArrayVector flux_avg = array_average<nstate, dealii::Tensor<1,dim,real>> (conv_phys_flux_int, conv_phys_flux_ext);
+    RealArrayVector flux_avg;
+    for (int s=0; s<nstate; s++) {
+        flux_avg[s] = 0.0;
+        for (int d=0; d<dim; ++d) {
+            flux_avg[s][d] = 0.5*(conv_phys_flux_int[s][d] + conv_phys_flux_ext[s][d]);
+        }
+    }
 
     const real conv_max_eig_int = pde_physics->max_convective_eigenvalue(soln_int);
     const real conv_max_eig_ext = pde_physics->max_convective_eigenvalue(soln_ext);
@@ -89,7 +96,12 @@ std::array<real, nstate> LaxFriedrichs<dim,nstate,real>
     // Scalar dissipation
     std::array<real, nstate> numerical_flux_dot_n;
     for (int s=0; s<nstate; s++) {
-        numerical_flux_dot_n[s] = flux_avg[s]*normal_int - 0.5 * conv_max_eig * (soln_ext[s]-soln_int[s]);
+        //numerical_flux_dot_n[s] = flux_avg[s]*normal_int - 0.5 * conv_max_eig * (soln_ext[s]-soln_int[s]);
+        real flux_dot_n = 0.0;
+        for (int d=0; d<dim; ++d) {
+            flux_dot_n += flux_avg[s][d]*normal_int[d];
+        }
+        numerical_flux_dot_n[s] = flux_dot_n - 0.5 * conv_max_eig * (soln_ext[s]-soln_int[s]);
     }
 
     return numerical_flux_dot_n;
@@ -111,7 +123,11 @@ std::array<real, nstate> Roe<dim,nstate,real>
     const dealii::Tensor< 1,dim,real > velocities_L = euler_physics->extract_velocities_from_primitive(prim_soln_int);
     const real pressure_L = prim_soln_int[nstate-1];
 
-    const real normal_vel_L = velocities_L*normal_int;
+    //const real normal_vel_L = velocities_L*normal_int;
+    real normal_vel_L = 0.0;
+    for (int d=0; d<dim; ++d) {
+        normal_vel_L+= velocities_L[d]*normal_int[d];
+    }
     const real specific_enthalpy_L = euler_physics->compute_specific_enthalpy(soln_int, pressure_L);
 
     // Right cell
@@ -119,48 +135,60 @@ std::array<real, nstate> Roe<dim,nstate,real>
     const dealii::Tensor< 1,dim,real > velocities_R = euler_physics->extract_velocities_from_primitive(prim_soln_ext);
     const real pressure_R = prim_soln_ext[nstate-1];
 
-    const real normal_vel_R = velocities_R*normal_int;
+    //const real normal_vel_R = velocities_R*normal_int;
+    real normal_vel_R = 0.0;
+    for (int d=0; d<dim; ++d) {
+        normal_vel_R+= velocities_R[d]*normal_int[d];
+    }
     const real specific_enthalpy_R = euler_physics->compute_specific_enthalpy(soln_ext, pressure_R);
 
     // Roe-averaged states
-    const real r = std::sqrt(density_R/density_L);
+    const real r = sqrt(density_R/density_L);
     const real rp1 = r+1.0;
 
     const real density_ravg = r*density_L;
-    const dealii::Tensor< 1,dim,real > velocities_ravg = (r*velocities_R + velocities_L) / rp1;
+    //const dealii::Tensor< 1,dim,real > velocities_ravg = (r*velocities_R + velocities_L) / rp1;
+    dealii::Tensor< 1,dim,real > velocities_ravg;
+    for (int d=0; d<dim; ++d) {
+        velocities_ravg[d] = (r*velocities_R[d] + velocities_L[d]) / rp1;
+    }
     const real specific_total_enthalpy_ravg = (r*specific_enthalpy_R + specific_enthalpy_L) / rp1;
 
     const real vel2_ravg = euler_physics->compute_velocity_squared (velocities_ravg);
-    const real normal_vel_ravg = velocities_ravg*normal_int;
+    //const real normal_vel_ravg = velocities_ravg*normal_int;
+    real normal_vel_ravg = 0.0;
+    for (int d=0; d<dim; ++d) {
+        normal_vel_ravg += velocities_ravg[d]*normal_int[d];
+    }
 
     const real sound2_ravg = euler_physics->gamm1*(specific_total_enthalpy_ravg-0.5*vel2_ravg);
     real sound_ravg = 1e10;
     if (sound2_ravg > 0.0) {
-        sound_ravg = std::sqrt(sound2_ravg);
+        sound_ravg = sqrt(sound2_ravg);
     }
 
     // Compute eigenvalues
     std::array<real, 3> eig_ravg;
-    eig_ravg[0] = std::abs(normal_vel_ravg-sound_ravg);
-    eig_ravg[1] = std::abs(normal_vel_ravg);
-    eig_ravg[2] = std::abs(normal_vel_ravg+sound_ravg);
+    eig_ravg[0] = abs(normal_vel_ravg-sound_ravg);
+    eig_ravg[1] = abs(normal_vel_ravg);
+    eig_ravg[2] = abs(normal_vel_ravg+sound_ravg);
 
     const real sound_L = euler_physics->compute_sound(density_L, pressure_L);
     std::array<real, 3> eig_L;
-    eig_L[0] = std::abs(normal_vel_L-sound_L);
-    eig_L[1] = std::abs(normal_vel_L);
-    eig_L[2] = std::abs(normal_vel_L+sound_L);
+    eig_L[0] = abs(normal_vel_L-sound_L);
+    eig_L[1] = abs(normal_vel_L);
+    eig_L[2] = abs(normal_vel_L+sound_L);
 
     const real sound_R = euler_physics->compute_sound(density_R, pressure_R);
     std::array<real, 3> eig_R;
-    eig_R[0] = std::abs(normal_vel_R-sound_R);
-    eig_R[1] = std::abs(normal_vel_R);
-    eig_R[2] = std::abs(normal_vel_R+sound_R);
+    eig_R[0] = abs(normal_vel_R-sound_R);
+    eig_R[1] = abs(normal_vel_R);
+    eig_R[2] = abs(normal_vel_R+sound_R);
 
     // Harten's entropy fix
     for(int e=0;e<3;e++) {
-        const real eps = std::max(std::abs(eig_ravg[e]-eig_L[e]), std::abs(eig_R[e]-eig_ravg[e]));
-        if(std::abs(eig_ravg[e]) < eps) {
+        const real eps = std::max(abs(eig_ravg[e]-eig_L[e]), abs(eig_R[e]-eig_ravg[e]));
+        if(abs(eig_ravg[e]) < eps) {
             eig_ravg[e] = 0.5*(eig_ravg[e]*eig_ravg[e]/eps + eps);
         }
     }
@@ -198,11 +226,17 @@ std::array<real, nstate> Roe<dim,nstate,real>
     AdW[nstate-1] += coeff[1] * vel2_ravg * 0.5;
 
     AdW[0] += coeff[2] * 0.0;
-    const dealii::Tensor<1,dim,real> dvel = velocities_R - velocities_L;
+    //const dealii::Tensor<1,dim,real> dvel = velocities_R - velocities_L;
+    dealii::Tensor<1,dim,real> dvel;
+    for (int d=0; d<dim; ++d) {
+        dvel[d] = velocities_R[d] - velocities_L[d];
+    }
+    real dvel_dot_vel_ravg = 0.0;
     for (int d=0;d<dim;d++) {
         AdW[1+d] += coeff[2] * (dvel[d] - dVn*normal_int[d]);
+        dvel_dot_vel_ravg += velocities_ravg[d]*dvel[d];
     }
-    AdW[nstate-1] += coeff[2] * (velocities_ravg*dvel - normal_vel_ravg*dVn);
+    AdW[nstate-1] += coeff[2] * (dvel_dot_vel_ravg - normal_vel_ravg*dVn);
 
     // Vn+c
     AdW[0] += coeff[3] * 1.0;
@@ -226,47 +260,47 @@ template class NumericalFluxConvective<PHILIP_DIM, 2, double>;
 template class NumericalFluxConvective<PHILIP_DIM, 3, double>;
 template class NumericalFluxConvective<PHILIP_DIM, 4, double>;
 template class NumericalFluxConvective<PHILIP_DIM, 5, double>;
-template class NumericalFluxConvective<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
-template class NumericalFluxConvective<PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
-template class NumericalFluxConvective<PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
-template class NumericalFluxConvective<PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
-template class NumericalFluxConvective<PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
-template class NumericalFluxConvective<PHILIP_DIM, 1, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxConvective<PHILIP_DIM, 2, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxConvective<PHILIP_DIM, 3, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxConvective<PHILIP_DIM, 4, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxConvective<PHILIP_DIM, 5, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxConvective<PHILIP_DIM, 1, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxConvective<PHILIP_DIM, 2, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxConvective<PHILIP_DIM, 3, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxConvective<PHILIP_DIM, 4, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxConvective<PHILIP_DIM, 5, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
+template class NumericalFluxConvective<PHILIP_DIM, 1, FadType >;
+template class NumericalFluxConvective<PHILIP_DIM, 2, FadType >;
+template class NumericalFluxConvective<PHILIP_DIM, 3, FadType >;
+template class NumericalFluxConvective<PHILIP_DIM, 4, FadType >;
+template class NumericalFluxConvective<PHILIP_DIM, 5, FadType >;
+template class NumericalFluxConvective<PHILIP_DIM, 1, FadFadType >;
+template class NumericalFluxConvective<PHILIP_DIM, 2, FadFadType >;
+template class NumericalFluxConvective<PHILIP_DIM, 3, FadFadType >;
+template class NumericalFluxConvective<PHILIP_DIM, 4, FadFadType >;
+template class NumericalFluxConvective<PHILIP_DIM, 5, FadFadType >;
+template class NumericalFluxConvective<PHILIP_DIM, 1, RadFadType >;
+template class NumericalFluxConvective<PHILIP_DIM, 2, RadFadType >;
+template class NumericalFluxConvective<PHILIP_DIM, 3, RadFadType >;
+template class NumericalFluxConvective<PHILIP_DIM, 4, RadFadType >;
+template class NumericalFluxConvective<PHILIP_DIM, 5, RadFadType >;
 
 template class LaxFriedrichs<PHILIP_DIM, 1, double>;
 template class LaxFriedrichs<PHILIP_DIM, 2, double>;
 template class LaxFriedrichs<PHILIP_DIM, 3, double>;
 template class LaxFriedrichs<PHILIP_DIM, 4, double>;
 template class LaxFriedrichs<PHILIP_DIM, 5, double>;
-template class LaxFriedrichs<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
-template class LaxFriedrichs<PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
-template class LaxFriedrichs<PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
-template class LaxFriedrichs<PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
-template class LaxFriedrichs<PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
-template class LaxFriedrichs<PHILIP_DIM, 1, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class LaxFriedrichs<PHILIP_DIM, 2, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class LaxFriedrichs<PHILIP_DIM, 3, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class LaxFriedrichs<PHILIP_DIM, 4, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class LaxFriedrichs<PHILIP_DIM, 5, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class LaxFriedrichs<PHILIP_DIM, 1, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class LaxFriedrichs<PHILIP_DIM, 2, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class LaxFriedrichs<PHILIP_DIM, 3, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class LaxFriedrichs<PHILIP_DIM, 4, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class LaxFriedrichs<PHILIP_DIM, 5, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
+template class LaxFriedrichs<PHILIP_DIM, 1, FadType >;
+template class LaxFriedrichs<PHILIP_DIM, 2, FadType >;
+template class LaxFriedrichs<PHILIP_DIM, 3, FadType >;
+template class LaxFriedrichs<PHILIP_DIM, 4, FadType >;
+template class LaxFriedrichs<PHILIP_DIM, 5, FadType >;
+template class LaxFriedrichs<PHILIP_DIM, 1, FadFadType >;
+template class LaxFriedrichs<PHILIP_DIM, 2, FadFadType >;
+template class LaxFriedrichs<PHILIP_DIM, 3, FadFadType >;
+template class LaxFriedrichs<PHILIP_DIM, 4, FadFadType >;
+template class LaxFriedrichs<PHILIP_DIM, 5, FadFadType >;
+template class LaxFriedrichs<PHILIP_DIM, 1, RadFadType >;
+template class LaxFriedrichs<PHILIP_DIM, 2, RadFadType >;
+template class LaxFriedrichs<PHILIP_DIM, 3, RadFadType >;
+template class LaxFriedrichs<PHILIP_DIM, 4, RadFadType >;
+template class LaxFriedrichs<PHILIP_DIM, 5, RadFadType >;
 
 template class Roe<PHILIP_DIM, PHILIP_DIM+2, double>;
-template class Roe<PHILIP_DIM, PHILIP_DIM+2, Sacado::Fad::DFad<double> >;
-template class Roe<PHILIP_DIM, PHILIP_DIM+2, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class Roe<PHILIP_DIM, PHILIP_DIM+2, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
+template class Roe<PHILIP_DIM, PHILIP_DIM+2, FadType >;
+template class Roe<PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
+template class Roe<PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 
 
 template class NumericalFluxFactory<PHILIP_DIM, 1, double>;
@@ -274,21 +308,21 @@ template class NumericalFluxFactory<PHILIP_DIM, 2, double>;
 template class NumericalFluxFactory<PHILIP_DIM, 3, double>;
 template class NumericalFluxFactory<PHILIP_DIM, 4, double>;
 template class NumericalFluxFactory<PHILIP_DIM, 5, double>;
-template class NumericalFluxFactory<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
-template class NumericalFluxFactory<PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
-template class NumericalFluxFactory<PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
-template class NumericalFluxFactory<PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
-template class NumericalFluxFactory<PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
-template class NumericalFluxFactory<PHILIP_DIM, 1, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxFactory<PHILIP_DIM, 2, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxFactory<PHILIP_DIM, 3, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxFactory<PHILIP_DIM, 4, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxFactory<PHILIP_DIM, 5, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxFactory<PHILIP_DIM, 1, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxFactory<PHILIP_DIM, 2, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxFactory<PHILIP_DIM, 3, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxFactory<PHILIP_DIM, 4, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxFactory<PHILIP_DIM, 5, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
+template class NumericalFluxFactory<PHILIP_DIM, 1, FadType >;
+template class NumericalFluxFactory<PHILIP_DIM, 2, FadType >;
+template class NumericalFluxFactory<PHILIP_DIM, 3, FadType >;
+template class NumericalFluxFactory<PHILIP_DIM, 4, FadType >;
+template class NumericalFluxFactory<PHILIP_DIM, 5, FadType >;
+template class NumericalFluxFactory<PHILIP_DIM, 1, FadFadType >;
+template class NumericalFluxFactory<PHILIP_DIM, 2, FadFadType >;
+template class NumericalFluxFactory<PHILIP_DIM, 3, FadFadType >;
+template class NumericalFluxFactory<PHILIP_DIM, 4, FadFadType >;
+template class NumericalFluxFactory<PHILIP_DIM, 5, FadFadType >;
+template class NumericalFluxFactory<PHILIP_DIM, 1, RadFadType >;
+template class NumericalFluxFactory<PHILIP_DIM, 2, RadFadType >;
+template class NumericalFluxFactory<PHILIP_DIM, 3, RadFadType >;
+template class NumericalFluxFactory<PHILIP_DIM, 4, RadFadType >;
+template class NumericalFluxFactory<PHILIP_DIM, 5, RadFadType >;
 
 
 } // NumericalFlux namespace

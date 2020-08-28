@@ -1,7 +1,4 @@
-#include <Sacado.hpp>
-#include <deal.II/differentiation/ad/sacado_math.h>
-#include <deal.II/differentiation/ad/sacado_number_types.h>
-#include <deal.II/differentiation/ad/sacado_product_types.h>
+#include "ADTypes.hpp"
 
 #include "convection_diffusion.h"
 
@@ -71,7 +68,10 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,rea
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
     const dealii::Tensor<1,dim,real> velocity_field = advection_speed();
     for (int i=0; i<nstate; ++i) {
-        conv_flux[i] = velocity_field * solution[i];
+        conv_flux[i] = 0.0;
+        for (int d=0; d<dim; ++d) {
+            conv_flux[i][d] += velocity_field[d] * solution[i];
+        }
     }
     return conv_flux;
 }
@@ -123,8 +123,12 @@ std::array<real,nstate> ConvectionDiffusion<dim,nstate,real>
 {
     std::array<real,nstate> eig;
     const dealii::Tensor<1,dim,real> advection_speed = this->advection_speed();
+    real eig_value = 0.0;
+    for (int d=0; d<dim; ++d) {
+        eig_value += advection_speed[d]*normal[d];
+    }
     for (int i=0; i<nstate; i++) {
-        eig[i] = advection_speed*normal;
+        eig[i] = eig_value;
     }
     return eig;
 }
@@ -136,7 +140,8 @@ real ConvectionDiffusion<dim,nstate,real>
     const dealii::Tensor<1,dim,real> advection_speed = this->advection_speed();
     real max_eig = 0;
     for (int i=0; i<dim; i++) {
-        max_eig = std::max(max_eig,std::abs(advection_speed[0]));
+        real abs_adv = abs(advection_speed[0]);
+        max_eig = std::max(max_eig,abs_adv);
     }
     return max_eig;
 }
@@ -150,12 +155,12 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,rea
     std::array<dealii::Tensor<1,dim,real>,nstate> diss_flux;
     const real diff_coeff = diffusion_coefficient();
     for (int i=0; i<nstate; i++) {
-  for (int d1=0; d1<dim; d1++) {
-   diss_flux[i][d1] = 0.0;
-   for (int d2=0; d2<dim; d2++) {
-     diss_flux[i][d1] += -diff_coeff*(this->diffusion_tensor[d1][d2]*solution_gradient[i][d2]);
-   }
-  }
+        for (int d1=0; d1<dim; d1++) {
+            diss_flux[i][d1] = 0.0;
+            for (int d2=0; d2<dim; d2++) {
+                diss_flux[i][d1] += -diff_coeff*(this->diffusion_tensor[d1][d2]*solution_gradient[i][d2]);
+            }
+        }
     }
     return diss_flux;
 }
@@ -187,20 +192,33 @@ std::array<real,nstate> ConvectionDiffusion<dim,nstate,real>
             // std::cout<<manufactured_hessian <<std::endl;
             // std::cout<<"DIFF" <<std::endl;
             // std::cout<<manufactured_hessian - manufactured_hessian_fd <<std::endl;
-        source[istate] = velocity_field*manufactured_gradient;
-        source[istate] += -diff_coeff*scalar_product((this->diffusion_tensor),manufactured_hessian);
+
+        //source[istate] = velocity_field*manufactured_gradient;
+        real grad = 0.0;
+        for (int d=0; d<dim; ++d) {
+            grad += velocity_field[d] * manufactured_gradient[d];
+        }
+        source[istate] = grad;
+
+        real hess = 0.0;
+        for (int dr=0; dr<dim; ++dr) {
+            for (int dc=0; dc<dim; ++dc) {
+                hess += (this->diffusion_tensor)[dr][dc] * manufactured_hessian[dr][dc];
+            }
+        }
+        source[istate] += -diff_coeff*hess;
     }
     return source;
 }
 
 template class ConvectionDiffusion < PHILIP_DIM, 1, double >;
 template class ConvectionDiffusion < PHILIP_DIM, 2, double >;
-template class ConvectionDiffusion < PHILIP_DIM, 1, Sacado::Fad::DFad<double>  >;
-template class ConvectionDiffusion < PHILIP_DIM, 2, Sacado::Fad::DFad<double>  >;
-template class ConvectionDiffusion < PHILIP_DIM, 1, Sacado::Fad::DFad<Sacado::Fad::DFad<double>>  >;
-template class ConvectionDiffusion < PHILIP_DIM, 2, Sacado::Fad::DFad<Sacado::Fad::DFad<double>>  >;
-template class ConvectionDiffusion < PHILIP_DIM, 1, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>>  >;
-template class ConvectionDiffusion < PHILIP_DIM, 2, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>>  >;
+template class ConvectionDiffusion < PHILIP_DIM, 1, FadType>;
+template class ConvectionDiffusion < PHILIP_DIM, 2, FadType>;
+template class ConvectionDiffusion < PHILIP_DIM, 1, FadFadType>;
+template class ConvectionDiffusion < PHILIP_DIM, 2, FadFadType>;
+template class ConvectionDiffusion < PHILIP_DIM, 1, RadFadType>;
+template class ConvectionDiffusion < PHILIP_DIM, 2, RadFadType>;
 
 } // Physics namespace
 } // PHiLiP namespace

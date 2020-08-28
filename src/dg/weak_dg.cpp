@@ -13,12 +13,7 @@
 
 #include <deal.II/lac/vector.h>
 
-#include <CoDiPack/include/codi.hpp>
-
-#include <Sacado.hpp>
-//#include <deal.II/differentiation/ad/sacado_math.h>
-//#include <deal.II/differentiation/ad/sacado_number_types.h>
-#include <deal.II/differentiation/ad/sacado_product_types.h>
+#include "ADTypes.hpp"
 
 #include "dg.h"
 #include "physics/physics_factory.h"
@@ -164,10 +159,18 @@ std::vector<dealii::Tensor<2,dim,real>> evaluate_metric_jacobian (
     std::vector<dealii::Tensor<2,dim,real>> metric_jacobian(n_pts);
 
     for (unsigned int ipoint=0; ipoint<n_pts; ++ipoint) {
-        std::array< dealii::Tensor<1,dim,real>, dim > coords_grad; // Tensor initialize with zeros
+        std::array< dealii::Tensor<1,dim,real>, dim > coords_grad;
+        for (int d=0; d<dim; ++d) {
+            coords_grad[d] = 0.0;
+        }
         for (unsigned int idof=0; idof<n_dofs; ++idof) {
             const unsigned int axis = fe_metric.system_to_component_index(idof).first;
-            coords_grad[axis] += coords_coeff[idof] * fe_metric.shape_grad (idof, points[ipoint]);
+            //coords_grad[axis] += coords_coeff[idof] * fe_metric.shape_grad (idof, points[ipoint]);
+
+            dealii::Tensor<1,dim,real> shape_grad = fe_metric.shape_grad (idof, points[ipoint]);
+            for (int d=0; d<dim; ++d) {
+                coords_grad[axis][d] += coords_coeff[idof] * shape_grad[d];
+            }
         }
         for (int row=0;row<dim;++row) {
             for (int col=0;col<dim;++col) {
@@ -1494,7 +1497,15 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives_2(
     for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
          for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
              if (compute_metric_derivatives) {
-                 const dealii::Tensor<1,dim,FadFadType> phys_shape_grad = dealii::contract<1,0>(jac_inv_tran[iquad], fe_soln.shape_grad(idof,points[iquad]));
+                 //const dealii::Tensor<1,dim,real2> phys_shape_grad = dealii::contract<1,0>(jac_inv_tran[iquad], fe_soln.shape_grad(idof,points[iquad]));
+                 const dealii::Tensor<1,dim,real2> ref_shape_grad = fe_soln.shape_grad(idof,points[iquad]);
+                 dealii::Tensor<1,dim,real2> phys_shape_grad;
+                 for (int dr=0;dr<dim;++dr) {
+                     phys_shape_grad[dr] = 0.0;
+                     for (int dc=0;dc<dim;++dc) {
+                         phys_shape_grad[dr] += jac_inv_tran[iquad][dr][dc] * ref_shape_grad[dc];
+                     }
+                 }
                  for (int d=0;d<dim;++d) {
                      gradient_operator[d][idof][iquad] = phys_shape_grad[d];
                  }
@@ -1546,11 +1557,11 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives_2(
                 soln_grad_at_q[iquad][istate][d] += soln_coeff[idof] * gradient_operator[d][idof][iquad];
             }
         }
-        conv_phys_flux_at_q[iquad] = pde_physics_fad_fad->convective_flux (soln_at_q[iquad]);
-        diss_phys_flux_at_q[iquad] = pde_physics_fad_fad->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
+        conv_phys_flux_at_q[iquad] = pde_physics_rad_fad->convective_flux (soln_at_q[iquad]);
+        diss_phys_flux_at_q[iquad] = pde_physics_rad_fad->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
 
         if (this->all_parameters->add_artificial_dissipation) {
-            const ArrayTensor artificial_diss_phys_flux_at_q = pde_physics_fad_fad->artificial_dissipative_flux (artificial_diss_coeff, soln_at_q[iquad], soln_grad_at_q[iquad]);
+            const ArrayTensor artificial_diss_phys_flux_at_q = pde_physics_rad_fad->artificial_dissipative_flux (artificial_diss_coeff, soln_at_q[iquad], soln_grad_at_q[iquad]);
             for (int s=0; s<nstate; s++) {
                 diss_phys_flux_at_q[iquad][s] += artificial_diss_phys_flux_at_q[s];
             }
@@ -1563,8 +1574,8 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives_2(
                 const int iaxis = fe_metric.system_to_component_index(idof).first;
                 ad_point[iaxis] += coords_coeff[idof] * fe_metric.shape_value(idof,unit_quad_pts[iquad]);
             }
-            source_at_q[iquad] = pde_physics_fad_fad->source_term (ad_point, soln_at_q[iquad]);
-            //Array artificial_source_at_q = pde_physics_fad_fad->artificial_source_term (artificial_diss_coeff, ad_point, soln_at_q[iquad]);
+            source_at_q[iquad] = pde_physics_rad_fad->source_term (ad_point, soln_at_q[iquad]);
+            //Array artificial_source_at_q = pde_physics_rad_fad->artificial_source_term (artificial_diss_coeff, ad_point, soln_at_q[iquad]);
             //for (int s=0;s<nstate;++s) source_at_q[iquad][s] += artificial_source_at_q[s];
         }
     }
@@ -1604,6 +1615,151 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives_2(
 
 }
 
+//template <int dim, int nstate, typename real>
+//void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
+//    const dealii::FEValues<dim,dim> &fe_values_vol,
+//    const dealii::FESystem<dim,dim> &fe_soln,
+//    const dealii::Quadrature<dim> &quadrature,
+//    const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
+//    const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
+//    dealii::Vector<real> &local_rhs_cell,
+//    const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/,
+//    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
+//{
+//
+//    using ADArray = std::array<FadFadType,nstate>;
+//    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,FadFadType>, nstate >;
+//
+//    const unsigned int n_soln_dofs     = fe_soln.dofs_per_cell;
+//
+//    AssertDimension (n_soln_dofs, soln_dof_indices.size());
+//
+//    const dealii::FESystem<dim> &fe_metric = this->high_order_grid.fe_system;
+//    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+//
+//    std::vector<FadFadType> coords_coeff(n_metric_dofs);
+//    std::vector<FadFadType> soln_coeff(n_soln_dofs);
+//
+//    std::vector<real> local_dual(n_soln_dofs);
+//    for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+//        const unsigned int global_residual_row = soln_dof_indices[itest];
+//        local_dual[itest] = this->dual[global_residual_row];
+//    }
+//
+//    const bool compute_metric_derivatives = (!compute_dRdX && !compute_d2R) ? false : true;
+//
+//    unsigned int w_start, w_end, x_start, x_end;
+//    automatic_differentiation_indexing_1( compute_dRdW, compute_dRdX, compute_d2R,
+//                                          n_soln_dofs, n_metric_dofs,
+//                                          w_start, w_end, x_start, x_end );
+//
+//    unsigned int i_derivative = 0;
+//    const unsigned int n_total_indep = x_end;
+//
+//    for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+//        const real val = this->solution(soln_dof_indices[idof]);
+//        soln_coeff[idof] = val;
+//        soln_coeff[idof].val() = val;
+//
+//        if (compute_dRdW || compute_d2R) soln_coeff[idof].diff(i_derivative, n_total_indep);
+//        if (compute_d2R) soln_coeff[idof].val().diff(i_derivative, n_total_indep);
+//
+//        if (compute_dRdW || compute_d2R) i_derivative++;
+//    }
+//    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+//        const real val = this->high_order_grid.volume_nodes[metric_dof_indices[idof]];
+//        coords_coeff[idof] = val;
+//        coords_coeff[idof].val() = val;
+//
+//        if (compute_dRdX || compute_d2R) coords_coeff[idof].diff(i_derivative, n_total_indep);
+//        if (compute_d2R) coords_coeff[idof].val().diff(i_derivative, n_total_indep);
+//
+//        if (compute_dRdX || compute_d2R) i_derivative++;
+//    }
+//
+//    AssertDimension(i_derivative, n_total_indep);
+//
+//    FadFadType dual_dot_residual = 0.0;
+//    std::vector<FadFadType> rhs(n_soln_dofs);
+//    assemble_volume_terms_derivatives_2<FadFadType>(coords_coeff, soln_coeff, local_dual, fe_soln, quadrature, rhs, dual_dot_residual, compute_metric_derivatives, fe_values_vol);
+//
+//    // Weak form
+//    // The right-hand side sends all the term to the side of the source term
+//    // Therefore,
+//    // \divergence ( Fconv + Fdiss ) = source
+//    // has the right-hand side
+//    // rhs = - \divergence( Fconv + Fdiss ) + source
+//    // Since we have done an integration by parts, the volume term resulting from the divergence of Fconv and Fdiss
+//    // is negative. Therefore, negative of negative means we add that volume term to the right-hand-side
+//    for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+//
+//        if (compute_dRdW) {
+//            std::vector<real> residual_derivatives(n_soln_dofs);
+//            for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+//                const unsigned int i_dx = idof+w_start;
+//                residual_derivatives[idof] = rhs[itest].dx(i_dx).val();
+//                AssertIsFinite(residual_derivatives[idof]);
+//            }
+//            this->system_matrix.add(soln_dof_indices[itest], soln_dof_indices, residual_derivatives);
+//        }
+//        if (compute_dRdX) {
+//            std::vector<real> residual_derivatives(n_metric_dofs);
+//            for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+//                const unsigned int i_dx = idof+x_start;
+//                residual_derivatives[idof] = rhs[itest].dx(i_dx).val();
+//            }
+//            this->dRdXv.add(soln_dof_indices[itest], metric_dof_indices, residual_derivatives);
+//        }
+//        //if (compute_d2R) {
+//        //    const unsigned int global_residual_row = soln_dof_indices[itest];
+//        //    dual_dot_residual += this->dual[global_residual_row]*rhs[itest];
+//        //}
+//
+//        local_rhs_cell(itest) += rhs[itest].val().val();
+//        AssertIsFinite(local_rhs_cell(itest));
+//
+//    }
+//
+//
+//    if (compute_d2R) {
+//
+//        std::vector<real> dWidW(n_soln_dofs);
+//        std::vector<real> dWidX(n_metric_dofs);
+//        std::vector<real> dXidX(n_metric_dofs);
+//
+//        for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
+//
+//            const unsigned int i_dx = idof+w_start;
+//            const FadType dWi = dual_dot_residual.dx(i_dx);
+//
+//            for (unsigned int jdof=0; jdof<n_soln_dofs; ++jdof) {
+//                const unsigned int j_dx = jdof+w_start;
+//                dWidW[jdof] = dWi.dx(j_dx);
+//            }
+//            this->d2RdWdW.add(soln_dof_indices[idof], soln_dof_indices, dWidW);
+//
+//            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+//                const unsigned int j_dx = jdof+x_start;
+//                dWidX[jdof] = dWi.dx(j_dx);
+//            }
+//            this->d2RdWdX.add(soln_dof_indices[idof], metric_dof_indices, dWidX);
+//        }
+//
+//        for (unsigned int idof=0; idof<n_metric_dofs; ++idof) {
+//
+//            const unsigned int i_dx = idof+x_start;
+//            const FadType dXi = dual_dot_residual.dx(i_dx);
+//
+//            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+//                const unsigned int j_dx = jdof+x_start;
+//                dXidX[jdof] = dXi.dx(j_dx);
+//            }
+//            this->d2RdXdX.add(metric_dof_indices[idof], metric_dof_indices, dXidX);
+//        }
+//    }
+//
+//}
+
 template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
     const dealii::FEValues<dim,dim> &fe_values_vol,
@@ -1615,19 +1771,20 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
     const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
+    using adtype = RadFadType;
 
-    using ADArray = std::array<FadFadType,nstate>;
-    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,FadFadType>, nstate >;
+    using ADArray = std::array<adtype,nstate>;
+    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,adtype>, nstate >;
 
-    const unsigned int n_soln_dofs     = fe_soln.dofs_per_cell;
+    const unsigned int n_soln_dofs = fe_soln.dofs_per_cell;
 
     AssertDimension (n_soln_dofs, soln_dof_indices.size());
 
     const dealii::FESystem<dim> &fe_metric = this->high_order_grid.fe_system;
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
 
-    std::vector<FadFadType> coords_coeff(n_metric_dofs);
-    std::vector<FadFadType> soln_coeff(n_soln_dofs);
+    std::vector<adtype> coords_coeff(n_metric_dofs);
+    std::vector<adtype> soln_coeff(n_soln_dofs);
 
     std::vector<real> local_dual(n_soln_dofs);
     for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
@@ -1642,75 +1799,90 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
                                           n_soln_dofs, n_metric_dofs,
                                           w_start, w_end, x_start, x_end );
 
-    unsigned int i_derivative = 0;
-    const unsigned int n_total_indep = x_end;
-
+    using TH = codi::TapeHelper<adtype>;
+    TH th;
+    adtype::getGlobalTape();
+    if (compute_dRdW || compute_dRdX || compute_d2R) {
+        th.startRecording();
+    }
     for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
         const real val = this->solution(soln_dof_indices[idof]);
         soln_coeff[idof] = val;
-        soln_coeff[idof].val() = val;
 
-        if (compute_dRdW || compute_d2R) soln_coeff[idof].diff(i_derivative, n_total_indep);
-        if (compute_d2R) soln_coeff[idof].val().diff(i_derivative, n_total_indep);
-
-        if (compute_dRdW || compute_d2R) i_derivative++;
+        if (compute_dRdW || compute_d2R) {
+            th.registerInput(soln_coeff[idof]);
+        } else {
+            adtype::getGlobalTape().deactivateValue(soln_coeff[idof]);
+        }
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
         const real val = this->high_order_grid.volume_nodes[metric_dof_indices[idof]];
         coords_coeff[idof] = val;
-        coords_coeff[idof].val() = val;
 
-        if (compute_dRdX || compute_d2R) coords_coeff[idof].diff(i_derivative, n_total_indep);
-        if (compute_d2R) coords_coeff[idof].val().diff(i_derivative, n_total_indep);
-
-        if (compute_dRdX || compute_d2R) i_derivative++;
+        if (compute_dRdX || compute_d2R) {
+            th.registerInput(coords_coeff[idof]);
+        } else {
+            adtype::getGlobalTape().deactivateValue(coords_coeff[idof]);
+        }
     }
 
-    AssertDimension(i_derivative, n_total_indep);
+    adtype dual_dot_residual = 0.0;
+    std::vector<adtype> rhs(n_soln_dofs);
+    assemble_volume_terms_derivatives_2<adtype>(coords_coeff, soln_coeff, local_dual, fe_soln, quadrature, rhs, dual_dot_residual, compute_metric_derivatives, fe_values_vol);
 
-    FadFadType dual_dot_residual = 0.0;
-    std::vector<FadFadType> rhs(n_soln_dofs);
-    assemble_volume_terms_derivatives_2<FadFadType>(coords_coeff, soln_coeff, local_dual, fe_soln, quadrature, rhs, dual_dot_residual, compute_metric_derivatives, fe_values_vol);
+    if (compute_dRdW || compute_dRdX) {
+        for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+            th.registerOutput(rhs[itest]);
+        }
+    } else if (compute_d2R) {
+        th.registerOutput(dual_dot_residual);
+    }
+    if (compute_dRdW || compute_dRdX || compute_d2R) {
+        th.stopRecording();
+    }
+    std::cout << "Tape input size: " << th.getInputSize() << std::endl;
+    std::cout << "Tape output size: " << th.getOutputSize() << std::endl;
 
-    // Weak form
-    // The right-hand side sends all the term to the side of the source term
-    // Therefore,
-    // \divergence ( Fconv + Fdiss ) = source
-    // has the right-hand side
-    // rhs = - \divergence( Fconv + Fdiss ) + source
-    // Since we have done an integration by parts, the volume term resulting from the divergence of Fconv and Fdiss
-    // is negative. Therefore, negative of negative means we add that volume term to the right-hand-side
     for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+        local_rhs_cell(itest) += rhs[itest].value().value();
+        AssertIsFinite(local_rhs_cell(itest));
+    }
 
-        if (compute_dRdW) {
+    if (compute_dRdW) {
+        TH::JacobianType& jac = th.createJacobian();
+        th.evalJacobian(jac);
+        for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+
             std::vector<real> residual_derivatives(n_soln_dofs);
             for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
                 const unsigned int i_dx = idof+w_start;
-                residual_derivatives[idof] = rhs[itest].dx(i_dx).val();
+                residual_derivatives[idof] = jac(itest,i_dx);
                 AssertIsFinite(residual_derivatives[idof]);
             }
             this->system_matrix.add(soln_dof_indices[itest], soln_dof_indices, residual_derivatives);
         }
-        if (compute_dRdX) {
+        th.deleteJacobian(jac);
+
+    }
+
+    if (compute_dRdX) {
+        TH::JacobianType& jac = th.createJacobian();
+        th.evalJacobian(jac);
+        for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
             std::vector<real> residual_derivatives(n_metric_dofs);
             for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
                 const unsigned int i_dx = idof+x_start;
-                residual_derivatives[idof] = rhs[itest].dx(i_dx).val();
+                residual_derivatives[idof] = jac(itest,i_dx);
             }
             this->dRdXv.add(soln_dof_indices[itest], metric_dof_indices, residual_derivatives);
         }
-        //if (compute_d2R) {
-        //    const unsigned int global_residual_row = soln_dof_indices[itest];
-        //    dual_dot_residual += this->dual[global_residual_row]*rhs[itest];
-        //}
-
-        local_rhs_cell(itest) += rhs[itest].val().val();
-        AssertIsFinite(local_rhs_cell(itest));
-
+        th.deleteJacobian(jac);
     }
 
 
     if (compute_d2R) {
+        TH::HessianType& hes = th.createHessian();
+        th.evalHessian(hes);
 
         std::vector<real> dWidW(n_soln_dofs);
         std::vector<real> dWidX(n_metric_dofs);
@@ -1719,17 +1891,16 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
         for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
 
             const unsigned int i_dx = idof+w_start;
-            const FadType dWi = dual_dot_residual.dx(i_dx);
 
             for (unsigned int jdof=0; jdof<n_soln_dofs; ++jdof) {
                 const unsigned int j_dx = jdof+w_start;
-                dWidW[jdof] = dWi.dx(j_dx);
+                dWidW[jdof] = hes(0,i_dx,j_dx);
             }
             this->d2RdWdW.add(soln_dof_indices[idof], soln_dof_indices, dWidW);
 
             for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
                 const unsigned int j_dx = jdof+x_start;
-                dWidX[jdof] = dWi.dx(j_dx);
+                dWidX[jdof] = hes(0,i_dx,j_dx);
             }
             this->d2RdWdX.add(soln_dof_indices[idof], metric_dof_indices, dWidX);
         }
@@ -1737,14 +1908,15 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
         for (unsigned int idof=0; idof<n_metric_dofs; ++idof) {
 
             const unsigned int i_dx = idof+x_start;
-            const FadType dXi = dual_dot_residual.dx(i_dx);
 
             for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
                 const unsigned int j_dx = jdof+x_start;
-                dXidX[jdof] = dXi.dx(j_dx);
+                dXidX[jdof] = hes(0,i_dx,j_dx);
             }
             this->d2RdXdX.add(metric_dof_indices[idof], metric_dof_indices, dXidX);
         }
+
+        th.deleteHessian(hes);
     }
 
 }
@@ -1779,7 +1951,7 @@ void DGWeak<dim,nstate,real>::set_physics(
 
 template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::set_physics(
-    std::shared_ptr< Physics::PhysicsBase<dim, nstate, Sacado::Rad::ADvar<Sacado::Fad::DFad<real>> > >pde_physics_input)
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadFadType > >pde_physics_input)
 {
     pde_physics_rad_fad = pde_physics_input;
     conv_num_flux_rad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadType> ::create_convective_numerical_flux (DGBase<dim,real>::all_parameters->conv_num_flux_type, pde_physics_rad_fad);

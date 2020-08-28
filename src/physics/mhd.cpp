@@ -1,10 +1,7 @@
 #include <cmath>
 #include <vector>
 
-#include <Sacado.hpp>
-#include <deal.II/differentiation/ad/sacado_math.h>
-#include <deal.II/differentiation/ad/sacado_number_types.h>
-#include <deal.II/differentiation/ad/sacado_product_types.h>
+#include "ADTypes.hpp"
 
 #include "physics.h"
 #include "mhd.h"
@@ -209,7 +206,7 @@ inline real MHD<dim,nstate,real>
     assert(density > 0);
     const real pressure = compute_pressure(conservative_soln);
     //std::cout << "pressure is" << pressure << std::endl;
-    const real sound = std::sqrt(pressure*gam/density);
+    const real sound = sqrt(pressure*gam/density);
     //std::cout << "sound is " << sound << std::endl;
     return sound;
 }
@@ -219,7 +216,7 @@ inline real MHD<dim,nstate,real>
 ::compute_sound ( const real density, const real pressure ) const
 {
     assert(density > 0);
-    const real sound = std::sqrt(pressure*gam/density);
+    const real sound = sqrt(pressure*gam/density);
     return sound;
 }
 
@@ -272,7 +269,12 @@ compute_mean_velocities(const std::array<real,nstate> &soln_const,
 {
     dealii::Tensor<1,dim,real> vel_const = compute_velocities(soln_const);
     dealii::Tensor<1,dim,real> vel_loop = compute_velocities(soln_loop);
-    return (vel_const + vel_loop)/2.;
+    //return (vel_const + vel_loop)/2.;
+    dealii::Tensor<1,dim,real> mean_vel;
+    for (int d=0; d<0; ++d) {
+        mean_vel[d] = (vel_const[d] + vel_loop[d]) * 0.5;
+    }
+    return mean_vel;
 }
 
 template <int dim, int nstate, typename real>
@@ -345,7 +347,11 @@ std::array<real,nstate> MHD<dim,nstate,real>
     const real density = conservative_soln[0];
     const real pressure = compute_pressure (conservative_soln);
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
-    const real normal_vel = vel*normal;
+    //const real normal_vel = vel*normal;
+    real normal_vel = 0.0;
+    for (int d=0; d<dim; ++d) {
+        normal_vel += vel[d]*normal[d];
+    }
     const real total_energy = conservative_soln[nstate-1];
     const real specific_total_enthalpy = (total_energy + pressure) / density;
 
@@ -791,9 +797,9 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim,nstate,real>
 
 // Instantiate explicitly
 template class MHD < PHILIP_DIM, 8, double >;
-template class MHD < PHILIP_DIM, 8, Sacado::Fad::DFad<double>  >;
-template class MHD < PHILIP_DIM, 8, Sacado::Fad::DFad<Sacado::Fad::DFad<double>>  >;
-template class MHD < PHILIP_DIM, 8, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>>  >;
+template class MHD < PHILIP_DIM, 8, FadType >;
+template class MHD < PHILIP_DIM, 8, FadFadType >;
+template class MHD < PHILIP_DIM, 8, RadFadType >;
 
 } // Physics namespace
 } // PHiLiP namespace

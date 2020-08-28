@@ -111,7 +111,7 @@ int test (
         // therefore, the finite difference will change whether the flow is incoming or outgoing.
         // As a result, we would be differentiating at a non-differentiable point.
         // Hence, we fix this issue by taking the second derivative at a non-exact solution.
-        (*it) += 1.0;
+        (*it) *= 1.1;
     }
     dg->solution.update_ghost_values();
     // Set dual to 1.0 so that every 2nd derivative of the residual is accounted for.
@@ -119,6 +119,10 @@ int test (
         (*it) = 1.0;
     }
     dg->dual.update_ghost_values();
+
+    pcout << "Evaluating AD..." << std::endl;
+    //dg->assemble_residual(false, false, true);
+    dg->assemble_residual(false, false, true);
 
 
     dealii::TrilinosWrappers::SparseMatrix d2RdXdX_fd;
@@ -134,9 +138,6 @@ int test (
     using nodeVector = dealii::LinearAlgebra::distributed::Vector<double>;
     nodeVector old_volume_nodes = high_order_grid.volume_nodes;
     old_volume_nodes.update_ghost_values();
-
-    pcout << "Evaluating AD..." << std::endl;
-    dg->assemble_residual(false, false, true);
 
     pcout << "Evaluating FD..." << std::endl;
     for (unsigned int inode = 0; inode<high_order_grid.dof_handler_grid.n_dofs(); ++inode) {

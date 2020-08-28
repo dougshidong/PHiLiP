@@ -88,7 +88,7 @@ unset(TARGET ${SMALL_TEST})
 set(SMALL_TEST codipack_vector_rad_fad)
 set(TARGET ${SMALL_TEST})
 set(SMALL_TEST_SRC 
-    codipack_vector_rad_fad_3.cpp)
+    codipack_vector_rad_fad_2.cpp)
 add_executable(${SMALL_TEST} ${SMALL_TEST_SRC})
 if(NOT DOC_ONLY)
     DEAL_II_SETUP_TARGET(${SMALL_TEST})

@@ -1,10 +1,7 @@
  #include <cmath>
 #include <vector>
 
-#include <Sacado.hpp>
-#include <deal.II/differentiation/ad/sacado_math.h>
-#include <deal.II/differentiation/ad/sacado_number_types.h>
-#include <deal.II/differentiation/ad/sacado_product_types.h>
+#include "ADTypes.hpp"
 
 #include "physics.h"
 #include "euler.h"
@@ -84,7 +81,15 @@ std::array<real,nstate> Euler<dim,nstate,real>
         dealii::Tensor<1,dim,real> normal;
         normal[d] = 1.0;
         const dealii::Tensor<2,nstate,real> jacobian = convective_flux_directional_jacobian(manufactured_solution, normal);
-        convective_flux_divergence += jacobian*manufactured_solution_gradient[d];
+
+        //convective_flux_divergence += jacobian*manufactured_solution_gradient[d];
+        for (int sr = 0; sr < nstate; ++sr) {
+            real jac_grad_row = 0.0;
+            for (int sc = 0; sc < nstate; ++sc) {
+                jac_grad_row += jacobian[sr][sc]*manufactured_solution_gradient[d][sc];
+            }
+            convective_flux_divergence[sr] += jac_grad_row;
+        }
     }
     std::array<real,nstate> source_term;
     for (int s=0; s<nstate; s++) {
@@ -283,7 +288,7 @@ inline real Euler<dim,nstate,real>
     //assert(density > 0);
     const real pressure = compute_pressure(conservative_soln);
     //std::cout << "pressure is" << pressure << std::endl;
-    const real sound = std::sqrt(pressure*gam/density);
+    const real sound = sqrt(pressure*gam/density);
     //std::cout << "sound is " << sound << std::endl;
     return sound;
 }
@@ -293,7 +298,7 @@ inline real Euler<dim,nstate,real>
 ::compute_sound ( const real density, const real pressure ) const
 {
     //assert(density > 0);
-    const real sound = std::sqrt(pressure*gam/density);
+    const real sound = sqrt(pressure*gam/density);
     return sound;
 }
 
@@ -363,7 +368,11 @@ compute_mean_velocities(const std::array<real,nstate> &conservative_soln1,
 {
     dealii::Tensor<1,dim,real> vel_1 = compute_velocities(conservative_soln1);
     dealii::Tensor<1,dim,real> vel_2 = compute_velocities(conservative_soln2);
-    return (vel_1 + vel_2)/2.;
+    dealii::Tensor<1,dim,real> mean_vel;
+    for (int d=0; d<dim; ++d) {
+        mean_vel[d] = 0.5*(vel_1[d]+vel_2[d]);
+    }
+    return mean_vel;
 }
 
 template <int dim, int nstate, typename real>
@@ -408,7 +417,10 @@ std::array<real,nstate> Euler<dim,nstate,real>
     const real density = conservative_soln[0];
     const real pressure = compute_pressure (conservative_soln);
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
-    const real normal_vel = vel*normal;
+    real normal_vel = 0.0;
+    for (int d=0; d<dim; ++d) {
+        normal_vel += vel[d]*normal[d];
+    }
     const real total_energy = conservative_soln[nstate-1];
     const real specific_total_enthalpy = (total_energy + pressure) / density;
 
@@ -661,7 +673,11 @@ void Euler<dim,nstate,real>
         const dealii::Tensor<1,dim,real> velocities_i = extract_velocities_from_primitive(primitive_interior_values);
         const real                       pressure_i   = primitive_interior_values[nstate-1];
 
-        const real                       normal_vel_i = velocities_i*normal;
+        //const real                       normal_vel_i = velocities_i*normal;
+        real                       normal_vel_i = 0.0;
+        for (int d=0; d<dim; ++d) {
+            normal_vel_i += velocities_i[d]*normal[d];
+        }
         const real                       sound_i      = compute_sound(soln_int);
         //const real                       mach_i       = std::abs(normal_vel_i)/sound_i;
 
@@ -869,11 +885,10 @@ dealii::UpdateFlags Euler<dim,nstate,real>
 }
 
 // Instantiate explicitly
-
 template class Euler < PHILIP_DIM, PHILIP_DIM+2, double >;
-template class Euler < PHILIP_DIM, PHILIP_DIM+2, Sacado::Fad::DFad<double>  >;
-template class Euler < PHILIP_DIM, PHILIP_DIM+2, Sacado::Fad::DFad<Sacado::Fad::DFad<double>>  >;
-template class Euler < PHILIP_DIM, PHILIP_DIM+2, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>>  >;
+template class Euler < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
+template class Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
+template class Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 
 } // Physics namespace
 } // PHiLiP namespace

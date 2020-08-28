@@ -1,5 +1,5 @@
-#include <Sacado.hpp>
-#include <deal.II/differentiation/ad/sacado_product_types.h>
+#include "ADTypes.hpp"
+
 #include "viscous_numerical_flux.h"
 
 namespace PHiLiP {
@@ -8,14 +8,27 @@ namespace NumericalFlux {
 using AllParam = Parameters::AllParameters;
 
 // Protyping low level functions
-template<int nstate, typename real_tensor>
-std::array<real_tensor, nstate> array_average(
-    const std::array<real_tensor, nstate> &array1,
-    const std::array<real_tensor, nstate> &array2)
+template<int nstate, typename real>
+std::array<real, nstate> array_average(
+    const std::array<real, nstate> &array1,
+    const std::array<real, nstate> &array2)
 {
-    std::array<real_tensor,nstate> array_average;
+    std::array<real,nstate> array_average;
     for (int s=0; s<nstate; s++) {
         array_average[s] = 0.5*(array1[s] + array2[s]);
+    }
+    return array_average;
+}
+template<int nstate, int dim, typename real>
+std::array<dealii::Tensor<1,dim,real>, nstate> array_average(
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &array1,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &array2)
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> array_average;
+    for (int s=0; s<nstate; s++) {
+        for (int d=0; d<dim; d++) {
+            array_average[s][d] = 0.5*(array1[s][d] + array2[s][d]);
+        }
     }
     return array_average;
 }
@@ -140,8 +153,15 @@ std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
         const ArrayTensor1 artificial_Abc_jumpu    = pde_physics->artificial_dissipative_flux (artificial_diss_coeff_int, soln_bc, soln_jump);
         std::array<real,nstate> auxiliary_flux_dot_n;
         for (int s=0; s<nstate; s++) {
-            auxiliary_flux_dot_n[s] = (phys_flux_bc[s] - penalty * Abc_jumpu[s]) * normal_int;
-            auxiliary_flux_dot_n[s] += (artificial_phys_flux_bc[s] - penalty * artificial_Abc_jumpu[s]) * normal_int;
+            //auxiliary_flux_dot_n[s] = (phys_flux_bc[s] - penalty * Abc_jumpu[s]) * normal_int;
+            //auxiliary_flux_dot_n[s] += (artificial_phys_flux_bc[s] - penalty * artificial_Abc_jumpu[s]) * normal_int;
+            real phys = 0.0;
+            real arti = 0.0;
+            for (int d=0; d<dim; ++d) {
+                phys += (phys_flux_bc[s][d] - penalty * Abc_jumpu[s][d]) * normal_int[d];
+                arti += (artificial_phys_flux_bc[s][d] - penalty * artificial_Abc_jumpu[s][d]) * normal_int[d];
+            }
+            auxiliary_flux_dot_n[s] = phys + arti;
         }
         return auxiliary_flux_dot_n;
     } 
@@ -151,18 +171,25 @@ std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
     // {{A*grad_u}}
     phys_flux_int = pde_physics->dissipative_flux (soln_int, soln_grad_int);
     phys_flux_ext = pde_physics->dissipative_flux (soln_ext, soln_grad_ext);
-    ArrayTensor1 phys_flux_avg = array_average<nstate,dealii::Tensor<1,dim,real>>(phys_flux_int, phys_flux_ext);
+
+    //ArrayTensor1 phys_flux_avg = array_average<nstate,dealii::Tensor<1,dim,real>>(phys_flux_int, phys_flux_ext);
+    ArrayTensor1 phys_flux_avg = array_average<nstate,dim,real>(phys_flux_int, phys_flux_ext);
 
     // {{A}}*[[u]]
     ArrayTensor1 soln_jump     = array_jump<dim,nstate,real>(soln_int, soln_ext, normal_int);
     ArrayTensor1 A_jumpu_int, A_jumpu_ext;
     A_jumpu_int = pde_physics->dissipative_flux (soln_int, soln_jump);
     A_jumpu_ext = pde_physics->dissipative_flux (soln_ext, soln_jump);
-    const ArrayTensor1 A_jumpu_avg = array_average<nstate,dealii::Tensor<1,dim,real>>(A_jumpu_int, A_jumpu_ext);
+    const ArrayTensor1 A_jumpu_avg = array_average<nstate,dim,real>(A_jumpu_int, A_jumpu_ext);
 
     std::array<real,nstate> auxiliary_flux_dot_n;
     for (int s=0; s<nstate; s++) {
-        auxiliary_flux_dot_n[s] = (phys_flux_avg[s] - penalty * A_jumpu_avg[s]) * normal_int;
+        //auxiliary_flux_dot_n[s] = (phys_flux_avg[s] - penalty * A_jumpu_avg[s]) * normal_int;
+        real phys = 0.0;
+        for (int d=0; d<dim; ++d) {
+            phys += (phys_flux_avg[s][d] - penalty * A_jumpu_avg[s][d]) * normal_int[d];
+        }
+        auxiliary_flux_dot_n[s] = phys;
         //if (on_boundary) auxiliary_flux_dot_n[s] = (phys_flux_ext[s] - penalty * A_jumpu_int[s]) * normal_int;
         //auxiliary_flux_dot_n[s] = (phys_flux_avg[s] - penalty * soln_jump[s]) * normal_int;
     }
@@ -173,16 +200,21 @@ std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
         // {{A*grad_u}}
         artificial_phys_flux_int = pde_physics->artificial_dissipative_flux (artificial_diss_coeff_int, soln_int, soln_grad_int);
         artificial_phys_flux_ext = pde_physics->artificial_dissipative_flux (artificial_diss_coeff_ext, soln_ext, soln_grad_ext);
-        ArrayTensor1 artificial_phys_flux_avg = array_average<nstate,dealii::Tensor<1,dim,real>>(artificial_phys_flux_int, artificial_phys_flux_ext);
+        ArrayTensor1 artificial_phys_flux_avg = array_average<nstate,dim,real>(artificial_phys_flux_int, artificial_phys_flux_ext);
 
         // {{A}}*[[u]]
         ArrayTensor1 artificial_A_jumpu_int, artificial_A_jumpu_ext;
         artificial_A_jumpu_int = pde_physics->artificial_dissipative_flux (artificial_diss_coeff_int, soln_int, soln_jump);
         artificial_A_jumpu_ext = pde_physics->artificial_dissipative_flux (artificial_diss_coeff_ext, soln_ext, soln_jump);
-        const ArrayTensor1 artificial_A_jumpu_avg = array_average<nstate,dealii::Tensor<1,dim,real>>(artificial_A_jumpu_int, artificial_A_jumpu_ext);
+        const ArrayTensor1 artificial_A_jumpu_avg = array_average<nstate,dim,real>(artificial_A_jumpu_int, artificial_A_jumpu_ext);
 
         for (int s=0; s<nstate; s++) {
-            auxiliary_flux_dot_n[s] += (artificial_phys_flux_avg[s] - penalty * artificial_A_jumpu_avg[s]) * normal_int;
+            //auxiliary_flux_dot_n[s] += (artificial_phys_flux_avg[s] - penalty * artificial_A_jumpu_avg[s]) * normal_int;
+            real arti = 0.0;
+            for (int d=0; d<dim; ++d) {
+                arti += (artificial_phys_flux_avg[s][d] - penalty * artificial_A_jumpu_avg[s][d]) * normal_int[d];
+            }
+            auxiliary_flux_dot_n[s] += arti;
         }
     }
 
@@ -233,21 +265,21 @@ template class NumericalFluxDissipative<PHILIP_DIM, 2, double>;
 template class NumericalFluxDissipative<PHILIP_DIM, 3, double>;
 template class NumericalFluxDissipative<PHILIP_DIM, 4, double>;
 template class NumericalFluxDissipative<PHILIP_DIM, 5, double>;
-template class NumericalFluxDissipative<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
-template class NumericalFluxDissipative<PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
-template class NumericalFluxDissipative<PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
-template class NumericalFluxDissipative<PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
-template class NumericalFluxDissipative<PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
-template class NumericalFluxDissipative<PHILIP_DIM, 1, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxDissipative<PHILIP_DIM, 2, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxDissipative<PHILIP_DIM, 3, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxDissipative<PHILIP_DIM, 4, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxDissipative<PHILIP_DIM, 5, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxDissipative<PHILIP_DIM, 1, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxDissipative<PHILIP_DIM, 2, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxDissipative<PHILIP_DIM, 3, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxDissipative<PHILIP_DIM, 4, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class NumericalFluxDissipative<PHILIP_DIM, 5, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
+template class NumericalFluxDissipative<PHILIP_DIM, 1, FadType >;
+template class NumericalFluxDissipative<PHILIP_DIM, 2, FadType >;
+template class NumericalFluxDissipative<PHILIP_DIM, 3, FadType >;
+template class NumericalFluxDissipative<PHILIP_DIM, 4, FadType >;
+template class NumericalFluxDissipative<PHILIP_DIM, 5, FadType >;
+template class NumericalFluxDissipative<PHILIP_DIM, 1, FadFadType >;
+template class NumericalFluxDissipative<PHILIP_DIM, 2, FadFadType >;
+template class NumericalFluxDissipative<PHILIP_DIM, 3, FadFadType >;
+template class NumericalFluxDissipative<PHILIP_DIM, 4, FadFadType >;
+template class NumericalFluxDissipative<PHILIP_DIM, 5, FadFadType >;
+template class NumericalFluxDissipative<PHILIP_DIM, 1, RadFadType >;
+template class NumericalFluxDissipative<PHILIP_DIM, 2, RadFadType >;
+template class NumericalFluxDissipative<PHILIP_DIM, 3, RadFadType >;
+template class NumericalFluxDissipative<PHILIP_DIM, 4, RadFadType >;
+template class NumericalFluxDissipative<PHILIP_DIM, 5, RadFadType >;
 
 
 template class SymmetricInternalPenalty<PHILIP_DIM, 1, double>;
@@ -255,21 +287,21 @@ template class SymmetricInternalPenalty<PHILIP_DIM, 2, double>;
 template class SymmetricInternalPenalty<PHILIP_DIM, 3, double>;
 template class SymmetricInternalPenalty<PHILIP_DIM, 4, double>;
 template class SymmetricInternalPenalty<PHILIP_DIM, 5, double>;
-template class SymmetricInternalPenalty<PHILIP_DIM, 1, Sacado::Fad::DFad<double> >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 2, Sacado::Fad::DFad<double> >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 3, Sacado::Fad::DFad<double> >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 4, Sacado::Fad::DFad<double> >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 5, Sacado::Fad::DFad<double> >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 1, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 2, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 3, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 4, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 5, Sacado::Fad::DFad<Sacado::Fad::DFad<double>> >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 1, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 2, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 3, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 4, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 5, Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> >;
+template class SymmetricInternalPenalty<PHILIP_DIM, 1, FadType >;
+template class SymmetricInternalPenalty<PHILIP_DIM, 2, FadType >;
+template class SymmetricInternalPenalty<PHILIP_DIM, 3, FadType >;
+template class SymmetricInternalPenalty<PHILIP_DIM, 4, FadType >;
+template class SymmetricInternalPenalty<PHILIP_DIM, 5, FadType >;
+template class SymmetricInternalPenalty<PHILIP_DIM, 1, FadFadType >;
+template class SymmetricInternalPenalty<PHILIP_DIM, 2, FadFadType >;
+template class SymmetricInternalPenalty<PHILIP_DIM, 3, FadFadType >;
+template class SymmetricInternalPenalty<PHILIP_DIM, 4, FadFadType >;
+template class SymmetricInternalPenalty<PHILIP_DIM, 5, FadFadType >;
+template class SymmetricInternalPenalty<PHILIP_DIM, 1, RadFadType >;
+template class SymmetricInternalPenalty<PHILIP_DIM, 2, RadFadType >;
+template class SymmetricInternalPenalty<PHILIP_DIM, 3, RadFadType >;
+template class SymmetricInternalPenalty<PHILIP_DIM, 4, RadFadType >;
+template class SymmetricInternalPenalty<PHILIP_DIM, 5, RadFadType >;
 
 } // NumericalFlux namespace
 } // PHiLiP namespace

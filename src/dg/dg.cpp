@@ -1608,23 +1608,23 @@ real2 DGBase<dim,real>::discontinuity_sensor(
     if (soln_norm < 1e-12) return 0.0;
 
     real2 S_e, s_e;
-    S_e = std::sqrt(error / soln_norm);
-    s_e = std::log10(S_e);
+    S_e = sqrt(error / soln_norm);
+    s_e = log10(S_e);
 
     //double S_0, s_0;
     //S_0 = 1.0 / std::pow(degree,4);
-    //s_0 = std::log10(S_0);
+    //s_0 = log10(S_0);
     //const double kappa = 0.1 * std::abs(s_0);
 
     //const double skappa = -2.3;
-    //const double s_0 = skappa-4.25*std::log10(degree);
+    //const double s_0 = skappa-4.25*log10(degree);
     //const double kappa = 10.2; // 1.2
     //const double mu_scale = 1.0;
 
     // log10(a/p^4) = log10(a) - 4*log10(p)
-    //const real2 s_0 = -1.5 - 4.25*std::log10(degree);
+    //const real2 s_0 = -1.5 - 4.25*log10(degree);
     const double mu_scale = 1.0;
-    const real2 s_0 = std::log10(0.1) - 4.25*std::log10(degree);
+    const real2 s_0 = log10(0.1) - 4.25*log10(degree);
     const double kappa = 1.0;
     const real2 low = s_0 - kappa;
     const real2 upp = s_0 + kappa;
@@ -1643,7 +1643,7 @@ real2 DGBase<dim,real>::discontinuity_sensor(
 
     const double PI = 4*atan(1);
     //real2 eps = 1.0 + std::sin(PI * (s_e - Skappa) * 0.5 / m_Kappa);
-    real2 eps = 1.0 + std::sin(PI * (s_e - s_0) * 0.5 / kappa);
+    real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
     eps *= eps_0 * 0.5;
 
 
@@ -1851,11 +1851,11 @@ template class DGFactory <PHILIP_DIM, double>;
 
 template double
 DGBase<PHILIP_DIM,double>::discontinuity_sensor(const double diameter, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high);
-template Sacado::Fad::DFad<double>
-DGBase<PHILIP_DIM,double>::discontinuity_sensor(const Sacado::Fad::DFad<double> diameter, const std::vector< Sacado::Fad::DFad<double> > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high);
-template Sacado::Fad::DFad<Sacado::Fad::DFad<double>>
-DGBase<PHILIP_DIM,double>::discontinuity_sensor(const Sacado::Fad::DFad<Sacado::Fad::DFad<double>> diameter, const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<double>> > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high);
-template Sacado::Rad::ADvar<Sacado::Fad::DFad<double>>
-DGBase<PHILIP_DIM,double>::discontinuity_sensor(const Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> diameter, const std::vector< Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high);
+template FadType
+DGBase<PHILIP_DIM,double>::discontinuity_sensor(const FadType diameter, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high);
+template FadFadType
+DGBase<PHILIP_DIM,double>::discontinuity_sensor(const FadFadType diameter, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high);
+template RadFadType
+DGBase<PHILIP_DIM,double>::discontinuity_sensor(const RadFadType diameter, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high);
 
 } // PHiLiP namespace

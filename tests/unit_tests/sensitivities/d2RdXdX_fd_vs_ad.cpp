@@ -12,6 +12,7 @@
 
 #include <deal.II/dofs/dof_tools.h>
 
+#include "ode_solver/ode_solver.h"
 #include "dg/dg.h"
 #include "parameters/parameters.h"
 #include "physics/physics_factory.h"
@@ -105,15 +106,20 @@ int test (
     solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
     dealii::VectorTools::interpolate(dg->dof_handler, *(physics_double->manufactured_solution_function), solution_no_ghost);
     dg->solution = solution_no_ghost;
-    for (auto it = dg->solution.begin(); it != dg->solution.end(); ++it) {
-        // Interpolating the exact manufactured solution caused some problems at the boundary conditions.
-        // The manufactured solution is exactly equal to the manufactured_solution_function at the boundary,
-        // therefore, the finite difference will change whether the flow is incoming or outgoing.
-        // As a result, we would be differentiating at a non-differentiable point.
-        // Hence, we fix this issue by taking the second derivative at a non-exact solution.
-        (*it) *= 1.1;
-    }
-    dg->solution.update_ghost_values();
+    //for (auto it = dg->solution.begin(); it != dg->solution.end(); ++it) {
+    //    // Interpolating the exact manufactured solution caused some problems at the boundary conditions.
+    //    // The manufactured solution is exactly equal to the manufactured_solution_function at the boundary,
+    //    // therefore, the finite difference will change whether the flow is incoming or outgoing.
+    //    // As a result, we would be differentiating at a non-differentiable point.
+    //    // Hence, we fix this issue by taking the second derivative at a non-exact solution.
+    //    (*it) *= 1.1;
+    //}
+    //dg->solution.update_ghost_values();
+
+    // Solving the flow to make sure that we're not at the point of non-differentiality between elements.
+    std::shared_ptr<PHiLiP::ODE::ODESolver<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    ode_solver->steady_state();
+
     // Set dual to 1.0 so that every 2nd derivative of the residual is accounted for.
     for (auto it = dg->dual.begin(); it != dg->dual.end(); ++it) {
         (*it) = 1.0;

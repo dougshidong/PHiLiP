@@ -167,8 +167,10 @@ foreach(dim RANGE 1 2)
     # Library dependency
     set(ParametersLib ParametersLibrary)
     string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
+    string(CONCAT ODESolverLib ODESolver_${dim}D)
     target_link_libraries(${TEST_TARGET} ${ParametersLib})
     target_link_libraries(${TEST_TARGET} ${DiscontinuousGalerkinLib})
+    target_link_libraries(${TEST_TARGET} ${ODESolverLib})
     # Setup target with deal.II
     if(NOT DOC_ONLY)
         DEAL_II_SETUP_TARGET(${TEST_TARGET})

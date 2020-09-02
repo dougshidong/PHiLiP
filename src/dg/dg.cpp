@@ -1210,6 +1210,8 @@ void DGBase<dim,real>::allocate_system ()
     max_dt_cell.reinit(triangulation->n_active_cells());
 
     solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
+    solution *= 0.0;
+    solution.add(std::numeric_limits<real>::lowest());
     //right_hand_side.reinit(locally_owned_dofs, mpi_communicator);
     right_hand_side.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
     dual.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);

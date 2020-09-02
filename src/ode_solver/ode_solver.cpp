@@ -58,8 +58,24 @@ void ODESolver<dim,real>::initialize_steady_polynomial_ramping (const unsigned i
 }
 
 template <int dim, typename real>
+bool ODESolver<dim,real>::valid_initial_conditions () const
+{
+    for (const auto &sol : dg->solution) {
+        if (sol == std::numeric_limits<real>::lowest()) {
+            pcout << " User forgot to assign valid initial conditions. " << std::endl;
+            return false;
+        }
+    }
+    return true;
+}
+
+template <int dim, typename real>
 int ODESolver<dim,real>::steady_state ()
 {
+    if (!valid_initial_conditions())
+    {
+        std::abort();
+    }
     Parameters::ODESolverParam ode_param = ODESolver<dim,real>::all_parameters->ode_solver_param;
     pcout << " Performing steady state analysis... " << std::endl;
     allocate_ode_system ();
@@ -159,6 +175,11 @@ int ODESolver<dim,real>::advance_solution_time (double time_advance)
 
     const unsigned int number_of_time_steps = static_cast<int>(ceil(time_advance/ode_param.initial_time_step));
     const double constant_time_step = time_advance/number_of_time_steps;
+
+    if (!valid_initial_conditions())
+    {
+        std::abort();
+    }
 
     pcout
         << " Advancing solution by " << time_advance << " time units, using "

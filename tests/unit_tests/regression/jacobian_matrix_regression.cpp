@@ -64,6 +64,9 @@ int main (int argc, char * argv[])
                 all_parameters.pde_type = *pde;
                 std::shared_ptr < DGBase<PHILIP_DIM, double> > dg = DGFactory<PHILIP_DIM,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, grid);
                 dg->allocate_system ();
+
+                dg->solution *= 0.0;
+
                 dg->assemble_residual(true);
 
                 const int nrows = dg->system_matrix.m();

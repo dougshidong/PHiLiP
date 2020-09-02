@@ -22,7 +22,7 @@ subsection ODE solver
   set nonlinear_max_iterations            = 500
 
   # Nonlinear solver residual tolerance
-  set nonlinear_steady_residual_tolerance = 1e-12
+  set nonlinear_steady_residual_tolerance = 1e-11
 
   # Print every print_iteration_modulo iterations of the nonlinear solver
   set print_iteration_modulo              = 1

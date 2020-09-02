@@ -43,6 +43,8 @@ public:
     void initialize_steady_polynomial_ramping (const unsigned int global_final_poly_degree);
 
 
+    bool valid_initial_conditions () const;
+
     /// Virtual function to advance solution to time+dt
     int advance_solution_time (double time_advance);
 

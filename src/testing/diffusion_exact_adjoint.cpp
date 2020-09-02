@@ -32,6 +32,8 @@
 
 #include "post_processor/physics_post_processor.h"
 
+#include "ADTypes.hpp"
+
 namespace PHiLiP {
 namespace Tests {
 // built own physics classes here for one time use and added a function to pass them directly to dg weak
@@ -44,16 +46,16 @@ real ManufacturedSolutionU<dim,real>::value(const dealii::Point<dim,real> &pos, 
 
     if(dim == 1){
         real x = pos[0];
-        val = (-1.0*std::pow(x,6)+3.0*std::pow(x,5)-3.0*std::pow(x,4)+std::pow(x,3));
+        val = (-1.0*pow(x,6)+3.0*pow(x,5)-3.0*pow(x,4)+pow(x,3));
     }else if(dim == 2){
         real x = pos[0], y = pos[1];
-        val = (-1.0*std::pow(x,6)+3.0*std::pow(x,5)-3.0*std::pow(x,4)+std::pow(x,3))
-            * (-1.0*std::pow(y,6)+3.0*std::pow(y,5)-3.0*std::pow(y,4)+std::pow(y,3));
+        val = (-1.0*pow(x,6)+3.0*pow(x,5)-3.0*pow(x,4)+pow(x,3))
+            * (-1.0*pow(y,6)+3.0*pow(y,5)-3.0*pow(y,4)+pow(y,3));
     }else if(dim == 3){
         real x = pos[0], y = pos[1], z = pos[2];
-        val = (-1.0*std::pow(x,6)+3.0*std::pow(x,5)-3.0*std::pow(x,4)+std::pow(x,3))
-            * (-1.0*std::pow(y,6)+3.0*std::pow(y,5)-3.0*std::pow(y,4)+std::pow(y,3))
-            * (-1.0*std::pow(z,6)+3.0*std::pow(z,5)-3.0*std::pow(z,4)+std::pow(z,3));
+        val = (-1.0*pow(x,6)+3.0*pow(x,5)-3.0*pow(x,4)+pow(x,3))
+            * (-1.0*pow(y,6)+3.0*pow(y,5)-3.0*pow(y,4)+pow(y,3))
+            * (-1.0*pow(z,6)+3.0*pow(z,5)-3.0*pow(z,4)+pow(z,3));
     }
 
     return val;
@@ -67,24 +69,24 @@ dealii::Tensor<1,dim,real> ManufacturedSolutionU<dim,real>::gradient(const deali
 
     if(dim == 1){
         real x = pos[0];
-        gradient[0] = (-6.0*std::pow(x,5)+15.0*std::pow(x,4)-12.0*std::pow(x,3)+3.0*std::pow(x,2));
+        gradient[0] = (-6.0*pow(x,5)+15.0*pow(x,4)-12.0*pow(x,3)+3.0*pow(x,2));
     }else if(dim == 2){
         real x = pos[0], y = pos[1];
-        gradient[0] = (-6.0*std::pow(x,5)+15.0*std::pow(x,4)-12.0*std::pow(x,3)+3.0*std::pow(x,2))
-                    * (-1.0*std::pow(y,6)+ 3.0*std::pow(y,5)- 3.0*std::pow(y,4)+    std::pow(y,3));
-        gradient[1] = (-1.0*std::pow(x,6)+ 3.0*std::pow(x,5)- 3.0*std::pow(x,4)+    std::pow(x,3))
-                    * (-6.0*std::pow(y,5)+15.0*std::pow(y,4)-12.0*std::pow(y,3)+3.0*std::pow(y,2));
+        gradient[0] = (-6.0*pow(x,5)+15.0*pow(x,4)-12.0*pow(x,3)+3.0*pow(x,2))
+                    * (-1.0*pow(y,6)+ 3.0*pow(y,5)- 3.0*pow(y,4)+    pow(y,3));
+        gradient[1] = (-1.0*pow(x,6)+ 3.0*pow(x,5)- 3.0*pow(x,4)+    pow(x,3))
+                    * (-6.0*pow(y,5)+15.0*pow(y,4)-12.0*pow(y,3)+3.0*pow(y,2));
     }else if(dim == 3){
         real x = pos[0], y = pos[1], z = pos[2];
-        gradient[0] = (-6.0*std::pow(x,5)+15.0*std::pow(x,4)-12.0*std::pow(x,3)+3.0*std::pow(x,2))
-                    * (-1.0*std::pow(y,6)+ 3.0*std::pow(y,5)- 3.0*std::pow(y,4)+    std::pow(y,3))
-                    * (-1.0*std::pow(z,6)+ 3.0*std::pow(z,5)- 3.0*std::pow(z,4)+    std::pow(z,3));
-        gradient[1] = (-1.0*std::pow(x,6)+ 3.0*std::pow(x,5)- 3.0*std::pow(x,4)+    std::pow(x,3))
-                    * (-6.0*std::pow(y,5)+15.0*std::pow(y,4)-12.0*std::pow(y,3)+3.0*std::pow(y,2))
-                    * (-1.0*std::pow(z,6)+ 3.0*std::pow(z,5)- 3.0*std::pow(z,4)+    std::pow(z,3));
-        gradient[2] = (-1.0*std::pow(x,6)+ 3.0*std::pow(x,5)- 3.0*std::pow(x,4)+    std::pow(x,3))
-                    * (-1.0*std::pow(y,6)+ 3.0*std::pow(y,5)- 3.0*std::pow(y,4)+    std::pow(y,3))
-                    * (-6.0*std::pow(z,5)+15.0*std::pow(z,4)-12.0*std::pow(z,3)+3.0*std::pow(z,2));
+        gradient[0] = (-6.0*pow(x,5)+15.0*pow(x,4)-12.0*pow(x,3)+3.0*pow(x,2))
+                    * (-1.0*pow(y,6)+ 3.0*pow(y,5)- 3.0*pow(y,4)+    pow(y,3))
+                    * (-1.0*pow(z,6)+ 3.0*pow(z,5)- 3.0*pow(z,4)+    pow(z,3));
+        gradient[1] = (-1.0*pow(x,6)+ 3.0*pow(x,5)- 3.0*pow(x,4)+    pow(x,3))
+                    * (-6.0*pow(y,5)+15.0*pow(y,4)-12.0*pow(y,3)+3.0*pow(y,2))
+                    * (-1.0*pow(z,6)+ 3.0*pow(z,5)- 3.0*pow(z,4)+    pow(z,3));
+        gradient[2] = (-1.0*pow(x,6)+ 3.0*pow(x,5)- 3.0*pow(x,4)+    pow(x,3))
+                    * (-1.0*pow(y,6)+ 3.0*pow(y,5)- 3.0*pow(y,4)+    pow(y,3))
+                    * (-6.0*pow(z,5)+15.0*pow(z,4)-12.0*pow(z,3)+3.0*pow(z,2));
     }
 
     return gradient;
@@ -100,16 +102,16 @@ real ManufacturedSolutionV<dim,real>::value(const dealii::Point<dim,real> &pos, 
 
     if(dim == 1){
         real x = pos[0];
-        val = (std::sin(pi*x));
+        val = (sin(pi*x));
     }else if(dim == 2){
         real x = pos[0], y = pos[1];
-        val = (std::sin(pi*x))
-            * (std::sin(pi*y));
+        val = (sin(pi*x))
+            * (sin(pi*y));
     }else if(dim == 3){
         real x = pos[0], y = pos[1], z = pos[2];
-        val = (std::sin(pi*x))
-            * (std::sin(pi*y))
-            * (std::sin(pi*z));
+        val = (sin(pi*x))
+            * (sin(pi*y))
+            * (sin(pi*z));
     }
 
     return val;
@@ -125,24 +127,24 @@ dealii::Tensor<1,dim,real> ManufacturedSolutionV<dim,real>::gradient(const deali
 
     if(dim == 1){
         real x = pos[0];
-        gradient[0] = pi*std::cos(pi*x);
+        gradient[0] = pi*cos(pi*x);
     }else if(dim == 2){
         real x = pos[0], y = pos[1];
-        gradient[0] = (pi*std::cos(pi*x))
-                    * (   std::sin(pi*y));
-        gradient[1] = (   std::sin(pi*x))
-                    * (pi*std::cos(pi*y));
+        gradient[0] = (pi*cos(pi*x))
+                    * (   sin(pi*y));
+        gradient[1] = (   sin(pi*x))
+                    * (pi*cos(pi*y));
     }else if(dim == 3){
         real x = pos[0], y = pos[1], z = pos[2];
-        gradient[0] = (pi*std::cos(pi*x))
-                    * (   std::sin(pi*y))
-                    * (   std::sin(pi*z));
-        gradient[1] = (   std::sin(pi*x))
-                    * (pi*std::cos(pi*y))
-                    * (   std::sin(pi*z));
-        gradient[2] = (   std::sin(pi*x))
-                    * (   std::sin(pi*y))
-                    * (pi*std::cos(pi*z));
+        gradient[0] = (pi*cos(pi*x))
+                    * (   sin(pi*y))
+                    * (   sin(pi*z));
+        gradient[1] = (   sin(pi*x))
+                    * (pi*cos(pi*y))
+                    * (   sin(pi*z));
+        gradient[2] = (   sin(pi*x))
+                    * (   sin(pi*y))
+                    * (pi*cos(pi*z));
     }
 
     return gradient;
@@ -160,24 +162,24 @@ std::array<real,nstate> diffusion_u<dim,nstate,real>::source_term (
 
     if(dim == 1){
         real x = pos[0];
-        val = (-30.0*std::pow(x,4)+60.0*std::pow(x,3)-36.0*std::pow(x,2)+6.0*x);
+        val = (-30.0*pow(x,4)+60.0*pow(x,3)-36.0*pow(x,2)+6.0*x);
     }else if(dim == 2){
         real x = pos[0], y = pos[1];
-        val = (-30.0*std::pow(x,4)+60.0*std::pow(x,3)-36.0*std::pow(x,2)+6.0*x)
-            * ( -1.0*std::pow(y,6)+ 3.0*std::pow(y,5)- 3.0*std::pow(y,4)+    std::pow(y,3))
-            + ( -1.0*std::pow(x,6)+ 3.0*std::pow(x,5)- 3.0*std::pow(x,4)+    std::pow(x,3))
-            * (-30.0*std::pow(y,4)+60.0*std::pow(y,3)-36.0*std::pow(y,2)+6.0*y);
+        val = (-30.0*pow(x,4)+60.0*pow(x,3)-36.0*pow(x,2)+6.0*x)
+            * ( -1.0*pow(y,6)+ 3.0*pow(y,5)- 3.0*pow(y,4)+    pow(y,3))
+            + ( -1.0*pow(x,6)+ 3.0*pow(x,5)- 3.0*pow(x,4)+    pow(x,3))
+            * (-30.0*pow(y,4)+60.0*pow(y,3)-36.0*pow(y,2)+6.0*y);
     }else if(dim == 3){
         real x = pos[0], y = pos[1], z = pos[2];
-        val = (-30.0*std::pow(x,4)+60.0*std::pow(x,3)-36.0*std::pow(x,2)+6.0*x)
-            * ( -1.0*std::pow(y,6)+ 3.0*std::pow(y,5)- 3.0*std::pow(y,4)+    std::pow(y,3))
-            * ( -1.0*std::pow(z,6)+ 3.0*std::pow(z,5)- 3.0*std::pow(z,4)+    std::pow(z,3))
-            + ( -1.0*std::pow(x,6)+ 3.0*std::pow(x,5)- 3.0*std::pow(x,4)+    std::pow(x,3))
-            * (-30.0*std::pow(y,4)+60.0*std::pow(y,3)-36.0*std::pow(y,2)+6.0*y)
-            * ( -1.0*std::pow(z,6)+ 3.0*std::pow(z,5)- 3.0*std::pow(z,4)+    std::pow(z,3))
-            + ( -1.0*std::pow(x,6)+ 3.0*std::pow(x,5)- 3.0*std::pow(x,4)+    std::pow(x,3))
-            * ( -1.0*std::pow(y,6)+ 3.0*std::pow(y,5)- 3.0*std::pow(y,4)+    std::pow(y,3))
-            * (-30.0*std::pow(z,4)+60.0*std::pow(z,3)-36.0*std::pow(z,2)+6.0*z);
+        val = (-30.0*pow(x,4)+60.0*pow(x,3)-36.0*pow(x,2)+6.0*x)
+            * ( -1.0*pow(y,6)+ 3.0*pow(y,5)- 3.0*pow(y,4)+    pow(y,3))
+            * ( -1.0*pow(z,6)+ 3.0*pow(z,5)- 3.0*pow(z,4)+    pow(z,3))
+            + ( -1.0*pow(x,6)+ 3.0*pow(x,5)- 3.0*pow(x,4)+    pow(x,3))
+            * (-30.0*pow(y,4)+60.0*pow(y,3)-36.0*pow(y,2)+6.0*y)
+            * ( -1.0*pow(z,6)+ 3.0*pow(z,5)- 3.0*pow(z,4)+    pow(z,3))
+            + ( -1.0*pow(x,6)+ 3.0*pow(x,5)- 3.0*pow(x,4)+    pow(x,3))
+            * ( -1.0*pow(y,6)+ 3.0*pow(y,5)- 3.0*pow(y,4)+    pow(y,3))
+            * (-30.0*pow(z,4)+60.0*pow(z,3)-36.0*pow(z,2)+6.0*z);
     }
 
     for(int istate = 0; istate < nstate; ++istate)
@@ -196,24 +198,24 @@ real diffusion_u<dim,nstate,real>::objective_function (
 
     if(dim == 1){
         real x = pos[0];
-        val = -pi*pi*std::sin(pi*x);
+        val = -pi*pi*sin(pi*x);
     }else if(dim == 2){
         real x = pos[0], y = pos[1];
-        val = -pi*pi*std::sin(pi*x)
-            *        std::sin(pi*y)
-            +        std::sin(pi*x)
-            * -pi*pi*std::sin(pi*y);
+        val = -pi*pi*sin(pi*x)
+            *        sin(pi*y)
+            +        sin(pi*x)
+            * -pi*pi*sin(pi*y);
     }else if(dim == 3){
         real x = pos[0], y = pos[1], z = pos[2];
-        val = -pi*pi*std::sin(pi*x)
-            *        std::sin(pi*y)
-            *        std::sin(pi*z)
-            +        std::sin(pi*x)
-            * -pi*pi*std::sin(pi*y)
-            *        std::sin(pi*z)
-            +        std::sin(pi*x)
-            *        std::sin(pi*y)
-            * -pi*pi*std::sin(pi*z);
+        val = -pi*pi*sin(pi*x)
+            *        sin(pi*y)
+            *        sin(pi*z)
+            +        sin(pi*x)
+            * -pi*pi*sin(pi*y)
+            *        sin(pi*z)
+            +        sin(pi*x)
+            *        sin(pi*y)
+            * -pi*pi*sin(pi*z);
     }
 
     return val;
@@ -232,24 +234,24 @@ std::array<real,nstate> diffusion_v<dim,nstate,real>::source_term (
 
     if(dim == 1){
         real x = pos[0];
-        val = -pi*pi*std::sin(pi*x);
+        val = -pi*pi*sin(pi*x);
     }else if(dim == 2){
         real x = pos[0], y = pos[1];
-        val = -pi*pi*std::sin(pi*x)
-            *        std::sin(pi*y)
-            +        std::sin(pi*x)
-            * -pi*pi*std::sin(pi*y);
+        val = -pi*pi*sin(pi*x)
+            *        sin(pi*y)
+            +        sin(pi*x)
+            * -pi*pi*sin(pi*y);
     }else if(dim == 3){
         real x = pos[0], y = pos[1], z = pos[2];
-        val = -pi*pi*std::sin(pi*x)
-            *        std::sin(pi*y)
-            *        std::sin(pi*z)
-            +        std::sin(pi*x)
-            * -pi*pi*std::sin(pi*y)
-            *        std::sin(pi*z)
-            +        std::sin(pi*x)
-            *        std::sin(pi*y)
-            * -pi*pi*std::sin(pi*z);
+        val = -pi*pi*sin(pi*x)
+            *        sin(pi*y)
+            *        sin(pi*z)
+            +        sin(pi*x)
+            * -pi*pi*sin(pi*y)
+            *        sin(pi*z)
+            +        sin(pi*x)
+            *        sin(pi*y)
+            * -pi*pi*sin(pi*z);
     }
 
     for(int istate = 0; istate < nstate; ++istate)
@@ -266,24 +268,24 @@ real diffusion_v<dim,nstate,real>::objective_function (
 
     if(dim == 1){
         real x = pos[0];
-        val = (-30.0*std::pow(x,4)+60.0*std::pow(x,3)-36.0*std::pow(x,2)+6.0*x);
+        val = (-30.0*pow(x,4)+60.0*pow(x,3)-36.0*pow(x,2)+6.0*x);
     }else if(dim == 2){
         real x = pos[0], y = pos[1];
-        val = (-30.0*std::pow(x,4)+60.0*std::pow(x,3)-36.0*std::pow(x,2)+6.0*x)
-            * ( -1.0*std::pow(y,6)+ 3.0*std::pow(y,5)- 3.0*std::pow(y,4)+    std::pow(y,3))
-            + ( -1.0*std::pow(x,6)+ 3.0*std::pow(x,5)- 3.0*std::pow(x,4)+    std::pow(x,3))
-            * (-30.0*std::pow(y,4)+60.0*std::pow(y,3)-36.0*std::pow(y,2)+6.0*y);
+        val = (-30.0*pow(x,4)+60.0*pow(x,3)-36.0*pow(x,2)+6.0*x)
+            * ( -1.0*pow(y,6)+ 3.0*pow(y,5)- 3.0*pow(y,4)+    pow(y,3))
+            + ( -1.0*pow(x,6)+ 3.0*pow(x,5)- 3.0*pow(x,4)+    pow(x,3))
+            * (-30.0*pow(y,4)+60.0*pow(y,3)-36.0*pow(y,2)+6.0*y);
     }else if(dim == 3){
         real x = pos[0], y = pos[1], z = pos[2];
-        val = (-30.0*std::pow(x,4)+60.0*std::pow(x,3)-36.0*std::pow(x,2)+6.0*x)
-            * ( -1.0*std::pow(y,6)+ 3.0*std::pow(y,5)- 3.0*std::pow(y,4)+    std::pow(y,3))
-            * ( -1.0*std::pow(z,6)+ 3.0*std::pow(z,5)- 3.0*std::pow(z,4)+    std::pow(z,3))
-            + ( -1.0*std::pow(x,6)+ 3.0*std::pow(x,5)- 3.0*std::pow(x,4)+    std::pow(x,3))
-            * (-30.0*std::pow(y,4)+60.0*std::pow(y,3)-36.0*std::pow(y,2)+6.0*y)
-            * ( -1.0*std::pow(z,6)+ 3.0*std::pow(z,5)- 3.0*std::pow(z,4)+    std::pow(z,3))
-            + ( -1.0*std::pow(x,6)+ 3.0*std::pow(x,5)- 3.0*std::pow(x,4)+    std::pow(x,3))
-            * ( -1.0*std::pow(y,6)+ 3.0*std::pow(y,5)- 3.0*std::pow(y,4)+    std::pow(y,3))
-            * (-30.0*std::pow(z,4)+60.0*std::pow(z,3)-36.0*std::pow(z,2)+6.0*z);
+        val = (-30.0*pow(x,4)+60.0*pow(x,3)-36.0*pow(x,2)+6.0*x)
+            * ( -1.0*pow(y,6)+ 3.0*pow(y,5)- 3.0*pow(y,4)+    pow(y,3))
+            * ( -1.0*pow(z,6)+ 3.0*pow(z,5)- 3.0*pow(z,4)+    pow(z,3))
+            + ( -1.0*pow(x,6)+ 3.0*pow(x,5)- 3.0*pow(x,4)+    pow(x,3))
+            * (-30.0*pow(y,4)+60.0*pow(y,3)-36.0*pow(y,2)+6.0*y)
+            * ( -1.0*pow(z,6)+ 3.0*pow(z,5)- 3.0*pow(z,4)+    pow(z,3))
+            + ( -1.0*pow(x,6)+ 3.0*pow(x,5)- 3.0*pow(x,4)+    pow(x,3))
+            * ( -1.0*pow(y,6)+ 3.0*pow(y,5)- 3.0*pow(y,4)+    pow(y,3))
+            * (-30.0*pow(z,4)+60.0*pow(z,3)-36.0*pow(z,2)+6.0*z);
     }
 
     return val;
@@ -357,28 +359,31 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
           = std::make_shared< diffusion_v<dim, nstate, double> >(convection, diffusion);
 
     // for adjoint, also need the AD'd physics
-    using FadType = Sacado::Fad::DFad<double>;
-    std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadType> > physics_u_adtype 
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadType> > physics_u_fadtype 
           = std::make_shared< diffusion_u<dim, nstate, FadType> >(convection, diffusion);
-    std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadType> > physics_v_adtype 
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadType> > physics_v_fadtype 
           = std::make_shared< diffusion_v<dim, nstate, FadType> >(convection, diffusion);
 
-    using FadFadType = Sacado::Fad::DFad<FadType>;
-    std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadFadType> > physics_u_adadtype 
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadFadType> > physics_u_fadfadtype 
           = std::make_shared< diffusion_u<dim, nstate, FadFadType> >(convection, diffusion);
-    std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadFadType> > physics_v_adadtype 
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadFadType> > physics_v_fadfadtype 
           = std::make_shared< diffusion_v<dim, nstate, FadFadType> >(convection, diffusion);
+
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadFadType> > physics_u_radfadtype 
+          = std::make_shared< diffusion_u<dim, nstate, RadFadType> >(convection, diffusion);
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadFadType> > physics_v_radfadtype 
+          = std::make_shared< diffusion_v<dim, nstate, RadFadType> >(convection, diffusion);
 
     // exact value to be used in checks below
     const double pi = std::acos(-1);
     double exact_val = 0;
     
     if(dim == 1){
-        exact_val = (144*(std::pow(pi,2)-10)/std::pow(pi,5));
+        exact_val = (144*(pow(pi,2)-10)/pow(pi,5));
     }else if(dim == 2){
-        exact_val = 2 * (-144*(std::pow(pi,2)-10)/std::pow(pi,7)) * (144*(std::pow(pi,2)-10)/std::pow(pi,5));
+        exact_val = 2 * (-144*(pow(pi,2)-10)/pow(pi,7)) * (144*(pow(pi,2)-10)/pow(pi,5));
     }else if(dim == 3){
-        exact_val = 3 * std::pow(-144*(std::pow(pi,2)-10)/std::pow(pi,7), 2) * (144*(std::pow(pi,2)-10)/std::pow(pi,5));
+        exact_val = 3 * pow(-144*(pow(pi,2)-10)/pow(pi,7), 2) * (144*(pow(pi,2)-10)/pow(pi,5));
     }
 
     // checks 
@@ -447,15 +452,22 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
 
             // now overriding the original physics on each
             dg_weak_u->set_physics(physics_u_double);
-            dg_weak_u->set_physics(physics_u_adtype);
-            dg_weak_u->set_physics(physics_u_adadtype);
+            dg_weak_u->set_physics(physics_u_fadtype);
+            dg_weak_u->set_physics(physics_u_fadfadtype);
+            dg_weak_u->set_physics(physics_u_radfadtype);
 
             dg_weak_v->set_physics(physics_v_double);
-            dg_weak_v->set_physics(physics_v_adtype);
-            dg_weak_v->set_physics(physics_v_adadtype);
+            dg_weak_v->set_physics(physics_v_fadtype);
+            dg_weak_v->set_physics(physics_v_fadfadtype);
+            dg_weak_v->set_physics(physics_v_radfadtype);
 
             dg_u->allocate_system();
             dg_v->allocate_system();
+
+            dg_u->solution *= 0.0;
+            dg_v->solution *= 0.0;
+            //dg_u->solution.add(1.1);
+            //dg_v->solution.add(1.1);
             
             // Create ODE solvers using the factory and providing the DG object
             std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver_u = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_u);
@@ -467,8 +479,8 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
 
             pcout << "Creating DiffusionFunctional... " << std::endl; 
             // functional for computations
-            DiffusionFunctional<dim,nstate,double> diffusion_functional_u(dg_u,physics_u_adadtype,true,false);
-            DiffusionFunctional<dim,nstate,double> diffusion_functional_v(dg_v,physics_v_adadtype,true,false);
+            DiffusionFunctional<dim,nstate,double> diffusion_functional_u(dg_u,physics_u_fadfadtype,true,false);
+            DiffusionFunctional<dim,nstate,double> diffusion_functional_v(dg_v,physics_v_fadfadtype,true,false);
 
             pcout << "Evaluating functional... " << std::endl; 
             // evaluating functionals from both methods
@@ -485,8 +497,8 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             pcout << std::endl << "error_val1 = " << error_functional_u << "\terror_val2 = " << error_functional_v << std::endl << std::endl; 
 
             // // Initializing the adjoints for each problem
-            Adjoint<dim, nstate, double> adj_u(*dg_u, diffusion_functional_u, *physics_u_adtype.get());
-            Adjoint<dim, nstate, double> adj_v(*dg_v, diffusion_functional_v, *physics_v_adtype.get());
+            Adjoint<dim, nstate, double> adj_u(*dg_u, diffusion_functional_u, *physics_u_fadtype.get());
+            Adjoint<dim, nstate, double> adj_v(*dg_v, diffusion_functional_v, *physics_v_fadtype.get());
 
             // solving for each coarse adjoint
             pcout << "Solving for the discrete adjoints." << std::endl;
@@ -552,12 +564,12 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
                         const double soln_exact_v = physics_v_double->manufactured_solution_function->value(qpoint, istate);
                         
                         // comparing the converged solution to the manufactured solution
-                        cell_l2error_soln_u += std::pow(soln_at_q_u[istate] - soln_exact_u, 2) * fe_values_extra.JxW(iquad);
-                        cell_l2error_soln_v += std::pow(soln_at_q_v[istate] - soln_exact_v, 2) * fe_values_extra.JxW(iquad);
+                        cell_l2error_soln_u += pow(soln_at_q_u[istate] - soln_exact_u, 2) * fe_values_extra.JxW(iquad);
+                        cell_l2error_soln_v += pow(soln_at_q_v[istate] - soln_exact_v, 2) * fe_values_extra.JxW(iquad);
 
                         // adjoint should convert to the manufactured solution of the opposing case
-                        cell_l2error_adj_u += std::pow(adj_at_q_u[istate] - soln_exact_v, 2) * fe_values_extra.JxW(iquad);
-                        cell_l2error_adj_v += std::pow(adj_at_q_v[istate] - soln_exact_u, 2) * fe_values_extra.JxW(iquad);
+                        cell_l2error_adj_u += pow(adj_at_q_u[istate] - soln_exact_v, 2) * fe_values_extra.JxW(iquad);
+                        cell_l2error_adj_v += pow(adj_at_q_v[istate] - soln_exact_u, 2) * fe_values_extra.JxW(iquad);
 
                         // std::cout << "Adjoint value is = " << adj_at_q_u[istate] << std::endl << "and the exact value is = " << adj_exact_u << std::endl;
                     }

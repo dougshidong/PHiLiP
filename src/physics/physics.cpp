@@ -66,13 +66,13 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>
 ::artificial_dissipative_flux (
     const real viscosity_coefficient,
     const std::array<real,nstate> &,//solution,
-    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient)
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const
 {
     std::array<dealii::Tensor<1,dim,real>,nstate> diss_flux;
     for (int i=0; i<nstate; i++) {
-  for (int d=0; d<dim; d++) {
-             diss_flux[i][d] = -viscosity_coefficient*(solution_gradient[i][d]);
-  }
+        for (int d=0; d<dim; d++) {
+            diss_flux[i][d] = -viscosity_coefficient*(solution_gradient[i][d]);
+        }
     }
     return diss_flux;
 }

@@ -82,7 +82,7 @@ public:
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> artificial_dissipative_flux (
         const real viscosity_coefficient,
         const std::array<real,nstate> &solution,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient);
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
 
     /// Source term that does not require differentiation.
     virtual std::array<real,nstate> source_term (

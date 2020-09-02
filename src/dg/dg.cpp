@@ -621,85 +621,7 @@ void DGBase<dim,real>::assemble_cell_residual (
         // Neighbour is finer occurs if the face has children
         // In this case, we loop over the current large face's subfaces and visit multiple neighbors
         } else if (current_cell->face(iface)->has_children()) {
-        //} else if ( (current_cell->level() > current_cell->neighbor(iface)->level()) ) {
-
-//            Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
-//            Assert (current_cell->neighbor(iface)->has_children(), dealii::ExcInternalError());
-//
-//            // Obtain cell neighbour
-//            const unsigned int neighbor_iface = current_cell->neighbor_face_no(iface);
-//
-//            for (unsigned int subface_no=0; subface_no < current_face->number_of_children(); ++subface_no) {
-//
-//                // Get neighbor on ith subface
-//                auto neighbor_cell = current_cell->neighbor_child_on_subface (iface, subface_no);
-//                // Since the neighbor cell is finer than the current cell, it should not have more children
-//                Assert (!neighbor_cell->has_children(), dealii::ExcInternalError());
-//                Assert (neighbor_cell->neighbor(neighbor_iface) == current_cell, dealii::ExcInternalError());
-//
-//                const int i_fele_n = neighbor_cell->active_fe_index(), i_quad_n = i_fele_n, i_mapp_n = 0;
-//
-//                const unsigned int n_dofs_neigh_cell = fe_collection[i_fele_n].n_dofs_per_cell();
-//                dealii::Vector<real> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
-//
-//                // Obtain the mapping from local dof indices to global dof indices for neighbor cell
-//                neighbor_dofs_indices.resize(n_dofs_neigh_cell);
-//                neighbor_cell->get_dof_indices (neighbor_dofs_indices);
-//
-//                fe_values_collection_subface.reinit (current_cell, iface, subface_no, i_quad, i_mapp, i_fele);
-//                const dealii::FESubfaceValues<dim,dim> &fe_values_face_int = fe_values_collection_subface.get_present_fe_values();
-//
-//                fe_values_collection_face_ext.reinit (neighbor_cell, neighbor_iface, i_quad_n, i_mapp_n, i_fele_n);
-//                const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
-//
-//                const real penalty1 = evaluate_penalty_scaling (current_cell, iface, fe_collection);
-//                const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
-//                const real penalty = 0.5 * (penalty1 + penalty2);
-//
-//                if ( compute_dRdW ) {
-//                    assemble_face_term_implicit (
-//                            fe_values_face_int, fe_values_face_ext,
-//                            penalty,
-//                            current_dofs_indices, neighbor_dofs_indices,
-//                            current_cell_rhs, neighbor_cell_rhs);
-//                }
-//                if ( compute_dRdX ) {
-//                    const auto metric_neighbor_cell = metric_cell->neighbor_child_on_subface (iface, subface_no);
-//                    metric_neighbor_cell.get_dof_indices(neighbor_metric_dofs_indices);
-//                    const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
-//                    const dealii::Quadrature<dim> quadrature_int =
-//                        dealii::QProjector<dim>::project_to_face(
-//                          dealii::ReferenceCell::get_hypercube(dim),
-//                          used_face_quadrature,iface);
-//                    const dealii::Quadrature<dim> quadrature_ext =
-//                        dealii::QProjector<dim>::project_to_face(
-//                          dealii::ReferenceCell::get_hypercube(dim),
-//                          used_face_quadrature,neighbor_iface);
-//                    assemble_face_term_dRdX (   iface, neighbor_iface,
-//                                                fe_values_face_int, fe_values_face_ext,
-//                                                penalty,
-//                                                fe_collection[i_fele], fe_collection[i_fele_n],
-//                                                face_quadrature_collection[i_quad_n],
-//                                                current_metric_dofs_indices, neighbor_metric_dofs_indices,
-//                                                current_dofs_indices, neighbor_dofs_indices,
-//                                                current_cell_rhs, neighbor_cell_rhs);
-//                }
-//                if ( !compute_dRdX && !compute_dRdW ) {
-//                    assemble_face_term_explicit (
-//                        fe_values_face_int, fe_values_face_ext,
-//                        penalty,
-//                        current_dofs_indices, neighbor_dofs_indices,
-//                        current_cell_rhs, neighbor_cell_rhs);
-//                }
-//                // Add local contribution from neighbor cell to global vector
-//                for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
-//                    rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
-//                }
-//            }
-
-        //} else if (current_cell->neighbor(iface)->level() < current_cell->level()) {
         } else if (current_cell->neighbor(iface)->face(current_cell->neighbor_face_no(iface))->has_children()) {
-        //} else if (current_cell->neighbor(iface)->level() < current_cell->level()) {
             // Case 4: Neighbor is coarser
             // Do nothing.
             // The face contribution from the current cell will appear then the coarse neighbor checks for subfaces
@@ -780,9 +702,7 @@ void DGBase<dim,real>::assemble_cell_residual (
         // Case 3:
         // Neighbor cell is NOT coarser
         // Therefore, they have the same coarseness, and we need to choose one of them to do the work
-        //} else if ( !(current_cell->neighbor_is_coarser(iface)) && current_cell_should_do_the_work(current_cell, current_cell->neighbor(iface)) ) {
         } else if ( current_cell_should_do_the_work(current_cell, current_cell->neighbor(iface)) ) {
-        //} else if ( (current_cell->level() == current_cell->neighbor(iface)->level()) && current_cell_should_do_the_work(current_cell, current_cell->neighbor(iface)) ) {
             Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
 
             const auto neighbor_cell = current_cell->neighbor_or_periodic_neighbor(iface);

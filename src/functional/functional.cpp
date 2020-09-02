@@ -290,19 +290,23 @@ void Functional<dim, nstate, real>::need_compute(bool &compute_value, bool &comp
     if (compute_value) {
         pcout << " with value...";
 
-        auto diff_sol = dg->solution;
-        diff_sol -= solution_value;
-        const double l2_norm_sol = diff_sol.l2_norm();
+        if (dg->solution.size() == solution_value.size() 
+            && dg->high_order_grid.volume_nodes.size() == volume_nodes_value.size()) {
 
-        if (l2_norm_sol == 0.0) {
+            auto diff_sol = dg->solution;
+            diff_sol -= solution_value;
+            const double l2_norm_sol = diff_sol.l2_norm();
 
-            auto diff_node = dg->high_order_grid.volume_nodes;
-            diff_node -= volume_nodes_value;
-            const double l2_norm_node = diff_node.l2_norm();
+            if (l2_norm_sol == 0.0) {
 
-            if (l2_norm_node == 0.0) {
-                pcout << " which is already assembled...";
-                compute_value = false;
+                auto diff_node = dg->high_order_grid.volume_nodes;
+                diff_node -= volume_nodes_value;
+                const double l2_norm_node = diff_node.l2_norm();
+
+                if (l2_norm_node == 0.0) {
+                    pcout << " which is already assembled...";
+                    compute_value = false;
+                }
             }
         }
         solution_value = dg->solution;
@@ -311,19 +315,23 @@ void Functional<dim, nstate, real>::need_compute(bool &compute_value, bool &comp
     if (compute_dIdW) {
         pcout << " with dIdW...";
 
-        auto diff_sol = dg->solution;
-        diff_sol -= solution_dIdW;
-        const double l2_norm_sol = diff_sol.l2_norm();
+        if (dg->solution.size() == solution_dIdW.size() 
+            && dg->high_order_grid.volume_nodes.size() == volume_nodes_dIdW.size()) {
 
-        if (l2_norm_sol == 0.0) {
+            auto diff_sol = dg->solution;
+            diff_sol -= solution_dIdW;
+            const double l2_norm_sol = diff_sol.l2_norm();
 
-            auto diff_node = dg->high_order_grid.volume_nodes;
-            diff_node -= volume_nodes_dIdW;
-            const double l2_norm_node = diff_node.l2_norm();
+            if (l2_norm_sol == 0.0) {
 
-            if (l2_norm_node == 0.0) {
-                pcout << " which is already assembled...";
-                compute_dIdW = false;
+                auto diff_node = dg->high_order_grid.volume_nodes;
+                diff_node -= volume_nodes_dIdW;
+                const double l2_norm_node = diff_node.l2_norm();
+
+                if (l2_norm_node == 0.0) {
+                    pcout << " which is already assembled...";
+                    compute_dIdW = false;
+                }
             }
         }
         solution_dIdW = dg->solution;
@@ -332,19 +340,22 @@ void Functional<dim, nstate, real>::need_compute(bool &compute_value, bool &comp
     if (compute_dIdX) {
         pcout << " with dIdX...";
 
-        auto diff_sol = dg->solution;
-        diff_sol -= solution_dIdX;
-        const double l2_norm_sol = diff_sol.l2_norm();
+        if (dg->solution.size() == solution_dIdX.size() 
+            && dg->high_order_grid.volume_nodes.size() == volume_nodes_dIdX.size()) {
+            auto diff_sol = dg->solution;
+            diff_sol -= solution_dIdX;
+            const double l2_norm_sol = diff_sol.l2_norm();
 
-        if (l2_norm_sol == 0.0) {
+            if (l2_norm_sol == 0.0) {
 
-            auto diff_node = dg->high_order_grid.volume_nodes;
-            diff_node -= volume_nodes_dIdX;
-            const double l2_norm_node = diff_node.l2_norm();
+                auto diff_node = dg->high_order_grid.volume_nodes;
+                diff_node -= volume_nodes_dIdX;
+                const double l2_norm_node = diff_node.l2_norm();
 
-            if (l2_norm_node == 0.0) {
-                pcout << " which is already assembled...";
-                compute_dIdX = false;
+                if (l2_norm_node == 0.0) {
+                    pcout << " which is already assembled...";
+                    compute_dIdX = false;
+                }
             }
         }
         solution_dIdX = dg->solution;
@@ -352,20 +363,25 @@ void Functional<dim, nstate, real>::need_compute(bool &compute_value, bool &comp
     }
     if (compute_d2I) {
         pcout << " with d2IdWdW, d2IdWdX, d2IdXdX...";
-        auto diff_sol = dg->solution;
-        diff_sol -= solution_d2I;
-        const double l2_norm_sol = diff_sol.l2_norm();
 
-        if (l2_norm_sol == 0.0) {
+        if (dg->solution.size() == solution_d2I.size() 
+            && dg->high_order_grid.volume_nodes.size() == volume_nodes_d2I.size()) {
 
-            auto diff_node = dg->high_order_grid.volume_nodes;
-            diff_node -= volume_nodes_d2I;
-            const double l2_norm_node = diff_node.l2_norm();
+            auto diff_sol = dg->solution;
+            diff_sol -= solution_d2I;
+            const double l2_norm_sol = diff_sol.l2_norm();
 
-            if (l2_norm_node == 0.0) {
+            if (l2_norm_sol == 0.0) {
 
-                pcout << " which is already assembled...";
-                compute_d2I = false;
+                auto diff_node = dg->high_order_grid.volume_nodes;
+                diff_node -= volume_nodes_d2I;
+                const double l2_norm_node = diff_node.l2_norm();
+
+                if (l2_norm_node == 0.0) {
+
+                    pcout << " which is already assembled...";
+                    compute_d2I = false;
+                }
             }
         }
         solution_d2I = dg->solution;

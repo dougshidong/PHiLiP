@@ -42,10 +42,11 @@ DGWeak<dim,nstate,real>::~DGWeak ()
 }
 
 
-// Derivatives are ordered such that w comes first with index 0, then x.
-// If derivatives with respect to w are not needed, then derivatives
-// with respect to x will start at index 0. This function is for a single
-// cell's DoFs.
+/// Derivative indexing when only 1 cell is concerned.
+/// Derivatives are ordered such that w comes first with index 0, then x.
+/// If derivatives with respect to w are not needed, then derivatives
+/// with respect to x will start at index 0. This function is for a single
+/// cell's DoFs.
 void automatic_differentiation_indexing_1(
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
     const unsigned int n_soln_dofs, const unsigned int n_metric_dofs,
@@ -76,6 +77,11 @@ void automatic_differentiation_indexing_1(
     }
 }
 
+/// Derivative indexing when 2 cells are concerned.
+/// Derivatives are ordered such that w comes first with index 0, then x.
+/// If derivatives with respect to w are not needed, then derivatives
+/// with respect to x will start at index 0. This function is for a single
+/// cell's DoFs.
 void automatic_differentiation_indexing_2(
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
     const unsigned int n_soln_dofs_int, const unsigned int n_soln_dofs_ext, const unsigned int n_metric_dofs,
@@ -1383,7 +1389,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
 
 template <int dim, int nstate, typename real>
 template <typename real2>
-void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives_2(
+void DGWeak<dim,nstate,real>::assemble_volume_terms(
     const std::vector<real2> &soln_coeff,
     const std::vector<real2> &coords_coeff,
     const std::vector<real> &local_dual,
@@ -1512,23 +1518,12 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives_2(
                 soln_grad_at_q[iquad][istate][d] += soln_coeff[idof] * gradient_operator[d][idof][iquad];
             }
         }
-        if constexpr (std::is_same<real2, FadFadType>::value) {
-            conv_phys_flux_at_q[iquad] = physics.convective_flux (soln_at_q[iquad]);
-            diss_phys_flux_at_q[iquad] = physics.dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
-        }
-        if constexpr (std::is_same<real2, RadFadType>::value) {
-            conv_phys_flux_at_q[iquad] = physics.convective_flux (soln_at_q[iquad]);
-            diss_phys_flux_at_q[iquad] = physics.dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
-        }
+        conv_phys_flux_at_q[iquad] = physics.convective_flux (soln_at_q[iquad]);
+        diss_phys_flux_at_q[iquad] = physics.dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
 
         if (this->all_parameters->add_artificial_dissipation) {
             ArrayTensor artificial_diss_phys_flux_at_q;
-            if constexpr (std::is_same<real2, FadFadType>::value) {
-                artificial_diss_phys_flux_at_q = physics.artificial_dissipative_flux (artificial_diss_coeff, soln_at_q[iquad], soln_grad_at_q[iquad]);
-            }
-            if constexpr (std::is_same<real2, RadFadType>::value) {
-                artificial_diss_phys_flux_at_q = physics.artificial_dissipative_flux (artificial_diss_coeff, soln_at_q[iquad], soln_grad_at_q[iquad]);
-            }
+            artificial_diss_phys_flux_at_q = physics.artificial_dissipative_flux (artificial_diss_coeff, soln_at_q[iquad], soln_grad_at_q[iquad]);
             for (int s=0; s<nstate; s++) {
                 diss_phys_flux_at_q[iquad][s] += artificial_diss_phys_flux_at_q[s];
             }
@@ -1541,12 +1536,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives_2(
                 const int iaxis = fe_metric.system_to_component_index(idof).first;
                 ad_point[iaxis] += coords_coeff[idof] * fe_metric.shape_value(idof,unit_quad_pts[iquad]);
             }
-            if constexpr (std::is_same<real2, FadFadType>::value) {
-                source_at_q[iquad] = physics.source_term (ad_point, soln_at_q[iquad]);
-            }
-            if constexpr (std::is_same<real2, RadFadType>::value) {
-                source_at_q[iquad] = physics.source_term (ad_point, soln_at_q[iquad]);
-            }
+            source_at_q[iquad] = physics.source_term (ad_point, soln_at_q[iquad]);
             //Array artificial_source_at_q = physics.artificial_source_term (artificial_diss_coeff, ad_point, soln_at_q[iquad]);
             //for (int s=0;s<nstate;++s) source_at_q[iquad][s] += artificial_source_at_q[s];
         }
@@ -1655,7 +1645,11 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
 
     FadFadType dual_dot_residual = 0.0;
     std::vector<FadFadType> rhs(n_soln_dofs);
-    assemble_volume_terms_derivatives_2<FadFadType>(soln_coeff, coords_coeff, local_dual, fe_soln, fe_metric, quadrature, *(DGBaseState<dim,nstate,real>::pde_physics_fad_fad), rhs, dual_dot_residual, compute_metric_derivatives, fe_values_vol);
+    assemble_volume_terms<FadFadType>(soln_coeff, coords_coeff, local_dual,
+                                      fe_soln, fe_metric, quadrature,
+                                      *(DGBaseState<dim,nstate,real>::pde_physics_fad_fad),
+                                      rhs, dual_dot_residual,
+                                      compute_metric_derivatives, fe_values_vol);
 
     // Weak form
     // The right-hand side sends all the term to the side of the source term
@@ -1745,7 +1739,8 @@ double getValue(const real &x) {
 }
 
 template <int dim, int nstate, typename real>
-void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
+template <typename real2>
+void DGWeak<dim,nstate,real>::assemble_volume_codi_taped_derivatives(
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const dealii::FESystem<dim,dim> &fe_soln,
     const dealii::Quadrature<dim> &quadrature,
@@ -1756,19 +1751,8 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
     (void) fe_values_lagrange;
-    //if (compute_dRdW || compute_dRdX) {
-    //    assemble_volume_jacobian(
-    //    fe_values_vol,
-    //    fe_soln,
-    //    quadrature,
-    //    metric_dof_indices,
-    //    soln_dof_indices,
-    //    local_rhs_cell,
-    //    fe_values_lagrange,
-    //    compute_dRdW, compute_dRdX, compute_d2R);
-    //    return;
-    //}
-    using adtype = RadFadType;
+
+    using adtype = real2;
 
     using ADArray = std::array<adtype,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,adtype>, nstate >;
@@ -1825,7 +1809,11 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
 
     adtype dual_dot_residual = 0.0;
     std::vector<adtype> rhs(n_soln_dofs);
-    assemble_volume_terms_derivatives_2<adtype>(soln_coeff, coords_coeff, local_dual, fe_soln, fe_metric, quadrature, *pde_physics_rad_fad, rhs, dual_dot_residual, compute_metric_derivatives, fe_values_vol);
+    assemble_volume_terms<adtype>(soln_coeff, coords_coeff, local_dual,
+                                  fe_soln, fe_metric, quadrature,
+                                  *(DGBaseState<dim,nstate,real>::pde_physics_fad_fad),
+                                  rhs, dual_dot_residual,
+                                  compute_metric_derivatives, fe_values_vol);
 
     if (compute_dRdW || compute_dRdX) {
         for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
@@ -1914,6 +1902,46 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
         th.deleteHessian(hes);
     }
 
+}
+
+template <int dim, int nstate, typename real>
+void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
+    const dealii::FEValues<dim,dim> &fe_values_vol,
+    const dealii::FESystem<dim,dim> &fe_soln,
+    const dealii::Quadrature<dim> &quadrature,
+    const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
+    const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
+    dealii::Vector<real> &local_rhs_cell,
+    const dealii::FEValues<dim,dim> &fe_values_lagrange,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
+{
+    (void) fe_values_lagrange;
+    //if (compute_dRdW || compute_dRdX) {
+    //    assemble_volume_codi_taped_derivatives<codi_JacobianComputationType>(
+    //        fe_values_vol,
+    //        fe_soln, quadrature,
+    //        metric_dof_indices, soln_dof_indices,
+    //        local_rhs_cell,
+    //        fe_values_lagrange,
+    //        compute_dRdW, compute_dRdX, compute_d2R);
+    //} else {
+    //    assemble_volume_codi_taped_derivatives<codi_JacobianComputationType>(
+    //        fe_values_vol,
+    //        fe_soln, quadrature,
+    //        metric_dof_indices, soln_dof_indices,
+    //        local_rhs_cell,
+    //        fe_values_lagrange,
+    //        compute_dRdW, compute_dRdX, compute_d2R);
+    //}
+    assemble_volume_codi_taped_derivatives<codi_JacobianComputationType>(
+        fe_values_vol,
+        fe_soln, quadrature,
+        metric_dof_indices, soln_dof_indices,
+        local_rhs_cell,
+        fe_values_lagrange,
+        compute_dRdW, compute_dRdX, compute_d2R);
+
+    return;
 }
 #endif
 

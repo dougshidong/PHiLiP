@@ -53,10 +53,8 @@ unsigned int dRdX_mult;
 unsigned int d2R_mult;
 
 
-//template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM> >;
 namespace PHiLiP {
 
-// DGBase ***************************************************************************
 template <int dim, typename real>
 DGBase<dim,real>::DGBase(
     const int nstate_input,
@@ -289,27 +287,6 @@ void DGBase<dim,real>::set_all_cells_fe_degree ( const unsigned int degree )
 
 
 
-// Destructor
-template <int dim, typename real>
-DGBase<dim,real>::~DGBase ()
-{
-    dof_handler.clear ();
-}
-
-// template <int dim, typename real>
-// void DGBase<dim,real>::set_triangulation(Triangulation *triangulation_input)
-// {
-//     // dof_handler.clear();
-//
-//     // triangulation = triangulation_input;
-//
-//     // dof_handler.initialize(*triangulation, fe_collection);
-//
-//     //set_all_cells_fe_degree (fe_collection.size()-1); // Always sets it to the maximum degree
-//
-//     //set_all_cells_fe_degree ( max_degree-min_degree);
-// }
-
 template <int dim, typename real>
 template<typename DoFCellAccessorType>
 real DGBase<dim,real>::evaluate_penalty_scaling (
@@ -433,101 +410,29 @@ void DGBase<dim,real>::assemble_cell_residual (
 
         auto current_face = current_cell->face(iface);
 
-        // Case 1: Face at boundary
+        // CASE 1: FACE AT BOUNDARY
         if (current_face->at_boundary() && !current_cell->has_periodic_neighbor(iface) ) {
 
             fe_values_collection_face_int.reinit(current_cell, iface, i_quad, i_mapp, i_fele);
 
-            // Case 1.1: 1D Periodic boundary condition
-            if(current_face->at_boundary() && all_parameters->use_periodic_bc == true && dim == 1) {
+            const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
 
-                const int neighbor_iface = (iface == 1) ? 0 : 1;
+            const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
 
-                int cell_index = current_cell->index();
-                auto neighbor_cell = dof_handler.begin_active();
-                if (cell_index == 0 && iface == 0) {
-                // First cell of the domain, neighbor is the last.
-                    for (unsigned int i = 0 ; i < triangulation->n_active_cells() - 1; ++i) {
-                        ++neighbor_cell;
-                    }
-                } else if (cell_index == (int) triangulation->n_active_cells() - 1 && iface == 1) {
-                // Last cell of the domain, neighbor is the first.
-                }
-
-                const int i_fele_n = neighbor_cell->active_fe_index(), i_quad_n = i_fele_n, i_mapp_n = 0;
-                const unsigned int n_dofs_neigh_cell = fe_collection[i_fele_n].n_dofs_per_cell();
-                neighbor_dofs_indices.resize(n_dofs_neigh_cell);
-                fe_values_collection_face_ext.reinit(neighbor_cell, neighbor_iface, i_quad_n, i_mapp_n, i_fele_n);
-
-                const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
-                const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
-
-                dealii::Vector<real> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
-
-                const real penalty1 = evaluate_penalty_scaling (current_cell, iface, fe_collection);
-                const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
-                const real penalty = 0.5 * (penalty1 + penalty2);
-
-                if ( compute_dRdW || compute_dRdX || compute_d2R ) {
-                    auto metric_neighbor_cell = high_order_grid.dof_handler_grid.begin_active();
-                    if (cell_index == 0 && iface == 0) {
-                    // First cell of the domain, neighbor is the last.
-                        for (unsigned int i = 0 ; i < triangulation->n_active_cells() - 1; ++i) {
-                            ++neighbor_cell;
-                        }
-                    } else if (cell_index == (int) triangulation->n_active_cells() - 1 && iface == 1) {
-                    // Last cell of the domain, neighbor is the first.
-                    }
-                    metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
-                    const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
-                    const dealii::Quadrature<dim> quadrature_int =
-                        dealii::QProjector<dim>::project_to_face(
-                            dealii::ReferenceCell::get_hypercube(dim),
-                            used_face_quadrature,
-                            iface);
-                    const dealii::Quadrature<dim> quadrature_ext =
-                        dealii::QProjector<dim>::project_to_face(
-                            dealii::ReferenceCell::get_hypercube(dim),
-                            used_face_quadrature,
-                            neighbor_iface);
-                    assemble_face_term_derivatives (   iface, neighbor_iface,
-                                                fe_values_face_int, fe_values_face_ext,
-                                                penalty,
-                                                fe_collection[i_fele], fe_collection[i_fele_n],
-                                                quadrature_int, quadrature_ext,
-                                                current_metric_dofs_indices, neighbor_metric_dofs_indices,
-                                                current_dofs_indices, neighbor_dofs_indices,
-                                                current_cell_rhs, neighbor_cell_rhs,
-                                                compute_dRdW, compute_dRdX, compute_d2R);
-                } else {
-                    assemble_face_term_explicit (
-                                                fe_values_face_int, fe_values_face_ext,
-                                                penalty,
-                                                current_dofs_indices, neighbor_dofs_indices,
-                                                current_cell_rhs, neighbor_cell_rhs);
-                }
+            const unsigned int boundary_id = current_face->boundary_id();
+            if (compute_dRdW || compute_dRdX || compute_d2R) {
+                const dealii::Quadrature<dim-1> face_quadrature = face_quadrature_collection[i_quad];
+                assemble_boundary_term_derivatives (
+                    iface, boundary_id, fe_values_face_int, penalty,
+                    current_fe_ref, face_quadrature,
+                    current_metric_dofs_indices, current_dofs_indices, current_cell_rhs,
+                    compute_dRdW, compute_dRdX, compute_d2R);
 
             } else {
-            // Actual boundary term
-                const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
-
-                const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
-
-                const unsigned int boundary_id = current_face->boundary_id();
-                if (compute_dRdW || compute_dRdX || compute_d2R) {
-                    const dealii::Quadrature<dim-1> face_quadrature = face_quadrature_collection[i_quad];
-                    assemble_boundary_term_derivatives (
-                        iface, boundary_id, fe_values_face_int, penalty,
-                        current_fe_ref, face_quadrature,
-                        current_metric_dofs_indices, current_dofs_indices, current_cell_rhs,
-                        compute_dRdW, compute_dRdX, compute_d2R);
-
-                } else {
-                    assemble_boundary_term_explicit (boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
-                }
+                assemble_boundary_term_explicit (boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
             }
 
-        //CASE 1.5: periodic boundary conditions
+        //CASE 2: PERIODIC BOUNDARY CONDITIONS
         //note that periodicity is not adapted for hp adaptivity yet. this needs to be figured out in the future
         } else if (current_face->at_boundary() && current_cell->has_periodic_neighbor(iface)){
 
@@ -599,14 +504,15 @@ void DGBase<dim,real>::assemble_cell_residual (
             }
 
 
-        // Case 2:
-        // Neighbour is finer occurs if the face has children
-        // In this case, we loop over the current large face's subfaces and visit multiple neighbors
+        // CASE 3: NEIGHBOUR IS FINER
+        // Occurs if the face has children
+        // Do nothing.
+        // The face contribution from the current cell will appear then the finer neighbor cell is assembled.
         } else if (current_cell->face(iface)->has_children()) {
+
+        // CASE 4: NEIGHBOR IS COARSER
+        // Assemble face residual.
         } else if (current_cell->neighbor(iface)->face(current_cell->neighbor_face_no(iface))->has_children()) {
-            // Case 4: Neighbor is coarser
-            // Do nothing.
-            // The face contribution from the current cell will appear then the coarse neighbor checks for subfaces
 
             Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
             Assert (!(current_cell->neighbor(iface)->has_children()), dealii::ExcInternalError());
@@ -681,9 +587,8 @@ void DGBase<dim,real>::assemble_cell_residual (
             for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
                 rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
             }
-        // Case 3:
-        // Neighbor cell is NOT coarser
-        // Therefore, they have the same coarseness, and we need to choose one of them to do the work
+        // CASE 5: NEIGHBOR CELL HAS SAME COARSENESS
+        // Therefore, we need to choose one of them to do the work
         } else if ( current_cell_should_do_the_work(current_cell, current_cell->neighbor(iface)) ) {
             Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
 

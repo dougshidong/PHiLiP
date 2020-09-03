@@ -122,8 +122,6 @@ public:
             const std::shared_ptr<Triangulation> triangulation_input,
             const MassiveCollectionTuple collection_tuple);
 
-    virtual ~DGBase(); ///< Destructor.
-
     const std::shared_ptr<Triangulation> triangulation; ///< Mesh
 
     /// Refers to a collection Mappings, which represents the high-order grid.

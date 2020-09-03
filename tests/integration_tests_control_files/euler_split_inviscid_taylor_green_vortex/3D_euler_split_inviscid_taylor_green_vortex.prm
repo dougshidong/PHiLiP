@@ -10,8 +10,6 @@ set use_collocated_nodes = true
 
 set use_split_form = false
 
-set use_periodic_bc = true
-
 # The PDE we want to solve
 set pde_type = euler
 

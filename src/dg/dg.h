@@ -136,6 +136,15 @@ public:
     /** Must be done after setting the mesh and before assembling the system. */
     virtual void allocate_system ();
 
+private:
+    /// Allocates the second derivatives.
+    /** Is called when assembling the residual's second derivatives, and is currently empty
+     *  due to being cleared by the allocate_system().
+     */
+    virtual void allocate_second_derivatives ();
+
+
+public:
     /// Evaluate the time_scaled_global_mass_matrix such that the maximum time step
     /// cell-wise is taken into account.
     void time_scaled_mass_matrices(const real scale);

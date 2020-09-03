@@ -394,6 +394,7 @@ public:
 
 };
 
+/// Full-space preconditioner from factory.
 template<typename Real = double>
 class BirosGhattasPreconditionerFactory
 {

@@ -18,7 +18,7 @@ namespace codi {
   class DirectionVar {
     private:
       std::vector<Real> vec; /**< The data vector with the given dimension */
-      size_t dim;
+      size_t dim; /**< Dimension of the data vector. */
 
     public:
 
@@ -34,6 +34,7 @@ namespace codi {
        * @brief Creates a direction with the same value in every component.
        *
        * @param[in] s  The value that is set to all components.
+       * @param[in] n  The size of the direction vector.
        */
       CODI_INLINE DirectionVar(const Real& s, const size_t n)
       // : DirectionVar()
@@ -217,7 +218,7 @@ namespace codi {
   }
 
   /**
-   * \copydoc operator*(const Real& s, const DirectionVar<Real, dim>& v)
+   * \copydoc operator*(const Real& s, const DirectionVar<Real>& v)
    */
   template<typename Real, typename = typename std::enable_if<!std::is_same<Real, typename TypeTraits<Real>::PassiveReal>::value>::type>
   CODI_INLINE DirectionVar<Real> operator * (const typename TypeTraits<Real>::PassiveReal& s, const DirectionVar<Real>& v) {
@@ -249,7 +250,7 @@ namespace codi {
   }
 
   /**
-   * \copydoc operator*(const DirectionVar<Real, dim>& v, const Real& s)
+   * \copydoc operator*(const DirectionVar<Real>& v, const Real& s)
    */
   template<typename Real, typename , typename = typename std::enable_if<!std::is_same<Real, typename TypeTraits<Real>::PassiveReal>::value>::type>
   CODI_INLINE DirectionVar<Real> operator * (const DirectionVar<Real>& v, const typename TypeTraits<Real>::PassiveReal& s) {

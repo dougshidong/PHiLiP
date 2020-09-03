@@ -54,6 +54,9 @@ unsigned int d2R_mult;
 
 
 //template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM> >;
+/**
+ * @brief Global namespace for PHiLiP - [P]arallel [Hi]gh-order [Li]brary for [P]DEs
+ */
 namespace PHiLiP {
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
     template <int dim> using Triangulation = dealii::Triangulation<dim>;

@@ -11,19 +11,9 @@ namespace PHiLiP {
 template <int dim, int nstate, typename real>
 class DGWeak : public DGBaseState<dim, nstate, real>
 {
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    /** Triangulation to store the grid.
-     *  In 1D, dealii::Triangulation<dim> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-     */
-    using Triangulation = dealii::Triangulation<dim>;
-#else
-    /** Triangulation to store the grid.
-     *  In 1D, dealii::Triangulation<dim> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-     */
-    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-#endif
+protected:
+    /// Alias to base class Triangulation.
+    using Triangulation = typename DGBaseState<dim,nstate,real>::Triangulation;
 public:
     /// Constructor.
     DGWeak(

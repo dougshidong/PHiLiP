@@ -606,11 +606,18 @@ public:
     std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, real > > diss_num_flux_double;
 
     /// Contains the physics of the PDE with FadType
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, FadType > > pde_physics;
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, FadType > > pde_physics_fad;
     /// Convective numerical flux with FadType
-    std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, FadType > > conv_num_flux;
+    std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, FadType > > conv_num_flux_fad;
     /// Dissipative numerical flux with FadType
-    std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, FadType > > diss_num_flux;
+    std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, FadType > > diss_num_flux_fad;
+
+    /// Contains the physics of the PDE with RadType
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, RadType > > pde_physics_rad;
+    /// Convective numerical flux with RadType
+    std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, RadType > > conv_num_flux_rad;
+    /// Dissipative numerical flux with RadType
+    std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, RadType > > diss_num_flux_rad;
 
     /// Contains the physics of the PDE with FadFadType
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, FadFadType > > pde_physics_fad_fad;
@@ -632,6 +639,7 @@ public:
     void set_physics(
         std::shared_ptr< Physics::PhysicsBase<dim, nstate, real       > > pde_physics_double_input,
         std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadType    > > pde_physics_fad_input,
+        std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadType    > > pde_physics_rad_input,
         std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadFadType > > pde_physics_fad_fad_input,
         std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadFadType > > pde_physics_rad_fad_input);
 

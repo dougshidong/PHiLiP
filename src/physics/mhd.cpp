@@ -798,6 +798,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim,nstate,real>
 // Instantiate explicitly
 template class MHD < PHILIP_DIM, 8, double >;
 template class MHD < PHILIP_DIM, 8, FadType >;
+template class MHD < PHILIP_DIM, 8, RadType >;
 template class MHD < PHILIP_DIM, 8, FadFadType >;
 template class MHD < PHILIP_DIM, 8, RadFadType >;
 

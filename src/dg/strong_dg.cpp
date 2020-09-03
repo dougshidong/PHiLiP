@@ -111,7 +111,7 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_derivatives(
         const dealii::Point<dim, real> real_quad_point = quad_pts[iquad];
         dealii::Point<dim,FadType> ad_point;
         for (int d=0;d<dim;++d) { ad_point[d] = real_quad_point[d]; }
-        this->pde_physics->boundary_face_values (boundary_id, ad_point, normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
+        this->pde_physics_fad->boundary_face_values (boundary_id, ad_point, normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
  
         //
         // Evaluate physical convective flux, physical dissipative flux
@@ -119,20 +119,20 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_derivatives(
         //      Hartmann, R., Numerical Analysis of Higher Order Discontinuous Galerkin Finite Element Methods,
         //      Institute of Aerodynamics and Flow Technology, DLR (German Aerospace Center), 2008.
         //      Details given on page 93
-        //conv_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real>::conv_num_flux->evaluate_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
+        //conv_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real>::conv_num_flux_fad->evaluate_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
  
         // So, I wasn't able to get Euler manufactured solutions to converge when F* = F*(Ubc, Ubc)
         // Changing it back to the standdard F* = F*(Uin, Ubc)
         // This is known not be adjoint consistent as per the paper above. Page 85, second to last paragraph.
         // Losing 2p+1 OOA on functionals for all PDEs.
-        conv_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real>::conv_num_flux->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
+        conv_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real>::conv_num_flux_fad->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
  
         // Used for strong form
         // Which physical convective flux to use?
-        conv_phys_flux[iquad] = this->pde_physics->convective_flux (soln_int[iquad]);
+        conv_phys_flux[iquad] = this->pde_physics_fad->convective_flux (soln_int[iquad]);
  
         // Notice that the flux uses the solution given by the Dirichlet or Neumann boundary condition
-        diss_soln_num_flux[iquad] = DGBaseState<dim,nstate,real>::diss_num_flux->evaluate_solution_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
+        diss_soln_num_flux[iquad] = DGBaseState<dim,nstate,real>::diss_num_flux_fad->evaluate_solution_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
  
         ADArrayTensor1 diss_soln_jump_int;
         for (int s=0; s<nstate; s++) {
@@ -140,9 +140,9 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_derivatives(
     diss_soln_jump_int[s][d] = (diss_soln_num_flux[iquad][s] - soln_int[iquad][s]) * normal_int[d];
    }
         }
-        diss_flux_jump_int[iquad] = this->pde_physics->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
+        diss_flux_jump_int[iquad] = this->pde_physics_fad->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
  
-        diss_auxi_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real>::diss_num_flux->evaluate_auxiliary_flux(
+        diss_auxi_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real>::diss_num_flux_fad->evaluate_auxiliary_flux(
             0.0, 0.0,
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
@@ -238,14 +238,14 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_derivatives(
         //if(nstate>1) std::cout << "Momentum " << soln_at_q[iquad][1] << std::endl;
         //std::cout << "Energy " << soln_at_q[iquad][nstate-1] << std::endl;
         // Evaluate physical convective flux and source term
-        conv_phys_flux_at_q[iquad] = this->pde_physics->convective_flux (soln_at_q[iquad]);
-        diss_phys_flux_at_q[iquad] = this->pde_physics->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
+        conv_phys_flux_at_q[iquad] = this->pde_physics_fad->convective_flux (soln_at_q[iquad]);
+        diss_phys_flux_at_q[iquad] = this->pde_physics_fad->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
 
         if(this->all_parameters->manufactured_convergence_study_param.use_manufactured_source_term) {
             const dealii::Point<dim,real> real_quad_point = fe_values_vol.quadrature_point(iquad);
             dealii::Point<dim,FadType> ad_point;
             for (int d=0;d<dim;++d) { ad_point[d] = real_quad_point[d]; }
-            source_at_q[iquad] = this->pde_physics->source_term (ad_point, soln_at_q[iquad]);
+            source_at_q[iquad] = this->pde_physics_fad->source_term (ad_point, soln_at_q[iquad]);
         }
     }
 
@@ -422,12 +422,12 @@ void DGStrong<dim,nstate,real>::assemble_face_term_derivatives(
         //std::cout << "Energy ext" << soln_ext[iquad][nstate-1] << std::endl;
 
         // Evaluate physical convective flux, physical dissipative flux, and source term
-        conv_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real>::conv_num_flux->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
+        conv_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real>::conv_num_flux_fad->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
 
-        conv_phys_flux_int[iquad] = this->pde_physics->convective_flux (soln_int[iquad]);
-        conv_phys_flux_ext[iquad] = this->pde_physics->convective_flux (soln_ext[iquad]);
+        conv_phys_flux_int[iquad] = this->pde_physics_fad->convective_flux (soln_int[iquad]);
+        conv_phys_flux_ext[iquad] = this->pde_physics_fad->convective_flux (soln_ext[iquad]);
 
-        diss_soln_num_flux[iquad] = DGBaseState<dim,nstate,real>::diss_num_flux->evaluate_solution_flux(soln_int[iquad], soln_ext[iquad], normal_int);
+        diss_soln_num_flux[iquad] = DGBaseState<dim,nstate,real>::diss_num_flux_fad->evaluate_solution_flux(soln_int[iquad], soln_ext[iquad], normal_int);
 
         ADArrayTensor1 diss_soln_jump_int, diss_soln_jump_ext;
         for (int s=0; s<nstate; s++) {
@@ -436,10 +436,10 @@ void DGStrong<dim,nstate,real>::assemble_face_term_derivatives(
     diss_soln_jump_ext[s][d] = (diss_soln_num_flux[iquad][s] - soln_ext[iquad][s]) * normal_ext[d];
    }
         }
-        diss_flux_jump_int[iquad] = this->pde_physics->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
-        diss_flux_jump_ext[iquad] = this->pde_physics->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext);
+        diss_flux_jump_int[iquad] = this->pde_physics_fad->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
+        diss_flux_jump_ext[iquad] = this->pde_physics_fad->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext);
 
-        diss_auxi_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real>::diss_num_flux->evaluate_auxiliary_flux(
+        diss_auxi_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real>::diss_num_flux_fad->evaluate_auxiliary_flux(
             0.0, 0.0,
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
@@ -687,7 +687,7 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_explicit(
         const dealii::Point<dim, real> real_quad_point = quad_pts[iquad];
         dealii::Point<dim,FadType> ad_point;
         for (int d=0;d<dim;++d) { ad_point[d] = real_quad_point[d]; }
-        this->pde_physics->boundary_face_values (boundary_id, ad_point, normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
+        this->pde_physics_fad->boundary_face_values (boundary_id, ad_point, normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
 
         //
         // Evaluate physical convective flux, physical dissipative flux
@@ -695,20 +695,20 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_explicit(
         //      Hartmann, R., Numerical Analysis of Higher Order Discontinuous Galerkin Finite Element Methods,
         //      Institute of Aerodynamics and Flow Technology, DLR (German Aerospace Center), 2008.
         //      Details given on page 93
-        //conv_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real>::conv_num_flux->evaluate_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
+        //conv_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real>::conv_num_flux_fad->evaluate_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
 
         // So, I wasn't able to get Euler manufactured solutions to converge when F* = F*(Ubc, Ubc)
         // Changing it back to the standdard F* = F*(Uin, Ubc)
         // This is known not be adjoint consistent as per the paper above. Page 85, second to last paragraph.
         // Losing 2p+1 OOA on functionals for all PDEs.
-        conv_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real>::conv_num_flux->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
+        conv_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real>::conv_num_flux_fad->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
 
         // Used for strong form
         // Which physical convective flux to use?
-        conv_phys_flux[iquad] = this->pde_physics->convective_flux (soln_int[iquad]);
+        conv_phys_flux[iquad] = this->pde_physics_fad->convective_flux (soln_int[iquad]);
 
         // Notice that the flux uses the solution given by the Dirichlet or Neumann boundary condition
-        diss_soln_num_flux[iquad] = DGBaseState<dim,nstate,real>::diss_num_flux->evaluate_solution_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
+        diss_soln_num_flux[iquad] = DGBaseState<dim,nstate,real>::diss_num_flux_fad->evaluate_solution_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
 
         ADArrayTensor1 diss_soln_jump_int;
         for (int s=0; s<nstate; s++) {
@@ -716,9 +716,9 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_explicit(
     diss_soln_jump_int[s][d] = (diss_soln_num_flux[iquad][s] - soln_int[iquad][s]) * normal_int[d];
    }
         }
-        diss_flux_jump_int[iquad] = this->pde_physics->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
+        diss_flux_jump_int[iquad] = this->pde_physics_fad->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
 
-        diss_auxi_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real>::diss_num_flux->evaluate_auxiliary_flux(
+        diss_auxi_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real>::diss_num_flux_fad->evaluate_auxiliary_flux(
             0.0, 0.0,
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
@@ -855,15 +855,15 @@ void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
         // Evaluate physical convective flux, physical dissipative flux, and source term
 
         //std::cout <<"evaluating numerical fluxes" <<std::endl;
-        conv_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real>::conv_num_flux->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
+        conv_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real>::conv_num_flux_fad->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
 
-        conv_phys_flux_int[iquad] = this->pde_physics->convective_flux (soln_int[iquad]);
-        conv_phys_flux_ext[iquad] = this->pde_physics->convective_flux (soln_ext[iquad]);
+        conv_phys_flux_int[iquad] = this->pde_physics_fad->convective_flux (soln_int[iquad]);
+        conv_phys_flux_ext[iquad] = this->pde_physics_fad->convective_flux (soln_ext[iquad]);
 
        // std::cout <<"done evaluating numerical fluxes" <<std::endl;
 
 
-        diss_soln_num_flux[iquad] = DGBaseState<dim,nstate,real>::diss_num_flux->evaluate_solution_flux(soln_int[iquad], soln_ext[iquad], normal_int);
+        diss_soln_num_flux[iquad] = DGBaseState<dim,nstate,real>::diss_num_flux_fad->evaluate_solution_flux(soln_int[iquad], soln_ext[iquad], normal_int);
 
         ADArrayTensor1 diss_soln_jump_int, diss_soln_jump_ext;
         for (int s=0; s<nstate; s++) {
@@ -872,10 +872,10 @@ void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
     diss_soln_jump_ext[s][d] = (diss_soln_num_flux[iquad][s] - soln_ext[iquad][s]) * normal_ext[d];
    }
         }
-        diss_flux_jump_int[iquad] = this->pde_physics->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
-        diss_flux_jump_ext[iquad] = this->pde_physics->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext);
+        diss_flux_jump_int[iquad] = this->pde_physics_fad->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
+        diss_flux_jump_ext[iquad] = this->pde_physics_fad->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext);
 
-        diss_auxi_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real>::diss_num_flux->evaluate_auxiliary_flux(
+        diss_auxi_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real>::diss_num_flux_fad->evaluate_auxiliary_flux(
             0.0, 0.0,
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],

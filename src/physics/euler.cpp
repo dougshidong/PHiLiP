@@ -887,6 +887,7 @@ dealii::UpdateFlags Euler<dim,nstate,real>
 // Instantiate explicitly
 template class Euler < PHILIP_DIM, PHILIP_DIM+2, double >;
 template class Euler < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
+template class Euler < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
 template class Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 

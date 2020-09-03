@@ -215,6 +215,8 @@ template class ConvectionDiffusion < PHILIP_DIM, 1, double >;
 template class ConvectionDiffusion < PHILIP_DIM, 2, double >;
 template class ConvectionDiffusion < PHILIP_DIM, 1, FadType>;
 template class ConvectionDiffusion < PHILIP_DIM, 2, FadType>;
+template class ConvectionDiffusion < PHILIP_DIM, 1, RadType>;
+template class ConvectionDiffusion < PHILIP_DIM, 2, RadType>;
 template class ConvectionDiffusion < PHILIP_DIM, 1, FadFadType>;
 template class ConvectionDiffusion < PHILIP_DIM, 2, FadFadType>;
 template class ConvectionDiffusion < PHILIP_DIM, 1, RadFadType>;

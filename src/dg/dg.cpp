@@ -891,14 +891,6 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     dealii::DataOut<dim, dealii::DoFHandler<dim>> data_out;
     data_out.attach_dof_handler (dof_handler);
 
-    //std::vector<std::string> solution_names;
-    //for(int s=0;s<nstate;++s) {
-    //    std::string varname = "u" + dealii::Utilities::int_to_string(s,1);
-    //    solution_names.push_back(varname);
-    //}
-    //std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> data_component_interpretation(nstate, dealii::DataComponentInterpretation::component_is_scalar);
-    //data_out.add_data_vector (solution, solution_names, dealii::DataOut<dim>::type_dof_data, data_component_interpretation);
-
     dealii::Vector<float> subdomain(triangulation->n_active_cells());
     for (unsigned int i = 0; i < subdomain.size(); ++i) {
         subdomain(i) = triangulation->locally_owned_subdomain();
@@ -912,6 +904,7 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     data_out.add_data_vector(max_dt_cell, "max_dt_cell", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
 
+    // Let the physics post-processor determine what to output.
     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
     data_out.add_data_vector (solution, *post_processor);
 
@@ -921,27 +914,16 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     dealii::Vector<double> active_fe_indices_dealiivector(active_fe_indices.begin(), active_fe_indices.end());
     dealii::Vector<double> cell_poly_degree = active_fe_indices_dealiivector;
 
-//    int index = 0;
-//    for (auto current_cell_poly = cell_poly_degree.begin(); current_cell_poly != cell_poly_degree.end(); ++current_cell_poly) {
-//        current_cell_poly[index] = fe_collection[active_fe_indices_dealiivector[index]].tensor_degree();
-//        index++;
-//    }
-//    //using DVTenum = dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType;
-//    data_out.add_data_vector (cell_poly_degree, "PolynomialDegree", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
     data_out.add_data_vector (active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
-
-    //assemble_residual (false);
+    // Output absolute value of the residual so that we can visualize it on a logscale.
     std::vector<std::string> residual_names;
     for(int s=0;s<nstate;++s) {
         std::string varname = "residual" + dealii::Utilities::int_to_string(s,1);
         residual_names.push_back(varname);
     }
-    //std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> data_component_interpretation(nstate, dealii::DataComponentInterpretation::component_is_scalar);
-    //data_out.add_data_vector (right_hand_side, residual_names, dealii::DataOut<dim, dealii::DoFHandler<dim>>::type_dof_data, data_component_interpretation);
     auto residual = right_hand_side;
     for (auto &&rhs_value : residual) {
-        // Make residual strictly positive so that we can visualize it on a logscale.
         if (std::signbit(rhs_value)) rhs_value = -rhs_value;
         if (rhs_value == 0.0) rhs_value = std::numeric_limits<double>::min();
     }
@@ -949,24 +931,19 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     data_out.add_data_vector (residual, residual_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
 
 
-    const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
-    // //data_out.build_patches (mapping_collection[mapping_collection.size()-1]);
-    // data_out.build_patches(*(high_order_grid.mapping_fe_field), max_degree, dealii::DataOut<dim, dealii::DoFHandler<dim>>::CurvedCellRegion::no_curved_cells);
-    // //data_out.build_patches(*(high_order_grid.mapping_fe_field), fe_collection.size(), dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells);
 
     typename dealii::DataOut<dim,dealii::DoFHandler<dim>>::CurvedCellRegion curved = dealii::DataOut<dim,dealii::DoFHandler<dim>>::CurvedCellRegion::curved_inner_cells;
     //typename dealii::DataOut<dim>::CurvedCellRegion curved = dealii::DataOut<dim>::CurvedCellRegion::curved_boundary;
     //typename dealii::DataOut<dim>::CurvedCellRegion curved = dealii::DataOut<dim>::CurvedCellRegion::no_curved_cells;
 
     const dealii::Mapping<dim> &mapping = (*(high_order_grid.mapping_fe_field));
-    //const int n_subdivisions = max_degree;;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
     const int n_subdivisions = max_degree;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
     data_out.build_patches(mapping, n_subdivisions, curved);
     const bool write_higher_order_cells = (dim>1 && max_degree > 1) ? true : false;
     dealii::DataOutBase::VtkFlags vtkflags(0.0,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
     data_out.set_flags(vtkflags);
 
-
+    const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
     std::string filename = "solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
     filename += dealii::Utilities::int_to_string(cycle, 4) + ".";
     filename += dealii::Utilities::int_to_string(iproc, 4);

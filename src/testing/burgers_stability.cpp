@@ -57,9 +57,9 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
  unsigned int poly_degree = 7;
  dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
 
- //std::vector<dealii::GridTools::PeriodicFacePair<typename Triangulation::cell_iterator> > matched_pairs;
- //dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
- //grid->add_periodicity(matched_pairs);
+ std::vector<dealii::GridTools::PeriodicFacePair<typename Triangulation::cell_iterator> > matched_pairs;
+ dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
+ grid->add_periodicity(matched_pairs);
 
 
  grid->refine_global(n_refinements);

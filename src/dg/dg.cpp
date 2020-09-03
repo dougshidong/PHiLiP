@@ -759,6 +759,14 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
         solution_d2R = solution;
         volume_nodes_d2R = high_order_grid.volume_nodes;
         dual_d2R = dual;
+
+        if (   d2RdWdW.m() != solution.size()
+            || d2RdWdX.m() != solution.size()
+            || d2RdWdX.n() != high_order_grid.volume_nodes.size()
+            || d2RdXdX.m() != high_order_grid.volume_nodes.size()) {
+
+            allocate_second_derivatives();
+        }
         d2RdWdW = 0;
         d2RdWdX = 0;
         d2RdXdX = 0;
@@ -1057,6 +1065,35 @@ void DGBase<dim,real>::allocate_system ()
     //const dealii::IndexSet &col_parallel_partitioning = high_order_grid.locally_relevant_dofs_grid;
     dRdXv.reinit(row_parallel_partitioning, col_parallel_partitioning, dRdXv_sparsity_pattern, MPI_COMM_WORLD);
 
+    // Make sure that second derivatives are cleared when reallocating DG objects.
+    // The call to assemble the derivatives will reallocate those second derivatives
+    // if they are ever needed.
+    d2RdWdX.clear();
+    d2RdWdW.clear();
+    d2RdXdX.clear();
+
+    solution_dRdW.reinit(solution);
+    solution_dRdW *= 0.0;
+    volume_nodes_dRdW.reinit(high_order_grid.volume_nodes);
+    volume_nodes_dRdW *= 0.0;
+
+    solution_dRdX.reinit(solution);
+    solution_dRdX *= 0.0;
+    volume_nodes_dRdX.reinit(high_order_grid.volume_nodes);
+    volume_nodes_dRdX *= 0.0;
+
+    solution_d2R.reinit(solution);
+    solution_d2R *= 0.0;
+    volume_nodes_d2R.reinit(high_order_grid.volume_nodes);
+    volume_nodes_d2R *= 0.0;
+    dual_d2R.reinit(dual);
+    dual_d2R *= 0.0;
+}
+
+template <int dim, typename real>
+void DGBase<dim,real>::allocate_second_derivatives ()
+{
+    locally_owned_dofs = dof_handler.locally_owned_dofs();
     {
         dealii::SparsityPattern sparsity_pattern_d2RdWdX = get_d2RdWdX_sparsity_pattern ();
         const dealii::IndexSet &row_parallel_partitioning_d2RdWdX = locally_owned_dofs;
@@ -1077,24 +1114,6 @@ void DGBase<dim,real>::allocate_system ()
         const dealii::IndexSet &col_parallel_partitioning_d2RdXdX = high_order_grid.locally_owned_dofs_grid;
         d2RdXdX.reinit(row_parallel_partitioning_d2RdXdX, col_parallel_partitioning_d2RdXdX, sparsity_pattern_d2RdXdX, mpi_communicator);
     }
-
-
-    solution_dRdW.reinit(solution);
-    solution_dRdW *= 0.0;
-    volume_nodes_dRdW.reinit(high_order_grid.volume_nodes);
-    volume_nodes_dRdW *= 0.0;
-
-    solution_dRdX.reinit(solution);
-    solution_dRdX *= 0.0;
-    volume_nodes_dRdX.reinit(high_order_grid.volume_nodes);
-    volume_nodes_dRdX *= 0.0;
-
-    solution_d2R.reinit(solution);
-    solution_d2R *= 0.0;
-    volume_nodes_d2R.reinit(high_order_grid.volume_nodes);
-    volume_nodes_d2R *= 0.0;
-    dual_d2R.reinit(dual);
-    dual_d2R *= 0.0;
 }
 
 template <int dim, typename real>

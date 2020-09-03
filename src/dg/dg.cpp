@@ -18,15 +18,6 @@
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/sparse_matrix.h>
 
-//#include <deal.II/lac/solver_control.h>
-//#include <deal.II/lac/trilinos_precondition.h>
-//#include <deal.II/lac/trilinos_solver.h>
-
-#include <deal.II/meshworker/dof_info.h>
-#include <deal.II/meshworker/integration_info.h>
-#include <deal.II/meshworker/simple.h>
-#include <deal.II/meshworker/loop.h>
-
 #include <deal.II/fe/fe_dgq.h>
 
 //#include <deal.II/fe/mapping_q1.h> // Might need mapping_q

@@ -8,7 +8,7 @@
 
 #include <deal.II/numerics/vector_tools.h>
 
-#include "dg/dg.h"
+#include "dg/dg_factory.hpp"
 #include "mesh/grids/gaussian_bump.h"
 #include "parameters/parameters.h"
 #include "physics/physics_factory.h"

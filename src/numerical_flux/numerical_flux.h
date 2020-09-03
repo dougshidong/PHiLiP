@@ -86,12 +86,12 @@ class NumericalFluxFactory
 {
 public:
     /// Creates convective numerical flux based on input.
-    static NumericalFluxConvective<dim,nstate,real>*
+    static std::unique_ptr < NumericalFluxConvective<dim,nstate,real> >
         create_convective_numerical_flux
             (AllParam::ConvectiveNumericalFlux conv_num_flux_type,
             std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input);
     /// Creates dissipative numerical flux based on input.
-    static NumericalFluxDissipative<dim,nstate,real>*
+    static std::unique_ptr < NumericalFluxDissipative<dim,nstate,real> >
         create_dissipative_numerical_flux
             (AllParam::DissipativeNumericalFlux diss_num_flux_type,
             std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input);

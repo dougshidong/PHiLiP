@@ -16,7 +16,7 @@
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
 #include "ode_solver/ode_solver.h"
-#include "dg/dg.h"
+#include "dg/dg_factory.hpp"
 #include "functional/functional.h"
 
 const double STEPSIZE = 1e-7;

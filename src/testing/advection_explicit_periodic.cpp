@@ -16,7 +16,7 @@
 #include "numerical_flux/numerical_flux.h"
 #include "physics/physics_factory.h"
 #include "physics/physics.h"
-#include "dg/dg.h"
+#include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver.h"
 #include "advection_explicit_periodic.h"
 

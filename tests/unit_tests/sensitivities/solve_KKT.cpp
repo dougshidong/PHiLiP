@@ -10,7 +10,7 @@
 
 #include "physics/physics_factory.h"
 #include "parameters/all_parameters.h"
-#include "dg/dg.h"
+#include "dg/dg_factory.hpp"
 #include "functional/functional.h"
 
 #include <deal.II/lac/full_matrix.h>

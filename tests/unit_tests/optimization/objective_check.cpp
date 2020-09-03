@@ -13,7 +13,7 @@
 //#include "ROL_StatusTest.hpp"
 
 #include "physics/euler.h"
-#include "dg/dg.h"
+#include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver.h"
 
 #include "functional/target_boundary_functional.h"

@@ -587,12 +587,12 @@ using codi_FadType = codi::RealForwardGen<double, codi::Direction<double,dimForw
 //using codi_FadType = codi::RealForwardGen<double, codi::DirectionVar<double>>;
 
 using codi_JacobianComputationType = codi::RealReverseIndexVec<dimReverseAD>; ///< Reverse mode type for Jacobian computation using TapeHelper.
-using HessType = codi::RealReversePrimalIndexGen< codi::RealForwardVec<dimForwardAD>,
+using codi_HessianComputationType = codi::RealReversePrimalIndexGen< codi::RealForwardVec<dimForwardAD>,
                                                   codi::Direction< codi::RealForwardVec<dimForwardAD>, dimReverseAD>
                                                 >; ///< Nested reverse-forward mode type for Jacobian and Hessian computation using TapeHelper.
 //using RadFadType = Sacado::Rad::ADvar<FadType>; ///< Sacado AD type that allows 2nd derivatives.
 //using RadFadType = codi_JacobianComputationType; ///< Reverse only mode that only allows Jacobian computation.
-using RadFadType = HessType; ///< Nested reverse-forward mode type for Jacobian and Hessian computation using TapeHelper.
+using RadFadType = codi_HessianComputationType; ///< Nested reverse-forward mode type for Jacobian and Hessian computation using TapeHelper.
 
 template class ManufacturedSolutionFunction<PHILIP_DIM,double>;
 template class ManufacturedSolutionFunction<PHILIP_DIM,FadType>;

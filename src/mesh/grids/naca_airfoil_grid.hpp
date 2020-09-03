@@ -18,8 +18,8 @@ void naca_airfoil(
 template<int dim = 2, int chartdim = 1>
 class NACAManifold: public dealii::ChartManifold<dim,dim,chartdim> {
 protected:
-    const std::string serial_number;
-    const bool is_upper;
+    const std::string serial_number; ///< NACA serial number. String should be 4 char long.
+    const bool is_upper; ///< Flag for upper surface (suction side) versus lower surface (pressure side).
 
     const std::array<unsigned int,4> serial_digits; ///< Conversion NACA string serial number (char * ) to int
 

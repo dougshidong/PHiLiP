@@ -125,7 +125,7 @@ public:
     //                                   std::vector<std::vector<Tensor<1,dim, real> > > &gradients) const;
 
 private:
-    //@{
+    ///@{
     /** Constants used to manufactured solution.
      */
     std::vector<double> base_values;

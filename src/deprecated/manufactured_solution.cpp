@@ -1,8 +1,7 @@
 #include "manufactured_solution.h"
 #include <deal.II/base/point.h>
 
-namespace PHiLiP
-{
+namespace PHiLiP {
     using namespace dealii;
 
     template<int dim>

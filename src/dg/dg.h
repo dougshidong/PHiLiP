@@ -522,35 +522,6 @@ protected:
         dealii::Vector<real>          &current_cell_rhs,
         dealii::Vector<real>          &neighbor_cell_rhs) = 0;
 
-    // /// Lagrange polynomial basis
-    // /** Refer to deal.II documentation for the various polynomial types
-    //  *  Note that only tensor-product polynomials recover optimal convergence
-    //  *  since the mapping from the reference to physical element is a bilnear mapping.
-    //  *
-    //  *  As a result, FE_DGP does not give optimal convergence orders.
-    //  *  See [discussion](https://groups.google.com/d/msg/dealii/f9NzCp8dnyU/aAdO6I9JCwAJ)
-    //  *  on deal.II group forum]
-    //  */
-    // const dealii::FE_DGQ<dim> fe_dg;
-    // //const dealii::FE_DGQLegendre<dim> fe_dg;
-
-    // /// Finite Element System used for vector-valued problems
-    // /** Note that we will use the same set of polynomials for all state equations
-    //  *  therefore, FESystem is only used for the ease of obtaining sizes and
-    //  *  global indexing.
-    //  *
-    //  *  When evaluating the function values, we will still be using fe_dg
-    //  */
-    // const dealii::FESystem<dim,dim> fe_system;
-    //
-
-    // /// QGauss is Gauss-Legendre quadrature volume_nodes
-    // dealii::QGauss<1>     oned_quadrature; // For the strong form
-    // dealii::QGauss<dim>   volume_quadrature;
-    // dealii::QGauss<dim-1> face_quadrature;
-    // // const dealii::QGaussLobatto<dim>   volume_quadrature;
-    // // const dealii::QGaussLobatto<dim-1> face_quadrature;
-
     /// Update flags needed at volume points.
     const dealii::UpdateFlags volume_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values
         | dealii::update_inverse_jacobians;
@@ -668,6 +639,11 @@ protected:
      *  the maximum and minimum values would be bounded by the Bernstein modal coefficients.
      */
     real evaluate_CFL (std::vector< std::array<real,nstate> > soln_at_q, const real cell_diameter);
+
+    /// Reinitializes the numerical fluxes based on the current physics.
+    /** Usually called after setting physics.
+     */
+    void reset_numerical_fluxes();
 }; // end of DGBaseState class
 
 } // PHiLiP namespace

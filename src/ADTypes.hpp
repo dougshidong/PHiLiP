@@ -21,8 +21,10 @@ using codi_JacobianComputationType = codi::RealReverseIndexVec<dimReverseAD>; //
 using codi_HessianComputationType  = codi::RealReversePrimalIndexGen< codi::RealForwardVec<dimForwardAD>,
                                                   codi::Direction< codi::RealForwardVec<dimForwardAD>, dimReverseAD>
                                                 >; ///< Nested reverse-forward mode type for Jacobian and Hessian computation using TapeHelper.
+
 //using RadFadType = Sacado::Rad::ADvar<FadType>; ///< Sacado AD type that allows 2nd derivatives.
 //using RadFadType = codi_JacobianComputationType; ///< Reverse only mode that only allows Jacobian computation.
+using RadType = codi_JacobianComputationType; ///< CoDiPaco reverse-AD type for first derivatives.
 using RadFadType = codi_HessianComputationType ; ///< Nested reverse-forward mode type for Jacobian and Hessian computation using TapeHelper.
 } // PHiLiP namespace
 

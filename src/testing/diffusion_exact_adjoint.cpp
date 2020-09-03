@@ -364,6 +364,11 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadType> > physics_v_fadtype 
           = std::make_shared< diffusion_v<dim, nstate, FadType> >(convection, diffusion);
 
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadType> > physics_u_radtype 
+          = std::make_shared< diffusion_u<dim, nstate, RadType> >(convection, diffusion);
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadType> > physics_v_radtype 
+          = std::make_shared< diffusion_v<dim, nstate, RadType> >(convection, diffusion);
+
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadFadType> > physics_u_fadfadtype 
           = std::make_shared< diffusion_u<dim, nstate, FadFadType> >(convection, diffusion);
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadFadType> > physics_v_fadfadtype 
@@ -451,9 +456,9 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             std::shared_ptr< DGBaseState<dim,nstate,double> > dg_state_v = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double> >(dg_v);
 
             // now overriding the original physics on each
-            dg_state_u->set_physics(physics_u_double, physics_u_fadtype, physics_u_fadfadtype, physics_u_radfadtype);
+            dg_state_u->set_physics(physics_u_double, physics_u_fadtype, physics_u_radtype, physics_u_fadfadtype, physics_u_radfadtype);
 
-            dg_state_v->set_physics(physics_v_double , physics_v_fadtype , physics_v_fadfadtype , physics_v_radfadtype);
+            dg_state_v->set_physics(physics_v_double , physics_v_fadtype , physics_v_radtype, physics_v_fadfadtype , physics_v_radfadtype);
 
             dg_u->allocate_system();
             dg_v->allocate_system();

@@ -205,6 +205,7 @@ std::array<real,nstate> Burgers<dim,nstate,real>
 
 template class Burgers < PHILIP_DIM, PHILIP_DIM, double >;
 template class Burgers < PHILIP_DIM, PHILIP_DIM, FadType  >;
+template class Burgers < PHILIP_DIM, PHILIP_DIM, RadType  >;
 template class Burgers < PHILIP_DIM, PHILIP_DIM, FadFadType >;
 template class Burgers < PHILIP_DIM, PHILIP_DIM, RadFadType >;
 

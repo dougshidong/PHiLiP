@@ -229,6 +229,13 @@ template class PhysicsBase < PHILIP_DIM, 4, FadType >;
 template class PhysicsBase < PHILIP_DIM, 5, FadType >;
 template class PhysicsBase < PHILIP_DIM, 8, FadType >;
 
+template class PhysicsBase < PHILIP_DIM, 1, RadType >;
+template class PhysicsBase < PHILIP_DIM, 2, RadType >;
+template class PhysicsBase < PHILIP_DIM, 3, RadType >;
+template class PhysicsBase < PHILIP_DIM, 4, RadType >;
+template class PhysicsBase < PHILIP_DIM, 5, RadType >;
+template class PhysicsBase < PHILIP_DIM, 8, RadType >;
+
 template class PhysicsBase < PHILIP_DIM, 1, FadFadType >;
 template class PhysicsBase < PHILIP_DIM, 2, FadFadType >;
 template class PhysicsBase < PHILIP_DIM, 3, FadFadType >;

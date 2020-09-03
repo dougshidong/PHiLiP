@@ -18,20 +18,25 @@
 
 namespace PHiLiP {
 
+///< Provide isfinite for double.
 bool isfinite(double value)
 {
     return std::isfinite(static_cast<double>(value));
 }
 
+///< Provide isfinite for FadType
 bool isfinite(Sacado::Fad::DFad<double> value)
 {
     return std::isfinite(static_cast<double>(value.val()));
 }
 
+///< Provide isfinite for FadFadType
 bool isfinite(Sacado::Fad::DFad<Sacado::Fad::DFad<double>> value)
 {
     return std::isfinite(static_cast<double>(value.val().val()));
 }
+
+///< Provide isfinite for RadFadType
 bool isfinite(Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> value)
 {
     return std::isfinite(static_cast<double>(value.val().val()));
@@ -572,20 +577,26 @@ inline std::vector<real> ManufacturedSolutionFunction<dim,real>
     return values;
 }
 
-template class ManufacturedSolutionFunction<PHILIP_DIM,double>;
-template class ManufacturedSolutionFunction<PHILIP_DIM,Sacado::Fad::DFad<double>>;
-template class ManufacturedSolutionFunction<PHILIP_DIM,Sacado::Fad::DFad<Sacado::Fad::DFad<double>>>;
-template class ManufacturedSolutionFunction<PHILIP_DIM,Sacado::Rad::ADvar<Sacado::Fad::DFad<double>>>;
+using FadType = Sacado::Fad::DFad<double>; ///< Sacado AD type for first derivatives.
+using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
 
-static constexpr int dimForwardAD = 1;
-static constexpr int dimReverseAD = 1;
+static constexpr int dimForwardAD = 1; ///< Size of the forward vector mode for CoDiPack.
+static constexpr int dimReverseAD = 1; ///< Size of the reverse vector mode for CoDiPack.
+
+using codi_FadType = codi::RealForwardGen<double, codi::Direction<double,dimForwardAD>>; ///< Tapeless forward mode.
+//using codi_FadType = codi::RealForwardGen<double, codi::DirectionVar<double>>;
+
+using codi_JacobianComputationType = codi::RealReverseIndexVec<dimReverseAD>; ///< Reverse mode type for Jacobian computation using TapeHelper.
+using HessType = codi::RealReversePrimalIndexGen< codi::RealForwardVec<dimForwardAD>,
+                                                  codi::Direction< codi::RealForwardVec<dimForwardAD>, dimReverseAD>
+                                                >; ///< Nested reverse-forward mode type for Jacobian and Hessian computation using TapeHelper.
 //using RadFadType = Sacado::Rad::ADvar<FadType>; ///< Sacado AD type that allows 2nd derivatives.
-using codi_JacobianComputationType = codi::RealReverseIndexVec<dimReverseAD>;
-using HessType = codi::RealReversePrimalIndexGen<codi::RealForwardVec<dimForwardAD>,
-                                                 codi::Direction< codi::RealForwardVec<dimForwardAD>, dimReverseAD>>;
-using RadFadType = HessType;
-//using RadFadType = codi_JacobianComputationType;
-//using RadFadType = codi::RealReverseGen<double,codi::Direction<double,dimReverseAD>>; ///< Sacado AD type that allows 2nd derivatives.
+//using RadFadType = codi_JacobianComputationType; ///< Reverse only mode that only allows Jacobian computation.
+using RadFadType = HessType; ///< Nested reverse-forward mode type for Jacobian and Hessian computation using TapeHelper.
+
+template class ManufacturedSolutionFunction<PHILIP_DIM,double>;
+template class ManufacturedSolutionFunction<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionFunction<PHILIP_DIM,FadFadType>;
 template class ManufacturedSolutionFunction<PHILIP_DIM,RadFadType>;
 
 }

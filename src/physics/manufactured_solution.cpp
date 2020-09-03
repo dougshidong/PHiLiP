@@ -577,11 +577,15 @@ template class ManufacturedSolutionFunction<PHILIP_DIM,Sacado::Fad::DFad<double>
 template class ManufacturedSolutionFunction<PHILIP_DIM,Sacado::Fad::DFad<Sacado::Fad::DFad<double>>>;
 template class ManufacturedSolutionFunction<PHILIP_DIM,Sacado::Rad::ADvar<Sacado::Fad::DFad<double>>>;
 
-static constexpr int dimForwardAD = 10;
+static constexpr int dimForwardAD = 1;
 static constexpr int dimReverseAD = 1;
 //using RadFadType = Sacado::Rad::ADvar<FadType>; ///< Sacado AD type that allows 2nd derivatives.
+using codi_JacobianComputationType = codi::RealReverseIndexVec<dimReverseAD>;
 using HessType = codi::RealReversePrimalIndexGen<codi::RealForwardVec<dimForwardAD>,
                                                  codi::Direction< codi::RealForwardVec<dimForwardAD>, dimReverseAD>>;
-template class ManufacturedSolutionFunction<PHILIP_DIM,HessType>;
+using RadFadType = HessType;
+//using RadFadType = codi_JacobianComputationType;
+//using RadFadType = codi::RealReverseGen<double,codi::Direction<double,dimReverseAD>>; ///< Sacado AD type that allows 2nd derivatives.
+template class ManufacturedSolutionFunction<PHILIP_DIM,RadFadType>;
 
 }

@@ -46,6 +46,7 @@
 
 
 #include "dg.h"
+#include "physics/physics_factory.h"
 #include "post_processor/physics_post_processor.h"
 
 #include <deal.II/numerics/derivative_approximation.h>
@@ -68,76 +69,6 @@ namespace PHiLiP {
 #else
     template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
 #endif
-
-// DGFactory ***********************************************************************
-template <int dim, typename real>
-std::shared_ptr< DGBase<dim,real> >
-DGFactory<dim,real>
-::create_discontinuous_galerkin(
-    const Parameters::AllParameters *const parameters_input,
-    const unsigned int degree,
-    const unsigned int max_degree_input,
-    const unsigned int grid_degree_input,
-    const std::shared_ptr<Triangulation> triangulation_input)
-{
-    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-
-    PDE_enum pde_type = parameters_input->pde_type;
-    if (parameters_input->use_weak_form) {
-        if (pde_type == PDE_enum::advection) {
-            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::advection_vector) {
-            return std::make_shared< DGWeak<dim,2,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::diffusion) {
-            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::convection_diffusion) {
-            return std::make_shared< DGWeak<dim,1,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::burgers_inviscid) {
-            return std::make_shared< DGWeak<dim,dim,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::euler) {
-            return std::make_shared< DGWeak<dim,dim+2,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        }
-    } else {
-        if (pde_type == PDE_enum::advection) {
-            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::advection_vector) {
-            return std::make_shared< DGStrong<dim,2,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::diffusion) {
-            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::convection_diffusion) {
-            return std::make_shared< DGStrong<dim,1,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::burgers_inviscid) {
-            return std::make_shared< DGStrong<dim,dim,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::euler) {
-            return std::make_shared< DGStrong<dim,dim+2,real> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        }
-    }
-    std::cout << "Can't create DGBase in create_discontinuous_galerkin(). Invalid PDE type: " << pde_type << std::endl;
-    return nullptr;
-}
-
-template <int dim, typename real>
-std::shared_ptr< DGBase<dim,real> >
-DGFactory<dim,real>
-::create_discontinuous_galerkin(
-    const Parameters::AllParameters *const parameters_input,
-    const unsigned int degree,
-    const unsigned int max_degree_input,
-    const std::shared_ptr<Triangulation> triangulation_input)
-{
-    return create_discontinuous_galerkin(parameters_input, degree, max_degree_input, degree+1, triangulation_input);
-}
-
-template <int dim, typename real>
-std::shared_ptr< DGBase<dim,real> >
-DGFactory<dim,real>
-::create_discontinuous_galerkin(
-    const Parameters::AllParameters *const parameters_input,
-    const unsigned int degree,
-    const std::shared_ptr<Triangulation> triangulation_input)
-{
-    return create_discontinuous_galerkin(parameters_input, degree, degree, triangulation_input);
-}
 
 // DGBase ***************************************************************************
 template <int dim, typename real>
@@ -290,6 +221,74 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
         fe_coll_lagr.push_back (lagrange_poly);
     }
     return std::make_tuple(fe_coll, volume_quad_coll, face_quad_coll, oned_quad_coll, fe_coll_lagr);
+}
+
+template <int dim, int nstate, typename real>
+DGBaseState<dim,nstate,real>::DGBaseState(
+    const Parameters::AllParameters *const parameters_input,
+    const unsigned int degree,
+    const unsigned int max_degree_input,
+    const unsigned int grid_degree_input,
+    const std::shared_ptr<Triangulation> triangulation_input)
+    : DGBase<dim,real>::DGBase(nstate, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input) // Use DGBase constructor
+{
+    pde_physics_double = Physics::PhysicsFactory<dim,nstate,real> ::create_Physics(parameters_input);
+    conv_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_convective_numerical_flux (parameters_input->conv_num_flux_type, pde_physics_double);
+    diss_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_dissipative_numerical_flux (parameters_input->diss_num_flux_type, pde_physics_double);
+
+    pde_physics = Physics::PhysicsFactory<dim,nstate,FadType> ::create_Physics(parameters_input);
+    conv_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, FadType> ::create_convective_numerical_flux (parameters_input->conv_num_flux_type, pde_physics);
+    diss_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, FadType> ::create_dissipative_numerical_flux (parameters_input->diss_num_flux_type, pde_physics);
+
+    pde_physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType> ::create_Physics(parameters_input);
+    conv_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadFadType> ::create_convective_numerical_flux (parameters_input->conv_num_flux_type, pde_physics_fad_fad);
+    diss_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadFadType> ::create_dissipative_numerical_flux (parameters_input->diss_num_flux_type, pde_physics_fad_fad);
+
+    pde_physics_rad_fad = Physics::PhysicsFactory<dim,nstate,RadFadType> ::create_Physics(parameters_input);
+    conv_num_flux_rad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadType> ::create_convective_numerical_flux (parameters_input->conv_num_flux_type, pde_physics_rad_fad);
+    diss_num_flux_rad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadType> ::create_dissipative_numerical_flux (parameters_input->diss_num_flux_type, pde_physics_rad_fad);
+}
+
+template <int dim, int nstate, typename real>
+void DGBaseState<dim,nstate,real>::set_physics(
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, real       > > pde_physics_double_input,
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadType    > > pde_physics_fad_input,
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadFadType > > pde_physics_fad_fad_input,
+    std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadFadType > > pde_physics_rad_fad_input)
+{
+    pde_physics_double = pde_physics_double_input;
+    pde_physics = pde_physics_fad_input;
+    pde_physics_fad_fad = pde_physics_fad_fad_input;
+    pde_physics_rad_fad = pde_physics_rad_fad_input;
+
+    conv_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_convective_numerical_flux (DGBase<dim,real>::all_parameters->conv_num_flux_type, pde_physics_double);
+    diss_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_dissipative_numerical_flux (DGBase<dim,real>::all_parameters->diss_num_flux_type, pde_physics_double);
+
+    conv_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, FadType> ::create_convective_numerical_flux (DGBase<dim,real>::all_parameters->conv_num_flux_type, pde_physics);
+    diss_num_flux = NumericalFlux::NumericalFluxFactory<dim, nstate, FadType> ::create_dissipative_numerical_flux (DGBase<dim,real>::all_parameters->diss_num_flux_type, pde_physics);
+
+    conv_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadFadType> ::create_convective_numerical_flux (DGBase<dim,real>::all_parameters->conv_num_flux_type, pde_physics_fad_fad);
+    diss_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadFadType> ::create_dissipative_numerical_flux (DGBase<dim,real>::all_parameters->diss_num_flux_type, pde_physics_fad_fad);
+
+    conv_num_flux_rad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadType> ::create_convective_numerical_flux (DGBase<dim,real>::all_parameters->conv_num_flux_type, pde_physics_rad_fad);
+    diss_num_flux_rad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadType> ::create_dissipative_numerical_flux (DGBase<dim,real>::all_parameters->diss_num_flux_type, pde_physics_rad_fad);
+}
+
+template <int dim, int nstate, typename real>
+real DGBaseState<dim,nstate,real>::evaluate_CFL (
+    std::vector< std::array<real,nstate> > soln_at_q,
+    const real cell_diameter
+    )
+{
+    const unsigned int n_pts = soln_at_q.size();
+    std::vector< real > convective_eigenvalues(n_pts);
+    for (unsigned int isol = 0; isol < n_pts; ++isol) {
+        convective_eigenvalues[isol] = pde_physics_double->max_convective_eigenvalue (soln_at_q[isol]);
+        //viscosities[isol] = pde_physics_double->compute_diffusion_coefficient (soln_at_q[isol]);
+    }
+    const real max_eig = *(std::max_element(convective_eigenvalues.begin(), convective_eigenvalues.end()));
+
+    return cell_diameter / max_eig;
 }
 
 
@@ -899,14 +898,26 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
 
     int assembly_error = 0;
     try {
-        auto current_metric_cell = high_order_grid.dof_handler_grid.begin_active();
-        for (auto current_cell = dof_handler.begin_active(); current_cell != dof_handler.end(); ++current_cell, ++current_metric_cell) {
-            if (!current_cell->is_locally_owned()) continue;
+        auto metric_cell = high_order_grid.dof_handler_grid.begin_active();
+        for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
+        //for (auto cell = triangulation->begin_active(); cell != triangulation->end(); ++cell) {
+            if (!soln_cell->is_locally_owned()) continue;
+
+            //const int tria_level = cell->level();
+            //const int tria_index = cell->index();
+            //dealii::DoFCellAccessor<dim,dim,false> soln_cell(triangulation.get(), tria_level, tria_index, &dof_handler);
+            //dealii::DoFCellAccessor<dim,dim,false> metric_cell(triangulation.get(), tria_level, tria_index, &high_order_grid.dof_handler_grid);
+
+            //dealii::TriaActiveIterator< dealii::DoFCellAccessor<dim,dim,false> >
+
+            //DoFCellAccessor<dim,dim,false> soln_cell(triangulation.get(), tria_level, tria_index, &dof_handler);
+            //dealii::DoFCellAccessor<dim,dim,false> metric_cell(triangulation.get(), tria_level, tria_index, &high_order_grid.dof_handler_grid);
+
 
             // Add right-hand side contributions this cell can compute
             assemble_cell_residual (
-                current_cell,
-                current_metric_cell,
+                soln_cell,
+                metric_cell,
                 compute_dRdW, compute_dRdX, compute_d2R,
                 fe_values_collection_volume,
                 fe_values_collection_face_int,
@@ -1769,7 +1780,11 @@ void DGBase<dim,real>::refine_residual_based()
 
 
 template class DGBase <PHILIP_DIM, double>;
-template class DGFactory <PHILIP_DIM, double>;
+template class DGBaseState <PHILIP_DIM, 1, double>;
+template class DGBaseState <PHILIP_DIM, 2, double>;
+template class DGBaseState <PHILIP_DIM, 3, double>;
+template class DGBaseState <PHILIP_DIM, 4, double>;
+template class DGBaseState <PHILIP_DIM, 5, double>;
 
 template double
 DGBase<PHILIP_DIM,double>::discontinuity_sensor(const double diameter, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high);

@@ -26,7 +26,7 @@
 #include <deal.II/fe/mapping_q.h>
 
 #include "physics/physics_factory.h"
-#include "dg/dg.h"
+#include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver.h"
 
 

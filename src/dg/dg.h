@@ -39,21 +39,9 @@
 //extern template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM> >;
 namespace PHiLiP {
 
-//#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-//    using Triangulation = dealii::Triangulation<dim>;
-//#else
-//    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-//#endif
-//namespace PHiLiP {
-//#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-//    template <int dim> using Triangulation = dealii::Triangulation<dim>;
-//#else
-//    template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-//#endif
-
 /// DGBase is independent of the number of state variables.
 /**  This base class allows the use of arrays to efficiently allocate the data structures
-  *  through std::array in the derived class DG.
+  *  through std::array in the derived class DGBaseState.
   *  This class is the one being returned by the DGFactory and is the main
   *  interface for a user to call its main functions such as "assemble_residual".
   *
@@ -66,7 +54,6 @@ namespace PHiLiP {
   *      = \mathbf{q}
   *  \f]
   *
-  *  Also defines the main loop of the DGWeak class which is assemble_residual
   */
 template <int dim, typename real>
 class DGBase
@@ -612,73 +599,66 @@ private:
 
 }; // end of DGBase class
 
-/// DGWeak class templated on the number of state variables
-/*  Contains the functions that need to be templated on the number of state variables.
+/// Abstract class templated on the number of state variables
+/*  Contains the objects and functions that need to be templated on the number of state variables.
  */
 template <int dim, int nstate, typename real>
-class DGWeak : public DGBase<dim, real>
+class DGBaseState : public DGBase<dim, real>
 {
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    /** Triangulation to store the grid.
-     *  In 1D, dealii::Triangulation<dim> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-     */
+#if PHILIP_DIM==1
     using Triangulation = dealii::Triangulation<dim>;
 #else
-    /** Triangulation to store the grid.
-     *  In 1D, dealii::Triangulation<dim> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-     */
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
 #endif
+
 public:
+    using DGBase<dim,real>::all_parameters; ///< Parallel std::cout that only outputs on mpi_rank==0
     /// Constructor.
-    DGWeak(
+    DGBaseState(
         const Parameters::AllParameters *const parameters_input,
         const unsigned int degree,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
         const std::shared_ptr<Triangulation> triangulation_input);
 
-    ~DGWeak(); ///< Destructor.
-
-    using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
-    using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
-    //using RadFadType = Sacado::Rad::ADvar<FadType>; ///< Sacado AD type that allows 2nd derivatives.
-    using RadFadType = HessType;
-    //using HessType = codi::RealReversePrimalIndexGen<codi::RealForwardVec<dimForwardAD>,
-    //                                                 codi::Direction< codi::RealForwardVec<dimForwardAD>, dimReverseAD>>;
-    //using RadFadType = HessType; ///< Sacado AD type that allows 2nd derivatives.
-
     /// Contains the physics of the PDE with real type
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, real > > pde_physics_double;
     /// Convective numerical flux with real type
-    NumericalFlux::NumericalFluxConvective<dim, nstate, real > *conv_num_flux_double;
+    std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, real > > conv_num_flux_double;
     /// Dissipative numerical flux with real type
-    NumericalFlux::NumericalFluxDissipative<dim, nstate, real > *diss_num_flux_double;
+    std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, real > > diss_num_flux_double;
 
     /// Contains the physics of the PDE with FadType
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, FadType > > pde_physics;
     /// Convective numerical flux with FadType
-    NumericalFlux::NumericalFluxConvective<dim, nstate, FadType > *conv_num_flux;
+    std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, FadType > > conv_num_flux;
     /// Dissipative numerical flux with FadType
-    NumericalFlux::NumericalFluxDissipative<dim, nstate, FadType > *diss_num_flux;
+    std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, FadType > > diss_num_flux;
 
     /// Contains the physics of the PDE with FadFadType
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, FadFadType > > pde_physics_fad_fad;
     /// Convective numerical flux with FadFadType
-    NumericalFlux::NumericalFluxConvective<dim, nstate, FadFadType > *conv_num_flux_fad_fad;
+    std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, FadFadType > > conv_num_flux_fad_fad;
     /// Dissipative numerical flux with FadFadType
-    NumericalFlux::NumericalFluxDissipative<dim, nstate, FadFadType > *diss_num_flux_fad_fad;
+    std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, FadFadType > > diss_num_flux_fad_fad;
 
     /// Contains the physics of the PDE with RadFadDtype
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, RadFadType > > pde_physics_rad_fad;
     /// Convective numerical flux with RadFadDtype
-    NumericalFlux::NumericalFluxConvective<dim, nstate, RadFadType > *conv_num_flux_rad_fad;
+    std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, RadFadType > > conv_num_flux_rad_fad;
     /// Dissipative numerical flux with RadFadDtype
-    NumericalFlux::NumericalFluxDissipative<dim, nstate, RadFadType > *diss_num_flux_rad_fad;
+    std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, RadFadType > > diss_num_flux_rad_fad;
 
-private:
+    /** Change the physics object.
+     *  Must provide all the AD types to ensure that the derivatives are consistent.
+     */
+    void set_physics(
+        std::shared_ptr< Physics::PhysicsBase<dim, nstate, real       > > pde_physics_double_input,
+        std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadType    > > pde_physics_fad_input,
+        std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadFadType > > pde_physics_fad_fad_input,
+        std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadFadType > > pde_physics_rad_fad_input);
+
+protected:
     /// Evaluate the time it takes for the maximum wavespeed to cross the cell domain.
     /** Currently only uses the convective eigenvalues. Future changes would take in account
      *  the maximum diffusivity and take the minimum time between dx/conv_eig and dx*dx/max_visc
@@ -688,312 +668,7 @@ private:
      *  the maximum and minimum values would be bounded by the Bernstein modal coefficients.
      */
     real evaluate_CFL (std::vector< std::array<real,nstate> > soln_at_q, const real cell_diameter);
-
-    /// Evaluate the integral over the cell volume and the specified derivatives.
-    /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
-    virtual void assemble_volume_terms_derivatives(
-        const dealii::FEValues<dim,dim> &,//fe_values_vol,
-        const dealii::FESystem<dim,dim> &fe,
-        const dealii::Quadrature<dim> &quadrature,
-        const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
-        const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
-        dealii::Vector<real> &local_rhs_cell,
-        const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/,
-        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
-
-    /// Evaluate the integral over the cell volume and the specified derivatives.
-    /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
-    template <typename real2>
-    void assemble_volume_terms_derivatives_2(
-        const std::vector<real2> &coords_coeff,
-        const std::vector<real2> &soln_coeff,
-        const std::vector<real> &local_dual,
-        const dealii::FESystem<dim,dim> &fe,
-        const dealii::Quadrature<dim> &quadrature,
-        std::vector<real2> &rhs,
-        real2 &dual_dot_residual,
-        const bool compute_metric_derivatives,
-        const dealii::FEValues<dim,dim> &fe_values_vol);
-
-    /// Evaluate the integral over the cell edges that are on domain boundaries and the specified derivatives.
-    /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
-    void assemble_boundary_term_derivatives(
-        const unsigned int face_number,
-        const unsigned int boundary_id,
-        const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
-        const real penalty,
-        const dealii::FESystem<dim,dim> &fe,
-        const dealii::Quadrature<dim-1> &quadrature,
-        const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
-        const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
-        dealii::Vector<real> &local_rhs_cell,
-        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
-    /// Evaluate the integral over the internal cell edges and its specified derivatives.
-    /** Compute both the right-hand side and the block of the Jacobian.
-     *  This adds the contribution to both cell's residual and effectively
-     *  computes 4 block contributions to dRdX blocks. */
-    void assemble_face_term_derivatives(
-        const unsigned int interior_face_number,
-        const unsigned int exterior_face_number,
-        const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_int,
-        const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_ext,
-        const real penalty,
-        const dealii::FESystem<dim,dim> &fe_int,
-        const dealii::FESystem<dim,dim> &fe_ext,
-        const dealii::Quadrature<dim> &face_quadrature_int,
-        const dealii::Quadrature<dim> &face_quadrature_ext,
-        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
-        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
-        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
-        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
-        dealii::Vector<real>          &local_rhs_int_cell,
-        dealii::Vector<real>          &local_rhs_ext_cell,
-        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
-
-
-    /// Evaluate the integral over the cell volume
-    void assemble_volume_terms_explicit(
-        const dealii::FEValues<dim,dim> &fe_values_volume,
-        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        dealii::Vector<real> &current_cell_rhs,
-        const dealii::FEValues<dim,dim> &fe_values_lagrange);
-    /// Evaluate the integral over the cell edges that are on domain boundaries
-    void assemble_boundary_term_explicit(
-        const unsigned int boundary_id,
-        const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
-        const real penalty,
-        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        dealii::Vector<real> &current_cell_rhs);
-    /// Evaluate the integral over the internal cell edges
-    void assemble_face_term_explicit(
-        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_int,
-        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_ext,
-        const real penalty,
-        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
-        dealii::Vector<real>          &current_cell_rhs,
-        dealii::Vector<real>          &neighbor_cell_rhs);
-
-    using DGBase<dim,real>::mpi_communicator; ///< MPI communicator
-    using DGBase<dim,real>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
-
-public:
-    /** Change the physics object.
-     *  Don't know why Doxygen won't allow the use of FadFadType instead of the explicit nested Sacado AD type.
-     */
-    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadFadType > >pde_physics_input);
-    /// Change the physics object
-    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadType > >pde_physics_input);
-    /// Change the physics object
-    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadFadType > >pde_physics_input);
-    /// Change the physics object
-    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, real > >pde_physics_double_input);
-}; // end of DGWeak class
-
-/// DGStrong class templated on the number of state variables
-/*  Contains the functions that need to be templated on the number of state variables.
- */
-template <int dim, int nstate, typename real>
-class DGStrong : public DGBase<dim, real>
-{
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    /** Triangulation to store the grid.
-     *  In 1D, dealii::Triangulation<dim> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-     */
-    using Triangulation = dealii::Triangulation<dim>;
-#else
-    /** Triangulation to store the grid.
-     *  In 1D, dealii::Triangulation<dim> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-     */
-    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-#endif
-public:
-    /// Constructor
-    DGStrong(
-        const Parameters::AllParameters *const parameters_input,
-        const unsigned int degree,
-        const unsigned int max_degree_input,
-        const unsigned int grid_degree_input,
-        const std::shared_ptr<Triangulation> triangulation_input);
-
-    /// Destructor
-    ~DGStrong();
-
-private:
-    using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
-    using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
-    //using RadFadType = Sacado::Rad::ADvar<FadType>; ///< Sacado AD type that allows 2nd derivatives.
-    using RadFadType = HessType;
-
-    /// Evaluate the time it takes for the maximum wavespeed to cross the cell domain.
-    /** Currently only uses the convective eigenvalues. Future changes would take in account
-     *  the maximum diffusivity and take the minimum time between dx/conv_eig and dx*dx/max_visc
-     *  to determine the minimum travel time of information.
-     *
-     *  Furthermore, a more robust implementation would convert the values to a Bezier basis where
-     *  the maximum and minimum values would be bounded by the Bernstein modal coefficients.
-     */
-    real evaluate_CFL (std::vector< std::array<real,nstate> > soln_at_q, const real cell_diameter);
-
-    /// Contains the physics of the PDE with real type
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, real > > pde_physics_double;
-    /// Convective numerical flux with real type
-    NumericalFlux::NumericalFluxConvective<dim, nstate, real > *conv_num_flux_double;
-    /// Dissipative numerical flux with real type
-    NumericalFlux::NumericalFluxDissipative<dim, nstate, real > *diss_num_flux_double;
-
-    /// Contains the physics of the PDE with FadType
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, FadType > > pde_physics;
-    /// Convective numerical flux with FadType
-    NumericalFlux::NumericalFluxConvective<dim, nstate, FadType > *conv_num_flux;
-    /// Dissipative numerical flux with FadType
-    NumericalFlux::NumericalFluxDissipative<dim, nstate, FadType > *diss_num_flux;
-
-    /// Contains the physics of the PDE with FadFadType
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, FadFadType > > pde_physics_fad_fad;
-    /// Convective numerical flux with FadFadType
-    NumericalFlux::NumericalFluxConvective<dim, nstate, FadFadType > *conv_num_flux_fad_fad;
-    /// Dissipative numerical flux with FadFadType
-    NumericalFlux::NumericalFluxDissipative<dim, nstate, FadFadType > *diss_num_flux_fad_fad;
-
-    /// Contains the physics of the PDE with RadFadType
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, RadFadType > > pde_physics_rad_fad;
-    /// Convective numerical flux with RadFadType
-    NumericalFlux::NumericalFluxConvective<dim, nstate, RadFadType > *conv_num_flux_rad_fad;
-    /// Dissipative numerical flux with RadFadType
-    NumericalFlux::NumericalFluxDissipative<dim, nstate, RadFadType > *diss_num_flux_rad_fad;
-
-    /// Evaluate the integral over the cell volume and the specified derivatives.
-    /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
-    virtual void assemble_volume_terms_derivatives(
-        const dealii::FEValues<dim,dim> &,//fe_values_vol,
-        const dealii::FESystem<dim,dim> &fe,
-        const dealii::Quadrature<dim> &quadrature,
-        const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
-        const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
-        dealii::Vector<real> &local_rhs_cell,
-        const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/,
-        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
-    void assemble_boundary_term_derivatives(
-        const unsigned int face_number,
-        const unsigned int boundary_id,
-        const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
-        const real penalty,
-        const dealii::FESystem<dim,dim> &fe,
-        const dealii::Quadrature<dim-1> &quadrature,
-        const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
-        const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
-        dealii::Vector<real> &local_rhs_cell,
-        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
-    /// Evaluate the integral over the internal cell edges and its specified derivatives.
-    /** Compute both the right-hand side and the block of the Jacobian.
-     *  This adds the contribution to both cell's residual and effectively
-     *  computes 4 block contributions to dRdX blocks. */
-    void assemble_face_term_derivatives(
-        const unsigned int interior_face_number,
-        const unsigned int exterior_face_number,
-        const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_int,
-        const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_ext,
-        const real penalty,
-        const dealii::FESystem<dim,dim> &fe_int,
-        const dealii::FESystem<dim,dim> &fe_ext,
-        const dealii::Quadrature<dim> &face_quadrature_int,
-        const dealii::Quadrature<dim> &face_quadrature_ext,
-        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
-        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
-        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
-        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
-        dealii::Vector<real>          &local_rhs_int_cell,
-        dealii::Vector<real>          &local_rhs_ext_cell,
-        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
-
-    /// Evaluate the integral over the cell volume
-    void assemble_volume_terms_explicit(
-        const dealii::FEValues<dim,dim> &fe_values_volume,
-        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        dealii::Vector<real> &current_cell_rhs,
-        const dealii::FEValues<dim,dim> &fe_values_lagrange);
-    /// Evaluate the integral over the cell edges that are on domain boundaries
-    void assemble_boundary_term_explicit(
-        const unsigned int boundary_id,
-        const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
-        const real penalty,
-        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        dealii::Vector<real> &current_cell_rhs);
-    /// Evaluate the integral over the internal cell edges
-    void assemble_face_term_explicit(
-        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_int,
-        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_ext,
-        const real penalty,
-        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        const std::vector<dealii::types::global_dof_index> &neighbor_dofs_indices,
-        dealii::Vector<real>          &current_cell_rhs,
-        dealii::Vector<real>          &neighbor_cell_rhs);
-
-    using DGBase<dim,real>::all_parameters; ///< Pointer to all parameters
-    using DGBase<dim,real>::mpi_communicator; ///< MPI communicator
-    using DGBase<dim,real>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
-
-public:
-    /** Change the physics object.
-     *  Don't know why Doxygen won't allow the use of FadFadType instead of the explicit nested Sacado AD type.
-     */
-    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadFadType > >pde_physics_input);
-    /// Change the physics object
-    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadType > >pde_physics_input);
-    /// Change the physics object
-    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadFadType > >pde_physics_input);
-    /// Change the physics object
-    void set_physics(std::shared_ptr< Physics::PhysicsBase<dim, nstate, real > >pde_physics_double_input);
-}; // end of DGStrong class
-
-/// This class creates a new DGBase object
-/** This allows the DGBase to not be templated on the number of state variables
-  * while allowing DG to be template on the number of state variables */
-template <int dim, typename real>
-class DGFactory
-{
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    /** Triangulation to store the grid.
-     *  In 1D, dealii::Triangulation<dim> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-     */
-    using Triangulation = dealii::Triangulation<dim>;
-#else
-    /** Triangulation to store the grid.
-     *  In 1D, dealii::Triangulation<dim> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-     */
-    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-#endif
-public:
-    /// Creates a derived object DG, but returns it as DGBase.
-    /** That way, the caller is agnostic to the number of state variables */
-    static std::shared_ptr< DGBase<dim,real> >
-        create_discontinuous_galerkin(
-        const Parameters::AllParameters *const parameters_input,
-        const unsigned int degree,
-        const unsigned int max_degree_input,
-        const unsigned int grid_degree_input,
-        const std::shared_ptr<Triangulation> triangulation_input);
-
-    /// calls the above dg factory with grid_degree_input = degree + 1
-    static std::shared_ptr< DGBase<dim,real> >
-        create_discontinuous_galerkin(
-        const Parameters::AllParameters *const parameters_input,
-        const unsigned int degree,
-        const unsigned int max_degree_input,
-        const std::shared_ptr<Triangulation> triangulation_input);
-
-    /// calls the above dg factory with max_degree_input = degree
-    static std::shared_ptr< DGBase<dim,real> >
-        create_discontinuous_galerkin(
-        const Parameters::AllParameters *const parameters_input,
-        const unsigned int degree,
-        const std::shared_ptr<Triangulation> triangulation_input);
-};
+}; // end of DGBaseState class
 
 } // PHiLiP namespace
 

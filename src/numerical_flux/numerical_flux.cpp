@@ -24,33 +24,33 @@ std::array<real_tensor, nstate> array_average(
 
 
 template <int dim, int nstate, typename real>
-NumericalFluxConvective<dim,nstate,real>*
+std::unique_ptr< NumericalFluxConvective<dim,nstate,real> >
 NumericalFluxFactory<dim, nstate, real>
 ::create_convective_numerical_flux(
     AllParam::ConvectiveNumericalFlux conv_num_flux_type,
     std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input)
 {
     if(conv_num_flux_type == AllParam::lax_friedrichs) {
-        return new LaxFriedrichs<dim, nstate, real>(physics_input);
+        return std::make_unique< LaxFriedrichs<dim, nstate, real> > (physics_input);
     } else if(conv_num_flux_type == AllParam::roe) {
-        if constexpr (dim+2==nstate) return new Roe<dim, nstate, real>(physics_input);
+        if constexpr (dim+2==nstate) return std::make_unique< Roe<dim, nstate, real> > (physics_input);
     }
     else if (conv_num_flux_type == AllParam::split_form) {
-        return new SplitFormNumFlux<dim, nstate, real>(physics_input);
+        return std::make_unique< SplitFormNumFlux<dim, nstate, real> > (physics_input);
     }
 
     std::cout << "Invalid numerical flux" << std::endl;
     return nullptr;
 }
 template <int dim, int nstate, typename real>
-NumericalFluxDissipative<dim,nstate,real>*
+std::unique_ptr< NumericalFluxDissipative<dim,nstate,real> >
 NumericalFluxFactory<dim, nstate, real>
 ::create_dissipative_numerical_flux(
     AllParam::DissipativeNumericalFlux diss_num_flux_type,
     std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
 {
     if(diss_num_flux_type == AllParam::symm_internal_penalty) {
-        return new SymmetricInternalPenalty<dim, nstate, real>(physics_input);
+        return std::make_unique < SymmetricInternalPenalty<dim, nstate, real> > (physics_input);
     }
 
     return nullptr;

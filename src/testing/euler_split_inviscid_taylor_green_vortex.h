@@ -24,7 +24,6 @@
 #include "numerical_flux/numerical_flux.h"
 #include "physics/physics_factory.h"
 #include "physics/physics.h"
-#include "dg/dg.h"
 #include "ode_solver/ode_solver.h"
 
 #include<fenv.h>

@@ -21,7 +21,7 @@
 
 #include "physics/euler.h"
 #include "physics/manufactured_solution.h"
-#include "dg/dg.h"
+#include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver.h"
 
 #include "mesh/grids/naca_airfoil_grid.hpp"

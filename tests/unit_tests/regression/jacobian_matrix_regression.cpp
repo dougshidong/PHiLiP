@@ -7,7 +7,7 @@
 
 #include <fstream>
 
-#include "dg/dg.h"
+#include "dg/dg_factory.hpp"
 #include "parameters/parameters.h"
 #include "physics/physics.h"
 #include "numerical_flux/numerical_flux.h"

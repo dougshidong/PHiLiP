@@ -13,7 +13,7 @@
 #include <deal.II/dofs/dof_tools.h>
 
 #include "ode_solver/ode_solver.h"
-#include "dg/dg.h"
+#include "dg/dg_factory.hpp"
 #include "parameters/parameters.h"
 #include "physics/physics_factory.h"
 #include "numerical_flux/numerical_flux.h"

@@ -24,7 +24,7 @@
 
 #include "physics/euler.h"
 #include "physics/manufactured_solution.h"
-#include "dg/dg.h"
+#include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver.h"
 
 #include "functional/functional.h"
@@ -36,7 +36,7 @@
 
 namespace PHiLiP {
 namespace Tests {
-// built own physics classes here for one time use and added a function to pass them directly to dg weak
+// built own physics classes here for one time use and added a function to pass them directly to dg state
 
 // manufactured solution in u
 template <int dim, typename real>
@@ -446,20 +446,14 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             std::shared_ptr < DGBase<dim, double> > dg_u = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
             std::shared_ptr < DGBase<dim, double> > dg_v = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
 
-            // casting to dg weak    
-            std::shared_ptr< DGWeak<dim,nstate,double> > dg_weak_u = std::dynamic_pointer_cast< DGWeak<dim,nstate,double> >(dg_u);
-            std::shared_ptr< DGWeak<dim,nstate,double> > dg_weak_v = std::dynamic_pointer_cast< DGWeak<dim,nstate,double> >(dg_v);
+            // casting to dg state    
+            std::shared_ptr< DGBaseState<dim,nstate,double> > dg_state_u = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double> >(dg_u);
+            std::shared_ptr< DGBaseState<dim,nstate,double> > dg_state_v = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double> >(dg_v);
 
             // now overriding the original physics on each
-            dg_weak_u->set_physics(physics_u_double);
-            dg_weak_u->set_physics(physics_u_fadtype);
-            dg_weak_u->set_physics(physics_u_fadfadtype);
-            dg_weak_u->set_physics(physics_u_radfadtype);
+            dg_state_u->set_physics(physics_u_double, physics_u_fadtype, physics_u_fadfadtype, physics_u_radfadtype);
 
-            dg_weak_v->set_physics(physics_v_double);
-            dg_weak_v->set_physics(physics_v_fadtype);
-            dg_weak_v->set_physics(physics_v_fadfadtype);
-            dg_weak_v->set_physics(physics_v_radfadtype);
+            dg_state_v->set_physics(physics_v_double , physics_v_fadtype , physics_v_fadfadtype , physics_v_radfadtype);
 
             dg_u->allocate_system();
             dg_v->allocate_system();

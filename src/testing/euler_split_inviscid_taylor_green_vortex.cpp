@@ -1,4 +1,5 @@
 #include <fstream>
+#include "dg/dg_factory.hpp"
 #include "euler_split_inviscid_taylor_green_vortex.h"
 
 namespace PHiLiP {

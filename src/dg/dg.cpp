@@ -412,6 +412,9 @@ void DGBase<dim,real>::assemble_cell_residual (
         assemble_volume_terms_explicit (fe_values_volume, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
     }
 
+    (void) fe_values_collection_face_int;
+    (void) fe_values_collection_face_ext;
+    (void) fe_values_collection_subface;
     for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
 
         auto current_face = current_cell->face(iface);

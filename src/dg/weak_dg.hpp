@@ -83,6 +83,41 @@ private:
         dealii::Vector<real> &local_rhs_cell,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
+    template <typename adtype>
+    void assemble_boundary_codi_taped_derivatives(
+        const unsigned int face_number,
+        const unsigned int boundary_id,
+        const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe_soln,
+        const dealii::Quadrature<dim-1> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
+        const Physics::PhysicsBase<dim, nstate, adtype> &physics,
+        const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype> &conv_num_flux,
+        const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+        dealii::Vector<real> &local_rhs_cell,
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
+
+    template <typename adtype>
+    void assemble_boundary(
+        const std::vector< adtype > &soln_coeff,
+        const std::vector< adtype > &coords_coeff,
+        const std::vector< real > &local_dual,
+        const unsigned int face_number,
+        const unsigned int boundary_id,
+        const Physics::PhysicsBase<dim, nstate, adtype> &physics,
+        const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype> &conv_num_flux,
+        const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+        const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe_soln,
+        const dealii::FESystem<dim,dim> &fe_metric,
+        const dealii::Quadrature<dim-1> &quadrature,
+        std::vector<adtype> &rhs,
+        adtype &dual_dot_residual,
+        const bool compute_metric_derivatives);
+
     template <typename real2>
     void assemble_face_term(
         const std::vector< real2 > &soln_coeff_int,

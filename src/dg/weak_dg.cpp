@@ -17,7 +17,7 @@
 
 #include "weak_dg.hpp"
 
-#define FADFAD
+//#define FADFAD
 template<typename real>
 double getValue(const real &x) {
     if constexpr(std::is_same<real,double>::value) {

@@ -28,31 +28,18 @@ void ODESolver<dim,real>::initialize_steady_polynomial_ramping (const unsigned i
         pcout << " Ramping degree " << degree << " until p=" << global_final_poly_degree << std::endl;
         pcout << " ************************************************************************ " << std::endl;
 
+        // Transfer solution to current degree.
         dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
         old_solution.update_ghost_values();
-
         dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
         solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
-
         dg->set_all_cells_fe_degree(degree);
-        //dg->triangulation->execute_coarsening_and_refinement();
-        // Required even if no mesh refinement takes place
-        //dg->triangulation->execute_coarsening_and_refinement();
-        //dg->triangulation->refine_global (1);
         dg->allocate_system ();
-
-        //old_solution.print(pcout.get_stream());
         dg->solution.zero_out_ghosts();
         solution_transfer.interpolate(dg->solution);
         dg->solution.update_ghost_values();
-        //dg->solution.print(pcout.get_stream());
 
-        //dealii::LinearAlgebra::distributed::Vector<double> new_solution(dg->locally_owned_dofs, MPI_COMM_WORLD);
-        //new_solution.zero_out_ghosts();
-        //solution_transfer.interpolate(new_solution);
-        //new_solution.update_ghost_values();
-        //new_solution.print(pcout.get_stream());
-
+        // Solve steady state problem.
         steady_state();
     }
 }

@@ -14,7 +14,7 @@ set conv_num_flux = lax_friedrichs
 
 subsection ODE solver
   # Maximum nonlinear solver iterations
-  set nonlinear_max_iterations            = 500
+  set nonlinear_max_iterations            = 1000
 
   # Nonlinear solver residual tolerance
   set nonlinear_steady_residual_tolerance = 1e-13
@@ -28,7 +28,7 @@ subsection ODE solver
   set output_solution_every_x_steps = 1
 
   # Explicit or implicit solverChoices are <explicit|implicit>.
-  set ode_solver_type    = implicit
+  set ode_solver_type    = explicit
 end
 
 subsection manufactured solution convergence study

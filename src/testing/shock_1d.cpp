@@ -293,17 +293,9 @@ int Shock1D<dim,nstate>
                     if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
                 }
             }
-            // Warp grid if requested in input file
-            if (manu_grid_conv_param.grid_type == GridEnum::sinehypercube) dealii::GridTools::transform (&warp, *grid);
-
-            // Distort grid by random amount if requested
-            const double random_factor = manu_grid_conv_param.random_distortion;
-            const bool keep_boundary = true;
-            if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, *grid, keep_boundary);
-
-            // Show mesh if in 2D
-            //std::string gridname = "grid-"+std::to_string(igrid)+".eps";
-            //if (dim == 2) print_mesh_info (grid, gridname);
+            std::vector<dealii::GridTools::PeriodicFacePair<typename Triangulation::cell_iterator> > matched_pairs;
+            dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
+            grid->add_periodicity(matched_pairs);
 
             // Create DG object using the factory
             //std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);

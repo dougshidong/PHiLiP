@@ -58,7 +58,7 @@ namespace PHiLiP {
 template <int dim, typename real>
 class DGBase
 {
-protected:
+public:
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
     /** Triangulation to store the grid.
      *  In 1D, dealii::Triangulation<dim> is used.

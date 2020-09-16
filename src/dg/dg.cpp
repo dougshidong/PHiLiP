@@ -906,7 +906,55 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
 template <int dim, typename real>
 double DGBase<dim,real>::get_residual_l2norm () const
 {
-    return right_hand_side.l2_norm();
+    //auto scaled_residual = right_hand_side;
+    //global_mass_matrix.vmult(scaled_residual, right_hand_side);
+    //return scaled_residual.l2_norm();
+    pcout << "Evaluating residual L2-norm..." << std::endl;
+    const auto mapping = (*(high_order_grid.mapping_fe_field));
+    dealii::hp::MappingCollection<dim> mapping_collection(mapping);
+
+    double residual_l2_norm = 0.0;
+    double domain_volume = 0.0;
+    std::vector<dealii::types::global_dof_index> dofs_indices;
+    const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_JxW_values;
+    dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection,
+                                                               fe_collection,
+                                                               volume_quadrature_collection,
+                                                               update_flags);
+
+    // Obtain the mapping from local dof indices to global dof indices
+    for (const auto cell : dof_handler.active_cell_iterators()) {
+        if (!cell->is_locally_owned()) continue;
+
+        const int i_fele = cell->active_fe_index();
+        const int i_quad = i_fele;
+        const int i_mapp = 0;
+
+        fe_values_collection_volume.reinit (cell, i_quad, i_mapp, i_fele);
+        const dealii::FEValues<dim,dim> &fe_values_vol = fe_values_collection_volume.get_present_fe_values();
+
+        const dealii::FESystem<dim,dim> &fe_ref = fe_collection[i_fele];
+        const unsigned int n_dofs = fe_ref.n_dofs_per_cell();
+        const unsigned int n_quad = fe_values_vol.n_quadrature_points;
+
+        dofs_indices.resize(n_dofs);
+        cell->get_dof_indices (dofs_indices);
+
+        for (unsigned int iquad = 0; iquad < n_quad; ++iquad) {
+            double residual_val = 0.0;
+            for (unsigned int idof = 0; idof < n_dofs; ++idof) {
+                const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(idof).first;
+                residual_val += right_hand_side[dofs_indices[idof]] * fe_values_vol.shape_value_component(idof, iquad, istate);
+            }
+            residual_l2_norm += residual_val*residual_val * fe_values_vol.JxW(iquad);
+            domain_volume += fe_values_vol.JxW(iquad);
+        }
+
+    }
+    const double mpi_residual_l2_norm = dealii::Utilities::MPI::sum(residual_l2_norm, mpi_communicator);
+    const double mpi_domain_volume    = dealii::Utilities::MPI::sum(domain_volume, mpi_communicator);
+    return std::sqrt(mpi_residual_l2_norm) / mpi_domain_volume;
+    //return right_hand_side.l2_norm() / right_hand_side.size();
 }
 template <int dim, typename real>
 unsigned int DGBase<dim,real>::n_dofs () const
@@ -960,6 +1008,16 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     residual.update_ghost_values();
     data_out.add_data_vector (residual, residual_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
 
+    //for(int s=0;s<nstate;++s) {
+    //    residual_names[s] = "scaled_" + residual_names[s];
+    //}
+    //global_mass_matrix.vmult(residual, right_hand_side);
+    //for (auto &&rhs_value : residual) {
+    //    if (std::signbit(rhs_value)) rhs_value = -rhs_value;
+    //    if (rhs_value == 0.0) rhs_value = std::numeric_limits<double>::min();
+    //}
+    //residual.update_ghost_values();
+    //data_out.add_data_vector (residual, residual_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
 
 
     typename dealii::DataOut<dim,dealii::DoFHandler<dim>>::CurvedCellRegion curved = dealii::DataOut<dim,dealii::DoFHandler<dim>>::CurvedCellRegion::curved_inner_cells;
@@ -967,7 +1025,7 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     //typename dealii::DataOut<dim>::CurvedCellRegion curved = dealii::DataOut<dim>::CurvedCellRegion::no_curved_cells;
 
     const dealii::Mapping<dim> &mapping = (*(high_order_grid.mapping_fe_field));
-    const int n_subdivisions = max_degree;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
+    const int n_subdivisions = max_degree+1;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
     data_out.build_patches(mapping, n_subdivisions, curved);
     const bool write_higher_order_cells = (dim>1 && max_degree > 1) ? true : false;
     dealii::DataOutBase::VtkFlags vtkflags(0.0,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
@@ -1008,7 +1066,6 @@ void DGBase<dim,real>::allocate_system ()
 
     dof_handler.distribute_dofs(fe_collection);
     dealii::DoFRenumbering::Cuthill_McKee(dof_handler);
-
 
     //dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> mapping = high_order_grid.get_MappingFEField();
     //dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> mapping = *(high_order_grid.mapping_fe_field);

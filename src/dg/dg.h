@@ -576,6 +576,9 @@ private:
      */
     MassiveCollectionTuple create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const;
 
+    /// Update discontinuity sensor.
+    void update_artificial_dissipation_discontinuity_sensor();
+
 }; // end of DGBase class
 
 /// Abstract class templated on the number of state variables

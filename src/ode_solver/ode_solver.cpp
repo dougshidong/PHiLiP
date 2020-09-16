@@ -7,6 +7,8 @@
 namespace PHiLiP {
 namespace ODE {
 
+double global_step = 1.0;
+
 template <int dim, typename real>
 ODESolver<dim,real>::ODESolver(std::shared_ptr< DGBase<dim, real> > dg_input)
     : current_time(0.0)
@@ -101,7 +103,8 @@ int ODESolver<dim,real>::steady_state ()
         pcout << " ********************************************************** "
                   << std::endl
                   << " Nonlinear iteration: " << this->current_iteration
-                  << " Normalized residual norm: " << this->residual_norm / this->initial_residual_norm
+                  << " Residual norm (normalized) : " << this->residual_norm 
+                  << " ( " << this->residual_norm / this->initial_residual_norm << " ) "
                   << std::endl;
 
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
@@ -119,9 +122,6 @@ int ODESolver<dim,real>::steady_state ()
         step_in_time(dt);
 
         this->dg->assemble_residual ();
-        old_residual_norm = this->residual_norm;
-        this->residual_norm = this->dg->get_residual_l2norm();
-        this->residual_norm_decrease = this->residual_norm / this->initial_residual_norm;
 
         ++(this->current_iteration);
 
@@ -136,10 +136,15 @@ int ODESolver<dim,real>::steady_state ()
         //     dg->refine_residual_based();
         //     allocate_ode_system ();
         // }
-        //if ((current_iteration+1) % 20 == 0 || this->residual_norm > old_residual_norm) {
-        //    dg->refine_residual_based();
-        //    allocate_ode_system ();
-        //}
+        //if ((current_iteration+1) % 10 == 0 || this->residual_norm > old_residual_norm) {
+        if (global_step < 0.5) {
+            dg->refine_residual_based();
+            allocate_ode_system ();
+        }
+
+        old_residual_norm = this->residual_norm;
+        this->residual_norm = this->dg->get_residual_l2norm();
+        this->residual_norm_decrease = this->residual_norm / this->initial_residual_norm;
     }
 
     pcout << " ********************************************************** "
@@ -238,7 +243,7 @@ void Implicit_ODESolver<dim,real>::step_in_time (real dt)
         this->ODESolver<dim,real>::all_parameters->linear_solver_param);
 
     //this->dg->solution += this->solution_update;
-    linesearch();
+    global_step = linesearch();
 
     this->update_norm = this->solution_update.l2_norm();
 }
@@ -267,7 +272,9 @@ double Implicit_ODESolver<dim,real>::linesearch ()
         this->dg->solution.add(step_length, this->solution_update);
         this->dg->assemble_residual ();
         new_residual = this->dg->get_residual_l2norm();
+        pcout << " Step length " << step_length << " did not reduce residual. Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
     }
+    return step_length;
 
     if (step_length > std::pow(step_reduction,maxline/2)) {
         //this->CFL *= 1.2;
@@ -391,8 +398,10 @@ template <int dim, typename real>
 void Implicit_ODESolver<dim,real>::allocate_ode_system ()
 {
     const bool do_inverse_mass_matrix = false;
-    this->solution_update.reinit(this->dg->right_hand_side);
     this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
+
+    this->solution_update.reinit(this->dg->right_hand_side);
+
 }
 
 //template <int dim, typename real>

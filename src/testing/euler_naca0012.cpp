@@ -140,11 +140,15 @@ int EulerNACA0012<dim,nstate>
             airfoil_data.incline_factor = 0.0;
             airfoil_data.bias_factor    = 5.0;
             airfoil_data.refinements    = 0;
-            airfoil_data.n_subdivision_x_0 = 15;
-            airfoil_data.n_subdivision_x_1 = 7;
-            airfoil_data.n_subdivision_x_2 = 15;
-            airfoil_data.n_subdivision_y = 10;
-            airfoil_data.airfoil_sampling_factor = 3; // default 2
+            //airfoil_data.n_subdivision_x_0 = 30;
+            //airfoil_data.n_subdivision_x_1 = 15;
+            //airfoil_data.n_subdivision_x_2 = 15;
+            //airfoil_data.n_subdivision_y = 20;
+            airfoil_data.n_subdivision_x_0 = 18;
+            airfoil_data.n_subdivision_x_1 = 9;
+            airfoil_data.n_subdivision_x_2 = 9;
+            airfoil_data.n_subdivision_y = 12;
+            airfoil_data.airfoil_sampling_factor = 1000; // default 2
 
             // dealii::GridGenerator::Airfoil::create_triangulation(*grid, airfoil_data);
             // // Assign a manifold to have curved geometry

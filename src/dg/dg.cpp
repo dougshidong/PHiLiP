@@ -55,6 +55,15 @@ unsigned int d2R_mult;
 
 namespace PHiLiP {
 
+// Forward declaration.
+template<int dim, typename real>
+std::vector< real > project_function(
+    const std::vector< real > &function_coeff,
+    const dealii::FESystem<dim,dim> &fe_input,
+    const dealii::FESystem<dim,dim> &fe_output,
+    const dealii::QGauss<dim> &projection_quadrature);
+
+
 template <int dim, typename real>
 DGBase<dim,real>::DGBase(
     const int nstate_input,

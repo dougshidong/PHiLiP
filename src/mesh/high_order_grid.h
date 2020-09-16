@@ -347,6 +347,10 @@ protected:
     /// A stripped down copy of dealii::VectorTools::get_position_vector()
     void get_position_vector(const DoFHandlerType &dh, VectorType &vector, const dealii::ComponentMask &mask);
 
+    /// Another version of dealii::VectorTools::get_position_vector() that projects the points instead
+    /// of interpolating them.
+    void get_projected_position_vector(const DoFHandlerType &dh, VectorType &vector, const dealii::ComponentMask &mask);
+
 };
 
 /// Postprocessor used to output the grid.

@@ -29,6 +29,9 @@
 
 #include <deal.II/dofs/dof_renumbering.h>
 
+#include <deal.II/meshworker/local_integrator.h>
+#include <deal.II/integrators/l2.h>
+
 #include "high_order_grid.h"
 
 
@@ -63,6 +66,7 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
     allocate();
     const dealii::ComponentMask mask(dim, true);
     get_position_vector(dof_handler_grid, volume_nodes, mask);
+    //get_projected_position_vector(dof_handler_grid, volume_nodes, mask);
     volume_nodes.update_ghost_values();
     update_surface_nodes();
     update_mapping_fe_field();
@@ -168,6 +172,169 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>
         }
     }
 }
+
+template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+void HighOrderGrid<dim,real,VectorType,DoFHandlerType>
+::get_projected_position_vector(const DoFHandlerType &dh, VectorType &position_vector, const dealii::ComponentMask &mask)
+{
+    AssertDimension(position_vector.size(), dh.n_dofs());
+    const dealii::FESystem<dim, dim> &fe = dh.get_fe();
+
+    // Construct default fe_mask;
+    const dealii::ComponentMask fe_mask(mask.size() ? mask : dealii::ComponentMask(fe.get_nonzero_components(0).size(), true));
+
+    AssertDimension(fe_mask.size(), fe.get_nonzero_components(0).size());
+
+    std::vector<unsigned int> fe_to_real(fe_mask.size(), dealii::numbers::invalid_unsigned_int);
+    unsigned int              size = 0;
+    for (unsigned int i = 0; i < fe_mask.size(); ++i) {
+        if (fe_mask[i]) fe_to_real[i] = size++;
+    }
+    Assert(size == dim, dealii::ExcMessage("The Component Mask you provided is invalid. It has to select exactly dim entries."));
+
+    const dealii::QGauss<dim> quad((fe.degree+1) * 2);
+
+    dealii::MappingQGeneric<dim, dim> map_q(fe.degree);
+    dealii::FEValues<dim, dim> fe_values_curved(map_q, fe, quad, dealii::update_values | dealii::update_quadrature_points | dealii::update_JxW_values);
+
+    dealii::MappingQ1<dim, dim> map_q1;
+    dealii::FEValues<dim, dim> fe_values_straight(map_q1, fe, quad, dealii::update_values | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_jacobians);
+
+    const unsigned int n_dofs = fe.dofs_per_cell;
+    dealii::FullMatrix<double> mass_matrix(n_dofs, n_dofs);
+    dealii::FullMatrix<double> inv_mass_matrix(n_dofs, n_dofs);
+
+    fe_values_straight.reinit(dh.begin_active());
+    dealii::LocalIntegrators::L2::mass_matrix(mass_matrix, fe_values_straight);
+    inv_mass_matrix.invert(mass_matrix);
+
+    std::vector<dealii::types::global_dof_index> dof_indices(fe.dofs_per_cell);
+
+    AssertDimension(fe.dofs_per_cell, fe.get_unit_support_points().size());
+    Assert(fe.is_primitive(), dealii::ExcMessage("FE is not Primitive! This won't work."));
+
+    for (const auto &cell : dh.active_cell_iterators()) {
+        if (cell->is_locally_owned()) {
+            fe_values_curved.reinit(cell);
+            fe_values_straight.reinit(cell);
+            //dealii::LocalIntegrators::L2::mass_matrix(mass_matrix, fe_values_straight);
+            //mass_matrix.print(std::cout);
+            //inv_mass_matrix.invert(mass_matrix);
+
+            cell->get_dof_indices(dof_indices);
+            const std::vector<dealii::Point<dim>> &quadrature_points_values = fe_values_curved.get_quadrature_points();
+
+            dealii::Vector<double> rhs(n_dofs);
+            for (unsigned int idof=0; idof<n_dofs; ++idof) {
+                const unsigned int axis = fe.system_to_component_index(idof).first;
+                rhs[idof] = 0.0;
+                for (unsigned int q=0; q<quadrature_points_values.size(); ++q) {
+                    rhs[idof] += fe_values_curved.shape_value_component(idof, q, axis) * quadrature_points_values[q][axis] * quad.weight(q);
+                }
+            }
+            dealii::Vector<double> new_dof_values(n_dofs);
+            inv_mass_matrix.vmult(new_dof_values, rhs);
+
+            for (unsigned int idof = 0; idof < new_dof_values.size(); ++idof) {
+                const unsigned int comp = fe.system_to_component_index(idof).first;
+                if (fe_mask[comp]) ::dealii::internal::ElementAccess<VectorType>::set(new_dof_values[idof], dof_indices[idof], position_vector);
+            }
+        }
+    }
+}
+//template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+//void HighOrderGrid<dim,real,VectorType,DoFHandlerType>
+//::get_surface_projected_position_vector(const DoFHandlerType &dh, VectorType &position_vector, const dealii::ComponentMask &mask)
+//{
+//    AssertDimension(position_vector.size(), dh.n_dofs());
+//    const dealii::FESystem<dim, dim> &fe = dh.get_fe();
+//
+//    // Construct default fe_mask;
+//    const dealii::ComponentMask fe_mask(mask.size() ? mask : dealii::ComponentMask(fe.get_nonzero_components(0).size(), true));
+//
+//    AssertDimension(fe_mask.size(), fe.get_nonzero_components(0).size());
+//
+//    std::vector<unsigned int> fe_to_real(fe_mask.size(), dealii::numbers::invalid_unsigned_int);
+//    unsigned int              size = 0;
+//    for (unsigned int i = 0; i < fe_mask.size(); ++i) {
+//        if (fe_mask[i]) fe_to_real[i] = size++;
+//    }
+//    Assert(size == dim, dealii::ExcMessage("The Component Mask you provided is invalid. It has to select exactly dim entries."));
+//
+//    const dealii::QGauss<dim> quad((fe.degree+1) * 2);
+//
+//    dealii::MappingQGeneric<dim, dim> map_q(fe.degree);
+//    dealii::FEValues<dim, dim> fe_values_curved(map_q, fe, quad, dealii::update_values | dealii::update_quadrature_points | dealii::update_JxW_values);
+//
+//    dealii::MappingQ1<dim, dim> map_q1;
+//    dealii::FEValues<dim, dim> fe_values_straight(map_q1, fe, quad, dealii::update_values | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_jacobians);
+//
+//    const unsigned int n_dofs = fe.dofs_per_cell;
+//    dealii::FullMatrix<double> mass_matrix(n_dofs, n_dofs);
+//    dealii::FullMatrix<double> inv_mass_matrix(n_dofs, n_dofs);
+//
+//    std::vector<dealii::types::global_dof_index> dof_indices(fe.dofs_per_face);
+//
+//    AssertDimension(fe.dofs_per_cell, fe.get_unit_support_points().size());
+//    Assert(fe.is_primitive(), dealii::ExcMessage("FE is not Primitive! This won't work."));
+//
+//    dealii::TrilinosWrappers::SparseMatrix surface_mass_matrix;
+//
+//    dealii::FEFaceValues<dim,dim>  fe_face_values_curved(map_q, fe, quad, dealii::update_values | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_jacobians);
+//    dealii::FEFaceValues<dim,dim>  fe_face_values_straight(map_q1, fe, quad, dealii::update_values | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_jacobians);
+//    for (const auto &cell : dh.active_cell_iterators()) {
+//
+//        if (!(cell->is_locally_owned())) continue;
+//
+//        for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
+//            auto face = cell->face(iface);
+//            if (!face->at_boundary()) continue;
+//            const unsigned int boundary_id = face->boundary_id();
+//            if (!(boundary_id == 1001)) continue;
+//
+//            face->get_dof_indices(dof_indices);
+//
+//            fe_face_values_curved.reinit(current_cell, iface);
+//            fe_face_values_straight.reinit(current_cell, iface);
+//
+//
+//
+//            for (unsigned int itest=0; itest<dof_indices.size(); ++itest) {
+//                const unsigned int itest_axis = fe.system_to_component_index(itest).first;
+//                rhs[itest] = 0.0;
+//                for (unsigned int q=0; q<quadrature_points_values.size(); ++q) {
+//                    rhs[itest] += fe_values_curved.shape_value_component(itest, q, itest_axis) * quadrature_points_values[q][itest_axis] * quad.weight(q);
+//                }
+//            }
+//
+//        }
+//
+//        fe_values_curved.reinit(cell);
+//        fe_values_straight.reinit(cell);
+//        //dealii::LocalIntegrators::L2::mass_matrix(mass_matrix, fe_values_straight);
+//        //mass_matrix.print(std::cout);
+//        //inv_mass_matrix.invert(mass_matrix);
+//
+//        cell->get_dof_indices(dof_indices);
+//        const std::vector<dealii::Point<dim>> &quadrature_points_values = fe_values_curved.get_quadrature_points();
+//
+//        dealii::Vector<double> rhs(n_dofs);
+//        for (unsigned int idof=0; idof<n_dofs; ++idof) {
+//            const unsigned int axis = fe.system_to_component_index(idof).first;
+//            rhs[idof] = 0.0;
+//            for (unsigned int q=0; q<quadrature_points_values.size(); ++q) {
+//                rhs[idof] += fe_values_curved.shape_value_component(idof, q, axis) * quadrature_points_values[q][axis] * quad.weight(q);
+//            }
+//        }
+//        dealii::Vector<double> new_dof_values(n_dofs);
+//        inv_mass_matrix.vmult(new_dof_values, rhs);
+//
+//        for (unsigned int idof = 0; idof < new_dof_values.size(); ++idof) {
+//            const unsigned int comp = fe.system_to_component_index(idof).first;
+//            if (fe_mask[comp]) ::dealii::internal::ElementAccess<VectorType>::set(new_dof_values[idof], dof_indices[idof], position_vector);
+//        }
+//    }
+//}
 
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
@@ -763,6 +930,8 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::execute_coarsening_and_r
     } else {
         solution_transfer.interpolate(volume_nodes);
     }
+    //const dealii::ComponentMask mask(dim, true);
+    //get_position_vector(dof_handler_grid, volume_nodes, mask);
     volume_nodes.update_ghost_values();
 
     dealii::AffineConstraints<double> hanging_node_constraints;
@@ -777,21 +946,21 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::execute_coarsening_and_r
     update_mapping_fe_field();
     if (output_mesh) output_results_vtk(nth_refinement++);
 
-    auto cell = dof_handler_grid.begin_active();
-    auto endcell = dof_handler_grid.end();
-    // pcout << "Disabled check_valid_cells. Took too much time due to shape_grad()." << std::endl;
-    for (; cell!=endcell; ++cell) {
-        if (!cell->is_locally_owned())  continue;
-        const bool is_invalid_cell = check_valid_cell(cell);
+    //auto cell = dof_handler_grid.begin_active();
+    //auto endcell = dof_handler_grid.end();
+    //// pcout << "Disabled check_valid_cells. Took too much time due to shape_grad()." << std::endl;
+    //for (; cell!=endcell; ++cell) {
+    //    if (!cell->is_locally_owned())  continue;
+    //    const bool is_invalid_cell = check_valid_cell(cell);
 
-        if ( !is_invalid_cell ) {
-            std::cout << " Poly: " << max_degree
-                      << " Grid: " << nth_refinement
-                      << " Cell: " << cell->active_cell_index() << " has an invalid Jacobian." << std::endl;
-            //bool fixed_invalid_cell = fix_invalid_cell(cell);
-            //if (fixed_invalid_cell) std::cout << "Fixed it." << std::endl;
-        }
-    }
+    //    if ( !is_invalid_cell ) {
+    //        std::cout << " Poly: " << max_degree
+    //                  << " Grid: " << nth_refinement
+    //                  << " Cell: " << cell->active_cell_index() << " has an invalid Jacobian." << std::endl;
+    //        //bool fixed_invalid_cell = fix_invalid_cell(cell);
+    //        //if (fixed_invalid_cell) std::cout << "Fixed it." << std::endl;
+    //    }
+    //}
 }
 
 template <typename T>

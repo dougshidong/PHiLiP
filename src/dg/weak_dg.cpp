@@ -275,7 +275,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
     }
 
     const unsigned int cell_index = fe_values_vol.get_cell()->active_cell_index();
-    this->max_dt_cell[cell_index] = DGBaseState<dim,nstate,real>::evaluate_CFL ( soln_at_q, cell_diameter );
+    this->max_dt_cell[cell_index] = DGBaseState<dim,nstate,real>::evaluate_CFL ( soln_at_q, artificial_diss_coeff, cell_diameter );
 
     // Weak form
     // The right-hand side sends all the term to the side of the source term
@@ -1948,6 +1948,7 @@ void DGWeak<dim,nstate,real>::assemble_face_codi_taped_derivatives(
     }
     if (compute_dRdW || compute_dRdX || compute_d2R) {
         th.stopRecording();
+        //adtype::getGlobalTape().printStatistics();
     }
 
     for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {

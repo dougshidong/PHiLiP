@@ -1,4 +1,56 @@
 set(TEST_SRC
+    assemble_d2R_timing.cpp
+    )
+
+foreach(dim RANGE 1 3)
+
+    # Output executable
+    string(CONCAT TEST_TARGET ${dim}D_assemble_d2R_timing)
+    message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
+    add_executable(${TEST_TARGET} ${TEST_SRC})
+    # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+
+    # Compile this executable when 'make unit_tests'
+    add_dependencies(unit_tests ${TEST_TARGET})
+    add_dependencies(${dim}D ${TEST_TARGET})
+
+    # Library dependency
+    set(ParametersLib ParametersLibrary)
+    string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
+    string(CONCAT ODESolverLib ODESolver_${dim}D)
+    target_link_libraries(${TEST_TARGET} ${ParametersLib})
+    target_link_libraries(${TEST_TARGET} ${DiscontinuousGalerkinLib})
+    target_link_libraries(${TEST_TARGET} ${ODESolverLib})
+    # Setup target with deal.II
+    if(NOT DOC_ONLY)
+        DEAL_II_SETUP_TARGET(${TEST_TARGET})
+    endif()
+
+    if (dim EQUAL 1) 
+        set(NMPI 1)
+    else()
+        # Only 4 cells, so more than that and we start having
+        # trouble with parallelism
+        if (${MPIMAX} GREATER 4)
+            set(NMPI 4)
+        else()
+            set(NMPI ${MPIMAX})
+        endif()
+    endif()
+    add_test(
+      NAME ${TEST_TARGET}
+      COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
+      WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+    )
+
+    unset(TEST_TARGET)
+    unset(ParametersLib)
+    unset(DiscontinuousGalerkinLib)
+    unset(ODESolverLib)
+
+endforeach()
+set(TEST_SRC
     dRdX_fd_vs_ad.cpp
     )
 

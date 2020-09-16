@@ -564,7 +564,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
 
     const double cell_diameter = fe_values_vol.get_cell()->diameter();
     const unsigned int cell_index = fe_values_vol.get_cell()->active_cell_index();
-    this->max_dt_cell[cell_index] = DGBaseState<dim,nstate,real>::evaluate_CFL ( soln_at_q, cell_diameter );
+    this->max_dt_cell[cell_index] = DGBaseState<dim,nstate,real>::evaluate_CFL ( soln_at_q, 0.0, cell_diameter );
 
 
     // Evaluate flux divergence by interpolating the flux

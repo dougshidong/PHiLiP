@@ -273,6 +273,7 @@ void DGBaseState<dim,nstate,real>::set_physics(
 template <int dim, int nstate, typename real>
 real DGBaseState<dim,nstate,real>::evaluate_CFL (
     std::vector< std::array<real,nstate> > soln_at_q,
+    const real artificial_dissipation,
     const real cell_diameter
     )
 {
@@ -284,7 +285,10 @@ real DGBaseState<dim,nstate,real>::evaluate_CFL (
     }
     const real max_eig = *(std::max_element(convective_eigenvalues.begin(), convective_eigenvalues.end()));
 
-    return cell_diameter / max_eig;
+    const real cfl_convective = cell_diameter / max_eig;
+    const real cfl_diffusive  = artificial_dissipation != 0.0 ? 0.5*cell_diameter*cell_diameter / artificial_dissipation : 1e200;
+
+    return std::min(cfl_convective, cfl_diffusive);
 }
 
 

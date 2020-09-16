@@ -22,6 +22,11 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Integer(),
                       "Number of dimensions");
 
+    prm.declare_entry("overintegration", "0",
+                      dealii::Patterns::Integer(),
+                      "Number of extra quadrature points to use."
+                      "If overintegration=0, then we use n_quad = soln_degree + 1.");
+
     prm.declare_entry("use_weak_form", "true",
                       dealii::Patterns::Bool(),
                       "Use weak form by default. If false, use strong form.");
@@ -157,6 +162,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
         pde_type = euler;
         nstate = dimension+2;
     }
+    overintegration = prm.get_integer("overintegration");
 
     use_weak_form = prm.get_bool("use_weak_form");
     use_collocated_nodes = prm.get_bool("use_collocated_nodes");

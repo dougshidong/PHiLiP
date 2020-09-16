@@ -197,7 +197,7 @@ DGBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const i
                 face_quad = face_quad_Gauss_Lobatto;
             }
         } else {
-            const unsigned int overintegration = 0;
+            const unsigned int overintegration = parameters_input->overintegration;
             dealii::QGauss<1> oned_quad_Gauss_Legendre (degree+1+overintegration);
             dealii::QGauss<dim> vol_quad_Gauss_Legendre (degree+1+overintegration);
             dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1+overintegration);

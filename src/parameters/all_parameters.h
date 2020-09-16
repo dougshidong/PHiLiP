@@ -32,6 +32,11 @@ public:
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;
 
+    /// Number of additional quadrature points to use.
+    /** overintegration = 0 leads to number_quad_points = dg_solution_degree + 1
+     */
+    int overintegration;
+
     /// Flag to use weak or strong form of DG
     bool use_weak_form;
 

@@ -51,6 +51,9 @@ public:
     /// Virtual function to advance solution to time+dt
     int advance_solution_time (double time_advance);
 
+    /// Virtual function to evaluate solution update
+    virtual void step_in_time(real dt) = 0;
+
     /// Virtual function to allocate the ODE system
     virtual void allocate_ode_system () = 0;
 
@@ -62,9 +65,6 @@ public:
 protected:
     double update_norm; ///< Norm of the solution update.
     double initial_residual_norm; ///< Initial residual norm.
-
-    /// Virtual function to evaluate solution update
-    virtual void step_in_time(real dt) = 0;
 
     /// Evaluate stable time-step
     /** Currently not used */

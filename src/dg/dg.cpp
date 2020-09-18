@@ -415,14 +415,19 @@ void DGBase<dim,real>::assemble_cell_residual (
     //    artificial_dissipation_coeffs[current_cell->active_cell_index()] = artificial_diss_coeff;
     //}
 
+    const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
+
     if ( compute_dRdW || compute_dRdX || compute_d2R ) {
         assemble_volume_terms_derivatives (
+            current_cell_index,
             fe_values_volume, current_fe_ref, volume_quadrature_collection[i_quad],
             current_metric_dofs_indices, current_dofs_indices,
             current_cell_rhs, fe_values_lagrange,
             compute_dRdW, compute_dRdX, compute_d2R);
     } else {
-        assemble_volume_terms_explicit (fe_values_volume, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
+        assemble_volume_terms_explicit (
+        current_cell_index,
+        fe_values_volume, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
     }
 
     (void) fe_values_collection_face_int;
@@ -445,13 +450,16 @@ void DGBase<dim,real>::assemble_cell_residual (
             if (compute_dRdW || compute_dRdX || compute_d2R) {
                 const dealii::Quadrature<dim-1> face_quadrature = face_quadrature_collection[i_quad];
                 assemble_boundary_term_derivatives (
+                    current_cell_index,
                     iface, boundary_id, fe_values_face_int, penalty,
                     current_fe_ref, face_quadrature,
                     current_metric_dofs_indices, current_dofs_indices, current_cell_rhs,
                     compute_dRdW, compute_dRdX, compute_d2R);
 
             } else {
-                assemble_boundary_term_explicit (boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
+                assemble_boundary_term_explicit (
+                    current_cell_index,
+                    boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
             }
 
         //CASE 2: PERIODIC BOUNDARY CONDITIONS
@@ -488,6 +496,7 @@ void DGBase<dim,real>::assemble_cell_residual (
                 const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
                 const real penalty = 0.5 * (penalty1 + penalty2);
 
+                const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
                 if ( compute_d2R ) {
                     const auto metric_neighbor_cell = current_metric_cell->periodic_neighbor(iface);
                     metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
@@ -500,21 +509,26 @@ void DGBase<dim,real>::assemble_cell_residual (
                         dealii::QProjector<dim>::project_to_face(
                         dealii::ReferenceCell::get_hypercube(dim),
                         used_face_quadrature,neighbor_iface);
-                    assemble_face_term_derivatives (   iface, neighbor_iface,
-                                                fe_values_face_int, fe_values_face_ext,
-                                                penalty,
-                                                fe_collection[i_fele], fe_collection[i_fele_n],
-                                                quadrature_int, quadrature_ext,
-                                                current_metric_dofs_indices, neighbor_metric_dofs_indices,
-                                                current_dofs_indices, neighbor_dofs_indices,
-                                                current_cell_rhs, neighbor_cell_rhs,
-                                                compute_dRdW, compute_dRdX, compute_d2R);
+                    assemble_face_term_derivatives (
+                        current_cell_index,
+                        neighbor_cell_index,
+                        iface, neighbor_iface,
+                        fe_values_face_int, fe_values_face_ext,
+                        penalty,
+                        fe_collection[i_fele], fe_collection[i_fele_n],
+                        quadrature_int, quadrature_ext,
+                        current_metric_dofs_indices, neighbor_metric_dofs_indices,
+                        current_dofs_indices, neighbor_dofs_indices,
+                        current_cell_rhs, neighbor_cell_rhs,
+                        compute_dRdW, compute_dRdX, compute_d2R);
                 } else {
                     assemble_face_term_explicit (
-                            fe_values_face_int, fe_values_face_ext,
-                            penalty,
-                            current_dofs_indices, neighbor_dofs_indices,
-                            current_cell_rhs, neighbor_cell_rhs);
+                        current_cell_index,
+                        neighbor_cell_index,
+                        fe_values_face_int, fe_values_face_ext,
+                        penalty,
+                        current_dofs_indices, neighbor_dofs_indices,
+                        current_cell_rhs, neighbor_cell_rhs);
                 }
 
                 // Add local contribution from neighbor cell to global vector
@@ -573,6 +587,7 @@ void DGBase<dim,real>::assemble_cell_residual (
             const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
             const real penalty = 0.5 * (penalty1 + penalty2);
 
+            const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
             if ( compute_dRdW || compute_dRdX || compute_d2R ) {
                 const auto metric_neighbor_cell = current_metric_cell->neighbor(iface);
                 metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
@@ -589,17 +604,22 @@ void DGBase<dim,real>::assemble_cell_residual (
                         neighbor_iface,
                         i_subface,
                         dealii::RefinementCase<dim-1>::isotropic_refinement);
-                assemble_face_term_derivatives (   iface, neighbor_iface,
-                                            fe_values_face_int, fe_values_face_ext,
-                                            penalty,
-                                            fe_collection[i_fele], fe_collection[i_fele_n],
-                                            quadrature_int, quadrature_ext,
-                                            current_metric_dofs_indices, neighbor_metric_dofs_indices,
-                                            current_dofs_indices, neighbor_dofs_indices,
-                                            current_cell_rhs, neighbor_cell_rhs,
-                                            compute_dRdW, compute_dRdX, compute_d2R);
+                assemble_face_term_derivatives (
+                    current_cell_index,
+                    neighbor_cell_index,
+                    iface, neighbor_iface,
+                    fe_values_face_int, fe_values_face_ext,
+                    penalty,
+                    fe_collection[i_fele], fe_collection[i_fele_n],
+                    quadrature_int, quadrature_ext,
+                    current_metric_dofs_indices, neighbor_metric_dofs_indices,
+                    current_dofs_indices, neighbor_dofs_indices,
+                    current_cell_rhs, neighbor_cell_rhs,
+                    compute_dRdW, compute_dRdX, compute_d2R);
             } else {
                 assemble_face_term_explicit (
+                    current_cell_index,
+                    neighbor_cell_index,
                     fe_values_face_int, fe_values_face_ext,
                     penalty,
                     current_dofs_indices, neighbor_dofs_indices,
@@ -640,6 +660,7 @@ void DGBase<dim,real>::assemble_cell_residual (
             const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
             const real penalty = 0.5 * (penalty1 + penalty2);
 
+            const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
             if ( compute_dRdW || compute_dRdX || compute_d2R ) {
                 const auto metric_neighbor_cell = current_metric_cell->neighbor_or_periodic_neighbor(iface);
                 metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
@@ -652,21 +673,26 @@ void DGBase<dim,real>::assemble_cell_residual (
                     dealii::QProjector<dim>::project_to_face(
                         dealii::ReferenceCell::get_hypercube(dim),
                         used_face_quadrature,neighbor_iface);
-                assemble_face_term_derivatives (   iface, neighbor_iface,
-                                            fe_values_face_int, fe_values_face_ext,
-                                            penalty,
-                                            fe_collection[i_fele], fe_collection[i_fele_n],
-                                            quadrature_int, quadrature_ext,
-                                            current_metric_dofs_indices, neighbor_metric_dofs_indices,
-                                            current_dofs_indices, neighbor_dofs_indices,
-                                            current_cell_rhs, neighbor_cell_rhs,
-                                            compute_dRdW, compute_dRdX, compute_d2R);
+                assemble_face_term_derivatives (
+                    current_cell_index,
+                    neighbor_cell_index,
+                    iface, neighbor_iface,
+                    fe_values_face_int, fe_values_face_ext,
+                    penalty,
+                    fe_collection[i_fele], fe_collection[i_fele_n],
+                    quadrature_int, quadrature_ext,
+                    current_metric_dofs_indices, neighbor_metric_dofs_indices,
+                    current_dofs_indices, neighbor_dofs_indices,
+                    current_cell_rhs, neighbor_cell_rhs,
+                    compute_dRdW, compute_dRdX, compute_d2R);
             } else {
                 assemble_face_term_explicit (
-                        fe_values_face_int, fe_values_face_ext,
-                        penalty,
-                        current_dofs_indices, neighbor_dofs_indices,
-                        current_cell_rhs, neighbor_cell_rhs);
+                    current_cell_index,
+                    neighbor_cell_index,
+                    fe_values_face_int, fe_values_face_ext,
+                    penalty,
+                    current_dofs_indices, neighbor_dofs_indices,
+                    current_cell_rhs, neighbor_cell_rhs);
             }
 
             // Add local contribution from neighbor cell to global vector

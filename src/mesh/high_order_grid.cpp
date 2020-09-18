@@ -1279,18 +1279,18 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::output_results_vtk (cons
 
     VectorType jacobian_determinant;
     jacobian_determinant.reinit(locally_owned_dofs_grid, ghost_dofs_grid, mpi_communicator);
-    // const unsigned int n_dofs_per_cell = fe_system.n_dofs_per_cell();
-    // std::vector<dealii::types::global_dof_index> dofs_indices(n_dofs_per_cell);
-    // const std::vector< dealii::Point<dim> > &points = fe_system.get_unit_support_points();
-    // std::vector<real> jac_det;
-    // for (auto cell = dof_handler_grid.begin_active(); cell!=dof_handler_grid.end(); ++cell) {
-    //     if (!cell->is_locally_owned()) continue;
-    //     jac_det = evaluate_jacobian_at_points(volume_nodes, cell, points);
-    //     cell->get_dof_indices (dofs_indices);
-    //     for (unsigned int i=0; i<n_dofs_per_cell; ++i) {
-    //         jacobian_determinant[dofs_indices[i]] = jac_det[i];
-    //     }
-    // }
+    const unsigned int n_dofs_per_cell = fe_system.n_dofs_per_cell();
+    std::vector<dealii::types::global_dof_index> dofs_indices(n_dofs_per_cell);
+    const std::vector< dealii::Point<dim> > &points = fe_system.get_unit_support_points();
+    std::vector<real> jac_det;
+    for (auto cell = dof_handler_grid.begin_active(); cell!=dof_handler_grid.end(); ++cell) {
+        if (!cell->is_locally_owned()) continue;
+        jac_det = evaluate_jacobian_at_points(volume_nodes, cell, points);
+        cell->get_dof_indices (dofs_indices);
+        for (unsigned int i=0; i<n_dofs_per_cell; ++i) {
+            jacobian_determinant[dofs_indices[i]] = jac_det[i];
+        }
+    }
 
 
     jacobian_determinant.update_ghost_values();

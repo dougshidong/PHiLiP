@@ -29,7 +29,7 @@ private:
 
     /// Evaluate the integral over the cell volume and the specified derivatives.
     /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
-    virtual void assemble_volume_terms_derivatives(
+    virtual void assemble_volume_term_derivatives(
         const dealii::types::global_dof_index current_cell_index,
         const dealii::FEValues<dim,dim> &,//fe_values_vol,
         const dealii::FESystem<dim,dim> &fe,
@@ -57,7 +57,7 @@ private:
     /// Evaluate the integral over the cell volume and the specified derivatives.
     /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
     template <typename real2>
-    void assemble_volume_terms(
+    void assemble_volume_term(
         const std::vector<real2> &soln_coeff,
         const std::vector<real2> &coords_coeff,
         const std::vector<real> &local_dual,
@@ -197,7 +197,7 @@ private:
 
 
     /// Evaluate the integral over the cell volume
-    void assemble_volume_terms_explicit(
+    void assemble_volume_term_explicit(
         const dealii::types::global_dof_index current_cell_index,
         const dealii::FEValues<dim,dim> &fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,

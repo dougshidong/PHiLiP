@@ -30,6 +30,7 @@ private:
     /// Evaluate the integral over the cell volume and the specified derivatives.
     /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
     virtual void assemble_volume_terms_derivatives(
+        const dealii::types::global_dof_index current_cell_index,
         const dealii::FEValues<dim,dim> &,//fe_values_vol,
         const dealii::FESystem<dim,dim> &fe,
         const dealii::Quadrature<dim> &quadrature,
@@ -72,6 +73,7 @@ private:
     /// Evaluate the integral over the cell edges that are on domain boundaries and the specified derivatives.
     /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
     void assemble_boundary_term_derivatives(
+        const dealii::types::global_dof_index current_cell_index,
         const unsigned int face_number,
         const unsigned int boundary_id,
         const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
@@ -174,6 +176,8 @@ private:
      *  This adds the contribution to both cell's residual and effectively
      *  computes 4 block contributions to dRdX blocks. */
     void assemble_face_term_derivatives(
+        const dealii::types::global_dof_index current_cell_index,
+        const dealii::types::global_dof_index neighbor_cell_index,
         const unsigned int interior_face_number,
         const unsigned int exterior_face_number,
         const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_int,
@@ -194,12 +198,14 @@ private:
 
     /// Evaluate the integral over the cell volume
     void assemble_volume_terms_explicit(
+        const dealii::types::global_dof_index current_cell_index,
         const dealii::FEValues<dim,dim> &fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
         dealii::Vector<real> &current_cell_rhs,
         const dealii::FEValues<dim,dim> &fe_values_lagrange);
     /// Evaluate the integral over the cell edges that are on domain boundaries
     void assemble_boundary_term_explicit(
+        const dealii::types::global_dof_index current_cell_index,
         const unsigned int boundary_id,
         const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
         const real penalty,
@@ -207,6 +213,8 @@ private:
         dealii::Vector<real> &current_cell_rhs);
     /// Evaluate the integral over the internal cell edges
     void assemble_face_term_explicit(
+        const dealii::types::global_dof_index current_cell_index,
+        const dealii::types::global_dof_index neighbor_cell_index,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_int,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_ext,
         const real penalty,

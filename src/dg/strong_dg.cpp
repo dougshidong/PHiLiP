@@ -39,6 +39,7 @@ DGStrong<dim,nstate,real>::~DGStrong ()
 
 template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_boundary_term_derivatives(
+    const dealii::types::global_dof_index current_cell_index,
     const unsigned int ,//face_number,
     const unsigned int boundary_id,
     const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
@@ -52,6 +53,7 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_derivatives(
     const bool compute_dRdX,
     const bool compute_d2R)
 { 
+    (void) current_cell_index;
     assert(compute_dRdW); assert(!compute_dRdX); assert(!compute_d2R);
     (void) compute_dRdW; (void) compute_dRdX; (void) compute_d2R;
     using ADArray = std::array<FadType,nstate>;
@@ -180,6 +182,7 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_derivatives(
 }
 template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_volume_terms_derivatives(
+    const dealii::types::global_dof_index current_cell_index,
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const dealii::FESystem<dim,dim> &,//fe,
     const dealii::Quadrature<dim> &,//quadrature,
@@ -191,6 +194,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_derivatives(
     const bool compute_dRdX,
     const bool compute_d2R)
 {
+    (void) current_cell_index;
     assert(compute_dRdW); assert(!compute_dRdX); assert(!compute_d2R);
     (void) compute_dRdW; (void) compute_dRdX; (void) compute_d2R;
     using ADArray = std::array<FadType,nstate>;
@@ -314,6 +318,8 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_derivatives(
 }
 template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_face_term_derivatives(
+    const dealii::types::global_dof_index current_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index,
     const unsigned int ,//interior_face_number,
     const unsigned int ,//exterior_face_number,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
@@ -333,6 +339,8 @@ void DGStrong<dim,nstate,real>::assemble_face_term_derivatives(
     const bool compute_dRdX,
     const bool compute_d2R)
 {
+    (void) current_cell_index;
+    (void) neighbor_cell_index;
     assert(compute_dRdW); assert(!compute_dRdX); assert(!compute_d2R);
     (void) compute_dRdW; (void) compute_dRdX; (void) compute_d2R;
     using ADArray = std::array<FadType,nstate>;
@@ -504,11 +512,13 @@ void DGStrong<dim,nstate,real>::assemble_face_term_derivatives(
 
 template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
+    const dealii::types::global_dof_index current_cell_index,
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
     dealii::Vector<real> &local_rhs_int_cell,
     const dealii::FEValues<dim,dim> &fe_values_lagrange)
 {
+    (void) current_cell_index;
     //std::cout << "assembling cell terms" << std::endl;
     using realtype = real;
     using realArray = std::array<realtype,nstate>;
@@ -624,12 +634,14 @@ void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
 
 template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_boundary_term_explicit(
+    const dealii::types::global_dof_index current_cell_index,
     const unsigned int boundary_id,
     const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
     const real penalty,
     const std::vector<dealii::types::global_dof_index> &dof_indices_int,
     dealii::Vector<real> &local_rhs_int_cell)
 {
+    (void) current_cell_index;
     using ADArray = std::array<FadType,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,FadType>, nstate >;
 
@@ -757,6 +769,8 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_explicit(
 
 template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
+    const dealii::types::global_dof_index current_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
     const real penalty,
@@ -765,6 +779,8 @@ void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
     dealii::Vector<real>          &local_rhs_int_cell,
     dealii::Vector<real>          &local_rhs_ext_cell)
 {
+    (void) current_cell_index;
+    (void) neighbor_cell_index;
     //std::cout << "assembling face terms" << std::endl;
     using ADArray = std::array<FadType,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,FadType>, nstate >;

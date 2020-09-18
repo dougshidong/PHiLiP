@@ -204,11 +204,13 @@ std::vector<dealii::Tensor<2,dim,real>> evaluate_metric_jacobian (
 
 template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
+    const dealii::types::global_dof_index current_cell_index,
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
     dealii::Vector<real> &local_rhs_int_cell,
     const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/)
 {
+    (void) current_cell_index;
     using doubleArray = std::array<real,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,real>, nstate >;
 
@@ -312,12 +314,14 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
 
 template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_boundary_term_explicit(
+    const dealii::types::global_dof_index current_cell_index,
     const unsigned int boundary_id,
     const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
     const real penalty,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
     dealii::Vector<real> &local_rhs_int_cell)
 {
+    (void) current_cell_index;
     using doubleArray = std::array<real,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,real>, nstate >;
 
@@ -433,6 +437,8 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_explicit(
 
 template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
+    const dealii::types::global_dof_index current_cell_index,
+    const dealii::types::global_dof_index neighbour_cell_index,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
     const real penalty,
@@ -441,6 +447,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
     dealii::Vector<real>          &local_rhs_int_cell,
     dealii::Vector<real>          &local_rhs_ext_cell)
 {
+    (void) current_cell_index;
+    (void) neighbour_cell_index;
     using doubleArray = std::array<real,nstate>;
     using doubleArrayTensor1 = std::array< dealii::Tensor<1,dim,real>, nstate >;
 
@@ -808,6 +816,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary(
 #ifdef FADFAD
 template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
+    const dealii::types::global_dof_index current_cell_index,
     const unsigned int face_number,
     const unsigned int boundary_id,
     const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
@@ -819,6 +828,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
     dealii::Vector<real> &local_rhs_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
+    (void) current_cell_index;
     using adtype = FadFadType;
 
     const dealii::FESystem<dim> &fe_metric = this->high_order_grid.fe_system;
@@ -1130,6 +1140,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_codi_taped_derivatives(
 #ifndef FADFAD
 template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
+    const dealii::types::global_dof_index current_cell_index,
     const unsigned int face_number,
     const unsigned int boundary_id,
     const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
@@ -1141,6 +1152,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
     dealii::Vector<real> &local_rhs_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
+    (void) current_cell_index;
     if (compute_d2R) {
         assemble_boundary_codi_taped_derivatives<codi_HessianComputationType>(
             face_number,
@@ -1478,6 +1490,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
 #ifdef FADFAD
 template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
+    const dealii::types::global_dof_index current_cell_index,
+    const dealii::types::global_dof_index neighbour_cell_index,
     const unsigned int interior_face_number,
     const unsigned int /*exterior_face_number*/,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
@@ -1495,6 +1509,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
     dealii::Vector<real>          &local_rhs_ext_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
+    (void) current_cell_index;
+    (void) neighbour_cell_index;
     using adtype = FadFadType;
     using ADArray = std::array<adtype,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,adtype>, nstate >;
@@ -2362,6 +2378,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms(
 #ifdef FADFAD
 template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
+    const dealii::types::global_dof_index current_cell_index,
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const dealii::FESystem<dim,dim> &fe_soln,
     const dealii::Quadrature<dim> &quadrature,
@@ -2371,6 +2388,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
     const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
+    (void) current_cell_index;
 
     using ADArray = std::array<FadFadType,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,FadFadType>, nstate >;
@@ -2681,6 +2699,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_codi_taped_derivatives(
 
 template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
+    const dealii::types::global_dof_index current_cell_index,
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const dealii::FESystem<dim,dim> &fe_soln,
     const dealii::Quadrature<dim> &quadrature,
@@ -2690,6 +2709,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
     const dealii::FEValues<dim,dim> &fe_values_lagrange,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
+    (void) current_cell_index;
     (void) fe_values_lagrange;
     if (compute_d2R) {
         assemble_volume_codi_taped_derivatives<codi_HessianComputationType>(
@@ -2716,6 +2736,8 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
 
 template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
+    const dealii::types::global_dof_index current_cell_index,
+    const dealii::types::global_dof_index neighbour_cell_index,
     const unsigned int interior_face_number,
     const unsigned int exterior_face_number,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
@@ -2733,6 +2755,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
     dealii::Vector<real>          &local_rhs_ext_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
+    (void) current_cell_index;
+    (void) neighbour_cell_index;
     if (compute_d2R) {
         assemble_face_codi_taped_derivatives<codi_HessianComputationType>(
             interior_face_number,

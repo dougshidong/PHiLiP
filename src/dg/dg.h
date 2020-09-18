@@ -464,7 +464,7 @@ protected:
 
     /// Evaluate the integral over the cell volume and the specified derivatives.
     /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
-    virtual void assemble_volume_terms_derivatives(
+    virtual void assemble_volume_term_derivatives(
         const dealii::types::global_dof_index current_cell_index,
         const dealii::FEValues<dim,dim> &,//fe_values_vol,
         const dealii::FESystem<dim,dim> &fe,
@@ -513,7 +513,7 @@ protected:
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R) = 0;
 
     /// Evaluate the integral over the cell volume
-    virtual void assemble_volume_terms_explicit(
+    virtual void assemble_volume_term_explicit(
         const dealii::types::global_dof_index current_cell_index,
         const dealii::FEValues<dim,dim> &fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,

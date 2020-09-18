@@ -181,7 +181,7 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_derivatives(
     }
 }
 template <int dim, int nstate, typename real>
-void DGStrong<dim,nstate,real>::assemble_volume_terms_derivatives(
+void DGStrong<dim,nstate,real>::assemble_volume_term_derivatives(
     const dealii::types::global_dof_index current_cell_index,
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const dealii::FESystem<dim,dim> &,//fe,
@@ -511,7 +511,7 @@ void DGStrong<dim,nstate,real>::assemble_face_term_derivatives(
 
 
 template <int dim, int nstate, typename real>
-void DGStrong<dim,nstate,real>::assemble_volume_terms_explicit(
+void DGStrong<dim,nstate,real>::assemble_volume_term_explicit(
     const dealii::types::global_dof_index current_cell_index,
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,

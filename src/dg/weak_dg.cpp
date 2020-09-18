@@ -203,7 +203,7 @@ std::vector<dealii::Tensor<2,dim,real>> evaluate_metric_jacobian (
 }
 
 template <int dim, int nstate, typename real>
-void DGWeak<dim,nstate,real>::assemble_volume_terms_explicit(
+void DGWeak<dim,nstate,real>::assemble_volume_term_explicit(
     const dealii::types::global_dof_index current_cell_index,
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
@@ -2191,7 +2191,7 @@ void DGWeak<dim,nstate,real>::assemble_face_codi_taped_derivatives(
 
 template <int dim, int nstate, typename real>
 template <typename real2>
-void DGWeak<dim,nstate,real>::assemble_volume_terms(
+void DGWeak<dim,nstate,real>::assemble_volume_term(
     const std::vector<real2> &soln_coeff, const std::vector<real2> &coords_coeff, const std::vector<real> &local_dual,
     const dealii::FESystem<dim,dim> &fe_soln, const dealii::FESystem<dim,dim> &fe_metric,
     const dealii::Quadrature<dim> &quadrature,
@@ -2377,7 +2377,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms(
 
 #ifdef FADFAD
 template <int dim, int nstate, typename real>
-void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
+void DGWeak<dim,nstate,real>::assemble_volume_term_derivatives(
     const dealii::types::global_dof_index current_cell_index,
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const dealii::FESystem<dim,dim> &fe_soln,
@@ -2444,7 +2444,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
 
     FadFadType dual_dot_residual = 0.0;
     std::vector<FadFadType> rhs(n_soln_dofs);
-    assemble_volume_terms<FadFadType>(soln_coeff, coords_coeff, local_dual,
+    assemble_volume_term<FadFadType>(soln_coeff, coords_coeff, local_dual,
                                       fe_soln, fe_metric, quadrature,
                                       *(DGBaseState<dim,nstate,real>::pde_physics_fad_fad),
                                       rhs, dual_dot_residual,
@@ -2600,7 +2600,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_codi_taped_derivatives(
 
     adtype dual_dot_residual = 0.0;
     std::vector<adtype> rhs(n_soln_dofs);
-    assemble_volume_terms<adtype>(soln_coeff, coords_coeff, local_dual,
+    assemble_volume_term<adtype>(soln_coeff, coords_coeff, local_dual,
                                   fe_soln, fe_metric, quadrature,
                                   physics,
                                   rhs, dual_dot_residual,
@@ -2698,7 +2698,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_codi_taped_derivatives(
 }
 
 template <int dim, int nstate, typename real>
-void DGWeak<dim,nstate,real>::assemble_volume_terms_derivatives(
+void DGWeak<dim,nstate,real>::assemble_volume_term_derivatives(
     const dealii::types::global_dof_index current_cell_index,
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const dealii::FESystem<dim,dim> &fe_soln,

@@ -2,7 +2,7 @@ set(TEST_SRC
     assemble_d2R_timing.cpp
     )
 
-foreach(dim RANGE 1 3)
+foreach(dim RANGE 1 2)
 
     # Output executable
     string(CONCAT TEST_TARGET ${dim}D_assemble_d2R_timing)

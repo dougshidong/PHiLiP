@@ -137,10 +137,10 @@ int ODESolver<dim,real>::steady_state ()
         //     allocate_ode_system ();
         // }
         //if ((current_iteration+1) % 10 == 0 || this->residual_norm > old_residual_norm) {
-        if (global_step < 0.5) {
-            dg->refine_residual_based();
-            allocate_ode_system ();
-        }
+        //if (global_step < 0.5) {
+        //    dg->refine_residual_based();
+        //    allocate_ode_system ();
+        //}
 
         old_residual_norm = this->residual_norm;
         this->residual_norm = this->dg->get_residual_l2norm();
@@ -254,7 +254,7 @@ double Implicit_ODESolver<dim,real>::linesearch ()
     const auto old_solution = this->dg->solution;
     double step_length = 1.0;
 
-    const double step_reduction = 0.5;
+    const double step_reduction = 0.75;
     const int maxline = 30;
     const double reduction_tolerance = 1.5;
 
@@ -274,7 +274,6 @@ double Implicit_ODESolver<dim,real>::linesearch ()
         new_residual = this->dg->get_residual_l2norm();
         pcout << " Step length " << step_length << " did not reduce residual. Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
     }
-    return step_length;
 
     if (step_length > std::pow(step_reduction,maxline/2)) {
         //this->CFL *= 1.2;

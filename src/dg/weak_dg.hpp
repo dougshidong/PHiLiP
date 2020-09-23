@@ -44,6 +44,7 @@ private:
     /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
     template <typename real2>
     void assemble_volume_codi_taped_derivatives(
+        const dealii::types::global_dof_index current_cell_index,
         const dealii::FEValues<dim,dim> &fe_values_vol,
         const dealii::FESystem<dim,dim> &fe_soln,
         const dealii::Quadrature<dim> &quadrature,
@@ -58,6 +59,7 @@ private:
     /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
     template <typename real2>
     void assemble_volume_term(
+        const dealii::types::global_dof_index current_cell_index,
         const std::vector<real2> &soln_coeff,
         const std::vector<real2> &coords_coeff,
         const std::vector<real> &local_dual,
@@ -87,6 +89,7 @@ private:
 
     template <typename adtype>
     void assemble_boundary_codi_taped_derivatives(
+        const dealii::types::global_dof_index current_cell_index,
         const unsigned int face_number,
         const unsigned int boundary_id,
         const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
@@ -103,6 +106,7 @@ private:
 
     template <typename adtype>
     void assemble_boundary(
+        const dealii::types::global_dof_index current_cell_index,
         const std::vector< adtype > &soln_coeff,
         const std::vector< adtype > &coords_coeff,
         const std::vector< real > &local_dual,
@@ -122,6 +126,8 @@ private:
 
     template <typename real2>
     void assemble_face_term(
+        const dealii::types::global_dof_index current_cell_index,
+        const dealii::types::global_dof_index neighbor_cell_index,
         const std::vector< real2 > &soln_coeff_int,
         const std::vector< real2 > &soln_coeff_ext,
         const std::vector< real2 > &coords_coeff_int,
@@ -151,6 +157,8 @@ private:
      *  computes 4 block contributions to dRdX blocks. */
     template <typename adtype>
     void assemble_face_codi_taped_derivatives(
+        const dealii::types::global_dof_index current_cell_index,
+        const dealii::types::global_dof_index neighbor_cell_index,
         const unsigned int interior_face_number,
         const unsigned int exterior_face_number,
         const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_int,

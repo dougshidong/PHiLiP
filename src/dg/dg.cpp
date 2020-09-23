@@ -734,6 +734,7 @@ void DGBase<dim,real>::update_artificial_dissipation_discontinuity_sensor()
 
         dealii::types::global_dof_index cell_index = cell->active_cell_index();
         artificial_dissipation_coeffs[cell_index] = 0.0;
+        artificial_dissipation_se[cell_index] = 0.0;
 
         const int i_fele = cell->active_fe_index();
         const int i_quad = i_fele;
@@ -806,6 +807,7 @@ void DGBase<dim,real>::update_artificial_dissipation_discontinuity_sensor()
         s_e = log10(S_e);
 
         const double mu_scale = 1.0;
+        //const double s_0 = log10(0.1) - 4.25*log10(degree);
         const double s_0 = log10(0.1) - 4.25*log10(degree);
         const double kappa = 1.0;
         const double low = s_0 - kappa;
@@ -829,6 +831,7 @@ void DGBase<dim,real>::update_artificial_dissipation_discontinuity_sensor()
 
 
         artificial_dissipation_coeffs[cell_index] = eps;
+        artificial_dissipation_se[cell_index] = s_e;
     }
 }
 
@@ -1168,6 +1171,7 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
 
     //if (all_parameters->add_artificial_dissipation) {
         data_out.add_data_vector(artificial_dissipation_coeffs, "artificial_dissipation_coeffs", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+        data_out.add_data_vector(artificial_dissipation_se, "artificial_dissipation_se", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
     //}
 
     data_out.add_data_vector(max_dt_cell, "max_dt_cell", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
@@ -1216,7 +1220,8 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     //typename dealii::DataOut<dim>::CurvedCellRegion curved = dealii::DataOut<dim>::CurvedCellRegion::no_curved_cells;
 
     const dealii::Mapping<dim> &mapping = (*(high_order_grid.mapping_fe_field));
-    const int n_subdivisions = max_degree+1;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
+    //const int n_subdivisions = max_degree+1;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
+    const int n_subdivisions = 1;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
     data_out.build_patches(mapping, n_subdivisions, curved);
     const bool write_higher_order_cells = (dim>1 && max_degree > 1) ? true : false;
     dealii::DataOutBase::VtkFlags vtkflags(0.0,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
@@ -1256,7 +1261,7 @@ void DGBase<dim,real>::allocate_system ()
     // system matrices and vectors.
 
     dof_handler.distribute_dofs(fe_collection);
-    dealii::DoFRenumbering::Cuthill_McKee(dof_handler);
+    dealii::DoFRenumbering::Cuthill_McKee(dof_handler,true);
 
     //dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> mapping = high_order_grid.get_MappingFEField();
     //dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> mapping = *(high_order_grid.mapping_fe_field);
@@ -1281,6 +1286,7 @@ void DGBase<dim,real>::allocate_system ()
     //dealii::DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
 
     artificial_dissipation_coeffs.reinit(triangulation->n_active_cells());
+    artificial_dissipation_se.reinit(triangulation->n_active_cells());
     max_dt_cell.reinit(triangulation->n_active_cells());
 
     solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);

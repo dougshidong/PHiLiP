@@ -140,15 +140,16 @@ int EulerNACA0012<dim,nstate>
             airfoil_data.incline_factor = 0.0;
             airfoil_data.bias_factor    = 5.0;
             airfoil_data.refinements    = 0;
-            //airfoil_data.n_subdivision_x_0 = 30;
-            //airfoil_data.n_subdivision_x_1 = 15;
-            //airfoil_data.n_subdivision_x_2 = 15;
-            //airfoil_data.n_subdivision_y = 20;
-            airfoil_data.n_subdivision_x_0 = 18;
-            airfoil_data.n_subdivision_x_1 = 9;
-            airfoil_data.n_subdivision_x_2 = 9;
-            airfoil_data.n_subdivision_y = 12;
-            airfoil_data.airfoil_sampling_factor = 1000; // default 2
+            airfoil_data.n_subdivision_x_0 = 60;
+            airfoil_data.n_subdivision_x_1 = 60;
+            airfoil_data.n_subdivision_x_2 = 60;
+            airfoil_data.n_subdivision_y = 40;
+            //airfoil_data.n_subdivision_x_0 = 18;
+            //airfoil_data.n_subdivision_x_1 = 9;
+            //airfoil_data.n_subdivision_x_2 = 9;
+            //airfoil_data.n_subdivision_y = 12;
+
+            airfoil_data.airfoil_sampling_factor = 100000; // default 2
 
             // dealii::GridGenerator::Airfoil::create_triangulation(*grid, airfoil_data);
             // // Assign a manifold to have curved geometry
@@ -178,12 +179,10 @@ int EulerNACA0012<dim,nstate>
             Grids::naca_airfoil(*grid, airfoil_data);
 
             const double solution_degree = poly_degree;
-            const double grid_degree = solution_degree+1;
+            //const double grid_degree = solution_degree+1;
+            //const double grid_degree = 1;
+            const double grid_degree = 2;//solution_degree+1;
             std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, solution_degree, solution_degree, grid_degree, grid);
-
-            dg->high_order_grid.prepare_for_coarsening_and_refinement();
-            grid->refine_global (1);
-            dg->high_order_grid.execute_coarsening_and_refinement(true);
 
             // Initialize coarse grid solution with free-stream
             dg->allocate_system ();

@@ -241,8 +241,11 @@ void DGWeak<dim,nstate,real>::assemble_volume_term_explicit(
 
         cell_diameter = cell_diameter + JxW[iquad];
     }
+    //const real artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
+    //                                   this->discontinuity_sensor(cell_diameter, soln_coeff, fe_values_vol.get_fe())
+    //                                   : 0.0;
     const real artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
-                                       this->discontinuity_sensor(cell_diameter, soln_coeff, fe_values_vol.get_fe())
+                                       this->artificial_dissipation_coeffs[current_cell_index]
                                        : 0.0;
 
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
@@ -358,9 +361,12 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_explicit(
         }
     }
 
-    const real cell_diameter = fe_values_boundary.get_cell()->diameter();
+    //const real cell_diameter = fe_values_boundary.get_cell()->diameter();
+    //const real artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
+    //                                   this->discontinuity_sensor(cell_diameter, soln_coeff_int, fe_values_boundary.get_fe())
+    //                                   : 0.0;
     const real artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
-                                       this->discontinuity_sensor(cell_diameter, soln_coeff_int, fe_values_boundary.get_fe())
+                                       this->artificial_dissipation_coeffs[current_cell_index]
                                        : 0.0;
 
     // Interpolate solution to face
@@ -438,7 +444,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_explicit(
 template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
     const dealii::types::global_dof_index current_cell_index,
-    const dealii::types::global_dof_index neighbour_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
     const real penalty,
@@ -448,7 +454,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
     dealii::Vector<real>          &local_rhs_ext_cell)
 {
     (void) current_cell_index;
-    (void) neighbour_cell_index;
+    (void) neighbor_cell_index;
     using doubleArray = std::array<real,nstate>;
     using doubleArrayTensor1 = std::array< dealii::Tensor<1,dim,real>, nstate >;
 
@@ -505,13 +511,19 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
         }
     }
 
-    const real cell_diameter_int = fe_values_int.get_cell()->diameter();
-    const real cell_diameter_ext = fe_values_ext.get_cell()->diameter();
+    //const real cell_diameter_int = fe_values_int.get_cell()->diameter();
+    //const real cell_diameter_ext = fe_values_ext.get_cell()->diameter();
+    //const real artificial_diss_coeff_int = this->all_parameters->add_artificial_dissipation ?
+    //                                       this->discontinuity_sensor(cell_diameter_int, soln_coeff_int, fe_values_int.get_fe())
+    //                                       : 0.0;
+    //const real artificial_diss_coeff_ext = this->all_parameters->add_artificial_dissipation ?
+    //                                       this->discontinuity_sensor(cell_diameter_ext, soln_coeff_ext, fe_values_ext.get_fe())
+    //                                       : 0.0;
     const real artificial_diss_coeff_int = this->all_parameters->add_artificial_dissipation ?
-                                           this->discontinuity_sensor(cell_diameter_int, soln_coeff_int, fe_values_int.get_fe())
+                                           this->artificial_dissipation_coeffs[current_cell_index]
                                            : 0.0;
     const real artificial_diss_coeff_ext = this->all_parameters->add_artificial_dissipation ?
-                                           this->discontinuity_sensor(cell_diameter_ext, soln_coeff_ext, fe_values_ext.get_fe())
+                                           this->artificial_dissipation_coeffs[neighbor_cell_index]
                                            : 0.0;
 
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
@@ -578,7 +590,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
         local_rhs_int_cell(itest_int) += rhs;
     }
 
-    // From test functions associated with neighbour cell point of view
+    // From test functions associated with neighbor cell point of view
     for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
         real rhs = 0.0;
         const unsigned int istate = fe_values_int.get_fe().system_to_component_index(itest_ext).first;
@@ -598,6 +610,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
 template <int dim, int nstate, typename real>
 template <typename adtype>
 void DGWeak<dim,nstate,real>::assemble_boundary(
+    const dealii::types::global_dof_index current_cell_index,
     const std::vector< adtype > &soln_coeff,
     const std::vector< adtype > &coords_coeff,
     const std::vector< real > &local_dual,
@@ -723,10 +736,13 @@ void DGWeak<dim,nstate,real>::assemble_boundary(
         }
     }
 
-    const adtype cell_diameter = fe_values_boundary.get_cell()->diameter();
+    //const adtype cell_diameter = fe_values_boundary.get_cell()->diameter();
+    //const adtype artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
+    //                                       this->discontinuity_sensor(cell_diameter, soln_coeff, fe_values_boundary.get_fe())
+    //                                       : 0.0;
     const adtype artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
-                                           this->discontinuity_sensor(cell_diameter, soln_coeff, fe_values_boundary.get_fe())
-                                           : 0.0;
+                                         this->artificial_dissipation_coeffs[current_cell_index]
+                                         : 0.0;
 
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
@@ -884,6 +900,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
     std::vector<adtype> rhs(n_soln_dofs);
     adtype dual_dot_residual;
     assemble_boundary(
+        current_cell_index,
         soln_coeff,
         coords_coeff,
         local_dual,
@@ -965,6 +982,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
 template <int dim, int nstate, typename real>
 template <typename adtype>
 void DGWeak<dim,nstate,real>::assemble_boundary_codi_taped_derivatives(
+    const dealii::types::global_dof_index current_cell_index,
     const unsigned int face_number,
     const unsigned int boundary_id,
     const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
@@ -1029,6 +1047,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_codi_taped_derivatives(
     std::vector<adtype> rhs(n_soln_dofs);
     adtype dual_dot_residual;
     assemble_boundary(
+        current_cell_index,
         soln_coeff,
         coords_coeff,
         local_dual,
@@ -1155,6 +1174,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
     (void) current_cell_index;
     if (compute_d2R) {
         assemble_boundary_codi_taped_derivatives<codi_HessianComputationType>(
+            current_cell_index,
             face_number,
             boundary_id,
             fe_values_boundary,
@@ -1170,6 +1190,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
             compute_dRdW, compute_dRdX, compute_d2R);
     } else if (compute_dRdW || compute_dRdX) {
         assemble_boundary_codi_taped_derivatives<codi_JacobianComputationType>(
+            current_cell_index,
             face_number,
             boundary_id,
             fe_values_boundary,
@@ -1191,6 +1212,8 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
 template <int dim, int nstate, typename real>
 template <typename real2>
 void DGWeak<dim,nstate,real>::assemble_face_term(
+    const dealii::types::global_dof_index current_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index,
     const std::vector< real2 > &soln_coeff_int,
     const std::vector< real2 > &soln_coeff_ext,
     const std::vector< real2 > &coords_coeff_int,
@@ -1273,13 +1296,19 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
         gradient_operator_int[d].resize(n_soln_dofs_int);
         gradient_operator_ext[d].resize(n_soln_dofs_ext);
     }
-    const real2 cell_diameter_int = fe_values_int.get_cell()->diameter();
-    const real2 cell_diameter_ext = fe_values_ext.get_cell()->diameter();
+    //const real2 cell_diameter_int = fe_values_int.get_cell()->diameter();
+    //const real2 cell_diameter_ext = fe_values_ext.get_cell()->diameter();
+    //const real2 artificial_diss_coeff_int = this->all_parameters->add_artificial_dissipation ?
+    //                                        this->discontinuity_sensor(cell_diameter_int, soln_coeff_int, fe_values_int.get_fe())
+    //                                        : 0.0;
+    //const real2 artificial_diss_coeff_ext = this->all_parameters->add_artificial_dissipation ?
+    //                                        this->discontinuity_sensor(cell_diameter_ext, soln_coeff_ext, fe_values_ext.get_fe())
+    //                                        : 0.0;
     const real2 artificial_diss_coeff_int = this->all_parameters->add_artificial_dissipation ?
-                                            this->discontinuity_sensor(cell_diameter_int, soln_coeff_int, fe_values_int.get_fe())
+                                            this->artificial_dissipation_coeffs[current_cell_index]
                                             : 0.0;
     const real2 artificial_diss_coeff_ext = this->all_parameters->add_artificial_dissipation ?
-                                            this->discontinuity_sensor(cell_diameter_ext, soln_coeff_ext, fe_values_ext.get_fe())
+                                            this->artificial_dissipation_coeffs[neighbor_cell_index]
                                             : 0.0;
 
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
@@ -1466,7 +1495,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
             dual_dot_residual += dual_int[itest_int]*rhs;
         }
 
-        // From test functions associated with neighbour cell point of view
+        // From test functions associated with neighbor cell point of view
         for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
             real2 rhs = 0.0;
             const unsigned int istate = fe_ext.system_to_component_index(itest_ext).first;
@@ -1491,7 +1520,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
 template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
     const dealii::types::global_dof_index current_cell_index,
-    const dealii::types::global_dof_index neighbour_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index,
     const unsigned int interior_face_number,
     const unsigned int /*exterior_face_number*/,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
@@ -1510,7 +1539,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
     (void) current_cell_index;
-    (void) neighbour_cell_index;
+    (void) neighbor_cell_index;
     using adtype = FadFadType;
     using ADArray = std::array<adtype,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,adtype>, nstate >;
@@ -1598,6 +1627,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
     const auto &conv_num_flux = *(DGBaseState<dim,nstate,real>::conv_num_flux_fad_fad);
     const auto &diss_num_flux = *(DGBaseState<dim,nstate,real>::diss_num_flux_fad_fad);
     assemble_face_term(
+        current_cell_index,
+        neighbor_cell_index,
         soln_coeff_int,
         soln_coeff_ext,
         coords_coeff_int,
@@ -1824,6 +1855,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
 template <int dim, int nstate, typename real>
 template <typename adtype>
 void DGWeak<dim,nstate,real>::assemble_face_codi_taped_derivatives(
+    const dealii::types::global_dof_index current_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index,
     const unsigned int interior_face_number,
     const unsigned int /*exterior_face_number*/,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
@@ -1929,6 +1962,8 @@ void DGWeak<dim,nstate,real>::assemble_face_codi_taped_derivatives(
     adtype dual_dot_residual;
 
     assemble_face_term(
+        current_cell_index,
+        neighbor_cell_index,
         soln_coeff_int,
         soln_coeff_ext,
         coords_coeff_int,
@@ -2192,6 +2227,7 @@ void DGWeak<dim,nstate,real>::assemble_face_codi_taped_derivatives(
 template <int dim, int nstate, typename real>
 template <typename real2>
 void DGWeak<dim,nstate,real>::assemble_volume_term(
+    const dealii::types::global_dof_index current_cell_index,
     const std::vector<real2> &soln_coeff, const std::vector<real2> &coords_coeff, const std::vector<real> &local_dual,
     const dealii::FESystem<dim,dim> &fe_soln, const dealii::FESystem<dim,dim> &fe_metric,
     const dealii::Quadrature<dim> &quadrature,
@@ -2200,6 +2236,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_term(
     const bool compute_metric_derivatives,
     const dealii::FEValues<dim,dim> &fe_values_vol)
 {
+    (void) current_cell_index;
     using Array = std::array<real2, nstate>;
     using Tensor1D = dealii::Tensor<1,dim,real2>;
     using Tensor2D = dealii::Tensor<2,dim,real2>;
@@ -2293,8 +2330,11 @@ void DGWeak<dim,nstate,real>::assemble_volume_term(
 
         cell_diameter = cell_diameter + JxW_iquad;
     }
+    //const real2 artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
+    //                                    this->discontinuity_sensor(cell_diameter, soln_coeff, fe_soln)
+    //                                    : 0.0;
     const real2 artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
-                                        this->discontinuity_sensor(cell_diameter, soln_coeff, fe_soln)
+                                        this->artificial_dissipation_coeffs[current_cell_index]
                                         : 0.0;
 
 
@@ -2444,11 +2484,13 @@ void DGWeak<dim,nstate,real>::assemble_volume_term_derivatives(
 
     FadFadType dual_dot_residual = 0.0;
     std::vector<FadFadType> rhs(n_soln_dofs);
-    assemble_volume_term<FadFadType>(soln_coeff, coords_coeff, local_dual,
-                                      fe_soln, fe_metric, quadrature,
-                                      *(DGBaseState<dim,nstate,real>::pde_physics_fad_fad),
-                                      rhs, dual_dot_residual,
-                                      compute_metric_derivatives, fe_values_vol);
+    assemble_volume_term<FadFadType>(
+        current_cell_index,
+        soln_coeff, coords_coeff, local_dual,
+        fe_soln, fe_metric, quadrature,
+        *(DGBaseState<dim,nstate,real>::pde_physics_fad_fad),
+        rhs, dual_dot_residual,
+        compute_metric_derivatives, fe_values_vol);
 
     // Weak form
     // The right-hand side sends all the term to the side of the source term
@@ -2531,6 +2573,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_term_derivatives(
 template <int dim, int nstate, typename real>
 template <typename real2>
 void DGWeak<dim,nstate,real>::assemble_volume_codi_taped_derivatives(
+    const dealii::types::global_dof_index current_cell_index,
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const dealii::FESystem<dim,dim> &fe_soln,
     const dealii::Quadrature<dim> &quadrature,
@@ -2600,11 +2643,13 @@ void DGWeak<dim,nstate,real>::assemble_volume_codi_taped_derivatives(
 
     adtype dual_dot_residual = 0.0;
     std::vector<adtype> rhs(n_soln_dofs);
-    assemble_volume_term<adtype>(soln_coeff, coords_coeff, local_dual,
-                                  fe_soln, fe_metric, quadrature,
-                                  physics,
-                                  rhs, dual_dot_residual,
-                                  compute_metric_derivatives, fe_values_vol);
+    assemble_volume_term<adtype>(
+        current_cell_index,
+        soln_coeff, coords_coeff, local_dual,
+        fe_soln, fe_metric, quadrature,
+        physics,
+        rhs, dual_dot_residual,
+        compute_metric_derivatives, fe_values_vol);
 
     if (compute_dRdW || compute_dRdX) {
         for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
@@ -2713,6 +2758,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_term_derivatives(
     (void) fe_values_lagrange;
     if (compute_d2R) {
         assemble_volume_codi_taped_derivatives<codi_HessianComputationType>(
+            current_cell_index,
             fe_values_vol,
             fe_soln, quadrature,
             metric_dof_indices, soln_dof_indices,
@@ -2722,6 +2768,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_term_derivatives(
             compute_dRdW, compute_dRdX, compute_d2R);
     } else if (compute_dRdW || compute_dRdX) {
         assemble_volume_codi_taped_derivatives<codi_JacobianComputationType>(
+            current_cell_index,
             fe_values_vol,
             fe_soln, quadrature,
             metric_dof_indices, soln_dof_indices,
@@ -2737,7 +2784,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_term_derivatives(
 template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
     const dealii::types::global_dof_index current_cell_index,
-    const dealii::types::global_dof_index neighbour_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index,
     const unsigned int interior_face_number,
     const unsigned int exterior_face_number,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
@@ -2756,9 +2803,11 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
     (void) current_cell_index;
-    (void) neighbour_cell_index;
+    (void) neighbor_cell_index;
     if (compute_d2R) {
         assemble_face_codi_taped_derivatives<codi_HessianComputationType>(
+            current_cell_index,
+            neighbor_cell_index,
             interior_face_number,
             exterior_face_number,
             fe_values_int,
@@ -2780,6 +2829,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
             compute_dRdW, compute_dRdX, compute_d2R);
     } else if (compute_dRdW || compute_dRdX) {
         assemble_face_codi_taped_derivatives<codi_JacobianComputationType>(
+            current_cell_index,
+            neighbor_cell_index,
             interior_face_number,
             exterior_face_number,
             fe_values_int,

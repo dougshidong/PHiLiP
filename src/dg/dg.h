@@ -305,8 +305,12 @@ public:
      */
     dealii::Vector<double> max_dt_cell;
 
-    /// Artificial dissipation in each cell
+    /// Artificial dissipation in each cell.
     dealii::Vector<double> artificial_dissipation_coeffs;
+
+    /// Artificial dissipation error ratio sensor in each cell.
+    dealii::Vector<double> artificial_dissipation_se;
+
     /// Discontinuity sensor based on projecting to p-1
     template <typename real2>
     real2 discontinuity_sensor(

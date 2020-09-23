@@ -59,7 +59,7 @@ solve_linear (
         solver.SetLHS(&x);
         solver.SetAztecOption(AZ_precond, AZ_dom_decomp);
         solver.SetAztecOption(AZ_subdomain_solve, AZ_ilut);
-        solver.SetAztecOption(AZ_overlap, 0);
+        solver.SetAztecOption(AZ_overlap, 1);
         solver.SetAztecOption(AZ_reorder, 1); // RCM re-ordering
 
         const double rhs_norm = right_hand_side.l2_norm();
@@ -133,6 +133,67 @@ solve_linear (
 //     dealii::TrilinosWrappers::SolverGMRES solver(solver_control, solver_add_data);
 //     solver.solve(system_matrix, solution, right_hand_side, preconditioner);
 //     return {solver_control.last_step(), solver_control.last_value()};
+// }
+//
+
+// std::pair<unsigned int, double>
+// solve_linear (
+//     const dealii::TrilinosWrappers::SparseMatrix &system_matrix,
+//     dealii::LinearAlgebra::distributed::Vector<double> &right_hand_side,
+//     dealii::LinearAlgebra::distributed::Vector<double> &solution,
+//     const Parameters::LinearSolverParam &param)
+// {
+//     Parameters::LinearSolverParam::LinearSolverEnum direct_type = Parameters::LinearSolverParam::LinearSolverEnum::direct;
+//     Parameters::LinearSolverParam::LinearSolverEnum gmres_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
+//     if (param.linear_solver_type == direct_type) {
+// 
+//         dealii::SolverControl solver_control(1, 0);
+//         dealii::TrilinosWrappers::SolverDirect::AdditionalData data(false);
+//         //dealii::TrilinosWrappers::SolverDirect::AdditionalData data(parameters.output == Parameters::Solver::verbose);
+//         dealii::TrilinosWrappers::SolverDirect direct(solver_control, data);
+// 
+//         direct.solve(system_matrix, solution, right_hand_side);
+//         return {solver_control.last_step(), solver_control.last_value()};
+//     } else if (param.linear_solver_type == gmres_type) {
+//         
+//         const unsigned int ilut_drop = param.ilut_drop;
+//         const unsigned int ilut_fill = param.ilut_fill;
+//         const double       ilut_atol = param.ilut_atol;
+//         const double       ilut_rtol = param.ilut_rtol;
+//         const unsigned int overlap = 1;
+//         dealii::TrilinosWrappers::PreconditionILUT::AdditionalData additional_data(ilut_drop, ilut_fill, ilut_atol, ilut_rtol, overlap);
+//         dealii::TrilinosWrappers::PreconditionILUT preconditioner;
+// 
+//         //dealii::TrilinosWrappers::PreconditionIdentity preconditioner;
+//         //dealii::TrilinosWrappers::PreconditionIdentity::AdditionalData additional_data;
+// 
+//         preconditioner.initialize(system_matrix, additional_data);
+// 
+//         //dealii::TrilinosWrappers::PreconditionJacobi preconditioner;
+//         //preconditioner.initialize(system_matrix);
+// 
+//         const unsigned int restart_number = param.restart_number;
+//         bool log_history = true;
+//         bool log_result = true;
+//         const double rhs_norm = right_hand_side.l2_norm();
+//         const double linear_residual = param.linear_residual * rhs_norm;//1e-4;
+//         dealii::SolverControl solver_control(param.max_iterations, linear_residual, log_history, log_result);
+//         dealii::deallog.depth_console(10);
+// 
+//         auto Ab = right_hand_side;
+//         preconditioner.vmult(Ab, right_hand_side);
+//         std::cout << Ab.l2_norm() << std::endl;
+// 
+//         //const bool output_solver_details=false;
+//         //dealii::TrilinosWrappers::SolverGMRES::AdditionalData solver_add_data(output_solver_details, restart_parameter);
+//         //dealii::TrilinosWrappers::SolverGMRES solver(solver_control, solver_add_data);
+//         dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>> solver( solver_control, dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>>::AdditionalData(restart_number));
+// 
+//         solver.solve(system_matrix, solution, right_hand_side, preconditioner);
+//         return {solver_control.last_step(), solver_control.last_value()};
+// 
+//     }
+//     return {-1.0, -1.0};
 // }
 
 std::pair<unsigned int, double>

@@ -201,6 +201,9 @@ public:
      */
     real compute_entropy_measure ( const std::array<real,nstate> &conservative_soln ) const;
 
+    /// Evaluate entropy from density and pressure. 
+    real compute_entropy_measure ( const real density, const real pressure ) const;
+
     /// Given conservative variables, returns Mach number
     real compute_mach_number ( const std::array<real,nstate> &conservative_soln ) const;
 
@@ -252,6 +255,12 @@ public:
     real compute_mean_specific_energy(
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &convervative_soln2) const;
+
+    /// Evaluate the Riemann-based farfield boundary conditions based on freestream values.
+    void boundary_riemann (
+       const dealii::Tensor<1,dim,real> &normal_int,
+       const std::array<real,nstate> &soln_int,
+       std::array<real,nstate> &soln_bc) const;
 
     void boundary_face_values (
         const int /*boundary_type*/,

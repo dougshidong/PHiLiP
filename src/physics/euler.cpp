@@ -109,8 +109,8 @@ inline std::array<real,nstate> Euler<dim,nstate,real>
     dealii::Tensor<1,dim,real> vel = compute_velocities (conservative_soln);
     real pressure = compute_pressure (conservative_soln);
 
-    if (density < 0.0) density = 1e10;
-    if (pressure < 0.0) pressure = 1e10;
+    if (density < 0.0) density = density_inf;//1e10;
+    if (pressure < 0.0) pressure = pressure_inf;//1e10;
     primitive_soln[0] = density;
     for (int d=0; d<dim; ++d) {
         primitive_soln[1+d] = vel[d];
@@ -191,8 +191,16 @@ inline real Euler<dim,nstate,real>
 ::compute_entropy_measure ( const std::array<real,nstate> &conservative_soln ) const
 {
     real density = conservative_soln[0];
-    if (density < 0.0) density = 1e10;
+    //if (density < 0.0) density = density_inf;//1e10;
     const real pressure = compute_pressure(conservative_soln);
+    return compute_entropy_measure(density, pressure);
+}
+
+template <int dim, int nstate, typename real>
+inline real Euler<dim,nstate,real>
+::compute_entropy_measure ( const real density, const real pressure ) const
+{
+    assert(density > 0.0);
     const real entropy_measure = pressure*pow(density,-gam);
     return entropy_measure;
 }
@@ -248,29 +256,17 @@ inline real Euler<dim,nstate,real>
 ::compute_pressure ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real density = conservative_soln[0];
-    //std::cout << "density " << density << std::endl;
 
     const real tot_energy  = conservative_soln[nstate-1];
-  //  std::cout << "tot_energy " << tot_energy << std::endl;
 
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
-   // std::cout << "vel1 " << vel[0] << std::endl
-   //                      << vel[1] << std::endl
-//                         << vel[2] <<std::endl;
 
     const real vel2 = compute_velocity_squared(vel);
-    //std::cout << "vel ^2 " << vel2 <<std::endl;
     real pressure = gamm1*(tot_energy - 0.5*density*vel2);
-    //std::cout << "calculated pressure is" << pressure << std::endl;
     if(pressure<0.0) {
-        //std::cout<<"Cannot compute pressure..."<<std::endl;
-        //std::cout<<"density "<<density<<std::endl;
-        //for(int d=0;d<dim;d++) std::cout<<"vel"<<d<<" "<<vel[d]<<std::endl;
-        //std::cout<<"energy "<<tot_energy<<std::endl;
-        pressure = 1e10;
+        pressure = pressure_inf;//1e10;
     }
     //assert(pressure>0.0);
-    //if(pressure<1e-4) pressure = 0.01;
     return pressure;
 }
 
@@ -279,17 +275,12 @@ inline real Euler<dim,nstate,real>
 ::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
     real density = conservative_soln[0];
-    //if(density<1e-4) density = 0.01;
     if(density<0.0) {
-        //std::cout<<"density"<<density<<std::endl;
-        density = 1e10;
-        //std::abort();
+        density = density_inf;//1e10;
     }
-    //assert(density > 0);
+    assert(density>0.0);
     const real pressure = compute_pressure(conservative_soln);
-    //std::cout << "pressure is" << pressure << std::endl;
     const real sound = sqrt(pressure*gam/density);
-    //std::cout << "sound is " << sound << std::endl;
     return sound;
 }
 
@@ -532,6 +523,80 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 void Euler<dim,nstate,real>
+::boundary_riemann (
+   const dealii::Tensor<1,dim,real> &normal_int,
+   const std::array<real,nstate> &soln_int,
+   std::array<real,nstate> &soln_bc) const
+{
+    std::array<real,nstate> primitive_int = convert_conservative_to_primitive(soln_int);
+    std::array<real,nstate> primitive_ext;
+    primitive_ext[0] = density_inf;
+    for (int d=0;d<dim;d++) { primitive_ext[1+d] = velocities_inf[d]; }
+    primitive_ext[nstate-1] = pressure_inf;
+
+    const dealii::Tensor<1,dim,real> velocities_int = extract_velocities_from_primitive(primitive_int);
+    const dealii::Tensor<1,dim,real> velocities_ext = extract_velocities_from_primitive(primitive_ext);
+
+    const real sound_int  = compute_sound ( primitive_int[0], primitive_int[nstate-1] );
+    const real sound_ext  = compute_sound ( primitive_ext[0], primitive_ext[nstate-1] );
+
+    real vel_int_dot_normal = 0.0;
+    real vel_ext_dot_normal = 0.0;
+    for (int d=0; d<dim; d++) {
+        vel_int_dot_normal = vel_int_dot_normal + velocities_int[d]*normal_int[d];
+        vel_ext_dot_normal = vel_ext_dot_normal + velocities_ext[d]*normal_int[d];
+    }
+
+    // Riemann invariants
+    const real out_riemann_invariant = vel_int_dot_normal + 2.0/gamm1*sound_int, // Outgoing
+               inc_riemann_invariant = vel_ext_dot_normal - 2.0/gamm1*sound_ext; // Incoming
+
+    const real normal_velocity_bc = 0.5*(out_riemann_invariant+inc_riemann_invariant),
+               sound_bc  = 0.25*gamm1*(out_riemann_invariant-inc_riemann_invariant);
+
+    std::array<real,nstate> primitive_bc;
+    if (abs(normal_velocity_bc) >= abs(sound_bc)) { // Supersonic
+        if (normal_velocity_bc < 0.0) { // Inlet
+            primitive_bc = primitive_ext;
+        } else { // Outlet
+            primitive_bc = primitive_int;
+        }
+    } else { // Subsonic
+
+        real density_bc;
+        dealii::Tensor<1,dim,real> velocities_bc;
+        real pressure_bc;
+
+        dealii::Tensor<1,dim,real> velocities_tangential;
+        if (normal_velocity_bc < 0.0) { // Inlet
+            const real entropy_ext = compute_entropy_measure(primitive_ext[0], primitive_ext[nstate-1]);
+            density_bc = pow( 1.0/gam * sound_bc * sound_bc / entropy_ext, 1.0/gamm1 );
+            for (int d=0; d<dim; ++d) {
+                velocities_tangential[d] = velocities_ext[d] - vel_ext_dot_normal * normal_int[d];
+            }
+        } else { // Outlet
+            const real entropy_int = compute_entropy_measure(primitive_int[0], primitive_int[nstate-1]);
+            density_bc = pow( 1.0/gam * sound_bc * sound_bc / entropy_int, 1.0/gamm1 );
+            for (int d=0; d<dim; ++d) {
+                velocities_tangential[d] = velocities_int[d] - vel_int_dot_normal * normal_int[d];
+            }
+        }
+        for (int d=0; d<dim; ++d) {
+            velocities_bc[d] = velocities_tangential[d] + normal_velocity_bc*normal_int[d];
+        }
+
+        pressure_bc = 1.0/gam * sound_bc * sound_bc * density_bc;
+
+        primitive_bc[0] = density_bc;
+        for (int d=0;d<dim;d++) { primitive_bc[1+d] = velocities_bc[d]; }
+        primitive_bc[nstate-1] = pressure_bc;
+    }
+
+    soln_bc = convert_primitive_to_conservative(primitive_bc);
+}
+
+template <int dim, int nstate, typename real>
+void Euler<dim,nstate,real>
 ::boundary_face_values (
    const int boundary_type,
    const dealii::Point<dim, real> &pos,
@@ -757,18 +822,22 @@ void Euler<dim,nstate,real>
             }
         }
 
+//    } else if (boundary_type == 1004) {
+//        // Farfield boundary condition
+//        const real density_bc = density_inf;
+//        const real pressure_bc = 1.0/(gam*mach_inf_sqr);
+//        std::array<real,nstate> primitive_boundary_values;
+//        primitive_boundary_values[0] = density_bc;
+//        for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = velocities_inf[d]; } // minus since it's inflow
+//        primitive_boundary_values[nstate-1] = pressure_bc;
+//        const std::array<real,nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
+//        for (int istate=0; istate<nstate; ++istate) {
+//            soln_bc[istate] = conservative_bc[istate];
+//        }
+//
     } else if (boundary_type == 1004) {
         // Farfield boundary condition
-        const real density_bc = density_inf;
-        const real pressure_bc = 1.0/(gam*mach_inf_sqr);
-        std::array<real,nstate> primitive_boundary_values;
-        primitive_boundary_values[0] = density_bc;
-        for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = velocities_inf[d]; } // minus since it's inflow
-        primitive_boundary_values[nstate-1] = pressure_bc;
-        const std::array<real,nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
-        for (int istate=0; istate<nstate; ++istate) {
-            soln_bc[istate] = conservative_bc[istate];
-        }
+        boundary_riemann (normal_int, soln_int, soln_bc);
     } else{
         std::cout << "Invalid boundary_type: " << boundary_type << std::endl;
         std::abort();

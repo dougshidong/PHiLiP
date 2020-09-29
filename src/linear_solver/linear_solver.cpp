@@ -26,15 +26,15 @@ solve_linear (
     Parameters::LinearSolverParam::LinearSolverEnum direct_type = Parameters::LinearSolverParam::LinearSolverEnum::direct;
     Parameters::LinearSolverParam::LinearSolverEnum gmres_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
 
-    if (param.linear_solver_output == Parameters::OutputEnum::verbose) {
-        dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
-        if (pcout.is_active()) right_hand_side.print(pcout.get_stream());
-        if (pcout.is_active()) solution.print(pcout.get_stream());
-        dealii::FullMatrix<double> fullA(system_matrix.m());
-        fullA.copy_from(system_matrix);
-        pcout<<"Dense matrix:"<<std::endl;
-        if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), 3, true, 10, "0", 1., 0.);
-    }
+    //if (param.linear_solver_output == Parameters::OutputEnum::verbose) {
+    //    dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
+    //    if (pcout.is_active()) right_hand_side.print(pcout.get_stream());
+    //    if (pcout.is_active()) solution.print(pcout.get_stream());
+    //    dealii::FullMatrix<double> fullA(system_matrix.m());
+    //    fullA.copy_from(system_matrix);
+    //    pcout<<"Dense matrix:"<<std::endl;
+    //    if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), 3, true, 10, "0", 1., 0.);
+    //}
     if (param.linear_solver_type == direct_type) {
 
         dealii::SolverControl solver_control(1, 0);

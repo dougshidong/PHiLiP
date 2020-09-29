@@ -274,7 +274,8 @@ template <int dim, int nstate, typename real>
 real DGBaseState<dim,nstate,real>::evaluate_CFL (
     std::vector< std::array<real,nstate> > soln_at_q,
     const real artificial_dissipation,
-    const real cell_diameter
+    const real cell_diameter,
+    const unsigned int cell_degree
     )
 {
     const unsigned int n_pts = soln_at_q.size();
@@ -288,7 +289,34 @@ real DGBaseState<dim,nstate,real>::evaluate_CFL (
     const real cfl_convective = cell_diameter / max_eig;
     const real cfl_diffusive  = artificial_dissipation != 0.0 ? 0.5*cell_diameter*cell_diameter / artificial_dissipation : 1e200;
 
-    return std::min(cfl_convective, cfl_diffusive);
+    return std::min(cfl_convective, cfl_diffusive) / (2*cell_degree + 1.0);
+}
+
+template <int dim, typename real>
+void DGBase<dim,real>::time_scale_solution_update ( dealii::LinearAlgebra::distributed::Vector<double> &solution_update, const real CFL ) const
+{
+    std::vector<dealii::types::global_dof_index> dofs_indices;
+
+    for (auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell) {
+
+        if (!cell->is_locally_owned()) continue;
+
+
+        const int i_fele = cell->active_fe_index();
+        const dealii::FESystem<dim,dim> &fe_ref = fe_collection[i_fele];
+        const unsigned int n_dofs_cell = fe_ref.n_dofs_per_cell();
+
+        dofs_indices.resize(n_dofs_cell);
+        cell->get_dof_indices (dofs_indices);
+
+        const dealii::types::global_dof_index cell_index = cell->active_cell_index();
+
+        const real dt = CFL * max_dt_cell[cell_index];
+        for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
+            const dealii::types::global_dof_index dof_index = dofs_indices[idof];
+            solution_update[dof_index] *= dt;
+        }
+    }
 }
 
 

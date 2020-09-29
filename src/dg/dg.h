@@ -145,6 +145,12 @@ private:
 
 
 public:
+
+    /// Scales a solution update with the appropriate maximum time step.
+    /** Used for steady state solutions using the explicit ODE solver.
+     */
+    void time_scale_solution_update ( dealii::LinearAlgebra::distributed::Vector<double> &solution_update, const real CFL ) const;
+
     /// Evaluate the time_scaled_global_mass_matrix such that the maximum time step
     /// cell-wise is taken into account.
     void time_scaled_mass_matrices(const real scale);
@@ -297,6 +303,13 @@ private:
     /// Will be used to avoid recomputing d2R.
     dealii::LinearAlgebra::distributed::Vector<double> dual_d2R;
 public:
+
+    /// Time it takes for the maximum wavespeed to cross the cell domain.
+    /** Uses evaluate_CFL() which would be defined in the subclasses.
+     *  This is because DGBase isn't templated on nstate and therefore, can't use
+     *  the Physics to compute maximum wavespeeds.
+     */
+    dealii::Vector<double> cell_volume;
 
     /// Time it takes for the maximum wavespeed to cross the cell domain.
     /** Uses evaluate_CFL() which would be defined in the subclasses.
@@ -668,7 +681,7 @@ protected:
      *  Furthermore, a more robust implementation would convert the values to a Bezier basis where
      *  the maximum and minimum values would be bounded by the Bernstein modal coefficients.
      */
-    real evaluate_CFL (std::vector< std::array<real,nstate> > soln_at_q, const real artificial_dissipation, const real cell_diameter);
+    real evaluate_CFL (std::vector< std::array<real,nstate> > soln_at_q, const real artificial_dissipation, const real cell_diameter, const unsigned int cell_degree);
 
     /// Reinitializes the numerical fluxes based on the current physics.
     /** Usually called after setting physics.

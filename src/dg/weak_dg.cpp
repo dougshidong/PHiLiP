@@ -235,18 +235,14 @@ void DGWeak<dim,nstate,real>::assemble_volume_term_explicit(
         soln_coeff[idof] = DGBase<dim,real>::solution(soln_dof_indices_int[idof]);
     }
 
-    //const real cell_diameter = fe_values_vol.get_cell()->diameter();
-    real cell_diameter = 0.0;
-    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-
-        cell_diameter = cell_diameter + JxW[iquad];
-    }
     //const real artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
     //                                   this->discontinuity_sensor(cell_diameter, soln_coeff, fe_values_vol.get_fe())
     //                                   : 0.0;
     const real artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
                                        this->artificial_dissipation_coeffs[current_cell_index]
                                        : 0.0;
+
+
 
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         for (int istate=0; istate<nstate; istate++) {
@@ -280,7 +276,18 @@ void DGWeak<dim,nstate,real>::assemble_volume_term_explicit(
     }
 
     const unsigned int cell_index = fe_values_vol.get_cell()->active_cell_index();
-    this->max_dt_cell[cell_index] = DGBaseState<dim,nstate,real>::evaluate_CFL ( soln_at_q, artificial_diss_coeff, cell_diameter );
+    const unsigned int cell_degree = fe_values_vol.get_fe().tensor_degree();
+    real cell_volume = 0.0;
+    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        cell_volume = cell_volume + JxW[iquad];
+    }
+    const real diameter = fe_values_vol.get_cell()->diameter();
+    const real cell_diameter = cell_volume / std::pow(diameter,dim-1);
+    //const real cell_diameter = std::pow(cell_volume,1.0/dim);
+    //const real cell_diameter = cell_volume;
+    const real cell_radius = 0.5 * cell_diameter;
+    this->cell_volume[cell_index] = cell_volume;
+    this->max_dt_cell[cell_index] = DGBaseState<dim,nstate,real>::evaluate_CFL ( soln_at_q, artificial_diss_coeff, cell_radius, cell_degree);
 
     // Weak form
     // The right-hand side sends all the term to the side of the source term
@@ -2323,13 +2330,14 @@ void DGWeak<dim,nstate,real>::assemble_volume_term(
 
 
     //const real2 cell_diameter = fe_values_.get_cell()->diameter();
-    real2 cell_diameter = 0.0;
-    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+    // real2 cell_volume = 0.0;
+    // for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
-        const real2 JxW_iquad = jac_det[iquad] * quadrature.weight(iquad);
+    //     const real2 JxW_iquad = jac_det[iquad] * quadrature.weight(iquad);
 
-        cell_diameter = cell_diameter + JxW_iquad;
-    }
+    //     cell_volume = cell_volume + JxW_iquad;
+    // }
+    //const real2 cell_diameter = pow(cell_volume,1.0/dim);
     //const real2 artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
     //                                    this->discontinuity_sensor(cell_diameter, soln_coeff, fe_soln)
     //                                    : 0.0;

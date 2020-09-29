@@ -21,6 +21,8 @@
 #include <Sacado.hpp>
 
 #include "tests.h"
+#include "mesh/grids/curved_periodic_grid.hpp"
+
 #include "grid_study.h"
 
 #include "physics/physics_factory.h"
@@ -44,7 +46,8 @@ void GridStudy<dim,nstate>
 {
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
-    dealii::VectorTools::interpolate(dg.dof_handler, *physics.manufactured_solution_function, solution_no_ghost);
+    const auto mapping = (*(dg.high_order_grid.mapping_fe_field));
+    dealii::VectorTools::interpolate(mapping, dg.dof_handler, *physics.manufactured_solution_function, solution_no_ghost);
     dg.solution = solution_no_ghost;
 }
 template <int dim, int nstate>
@@ -67,10 +70,10 @@ double GridStudy<dim,nstate>
     const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
     std::array<double,nstate> soln_at_q;
 
-    const bool linear_output = false;
-    int power;
-    if (linear_output) power = 1;
-    else power = 2;
+    const bool linear_output = true;
+    int exponent;
+    if (linear_output) exponent = 1;
+    else exponent = 2;
 
     // Integrate solution error and output error
     std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
@@ -91,7 +94,7 @@ double GridStudy<dim,nstate>
             }
             // Integrate solution
             for (int s=0; s<nstate; s++) {
-                solution_integral += pow(soln_at_q[0], power) * fe_values_extra.JxW(iquad);
+                solution_integral += pow(soln_at_q[0], exponent) * fe_values_extra.JxW(iquad);
             }
         }
 
@@ -141,10 +144,21 @@ int GridStudy<dim,nstate>
                 dealii::Triangulation<dim>::smoothing_on_coarsening));
 
         dealii::GridGenerator::subdivided_hyper_cube(*grid_super_fine, n_1d_cells[n_grids_input-1]);
+
+        //grid_super_fine->clear();
+        //const std::vector<unsigned int> n_subdivisions(dim,n_1d_cells[n_grids_input-1]);
+        //PHiLiP::Grids::curved_periodic_sine_grid<dim,Triangulation>(*grid_super_fine, n_subdivisions);
+        //for (auto cell = grid_super_fine->begin_active(); cell != grid_super_fine->end(); ++cell) {
+        //    for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+        //        if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
+        //    }
+        //}
+
         std::shared_ptr < DGBase<dim, double> > dg_super_fine = DGFactory<dim,double>::create_discontinuous_galerkin(&param, p_end, grid_super_fine);
         dg_super_fine->allocate_system ();
 
         initialize_perturbed_solution(*dg_super_fine, *physics_double);
+        dg_super_fine->output_results_vtk(9999);
         exact_solution_integral = integrate_solution_over_domain(*dg_super_fine);
         pcout << "Exact solution integral is " << exact_solution_integral << std::endl;
     }
@@ -190,14 +204,25 @@ int GridStudy<dim,nstate>
                     if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
                 }
             }
+            //dealii::GridTools::transform (&warp, *grid);
             // Warp grid if requested in input file
             if (manu_grid_conv_param.grid_type == GridEnum::sinehypercube) dealii::GridTools::transform (&warp, *grid);
+            
+
+            //grid->clear();
+            //const std::vector<unsigned int> n_subdivisions(dim,n_1d_cells[igrid]);
+            //PHiLiP::Grids::curved_periodic_sine_grid<dim,Triangulation>(*grid, n_subdivisions);
+            //for (auto cell = grid->begin_active(); cell != grid->end(); ++cell) {
+            //    for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+            //        if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
+            //    }
+            //}
 
             // // Generate hypercube
             // if ( igrid==0 && (manu_grid_conv_param.grid_type == GridEnum::hypercube || manu_grid_conv_param.grid_type == GridEnum::sinehypercube ) ) {
 
             //     grid->clear();
-            //     dealii::GridGenerator::subdivided_hyper_cube(*grid, n_1d_cells[igrid]);
+            //     dealii::GridGenerator::subdivided_hyper_cube(*, n_1d_cells[igrid]);
             //     for (auto cell = grid->begin_active(); cell != grid->end(); ++cell) {
             //         // Set a dummy boundary ID
             //         cell->set_material_id(9002);

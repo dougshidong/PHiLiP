@@ -140,7 +140,7 @@ real ConvectionDiffusion<dim,nstate,real>
     const dealii::Tensor<1,dim,real> advection_speed = this->advection_speed();
     real max_eig = 0;
     for (int i=0; i<dim; i++) {
-        real abs_adv = abs(advection_speed[0]);
+        real abs_adv = abs(advection_speed[i]);
         max_eig = std::max(max_eig,abs_adv);
     }
     return max_eig;

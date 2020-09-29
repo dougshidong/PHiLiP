@@ -16,7 +16,7 @@ subsection ODE solver
   # Nonlinear solver residual tolerance
   set nonlinear_steady_residual_tolerance = 1e-12
 
-  set initial_time_step = 0.0005
+  set initial_time_step = 0.99
 
   # Print every print_iteration_modulo iterations of the nonlinear solver
   set print_iteration_modulo              = 250

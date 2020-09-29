@@ -52,7 +52,7 @@ public:
     int advance_solution_time (double time_advance);
 
     /// Virtual function to evaluate solution update
-    virtual void step_in_time(real dt) = 0;
+    virtual void step_in_time(real dt, const bool pseudotime) = 0;
 
     /// Virtual function to allocate the ODE system
     virtual void allocate_ode_system () = 0;
@@ -88,8 +88,6 @@ protected:
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
 public:
-    /// Courant-Friedrichs-Lax number
-    double CFL;
 
 }; // end of ODESolver class
 
@@ -129,7 +127,7 @@ public:
     void allocate_ode_system ();
 protected:
     /// Advances the solution in time by \p dt.
-    void step_in_time(real dt);
+    void step_in_time(real dt, const bool pseudotime = false) override;
 
     /// Performs a linesearch to reduce the residual.
     /** It first does a backtracking linesearch to make sure the residual is reduced.
@@ -165,7 +163,8 @@ public:
     void allocate_ode_system ();
 
 protected:
-    void step_in_time(real dt); ///< Advances the solution in time by \p dt.
+    ///< Advances the solution in time by \p dt.
+    void step_in_time(real dt, const bool pseudotime = false) override;
     using ODESolver<dim,real>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 }; // end of Explicit_ODESolver class
 

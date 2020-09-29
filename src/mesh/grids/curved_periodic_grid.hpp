@@ -10,9 +10,9 @@ namespace Grids {
 /// Create a Gaussian bump grid with an associated nonlinear manifold.
 /** Numbers used are the ones from the High-Order Prediction Workshop (HOPW)
  */
-template<int dim>
+template<int dim, typename TriangulationType>
 void curved_periodic_sine_grid(
-    dealii::parallel::distributed::Triangulation<dim> &grid,
+    TriangulationType &grid,
     const std::vector<unsigned int> n_subdivisions);
 
 /// Gaussian bump manifold.

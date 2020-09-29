@@ -127,7 +127,8 @@ int test()
         dg->assemble_residual();
         pcout << "Residual norm: " << dg->get_residual_l2norm() << std::endl;
         dg->output_results_vtk(i);
-        ode_solver->step_in_time(time_step);
+        const bool pseudotime = true;
+        ode_solver->step_in_time(time_step, pseudotime);
         auto diff = initial_constant_solution;
         diff -= dg->solution;
         double diff_norm = diff.l2_norm();

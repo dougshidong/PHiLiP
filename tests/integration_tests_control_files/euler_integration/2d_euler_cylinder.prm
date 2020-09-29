@@ -27,10 +27,12 @@ end
 subsection linear solver
 #set linear_solver_type = direct
   subsection gmres options
-    set linear_residual_tolerance = 1e-5
+    set linear_residual_tolerance = 1e-2
     set max_iterations = 2000
-    set restart_number = 100
-    set ilut_fill = 2
+    set restart_number = 200
+    set ilut_fill = 10
+    set ilut_atol = 1e-3
+    set ilut_rtol = 1.01
     set ilut_drop = 1e-4
   end 
 end
@@ -43,9 +45,9 @@ subsection ODE solver
   # Nonlinear solver residual tolerance
   set nonlinear_steady_residual_tolerance = 1e-14
 
-  set initial_time_step = 0.01
+  set initial_time_step = 10
   set time_step_factor_residual = 50.0
-  set time_step_factor_residual_exp = 3.0
+  set time_step_factor_residual_exp = 2.0
 
   # Print every print_iteration_modulo iterations of the nonlinear solver
   set print_iteration_modulo              = 1

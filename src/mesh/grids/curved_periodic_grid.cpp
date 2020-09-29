@@ -7,9 +7,9 @@
 namespace PHiLiP {
 namespace Grids {
 
-template<int dim>
+template<int dim, typename TriangulationType>
 void curved_periodic_sine_grid(
-    dealii::parallel::distributed::Triangulation<dim> &grid,
+    TriangulationType &grid,
     const std::vector<unsigned int> n_subdivisions)
 {
     dealii::Point<dim> p1;
@@ -21,17 +21,17 @@ void curved_periodic_sine_grid(
     const bool colorize = true;
     dealii::GridGenerator::subdivided_hyper_rectangle (grid, n_subdivisions, p1, p2, colorize);
 
-    std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<dim>::cell_iterator> > matched_pairs;
-    dealii::GridTools::collect_periodic_faces(grid,0,1,0,matched_pairs);
-    grid.add_periodicity(matched_pairs);
-    if (dim>=2) {
-        dealii::GridTools::collect_periodic_faces(grid,2,3,1,matched_pairs);
-        grid.add_periodicity(matched_pairs);
-    }
-    if (dim>=3) {
-        dealii::GridTools::collect_periodic_faces(grid,4,5,2,matched_pairs);
-        grid.add_periodicity(matched_pairs);
-    }
+    //std::vector<dealii::GridTools::PeriodicFacePair<typename TriangulationType::cell_iterator> > matched_pairs;
+    //dealii::GridTools::collect_periodic_faces(grid,0,1,0,matched_pairs);
+    //grid.add_periodicity(matched_pairs);
+    //if (dim>=2) {
+    //    dealii::GridTools::collect_periodic_faces(grid,2,3,1,matched_pairs);
+    //    grid.add_periodicity(matched_pairs);
+    //}
+    //if (dim>=3) {
+    //    dealii::GridTools::collect_periodic_faces(grid,4,5,2,matched_pairs);
+    //    grid.add_periodicity(matched_pairs);
+    //}
 
     const PeriodicSineManifold<dim,dim,dim> periodic_sine_manifold;
 
@@ -44,6 +44,15 @@ void curved_periodic_sine_grid(
     grid.reset_all_manifolds();
     grid.set_all_manifold_ids(manifold_id);
     grid.set_manifold ( manifold_id, periodic_sine_manifold );
+
+    //grid.reset_all_manifolds();
+    //for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
+    //    // Set a dummy boundary ID
+    //    cell->set_material_id(9002);
+    //    for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+    //        if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
+    //    }
+    //}
 }
 
 template<int dim,int spacedim,int chartdim>
@@ -53,7 +62,7 @@ dealii::Point<spacedim,real> PeriodicSineManifold<dim,spacedim,chartdim>::mappin
     dealii::Point<spacedim,real> phys_point;
 
     phys_point[0] = chart_point[0];
-    const double amplitude = 0.3;
+    const double amplitude = 0.1;
     if constexpr (dim >= 2) {
         phys_point[0] = chart_point[0];
         phys_point[0] += amplitude*sin(pi*chart_point[1]);;
@@ -168,8 +177,9 @@ std::unique_ptr<dealii::Manifold<dim,spacedim> > PeriodicSineManifold<dim,spaced
     return std::make_unique<PeriodicSineManifold<dim,spacedim,chartdim>>();
 }
 
-template void curved_periodic_sine_grid<2>(dealii::parallel::distributed::Triangulation<2> &grid, const std::vector<unsigned int> n_subdivisions);
-template void curved_periodic_sine_grid<3>(dealii::parallel::distributed::Triangulation<3> &grid, const std::vector<unsigned int> n_subdivisions);
+template void curved_periodic_sine_grid<1, dealii::Triangulation<1> >                       (dealii::Triangulation<1> &grid, const std::vector<unsigned int> n_subdivisions);
+template void curved_periodic_sine_grid<2, dealii::parallel::distributed::Triangulation<2>> (dealii::parallel::distributed::Triangulation<2> &grid, const std::vector<unsigned int> n_subdivisions);
+template void curved_periodic_sine_grid<3, dealii::parallel::distributed::Triangulation<3>> (dealii::parallel::distributed::Triangulation<3> &grid, const std::vector<unsigned int> n_subdivisions);
 
 } // namespace Grids
 } // namespace PHiLiP

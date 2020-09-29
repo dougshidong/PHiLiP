@@ -143,6 +143,12 @@ private:
      */
     virtual void allocate_second_derivatives ();
 
+    /// Allocates the residual derivatives w.r.t the volume nodes.
+    /** Is called when assembling the residual's second derivatives, and is currently empty
+     *  due to being cleared by the allocate_system().
+     */
+    virtual void allocate_dRdX ();
+
 
 public:
 

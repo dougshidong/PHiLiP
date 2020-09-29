@@ -873,7 +873,7 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
         &&  !(compute_dRdX && compute_d2R)
             , dealii::ExcMessage("Can only do one at a time compute_dRdW or compute_dRdX or compute_d2R"));
 
-    pcout << "Assembling DG residual...";
+    //pcout << "Assembling DG residual...";
     if (compute_dRdW) {
         pcout << " with dRdW...";
 
@@ -923,6 +923,11 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
         }
         solution_dRdX = solution;
         volume_nodes_dRdX = high_order_grid.volume_nodes;
+
+        if (   dRdXv.m() != solution.size() || dRdXv.n() != high_order_grid.volume_nodes.size()) {
+
+            allocate_dRdX();
+        }
         dRdXv = 0;
     }
     if (compute_d2R) {
@@ -965,7 +970,7 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
     }
     right_hand_side = 0;
 
-    pcout << std::endl;
+    //pcout << std::endl;
 
     //const dealii::MappingManifold<dim,dim> mapping;
     //const dealii::MappingQ<dim,dim> mapping(10);//;max_degree+1);
@@ -1132,7 +1137,7 @@ double DGBase<dim,real>::get_residual_l2norm () const
     //auto scaled_residual = right_hand_side;
     //global_mass_matrix.vmult(scaled_residual, right_hand_side);
     //return scaled_residual.l2_norm();
-    pcout << "Evaluating residual L2-norm..." << std::endl;
+    //pcout << "Evaluating residual L2-norm..." << std::endl;
     const auto mapping = (*(high_order_grid.mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
@@ -1204,6 +1209,8 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
 
     data_out.add_data_vector(max_dt_cell, "max_dt_cell", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
+    data_out.add_data_vector(cell_volume, "cell_volume", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+
 
     // Let the physics post-processor determine what to output.
     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
@@ -1248,8 +1255,10 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     //typename dealii::DataOut<dim>::CurvedCellRegion curved = dealii::DataOut<dim>::CurvedCellRegion::no_curved_cells;
 
     const dealii::Mapping<dim> &mapping = (*(high_order_grid.mapping_fe_field));
+    const int grid_degree = high_order_grid.max_degree;
     //const int n_subdivisions = max_degree+1;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
-    const int n_subdivisions = 1;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
+    //const int n_subdivisions = 1;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
+    const int n_subdivisions = grid_degree;
     data_out.build_patches(mapping, n_subdivisions, curved);
     const bool write_higher_order_cells = (dim>1 && max_degree > 1) ? true : false;
     dealii::DataOutBase::VtkFlags vtkflags(0.0,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
@@ -1316,6 +1325,7 @@ void DGBase<dim,real>::allocate_system ()
     artificial_dissipation_coeffs.reinit(triangulation->n_active_cells());
     artificial_dissipation_se.reinit(triangulation->n_active_cells());
     max_dt_cell.reinit(triangulation->n_active_cells());
+    cell_volume.reinit(triangulation->n_active_cells());
 
     solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
     solution *= 0.0;
@@ -1333,14 +1343,14 @@ void DGBase<dim,real>::allocate_system ()
 
     system_matrix.reinit(locally_owned_dofs, sparsity_pattern, mpi_communicator);
 
-    system_matrix_transpose.reinit(system_matrix);
-    Epetra_CrsMatrix *input_matrix  = const_cast<Epetra_CrsMatrix *>(&(system_matrix.trilinos_matrix()));
-    Epetra_CrsMatrix *output_matrix;
-    epetra_rowmatrixtransposer_dRdW = std::make_unique<Epetra_RowMatrixTransposer> ( input_matrix );
-    const bool make_data_contiguous = true;
-    epetra_rowmatrixtransposer_dRdW->CreateTranspose( make_data_contiguous, output_matrix);
-    system_matrix_transpose.reinit(*output_matrix);
-    delete(output_matrix);
+    // system_matrix_transpose.reinit(system_matrix);
+    // Epetra_CrsMatrix *input_matrix  = const_cast<Epetra_CrsMatrix *>(&(system_matrix.trilinos_matrix()));
+    // Epetra_CrsMatrix *output_matrix;
+    // epetra_rowmatrixtransposer_dRdW = std::make_unique<Epetra_RowMatrixTransposer> ( input_matrix );
+    // const bool make_data_contiguous = true;
+    // epetra_rowmatrixtransposer_dRdW->CreateTranspose( make_data_contiguous, output_matrix);
+    // system_matrix_transpose.reinit(*output_matrix);
+    // delete(output_matrix);
 
     // {
     //     dRdW_preconditioner_builder.SetUserMatrix(const_cast<Epetra_CrsMatrix *>(&system_matrix.trilinos_matrix()));
@@ -1363,15 +1373,17 @@ void DGBase<dim,real>::allocate_system ()
     // }
 
     // dRdXv matrix allocation
-    dealii::SparsityPattern dRdXv_sparsity_pattern = get_dRdX_sparsity_pattern ();
-    const dealii::IndexSet &row_parallel_partitioning = locally_owned_dofs;
-    const dealii::IndexSet &col_parallel_partitioning = high_order_grid.locally_owned_dofs_grid;
-    //const dealii::IndexSet &col_parallel_partitioning = high_order_grid.locally_relevant_dofs_grid;
-    dRdXv.reinit(row_parallel_partitioning, col_parallel_partitioning, dRdXv_sparsity_pattern, MPI_COMM_WORLD);
+    // dealii::SparsityPattern dRdXv_sparsity_pattern = get_dRdX_sparsity_pattern ();
+    // const dealii::IndexSet &row_parallel_partitioning = locally_owned_dofs;
+    // const dealii::IndexSet &col_parallel_partitioning = high_order_grid.locally_owned_dofs_grid;
+    // //const dealii::IndexSet &col_parallel_partitioning = high_order_grid.locally_relevant_dofs_grid;
+    // dRdXv.reinit(row_parallel_partitioning, col_parallel_partitioning, dRdXv_sparsity_pattern, MPI_COMM_WORLD);
 
-    // Make sure that second derivatives are cleared when reallocating DG objects.
-    // The call to assemble the derivatives will reallocate those second derivatives
+    // Make sure that derivatives are cleared when reallocating DG objects.
+    // The call to assemble the derivatives will reallocate those derivatives
     // if they are ever needed.
+    system_matrix_transpose.clear();
+    dRdXv.clear();
     d2RdWdX.clear();
     d2RdWdW.clear();
     d2RdXdX.clear();
@@ -1418,6 +1430,16 @@ void DGBase<dim,real>::allocate_second_derivatives ()
         const dealii::IndexSet &col_parallel_partitioning_d2RdXdX = high_order_grid.locally_owned_dofs_grid;
         d2RdXdX.reinit(row_parallel_partitioning_d2RdXdX, col_parallel_partitioning_d2RdXdX, sparsity_pattern_d2RdXdX, mpi_communicator);
     }
+}
+
+template <int dim, typename real>
+void DGBase<dim,real>::allocate_dRdX ()
+{
+    // dRdXv matrix allocation
+    dealii::SparsityPattern dRdXv_sparsity_pattern = get_dRdX_sparsity_pattern ();
+    const dealii::IndexSet &row_parallel_partitioning = locally_owned_dofs;
+    const dealii::IndexSet &col_parallel_partitioning = high_order_grid.locally_owned_dofs_grid;
+    dRdXv.reinit(row_parallel_partitioning, col_parallel_partitioning, dRdXv_sparsity_pattern, MPI_COMM_WORLD);
 }
 
 template <int dim, typename real>

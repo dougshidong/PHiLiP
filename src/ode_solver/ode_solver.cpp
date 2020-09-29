@@ -83,7 +83,8 @@ int ODESolver<dim,real>::steady_state ()
           << " Initial absolute residual norm: " << this->residual_norm
           << std::endl;
 
-    CFL = all_parameters->ode_solver_param.initial_time_step;
+    // Initial Courant-Friedrichs-Lax number
+    double initial_CFL = all_parameters->ode_solver_param.initial_time_step;
 
     double old_residual_norm = this->residual_norm; (void) old_residual_norm;
     // Output initial solution
@@ -112,14 +113,16 @@ int ODESolver<dim,real>::steady_state ()
             pcout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
         }
 
-        double dt = std::max(CFL,all_parameters->ode_solver_param.initial_time_step);
+        double ramped_CFL = initial_CFL;
         if (this->residual_norm_decrease < 1.0) {
-            dt *= pow((1.0-std::log10(this->residual_norm_decrease)*ode_param.time_step_factor_residual), ode_param.time_step_factor_residual_exp);
+            ramped_CFL *= pow((1.0-std::log10(this->residual_norm_decrease)*ode_param.time_step_factor_residual), ode_param.time_step_factor_residual_exp);
         }
-        dt = std::max(dt,CFL);
-        pcout << "CFL = " << CFL << " Time step = " << dt << std::endl;
+        ramped_CFL = std::max(ramped_CFL,initial_CFL);
+        pcout << "Initial CFL = " << initial_CFL << ". Current CFL = " << ramped_CFL << std::endl;
 
-        step_in_time(dt);
+
+        const bool pseudotime = true;
+        step_in_time(ramped_CFL, pseudotime);
 
         this->dg->assemble_residual ();
 
@@ -137,10 +140,10 @@ int ODESolver<dim,real>::steady_state ()
         //     allocate_ode_system ();
         // }
         //if ((current_iteration+1) % 10 == 0 || this->residual_norm > old_residual_norm) {
-        //if (global_step < 0.5) {
-        //    dg->refine_residual_based();
-        //    allocate_ode_system ();
-        //}
+        // if (global_step < 0.5) {
+        //     dg->refine_residual_based();
+        //     allocate_ode_system ();
+        // }
 
         old_residual_norm = this->residual_norm;
         this->residual_norm = this->dg->get_residual_l2norm();
@@ -200,7 +203,8 @@ int ODESolver<dim,real>::advance_solution_time (double time_advance)
         pcout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
     }
 
-        step_in_time(constant_time_step);
+    const bool pseudotime = false;
+    step_in_time(constant_time_step, pseudotime);
 
 
     if (this->current_iteration%ode_param.print_iteration_modulo == 0) {
@@ -215,7 +219,7 @@ int ODESolver<dim,real>::advance_solution_time (double time_advance)
 }
 
 template <int dim, typename real>
-void Implicit_ODESolver<dim,real>::step_in_time (real dt)
+void Implicit_ODESolver<dim,real>::step_in_time (real dt, const bool pseudotime)
 {
     const bool compute_dRdW = true;
     this->dg->assemble_residual(compute_dRdW);
@@ -226,10 +230,15 @@ void Implicit_ODESolver<dim,real>::step_in_time (real dt)
 
     this->dg->system_matrix *= -1.0;
 
+    if (pseudotime) {
+        const double CFL = dt;
+        this->dg->time_scaled_mass_matrices(CFL);
+        this->dg->add_time_scaled_mass_matrices();
+    } else { 
+        this->dg->add_mass_matrices(1.0/dt);
+    }
+    //(void) pseudotime;
     //this->dg->add_mass_matrices(1.0/dt);
-    const double dt_scale = dt;
-    this->dg->time_scaled_mass_matrices(dt_scale);
-    this->dg->add_time_scaled_mass_matrices();
 
     if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
         (this->current_iteration%ode_param.print_iteration_modulo) == 0 ) {
@@ -256,7 +265,8 @@ double Implicit_ODESolver<dim,real>::linesearch ()
 
     const double step_reduction = 0.75;
     const int maxline = 30;
-    const double reduction_tolerance = 1.5;
+    const double reduction_tolerance_1 = 1.5;
+    const double reduction_tolerance_2 = 1.5;
 
     const double initial_residual = this->dg->get_residual_l2norm();
 
@@ -266,7 +276,7 @@ double Implicit_ODESolver<dim,real>::linesearch ()
     pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
 
     int iline = 0;
-    for (iline = 0; iline < maxline && new_residual > initial_residual; ++iline) {
+    for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_1; ++iline) {
         step_length = step_length * step_reduction;
         this->dg->solution = old_solution;
         this->dg->solution.add(step_length, this->solution_update);
@@ -275,19 +285,14 @@ double Implicit_ODESolver<dim,real>::linesearch ()
         pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
     }
 
-    if (step_length > std::pow(step_reduction,maxline/2)) {
-        //this->CFL *= 1.2;
-    } else {
-        //this->CFL *= 0.5;
-    }
     if (iline == maxline) {
         step_length = 1.0;
-        pcout << " Line search failed. Will accept any valid residual less than " << reduction_tolerance << " times the current " << initial_residual << "residual. " << std::endl;
+        pcout << " Line search failed. Will accept any valid residual less than " << reduction_tolerance_2 << " times the current " << initial_residual << "residual. " << std::endl;
         this->dg->solution.add(step_length, this->solution_update);
         this->dg->assemble_residual ();
         new_residual = this->dg->get_residual_l2norm();
         pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
-        for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance ; ++iline) {
+        for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_2 ; ++iline) {
             step_length = step_length * step_reduction;
             this->dg->solution = old_solution;
             this->dg->solution.add(step_length, this->solution_update);
@@ -295,7 +300,6 @@ double Implicit_ODESolver<dim,real>::linesearch ()
             new_residual = this->dg->get_residual_l2norm();
             pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
         }
-        //this->CFL *= 0.5;
     }
 
     if (iline == maxline) {
@@ -319,7 +323,7 @@ double Implicit_ODESolver<dim,real>::linesearch ()
             this->dg->assemble_residual ();
             new_residual = this->dg->get_residual_l2norm();
             pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
-            for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance ; ++iline) {
+            for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_2 ; ++iline) {
                 step_length = step_length * step_reduction;
                 this->dg->solution = old_solution;
                 this->dg->solution.add(step_length, this->solution_update);
@@ -331,7 +335,6 @@ double Implicit_ODESolver<dim,real>::linesearch ()
                 pcout << " Reached maximum number of linesearches. Terminating... " << std::endl;
             }
         }
-        //this->CFL *= 0.5;
         //std::abort();
     }
 
@@ -339,15 +342,21 @@ double Implicit_ODESolver<dim,real>::linesearch ()
 }
 
 template <int dim, typename real>
-void Explicit_ODESolver<dim,real>::step_in_time (real dt)
+void Explicit_ODESolver<dim,real>::step_in_time (real dt, const bool pseudotime)
 {
     // this->dg->assemble_residual (); // Not needed since it is called in the base class for time step
     this->current_time += dt;
-    const int rk_order = 1;
+    const int rk_order = 3;
     if (rk_order == 1) {
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
         this->update_norm = this->solution_update.l2_norm();
-        this->dg->solution.add(dt,this->solution_update);
+        if (pseudotime) {
+            const double CFL = dt;
+            this->dg->time_scale_solution_update( this->solution_update, CFL );
+            this->dg->solution.add(1.0,this->solution_update);
+        } else {
+            this->dg->solution.add(dt,this->solution_update);
+        }
     } else if (rk_order == 3) {
         // Stage 0
         this->rk_stage[0] = this->dg->solution;
@@ -357,31 +366,50 @@ void Explicit_ODESolver<dim,real>::step_in_time (real dt)
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
 
         this->rk_stage[1] = this->rk_stage[0];
-        this->rk_stage[1].add(dt,this->solution_update);
-
-        this->dg->solution = this->rk_stage[1];
+        //this->rk_stage[1].add(dt,this->solution_update);
+        if (pseudotime) {
+            const double CFL = dt;
+            this->dg->time_scale_solution_update( this->solution_update, CFL );
+            this->rk_stage[1].add(1.0,this->solution_update);
+        } else {
+            this->rk_stage[1].add(dt,this->solution_update);
+        }
 
         // Stage 2
         pcout<< "2... " << std::flush;
+        this->dg->solution = this->rk_stage[1];
         this->dg->assemble_residual ();
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
 
         this->rk_stage[2] = this->rk_stage[0];
         this->rk_stage[2] *= 0.75;
         this->rk_stage[2].add(0.25, this->rk_stage[1]);
-        this->rk_stage[2].add(0.25*dt, this->solution_update);
-
-        this->dg->solution = this->rk_stage[2];
+        //this->rk_stage[2].add(0.25*dt, this->solution_update);
+        if (pseudotime) {
+            const double CFL = 0.25*dt;
+            this->dg->time_scale_solution_update( this->solution_update, CFL );
+            this->rk_stage[2].add(1.0,this->solution_update);
+        } else {
+            this->rk_stage[2].add(0.25*dt,this->solution_update);
+        }
 
         // Stage 3
         pcout<< "3... " << std::flush;
+        this->dg->solution = this->rk_stage[2];
         this->dg->assemble_residual ();
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
 
         this->rk_stage[3] = this->rk_stage[0];
         this->rk_stage[3] *= 1.0/3.0;
         this->rk_stage[3].add(2.0/3.0, this->rk_stage[2]);
-        this->rk_stage[3].add(2.0/3.0*dt, this->solution_update);
+        //this->rk_stage[3].add(2.0/3.0*dt, this->solution_update);
+        if (pseudotime) {
+            const double CFL = (2.0/3.0)*dt;
+            this->dg->time_scale_solution_update( this->solution_update, CFL );
+            this->rk_stage[3].add(1.0,this->solution_update);
+        } else {
+            this->rk_stage[3].add((2.0/3.0)*dt,this->solution_update);
+        }
 
         this->dg->solution = this->rk_stage[3];
         pcout<< "done." << std::endl;

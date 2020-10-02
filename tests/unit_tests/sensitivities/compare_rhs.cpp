@@ -78,18 +78,21 @@ int test (
     // pcout << "*******************************************************************************" << std::endl;
 
     pcout << "Evaluating RHS with dRdW..." << std::endl;
+    dg->right_hand_side *= 0.0;
     compute_dRdW = true; compute_dRdX = false, compute_d2R = false;
     dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
     dealii::LinearAlgebra::distributed::Vector<double> rhs_dRdW(dg->right_hand_side);
     // pcout << "*******************************************************************************" << std::endl;
 
     pcout << "Evaluating RHS with dRdX..." << std::endl;
+    dg->right_hand_side *= 0.0;
     compute_dRdW = false; compute_dRdX = true, compute_d2R = false;
     dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
     dealii::LinearAlgebra::distributed::Vector<double> rhs_dRdX(dg->right_hand_side);
     // pcout << "*******************************************************************************" << std::endl;
 
     pcout << "Evaluating RHS with d2R..." << std::endl;
+    dg->right_hand_side *= 0.0;
     compute_dRdW = false; compute_dRdX = false, compute_d2R = true;
     dealii::LinearAlgebra::distributed::Vector<double> dummy_dual(dg->right_hand_side);
     dg->set_dual(dummy_dual);

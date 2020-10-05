@@ -57,6 +57,20 @@ private:
 
     /// Evaluate the integral over the cell volume and the specified derivatives.
     /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
+    void assemble_volume_residual(
+        const dealii::types::global_dof_index current_cell_index,
+        const dealii::FEValues<dim,dim> &fe_values_vol,
+        const dealii::FESystem<dim,dim> &fe_soln,
+        const dealii::Quadrature<dim> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
+        dealii::Vector<real> &local_rhs_cell,
+        const dealii::FEValues<dim,dim> &fe_values_lagrange,
+        const Physics::PhysicsBase<dim, nstate, real> &physics,
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
+
+    /// Evaluate the integral over the cell volume and the specified derivatives.
+    /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
     template <typename real2>
     void assemble_volume_term(
         const dealii::types::global_dof_index current_cell_index,
@@ -104,6 +118,22 @@ private:
         dealii::Vector<real> &local_rhs_cell,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
+    void assemble_boundary_residual(
+        const dealii::types::global_dof_index current_cell_index,
+        const unsigned int face_number,
+        const unsigned int boundary_id,
+        const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe_soln,
+        const dealii::Quadrature<dim-1> &quadrature,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
+        const Physics::PhysicsBase<dim, nstate, real> &physics,
+        const NumericalFlux::NumericalFluxConvective<dim, nstate, real> &conv_num_flux,
+        const NumericalFlux::NumericalFluxDissipative<dim, nstate, real> &diss_num_flux,
+        dealii::Vector<real> &local_rhs_cell,
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
+
     template <typename adtype>
     void assemble_boundary(
         const dealii::types::global_dof_index current_cell_index,
@@ -134,7 +164,8 @@ private:
         const std::vector< real2 > &coords_coeff_ext,
         const std::vector< double > &dual_int,
         const std::vector< double > &dual_ext,
-        const unsigned int interior_face_number,
+        const std::pair<unsigned int, int> face_subface_int,
+        const std::pair<unsigned int, int> face_subface_ext,
         const Physics::PhysicsBase<dim, nstate, real2> &physics,
         const NumericalFlux::NumericalFluxConvective<dim, nstate, real2> &conv_num_flux,
         const NumericalFlux::NumericalFluxDissipative<dim, nstate, real2> &diss_num_flux,
@@ -144,8 +175,7 @@ private:
         const dealii::FESystem<dim,dim> &fe_int,
         const dealii::FESystem<dim,dim> &fe_ext,
         const dealii::FESystem<dim,dim> &fe_metric,
-        const dealii::Quadrature<dim> &face_quadrature_int,
-        const dealii::Quadrature<dim> &face_quadrature_ext,
+        const dealii::Quadrature<dim-1> &face_quadrature,
         std::vector<real2> &rhs_int,
         std::vector<real2> &rhs_ext,
         real2 &dual_dot_residual,
@@ -159,15 +189,14 @@ private:
     void assemble_face_codi_taped_derivatives(
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
-        const unsigned int interior_face_number,
-        const unsigned int exterior_face_number,
+        const std::pair<unsigned int, int> face_subface_int,
+        const std::pair<unsigned int, int> face_subface_ext,
         const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_int,
         const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_ext,
         const real penalty,
         const dealii::FESystem<dim,dim> &fe_int,
         const dealii::FESystem<dim,dim> &fe_ext,
-        const dealii::Quadrature<dim> &face_quadrature_int,
-        const dealii::Quadrature<dim> &face_quadrature_ext,
+        const dealii::Quadrature<dim-1> &face_quadrature,
         const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
         const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
         const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
@@ -179,6 +208,28 @@ private:
         dealii::Vector<real>          &local_rhs_ext_cell,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
+    void assemble_face_residual(
+        const dealii::types::global_dof_index current_cell_index,
+        const dealii::types::global_dof_index neighbor_cell_index,
+        const std::pair<unsigned int, int> face_subface_int,
+        const std::pair<unsigned int, int> face_subface_ext,
+        const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_int,
+        const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_ext,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe_int,
+        const dealii::FESystem<dim,dim> &fe_ext,
+        const dealii::Quadrature<dim-1> &face_quadrature,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+        const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
+        const Physics::PhysicsBase<dim, nstate, real> &physics,
+        const NumericalFlux::NumericalFluxConvective<dim, nstate, real> &conv_num_flux,
+        const NumericalFlux::NumericalFluxDissipative<dim, nstate, real> &diss_num_flux,
+        dealii::Vector<real>          &local_rhs_int_cell,
+        dealii::Vector<real>          &local_rhs_ext_cell,
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
+
     /// Evaluate the integral over the internal cell edges and its specified derivatives.
     /** Compute both the right-hand side and the block of the Jacobian.
      *  This adds the contribution to both cell's residual and effectively
@@ -186,15 +237,14 @@ private:
     void assemble_face_term_derivatives(
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
-        const unsigned int interior_face_number,
-        const unsigned int exterior_face_number,
+        const std::pair<unsigned int, int> face_subface_int,
+        const std::pair<unsigned int, int> face_subface_ext,
         const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_int,
         const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_ext,
         const real penalty,
         const dealii::FESystem<dim,dim> &fe_int,
         const dealii::FESystem<dim,dim> &fe_ext,
-        const dealii::Quadrature<dim> &face_quadrature_int,
-        const dealii::Quadrature<dim> &face_quadrature_ext,
+        const dealii::Quadrature<dim-1> &face_quadrature,
         const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
         const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
         const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,

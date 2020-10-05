@@ -256,6 +256,12 @@ public:
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &convervative_soln2) const;
 
+    /// Evaluate the no-slip boundary conditions for an Euler wall.
+    void boundary_slip_wall (
+       const dealii::Tensor<1,dim,real> &normal_int,
+       const std::array<real,nstate> &soln_int,
+       std::array<real,nstate> &soln_bc) const;
+
     /// Evaluate the Riemann-based farfield boundary conditions based on freestream values.
     void boundary_riemann (
        const dealii::Tensor<1,dim,real> &normal_int,

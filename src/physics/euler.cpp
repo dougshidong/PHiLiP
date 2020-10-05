@@ -109,8 +109,10 @@ inline std::array<real,nstate> Euler<dim,nstate,real>
     dealii::Tensor<1,dim,real> vel = compute_velocities (conservative_soln);
     real pressure = compute_pressure (conservative_soln);
 
-    if (density < 0.0) density = density_inf;//1e10;
-    if (pressure < 0.0) pressure = pressure_inf;//1e10;
+    //if (density < 0.0) density = density_inf;
+    //if (pressure < 0.0) pressure = pressure_inf;
+    if (density < 0.0) density = 1e10;
+    if (pressure < 0.0) pressure = 1e10;
     primitive_soln[0] = density;
     for (int d=0; d<dim; ++d) {
         primitive_soln[1+d] = vel[d];
@@ -264,7 +266,8 @@ inline real Euler<dim,nstate,real>
     const real vel2 = compute_velocity_squared(vel);
     real pressure = gamm1*(tot_energy - 0.5*density*vel2);
     if(pressure<0.0) {
-        pressure = pressure_inf;//1e10;
+        //pressure = pressure_inf;
+        pressure = 1e10;
     }
     //assert(pressure>0.0);
     return pressure;
@@ -276,7 +279,8 @@ inline real Euler<dim,nstate,real>
 {
     real density = conservative_soln[0];
     if(density<0.0) {
-        density = density_inf;//1e10;
+        //density = density_inf;
+        density = 1e10;
     }
     assert(density>0.0);
     const real pressure = compute_pressure(conservative_soln);
@@ -597,6 +601,48 @@ void Euler<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 void Euler<dim,nstate,real>
+::boundary_slip_wall (
+   const dealii::Tensor<1,dim,real> &normal_int,
+   const std::array<real,nstate> &soln_int,
+   std::array<real,nstate> &soln_bc) const
+{
+    // No penetration,
+    // Given by Algorithm II of the following paper
+    // Krivodonova, L., and Berger, M.,
+    // “High-order accurate implementation of solid wall boundary conditions in curved geometries,”
+    // Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
+    const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(soln_int);
+
+    // Copy density and pressure
+    std::array<real,nstate> primitive_boundary_values;
+    primitive_boundary_values[0] = primitive_interior_values[0];
+    primitive_boundary_values[nstate-1] = primitive_interior_values[nstate-1];
+
+    const dealii::Tensor<1,dim,real> surface_normal = -normal_int;
+    const dealii::Tensor<1,dim,real> velocities_int = extract_velocities_from_primitive(primitive_interior_values);
+    //const dealii::Tensor<1,dim,real> velocities_bc = velocities_int - 2.0*(velocities_int*surface_normal)*surface_normal;
+    real vel_int_dot_normal = 0.0;
+    for (int d=0; d<dim; d++) {
+        vel_int_dot_normal = vel_int_dot_normal + velocities_int[d]*surface_normal[d];
+    }
+    dealii::Tensor<1,dim,real> velocities_bc;
+    for (int d=0; d<dim; d++) {
+        velocities_bc[d] = velocities_int[d] - 2.0*(vel_int_dot_normal)*surface_normal[d];
+        //velocities_bc[d] = velocities_int[d] - (vel_int_dot_normal)*surface_normal[d];
+        //velocities_bc[d] += velocities_int[d] * surface_normal.norm_square();
+    }
+    for (int d=0; d<dim; ++d) {
+        primitive_boundary_values[1+d] = velocities_bc[d];
+    }
+
+    const std::array<real,nstate> modified_conservative_boundary_values = convert_primitive_to_conservative(primitive_boundary_values);
+    for (int istate=0; istate<nstate; ++istate) {
+        soln_bc[istate] = modified_conservative_boundary_values[istate];
+    }
+}
+
+template <int dim, int nstate, typename real>
+void Euler<dim,nstate,real>
 ::boundary_face_values (
    const int boundary_type,
    const dealii::Point<dim, real> &pos,
@@ -658,39 +704,8 @@ void Euler<dim,nstate,real>
 
         }
     } else if (boundary_type == 1001) {
-        // No penetration,
-        // Given by Algorithm II of the following paper
-        // Krivodonova, L., and Berger, M.,
-        // “High-order accurate implementation of solid wall boundary conditions in curved geometries,”
-        // Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
-        const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(soln_int);
 
-        // Copy density and pressure
-        std::array<real,nstate> primitive_boundary_values;
-        primitive_boundary_values[0] = primitive_interior_values[0];
-        primitive_boundary_values[nstate-1] = primitive_interior_values[nstate-1];
-
-        const dealii::Tensor<1,dim,real> surface_normal = -normal_int;
-        const dealii::Tensor<1,dim,real> velocities_int = extract_velocities_from_primitive(primitive_interior_values);
-        //const dealii::Tensor<1,dim,real> velocities_bc = velocities_int - 2.0*(velocities_int*surface_normal)*surface_normal;
-        real vel_int_dot_normal = 0.0;
-        for (int d=0; d<dim; d++) {
-            vel_int_dot_normal = vel_int_dot_normal + velocities_int[d]*surface_normal[d];
-        }
-        dealii::Tensor<1,dim,real> velocities_bc;
-        for (int d=0; d<dim; d++) {
-            velocities_bc[d] = velocities_int[d] - 2.0*(vel_int_dot_normal)*surface_normal[d];
-            //velocities_bc[d] = velocities_int[d] - (vel_int_dot_normal)*surface_normal[d];
-            //velocities_bc[d] += velocities_int[d] * surface_normal.norm_square();
-        }
-        for (int d=0; d<dim; ++d) {
-            primitive_boundary_values[1+d] = velocities_bc[d];
-        }
-
-        const std::array<real,nstate> modified_conservative_boundary_values = convert_primitive_to_conservative(primitive_boundary_values);
-        for (int istate=0; istate<nstate; ++istate) {
-            soln_bc[istate] = modified_conservative_boundary_values[istate];
-        }
+        boundary_slip_wall ( normal_int, soln_int, soln_bc);
 
     } else if (boundary_type == 1002) {
         // Pressure Outflow Boundary Condition (back pressure)

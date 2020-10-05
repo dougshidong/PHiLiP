@@ -21,17 +21,22 @@ void curved_periodic_sine_grid(
     const bool colorize = true;
     dealii::GridGenerator::subdivided_hyper_rectangle (grid, n_subdivisions, p1, p2, colorize);
 
-    //std::vector<dealii::GridTools::PeriodicFacePair<typename TriangulationType::cell_iterator> > matched_pairs;
-    //dealii::GridTools::collect_periodic_faces(grid,0,1,0,matched_pairs);
-    //grid.add_periodicity(matched_pairs);
-    //if (dim>=2) {
-    //    dealii::GridTools::collect_periodic_faces(grid,2,3,1,matched_pairs);
-    //    grid.add_periodicity(matched_pairs);
-    //}
-    //if (dim>=3) {
-    //    dealii::GridTools::collect_periodic_faces(grid,4,5,2,matched_pairs);
-    //    grid.add_periodicity(matched_pairs);
-    //}
+    std::vector<dealii::GridTools::PeriodicFacePair<typename TriangulationType::cell_iterator> > matched_pairs;
+    if (dim>=1) {
+        matched_pairs.clear();
+        dealii::GridTools::collect_periodic_faces(grid,0,1,0,matched_pairs);
+        grid.add_periodicity(matched_pairs);
+    }
+    if (dim>=2) {
+        matched_pairs.clear();
+        dealii::GridTools::collect_periodic_faces(grid,2,3,1,matched_pairs);
+        grid.add_periodicity(matched_pairs);
+    }
+    if (dim>=3) {
+        matched_pairs.clear();
+        dealii::GridTools::collect_periodic_faces(grid,4,5,2,matched_pairs);
+        grid.add_periodicity(matched_pairs);
+    }
 
     const PeriodicSineManifold<dim,dim,dim> periodic_sine_manifold;
 
@@ -62,7 +67,7 @@ dealii::Point<spacedim,real> PeriodicSineManifold<dim,spacedim,chartdim>::mappin
     dealii::Point<spacedim,real> phys_point;
 
     phys_point[0] = chart_point[0];
-    const double amplitude = 0.1;
+    const double amplitude = 0.2;
     if constexpr (dim >= 2) {
         phys_point[0] = chart_point[0];
         phys_point[0] += amplitude*sin(pi*chart_point[1]);;

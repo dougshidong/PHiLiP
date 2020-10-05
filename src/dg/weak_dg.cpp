@@ -17,6 +17,7 @@
 
 #include "weak_dg.hpp"
 
+//#define KOPRIVA_METRICS
 //#define FADFAD
 template<typename real>
 double getValue(const real &x) {
@@ -165,6 +166,60 @@ void automatic_differentiation_indexing_2(
     }
 }
 
+template <int dim, typename real, int n_components>
+void evaluate_finite_element_values (
+    const std::vector<dealii::Point<dim>> &unit_points,
+    const std::vector<real> &coefficients,
+    const dealii::FESystem<dim,dim> &finite_element,
+    std::vector< std::array<real,n_components> > &values)
+{
+    const unsigned int n_dofs = finite_element.dofs_per_cell;
+    const unsigned int n_pts = unit_points.size();
+
+    AssertDimension(n_dofs, coefficients.size());
+
+    for (unsigned int ipoint=0; ipoint<n_pts; ++ipoint) {
+        for (int icomp=0; icomp<n_components; ++icomp) {
+            values[ipoint][icomp] = 0;
+        }
+        for (unsigned int idof = 0; idof < n_dofs; ++idof) {
+            const int icomp = finite_element.system_to_component_index(idof).first;
+            values[ipoint][icomp] += coefficients[idof] * finite_element.shape_value_component(idof, unit_points[ipoint], icomp);
+        }
+        for (int icomp=0; icomp<n_components; ++icomp) {
+            //std::cout << "values " << values[ipoint][icomp] << std::endl;
+        }
+    }
+}
+
+template <int dim, typename real, int n_components>
+std::vector < std::array< dealii::Tensor<1,dim,real>, n_components > > evaluate_finite_element_gradients (
+    const std::vector<dealii::Point<dim>> &unit_points,
+    const std::vector<real> &coefficients,
+    const dealii::FESystem<dim,dim> &finite_element)
+{
+    const unsigned int n_dofs = finite_element.dofs_per_cell;
+    const unsigned int n_pts = unit_points.size();
+
+    AssertDimension(n_dofs, coefficients.size());
+    AssertDimension(finite_element.n_components(), n_components);
+
+    std::vector < std::array< dealii::Tensor<1,dim,real>, n_components > > gradients (n_pts);
+    for (unsigned int ipoint=0; ipoint<n_pts; ++ipoint) {
+        for (int icomp=0; icomp<n_components; ++icomp) {
+            gradients[ipoint][icomp] = 0;
+        }
+        for (unsigned int idof = 0; idof < n_dofs; ++idof) {
+            const int icomp = finite_element.system_to_component_index(idof).first;
+            dealii::Tensor<1,dim,double> shape_grad = finite_element.shape_grad_component (idof, unit_points[ipoint], icomp);
+            for (int d=0; d<dim; ++d) {
+                gradients[ipoint][icomp][d] += coefficients[idof] * shape_grad[d];
+            }
+        }
+    }
+    return gradients;
+}
+
 
 template <int dim, typename real>
 std::vector<dealii::Tensor<2,dim,real>> evaluate_metric_jacobian (
@@ -173,33 +228,241 @@ std::vector<dealii::Tensor<2,dim,real>> evaluate_metric_jacobian (
     const dealii::FESystem<dim,dim> &fe_metric)
 {
     const unsigned int n_dofs = fe_metric.dofs_per_cell;
+    (void) n_dofs;
     const unsigned int n_pts = points.size();
 
     AssertDimension(n_dofs, coords_coeff.size());
 
+    std::vector < std::array< dealii::Tensor<1,dim,real>, dim > > coords_gradients = evaluate_finite_element_gradients<dim, real, dim> (points, coords_coeff, fe_metric);
+
     std::vector<dealii::Tensor<2,dim,real>> metric_jacobian(n_pts);
 
     for (unsigned int ipoint=0; ipoint<n_pts; ++ipoint) {
-        std::array< dealii::Tensor<1,dim,real>, dim > coords_grad;
-        for (int d=0; d<dim; ++d) {
-            coords_grad[d] = 0.0;
-        }
-        for (unsigned int idof=0; idof<n_dofs; ++idof) {
-            const unsigned int axis = fe_metric.system_to_component_index(idof).first;
-            //coords_grad[axis] += coords_coeff[idof] * fe_metric.shape_grad (idof, points[ipoint]);
-
-            dealii::Tensor<1,dim,real> shape_grad = fe_metric.shape_grad (idof, points[ipoint]);
-            for (int d=0; d<dim; ++d) {
-                coords_grad[axis][d] += coords_coeff[idof] * shape_grad[d];
-            }
-        }
         for (int row=0;row<dim;++row) {
             for (int col=0;col<dim;++col) {
-                metric_jacobian[ipoint][row][col] = coords_grad[row][col];
+                metric_jacobian[ipoint][row][col] = coords_gradients[ipoint][row][col];
             }
         }
     }
     return metric_jacobian;
+}
+
+template <int dim, typename real>
+std::vector <real> determinant_ArrayTensor(std::vector < std::array< dealii::Tensor<1,dim,real>, dim > > &coords_gradients)
+{
+    const unsigned int n = coords_gradients.size();
+    std::vector <real> determinants(n);
+    for (unsigned int i=0; i<n; ++i) {
+        if constexpr(dim==1) {
+            determinants[i] =  coords_gradients[i][0][0];
+        }
+        if constexpr(dim==2) {
+            determinants[i] =  coords_gradients[i][0][0] * coords_gradients[i][1][1] - coords_gradients[i][0][1] * coords_gradients[i][1][0];
+        }
+        if constexpr(dim==3) {
+            determinants[i] = +coords_gradients[i][0][0] * (coords_gradients[i][1][1] * coords_gradients[i][2][2] - coords_gradients[i][1][2] * coords_gradients[i][2][1])
+                              -coords_gradients[i][0][1] * (coords_gradients[i][1][0] * coords_gradients[i][2][2] - coords_gradients[i][1][2] * coords_gradients[i][2][0])
+                              +coords_gradients[i][0][2] * (coords_gradients[i][1][0] * coords_gradients[i][2][1] - coords_gradients[i][1][1] * coords_gradients[i][2][0]);
+        }
+    }
+    return determinants;
+}
+
+// Integer root from
+// https://rosettacode.org/wiki/Integer_roots#C.2B.2B
+unsigned int root(unsigned int base, unsigned int n) {
+	if (base < 2) return base;
+	if (n == 0) return 1;
+
+	unsigned int n1 = n - 1;
+	unsigned int n2 = n;
+	unsigned int n3 = n1;
+	unsigned int c = 1;
+	auto d = (n3 + base) / n2;
+	auto e = (n3 * d + base / pow(d, n1)) / n2;
+
+	while (c != d && c != e) {
+		c = d;
+		d = e;
+		e = (n3*e + base / pow(e, n1)) / n2;
+	}
+
+	if (d < e) return d;
+	return e;
+}
+
+template <int dim, typename real>
+void evaluate_covariant_metric_jacobian (
+    const dealii::Quadrature<dim> &quadrature,
+    const dealii::FE_DGQArbitraryNodes<dim> &fe_collocated_lagrange,
+    const std::vector<real> &coords_coeff,
+    const dealii::FESystem<dim,dim> &fe_metric,
+    std::vector<dealii::Tensor<2,dim,real>> &covariant_metric_jacobian,
+    std::vector<real> &jacobian_determinants)
+{
+    const unsigned int n_quad_pts = quadrature.size();
+
+    const dealii::FESystem<dim,dim> fe_lagrange_system(fe_collocated_lagrange, dim);
+    const unsigned int n_lagrange_dofs = fe_lagrange_system.n_dofs_per_cell();
+
+    const std::vector< dealii::Point<dim,double> > &unit_quad_pts = quadrature.get_points();
+
+    std::vector < std::array< real,dim> > coords(n_quad_pts);
+    evaluate_finite_element_values  <dim, real, dim> (unit_quad_pts, coords_coeff, fe_metric, coords);
+    std::vector < std::array< dealii::Tensor<1,dim,real>, dim > > coords_gradients = evaluate_finite_element_gradients <dim, real, dim> (unit_quad_pts, coords_coeff, fe_metric);
+
+    jacobian_determinants = determinant_ArrayTensor<dim,real>(coords_gradients);
+
+    if (dim==1) {
+        for (unsigned int iquad = 0; iquad<n_quad_pts; ++iquad) {
+            const real invJ = 1.0/jacobian_determinants[iquad];
+            covariant_metric_jacobian[iquad][0][0] = invJ;
+        }
+    }
+
+    // ADDED for 3D curvilinear J^{-1} satisfying GCL
+    // as per Kopriva's Conservative Curl Represented Form
+    // (For Free-Stream Preservation)
+    if (dim==2) {
+        //Note: for 2D we do not use data.contravariant as above but instead
+        //differentiate the interpolation of the physical quadrature nodes
+        //This is outlined in Kopriva's paper that I^N(\nabla(X) ) != \nabla(I^N X)
+        //here we do the latter which satisfies GCL/free-stream preservation
+
+        // Remark 5 of Kopriva (2006).
+        // Need to interpolate physical coordinates, and then differentiate it using the derivatives of the
+        // collocated Lagrange basis.
+
+        std::vector<dealii::Tensor<2,dim,real>> dphys_dref(n_quad_pts);
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++) {
+            for(int dphys=0; dphys<dim; dphys++) {
+                for(int dref=0; dref<dim; dref++) {
+                    dphys_dref[iquad][dphys][dref] = 0.0;
+                }
+            }
+        }
+
+        std::cout << "n_dofs " << n_lagrange_dofs << std::endl;
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++) {
+            for(unsigned int idof=0; idof<n_lagrange_dofs; idof++) { //assume n_dofs_cell==n_quad_points
+
+                const unsigned int dphys = fe_lagrange_system.system_to_component_index(idof).first;
+                const unsigned int shape_within_base = fe_lagrange_system.system_to_component_index(idof).second;
+
+                const dealii::Point<dim,double> &qpoint  = quadrature.point(iquad);
+                const dealii::Tensor<1,dim,double> lagrange_shape_grad = fe_lagrange_system.shape_grad_component(idof, qpoint, dphys);
+
+                for(int dref=0; dref<dim; dref++) {
+                    dphys_dref[iquad][dphys][dref] += coords[shape_within_base][dphys] * lagrange_shape_grad[dref];
+                }
+            }
+        }
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++) {
+            std::cout << "metric jacobian iquad: " << iquad << std::endl; 
+            for(int dphys=0; dphys<dim; dphys++) {
+                for(int dref=0; dref<dim; dref++) {
+                    std::cout << coords_gradients[iquad][dphys][dref] << "  ";
+                }
+                std::cout << std::endl;
+            }
+            std::cout << "koprivas metric jacobian iquad: " << iquad << std::endl; 
+            for(int dphys=0; dphys<dim; dphys++) {
+                for(int dref=0; dref<dim; dref++) {
+                    std::cout << dphys_dref[iquad][dphys][dref] << "  ";
+                }
+                std::cout << std::endl;
+            }
+        }
+
+        // In 2D Cross-Product Form = Conservative-Curl Form
+        for (unsigned int iquad = 0; iquad<n_quad_pts; ++iquad) {
+            // inv(A)^T =  [ a  b ]^-T  =  (1/det(A)) [ d -c ]
+            //             [ c  d ]                   [-b  a ]
+            const real invJ = 1.0/jacobian_determinants[iquad];
+            covariant_metric_jacobian[iquad][0][0] = dphys_dref[iquad][1][1] * invJ;
+            covariant_metric_jacobian[iquad][0][1] = -dphys_dref[iquad][1][0] * invJ;
+            covariant_metric_jacobian[iquad][1][0] = -dphys_dref[iquad][0][1] * invJ;
+            covariant_metric_jacobian[iquad][1][1] = dphys_dref[iquad][0][0] * invJ;
+        }
+    }
+    if(dim == 3) {
+
+        std::vector<dealii::Tensor<2,dim,real>> Xl_grad_Xm(n_quad_pts);
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++) {
+            for(int dn=0; dn<dim; dn++) {
+                // dn, dm, dl cyclic indices
+                int dm, dl;
+                dm = (dn + 1) % dim;
+                dl = (dm + 1) % dim;
+
+                for (int dgrad=0; dgrad<dim; ++dgrad) {
+                    Xl_grad_Xm[iquad][dn][dgrad] = coords[iquad][dl] * coords_gradients[iquad][dm][dgrad];
+                }
+            }
+        }
+
+        // Since the metric Jacobian is built at the volume cubature nodes (quadrature/flux points)
+        // it's basis wrt. the reference element is collocated, thus we construct an arbitrary
+        // collocated Lagrange basis on the reference element quadrature points, as to get the
+        // gradient of the above quantity -> \nabla[ X_l * \nabla( X_m ) ] as to represent the curl
+        // by cyclically looping through the gradient
+        std::vector<dealii::Tensor<3,dim,real>> grad_Xl_grad_Xm(n_quad_pts);
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++) {
+            for(int idim=0; idim<dim; idim++) {
+                for(int jdim=0; jdim<dim; jdim++) {
+                    for(int kdim=0; kdim<dim; kdim++) {
+                        grad_Xl_grad_Xm[iquad][idim][jdim][kdim] = 0.0;
+                    }
+                }
+            }
+        }
+
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++) {
+
+            const dealii::Point<dim,double> &qpoint  = quadrature.point(iquad);
+
+            for(unsigned int idof=0; idof<n_lagrange_dofs; idof++) { //assume n_dofs_cell==n_quad_points
+
+                const unsigned int dn = fe_lagrange_system.system_to_component_index(idof).first;
+                const unsigned int shape_within_base = fe_lagrange_system.system_to_component_index(idof).second;
+
+                const dealii::Tensor<1,dim,double> lagrange_shape_grad = fe_lagrange_system.shape_grad_component(idof, qpoint, dn);
+
+                for(int dgrad1=0; dgrad1<dim; dgrad1++) {
+                    for(int dgrad2=0; dgrad2<dim; dgrad2++) {
+                        grad_Xl_grad_Xm[iquad][dn][dgrad1][dgrad2] += Xl_grad_Xm[shape_within_base][dn][dgrad1] * lagrange_shape_grad[dgrad2];
+                    }
+                }
+            }
+        }
+
+        // In_J_a_ni represents the interpolation representation of the determinant of
+        // the metric Jacobian times the covariant basis (covaraiant basis = a_n^i)
+        // index idim represents the reference element direction
+        // index dn represent the physical element direction
+        // Example a_2^1 ->n=2, i=1 -> a_2^1 = d( \xi )/ d( y)
+        std::vector<dealii::Tensor<2,dim,real>> In_J_a_ni(n_quad_pts);
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++) {
+            for(int idim=0; idim<dim; idim++) {
+                for(int dn=0; dn<dim; ++dn) {
+                    int dm, dl; //dn, dm, dl cyclic
+                    dm = (dn + 1) % dim;
+                    dl = (dm + 1) % dim;
+                    In_J_a_ni[iquad][idim][dn] = - (grad_Xl_grad_Xm[iquad][idim][dl][dm] - grad_Xl_grad_Xm[iquad][idim][dm][dl]);//curl of above quantity
+                }
+            }
+        }
+        //write/store the covariant representation
+        for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+            const real invJ = 1.0/jacobian_determinants[iquad];
+            for(int idim=0; idim<dim; idim++) {
+                for(int jdim=0; jdim<dim; jdim++) {
+                    covariant_metric_jacobian[iquad][idim][jdim] = In_J_a_ni[iquad][idim][jdim] * invJ;
+                }
+            }
+        }
+    }
+
 }
 
 template <int dim, int nstate, typename real>
@@ -227,6 +490,48 @@ void DGWeak<dim,nstate,real>::assemble_volume_term_explicit(
     std::vector< ADArrayTensor1 > conv_phys_flux_at_q(n_quad_pts);
     std::vector< ADArrayTensor1 > diss_phys_flux_at_q(n_quad_pts);
     std::vector< doubleArray > source_at_q(n_quad_pts);
+
+    //(void) compute_dRdW; (void) compute_dRdX; (void) compute_d2R;
+    //const bool compute_metric_derivatives = true;
+    //std::vector<Tensor2D> jac_inv_tran(n_quad_pts);
+    //for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+
+    //    if (compute_metric_derivatives) {
+    //        const real2 jacobian_determinant = dealii::determinant(metric_jacobian[iquad]);
+    //        const Tensor2D jacobian_transpose_inverse = dealii::transpose(dealii::invert(metric_jacobian[iquad]));
+
+    //        jac_det[iquad] = jacobian_determinant;
+    //        jac_inv_tran[iquad] = jacobian_transpose_inverse;
+    //    } else {
+    //        jac_det[iquad] = fe_values_vol.JxW(iquad) / quadrature.weight(iquad);
+    //    }
+    //}
+    //std::array<dealii::Table<2,real2>,dim> gradient_operator;
+    //for (int d=0;d<dim;++d) {
+    //    gradient_operator[d].reinit(dealii::TableIndices<2>(n_soln_dofs, n_quad_pts));
+    //}
+    //for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
+    //     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+    //         if (compute_metric_derivatives) {
+    //             const dealii::Tensor<1,dim,real2> ref_shape_grad = fe_soln.shape_grad(idof,points[iquad]);
+    //             dealii::Tensor<1,dim,real2> phys_shape_grad;
+    //             for (int dr=0;dr<dim;++dr) {
+    //                 phys_shape_grad[dr] = 0.0;
+    //                 for (int dc=0;dc<dim;++dc) {
+    //                     phys_shape_grad[dr] += jac_inv_tran[iquad][dr][dc] * ref_shape_grad[dc];
+    //                 }
+    //             }
+    //             for (int d=0;d<dim;++d) {
+    //                 gradient_operator[d][idof][iquad] = phys_shape_grad[d];
+    //             }
+    //         } else {
+    //             for (int d=0;d<dim;++d) {
+    //                 const unsigned int istate = fe_soln.system_to_component_index(idof).first;
+    //                 gradient_operator[d][idof][iquad] = fe_values_vol.shape_grad_component(idof, iquad, istate)[d];
+    //             }
+    //         }
+    //     }
+    // }
 
 
     // AD variable
@@ -858,7 +1163,8 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
     const unsigned int n_soln_dofs = fe_values_boundary.dofs_per_cell;
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
 
-    const bool compute_metric_derivatives = (!compute_dRdX && !compute_d2R) ? false : true;
+    (void) compute_dRdW; (void) compute_dRdX; (void) compute_d2R;
+    const bool compute_metric_derivatives = true;//(!compute_dRdX && !compute_d2R) ? false : true;
     AssertDimension (n_soln_dofs, soln_dof_indices.size());
 
     std::vector< adtype > soln_coeff(n_soln_dofs);
@@ -1008,7 +1314,8 @@ void DGWeak<dim,nstate,real>::assemble_boundary_codi_taped_derivatives(
     const unsigned int n_soln_dofs = fe_values_boundary.dofs_per_cell;
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
 
-    const bool compute_metric_derivatives = (!compute_dRdX && !compute_d2R) ? false : true;
+    (void) compute_dRdW; (void) compute_dRdX; (void) compute_d2R;
+    const bool compute_metric_derivatives = true;//(!compute_dRdX && !compute_d2R) ? false : true;
     AssertDimension (n_soln_dofs, soln_dof_indices.size());
 
     std::vector< adtype > soln_coeff(n_soln_dofs);
@@ -1160,6 +1467,85 @@ void DGWeak<dim,nstate,real>::assemble_boundary_codi_taped_derivatives(
 
         th.deleteHessian(hes);
     }
+    for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+        adtype::getGlobalTape().deactivateValue(soln_coeff[idof]);
+    }
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        adtype::getGlobalTape().deactivateValue(coords_coeff[idof]);
+    }
+
+}
+
+template <int dim, int nstate, typename real>
+void DGWeak<dim,nstate,real>::assemble_boundary_residual(
+    const dealii::types::global_dof_index current_cell_index,
+    const unsigned int face_number,
+    const unsigned int boundary_id,
+    const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
+    const real penalty,
+    const dealii::FESystem<dim,dim> &fe_soln,
+    const dealii::Quadrature<dim-1> &quadrature,
+    const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
+    const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
+    const Physics::PhysicsBase<dim, nstate, real> &physics,
+    const NumericalFlux::NumericalFluxConvective<dim, nstate, real> &conv_num_flux,
+    const NumericalFlux::NumericalFluxDissipative<dim, nstate, real> &diss_num_flux,
+    dealii::Vector<real> &local_rhs_cell,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
+{
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid.fe_system;
+    const unsigned int n_soln_dofs = fe_values_boundary.dofs_per_cell;
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+
+    (void) compute_dRdW;
+    (void) compute_dRdX;
+    (void) compute_d2R;
+
+    const bool compute_metric_derivatives = true; //= (!compute_dRdX && !compute_d2R) ? false : true;
+    AssertDimension (n_soln_dofs, soln_dof_indices.size());
+
+    std::vector< real > soln_coeff(n_soln_dofs);
+    std::vector< real > coords_coeff(n_metric_dofs);
+
+    for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+        const real val = this->solution(soln_dof_indices[idof]);
+        soln_coeff[idof] = val;
+    }
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        const real val = this->high_order_grid.volume_nodes[metric_dof_indices[idof]];
+        coords_coeff[idof] = val;
+    }
+
+    std::vector<real> local_dual(n_soln_dofs);
+    for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+        local_dual[itest] = this->dual[soln_dof_indices[itest]];
+    }
+
+    std::vector<real> rhs(n_soln_dofs);
+    real dual_dot_residual;
+    assemble_boundary(
+        current_cell_index,
+        soln_coeff,
+        coords_coeff,
+        local_dual,
+        face_number,
+        boundary_id,
+        physics,
+        conv_num_flux,
+        diss_num_flux,
+        fe_values_boundary,
+        penalty,
+        fe_soln,
+        fe_metric,
+        quadrature,
+        rhs,
+        dual_dot_residual,
+        compute_metric_derivatives);
+
+    for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+        local_rhs_cell(itest) += getValue<real>(rhs[itest]);
+        AssertIsFinite(local_rhs_cell(itest));
+    }
 
 }
 
@@ -1211,6 +1597,22 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
             *(DGBaseState<dim,nstate,real>::diss_num_flux_rad),
             local_rhs_cell,
             compute_dRdW, compute_dRdX, compute_d2R);
+    } else {
+        assemble_boundary_residual(
+            current_cell_index,
+            face_number,
+            boundary_id,
+            fe_values_boundary,
+            penalty,
+            fe_soln,
+            quadrature,
+            metric_dof_indices,
+            soln_dof_indices,
+            *(DGBaseState<dim,nstate,real>::pde_physics_double),
+            *(DGBaseState<dim,nstate,real>::conv_num_flux_double),
+            *(DGBaseState<dim,nstate,real>::diss_num_flux_double),
+            local_rhs_cell,
+            compute_dRdW, compute_dRdX, compute_d2R);
     }
 }
 #endif
@@ -1227,7 +1629,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
     const std::vector< real2 > &coords_coeff_ext,
     const std::vector< double > &dual_int,
     const std::vector< double > &dual_ext,
-    const unsigned int interior_face_number,
+    const std::pair<unsigned int, int> face_subface_int,
+    const std::pair<unsigned int, int> face_subface_ext,
     const Physics::PhysicsBase<dim, nstate, real2> &physics,
     const NumericalFlux::NumericalFluxConvective<dim, nstate, real2> &conv_num_flux,
     const NumericalFlux::NumericalFluxDissipative<dim, nstate, real2> &diss_num_flux,
@@ -1237,8 +1640,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
     const dealii::FESystem<dim,dim> &fe_int,
     const dealii::FESystem<dim,dim> &fe_ext,
     const dealii::FESystem<dim,dim> &fe_metric,
-    const dealii::Quadrature<dim> &face_quadrature_int,
-    const dealii::Quadrature<dim> &face_quadrature_ext,
+    const dealii::Quadrature<dim-1> &face_quadrature,
     std::vector<real2> &rhs_int,
     std::vector<real2> &rhs_ext,
     real2 &dual_dot_residual,
@@ -1261,7 +1663,27 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
     using Tensor2D = dealii::Tensor<2,dim,real2>;
     using ADArrayTensor1 = std::array< Tensor1D, nstate >;
 
-    const bool compute_metric_derivatives = (!compute_dRdX && !compute_d2R) ? false : true;
+    const dealii::Quadrature<dim> face_quadrature_int = face_subface_int.second == -1 ?
+                                                        dealii::QProjector<dim>::project_to_face(dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                 face_quadrature,
+                                                                                                 face_subface_int.first):
+                                                        dealii::QProjector<dim>::project_to_subface(dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                 face_quadrature,
+                                                                                                 face_subface_int.first,
+                                                                                                 face_subface_int.second,
+                                                                                                 dealii::RefinementCase<dim-1>::isotropic_refinement);
+    const dealii::Quadrature<dim> face_quadrature_ext = face_subface_ext.second == -1 ?
+                                                        dealii::QProjector<dim>::project_to_face(dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                 face_quadrature,
+                                                                                                 face_subface_ext.first):
+                                                        dealii::QProjector<dim>::project_to_subface(dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                 face_quadrature,
+                                                                                                 face_subface_ext.first,
+                                                                                                 face_subface_ext.second,
+                                                                                                 dealii::RefinementCase<dim-1>::isotropic_refinement);
+
+    (void) compute_dRdW; (void) compute_dRdX; (void) compute_d2R;
+    const bool compute_metric_derivatives = true; //(!compute_dRdX && !compute_d2R) ? false : true;
 
     const std::vector<dealii::Point<dim,double>> &unit_quad_pts_int = face_quadrature_int.get_points();
     const std::vector<dealii::Point<dim,double>> &unit_quad_pts_ext = face_quadrature_ext.get_points();
@@ -1275,8 +1697,10 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
     std::vector<Tensor2D> jac_inv_tran_int(n_face_quad_pts);
     std::vector<Tensor2D> jac_inv_tran_ext(n_face_quad_pts);
 
-    const dealii::Tensor<1,dim,real> unit_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[interior_face_number];
-    const dealii::Tensor<1,dim,real> unit_normal_ext = -unit_normal_int;
+    const dealii::Tensor<1,dim,real> unit_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[face_subface_int.first];
+    const dealii::Tensor<1,dim,real> unit_normal_ext = dealii::GeometryInfo<dim>::unit_normal_vector[face_subface_ext.first];
+    //const dealii::Tensor<1,dim,real> unit_normal_ext = -unit_normal_int;
+    assert(unit_normal_int == -unit_normal_ext);
 
     // Use quadrature points of neighbor cell
     // Might want to use the maximum n_quad_pts1 and n_quad_pts2
@@ -1318,27 +1742,87 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
                                             this->artificial_dissipation_coeffs[neighbor_cell_index]
                                             : 0.0;
 
+    std::vector<real2> jacobian_determinant_int(n_face_quad_pts);
+    std::vector<real2> jacobian_determinant_ext(n_face_quad_pts);
+    std::vector<Tensor2D> jacobian_transpose_inverse_int(n_face_quad_pts);
+    std::vector<Tensor2D> jacobian_transpose_inverse_ext(n_face_quad_pts);
+
+    for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+        if (compute_metric_derivatives) {
+            jacobian_determinant_int[iquad] = dealii::determinant(metric_jac_int[iquad]);
+            jacobian_determinant_ext[iquad] = dealii::determinant(metric_jac_ext[iquad]);
+
+            jacobian_transpose_inverse_int[iquad] = dealii::transpose(dealii::invert(metric_jac_int[iquad]));
+            jacobian_transpose_inverse_ext[iquad] = dealii::transpose(dealii::invert(metric_jac_ext[iquad]));
+        }
+    }
+
+//    auto old_jacobian_determinant_int = jacobian_determinant_int;
+//    auto old_jacobian_determinant_ext = jacobian_determinant_ext;
+//    auto old_jacobian_transpose_inverse_int = jacobian_transpose_inverse_int;
+//    auto old_jacobian_transpose_inverse_ext = jacobian_transpose_inverse_ext;
+//
+//    if (dim != 1) {
+//        std::array<dealii::Quadrature<1>, dim-1> oned_quadrature = face_quadrature.get_tensor_basis();
+//        //const dealii::FE_DGQArbitraryNodes<dim> fe_collocated_lagrange(oned_quadrature[0]);
+//        const dealii::FE_DGQArbitraryNodes<dim-1,dim> fe_collocated_lagrange(oned_quadrature[0]);
+//        evaluate_covariant_metric_jacobian<dim,real2> ( face_quadrature_int, fe_collocated_lagrange, coords_coeff_int, fe_metric, jacobian_transpose_inverse_int, jacobian_determinant_int);
+//        evaluate_covariant_metric_jacobian<dim,real2> ( face_quadrature_ext, fe_collocated_lagrange, coords_coeff_ext, fe_metric, jacobian_transpose_inverse_ext, jacobian_determinant_ext);
+//    }
+//
+//    for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+//        //if (abs(old_jacobian_determinant_int[iquad] - jacobian_determinant_int[iquad]) > 1e-10) {
+//            std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+//            std::cout << "Not the same jac det int, iquad " << iquad << std::endl;
+//            std::cout << old_jacobian_determinant_int[iquad] << std::endl;
+//            std::cout << jacobian_determinant_int[iquad] << std::endl;
+//        //}
+//        //if (abs(old_jacobian_determinant_ext[iquad] - jacobian_determinant_ext[iquad]) > 1e-10) {
+//            std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+//            std::cout << "Not the same jac det ext, iquad " << iquad << std::endl;
+//            std::cout << old_jacobian_determinant_ext[iquad] << std::endl;
+//            std::cout << jacobian_determinant_ext[iquad] << std::endl;
+//        //}
+//        for (int row=0;row<dim;++row) {
+//            for (int col=0;col<dim;++col) {
+//                //if (abs(old_jacobian_transpose_inverse_int[iquad][row][col] - jacobian_transpose_inverse_int[iquad][row][col]) > 1e-10) {
+//                    std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+//                    std::cout << "Not the same jac inv tran int, iquad " << iquad << " row " << row << " col " << col << std::endl;
+//                    std::cout << old_jacobian_transpose_inverse_int[iquad][row][col] << std::endl;
+//                    std::cout << jacobian_transpose_inverse_int[iquad][row][col] << std::endl;
+//                }
+//            //}
+//        }
+//        for (int row=0;row<dim;++row) {
+//            for (int col=0;col<dim;++col) {
+//                //if (abs(old_jacobian_transpose_inverse_ext[iquad][row][col] - jacobian_transpose_inverse_ext[iquad][row][col]) > 1e-10) {
+//                    std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+//                    std::cout << "Not the same jac inv tran ext, iquad " << iquad << " row " << row << " col " << col << std::endl;
+//                    std::cout << old_jacobian_transpose_inverse_ext[iquad][row][col] << std::endl;
+//                    std::cout << jacobian_transpose_inverse_ext[iquad][row][col] << std::endl;
+//                //}
+//            }
+//        }
+//    }
+
+
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
 
         Tensor1D normal_normalized_int;
         Tensor1D normal_normalized_ext;
         real2 surface_jac_det_int;
         real2 surface_jac_det_ext;
+        (void) surface_jac_det_ext; // unused
         if (compute_metric_derivatives) {
-            const real2 jacobian_determinant_int = dealii::determinant(metric_jac_int[iquad]);
-            const real2 jacobian_determinant_ext = dealii::determinant(metric_jac_ext[iquad]);
 
-            const Tensor2D jacobian_transpose_inverse_int = dealii::transpose(dealii::invert(metric_jac_int[iquad]));
-            const Tensor2D jacobian_transpose_inverse_ext = dealii::transpose(dealii::invert(metric_jac_ext[iquad]));
+            const real2 jac_det_int = jacobian_determinant_int[iquad];
+            const real2 jac_det_ext = jacobian_determinant_ext[iquad];
 
-            const real2 jac_det_int = jacobian_determinant_int;
-            const real2 jac_det_ext = jacobian_determinant_ext;
+            const Tensor2D jac_inv_tran_int = jacobian_transpose_inverse_int[iquad];
+            const Tensor2D jac_inv_tran_ext = jacobian_transpose_inverse_ext[iquad];
 
-            const Tensor2D jac_inv_tran_int = jacobian_transpose_inverse_int;
-            const Tensor2D jac_inv_tran_ext = jacobian_transpose_inverse_ext;
-
-            const Tensor1D normal_int = vmult(jacobian_transpose_inverse_int, unit_normal_int);
-            const Tensor1D normal_ext = vmult(jacobian_transpose_inverse_ext, unit_normal_ext);
+            const Tensor1D normal_int = vmult(jac_inv_tran_int, unit_normal_int);
+            const Tensor1D normal_ext = vmult(jac_inv_tran_ext, unit_normal_ext);
             const real2 area_int = norm(normal_int);
             const real2 area_ext = norm(normal_ext);
 
@@ -1528,15 +2012,14 @@ template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
-    const unsigned int interior_face_number,
-    const unsigned int /*exterior_face_number*/,
+    const std::pair<unsigned int, int> face_subface_int,
+    const std::pair<unsigned int, int> face_subface_ext,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
     const real penalty,
     const dealii::FESystem<dim,dim> &fe_int,
     const dealii::FESystem<dim,dim> &fe_ext,
-    const dealii::Quadrature<dim> &face_quadrature_int,
-    const dealii::Quadrature<dim> &face_quadrature_ext,
+    const dealii::Quadrature<dim-1> &face_quadrature,
     const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
     const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
@@ -1642,7 +2125,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
         coords_coeff_ext,
         dual_int,
         dual_ext,
-        interior_face_number,
+        face_subface_int,
+        face_subface_ext,
         physics,
         conv_num_flux,
         diss_num_flux,
@@ -1864,15 +2348,14 @@ template <typename adtype>
 void DGWeak<dim,nstate,real>::assemble_face_codi_taped_derivatives(
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
-    const unsigned int interior_face_number,
-    const unsigned int /*exterior_face_number*/,
+    const std::pair<unsigned int, int> face_subface_int,
+    const std::pair<unsigned int, int> face_subface_ext,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
     const real penalty,
     const dealii::FESystem<dim,dim> &fe_int,
     const dealii::FESystem<dim,dim> &fe_ext,
-    const dealii::Quadrature<dim> &face_quadrature_int,
-    const dealii::Quadrature<dim> &face_quadrature_ext,
+    const dealii::Quadrature<dim-1> &face_quadrature,
     const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
     const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
@@ -1977,7 +2460,8 @@ void DGWeak<dim,nstate,real>::assemble_face_codi_taped_derivatives(
         coords_coeff_ext,
         dual_int,
         dual_ext,
-        interior_face_number,
+        face_subface_int,
+        face_subface_ext,
         physics,
         conv_num_flux,
         diss_num_flux,
@@ -1987,8 +2471,7 @@ void DGWeak<dim,nstate,real>::assemble_face_codi_taped_derivatives(
         fe_int,
         fe_ext,
         fe_metric,
-        face_quadrature_int,
-        face_quadrature_ext,
+        face_quadrature,
         rhs_int,
         rhs_ext,
         dual_dot_residual,
@@ -2228,6 +2711,126 @@ void DGWeak<dim,nstate,real>::assemble_face_codi_taped_derivatives(
         th.deleteHessian(hes);
     }
 
+    for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+        adtype::getGlobalTape().deactivateValue(soln_coeff_int[idof]);
+    }
+    for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
+        adtype::getGlobalTape().deactivateValue(soln_coeff_ext[idof]);
+    }
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        adtype::getGlobalTape().deactivateValue(coords_coeff_int[idof]);
+    }
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        adtype::getGlobalTape().deactivateValue(coords_coeff_ext[idof]);
+    }
+
+}
+
+template <int dim, int nstate, typename real>
+void DGWeak<dim,nstate,real>::assemble_face_residual(
+    const dealii::types::global_dof_index current_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index,
+    const std::pair<unsigned int, int> face_subface_int,
+    const std::pair<unsigned int, int> face_subface_ext,
+    const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
+    const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
+    const real penalty,
+    const dealii::FESystem<dim,dim> &fe_int,
+    const dealii::FESystem<dim,dim> &fe_ext,
+    const dealii::Quadrature<dim-1> &face_quadrature,
+    const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
+    const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
+    const Physics::PhysicsBase<dim, nstate, real> &physics,
+    const NumericalFlux::NumericalFluxConvective<dim, nstate, real> &conv_num_flux,
+    const NumericalFlux::NumericalFluxDissipative<dim, nstate, real> &diss_num_flux,
+    dealii::Vector<real>          &local_rhs_int_cell,
+    dealii::Vector<real>          &local_rhs_ext_cell,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
+{
+    using ADArray = std::array<real,nstate>;
+    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,real>, nstate >;
+
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid.fe_system;
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+    const unsigned int n_soln_dofs_int = fe_int.dofs_per_cell;
+    const unsigned int n_soln_dofs_ext = fe_ext.dofs_per_cell;
+
+    AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
+    AssertDimension (n_soln_dofs_ext, soln_dof_indices_ext.size());
+
+    std::vector< real > coords_coeff_int(n_metric_dofs);
+    std::vector< real > coords_coeff_ext(n_metric_dofs);
+    std::vector< real > soln_coeff_int(n_soln_dofs_int);
+    std::vector< real > soln_coeff_ext(n_soln_dofs_ext);
+
+    for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+        const real val = this->solution(soln_dof_indices_int[idof]);
+        soln_coeff_int[idof] = val;
+    }
+    for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
+        const real val = this->solution(soln_dof_indices_ext[idof]);
+        soln_coeff_ext[idof] = val;
+    }
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        const real val = this->high_order_grid.volume_nodes[metric_dof_indices_int[idof]];
+        coords_coeff_int[idof] = val;
+    }
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        const real val = this->high_order_grid.volume_nodes[metric_dof_indices_ext[idof]];
+        coords_coeff_ext[idof] = val;
+    }
+
+    std::vector<double> dual_int(n_soln_dofs_int);
+    std::vector<double> dual_ext(n_soln_dofs_ext);
+
+    for (unsigned int itest=0; itest<n_soln_dofs_int; ++itest) {
+        const unsigned int global_residual_row = soln_dof_indices_int[itest];
+        dual_int[itest] = this->dual[global_residual_row];
+    }
+    for (unsigned int itest=0; itest<n_soln_dofs_ext; ++itest) {
+        const unsigned int global_residual_row = soln_dof_indices_ext[itest];
+        dual_ext[itest] = this->dual[global_residual_row];
+    }
+
+    std::vector<real> rhs_int(n_soln_dofs_int);
+    std::vector<real> rhs_ext(n_soln_dofs_ext);
+    real dual_dot_residual;
+
+    assemble_face_term(
+        current_cell_index,
+        neighbor_cell_index,
+        soln_coeff_int,
+        soln_coeff_ext,
+        coords_coeff_int,
+        coords_coeff_ext,
+        dual_int,
+        dual_ext,
+        face_subface_int,
+        face_subface_ext,
+        physics,
+        conv_num_flux,
+        diss_num_flux,
+        fe_values_int,
+        fe_values_ext,
+        penalty,
+        fe_int,
+        fe_ext,
+        fe_metric,
+        face_quadrature,
+        rhs_int,
+        rhs_ext,
+        dual_dot_residual,
+        compute_dRdW, compute_dRdX, compute_d2R);
+
+    for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
+        local_rhs_int_cell[itest_int] += getValue<real>(rhs_int[itest_int]);
+    }
+    for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
+        local_rhs_ext_cell[itest_ext] += getValue<real>(rhs_ext[itest_ext]);
+    }
+
 }
 #endif
 
@@ -2270,14 +2873,40 @@ void DGWeak<dim,nstate,real>::assemble_volume_term(
 
         if (compute_metric_derivatives) {
             const real2 jacobian_determinant = dealii::determinant(metric_jacobian[iquad]);
-            const Tensor2D jacobian_transpose_inverse = dealii::transpose(dealii::invert(metric_jacobian[iquad]));
-
             jac_det[iquad] = jacobian_determinant;
+
+            const Tensor2D jacobian_transpose_inverse = dealii::transpose(dealii::invert(metric_jacobian[iquad]));
             jac_inv_tran[iquad] = jacobian_transpose_inverse;
         } else {
             jac_det[iquad] = fe_values_vol.JxW(iquad) / quadrature.weight(iquad);
         }
     }
+#ifdef KOPRIVA_METRICS
+    auto old_jac_inv_tran = jac_inv_tran;
+    auto old_jac_det = jac_det;
+    std::array<dealii::Quadrature<1>, dim> oned_quadrature = quadrature.get_tensor_basis();
+    const dealii::FE_DGQArbitraryNodes<dim> fe_collocated_lagrange(oned_quadrature[0]);
+    evaluate_covariant_metric_jacobian<dim,real2> ( quadrature, fe_collocated_lagrange, coords_coeff, fe_metric, jac_inv_tran, jac_det);
+    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        if (abs(old_jac_det[iquad] - jac_det[iquad]) > 1e-10) {
+            std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+            std::cout << "Not the same jac det, iquad " << iquad << std::endl;
+            std::cout << old_jac_det[iquad] << std::endl;
+            std::cout << jac_det[iquad] << std::endl;
+        }
+        for (int row=0;row<dim;++row) {
+            for (int col=0;col<dim;++col) {
+                if (abs(old_jac_inv_tran[iquad][row][col] - jac_inv_tran[iquad][row][col]) > 1e-10) {
+                    std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+                    std::cout << "Not the same jac inv tran, iquad " << iquad << " row " << row << " col " << col << std::endl;
+                    std::cout << old_jac_inv_tran[iquad][row][col] << std::endl;
+                    std::cout << jac_inv_tran[iquad][row][col] << std::endl;
+                }
+            }
+        }
+    }
+#endif
+
 
     // Build operators.
     const std::vector<dealii::Point<dim,double>> &unit_quad_pts = quadrature.get_points();
@@ -2457,7 +3086,8 @@ void DGWeak<dim,nstate,real>::assemble_volume_term_derivatives(
         local_dual[itest] = this->dual[global_residual_row];
     }
 
-    const bool compute_metric_derivatives = (!compute_dRdX && !compute_d2R) ? false : true;
+    (void) compute_dRdW; (void) compute_dRdX; (void) compute_d2R;
+    const bool compute_metric_derivatives = true;//(!compute_dRdX && !compute_d2R) ? false : true;
 
     unsigned int w_start, w_end, x_start, x_end;
     automatic_differentiation_indexing_1( compute_dRdW, compute_dRdX, compute_d2R,
@@ -2615,7 +3245,8 @@ void DGWeak<dim,nstate,real>::assemble_volume_codi_taped_derivatives(
         local_dual[itest] = this->dual[global_residual_row];
     }
 
-    const bool compute_metric_derivatives = (!compute_dRdX && !compute_d2R) ? false : true;
+    (void) compute_dRdW; (void) compute_dRdX; (void) compute_d2R;
+    const bool compute_metric_derivatives = true;//(!compute_dRdX && !compute_d2R) ? false : true;
 
     unsigned int w_start, w_end, x_start, x_end;
     automatic_differentiation_indexing_1( compute_dRdW, compute_dRdX, compute_d2R,
@@ -2748,6 +3379,74 @@ void DGWeak<dim,nstate,real>::assemble_volume_codi_taped_derivatives(
         th.deleteHessian(hes);
     }
 
+    for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+        adtype::getGlobalTape().deactivateValue(soln_coeff[idof]);
+    }
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        adtype::getGlobalTape().deactivateValue(coords_coeff[idof]);
+    }
+
+}
+
+template <int dim, int nstate, typename real>
+void DGWeak<dim,nstate,real>::assemble_volume_residual(
+    const dealii::types::global_dof_index current_cell_index,
+    const dealii::FEValues<dim,dim> &fe_values_vol,
+    const dealii::FESystem<dim,dim> &fe_soln,
+    const dealii::Quadrature<dim> &quadrature,
+    const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
+    const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
+    dealii::Vector<real> &local_rhs_cell,
+    const dealii::FEValues<dim,dim> &fe_values_lagrange,
+    const Physics::PhysicsBase<dim, nstate, real> &physics,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
+{
+    (void) fe_values_lagrange;
+    (void) compute_dRdW;
+    (void) compute_dRdX;
+    (void) compute_d2R;
+    assert( !compute_dRdW && !compute_dRdX && !compute_d2R);
+    (void) compute_dRdW; (void) compute_dRdX; (void) compute_d2R;
+    const bool compute_metric_derivatives = true;//(!compute_dRdX && !compute_d2R) ? false : true;
+
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid.fe_system;
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+    const unsigned int n_soln_dofs = fe_soln.dofs_per_cell;
+
+    AssertDimension (n_soln_dofs, soln_dof_indices.size());
+
+    std::vector<double> coords_coeff(n_metric_dofs);
+    std::vector<double> soln_coeff(n_soln_dofs);
+
+    std::vector<real> local_dual(n_soln_dofs);
+    for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+        const unsigned int global_residual_row = soln_dof_indices[itest];
+        local_dual[itest] = this->dual[global_residual_row];
+    }
+
+    for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+        const real val = this->solution(soln_dof_indices[idof]);
+        soln_coeff[idof] = val;
+    }
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        const real val = this->high_order_grid.volume_nodes[metric_dof_indices[idof]];
+        coords_coeff[idof] = val;
+    }
+
+    double dual_dot_residual = 0.0;
+    std::vector<double> rhs(n_soln_dofs);
+    assemble_volume_term<double>(
+        current_cell_index,
+        soln_coeff, coords_coeff, local_dual,
+        fe_soln, fe_metric, quadrature,
+        physics,
+        rhs, dual_dot_residual,
+        compute_metric_derivatives, fe_values_vol);
+
+    for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+        local_rhs_cell(itest) += getValue<double>(rhs[itest]);
+        AssertIsFinite(local_rhs_cell(itest));
+    }
 }
 
 template <int dim, int nstate, typename real>
@@ -2784,6 +3483,16 @@ void DGWeak<dim,nstate,real>::assemble_volume_term_derivatives(
             fe_values_lagrange,
             *(DGBaseState<dim,nstate,real>::pde_physics_rad),
             compute_dRdW, compute_dRdX, compute_d2R);
+    } else {
+        assemble_volume_residual(
+            current_cell_index,
+            fe_values_vol,
+            fe_soln, quadrature,
+            metric_dof_indices, soln_dof_indices,
+            local_rhs_cell,
+            fe_values_lagrange,
+            *(DGBaseState<dim,nstate,real>::pde_physics_double),
+            compute_dRdW, compute_dRdX, compute_d2R);
     }
 
     return;
@@ -2793,15 +3502,14 @@ template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
-    const unsigned int interior_face_number,
-    const unsigned int exterior_face_number,
+    const std::pair<unsigned int, int> face_subface_int,
+    const std::pair<unsigned int, int> face_subface_ext,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
     const real penalty,
     const dealii::FESystem<dim,dim> &fe_int,
     const dealii::FESystem<dim,dim> &fe_ext,
-    const dealii::Quadrature<dim> &face_quadrature_int,
-    const dealii::Quadrature<dim> &face_quadrature_ext,
+    const dealii::Quadrature<dim-1> &face_quadrature,
     const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
     const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
@@ -2816,15 +3524,14 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
         assemble_face_codi_taped_derivatives<codi_HessianComputationType>(
             current_cell_index,
             neighbor_cell_index,
-            interior_face_number,
-            exterior_face_number,
+            face_subface_int,
+            face_subface_ext,
             fe_values_int,
             fe_values_ext,
             penalty,
             fe_int,
             fe_ext,
-            face_quadrature_int,
-            face_quadrature_ext,
+            face_quadrature,
             metric_dof_indices_int,
             metric_dof_indices_ext,
             soln_dof_indices_int,
@@ -2839,15 +3546,14 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
         assemble_face_codi_taped_derivatives<codi_JacobianComputationType>(
             current_cell_index,
             neighbor_cell_index,
-            interior_face_number,
-            exterior_face_number,
+            face_subface_int,
+            face_subface_ext,
             fe_values_int,
             fe_values_ext,
             penalty,
             fe_int,
             fe_ext,
-            face_quadrature_int,
-            face_quadrature_ext,
+            face_quadrature,
             metric_dof_indices_int,
             metric_dof_indices_ext,
             soln_dof_indices_int,
@@ -2855,6 +3561,28 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
             *(DGBaseState<dim,nstate,real>::pde_physics_rad),
             *(DGBaseState<dim,nstate,real>::conv_num_flux_rad),
             *(DGBaseState<dim,nstate,real>::diss_num_flux_rad),
+            local_rhs_int_cell,
+            local_rhs_ext_cell,
+            compute_dRdW, compute_dRdX, compute_d2R);
+    } else {
+        assemble_face_residual(
+            current_cell_index,
+            neighbor_cell_index,
+            face_subface_int,
+            face_subface_ext,
+            fe_values_int,
+            fe_values_ext,
+            penalty,
+            fe_int,
+            fe_ext,
+            face_quadrature,
+            metric_dof_indices_int,
+            metric_dof_indices_ext,
+            soln_dof_indices_int,
+            soln_dof_indices_ext,
+            *(DGBaseState<dim,nstate,real>::pde_physics_double),
+            *(DGBaseState<dim,nstate,real>::conv_num_flux_double),
+            *(DGBaseState<dim,nstate,real>::diss_num_flux_double),
             local_rhs_int_cell,
             local_rhs_ext_cell,
             compute_dRdW, compute_dRdX, compute_d2R);

@@ -265,7 +265,7 @@ double Implicit_ODESolver<dim,real>::linesearch ()
 
     const double step_reduction = 0.75;
     const int maxline = 30;
-    const double reduction_tolerance_1 = 1.5;
+    const double reduction_tolerance_1 = 1.0;
     const double reduction_tolerance_2 = 1.5;
 
     const double initial_residual = this->dg->get_residual_l2norm();

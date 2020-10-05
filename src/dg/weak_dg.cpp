@@ -193,7 +193,7 @@ void evaluate_finite_element_values (
 }
 
 template <int dim, typename real, int n_components>
-std::vector < std::array< dealii::Tensor<1,dim,real>, n_components > > evaluate_finite_element_gradients (
+void evaluate_finite_element_gradients (
     const std::vector<dealii::Point<dim>> &unit_points,
     const std::vector<real> &coefficients,
     const dealii::FESystem<dim,dim> &finite_element,
@@ -218,7 +218,6 @@ std::vector < std::array< dealii::Tensor<1,dim,real>, n_components > > evaluate_
             }
         }
     }
-    return gradients;
 }
 
 

@@ -930,9 +930,9 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::execute_coarsening_and_r
     } else {
         solution_transfer.interpolate(volume_nodes);
     }
-    //const dealii::ComponentMask mask(dim, true);
+    const dealii::ComponentMask mask(dim, true);
     //get_position_vector(dof_handler_grid, volume_nodes, mask);
-    volume_nodes.update_ghost_values();
+    //volume_nodes.update_ghost_values();
 
     dealii::AffineConstraints<double> hanging_node_constraints;
     hanging_node_constraints.clear();

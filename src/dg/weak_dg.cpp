@@ -17,7 +17,9 @@
 
 #include "weak_dg.hpp"
 
-//#define KOPRIVA_METRICS
+#define KOPRIVA_METRICS_VOL
+#define KOPRIVA_METRICS_FACE
+#define KOPRIVA_METRICS_BOUNDARY
 //#define FADFAD
 template<typename real>
 double getValue(const real &x) {
@@ -309,6 +311,7 @@ void evaluate_covariant_metric_jacobian (
     const std::vector< dealii::Point<dim,double> > &unit_grid_pts = fe_lagrange_grid.get_unit_support_points();
     const unsigned int n_grid_pts = unit_grid_pts.size();
     const unsigned int n_lagr_dofs = fe_lagrange_grid.n_dofs_per_cell();
+    (void) n_lagr_dofs;
     assert(n_grid_pts == n_lagr_dofs);
 
     std::vector < std::array< real,dim> > coords(n_grid_pts);
@@ -318,6 +321,9 @@ void evaluate_covariant_metric_jacobian (
 
     std::vector<real> grid_pts_jacobian_determinants = determinant_ArrayTensor<dim,real>(coords_gradients);
 
+    std::vector < std::array< dealii::Tensor<1,dim,real>, dim > > quad_pts_coords_gradients(n_quad_pts);
+    evaluate_finite_element_gradients <dim, real, dim> (unit_quad_pts, coords_coeff, fe_metric, quad_pts_coords_gradients);
+    std::vector<real> quad_pts_jacobian_determinants = determinant_ArrayTensor<dim,real>(quad_pts_coords_gradients);
 
     if (dim==1) {
         for (unsigned int iquad = 0; iquad<n_quad_pts; ++iquad) {
@@ -326,157 +332,195 @@ void evaluate_covariant_metric_jacobian (
         }
     }
 
-    // ADDED for 3D curvilinear J^{-1} satisfying GCL
-    // as per Kopriva's Conservative Curl Represented Form
-    // (For Free-Stream Preservation)
     if (dim==2) {
-        //Note: for 2D we do not use data.contravariant as above but instead
-        //differentiate the interpolation of the physical quadrature nodes
-        //This is outlined in Kopriva's paper that I^N(\nabla(X) ) != \nabla(I^N X)
-        //here we do the latter which satisfies GCL/free-stream preservation
+        // // Remark 5 of Kopriva (2006).
+        // // Need to interpolate physical coordinates, and then differentiate it
+        // // using the derivatives of the collocated Lagrange basis.
 
-        // Remark 5 of Kopriva (2006).
-        // Need to interpolate physical coordinates, and then differentiate it using the derivatives of the
-        // collocated Lagrange basis.
+        // std::vector<dealii::Tensor<2,dim,real>> dphys_dref(n_grid_pts);
+        // for(unsigned int igrid=0; igrid<n_grid_pts; igrid++) {
+        //     for(int dphys=0; dphys<dim; dphys++) {
+        //         for(int dref=0; dref<dim; dref++) {
+        //             dphys_dref[igrid][dphys][dref] = 0.0;
+        //         }
+        //     }
+        // }
 
-        std::vector<dealii::Tensor<2,dim,real>> dphys_dref(n_grid_pts);
-        for(unsigned int igrid=0; igrid<n_grid_pts; igrid++) {
-            for(int dphys=0; dphys<dim; dphys++) {
-                for(int dref=0; dref<dim; dref++) {
-                    dphys_dref[igrid][dphys][dref] = 0.0;
+        // for(unsigned int igrid=0; igrid<n_grid_pts; igrid++) {
+        //     for(unsigned int idof_metric=0; idof_metric<n_metric_dofs; idof_metric++) { 
+
+        //         const unsigned int dphys = fe_metric.system_to_component_index(idof_metric).first;
+        //         const unsigned int shape_within_base = fe_metric.system_to_component_index(idof_metric).second;
+
+        //         const dealii::Point<dim,double> &grid_point  = unit_grid_pts[igrid];
+        //         const dealii::Tensor<1,dim,double> shape_grad = fe_metric.shape_grad_component(idof_metric, grid_point, dphys);
+
+        //         for(int dref=0; dref<dim; dref++) {
+        //             dphys_dref[igrid][dphys][dref] += coords[shape_within_base][dphys] * shape_grad[dref];
+        //         }
+        //     }
+        // }
+
+        // // In 2D Cross-Product Form = Conservative-Curl Form
+        // for (unsigned int iquad = 0; iquad<n_quad_pts; ++iquad) {
+
+        //     const dealii::Point<dim,double> &quad_point = unit_quad_pts[iquad];
+
+        //     covariant_metric_jacobian[iquad] = 0.0;
+        //     jacobian_determinants[iquad] = 0.0;
+
+        //     for (unsigned int igrid = 0; igrid<n_grid_pts; ++igrid) {
+        //         // inv(A)^T =  [ a  b ]^-T  =  (1/det(A)) [ d -c ]
+        //         //             [ c  d ]                   [-b  a ]
+        //         const double shape_value = fe_lagrange_grid.shape_value(igrid, quad_point);
+        //         const real invJ = 1.0/grid_pts_jacobian_determinants[igrid];
+        //         (void) shape_value;
+        //         jacobian_determinants[iquad] += grid_pts_jacobian_determinants[igrid] * shape_value;
+        //         covariant_metric_jacobian[iquad][0][0] +=  dphys_dref[igrid][1][1] * invJ * shape_value;
+        //         covariant_metric_jacobian[iquad][0][1] += -dphys_dref[igrid][1][0] * invJ * shape_value;
+        //         covariant_metric_jacobian[iquad][1][0] += -dphys_dref[igrid][0][1] * invJ * shape_value;
+        //         covariant_metric_jacobian[iquad][1][1] +=  dphys_dref[igrid][0][0] * invJ * shape_value;
+        //     }
+        // }
+
+        std::vector < std::array< real,dim> > coords_quad(n_quad_pts);
+        evaluate_finite_element_values  <dim, real, dim> (unit_quad_pts, coords_coeff, fe_metric, coords_quad);
+
+        std::vector<dealii::Tensor<2,dim,real>> dphys_dref_quad(n_quad_pts);
+
+        // In 2D Cross-Product Form = Conservative-Curl Form
+        for (unsigned int iquad = 0; iquad<n_quad_pts; ++iquad) {
+
+            dphys_dref_quad[iquad] = 0.0;
+
+            const dealii::Point<dim,double> &quad_point = unit_quad_pts[iquad];
+
+            for (unsigned int igrid = 0; igrid<n_grid_pts; ++igrid) {
+
+                const dealii::Tensor<1,dim,double> shape_grad = fe_lagrange_grid.shape_grad(igrid, quad_point);
+
+                for(int dphys=0; dphys<dim; dphys++) {
+                    for(int dref=0; dref<dim; dref++) {
+                        dphys_dref_quad[iquad][dphys][dref] += coords[igrid][dphys] * shape_grad[dref];
+                    }
                 }
-            }
-        }
 
-        for(unsigned int igrid=0; igrid<n_grid_pts; igrid++) {
-            for(unsigned int idof_metric=0; idof_metric<n_metric_dofs; idof_metric++) { 
-
-                const unsigned int dphys = fe_metric.system_to_component_index(idof_metric).first;
-                const unsigned int shape_within_base = fe_metric.system_to_component_index(idof_metric).second;
-
-                const dealii::Point<dim,double> &grid_point  = unit_grid_pts[igrid];
-                const dealii::Tensor<1,dim,double> shape_grad = fe_metric.shape_grad_component(idof_metric, grid_point, dphys);
-
-                for(int dref=0; dref<dim; dref++) {
-                    dphys_dref[igrid][dphys][dref] += coords[shape_within_base][dphys] * shape_grad[dref];
-                }
-            }
-        }
-        for(unsigned int igrid=0; igrid<n_grid_pts; igrid++) {
-            std::cout << "metric jacobian igrid: " << igrid << std::endl; 
-            for(int dphys=0; dphys<dim; dphys++) {
-                for(int dref=0; dref<dim; dref++) {
-                    std::cout << coords_gradients[igrid][dphys][dref] << "  ";
-                }
-                std::cout << std::endl;
-            }
-            std::cout << "koprivas metric jacobian igrid: " << igrid << std::endl; 
-            for(int dphys=0; dphys<dim; dphys++) {
-                for(int dref=0; dref<dim; dref++) {
-                    std::cout << dphys_dref[igrid][dphys][dref] << "  ";
-                }
-                std::cout << std::endl;
+                //std::cout 
+                //        << " iquad " << iquad
+                //        << " coords_quad " << coords_quad[iquad][0] << " " << coords_quad[iquad][1]
+                //        << " shape_grad " << shape_grad
+                //        << " dphys_dref_quad " << dphys_dref_quad[iquad]
+                //        << std::endl;
             }
         }
 
         // In 2D Cross-Product Form = Conservative-Curl Form
         for (unsigned int iquad = 0; iquad<n_quad_pts; ++iquad) {
 
-            const dealii::Point<dim,double> &quad_point = unit_quad_pts[iquad];
-
             covariant_metric_jacobian[iquad] = 0.0;
-            jacobian_determinants[iquad] = 0.0;
+            jacobian_determinants[iquad] = quad_pts_jacobian_determinants[iquad];
 
-            for (unsigned int igrid = 0; igrid<n_grid_pts; ++igrid) {
-                // inv(A)^T =  [ a  b ]^-T  =  (1/det(A)) [ d -c ]
-                //             [ c  d ]                   [-b  a ]
+            // inv(A)^T =  [ a  b ]^-T  =  (1/det(A)) [ d -c ]
+            //             [ c  d ]                   [-b  a ]
+            const real invJ = 1.0/jacobian_determinants[iquad];
+            //jacobian_determinants[iquad] += grid_pts_jacobian_determinants[igrid];
+            covariant_metric_jacobian[iquad][0][0] =  dphys_dref_quad[iquad][1][1] * invJ;
+            covariant_metric_jacobian[iquad][0][1] = -dphys_dref_quad[iquad][1][0] * invJ;
+            covariant_metric_jacobian[iquad][1][0] = -dphys_dref_quad[iquad][0][1] * invJ;
+            covariant_metric_jacobian[iquad][1][1] =  dphys_dref_quad[iquad][0][0] * invJ;
+        }
+
+        //jacobian_determinants = quad_pts_jacobian_determinants;
+    }
+    if(dim == 3) {
+
+        std::vector<dealii::Tensor<2,dim,real>> Xl_grad_Xm(n_grid_pts);
+        for(unsigned int igrid=0; igrid<n_grid_pts; igrid++) {
+            for(int dn=0; dn<dim; dn++) {
+                // dn, dm, dl cyclic indices
+                int dm, dl;
+                dm = (dn + 1) % dim;
+                dl = (dm + 1) % dim;
+
+                for (int dgrad=0; dgrad<dim; ++dgrad) {
+                    Xl_grad_Xm[igrid][dn][dgrad] = coords[igrid][dl] * coords_gradients[igrid][dm][dgrad];
+                }
+            }
+        }
+
+        // Since the metric Jacobian is built at the volume cubature nodes (quadrature/flux points)
+        // it's basis wrt. the reference element is collocated, thus we construct an arbitrary
+        // collocated Lagrange basis on the reference element quadrature points, as to get the
+        // gradient of the above quantity -> \nabla[ X_l * \nabla( X_m ) ] as to represent the curl
+        // by cyclically looping through the gradient
+        std::vector<dealii::Tensor<3,dim,real>> grad_Xl_grad_Xm(n_grid_pts);
+        for(unsigned int igrid=0; igrid<n_grid_pts; igrid++) {
+            for(int idim=0; idim<dim; idim++) {
+                for(int jdim=0; jdim<dim; jdim++) {
+                    for(int kdim=0; kdim<dim; kdim++) {
+                        grad_Xl_grad_Xm[igrid][idim][jdim][kdim] = 0.0;
+                    }
+                }
+            }
+        }
+
+        for(unsigned int igrid=0; igrid<n_grid_pts; igrid++) {
+
+            const dealii::Point<dim,double> &grid_point  = unit_grid_pts[igrid];
+
+            for(unsigned int idof=0; idof<n_metric_dofs; idof++) { //assume n_dofs_cell==n_quad_points
+
+                const unsigned int dn = fe_metric.system_to_component_index(idof).first;
+                const unsigned int shape_within_base = fe_metric.system_to_component_index(idof).second;
+
+                const dealii::Tensor<1,dim,double> lagrange_shape_grad = fe_metric.shape_grad_component(idof, grid_point, dn);
+
+                for(int dgrad1=0; dgrad1<dim; dgrad1++) {
+                    for(int dgrad2=0; dgrad2<dim; dgrad2++) {
+                        grad_Xl_grad_Xm[igrid][dn][dgrad1][dgrad2] += Xl_grad_Xm[shape_within_base][dn][dgrad1] * lagrange_shape_grad[dgrad2];
+                    }
+                }
+            }
+        }
+
+        // In_J_a_ni represents the interpolation representation of the determinant of
+        // the metric Jacobian times the covariant basis (covaraiant basis = a_n^i)
+        // index idim represents the reference element direction
+        // index dn represent the physical element direction
+        // Example a_2^1 ->n=2, i=1 -> a_2^1 = d( \xi )/ d( y)
+        std::vector<dealii::Tensor<2,dim,real>> In_J_a_ni(n_quad_pts);
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++) {
+
+            jacobian_determinants[iquad] = 0.0;
+            In_J_a_ni[iquad] = 0.0;
+
+            for(unsigned int igrid=0; igrid<n_grid_pts; igrid++) {
+
+                const dealii::Point<dim,double> &quad_point  = unit_quad_pts[iquad];
                 const double shape_value = fe_lagrange_grid.shape_value(igrid, quad_point);
-                const real invJ = 1.0/grid_pts_jacobian_determinants[igrid];
+
+                for(int idim=0; idim<dim; idim++) {
+                    for(int dn=0; dn<dim; ++dn) {
+                        int dm, dl; //dn, dm, dl cyclic
+                        dm = (dn + 1) % dim;
+                        dl = (dm + 1) % dim;
+                        In_J_a_ni[iquad][idim][dn] += - (grad_Xl_grad_Xm[igrid][idim][dl][dm] - grad_Xl_grad_Xm[igrid][idim][dm][dl]) * shape_value;
+                    }
+                }
+
                 jacobian_determinants[iquad] += grid_pts_jacobian_determinants[igrid] * shape_value;
-                covariant_metric_jacobian[iquad][0][0] +=  dphys_dref[igrid][1][1] * invJ * shape_value;
-                covariant_metric_jacobian[iquad][0][1] += -dphys_dref[igrid][1][0] * invJ * shape_value;
-                covariant_metric_jacobian[iquad][1][0] += -dphys_dref[igrid][0][1] * invJ * shape_value;
-                covariant_metric_jacobian[iquad][1][1] +=  dphys_dref[igrid][0][0] * invJ * shape_value;
+            }
+        }
+        //write/store the covariant representation
+        for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+            const real invJ = 1.0/jacobian_determinants[iquad];
+            for(int idim=0; idim<dim; idim++) {
+                for(int jdim=0; jdim<dim; jdim++) {
+                    covariant_metric_jacobian[iquad][idim][jdim] = In_J_a_ni[iquad][idim][jdim] * invJ;
+                }
             }
         }
     }
-    // if(dim == 3) {
-
-    //     std::vector<dealii::Tensor<2,dim,real>> Xl_grad_Xm(n_quad_pts);
-    //     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++) {
-    //         for(int dn=0; dn<dim; dn++) {
-    //             // dn, dm, dl cyclic indices
-    //             int dm, dl;
-    //             dm = (dn + 1) % dim;
-    //             dl = (dm + 1) % dim;
-
-    //             for (int dgrad=0; dgrad<dim; ++dgrad) {
-    //                 Xl_grad_Xm[iquad][dn][dgrad] = coords[iquad][dl] * coords_gradients[iquad][dm][dgrad];
-    //             }
-    //         }
-    //     }
-
-    //     // Since the metric Jacobian is built at the volume cubature nodes (quadrature/flux points)
-    //     // it's basis wrt. the reference element is collocated, thus we construct an arbitrary
-    //     // collocated Lagrange basis on the reference element quadrature points, as to get the
-    //     // gradient of the above quantity -> \nabla[ X_l * \nabla( X_m ) ] as to represent the curl
-    //     // by cyclically looping through the gradient
-    //     std::vector<dealii::Tensor<3,dim,real>> grad_Xl_grad_Xm(n_quad_pts);
-    //     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++) {
-    //         for(int idim=0; idim<dim; idim++) {
-    //             for(int jdim=0; jdim<dim; jdim++) {
-    //                 for(int kdim=0; kdim<dim; kdim++) {
-    //                     grad_Xl_grad_Xm[iquad][idim][jdim][kdim] = 0.0;
-    //                 }
-    //             }
-    //         }
-    //     }
-
-    //     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++) {
-
-    //         const dealii::Point<dim,double> &qpoint  = quadrature.point(iquad);
-
-    //         for(unsigned int idof=0; idof<n_lagrange_dofs; idof++) { //assume n_dofs_cell==n_quad_points
-
-    //             const unsigned int dn = fe_lagrange_system.system_to_component_index(idof).first;
-    //             const unsigned int shape_within_base = fe_lagrange_system.system_to_component_index(idof).second;
-
-    //             const dealii::Tensor<1,dim,double> lagrange_shape_grad = fe_lagrange_system.shape_grad_component(idof, qpoint, dn);
-
-    //             for(int dgrad1=0; dgrad1<dim; dgrad1++) {
-    //                 for(int dgrad2=0; dgrad2<dim; dgrad2++) {
-    //                     grad_Xl_grad_Xm[iquad][dn][dgrad1][dgrad2] += Xl_grad_Xm[shape_within_base][dn][dgrad1] * lagrange_shape_grad[dgrad2];
-    //                 }
-    //             }
-    //         }
-    //     }
-
-    //     // In_J_a_ni represents the interpolation representation of the determinant of
-    //     // the metric Jacobian times the covariant basis (covaraiant basis = a_n^i)
-    //     // index idim represents the reference element direction
-    //     // index dn represent the physical element direction
-    //     // Example a_2^1 ->n=2, i=1 -> a_2^1 = d( \xi )/ d( y)
-    //     std::vector<dealii::Tensor<2,dim,real>> In_J_a_ni(n_quad_pts);
-    //     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++) {
-    //         for(int idim=0; idim<dim; idim++) {
-    //             for(int dn=0; dn<dim; ++dn) {
-    //                 int dm, dl; //dn, dm, dl cyclic
-    //                 dm = (dn + 1) % dim;
-    //                 dl = (dm + 1) % dim;
-    //                 In_J_a_ni[iquad][idim][dn] = - (grad_Xl_grad_Xm[iquad][idim][dl][dm] - grad_Xl_grad_Xm[iquad][idim][dm][dl]);//curl of above quantity
-    //             }
-    //         }
-    //     }
-    //     //write/store the covariant representation
-    //     for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-    //         const real invJ = 1.0/jacobian_determinants[iquad];
-    //         for(int idim=0; idim<dim; idim++) {
-    //             for(int jdim=0; jdim<dim; jdim++) {
-    //                 covariant_metric_jacobian[iquad][idim][jdim] = In_J_a_ni[iquad][idim][jdim] * invJ;
-    //             }
-    //         }
-    //     }
-    // }
 
 }
 
@@ -976,7 +1020,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary(
         }
 
     }
-#ifdef KOPRIVA_METRICS
+#ifdef KOPRIVA_METRICS_BOUNDARY
     auto old_jac_det = jac_det;
     auto old_jac_inv_tran = jac_inv_tran;
 
@@ -984,24 +1028,24 @@ void DGWeak<dim,nstate,real>::assemble_boundary(
         evaluate_covariant_metric_jacobian<dim,adtype> ( face_quadrature, coords_coeff, fe_metric, jac_inv_tran, jac_det);
     }
 
-    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        //if (abs(old_jac_det[iquad] - jac_det[iquad]) > 1e-10) {
-            std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
-            std::cout << "Not the same jac det int, iquad " << iquad << std::endl;
-            std::cout << old_jac_det[iquad] << std::endl;
-            std::cout << jac_det[iquad] << std::endl;
-        //}
-        for (int row=0;row<dim;++row) {
-            for (int col=0;col<dim;++col) {
-                //if (abs(old_jac_inv_tran[iquad][row][col] - jac_inv_tran[iquad][row][col]) > 1e-10) {
-                    std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
-                    std::cout << "Not the same jac inv tran int, iquad " << iquad << " row " << row << " col " << col << std::endl;
-                    std::cout << old_jac_inv_tran[iquad][row][col] << std::endl;
-                    std::cout << jac_inv_tran[iquad][row][col] << std::endl;
-                }
-            //}
-        }
-    }
+    //for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+    //    //if (abs(old_jac_det[iquad] - jac_det[iquad]) > 1e-10) {
+    //        std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+    //        std::cout << "Not the same jac det int, iquad " << iquad << std::endl;
+    //        std::cout << old_jac_det[iquad] << std::endl;
+    //        std::cout << jac_det[iquad] << std::endl;
+    //    //}
+    //    for (int row=0;row<dim;++row) {
+    //        for (int col=0;col<dim;++col) {
+    //            //if (abs(old_jac_inv_tran[iquad][row][col] - jac_inv_tran[iquad][row][col]) > 1e-10) {
+    //                std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+    //                std::cout << "Not the same jac inv tran int, iquad " << iquad << " row " << row << " col " << col << std::endl;
+    //                std::cout << old_jac_inv_tran[iquad][row][col] << std::endl;
+    //                std::cout << jac_inv_tran[iquad][row][col] << std::endl;
+    //            }
+    //        //}
+    //    }
+    //}
 #endif
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         if (compute_metric_derivatives) {
@@ -1774,7 +1818,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
         }
     }
 
-#ifdef KOPRIVA_METRICS
+#ifdef KOPRIVA_METRICS_FACE
     auto old_jacobian_determinant_int = jacobian_determinant_int;
     auto old_jacobian_determinant_ext = jacobian_determinant_ext;
     auto old_jacobian_transpose_inverse_int = jacobian_transpose_inverse_int;
@@ -1785,40 +1829,40 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
         evaluate_covariant_metric_jacobian<dim,real2> ( face_quadrature_ext, coords_coeff_ext, fe_metric, jacobian_transpose_inverse_ext, jacobian_determinant_ext);
     }
 
-    for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
-        //if (abs(old_jacobian_determinant_int[iquad] - jacobian_determinant_int[iquad]) > 1e-10) {
-            std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
-            std::cout << "Not the same jac det int, iquad " << iquad << std::endl;
-            std::cout << old_jacobian_determinant_int[iquad] << std::endl;
-            std::cout << jacobian_determinant_int[iquad] << std::endl;
-        //}
-        //if (abs(old_jacobian_determinant_ext[iquad] - jacobian_determinant_ext[iquad]) > 1e-10) {
-            std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
-            std::cout << "Not the same jac det ext, iquad " << iquad << std::endl;
-            std::cout << old_jacobian_determinant_ext[iquad] << std::endl;
-            std::cout << jacobian_determinant_ext[iquad] << std::endl;
-        //}
-        for (int row=0;row<dim;++row) {
-            for (int col=0;col<dim;++col) {
-                //if (abs(old_jacobian_transpose_inverse_int[iquad][row][col] - jacobian_transpose_inverse_int[iquad][row][col]) > 1e-10) {
-                    std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
-                    std::cout << "Not the same jac inv tran int, iquad " << iquad << " row " << row << " col " << col << std::endl;
-                    std::cout << old_jacobian_transpose_inverse_int[iquad][row][col] << std::endl;
-                    std::cout << jacobian_transpose_inverse_int[iquad][row][col] << std::endl;
-                }
-            //}
-        }
-        for (int row=0;row<dim;++row) {
-            for (int col=0;col<dim;++col) {
-                //if (abs(old_jacobian_transpose_inverse_ext[iquad][row][col] - jacobian_transpose_inverse_ext[iquad][row][col]) > 1e-10) {
-                    std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
-                    std::cout << "Not the same jac inv tran ext, iquad " << iquad << " row " << row << " col " << col << std::endl;
-                    std::cout << old_jacobian_transpose_inverse_ext[iquad][row][col] << std::endl;
-                    std::cout << jacobian_transpose_inverse_ext[iquad][row][col] << std::endl;
-                //}
-            }
-        }
-    }
+    //for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+    //    //if (abs(old_jacobian_determinant_int[iquad] - jacobian_determinant_int[iquad]) > 1e-10) {
+    //        std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+    //        std::cout << "Not the same jac det int, iquad " << iquad << std::endl;
+    //        std::cout << old_jacobian_determinant_int[iquad] << std::endl;
+    //        std::cout << jacobian_determinant_int[iquad] << std::endl;
+    //    //}
+    //    //if (abs(old_jacobian_determinant_ext[iquad] - jacobian_determinant_ext[iquad]) > 1e-10) {
+    //        std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+    //        std::cout << "Not the same jac det ext, iquad " << iquad << std::endl;
+    //        std::cout << old_jacobian_determinant_ext[iquad] << std::endl;
+    //        std::cout << jacobian_determinant_ext[iquad] << std::endl;
+    //    //}
+    //    for (int row=0;row<dim;++row) {
+    //        for (int col=0;col<dim;++col) {
+    //            //if (abs(old_jacobian_transpose_inverse_int[iquad][row][col] - jacobian_transpose_inverse_int[iquad][row][col]) > 1e-10) {
+    //                std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+    //                std::cout << "Not the same jac inv tran int, iquad " << iquad << " row " << row << " col " << col << std::endl;
+    //                std::cout << old_jacobian_transpose_inverse_int[iquad][row][col] << std::endl;
+    //                std::cout << jacobian_transpose_inverse_int[iquad][row][col] << std::endl;
+    //            }
+    //        //}
+    //    }
+    //    for (int row=0;row<dim;++row) {
+    //        for (int col=0;col<dim;++col) {
+    //            //if (abs(old_jacobian_transpose_inverse_ext[iquad][row][col] - jacobian_transpose_inverse_ext[iquad][row][col]) > 1e-10) {
+    //                std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+    //                std::cout << "Not the same jac inv tran ext, iquad " << iquad << " row " << row << " col " << col << std::endl;
+    //                std::cout << old_jacobian_transpose_inverse_ext[iquad][row][col] << std::endl;
+    //                std::cout << jacobian_transpose_inverse_ext[iquad][row][col] << std::endl;
+    //            //}
+    //        }
+    //    }
+    //}
 #endif
 
 
@@ -1857,8 +1901,14 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
             if (std::is_same<double,real2>::value) {
                 for (int d=0;d<dim;++d) {
                     assert(abs(normal_normalized_int[d]+normal_normalized_ext[d]) < 1e-12);
+                    if (abs(normal_normalized_int[d]+normal_normalized_ext[d]) > 1e-12) {
+                        std::cout << "Non-matching normals" << std::endl;
+                    }
                 }
                 assert(abs(surface_jac_det_int-surface_jac_det_ext) < 1e-12);
+                if(abs(surface_jac_det_int-surface_jac_det_ext) > 1e-12) {
+                    std::cout << "Non-matching surface jacobians" << std::endl;
+                }
                 //std::cout << "normal int: " << normal_normalized_int << std::endl;
                 //std::cout << "normal ext: " << normal_normalized_ext << std::endl;
                 //std::cout << "surface_jac_det_int: " << surface_jac_det_int << std::endl;
@@ -2905,30 +2955,30 @@ void DGWeak<dim,nstate,real>::assemble_volume_term(
             jac_det[iquad] = fe_values_vol.JxW(iquad) / quadrature.weight(iquad);
         }
     }
-#ifdef KOPRIVA_METRICS
+#ifdef KOPRIVA_METRICS_VOL
     auto old_jac_inv_tran = jac_inv_tran;
     auto old_jac_det = jac_det;
     if constexpr (dim != 1) {
         evaluate_covariant_metric_jacobian<dim,real2> ( quadrature, coords_coeff, fe_metric, jac_inv_tran, jac_det);
     }
-    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        if (abs(old_jac_det[iquad] - jac_det[iquad]) > 1e-10) {
-            std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
-            std::cout << "Not the same jac det, iquad " << iquad << std::endl;
-            std::cout << old_jac_det[iquad] << std::endl;
-            std::cout << jac_det[iquad] << std::endl;
-        }
-        for (int row=0;row<dim;++row) {
-            for (int col=0;col<dim;++col) {
-                if (abs(old_jac_inv_tran[iquad][row][col] - jac_inv_tran[iquad][row][col]) > 1e-10) {
-                    std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
-                    std::cout << "Not the same jac inv tran, iquad " << iquad << " row " << row << " col " << col << std::endl;
-                    std::cout << old_jac_inv_tran[iquad][row][col] << std::endl;
-                    std::cout << jac_inv_tran[iquad][row][col] << std::endl;
-                }
-            }
-        }
-    }
+    // for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+    //     if (abs(old_jac_det[iquad] - jac_det[iquad]) > 1e-10) {
+    //         std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+    //         std::cout << "Not the same jac det, iquad " << iquad << std::endl;
+    //         std::cout << old_jac_det[iquad] << std::endl;
+    //         std::cout << jac_det[iquad] << std::endl;
+    //     }
+    // //    for (int row=0;row<dim;++row) {
+    // //        for (int col=0;col<dim;++col) {
+    // //            if (abs(old_jac_inv_tran[iquad][row][col] - jac_inv_tran[iquad][row][col]) > 1e-10) {
+    // //                std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+    // //                std::cout << "Not the same jac inv tran, iquad " << iquad << " row " << row << " col " << col << std::endl;
+    // //                std::cout << old_jac_inv_tran[iquad][row][col] << std::endl;
+    // //                std::cout << jac_inv_tran[iquad][row][col] << std::endl;
+    // //            }
+    // //        }
+    // //    }
+    // }
 #endif
 
 

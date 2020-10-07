@@ -202,9 +202,11 @@ template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
 ::compute_entropy_measure ( const real density, const real pressure ) const
 {
-    assert(density > 0.0);
-    const real entropy_measure = pressure*pow(density,-gam);
-    return entropy_measure;
+    if (density < 0.0) {
+        return pressure*pow(1e10,-gam);
+    } else {
+        return pressure*pow(density,-gam);
+    }
 }
 
 
@@ -282,7 +284,7 @@ inline real Euler<dim,nstate,real>
         //density = density_inf;
         density = 1e10;
     }
-    assert(density>0.0);
+    //assert(density>0.0);
     const real pressure = compute_pressure(conservative_soln);
     const real sound = sqrt(pressure*gam/density);
     return sound;
@@ -837,22 +839,22 @@ void Euler<dim,nstate,real>
             }
         }
 
-//    } else if (boundary_type == 1004) {
-//        // Farfield boundary condition
-//        const real density_bc = density_inf;
-//        const real pressure_bc = 1.0/(gam*mach_inf_sqr);
-//        std::array<real,nstate> primitive_boundary_values;
-//        primitive_boundary_values[0] = density_bc;
-//        for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = velocities_inf[d]; } // minus since it's inflow
-//        primitive_boundary_values[nstate-1] = pressure_bc;
-//        const std::array<real,nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
-//        for (int istate=0; istate<nstate; ++istate) {
-//            soln_bc[istate] = conservative_bc[istate];
-//        }
-//
     } else if (boundary_type == 1004) {
         // Farfield boundary condition
         boundary_riemann (normal_int, soln_int, soln_bc);
+    } else if (boundary_type == 1005) {
+        // Farfield boundary condition
+        const real density_bc = density_inf;
+        const real pressure_bc = 1.0/(gam*mach_inf_sqr);
+        std::array<real,nstate> primitive_boundary_values;
+        primitive_boundary_values[0] = density_bc;
+        for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = velocities_inf[d]; } // minus since it's inflow
+        primitive_boundary_values[nstate-1] = pressure_bc;
+        const std::array<real,nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
+        for (int istate=0; istate<nstate; ++istate) {
+            soln_bc[istate] = conservative_bc[istate];
+        }
+
     } else{
         std::cout << "Invalid boundary_type: " << boundary_type << std::endl;
         std::abort();

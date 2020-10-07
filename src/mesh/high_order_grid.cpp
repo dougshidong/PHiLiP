@@ -346,12 +346,9 @@ inline real2 HighOrderGrid<dim,real,VectorType,DoFHandlerType>
     if constexpr(dim == 2)
         return jacobian[0][0] * jacobian[1][1] - jacobian[1][0] * jacobian[0][1];
     if constexpr(dim == 3)
-        return (jacobian[0][0] * jacobian[1][1] * jacobian[2][2] -
-                jacobian[0][0] * jacobian[1][2] * jacobian[2][1] -
-                jacobian[1][0] * jacobian[0][1] * jacobian[2][2] +
-                jacobian[1][0] * jacobian[0][2] * jacobian[2][1] +
-                jacobian[2][0] * jacobian[0][1] * jacobian[1][2] -
-                jacobian[2][0] * jacobian[0][2] * jacobian[1][1]);
+        return (+ jacobian[0][0] *(jacobian[1][1] * jacobian[2][2] - jacobian[1][2] * jacobian[2][1])
+                - jacobian[0][1] *(jacobian[1][0] * jacobian[2][2] - jacobian[1][2] * jacobian[2][0])
+                + jacobian[0][2] *(jacobian[1][0] * jacobian[2][1] - jacobian[1][1] * jacobian[2][0]));
 }
 
 
@@ -380,9 +377,9 @@ std::vector<real> HighOrderGrid<dim,real,VectorType,DoFHandlerType>::evaluate_ja
             coords_grad[iaxis] = 0;
         }
         for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
-              const unsigned int axis = fe.system_to_component_index(idof).first;
-              coords[axis]      += solution[dofs_indices[idof]] * fe.shape_value (idof, points[iquad]);
-              coords_grad[axis] += solution[dofs_indices[idof]] * fe.shape_grad (idof, points[iquad]);
+            const unsigned int axis = fe.system_to_component_index(idof).first;
+            coords[axis]      += solution[dofs_indices[idof]] * fe.shape_value_component (idof, points[iquad], axis);
+            coords_grad[axis] += solution[dofs_indices[idof]] * fe.shape_grad_component (idof, points[iquad], axis);
         }
         jac_det[iquad] = determinant(coords_grad);
 
@@ -391,9 +388,16 @@ std::vector<real> HighOrderGrid<dim,real,VectorType,DoFHandlerType>::evaluate_ja
             for (int d=0;d<dim;++d) {
                 phys_point[d] = coords[d];
             }
-            std::cout << " Negative Jacobian. Ref Point: " << points[iquad]
+            std::cout << " Negative Jacobian determinant. Ref Point: " << points[iquad]
                       << " Phys Point: " << phys_point
                       << " J: " << jac_det[iquad] << std::endl;
+            std::cout << "Jacobian " << std::endl;
+            for (int row=0;row<dim;++row) {
+                for (int col=0;col<dim;++col) {
+                    std::cout << coords_grad[row][col] << " ";
+                }
+                std::cout << std::endl;
+            }
         }
     }
     return jac_det;
@@ -1291,7 +1295,6 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::output_results_vtk (cons
             jacobian_determinant[dofs_indices[i]] = jac_det[i];
         }
     }
-
 
     jacobian_determinant.update_ghost_values();
     std::vector<std::string> jacobian_name;

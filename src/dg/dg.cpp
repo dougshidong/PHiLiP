@@ -445,6 +445,10 @@ void DGBase<dim,real>::assemble_cell_residual (
 
     const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
 
+    assemble_volume_term_explicit (
+    current_cell_index,
+    fe_values_volume, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
+    current_cell_rhs*=0.0;
     //if ( compute_dRdW || compute_dRdX || compute_d2R ) {
         assemble_volume_term_derivatives (
             current_cell_index,

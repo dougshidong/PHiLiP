@@ -1319,6 +1319,7 @@ void DGBase<dim,real>::allocate_system ()
     solution.add(std::numeric_limits<real>::lowest());
     //right_hand_side.reinit(locally_owned_dofs, mpi_communicator);
     right_hand_side.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
+    right_hand_side.add(1.0); // Avoid 0 initial residual for output and logarithmic visualization.
     dual.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
 
     // System matrix allocation

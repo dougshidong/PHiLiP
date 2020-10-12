@@ -4,6 +4,8 @@
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/parameter_handler.h>
 
+#include <deal.II/base/qprojector.h>
+
 #include <deal.II/grid/tria.h>
 
 #include <deal.II/fe/fe_dgq.h>
@@ -520,6 +522,8 @@ protected:
         const dealii::types::global_dof_index neighbor_cell_index,
         const std::pair<unsigned int, int> face_subface_int,
         const std::pair<unsigned int, int> face_subface_ext,
+        const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_int,
+        const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_ext,
         const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_int,
         const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_ext,
         const real penalty,

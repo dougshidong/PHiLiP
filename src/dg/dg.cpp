@@ -543,10 +543,26 @@ void DGBase<dim,real>::assemble_cell_residual (
 
                     std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
                     std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, -1);
+                    const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face (
+                                                                                                  dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                  iface,
+                                                                                                  current_cell->face_orientation(iface),
+                                                                                                  current_cell->face_flip(iface),
+                                                                                                  current_cell->face_rotation(iface),
+                                                                                                  used_face_quadrature.size());
+                    const auto face_data_set_ext = dealii::QProjector<dim>::DataSetDescriptor::face (
+                                                                                                  dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                  neighbor_iface,
+                                                                                                  neighbor_cell->face_orientation(neighbor_iface),
+                                                                                                  neighbor_cell->face_flip(neighbor_iface),
+                                                                                                  neighbor_cell->face_rotation(neighbor_iface),
+                                                                                                  used_face_quadrature.size());
                     assemble_face_term_derivatives (
                         current_cell_index,
                         neighbor_cell_index,
                         face_subface_int, face_subface_ext,
+                        face_data_set_int,
+                        face_data_set_ext,
                         fe_values_face_int, fe_values_face_ext,
                         penalty,
                         fe_collection[i_fele], fe_collection[i_fele_n],
@@ -629,10 +645,29 @@ void DGBase<dim,real>::assemble_cell_residual (
                 const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
                 std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
                 std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, (int)neighbor_i_subface);
+
+                const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face( 
+                                                                                                 dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                 iface,
+                                                                                                 current_cell->face_orientation(iface),
+                                                                                                 current_cell->face_flip(iface),
+                                                                                                 current_cell->face_rotation(iface),
+                                                                                                 used_face_quadrature.size());
+                const auto face_data_set_ext = dealii::QProjector<dim>::DataSetDescriptor::subface (
+                                                                                                    dealii::ReferenceCell::get_hypercube(dim),
+                                                                                                    neighbor_iface,
+                                                                                                    neighbor_i_subface,
+                                                                                                    neighbor_cell->face_orientation(neighbor_iface),
+                                                                                                    neighbor_cell->face_flip(neighbor_iface),
+                                                                                                    neighbor_cell->face_rotation(neighbor_iface),
+                                                                                                    used_face_quadrature.size(),
+                                                                                                    neighbor_cell->subface_case(neighbor_iface));
                 assemble_face_term_derivatives (
                     current_cell_index,
                     neighbor_cell_index,
                     face_subface_int, face_subface_ext,
+                    face_data_set_int,
+                    face_data_set_ext,
                     fe_values_face_int, fe_values_face_ext,
                     penalty,
                     fe_collection[i_fele], fe_collection[i_fele_n],
@@ -692,10 +727,26 @@ void DGBase<dim,real>::assemble_cell_residual (
                 const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
                 std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
                 std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, -1);
+                const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face (
+                                                                                              dealii::ReferenceCell::get_hypercube(dim),
+                                                                                              iface,
+                                                                                              current_cell->face_orientation(iface),
+                                                                                              current_cell->face_flip(iface),
+                                                                                              current_cell->face_rotation(iface),
+                                                                                              used_face_quadrature.size());
+                const auto face_data_set_ext = dealii::QProjector<dim>::DataSetDescriptor::face (
+                                                                                              dealii::ReferenceCell::get_hypercube(dim),
+                                                                                              neighbor_iface,
+                                                                                              neighbor_cell->face_orientation(neighbor_iface),
+                                                                                              neighbor_cell->face_flip(neighbor_iface),
+                                                                                              neighbor_cell->face_rotation(neighbor_iface),
+                                                                                              used_face_quadrature.size());
                 assemble_face_term_derivatives (
                     current_cell_index,
                     neighbor_cell_index,
                     face_subface_int, face_subface_ext,
+                    face_data_set_int,
+                    face_data_set_ext,
                     fe_values_face_int, fe_values_face_ext,
                     penalty,
                     fe_collection[i_fele], fe_collection[i_fele_n],

@@ -61,6 +61,8 @@ private:
         const dealii::types::global_dof_index neighbor_cell_index,
         const std::pair<unsigned int, int> face_subface_int,
         const std::pair<unsigned int, int> face_subface_ext,
+        const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_int,
+        const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_ext,
         const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_int,
         const dealii::FEFaceValuesBase<dim,dim>     &,//fe_values_ext,
         const real penalty,

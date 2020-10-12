@@ -187,9 +187,10 @@ void evaluate_finite_element_values (
         for (unsigned int idof = 0; idof < n_dofs; ++idof) {
             const int icomp = finite_element.system_to_component_index(idof).first;
             values[ipoint][icomp] += coefficients[idof] * finite_element.shape_value_component(idof, unit_points[ipoint], icomp);
-        }
-        for (int icomp=0; icomp<n_components; ++icomp) {
-            //std::cout << "values " << values[ipoint][icomp] << std::endl;
+            // std::cout << "idof " << idof
+            //           << "  coeff " << coefficients[idof]
+            //           << " shape_value " << finite_element.shape_value_component(idof, unit_points[ipoint], icomp)
+            //           << " values[ipoint][icomp] " << values[ipoint][icomp] << std::endl;
         }
     }
 }
@@ -302,89 +303,37 @@ void evaluate_covariant_metric_jacobian (
     std::vector<dealii::Tensor<2,dim,real>> &covariant_metric_jacobian,
     std::vector<real> &jacobian_determinants)
 {
-
     const std::vector< dealii::Point<dim,double> > &unit_quad_pts = quadrature.get_points();
     const unsigned int n_quad_pts = unit_quad_pts.size();
 
+    //const unsigned int grid_degree = fe_metric.tensor_degree();
+    //const dealii::FE_Q<dim> fe_lagrange_grid(2*grid_degree);
     const dealii::FiniteElement<dim> &fe_lagrange_grid = fe_metric.base_element(0);
-    const unsigned int n_metric_dofs = fe_metric.n_dofs_per_cell();
     const std::vector< dealii::Point<dim,double> > &unit_grid_pts = fe_lagrange_grid.get_unit_support_points();
     const unsigned int n_grid_pts = unit_grid_pts.size();
-    const unsigned int n_lagr_dofs = fe_lagrange_grid.n_dofs_per_cell();
-    (void) n_lagr_dofs;
-    assert(n_grid_pts == n_lagr_dofs);
 
     std::vector < std::array< real,dim> > coords(n_grid_pts);
     evaluate_finite_element_values  <dim, real, dim> (unit_grid_pts, coords_coeff, fe_metric, coords);
+
     std::vector < std::array< dealii::Tensor<1,dim,real>, dim > > coords_gradients(n_grid_pts);
     evaluate_finite_element_gradients <dim, real, dim> (unit_grid_pts, coords_coeff, fe_metric, coords_gradients);
 
-    std::vector<real> grid_pts_jacobian_determinants = determinant_ArrayTensor<dim,real>(coords_gradients);
-
     std::vector < std::array< dealii::Tensor<1,dim,real>, dim > > quad_pts_coords_gradients(n_quad_pts);
     evaluate_finite_element_gradients <dim, real, dim> (unit_quad_pts, coords_coeff, fe_metric, quad_pts_coords_gradients);
-    std::vector<real> quad_pts_jacobian_determinants = determinant_ArrayTensor<dim,real>(quad_pts_coords_gradients);
 
-    if (dim==1) {
+    jacobian_determinants = determinant_ArrayTensor<dim,real>(quad_pts_coords_gradients);
+
+    if constexpr (dim==1) {
         for (unsigned int iquad = 0; iquad<n_quad_pts; ++iquad) {
             const real invJ = 1.0/jacobian_determinants[iquad];
             covariant_metric_jacobian[iquad][0][0] = invJ;
         }
     }
 
-    if (dim==2) {
-        // // Remark 5 of Kopriva (2006).
-        // // Need to interpolate physical coordinates, and then differentiate it
-        // // using the derivatives of the collocated Lagrange basis.
-
-        // std::vector<dealii::Tensor<2,dim,real>> dphys_dref(n_grid_pts);
-        // for(unsigned int igrid=0; igrid<n_grid_pts; igrid++) {
-        //     for(int dphys=0; dphys<dim; dphys++) {
-        //         for(int dref=0; dref<dim; dref++) {
-        //             dphys_dref[igrid][dphys][dref] = 0.0;
-        //         }
-        //     }
-        // }
-
-        // for(unsigned int igrid=0; igrid<n_grid_pts; igrid++) {
-        //     for(unsigned int idof_metric=0; idof_metric<n_metric_dofs; idof_metric++) { 
-
-        //         const unsigned int dphys = fe_metric.system_to_component_index(idof_metric).first;
-        //         const unsigned int shape_within_base = fe_metric.system_to_component_index(idof_metric).second;
-
-        //         const dealii::Point<dim,double> &grid_point  = unit_grid_pts[igrid];
-        //         const dealii::Tensor<1,dim,double> shape_grad = fe_metric.shape_grad_component(idof_metric, grid_point, dphys);
-
-        //         for(int dref=0; dref<dim; dref++) {
-        //             dphys_dref[igrid][dphys][dref] += coords[shape_within_base][dphys] * shape_grad[dref];
-        //         }
-        //     }
-        // }
-
-        // // In 2D Cross-Product Form = Conservative-Curl Form
-        // for (unsigned int iquad = 0; iquad<n_quad_pts; ++iquad) {
-
-        //     const dealii::Point<dim,double> &quad_point = unit_quad_pts[iquad];
-
-        //     covariant_metric_jacobian[iquad] = 0.0;
-        //     jacobian_determinants[iquad] = 0.0;
-
-        //     for (unsigned int igrid = 0; igrid<n_grid_pts; ++igrid) {
-        //         // inv(A)^T =  [ a  b ]^-T  =  (1/det(A)) [ d -c ]
-        //         //             [ c  d ]                   [-b  a ]
-        //         const double shape_value = fe_lagrange_grid.shape_value(igrid, quad_point);
-        //         const real invJ = 1.0/grid_pts_jacobian_determinants[igrid];
-        //         (void) shape_value;
-        //         jacobian_determinants[iquad] += grid_pts_jacobian_determinants[igrid] * shape_value;
-        //         covariant_metric_jacobian[iquad][0][0] +=  dphys_dref[igrid][1][1] * invJ * shape_value;
-        //         covariant_metric_jacobian[iquad][0][1] += -dphys_dref[igrid][1][0] * invJ * shape_value;
-        //         covariant_metric_jacobian[iquad][1][0] += -dphys_dref[igrid][0][1] * invJ * shape_value;
-        //         covariant_metric_jacobian[iquad][1][1] +=  dphys_dref[igrid][0][0] * invJ * shape_value;
-        //     }
-        // }
-
-        std::vector < std::array< real,dim> > coords_quad(n_quad_pts);
-        evaluate_finite_element_values  <dim, real, dim> (unit_quad_pts, coords_coeff, fe_metric, coords_quad);
+    if constexpr (dim==2) {
+        // Remark 5 of Kopriva (2006).
+        // Need to interpolate physical coordinates, and then differentiate it
+        // using the derivatives of the collocated Lagrange basis.
 
         std::vector<dealii::Tensor<2,dim,real>> dphys_dref_quad(n_quad_pts);
 
@@ -404,122 +353,83 @@ void evaluate_covariant_metric_jacobian (
                         dphys_dref_quad[iquad][dphys][dref] += coords[igrid][dphys] * shape_grad[dref];
                     }
                 }
-
-                //std::cout 
-                //        << " iquad " << iquad
-                //        << " coords_quad " << coords_quad[iquad][0] << " " << coords_quad[iquad][1]
-                //        << " shape_grad " << shape_grad
-                //        << " dphys_dref_quad " << dphys_dref_quad[iquad]
-                //        << std::endl;
             }
         }
 
         // In 2D Cross-Product Form = Conservative-Curl Form
         for (unsigned int iquad = 0; iquad<n_quad_pts; ++iquad) {
 
+            const real invJ = 1.0/jacobian_determinants[iquad];
+
             covariant_metric_jacobian[iquad] = 0.0;
-            jacobian_determinants[iquad] = quad_pts_jacobian_determinants[iquad];
 
             // inv(A)^T =  [ a  b ]^-T  =  (1/det(A)) [ d -c ]
             //             [ c  d ]                   [-b  a ]
-            const real invJ = 1.0/jacobian_determinants[iquad];
-            //jacobian_determinants[iquad] += grid_pts_jacobian_determinants[igrid];
             covariant_metric_jacobian[iquad][0][0] =  dphys_dref_quad[iquad][1][1] * invJ;
             covariant_metric_jacobian[iquad][0][1] = -dphys_dref_quad[iquad][1][0] * invJ;
             covariant_metric_jacobian[iquad][1][0] = -dphys_dref_quad[iquad][0][1] * invJ;
             covariant_metric_jacobian[iquad][1][1] =  dphys_dref_quad[iquad][0][0] * invJ;
+
         }
 
-        //jacobian_determinants = quad_pts_jacobian_determinants;
     }
-    if(dim == 3) {
+    if constexpr (dim == 3) {
 
-        std::vector<dealii::Tensor<2,dim,real>> Xl_grad_Xm(n_grid_pts);
-        for(unsigned int igrid=0; igrid<n_grid_pts; igrid++) {
-            for(int dn=0; dn<dim; dn++) {
-                // dn, dm, dl cyclic indices
-                int dm, dl;
-                dm = (dn + 1) % dim;
-                dl = (dm + 1) % dim;
+        // Evaluate the physical (Y grad Z), (Z grad X), (X grad
+        std::vector<real> Ta(n_grid_pts); 
+        std::vector<real> Tb(n_grid_pts); 
+        std::vector<real> Tc(n_grid_pts);
 
-                for (int dgrad=0; dgrad<dim; ++dgrad) {
-                    Xl_grad_Xm[igrid][dn][dgrad] = coords[igrid][dl] * coords_gradients[igrid][dm][dgrad];
-                }
-            }
-        }
+        std::vector<real> Td(n_grid_pts);
+        std::vector<real> Te(n_grid_pts);
+        std::vector<real> Tf(n_grid_pts);
 
-        // Since the metric Jacobian is built at the volume cubature nodes (quadrature/flux points)
-        // it's basis wrt. the reference element is collocated, thus we construct an arbitrary
-        // collocated Lagrange basis on the reference element quadrature points, as to get the
-        // gradient of the above quantity -> \nabla[ X_l * \nabla( X_m ) ] as to represent the curl
-        // by cyclically looping through the gradient
-        std::vector<dealii::Tensor<3,dim,real>> grad_Xl_grad_Xm(n_grid_pts);
-        for(unsigned int igrid=0; igrid<n_grid_pts; igrid++) {
-            for(int idim=0; idim<dim; idim++) {
-                for(int jdim=0; jdim<dim; jdim++) {
-                    for(int kdim=0; kdim<dim; kdim++) {
-                        grad_Xl_grad_Xm[igrid][idim][jdim][kdim] = 0.0;
-                    }
-                }
-            }
-        }
+        std::vector<real> Tg(n_grid_pts);
+        std::vector<real> Th(n_grid_pts);
+        std::vector<real> Ti(n_grid_pts);
 
         for(unsigned int igrid=0; igrid<n_grid_pts; igrid++) {
+            Ta[igrid] = 0.5*(coords_gradients[igrid][1][1] * coords[igrid][2] - coords_gradients[igrid][2][1] * coords[igrid][1]);
+            Tb[igrid] = 0.5*(coords_gradients[igrid][1][2] * coords[igrid][2] - coords_gradients[igrid][2][2] * coords[igrid][1]);
+            Tc[igrid] = 0.5*(coords_gradients[igrid][1][0] * coords[igrid][2] - coords_gradients[igrid][2][0] * coords[igrid][1]);
 
-            const dealii::Point<dim,double> &grid_point  = unit_grid_pts[igrid];
+            Td[igrid] = 0.5*(coords_gradients[igrid][2][1] * coords[igrid][0] - coords_gradients[igrid][0][1] * coords[igrid][2]);
+            Te[igrid] = 0.5*(coords_gradients[igrid][2][2] * coords[igrid][0] - coords_gradients[igrid][0][2] * coords[igrid][2]);
+            Tf[igrid] = 0.5*(coords_gradients[igrid][2][0] * coords[igrid][0] - coords_gradients[igrid][0][0] * coords[igrid][2]);
 
-            for(unsigned int idof=0; idof<n_metric_dofs; idof++) { //assume n_dofs_cell==n_quad_points
-
-                const unsigned int dn = fe_metric.system_to_component_index(idof).first;
-                const unsigned int shape_within_base = fe_metric.system_to_component_index(idof).second;
-
-                const dealii::Tensor<1,dim,double> lagrange_shape_grad = fe_metric.shape_grad_component(idof, grid_point, dn);
-
-                for(int dgrad1=0; dgrad1<dim; dgrad1++) {
-                    for(int dgrad2=0; dgrad2<dim; dgrad2++) {
-                        grad_Xl_grad_Xm[igrid][dn][dgrad1][dgrad2] += Xl_grad_Xm[shape_within_base][dn][dgrad1] * lagrange_shape_grad[dgrad2];
-                    }
-                }
-            }
+            Tg[igrid] = 0.5*(coords_gradients[igrid][0][1] * coords[igrid][1] - coords_gradients[igrid][1][1] * coords[igrid][0]);
+            Th[igrid] = 0.5*(coords_gradients[igrid][0][2] * coords[igrid][1] - coords_gradients[igrid][1][2] * coords[igrid][0]);
+            Ti[igrid] = 0.5*(coords_gradients[igrid][0][0] * coords[igrid][1] - coords_gradients[igrid][1][0] * coords[igrid][0]);
         }
 
-        // In_J_a_ni represents the interpolation representation of the determinant of
-        // the metric Jacobian times the covariant basis (covaraiant basis = a_n^i)
-        // index idim represents the reference element direction
-        // index dn represent the physical element direction
-        // Example a_2^1 ->n=2, i=1 -> a_2^1 = d( \xi )/ d( y)
-        std::vector<dealii::Tensor<2,dim,real>> In_J_a_ni(n_quad_pts);
         for(unsigned int iquad=0; iquad<n_quad_pts; iquad++) {
 
-            jacobian_determinants[iquad] = 0.0;
-            In_J_a_ni[iquad] = 0.0;
+            covariant_metric_jacobian[iquad] = 0.0;
+
+            const dealii::Point<dim,double> &quad_point  = unit_quad_pts[iquad];
 
             for(unsigned int igrid=0; igrid<n_grid_pts; igrid++) {
 
-                const dealii::Point<dim,double> &quad_point  = unit_quad_pts[iquad];
-                const double shape_value = fe_lagrange_grid.shape_value(igrid, quad_point);
+                const dealii::Tensor<1,dim,double> shape_grad = fe_lagrange_grid.shape_grad(igrid, quad_point);
 
-                for(int idim=0; idim<dim; idim++) {
-                    for(int dn=0; dn<dim; ++dn) {
-                        int dm, dl; //dn, dm, dl cyclic
-                        dm = (dn + 1) % dim;
-                        dl = (dm + 1) % dim;
-                        In_J_a_ni[iquad][idim][dn] += - (grad_Xl_grad_Xm[igrid][idim][dl][dm] - grad_Xl_grad_Xm[igrid][idim][dm][dl]) * shape_value;
-                    }
-                }
+                covariant_metric_jacobian[iquad][0][0] += shape_grad[2] * Ta[igrid] - shape_grad[1] * Tb[igrid];
+                covariant_metric_jacobian[iquad][1][0] += shape_grad[2] * Td[igrid] - shape_grad[1] * Te[igrid];
+                covariant_metric_jacobian[iquad][2][0] += shape_grad[2] * Tg[igrid] - shape_grad[1] * Th[igrid];
 
-                jacobian_determinants[iquad] += grid_pts_jacobian_determinants[igrid] * shape_value;
+                covariant_metric_jacobian[iquad][0][1] += shape_grad[0] * Tb[igrid] - shape_grad[2] * Tc[igrid];
+                covariant_metric_jacobian[iquad][1][1] += shape_grad[0] * Te[igrid] - shape_grad[2] * Tf[igrid];
+                covariant_metric_jacobian[iquad][2][1] += shape_grad[0] * Th[igrid] - shape_grad[2] * Ti[igrid];
+
+                covariant_metric_jacobian[iquad][0][2] += shape_grad[1] * Tc[igrid] - shape_grad[0] * Ta[igrid];
+                covariant_metric_jacobian[iquad][1][2] += shape_grad[1] * Tf[igrid] - shape_grad[0] * Td[igrid];
+                covariant_metric_jacobian[iquad][2][2] += shape_grad[1] * Ti[igrid] - shape_grad[0] * Tg[igrid];
             }
-        }
-        //write/store the covariant representation
-        for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+
             const real invJ = 1.0/jacobian_determinants[iquad];
-            for(int idim=0; idim<dim; idim++) {
-                for(int jdim=0; jdim<dim; jdim++) {
-                    covariant_metric_jacobian[iquad][idim][jdim] = In_J_a_ni[iquad][idim][jdim] * invJ;
-                }
-            }
+            covariant_metric_jacobian[iquad] *= invJ;
+
         }
+
     }
 
 }
@@ -1687,6 +1597,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
     const std::vector< double > &dual_ext,
     const std::pair<unsigned int, int> face_subface_int,
     const std::pair<unsigned int, int> face_subface_ext,
+    const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_int,
+    const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_ext,
     const Physics::PhysicsBase<dim, nstate, real2> &physics,
     const NumericalFlux::NumericalFluxConvective<dim, nstate, real2> &conv_num_flux,
     const NumericalFlux::NumericalFluxDissipative<dim, nstate, real2> &diss_num_flux,
@@ -1705,6 +1617,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
     (void) compute_dRdW;
     const unsigned int n_soln_dofs_int = fe_int.dofs_per_cell;
     const unsigned int n_soln_dofs_ext = fe_ext.dofs_per_cell;
+    const unsigned int n_face_quad_pts = face_quadrature.size();
 
     dual_dot_residual = 0.0;
     for (unsigned int itest=0; itest<n_soln_dofs_int; ++itest) {
@@ -1719,24 +1632,49 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
     using Tensor2D = dealii::Tensor<2,dim,real2>;
     using ADArrayTensor1 = std::array< Tensor1D, nstate >;
 
-    const dealii::Quadrature<dim> face_quadrature_int = face_subface_int.second == -1 ?
-                                                        dealii::QProjector<dim>::project_to_face(dealii::ReferenceCell::get_hypercube(dim),
-                                                                                                 face_quadrature,
-                                                                                                 face_subface_int.first):
-                                                        dealii::QProjector<dim>::project_to_subface(dealii::ReferenceCell::get_hypercube(dim),
-                                                                                                 face_quadrature,
-                                                                                                 face_subface_int.first,
-                                                                                                 face_subface_int.second,
-                                                                                                 dealii::RefinementCase<dim-1>::isotropic_refinement);
-    const dealii::Quadrature<dim> face_quadrature_ext = face_subface_ext.second == -1 ?
-                                                        dealii::QProjector<dim>::project_to_face(dealii::ReferenceCell::get_hypercube(dim),
-                                                                                                 face_quadrature,
-                                                                                                 face_subface_ext.first):
-                                                        dealii::QProjector<dim>::project_to_subface(dealii::ReferenceCell::get_hypercube(dim),
-                                                                                                 face_quadrature,
-                                                                                                 face_subface_ext.first,
-                                                                                                 face_subface_ext.second,
-                                                                                                 dealii::RefinementCase<dim-1>::isotropic_refinement);
+    (void) face_data_set_int; (void) face_data_set_ext;
+    dealii::Quadrature<dim> face_quadrature_int, face_quadrature_ext;
+    if constexpr (dim < 3) {
+        face_quadrature_int = face_subface_int.second == -1 ?
+                              dealii::QProjector<dim>::project_to_face(dealii::ReferenceCell::get_hypercube(dim),
+                                                                       face_quadrature,
+                                                                       face_subface_int.first):
+                              dealii::QProjector<dim>::project_to_subface(dealii::ReferenceCell::get_hypercube(dim),
+                                                                       face_quadrature,
+                                                                       face_subface_int.first,
+                                                                       face_subface_int.second,
+                                                                       dealii::RefinementCase<dim-1>::isotropic_refinement);
+        face_quadrature_ext = face_subface_ext.second == -1 ?
+                              dealii::QProjector<dim>::project_to_face(dealii::ReferenceCell::get_hypercube(dim),
+                                                                       face_quadrature,
+                                                                       face_subface_ext.first):
+                              dealii::QProjector<dim>::project_to_subface(dealii::ReferenceCell::get_hypercube(dim),
+                                                                       face_quadrature,
+                                                                       face_subface_ext.first,
+                                                                       face_subface_ext.second,
+                                                                       dealii::RefinementCase<dim-1>::isotropic_refinement);
+    } else {
+        const dealii::Quadrature<dim> all_faces_quad_int = face_subface_int.second == -1 ?
+                                                           dealii::QProjector<dim>::project_to_all_faces (dealii::ReferenceCell::get_hypercube(dim), face_quadrature) :
+                                                           dealii::QProjector<dim>::project_to_all_subfaces (dealii::ReferenceCell::get_hypercube(dim), face_quadrature);
+        const dealii::Quadrature<dim> all_faces_quad_ext = face_subface_ext.second == -1 ?
+                                                           dealii::QProjector<dim>::project_to_all_faces (dealii::ReferenceCell::get_hypercube(dim), face_quadrature) :
+                                                           dealii::QProjector<dim>::project_to_all_subfaces (dealii::ReferenceCell::get_hypercube(dim), face_quadrature);
+        std::vector< dealii::Point< dim >> points(n_face_quad_pts);
+        std::vector< double > weights(n_face_quad_pts);
+        for (unsigned int iquad = 0; iquad < n_face_quad_pts; ++iquad) {
+            points[iquad] = all_faces_quad_int.point(iquad+face_data_set_int);
+            weights[iquad] = all_faces_quad_int.weight(iquad+face_data_set_int);
+        }
+        face_quadrature_int = dealii::Quadrature<dim>(points, weights);
+
+        for (unsigned int iquad = 0; iquad < n_face_quad_pts; ++iquad) {
+            points[iquad] = all_faces_quad_ext.point(iquad+face_data_set_ext);
+            weights[iquad] = all_faces_quad_ext.weight(iquad+face_data_set_ext);
+        }
+        face_quadrature_ext = dealii::Quadrature<dim>(points, weights);
+    }
+
 
     (void) compute_dRdW; (void) compute_dRdX; (void) compute_d2R;
     const bool compute_metric_derivatives = true; //(!compute_dRdX && !compute_d2R) ? false : true;
@@ -1744,7 +1682,6 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
     const std::vector<dealii::Point<dim,double>> &unit_quad_pts_int = face_quadrature_int.get_points();
     const std::vector<dealii::Point<dim,double>> &unit_quad_pts_ext = face_quadrature_ext.get_points();
 
-    const unsigned int n_face_quad_pts = unit_quad_pts_int.size();
 
 
     // Use the metric Jacobian from the interior cell
@@ -1866,13 +1803,53 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
 #endif
 
 
+    // for (unsigned int idof = 0; idof < fe_metric.n_dofs_per_cell(); ++idof) {
+    //     std::cout << "idof int " << idof
+    //               << " base index " << fe_metric.system_to_component_index(idof).second
+    //               << " component " << fe_metric.system_to_component_index(idof).first
+    //               << " value: " << coords_coeff_int[idof]
+    //               << std::endl;
+    // }
+
+    std::vector < std::array< real2,dim> > coords_int(n_face_quad_pts);
+    evaluate_finite_element_values  <dim, real2, dim> (unit_quad_pts_int, coords_coeff_int, fe_metric, coords_int);
+
+    // for (unsigned int idof = 0; idof < fe_metric.n_dofs_per_cell(); ++idof) {
+    //     std::cout << "idof ext " << idof
+    //               << " base index " << fe_metric.system_to_component_index(idof).second
+    //               << " component " << fe_metric.system_to_component_index(idof).first
+    //               << " value: " << coords_coeff_ext[idof]
+    //               << std::endl;
+    // }
+    std::vector < std::array< real2,dim> > coords_ext(n_face_quad_pts);
+    evaluate_finite_element_values  <dim, real2, dim> (unit_quad_pts_ext, coords_coeff_ext, fe_metric, coords_ext);
+
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+        //std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+        //std::cout << "iquad " << iquad << std::endl;
+
+        //std::cout << "quad_pt_int " << unit_quad_pts_int[iquad] << std::endl;
+        //std::cout << "quad_pt_ext " << unit_quad_pts_ext[iquad] << std::endl;
+
+        //std::cout << "coords_int ";
+        //for (int d=0;d<dim;++d) {
+        //    std::cout << coords_int[iquad][d] << " ";
+        //}
+        //std::cout << std::endl;
+
+        //std::cout << "coords_ext ";
+        //for (int d=0;d<dim;++d) {
+        //    std::cout << coords_ext[iquad][d] << " ";
+        //}
+        //std::cout << std::endl;
+
+        //std::cout << "quad_int " << fe_values_int.quadrature_point(iquad) << std::endl;
+        //std::cout << "quad_ext " << fe_values_ext.quadrature_point(iquad) << std::endl;
 
         Tensor1D normal_normalized_int;
         Tensor1D normal_normalized_ext;
         real2 surface_jac_det_int;
         real2 surface_jac_det_ext;
-        (void) surface_jac_det_ext; // unused
         if (compute_metric_derivatives) {
 
             const real2 jac_det_int = jacobian_determinant_int[iquad];
@@ -1893,37 +1870,48 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
             for (int d=0;d<dim;++d) {
                 normal_normalized_int[d] = normal_int[d] / area_int;
             }
-            normal_normalized_ext = -normal_normalized_int;//normal_ext / area_ext; Must use opposite normal to be consistent with explicit
+            for (int d=0;d<dim;++d) {
+                normal_normalized_ext[d] = normal_ext[d] / area_ext;
+            }
 
             surface_jac_det_int = area_int*jac_det_int;
             surface_jac_det_ext = area_ext*jac_det_ext;
 
             if (std::is_same<double,real2>::value) {
-                for (int d=0;d<dim;++d) {
-                    assert(abs(normal_normalized_int[d]+normal_normalized_ext[d]) < 1e-12);
-                    if (abs(normal_normalized_int[d]+normal_normalized_ext[d]) > 1e-12) {
-                        std::cout << "Non-matching normals" << std::endl;
+                // surface_jac_det is the 'volume' compression/expansion of the face w.r.t. the reference cell,
+                // analogous to volume jacobian determinant.
+                //
+                // When the cells have the same coarseness, their surface Jacobians must be the same.
+                //
+                // When the cells do not have the same coarseness, their surface Jacobians will not be the same.
+                // Therefore, we must use the Jacobians coming from the smaller face since it accurately represents
+                // the surface area being computed.
+                if (face_subface_int.second == -1 && face_subface_ext.second == -1) {
+                    assert(abs(surface_jac_det_int-surface_jac_det_ext) < 1e-12);
+                    if(abs(surface_jac_det_int-surface_jac_det_ext) > 1e-12) {
+                        std::cout << std::endl;
+                        std::cout << "iquad " << iquad
+                        << " Non-matching surface jacobians " << surface_jac_det_int << " " << surface_jac_det_ext<< std::endl;
                     }
                 }
-                assert(abs(surface_jac_det_int-surface_jac_det_ext) < 1e-12);
-                if(abs(surface_jac_det_int-surface_jac_det_ext) > 1e-12) {
-                    std::cout << "Non-matching surface jacobians" << std::endl;
+                real2 diff_norm = 0;
+                for (int d=0;d<dim;++d) {
+                    const real2 diff = normal_normalized_int[d]+normal_normalized_ext[d];
+                    diff_norm += diff*diff;
                 }
-                //std::cout << "normal int: " << normal_normalized_int << std::endl;
-                //std::cout << "normal ext: " << normal_normalized_ext << std::endl;
-                //std::cout << "surface_jac_det_int: " << surface_jac_det_int << std::endl;
-                //std::cout << "surface_jac_det_ext: " << surface_jac_det_ext << std::endl;
-                //for (int d=0;d<dim;++d) {
-                //    Assert( abs(normal_normalized_int[d].val().val()+normal_normalized_ext[d].val().val()) < 1e-12,
-                //        dealii::ExcMessage("Inconsistent normals. Direction " + std::to_string(d)
-                //            + " N1: " + std::to_string(normal_normalized_int[d].val().val())
-                //            + " N2: " + std::to_string(normal_normalized_ext[d].val().val())));
-                //}
-                //Assert( abs(surface_jac_det_ext.val().val()-surface_jac_det_int.val().val()) < 1e-12
-                //        || abs(surface_jac_det_ext.val().val()-pow(2,dim-1)*surface_jac_det_int.val().val()) < 1e-12 ,
-                //        dealii::ExcMessage("Inconsistent surface Jacobians. J1: " + std::to_string(surface_jac_det_int.val().val())
-                //        + " J2: " + std::to_string(surface_jac_det_ext.val().val())));
+                diff_norm = sqrt(diff_norm);
+                if (diff_norm > 1e-10) {
+                    std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+                    std::cout << "Non-matching normals. Error norm: " << diff_norm << std::endl;
+                    for (int d=0;d<dim;++d) {
+                        assert(abs(normal_normalized_int[d]+normal_normalized_ext[d]) < 1e-10);
+                        std::cout << " normal_int["<<d<<"] : " << normal_normalized_int[d] 
+                                  << " normal_ext["<<d<<"] : " << normal_normalized_ext[d]
+                                  << std::endl;
+                    }
+                }
             }
+            //normal_normalized_ext = -normal_normalized_int;//normal_ext / area_ext; Must use opposite normal to be consistent with explicit
 
             for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
                 interpolation_operator_int[idof] = fe_int.shape_value(idof,unit_quad_pts_int[iquad]);
@@ -1941,28 +1929,6 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
                     gradient_operator_ext[d][idof] = phys_shape_grad[d];
                 }
             }
-
-            // Exact mapping
-            // for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
-            //     interpolation_operator_int[idof] = fe_int.shape_value(idof,unit_quad_pts_int[iquad]);
-            // }
-            // for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
-            //     interpolation_operator_ext[idof] = fe_ext.shape_value(idof,unit_quad_pts_ext[iquad]);
-            // }
-            // for (int d=0;d<dim;++d) {
-            //     for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
-            //         const unsigned int istate = fe_int.system_to_component_index(idof).first;
-            //         gradient_operator_int[d][idof] = fe_values_int.shape_grad_component(idof, iquad, istate)[d];
-            //     }
-            //     for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
-            //         const unsigned int istate = fe_ext.system_to_component_index(idof).first;
-            //         gradient_operator_ext[d][idof] = fe_values_ext.shape_grad_component(idof, iquad, istate)[d];
-            //     }
-            // }
-            // normal_normalized_int = fe_values_int.normal_vector(iquad);
-            // normal_normalized_ext = -normal_normalized_int; // Must use opposite normal to be consistent with explicit
-            // surface_jac_det_int = fe_values_int.JxW(iquad)/face_quadrature_int.weight(iquad);
-            // surface_jac_det_ext = fe_values_ext.JxW(iquad)/face_quadrature_ext.weight(iquad);
 
         } else {
             for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
@@ -1987,6 +1953,25 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
             normal_normalized_int = fe_values_int.normal_vector(iquad);
             normal_normalized_ext = -normal_normalized_int; // Must use opposite normal to be consistent with explicit
         }
+        // When the cells do not have the same coarseness, their surface Jacobians will not be the same.
+        // Therefore, we must use the Jacobians coming from the smaller face since it accurately represents
+        // the surface area being computed.
+        //
+        // Note that it is possible for the smaller cell to have larger surface Jacobians than the larger cell,
+        // but not at the same physical location.
+        real2 surface_jac_det;
+        if ( surface_jac_det_int > surface_jac_det_ext) {
+            // Interior is the large face.
+            // Exterior is the small face.
+            surface_jac_det = surface_jac_det_ext;
+            //normal_normalized_ext = -normal_normalized_int;
+        } else {
+            // Exterior is the large face.
+            // Interior is the small face.
+            surface_jac_det = surface_jac_det_int;
+            //normal_normalized_int = -normal_normalized_ext;
+        }
+
 
         for (int istate=0; istate<nstate; istate++) {
             soln_int[istate]      = 0;
@@ -2047,7 +2032,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
             real2 rhs = 0.0;
             const unsigned int istate = fe_int.system_to_component_index(itest_int).first;
 
-            const real2 JxW_iquad = surface_jac_det_int * face_quadrature_int.weight(iquad);
+            const real2 JxW_iquad = surface_jac_det * face_quadrature_int.weight(iquad);
             // Convection
             rhs = rhs - interpolation_operator_int[itest_int] * conv_num_flux_dot_n[istate] * JxW_iquad;
             // Diffusive
@@ -2065,7 +2050,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
             real2 rhs = 0.0;
             const unsigned int istate = fe_ext.system_to_component_index(itest_ext).first;
 
-            const real2 JxW_iquad = surface_jac_det_int * face_quadrature_int.weight(iquad);
+            const real2 JxW_iquad = surface_jac_det * face_quadrature_int.weight(iquad);
             // Convection
             rhs = rhs - interpolation_operator_ext[itest_ext] * (-conv_num_flux_dot_n[istate]) * JxW_iquad;
             // Diffusive
@@ -2088,6 +2073,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
     const dealii::types::global_dof_index neighbor_cell_index,
     const std::pair<unsigned int, int> face_subface_int,
     const std::pair<unsigned int, int> face_subface_ext,
+    const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_int,
+    const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_ext,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
     const real penalty,
@@ -2201,6 +2188,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
         dual_ext,
         face_subface_int,
         face_subface_ext,
+        face_data_set_int,
+        face_data_set_ext,
         physics,
         conv_num_flux,
         diss_num_flux,
@@ -2424,6 +2413,8 @@ void DGWeak<dim,nstate,real>::assemble_face_codi_taped_derivatives(
     const dealii::types::global_dof_index neighbor_cell_index,
     const std::pair<unsigned int, int> face_subface_int,
     const std::pair<unsigned int, int> face_subface_ext,
+    const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_int,
+    const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_ext,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
     const real penalty,
@@ -2536,6 +2527,8 @@ void DGWeak<dim,nstate,real>::assemble_face_codi_taped_derivatives(
         dual_ext,
         face_subface_int,
         face_subface_ext,
+        face_data_set_int,
+        face_data_set_ext,
         physics,
         conv_num_flux,
         diss_num_flux,
@@ -2806,6 +2799,8 @@ void DGWeak<dim,nstate,real>::assemble_face_residual(
     const dealii::types::global_dof_index neighbor_cell_index,
     const std::pair<unsigned int, int> face_subface_int,
     const std::pair<unsigned int, int> face_subface_ext,
+    const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_int,
+    const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_ext,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
     const real penalty,
@@ -2883,6 +2878,8 @@ void DGWeak<dim,nstate,real>::assemble_face_residual(
         dual_ext,
         face_subface_int,
         face_subface_ext,
+        face_data_set_int,
+        face_data_set_ext,
         physics,
         conv_num_flux,
         diss_num_flux,
@@ -2961,24 +2958,50 @@ void DGWeak<dim,nstate,real>::assemble_volume_term(
     if constexpr (dim != 1) {
         evaluate_covariant_metric_jacobian<dim,real2> ( quadrature, coords_coeff, fe_metric, jac_inv_tran, jac_det);
     }
-    // for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-    //     if (abs(old_jac_det[iquad] - jac_det[iquad]) > 1e-10) {
-    //         std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
-    //         std::cout << "Not the same jac det, iquad " << iquad << std::endl;
-    //         std::cout << old_jac_det[iquad] << std::endl;
-    //         std::cout << jac_det[iquad] << std::endl;
-    //     }
-    // //    for (int row=0;row<dim;++row) {
-    // //        for (int col=0;col<dim;++col) {
-    // //            if (abs(old_jac_inv_tran[iquad][row][col] - jac_inv_tran[iquad][row][col]) > 1e-10) {
-    // //                std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
-    // //                std::cout << "Not the same jac inv tran, iquad " << iquad << " row " << row << " col " << col << std::endl;
-    // //                std::cout << old_jac_inv_tran[iquad][row][col] << std::endl;
-    // //                std::cout << jac_inv_tran[iquad][row][col] << std::endl;
-    // //            }
-    // //        }
-    // //    }
-    // }
+    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        if (abs(old_jac_det[iquad] - jac_det[iquad]) > 1e-10) {
+            std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+            std::cout << "Not the same jac det, iquad " << iquad << std::endl;
+            std::cout << old_jac_det[iquad] << std::endl;
+            std::cout << jac_det[iquad] << std::endl;
+        }
+        //for (int row=0;row<dim;++row) {
+        //    for (int col=0;col<dim;++col) {
+        //        if (abs(old_jac_inv_tran[iquad][row][col] - jac_inv_tran[iquad][row][col]) > 1e-10) {
+        //            std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+        //            std::cout << "Not the same jac inv tran, iquad " << iquad << " row " << row << " col " << col << std::endl;
+        //            std::cout << old_jac_inv_tran[iquad][row][col] << std::endl;
+        //            std::cout << jac_inv_tran[iquad][row][col] << std::endl;
+        //        }
+        //    }
+        //}
+        //real2 mnorm = 0;
+        //for (int row=0;row<dim;++row) {
+        //    for (int col=0;col<dim;++col) {
+        //        real2 val = (old_jac_inv_tran[iquad][row][col] - jac_inv_tran[iquad][row][col]);
+        //        mnorm += val*val;
+        //    }
+        //}
+        //mnorm = sqrt(mnorm);
+        //if (mnorm > 1e-10) {
+        //    std::cout << "Not the same jac inv tran, iquad " << iquad << std::endl;
+        //    for (int row=0;row<dim;++row) {
+        //        for (int col=0;col<dim;++col) {
+        //            std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+        //            std::cout << old_jac_inv_tran[iquad][row][col] << " ";
+        //        }
+        //        std::cout << std::endl;
+        //    }
+        //    std::cout << std::endl;
+        //    for (int row=0;row<dim;++row) {
+        //        for (int col=0;col<dim;++col) {
+        //            std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+        //            std::cout << jac_inv_tran[iquad][row][col] << " ";
+        //        }
+        //        std::cout << std::endl;
+        //    }
+        //}
+    }
 #endif
 
 
@@ -3578,6 +3601,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
     const dealii::types::global_dof_index neighbor_cell_index,
     const std::pair<unsigned int, int> face_subface_int,
     const std::pair<unsigned int, int> face_subface_ext,
+    const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_int,
+    const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_ext,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
     const real penalty,
@@ -3600,6 +3625,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
             neighbor_cell_index,
             face_subface_int,
             face_subface_ext,
+            face_data_set_int,
+            face_data_set_ext,
             fe_values_int,
             fe_values_ext,
             penalty,
@@ -3622,6 +3649,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
             neighbor_cell_index,
             face_subface_int,
             face_subface_ext,
+            face_data_set_int,
+            face_data_set_ext,
             fe_values_int,
             fe_values_ext,
             penalty,
@@ -3644,6 +3673,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
             neighbor_cell_index,
             face_subface_int,
             face_subface_ext,
+            face_data_set_int,
+            face_data_set_ext,
             fe_values_int,
             fe_values_ext,
             penalty,

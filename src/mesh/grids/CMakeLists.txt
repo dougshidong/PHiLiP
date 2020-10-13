@@ -3,6 +3,7 @@
 set(GRIDS_SOURCE
     gaussian_bump.cpp
     curved_periodic_grid.cpp
+    wavy_periodic_grid.cpp
     naca_airfoil_grid.cpp
     spline_channel.cpp
     )

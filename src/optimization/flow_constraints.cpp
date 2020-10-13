@@ -38,10 +38,10 @@ FlowConstraints<dim>
     this->linear_solver_param.max_iterations = 1000;
     this->linear_solver_param.restart_number = 200;
     this->linear_solver_param.linear_residual = 1e-17;
-    this->linear_solver_param.ilut_fill = 0;
+    this->linear_solver_param.ilut_fill = 5;
     this->linear_solver_param.ilut_drop = 0.0;
-    this->linear_solver_param.ilut_rtol = 1.0;
-    this->linear_solver_param.ilut_atol = 0.0;
+    this->linear_solver_param.ilut_atol = 1e-4;
+    this->linear_solver_param.ilut_rtol = 1.0+1e-4;
     this->linear_solver_param.linear_solver_output = Parameters::OutputEnum::quiet;
     this->linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
 
@@ -256,12 +256,12 @@ int FlowConstraints<dim>
     //      if different from zero, the elements dropped during the factorization process
     //      will be added to the diagonal term, multiplied by the specified value.
 
-    List.set("fact: level-of-fill", 2);
-    List.set("fact: ilut level-of-fill", 2.0);
+    //List.set("fact: level-of-fill", 2);
+    List.set("fact: ilut level-of-fill", 5.0);
     // no modifications on the diagonal
     List.set("fact: absolute threshold", 1e-4);
-    List.set("fact: relative threshold", 1.0);
-    List.set("fact: drop tolerance", 1e-10);
+    List.set("fact: relative threshold", 1.0+1e-4);
+    List.set("fact: drop tolerance", 1e-12);
 
     List.set("schwarz: reordering type", "rcm");
 
@@ -315,12 +315,12 @@ int FlowConstraints<dim>
     //      if different from zero, the elements dropped during the factorization process
     //      will be added to the diagonal term, multiplied by the specified value.
 
-    List.set("fact: level-of-fill", 2);
-    List.set("fact: ilut level-of-fill", 2.0);
+    //List.set("fact: level-of-fill", 2);
+    List.set("fact: ilut level-of-fill", 5.0);
     // no modifications on the diagonal
     List.set("fact: absolute threshold", 1e-4);
-    List.set("fact: relative threshold", 1.0);
-    List.set("fact: drop tolerance", 1e-10);
+    List.set("fact: relative threshold", 1.0+1e-4);
+    List.set("fact: drop tolerance", 1e-12);
 
     List.set("schwarz: reordering type", "rcm");
 

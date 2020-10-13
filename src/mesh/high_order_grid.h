@@ -76,6 +76,9 @@ public:
      */
     void update_mapping_fe_field();
 
+    /// Ensures that hanging nodes are updated for a conforming mesh.
+    void ensure_conforming_mesh();
+
     /// Needed to allocate the correct number of volume_nodes when initializing and after the mesh is refined
     void allocate();
 

@@ -756,7 +756,7 @@ void FullSpace_BirosGhattas<Real>::update(
 
     auto &flow_constraint = (dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(equal_constraints));
     //flow_constraint.flow_CFL_ = 1.0/std::pow(algo_state.cnorm, 0.5);
-    flow_constraint.flow_CFL_ = 1.0/std::pow(algo_state.cnorm, 2.0);
+    flow_constraint.flow_CFL_ = 10 + 1.0/std::pow(algo_state.cnorm, 2.0);
     //flow_constraint.flow_CFL_ = 1.0/std::pow(algo_state.gnorm, 2.00);
 
     algo_state.iterateVec->set(design_variables);

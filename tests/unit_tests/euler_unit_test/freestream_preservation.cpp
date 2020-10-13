@@ -278,8 +278,15 @@ int test()
         std::cout << POLY_DEGREE << "  ";
         for (int GRID_DEGREE = GRID_DEGREE_START; GRID_DEGREE <= GRID_DEGREE_END; GRID_DEGREE++) {
             std::cout << " " << residuals[POLY_DEGREE][GRID_DEGREE];
+            if (GRID_DEGREE <= POLY_DEGREE+2 && residuals[POLY_DEGREE][GRID_DEGREE] > 1e-14) {
+                test_error += 1;
+            }
         }
         std::cout << std::endl;
+    }
+
+    if (test_error) {
+        std::cout << "Freestream preservation is not satisfied for grids of order p_g <= p+2" << std::endl;
     }
 
     return test_error;

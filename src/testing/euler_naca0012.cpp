@@ -149,6 +149,11 @@ int EulerNACA0012<dim,nstate>
             //airfoil_data.n_subdivision_x_2 = 9;
             //airfoil_data.n_subdivision_y = 12;
 
+            airfoil_data.n_subdivision_x_0 = 16;
+            airfoil_data.n_subdivision_x_1 = 16;
+            airfoil_data.n_subdivision_x_2 = 16;
+            airfoil_data.n_subdivision_y = 16;
+
             airfoil_data.airfoil_sampling_factor = 100000; // default 2
 
             // dealii::GridGenerator::Airfoil::create_triangulation(*grid, airfoil_data);
@@ -179,9 +184,9 @@ int EulerNACA0012<dim,nstate>
             Grids::naca_airfoil(*grid, airfoil_data);
 
             const double solution_degree = poly_degree;
-            //const double grid_degree = solution_degree+1;
+            const double grid_degree = solution_degree+1;
             //const double grid_degree = 1;
-            const double grid_degree = 2;//solution_degree+1;
+            //const double grid_degree = 2;//solution_degree+1;
             std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, solution_degree, solution_degree, grid_degree, grid);
 
             // Initialize coarse grid solution with free-stream
@@ -199,6 +204,7 @@ int EulerNACA0012<dim,nstate>
             // Create ODE solver and ramp up the solution from p0
             std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
             ode_solver->initialize_steady_polynomial_ramping (poly_degree);
+            //ode_solver->steady_state();
 
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;

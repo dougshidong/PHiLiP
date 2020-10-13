@@ -21,6 +21,10 @@
 #define KOPRIVA_METRICS_FACE
 #define KOPRIVA_METRICS_BOUNDARY
 //#define FADFAD
+
+/// Returns the value from a CoDiPack variable.
+/** The recursive calling allows to retrieve nested CoDiPack types.
+ */
 template<typename real>
 double getValue(const real &x) {
     if constexpr(std::is_same<real,double>::value) {
@@ -846,7 +850,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
 
 template <int dim, int nstate, typename real>
 template <typename adtype>
-void DGWeak<dim,nstate,real>::assemble_boundary(
+void DGWeak<dim,nstate,real>::assemble_boundary_term(
     const dealii::types::global_dof_index current_cell_index,
     const std::vector< adtype > &soln_coeff,
     const std::vector< adtype > &coords_coeff,
@@ -1178,7 +1182,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
 
     std::vector<adtype> rhs(n_soln_dofs);
     adtype dual_dot_residual;
-    assemble_boundary(
+    assemble_boundary_term(
         current_cell_index,
         soln_coeff,
         coords_coeff,
@@ -1326,7 +1330,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_codi_taped_derivatives(
 
     std::vector<adtype> rhs(n_soln_dofs);
     adtype dual_dot_residual;
-    assemble_boundary(
+    assemble_boundary_term(
         current_cell_index,
         soln_coeff,
         coords_coeff,
@@ -1489,7 +1493,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_residual(
 
     std::vector<real> rhs(n_soln_dofs);
     real dual_dot_residual;
-    assemble_boundary(
+    assemble_boundary_term(
         current_cell_index,
         soln_coeff,
         coords_coeff,

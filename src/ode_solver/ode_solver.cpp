@@ -420,6 +420,7 @@ void Explicit_ODESolver<dim,real>::step_in_time (real dt, const bool pseudotime)
 template <int dim, typename real>
 void Explicit_ODESolver<dim,real>::allocate_ode_system ()
 {
+    pcout << "Allocating ODE system and evaluating inverse mass matrix..." << std::endl;
     const bool do_inverse_mass_matrix = true;
     this->solution_update.reinit(this->dg->right_hand_side);
     this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
@@ -432,6 +433,7 @@ void Explicit_ODESolver<dim,real>::allocate_ode_system ()
 template <int dim, typename real>
 void Implicit_ODESolver<dim,real>::allocate_ode_system ()
 {
+    pcout << "Allocating ODE system and evaluating mass matrix..." << std::endl;
     const bool do_inverse_mass_matrix = false;
     this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
 

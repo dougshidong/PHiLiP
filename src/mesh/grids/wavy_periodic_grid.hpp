@@ -19,13 +19,13 @@ void wavy_grid_Abe_2015(
 template<int dim,int spacedim,int chartdim>
 class WavyManifold: public dealii::ChartManifold<dim,spacedim,chartdim> {
 protected:
-    static constexpr double pi = atan(1) * 4.0;
+    static constexpr double pi = atan(1) * 4.0; ///< PI.
 
-    const double L0 = 10;
-    const double amplitude = 0.4;
-    const double n = 4;
-    const std::vector<unsigned int> n_subdivisions;
-    std::array<double,dim> dx;
+    const double L0 = 10; ///< Hypercube's width.
+    const double amplitude = 0.4; ///< Amplitude of the waves.
+    const double n = 4; ///< Number of sine bumps in 1 dimension.
+    const std::vector<unsigned int> n_subdivisions; ///< Number of cells in each directions.
+    std::array<double,dim> dx; ///< Cell spacing.
 public:
     /// Constructor.
     WavyManifold( const std::vector<unsigned int> n_cells )

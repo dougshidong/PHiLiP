@@ -67,6 +67,11 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
     const dealii::ComponentMask mask(dim, true);
     get_position_vector(dof_handler_grid, volume_nodes, mask);
     //get_projected_position_vector(dof_handler_grid, volume_nodes, mask);
+
+    volume_nodes.update_ghost_values();
+
+    ensure_conforming_mesh();
+
     volume_nodes.update_ghost_values();
     update_surface_nodes();
     update_mapping_fe_field();
@@ -94,6 +99,22 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
             // if (fixed_invalid_cell) std::cout << "Fixed it." << std::endl;
         }
     }
+}
+
+template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::ensure_conforming_mesh() {
+
+    volume_nodes.update_ghost_values();
+
+    dealii::AffineConstraints<double> hanging_node_constraints;
+    hanging_node_constraints.clear();
+    dealii::DoFTools::make_hanging_node_constraints(dof_handler_grid, hanging_node_constraints);
+    hanging_node_constraints.close();
+    hanging_node_constraints.distribute(volume_nodes);
+
+    volume_nodes.update_ghost_values();
+
+    update_mapping_fe_field();
 }
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
@@ -936,15 +957,10 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::execute_coarsening_and_r
     }
     const dealii::ComponentMask mask(dim, true);
     //get_position_vector(dof_handler_grid, volume_nodes, mask);
-    //volume_nodes.update_ghost_values();
-
-    dealii::AffineConstraints<double> hanging_node_constraints;
-    hanging_node_constraints.clear();
-    dealii::DoFTools::make_hanging_node_constraints(dof_handler_grid, hanging_node_constraints);
-    hanging_node_constraints.close();
-    hanging_node_constraints.distribute(volume_nodes);
 
     volume_nodes.update_ghost_values();
+
+    ensure_conforming_mesh();
 
     update_surface_nodes();
     update_mapping_fe_field();

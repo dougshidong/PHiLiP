@@ -30,6 +30,9 @@ endif()
 if(NOT EXISTS "${PROJECT_SOURCE_DIR}/submodules/CoDiPack/include/codi.hpp")
     message(FATAL_ERROR "The submodules were not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
 endif()
+if(NOT EXISTS "${PROJECT_SOURCE_DIR}/submodules/joukowski_high_order_mesh/Joukowski.py")
+    message(FATAL_ERROR "The submodules were not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
+endif()
 
 
 #set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -Og -g")

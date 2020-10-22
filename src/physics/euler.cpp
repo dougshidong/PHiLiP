@@ -111,8 +111,8 @@ inline std::array<real,nstate> Euler<dim,nstate,real>
 
     //if (density < 0.0) density = density_inf;
     //if (pressure < 0.0) pressure = pressure_inf;
-    if (density < 0.0) density = 1e10;
-    if (pressure < 0.0) pressure = 1e10;
+    if (density < 0.0) density = 1e100;
+    if (pressure < 0.0) pressure = 1e100;
     primitive_soln[0] = density;
     for (int d=0; d<dim; ++d) {
         primitive_soln[1+d] = vel[d];
@@ -193,7 +193,7 @@ inline real Euler<dim,nstate,real>
 ::compute_entropy_measure ( const std::array<real,nstate> &conservative_soln ) const
 {
     real density = conservative_soln[0];
-    //if (density < 0.0) density = density_inf;//1e10;
+    //if (density < 0.0) density = density_inf;//1e100;
     const real pressure = compute_pressure(conservative_soln);
     return compute_entropy_measure(density, pressure);
 }
@@ -203,7 +203,7 @@ inline real Euler<dim,nstate,real>
 ::compute_entropy_measure ( const real density, const real pressure ) const
 {
     if (density < 0.0) {
-        return pressure*pow(1e10,-gam);
+        return 1e100;
     } else {
         return pressure*pow(density,-gam);
     }
@@ -269,7 +269,7 @@ inline real Euler<dim,nstate,real>
     real pressure = gamm1*(tot_energy - 0.5*density*vel2);
     if(pressure<0.0) {
         //pressure = pressure_inf;
-        pressure = 1e10;
+        pressure = 1e100;
     }
     //assert(pressure>0.0);
     return pressure;
@@ -282,7 +282,7 @@ inline real Euler<dim,nstate,real>
     real density = conservative_soln[0];
     if(density<0.0) {
         //density = density_inf;
-        density = 1e10;
+        density = 1e100;
     }
     //assert(density>0.0);
     const real pressure = compute_pressure(conservative_soln);

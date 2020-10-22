@@ -46,7 +46,7 @@ void GridStudy<dim,nstate>
 {
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
-    const auto mapping = (*(dg.high_order_grid.mapping_fe_field));
+    const auto mapping = (*(dg.high_order_grid->mapping_fe_field));
     dealii::VectorTools::interpolate(mapping, dg.dof_handler, *physics.manufactured_solution_function, solution_no_ghost);
     dg.solution = solution_no_ghost;
 }
@@ -65,7 +65,7 @@ double GridStudy<dim,nstate>
     int overintegrate = 10;
     dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
     //dealii::MappingQ<dim,dim> mappingq_temp(dg.max_degree+1);
-    dealii::FEValues<dim,dim> fe_values_extra(*(dg.high_order_grid.mapping_fe_field), dg.fe_collection[dg.max_degree], quad_extra, 
+    dealii::FEValues<dim,dim> fe_values_extra(*(dg.high_order_grid->mapping_fe_field), dg.fe_collection[dg.max_degree], quad_extra, 
             dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
     const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
     std::array<double,nstate> soln_at_q;
@@ -317,7 +317,7 @@ int GridStudy<dim,nstate>
             int overintegrate = 10;
             dealii::QGauss<dim> quad_extra(dg->max_degree+overintegrate);
             //dealii::MappingQ<dim,dim> mappingq(dg->max_degree+1);
-            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid.mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
+            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;

@@ -14,7 +14,7 @@ int main (int argc, char * argv[])
 
     std::string filename = std::to_string(dim) + "D_square.msh";
 
-    std::shared_ptr< HighOrderGrid<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim> > > high_order_grid = read_gmsh <dim, dim> (filename);
+    std::shared_ptr< HighOrderGrid<dim, double> > high_order_grid = read_gmsh <dim, dim> (filename);
 
 
     dealii::GridOut gridout;

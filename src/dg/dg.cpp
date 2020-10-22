@@ -94,7 +94,7 @@ DGBase<dim,real>::DGBase(
     , oned_quadrature_collection(std::get<3>(collection_tuple))
     , fe_collection_lagrange(std::get<4>(collection_tuple))
     , dof_handler(*triangulation, true)
-    , high_order_grid(grid_degree_input, triangulation)
+    , high_order_grid(std::make_shared<HighOrderGrid<dim,real>>(grid_degree_input, triangulation))
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {
@@ -427,7 +427,7 @@ void DGBase<dim,real>::assemble_cell_residual (
     fe_values_collection_volume_lagrange.reinit (cell_iterator, i_quad, i_mapp, i_fele);
     const dealii::FEValues<dim,dim> &fe_values_lagrange = fe_values_collection_volume_lagrange.get_present_fe_values();
 
-    const unsigned int n_metric_dofs_cell = high_order_grid.fe_system.dofs_per_cell;
+    const unsigned int n_metric_dofs_cell = high_order_grid->fe_system.dofs_per_cell;
     std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs_cell);
     std::vector<dealii::types::global_dof_index> neighbor_metric_dofs_indices(n_metric_dofs_cell);
     current_metric_cell->get_dof_indices (current_metric_dofs_indices);
@@ -792,7 +792,7 @@ void DGBase<dim,real>::set_dual(const dealii::LinearAlgebra::distributed::Vector
 template <int dim, typename real>
 void DGBase<dim,real>::update_artificial_dissipation_discontinuity_sensor()
 {
-    const auto mapping = (*(high_order_grid.mapping_fe_field));
+    const auto mapping = (*(high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
     const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_JxW_values;
     dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, update_flags); ///< FEValues of volume.
@@ -925,7 +925,7 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
 
         if (l2_norm_sol == 0.0) {
 
-            auto diff_node = high_order_grid.volume_nodes;
+            auto diff_node = high_order_grid->volume_nodes;
             diff_node -= volume_nodes_dRdW;
             const double l2_norm_node = diff_node.l2_norm();
 
@@ -941,7 +941,7 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
             dRdW_form += 1;
         }
         solution_dRdW = solution;
-        volume_nodes_dRdW = high_order_grid.volume_nodes;
+        volume_nodes_dRdW = high_order_grid->volume_nodes;
 
         system_matrix = 0;
     }
@@ -954,7 +954,7 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
 
         if (l2_norm_sol == 0.0) {
 
-            auto diff_node = high_order_grid.volume_nodes;
+            auto diff_node = high_order_grid->volume_nodes;
             diff_node -= volume_nodes_dRdX;
             const double l2_norm_node = diff_node.l2_norm();
 
@@ -964,9 +964,9 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
             }
         }
         solution_dRdX = solution;
-        volume_nodes_dRdX = high_order_grid.volume_nodes;
+        volume_nodes_dRdX = high_order_grid->volume_nodes;
 
-        if (   dRdXv.m() != solution.size() || dRdXv.n() != high_order_grid.volume_nodes.size()) {
+        if (   dRdXv.m() != solution.size() || dRdXv.n() != high_order_grid->volume_nodes.size()) {
 
             allocate_dRdX();
         }
@@ -980,7 +980,7 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
 
         if (l2_norm_sol == 0.0) {
 
-            auto diff_node = high_order_grid.volume_nodes;
+            auto diff_node = high_order_grid->volume_nodes;
             diff_node -= volume_nodes_d2R;
             const double l2_norm_node = diff_node.l2_norm();
 
@@ -996,13 +996,13 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
             }
         }
         solution_d2R = solution;
-        volume_nodes_d2R = high_order_grid.volume_nodes;
+        volume_nodes_d2R = high_order_grid->volume_nodes;
         dual_d2R = dual;
 
         if (   d2RdWdW.m() != solution.size()
             || d2RdWdX.m() != solution.size()
-            || d2RdWdX.n() != high_order_grid.volume_nodes.size()
-            || d2RdXdX.m() != high_order_grid.volume_nodes.size()) {
+            || d2RdWdX.n() != high_order_grid->volume_nodes.size()
+            || d2RdXdX.m() != high_order_grid->volume_nodes.size()) {
 
             allocate_second_derivatives();
         }
@@ -1016,9 +1016,9 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
 
     //const dealii::MappingManifold<dim,dim> mapping;
     //const dealii::MappingQ<dim,dim> mapping(10);//;max_degree+1);
-    //const dealii::MappingQ<dim,dim> mapping(high_order_grid.max_degree);
-    //const dealii::MappingQGeneric<dim,dim> mapping(high_order_grid.max_degree);
-    const auto mapping = (*(high_order_grid.mapping_fe_field));
+    //const dealii::MappingQ<dim,dim> mapping(high_order_grid->max_degree);
+    //const dealii::MappingQGeneric<dim,dim> mapping(high_order_grid->max_degree);
+    const auto mapping = (*(high_order_grid->mapping_fe_field));
 
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
@@ -1036,7 +1036,7 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
 
         update_artificial_dissipation_discontinuity_sensor();
 
-        auto metric_cell = high_order_grid.dof_handler_grid.begin_active();
+        auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
         for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
         //for (auto cell = triangulation->begin_active(); cell != triangulation->end(); ++cell) {
             if (!soln_cell->is_locally_owned()) continue;
@@ -1044,12 +1044,12 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
             //const int tria_level = cell->level();
             //const int tria_index = cell->index();
             //dealii::DoFCellAccessor<dim,dim,false> soln_cell(triangulation.get(), tria_level, tria_index, &dof_handler);
-            //dealii::DoFCellAccessor<dim,dim,false> metric_cell(triangulation.get(), tria_level, tria_index, &high_order_grid.dof_handler_grid);
+            //dealii::DoFCellAccessor<dim,dim,false> metric_cell(triangulation.get(), tria_level, tria_index, &high_order_grid->dof_handler_grid);
 
             //dealii::TriaActiveIterator< dealii::DoFCellAccessor<dim,dim,false> >
 
             //DoFCellAccessor<dim,dim,false> soln_cell(triangulation.get(), tria_level, tria_index, &dof_handler);
-            //dealii::DoFCellAccessor<dim,dim,false> metric_cell(triangulation.get(), tria_level, tria_index, &high_order_grid.dof_handler_grid);
+            //dealii::DoFCellAccessor<dim,dim,false> metric_cell(triangulation.get(), tria_level, tria_index, &high_order_grid->dof_handler_grid);
 
 
             // Add right-hand side contributions this cell can compute
@@ -1126,7 +1126,7 @@ template <int dim, typename real>
 double DGBase<dim,real>::get_residual_linfnorm () const
 {
     pcout << "Evaluating residual Linf-norm..." << std::endl;
-    const auto mapping = (*(high_order_grid.mapping_fe_field));
+    const auto mapping = (*(high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
     double residual_linf_norm = 0.0;
@@ -1180,7 +1180,7 @@ double DGBase<dim,real>::get_residual_l2norm () const
     //global_mass_matrix.vmult(scaled_residual, right_hand_side);
     //return scaled_residual.l2_norm();
     //pcout << "Evaluating residual L2-norm..." << std::endl;
-    const auto mapping = (*(high_order_grid.mapping_fe_field));
+    const auto mapping = (*(high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
     double residual_l2_norm = 0.0;
@@ -1296,8 +1296,8 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     //typename dealii::DataOut<dim>::CurvedCellRegion curved = dealii::DataOut<dim>::CurvedCellRegion::curved_boundary;
     //typename dealii::DataOut<dim>::CurvedCellRegion curved = dealii::DataOut<dim>::CurvedCellRegion::no_curved_cells;
 
-    const dealii::Mapping<dim> &mapping = (*(high_order_grid.mapping_fe_field));
-    const int grid_degree = high_order_grid.max_degree;
+    const dealii::Mapping<dim> &mapping = (*(high_order_grid->mapping_fe_field));
+    const int grid_degree = high_order_grid->max_degree;
     //const int n_subdivisions = max_degree+1;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
     //const int n_subdivisions = 1;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
     const int n_subdivisions = grid_degree;
@@ -1342,8 +1342,8 @@ void DGBase<dim,real>::allocate_system ()
     dof_handler.distribute_dofs(fe_collection);
     dealii::DoFRenumbering::Cuthill_McKee(dof_handler,true);
 
-    //dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> mapping = high_order_grid.get_MappingFEField();
-    //dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> mapping = *(high_order_grid.mapping_fe_field);
+    //dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> mapping = high_order_grid->get_MappingFEField();
+    //dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> mapping = *(high_order_grid->mapping_fe_field);
 
     //int minimum_degree = (all_parameters->use_collocated_nodes==true) ?  1 :  0;
     //int current_fe_index = 0;
@@ -1418,8 +1418,8 @@ void DGBase<dim,real>::allocate_system ()
     // dRdXv matrix allocation
     // dealii::SparsityPattern dRdXv_sparsity_pattern = get_dRdX_sparsity_pattern ();
     // const dealii::IndexSet &row_parallel_partitioning = locally_owned_dofs;
-    // const dealii::IndexSet &col_parallel_partitioning = high_order_grid.locally_owned_dofs_grid;
-    // //const dealii::IndexSet &col_parallel_partitioning = high_order_grid.locally_relevant_dofs_grid;
+    // const dealii::IndexSet &col_parallel_partitioning = high_order_grid->locally_owned_dofs_grid;
+    // //const dealii::IndexSet &col_parallel_partitioning = high_order_grid->locally_relevant_dofs_grid;
     // dRdXv.reinit(row_parallel_partitioning, col_parallel_partitioning, dRdXv_sparsity_pattern, MPI_COMM_WORLD);
 
     // Make sure that derivatives are cleared when reallocating DG objects.
@@ -1433,17 +1433,17 @@ void DGBase<dim,real>::allocate_system ()
 
     solution_dRdW.reinit(solution);
     solution_dRdW *= 0.0;
-    volume_nodes_dRdW.reinit(high_order_grid.volume_nodes);
+    volume_nodes_dRdW.reinit(high_order_grid->volume_nodes);
     volume_nodes_dRdW *= 0.0;
 
     solution_dRdX.reinit(solution);
     solution_dRdX *= 0.0;
-    volume_nodes_dRdX.reinit(high_order_grid.volume_nodes);
+    volume_nodes_dRdX.reinit(high_order_grid->volume_nodes);
     volume_nodes_dRdX *= 0.0;
 
     solution_d2R.reinit(solution);
     solution_d2R *= 0.0;
-    volume_nodes_d2R.reinit(high_order_grid.volume_nodes);
+    volume_nodes_d2R.reinit(high_order_grid->volume_nodes);
     volume_nodes_d2R *= 0.0;
     dual_d2R.reinit(dual);
     dual_d2R *= 0.0;
@@ -1456,7 +1456,7 @@ void DGBase<dim,real>::allocate_second_derivatives ()
     {
         dealii::SparsityPattern sparsity_pattern_d2RdWdX = get_d2RdWdX_sparsity_pattern ();
         const dealii::IndexSet &row_parallel_partitioning_d2RdWdX = locally_owned_dofs;
-        const dealii::IndexSet &col_parallel_partitioning_d2RdWdX = high_order_grid.locally_owned_dofs_grid;
+        const dealii::IndexSet &col_parallel_partitioning_d2RdWdX = high_order_grid->locally_owned_dofs_grid;
         d2RdWdX.reinit(row_parallel_partitioning_d2RdWdX, col_parallel_partitioning_d2RdWdX, sparsity_pattern_d2RdWdX, mpi_communicator);
     }
 
@@ -1469,8 +1469,8 @@ void DGBase<dim,real>::allocate_second_derivatives ()
 
     {
         dealii::SparsityPattern sparsity_pattern_d2RdXdX = get_d2RdXdX_sparsity_pattern ();
-        const dealii::IndexSet &row_parallel_partitioning_d2RdXdX = high_order_grid.locally_owned_dofs_grid;
-        const dealii::IndexSet &col_parallel_partitioning_d2RdXdX = high_order_grid.locally_owned_dofs_grid;
+        const dealii::IndexSet &row_parallel_partitioning_d2RdXdX = high_order_grid->locally_owned_dofs_grid;
+        const dealii::IndexSet &col_parallel_partitioning_d2RdXdX = high_order_grid->locally_owned_dofs_grid;
         d2RdXdX.reinit(row_parallel_partitioning_d2RdXdX, col_parallel_partitioning_d2RdXdX, sparsity_pattern_d2RdXdX, mpi_communicator);
     }
 }
@@ -1481,7 +1481,7 @@ void DGBase<dim,real>::allocate_dRdX ()
     // dRdXv matrix allocation
     dealii::SparsityPattern dRdXv_sparsity_pattern = get_dRdX_sparsity_pattern ();
     const dealii::IndexSet &row_parallel_partitioning = locally_owned_dofs;
-    const dealii::IndexSet &col_parallel_partitioning = high_order_grid.locally_owned_dofs_grid;
+    const dealii::IndexSet &col_parallel_partitioning = high_order_grid->locally_owned_dofs_grid;
     dRdXv.reinit(row_parallel_partitioning, col_parallel_partitioning, dRdXv_sparsity_pattern, MPI_COMM_WORLD);
 }
 
@@ -1535,10 +1535,10 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
 
     //const dealii::MappingManifold<dim,dim> mapping;
     //const dealii::MappingQ<dim,dim> mapping(max_degree+1);
-    //const dealii::MappingQ<dim,dim> mapping(high_order_grid.max_degree);
-    // std::cout << "Grid degree: " << high_order_grid.max_degree << std::endl;
-    //const dealii::MappingQGeneric<dim,dim> mapping(high_order_grid.max_degree);
-    const auto mapping = (*(high_order_grid.mapping_fe_field));
+    //const dealii::MappingQ<dim,dim> mapping(high_order_grid->max_degree);
+    // std::cout << "Grid degree: " << high_order_grid->max_degree << std::endl;
+    //const dealii::MappingQGeneric<dim,dim> mapping(high_order_grid->max_degree);
+    const auto mapping = (*(high_order_grid->mapping_fe_field));
 
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
@@ -1840,15 +1840,15 @@ real2 DGBase<dim,real>::discontinuity_sensor(
 template<int dim, typename real>
 void DGBase<dim,real>::refine_residual_based()
 {
-    dealii::Vector<float> gradient_indicator(high_order_grid.triangulation->n_active_cells());
+    dealii::Vector<float> gradient_indicator(high_order_grid->triangulation->n_active_cells());
 
-    const auto mapping = (*(high_order_grid.mapping_fe_field));
+    const auto mapping = (*(high_order_grid->mapping_fe_field));
     dealii::DerivativeApproximation::approximate_gradient(mapping,
                                                   dof_handler,
                                                   solution,
                                                   gradient_indicator);
 
-    for (const auto &cell : high_order_grid.triangulation->active_cell_iterators()) {
+    for (const auto &cell : high_order_grid->triangulation->active_cell_iterators()) {
         gradient_indicator[cell->active_cell_index()] *= std::pow(cell->diameter(), 1 + 1.0 * dim / 2);
     }
     std::vector<dealii::types::global_dof_index> dofs_indices;
@@ -1871,15 +1871,15 @@ void DGBase<dim,real>::refine_residual_based()
     dealii::LinearAlgebra::distributed::Vector<double> old_solution(solution);
     dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dof_handler);
     solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
-    high_order_grid.prepare_for_coarsening_and_refinement();
+    high_order_grid->prepare_for_coarsening_and_refinement();
 
-    //high_order_grid.triangulation->refine_global (1);
-    dealii::GridRefinement::refine_and_coarsen_fixed_number(*high_order_grid.triangulation,
+    //high_order_grid->triangulation->refine_global (1);
+    dealii::GridRefinement::refine_and_coarsen_fixed_number(*high_order_grid->triangulation,
                                                     gradient_indicator,
                                                     0.01,
                                                     0.005);
-    high_order_grid.triangulation->execute_coarsening_and_refinement();
-    high_order_grid.execute_coarsening_and_refinement();
+    high_order_grid->triangulation->execute_coarsening_and_refinement();
+    high_order_grid->execute_coarsening_and_refinement();
     allocate_system ();
     solution.zero_out_ghosts();
     solution_transfer.interpolate(solution);
@@ -1895,7 +1895,7 @@ void DGBase<dim,real>::refine_residual_based()
 // {
 //     dealii::UpdateFlags face_update_flags = dealii::UpdateFlags(dealii::update_values | dealii::update_JxW_values);
 //
-//     const auto mapping = (*(high_order_grid.mapping_fe_field));
+//     const auto mapping = (*(high_order_grid->mapping_fe_field));
 //
 //     dealii::hp::MappingCollection<dim>   mapping_collection(mapping);
 //     dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_int (mapping_collection, fe_collection, face_quadrature_collection, face_update_flags);

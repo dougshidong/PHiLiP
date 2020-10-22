@@ -40,7 +40,7 @@ int test (
     dg->allocate_system ();
     const int n_refine = 2;
     for (int i=0; i<n_refine;i++) {
-        dg->high_order_grid.prepare_for_coarsening_and_refinement();
+        dg->high_order_grid->prepare_for_coarsening_and_refinement();
         grid->prepare_coarsening_and_refinement();
         unsigned int icell = 0;
         for (auto cell = grid->begin_active(); cell!=grid->end(); ++cell) {
@@ -57,7 +57,7 @@ int test (
         }
         grid->execute_coarsening_and_refinement();
         bool mesh_out = (i==n_refine-1);
-        dg->high_order_grid.execute_coarsening_and_refinement(mesh_out);
+        dg->high_order_grid->execute_coarsening_and_refinement(mesh_out);
     }
     pcout << "Poly degree " << poly_degree << " ncells " << grid->n_active_cells() << " ndofs: " << dg->dof_handler.n_dofs() << std::endl;
     dg->allocate_system ();
@@ -66,7 +66,7 @@ int test (
     std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&all_parameters);
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
-    dealii::VectorTools::interpolate(*(dg->high_order_grid.mapping_fe_field), dg->dof_handler, *(physics_double->manufactured_solution_function), solution_no_ghost);
+    dealii::VectorTools::interpolate(*(dg->high_order_grid->mapping_fe_field), dg->dof_handler, *(physics_double->manufactured_solution_function), solution_no_ghost);
     dg->solution = solution_no_ghost;
 
     bool compute_dRdW, compute_dRdX, compute_d2R;

@@ -215,8 +215,7 @@ int main (int argc, char * argv[])
                 MPI_Barrier(MPI_COMM_WORLD);
             }
 
-            MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
-                meshmover(high_order_grid, surface_node_displacements_vector);
+            MeshMover::LinearElasticity<dim, double> meshmover(high_order_grid, surface_node_displacements_vector);
             VectorType volume_displacements = meshmover.get_volume_displacements();
 
             // Analytical dXvdXs
@@ -238,8 +237,7 @@ int main (int argc, char * argv[])
                 }
                 surface_node_displacements_vector.update_ghost_values();
 
-                MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
-                    meshmover_p(high_order_grid, surface_node_displacements_vector);
+                MeshMover::LinearElasticity<dim, double> meshmover_p(high_order_grid, surface_node_displacements_vector);
 
                 VectorType volume_displacements_p = meshmover_p.get_volume_displacements();
 
@@ -258,8 +256,7 @@ int main (int argc, char * argv[])
                     if (iown) surface_node_displacements_vector[isurface] = old_value - fd_eps;
                     surface_node_displacements_vector.update_ghost_values();
 
-                    MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
-                        meshmover_n(high_order_grid, surface_node_displacements_vector);
+                    MeshMover::LinearElasticity<dim, double> meshmover_n(high_order_grid, surface_node_displacements_vector);
 
                     volume_displacements_n = meshmover_n.get_volume_displacements();
                     denom *= 2.0;

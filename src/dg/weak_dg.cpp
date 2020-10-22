@@ -1129,7 +1129,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
     (void) current_cell_index;
     using adtype = FadFadType;
 
-    const dealii::FESystem<dim> &fe_metric = this->high_order_grid.fe_system;
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
     const unsigned int n_soln_dofs = fe_values_boundary.dofs_per_cell;
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
 
@@ -1159,7 +1159,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
         if (compute_dRdW || compute_d2R) i_derivative++;
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        const real val = this->high_order_grid.volume_nodes[metric_dof_indices[idof]];
+        const real val = this->high_order_grid->volume_nodes[metric_dof_indices[idof]];
         coords_coeff[idof] = val;
         coords_coeff[idof].val() = val;
 
@@ -1280,7 +1280,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_codi_taped_derivatives(
     dealii::Vector<real> &local_rhs_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
-    const dealii::FESystem<dim> &fe_metric = this->high_order_grid.fe_system;
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
     const unsigned int n_soln_dofs = fe_values_boundary.dofs_per_cell;
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
 
@@ -1313,7 +1313,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_codi_taped_derivatives(
         }
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        const real val = this->high_order_grid.volume_nodes[metric_dof_indices[idof]];
+        const real val = this->high_order_grid->volume_nodes[metric_dof_indices[idof]];
         coords_coeff[idof] = val;
 
         if (compute_dRdX || compute_d2R) {
@@ -1463,7 +1463,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_residual(
     dealii::Vector<real> &local_rhs_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
-    const dealii::FESystem<dim> &fe_metric = this->high_order_grid.fe_system;
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
     const unsigned int n_soln_dofs = fe_values_boundary.dofs_per_cell;
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
 
@@ -1482,7 +1482,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_residual(
         soln_coeff[idof] = val;
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        const real val = this->high_order_grid.volume_nodes[metric_dof_indices[idof]];
+        const real val = this->high_order_grid->volume_nodes[metric_dof_indices[idof]];
         coords_coeff[idof] = val;
     }
 
@@ -2099,7 +2099,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
     using ADArray = std::array<adtype,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,adtype>, nstate >;
 
-    const dealii::FESystem<dim> &fe_metric = this->high_order_grid.fe_system;
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
     const unsigned int n_soln_dofs_int = fe_int.dofs_per_cell;
     const unsigned int n_soln_dofs_ext = fe_ext.dofs_per_cell;
@@ -2143,7 +2143,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
         if (compute_dRdW || compute_d2R) i_derivative++;
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        const real val = this->high_order_grid.volume_nodes[metric_dof_indices_int[idof]];
+        const real val = this->high_order_grid->volume_nodes[metric_dof_indices_int[idof]];
         coords_coeff_int[idof] = val;
         coords_coeff_int[idof].val() = val;
 
@@ -2152,7 +2152,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
         if (compute_dRdX || compute_d2R) i_derivative++;
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        const real val = this->high_order_grid.volume_nodes[metric_dof_indices_ext[idof]];
+        const real val = this->high_order_grid->volume_nodes[metric_dof_indices_ext[idof]];
         coords_coeff_ext[idof] = val;
         coords_coeff_ext[idof].val() = val;
 
@@ -2439,7 +2439,7 @@ void DGWeak<dim,nstate,real>::assemble_face_codi_taped_derivatives(
     using ADArray = std::array<adtype,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,adtype>, nstate >;
 
-    const dealii::FESystem<dim> &fe_metric = this->high_order_grid.fe_system;
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
     const unsigned int n_soln_dofs_int = fe_int.dofs_per_cell;
     const unsigned int n_soln_dofs_ext = fe_ext.dofs_per_cell;
@@ -2486,7 +2486,7 @@ void DGWeak<dim,nstate,real>::assemble_face_codi_taped_derivatives(
         }
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        const real val = this->high_order_grid.volume_nodes[metric_dof_indices_int[idof]];
+        const real val = this->high_order_grid->volume_nodes[metric_dof_indices_int[idof]];
         coords_coeff_int[idof] = val;
         if (compute_dRdX || compute_d2R) {
             th.registerInput(coords_coeff_int[idof]);
@@ -2495,7 +2495,7 @@ void DGWeak<dim,nstate,real>::assemble_face_codi_taped_derivatives(
         }
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        const real val = this->high_order_grid.volume_nodes[metric_dof_indices_ext[idof]];
+        const real val = this->high_order_grid->volume_nodes[metric_dof_indices_ext[idof]];
         coords_coeff_ext[idof] = val;
         if (compute_dRdX || compute_d2R) {
             th.registerInput(coords_coeff_ext[idof]);
@@ -2825,7 +2825,7 @@ void DGWeak<dim,nstate,real>::assemble_face_residual(
     using ADArray = std::array<real,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,real>, nstate >;
 
-    const dealii::FESystem<dim> &fe_metric = this->high_order_grid.fe_system;
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
     const unsigned int n_soln_dofs_int = fe_int.dofs_per_cell;
     const unsigned int n_soln_dofs_ext = fe_ext.dofs_per_cell;
@@ -2847,11 +2847,11 @@ void DGWeak<dim,nstate,real>::assemble_face_residual(
         soln_coeff_ext[idof] = val;
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        const real val = this->high_order_grid.volume_nodes[metric_dof_indices_int[idof]];
+        const real val = this->high_order_grid->volume_nodes[metric_dof_indices_int[idof]];
         coords_coeff_int[idof] = val;
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        const real val = this->high_order_grid.volume_nodes[metric_dof_indices_ext[idof]];
+        const real val = this->high_order_grid->volume_nodes[metric_dof_indices_ext[idof]];
         coords_coeff_ext[idof] = val;
     }
 
@@ -3175,7 +3175,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_term_derivatives(
 
     AssertDimension (n_soln_dofs, soln_dof_indices.size());
 
-    const dealii::FESystem<dim> &fe_metric = this->high_order_grid.fe_system;
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
 
     std::vector<FadFadType> coords_coeff(n_metric_dofs);
@@ -3209,7 +3209,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_term_derivatives(
         if (compute_dRdW || compute_d2R) i_derivative++;
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        const real val = this->high_order_grid.volume_nodes[metric_dof_indices[idof]];
+        const real val = this->high_order_grid->volume_nodes[metric_dof_indices[idof]];
         coords_coeff[idof] = val;
         coords_coeff[idof].val() = val;
 
@@ -3334,7 +3334,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_codi_taped_derivatives(
 
     AssertDimension (n_soln_dofs, soln_dof_indices.size());
 
-    const dealii::FESystem<dim> &fe_metric = this->high_order_grid.fe_system;
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
 
     std::vector<adtype> coords_coeff(n_metric_dofs);
@@ -3371,7 +3371,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_codi_taped_derivatives(
         }
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        const real val = this->high_order_grid.volume_nodes[metric_dof_indices[idof]];
+        const real val = this->high_order_grid->volume_nodes[metric_dof_indices[idof]];
         coords_coeff[idof] = val;
 
         if (compute_dRdX || compute_d2R) {
@@ -3510,7 +3510,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_residual(
     (void) compute_dRdW; (void) compute_dRdX; (void) compute_d2R;
     const bool compute_metric_derivatives = true;//(!compute_dRdX && !compute_d2R) ? false : true;
 
-    const dealii::FESystem<dim> &fe_metric = this->high_order_grid.fe_system;
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
     const unsigned int n_soln_dofs = fe_soln.dofs_per_cell;
 
@@ -3530,7 +3530,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_residual(
         soln_coeff[idof] = val;
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        const real val = this->high_order_grid.volume_nodes[metric_dof_indices[idof]];
+        const real val = this->high_order_grid->volume_nodes[metric_dof_indices[idof]];
         coords_coeff[idof] = val;
     }
 

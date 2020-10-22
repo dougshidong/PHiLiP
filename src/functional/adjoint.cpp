@@ -110,7 +110,7 @@ void Adjoint<dim, nstate, real>::coarse_to_fine()
         > solution_transfer(dg.dof_handler);
     solution_transfer.prepare_for_coarsening_and_refinement(solution_coarse);
 
-    dg.high_order_grid.prepare_for_coarsening_and_refinement();
+    dg.high_order_grid->prepare_for_coarsening_and_refinement();
     dg.triangulation->prepare_coarsening_and_refinement();
 
     for (auto cell = dg.dof_handler.begin_active(); cell != dg.dof_handler.end(); ++cell)
@@ -118,7 +118,7 @@ void Adjoint<dim, nstate, real>::coarse_to_fine()
             cell->set_future_fe_index(cell->active_fe_index()+1);
 
     dg.triangulation->execute_coarsening_and_refinement();
-    dg.high_order_grid.execute_coarsening_and_refinement();
+    dg.high_order_grid->execute_coarsening_and_refinement();
 
     dg.allocate_system();
     dg.solution.zero_out_ghosts();
@@ -131,7 +131,7 @@ void Adjoint<dim, nstate, real>::coarse_to_fine()
 template <int dim, int nstate, typename real>
 void Adjoint<dim, nstate, real>::fine_to_coarse()
 {
-    dg.high_order_grid.prepare_for_coarsening_and_refinement();
+    dg.high_order_grid->prepare_for_coarsening_and_refinement();
     dg.triangulation->prepare_coarsening_and_refinement();
 
     for (auto cell = dg.dof_handler.begin_active(); cell != dg.dof_handler.end(); ++cell)
@@ -139,7 +139,7 @@ void Adjoint<dim, nstate, real>::fine_to_coarse()
             cell->set_future_fe_index(coarse_fe_index[cell->active_cell_index()]);
 
     dg.triangulation->execute_coarsening_and_refinement();
-    dg.high_order_grid.execute_coarsening_and_refinement();
+    dg.high_order_grid->execute_coarsening_and_refinement();
 
     dg.allocate_system();
     dg.solution.zero_out_ghosts();
@@ -299,8 +299,8 @@ void Adjoint<dim,nstate,real>::output_results_vtk(const unsigned int cycle)
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
     //data_out.build_patches (mapping_collection[mapping_collection.size()-1]);
     data_out.build_patches();
-    // data_out.build_patches(*(dg.high_order_grid.mapping_fe_field), dg.max_degree, dealii::DataOut<dim, dealii::DoFHandler<dim>>::CurvedCellRegion::curved_inner_cells);
-    //data_out.build_patches(*(high_order_grid.mapping_fe_field), fe_collection.size(), dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells);
+    // data_out.build_patches(*(dg.high_order_grid->mapping_fe_field), dg.max_degree, dealii::DataOut<dim, dealii::DoFHandler<dim>>::CurvedCellRegion::curved_inner_cells);
+    //data_out.build_patches(*(high_order_grid->mapping_fe_field), fe_collection.size(), dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells);
     std::string filename = "adjoint-" ;
     if(adjoint_state == AdjointEnum::fine)
         filename += "fine-";

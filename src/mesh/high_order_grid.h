@@ -79,6 +79,9 @@ public:
     /// Ensures that hanging nodes are updated for a conforming mesh.
     void ensure_conforming_mesh();
 
+    /// Sets the volume_nodes to the interpolated position of the Manifold associated to the triangulation.
+    void initialize_with_triangulation_manifold();
+
     /// Needed to allocate the correct number of volume_nodes when initializing and after the mesh is refined
     void allocate();
 
@@ -157,9 +160,6 @@ public:
     std::vector<dealii::types::global_dof_index> locally_relevant_surface_nodes_indices;
     /// List of surface node boundary IDs, corresponding to locally_relevant_surface_nodes_indices
     std::vector<dealii::types::global_dof_index> locally_relevant_surface_nodes_boundary_id;
-
-    // /// List of surface node boundary user index, corresponding to locally_relevant_surface_nodes_indices
-    // std::vector<dealii::types::global_dof_index> locally_relevant_surface_nodes_user_index;
 
     /// List of surface nodes.
     /** Note that this contains all \<dim\> directions.
@@ -286,6 +286,8 @@ public:
     //  {
     //  }
 
+    /// Globally refines the high-order mesh.
+    void refine_global();
 
     /// Prepares the solution transfer such that the curved refined grid is on top of the curved coarse grid.
     /** This function needs to be called before dealii::Triangulation::execute_coarsening_and_refinement() or dealii::Triangulation::refine_global()

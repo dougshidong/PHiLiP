@@ -63,6 +63,18 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
     MPI_Comm_size(MPI_COMM_WORLD, &n_mpi);
 
     Assert(max_degree > 0, dealii::ExcMessage("Grid must be at least order 1."));
+
+    if (triangulation->n_levels() == 0) {
+        // Do nothing
+        // Assume stuff will be read later on.
+    } else {
+        initialize_with_triangulation_manifold();
+    }
+}
+
+template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::initialize_with_triangulation_manifold()
+{
     allocate();
     const dealii::ComponentMask mask(dim, true);
     get_position_vector(dof_handler_grid, volume_nodes, mask);
@@ -100,6 +112,7 @@ HighOrderGrid<dim,real,VectorType,DoFHandlerType>::HighOrderGrid(
         }
     }
 }
+
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
 void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::ensure_conforming_mesh() {
@@ -937,6 +950,14 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::test_jacobian()
     // }
 }
 
+template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::refine_global()
+{
+    prepare_for_coarsening_and_refinement();
+    triangulation->refine_global();
+    execute_coarsening_and_refinement();
+}
+
 
 template <int dim, typename real, typename VectorType , typename DoFHandlerType>
 void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::prepare_for_coarsening_and_refinement() {
@@ -955,8 +976,11 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::execute_coarsening_and_r
     } else {
         solution_transfer.interpolate(volume_nodes);
     }
+    const bool use_manifold_for_refined_nodes = true;
     const dealii::ComponentMask mask(dim, true);
-    //get_position_vector(dof_handler_grid, volume_nodes, mask);
+    if (use_manifold_for_refined_nodes) {
+        get_position_vector(dof_handler_grid, volume_nodes, mask);
+    }
 
     volume_nodes.update_ghost_values();
 
@@ -1062,6 +1086,10 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_nodes() {
         std::vector<unsigned int> n_locally_relevant_surface_nodes_per_mpi(n_mpi);
         MPI_Allgather(&n_locally_relevant_surface_nodes, 1, MPI::UNSIGNED, &(n_locally_relevant_surface_nodes_per_mpi[0]), 1, MPI::UNSIGNED, MPI_COMM_WORLD);
 
+    }
+
+    // Find ghost_surface_nodes_indexset for the surface_nodes vector.
+    {
         const unsigned int n_surface_nodes = all_surface_nodes.size();
         ghost_surface_nodes_indexset.clear();
         ghost_surface_nodes_indexset.set_size(n_surface_nodes);
@@ -1077,7 +1105,23 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_nodes() {
                         break;
                     }
                 }
-                if (!found) std::abort();
+                if (!found) {
+                    std::cout << "Could not find index " << *index << " in the surface indices... Aborting. " << std::endl;
+                    std::cout << "All surface_indices: " << std::endl;
+                    for (unsigned int i = 0; i < all_surface_indices.size(); i++) {
+                        std::cout << "i " << i << " all_surface_indices[i] " << all_surface_indices[i] << std::endl;
+                    }
+                    std::cout << "Locally relevant surface nodes indices: " << std::endl;
+                    for (unsigned int i = 0; i < locally_relevant_surface_nodes_indices.size(); i++) {
+                        std::cout << "i " << i << " locally_relevant_surface_nodes_indices[i] " << locally_relevant_surface_nodes_indices[i] << std::endl;
+                    }
+                    std::cout << "Locally owned surface nodes indices: " << std::endl;
+                    for (unsigned int i = 0; i < locally_owned_surface_nodes_indices.size(); i++) {
+                        std::cout << "i " << i << " locally_owned_surface_nodes_indices[i] " << locally_owned_surface_nodes_indices[i] << std::endl;
+                    }
+
+                    std::abort();
+                }
             }
         }
     }
@@ -1150,7 +1194,6 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices()
     locally_relevant_surface_nodes_indices.clear();
     locally_relevant_surface_nodes.clear();
     locally_relevant_surface_nodes_boundary_id.clear();
-    // locally_relevant_surface_nodes_user_index.clear();
     locally_relevant_surface_points.clear();
     global_index_to_point_and_axis.clear();
     point_and_axis_to_global_index.clear();
@@ -1166,7 +1209,7 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices()
     std::unordered_set<dealii::types::global_dof_index> locally_owned_surface_dof_indices_set;
     for (auto cell = dof_handler_grid.begin_active(); cell!=dof_handler_grid.end(); ++cell) {
 
-        if (!cell->is_locally_owned()) continue;
+        if (!cell->is_locally_owned() && !cell->is_ghost()) continue;
         if (!cell->at_boundary()) continue;
 
         cell->get_dof_indices(dof_indices);
@@ -1177,7 +1220,6 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices()
 
         for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
             const auto face = cell->face(iface);
-            if (!face->at_boundary()) continue;
 
             const unsigned int boundary_id = face->boundary_id();
             // Can't assign a face of dim 0 (point) a user_index...
@@ -1203,7 +1245,6 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices()
                     locally_relevant_surface_dof_indices_set.insert(global_idof_index);
                     locally_relevant_surface_nodes_indices.push_back(global_idof_index);
                     locally_relevant_surface_nodes_boundary_id.push_back(boundary_id);
-                    // locally_relevant_surface_nodes_user_index.push_back(face_user_index);
                     // Refer to the nonmenclature of
                     // https://www.dealii.org/current/doxygen/deal.II/classFiniteElement.html#ae2ea16b60a6fc644a9bc7097703a53e8
                     const unsigned int i = idof_cell;
@@ -1225,6 +1266,9 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices()
                         point_index = shape_function_within_base_to_point_index[shape_within_base];
                         locally_relevant_surface_points[point_index][component] = volume_nodes[global_idof_index];
                     }
+                    //if (global_idof_index == 1682 || global_idof_index == 1683) {
+                    //    std::cout << "Point 1682 or 1683 " << locally_relevant_surface_points[point_index] << std::endl;
+                    //}
 
                     global_index_to_point_and_axis[global_idof_index] = std::make_pair(point_index, component);
                     point_and_axis_to_global_index[std::make_pair(point_index, component)] = global_idof_index;
@@ -1237,10 +1281,9 @@ void HighOrderGrid<dim,real,VectorType,DoFHandlerType>::update_surface_indices()
                     }
                 }
             }
+        } // iface loop
 
-        }
-
-    }
+    } // cell loop
     //std::cout << "I own " << locally_relevant_surface_nodes_indices.size() << " surface nodes" << std::endl;
 }
 

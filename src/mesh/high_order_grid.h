@@ -41,11 +41,13 @@ namespace PHiLiP {
  *  and the Vector class act quite differently between serial and parallel implementation. Hopefully,
  *  deal.II will change this one day such that we have one interface for both.
  */
-template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
+template <int dim = PHILIP_DIM, typename real = double>
 class HighOrderGrid
 {
     /// Distributed vector of double.
-    using Vector = dealii::LinearAlgebra::distributed::Vector<double>;
+    using VectorType = dealii::LinearAlgebra::distributed::Vector<real>;
+    /// DoFHandler
+    using DoFHandlerType = dealii::DoFHandler<dim>;
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
     /** Triangulation to store the grid.
      *  In 1D, dealii::Triangulation<dim> is used.
@@ -53,8 +55,8 @@ class HighOrderGrid
      */
     using Triangulation = dealii::Triangulation<dim>;
 
-    /// SolutionTransfer using Vector
-    using SolutionTransfer = dealii::SolutionTransfer<dim, Vector, dealii::DoFHandler<dim>>;
+    /// SolutionTransfer using VectorType
+    using SolutionTransfer = dealii::SolutionTransfer<dim, VectorType, dealii::DoFHandler<dim>>;
 #else
     /** Triangulation to store the grid.
      *  In 1D, dealii::Triangulation<dim> is used.
@@ -62,8 +64,8 @@ class HighOrderGrid
      */
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
 
-    /// SolutionTransfer using Vector
-    using SolutionTransfer = dealii::parallel::distributed::SolutionTransfer<dim, Vector, dealii::DoFHandler<dim>>;
+    /// SolutionTransfer using VectorType
+    using SolutionTransfer = dealii::parallel::distributed::SolutionTransfer<dim, VectorType, dealii::DoFHandler<dim>>;
 #endif
 public:
     /// Principal constructor that will call delegated constructor.
@@ -103,21 +105,21 @@ public:
      *  the integer division "idof_index / dim" gives the coordinates related to the same
      *  point.
      */
-    Vector volume_nodes;
+    VectorType volume_nodes;
 
 
     /** Distributed ghosted vector of surface nodes.
      */
-    Vector surface_nodes;
+    VectorType surface_nodes;
 
     /// Initial nodal coefficients of the high-order grid.
     /** Used for deformation schemes that always deform the mesh from the initial mesh.
      */
-    Vector initial_volume_nodes;
+    VectorType initial_volume_nodes;
     /// Distributed ghosted vector of initial surface nodes.
     /** Used for deformation schemes that always deform the mesh from the initial mesh.
      */
-    Vector initial_surface_nodes;
+    VectorType initial_surface_nodes;
 
     /// Sets the initial_volume_nodes and initial_surface_nodes to the current volume_nodes and surface_nodes.
     void reset_initial_nodes();
@@ -231,7 +233,7 @@ public:
     VectorType transform_surface_nodes(std::function<dealii::Point<dim>(dealii::Point<dim>)> transformation) const;
 
     /// RBF mesh deformation  -  To be done
-    //void deform_mesh(Vector surface_displacements);
+    //void deform_mesh(VectorType surface_displacements);
     void deform_mesh(std::vector<real> local_surface_displacements);
 
     void test_jacobian(); ///< Test metric Jacobian
@@ -333,7 +335,7 @@ protected:
     void update_surface_indices();
 
     /// Used for the SolutionTransfer when performing grid adaptation.
-    Vector old_volume_nodes;
+    VectorType old_volume_nodes;
 
     /** Transfers the coarse curved curve onto the fine curved grid.
      *  Used in prepare_for_coarsening_and_refinement() and execute_coarsening_and_refinement()

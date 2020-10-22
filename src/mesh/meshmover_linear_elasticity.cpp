@@ -20,9 +20,9 @@
 namespace PHiLiP {
 namespace MeshMover {
 
-    // template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    // LinearElasticity<dim,real,VectorType,DoFHandlerType>::LinearElasticity(
-    //     const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
+    // template <int dim, typename real>
+    // LinearElasticity<dim,real>::LinearElasticity(
+    //     const HighOrderGrid<dim,real> &high_order_grid,
     //     const dealii::LinearAlgebra::distributed::Vector<double> &boundary_displacements_vector)
     //   : triangulation(*(high_order_grid.triangulation))
     //   , mapping_fe_field(high_order_grid.mapping_fe_field)
@@ -38,11 +38,11 @@ namespace MeshMover {
     //     AssertDimension(boundary_displacements_vector.size(), boundary_ids_vector.size());
     // }
 
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    LinearElasticity<dim,real,VectorType,DoFHandlerType>::LinearElasticity(
-        const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
+    template <int dim, typename real>
+    LinearElasticity<dim,real>::LinearElasticity(
+        const HighOrderGrid<dim,real> &high_order_grid,
         const dealii::LinearAlgebra::distributed::Vector<double> &boundary_displacements_vector)
-      : LinearElasticity<dim,real,VectorType,DoFHandlerType> (
+      : LinearElasticity<dim,real> (
           *(high_order_grid.triangulation),
           high_order_grid.mapping_fe_field,
           high_order_grid.dof_handler_grid,
@@ -50,8 +50,8 @@ namespace MeshMover {
           boundary_displacements_vector)
     { }
 
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    LinearElasticity<dim,real,VectorType,DoFHandlerType>::LinearElasticity(
+    template <int dim, typename real>
+    LinearElasticity<dim,real>::LinearElasticity(
         const Triangulation &_triangulation,
         const std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field,
         const DoFHandlerType &_dof_handler,
@@ -74,15 +74,15 @@ namespace MeshMover {
         setup_system();
     }
 
-    // template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    // LinearElasticity<dim,real,VectorType,DoFHandlerType>::LinearElasticity(
-    //     const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
+    // template <int dim, typename real>
+    // LinearElasticity<dim,real>::LinearElasticity(
+    //     const HighOrderGrid<dim,real> &high_order_grid,
     //     const std::vector<dealii::Tensor<1,dim,real>> &boundary_displacements_tensors)
     //   : LinearElasticity(high_order_grid, boundary_displacements_vector(tensor_to_vector(boundary_displacements_tensors))
     // { }
 
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    dealii::LinearAlgebra::distributed::Vector<double> LinearElasticity<dim,real,VectorType,DoFHandlerType>::
+    template <int dim, typename real>
+    dealii::LinearAlgebra::distributed::Vector<double> LinearElasticity<dim,real>::
     tensor_to_vector(const std::vector<dealii::Tensor<1,dim,real>> &boundary_displacements_tensors) const
     {
         (void) boundary_displacements_tensors;
@@ -90,11 +90,12 @@ namespace MeshMover {
         return boundary_displacements_vector;
     }
 
-    //template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    //LinearElasticity<dim,real,VectorType,DoFHandlerType>::~LinearElasticity() { dof_handler.clear(); }
+    //template <int dim, typename real>
+    //LinearElasticity<dim,real>::~LinearElasticity() { dof_handler.clear(); }
 
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    VectorType LinearElasticity<dim,real,VectorType,DoFHandlerType>::get_volume_displacements()
+    template <int dim, typename real>
+    dealii::LinearAlgebra::distributed::Vector<real>
+    LinearElasticity<dim,real>::get_volume_displacements()
     {
         pcout << "Solving linear elasticity problem for volume displacements..." << std::endl;
         solve_timestep();
@@ -103,8 +104,8 @@ namespace MeshMover {
         displacement_solution.update_ghost_values();
         return displacement_solution;
     }
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    void LinearElasticity<dim,real,VectorType,DoFHandlerType>::setup_system()
+    template <int dim, typename real>
+    void LinearElasticity<dim,real>::setup_system()
     {
         //dof_handler.distribute_dofs(fe_system);
         //dealii::DoFRenumbering::Cuthill_McKee(dof_handler);
@@ -179,8 +180,8 @@ namespace MeshMover {
         // pcout << "    Number of active cells: " << triangulation.n_active_cells() << std::endl;
         // pcout << "    Number of degrees of freedom: " << dof_handler.n_dofs() << std::endl;
     }
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    void LinearElasticity<dim,real,VectorType,DoFHandlerType>::assemble_system()
+    template <int dim, typename real>
+    void LinearElasticity<dim,real>::assemble_system()
     {
         pcout << "    Assembling MeshMover::LinearElasticity system..." << std::endl;
 
@@ -332,8 +333,8 @@ namespace MeshMover {
         system_matrix_unconstrained.compress(dealii::VectorOperation::insert);
         system_rhs_unconstrained.compress(dealii::VectorOperation::insert);
     }
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    void LinearElasticity<dim,real,VectorType,DoFHandlerType>::solve_timestep()
+    template <int dim, typename real>
+    void LinearElasticity<dim,real>::solve_timestep()
     {
         assemble_system();
         apply_dXvdXvs(system_rhs, displacement_solution);
@@ -341,9 +342,9 @@ namespace MeshMover {
         //pcout << "    Solver converged in " << n_iterations << " iterations." << std::endl;
     }
 
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    template <int dim, typename real>
     void
-    LinearElasticity<dim,real,VectorType,DoFHandlerType>
+    LinearElasticity<dim,real>
     ::apply_dXvdXvs(
         const dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
         dealii::LinearAlgebra::distributed::Vector<double> &output_vector)
@@ -385,9 +386,9 @@ namespace MeshMover {
         }
     }
 
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    template <int dim, typename real>
     void
-    LinearElasticity<dim,real,VectorType,DoFHandlerType>
+    LinearElasticity<dim,real>
     ::apply_dXvdXvs(
         std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &list_of_vectors,
         dealii::TrilinosWrappers::SparseMatrix &output_matrix)
@@ -454,9 +455,9 @@ namespace MeshMover {
 
     }
 
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    template <int dim, typename real>
     void
-    LinearElasticity<dim,real,VectorType,DoFHandlerType>
+    LinearElasticity<dim,real>
     ::apply_dXvdXvs_transpose(
         const dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
         dealii::LinearAlgebra::distributed::Vector<double> &output_vector)
@@ -497,8 +498,8 @@ namespace MeshMover {
 
     }
 
-    // template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    // unsigned int LinearElasticity<dim,real,VectorType,DoFHandlerType>::solve_linear_problem()
+    // template <int dim, typename real>
+    // unsigned int LinearElasticity<dim,real>::solve_linear_problem()
     // {
     //     displacement_solution.reinit(system_rhs);
 
@@ -516,9 +517,9 @@ namespace MeshMover {
     //     return solver_control.last_step();
     // }
 
-    // template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    // template <int dim, typename real>
     // void
-    // LinearElasticity<dim,real,VectorType,DoFHandlerType>
+    // LinearElasticity<dim,real>
     // ::apply_dXvdXvs(
     //     const dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
     //     dealii::LinearAlgebra::distributed::Vector<double> &output_vector)
@@ -586,9 +587,9 @@ namespace MeshMover {
     //     output_vector += rhs_vector;
     // }
 
-    // template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    // template <int dim, typename real>
     // void
-    // LinearElasticity<dim,real,VectorType,DoFHandlerType>
+    // LinearElasticity<dim,real>
     // ::apply_dXvdXvs(
     //     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &list_of_vectors,
     //     dealii::TrilinosWrappers::SparseMatrix &output_matrix)
@@ -691,9 +692,9 @@ namespace MeshMover {
 
     // }
 
-    // template <int dim, typename real, typename VectorType , typename DoFHandlerType>
+    // template <int dim, typename real>
     // void
-    // LinearElasticity<dim,real,VectorType,DoFHandlerType>
+    // LinearElasticity<dim,real>
     // ::apply_dXvdXvs_transpose(
     //     const dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
     //     dealii::LinearAlgebra::distributed::Vector<double> &output_vector)
@@ -743,8 +744,8 @@ namespace MeshMover {
 
     // }
 
-    template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    void LinearElasticity<dim,real,VectorType,DoFHandlerType>::evaluate_dXvdXs()
+    template <int dim, typename real>
+    void LinearElasticity<dim,real>::evaluate_dXvdXs()
     {
         std::vector<dealii::LinearAlgebra::distributed::Vector<double>> unit_rhs_vector;
         const unsigned int n_dirichlet_constraints = boundary_displacements_vector.size();
@@ -772,8 +773,8 @@ namespace MeshMover {
         apply_dXvdXvs(unit_rhs_vector, dXvdXs_matrix);
     }
 
-    // template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    // void LinearElasticity<dim,real,VectorType,DoFHandlerType>::evaluate_dXvdXs()
+    // template <int dim, typename real>
+    // void LinearElasticity<dim,real>::evaluate_dXvdXs()
     // {
     //     VectorType trilinos_solution(system_rhs);
 
@@ -898,8 +899,8 @@ namespace MeshMover {
     //     //     }
     //     // }
     // }
-    // template <int dim, typename real, typename VectorType , typename DoFHandlerType>
-    // unsigned int LinearElasticity<dim,real,VectorType,DoFHandlerType>::solve_linear_problem()
+    // template <int dim, typename real>
+    // unsigned int LinearElasticity<dim,real>::solve_linear_problem()
     // {
     //     VectorType trilinos_solution(system_rhs);
 
@@ -956,7 +957,7 @@ namespace MeshMover {
     //     return solver_control.last_step();
     // }
 
-template class LinearElasticity<PHILIP_DIM, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM>>;
+template class LinearElasticity<PHILIP_DIM, double>;
 } // namespace MeshMover
 
 } // namespace PHiLiP

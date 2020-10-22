@@ -484,7 +484,7 @@ public:
     dealii::DoFHandler<dim> dof_handler;
 
     /// High order grid that will provide the MappingFEField
-    HighOrderGrid<dim,real> high_order_grid;
+    std::shared_ptr<HighOrderGrid<dim,real>> high_order_grid;
 protected:
 
     /// Evaluate the integral over the cell volume and the specified derivatives.

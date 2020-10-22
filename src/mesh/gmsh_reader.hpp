@@ -52,7 +52,7 @@
 #include "high_order_grid.h"
 namespace PHiLiP {
     template <int dim, int spacedim>
-    std::shared_ptr< HighOrderGrid<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim> > >
+    std::shared_ptr< HighOrderGrid<dim, double> >
     read_gmsh(std::string filename);
 } // namespace PHiLiP
 #endif

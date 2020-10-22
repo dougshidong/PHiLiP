@@ -165,6 +165,7 @@ void read_gmsh_entities(std::ifstream &infile, std::array<std::map<int, int>, 4>
 
         // we only care for 'tag' as key for tag_maps[0]
         infile >> entity_tag >> box_min_x >> box_min_y >> box_min_z >> n_physicals;
+
         // if there is a physical tag, we will use it as boundary id below
         AssertThrow(n_physicals < 2, dealii::ExcMessage("More than one tag is not supported!"));
         // if there is no physical tag, use 0 as default
@@ -172,6 +173,7 @@ void read_gmsh_entities(std::ifstream &infile, std::array<std::map<int, int>, 4>
         for (unsigned int j = 0; j < n_physicals; ++j) {
             infile >> physical_tag;
         }
+        std::cout << "Entity point tag " << entity_tag << " with physical tag " << physical_tag << std::endl;
         tag_maps[0][entity_tag] = physical_tag;
     }
     for (unsigned int i = 0; i < n_curves; ++i) {
@@ -187,6 +189,7 @@ void read_gmsh_entities(std::ifstream &infile, std::array<std::map<int, int>, 4>
             infile >> physical_tag;
         }
         tag_maps[1][entity_tag] = physical_tag;
+        std::cout << "Entity curve tag " << entity_tag << " with physical tag " << physical_tag << std::endl;
         // we don't care about the points associated to a curve, but have
         // to parse them anyway because their format is unstructured
         infile >> n_points;
@@ -206,6 +209,7 @@ void read_gmsh_entities(std::ifstream &infile, std::array<std::map<int, int>, 4>
         for (unsigned int j = 0; j < n_physicals; ++j) {
           infile >> physical_tag;
         }
+        std::cout << "Entity surface tag " << entity_tag << " with physical tag " << physical_tag << std::endl;
         tag_maps[2][entity_tag] = physical_tag;
         // we don't care about the curves associated to a surface, but
         // have to parse them anyway because their format is unstructured
@@ -227,6 +231,7 @@ void read_gmsh_entities(std::ifstream &infile, std::array<std::map<int, int>, 4>
         for (unsigned int j = 0; j < n_physicals; ++j) {
             infile >> physical_tag;
         }
+        std::cout << "Entity volume tag " << entity_tag << " with physical tag " << physical_tag << std::endl;
         tag_maps[3][entity_tag] = physical_tag;
         // we don't care about the surfaces associated to a volume, but
         // have to parse them anyway because their format is unstructured
@@ -248,6 +253,8 @@ void read_gmsh_nodes( std::ifstream &infile, std::vector<dealii::Point<spacedim>
     int min_node_tag;
     int max_node_tag;
     infile >> n_entity_blocks >> n_vertices >> min_node_tag >> max_node_tag;
+    std::cout << "Reading nodes..." << std::endl;
+    std::cout << "Number of entity blocks: " << n_entity_blocks << " with a total of " << n_vertices << " vertices." << std::endl;
 
     vertices.resize(n_vertices);
   
@@ -261,10 +268,14 @@ void read_gmsh_nodes( std::ifstream &infile, std::vector<dealii::Point<spacedim>
         int tagEntity, dimEntity;
         infile >> tagEntity >> dimEntity >> parametric >> numNodes;
 
+        std::cout << "Entity block: " << entity_block << " with tag " << tagEntity << " in " << dimEntity << " dimension with " << numNodes << " nodes. Parametric: " << parametric << std::endl;
+
         std::vector<int> vertex_numbers;
+
         for (unsigned long vertex_per_entity = 0; vertex_per_entity < numNodes; ++vertex_per_entity) {
             int vertex_number;
             infile >> vertex_number;
+            //std::cout << vertex_number << std::endl;
             vertex_numbers.push_back(vertex_number);
         }
 
@@ -272,6 +283,8 @@ void read_gmsh_nodes( std::ifstream &infile, std::vector<dealii::Point<spacedim>
             // read vertex
             double x[3];
             infile >> x[0] >> x[1] >> x[2];
+            //std::cout << x[0] << " " << x[1] << " " << x[2] << " ";
+            //if (parametric == 0) std::cout << std::endl;
 
 
             for (unsigned int d = 0; d < spacedim; ++d) {
@@ -286,13 +299,21 @@ void read_gmsh_nodes( std::ifstream &infile, std::vector<dealii::Point<spacedim>
 
             // ignore parametric coordinates
             if (parametric != 0) {
-                double u = 0.; double v = 0.;
-                infile >> u >> v;
-                (void)u; (void)v;
+                int n_parametric = dimEntity;
+                if (dimEntity == 0) n_parametric = 1;
+                double uvw[3];
+                for (int d=0; d<n_parametric; ++d) {
+                    infile >> uvw[d];
+                    //std::cout << uvw[d] << " ";
+
+                }
+                //std::cout << std::endl;
+                (void)uvw;
             }
         }
     }
     AssertDimension(global_vertex, n_vertices);
+    std::cout << "Finished reading nodes." << std::endl;
 }
 
 unsigned int gmsh_cell_type_to_order(unsigned int cell_type)
@@ -334,6 +355,9 @@ unsigned int find_grid_order(std::ifstream &infile)
     int min_ele_tag, max_ele_tag;
     infile >> n_entity_blocks >> n_cells >> min_ele_tag >> max_ele_tag;
 
+    std::cout << "Finding grid order..." << std::endl;
+    std::cout << n_entity_blocks << " entity blocks with a total of " << n_cells << " cells. " << std::endl;
+
     std::vector<unsigned int> vertices_id;
 
     unsigned int global_cell = 0;
@@ -343,6 +367,7 @@ unsigned int find_grid_order(std::ifstream &infile)
 
         int tagEntity, dimEntity;
         infile >> dimEntity >> tagEntity >> cell_type >> numElements;
+        std::cout << "Entity block " << entity_block << " of dimension " << dimEntity << " with tag " << tagEntity << " and celltype = " << cell_type << " containing " << numElements << " elements. " << std::endl;
 
         const unsigned int cell_order = gmsh_cell_type_to_order(cell_type);
         const unsigned int nodes_per_element = std::pow(cell_order + 1, dimEntity);
@@ -368,6 +393,7 @@ unsigned int find_grid_order(std::ifstream &infile)
     infile.seekg(entity_file_position);
 
     AssertDimension(global_cell, n_cells);
+    std::cout << "Found grid order = " << grid_order << std::endl;
     return grid_order;
 }
 
@@ -489,6 +515,9 @@ gmsh_hierarchic_to_lexicographic(const unsigned int degree)
 
           break;
     } case 3: {
+
+        Assert(false, dealii::ExcNotImplemented());
+
         unsigned int next_index = 0;
         // first the eight vertices
         h2l[next_index++] = 0;                        // 0
@@ -602,7 +631,7 @@ void fe_q_node_number(const unsigned int index,
 }
 
 template <int dim, int spacedim>
-std::shared_ptr< HighOrderGrid<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim> > >
+std::shared_ptr< HighOrderGrid<dim, double> >
 read_gmsh(std::string filename)
 {
 
@@ -625,6 +654,7 @@ read_gmsh(std::string filename)
     //}
     //std::abort();
 
+    Assert(dim==2, dealii::ExcInternalError());
     std::ifstream infile;
 
     open_file_toRead(filename, infile);
@@ -725,7 +755,7 @@ read_gmsh(std::string filename)
             dealii::Triangulation<dim>::smoothing_on_refinement |
             dealii::Triangulation<dim>::smoothing_on_coarsening));
 
-    auto high_order_grid = std::make_shared<HighOrderGrid<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> >(grid_order, triangulation);
+    auto high_order_grid = std::make_shared<HighOrderGrid<dim, double>>(grid_order, triangulation);
   
     unsigned int n_entity_blocks, n_cells;
     int min_ele_tag, max_ele_tag;
@@ -984,16 +1014,16 @@ read_gmsh(std::string filename)
         if (cell->is_locally_owned()) {
             auto &high_order_vertices_id = high_order_cells[icell].vertices;
 
-            for (unsigned int i=0; i<high_order_vertices_id.size(); ++i) {
-                std::cout << " I " << high_order_vertices_id[i] << " point " << all_vertices[high_order_vertices_id[i]] << std::endl;
-            }
+            //for (unsigned int i=0; i<high_order_vertices_id.size(); ++i) {
+            //    std::cout << " I " << high_order_vertices_id[i] << " point " << all_vertices[high_order_vertices_id[i]] << std::endl;
+            //}
             cell->get_dof_indices(dof_indices);
 
-            std::cout << " cell " << icell << " with vertices: " << std::endl;
-            for (unsigned int i=0; i < cell->n_vertices(); ++i) {
-                std::cout << cell->vertex(i) << std::endl;
-            }
-            std::cout << " highordercell with vertices: " << std::endl;
+            //std::cout << " cell " << icell << " with vertices: " << std::endl;
+            //for (unsigned int i=0; i < cell->n_vertices(); ++i) {
+            //    std::cout << cell->vertex(i) << std::endl;
+            //}
+            //std::cout << " highordercell with vertices: " << std::endl;
 
             std::vector<unsigned int> rotate_z90degree;
             rotate_indices<dim>(rotate_z90degree, grid_order+1, 'Z');
@@ -1010,7 +1040,7 @@ read_gmsh(std::string filename)
             auto high_order_vertices_id_rotated = high_order_vertices_id_lexico;
             for (int zr = 0; zr < 4; ++zr) {
                 
-                bool matching[4];
+                std::vector<int> matching(cell->n_vertices());
                 for (unsigned int i_vertex=0; i_vertex < cell->n_vertices(); ++i_vertex) {
 
                     const unsigned int base_index = i_vertex;
@@ -1020,7 +1050,7 @@ read_gmsh(std::string filename)
                     //const unsigned int vertex_id = high_order_vertices_id_rotated[gmsh_hierarchical_index];
                     const unsigned int vertex_id = high_order_vertices_id_rotated[lexicographic_index];
                     const dealii::Point<dim,double> high_order_vertex = all_vertices[vertex_id];
-                    std::cout << high_order_vertex << std::endl;
+                    //std::cout << high_order_vertex << std::endl;
 
                     bool found = false;
                     for (unsigned int i=0; i < cell->n_vertices(); ++i) {
@@ -1030,24 +1060,24 @@ read_gmsh(std::string filename)
                         }
                     }
                     if (!found) {
-                        std::cout << "Wrong cell..." << std::endl;
+                        std::cout << "Wrong cell... High order nodes do not match the cell's vertices." << std::endl;
                         std::abort();
                     }
 
-                    matching[i_vertex] = (high_order_vertex == cell->vertex(i_vertex));
+                    matching[i_vertex] = (high_order_vertex == cell->vertex(i_vertex)) ? 0 : 1;
                 }
 
                 bool all_matching = true;
-                for (int i=0; i < 4; ++i) {
-                    all_matching = (all_matching && matching[i]);
+                for (unsigned int i=0; i < cell->n_vertices(); ++i) {
+                    if (matching[i] == 1) all_matching = false;
                 }
                 good_rotation = all_matching;
                 if (good_rotation) {
-                    std::cout << "Found rotation cell..." << std::endl;
+                    //std::cout << "Found rotation cell..." << std::endl;
                     break;
                 }
 
-                std::cout << "Rotating indices " << std::endl;
+                //std::cout << "Rotating indices " << std::endl;
                 high_order_vertices_id = high_order_vertices_id_rotated;
                 for (unsigned int i=0; i<high_order_vertices_id.size(); ++i) {
                     high_order_vertices_id_rotated[i] = high_order_vertices_id[rotate_z90degree[i]];
@@ -1069,26 +1099,26 @@ read_gmsh(std::string filename)
                 const unsigned int vertex_id = high_order_vertices_id_rotated[lexicographic_index];
                 const dealii::Point<dim,double> vertex = all_vertices[vertex_id];
 
-                std::cout << "i_vertex " << i_vertex << " point: " << vertex << std::endl;
+                //std::cout << "i_vertex " << i_vertex << " point: " << vertex << std::endl;
 
                 for (int d = 0; d < dim; ++d) {
                     const unsigned int comp = d;
                     const unsigned int shape_index = high_order_grid->dof_handler_grid.get_fe().component_to_system_index(comp, base_index);
                     const unsigned int idof_global = dof_indices[shape_index];
 
-                    std::cout << " icell " << icell
-                              << " i_vertex " << i_vertex
-                              << " i_dim " << d
-                              << " base_index " << base_index
-                              << " shape_index " << shape_index 
-                              << " idof_global " << idof_global
-                              << " lexicographic_index " << lexicographic_index
-                              //<< " gmsh_hierarchical_index " << gmsh_hierarchical_index
-                              << " vertex_id " << vertex_id
-                              << std::endl;
+                    //std::cout << " icell " << icell
+                    //          << " i_vertex " << i_vertex
+                    //          << " i_dim " << d
+                    //          << " base_index " << base_index
+                    //          << " shape_index " << shape_index 
+                    //          << " idof_global " << idof_global
+                    //          << " lexicographic_index " << lexicographic_index
+                    //          //<< " gmsh_hierarchical_index " << gmsh_hierarchical_index
+                    //          << " vertex_id " << vertex_id
+                    //          << std::endl;
                     high_order_grid->volume_nodes[idof_global] = vertex[d];
                 }
-                std::cout << std::endl;
+                //std::cout << std::endl;
             }
         }
         icell++;
@@ -1097,29 +1127,37 @@ read_gmsh(std::string filename)
     high_order_grid->ensure_conforming_mesh();
 
     
-    std::vector<dealii::Point<1>> equidistant_points(grid_order+1);
-    const double dx = 1.0 / grid_order;
-    for (unsigned int i=0; i<grid_order+1; ++i) {
-        equidistant_points[i](0) = i*dx;
+    /// Convert the equidistant points from Gmsh into the GLL points used by FE_Q in deal.II.
+    {
+        std::vector<dealii::Point<1>> equidistant_points(grid_order+1);
+        const double dx = 1.0 / grid_order;
+        for (unsigned int i=0; i<grid_order+1; ++i) {
+            equidistant_points[i](0) = i*dx;
+        }
+        dealii::Quadrature<1> quad_equidistant(equidistant_points);
+        dealii::FE_Q<dim> fe_q_equidistant(quad_equidistant);
+        dealii::FESystem<dim> fe_system_equidistant(fe_q_equidistant, dim);
+        dealii::DoFHandler<dim> dof_handler_equidistant(*triangulation);
+
+        dof_handler_equidistant.initialize(*triangulation, fe_system_equidistant);
+        dof_handler_equidistant.distribute_dofs(fe_system_equidistant);
+        dealii::DoFRenumbering::Cuthill_McKee(dof_handler_equidistant);
+
+        auto equidistant_nodes = high_order_grid->volume_nodes;
+        equidistant_nodes.update_ghost_values();
+        high_order_grid->volume_nodes.update_ghost_values();
+        dealii::FETools::interpolate(dof_handler_equidistant, equidistant_nodes, high_order_grid->dof_handler_grid, high_order_grid->volume_nodes);
+        high_order_grid->volume_nodes.update_ghost_values();
+        high_order_grid->ensure_conforming_mesh();
     }
-    dealii::Quadrature<1> quad_equidistant(equidistant_points);
-    dealii::FE_Q<dim> fe_q_equidistant(quad_equidistant);
-    dealii::FESystem<dim> fe_system_equidistant(fe_q_equidistant, dim);
-    dealii::DoFHandler<dim> dof_handler_equidistant(*triangulation);
-
-    dof_handler_equidistant.initialize(*triangulation, fe_system_equidistant);
-    dof_handler_equidistant.distribute_dofs(fe_system_equidistant);
-    dealii::DoFRenumbering::Cuthill_McKee(dof_handler_equidistant);
-
-    auto equidistant_nodes = high_order_grid->volume_nodes;
-    dealii::FETools::interpolate(dof_handler_equidistant, equidistant_nodes, high_order_grid->dof_handler_grid, high_order_grid->volume_nodes);
-    high_order_grid->volume_nodes.update_ghost_values();
-    high_order_grid->ensure_conforming_mesh();
     
     return high_order_grid;
 }
 
 
-template std::shared_ptr< HighOrderGrid<PHILIP_DIM, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM> > > read_gmsh<PHILIP_DIM,PHILIP_DIM>(std::string filename);
+#if PHILIP_DIM==1 
+#else
+template std::shared_ptr< HighOrderGrid<PHILIP_DIM, double> > read_gmsh<PHILIP_DIM,PHILIP_DIM>(std::string filename);
+#endif
 
 } // namespace PHiLiP

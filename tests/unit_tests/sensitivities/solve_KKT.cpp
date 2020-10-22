@@ -239,7 +239,7 @@ int main(int argc, char *argv[])
 
     const int n_refine = 2;
     for (int i=0; i<n_refine;i++) {
-        dg->high_order_grid.prepare_for_coarsening_and_refinement();
+        dg->high_order_grid->prepare_for_coarsening_and_refinement();
         grid->prepare_coarsening_and_refinement();
         unsigned int icell = 0;
         for (auto cell = grid->begin_active(); cell!=grid->end(); ++cell) {
@@ -251,7 +251,7 @@ int main(int argc, char *argv[])
         }
         grid->execute_coarsening_and_refinement();
         bool mesh_out = (i==n_refine-1);
-        dg->high_order_grid.execute_coarsening_and_refinement(mesh_out);
+        dg->high_order_grid->execute_coarsening_and_refinement(mesh_out);
     }
     dg->allocate_system ();
 
@@ -333,7 +333,7 @@ int main(int argc, char *argv[])
  // R_w   R_x   0
  // const unsigned int n_constraints = rhs_only.size();
  // const unsigned int n_flow_var    = dg->dof_handler.n_dofs();
- // const unsigned int n_geom_var    = dg->high_order_grid.dof_handler_grid.n_dofs();
+ // const unsigned int n_geom_var    = dg->high_order_grid->dof_handler_grid.n_dofs();
  //BlockDynamicSparsityPattern dsp(3, 3);
     //dsp.block(0, 0).reinit(n_flow_var, n_flow_var);
     //dsp.block(0, 1).reinit(n_flow_var, n_geom_var);
@@ -382,7 +382,7 @@ int main(int argc, char *argv[])
 
     dealii::LinearAlgebra::distributed::BlockVector<double> block_vector(3);
  block_vector.block(0) = dg->solution;
- block_vector.block(1) = dg->high_order_grid.volume_nodes;
+ block_vector.block(1) = dg->high_order_grid->volume_nodes;
  block_vector.block(2) = dummy_dual;
     dealii::LinearAlgebra::distributed::BlockVector<double> Hv(3);
     dealii::LinearAlgebra::distributed::BlockVector<double> Htv(3);

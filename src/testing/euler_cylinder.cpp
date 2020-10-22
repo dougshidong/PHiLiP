@@ -183,7 +183,7 @@ int EulerCylinder<dim,nstate>
                 dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
                 dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
                 solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
-                dg->high_order_grid.prepare_for_coarsening_and_refinement();
+                dg->high_order_grid->prepare_for_coarsening_and_refinement();
 
                 grid->refine_global (1);
                 //dealii::GridRefinement::refine_and_coarsen_fixed_number(*grid,
@@ -191,7 +191,7 @@ int EulerCylinder<dim,nstate>
                 //                                0.3,
                 //                                0.03);
                 //grid->execute_coarsening_and_refinement();
-                dg->high_order_grid.execute_coarsening_and_refinement();
+                dg->high_order_grid->execute_coarsening_and_refinement();
                 dg->allocate_system ();
                 dg->solution.zero_out_ghosts();
                 solution_transfer.interpolate(dg->solution);
@@ -218,13 +218,13 @@ int EulerCylinder<dim,nstate>
             // Solve the steady state problem
             ode_solver->steady_state();
 
-            const auto mapping = (*(dg->high_order_grid.mapping_fe_field));
+            const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
             dealii::hp::MappingCollection<dim> mapping_collection(mapping);
             dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, dealii::update_values | dealii::update_JxW_values); ///< FEValues of volume.
             // Overintegrate the error to make sure there is not integration error in the error estimate
             //int overintegrate = 0;
             //dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
-            //dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid.mapping_fe_field), dg->fe_collection[poly_degree], quad_extra,
+            //dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra,
             //        dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             std::array<double,nstate> soln_at_q;
 

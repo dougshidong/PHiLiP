@@ -286,7 +286,7 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
     }
 
     // for taking the local derivatives
-    const dealii::FESystem<dim,dim> &fe_metric = dg->high_order_grid.fe_system;
+    const dealii::FESystem<dim,dim> &fe_metric = dg->high_order_grid->fe_system;
     const unsigned int n_metric_dofs_cell = fe_metric.dofs_per_cell;
     std::vector<dealii::types::global_dof_index> cell_metric_dofs_indices(n_metric_dofs_cell);
 
@@ -299,7 +299,7 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
 
     std::vector<real>   local_dIdX(n_metric_dofs_cell);
 
-    const auto mapping = (*(dg->high_order_grid.mapping_fe_field));
+    const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
     dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg->fe_collection, dg->face_quadrature_collection,   this->face_update_flags);
@@ -307,7 +307,7 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
     this->allocate_derivatives(actually_compute_dIdW, actually_compute_dIdX, actually_compute_d2I);
 
     dg->solution.update_ghost_values();
-    auto metric_cell = dg->high_order_grid.dof_handler_grid.begin_active();
+    auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
     auto soln_cell = dg->dof_handler.begin_active();
 
     real local_functional = 0.0;
@@ -333,7 +333,7 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
         metric_cell->get_dof_indices (cell_metric_dofs_indices);
         std::vector< FadFadType > coords_coeff(n_metric_dofs_cell);
         for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-            coords_coeff[idof] = dg->high_order_grid.volume_nodes[cell_metric_dofs_indices[idof]];
+            coords_coeff[idof] = dg->high_order_grid->volume_nodes[cell_metric_dofs_indices[idof]];
         }
 
         // Setup automatic differentiation
@@ -351,7 +351,7 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
    target_soln_coeff[idof] = val;
   }
   for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-   const real val = dg->high_order_grid.volume_nodes[cell_metric_dofs_indices[idof]];
+   const real val = dg->high_order_grid->volume_nodes[cell_metric_dofs_indices[idof]];
    coords_coeff[idof] = val;
    if (actually_compute_dIdX || actually_compute_d2I) coords_coeff[idof].diff(i_derivative++, n_total_indep);
         }
@@ -364,7 +364,7 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
     soln_coeff[idof].val().diff(i_derivative++, n_total_indep);
    }
             for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-    const real val = dg->high_order_grid.volume_nodes[cell_metric_dofs_indices[idof]];
+    const real val = dg->high_order_grid->volume_nodes[cell_metric_dofs_indices[idof]];
     coords_coeff[idof].val() = val;
     coords_coeff[idof].val().diff(i_derivative++, n_total_indep);
             }
@@ -442,14 +442,14 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
     std::vector<real> target_soln_coeff(max_dofs_per_cell);
     std::vector<real> local_dIdw(max_dofs_per_cell);
 
-    const auto mapping = (*(dg.high_order_grid.mapping_fe_field));
+    const auto mapping = (*(dg.high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
     dealii::hp::FEValues<dim,dim>     fe_values_collection_volume(mapping_collection, dg.fe_collection, dg.volume_quadrature_collection, this->volume_update_flags);
     dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg.fe_collection, dg.face_quadrature_collection,   this->face_update_flags);
 
     dg.solution.update_ghost_values();
-    auto metric_cell = dg.high_order_grid.dof_handler_grid.begin_active();
+    auto metric_cell = dg.high_order_grid->dof_handler_grid.begin_active();
     auto cell = dg.dof_handler.begin_active();
     for( ; cell != dg.dof_handler.end(); ++cell, ++metric_cell) {
         if(!cell->is_locally_owned()) continue;
@@ -473,13 +473,13 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
         }
 
         // Get metric coefficients
-        const dealii::FESystem<dim,dim> &fe_metric = dg.high_order_grid.fe_system;
+        const dealii::FESystem<dim,dim> &fe_metric = dg.high_order_grid->fe_system;
         const unsigned int n_metric_dofs_cell = fe_metric.dofs_per_cell;
         std::vector<dealii::types::global_dof_index> cell_metric_dofs_indices(n_metric_dofs_cell);
         metric_cell->get_dof_indices (cell_metric_dofs_indices);
         std::vector<real> coords_coeff(n_metric_dofs_cell);
         for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-            coords_coeff[idof] = dg.high_order_grid.volume_nodes[cell_metric_dofs_indices[idof]];
+            coords_coeff[idof] = dg.high_order_grid->volume_nodes[cell_metric_dofs_indices[idof]];
         }
 
         const dealii::Quadrature<dim> &volume_quadrature = dg.volume_quadrature_collection[i_quad];
@@ -568,14 +568,14 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
     std::vector<real> target_soln_coeff(max_dofs_per_cell);
     std::vector<real> local_dIdX(max_dofs_per_cell);
 
-    const auto mapping = (*(dg.high_order_grid.mapping_fe_field));
+    const auto mapping = (*(dg.high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
     dealii::hp::FEValues<dim,dim>     fe_values_collection_volume(mapping_collection, dg.fe_collection, dg.volume_quadrature_collection, this->volume_update_flags);
     dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg.fe_collection, dg.face_quadrature_collection,   this->face_update_flags);
 
     dg.solution.update_ghost_values();
-    auto metric_cell = dg.high_order_grid.dof_handler_grid.begin_active();
+    auto metric_cell = dg.high_order_grid->dof_handler_grid.begin_active();
     auto cell = dg.dof_handler.begin_active();
     for( ; cell != dg.dof_handler.end(); ++cell, ++metric_cell) {
         if(!cell->is_locally_owned()) continue;
@@ -599,13 +599,13 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
         }
 
         // Get metric coefficients
-        const dealii::FESystem<dim,dim> &fe_metric = dg.high_order_grid.fe_system;
+        const dealii::FESystem<dim,dim> &fe_metric = dg.high_order_grid->fe_system;
         const unsigned int n_metric_dofs_cell = fe_metric.dofs_per_cell;
         std::vector<dealii::types::global_dof_index> cell_metric_dofs_indices(n_metric_dofs_cell);
         metric_cell->get_dof_indices (cell_metric_dofs_indices);
         std::vector<real> coords_coeff(n_metric_dofs_cell);
         for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-            coords_coeff[idof] = dg.high_order_grid.volume_nodes[cell_metric_dofs_indices[idof]];
+            coords_coeff[idof] = dg.high_order_grid->volume_nodes[cell_metric_dofs_indices[idof]];
         }
 
         const dealii::Quadrature<dim> &volume_quadrature = dg.volume_quadrature_collection[i_quad];
@@ -635,7 +635,7 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
         for(unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof){
             // for each dof copying the solution
             for(unsigned int idof2 = 0; idof2 < n_metric_dofs_cell; ++idof2){
-                coords_coeff[idof2] = dg.high_order_grid.volume_nodes[cell_metric_dofs_indices[idof2]];
+                coords_coeff[idof2] = dg.high_order_grid->volume_nodes[cell_metric_dofs_indices[idof2]];
             }
             coords_coeff[idof] += stepsize;
 

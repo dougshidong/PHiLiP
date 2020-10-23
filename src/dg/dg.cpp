@@ -105,6 +105,16 @@ DGBase<dim,real>::DGBase(
 
 }
 
+
+template <int dim, typename real>
+void DGBase<dim,real>::set_high_order_grid(std::shared_ptr<HighOrderGrid<dim,real>> new_high_order_grid)
+{
+    high_order_grid = new_high_order_grid;
+    triangulation = high_order_grid->triangulation;
+    dof_handler.initialize(*triangulation, fe_collection);
+    set_all_cells_fe_degree(max_degree);
+}
+
 template <int dim, typename real>
 std::tuple<
         //dealii::hp::MappingCollection<dim>, // Mapping

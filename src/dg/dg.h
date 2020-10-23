@@ -124,8 +124,10 @@ public:
             const std::shared_ptr<Triangulation> triangulation_input,
             const MassiveCollectionTuple collection_tuple);
 
-    const std::shared_ptr<Triangulation> triangulation; ///< Mesh
+    std::shared_ptr<Triangulation> triangulation; ///< Mesh
 
+
+    void set_high_order_grid(std::shared_ptr<HighOrderGrid<dim,real>> new_high_order_grid);
     /// Refers to a collection Mappings, which represents the high-order grid.
     /** Since we are interested in performing mesh movement for optimization purposes,
      *  this is not a constant member variables.

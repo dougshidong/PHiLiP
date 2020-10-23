@@ -1150,6 +1150,10 @@ read_gmsh(std::string filename)
         high_order_grid->volume_nodes.update_ghost_values();
         high_order_grid->ensure_conforming_mesh();
     }
+
+    high_order_grid->update_surface_nodes();
+    high_order_grid->update_mapping_fe_field();
+    high_order_grid->output_results_vtk(9999);
     
     return high_order_grid;
 }

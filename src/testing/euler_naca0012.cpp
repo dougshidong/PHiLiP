@@ -200,8 +200,10 @@ int EulerNACA0012<dim,nstate>
             //const double grid_degree = 2;//solution_degree+1;
             std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, solution_degree, solution_degree, grid_degree, grid);
 
-            std::shared_ptr<HighOrderGrid<dim,double>> joukowski_mesh = read_gmsh <dim, dim> ("joukowski.msh");
+            std::shared_ptr<HighOrderGrid<dim,double>> joukowski_mesh = read_gmsh <dim, dim> ("joukowski_R0_Q2.msh");
             dg->set_high_order_grid(joukowski_mesh);
+            //dg->high_order_grid->refine_global();
+            //dg->high_order_grid->refine_global();
 
             // Initialize coarse grid solution with free-stream
             dg->allocate_system ();

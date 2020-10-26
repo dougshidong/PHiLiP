@@ -107,6 +107,50 @@ add_subdirectory(tests)
 # Documentation
 add_subdirectory(doc)
 
+file(GLOB JOUKOWSKI_GENERATOR_PY
+    RELATIVE "${CMAKE_SOURCE_DIR}/submodules/joukowski_high_order_mesh/"
+    "submodules/joukowski_high_order_mesh/*.py"
+)
+file(GLOB JOUKOWSKI_GENERATOR_GEO
+    RELATIVE "${CMAKE_SOURCE_DIR}/submodules/joukowski_high_order_mesh/"
+    "submodules/joukowski_high_order_mesh/*.geo"
+)
+MESSAGE( STATUS "Copying Joukowski generator...")
+foreach(file ${JOUKOWSKI_GENERATOR_PY})
+    MESSAGE( ${file})
+    MESSAGE( "${CMAKE_SOURCE_DIR}/submodules/joukowski_high_order_mesh/${file} to gmsh_meshes/joukowski/${file}" )
+    configure_file(${CMAKE_SOURCE_DIR}/submodules/joukowski_high_order_mesh/${file} gmsh_meshes/joukowski/${file} COPYONLY)
+endforeach()
+foreach(file ${JOUKOWSKI_GENERATOR_GEO})
+    MESSAGE( ${file})
+    MESSAGE( "${CMAKE_SOURCE_DIR}/submodules/joukowski_high_order_mesh/${file} to gmsh_meshes/joukowski/${file}" )
+    configure_file(${CMAKE_SOURCE_DIR}/submodules/joukowski_high_order_mesh/${file} gmsh_meshes/joukowski/${file} COPYONLY)
+endforeach()
+
+add_custom_target(grids)
+
+foreach(order RANGE 1 4)
+foreach(ref   RANGE 0 3)
+    add_custom_target(joukowski_R${ref}_Q${order}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/gmsh_meshes/joukowski
+        COMMAND python3 Joukowski.py --refine ${ref} --order ${order}
+        COMMAND gmsh  jouk_quad_ref${ref}_Q${order}.msh convert_to_msh4.geo -
+        COMMAND mv
+             "${CMAKE_BINARY_DIR}/gmsh_meshes/joukowski/new_msh41.msh"
+             "${CMAKE_BINARY_DIR}/tests/integration_tests_control_files/euler_integration/naca0012/joukowski_R${ref}_Q${order}.msh"
+    )
+    add_dependencies(grids joukowski_R${ref}_Q${order})
+endforeach()
+endforeach()
+#    if(NOT JOUKOWSKI_PY_RESULT EQUAL "0")
+#        message(FATAL_ERROR
+#                "gmsh ${JOUKOWSKI_PY_RESULT}, please check ${GMSH_GEO} file")
+#    endif()
+#
+#    string(CONCAT GMSH_MSH ${dim}D_square.msh)
+#    configure_file(${GMSH_MSH} ${GMSH_MSH} COPYONLY)
+
+
 ##########
 # Add a few commands to make life easier
 

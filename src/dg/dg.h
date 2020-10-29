@@ -487,6 +487,17 @@ public:
 
     /// High order grid that will provide the MappingFEField
     std::shared_ptr<HighOrderGrid<dim,real>> high_order_grid;
+
+protected:
+    /// Continuous distribution of artificial dissipation.
+    const dealii::FE_Q<dim> fe_q_artificial_dissipation;
+
+    /// Degrees of freedom handler for C0 artificial dissipation.
+    dealii::DoFHandler<dim> dof_handler_artificial_dissipation;
+
+    /// Artificial dissipation coefficients
+    dealii::LinearAlgebra::distributed::Vector<double> artificial_dissipation_c0;
+
 protected:
 
     /// Evaluate the integral over the cell volume and the specified derivatives.

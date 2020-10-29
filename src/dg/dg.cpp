@@ -95,11 +95,14 @@ DGBase<dim,real>::DGBase(
     , fe_collection_lagrange(std::get<4>(collection_tuple))
     , dof_handler(*triangulation, true)
     , high_order_grid(std::make_shared<HighOrderGrid<dim,real>>(grid_degree_input, triangulation))
+    , fe_q_artificial_dissipation(1)
+    , dof_handler_artificial_dissipation(*triangulation, false)
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {
 
     dof_handler.initialize(*triangulation, fe_collection);
+    dof_handler_artificial_dissipation.initialize(*triangulation, fe_q_artificial_dissipation);
 
     set_all_cells_fe_degree(degree);
 
@@ -112,6 +115,7 @@ void DGBase<dim,real>::set_high_order_grid(std::shared_ptr<HighOrderGrid<dim,rea
     high_order_grid = new_high_order_grid;
     triangulation = high_order_grid->triangulation;
     dof_handler.initialize(*triangulation, fe_collection);
+    dof_handler_artificial_dissipation.initialize(*triangulation, fe_q_artificial_dissipation);
     set_all_cells_fe_degree(max_degree);
 }
 
@@ -809,12 +813,20 @@ void DGBase<dim,real>::update_artificial_dissipation_discontinuity_sensor()
 
     std::vector< double > soln_coeff_high;
     std::vector<dealii::types::global_dof_index> dof_indices;
-    for (auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell) {
-        if (!cell->is_locally_owned()) continue;
+
+    const unsigned int n_dofs_arti_diss = fe_q_artificial_dissipation.dofs_per_cell;
+    std::vector<dealii::types::global_dof_index> dof_indices_artificial_dissipation(n_dofs_arti_diss);
+
+    artificial_dissipation_c0 *= 0.0;
+    for (auto cell : dof_handler.active_cell_iterators()) {
+        if (!(cell->is_locally_owned() || cell->is_ghost())) continue;
 
         dealii::types::global_dof_index cell_index = cell->active_cell_index();
         artificial_dissipation_coeffs[cell_index] = 0.0;
         artificial_dissipation_se[cell_index] = 0.0;
+        //artificial_dissipation_coeffs[cell_index] = 1e-2;
+        //artificial_dissipation_se[cell_index] = 0.0;
+        //continue;
 
         const int i_fele = cell->active_fe_index();
         const int i_quad = i_fele;
@@ -858,28 +870,34 @@ void DGBase<dim,real>::update_artificial_dissipation_discontinuity_sensor()
         double element_volume = 0.0;
         double error = 0.0;
         double soln_norm = 0.0;
+        std::vector<double> soln_high(nstate);
+        std::vector<double> soln_lower(nstate);
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-            double soln_high = 0.0;
-            double soln_lower = 0.0;
+            for (unsigned int s=0; s<nstate; ++s) {
+                soln_high[s] = 0.0;
+                soln_lower[s] = 0.0;
+            }
             // Interpolate solution
             for (unsigned int idof=0; idof<n_dofs_high; ++idof) {
                   const unsigned int istate = fe_high.system_to_component_index(idof).first;
-                  soln_high += soln_coeff_high[idof] * fe_high.shape_value_component(idof,unit_quad_pts[iquad],istate);
+                  soln_high[istate] += soln_coeff_high[idof] * fe_high.shape_value_component(idof,unit_quad_pts[iquad],istate);
             }
             // Interpolate low order solution
             for (unsigned int idof=0; idof<n_dofs_lower; ++idof) {
                   const unsigned int istate = fe_lower.system_to_component_index(idof).first;
-                  soln_lower += soln_coeff_lower[idof] * fe_lower.shape_value_component(idof,unit_quad_pts[iquad],istate);
+                  soln_lower[istate] += soln_coeff_lower[idof] * fe_lower.shape_value_component(idof,unit_quad_pts[iquad],istate);
             }
             // Quadrature
             element_volume += fe_values_volume.JxW(iquad);
-            error += (soln_high - soln_lower) * (soln_high - soln_lower) * fe_values_volume.JxW(iquad);
-            soln_norm += soln_high * soln_high * fe_values_volume.JxW(iquad);
+            for (unsigned int s=0; s<1/*nstate*/; ++s) {
+                error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * fe_values_volume.JxW(iquad);
+                soln_norm += soln_high[s] * soln_high[s] * fe_values_volume.JxW(iquad);
+            }
         }
 
         //std::cout << " error: " << error
         //          << " soln_norm: " << soln_norm << std::endl;
-        if (error < 1e-12) continue;
+        //if (error < 1e-12) continue;
         if (soln_norm < 1e-12) continue;
 
         double S_e, s_e;
@@ -888,7 +906,8 @@ void DGBase<dim,real>::update_artificial_dissipation_discontinuity_sensor()
 
         const double mu_scale = 1.0;
         //const double s_0 = log10(0.1) - 4.25*log10(degree);
-        const double s_0 = log10(0.1) - 4.25*log10(degree);
+        //const double s_0 = -0.5 - 4.25*log10(degree);
+        const double s_0 = - 4.25*log10(degree);
         const double kappa = 1.0;
         const double low = s_0 - kappa;
         const double upp = s_0 + kappa;
@@ -912,7 +931,18 @@ void DGBase<dim,real>::update_artificial_dissipation_discontinuity_sensor()
 
         artificial_dissipation_coeffs[cell_index] = eps;
         artificial_dissipation_se[cell_index] = s_e;
+
+        typename dealii::DoFHandler<dim>::active_cell_iterator artificial_dissipation_cell(
+            triangulation.get(), cell->level(), cell->index(), &dof_handler_artificial_dissipation);
+
+        dof_indices_artificial_dissipation.resize(n_dofs_arti_diss);
+        artificial_dissipation_cell->get_dof_indices (dof_indices_artificial_dissipation);
+        for (unsigned int idof=0; idof<n_dofs_arti_diss; ++idof) {
+            const unsigned int index = dof_indices_artificial_dissipation[idof];
+            artificial_dissipation_c0[index] = std::max(artificial_dissipation_c0[index], eps);
+        }
     }
+    artificial_dissipation_c0.update_ghost_values();
 }
 
 
@@ -1246,6 +1276,7 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
 {
 
     dealii::DataOut<dim, dealii::DoFHandler<dim>> data_out;
+
     data_out.attach_dof_handler (dof_handler);
 
     dealii::Vector<float> subdomain(triangulation->n_active_cells());
@@ -1258,6 +1289,7 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
         data_out.add_data_vector(artificial_dissipation_coeffs, "artificial_dissipation_coeffs", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
         data_out.add_data_vector(artificial_dissipation_se, "artificial_dissipation_se", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
     //}
+    data_out.add_data_vector(dof_handler_artificial_dissipation, artificial_dissipation_c0, "artificial_dissipation");
 
     data_out.add_data_vector(max_dt_cell, "max_dt_cell", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
@@ -1373,6 +1405,17 @@ void DGBase<dim,real>::allocate_system ()
     locally_relevant_dofs = ghost_dofs;
     ghost_dofs.subtract_set(locally_owned_dofs);
     //dealii::DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
+
+    dof_handler_artificial_dissipation.distribute_dofs(fe_q_artificial_dissipation);
+    const dealii::IndexSet locally_owned_dofs_artificial_dissipation = dof_handler_artificial_dissipation.locally_owned_dofs();
+
+    dealii::IndexSet ghost_dofs_artificial_dissipation;
+    dealii::IndexSet locally_relevant_dofs_artificial_dissipation;
+    dealii::DoFTools::extract_locally_relevant_dofs(dof_handler_artificial_dissipation, ghost_dofs_artificial_dissipation);
+    locally_relevant_dofs_artificial_dissipation = ghost_dofs_artificial_dissipation;
+    ghost_dofs_artificial_dissipation.subtract_set(locally_owned_dofs_artificial_dissipation);
+
+    artificial_dissipation_c0.reinit(locally_owned_dofs_artificial_dissipation, ghost_dofs_artificial_dissipation, mpi_communicator);
 
     artificial_dissipation_coeffs.reinit(triangulation->n_active_cells());
     artificial_dissipation_se.reinit(triangulation->n_active_cells());

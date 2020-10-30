@@ -83,7 +83,7 @@ void ElementIsotropic<dim,real>::set_scale(
 }
 
 template <int dim, typename real>
-real ElementIsotropic<dim,real>::get_scale()
+real ElementIsotropic<dim,real>::get_scale() const 
 {
 	return m_scale;
 }
@@ -178,6 +178,26 @@ dealii::Tensor<2,dim,real> ElementIsotropic<dim,real>::get_metric()
 }
 
 template <int dim, typename real>
+dealii::Tensor<2,dim,real> ElementIsotropic<dim,real>::get_inverse_metric()
+{
+	// building the rotation matrix
+	dealii::Tensor<2,dim,real> R;
+	for(unsigned int i = 0; i < dim; ++i)
+		R[i] = get_unit_axis(i);
+
+	// assuming R^-1 = R^T (orthogonal)
+	dealii::Tensor<2,dim,real> RT = transpose(R);
+
+	// assembling the inverse metric based on
+	// M = 1/h diag(1/r_i,...) R(-\theta)
+	dealii::Tensor<2,dim,real> M;
+	for(unsigned int i = 0; i < dim; ++i)
+		M[i] = (1.0/m_scale) * RT[i];
+
+	return M;
+}
+
+template <int dim, typename real>
 void ElementIsotropic<dim,real>::set_cell_internal(
 	const typename Element<dim,real>::VertexList& vertices)
 {
@@ -236,7 +256,7 @@ void ElementAnisotropic<dim,real>::set_scale(
 }
 
 template <int dim, typename real>
-real ElementAnisotropic<dim,real>::get_scale()
+real ElementAnisotropic<dim,real>::get_scale() const
 {
 	return m_scale;
 }
@@ -326,6 +346,26 @@ dealii::Tensor<2,dim,real> ElementAnisotropic<dim,real>::get_metric()
 
 	for(unsigned int j = 0; j < dim; ++j)
 		M[j] = m_scale * m_anisotropic_ratio[j] * m_unit_axis[j];
+
+	return M;
+}
+
+template <int dim, typename real>
+dealii::Tensor<2,dim,real> ElementAnisotropic<dim,real>::get_inverse_metric()
+{
+	// building the rotation matrix
+	dealii::Tensor<2,dim,real> R;
+	for(unsigned int i = 0; i < dim; ++i)
+		R[i] = get_unit_axis(i);
+
+	// assuming R^-1 = R^T (orthogonal)
+	dealii::Tensor<2,dim,real> RT = transpose(R);
+
+	// assembling the inverse metric based on
+	// M = 1/h diag(1/r_i,...) R(-\theta)
+	dealii::Tensor<2,dim,real> M;
+	for(unsigned int i = 0; i < dim; ++i)
+		M[i] = (1.0/m_scale) * m_anisotropic_ratio[i] * RT[i];
 
 	return M;
 }
@@ -573,7 +613,7 @@ void Field<dim,real>::set_scale_vector(
 }
 
 template <int dim, typename real>
-dealii::Vector<real> Field<dim,real>::get_scale_vector_dealii()
+dealii::Vector<real> Field<dim,real>::get_scale_vector_dealii() const
 {
 	dealii::Vector<real> vec(this->size());
 
@@ -584,7 +624,7 @@ dealii::Vector<real> Field<dim,real>::get_scale_vector_dealii()
 }
 
 template <int dim, typename real>
-std::vector<real> Field<dim,real>::get_scale_vector()
+std::vector<real> Field<dim,real>::get_scale_vector() const
 {
 	std::vector<real> vec(this->size());
 
@@ -646,8 +686,37 @@ std::vector<dealii::Tensor<2,dim,real>> Field<dim,real>::get_metric_vector()
 {
 	std::vector<dealii::Tensor<2,dim,real>> vec(this->size());
 
-	for(unsigned int i = 0; i < this->size(); ++i)
+	for(unsigned int i = 0; i < this->size(); ++i){
+		// temp
+		std::cout << "metric[" << i << "] = "
+			<< ", alpha = " << this->get_scale(i)
+			<< ", r1 = " << this->get_anisotropic_ratio(i, 0)
+			<< ", v1 = {" << this->get_unit_axis(i, 0) 
+			<< "}, r1 = " << this->get_anisotropic_ratio(i, 1)
+			<< ", v1 = {" << this->get_unit_axis(i, 1) << "}" << std::endl;\
+		
 		vec[i] = this->get_metric(i);
+	}
+
+	return vec;
+}
+
+template <int dim, typename real>
+std::vector<dealii::Tensor<2,dim,real>> Field<dim,real>::get_inverse_metric_vector()
+{
+	std::vector<dealii::Tensor<2,dim,real>> vec(this->size());
+
+	for(unsigned int i = 0; i < this->size(); ++i){
+		// temp
+		std::cout << "metric[" << i << "] = "
+			<< ", alpha = " << this->get_scale(i)
+			<< ", r1 = " << this->get_anisotropic_ratio(i, 0)
+			<< ", v1 = {" << this->get_unit_axis(i, 0) 
+			<< "}, r1 = " << this->get_anisotropic_ratio(i, 1)
+			<< ", v1 = {" << this->get_unit_axis(i, 1) << "}" << std::endl;
+		
+		vec[i] = this->get_metric(i);
+	}
 
 	return vec;
 }
@@ -714,7 +783,7 @@ void FieldInternal<dim,real,ElementType>::set_scale(
 
 template <int dim, typename real, typename ElementType>
 real FieldInternal<dim,real,ElementType>::get_scale(
-	const unsigned int index)
+	const unsigned int index) const 
 {
 	return field[index].get_scale();
 }
@@ -797,6 +866,13 @@ dealii::Tensor<2,dim,real> FieldInternal<dim,real,ElementType>::get_metric(
 }
 
 template <int dim, typename real, typename ElementType>
+dealii::Tensor<2,dim,real> FieldInternal<dim,real,ElementType>::get_inverse_metric(
+	const unsigned int index)
+{
+	return field[index].get_inverse_metric();
+}
+
+template <int dim, typename real, typename ElementType>
 void FieldInternal<dim,real,ElementType>::set_anisotropy(
 	const dealii::hp::DoFHandler<dim>&                             dof_handler,
 	const std::vector<std::array<real,dim>>&                       derivative_value,
@@ -844,8 +920,11 @@ template <int dim, typename real, typename ElementType>
 std::ostream& FieldInternal<dim,real,ElementType>::serialize(
 	std::ostream& os) const 
 {
-	for(unsigned int index = 0; index < this->size(); ++index)
+	for(unsigned int index = 0; index < this->size(); ++index){
+		std::cout << "writing element index = " << index << std::endl;
+		std::cout << "with size = " << field[index].get_scale() << std::endl;
 		os << field[index] << std::endl;
+	}
 
 	return os;
 }

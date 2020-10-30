@@ -26,7 +26,7 @@ public:
 		const real val) = 0;
 
 	// getting the scale
-	virtual real get_scale() = 0;
+	virtual real get_scale() const = 0;
 
 	// setting the anisotropic ratio
 	virtual void set_anisotropic_ratio(
@@ -63,6 +63,9 @@ public:
 
 	// get metric value at index
 	virtual dealii::Tensor<2,dim,real> get_metric() = 0;
+
+	// gets the inverse metric
+	virtual dealii::Tensor<2,dim,real> get_inverse_metric() = 0;
 
 	// defining the type of the vertices and chord lists for easier definition
 	using VertexList = std::array<dealii::Tensor<1,dim,real>, dealii::GeometryInfo<dim>::vertices_per_cell>;
@@ -119,7 +122,7 @@ public:
 		const real val) override;
 
 	// getting the scale
-	real get_scale() override;
+	real get_scale() const override;
 
 	// setting the anisotropic ratio
 	void set_anisotropic_ratio(
@@ -156,6 +159,9 @@ public:
 
 	// get metric value at index
 	dealii::Tensor<2,dim,real> get_metric() override;
+
+	// get inverse metric value
+	dealii::Tensor<2,dim,real> get_inverse_metric() override;
 
 protected:
 	// sets the element based on a list of vertices
@@ -207,7 +213,7 @@ public:
 		const real val) override;
 
 	// getting the scale
-	real get_scale() override;
+	real get_scale() const override;
 
 	// setting the anisotropic ratio
 	void set_anisotropic_ratio(
@@ -244,6 +250,9 @@ public:
 
 	// get metric value at index
 	dealii::Tensor<2,dim,real> get_metric() override;
+
+	// get inverse metric value
+	dealii::Tensor<2,dim,real> get_inverse_metric() override;
 
 protected:
 	// sets the element based on a list of vertices
@@ -337,7 +346,7 @@ public:
 
 	// getting the scale
 	virtual real get_scale(
-		const unsigned int index) = 0;
+		const unsigned int index) const = 0;
 
 	// setting the scale vector (dealii::Vector)
 	void set_scale_vector_dealii(
@@ -348,10 +357,10 @@ public:
 		const std::vector<real>& vec);
 
 	// getting the scale vector (dealii::Vector)
-	dealii::Vector<real> get_scale_vector_dealii();
+	dealii::Vector<real> get_scale_vector_dealii() const;
 
 	// getting the scale vector (std::vector)
-	std::vector<real> get_scale_vector();
+	std::vector<real> get_scale_vector() const;
 
 	// setting the anisotropic ratio
 	virtual void set_anisotropic_ratio(
@@ -416,6 +425,13 @@ public:
 	// getting the metric vector (std::vector)
 	std::vector<dealii::Tensor<2,dim,real>> get_metric_vector();
 
+	// gets the inverse metric at index
+	virtual dealii::Tensor<2,dim,real> get_inverse_metric(
+		const unsigned int index) = 0;
+
+	// getting the inverse metric vector (std::vector)
+	std::vector<dealii::Tensor<2,dim,real>> get_inverse_metric_vector();
+
 	// get riemanian quadratic metric \mathcal{M} = M^T M
 	dealii::SymmetricTensor<2,dim,real> get_quadratic_metric(
 		const unsigned int index);
@@ -479,7 +495,7 @@ public:
 
 	// getting the scale
 	real get_scale(
-		const unsigned int index) override;
+		const unsigned int index) const override;
 
 	// setting the anisotropic ratio
 	void set_anisotropic_ratio(
@@ -525,6 +541,10 @@ public:
 
 	// get metric value at index
 	dealii::Tensor<2,dim,real> get_metric(
+		const unsigned int index) override;
+
+	// get inverse metric at index
+	dealii::Tensor<2,dim,real> get_inverse_metric(
 		const unsigned int index) override;
 
 	// asigns the field based on an input DoFHandlerType

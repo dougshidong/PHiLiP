@@ -218,7 +218,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_msh()
     StorageType storage_type = StorageType::element;
 
     // file name and output file stream
-    std::string write_msh_name = "grid-" + 
+    std::string write_msh_name = "grid-a" + 
                                  dealii::Utilities::int_to_string(this->iteration, 4) + ".msh";
     
     std::ofstream out_msh(write_msh_name);
@@ -254,9 +254,13 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_msh()
         std::cout << "Writing the metric_field to .msh file." << std::endl;
 
         // adding data to output
-        msh_out.add_data_vector(this->h_field->get_metric_vector(),
+        msh_out.add_data_vector(this->h_field->get_inverse_metric_vector(),
                                 storage_type,
-                                "metric_field");
+                                "Vinv");
+
+        // msh_out.add_data_vector(this->h_field->get_metric_vector(),
+        //                         storage_type,
+        //                         "metric_field");
 
         // // for testing
         // std::vector<dealii::SymmetricTensor<2,dim,real>> quadratic_metric_sym = this->h_field->get_quadratic_metric_vector();
@@ -438,8 +442,11 @@ void GridRefinement_Continuous_Hessian<dim,nstate,real,MeshType>::field_h()
         this->volume_update_flags);
 
     // constructing the largest directional derivatives
-    reconstruct_poly.reconstruct_directional_derivative(
-        this->dg->solution,
+    // reconstruct_poly.reconstruct_directional_derivative(
+    //     this->dg->solution,
+    //     rel_order);
+    reconstruct_poly.reconstruct_manufactured_derivative(
+        this->physics->manufactured_solution_function,
         rel_order);
 
     // if anisotropic, setting the cell anisotropy
@@ -580,8 +587,11 @@ std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_Conti
             this->volume_update_flags);
 
         // constructing the largest directional derivatives
-        reconstruct_poly.reconstruct_directional_derivative(
-            this->dg->solution,
+        // reconstruct_poly.reconstruct_directional_derivative(
+        //     this->dg->solution,
+        //     rel_order);
+        reconstruct_poly.reconstruct_manufactured_derivative(
+            this->physics->manufactured_solution_function,
             rel_order);
 
         // getting the derivative_values as a dealii vector (in order)

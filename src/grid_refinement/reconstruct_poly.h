@@ -14,6 +14,8 @@
 #include <deal.II/fe/fe.h>
 #include <deal.II/fe/mapping.h>
 
+#include "physics/manufactured_solution.h"
+
 namespace PHiLiP {
 
 namespace GridRefinement {
@@ -62,6 +64,11 @@ public:
     void reconstruct_directional_derivative(
         const dealii::LinearAlgebra::distributed::Vector<real>&solution,   // approximation to be reconstructed
         const unsigned int                                     rel_order); // order of the apporximation
+
+    // construct the directional derivatives based on the manufactured solution hessian
+    void reconstruct_manufactured_derivative(
+        const std::shared_ptr<ManufacturedSolutionFunction<dim,real>>& manufactured_solution, // manufactured solution function
+        const unsigned int                                             rel_order); // order of the approximation
 
 private:
     template <typename DoFCellAccessorType>

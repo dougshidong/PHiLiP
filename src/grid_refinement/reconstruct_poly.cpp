@@ -10,6 +10,7 @@
 #include <deal.II/grid/grid_tools.h>
 
 #include "reconstruct_poly.h"
+#include "physics/manufactured_solution.h"
 
 namespace PHiLiP {
 
@@ -140,7 +141,8 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_chord_derivative(
             chord_vec[i] /= chord_vec[i].norm();
     
         // computing the directional derivative along each vector
-        for(unsigned int i = 0; i < dim; ++i) // loop over the axes
+        for(unsigned int i = 0; i < dim; ++i){ // loop over the axes
+            A_cell[i] = 0;
             for(unsigned int n = 0; n < n_vec; ++n){ // loop over the polynomials
                 real poly_val = coeffs[n];
                 
@@ -150,6 +152,7 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_chord_derivative(
                 // adding polynomial terms contribution to the axis
                 A_cell[i] += poly_val;
             }
+        }
 
         const unsigned int index = cell->active_cell_index();
         derivative_value[index]     = A_cell;
@@ -233,8 +236,8 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
             
             // resorting the list based on the absolute value of the eigenvalue
             std::sort(eig.begin(), eig.end(), [](
-                eigenpair left,
-                eigenpair right)
+                const eigenpair left,
+                const eigenpair right)
             {
                 return abs(left.first) > abs(right.first);
             });
@@ -400,6 +403,44 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
         const unsigned int index = cell->active_cell_index(); 
         derivative_value[index]     = value_cell;
         derivative_direction[index] = direction_cell;
+    }
+}
+
+template <int dim, int nstate, typename real>
+void ReconstructPoly<dim,nstate,real>::reconstruct_manufactured_derivative(
+    const std::shared_ptr<ManufacturedSolutionFunction<dim,real>>& manufactured_solution,
+    const unsigned int                                             rel_order)
+{
+    for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell){
+        if(!cell->is_locally_owned()) continue;
+
+        unsigned int order = cell->active_fe_index() + rel_order;
+        assert(order == 2); // hessian based only
+        (void) order;
+
+        // evaluating the hessian from the manufactured solution
+        dealii::Point<dim,real> center_point = cell->center();
+        dealii::SymmetricTensor<2,dim,real> hessian = 
+            manufactured_solution->hessian(center_point);
+
+        // performing eigenvalue decomposition
+        using eigenpair = std::pair<real,dealii::Tensor<1,dim,real>>;
+        std::array<eigenpair,dim> eig = dealii::eigenvectors(hessian);
+
+        std::sort(eig.begin(), eig.end(), [](
+            const eigenpair left,
+            const eigenpair right)
+        {
+            return abs(left.first) > abs(right.first);
+        });
+
+        // storing the values for the cell
+        const unsigned int index = cell->active_cell_index(); 
+        for(int d = 0; d < dim; ++d){
+            derivative_value[index][d]     = abs(eig[d].first);
+            derivative_direction[index][d] = eig[d].second;
+        }
+
     }
 }
 

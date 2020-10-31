@@ -379,24 +379,24 @@ public:
         :   ManufacturedSolutionFunction<dim,real>(nstate)
     {
         // setting constant for function
-        // f(x,y) = a * arctan(b*sin(c*y + d) + e*x + f)
+        // f(x,y) = a * tanh(b*sin(c*y + d) + e*x + f)
 
         // Ekelschot
+        // Note: form given does not have brackets around b*(...)
         // a =  0.75;
         // b =  2.0;
         // c =  5.0;
         // d =  0.0;
-        // e = -3.0;
+        // e = -6.0;
         // f =  0.0;
 
         // shifted from [-1,1]^2 -> [0,1]
-        a =  0.75;
-        b =  2.0;
-        c = 10.0;
-        d = -5.0;
-        e = -6.0;
-        f =  3.0;
-
+        a =   0.75;
+        b =   2.0;
+        c =  10.0;
+        d =  -5.0;
+        e = -12.0;
+        f =   6.0;
     }
 
     real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;

@@ -513,7 +513,7 @@ void ElementAnisotropic<dim,real>::set_anisotropy(
 	// (anisotropic ratios should be swapped, doing this by removing - sign)
 	std::array<real,dim> anisotropic_ratio;
 	for(unsigned int i = 0; i < dim; ++i)
-		anisotropic_ratio[i] = pow(rho[i], 1.0/order);
+		anisotropic_ratio[i] = pow(rho[i], -1.0/order);
 
 	// std::cout << "aniso1 = " << anisotropic_ratio[0] << std::endl;
 	// std::cout << "aniso2 = " << anisotropic_ratio[1] << std::endl;

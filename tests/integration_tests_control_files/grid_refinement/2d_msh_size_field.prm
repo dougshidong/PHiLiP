@@ -5,7 +5,7 @@ set dimension = 2
 
 # The PDE we want to solve. Choices are
 # <advection|diffusion|convection_diffusion>.
-set pde_type  = advection #convection_diffusion
+set pde_type  = convection_diffusion #convection_diffusion
 set test_type = grid_refinement_study
 
 subsection linear solver
@@ -51,7 +51,8 @@ subsection grid refinement study
   #set manufactured_solution_type   = atan_solution
 
   # enabling interpolation for error measurement
-  set use_interpolation = true
+  # set use_interpolation = true
+  set use_interpolation = false
 
   # grid refinement
   subsection grid refinement
@@ -78,5 +79,5 @@ end
 
 subsection manufactured solution convergence study
   set use_manufactured_source_term = true
-  set manufactured_solution_type   = s_shock_solution  # boundary_layer_solution # 
+  set manufactured_solution_type   = s_shock_solution # boundary_layer_solution # 
 end

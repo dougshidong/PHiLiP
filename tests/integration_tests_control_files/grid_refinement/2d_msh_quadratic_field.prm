@@ -61,8 +61,8 @@ subsection grid refinement study
     
     #set anisotropic       = false
     set anisotropic       = true
-    set anisotropic_ratio_min = 0.5
-    set anisotropic_ratio_max = 2.0
+    # set anisotropic_ratio_min = 0.5
+    # set anisotropic_ratio_max = 2.0
 
     set error_indicator   = hessian_based #error_based
     set norm_Lq           = 2.0

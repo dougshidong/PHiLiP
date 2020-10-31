@@ -442,12 +442,12 @@ void GridRefinement_Continuous_Hessian<dim,nstate,real,MeshType>::field_h()
         this->volume_update_flags);
 
     // constructing the largest directional derivatives
-    // reconstruct_poly.reconstruct_directional_derivative(
-    //     this->dg->solution,
-    //     rel_order);
-    reconstruct_poly.reconstruct_manufactured_derivative(
-        this->physics->manufactured_solution_function,
+    reconstruct_poly.reconstruct_directional_derivative(
+        this->dg->solution,
         rel_order);
+    // reconstruct_poly.reconstruct_manufactured_derivative(
+    //     this->physics->manufactured_solution_function,
+    //     rel_order);
 
     // if anisotropic, setting the cell anisotropy
     if(this->grid_refinement_param.anisotropic){
@@ -587,12 +587,12 @@ std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_Conti
             this->volume_update_flags);
 
         // constructing the largest directional derivatives
-        // reconstruct_poly.reconstruct_directional_derivative(
-        //     this->dg->solution,
-        //     rel_order);
-        reconstruct_poly.reconstruct_manufactured_derivative(
-            this->physics->manufactured_solution_function,
+        reconstruct_poly.reconstruct_directional_derivative(
+            this->dg->solution,
             rel_order);
+        // reconstruct_poly.reconstruct_manufactured_derivative(
+        //     this->physics->manufactured_solution_function,
+        //     rel_order);
 
         // getting the derivative_values as a dealii vector (in order)
         for(unsigned int i = 0; i < dim; ++i)

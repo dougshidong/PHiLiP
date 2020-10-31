@@ -224,11 +224,33 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
             Assert(n_vec == dim*(dim+1)/2, dealii::ExcInternalError());
 
             dealii::SymmetricTensor<2,dim,real> hessian;
-            for(unsigned int n = 0; n < n_vec; ++n)
-                for(unsigned int i = 0; i < dim; ++i)
-                    for(unsigned int j = i; j < dim; ++j)
-                        if(indices[n][i] && indices[n][j])
-                            hessian[i][j] = coeffs[n] * (i==j ? 1.0 : 0.5);
+            // looping over each term of the homogenous polynomial
+            for(unsigned int n = 0; n < n_vec; ++n){
+                // comparing the indices values at each dimension pair
+                // only thing assumed is indices[n] sums to 2 (order)
+                for(unsigned int i = 0; i < dim; ++i){
+
+                    // case 1: a*xi^2 (diagonal)
+                    if((indices[n][i] == 2)){
+                        hessian[i][i] = coeffs[n];
+                    }
+
+                    // case 2: a*xi*yi (off diagonal)
+                    for(unsigned int j = i+1; j < dim; ++j){
+                        if((indices[n][i] == 1) && (indices[n][j] == 1)){
+                            hessian[i][j] = 0.5 * coeffs[n];
+                        }
+                    }
+
+                }
+
+            }
+
+            // // debugging for dim = 2
+            // for(unsigned int i = 0; i < n_vec; ++i)
+            //     std::cout << "n_vec[" << i << "] = " << coeffs[i] << " * x^"<< indices[i][0] << " * y^" << indices[i][1] << std::endl;
+            // std::cout << "Hessian = [" << hessian[0][0] << ", " << hessian[0][1] << "]" << std::endl;
+            // std::cout << "          [" << hessian[1][0] << ", " << hessian[1][1] << "]" << std::endl << std::endl;
 
             // https://www.dealii.org/current/doxygen/deal.II/symmetric__tensor_8h.html#aa18a9d623fcd520f022421fd1d6c7a14
             using eigenpair = std::pair<real,dealii::Tensor<1,dim,real>>;

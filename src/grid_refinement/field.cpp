@@ -486,6 +486,10 @@ void ElementAnisotropic<dim,real>::set_anisotropy(
 	// currently only implemented for dim == 2
 	assert(dim == 2);
 
+	// std::cout << "d1 = " << derivative_value[0] << ", v1 = [" << derivative_direction[0] << "]" << std::endl;
+	// std::cout << "d2 = " << derivative_value[1] << ", v2 = [" << derivative_direction[1] << "]" << std::endl;
+	// std::cout << std::endl;
+
 	// derivative value and direction should be an ordered set
 	
 	// computing the product of all
@@ -500,12 +504,21 @@ void ElementAnisotropic<dim,real>::set_anisotropy(
 	for(unsigned int i = 0; i < dim; ++i)
 		rho[i] = derivative_value[i]/denominator;
 
+	// std::cout << "rho1 = " << rho[0] << std::endl;
+	// std::cout << "rho2 = " << rho[1] << std::endl;
+	// std::cout << std::endl;
+
 	// anisotropy in each axis becomes \rho^{-1/(p+1)}
+	// keeping direction values as is 
+	// (anisotropic ratios should be swapped, doing this by removing - sign)
 	std::array<real,dim> anisotropic_ratio;
 	for(unsigned int i = 0; i < dim; ++i)
-		anisotropic_ratio[i] = pow(rho[i], -1.0/order);
+		anisotropic_ratio[i] = pow(rho[i], 1.0/order);
 
-	// keeping direction values as is (anisotropic ratios should be swapped)
+	// std::cout << "aniso1 = " << anisotropic_ratio[0] << std::endl;
+	// std::cout << "aniso2 = " << anisotropic_ratio[1] << std::endl;
+	// std::cout << std::endl;
+
 	
 	// setting values for the cell
 	m_anisotropic_ratio = anisotropic_ratio;
@@ -692,7 +705,7 @@ std::vector<dealii::Tensor<2,dim,real>> Field<dim,real>::get_metric_vector()
 			<< ", alpha = " << this->get_scale(i)
 			<< ", r1 = " << this->get_anisotropic_ratio(i, 0)
 			<< ", v1 = {" << this->get_unit_axis(i, 0) 
-			<< "}, r1 = " << this->get_anisotropic_ratio(i, 1)
+			<< "}, r2 = " << this->get_anisotropic_ratio(i, 1)
 			<< ", v1 = {" << this->get_unit_axis(i, 1) << "}" << std::endl;\
 		
 		vec[i] = this->get_metric(i);
@@ -709,13 +722,13 @@ std::vector<dealii::Tensor<2,dim,real>> Field<dim,real>::get_inverse_metric_vect
 	for(unsigned int i = 0; i < this->size(); ++i){
 		// temp
 		std::cout << "metric[" << i << "] = "
-			<< ", alpha = " << this->get_scale(i)
-			<< ", r1 = " << this->get_anisotropic_ratio(i, 0)
+			<< ", 1/alpha = " << (1.0/this->get_scale(i))
+			<< ", 1/r1 = " << (1.0/this->get_anisotropic_ratio(i, 0))
 			<< ", v1 = {" << this->get_unit_axis(i, 0) 
-			<< "}, r1 = " << this->get_anisotropic_ratio(i, 1)
+			<< "}, 1/r2 = " << (1.0/this->get_anisotropic_ratio(i, 1))
 			<< ", v1 = {" << this->get_unit_axis(i, 1) << "}" << std::endl;
 		
-		vec[i] = this->get_metric(i);
+		vec[i] = this->get_inverse_metric(i);
 	}
 
 	return vec;

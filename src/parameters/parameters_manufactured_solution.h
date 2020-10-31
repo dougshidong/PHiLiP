@@ -28,6 +28,7 @@ public:
         atan_solution,
         boundary_layer_solution,
         s_shock_solution,
+        quadratic_solution,
         };
     ManufacturedSolutionType manufactured_solution_type; ///< Selected ManufacturedSolutionType from the input file
 

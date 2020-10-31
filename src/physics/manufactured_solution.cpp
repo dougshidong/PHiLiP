@@ -137,6 +137,19 @@ inline real ManufacturedSolutionSShock<dim,real>
 }
 
 template <int dim, typename real>
+inline real ManufacturedSolutionQuadratic<dim,real>
+::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
+{
+    real val = 0.0;
+    // f(x,y,z) = a*x^2 + b*y^2 + c*z^2
+    for(unsigned int d = 0; d < dim; ++d){
+        real x = point[d];
+        val += alpha_diag[d]*x*x;
+    }
+    return val;
+}
+
+template <int dim, typename real>
 inline dealii::Tensor<1,dim,real> ManufacturedSolutionSine<dim,real>
 ::gradient (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
@@ -369,6 +382,19 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionSShock<dim,real>
         const real denominator = pow(cosh(f + e*x + b*sin(d + c*y)), -2);
         gradient[0] =              a*e*denominator;
         gradient[1] = a*b*c*cos(d+c*y)*denominator; 
+    }
+    return gradient;
+}
+
+template <int dim, typename real>
+inline dealii::Tensor<1,dim,real> ManufacturedSolutionQuadratic<dim,real>
+::gradient(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
+{
+    dealii::Tensor<1,dim,real> gradient;
+    for(unsigned int d = 0; d < dim; ++d){
+        // dF = <2ax, 2by, 2cz>
+        const real x = point[d];
+        gradient[d] = 2*alpha_diag[d]*x;
     }
     return gradient;
 }
@@ -699,6 +725,23 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionSShock<dim,real>
 }
 
 template <int dim, typename real>
+inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionQuadratic<dim,real>
+::hessian(const dealii::Point<dim,real> &/* point */, const unsigned int /* istate */) const
+{
+    dealii::SymmetricTensor<2,dim,real> hessian;
+    for(unsigned int i = 0; i < dim; ++i){
+        for(unsigned int j = 0; j < dim; ++j){
+            if(i == j){
+                hessian[i][i] = 2*alpha_diag[i];
+            }else{
+                hessian[i][j] = 0.0;
+            }
+        }
+    }
+    return hessian;
+}
+
+template <int dim, typename real>
 ManufacturedSolutionFunction<dim,real>
 ::ManufacturedSolutionFunction (const unsigned int nstate)
     :
@@ -828,6 +871,8 @@ ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(
         return std::make_shared<ManufacturedSolutionBoundaryLayer<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::s_shock_solution && dim == 2){
         return std::make_shared<ManufacturedSolutionSShock<dim,real>>(nstate);
+    }else if(solution_type == ManufacturedSolutionEnum::quadratic_solution){
+        return std::make_shared<ManufacturedSolutionQuadratic<dim,real>>(nstate);
     }else{
         std::cout << "Invalid Manufactured Solution." << std::endl;
     }
@@ -853,6 +898,8 @@ template class ManufacturedSolutionBoundaryLayer<PHILIP_DIM,double>;
 template class ManufacturedSolutionBoundaryLayer<PHILIP_DIM,Sacado::Fad::DFad<double>>;
 template class ManufacturedSolutionSShock<PHILIP_DIM,double>;
 template class ManufacturedSolutionSShock<PHILIP_DIM,Sacado::Fad::DFad<double>>;
+template class ManufacturedSolutionQuadratic<PHILIP_DIM,double>;
+template class ManufacturedSolutionQuadratic<PHILIP_DIM,Sacado::Fad::DFad<double>>;
 
 template class ManufacturedSolutionFunction<PHILIP_DIM,double>;
 template class ManufacturedSolutionFunction<PHILIP_DIM,Sacado::Fad::DFad<double>>;

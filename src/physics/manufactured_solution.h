@@ -412,6 +412,40 @@ private:
 };
 
 template <int dim, typename real>
+class ManufacturedSolutionQuadratic
+    : public ManufacturedSolutionFunction<dim, real>
+{
+// We want the Point to be templated on the type,
+// however, dealii does not template that part of the Function.
+// Therefore, we end up overloading the functions and need to "import"
+// those non-overloaded functions to avoid the warning -Woverloaded-virtual
+// See: https://stackoverflow.com/questions/18515183/c-overloaded-virtual-function-warning-by-clang
+protected:
+    using dealii::Function<dim,real>::value;
+    using dealii::Function<dim,real>::gradient;
+    using dealii::Function<dim,real>::hessian;
+public:
+    ManufacturedSolutionQuadratic(const unsigned int nstate = 1)
+        :   ManufacturedSolutionFunction<dim,real>(nstate)
+    {
+        // assigning the scaling coeffs for hessian diagonals
+        for(unsigned int d = 0; d < dim; ++d){
+            // diag(1, 4, 9, ...)
+            alpha_diag[d] = (d+1)*(d+1);
+        }
+    }
+
+    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+
+    dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+
+    dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+
+private:
+    std::array<real, dim> alpha_diag; // diagonal components scaling
+};
+
+template <int dim, typename real>
 class ManufacturedSolutionFactory
 {
     using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;

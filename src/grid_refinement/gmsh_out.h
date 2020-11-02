@@ -33,6 +33,11 @@ public:
         std::vector<std::string> &posFile_vec,
         std::ostream &            out);
 
+    // writing the (anisotropic) geo file
+    static void write_geo_anisotropic(
+        std::vector<std::string> &posFile_vec,
+        std::ostream &            out);
+
 private:
     // writing the part of the geo file for a hyper cube
     static void write_geo_hyper_cube(

@@ -235,8 +235,13 @@ void GmshOut<dim,real>::write_pos_anisotropic(
                 out << "){";
                 bool flag = false;
                 for(unsigned int vertex = 0; vertex < tri.size(); ++vertex){
+                    
                     // writing the tensor itself, always 3x3
                     const unsigned int N = 3;
+
+                    // scaling for the complexity match
+                    const double scale = 0.25;
+
                     for(unsigned int i = 0; i < N; ++i){
                         for(unsigned int j = 0; j < N; ++j){
 
@@ -249,7 +254,7 @@ void GmshOut<dim,real>::write_pos_anisotropic(
 
                             // data only specified for upper dim x dim
                             if( (i < dim) && (j < dim) ){
-                                out << val[i][j];
+                                out << scale*val[i][j];
                             }else{
                                 // adding 1.0 along diagonal
                                 if( i == j ){
@@ -297,6 +302,48 @@ void GmshOut<dim,real>::write_geo(
     // default is the advancing delquad
     // TODO: add parameter file for other options (and 3d)
     out << "Mesh.Algorithm = 8;" << '\n'
+        << "Mesh.RecombinationAlgorithm = 3;" << '\n' 
+        << "Mesh.RecombineAll = 1;" << '\n' << '\n'; 
+
+    // writing the geometry of the part
+    // TODO: read from a parameter list what shape (could be CAD)
+    write_geo_hyper_cube(0.0, 1.0, out);
+
+    // writing the information about the recombination
+    // TODO: read from a parameter list what schemes
+    out << "// Merging the background mesh and recombine" << '\n';
+    for(unsigned int ifile = 0; ifile < posFile_vec.size(); ++ifile)
+        out << "Merge \"" << posFile_vec[ifile] << "\";" << '\n';
+
+    // combining the views
+    out << "Combine Views;" << '\n';
+
+    // this line may be dependent on the name in the other file
+    out << "Background Mesh View[0];" << '\n';
+
+    out << std::flush;
+}
+
+// writing the (anisotropic) geo file
+template <int dim, typename real>
+void GmshOut<dim,real>::write_geo_anisotropic(
+    std::vector<std::string> &posFile_vec,
+    std::ostream &            out)
+{
+    // write header
+    out << "/*********************************** " << '\n'
+        << " * MESH GEOMETRY FILE GENERATED    * " << '\n'
+        << " * AUTOMATICALLY BY PHiLiP LIBRARY * " << '\n'
+        << " ***********************************/" << '\n' << '\n';
+
+    // the background field should fully specify the mesh size, points seem to fix some skewness
+    out << "Mesh.CharacteristicLengthFromPoints = 1;" << '\n'
+        << "Mesh.CharacteristicLengthFromCurvature = 0;" << '\n'
+        << "Mesh.CharacteristicLengthExtendFromBoundary = 0;" << '\n' << '\n';
+
+    // default is the BAMG for anisotropy
+    out << "Mesh.Algorithm = 7;" << '\n'
+        // << "Mesh.SmoothRatio = 2;" << '\n'
         << "Mesh.RecombinationAlgorithm = 3;" << '\n' 
         << "Mesh.RecombineAll = 1;" << '\n' << '\n'; 
 

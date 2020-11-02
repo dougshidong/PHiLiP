@@ -202,7 +202,19 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_gmsh()
         std::string write_geoname = "grid-" + 
                                     dealii::Utilities::int_to_string(this->iteration, 4) + ".geo";
         std::ofstream outgeo(write_geoname);
-        GmshOut<dim,real>::write_geo(posname_vec,outgeo);
+        
+        // check for anisotropy
+        if(this->grid_refinement_param.anisotropic){
+            // using an anisotropic BAMG with merge
+            GmshOut<dim,real>::write_geo_anisotropic(
+                posname_vec,
+                outgeo);
+        }else{
+            // using a frontal approach to quad generation
+            GmshOut<dim,real>::write_geo(
+                posname_vec,
+                outgeo);
+        }
 
         std::cout << "Command is: " << ("/usr/local/include/gmsh-master/build/gmsh " + write_geoname + " -2 -o " + output_name).c_str() << '\n';
         int ret = std::system(("/usr/local/include/gmsh-master/build/gmsh " + write_geoname + " -2 -o " + output_name).c_str());

@@ -390,13 +390,15 @@ public:
         // e = -6.0;
         // f =  0.0;
 
+        double scale_atan = 1;
+
         // shifted from [-1,1]^2 -> [0,1]
         a =   0.75;
-        b =   2.0;
+        b =   2.0*scale_atan;
         c =  10.0;
         d =  -5.0;
-        e = -12.0;
-        f =   6.0;
+        e = -12.0*scale_atan;
+        f =   6.0*scale_atan;
     }
 
     real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;

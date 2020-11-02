@@ -365,7 +365,7 @@ dealii::Tensor<2,dim,real> ElementAnisotropic<dim,real>::get_inverse_metric()
 	// M = 1/h diag(1/r_i,...) R(-\theta)
 	dealii::Tensor<2,dim,real> M;
 	for(unsigned int i = 0; i < dim; ++i)
-		M[i] = (1.0/m_scale) * m_anisotropic_ratio[i] * RT[i];
+		M[i] = (1.0)/(m_anisotropic_ratio[i]*m_scale) * RT[i];
 
 	return M;
 }
@@ -706,7 +706,7 @@ std::vector<dealii::Tensor<2,dim,real>> Field<dim,real>::get_metric_vector()
 			<< ", r1 = " << this->get_anisotropic_ratio(i, 0)
 			<< ", v1 = {" << this->get_unit_axis(i, 0) 
 			<< "}, r2 = " << this->get_anisotropic_ratio(i, 1)
-			<< ", v1 = {" << this->get_unit_axis(i, 1) << "}" << std::endl;\
+			<< ", v2 = {" << this->get_unit_axis(i, 1) << "}" << std::endl;
 		
 		vec[i] = this->get_metric(i);
 	}
@@ -770,6 +770,21 @@ dealii::SymmetricTensor<2,dim,real> Field<dim,real>::get_inverse_quadratic_metri
 	dealii::SymmetricTensor<2,dim,real> inverse_quadratic_metric;
 	dealii::Tensor<2,dim,real> inverse_metric = this->get_inverse_metric(index);
 
+	// // temp
+	// std::cout << "metric[" << index << "] = "
+	// 	<< ", 1/alpha = " << (1.0/this->get_scale(index))
+	// 	<< ", 1/r1 = " << (1.0/this->get_anisotropic_ratio(index, 0))
+	// 	<< ", v1 = {" << this->get_unit_axis(index, 0) 
+	// 	<< "}, 1/r2 = " << (1.0/this->get_anisotropic_ratio(index, 1))
+	// 	<< ", v1 = {" << this->get_unit_axis(index, 1) << "}" << std::endl;
+
+	// std::cout << "Vinv = " << inverse_metric << std::endl;
+	// std::cout << "Vinv[0] = " << inverse_metric[0] << std::endl;
+	// std::cout << "Vinv[1] = " << inverse_metric[1] << std::endl;
+
+	// needed for proper component eval, to get the columns with inverse_metric[i] instead of the rows
+	inverse_metric = transpose(inverse_metric);
+
 	// looping over the upper triangular part
 	for(unsigned int i = 0; i < dim; ++i){
 		for(unsigned int j = i; j < dim; ++j){
@@ -777,6 +792,8 @@ dealii::SymmetricTensor<2,dim,real> Field<dim,real>::get_inverse_quadratic_metri
 			inverse_quadratic_metric[i][j] = scalar_product(inverse_metric[i], inverse_metric[j]);
 		}
 	}
+
+	// std::cout << "Vinv^T Vinv = " << inverse_quadratic_metric << std::endl << std::endl;
 
 	return inverse_quadratic_metric;
 }

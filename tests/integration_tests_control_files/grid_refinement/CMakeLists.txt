@@ -30,7 +30,21 @@ add_test(
 
 configure_file(2d_gmsh_aniso_field.prm 2d_gmsh_aniso_field.prm COPYONLY)
 add_test(
-  NAME 2D_MSH_ANISO_FIELD_H
+  NAME 2D_GMSH_ANISO_FIELD_H
   COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_gmsh_aniso_field.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
+configure_file(2d_gmsh_aniso_boundarylayer.prm 2d_gmsh_aniso_boundarylayer.prm COPYONLY)
+add_test(
+  NAME 2D_GMSH_ANISO_BOUNDARYLAYER
+  COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_gmsh_aniso_boundarylayer.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
+configure_file(2d_gmsh_aniso_sshock.prm 2d_gmsh_aniso_sshock.prm COPYONLY)
+add_test(
+  NAME 2D_GMSH_ANISO_SSHOCK
+  COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_gmsh_aniso_sshock.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )

@@ -30,12 +30,12 @@ subsection ODE solver
   set print_iteration_modulo              = 1
 
   # Explicit or implicit solverChoices are <explicit|implicit>.
-  set ode_solver_type                         = implicit
+  set ode_solver_type                     = implicit
 end
 
 subsection grid refinement study
   # polyonomial degrees
-  set poly_degree      = 2
+  set poly_degree      = 1
   set poly_degree_max  = 4
   set poly_degree_grid = 1
 
@@ -45,14 +45,6 @@ subsection grid refinement study
   set grid_left  = 0.0
   set grid_right = 1.0
   set grid_size  = 16
-
-  # manufactured solution
-  #set use_manufactured_source_term = true
-  #set manufactured_solution_type   = atan_solution
-
-  # enabling interpolation for error measurement
-  # set use_interpolation = true
-  # set use_interpolation = true
 
   # grid refinement
   subsection grid refinement
@@ -65,14 +57,12 @@ subsection grid refinement study
     set anisotropic_ratio_min = 0.1
     set anisotropic_ratio_max = 10.0
 
-    set error_indicator   = hessian_based #error_based
+    set error_indicator   = hessian_based
     set norm_Lq           = 2.0
     set complexity_scale  = 2.0
     set complexity_add    = 0.0
 
     # output options
-    # set output_type      = msh_out
-    # set output_data_type = metric_field #<size_field, frame_field, metric_field>
     set output_type      = gmsh_out
   end
 
@@ -80,5 +70,5 @@ end
 
 subsection manufactured solution convergence study
   set use_manufactured_source_term = true
-  set manufactured_solution_type   = boundary_layer_solution # s_shock_solution # atan_solution 
+  set manufactured_solution_type   = s_shock_solution
 end

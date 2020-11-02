@@ -4,6 +4,9 @@
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/grid/tria.h>
 
+#include <deal.II/base/tensor.h>
+#include <deal.II/base/symmetric_tensor.h>
+
 namespace PHiLiP {
 
 namespace GridRefinement {
@@ -18,6 +21,12 @@ public:
         const dealii::Triangulation<dim,dim> &tria,
         dealii::Vector<real>                  data,
         std::ostream &                        out);
+
+    // writing anisotropic (tensor based) .pos file for use with gmsh
+    static void write_pos_anisotropic(
+        const dealii::Triangulation<dim,dim>&                   tria,
+        const std::vector<dealii::SymmetricTensor<2,dim,real>>& data,
+        std::ostream&                                           out);
 
     // writing the geo file
     static void write_geo(

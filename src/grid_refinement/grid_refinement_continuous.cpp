@@ -172,7 +172,21 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_gmsh()
                                 dealii::Utilities::int_to_string(this->iteration, 4) + "." + 
                                 dealii::Utilities::int_to_string(iproc, 4) + ".pos";
     std::ofstream outpos(write_posname);
-    GmshOut<dim,real>::write_pos(*(this->tria),this->h_field->get_scale_vector_dealii(),outpos);
+
+    // check for anisotropy
+    if(this->grid_refinement_param.anisotropic){
+        // using an anisotropic BAMG with merge
+        GmshOut<dim,real>::write_pos_anisotropic(
+            *(this->tria),
+            this->h_field->get_inverse_quadratic_metric_vector(),
+            outpos);
+    }else{
+        // using a frontal approach to quad generation
+        GmshOut<dim,real>::write_pos(
+            *(this->tria),
+            this->h_field->get_scale_vector_dealii(),
+            outpos);
+    }
 
     // writing the geo file on the 1st processor and running
     std::string output_name = "grid-" + 

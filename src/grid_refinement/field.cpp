@@ -739,7 +739,6 @@ dealii::SymmetricTensor<2,dim,real> Field<dim,real>::get_quadratic_metric(
 	const unsigned int index)
 {
 	dealii::SymmetricTensor<2,dim,real> quadratic_metric;
-
 	dealii::Tensor<2,dim,real> metric = this->get_metric(index);
 
 	// looping over the upper triangular part
@@ -760,6 +759,35 @@ std::vector<dealii::SymmetricTensor<2,dim,real>> Field<dim,real>::get_quadratic_
 
 	for(unsigned int i = 0; i < this->size(); ++i)
 		vec[i] = this->get_quadratic_metric(i);
+
+	return vec;
+}
+
+template <int dim, typename real>
+dealii::SymmetricTensor<2,dim,real> Field<dim,real>::get_inverse_quadratic_metric(
+	const unsigned int index)
+{
+	dealii::SymmetricTensor<2,dim,real> inverse_quadratic_metric;
+	dealii::Tensor<2,dim,real> inverse_metric = this->get_inverse_metric(index);
+
+	// looping over the upper triangular part
+	for(unsigned int i = 0; i < dim; ++i){
+		for(unsigned int j = i; j < dim; ++j){
+			// assigning compoennts of A = M^T M from a_ij = v_i^T v_j where M = [v_1, ..., v_n]
+			inverse_quadratic_metric[i][j] = scalar_product(inverse_metric[i], inverse_metric[j]);
+		}
+	}
+
+	return inverse_quadratic_metric;
+}
+
+template <int dim, typename real>
+std::vector<dealii::SymmetricTensor<2,dim,real>> Field<dim,real>::get_inverse_quadratic_metric_vector()
+{
+	std::vector<dealii::SymmetricTensor<2,dim,real>> vec(this->size());
+
+	for(unsigned int i = 0; i < this->size(); ++i)
+		vec[i] = this->get_inverse_quadratic_metric(i);
 
 	return vec;
 }

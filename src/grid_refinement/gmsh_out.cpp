@@ -3,6 +3,9 @@
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/grid/tria.h>
 
+#include <deal.II/base/tensor.h>
+#include <deal.II/base/symmetric_tensor.h>
+
 #include "gmsh_out.h"
 
 namespace PHiLiP {
@@ -146,6 +149,131 @@ void GmshOut<dim,real>::write_pos(
     out << "}; //View \"background mesh\" " << '\n';
 
     out << std::flush;
+}
+
+// writing anisotropic (tensor based) .pos file for use with gmsh
+template <int dim, typename real>
+void GmshOut<dim,real>::write_pos_anisotropic(
+    const dealii::Triangulation<dim,dim>&                   tria,
+    const std::vector<dealii::SymmetricTensor<2,dim,real>>& data,
+    std::ostream&                                           out)
+{
+    const unsigned int n_vertices = tria.n_used_vertices();
+
+    typename dealii::Triangulation<dim, dim>::active_cell_iterator cell =
+        tria.begin_active();
+    const typename dealii::Triangulation<dim, dim>::active_cell_iterator endc =
+        tria.end();
+
+    // write header
+    out << "/*********************************** " << '\n'
+        << " * BACKGROUND MESH FIELD GENERATED * " << '\n'
+        << " * AUTOMATICALLY BY PHiLiP LIBRARY * " << '\n'
+        << " ***********************************/" << '\n';
+
+    // number of vertices
+    out << "// File contains n_vertices = " << n_vertices << '\n' << '\n';
+
+    // write the "view" header
+    out << "View \"background mesh\" {"  << '\n';
+
+    // writing the main body
+    // TT(x1,y1,z1,x2,y2,z2,x3,y3,z3){M1, M2, M3};
+    // where Mi = [m11, m12, m13, m21, m22, m23, m31, m32, m33];
+    for(cell = tria.begin_active(); cell!=endc; ++cell){
+        if(!cell->is_locally_owned()) continue;
+
+        // cell-wise value
+        const dealii::Tensor<2,dim,real> val = data[cell->active_cell_index()];
+
+        // only implemented for dim == 2 currently
+        if(dim == 2){
+
+            // writing the coordinates
+            std::vector<dealii::Point<dim>> vertices;
+            vertices.reserve(dealii::GeometryInfo<dim>::vertices_per_cell);
+            for(unsigned int vertex = 0; vertex < dealii::GeometryInfo<dim>::vertices_per_cell; ++vertex){
+                // Fix for the difference in numbering orders (CCW)
+                // DEALII: 2D=[[0,1],[2,3]], 3D=[[[0,1],[2,3]],[[4,5],[6,7]]]
+                // GMSH:   2D=[[0,1],[3,2]], 3D=[[[0,1],[3,2]],[[4,5],[7,6]]]
+                dealii::Point<dim> pos;
+                if((vertex+2)%4 == 0){ // (2,6) -> (3,7)
+                    pos = cell->vertex(vertex+1);
+                }else if((vertex+1)%4 == 0){ // (3,7) -> (2,6)
+                    pos = cell->vertex(vertex-1);
+                }else{
+                    pos = cell->vertex(vertex);
+                }
+
+                vertices.push_back(pos);
+            }
+
+            // splitting the quad into two triangles and output
+            // forming two triangels [0,3,2] and [0,2,1]
+            for(const auto& tri: 
+                std::array<std::array<int,3>,2>{{ 
+                    {{0,3,2}}, 
+                    {{0,2,1}} }}){
+                // writing the coordinates
+                out << "TT(";
+                for(unsigned int i = 0; i < tri.size(); ++i){
+                    if(i != 0){out << ",";}
+
+                    // x
+                    dealii::Point<dim> pos = vertices[tri[i]];
+                    if(dim >= 1){out << pos[0] << ",";}
+                    else        {out << 0      << ",";}
+                    // y
+                    if(dim >= 2){out << pos[1] << ",";}
+                    else        {out << 0      << ",";}
+                    // z
+                    if(dim >= 3){out << pos[2];}
+                    else        {out << 0;}
+                }
+
+                // writing the tensor data (for each node)
+                out << "){";
+                bool flag = false;
+                for(unsigned int vertex = 0; vertex < tri.size(); ++vertex){
+                    // writing the tensor itself, always 3x3
+                    const unsigned int N = 3;
+                    for(unsigned int i = 0; i < N; ++i){
+                        for(unsigned int j = 0; j < N; ++j){
+
+                            // only skipping comma on first point
+                            if(flag){
+                                out << ",";
+                            }else{
+                                flag  = true;
+                            }
+
+                            // data only specified for upper dim x dim
+                            if( (i < dim) && (j < dim) ){
+                                out << val[i][j];
+                            }else{
+                                // adding 1.0 along diagonal
+                                if( i == j ){
+                                    out << "1.0";
+                                }else{
+                                    out << "0";
+                                }
+                            }
+
+                        }
+                    }
+                }
+
+                out << "};" << '\n';
+
+            }
+
+        }
+    }
+
+    // write the "view footer"
+    out << "}; //View \"background mesh\" " << '\n';
+    out << std::flush;
+
 }
 
 // writing the geo file which calls the meshing

@@ -439,6 +439,13 @@ public:
 	// gets the riemanian quadratic metric \mathcal{M} = M^T M in vector format
 	std::vector<dealii::SymmetricTensor<2,dim,real>> get_quadratic_metric_vector();
 
+	// get metric from inverse mapping function (used in BAMG)
+	dealii::SymmetricTensor<2,dim,real> get_inverse_quadratic_metric(
+		const unsigned int index);
+
+	// gets vector of inverse mapping functions squared (used in BAMG)
+	std::vector<dealii::SymmetricTensor<2,dim,real>> get_inverse_quadratic_metric_vector();
+
 	// defining the associated DofHandler type
 	using DoFHandlerType = dealii::hp::DoFHandler<dim>;
 

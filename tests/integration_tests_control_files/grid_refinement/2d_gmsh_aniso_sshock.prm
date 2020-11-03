@@ -5,7 +5,7 @@ set dimension = 2
 
 # The PDE we want to solve. Choices are
 # <advection|diffusion|convection_diffusion>.
-set pde_type  = advection # convection_diffusion # 
+set pde_type  = convection_diffusion #  advection # 
 set test_type = grid_refinement_study
 
 subsection linear solver

@@ -99,12 +99,33 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
             MeshFactory<MeshType>::create_MeshType(this->mpi_communicator);
 
         // generating the mesh
-        dealii::GridGenerator::subdivided_hyper_cube(*grid, grid_size, left, right);
-        for(auto cell = grid->begin_active(); cell != grid->end(); ++cell){
-            cell->set_material_id(9002);
-            for(unsigned int face = 0; face < dealii::GeometryInfo<dim>::faces_per_cell; ++face)
-                if(cell->face(face)->at_boundary())
-                    cell->face(face)->set_boundary_id(1000);
+        using GridEnum = Parameters::ManufacturedConvergenceStudyParam::GridEnum;
+
+        // considering different cases
+        if(grs_param.grid_type == GridEnum::hypercube){
+
+            // subdivided cube
+            dealii::GridGenerator::subdivided_hyper_cube(*grid, grid_size, left, right);
+            for(auto cell = grid->begin_active(); cell != grid->end(); ++cell){
+                cell->set_material_id(9002);
+                for(unsigned int face = 0; face < dealii::GeometryInfo<dim>::faces_per_cell; ++face)
+                    if(cell->face(face)->at_boundary())
+                        cell->face(face)->set_boundary_id(1000);
+            }
+        
+        }else if(grs_param.grid_type == GridEnum::read_grid){
+
+            // input grid file
+            std::string read_mshname = grs_param.input_grid;
+            std::cout << "Reading grid from: " << read_mshname << std::endl;
+
+            // performing the read from file
+            std::ifstream in_msh(read_mshname);
+            dealii::GridIn<dim,dim> grid_in;
+                        
+            grid_in.attach_triangulation(*grid);
+            grid_in.read_msh(in_msh);
+
         }
 
         // generate DG

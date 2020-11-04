@@ -1,5 +1,7 @@
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
+configure_file(test_grid.msh test_grid.msh COPYONLY)
+
 configure_file(2d_grid_refinement_study.prm 2d_grid_refinement_study.prm COPYONLY)
 add_test(
   NAME 2D_GRID_REFINEMENT_STUDY

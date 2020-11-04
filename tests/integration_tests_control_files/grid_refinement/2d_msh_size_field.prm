@@ -5,7 +5,7 @@ set dimension = 2
 
 # The PDE we want to solve. Choices are
 # <advection|diffusion|convection_diffusion>.
-set pde_type  = convection_diffusion #convection_diffusion
+set pde_type  = advection #convection_diffusion #convection_diffusion
 set test_type = grid_refinement_study
 
 subsection linear solver
@@ -40,7 +40,10 @@ subsection grid refinement study
   set poly_degree_grid = 1
 
   # grid setup
-  set grid_type  = hypercube
+  # set grid_type  = hypercube
+  set grid_type = read_grid
+  set input_grid = test_grid.msh
+
   #set input_grid = NaN
   set grid_left  = 0.0
   set grid_right = 1.0

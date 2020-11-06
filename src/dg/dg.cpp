@@ -300,10 +300,19 @@ real DGBaseState<dim,nstate,real>::evaluate_CFL (
     }
     const real max_eig = *(std::max_element(convective_eigenvalues.begin(), convective_eigenvalues.end()));
 
-    const real cfl_convective = cell_diameter / max_eig;
-    const real cfl_diffusive  = artificial_dissipation != 0.0 ? 0.5*cell_diameter*cell_diameter / artificial_dissipation : 1e200;
+    // const real cfl_convective = cell_diameter / max_eig;
+    // const real cfl_diffusive  = artificial_dissipation != 0.0 ? 0.5*cell_diameter*cell_diameter / artificial_dissipation : 1e200;
+    // real min_cfl = std::min(cfl_convective, cfl_diffusive) / (2*cell_degree + 1.0);
 
-    return std::min(cfl_convective, cfl_diffusive) / (2*cell_degree + 1.0);
+    const real cfl_convective = (cell_diameter / max_eig) / (cell_degree * cell_degree);
+    const real cfl_diffusive  = artificial_dissipation != 0.0 ?
+                                (0.5*cell_diameter*cell_diameter / artificial_dissipation) / (cell_degree*cell_degree*cell_degree*cell_degree)
+                                : 1e200;
+    real min_cfl = std::min(cfl_convective, cfl_diffusive);
+
+    if (min_cfl >= 1e190) min_cfl = cell_diameter / 1;
+
+    return min_cfl;
 }
 
 template <int dim, typename real>
@@ -363,7 +372,7 @@ real DGBase<dim,real>::evaluate_penalty_scaling (
     const unsigned int normal_direction = dealii::GeometryInfo<dim>::unit_normal_direction[iface];
     const real vol_div_facearea = cell->extent_in_direction(normal_direction);
 
-    const real penalty = degsq / vol_div_facearea;
+    const real penalty = degsq / vol_div_facearea * 10;// * 20;
 
     return penalty;
 }
@@ -460,11 +469,16 @@ void DGBase<dim,real>::assemble_cell_residual (
     const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
 
     assemble_volume_term_explicit (
-    current_cell_index,
-    fe_values_volume, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
+        current_cell,
+        current_cell_index,
+        fe_values_volume,
+        current_dofs_indices,
+        current_cell_rhs,
+        fe_values_lagrange);
     current_cell_rhs*=0.0;
     //if ( compute_dRdW || compute_dRdX || compute_d2R ) {
         assemble_volume_term_derivatives (
+            current_cell,
             current_cell_index,
             fe_values_volume, current_fe_ref, volume_quadrature_collection[i_quad],
             current_metric_dofs_indices, current_dofs_indices,
@@ -472,6 +486,7 @@ void DGBase<dim,real>::assemble_cell_residual (
             compute_dRdW, compute_dRdX, compute_d2R);
     //} else {
     //    assemble_volume_term_explicit (
+    //    cell,
     //    current_cell_index,
     //    fe_values_volume, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
     //}
@@ -503,6 +518,7 @@ void DGBase<dim,real>::assemble_cell_residual (
             //if (compute_dRdW || compute_dRdX || compute_d2R) {
                 const dealii::Quadrature<dim-1> face_quadrature = face_quadrature_collection[i_quad];
                 assemble_boundary_term_derivatives (
+                    current_cell,
                     current_cell_index,
                     iface, boundary_id, fe_values_face_int, penalty,
                     current_fe_ref, face_quadrature,
@@ -511,6 +527,7 @@ void DGBase<dim,real>::assemble_cell_residual (
 
             //} else {
             //    assemble_boundary_term_explicit (
+            //        current_cell,
             //        current_cell_index,
             //        boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
             //}
@@ -572,6 +589,7 @@ void DGBase<dim,real>::assemble_cell_residual (
                                                                                                   neighbor_cell->face_rotation(neighbor_iface),
                                                                                                   used_face_quadrature.size());
                     assemble_face_term_derivatives (
+                        current_cell,
                         current_cell_index,
                         neighbor_cell_index,
                         face_subface_int, face_subface_ext,
@@ -587,6 +605,7 @@ void DGBase<dim,real>::assemble_cell_residual (
                         compute_dRdW, compute_dRdX, compute_d2R);
                 //} else {
                 //    assemble_face_term_explicit (
+                //        current_cell,
                 //        current_cell_index,
                 //        neighbor_cell_index,
                 //        fe_values_face_int, fe_values_face_ext,
@@ -677,6 +696,7 @@ void DGBase<dim,real>::assemble_cell_residual (
                                                                                                     used_face_quadrature.size(),
                                                                                                     neighbor_cell->subface_case(neighbor_iface));
                 assemble_face_term_derivatives (
+                    current_cell,
                     current_cell_index,
                     neighbor_cell_index,
                     face_subface_int, face_subface_ext,
@@ -692,6 +712,7 @@ void DGBase<dim,real>::assemble_cell_residual (
                     compute_dRdW, compute_dRdX, compute_d2R);
             //} else {
             //    assemble_face_term_explicit (
+            //        current_cell,
             //        current_cell_index,
             //        neighbor_cell_index,
             //        fe_values_face_int, fe_values_face_ext,
@@ -756,6 +777,7 @@ void DGBase<dim,real>::assemble_cell_residual (
                                                                                               neighbor_cell->face_rotation(neighbor_iface),
                                                                                               used_face_quadrature.size());
                 assemble_face_term_derivatives (
+                    current_cell,
                     current_cell_index,
                     neighbor_cell_index,
                     face_subface_int, face_subface_ext,
@@ -771,6 +793,7 @@ void DGBase<dim,real>::assemble_cell_residual (
                     compute_dRdW, compute_dRdX, compute_d2R);
             //} else {
             //    assemble_face_term_explicit (
+            //        current_cell,
             //        current_cell_index,
             //        neighbor_cell_index,
             //        fe_values_face_int, fe_values_face_ext,
@@ -904,10 +927,14 @@ void DGBase<dim,real>::update_artificial_dissipation_discontinuity_sensor()
         S_e = sqrt(error / soln_norm);
         s_e = log10(S_e);
 
-        const double mu_scale = 1.0;
+        //const double mu_scale = 1.0;
         //const double s_0 = log10(0.1) - 4.25*log10(degree);
         //const double s_0 = -0.5 - 4.25*log10(degree);
-        const double s_0 = - 4.25*log10(degree);
+        //const double kappa = 1.0;
+
+        const double mu_scale = 1.0 * 10e0;
+        //const double s_0 = - 4.25*log10(degree);
+        const double s_0 = -0.50 - 4.25*log10(degree);
         const double kappa = 1.0;
         const double low = s_0 - kappa;
         const double upp = s_0 + kappa;
@@ -920,7 +947,7 @@ void DGBase<dim,real>::update_artificial_dissipation_discontinuity_sensor()
         if ( s_e < low) continue;
 
         if ( s_e > upp) {
-            artificial_dissipation_coeffs[cell_index] = eps_0;
+            artificial_dissipation_coeffs[cell_index] += eps_0;
             continue;
         }
 
@@ -929,7 +956,7 @@ void DGBase<dim,real>::update_artificial_dissipation_discontinuity_sensor()
         eps *= eps_0 * 0.5;
 
 
-        artificial_dissipation_coeffs[cell_index] = eps;
+        artificial_dissipation_coeffs[cell_index] += eps;
         artificial_dissipation_se[cell_index] = s_e;
 
         typename dealii::DoFHandler<dim>::active_cell_iterator artificial_dissipation_cell(
@@ -941,7 +968,21 @@ void DGBase<dim,real>::update_artificial_dissipation_discontinuity_sensor()
             const unsigned int index = dof_indices_artificial_dissipation[idof];
             artificial_dissipation_c0[index] = std::max(artificial_dissipation_c0[index], eps);
         }
+
+        //const unsigned int dofs_per_face = fe_q_artificial_dissipation.n_dofs_per_face();
+        //for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
+        //    const auto face = cell->face(iface);
+        //    if (face->at_boundary()) {
+        //        for (unsigned int idof_face=0; idof_face<dofs_per_face; ++idof_face) {
+        //            unsigned int idof_cell = fe_q_artificial_dissipation.face_to_cell_index(idof_face, iface);
+        //            const dealii::types::global_dof_index index = dof_indices_artificial_dissipation[idof_cell];
+        //            artificial_dissipation_c0[index] = 0.0;
+        //        }
+        //    }
+        //}
     }
+    // artificial_dissipation_c0 *= 0.0;
+    // artificial_dissipation_c0.add(1e-1);
     artificial_dissipation_c0.update_ghost_values();
 }
 
@@ -1416,6 +1457,7 @@ void DGBase<dim,real>::allocate_system ()
     ghost_dofs_artificial_dissipation.subtract_set(locally_owned_dofs_artificial_dissipation);
 
     artificial_dissipation_c0.reinit(locally_owned_dofs_artificial_dissipation, ghost_dofs_artificial_dissipation, mpi_communicator);
+    artificial_dissipation_c0.update_ghost_values();
 
     artificial_dissipation_coeffs.reinit(triangulation->n_active_cells());
     artificial_dissipation_se.reinit(triangulation->n_active_cells());

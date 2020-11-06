@@ -503,6 +503,7 @@ protected:
     /// Evaluate the integral over the cell volume and the specified derivatives.
     /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
     virtual void assemble_volume_term_derivatives(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::FEValues<dim,dim> &,//fe_values_vol,
         const dealii::FESystem<dim,dim> &fe,
@@ -515,6 +516,7 @@ protected:
     /// Evaluate the integral over the cell edges that are on domain boundaries and the specified derivatives.
     /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
     virtual void assemble_boundary_term_derivatives(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const unsigned int face_number,
         const unsigned int boundary_id,
@@ -531,6 +533,7 @@ protected:
      *  This adds the contribution to both cell's residual and effectively
      *  computes 4 block contributions to dRdX blocks. */
     virtual void assemble_face_term_derivatives(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
         const std::pair<unsigned int, int> face_subface_int,
@@ -553,6 +556,7 @@ protected:
 
     /// Evaluate the integral over the cell volume
     virtual void assemble_volume_term_explicit(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::FEValues<dim,dim> &fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
@@ -560,6 +564,7 @@ protected:
         const dealii::FEValues<dim,dim> &fe_values_lagrange) = 0;
     /// Evaluate the integral over the cell edges that are on domain boundaries
     virtual void assemble_boundary_term_explicit(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const unsigned int boundary_id,
         const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
@@ -568,6 +573,7 @@ protected:
         dealii::Vector<real> &current_cell_rhs) = 0;
     /// Evaluate the integral over the internal cell edges
     virtual void assemble_face_term_explicit(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_int,
@@ -624,6 +630,7 @@ private:
      */
     MassiveCollectionTuple create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const;
 
+public:
     /// Update discontinuity sensor.
     void update_artificial_dissipation_discontinuity_sensor();
 

@@ -71,8 +71,12 @@ real2 FunctionalNormLpBoundary<dim,nstate,real,MeshType>::evaluate_cell_boundary
     std::vector<real2>                                    local_solution)
 {
     real2 lpnorm_value = 0;
-    if(this->use_all_boundaries 
-    || std::find(this->boundary_vector.begin(), this->boundary_vector.end(), boundary_id) == this->boundary_vector.end())
+
+    // condition for whether the current cell should be evaluated
+    auto boundary_vector_index = std::find(this->boundary_vector.begin(), this->boundary_vector.end(), boundary_id);
+    bool eval_boundary = this->use_all_boundaries || boundary_vector_index != this->boundary_vector.end();
+
+    if(!eval_boundary)
         return lpnorm_value;
 
     const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
@@ -154,8 +158,12 @@ real2 FunctionalWeightedIntegralBoundary<dim,nstate,real,MeshType>::evaluate_cel
     std::shared_ptr<ManufacturedSolutionFunction<dim,real2>> weight_function)
 {
     real2 val = 0;
-    if(this->use_all_boundaries
-    || std::find(this->boundary_vector.begin(), this->boundary_vector.end(), boundary_id) == this->boundary_vector.end())
+
+    // condition for whether the current cell should be evaluated
+    auto boundary_vector_index = std::find(this->boundary_vector.begin(), this->boundary_vector.end(), boundary_id);
+    bool eval_boundary = this->use_all_boundaries || boundary_vector_index != this->boundary_vector.end();
+
+    if(!eval_boundary)
         return val;
 
     const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
@@ -229,8 +237,12 @@ real2 FunctionalErrorNormLpBoundary<dim,nstate,real,MeshType>::evaluate_cell_bou
     std::vector<real2>                                    local_solution)
 {
     real2 lpnorm_value = 0;
-    if(this->use_all_boundaries
-    || std::find(this->boundary_vector.begin(), this->boundary_vector.end(), boundary_id) == this->boundary_vector.end())
+
+    // condition for whether the current cell should be evaluated
+    auto boundary_vector_index = std::find(this->boundary_vector.begin(), this->boundary_vector.end(), boundary_id);
+    bool eval_boundary = this->use_all_boundaries || boundary_vector_index != this->boundary_vector.end();
+
+    if(!eval_boundary)
         return lpnorm_value;
 
     const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;

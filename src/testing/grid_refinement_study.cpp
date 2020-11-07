@@ -104,13 +104,27 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
         // considering different cases
         if(grs_param.grid_type == GridEnum::hypercube){
 
+            dealii::Point<dim,double> p_left;
+            dealii::Point<dim,double> p_right;
+            std::vector<unsigned int> repetitions;
+            for(unsigned int i = 0; i < dim; ++i){
+                p_left[i] = left;
+                p_right[i] = right;
+                repetitions.push_back(grid_size);
+            }
+
             // subdivided cube
-            dealii::GridGenerator::subdivided_hyper_cube(*grid, grid_size, left, right);
+            bool colorize = true;
+            dealii::GridGenerator::subdivided_hyper_rectangle(*grid, repetitions, p_left, p_right, colorize);
+            // dealii::GridGenerator::subdivided_hyper_cube(*grid, grid_size, left, right);
             for(auto cell = grid->begin_active(); cell != grid->end(); ++cell){
                 cell->set_material_id(9002);
                 for(unsigned int face = 0; face < dealii::GeometryInfo<dim>::faces_per_cell; ++face)
-                    if(cell->face(face)->at_boundary())
-                        cell->face(face)->set_boundary_id(1000);
+                    if(cell->face(face)->at_boundary()){
+                        // temporarily disable
+                        // cell->face(face)->set_boundary_id(1000);
+                        std::cout << cell->face(face)->boundary_id() << std::endl;
+                    }
             }
         
         }else if(grs_param.grid_type == GridEnum::read_grid){

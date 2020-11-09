@@ -26,7 +26,7 @@ PhysicsBase<dim,nstate,real>::PhysicsBase(std::shared_ptr< ManufacturedSolutionF
 
     // Some constants used to define manufactured solution
     velo_x = 1.1; velo_y = -pi/ee; velo_z = ee/pi;
-    diff_coeff = 0.1*pi/ee;
+    diff_coeff = 0.01*pi/ee;
 
     // Anisotropic diffusion matrix
     //A11 =   9; A12 =  -2; A13 =  -6;

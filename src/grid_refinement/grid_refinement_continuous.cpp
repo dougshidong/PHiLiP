@@ -216,8 +216,19 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_gmsh()
                 outgeo);
         }
 
+        #if 1
+        // uses old version of gmsh
         std::cout << "Command is: " << ("/usr/local/include/gmsh-master/build/gmsh " + write_geoname + " -2 -o " + output_name).c_str() << '\n';
         int ret = std::system(("/usr/local/include/gmsh-master/build/gmsh " + write_geoname + " -2 -o " + output_name).c_str());
+        #elif 0
+        // hardcode redirect to my version 4.7.0
+        std::cout << "Command is: " << ("~/gmsh/gmsh-4.7.0-Linux64/bin/gmsh " + write_geoname + " -2 -o " + output_name).c_str() << '\n';
+        int ret = std::system(("~/gmsh/gmsh-4.7.0-Linux64/bin/gmsh " + write_geoname + " -2 -o " + output_name).c_str());
+        #else
+        // hardcode redirect to my version 4.6.0
+        std::cout << "Command is: " << ("~/gmsh/gmsh-4.6.0-Linux64/bin/gmsh " + write_geoname + " -2 -o " + output_name).c_str() << '\n';
+        int ret = std::system(("~/gmsh/gmsh-4.6.0-Linux64/bin/gmsh " + write_geoname + " -2 -o " + output_name).c_str());
+        #endif
         (void) ret;
     }
 

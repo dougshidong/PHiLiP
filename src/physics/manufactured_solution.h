@@ -390,7 +390,7 @@ public:
         // e = -6.0;
         // f =  0.0;
 
-        double scale_atan = 1;
+        double scale_atan = 2.0;
 
         // shifted from [-1,1]^2 -> [0,1]
         a =   0.75;

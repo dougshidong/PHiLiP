@@ -65,6 +65,40 @@ public:
         std::unique_ptr<Field<dim,real>> &         h_field,               // (output) size field
         dealii::Vector<real> &                     p_field);              // (output) poly field
 
+    // performs adjoint based size-field adaptation with uniform p-field. Based on:
+    // Balan, A., Woopen, M., & May, G. (2016). 
+    // Adjoint-based hp-adaptivity on anisotropic meshes for high-order compressible flow simulations. 
+    // Computers and Fluids, 139. https://doi.org/10.1016/j.compfluid.2016.03.029
+    static void adjoint_uniform(
+        const real                                 complexity,            // target complexity
+        const real                                 r_max,                 // maximum refinement factor
+        const real                                 c_max,                 // maximum coarsening factor
+        const dealii::Vector<real> &               eta,                   // error indicator (DWR)
+        const dealii::hp::DoFHandler<dim> &        dof_handler,           // dof_handler
+        const dealii::hp::MappingCollection<dim> & mapping_collection,    // mapping collection
+        const dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
+        const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
+        const dealii::UpdateFlags &                update_flags,          // update flags for for volume fe
+        std::unique_ptr<Field<dim,real>>&          h_field,               // (output) target size_field
+        const real &                               poly_degree);           // uniform polynomial degree
+
+    // performs adjoint based size-field adaptation with general p-field. Based on:
+    // Balan, A., Woopen, M., & May, G. (2016). 
+    // Adjoint-based hp-adaptivity on anisotropic meshes for high-order compressible flow simulations. 
+    // Computers and Fluids, 139. https://doi.org/10.1016/j.compfluid.2016.03.029
+    static void adjoint_h(
+        const real                                 complexity,            // target complexity
+        const real                                 r_max,                 // maximum refinement factor
+        const real                                 c_max,                 // maximum coarsening factor
+        const dealii::Vector<real> &               eta,                   // error indicator (DWR)
+        const dealii::hp::DoFHandler<dim> &        dof_handler,           // dof_handler
+        const dealii::hp::MappingCollection<dim> & mapping_collection,    // mapping collection
+        const dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
+        const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
+        const dealii::UpdateFlags &                update_flags,          // update flags for for volume fe
+        std::unique_ptr<Field<dim,real>>&          h_field,               // (output) target size_field
+        const dealii::Vector<real> &               p_field);              // polynomial degree vector
+
 protected:
     // given a p-field, redistribute h_field according to B
     static void update_h_optimal(
@@ -82,6 +116,25 @@ protected:
         const dealii::UpdateFlags &                update_flags,          // update flags for for volume fe
         const std::unique_ptr<Field<dim,real>> &   h_field,               // (input) size field
         const dealii::Vector<real> &               p_field);              // (input) poly field  
+
+    static void update_alpha_vector(
+        const dealii::Vector<real>&        eta,         // vector of DWR indicators
+        const real                         r_max,       // max refinement factor
+        const real                         c_max,       // max coarsening factor
+        const real                         eta_min,     // minimum DWR
+        const real                         eta_max,     // maximum DWR
+        const real                         eta_ref,     // reference parameter for bisection
+        const dealii::hp::DoFHandler<dim>& dof_handler, // dof_handler
+        const dealii::Vector<real>&        I_c,         // cell area measure
+        std::unique_ptr<Field<dim,real>>&  h_field);    // (output) size-field
+
+    static real update_alpha_k(
+        const real eta_k,   // local DWR factor
+        const real r_max,   // maximum refinement factor
+        const real c_max,   // maximum coarsening factor
+        const real eta_min, // minimum DWR indicator
+        const real eta_max, // maximum DWR indicator
+        const real eta_ref);// referebce DWR for determining coarsening/refinement
 
     static real bisection(
         const std::function<real(real)> func,         // lambda function that takes real -> real 

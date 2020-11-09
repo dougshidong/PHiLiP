@@ -264,6 +264,212 @@ void SizeField<dim,real>::isotropic_hp(
     // only if another change needs to be made here
 }
 
+template <int dim, typename real>
+void SizeField<dim,real>::adjoint_uniform(
+    const real                                 complexity,            // target complexity
+    const real                                 r_max,                 // maximum refinement factor
+    const real                                 c_max,                 // maximum coarsening factor
+    const dealii::Vector<real> &               eta,                   // error indicator (DWR)
+    const dealii::hp::DoFHandler<dim> &        dof_handler,           // dof_handler
+    const dealii::hp::MappingCollection<dim> & mapping_collection,    // mapping collection
+    const dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
+    const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
+    const dealii::UpdateFlags &                update_flags,          // update flags for for volume fe
+    std::unique_ptr<Field<dim,real>>&          h_field,               // (output) target size_field
+    const real &                               poly_degree)           // uniform polynomial degree
+{
+    // creating a proper polynomial vector
+    dealii::Vector<real> p_field(dof_handler.get_triangulation().n_active_cells());
+    for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell)
+        if(cell->is_locally_owned())
+            p_field[cell->active_cell_index()] = poly_degree;
+
+    // calling the regular version of adjoint_h
+    adjoint_h(
+        complexity,
+        r_max,
+        c_max,
+        eta,
+        dof_handler,
+        mapping_collection,
+        fe_collection,
+        quadrature_collection,
+        update_flags,
+        h_field,
+        p_field);
+}
+
+template <int dim, typename real>
+void SizeField<dim,real>::adjoint_h(
+    const real                                 complexity,            // target complexity
+    const real                                 r_max,                 // maximum refinement factor
+    const real                                 c_max,                 // maximum coarsening factor
+    const dealii::Vector<real> &               eta,                   // error indicator (DWR)
+    const dealii::hp::DoFHandler<dim> &        dof_handler,           // dof_handler
+    const dealii::hp::MappingCollection<dim> & mapping_collection,    // mapping collection
+    const dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
+    const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
+    const dealii::UpdateFlags &                update_flags,          // update flags for for volume fe
+    std::unique_ptr<Field<dim,real>>&          h_field,               // (output) target size_field
+    const dealii::Vector<real> &               p_field)               // polynomial degree vector
+{
+    // getting the I_c vector of the initial sizes
+    dealii::Vector<real> I_c(dof_handler.get_triangulation().n_active_cells());
+    for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell)
+        if(cell->is_locally_owned())
+            I_c[cell->active_cell_index()] = pow(h_field->get_scale(cell->active_cell_index()), (real)dim);
+
+    // getting minimum and maximum of eta
+    real eta_min_local, eta_max_local;
+    bool first = true;
+    for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell){
+        if(!cell->is_locally_owned()) continue;
+
+        unsigned int index = cell->active_cell_index();
+
+        // for first cell found, setting the value 
+        if(first){
+            eta_min_local = eta[index];
+            eta_max_local = eta[index];
+            first = false;
+        }else{
+
+            // performing checks
+            if(eta[index] < eta_min_local)
+                eta_min_local = eta[index];
+
+            if(eta[index] > eta_max_local)
+                eta_max_local = eta[index];
+
+        }
+    }
+
+    // each processor needs atleast 1 cell
+    Assert(first, dealii::ExcInternalError());
+
+    // perform mpi call
+    real eta_min = dealii::Utilities::MPI::min(eta_min_local, MPI_COMM_WORLD);
+    real eta_max = dealii::Utilities::MPI::max(eta_max_local, MPI_COMM_WORLD);
+
+    // setting up the bisection functional, based on an input value of
+    // eta_ref, determines the complexity value for the mesh (using DWR estimates
+    // weighted in the quadratic logarithmic space).
+    auto f = [&](real eta_ref) -> real{
+        // updating the size field
+        update_alpha_vector(
+            eta,
+            r_max, 
+            c_max, 
+            eta_min, 
+            eta_max,
+            eta_ref,
+            dof_handler,
+            I_c,
+            h_field);
+
+        // getting the complexity and returning the difference with the target
+        real current_complexity = evaluate_complexity(
+            dof_handler, 
+            mapping_collection, 
+            fe_collection, 
+            quadrature_collection, 
+            update_flags, 
+            h_field, 
+            p_field);
+        return current_complexity - complexity;
+    };
+
+    // call to optimization (bisection), using min and max as initial bounds
+    real eta_target = bisection(f, eta_min, eta_max);
+
+    // final uppdate using the converged parameter
+    update_alpha_vector(
+        eta,
+        r_max, 
+        c_max, 
+        eta_min, 
+        eta_max,
+        eta_target,
+        dof_handler,
+        I_c,
+        h_field);
+
+}
+
+// updates the size targets for the entire mesh (from alpha)
+// based on the input of a bisection parameter eta_ref
+template <int dim, typename real>
+void SizeField<dim,real>::update_alpha_vector(
+    const dealii::Vector<real>&        eta,         // vector of DWR indicators
+    const real                         r_max,       // max refinement factor
+    const real                         c_max,       // max coarsening factor
+    const real                         eta_min,     // minimum DWR
+    const real                         eta_max,     // maximum DWR
+    const real                         eta_ref,     // reference parameter for bisection
+    const dealii::hp::DoFHandler<dim>& dof_handler, // dof_handler
+    const dealii::Vector<real>&        I_c,         // cell area measure
+    std::unique_ptr<Field<dim,real>>&  h_field)     // (output) size-field
+{
+    // looping through the cells and updating their size (h_field)
+    for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell){
+        if(!cell->is_locally_owned()) continue;
+
+        unsigned int index = cell->active_cell_index();
+
+        // getting the alpha factor for the cell update
+        real alpha_k = update_alpha_k(
+            eta[index],
+            r_max,
+            c_max,
+            eta_min,
+            eta_max,
+            eta_ref);
+
+        // getting the new length based on I_c (cell area)
+        real h_target = pow(alpha_k * I_c[index], (real)(-dim));
+
+        // updating the h_field
+        h_field->set_scale(index, h_target);
+
+    }
+}
+
+// function that determines local alpha size refinement factor (from adjoint estimates)
+// from eq. 30-33 of Balan et al. "djoint-based hp-adaptivity on anisotropic meshes for high-order..."
+template <int dim, typename real>
+real SizeField<dim,real>::update_alpha_k(
+    const real eta_k,   // local DWR factor
+    const real r_max,   // maximum refinement factor
+    const real c_max,   // maximum coarsening factor
+    const real eta_min, // minimum DWR indicator
+    const real eta_max, // maximum DWR indicator
+    const real eta_ref) // referebce DWR for determining coarsening/refinement
+{
+    // considering two possible cases (above or below reference)
+    real alpha_k;
+    if(eta_k >= eta_ref){ 
+
+        // getting the quadratic coefficient
+        real xi_k = (log(eta_k) - log(eta_ref)) / (log(eta_max) - log(eta_ref));
+
+
+        // getting the refinement factor
+        alpha_k = 1.0 / ((r_max-1)*xi_k*xi_k + 1.0);
+
+    }else{
+
+        // getting the quadratic coefficient
+        real xi_k = (log(eta_k) - log(eta_ref)) / (log(eta_min) - log(eta_ref));
+
+        // getting the coarsening factor
+        alpha_k = ((c_max-1)*xi_k*xi_k + 1.0);
+
+    }
+
+    // update area fraction (relative to initial area)
+    return alpha_k;
+}
+
 // functions for solving non-linear problems
 template <int dim, typename real>
 real SizeField<dim,real>::bisection(

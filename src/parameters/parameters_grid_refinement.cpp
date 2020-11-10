@@ -112,6 +112,14 @@ void GridRefinementParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Double(0.0, 1.0),
                           "Fraction of elements to undergo coarsening for fixed_fraction method.");
     
+        prm.declare_entry("r_max", "4",
+                          dealii::Patterns::Double(1.0, dealii::Patterns::Double::max_double_value),
+                          "Maximum refinement factor for adjoint-based size-field (from log DWR).");
+
+        prm.declare_entry("c_max", "4",
+                          dealii::Patterns::Double(1.0, dealii::Patterns::Double::max_double_value),
+                          "Maximum coarsening factor for adjoint-based size-field (from log DWR).");
+
         prm.declare_entry("complexity_scale", "2.0",
                           dealii::Patterns::Double(),
                           "Scaling factor multiplying previous complexity.");
@@ -175,6 +183,9 @@ void GridRefinementParam::parse_parameters(dealii::ParameterHandler &prm)
         norm_Lq             = prm.get_double("norm_Lq");
         refinement_fraction = prm.get_double("refinement_fraction");
         coarsening_fraction = prm.get_double("coarsening_fraction");
+
+        r_max = prm.get_double("r_max");
+        c_max = prm.get_double("c_max");
 
         complexity_scale = prm.get_double("complexity_scale");
         complexity_add   = prm.get_double("complexity_add");

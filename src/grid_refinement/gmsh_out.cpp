@@ -240,7 +240,7 @@ void GmshOut<dim,real>::write_pos_anisotropic(
                     const unsigned int N = 3;
 
                     // scaling for the complexity match
-                    const double scale = 0.25;
+                    const double scale = 0.25*0.5/sqrt(3.0);
 
                     for(unsigned int i = 0; i < N; ++i){
                         for(unsigned int j = 0; j < N; ++j){
@@ -344,7 +344,7 @@ void GmshOut<dim,real>::write_geo_anisotropic(
     // default is the BAMG for anisotropy
     out << "Mesh.Algorithm = 7;" << '\n'
         // << "Mesh.SmoothRatio = 2;" << '\n'
-        << "Mesh.RecombinationAlgorithm = 3;" << '\n' 
+        << "Mesh.RecombinationAlgorithm = 2;" << '\n' 
         << "Mesh.RecombineAll = 1;" << '\n' << '\n'; 
 
     // writing the geometry of the part
@@ -367,12 +367,12 @@ void GmshOut<dim,real>::write_geo_anisotropic(
 }
 
 // writes the geometry of a hypercube to the file as the domain to be meshed
-// TODO: Colorize the boundary
 template <int dim, typename real>
 void GmshOut<dim,real>::write_geo_hyper_cube(
     const double  left,
     const double  right,
-    std::ostream &out)
+    std::ostream &out,
+    const bool    colorize)
 {
     // placing the poins at each of the corners (can be in any order)
     // splitting the dimensional cases for easier reading
@@ -399,6 +399,16 @@ void GmshOut<dim,real>::write_geo_hyper_cube(
         out << "// Surface" << '\n';
         out << "Plane Surface(1) = {1};" << '\n';
         out << '\n';
+
+        // colorizes the boundary in the style of DEALII internal numbering
+        if(colorize){
+            out << "// Colorize" << '\n';
+            out << "Physical Curve (2) = {1};" << '\n';
+            out << "Physical Curve (1) = {2};" << '\n';
+            out << "Physical Curve (3) = {3};" << '\n';
+            out << "Physical Curve (0) = {4};" << '\n';
+            out << '\n';
+        }
     }
 
 }

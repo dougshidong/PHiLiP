@@ -78,6 +78,9 @@ public:
     double refinement_fraction; // refinement fraction
     double coarsening_fraction; // coarsening fraction
 
+    double r_max; // refinement factor for log DWR size field
+    double c_max; // coarsening factor for log DWR size field
+
     // new_complexity = (old_complexity * complexity_scale) + complexity_add
     double complexity_scale; // multiplier to complexity
     double complexity_add; // additive to complexity

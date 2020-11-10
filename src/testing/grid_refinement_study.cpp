@@ -123,7 +123,7 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
                     if(cell->face(face)->at_boundary()){
                         // temporarily disable
                         // cell->face(face)->set_boundary_id(1000);
-                        std::cout << cell->face(face)->boundary_id() << std::endl;
+                        // std::cout << cell->face(face)->boundary_id() << ", " << cell->face(face)->center() << std::endl;
                     }
             }
         

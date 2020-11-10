@@ -43,7 +43,8 @@ private:
     static void write_geo_hyper_cube(
         const double  left,
         const double  right,
-        std::ostream &out);
+        std::ostream &out,
+        const bool    colorize = true);
 };
 
 } // namespace GridRefinement

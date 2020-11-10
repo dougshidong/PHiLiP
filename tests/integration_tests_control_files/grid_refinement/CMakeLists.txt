@@ -1,7 +1,5 @@
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
-configure_file(test_grid.msh test_grid.msh COPYONLY)
-
 configure_file(2d_grid_refinement_study.prm 2d_grid_refinement_study.prm COPYONLY)
 add_test(
   NAME 2D_GRID_REFINEMENT_STUDY
@@ -47,6 +45,13 @@ add_test(
 configure_file(2d_gmsh_aniso_sshock.prm 2d_gmsh_aniso_sshock.prm COPYONLY)
 add_test(
   NAME 2D_GMSH_ANISO_SSHOCK
+  COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_gmsh_aniso_sshock.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
+configure_file(2d_gmsh_adjoint_sshock.prm 2d_gmsh_adjoint_sshock.prm COPYONLY)
+add_test(
+  NAME 2D_GMSH_ADJOINT_SSHOCK
   COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_gmsh_aniso_sshock.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )

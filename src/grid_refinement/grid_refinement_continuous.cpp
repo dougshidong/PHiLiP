@@ -216,18 +216,23 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_gmsh()
                 outgeo);
         }
 
+        std::string args = " " + write_geoname + " -2 -save_all -o " + output_name;
+
         #if 1
         // uses old version of gmsh
-        std::cout << "Command is: " << ("/usr/local/include/gmsh-master/build/gmsh " + write_geoname + " -2 -o " + output_name).c_str() << '\n';
-        int ret = std::system(("/usr/local/include/gmsh-master/build/gmsh " + write_geoname + " -2 -o " + output_name).c_str());
+        std::string cmd = "/usr/local/include/gmsh-master/build/gmsh" + args;
+        std::cout << "Command is: " << cmd << '\n';
+        int ret = std::system(cmd.c_str());
         #elif 0
         // hardcode redirect to my version 4.7.0
-        std::cout << "Command is: " << ("~/gmsh/gmsh-4.7.0-Linux64/bin/gmsh " + write_geoname + " -2 -o " + output_name).c_str() << '\n';
-        int ret = std::system(("~/gmsh/gmsh-4.7.0-Linux64/bin/gmsh " + write_geoname + " -2 -o " + output_name).c_str());
+        std::string cmd = "~/gmsh/gmsh-4.7.0-Linux64/bin/gmsh" + args;
+        std::cout << "Command is: " << cmd << '\n';
+        int ret = std::system(cmd.c_str());
         #else
         // hardcode redirect to my version 4.6.0
-        std::cout << "Command is: " << ("~/gmsh/gmsh-4.6.0-Linux64/bin/gmsh " + write_geoname + " -2 -o " + output_name).c_str() << '\n';
-        int ret = std::system(("~/gmsh/gmsh-4.6.0-Linux64/bin/gmsh " + write_geoname + " -2 -o " + output_name).c_str());
+        std::string cmd = "~/gmsh/gmsh-4.6.0-Linux64/bin/gmsh" + args;
+        std::cout << "Command is: " << cmd << '\n';
+        int ret = std::system(cmd.c_str());
         #endif
         (void) ret;
     }
@@ -610,7 +615,10 @@ void GridRefinement_Continuous_Adjoint<dim,nstate,real,MeshType>::field_h()
     }
 
     // getting the DWR (cell-wise indicator)
-    dealii::Vector<real> dwr = this->adjoint->dual_weighted_residual();
+    this->adjoint->fine_grid_adjoint();
+    this->adjoint->dual_weighted_residual();
+    dealii::Vector<real> dwr = this->adjoint->dual_weighted_residual_fine;
+    this->adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double,MeshType>::AdjointStateEnum::coarse);
 
     // setting the current p-field and performing the size-field refinement step
 
@@ -622,7 +630,7 @@ void GridRefinement_Continuous_Adjoint<dim,nstate,real,MeshType>::field_h()
             this->complexity_target,
             this->grid_refinement_param.r_max,
             this->grid_refinement_param.c_max,
-            eta,
+            dwr,
             this->dg->dof_handler,
             mapping_collection,
             this->dg->fe_collection,
@@ -635,11 +643,11 @@ void GridRefinement_Continuous_Adjoint<dim,nstate,real,MeshType>::field_h()
         // the case of non-uniform p
         GridRefinement_Continuous<dim,nstate,real,MeshType>::get_current_field_p();
 
-        SizeField<dim,real>::adjoint_uniform(
+        SizeField<dim,real>::adjoint_h(
             this->complexity_target,
             this->grid_refinement_param.r_max,
             this->grid_refinement_param.c_max,
-            eta,
+            dwr,
             this->dg->dof_handler,
             mapping_collection,
             this->dg->fe_collection,

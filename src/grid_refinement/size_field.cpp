@@ -351,6 +351,18 @@ void SizeField<dim,real>::adjoint_h(
     real eta_min = dealii::Utilities::MPI::min(eta_min_local, MPI_COMM_WORLD);
     real eta_max = dealii::Utilities::MPI::max(eta_max_local, MPI_COMM_WORLD);
 
+    std::cout << "Starting complexity = " << evaluate_complexity(
+            dof_handler, 
+            mapping_collection, 
+            fe_collection, 
+            quadrature_collection, 
+            update_flags, 
+            h_field, 
+            p_field) << std::endl;
+
+    // complexity multiplier to fix start effects
+    real complexity_factor = 1.0;
+
     // setting up the bisection functional, based on an input value of
     // eta_ref, determines the complexity value for the mesh (using DWR estimates
     // weighted in the quadratic logarithmic space).
@@ -376,11 +388,12 @@ void SizeField<dim,real>::adjoint_h(
             update_flags, 
             h_field, 
             p_field);
-        return current_complexity - complexity;
+        return current_complexity - (complexity*complexity_factor);
     };
 
     // call to optimization (bisection), using min and max as initial bounds
-    real eta_target = bisection(f, eta_min, eta_max);
+    real eta_target = bisection(f, eta_max, eta_min);
+    std::cout << "Bisection finished with eta_ref = "<< eta_target << ", f(eta_ref)=" << f(eta_target) << std::endl;
 
     // final uppdate using the converged parameter
     update_alpha_vector(
@@ -426,7 +439,11 @@ void SizeField<dim,real>::update_alpha_vector(
             eta_ref);
 
         // getting the new length based on I_c (cell area)
-        real h_target = pow(alpha_k * I_c[index], (real)(-dim));
+        real h_target = pow(alpha_k * I_c[index], 1.0/dim);
+
+        // real h = h_field->get_scale(index);
+        // std::cout << "h = " << h << ", h_t = " << h_target << ", alpha = " << alpha_k << std::endl;
+        // std::cout << "I_c = " << I_c[index] << ", sqrt(I_c) = " << pow(I_c[index], 1.0/dim) << std::endl;;
 
         // updating the h_field
         h_field->set_scale(index, h_target);
@@ -446,8 +463,10 @@ real SizeField<dim,real>::update_alpha_k(
     const real eta_ref) // referebce DWR for determining coarsening/refinement
 {
     // considering two possible cases (above or below reference)
+    // also need to check close to equality to avoid divide by ~= 0
     real alpha_k;
-    if(eta_k >= eta_ref){ 
+    
+    if(eta_k > eta_ref){ 
 
         // getting the quadratic coefficient
         real xi_k = (log(eta_k) - log(eta_ref)) / (log(eta_max) - log(eta_ref));
@@ -456,13 +475,18 @@ real SizeField<dim,real>::update_alpha_k(
         // getting the refinement factor
         alpha_k = 1.0 / ((r_max-1)*xi_k*xi_k + 1.0);
 
-    }else{
+    }else if(eta_k < eta_ref){
 
         // getting the quadratic coefficient
         real xi_k = (log(eta_k) - log(eta_ref)) / (log(eta_min) - log(eta_ref));
 
         // getting the coarsening factor
         alpha_k = ((c_max-1)*xi_k*xi_k + 1.0);
+
+    }else{
+
+        // performing no change (right on)
+        alpha_k = 1.0;
 
     }
 
@@ -480,17 +504,22 @@ real SizeField<dim,real>::bisection(
     real f_lb = func(lower_bound);
     real f_ub = func(upper_bound);
 
+    std::cout << "lb = " << lower_bound << ", f_lb = " << f_lb << std::endl;
+    std::cout << "ub = " << upper_bound << ", f_ub = " << f_ub << std::endl;
+
     // f_ub is unused before being reset if not present here
     AssertThrow(f_lb * f_ub < 0, dealii::ExcInternalError());
 
     real x   = (lower_bound + upper_bound)/2.0;
     real f_x = func(x);
 
-    const real         tolerance = 1e-6;
-    const unsigned int max_iter  = 1000;
+    const real         rel_tolerance = 1e-6;
+    const unsigned int max_iter      = 1000;
+
+    const real tolerance = rel_tolerance * abs(f_ub-f_lb);
 
     unsigned int i = 0;
-    while(f_x > tolerance && i < max_iter){
+    while(abs(f_x) > tolerance && i < max_iter){
         if(f_x * f_lb < 0){
             upper_bound = x;
             f_ub        = f_x;
@@ -501,6 +530,8 @@ real SizeField<dim,real>::bisection(
 
         x   = (lower_bound + upper_bound)/2.0;
         f_x = func(x);
+
+        std::cout << "iter #" << i << ", x = " << x << ", fx = " << f_x << std::endl;
 
         i++;
     }

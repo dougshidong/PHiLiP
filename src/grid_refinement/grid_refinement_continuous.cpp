@@ -564,7 +564,93 @@ template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinement_Continuous_Residual<dim,nstate,real,MeshType>::field_hp(){}
 
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous_Adjoint<dim,nstate,real,MeshType>::field_h(){}
+void GridRefinement_Continuous_Adjoint<dim,nstate,real,MeshType>::field_h()
+{
+    // beginning h_field computation
+    std::cout << "Beggining anisotropic field_h() computation" << std::endl;
+
+    // mapping
+    const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid.mapping_fe_field));
+
+    // using p+1 reconstruction
+    const unsigned int rel_order = 1;
+
+    // construct object to reconstruct the derivatives onto A
+    ReconstructPoly<dim,nstate,real> reconstruct_poly(
+        this->dg->dof_handler,
+        mapping_collection,
+        this->dg->fe_collection,
+        this->dg->volume_quadrature_collection,
+        this->volume_update_flags);
+
+    // constructing the largest directional derivatives
+    reconstruct_poly.reconstruct_directional_derivative(
+        this->dg->solution,
+        rel_order);
+    
+    // if anisotropic, setting the cell anisotropy
+    if(this->grid_refinement_param.anisotropic){
+        std::cout << "Setting cell anisotropy" << std::endl;
+
+        // builds the anisotropy from Dolejsi's anisotropic ellipse size
+        this->h_field->set_anisotropy(
+            this->dg->dof_handler,
+            reconstruct_poly.derivative_value,
+            reconstruct_poly.derivative_direction,
+            rel_order);
+
+        std::cout << "Applying anisotropy limits: \\rho = [" << 
+            this->grid_refinement_param.anisotropic_ratio_min << ", " <<
+            this->grid_refinement_param.anisotropic_ratio_max << "]" << std::endl;
+
+        this->h_field->apply_anisotropic_limit(
+            this->grid_refinement_param.anisotropic_ratio_min,
+            this->grid_refinement_param.anisotropic_ratio_max);
+
+    }
+
+    // getting the DWR (cell-wise indicator)
+    dealii::Vector<real> dwr = this->adjoint->dual_weighted_residual();
+
+    // setting the current p-field and performing the size-field refinement step
+
+    // checking if the polynomial order is uniform
+    if(this->dg->get_min_fe_degree() == this->dg->get_max_fe_degree()){
+        unsigned int poly_degree = this->dg->get_min_fe_degree();
+
+        SizeField<dim,real>::adjoint_uniform(
+            this->complexity_target,
+            this->grid_refinement_param.r_max,
+            this->grid_refinement_param.c_max,
+            eta,
+            this->dg->dof_handler,
+            mapping_collection,
+            this->dg->fe_collection,
+            this->dg->volume_quadrature_collection,
+            this->volume_update_flags,
+            this->h_field,
+            poly_degree);
+
+    }else{
+        // the case of non-uniform p
+        GridRefinement_Continuous<dim,nstate,real,MeshType>::get_current_field_p();
+
+        SizeField<dim,real>::adjoint_uniform(
+            this->complexity_target,
+            this->grid_refinement_param.r_max,
+            this->grid_refinement_param.c_max,
+            eta,
+            this->dg->dof_handler,
+            mapping_collection,
+            this->dg->fe_collection,
+            this->dg->volume_quadrature_collection,
+            this->volume_update_flags,
+            this->h_field,
+            this->p_field);
+
+    }
+}
+
 template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinement_Continuous_Adjoint<dim,nstate,real,MeshType>::field_p(){}
 template <int dim, int nstate, typename real, typename MeshType>

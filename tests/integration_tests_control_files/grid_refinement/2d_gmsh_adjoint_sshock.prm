@@ -85,34 +85,34 @@ subsection grid refinement study
   # end
 
   # for the alltogether run
-  set num_refinements = 3
+  set num_refinements = 1
 
-  # grid refinement
-  subsection grid refinement [1]
-    set refinement_steps  = 6
-    set refinement_method = continuous
-    set refinement_type   = h
+#   # grid refinement
+#   subsection grid refinement [2]
+#     set refinement_steps  = 1
+#     set refinement_method = continuous
+#     set refinement_type   = h
     
-    #set anisotropic       = false
-    set anisotropic       = true
-    set anisotropic_ratio_min = 0.2
-    set anisotropic_ratio_max = 5.0
+#     #set anisotropic       = false
+#     set anisotropic       = true
+#     set anisotropic_ratio_min = 0.2
+#     set anisotropic_ratio_max = 5.0
 
-    set error_indicator   = adjoint_based
-    set norm_Lq           = 2.0
-    set complexity_scale  = 2.0
-    set complexity_add    = 0.0
+#     set error_indicator   = adjoint_based
+#     set norm_Lq           = 2.0
+#     set complexity_scale  = 2.0
+#     set complexity_add    = 0.0
 
-    # output options
-    set output_type      = gmsh_out
-  end
+#     # output options
+#     set output_type      = gmsh_out
+#   end
+
+#   subsection grid refinement [1]
+#     set refinement_steps  = 1
+#     set refinement_method = uniform
+#   end
 
   subsection grid refinement [0]
-    set refinement_steps  = 4
-    set refinement_method = uniform
-  end
-
-  subsection grid refinement [2]
     set refinement_steps  = 6
     set refinement_method = fixed_fraction
 

@@ -503,9 +503,6 @@ void GridRefinement_FixedFraction_Residual<dim,nstate,real,MeshType>::error_indi
 template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinement_FixedFraction_Adjoint<dim,nstate,real,MeshType>::error_indicator()
 {
-    // reinitializing the adjoint with current values
-    this->adjoint->reinit();
-
     // evaluating the functional derivatives and adjoint
     this->adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,real,MeshType>::AdjointStateEnum::fine);
     this->adjoint->fine_grid_adjoint();

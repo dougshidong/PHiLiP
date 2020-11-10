@@ -42,7 +42,7 @@ subsection grid refinement study
   # grid setup
   # set grid_type  = hypercube
   set grid_type = read_grid
-  set input_grid = test_grid.msh
+  set input_grid = sshock_smooth_1.msh
 
   #set input_grid = NaN
   set grid_left  = 0.0
@@ -59,8 +59,8 @@ subsection grid refinement study
 
   # grid refinement
   subsection grid refinement
-    set refinement_steps  = 2
-    set refinement_method = continuous
+    set refinement_steps  = 1
+    set refinement_method = continuous # fixed_fraction #  uniform # 
     set refinement_type   = h
     
     #set anisotropic       = false

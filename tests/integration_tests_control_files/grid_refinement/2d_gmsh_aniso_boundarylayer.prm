@@ -5,7 +5,7 @@ set dimension = 2
 
 # The PDE we want to solve. Choices are
 # <advection|diffusion|convection_diffusion>.
-set pde_type  = advection # convection_diffusion # 
+set pde_type  = convection_diffusion # advection # 
 set test_type = grid_refinement_study
 
 subsection linear solver
@@ -14,7 +14,7 @@ subsection linear solver
     set linear_residual_tolerance = 1e-4
     set max_iterations = 2000
     set restart_number = 50
-    set ilut_fill = 1
+    set ilut_fill = 10
     # set ilut_drop = 1e-4
   end 
 end
@@ -40,6 +40,9 @@ subsection grid refinement study
   set poly_degree_grid = 1
 
   # grid setup
+  # set grid_type = read_grid
+  # set input_grid = output_bl_16_4b.msh
+
   set grid_type  = hypercube
   #set input_grid = NaN
   set grid_left  = 0.0
@@ -54,9 +57,37 @@ subsection grid refinement study
   # set use_interpolation = true
   # set use_interpolation = true
 
+  # # for the lpcvt runs
+  # subsection grid refinement
+  #   set refinement_steps  = 1
+  #   set refinement_method = continuous
+  #   set refinement_type   = h
+
+  #   set anisotropic = true
+  #   set anisotropic_ratio_min = 0.2
+  #   set anisotropic_ratio_max = 5.0
+
+  #   set error_indicator = hessian_based
+  #   set norm_Lq = 2.0
+  #   # set complexity_vector = [2304, 4608, 9216, 18432, 36864]
+  #   # set complexity_vector = [1296, 2592, 5184, 10368, 20736]
+  #   set complexity_vector = [36864]
+
+  #   set output_type = msh_out
+  #   set output_data_type = metric_field    
+  # end
+
+  # for the alltogether run
+  set num_refinements = 3
+
+  subsection grid refinement [1]
+    set refinement_steps  = 1
+    set refinement_method = uniform
+  end
+
   # grid refinement
-  subsection grid refinement
-    set refinement_steps  = 6
+  subsection grid refinement [0]
+    set refinement_steps  = 7
     set refinement_method = continuous
     set refinement_type   = h
     
@@ -72,6 +103,17 @@ subsection grid refinement study
 
     # output options
     set output_type      = gmsh_out
+  end
+
+  subsection grid refinement [2]
+    set refinement_steps    = 1
+    set refinement_method   = fixed_fraction
+    set refinement_type     = h
+    set anisotropic         = false
+    set error_indicator     = hessian_based
+    set norm_Lq             = 2.0
+    set refinement_fraction = 0.3
+    set coarsening_fraction = 0.0
   end
 
 end

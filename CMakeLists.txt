@@ -95,6 +95,8 @@ SET(_philip_targets "#
 #      make PHiLiP_3D      - to build main program (wihtout tests) in 3D ")
 add_custom_target(unit_tests)
 
+add_custom_target(grids)
+
 # Source code
 include_directories(submodules)
 include_directories(src)
@@ -127,8 +129,6 @@ foreach(file ${JOUKOWSKI_GENERATOR_GEO})
     configure_file(${CMAKE_SOURCE_DIR}/submodules/joukowski_high_order_mesh/${file} gmsh_meshes/joukowski/${file} COPYONLY)
 endforeach()
 
-add_custom_target(grids)
-
 foreach(order RANGE 1 4)
 foreach(ref   RANGE 0 3)
     add_custom_target(joukowski_R${ref}_Q${order}
@@ -142,6 +142,7 @@ foreach(ref   RANGE 0 3)
     add_dependencies(grids joukowski_R${ref}_Q${order})
 endforeach()
 endforeach()
+
 #    if(NOT JOUKOWSKI_PY_RESULT EQUAL "0")
 #        message(FATAL_ERROR
 #                "gmsh ${JOUKOWSKI_PY_RESULT}, please check ${GMSH_GEO} file")

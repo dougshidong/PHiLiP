@@ -42,6 +42,7 @@
 
 #include <deal.II/numerics/derivative_approximation.h>
 #include <deal.II/grid/grid_refinement.h>
+#include <deal.II/distributed/grid_refinement.h>
 
 
 #include "global_counter.hpp"
@@ -300,13 +301,14 @@ real DGBaseState<dim,nstate,real>::evaluate_CFL (
     }
     const real max_eig = *(std::max_element(convective_eigenvalues.begin(), convective_eigenvalues.end()));
 
-    // const real cfl_convective = cell_diameter / max_eig;
-    // const real cfl_diffusive  = artificial_dissipation != 0.0 ? 0.5*cell_diameter*cell_diameter / artificial_dissipation : 1e200;
-    // real min_cfl = std::min(cfl_convective, cfl_diffusive) / (2*cell_degree + 1.0);
+    //const real cfl_convective = cell_diameter / max_eig;
+    //const real cfl_diffusive  = artificial_dissipation != 0.0 ? 0.5*cell_diameter*cell_diameter / artificial_dissipation : 1e200;
+    //real min_cfl = std::min(cfl_convective, cfl_diffusive) / (2*cell_degree + 1.0);
 
-    const real cfl_convective = (cell_diameter / max_eig) / (cell_degree * cell_degree);
+    const unsigned int p = std::max((unsigned int)1,cell_degree);
+    const real cfl_convective = (cell_diameter / max_eig) / (2*p+1);//(p * p);
     const real cfl_diffusive  = artificial_dissipation != 0.0 ?
-                                (0.5*cell_diameter*cell_diameter / artificial_dissipation) / (cell_degree*cell_degree*cell_degree*cell_degree)
+                                (0.5*cell_diameter*cell_diameter / artificial_dissipation) / (p*p*p*p)
                                 : 1e200;
     real min_cfl = std::min(cfl_convective, cfl_diffusive);
 
@@ -372,7 +374,7 @@ real DGBase<dim,real>::evaluate_penalty_scaling (
     const unsigned int normal_direction = dealii::GeometryInfo<dim>::unit_normal_direction[iface];
     const real vol_div_facearea = cell->extent_in_direction(normal_direction);
 
-    const real penalty = degsq / vol_div_facearea * 10;// * 20;
+    const real penalty = degsq / vol_div_facearea * this->all_parameters->sipg_penalty_factor;// * 20;
 
     return penalty;
 }
@@ -934,7 +936,7 @@ void DGBase<dim,real>::update_artificial_dissipation_discontinuity_sensor()
 
         const double mu_scale = 1.0 * 10e0;
         //const double s_0 = - 4.25*log10(degree);
-        const double s_0 = -0.50 - 4.25*log10(degree);
+        const double s_0 = -1.00 - 4.25*log10(degree);
         const double kappa = 1.0;
         const double low = s_0 - kappa;
         const double upp = s_0 + kappa;
@@ -1385,7 +1387,8 @@ void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
     //const int n_subdivisions = 1;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
     const int n_subdivisions = grid_degree;
     data_out.build_patches(mapping, n_subdivisions, curved);
-    const bool write_higher_order_cells = (dim>1 && max_degree > 1) ? true : false;
+    //const bool write_higher_order_cells = (dim>1 && max_degree > 1) ? true : false;
+    const bool write_higher_order_cells = (dim>1 && grid_degree > 1) ? true : false;
     dealii::DataOutBase::VtkFlags vtkflags(0.0,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
     data_out.set_flags(vtkflags);
 
@@ -1956,9 +1959,14 @@ void DGBase<dim,real>::refine_residual_based()
         dofs_indices.resize(n_dofs_cell);
         cell->get_dof_indices (dofs_indices);
         double max_residual = 0;
-        for (const auto &idof : dofs_indices) {
-            const double res = std::abs(right_hand_side[idof]);
-            if (res > max_residual) max_residual = res;
+        for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
+        //for (const auto &idof : dofs_indices) {
+            const unsigned int index = dofs_indices[idof];
+            const unsigned int istate = fe_ref.system_to_component_index(idof).first;
+            if (istate == dim+2-1) {
+                const double res = std::abs(right_hand_side[index]);
+                if (res > max_residual) max_residual = res;
+            }
         }
         gradient_indicator[cell->active_cell_index()] = max_residual;
     }
@@ -1969,10 +1977,17 @@ void DGBase<dim,real>::refine_residual_based()
     high_order_grid->prepare_for_coarsening_and_refinement();
 
     //high_order_grid->triangulation->refine_global (1);
-    dealii::GridRefinement::refine_and_coarsen_fixed_number(*high_order_grid->triangulation,
-                                                    gradient_indicator,
-                                                    0.01,
-                                                    0.005);
+    if constexpr(dim == 1) {
+        dealii::GridRefinement::refine_and_coarsen_fixed_number(*high_order_grid->triangulation,
+                                                        gradient_indicator,
+                                                        0.05,
+                                                        0.025);
+    } else {
+        dealii::parallel::distributed::GridRefinement::refine_and_coarsen_fixed_number(*(high_order_grid->triangulation),
+                                                        gradient_indicator,
+                                                        0.05,
+                                                        0.01);
+    }
     high_order_grid->triangulation->execute_coarsening_and_refinement();
     high_order_grid->execute_coarsening_and_refinement();
     allocate_system ();

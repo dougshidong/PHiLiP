@@ -194,13 +194,14 @@ int EulerNACA0012<dim,nstate>
             grid->refine_global();
             grid->refine_global();
 
-            const double solution_degree = poly_degree;
-            const double grid_degree = 3;//solution_degree+1;
-            //const double grid_degree = 1;
-            //const double grid_degree = 2;//solution_degree+1;
+            const unsigned int solution_degree = poly_degree;
+            const unsigned int grid_degree = 2;//solution_degree+1;
+            //const unsigned int grid_degree = 1;
+            //const unsigned int grid_degree = 2;//solution_degree+1;
             std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, solution_degree, solution_degree, grid_degree, grid);
 
-            std::shared_ptr<HighOrderGrid<dim,double>> joukowski_mesh = read_gmsh <dim, dim> ("joukowski_R0_Q2.msh");
+            //std::shared_ptr<HighOrderGrid<dim,double>> joukowski_mesh = read_gmsh <dim, dim> ("joukowski_R1_Q"+std::to_string(grid_degree)+".msh");
+            std::shared_ptr<HighOrderGrid<dim,double>> joukowski_mesh = read_gmsh <dim, dim> ("naca0012.msh");
             dg->set_high_order_grid(joukowski_mesh);
             //dg->high_order_grid->refine_global();
             //dg->high_order_grid->refine_global();

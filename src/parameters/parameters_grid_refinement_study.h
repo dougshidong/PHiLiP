@@ -51,7 +51,12 @@ public:
 
     bool output_vtk;
     bool output_adjoint_vtk;
-    bool output_gnuplot;
+
+    bool output_solution_error;
+    bool output_functional_error;
+
+    bool output_gnuplot_solution;
+    bool output_gnuplot_functional;
     bool refresh_gnuplot;
 
     /// Declares the possible variables and sets the defaults.

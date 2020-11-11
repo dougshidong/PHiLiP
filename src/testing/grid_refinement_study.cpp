@@ -84,7 +84,8 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
 
     // output for convergence figure
-    PHiLiP::GridRefinement::GnuFig<double> gf;
+    PHiLiP::GridRefinement::GnuFig<double> gf_solution;
+    PHiLiP::GridRefinement::GnuFig<double> gf_functional;
 
     std::vector<double> error_per_cell;
 
@@ -178,7 +179,8 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
         dealii::Vector<float> estimated_error_per_cell(grid->n_active_cells());
         
         // for plotting the error convergence with gnuplot
-        std::vector<double> error;
+        std::vector<double> solution_error;
+        std::vector<double> functional_error;
         std::vector<double> dofs;
 
         for(unsigned int igrid = 0; igrid < refinement_steps; ++igrid){
@@ -260,6 +262,10 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
             // computing the functional value
             double functional_value = functional->evaluate_functional(*(physics_adtype));
 
+            // getting the functional error from the approximated fine grid functional value
+            double functional_value_exact = 0.0;
+            double func_error = abs(functional_value - functional_value_exact);
+
             // reinitializing the adjoint
             adjoint->reinit();
 
@@ -285,15 +291,26 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
                 grid_refinement->output_results_vtk(iref);
 
             // convergence table
-            convergence_table.add_value("cells", n_global_active_cells);
-            convergence_table.add_value("DoFs", n_dofs);
-            // convergence_table.add_value("soln_L2_error", l2error_mpi_sum);
-            // convergence_table.add_value("output_error", );
-            convergence_table.add_value("value", functional_value);
-            convergence_table.add_value("l2_error", l2_norm_mpi);
-            convergence_table.add_value("linf_error", linf_norm_mpi);
-        
-            error.push_back(l2_norm_mpi);
+            if(grs_param.output_solution_error || grs_param.output_functional_error){
+                convergence_table.add_value("cells", n_global_active_cells);
+                convergence_table.add_value("DoFs", n_dofs);
+            }
+
+            // entries corresponding to the functional error
+            if(grs_param.output_functional_error){
+                convergence_table.add_value("value", functional_value);
+                convergence_table.add_value("func_error", func_error);
+            }
+
+            // entries corresponding to the solution error
+            if(grs_param.output_solution_error){
+                convergence_table.add_value("l2_error", l2_norm_mpi);
+                convergence_table.add_value("linf_error", linf_norm_mpi);
+            }
+
+            solution_error.push_back(l2_norm_mpi);
+            functional_error.push_back(func_error);
+            
             dofs.push_back(n_dofs);
 
             // temp
@@ -304,30 +321,50 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
             msh_out.write_msh(out_msh);
         }
 
-        pcout << " ********************************************" << std::endl
-              << " Convergence rates for p = " << poly_degree << std::endl
-              << " ********************************************" << std::endl;
-        // convergence_table.evaluate_convergence_rates("soln_L2_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        // convergence_table.evaluate_convergence_rates("output_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        // convergence_table.set_scientific("soln_L2_error", true);
-        // convergence_table.set_scientific("output_error", true);
-        convergence_table.evaluate_convergence_rates("value", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        convergence_table.set_scientific("value", true);
-        convergence_table.evaluate_convergence_rates("l2_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        convergence_table.set_scientific("l2_error", true);
-        convergence_table.evaluate_convergence_rates("linf_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        convergence_table.set_scientific("linf_error", true);
+        if(grs_param.output_solution_error || grs_param.output_functional_error){
+            pcout << " ********************************************" << std::endl
+                << " Convergence rates for p = " << poly_degree << std::endl
+                << " ********************************************" << std::endl;
+        }
+
+        // entries corresponding to the functional
+        if(grs_param.output_functional_error){
+            convergence_table.evaluate_convergence_rates("value", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+            convergence_table.set_scientific("value", true);
+            convergence_table.evaluate_convergence_rates("func_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+            convergence_table.set_scientific("func_error", true);
+        }
+
+        // entries corresponding to the solution
+        if(grs_param.output_solution_error){
+            convergence_table.evaluate_convergence_rates("l2_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+            convergence_table.set_scientific("l2_error", true);
+            convergence_table.evaluate_convergence_rates("linf_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+            convergence_table.set_scientific("linf_error", true);
+        }
+
         if(pcout.is_active()) convergence_table.write_text(pcout.get_stream());
 
         convergence_table_vector.push_back(convergence_table);
     
         // adding the data to gnuplot figure
-        if(pcout.is_active()) 
-            gf.add_xy_data(dofs, error, "l2error."+dealii::Utilities::int_to_string(iref,1));
+        if(pcout.is_active() && grs_param.output_gnuplot_solution){
+            gf_solution.add_xy_data(dofs, solution_error, "l2error."+dealii::Utilities::int_to_string(iref,1));
+        
+            // if refresh flag is set, output the plot at each iteration 
+            if(grs_param.refresh_gnuplot)
+                output_gnufig_solution(gf_solution);
+        }
 
-        // if refresh flag is set, output the plot at each iteration
-        if(pcout.is_active() && grs_param.output_gnuplot && grs_param.refresh_gnuplot)
-            output_gnufig(gf);
+        if(pcout.is_active() && grs_param.output_gnuplot_functional){
+            gf_functional.add_xy_data(dofs, functional_error, "ferror."+dealii::Utilities::int_to_string(iref,1));
+
+            // if refresh flag is set, output the plot at each iteration
+            if(grs_param.refresh_gnuplot)
+                output_gnufig_functional(gf_functional);
+        }
+
+            
     }
 
     pcout << std::endl << std::endl << std::endl << std::endl
@@ -339,20 +376,42 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
         pcout << " ********************************************" << std::endl;
     }
 
-    if(pcout.is_active() && grs_param.output_gnuplot)
-        output_gnufig(gf);
+    if(pcout.is_active() && grs_param.output_gnuplot_solution)
+        output_gnufig_solution(gf_solution);
+
+    if(pcout.is_active() && grs_param.output_gnuplot_functional)
+        output_gnufig_functional(gf_functional);
 
     return 0;
 }
 
-// function to output and execute the gnuplot command
-void output_gnufig(PHiLiP::GridRefinement::GnuFig<double> &gf)
+// function to perform the formatted output to gnuplot (of the solution error)
+void output_gnufig_solution(PHiLiP::GridRefinement::GnuFig<double> &gf)
 {
     // formatting for the figure and outputting .gp
     gf.set_name("ErrorPlot");
     gf.set_title("Error Convergence, |u|_2 vs. Dofs");
     gf.set_x_label("# Dofs");
     gf.set_y_label("L2 Error, |u|_2");
+    gf.set_grid(false);
+    gf.set_x_scale_log(true);
+    gf.set_y_scale_log(true);
+    gf.set_legend(true);
+    gf.write_gnuplot();
+
+    // performing plotting
+    gf.exec_gnuplot();
+}
+
+// function to perform the formatted output to gnuplot (of the funcitonal error)
+void output_gnufig_functional(
+    PHiLiP::GridRefinement::GnuFig<double> &gf)
+{
+    // formatting for the figure and outputting .gp
+    gf.set_name("FunctionalPlot");
+    gf.set_title("Functional Convergence, |J(u)-J_h(u_h)| vs. Dofs");
+    gf.set_x_label("# Dofs");
+    gf.set_y_label("Functional error, |J(u)-J_h(u_h)|");
     gf.set_grid(false);
     gf.set_x_scale_log(true);
     gf.set_y_scale_log(true);

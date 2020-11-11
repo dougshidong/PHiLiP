@@ -85,9 +85,21 @@ void GridRefinementStudyParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Bool(),
                           "output flag for adjoint vtk files.");
 
-        prm.declare_entry("output_gnuplot", "true",
+        prm.declare_entry("output_solution_error", "true",
                           dealii::Patterns::Bool(),
-                          "Output flag for gnuplot figure.");
+                          "ouput the convergence table for the solution error.");
+
+        prm.declare_entry("output_functional_error", "true",
+                          dealii::Patterns::Bool(),
+                          "ouput the convergence table for the functional error.");
+
+        prm.declare_entry("output_gnuplot_solution", "true",
+                          dealii::Patterns::Bool(),
+                          "Output flag for gnuplot solution error figure.");
+
+        prm.declare_entry("output_gnuplot_functional", "true",
+                          dealii::Patterns::Bool(),
+                          "Output flag for gnuplot functional error figure.");
 
         prm.declare_entry("refresh_gnuplot", "true",
                           dealii::Patterns::Bool(),
@@ -142,8 +154,13 @@ void GridRefinementStudyParam::parse_parameters(dealii::ParameterHandler &prm)
 
         output_vtk         = prm.get_bool("output_vtk");
         output_adjoint_vtk = prm.get_bool("output_adjoint_vtk");
-        output_gnuplot     = prm.get_bool("output_gnuplot");
-        refresh_gnuplot    = prm.get_bool("refresh_gnuplot");
+
+        output_solution_error   = prm.get_bool("output_solution_error");
+        output_functional_error = prm.get_bool("output_functional_error");
+
+        output_gnuplot_solution   = prm.get_bool("output_gnuplot_solution");
+        output_gnuplot_functional = prm.get_bool("output_gnuplot_functional");
+        refresh_gnuplot           = prm.get_bool("refresh_gnuplot");
     }
     prm.leave_subsection();
 }

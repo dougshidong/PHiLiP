@@ -575,7 +575,7 @@ real Functional<dim, nstate, real, MeshType>::evaluate_functional(
     if (compute_dIdW) dIdw.compress(dealii::VectorOperation::add);
     if (compute_dIdX) dIdX.compress(dealii::VectorOperation::add);
 
-    return dealii::Utilities::MPI::sum(local_functional, MPI_COMM_WORLD);;
+    return dealii::Utilities::MPI::sum(local_functional, MPI_COMM_WORLD);
 }
 
 template <int dim, int nstate, typename real, typename MeshType>

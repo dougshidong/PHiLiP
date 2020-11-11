@@ -17,9 +17,9 @@
 
 #include "weak_dg.hpp"
 
-//#define KOPRIVA_METRICS_VOL
-//#define KOPRIVA_METRICS_FACE
-//#define KOPRIVA_METRICS_BOUNDARY
+#define KOPRIVA_METRICS_VOL
+#define KOPRIVA_METRICS_FACE
+#define KOPRIVA_METRICS_BOUNDARY
 //#define FADFAD
 
 /// Returns the value from a CoDiPack variable.
@@ -1967,9 +1967,16 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
 
         bool same = true;
         for (int d=0; d<dim; ++d) {
-            if (abs(coords_int[iquad][d] - coords_ext[iquad][d]) > 1e-10) same = false;
+            real2 abs_diff = abs(coords_int[iquad][d] - coords_ext[iquad][d]);
+            if (abs_diff > 1e-10) {
+                real2 rel_diff = abs_diff / coords_int[iquad][d];
+                if (rel_diff > 1e-10) {
+                    same = false;
+                }
+            }
         }
         if (!same) {
+            std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
             std::cout << "coords_int ";
             for (int d=0;d<dim;++d) {
                 std::cout << coords_int[iquad][d] << " ";

@@ -133,9 +133,9 @@ real2 TargetFunctional<dim, nstate, real>::evaluate_volume_cell_functional(
         }
         real2 volume_integrand = this->evaluate_volume_integrand(physics, phys_coord, soln_at_q, target_soln_at_q, soln_grad_at_q, target_soln_grad_at_q);
 
-  (void) jacobian_determinant;
-  (void) quad_weight;
-  if (jacobian_determinant < 0) volume_local_sum += 1e200;
+        (void) jacobian_determinant;
+        (void) quad_weight;
+        if (jacobian_determinant < 0) volume_local_sum += 1e200;
         volume_local_sum += volume_integrand;// * jacobian_determinant * quad_weight;
     }
     return volume_local_sum;
@@ -229,9 +229,9 @@ real2 TargetFunctional<dim, nstate, real>::evaluate_face_cell_functional(
         }
         real2 face_integrand = evaluate_face_integrand(physics, phys_coord, soln_at_q, target_soln_at_q, soln_grad_at_q, target_soln_grad_at_q);
 
-  (void) jacobian_determinant;
-  (void) quad_weight;
-  if (jacobian_determinant < 0) face_local_sum += 1e200;
+        (void) jacobian_determinant;
+        (void) quad_weight;
+        if (jacobian_determinant < 0) face_local_sum += 1e200;
         face_local_sum += face_integrand * jacobian_determinant * quad_weight;
         //face_local_sum += face_integrand;// * jacobian_determinant * quad_weight;
     }
@@ -341,34 +341,34 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
         if (actually_compute_dIdW || actually_compute_d2I) n_total_indep += n_soln_dofs_cell;
         if (actually_compute_dIdX || actually_compute_d2I) n_total_indep += n_metric_dofs_cell;
         unsigned int i_derivative = 0;
-  for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof) {
-   const real val = dg->solution[cell_soln_dofs_indices[idof]];
-   soln_coeff[idof] = val;
-   if (actually_compute_dIdW || actually_compute_d2I) soln_coeff[idof].diff(i_derivative++, n_total_indep);
-  }
-  for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof) {
-   const real val = target_solution[cell_soln_dofs_indices[idof]];
-   target_soln_coeff[idof] = val;
-  }
-  for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-   const real val = dg->high_order_grid->volume_nodes[cell_metric_dofs_indices[idof]];
-   coords_coeff[idof] = val;
-   if (actually_compute_dIdX || actually_compute_d2I) coords_coeff[idof].diff(i_derivative++, n_total_indep);
+        for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof) {
+            const real val = dg->solution[cell_soln_dofs_indices[idof]];
+            soln_coeff[idof] = val;
+            if (actually_compute_dIdW || actually_compute_d2I) soln_coeff[idof].diff(i_derivative++, n_total_indep);
         }
-        AssertDimension(i_derivative, n_total_indep);
-        if (actually_compute_d2I) {
-   unsigned int i_derivative = 0;
+        for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof) {
+            const real val = target_solution[cell_soln_dofs_indices[idof]];
+            target_soln_coeff[idof] = val;
+        }
+        for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
+            const real val = dg->high_order_grid->volume_nodes[cell_metric_dofs_indices[idof]];
+            coords_coeff[idof] = val;
+            if (actually_compute_dIdX || actually_compute_d2I) coords_coeff[idof].diff(i_derivative++, n_total_indep);
+         }
+         AssertDimension(i_derivative, n_total_indep);
+         if (actually_compute_d2I) {
+            unsigned int i_derivative = 0;
             for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof) {
-    const real val = dg->solution[cell_soln_dofs_indices[idof]];
-    soln_coeff[idof].val() = val;
-    soln_coeff[idof].val().diff(i_derivative++, n_total_indep);
-   }
-            for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-    const real val = dg->high_order_grid->volume_nodes[cell_metric_dofs_indices[idof]];
-    coords_coeff[idof].val() = val;
-    coords_coeff[idof].val().diff(i_derivative++, n_total_indep);
+                const real val = dg->solution[cell_soln_dofs_indices[idof]];
+                soln_coeff[idof].val() = val;
+                soln_coeff[idof].val().diff(i_derivative++, n_total_indep);
             }
-  }
+            for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
+                const real val = dg->high_order_grid->volume_nodes[cell_metric_dofs_indices[idof]];
+                coords_coeff[idof].val() = val;
+                coords_coeff[idof].val().diff(i_derivative++, n_total_indep);
+            }
+        }
         AssertDimension(i_derivative, n_total_indep);
 
         // Get quadrature point on reference cell
@@ -409,10 +409,10 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
     if (actually_compute_dIdW) dIdw.compress(dealii::VectorOperation::add);
     if (actually_compute_dIdX) dIdX.compress(dealii::VectorOperation::add);
     if (actually_compute_d2I) {
-  d2IdWdW.compress(dealii::VectorOperation::add);
-  d2IdWdX.compress(dealii::VectorOperation::add);
-  d2IdXdX.compress(dealii::VectorOperation::add);
- }
+        d2IdWdW.compress(dealii::VectorOperation::add);
+        d2IdWdX.compress(dealii::VectorOperation::add);
+        d2IdXdX.compress(dealii::VectorOperation::add);
+    }
 
     return current_functional_value;
 }
@@ -669,7 +669,8 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
     return dIdX_FD;
 }
 
-template class TargetFunctional <PHILIP_DIM, 1, double>; template class TargetFunctional <PHILIP_DIM, 2, double>;
+template class TargetFunctional <PHILIP_DIM, 1, double>;
+template class TargetFunctional <PHILIP_DIM, 2, double>;
 template class TargetFunctional <PHILIP_DIM, 3, double>;
 template class TargetFunctional <PHILIP_DIM, 4, double>;
 template class TargetFunctional <PHILIP_DIM, 5, double>;

@@ -2,6 +2,7 @@ add_subdirectory(grids)
 
 set(GRID_SOURCE
     high_order_grid.cpp
+    gmsh_reader.cpp
     meshmover_linear_elasticity.cpp
     free_form_deformation.cpp
     )

@@ -124,7 +124,11 @@ public:
             const std::shared_ptr<Triangulation> triangulation_input,
             const MassiveCollectionTuple collection_tuple);
 
-    const std::shared_ptr<Triangulation> triangulation; ///< Mesh
+    std::shared_ptr<Triangulation> triangulation; ///< Mesh
+
+
+    /// Sets the associated high order grid with the provided one.
+    void set_high_order_grid(std::shared_ptr<HighOrderGrid<dim,real>> new_high_order_grid);
 
     /// Refers to a collection Mappings, which represents the high-order grid.
     /** Since we are interested in performing mesh movement for optimization purposes,
@@ -484,12 +488,24 @@ public:
     dealii::DoFHandler<dim> dof_handler;
 
     /// High order grid that will provide the MappingFEField
-    HighOrderGrid<dim,real> high_order_grid;
+    std::shared_ptr<HighOrderGrid<dim,real>> high_order_grid;
+
+protected:
+    /// Continuous distribution of artificial dissipation.
+    const dealii::FE_Q<dim> fe_q_artificial_dissipation;
+
+    /// Degrees of freedom handler for C0 artificial dissipation.
+    dealii::DoFHandler<dim> dof_handler_artificial_dissipation;
+
+    /// Artificial dissipation coefficients
+    dealii::LinearAlgebra::distributed::Vector<double> artificial_dissipation_c0;
+
 protected:
 
     /// Evaluate the integral over the cell volume and the specified derivatives.
     /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
     virtual void assemble_volume_term_derivatives(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::FEValues<dim,dim> &,//fe_values_vol,
         const dealii::FESystem<dim,dim> &fe,
@@ -502,6 +518,7 @@ protected:
     /// Evaluate the integral over the cell edges that are on domain boundaries and the specified derivatives.
     /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
     virtual void assemble_boundary_term_derivatives(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const unsigned int face_number,
         const unsigned int boundary_id,
@@ -518,6 +535,7 @@ protected:
      *  This adds the contribution to both cell's residual and effectively
      *  computes 4 block contributions to dRdX blocks. */
     virtual void assemble_face_term_derivatives(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
         const std::pair<unsigned int, int> face_subface_int,
@@ -540,6 +558,7 @@ protected:
 
     /// Evaluate the integral over the cell volume
     virtual void assemble_volume_term_explicit(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::FEValues<dim,dim> &fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
@@ -547,6 +566,7 @@ protected:
         const dealii::FEValues<dim,dim> &fe_values_lagrange) = 0;
     /// Evaluate the integral over the cell edges that are on domain boundaries
     virtual void assemble_boundary_term_explicit(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const unsigned int boundary_id,
         const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
@@ -555,6 +575,7 @@ protected:
         dealii::Vector<real> &current_cell_rhs) = 0;
     /// Evaluate the integral over the internal cell edges
     virtual void assemble_face_term_explicit(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_int,
@@ -611,6 +632,7 @@ private:
      */
     MassiveCollectionTuple create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const;
 
+public:
     /// Update discontinuity sensor.
     void update_artificial_dissipation_discontinuity_sensor();
 

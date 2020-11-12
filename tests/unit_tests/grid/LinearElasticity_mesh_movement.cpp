@@ -190,7 +190,7 @@ int main (int argc, char * argv[])
             surface_node_displacements_vector -= high_order_grid.surface_nodes;
             surface_node_displacements_vector.update_ghost_values();
 
-            MeshMover::LinearElasticity<dim, double, VectorType , dealii::DoFHandler<dim>> 
+            MeshMover::LinearElasticity<dim, double>
                 meshmover(high_order_grid, surface_node_displacements_vector);
             VectorType volume_displacements = meshmover.get_volume_displacements();
 

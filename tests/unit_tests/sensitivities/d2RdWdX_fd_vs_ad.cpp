@@ -48,7 +48,7 @@ int test (
 
     const int n_refine = 1;
     for (int i=0; i<n_refine;i++) {
-        dg->high_order_grid.prepare_for_coarsening_and_refinement();
+        dg->high_order_grid->prepare_for_coarsening_and_refinement();
         grid->prepare_coarsening_and_refinement();
         unsigned int icell = 0;
         for (auto cell = grid->begin_active(); cell!=grid->end(); ++cell) {
@@ -60,7 +60,7 @@ int test (
         }
         grid->execute_coarsening_and_refinement();
         bool mesh_out = (i==n_refine-1);
-        dg->high_order_grid.execute_coarsening_and_refinement(mesh_out);
+        dg->high_order_grid->execute_coarsening_and_refinement(mesh_out);
     }
     dg->allocate_system ();
 
@@ -99,7 +99,7 @@ int test (
     dealii::SparsityPattern sparsity_pattern = dg->get_d2RdWdX_sparsity_pattern();
 
     const dealii::IndexSet &row_parallel_partitioning = dg->locally_owned_dofs;
-    const dealii::IndexSet &col_parallel_partitioning = dg->high_order_grid.locally_owned_dofs_grid;
+    const dealii::IndexSet &col_parallel_partitioning = dg->high_order_grid->locally_owned_dofs_grid;
     d2RdWdX_fd.reinit(row_parallel_partitioning, col_parallel_partitioning, sparsity_pattern, MPI_COMM_WORLD);
 
     pcout << "Evaluating AD..." << std::endl;
@@ -110,7 +110,7 @@ int test (
 
         if (iw % 1 == 0) pcout << "iw " << iw+1 << " out of " << dg->dof_handler.n_dofs() << std::endl;
 
-        for (unsigned int jnode = 0; jnode < dg->high_order_grid.dof_handler_grid.n_dofs(); ++jnode) {
+        for (unsigned int jnode = 0; jnode < dg->high_order_grid->dof_handler_grid.n_dofs(); ++jnode) {
 
             const bool local_isnonzero = sparsity_pattern.exists(iw,jnode);
             bool global_isnonzero;
@@ -118,7 +118,7 @@ int test (
             if (!global_isnonzero) continue;
 
             const bool iw_relevant = dg->locally_relevant_dofs.is_element(iw);
-            const bool jnode_relevant = dg->high_order_grid.locally_relevant_dofs_grid.is_element(jnode);
+            const bool jnode_relevant = dg->high_order_grid->locally_relevant_dofs_grid.is_element(jnode);
             double old_iw = -99999;
             double old_jnode = -99999;
 
@@ -126,7 +126,7 @@ int test (
                 old_iw = dg->solution[iw];
             }
             if (jnode_relevant) {
-                old_jnode = dg->high_order_grid.volume_nodes[jnode];
+                old_jnode = dg->high_order_grid->volume_nodes[jnode];
             }
             std::array<std::array<int, 2>, 25> pert;
             for (int i=-2; i<3; ++i) {
@@ -147,7 +147,7 @@ int test (
                         dg->solution[iw] = old_iw+i*EPS;
                     }
                     if (jnode_relevant) {
-                        dg->high_order_grid.volume_nodes[jnode] = old_jnode+j*EPS;
+                        dg->high_order_grid->volume_nodes[jnode] = old_jnode+j*EPS;
                     }
                     dg->assemble_residual(false, false, false);
                     perturbed_dual_dot_residual[ij] = dg->right_hand_side * dg->dual;
@@ -156,7 +156,7 @@ int test (
                         dg->solution[iw] = old_iw;
                     }
                     if (jnode_relevant) {
-                        dg->high_order_grid.volume_nodes[jnode] = old_jnode;
+                        dg->high_order_grid->volume_nodes[jnode] = old_jnode;
                     }
                 }
             }
@@ -221,7 +221,7 @@ int test (
                 dg->solution[iw] = old_iw;
             }
             if (jnode_relevant) {
-                dg->high_order_grid.volume_nodes[jnode] = old_jnode;
+                dg->high_order_grid->volume_nodes[jnode] = old_jnode;
             }
 
             // Set

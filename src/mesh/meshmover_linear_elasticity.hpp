@@ -13,9 +13,13 @@ namespace MeshMover
 {
     /** Linear elasticity mesh movement based on the deal.II example step-8 and step-42.
      */
-    template <int dim = PHILIP_DIM, typename real = double, typename VectorType = dealii::LinearAlgebra::distributed::Vector<double>, typename DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>>
+    template <int dim = PHILIP_DIM, typename real = double>
     class LinearElasticity
     {
+    /// Distributed vector of double.
+    using VectorType = dealii::LinearAlgebra::distributed::Vector<real>;
+    /// DoFHandler
+    using DoFHandlerType = dealii::DoFHandler<dim>;
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
     /** Triangulation to store the grid.
      *  In 1D, dealii::Triangulation<dim> is used.
@@ -40,7 +44,7 @@ namespace MeshMover
 
         /// Constructor that uses information from HighOrderGrid and uses current volume_nodes from HighOrderGrid.
         LinearElasticity(
-            const HighOrderGrid<dim,real,VectorType,DoFHandlerType> &high_order_grid,
+            const HighOrderGrid<dim,real> &high_order_grid,
    const dealii::LinearAlgebra::distributed::Vector<double> &boundary_displacements_vector);
 
         /** Evaluate and return volume displacements given boundary displacements.

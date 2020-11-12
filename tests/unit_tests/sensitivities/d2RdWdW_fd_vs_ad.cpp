@@ -80,7 +80,7 @@ int test (
 
     const int n_refine = 1;
     for (int i=0; i<n_refine;i++) {
-        dg->high_order_grid.prepare_for_coarsening_and_refinement();
+        dg->high_order_grid->prepare_for_coarsening_and_refinement();
         grid->prepare_coarsening_and_refinement();
         unsigned int icell = 0;
         for (auto cell = grid->begin_active(); cell!=grid->end(); ++cell) {
@@ -92,7 +92,7 @@ int test (
         }
         grid->execute_coarsening_and_refinement();
         bool mesh_out = (i==n_refine-1);
-        dg->high_order_grid.execute_coarsening_and_refinement(mesh_out);
+        dg->high_order_grid->execute_coarsening_and_refinement(mesh_out);
     }
     dg->allocate_system ();
 

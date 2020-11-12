@@ -46,7 +46,7 @@ void GridStudy<dim,nstate>
 {
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
-    const auto mapping = (*(dg.high_order_grid.mapping_fe_field));
+    const auto mapping = (*(dg.high_order_grid->mapping_fe_field));
     dealii::VectorTools::interpolate(mapping, dg.dof_handler, *physics.manufactured_solution_function, solution_no_ghost);
     dg.solution = solution_no_ghost;
 }
@@ -65,7 +65,7 @@ double GridStudy<dim,nstate>
     int overintegrate = 10;
     dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
     //dealii::MappingQ<dim,dim> mappingq_temp(dg.max_degree+1);
-    dealii::FEValues<dim,dim> fe_values_extra(*(dg.high_order_grid.mapping_fe_field), dg.fe_collection[dg.max_degree], quad_extra, 
+    dealii::FEValues<dim,dim> fe_values_extra(*(dg.high_order_grid->mapping_fe_field), dg.fe_collection[dg.max_degree], quad_extra, 
             dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
     const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
     std::array<double,nstate> soln_at_q;
@@ -144,15 +144,23 @@ int GridStudy<dim,nstate>
                 dealii::Triangulation<dim>::smoothing_on_coarsening));
 
         dealii::GridGenerator::subdivided_hyper_cube(*grid_super_fine, n_1d_cells[n_grids_input-1]);
+        //dealii::Point<dim> p1, p2;
+        //const double DX = 3;
+        //for (int d=0;d<dim;++d) {
+        //    p1[d] = 0.0-DX;
+        //    p2[d] = 1.0+DX;
+        //}
+        //const std::vector<unsigned int> repetitions(dim,n_1d_cells[n_grids_input-1]);
+        //dealii::GridGenerator::subdivided_hyper_rectangle<dim,dim>(*grid_super_fine, repetitions, p1, p2);
 
         //grid_super_fine->clear();
         //const std::vector<unsigned int> n_subdivisions(dim,n_1d_cells[n_grids_input-1]);
         //PHiLiP::Grids::curved_periodic_sine_grid<dim,Triangulation>(*grid_super_fine, n_subdivisions);
-        //for (auto cell = grid_super_fine->begin_active(); cell != grid_super_fine->end(); ++cell) {
-        //    for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-        //        if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
-        //    }
-        //}
+        for (auto cell = grid_super_fine->begin_active(); cell != grid_super_fine->end(); ++cell) {
+            for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+                if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
+            }
+        }
 
         std::shared_ptr < DGBase<dim, double> > dg_super_fine = DGFactory<dim,double>::create_discontinuous_galerkin(&param, p_end, grid_super_fine);
         dg_super_fine->allocate_system ();
@@ -197,6 +205,15 @@ int GridStudy<dim,nstate>
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
             grid->clear();
             dealii::GridGenerator::subdivided_hyper_cube(*grid, n_1d_cells[igrid]);
+            //dealii::Point<dim> p1, p2;
+            //const double DX = 3;
+            //for (int d=0;d<dim;++d) {
+            //    p1[d] = 0.0-DX;
+            //    p2[d] = 1.0+DX;
+            //}
+            //const std::vector<unsigned int> repetitions(dim,n_1d_cells[igrid]);
+            //dealii::GridGenerator::subdivided_hyper_rectangle<dim,dim>(*grid, repetitions, p1, p2);
+
             for (auto cell = grid->begin_active(); cell != grid->end(); ++cell) {
                 // Set a dummy boundary ID
                 cell->set_material_id(9002);
@@ -269,6 +286,7 @@ int GridStudy<dim,nstate>
                 pcout<<"Reading grid: " << read_mshname << std::endl;
                 std::ifstream inmesh(read_mshname);
                 dealii::GridIn<dim,dim> grid_in;
+                grid->clear();
                 grid_in.attach_triangulation(*grid);
                 grid_in.read_msh(inmesh);
             }
@@ -317,7 +335,7 @@ int GridStudy<dim,nstate>
             int overintegrate = 10;
             dealii::QGauss<dim> quad_extra(dg->max_degree+overintegrate);
             //dealii::MappingQ<dim,dim> mappingq(dg->max_degree+1);
-            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid.mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
+            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;
@@ -423,12 +441,15 @@ int GridStudy<dim,nstate>
 
         const double expected_slope = poly_degree+1;
 
-        const double last_slope = log(soln_error[n_grids-1]/soln_error[n_grids-2])
-                                  / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
+        double last_slope = 0.0;
+        if ( n_grids > 1 ) {
+            last_slope = log(soln_error[n_grids-1]/soln_error[n_grids-2])
+                             / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
+        }
         double before_last_slope = last_slope;
         if ( n_grids > 2 ) {
-        before_last_slope = log(soln_error[n_grids-2]/soln_error[n_grids-3])
-                            / log(grid_size[n_grids-2]/grid_size[n_grids-3]);
+            before_last_slope = log(soln_error[n_grids-2]/soln_error[n_grids-3])
+                                / log(grid_size[n_grids-2]/grid_size[n_grids-3]);
         }
         const double slope_avg = 0.5*(before_last_slope+last_slope);
         const double slope_diff = slope_avg-expected_slope;

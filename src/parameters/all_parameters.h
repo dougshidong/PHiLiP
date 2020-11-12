@@ -57,6 +57,12 @@ public:
      */
     bool add_artificial_dissipation;
 
+    /// Scaling of Symmetric Interior Penalty term to ensure coercivity.
+    /** 
+     *  invisid shock, but loses all the order of accuracy for the Gaussian bump.
+     */
+    double sipg_penalty_factor;
+
     /// Number of state variables. Will depend on PDE
     int nstate;
 

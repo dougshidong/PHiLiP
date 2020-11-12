@@ -337,11 +337,11 @@ void FreeFormDeformation<dim>
 
 template<int dim>
 void FreeFormDeformation<dim>
-::deform_mesh (HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid) const
+::deform_mesh (HighOrderGrid<dim,double> &high_order_grid) const
 {
     dealii::LinearAlgebra::distributed::Vector<double>  surface_node_displacements = get_surface_displacement (high_order_grid);
 
-    MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+    MeshMover::LinearElasticity<dim, double>
         meshmover( 
           *(high_order_grid.triangulation),
           high_order_grid.initial_mapping_fe_field,
@@ -357,7 +357,7 @@ void FreeFormDeformation<dim>
 template<int dim>
 dealii::LinearAlgebra::distributed::Vector<double> 
 FreeFormDeformation<dim>
-::get_surface_displacement (const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid) const
+::get_surface_displacement (const HighOrderGrid<dim,double> &high_order_grid) const
 {
     dealii::LinearAlgebra::distributed::Vector<double> surface_node_displacements(high_order_grid.surface_nodes);
 
@@ -387,7 +387,7 @@ template<int dim>
 std::vector<dealii::LinearAlgebra::distributed::Vector<double>>
 FreeFormDeformation<dim>
 ::get_dXvsdXp_FD (
-    const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
+    const HighOrderGrid<dim,double> &high_order_grid,
     const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim,
     const double eps
     )
@@ -452,7 +452,7 @@ template<int dim>
 std::vector<dealii::LinearAlgebra::distributed::Vector<double>>
 FreeFormDeformation<dim>
 ::get_dXvsdXp (
-    const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
+    const HighOrderGrid<dim,double> &high_order_grid,
     const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim
     ) const
 {
@@ -494,7 +494,7 @@ template<int dim>
 void
 FreeFormDeformation<dim>
 ::get_dXvsdXp (
-    const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
+    const HighOrderGrid<dim,double> &high_order_grid,
     const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim,
     dealii::TrilinosWrappers::SparseMatrix &dXvsdXp
     ) const
@@ -552,7 +552,7 @@ template<int dim>
 void
 FreeFormDeformation<dim>
 ::get_dXvdXp (
-    const HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
+    const HighOrderGrid<dim,double> &high_order_grid,
     const std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim,
     dealii::TrilinosWrappers::SparseMatrix &dXvdXp
     ) const
@@ -562,7 +562,7 @@ FreeFormDeformation<dim>
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> dXvsdXp_vector = get_dXvsdXp(high_order_grid, ffd_design_variables_indices_dim);
 
     dealii::LinearAlgebra::distributed::Vector<double> surface_node_displacements(high_order_grid.surface_nodes);
-    MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+    MeshMover::LinearElasticity<dim, double>
         meshmover( 
           *(high_order_grid.triangulation),
           high_order_grid.initial_mapping_fe_field,
@@ -577,7 +577,7 @@ template<int dim>
 void
 FreeFormDeformation<dim>
 ::get_dXvdXp_FD (
-    HighOrderGrid<dim,double,dealii::LinearAlgebra::distributed::Vector<double>,dealii::DoFHandler<dim>> &high_order_grid,
+    HighOrderGrid<dim,double> &high_order_grid,
     const std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim,
     dealii::TrilinosWrappers::SparseMatrix &dXvdXp_FD,
     const double eps

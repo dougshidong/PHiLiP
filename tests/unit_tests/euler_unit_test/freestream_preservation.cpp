@@ -42,7 +42,7 @@ double random_pert(double lower, double upper)
 template<int dim>
 void perturb_high_order_grid ( std::shared_ptr < DGBase<dim, double> > dg, const double perturbation_size )
 {
-    const dealii::DoFHandler<dim> &DH_grid = dg->high_order_grid.dof_handler_grid;
+    const dealii::DoFHandler<dim> &DH_grid = dg->high_order_grid->dof_handler_grid;
     const dealii::FESystem<dim,dim> &fe_grid = DH_grid.get_fe();
     dealii::IndexSet locally_owned_dofs_grid = DH_grid.locally_owned_dofs();
     const unsigned int dofs_per_cell = fe_grid.dofs_per_cell;
@@ -73,12 +73,12 @@ void perturb_high_order_grid ( std::shared_ptr < DGBase<dim, double> > dg, const
                 const dealii::types::global_dof_index global_idof_index = dof_indices[idof];
                 double pert = random_pert(-perturbation_size, perturbation_size);
                 if (dim == 3) pert /= 3;
-                dg->high_order_grid.volume_nodes[global_idof_index] += pert;
+                dg->high_order_grid->volume_nodes[global_idof_index] += pert;
             }
         }
 
     }
-    dg->high_order_grid.ensure_conforming_mesh();
+    dg->high_order_grid->ensure_conforming_mesh();
 }
 
 template<int dim>
@@ -241,7 +241,7 @@ int test()
             dg->allocate_system ();
             
             perturb_high_order_grid (dg, PERT_SIZE);
-            //dg->high_order_grid.output_results_vtk(9999);
+            //dg->high_order_grid->output_results_vtk(9999);
 
             // Initialize coarse grid solution with free-stream
             Physics::Euler<dim,dim+2,double> euler_physics_double = Physics::Euler<dim, dim+2, double>(

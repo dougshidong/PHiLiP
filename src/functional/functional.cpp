@@ -41,22 +41,22 @@ void Functional<dim,nstate,real>::init_vectors()
 {
     solution_value.reinit(dg->solution);
     solution_value *= 0.0;
-    volume_nodes_value.reinit(dg->high_order_grid.volume_nodes);
+    volume_nodes_value.reinit(dg->high_order_grid->volume_nodes);
     volume_nodes_value *= 0.0;
 
     solution_dIdW.reinit(dg->solution);
     solution_dIdW *= 0.0;
-    volume_nodes_dIdW.reinit(dg->high_order_grid.volume_nodes);
+    volume_nodes_dIdW.reinit(dg->high_order_grid->volume_nodes);
     volume_nodes_dIdW *= 0.0;
 
     solution_dIdX.reinit(dg->solution);
     solution_dIdX *= 0.0;
-    volume_nodes_dIdX.reinit(dg->high_order_grid.volume_nodes);
+    volume_nodes_dIdX.reinit(dg->high_order_grid->volume_nodes);
     volume_nodes_dIdX *= 0.0;
 
     solution_d2I.reinit(dg->solution);
     solution_d2I *= 0.0;
-    volume_nodes_d2I.reinit(dg->high_order_grid.volume_nodes);
+    volume_nodes_d2I.reinit(dg->high_order_grid->volume_nodes);
     volume_nodes_d2I *= 0.0;
 }
 
@@ -80,16 +80,16 @@ void Functional<dim,nstate,real>::set_state(const dealii::LinearAlgebra::distrib
 template <int dim, int nstate, typename real>
 void Functional<dim,nstate,real>::set_geom(const dealii::LinearAlgebra::distributed::Vector<real> &volume_nodes_set)
 {
-    dg->high_order_grid.volume_nodes = volume_nodes_set;
+    dg->high_order_grid->volume_nodes = volume_nodes_set;
 }
 
 template <int dim, int nstate, typename real>
 void Functional<dim,nstate,real>::allocate_dIdX(dealii::LinearAlgebra::distributed::Vector<real> &dIdX) const
 {
     // allocating the vector
-    dealii::IndexSet locally_owned_dofs = dg->high_order_grid.dof_handler_grid.locally_owned_dofs();
+    dealii::IndexSet locally_owned_dofs = dg->high_order_grid->dof_handler_grid.locally_owned_dofs();
     dealii::IndexSet locally_relevant_dofs, ghost_dofs;
-    dealii::DoFTools::extract_locally_relevant_dofs(dg->high_order_grid.dof_handler_grid, locally_relevant_dofs);
+    dealii::DoFTools::extract_locally_relevant_dofs(dg->high_order_grid->dof_handler_grid, locally_relevant_dofs);
     ghost_dofs = locally_relevant_dofs;
     ghost_dofs.subtract_set(locally_owned_dofs);
     dIdX.reinit(locally_owned_dofs, ghost_dofs, MPI_COMM_WORLD);
@@ -110,7 +110,7 @@ void Functional<dim,nstate,real>::allocate_derivatives(const bool compute_dIdW, 
         {
             dealii::SparsityPattern sparsity_pattern_d2IdWdX = dg->get_d2RdWdX_sparsity_pattern ();
             const dealii::IndexSet &row_parallel_partitioning_d2IdWdX = dg->locally_owned_dofs;
-            const dealii::IndexSet &col_parallel_partitioning_d2IdWdX = dg->high_order_grid.locally_owned_dofs_grid;
+            const dealii::IndexSet &col_parallel_partitioning_d2IdWdX = dg->high_order_grid->locally_owned_dofs_grid;
             d2IdWdX.reinit(row_parallel_partitioning_d2IdWdX, col_parallel_partitioning_d2IdWdX, sparsity_pattern_d2IdWdX, MPI_COMM_WORLD);
         }
 
@@ -123,8 +123,8 @@ void Functional<dim,nstate,real>::allocate_derivatives(const bool compute_dIdW, 
 
         {
             dealii::SparsityPattern sparsity_pattern_d2IdXdX = dg->get_d2RdXdX_sparsity_pattern ();
-            const dealii::IndexSet &row_parallel_partitioning_d2IdXdX = dg->high_order_grid.locally_owned_dofs_grid;
-            const dealii::IndexSet &col_parallel_partitioning_d2IdXdX = dg->high_order_grid.locally_owned_dofs_grid;
+            const dealii::IndexSet &row_parallel_partitioning_d2IdXdX = dg->high_order_grid->locally_owned_dofs_grid;
+            const dealii::IndexSet &col_parallel_partitioning_d2IdXdX = dg->high_order_grid->locally_owned_dofs_grid;
             d2IdXdX.reinit(row_parallel_partitioning_d2IdXdX, col_parallel_partitioning_d2IdXdX, sparsity_pattern_d2IdXdX, MPI_COMM_WORLD);
         }
     }
@@ -291,7 +291,7 @@ void Functional<dim, nstate, real>::need_compute(bool &compute_value, bool &comp
         pcout << " with value...";
 
         if (dg->solution.size() == solution_value.size() 
-            && dg->high_order_grid.volume_nodes.size() == volume_nodes_value.size()) {
+            && dg->high_order_grid->volume_nodes.size() == volume_nodes_value.size()) {
 
             auto diff_sol = dg->solution;
             diff_sol -= solution_value;
@@ -299,7 +299,7 @@ void Functional<dim, nstate, real>::need_compute(bool &compute_value, bool &comp
 
             if (l2_norm_sol == 0.0) {
 
-                auto diff_node = dg->high_order_grid.volume_nodes;
+                auto diff_node = dg->high_order_grid->volume_nodes;
                 diff_node -= volume_nodes_value;
                 const double l2_norm_node = diff_node.l2_norm();
 
@@ -310,13 +310,13 @@ void Functional<dim, nstate, real>::need_compute(bool &compute_value, bool &comp
             }
         }
         solution_value = dg->solution;
-        volume_nodes_value = dg->high_order_grid.volume_nodes;
+        volume_nodes_value = dg->high_order_grid->volume_nodes;
     }
     if (compute_dIdW) {
         pcout << " with dIdW...";
 
         if (dg->solution.size() == solution_dIdW.size() 
-            && dg->high_order_grid.volume_nodes.size() == volume_nodes_dIdW.size()) {
+            && dg->high_order_grid->volume_nodes.size() == volume_nodes_dIdW.size()) {
 
             auto diff_sol = dg->solution;
             diff_sol -= solution_dIdW;
@@ -324,7 +324,7 @@ void Functional<dim, nstate, real>::need_compute(bool &compute_value, bool &comp
 
             if (l2_norm_sol == 0.0) {
 
-                auto diff_node = dg->high_order_grid.volume_nodes;
+                auto diff_node = dg->high_order_grid->volume_nodes;
                 diff_node -= volume_nodes_dIdW;
                 const double l2_norm_node = diff_node.l2_norm();
 
@@ -335,20 +335,20 @@ void Functional<dim, nstate, real>::need_compute(bool &compute_value, bool &comp
             }
         }
         solution_dIdW = dg->solution;
-        volume_nodes_dIdW = dg->high_order_grid.volume_nodes;
+        volume_nodes_dIdW = dg->high_order_grid->volume_nodes;
     }
     if (compute_dIdX) {
         pcout << " with dIdX...";
 
         if (dg->solution.size() == solution_dIdX.size() 
-            && dg->high_order_grid.volume_nodes.size() == volume_nodes_dIdX.size()) {
+            && dg->high_order_grid->volume_nodes.size() == volume_nodes_dIdX.size()) {
             auto diff_sol = dg->solution;
             diff_sol -= solution_dIdX;
             const double l2_norm_sol = diff_sol.l2_norm();
 
             if (l2_norm_sol == 0.0) {
 
-                auto diff_node = dg->high_order_grid.volume_nodes;
+                auto diff_node = dg->high_order_grid->volume_nodes;
                 diff_node -= volume_nodes_dIdX;
                 const double l2_norm_node = diff_node.l2_norm();
 
@@ -359,13 +359,13 @@ void Functional<dim, nstate, real>::need_compute(bool &compute_value, bool &comp
             }
         }
         solution_dIdX = dg->solution;
-        volume_nodes_dIdX = dg->high_order_grid.volume_nodes;
+        volume_nodes_dIdX = dg->high_order_grid->volume_nodes;
     }
     if (compute_d2I) {
         pcout << " with d2IdWdW, d2IdWdX, d2IdXdX...";
 
         if (dg->solution.size() == solution_d2I.size() 
-            && dg->high_order_grid.volume_nodes.size() == volume_nodes_d2I.size()) {
+            && dg->high_order_grid->volume_nodes.size() == volume_nodes_d2I.size()) {
 
             auto diff_sol = dg->solution;
             diff_sol -= solution_d2I;
@@ -373,7 +373,7 @@ void Functional<dim, nstate, real>::need_compute(bool &compute_value, bool &comp
 
             if (l2_norm_sol == 0.0) {
 
-                auto diff_node = dg->high_order_grid.volume_nodes;
+                auto diff_node = dg->high_order_grid->volume_nodes;
                 diff_node -= volume_nodes_d2I;
                 const double l2_norm_node = diff_node.l2_norm();
 
@@ -385,7 +385,7 @@ void Functional<dim, nstate, real>::need_compute(bool &compute_value, bool &comp
             }
         }
         solution_d2I = dg->solution;
-        volume_nodes_d2I = dg->high_order_grid.volume_nodes;
+        volume_nodes_d2I = dg->high_order_grid->volume_nodes;
     }
 }
 
@@ -415,7 +415,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
     real local_functional = 0.0;
 
     // for taking the local derivatives
-    const dealii::FESystem<dim,dim> &fe_metric = dg->high_order_grid.fe_system;
+    const dealii::FESystem<dim,dim> &fe_metric = dg->high_order_grid->fe_system;
     const unsigned int n_metric_dofs_cell = fe_metric.dofs_per_cell;
     std::vector<dealii::types::global_dof_index> cell_metric_dofs_indices(n_metric_dofs_cell);
 
@@ -427,7 +427,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
 
     std::vector<real>   local_dIdX(n_metric_dofs_cell);
 
-    const auto mapping = (*(dg->high_order_grid.mapping_fe_field));
+    const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
     dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg->fe_collection, dg->face_quadrature_collection,   this->face_update_flags);
@@ -435,7 +435,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
     allocate_derivatives(actually_compute_dIdW, actually_compute_dIdX, actually_compute_d2I);
 
     dg->solution.update_ghost_values();
-    auto metric_cell = dg->high_order_grid.dof_handler_grid.begin_active();
+    auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
     auto soln_cell = dg->dof_handler.begin_active();
     for( ; soln_cell != dg->dof_handler.end(); ++soln_cell, ++metric_cell) {
         if(!soln_cell->is_locally_owned()) continue;
@@ -456,7 +456,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
         metric_cell->get_dof_indices (cell_metric_dofs_indices);
         std::vector< FadFadType > coords_coeff(n_metric_dofs_cell);
         for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-            coords_coeff[idof] = dg->high_order_grid.volume_nodes[cell_metric_dofs_indices[idof]];
+            coords_coeff[idof] = dg->high_order_grid->volume_nodes[cell_metric_dofs_indices[idof]];
         }
 
         // Setup automatic differentiation
@@ -470,7 +470,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
             if (actually_compute_dIdW || actually_compute_d2I) soln_coeff[idof].diff(i_derivative++, n_total_indep);
         }
         for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-            const real val = dg->high_order_grid.volume_nodes[cell_metric_dofs_indices[idof]];
+            const real val = dg->high_order_grid->volume_nodes[cell_metric_dofs_indices[idof]];
             coords_coeff[idof] = val;
             if (actually_compute_dIdX || actually_compute_d2I) coords_coeff[idof].diff(i_derivative++, n_total_indep);
         }
@@ -483,7 +483,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
                 soln_coeff[idof].val().diff(i_derivative++, n_total_indep);
             }
             for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-                const real val = dg->high_order_grid.volume_nodes[cell_metric_dofs_indices[idof]];
+                const real val = dg->high_order_grid->volume_nodes[cell_metric_dofs_indices[idof]];
                 coords_coeff[idof].val() = val;
                 coords_coeff[idof].val().diff(i_derivative++, n_total_indep);
             }
@@ -601,14 +601,14 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
     std::vector<real> soln_coeff(max_dofs_per_cell); // for obtaining the local derivatives (to be copied back afterwards)
     std::vector<real> local_dIdw(max_dofs_per_cell);
 
-    const auto mapping = (*(dg.high_order_grid.mapping_fe_field));
+    const auto mapping = (*(dg.high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
     dealii::hp::FEValues<dim,dim>     fe_values_collection_volume(mapping_collection, dg.fe_collection, dg.volume_quadrature_collection, this->volume_update_flags);
     dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg.fe_collection, dg.face_quadrature_collection,   this->face_update_flags);
 
     dg.solution.update_ghost_values();
-    auto metric_cell = dg.high_order_grid.dof_handler_grid.begin_active();
+    auto metric_cell = dg.high_order_grid->dof_handler_grid.begin_active();
     auto cell = dg.dof_handler.begin_active();
     for( ; cell != dg.dof_handler.end(); ++cell, ++metric_cell) {
         if(!cell->is_locally_owned()) continue;
@@ -629,13 +629,13 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
         }
 
         // Get metric coefficients
-        const dealii::FESystem<dim,dim> &fe_metric = dg.high_order_grid.fe_system;
+        const dealii::FESystem<dim,dim> &fe_metric = dg.high_order_grid->fe_system;
         const unsigned int n_metric_dofs_cell = fe_metric.dofs_per_cell;
         std::vector<dealii::types::global_dof_index> cell_metric_dofs_indices(n_metric_dofs_cell);
         metric_cell->get_dof_indices (cell_metric_dofs_indices);
         std::vector<real> coords_coeff(n_metric_dofs_cell);
         for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-            coords_coeff[idof] = dg.high_order_grid.volume_nodes[cell_metric_dofs_indices[idof]];
+            coords_coeff[idof] = dg.high_order_grid->volume_nodes[cell_metric_dofs_indices[idof]];
         }
 
         const dealii::Quadrature<dim> &volume_quadrature = dg.volume_quadrature_collection[i_quad];
@@ -719,14 +719,14 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
     std::vector<real> soln_coeff(max_dofs_per_cell); // for obtaining the local derivatives (to be copied back afterwards)
     std::vector<real> local_dIdX(max_dofs_per_cell);
 
-    const auto mapping = (*(dg.high_order_grid.mapping_fe_field));
+    const auto mapping = (*(dg.high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
     dealii::hp::FEValues<dim,dim>     fe_values_collection_volume(mapping_collection, dg.fe_collection, dg.volume_quadrature_collection, this->volume_update_flags);
     dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg.fe_collection, dg.face_quadrature_collection,   this->face_update_flags);
 
     dg.solution.update_ghost_values();
-    auto metric_cell = dg.high_order_grid.dof_handler_grid.begin_active();
+    auto metric_cell = dg.high_order_grid->dof_handler_grid.begin_active();
     auto cell = dg.dof_handler.begin_active();
     for( ; cell != dg.dof_handler.end(); ++cell, ++metric_cell) {
         if(!cell->is_locally_owned()) continue;
@@ -747,13 +747,13 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
         }
 
         // Get metric coefficients
-        const dealii::FESystem<dim,dim> &fe_metric = dg.high_order_grid.fe_system;
+        const dealii::FESystem<dim,dim> &fe_metric = dg.high_order_grid->fe_system;
         const unsigned int n_metric_dofs_cell = fe_metric.dofs_per_cell;
         std::vector<dealii::types::global_dof_index> cell_metric_dofs_indices(n_metric_dofs_cell);
         metric_cell->get_dof_indices (cell_metric_dofs_indices);
         std::vector<real> coords_coeff(n_metric_dofs_cell);
         for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-            coords_coeff[idof] = dg.high_order_grid.volume_nodes[cell_metric_dofs_indices[idof]];
+            coords_coeff[idof] = dg.high_order_grid->volume_nodes[cell_metric_dofs_indices[idof]];
         }
 
         const dealii::Quadrature<dim> &volume_quadrature = dg.volume_quadrature_collection[i_quad];
@@ -782,7 +782,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
         for(unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof){
             // for each dof copying the solution
             for(unsigned int idof2 = 0; idof2 < n_metric_dofs_cell; ++idof2){
-                coords_coeff[idof2] = dg.high_order_grid.volume_nodes[cell_metric_dofs_indices[idof2]];
+                coords_coeff[idof2] = dg.high_order_grid->volume_nodes[cell_metric_dofs_indices[idof2]];
             }
             coords_coeff[idof] += stepsize;
 

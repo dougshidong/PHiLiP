@@ -32,6 +32,7 @@ private:
      */
     template <typename real2>
     void assemble_volume_term(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const std::vector<real2> &soln_coeff,
         const std::vector<real2> &coords_coeff,
@@ -50,6 +51,7 @@ private:
      */
     template <typename adtype>
     void assemble_boundary_term(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const std::vector< adtype > &soln_coeff,
         const std::vector< adtype > &coords_coeff,
@@ -73,6 +75,7 @@ private:
      */
     template <typename real2>
     void assemble_face_term(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
         const std::vector< real2 > &soln_coeff_int,
@@ -108,6 +111,7 @@ private:
      */
     template <typename real2>
     void assemble_volume_codi_taped_derivatives(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::FEValues<dim,dim> &fe_values_vol,
         const dealii::FESystem<dim,dim> &fe_soln,
@@ -125,6 +129,7 @@ private:
      */
     template <typename adtype>
     void assemble_boundary_codi_taped_derivatives(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const unsigned int face_number,
         const unsigned int boundary_id,
@@ -148,6 +153,7 @@ private:
      */
     template <typename adtype>
     void assemble_face_codi_taped_derivatives(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
         const std::pair<unsigned int, int> face_subface_int,
@@ -177,6 +183,7 @@ private:
     /// Evaluate the integral over the cell volume and the specified derivatives.
     /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
     virtual void assemble_volume_term_derivatives(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::FEValues<dim,dim> &,//fe_values_vol,
         const dealii::FESystem<dim,dim> &fe,
@@ -191,6 +198,7 @@ private:
     /// Evaluate the integral over the cell edges that are on domain boundaries and the specified derivatives.
     /** Compute both the right-hand side and the corresponding block of dRdW, dRdX, and/or d2R. */
     void assemble_boundary_term_derivatives(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const unsigned int face_number,
         const unsigned int boundary_id,
@@ -209,6 +217,7 @@ private:
      *  This adds the contribution to both cell's residual and effectively
      *  computes 4 block contributions to dRdX blocks. */
     void assemble_face_term_derivatives(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
         const std::pair<unsigned int, int> face_subface_int,
@@ -234,6 +243,7 @@ private:
     /// Evaluate the integral over the cell volume.
     /** Compute the right-hand side only. */
     void assemble_volume_residual(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::FEValues<dim,dim> &fe_values_vol,
         const dealii::FESystem<dim,dim> &fe_soln,
@@ -248,6 +258,7 @@ private:
     /// Evaluate the integral over the boundary.
     /** Compute the right-hand side only. */
     void assemble_boundary_residual(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const unsigned int face_number,
         const unsigned int boundary_id,
@@ -266,6 +277,7 @@ private:
     /// Evaluate the integral over the internal face.
     /** Compute the right-hand side only. */
     void assemble_face_residual(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
         const std::pair<unsigned int, int> face_subface_int,
@@ -292,6 +304,7 @@ private:
 
     /// Evaluate the integral over the cell volume
     void assemble_volume_term_explicit(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::FEValues<dim,dim> &fe_values_volume,
         const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
@@ -299,6 +312,7 @@ private:
         const dealii::FEValues<dim,dim> &fe_values_lagrange);
     /// Evaluate the integral over the cell edges that are on domain boundaries
     void assemble_boundary_term_explicit(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const unsigned int boundary_id,
         const dealii::FEFaceValuesBase<dim,dim> &fe_values_face_int,
@@ -307,6 +321,7 @@ private:
         dealii::Vector<real> &current_cell_rhs);
     /// Evaluate the integral over the internal cell edges
     void assemble_face_term_explicit(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_face_int,

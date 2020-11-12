@@ -47,6 +47,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Persson's subscell shock capturing artificial dissipation.");
 
+    prm.declare_entry("sipg_penalty_factor", "1.0",
+                      dealii::Patterns::Double(1.0,1e200),
+                      "Scaling of Symmetric Interior Penalty term to ensure coercivity.");
+
     prm.declare_entry("test_type", "run_control",
                       dealii::Patterns::Selection(
                       " run_control | "
@@ -169,6 +173,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_split_form = prm.get_bool("use_split_form");
     use_periodic_bc = prm.get_bool("use_periodic_bc");
     add_artificial_dissipation = prm.get_bool("add_artificial_dissipation");
+    sipg_penalty_factor = prm.get_double("sipg_penalty_factor");
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
     if (conv_num_flux_string == "lax_friedrichs") conv_num_flux_type = lax_friedrichs;

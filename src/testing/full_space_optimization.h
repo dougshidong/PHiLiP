@@ -105,7 +105,7 @@ dealii::TrilinosWrappers::SparseMatrix transpose_trilinos_matrix(dealii::Trilino
 template<int dim, int nstate>
 dealii::LinearAlgebra::distributed::BlockVector<double> evaluate_kkt_rhs(DGBase<dim,double> &dg,
                    TargetFunctional<dim, nstate, double> &functional,
-                   PHiLiP::MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> &meshmover
+                   PHiLiP::MeshMover::LinearElasticity<dim, double> &meshmover
                    )
 {
     if ( dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0 )
@@ -119,9 +119,9 @@ dealii::LinearAlgebra::distributed::BlockVector<double> evaluate_kkt_rhs(DGBase<
  dg.assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);
 
  dealii::LinearAlgebra::distributed::Vector<double> dIdXs;
- dIdXs.reinit(dg.high_order_grid.surface_nodes);
+ dIdXs.reinit(dg.high_order_grid->surface_nodes);
  assert(meshmover.dXvdXs.size() > 0);
- for (unsigned int isurf = 0; isurf < dg.high_order_grid.surface_nodes.size(); ++isurf) {
+ for (unsigned int isurf = 0; isurf < dg.high_order_grid->surface_nodes.size(); ++isurf) {
   const auto scalar_product = meshmover.dXvdXs[isurf] * functional.dIdX;
   if (dIdXs.locally_owned_elements().is_element(isurf)) {
    dIdXs[isurf] = scalar_product;

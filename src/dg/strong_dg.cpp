@@ -39,6 +39,7 @@ DGStrong<dim,nstate,real>::~DGStrong ()
 
 template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_boundary_term_derivatives(
+    typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
     const dealii::types::global_dof_index current_cell_index,
     const unsigned int ,//face_number,
     const unsigned int boundary_id,
@@ -182,6 +183,7 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_derivatives(
 }
 template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_volume_term_derivatives(
+    typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const dealii::FESystem<dim,dim> &,//fe,
@@ -318,6 +320,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_term_derivatives(
 }
 template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_face_term_derivatives(
+    typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
     const std::pair<unsigned int, int> /*face_subface_int*/,
@@ -513,6 +516,7 @@ void DGStrong<dim,nstate,real>::assemble_face_term_derivatives(
 
 template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_volume_term_explicit(
+    typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
@@ -636,6 +640,7 @@ void DGStrong<dim,nstate,real>::assemble_volume_term_explicit(
 
 template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_boundary_term_explicit(
+    typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
     const dealii::types::global_dof_index current_cell_index,
     const unsigned int boundary_id,
     const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
@@ -771,6 +776,7 @@ void DGStrong<dim,nstate,real>::assemble_boundary_term_explicit(
 
 template <int dim, int nstate, typename real>
 void DGStrong<dim,nstate,real>::assemble_face_term_explicit(
+    typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,

@@ -1,3 +1,6 @@
 [submodule "submodules/CoDiPack"]
 	path = submodules/CoDiPack
 	url = https://github.com/SciCompKL/CoDiPack.git
+[submodule "submodules/joukowski_high_order_mesh"]
+	path = submodules/joukowski_high_order_mesh
+	url = https://github.com/dougshidong/joukowski_high_order_mesh.git

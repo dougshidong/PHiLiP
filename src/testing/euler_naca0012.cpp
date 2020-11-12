@@ -28,6 +28,8 @@
 #include "euler_naca0012.hpp"
 
 
+#include "mesh/gmsh_reader.hpp"
+
 namespace PHiLiP {
 namespace Tests {
 
@@ -115,9 +117,9 @@ int EulerNACA0012<dim,nstate>
             //    dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
             //    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
             //    solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
-            //    dg->high_order_grid.prepare_for_coarsening_and_refinement();
+            //    dg->high_order_grid->prepare_for_coarsening_and_refinement();
             //    grid->refine_global (1);
-            //    dg->high_order_grid.execute_coarsening_and_refinement(true);
+            //    dg->high_order_grid->execute_coarsening_and_refinement(true);
             //    dg->allocate_system ();
             //    dg->solution.zero_out_ghosts();
             //    solution_transfer.interpolate(dg->solution);
@@ -149,10 +151,15 @@ int EulerNACA0012<dim,nstate>
             //airfoil_data.n_subdivision_x_2 = 9;
             //airfoil_data.n_subdivision_y = 12;
 
-            airfoil_data.n_subdivision_x_0 = 16;
-            airfoil_data.n_subdivision_x_1 = 16;
-            airfoil_data.n_subdivision_x_2 = 16;
-            airfoil_data.n_subdivision_y = 16;
+            //airfoil_data.n_subdivision_x_0 = 16;
+            //airfoil_data.n_subdivision_x_1 = 16;
+            //airfoil_data.n_subdivision_x_2 = 16;
+            //airfoil_data.n_subdivision_y = 16;
+
+            airfoil_data.n_subdivision_x_0 = 4;
+            airfoil_data.n_subdivision_x_1 = 4;
+            airfoil_data.n_subdivision_x_2 = 4;
+            airfoil_data.n_subdivision_y = 4;
 
             airfoil_data.airfoil_sampling_factor = 100000; // default 2
 
@@ -183,11 +190,21 @@ int EulerNACA0012<dim,nstate>
             //Grids::naca_airfoil(*grid, airfoil_data.naca_id, n_subdivisions, airfoil_data.height);
             Grids::naca_airfoil(*grid, airfoil_data);
 
-            const double solution_degree = poly_degree;
-            const double grid_degree = solution_degree+1;
-            //const double grid_degree = 1;
-            //const double grid_degree = 2;//solution_degree+1;
+            grid->refine_global();
+            grid->refine_global();
+            grid->refine_global();
+
+            const unsigned int solution_degree = poly_degree;
+            const unsigned int grid_degree = 2;//solution_degree+1;
+            //const unsigned int grid_degree = 1;
+            //const unsigned int grid_degree = 2;//solution_degree+1;
             std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, solution_degree, solution_degree, grid_degree, grid);
+
+            //std::shared_ptr<HighOrderGrid<dim,double>> joukowski_mesh = read_gmsh <dim, dim> ("joukowski_R1_Q"+std::to_string(grid_degree)+".msh");
+            std::shared_ptr<HighOrderGrid<dim,double>> joukowski_mesh = read_gmsh <dim, dim> ("naca0012.msh");
+            dg->set_high_order_grid(joukowski_mesh);
+            //dg->high_order_grid->refine_global();
+            //dg->high_order_grid->refine_global();
 
             // Initialize coarse grid solution with free-stream
             dg->allocate_system ();
@@ -211,7 +228,7 @@ int EulerNACA0012<dim,nstate>
             dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
             //dealii::MappingQ<dim> mapping(dg->max_degree+overintegrate);
             //const dealii::MappingManifold<dim,dim> mapping;
-            const dealii::Mapping<dim> &mapping = (*(dg->high_order_grid.mapping_fe_field));
+            const dealii::Mapping<dim> &mapping = (*(dg->high_order_grid->mapping_fe_field));
             dealii::FEValues<dim,dim> fe_values_extra(mapping, dg->fe_collection[poly_degree], quad_extra,
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;

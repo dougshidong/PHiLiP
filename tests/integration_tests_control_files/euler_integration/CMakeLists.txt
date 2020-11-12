@@ -1,3 +1,5 @@
+add_subdirectory(naca0012)
+
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 # Manufactured solutions
@@ -67,13 +69,6 @@ configure_file(2d_euler_gaussian_bump.prm 2d_euler_gaussian_bump.prm COPYONLY)
 add_test(
   NAME MPI_2D_EULER_INTEGRATION_GAUSSIAN_BUMP_LONG
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_gaussian_bump.prm
-  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
-
-configure_file(2d_euler_naca0012.prm 2d_euler_naca0012.prm COPYONLY)
-add_test(
-  NAME MPI_2D_EULER_INTEGRATION_NACA0012_LONG
-  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_naca0012.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 

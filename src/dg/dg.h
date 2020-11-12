@@ -127,7 +127,9 @@ public:
     std::shared_ptr<Triangulation> triangulation; ///< Mesh
 
 
+    /// Sets the associated high order grid with the provided one.
     void set_high_order_grid(std::shared_ptr<HighOrderGrid<dim,real>> new_high_order_grid);
+
     /// Refers to a collection Mappings, which represents the high-order grid.
     /** Since we are interested in performing mesh movement for optimization purposes,
      *  this is not a constant member variables.

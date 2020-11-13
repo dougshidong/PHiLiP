@@ -10,7 +10,7 @@ set(TAR_NAME naca0012_airfoil_Q3)
 add_custom_target(${TAR_NAME}
     #WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/gmsh_meshes/joukowski
     WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-    COMMAND gmsh naca0012.geo -
+    COMMAND gmsh naca0012_noTE.geo -
     #COMMAND mv
     #     "${CMAKE_BINARY_DIR}/gmsh_meshes/joukowski/new_msh41.msh"
     #     "${CMAKE_BINARY_DIR}/tests/integration_tests_control_files/euler_integration/naca0012/joukowski_R${ref}_Q${order}.msh"

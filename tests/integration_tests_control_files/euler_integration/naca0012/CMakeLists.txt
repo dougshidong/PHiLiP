@@ -6,6 +6,7 @@ add_test(
 )
 
 configure_file(naca0012.geo naca0012.geo COPYONLY)
+configure_file(naca0012_noTE.geo naca0012_noTE.geo COPYONLY)
 set(TAR_NAME naca0012_airfoil_Q3)
 add_custom_target(${TAR_NAME}
     #WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/gmsh_meshes/joukowski

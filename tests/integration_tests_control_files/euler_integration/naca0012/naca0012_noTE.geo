@@ -1,8 +1,8 @@
-FF= 0.1844440959393978*120;
-downstream=0.0078666333*1;
-upstream=0.0262221098*4;
-LE=0.0039333166*4;
-TE=0.0039333166*0.5;
+FF= 0.1844440959393978*240;
+downstream=0.0078666333*20;
+upstream=0.0262221098*20;
+LE=0.0039333166*20;
+TE=0.0039333166*20;
 
 // FF = 20;
 // downstream = 0.015;
@@ -1241,7 +1241,7 @@ Physical Line(1001) = {7,6};
 Physical Surface("Fluid") = {9};
 
 
-Mesh.Algorithm = 8;
+Mesh.Algorithm = 2;//8;
 Mesh.RecombinationAlgorithm = 3;
 Mesh 2;
 RecombineMesh;

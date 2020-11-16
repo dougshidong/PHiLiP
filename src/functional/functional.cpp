@@ -469,6 +469,9 @@ real Functional<dim, nstate, real, MeshType>::evaluate_functional(
 
     dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg->fe_collection, dg->face_quadrature_collection,   this->face_update_flags);
 
+    // overintegration test
+    const int overintegrate = 0;
+
     if (compute_dIdW) {
         // allocating the vector
         dealii::IndexSet locally_owned_dofs = dg->dof_handler.locally_owned_dofs();
@@ -491,9 +494,9 @@ real Functional<dim, nstate, real, MeshType>::evaluate_functional(
         if(!soln_cell->is_locally_owned()) continue;
 
         // setting up the volume integration
-        const unsigned int i_mapp = 0; // *** ask doug if this will ever be 
+        const unsigned int i_mapp = 0;
         const unsigned int i_fele = soln_cell->active_fe_index();
-        const unsigned int i_quad = i_fele;
+        const unsigned int i_quad = i_fele + overintegrate;
 
         // Get solution coefficients
         const dealii::FESystem<dim,dim> &fe_solution = dg->fe_collection[i_fele];

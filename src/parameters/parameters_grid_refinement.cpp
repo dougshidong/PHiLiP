@@ -112,7 +112,7 @@ void GridRefinementParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Double(0.0, 1.0),
                           "Fraction of elements to undergo coarsening for fixed_fraction method.");
     
-        prm.declare_entry("r_max", "4",
+        prm.declare_entry("r_max", "20",
                           dealii::Patterns::Double(1.0, dealii::Patterns::Double::max_double_value),
                           "Maximum refinement factor for adjoint-based size-field (from log DWR).");
 

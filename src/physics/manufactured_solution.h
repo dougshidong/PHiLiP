@@ -305,11 +305,17 @@ public:
             S_j[i].resize(n_shocks[i]);
             x_j[i].resize(n_shocks[i]);
 
-            S_j[i][0] =  10;
-            S_j[i][1] = -10;
+            // S_j[i][0] =  10;
+            // S_j[i][1] = -10;
+
+            S_j[i][0] =  50;
+            S_j[i][1] = -50;
 
             x_j[i][0] = -1/sqrt(2);
             x_j[i][1] =  1/sqrt(2);
+
+            // x_j[i][0] = 1-1/sqrt(2);
+            // x_j[i][1] = 1/sqrt(2);
         }
     }
 

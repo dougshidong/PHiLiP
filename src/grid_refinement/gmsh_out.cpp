@@ -240,7 +240,8 @@ void GmshOut<dim,real>::write_pos_anisotropic(
                     const unsigned int N = 3;
 
                     // scaling for the complexity match
-                    const double scale = 0.25*0.5/sqrt(3.0);
+                    // const double scale = 0.25*0.5/sqrt(2.0);
+                    const double scale = 0.25/sqrt(3.0);
 
                     for(unsigned int i = 0; i < N; ++i){
                         for(unsigned int j = 0; j < N; ++j){
@@ -343,7 +344,7 @@ void GmshOut<dim,real>::write_geo_anisotropic(
 
     // default is the BAMG for anisotropy
     out << "Mesh.Algorithm = 7;" << '\n'
-        // << "Mesh.SmoothRatio = 2;" << '\n'
+        // << "Mesh.SmoothRatio = 1.5;" << '\n'
         << "Mesh.RecombinationAlgorithm = 2;" << '\n' 
         << "Mesh.RecombineAll = 1;" << '\n' << '\n'; 
 

@@ -373,6 +373,7 @@ real DGBase<dim,real,MeshType>::evaluate_penalty_scaling (
     const real vol_div_facearea = cell->extent_in_direction(normal_direction);
 
     const real penalty = 20.0 * degsq / vol_div_facearea;
+    // const real penalty = degsq / vol_div_facearea;
 
     return penalty;
 }

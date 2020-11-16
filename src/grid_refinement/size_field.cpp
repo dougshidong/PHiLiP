@@ -351,17 +351,17 @@ void SizeField<dim,real>::adjoint_h(
     real eta_min = dealii::Utilities::MPI::min(eta_min_local, MPI_COMM_WORLD);
     real eta_max = dealii::Utilities::MPI::max(eta_max_local, MPI_COMM_WORLD);
 
-    std::cout << "Starting complexity = " << evaluate_complexity(
+    real initial_complexity = evaluate_complexity(
             dof_handler, 
             mapping_collection, 
             fe_collection, 
             quadrature_collection, 
             update_flags, 
             h_field, 
-            p_field) << std::endl;
-
-    // complexity multiplier to fix start effects
-    real complexity_factor = 1.0;
+            p_field);
+    std::cout << "Starting complexity = " << initial_complexity << std::endl;
+    std::cout << "Target complexity = " << complexity << std::endl;
+    std::cout << "f_0 = " << (initial_complexity - complexity) << std::endl;
 
     // setting up the bisection functional, based on an input value of
     // eta_ref, determines the complexity value for the mesh (using DWR estimates
@@ -388,7 +388,7 @@ void SizeField<dim,real>::adjoint_h(
             update_flags, 
             h_field, 
             p_field);
-        return current_complexity - (complexity*complexity_factor);
+        return current_complexity - complexity;
     };
 
     // call to optimization (bisection), using min and max as initial bounds

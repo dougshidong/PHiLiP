@@ -66,13 +66,7 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
     const unsigned int poly_degree_max  = grs_param.poly_degree_max;
     const unsigned int poly_degree_grid = grs_param.poly_degree_grid;
 
-    const unsigned int grid_size = grs_param.grid_size;
-
     const unsigned int num_refinements = grs_param.num_refinements;
-
-
-    const double left  = grs_param.grid_left;
-    const double right = grs_param.grid_right;
 
     // creating the physics object
     std::shared_ptr< Physics::PhysicsBase<dim,nstate,double> > physics_double
@@ -96,52 +90,19 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
         
         const unsigned int refinement_steps = gr_param.refinement_steps;
 
-        std::unique_ptr<MeshType> grid = 
+        std::shared_ptr<MeshType> grid = 
             MeshFactory<MeshType>::create_MeshType(this->mpi_communicator);
 
-        // generating the mesh
-        using GridEnum = Parameters::ManufacturedConvergenceStudyParam::GridEnum;
-
-        // considering different cases
-        if(grs_param.grid_type == GridEnum::hypercube){
-
-            dealii::Point<dim,double> p_left;
-            dealii::Point<dim,double> p_right;
-            std::vector<unsigned int> repetitions;
-            for(unsigned int i = 0; i < dim; ++i){
-                p_left[i] = left;
-                p_right[i] = right;
-                repetitions.push_back(grid_size);
-            }
-
-            // subdivided cube
-            bool colorize = true;
-            dealii::GridGenerator::subdivided_hyper_rectangle(*grid, repetitions, p_left, p_right, colorize);
-            // dealii::GridGenerator::subdivided_hyper_cube(*grid, grid_size, left, right);
-            for(auto cell = grid->begin_active(); cell != grid->end(); ++cell){
-                cell->set_material_id(9002);
-                for(unsigned int face = 0; face < dealii::GeometryInfo<dim>::faces_per_cell; ++face)
-                    if(cell->face(face)->at_boundary()){
-                        // temporarily disable
-                        // cell->face(face)->set_boundary_id(1000);
-                        // std::cout << cell->face(face)->boundary_id() << ", " << cell->face(face)->center() << std::endl;
-                    }
-            }
+        // getting the grid from GridEnum type
+        get_grid(grid, grs_param);
         
-        }else if(grs_param.grid_type == GridEnum::read_grid){
-
-            // input grid file
-            std::string read_mshname = grs_param.input_grid;
-            std::cout << "Reading grid from: " << read_mshname << std::endl;
-
-            // performing the read from file
-            std::ifstream in_msh(read_mshname);
-            dealii::GridIn<dim,dim> grid_in;
-                        
-            grid_in.attach_triangulation(*grid);
-            grid_in.read_msh(in_msh);
-
-        }
+        // approximating the exact functional solution using a fine grid version
+        double functional_value_exact = approximate_exact_functional(
+            physics_double,
+            physics_adtype,
+            param,
+            grs_param);
+        std::cout << "Functional estimate = " << functional_value_exact << std::endl;
 
         // generate DG
         std::shared_ptr< DGBase<dim, double, MeshType> > dg 
@@ -263,7 +224,6 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
             double functional_value = functional->evaluate_functional(*(physics_adtype));
 
             // getting the functional error from the approximated fine grid functional value
-            double functional_value_exact = 0.0;
             double func_error = abs(functional_value - functional_value_exact);
 
             // reinitializing the adjoint
@@ -385,6 +345,115 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
     return 0;
 }
 
+// gets the grid from the enum and reads file if neccesary
+template <int dim, int nstate, typename MeshType>
+void GridRefinementStudy<dim,nstate,MeshType>::get_grid(
+    const std::shared_ptr<MeshType>&            grid,
+    const Parameters::GridRefinementStudyParam& grs_param) const
+{
+    const unsigned int grid_size = grs_param.grid_size;
+
+    const double left  = grs_param.grid_left;
+    const double right = grs_param.grid_right;
+
+    // generating the mesh
+    using GridEnum = Parameters::ManufacturedConvergenceStudyParam::GridEnum;
+
+    // considering different cases
+    if(grs_param.grid_type == GridEnum::hypercube){
+
+        dealii::Point<dim,double> p_left;
+        dealii::Point<dim,double> p_right;
+        std::vector<unsigned int> repetitions;
+        for(unsigned int i = 0; i < dim; ++i){
+            p_left[i] = left;
+            p_right[i] = right;
+            repetitions.push_back(grid_size);
+        }
+
+        // subdivided cube
+        bool colorize = true;
+        dealii::GridGenerator::subdivided_hyper_rectangle(*grid, repetitions, p_left, p_right, colorize);
+        // dealii::GridGenerator::subdivided_hyper_cube(*grid, grid_size, left, right);
+        for(auto cell = grid->begin_active(); cell != grid->end(); ++cell){
+            cell->set_material_id(9002);
+            for(unsigned int face = 0; face < dealii::GeometryInfo<dim>::faces_per_cell; ++face)
+                if(cell->face(face)->at_boundary()){
+                    // temporarily disable
+                    // cell->face(face)->set_boundary_id(1000);
+                    // std::cout << cell->face(face)->boundary_id() << ", " << cell->face(face)->center() << std::endl;
+                }
+        }
+    
+    }else if(grs_param.grid_type == GridEnum::read_grid){
+
+        // input grid file
+        std::string read_mshname = grs_param.input_grid;
+        std::cout << "Reading grid from: " << read_mshname << std::endl;
+
+        // performing the read from file
+        std::ifstream in_msh(read_mshname);
+        dealii::GridIn<dim,dim> grid_in;
+                    
+        grid_in.attach_triangulation(*grid);
+        grid_in.read_msh(in_msh);
+
+    }
+}
+
+// performs the approximation of the functional value using a refined grid with interpolation
+template <int dim, int nstate, typename MeshType>
+double GridRefinementStudy<dim,nstate,MeshType>::approximate_exact_functional(
+    const std::shared_ptr<Physics::PhysicsBase<dim,nstate,double>>& physics_double,
+    const std::shared_ptr<Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<double>>>& physics_adtype,
+    const Parameters::AllParameters& param,
+    const Parameters::GridRefinementStudyParam& grs_param) const
+{
+    // temporary meshtype object
+    std::shared_ptr<MeshType> grid_fine = 
+        MeshFactory<MeshType>::create_MeshType(this->mpi_communicator);
+
+    // getting the grid from GridEnum type
+    get_grid(grid_fine, grs_param);
+
+    // performing refinement
+    const int N_ref = 5;
+    std::cout << "Starting refinement." << std::endl;
+    grid_fine->refine_global(N_ref);
+    std::cout << "Finished refinement." << std::endl;
+
+    const unsigned int poly_degree      = grs_param.poly_degree;
+    const unsigned int poly_degree_max  = grs_param.poly_degree_max;
+    const unsigned int poly_degree_grid = grs_param.poly_degree_grid;
+
+    // building the discontinuous galerkin solver
+    std::cout << "Creating fine dg." << std::endl;
+    std::shared_ptr< DGBase<dim, double, MeshType> > dg_fine = 
+        DGFactory<dim,double,MeshType>::create_discontinuous_galerkin(
+            &param, 
+            poly_degree,
+            poly_degree_max,
+            poly_degree_grid,
+            grid_fine.get());
+    dg_fine->allocate_system();
+
+    // interpolating the solution from the manufactured solution
+    std::cout << "Performing solution transfer." << std::endl;
+    dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
+    solution_no_ghost.reinit(dg_fine->locally_owned_dofs, MPI_COMM_WORLD);
+    dealii::VectorTools::interpolate(dg_fine->dof_handler, *(physics_double->manufactured_solution_function), solution_no_ghost);
+    dg_fine->solution = solution_no_ghost;
+
+    // creating a functional
+    std::cout << "Generating the functional." << std::endl;
+    std::shared_ptr< Functional<dim,nstate,double,MeshType> > functional_fine
+        = FunctionalFactory<dim,nstate,double,MeshType>::create_Functional(grs_param.functional_param, dg_fine);
+
+    // getting the "exact" value using it
+    std::cout << "Computing and returning approximation" << std::endl;
+    return functional_fine->evaluate_functional(*(physics_adtype));
+}
+
 // function to perform the formatted output to gnuplot (of the solution error)
 void output_gnufig_solution(PHiLiP::GridRefinement::GnuFig<double> &gf)
 {
@@ -424,10 +493,10 @@ void output_gnufig_functional(
 
 // mesh factory specializations
 template <>
-std::unique_ptr<dealii::Triangulation<PHILIP_DIM>>
+std::shared_ptr<dealii::Triangulation<PHILIP_DIM>>
 MeshFactory<dealii::Triangulation<PHILIP_DIM>>::create_MeshType(const MPI_Comm /* mpi_communicator */)
 {
-    return std::unique_ptr<dealii::Triangulation<PHILIP_DIM>>(new dealii::Triangulation<PHILIP_DIM>());
+    return std::make_shared<dealii::Triangulation<PHILIP_DIM>>();
         // new dealii::Triangulation<PHILIP_DIM>(
         //     typename dealii::Triangulation<PHILIP_DIM>::MeshSmoothing(
         //         dealii::Triangulation<PHILIP_DIM>::smoothing_on_refinement |
@@ -435,28 +504,26 @@ MeshFactory<dealii::Triangulation<PHILIP_DIM>>::create_MeshType(const MPI_Comm /
 }
 
 template <>
-std::unique_ptr<dealii::parallel::shared::Triangulation<PHILIP_DIM>>
+std::shared_ptr<dealii::parallel::shared::Triangulation<PHILIP_DIM>>
 MeshFactory<dealii::parallel::shared::Triangulation<PHILIP_DIM>>::create_MeshType(const MPI_Comm mpi_communicator)
 {
-    return std::unique_ptr<dealii::parallel::shared::Triangulation<PHILIP_DIM>>(
-        new dealii::parallel::shared::Triangulation<PHILIP_DIM>(
-            mpi_communicator,
-            typename dealii::Triangulation<PHILIP_DIM>::MeshSmoothing(
-                dealii::Triangulation<PHILIP_DIM>::smoothing_on_refinement |
-                dealii::Triangulation<PHILIP_DIM>::smoothing_on_coarsening)));
+    return std::make_shared<dealii::parallel::shared::Triangulation<PHILIP_DIM>>(
+        mpi_communicator,
+        typename dealii::Triangulation<PHILIP_DIM>::MeshSmoothing(
+            dealii::Triangulation<PHILIP_DIM>::smoothing_on_refinement |
+            dealii::Triangulation<PHILIP_DIM>::smoothing_on_coarsening));
 }
 
 #if PHILIP_DIM != 1
 template <>
-std::unique_ptr<dealii::parallel::distributed::Triangulation<PHILIP_DIM>>
+std::shared_ptr<dealii::parallel::distributed::Triangulation<PHILIP_DIM>>
 MeshFactory<dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::create_MeshType(const MPI_Comm mpi_communicator)
 {
-    return std::unique_ptr<dealii::parallel::distributed::Triangulation<PHILIP_DIM>>(
-        new dealii::parallel::distributed::Triangulation<PHILIP_DIM>(
-            mpi_communicator,
-            typename dealii::Triangulation<PHILIP_DIM>::MeshSmoothing(
-                dealii::Triangulation<PHILIP_DIM>::smoothing_on_refinement |
-                dealii::Triangulation<PHILIP_DIM>::smoothing_on_coarsening)));
+    return std::make_shared<dealii::parallel::distributed::Triangulation<PHILIP_DIM>>(
+        mpi_communicator,
+        typename dealii::Triangulation<PHILIP_DIM>::MeshSmoothing(
+            dealii::Triangulation<PHILIP_DIM>::smoothing_on_refinement |
+            dealii::Triangulation<PHILIP_DIM>::smoothing_on_coarsening));
 }
 #endif
 

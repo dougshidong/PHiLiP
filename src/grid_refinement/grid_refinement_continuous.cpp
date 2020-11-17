@@ -627,7 +627,7 @@ void GridRefinement_Continuous_Adjoint<dim,nstate,real,MeshType>::field_h()
         unsigned int poly_degree = this->dg->get_min_fe_degree();
 
         this->get_current_field_h();
-        SizeField<dim,real>::adjoint_uniform(
+        SizeField<dim,real>::adjoint_uniform_balan(
             this->complexity_target,
             this->grid_refinement_param.r_max,
             this->grid_refinement_param.c_max,
@@ -645,7 +645,7 @@ void GridRefinement_Continuous_Adjoint<dim,nstate,real,MeshType>::field_h()
         GridRefinement_Continuous<dim,nstate,real,MeshType>::get_current_field_p();
 
         this->get_current_field_h();
-        SizeField<dim,real>::adjoint_h(
+        SizeField<dim,real>::adjoint_h_balan(
             this->complexity_target,
             this->grid_refinement_param.r_max,
             this->grid_refinement_param.c_max,

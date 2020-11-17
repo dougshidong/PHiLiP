@@ -69,7 +69,7 @@ public:
     // Balan, A., Woopen, M., & May, G. (2016). 
     // Adjoint-based hp-adaptivity on anisotropic meshes for high-order compressible flow simulations. 
     // Computers and Fluids, 139. https://doi.org/10.1016/j.compfluid.2016.03.029
-    static void adjoint_uniform(
+    static void adjoint_uniform_balan(
         const real                                 complexity,            // target complexity
         const real                                 r_max,                 // maximum refinement factor
         const real                                 c_max,                 // maximum coarsening factor
@@ -86,7 +86,7 @@ public:
     // Balan, A., Woopen, M., & May, G. (2016). 
     // Adjoint-based hp-adaptivity on anisotropic meshes for high-order compressible flow simulations. 
     // Computers and Fluids, 139. https://doi.org/10.1016/j.compfluid.2016.03.029
-    static void adjoint_h(
+    static void adjoint_h_balan(
         const real                                 complexity,            // target complexity
         const real                                 r_max,                 // maximum refinement factor
         const real                                 c_max,                 // maximum coarsening factor
@@ -117,7 +117,7 @@ protected:
         const std::unique_ptr<Field<dim,real>> &   h_field,               // (input) size field
         const dealii::Vector<real> &               p_field);              // (input) poly field  
 
-    static void update_alpha_vector(
+    static void update_alpha_vector_balan(
         const dealii::Vector<real>&        eta,         // vector of DWR indicators
         const real                         r_max,       // max refinement factor
         const real                         c_max,       // max coarsening factor
@@ -128,7 +128,7 @@ protected:
         const dealii::Vector<real>&        I_c,         // cell area measure
         std::unique_ptr<Field<dim,real>>&  h_field);    // (output) size-field
 
-    static real update_alpha_k(
+    static real update_alpha_k_balan(
         const real eta_k,   // local DWR factor
         const real r_max,   // maximum refinement factor
         const real c_max,   // maximum coarsening factor

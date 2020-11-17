@@ -265,7 +265,7 @@ void SizeField<dim,real>::isotropic_hp(
 }
 
 template <int dim, typename real>
-void SizeField<dim,real>::adjoint_uniform(
+void SizeField<dim,real>::adjoint_uniform_balan(
     const real                                 complexity,            // target complexity
     const real                                 r_max,                 // maximum refinement factor
     const real                                 c_max,                 // maximum coarsening factor
@@ -285,7 +285,7 @@ void SizeField<dim,real>::adjoint_uniform(
             p_field[cell->active_cell_index()] = poly_degree;
 
     // calling the regular version of adjoint_h
-    adjoint_h(
+    adjoint_h_balan(
         complexity,
         r_max,
         c_max,
@@ -300,7 +300,7 @@ void SizeField<dim,real>::adjoint_uniform(
 }
 
 template <int dim, typename real>
-void SizeField<dim,real>::adjoint_h(
+void SizeField<dim,real>::adjoint_h_balan(
     const real                                 complexity,            // target complexity
     const real                                 r_max,                 // maximum refinement factor
     const real                                 c_max,                 // maximum coarsening factor
@@ -368,7 +368,7 @@ void SizeField<dim,real>::adjoint_h(
     // weighted in the quadratic logarithmic space).
     auto f = [&](real eta_ref) -> real{
         // updating the size field
-        update_alpha_vector(
+        update_alpha_vector_balan(
             eta,
             r_max, 
             c_max, 
@@ -396,7 +396,7 @@ void SizeField<dim,real>::adjoint_h(
     std::cout << "Bisection finished with eta_ref = "<< eta_target << ", f(eta_ref)=" << f(eta_target) << std::endl;
 
     // final uppdate using the converged parameter
-    update_alpha_vector(
+    update_alpha_vector_balan(
         eta,
         r_max, 
         c_max, 
@@ -412,7 +412,7 @@ void SizeField<dim,real>::adjoint_h(
 // updates the size targets for the entire mesh (from alpha)
 // based on the input of a bisection parameter eta_ref
 template <int dim, typename real>
-void SizeField<dim,real>::update_alpha_vector(
+void SizeField<dim,real>::update_alpha_vector_balan(
     const dealii::Vector<real>&        eta,         // vector of DWR indicators
     const real                         r_max,       // max refinement factor
     const real                         c_max,       // max coarsening factor
@@ -430,7 +430,7 @@ void SizeField<dim,real>::update_alpha_vector(
         unsigned int index = cell->active_cell_index();
 
         // getting the alpha factor for the cell update
-        real alpha_k = update_alpha_k(
+        real alpha_k = update_alpha_k_balan(
             eta[index],
             r_max,
             c_max,
@@ -454,7 +454,7 @@ void SizeField<dim,real>::update_alpha_vector(
 // function that determines local alpha size refinement factor (from adjoint estimates)
 // from eq. 30-33 of Balan et al. "djoint-based hp-adaptivity on anisotropic meshes for high-order..."
 template <int dim, typename real>
-real SizeField<dim,real>::update_alpha_k(
+real SizeField<dim,real>::update_alpha_k_balan(
     const real eta_k,   // local DWR factor
     const real r_max,   // maximum refinement factor
     const real c_max,   // maximum coarsening factor

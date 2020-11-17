@@ -97,11 +97,17 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
         get_grid(grid, grs_param);
         
         // approximating the exact functional solution using a fine grid version
-        double functional_value_exact = approximate_exact_functional(
-            physics_double,
-            physics_adtype,
-            param,
-            grs_param);
+        // double functional_value_exact = 0.5625; // s-shock right boundary (old)
+        double functional_value_exact = 0.562499959215865; // s-shock right boundary (new)
+        // double functional_value_exact = 0.373537; // atan, 10 strength 1/4 shape
+        // double functional_value_exact = 0.0204183; // atan, 50 strength 1/4 shape
+        // double functional_value_exact = 0.00517204; // atan, 50 strength full shape
+        // double functional_value_exact = 0.0; // BL
+        // double functional_value_exact = approximate_exact_functional(
+        //     physics_double,
+        //     physics_adtype,
+        //     param,
+        //     grs_param);
         std::cout << "Functional estimate = " << functional_value_exact << std::endl;
 
         // generate DG
@@ -180,7 +186,7 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
             double linf_norm = 0.0;
             double l2_norm = 0.0;
 
-            std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
+            std::vector<dealii::types::global_dof_index> dofs_indices(fe_values_extra.dofs_per_cell);
             
             error_per_cell.resize(n_global_active_cells);
 

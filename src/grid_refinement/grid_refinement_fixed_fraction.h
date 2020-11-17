@@ -23,6 +23,9 @@ protected:
     void refine_grid_hp() override;   
     std::vector< std::pair<dealii::Vector<real>, std::string> > output_results_vtk_method() override;
 
+    // performs flagging of the domain boundary (for testing)
+    void refine_boundary_h();
+
     virtual void error_indicator() = 0;
     void smoothness_indicator();
     void anisotropic_h();

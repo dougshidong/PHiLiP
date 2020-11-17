@@ -218,7 +218,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_gmsh()
 
         std::string args = " " + write_geoname + " -2 -save_all -o " + output_name;
 
-        #if 1
+        #if 0
         // uses old version of gmsh
         std::string cmd = "/usr/local/include/gmsh-master/build/gmsh" + args;
         std::cout << "Command is: " << cmd << '\n';

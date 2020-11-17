@@ -52,6 +52,9 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::refine_grid()
         refine_grid_hp();
     }
 
+    // optionally uncomment to flag all boundaries for refinement
+    // refine_boundary_h();
+
     std::cout << "Checking for aniso option" << std::endl;
 
     // check for anisotropic h-adaptation
@@ -128,6 +131,23 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::refine_grid_hp()
                 cell->clear_refine_flag();
                 cell->set_active_fe_index(cell->active_fe_index()+1);
             }
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::refine_boundary_h()
+{
+    // setting refinement flag on all boundary cells of the dof_handler
+    for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell){
+        if(!cell->is_locally_owned()) continue;
+        
+        // looping over the faces to check if any are at the boundary
+        for(unsigned int face = 0; face < dealii::GeometryInfo<dim>::faces_per_cell; ++face){
+            if(cell->face(face)->at_boundary()){
+                cell->set_refine_flag();
+                break;
+            }
+        }
+    }
 }
 
 template <int dim, int nstate, typename real, typename MeshType>

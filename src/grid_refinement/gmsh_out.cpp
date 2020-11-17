@@ -240,8 +240,9 @@ void GmshOut<dim,real>::write_pos_anisotropic(
                     const unsigned int N = 3;
 
                     // scaling for the complexity match
-                    // const double scale = 0.25*0.5/sqrt(2.0);
-                    const double scale = 0.25/sqrt(3.0);
+                    // const double scale = 0.25*0.5/sqrt(2.0); // p = 1
+                    const double scale = 0.25/sqrt(3.0); // p = 2
+                    // const double scale = 0.25/sqrt(2.0); // p = 3
 
                     for(unsigned int i = 0; i < N; ++i){
                         for(unsigned int j = 0; j < N; ++j){

@@ -244,10 +244,10 @@ dealii::Vector<real> Adjoint<dim, nstate, real, MeshType>::dual_weighted_residua
 
         real dwr_cell = 0;
         for(unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof){
-            dwr_cell += std::abs(dg->right_hand_side[current_dofs_indices[idof]]*adjoint_fine[current_dofs_indices[idof]]);
+            dwr_cell += dg->right_hand_side[current_dofs_indices[idof]]*adjoint_fine[current_dofs_indices[idof]];
         }
 
-        dual_weighted_residual_fine[cell->active_cell_index()] = dwr_cell;
+        dual_weighted_residual_fine[cell->active_cell_index()] = std::abs(dwr_cell);
     }
 
     return dual_weighted_residual_fine;

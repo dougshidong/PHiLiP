@@ -64,6 +64,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler_vortex | "
                       " euler_entropy_waves | "
                       "  euler_bump_optimization | "
+                      "  euler_naca_optimization | "
                       "  shock_1d | "
                       "  euler_naca0012 | "
                       " advection_periodicity |"
@@ -80,11 +81,12 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_vortex | "
                       "  euler_entropy_waves | "
                       "  euler_cylinder_adjoint "
-       "  euler_split_taylor_green |"
+                      "  euler_split_taylor_green |"
                       "  euler_bump_optimization | "
+                      "  euler_naca_optimization | "
                       "  shock_1d | "
                       "  euler_naca0012 | "
-       "  advection_periodicity >.");
+                      "  advection_periodicity >.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -142,6 +144,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "advection_periodicity") {test_type = advection_periodicity; }
     else if (test_string == "euler_split_taylor_green") {test_type = euler_split_taylor_green;}
     else if (test_string == "euler_bump_optimization") { test_type = euler_bump_optimization; }
+    else if (test_string == "euler_naca_optimization") { test_type = euler_naca_optimization; }
     else if (test_string == "shock_1d") { test_type = shock_1d; }
     else if (test_string == "euler_naca0012") { test_type = euler_naca0012; }
     else if (test_string == "optimization_inverse_manufactured") {test_type = optimization_inverse_manufactured; }

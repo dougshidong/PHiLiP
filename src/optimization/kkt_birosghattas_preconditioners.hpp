@@ -190,9 +190,9 @@ public:
         rhs_2->scale(-1.0);
         rhs_2->plus(*src_2);
         // Need to apply Hessian inverse on dst_2
-        secant_->applyH( *dst_2, *rhs_2);
+        //secant_->applyH( *dst_2, *rhs_2);
         // Identity
-        //dst_2->set(*rhs_2);
+        dst_2->set(*rhs_2);
 
         equal_constraints_->applyJacobian_2(*rhs_3, *dst_2, *simulation_variables_, *control_variables_, tol);
         rhs_3->scale(-1.0);
@@ -328,8 +328,8 @@ public:
         objective_->hessVec_21(*temp_2, *Asinv_y_1, *simulation_variables_, *control_variables_, tol);
         y_2->axpy(-1.0,*temp_2);
 
-        secant_->applyH( *dst_2, *y_2);
-        //dst_2->set(*y_2);
+        //secant_->applyH( *dst_2, *y_2);
+        dst_2->set(*y_2);
 
         auto Asinv_Ad_dst_2 = y_1->clone();
         equal_constraints_->applyJacobian_2(*temp_1, *dst_2, *simulation_variables_, *control_variables_, tol);

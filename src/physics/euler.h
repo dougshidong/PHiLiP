@@ -108,6 +108,7 @@ public:
     const double pressure_inf; ///< Non-dimensionalized pressure* at infinity
     const double entropy_inf; ///< Entropy measure at infinity
     double temperature_inf; ///< Non-dimensionalized temperature* at infinity. Should equal 1/density*(inf)
+    double dynamic_pressure_inf; ///< Non-dimensionalized dynamic pressure* at infinity
 
     //const double internal_energy_inf;
     /// Non-dimensionalized Velocity vector at farfield

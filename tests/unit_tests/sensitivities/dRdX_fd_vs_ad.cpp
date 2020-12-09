@@ -61,6 +61,7 @@ int test (
         bool mesh_out = (i==n_refine-1);
         dg->high_order_grid->execute_coarsening_and_refinement(mesh_out);
     }
+    dg->high_order_grid->ensure_conforming_mesh();
     dg->allocate_system ();
 
     pcout << "Poly degree " << poly_degree << " ncells " << grid->n_global_active_cells() << " ndofs: " << dg->dof_handler.n_dofs() << std::endl;
@@ -114,8 +115,9 @@ int test (
             old_node = high_order_grid->volume_nodes[inode];
             high_order_grid->volume_nodes(inode) = old_node+EPS;
         }
+        //high_order_grid->ensure_conforming_mesh();
         //hanging_node_constraints.distribute(high_order_grid->volume_nodes);
-        //high_order_grid->volume_nodes.update_ghost_values();
+        high_order_grid->volume_nodes.update_ghost_values();
 
         dg->assemble_residual(false, false, false);
         solutionVector perturbed_residual_p = dg->right_hand_side;
@@ -129,8 +131,9 @@ int test (
         if (high_order_grid->locally_relevant_dofs_grid.is_element(inode) ) {
             high_order_grid->volume_nodes(inode) = old_node-EPS;
         }
+        //high_order_grid->ensure_conforming_mesh();
         //hanging_node_constraints.distribute(high_order_grid->volume_nodes);
-        //high_order_grid->volume_nodes.update_ghost_values();
+        high_order_grid->volume_nodes.update_ghost_values();
 
         dg->assemble_residual(false, false, false);
         solutionVector perturbed_residual_m = dg->right_hand_side;
@@ -159,6 +162,7 @@ int test (
             if (dg->locally_owned_dofs.is_element(iresidual) ) {
                 const double drdx_entry = perturbed_residual_p[iresidual];
                 if (std::abs(drdx_entry) >= 1e-12) {
+                    std::cout << iresidual << " " << inode << std::endl;
                     dRdXv_fd.add(iresidual,inode,drdx_entry);
                 }
             }
@@ -186,6 +190,8 @@ int test (
     //     if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), n_digits, true, n_spacing, "0", 1., 0.);
     // }
 
+    pcout << "(dRdX_FD frob_norm) " << dRdXv_fd.frobenius_norm();
+    pcout << "(dRdX_AD frob_norm) " << dg->dRdXv.frobenius_norm() << std::endl;
     dRdXv_fd.add(-1.0,dg->dRdXv);
 
     const double diff_lone_norm = dRdXv_fd.l1_norm();

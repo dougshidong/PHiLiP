@@ -17,7 +17,8 @@ template<int dim>
 FlowConstraints<dim>
 ::FlowConstraints(std::shared_ptr<DGBase<dim,double>> &_dg, 
                  const FreeFormDeformation<dim> &_ffd,
-                 std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim)
+                 std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim,
+                 dealii::TrilinosWrappers::SparseMatrix *precomputed_dXvdXp)
     : mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
     , i_print(mpi_rank==0)
     , dg(_dg)
@@ -27,10 +28,27 @@ FlowConstraints<dim>
     , adjoint_jacobian_prec(nullptr)
 {
     flow_CFL_ = 0.0;
-    ffd_des_var.reinit(ffd_design_variables_indices_dim.size());
+
+    const unsigned int n_design_variables = ffd_design_variables_indices_dim.size();
+    const dealii::IndexSet row_part = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_design_variables);
+    dealii::IndexSet ghost_row_part(n_design_variables);
+    ghost_row_part.add_range(0,n_design_variables);
+    ffd_des_var.reinit(row_part, ghost_row_part, MPI_COMM_WORLD);
+
     ffd.get_design_variables(ffd_design_variables_indices_dim, ffd_des_var);
 
-    ffd.get_dXvdXp ( *(dg->high_order_grid), ffd_design_variables_indices_dim, dXvdXp);
+    initial_ffd_des_var = ffd_des_var;
+    initial_ffd_des_var.update_ghost_values();
+
+    //if(dXvdXp.m() == 0) ffd.get_dXvdXp ( *(dg->high_order_grid), ffd_design_variables_indices_dim, dXvdXp);
+    if (precomputed_dXvdXp) {
+        if (precomputed_dXvdXp->m() == dg->high_order_grid->volume_nodes.size() && precomputed_dXvdXp->n() == n_design_variables) {
+            dXvdXp.copy_from(*precomputed_dXvdXp);
+        }
+    } else {
+        ffd.get_dXvdXp ( *(dg->high_order_grid), ffd_design_variables_indices_dim, dXvdXp);
+    }
+    //ffd.get_dXvdXp_FD ( *(dg->high_order_grid), ffd_design_variables_indices_dim, dXvdXp, 1e-6);
 
     dealii::ParameterHandler parameter_handler;
     Parameters::LinearSolverParam::declare_parameters (parameter_handler);
@@ -38,14 +56,24 @@ FlowConstraints<dim>
     this->linear_solver_param.max_iterations = 1000;
     this->linear_solver_param.restart_number = 200;
     this->linear_solver_param.linear_residual = 1e-17;
-    this->linear_solver_param.ilut_fill = 5;
+    this->linear_solver_param.ilut_fill = 1.0;//2; 50
     this->linear_solver_param.ilut_drop = 0.0;
-    this->linear_solver_param.ilut_atol = 1e-4;
-    this->linear_solver_param.ilut_rtol = 1.0+1e-4;
+    this->linear_solver_param.ilut_atol = 1e-3;
+    this->linear_solver_param.ilut_rtol = 1.0+1e-2;
     this->linear_solver_param.linear_solver_output = Parameters::OutputEnum::quiet;
     this->linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
-
 }
+
+// template<int dim>
+// FlowConstraints<dim>
+// ::FlowConstraints(std::shared_ptr<DGBase<dim,double>> &_dg, 
+//                  const FreeFormDeformation<dim> &_ffd,
+//                  std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim,
+//                  const dealii::TrilinosWrappers::SparseMatrix &_dXvdXp)
+//     : FlowConstraints(_dg, _ffd, _ffd_design_variables_indices_dim)
+// {
+//     dXvdXp = _dXvdXp;
+// }
 
 template<int dim>
 FlowConstraints<dim>::~FlowConstraints()
@@ -75,11 +103,24 @@ void FlowConstraints<dim>
     auto diff = ffd_des_var;
     diff -= current_ffd_des_var;
     const double l2_norm = diff.l2_norm();
+    //if (iter!=-1) {
+    //    dg->output_results_vtk(1000000+iter);
+    //    ffd.output_ffd_vtu(    1000000+iter);
+    //}
     if (l2_norm != 0.0) {
-        ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_des_var);
-        ffd.deform_mesh(*(dg->high_order_grid));
 
-        static int iupdate = 0;
+        ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_des_var);
+        //ffd.deform_mesh(*(dg->high_order_grid));
+ 
+        auto dXp = ffd_des_var;
+        dXp -= initial_ffd_des_var;
+        dXp.update_ghost_values();
+        auto dXv = dg->high_order_grid->volume_nodes;
+        dXvdXp.vmult(dXv, dXp);
+        dg->high_order_grid->volume_nodes = dg->high_order_grid->initial_volume_nodes;
+        dg->high_order_grid->volume_nodes += dXv;
+        dg->high_order_grid->volume_nodes.update_ghost_values();
+
         dg->output_results_vtk(iupdate);
         ffd.output_ffd_vtu(iupdate);
         iupdate++;
@@ -92,7 +133,7 @@ void FlowConstraints<dim>
     ROL::Vector<double>& constraint_values,
     ROL::Vector<double>& des_var_sim,
     const ROL::Vector<double>& des_var_ctl,
-    double& /*tol*/
+    double& tol
     )
 {
 
@@ -104,6 +145,7 @@ void FlowConstraints<dim>
     ode_solver_1->steady_state();
 
     dg->assemble_residual();
+    tol = dg->get_residual_l2norm();
     auto &constraint = ROL_vector_to_dealii_vector_reference(constraint_values);
     constraint = dg->right_hand_side;
     auto &des_var_sim_v = ROL_vector_to_dealii_vector_reference(des_var_sim);
@@ -233,6 +275,7 @@ int FlowConstraints<dim>
     Ifpack Factory;
     const std::string PrecType = "ILUT"; 
     //const std::string PrecType = "ILU"; 
+    //List.set("fact: level-of-fill", 2);
     const int OverlapLevel = 1; // one row of overlap among the processes
     jacobian_prec = Factory.Create(PrecType, jacobian, OverlapLevel);
     assert (jacobian_prec != 0);
@@ -256,12 +299,11 @@ int FlowConstraints<dim>
     //      if different from zero, the elements dropped during the factorization process
     //      will be added to the diagonal term, multiplied by the specified value.
 
-    //List.set("fact: level-of-fill", 2);
-    List.set("fact: ilut level-of-fill", 5.0);
+    List.set("fact: ilut level-of-fill", 50.0);
     // no modifications on the diagonal
-    List.set("fact: absolute threshold", 1e-4);
-    List.set("fact: relative threshold", 1.0+1e-4);
-    List.set("fact: drop tolerance", 1e-12);
+    List.set("fact: absolute threshold", 1e-3);
+    List.set("fact: relative threshold", 1.01);//1.0+1e-2);
+    List.set("fact: drop tolerance", 0.0);//1e-12);
 
     List.set("schwarz: reordering type", "rcm");
 
@@ -292,6 +334,7 @@ int FlowConstraints<dim>
     Ifpack Factory;
     const std::string PrecType = "ILUT"; 
     //const std::string PrecType = "ILU"; 
+    //List.set("fact: level-of-fill", 2);
     const int OverlapLevel = 1; // one row of overlap among the processes
     adjoint_jacobian_prec = Factory.Create(PrecType, adjoint_jacobian, OverlapLevel);
     assert (adjoint_jacobian_prec != 0);
@@ -315,12 +358,11 @@ int FlowConstraints<dim>
     //      if different from zero, the elements dropped during the factorization process
     //      will be added to the diagonal term, multiplied by the specified value.
 
-    //List.set("fact: level-of-fill", 2);
-    List.set("fact: ilut level-of-fill", 5.0);
+    List.set("fact: ilut level-of-fill", 50.0);
     // no modifications on the diagonal
-    List.set("fact: absolute threshold", 1e-4);
-    List.set("fact: relative threshold", 1.0+1e-4);
-    List.set("fact: drop tolerance", 1e-12);
+    List.set("fact: absolute threshold", 1e-3);
+    List.set("fact: relative threshold", 1.01);//1.0+1e-2);
+    List.set("fact: drop tolerance", 0.0);//1e-12);
 
     List.set("schwarz: reordering type", "rcm");
 
@@ -357,8 +399,10 @@ void FlowConstraints<dim>
                     output_vector_v.begin());
     jacobian_prec->ApplyInverse (input_trilinos, output_trilinos);
 
-    n_vmult += 2;
-    dRdW_mult += 2;
+    //n_vmult += 2;
+    //dRdW_mult += 2;
+    n_vmult += 6;
+    dRdW_mult += 6;
 
 }
 
@@ -387,8 +431,10 @@ void FlowConstraints<dim>
                     output_vector_v.begin());
     adjoint_jacobian_prec->ApplyInverse (input_trilinos, output_trilinos);
 
-    n_vmult += 2;
-    dRdW_mult += 2;
+    //n_vmult += 2;
+    //dRdW_mult += 2;
+    n_vmult += 6;
+    dRdW_mult += 6;
 }
 
 template<int dim>

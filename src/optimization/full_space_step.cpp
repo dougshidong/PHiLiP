@@ -200,7 +200,7 @@ void FullSpace_BirosGhattas<Real>::initialize(
 
     auto &flow_constraint = (dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(equal_constraints));
     //flow_constraint.flow_CFL_ = 1.0/std::pow(algo_state.cnorm, 0.5);
-    flow_constraint.flow_CFL_ = 1.0/std::pow(algo_state.cnorm, 2.0);
+    flow_constraint.flow_CFL_ = 100;//std::max(1.0/std::pow(algo_state.cnorm, 2.0), 100.0);
     //flow_constraint.flow_CFL_ = 1.0/std::pow(lagrangian_gradient->norm(), 1.00);
 
     // // Not sure why this is done in ROL_Step.hpp
@@ -337,11 +337,11 @@ std::vector<double> FullSpace_BirosGhattas<Real>::solve_linear (
     // Used for almost all the results:
     const double tolerance = std::min(1e-4, std::max(1e-6 * rhs_norm, 1e-11));
 
-    dealii::SolverControl solver_control(100000, tolerance, true, true);
+    dealii::SolverControl solver_control(1000, tolerance, true, true);
     solver_control.enable_history_data();
 
     (void) preconditioner;
-    const unsigned int     max_n_tmp_vectors = 1000;
+    const unsigned int     max_n_tmp_vectors = 500;
     //Solver_types solver_type = gmres;
     // Used for most results
     Solver_types solver_type = fgmres;
@@ -354,18 +354,26 @@ std::vector<double> FullSpace_BirosGhattas<Real>::solve_linear (
             typedef typename dealii::SolverGMRES<VectorType>::AdditionalData AddiData_GMRES;
             AddiData_GMRES add_data_gmres( max_n_tmp_vectors, right_preconditioning, use_default_residual, force_re_orthogonalization);
             dealii::SolverGMRES<VectorType> solver_gmres(solver_control, add_data_gmres);
-            solver_gmres.solve(matrix_A, solution, right_hand_side
-            //, dealii::PreconditionIdentity());
-            , preconditioner);
+            try {
+                solver_gmres.solve(matrix_A, solution, right_hand_side
+                //, dealii::PreconditionIdentity());
+                , preconditioner);
+            } catch(...) {
+                solution = right_hand_side;
+            }
             break;
         }
         case fgmres: {
             typedef typename dealii::SolverFGMRES<VectorType>::AdditionalData AddiData_FGMRES;
             AddiData_FGMRES add_data_fgmres( max_n_tmp_vectors );
             dealii::SolverFGMRES<VectorType> solver_fgmres(solver_control, add_data_fgmres);
-            solver_fgmres.solve(matrix_A, solution, right_hand_side
-            //, dealii::PreconditionIdentity());
-            , preconditioner);
+            try {
+                solver_fgmres.solve(matrix_A, solution, right_hand_side
+                //, dealii::PreconditionIdentity());
+                , preconditioner);
+            } catch(...) {
+                solution = right_hand_side;
+            }
             break;
         }
         default: break;
@@ -404,8 +412,10 @@ std::vector<Real> FullSpace_BirosGhattas<Real>::solve_KKT_system(
     rhs2->scale(-one);
 
     /* Declare left-hand side of augmented system. */
-    ROL::Ptr<Vector<Real> > lhs1 = design_variable_cloner_->clone();
-    ROL::Ptr<Vector<Real> > lhs2 = lagrange_variable_cloner_->clone();
+    //ROL::Ptr<Vector<Real> > lhs1 = design_variable_cloner_->clone();
+    //ROL::Ptr<Vector<Real> > lhs2 = lagrange_variable_cloner_->clone();
+    ROL::Ptr<Vector<Real> > lhs1 = rhs1->clone();
+    ROL::Ptr<Vector<Real> > lhs2 = rhs2->clone();
 
     ROL::Vector_SimOpt lhs_rol(lhs1, lhs2);
     ROL::Vector_SimOpt rhs_rol(rhs1, rhs2);
@@ -595,7 +605,7 @@ void FullSpace_BirosGhattas<Real>::compute(
         equal_constraints,
         penalty_offset);
     const auto reduced_gradient = (dynamic_cast<Vector_SimOpt<Real>&>(*lagrangian_gradient)).get_2();
-    penalty_value_ = std::max(1e-2/reduced_gradient->norm(), 1.0);
+    penalty_value_ = std::max(1e-0/reduced_gradient->norm(), 1.0);
     //penalty_value_ = std::max(1e-2/lagrangian_gradient->norm(), 1.0);
     pcout
         << "Finished computeAugmentedLagrangianPenalty..."
@@ -608,6 +618,7 @@ void FullSpace_BirosGhattas<Real>::compute(
 
     bool linesearch_success = false;
     Real fold = 0.0;
+    int n_searches = 0;
     while (!linesearch_success) {
 
         augLag.reset(lagrange_mult, penalty_value_);
@@ -620,9 +631,15 @@ void FullSpace_BirosGhattas<Real>::compute(
         Real directional_derivative_step = merit_function_gradient->dot(search_direction);
         directional_derivative_step += step_state->constraintVec->dot(*lagrange_mult_search_direction_);
         pcout
+            << "Penalty value: " << penalty_value_
             << "Directional_derivative_step (Should be negative for descent direction)"
             << directional_derivative_step
             << std::endl;
+        //if (directional_derivative_step > 0.0) {
+        //    pcout << "Increasing penalty value to obtain descent direction..." << std::endl;
+        //    penalty_value_ *= 2.0;
+        //    continue;
+        //}
 
         /* Perform line-search */
         merit_function_value = merit_function_->value(design_variables, tol );
@@ -657,16 +674,25 @@ void FullSpace_BirosGhattas<Real>::compute(
                 << " Final merit function value = " << merit_function_value
                 << std::endl;
         } else {
-            const Real penalty_reduction = 0.1;
+            n_searches++;
+            Real penalty_reduction = 0.1;
             pcout
                 << " Max linesearches achieved: " << max_line_searches
+                << " Current merit_function_value value = " << merit_function_value
                 << " Reducing penalty value from " << penalty_value_
                 << " to " << penalty_value_ * penalty_reduction
                 << std::endl;
-            linesearch_success = false;
             penalty_value_ = penalty_value_ * penalty_reduction;
 
-            linesearch_success = true;
+            if (n_searches > 1) {
+                pcout << " Linesearch failed, searching other direction " << std::endl;
+                search_direction.scale(-1.0);
+                penalty_value_ = std::max(1e-0/reduced_gradient->norm(), 1.0);
+            }
+            if (n_searches > 2) {
+                pcout << " Linesearch failed in other direction... ending " << std::endl;
+                std::abort();
+            }
         }
         lineSearch_->setMaxitUpdate(step_state->searchSize, merit_function_value, fold);
     }
@@ -755,7 +781,13 @@ void FullSpace_BirosGhattas<Real>::update(
     algo_state.snorm = std::sqrt(algo_state.snorm);
 
     auto &flow_constraint = (dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(equal_constraints));
+    //flow_constraint.update(
+    //    *((dynamic_cast<const Vector_SimOpt<Real>&>(design_variables)).get_1()),
+    //    *((dynamic_cast<const Vector_SimOpt<Real>&>(design_variables)).get_2()),
+    //    true,
+    //    algo_state.iter); // Prints out the solution.
     //flow_constraint.flow_CFL_ = 1.0/std::pow(algo_state.cnorm, 0.5);
+    //flow_constraint.flow_CFL_ = 10 + 1.0/std::pow(algo_state.cnorm, 2.0);
     flow_constraint.flow_CFL_ = 10 + 1.0/std::pow(algo_state.cnorm, 2.0);
     //flow_constraint.flow_CFL_ = 1.0/std::pow(algo_state.gnorm, 2.00);
 

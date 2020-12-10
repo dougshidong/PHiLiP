@@ -45,6 +45,8 @@
 #include <deal.II/grid/grid_refinement.h>
 #include <deal.II/distributed/grid_refinement.h>
 
+#include <EpetraExt_Transpose_RowMatrix.h>
+
 
 #include "global_counter.hpp"
 
@@ -1175,6 +1177,7 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
     }
 
     right_hand_side.compress(dealii::VectorOperation::add);
+    right_hand_side.update_ghost_values();
     if ( compute_dRdW ) {
         system_matrix.compress(dealii::VectorOperation::add);
 
@@ -1190,6 +1193,19 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
         epetra_rowmatrixtransposer_dRdW->CreateTranspose( make_data_contiguous, output_matrix);
         system_matrix_transpose.reinit(*output_matrix);
         delete(output_matrix);
+        //Epetra_CrsMatrix *input_matrix  = const_cast<Epetra_CrsMatrix *>(&(system_matrix.trilinos_matrix()));
+        //std::shared_ptr<Epetra_CrsMatrix> output_matrix = std::make_shared<Epetra_CrsMatrix> ();
+        //epetra_rowmatrixtransposer_dRdW = std::make_unique<Epetra_RowMatrixTransposer> ( input_matrix );
+        //const bool make_data_contiguous = true;
+        //epetra_rowmatrixtransposer_dRdW->CreateTranspose( make_data_contiguous, output_matrix.get());
+        //system_matrix_transpose.reinit(*output_matrix);
+        
+        //EpetraExt::RowMatrix_Transpose transposer;
+        //Epetra_CrsMatrix* input_matrix  = const_cast<Epetra_CrsMatrix *>(&(system_matrix.trilinos_matrix()));
+        //Epetra_CrsMatrix* output_matrix = dynamic_cast<Epetra_CrsMatrix*>(&transposer(*input_matrix));
+        //system_matrix_transpose.reinit(*output_matrix);
+        //std::cout << output_matrix << std::endl;
+        //delete(output_matrix);
 
 
         //double condition_estimate;

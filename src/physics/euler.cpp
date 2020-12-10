@@ -49,8 +49,11 @@ Euler<dim,nstate,real>::Euler ( const double ref_length,
         velocities_inf[1] = sin(angle_of_attack)*cos(side_slip_angle);
         velocities_inf[2] = sin(side_slip_angle);
     }
+
     assert(std::abs(velocities_inf.norm() - 1.0) < 1e-14);
 
+    double velocity_inf_sqr = 1.0;
+    dynamic_pressure_inf = 0.5 * density_inf * velocity_inf_sqr;
 
 }
 
@@ -896,7 +899,9 @@ dealii::Vector<double> Euler<dim,nstate,real>::post_compute_derived_quantities_v
         computed_quantities(++current_data_index) = conservative_soln[nstate-1];
         // Pressure
         computed_quantities(++current_data_index) = primitive_soln[nstate-1];
-        // Pressure
+        // Pressure coefficient
+        computed_quantities(++current_data_index) = (primitive_soln[nstate-1] - pressure_inf) / dynamic_pressure_inf;
+        // Temperature
         computed_quantities(++current_data_index) = compute_temperature(primitive_soln);
         // Entropy generation
         computed_quantities(++current_data_index) = compute_entropy_measure(conservative_soln) - entropy_inf;
@@ -928,6 +933,7 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Eu
     }
     interpretation.push_back (DCI::component_is_scalar); // Energy
     interpretation.push_back (DCI::component_is_scalar); // Pressure
+    interpretation.push_back (DCI::component_is_scalar); // Pressure coefficient
     interpretation.push_back (DCI::component_is_scalar); // Temperature
     interpretation.push_back (DCI::component_is_scalar); // Entropy generation
     interpretation.push_back (DCI::component_is_scalar); // Mach number
@@ -953,6 +959,7 @@ std::vector<std::string> Euler<dim,nstate,real> ::post_get_names () const
     }
     names.push_back ("energy");
     names.push_back ("pressure");
+    names.push_back ("pressure_coeffcient");
     names.push_back ("temperature");
 
     names.push_back ("entropy_generation");

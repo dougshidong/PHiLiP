@@ -18,6 +18,39 @@
 #include "dg/dg.h"
 #include "functional.h"
 
+/// Returns y = Ax.
+/** Had to rewrite this instead of 
+ *  dealii::contract<1,0>(A,x);
+ *  because contract doesn't allow the use of codi variables.
+ */
+template<int dim, typename real1, typename real2>
+dealii::Tensor<1,dim,real1> vmult(const dealii::Tensor<2,dim,real1> A, const dealii::Tensor<1,dim,real2> x)
+{
+     dealii::Tensor<1,dim,real1> y;
+     for (int row=0;row<dim;++row) {
+         y[row] = 0.0;
+         for (int col=0;col<dim;++col) {
+             y[row] += A[row][col] * x[col];
+         }
+     }
+     return y;
+}
+
+/// Returns norm of dealii::Tensor<1,dim,real>
+/** Had to rewrite this instead of 
+ *  x.norm()
+ *  because norm() doesn't allow the use of codi variables.
+ */
+template<int dim, typename real1>
+real1 norm(const dealii::Tensor<1,dim,real1> x)
+{
+     real1 val = 0.0;
+     for (int row=0;row<dim;++row) {
+         val += x[row] * x[row];
+     }
+     return sqrt(val);
+}
+
 namespace PHiLiP {
 
 template <int dim, int nstate, typename real>
@@ -236,7 +269,7 @@ real2 Functional<dim, nstate, real>::evaluate_volume_cell_functional(
         }
         const real2 jacobian_determinant = dealii::determinant(metric_jacobian);
         dealii::Tensor<2,dim,real2> jacobian_transpose_inverse;
-        if (uses_solution_gradient) jacobian_transpose_inverse = dealii::transpose(dealii::invert(metric_jacobian));
+        jacobian_transpose_inverse = dealii::transpose(dealii::invert(metric_jacobian));
 
         // Evaluate the solution and gradient at the quadrature points
         std::array<real2, nstate> soln_at_q;
@@ -257,6 +290,108 @@ real2 Functional<dim, nstate, real>::evaluate_volume_cell_functional(
         volume_local_sum += volume_integrand * jacobian_determinant * quad_weight;
     }
     return volume_local_sum;
+}
+
+template <int dim, int nstate, typename real>
+template <typename real2>
+real2 Functional<dim, nstate, real>::evaluate_boundary_cell_functional(
+    const Physics::PhysicsBase<dim,nstate,real2> &physics,
+    const unsigned int boundary_id,
+    const std::vector< real2 > &soln_coeff,
+    const dealii::FESystem<dim> &fe_solution,
+    const std::vector< real2 > &coords_coeff,
+    const dealii::FESystem<dim> &fe_metric,
+    const unsigned int face_number,
+    const dealii::Quadrature<dim-1> &fquadrature) const
+{
+    const unsigned int n_face_quad_pts = fquadrature.size();
+    const unsigned int n_soln_dofs_cell = soln_coeff.size();
+    const unsigned int n_metric_dofs_cell = coords_coeff.size();
+
+    const dealii::Quadrature<dim> face_quadrature = dealii::QProjector<dim>::project_to_face( dealii::ReferenceCell::get_hypercube(dim),
+                                                                                              fquadrature,
+                                                                                              face_number);
+    const dealii::Tensor<1,dim,real> surface_unit_normal = dealii::GeometryInfo<dim>::unit_normal_vector[face_number];
+
+    real2 boundary_local_sum = 0.0;
+    for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+
+        const dealii::Point<dim,double> &ref_point = face_quadrature.point(iquad);
+        const double quad_weight = face_quadrature.weight(iquad);
+
+        // Obtain physical quadrature coordinates (Might be used if there is a source term or a wall distance)
+        // and evaluate metric terms such as the metric Jacobian, its inverse transpose, and its determinant
+        dealii::Point<dim,real2> phys_coord;
+        for (int d=0;d<dim;++d) { phys_coord[d] = 0.0;}
+        std::array< dealii::Tensor<1,dim,real2>, dim > coord_grad; // Tensor initialize with zeros
+        dealii::Tensor<2,dim,real2> metric_jacobian;
+        for (unsigned int idof=0; idof<n_metric_dofs_cell; ++idof) {
+            const unsigned int axis = fe_metric.system_to_component_index(idof).first;
+            phys_coord[axis] += coords_coeff[idof] * fe_metric.shape_value(idof, ref_point);
+            coord_grad[axis] += coords_coeff[idof] * fe_metric.shape_grad (idof, ref_point);
+        }
+        for (int row=0;row<dim;++row) {
+            for (int col=0;col<dim;++col) {
+                metric_jacobian[row][col] = coord_grad[row][col];
+            }
+        }
+        const real2 jacobian_determinant = dealii::determinant(metric_jacobian);
+        dealii::Tensor<2,dim,real2> jacobian_transpose_inverse;
+        jacobian_transpose_inverse = dealii::transpose(dealii::invert(metric_jacobian));
+
+        const dealii::Tensor<1,dim,real2> phys_normal = vmult(jacobian_transpose_inverse, surface_unit_normal);
+        const real2 area = norm(phys_normal);
+        const dealii::Tensor<1,dim,real2> phys_unit_normal = phys_normal/area;
+
+        real2 surface_jacobian_determinant = area*jacobian_determinant;
+
+        // Evaluate the solution and gradient at the quadrature points
+        std::array<real2, nstate> soln_at_q;
+        soln_at_q.fill(0.0);
+        std::array< dealii::Tensor<1,dim,real2>, nstate > soln_grad_at_q;
+        for (unsigned int idof=0; idof<n_soln_dofs_cell; ++idof) {
+            const unsigned int istate = fe_solution.system_to_component_index(idof).first;
+            if (uses_solution_values) {
+                soln_at_q[istate]  += soln_coeff[idof] * fe_solution.shape_value(idof,ref_point);
+            }
+            if (uses_solution_gradient) {
+                const dealii::Tensor<1,dim,real2> phys_shape_grad = dealii::contract<1,0>(jacobian_transpose_inverse, fe_solution.shape_grad(idof,ref_point));
+                soln_grad_at_q[istate] += soln_coeff[idof] * phys_shape_grad;
+            }
+        }
+        real2 boundary_integrand = this->evaluate_boundary_integrand(physics, boundary_id, phys_coord, phys_unit_normal, soln_at_q, soln_grad_at_q);
+
+        boundary_local_sum += boundary_integrand * surface_jacobian_determinant * quad_weight;
+    }
+    return boundary_local_sum;
+}
+
+template <int dim, int nstate, typename real>
+real Functional<dim, nstate, real>::evaluate_boundary_cell_functional(
+    const Physics::PhysicsBase<dim,nstate,real> &physics,
+    const unsigned int boundary_id,
+    const std::vector< real > &soln_coeff,
+    const dealii::FESystem<dim> &fe_solution,
+    const std::vector< real > &coords_coeff,
+    const dealii::FESystem<dim> &fe_metric,
+    const unsigned int face_number,
+    const dealii::Quadrature<dim-1> &fquadrature) const
+{
+    return evaluate_boundary_cell_functional<real>(physics, boundary_id, soln_coeff, fe_solution, coords_coeff, fe_metric, face_number, fquadrature);
+}
+
+template <int dim, int nstate, typename real>
+Sacado::Fad::DFad<Sacado::Fad::DFad<real>> Functional<dim, nstate, real>::evaluate_boundary_cell_functional(
+    const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> &physics,
+    const unsigned int boundary_id,
+    const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &soln_coeff,
+    const dealii::FESystem<dim> &fe_solution,
+    const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &coords_coeff,
+    const dealii::FESystem<dim> &fe_metric,
+    const unsigned int face_number,
+    const dealii::Quadrature<dim-1> &fquadrature) const
+{
+    return evaluate_boundary_cell_functional<Sacado::Fad::DFad<Sacado::Fad::DFad<real>>>(physics, boundary_id, soln_coeff, fe_solution, coords_coeff, fe_metric, face_number, fquadrature);
 }
 
 template <int dim, int nstate, typename real>
@@ -441,7 +576,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
         if(!soln_cell->is_locally_owned()) continue;
 
         // setting up the volume integration
-        const unsigned int i_mapp = 0; // *** ask doug if this will ever be 
+        //const unsigned int i_mapp = 0; // *** ask doug if this will ever be 
         const unsigned int i_fele = soln_cell->active_fe_index();
         const unsigned int i_quad = i_fele;
 
@@ -501,12 +636,13 @@ real Functional<dim, nstate, real>::evaluate_functional(
             auto face = soln_cell->face(iface);
             
             if(face->at_boundary()){
-                fe_values_collection_face.reinit(soln_cell, iface, i_quad, i_mapp, i_fele);
-                const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
 
                 const unsigned int boundary_id = face->boundary_id();
 
-                volume_local_sum += this->evaluate_cell_boundary(*physics_fad_fad, boundary_id, fe_values_face, soln_coeff);
+                //fe_values_collection_face.reinit(soln_cell, iface, i_quad, i_mapp, i_fele);
+                //const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
+                //volume_local_sum += this->evaluate_cell_boundary(*physics_fad_fad, boundary_id, fe_values_face, soln_coeff);
+                volume_local_sum += this->evaluate_boundary_cell_functional(*physics_fad_fad, boundary_id, soln_coeff, fe_solution, coords_coeff, fe_metric, iface, dg->face_quadrature_collection[i_quad]);
             }
 
         }
@@ -650,11 +786,12 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
             
             if(face->at_boundary()){
                 fe_values_collection_face.reinit(cell, iface, i_quad, i_mapp, i_fele);
-                const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
 
                 const unsigned int boundary_id = face->boundary_id();
 
-                local_sum_old += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff);
+                //const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
+                //local_sum_old += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff);
+                local_sum_old += this->evaluate_boundary_cell_functional(physics, boundary_id, soln_coeff, fe_solution, coords_coeff, fe_metric, iface, dg.face_quadrature_collection[i_quad]);
             }
 
         }
@@ -678,11 +815,12 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
                 
                 if(face->at_boundary()){
                     fe_values_collection_face.reinit(cell, iface, i_quad, i_mapp, i_fele);
-                    const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
 
                     const unsigned int boundary_id = face->boundary_id();
 
-                    local_sum_new += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff);
+                    //const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
+                    //local_sum_new += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff);
+                    local_sum_new += this->evaluate_boundary_cell_functional(physics, boundary_id, soln_coeff, fe_solution, coords_coeff, fe_metric, iface, dg.face_quadrature_collection[i_quad]);
                 }
 
             }
@@ -732,7 +870,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
         if(!cell->is_locally_owned()) continue;
 
         // setting up the volume integration
-        const unsigned int i_mapp = 0;
+        //const unsigned int i_mapp = 0;
         const unsigned int i_fele = cell->active_fe_index();
         const unsigned int i_quad = i_fele;
 
@@ -767,12 +905,13 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
             auto face = cell->face(iface);
             
             if(face->at_boundary()){
-                fe_values_collection_face.reinit(cell, iface, i_quad, i_mapp, i_fele);
-                const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
 
                 const unsigned int boundary_id = face->boundary_id();
 
-                local_sum_old += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff);
+                //fe_values_collection_face.reinit(cell, iface, i_quad, i_mapp, i_fele);
+                //const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
+                //local_sum_old += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff);
+                local_sum_old += this->evaluate_boundary_cell_functional(physics, boundary_id, soln_coeff, fe_solution, coords_coeff, fe_metric, iface, dg.face_quadrature_collection[i_quad]);
             }
 
         }
@@ -794,12 +933,13 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
                 auto face = cell->face(iface);
                 
                 if(face->at_boundary()){
-                    fe_values_collection_face.reinit(cell, iface, i_quad, i_mapp, i_fele);
-                    const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
 
                     const unsigned int boundary_id = face->boundary_id();
 
-                    local_sum_new += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff);
+                    //fe_values_collection_face.reinit(cell, iface, i_quad, i_mapp, i_fele);
+                    //const dealii::FEFaceValues<dim,dim> &fe_values_face = fe_values_collection_face.get_present_fe_values();
+                    //local_sum_new += this->evaluate_cell_boundary(physics, boundary_id, fe_values_face, soln_coeff);
+                    local_sum_new += this->evaluate_boundary_cell_functional(physics, boundary_id, soln_coeff, fe_solution, coords_coeff, fe_metric, iface, dg.face_quadrature_collection[i_quad]);
                 }
 
             }

@@ -61,6 +61,7 @@ int test (
         bool mesh_out = (i==n_refine-1);
         dg->high_order_grid->execute_coarsening_and_refinement(mesh_out);
     }
+    dg->high_order_grid->ensure_conforming_mesh();
     dg->allocate_system ();
 
     pcout << "Poly degree " << poly_degree << " ncells " << grid->n_global_active_cells() << " ndofs: " << dg->dof_handler.n_dofs() << std::endl;
@@ -114,40 +115,37 @@ int test (
             old_node = high_order_grid->volume_nodes[inode];
             high_order_grid->volume_nodes(inode) = old_node+EPS;
         }
+        // This should be uncommented once we fix:
+        // https://github.com/dougshidong/PHiLiP/issues/48#issue-771199898
+        //high_order_grid->ensure_conforming_mesh();
         //hanging_node_constraints.distribute(high_order_grid->volume_nodes);
         //high_order_grid->volume_nodes.update_ghost_values();
 
         dg->assemble_residual(false, false, false);
         solutionVector perturbed_residual_p = dg->right_hand_side;
 
-        //std::cout << "perturb volume_nodes " << std::endl;  high_order_grid->volume_nodes.print(std::cout, 5);
         //high_order_grid->volume_nodes = old_volume_nodes;
         //high_order_grid->volume_nodes.update_ghost_values();
-        //std::cout << "oldnodes " << std::endl; high_order_grid->volume_nodes.print(std::cout, 5);
 
         // Negative perturbation
         if (high_order_grid->locally_relevant_dofs_grid.is_element(inode) ) {
             high_order_grid->volume_nodes(inode) = old_node-EPS;
         }
+        // This should be uncommented once we fix:
+        // https://github.com/dougshidong/PHiLiP/issues/48#issue-771199898
+        //high_order_grid->ensure_conforming_mesh();
         //hanging_node_constraints.distribute(high_order_grid->volume_nodes);
         //high_order_grid->volume_nodes.update_ghost_values();
 
         dg->assemble_residual(false, false, false);
         solutionVector perturbed_residual_m = dg->right_hand_side;
 
-        //std::cout << "perturb volume_nodes " << std::endl; high_order_grid->volume_nodes.print(std::cout, 5);
         //high_order_grid->volume_nodes = old_volume_nodes;
         //high_order_grid->volume_nodes.update_ghost_values();
-        //std::cout << "old volume_nodes " << std::endl; high_order_grid->volume_nodes.print(std::cout, 5);
 
         // Finite difference
-        //std::cout << "perturb residual p " << std::endl; perturbed_residual_p.print(std::cout, 5);
-        //std::cout << "perturb residual n " << std::endl; perturbed_residual_m.print(std::cout, 5);
-
         perturbed_residual_p -= perturbed_residual_m;
-        //std::cout << "perturb residual diff " << std::endl; perturbed_residual_p.print(std::cout, 5);
         perturbed_residual_p /= (2.0*EPS);
-        //std::cout << "fd residual " << std::endl; perturbed_residual_p.print(std::cout, 5);
 
         // Reset node
         if (high_order_grid->locally_relevant_dofs_grid.is_element(inode) ) {
@@ -159,6 +157,7 @@ int test (
             if (dg->locally_owned_dofs.is_element(iresidual) ) {
                 const double drdx_entry = perturbed_residual_p[iresidual];
                 if (std::abs(drdx_entry) >= 1e-12) {
+                    std::cout << iresidual << " " << inode << std::endl;
                     dRdXv_fd.add(iresidual,inode,drdx_entry);
                 }
             }
@@ -166,26 +165,8 @@ int test (
     }
     dRdXv_fd.compress(dealii::VectorOperation::add);
 
-    // {
-    //     const unsigned int n_digits = 5;
-    //     const unsigned int n_spacing = 7+n_digits;
-    //     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
-    //     dealii::FullMatrix<double> fullA(dRdXv_fd.m(),dRdXv_fd.n());
-    //     fullA.copy_from(dRdXv_fd);
-    //     pcout<<"Dense matrix from FD:"<<std::endl;
-    //     if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), n_digits, true, n_spacing, "0", 1., 0.);
-    // }
-
-    // {
-    //     const unsigned int n_digits = 5;
-    //     const unsigned int n_spacing = 7+n_digits;
-    //     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
-    //     dealii::FullMatrix<double> fullA(dRdXv_fd.m(),dRdXv_fd.n());
-    //     fullA.copy_from(dg->dRdXv);
-    //     pcout<<"Dense matrix from AD:"<<std::endl;
-    //     if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), n_digits, true, n_spacing, "0", 1., 0.);
-    // }
-
+    pcout << "(dRdX_FD frob_norm) " << dRdXv_fd.frobenius_norm();
+    pcout << "(dRdX_AD frob_norm) " << dg->dRdXv.frobenius_norm() << std::endl;
     dRdXv_fd.add(-1.0,dg->dRdXv);
 
     const double diff_lone_norm = dRdXv_fd.l1_norm();

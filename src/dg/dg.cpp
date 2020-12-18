@@ -1016,8 +1016,10 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
             const double l2_norm_node = diff_node.l2_norm();
 
             if (l2_norm_node == 0.0) {
-                pcout << " which is already assembled..." << std::endl;
-                return;
+                if (CFL_mass_dRdW == CFL_mass) {
+                    pcout << " which is already assembled..." << std::endl;
+                    return;
+                }
             }
         }
         {
@@ -1028,6 +1030,7 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
         }
         solution_dRdW = solution;
         volume_nodes_dRdW = high_order_grid->volume_nodes;
+        CFL_mass_dRdW = CFL_mass;
 
         system_matrix = 0;
     }
@@ -1181,6 +1184,10 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
     if ( compute_dRdW ) {
         system_matrix.compress(dealii::VectorOperation::add);
 
+        if (global_mass_matrix.m() != system_matrix.m()) {
+            const bool do_inverse_mass_matrix = false;
+            evaluate_mass_matrices (do_inverse_mass_matrix);
+        }
         if (CFL_mass != 0.0) {
             time_scaled_mass_matrices(CFL_mass);
             add_time_scaled_mass_matrices();
@@ -1190,9 +1197,15 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
         Epetra_CrsMatrix *output_matrix;
         epetra_rowmatrixtransposer_dRdW = std::make_unique<Epetra_RowMatrixTransposer> ( input_matrix );
         const bool make_data_contiguous = true;
-        epetra_rowmatrixtransposer_dRdW->CreateTranspose( make_data_contiguous, output_matrix);
-        system_matrix_transpose.reinit(*output_matrix);
+        int error_transpose = epetra_rowmatrixtransposer_dRdW->CreateTranspose( make_data_contiguous, output_matrix);
+        if (error_transpose) {
+            std::cout << "Failed to create dRdW transpose... Aborting" << std::endl;
+            //std::abort();
+        }
+        bool copy_values = true;
+        system_matrix_transpose.reinit(*output_matrix, copy_values);
         delete(output_matrix);
+
         //Epetra_CrsMatrix *input_matrix  = const_cast<Epetra_CrsMatrix *>(&(system_matrix.trilinos_matrix()));
         //std::shared_ptr<Epetra_CrsMatrix> output_matrix = std::make_shared<Epetra_CrsMatrix> ();
         //epetra_rowmatrixtransposer_dRdW = std::make_unique<Epetra_RowMatrixTransposer> ( input_matrix );
@@ -1848,6 +1861,8 @@ void DGBase<dim,real>::allocate_system ()
     volume_nodes_dRdW.reinit(high_order_grid->volume_nodes);
     volume_nodes_dRdW *= 0.0;
 
+    CFL_mass_dRdW = 0.0;
+
     solution_dRdX.reinit(solution);
     solution_dRdX *= 0.0;
     volume_nodes_dRdX.reinit(high_order_grid->volume_nodes);
@@ -1974,9 +1989,13 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
         const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
 
         for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+
             const unsigned int istate_test = fe_values_volume.get_fe().system_to_component_index(itest).first;
+
             for (unsigned int itrial=itest; itrial<n_dofs_cell; ++itrial) {
+
                 const unsigned int istate_trial = fe_values_volume.get_fe().system_to_component_index(itrial).first;
+
                 real value = 0.0;
                 for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
                     value +=
@@ -2008,6 +2027,10 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
         global_inverse_mass_matrix.compress(dealii::VectorOperation::insert);
     } else {
         global_mass_matrix.compress(dealii::VectorOperation::insert);
+        //std::cout << " global_mass_matrix "  << std::endl;
+        //std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+        //global_mass_matrix.print(std::cout);
+        ////std::abort();
     }
 
     return;
@@ -2049,11 +2072,13 @@ void DGBase<dim,real>::time_scaled_mass_matrices(const real dt_scale)
                 const unsigned int istate_trial = current_fe_ref.system_to_component_index(itrial).first;
 
                 if(istate_test==istate_trial) {
-                    const double value = global_mass_matrix.el(dofs_indices[itest],dofs_indices[itrial]);
+                    const unsigned int row = dofs_indices[itest];
+                    const unsigned int col = dofs_indices[itrial];
+                    const double value = global_mass_matrix.el(row, col);
                     const double new_val = value / (dt_scale * max_dt);
                     AssertIsFinite(new_val);
-                    time_scaled_global_mass_matrix.set(dofs_indices[itest],dofs_indices[itrial],new_val);
-                    time_scaled_global_mass_matrix.set(dofs_indices[itrial],dofs_indices[itest],new_val);
+                    time_scaled_global_mass_matrix.set(row, col, new_val);
+                    if (row!=col) time_scaled_global_mass_matrix.set(col, row, new_val);
                 }
             }
         }

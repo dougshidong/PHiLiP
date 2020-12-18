@@ -4,6 +4,7 @@
 
 //#include <deal.II/lac/solver_cg.h>
 #include <deal.II/lac/solver_gmres.h>
+#include <deal.II/lac/solver_bicgstab.h>
 //#include <deal.II/lac/precondition.h>
 //#include <deal.II/lac/precondition_block.h>
 
@@ -204,8 +205,11 @@ namespace MeshMover {
         dealii::FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
         dealii::Vector<double>     cell_rhs(dofs_per_cell);
 
+        //std::vector<double> youngs_modulus(n_q_points, 1.0);
+        //std::vector<double> poissons_ratio(n_q_points, 0.4);
+
         std::vector<double> youngs_modulus(n_q_points, 1.0);
-        std::vector<double> poissons_ratio(n_q_points, 0.4);
+        std::vector<double> poissons_ratio(n_q_points, 0.1);
 
         std::vector<double> lame_lambda_values(n_q_points);
         std::vector<double> lame_mu_values(n_q_points);
@@ -226,6 +230,11 @@ namespace MeshMover {
             cell_rhs    = 0;
             fe_values.reinit(cell);
 
+            double volume = 0.0;
+            for (unsigned int q_point = 0; q_point < n_q_points; ++q_point) {
+                volume += fe_values.JxW(q_point);
+            }
+
             //lame_lambda.value_list(fe_values.get_quadrature_points(), lame_lambda_values);
             //lame_mu.value_list(fe_values.get_quadrature_points(), lame_mu_values);
 
@@ -239,6 +248,10 @@ namespace MeshMover {
 
                     for (unsigned int q_point = 0; q_point < n_q_points; ++q_point) {
 
+                        const double E = youngs_modulus[q_point] / volume;
+                        const double nu = poissons_ratio[q_point];
+                        lame_lambda_values[q_point] = E*nu/((1.0+nu)*(1-2.0*nu));
+                        lame_mu_values[q_point] = 0.5*E/(1.0+nu);
                         //const SymmetricTensor<2, dim> grad_basis_i_grad_u
                         //cell_matrix(itest, itrial) += 
                         double value = lame_lambda_values[q_point]
@@ -361,10 +374,42 @@ namespace MeshMover {
 
         assemble_system();
 
-        dealii::SolverControl solver_control(5000, 1e-14 * input_vector_norm);
-        dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
-        dealii::TrilinosWrappers::PreconditionJacobi      precondition;
-        precondition.initialize(system_matrix);
+        const bool log_history = (this_mpi_process == 0);
+        dealii::SolverControl solver_control(20000, 1e-14 * input_vector_norm, log_history);
+        //dealii::SolverControl solver_control(20000, 1e-14, log_history);
+        solver_control.log_frequency(100);
+        const int max_n_tmp_vectors=200;
+        const bool right_preconditioning=true;
+        const bool use_default_residual=true;
+        const bool force_re_orthogonalization=false;
+        dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>>::AdditionalData gmres_settings(max_n_tmp_vectors, right_preconditioning, use_default_residual, force_re_orthogonalization);
+        dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control, gmres_settings);
+
+        //dealii::TrilinosWrappers::PreconditionJacobi      precondition;
+        //precondition.initialize(system_matrix);
+
+        //dealii::TrilinosWrappers::PreconditionILU  precondition;
+        //const int ilu_fill = 2;
+        //dealii::TrilinosWrappers::PreconditionILU::AdditionalData precond_settings(ilu_fill, 0., 1.0, 1);
+        //precondition.initialize(system_matrix, precond_settings);
+
+        dealii::TrilinosWrappers::PreconditionILUT  precondition;
+        const unsigned int ilut_fill=50;
+        const double ilut_drop=1e-15;
+        const double ilut_atol=1e-6;
+        const double ilut_rtol=1.00001;
+        const unsigned int overlap=1;
+        dealii::TrilinosWrappers::PreconditionILUT::AdditionalData precond_settings(ilut_drop, ilut_fill, ilut_atol, ilut_rtol, overlap);
+        precondition.initialize(system_matrix, precond_settings);
+
+
+        //const double 	omega = 1;
+        //const double 	min_diagonal = 1e-8;
+        //const unsigned int 	overlap = 1;
+        //const unsigned int 	n_sweeps = 1;
+        //dealii::TrilinosWrappers::PreconditionSSOR::AdditionalData precond_settings(omega, min_diagonal, overlap, n_sweeps);
+        //dealii::TrilinosWrappers::PreconditionSSOR  precondition;
+        //precondition.initialize(system_matrix, precond_settings);
 
         using trilinos_vector_type = dealii::LinearAlgebra::distributed::Vector<double>;
         using payload_type = dealii::TrilinosWrappers::internal::LinearOperatorImplementation::TrilinosPayload;
@@ -372,14 +417,22 @@ namespace MeshMover {
 
         const auto &rhs_vector = input_vector;
         output_vector = input_vector;
+        //output_vector = 0.0;//input_vector;
 
         // Solve modified system.
-        dealii::deallog.depth_console(1);
+        dealii::deallog.depth_console(2);
         solver.solve(op_a, output_vector, rhs_vector, precondition);
 
         pcout << "dXvdXvs Solver took " << solver_control.last_step() << " steps. "
               << "Residual: " << solver_control.last_value() << ". "
               << std::endl;
+
+        solver.solve(op_a, output_vector, rhs_vector, precondition);
+
+        pcout << "dXvdXvs Solver took " << solver_control.last_step() << " steps. "
+              << "Residual: " << solver_control.last_value() << ". "
+              << std::endl;
+
         if (solver_control.last_check() != dealii::SolverControl::State::success) {
             pcout << "Failed to converge." << std::endl;
             std::abort();
@@ -417,8 +470,31 @@ namespace MeshMover {
 
         output_matrix.reinit(row_part, col_part, full_sp, mpi_communicator);
 
-        dealii::TrilinosWrappers::PreconditionJacobi      precondition;
-        precondition.initialize(system_matrix);
+        //dealii::TrilinosWrappers::PreconditionJacobi      precondition;
+        //precondition.initialize(system_matrix);
+
+        //dealii::TrilinosWrappers::PreconditionILU  precondition;
+        //const int ilu_fill = 2;
+        //dealii::TrilinosWrappers::PreconditionILU::AdditionalData precond_settings(ilu_fill, 0., 1.0, 1);
+        //precondition.initialize(system_matrix, precond_settings);
+
+        dealii::TrilinosWrappers::PreconditionILUT  precondition;
+        const unsigned int ilut_fill=50;
+        const double ilut_drop=0.0;//1e-15;
+        const double ilut_atol=0.0;//1e-6;
+        const double ilut_rtol=1.0;//1.00001;
+        const unsigned int overlap=1;
+        dealii::TrilinosWrappers::PreconditionILUT::AdditionalData precond_settings(ilut_drop, ilut_fill, ilut_atol, ilut_rtol, overlap);
+        precondition.initialize(system_matrix, precond_settings);
+
+
+        //const double 	omega = 1;
+        //const double 	min_diagonal = 1e-8;
+        //const unsigned int 	overlap = 1;
+        //const unsigned int 	n_sweeps = 1;
+        //dealii::TrilinosWrappers::PreconditionSSOR::AdditionalData precond_settings(omega, min_diagonal, overlap, n_sweeps);
+        //dealii::TrilinosWrappers::PreconditionSSOR  precondition;
+        //precondition.initialize(system_matrix, precond_settings);
 
         using trilinos_vector_type = dealii::LinearAlgebra::distributed::Vector<double>;
         using payload_type = dealii::TrilinosWrappers::internal::LinearOperatorImplementation::TrilinosPayload;
@@ -428,20 +504,42 @@ namespace MeshMover {
         pcout << "Applying for [dXvdXs] onto " << list_of_vectors.size() << " vectors..." << std::endl;
 
         unsigned int col = 0;
+        dealii::LinearAlgebra::distributed::Vector<double> output_vector;
+        output_vector.reinit(list_of_vectors[0]);
         for (auto &input_vector: list_of_vectors) {
+
+            pcout << " Vector " << col << " out of " << list_of_vectors.size() << std::endl;
 
             dealii::deallog.depth_console(0);
 
-            dealii::LinearAlgebra::distributed::Vector<double> output_vector;
-            output_vector.reinit(input_vector);
             double input_vector_norm = input_vector.l2_norm();
             if (input_vector_norm == 0.0) {
                 pcout << "Zero input vector. Zero output vector." << std::endl;
                 output_vector = 0.0;
             } else {
-                dealii::SolverControl solver_control(5000, 1e-14 * input_vector_norm);
-                dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
+                const bool log_history = (this_mpi_process == 0);
+                dealii::SolverControl solver_control(20000, 1e-14 * input_vector_norm, log_history);
+                //dealii::SolverControl solver_control(20000, 1e-14, log_history);
+                solver_control.log_frequency(100);
+                const int max_n_tmp_vectors=200;
+                const bool right_preconditioning=true;
+                const bool use_default_residual=true;
+                const bool force_re_orthogonalization=false;
+                dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>>::AdditionalData gmres_settings(max_n_tmp_vectors, right_preconditioning, use_default_residual, force_re_orthogonalization);
+                dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control, gmres_settings);
+
+                //dealii::SolverBicgstab<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
+
+                dealii::deallog.depth_console(2);
                 solver.solve(op_a, output_vector, input_vector, precondition);
+                pcout << "dXvdXvs Solver took " << solver_control.last_step() << " steps. "
+                      << "Residual: " << solver_control.last_value() << ". "
+                      << std::endl;
+
+                solver.solve(op_a, output_vector, input_vector, precondition);
+                pcout << "dXvdXvs Solver took " << solver_control.last_step() << " steps. "
+                      << "Residual: " << solver_control.last_value() << ". "
+                      << std::endl;
             }
 
             dXvdXs.push_back(output_vector);
@@ -473,10 +571,41 @@ namespace MeshMover {
 
         assemble_system();
 
-        dealii::SolverControl solver_control(5000, 1e-14 * input_vector_norm);
-        dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
-        dealii::TrilinosWrappers::PreconditionJacobi      precondition;
-        precondition.initialize(system_matrix);
+        const bool log_history = (this_mpi_process == 0);
+        dealii::SolverControl solver_control(20000, 1e-14 * input_vector_norm, log_history);
+        //dealii::SolverControl solver_control(20000, 1e-14, log_history);
+        solver_control.log_frequency(100);
+        const int max_n_tmp_vectors=200;
+        const bool right_preconditioning=true;
+        const bool use_default_residual=true;
+        const bool force_re_orthogonalization=false;
+        dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>>::AdditionalData gmres_settings(max_n_tmp_vectors, right_preconditioning, use_default_residual, force_re_orthogonalization);
+        dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control, gmres_settings);
+
+        //dealii::TrilinosWrappers::PreconditionJacobi      precondition;
+        //precondition.initialize(system_matrix);
+
+        // dealii::TrilinosWrappers::PreconditionILU  precondition;
+        // const int ilu_fill = 2;
+        // dealii::TrilinosWrappers::PreconditionILU::AdditionalData precond_settings(ilu_fill, 0., 1.0, 1);
+        // precondition.initialize(system_matrix, precond_settings);
+
+        dealii::TrilinosWrappers::PreconditionILUT  precondition;
+        const unsigned int ilut_fill=50;
+        const double ilut_drop=1e-15;
+        const double ilut_atol=1e-6;
+        const double ilut_rtol=1.00001;
+        const unsigned int overlap=1;
+        dealii::TrilinosWrappers::PreconditionILUT::AdditionalData precond_settings(ilut_drop, ilut_fill, ilut_atol, ilut_rtol, overlap);
+        precondition.initialize(system_matrix, precond_settings);
+
+        //const double 	omega = 1;
+        //const double 	min_diagonal = 1e-8;
+        //const unsigned int 	overlap = 1;
+        //const unsigned int 	n_sweeps = 1;
+        //dealii::TrilinosWrappers::PreconditionSSOR::AdditionalData precond_settings(omega, min_diagonal, overlap, n_sweeps);
+        //dealii::TrilinosWrappers::PreconditionSSOR  precondition;
+        //precondition.initialize(system_matrix, precond_settings);
 
         using trilinos_vector_type = VectorType;
         using payload_type = dealii::TrilinosWrappers::internal::LinearOperatorImplementation::TrilinosPayload;
@@ -484,9 +613,13 @@ namespace MeshMover {
         const auto op_at = dealii::transpose_operator(op_a);
 
         // Solve system.
-        dealii::deallog.depth_console(0);
+        dealii::deallog.depth_console(2);
+        output_vector = input_vector;
         solver.solve(op_at, output_vector, input_vector, precondition);
-
+        pcout << "dXvdXvs_Transpose Solver took " << solver_control.last_step() << " steps. "
+              << "Residual: " << solver_control.last_value() << ". "
+              << std::endl;
+        solver.solve(op_at, output_vector, input_vector, precondition);
         pcout << "dXvdXvs_Transpose Solver took " << solver_control.last_step() << " steps. "
               << "Residual: " << solver_control.last_value() << ". "
               << std::endl;
@@ -503,7 +636,7 @@ namespace MeshMover {
     // {
     //     displacement_solution.reinit(system_rhs);
 
-    //     dealii::SolverControl solver_control(5000, 1e-14 * system_rhs.l2_norm());
+    //     dealii::SolverControl solver_control(20000, 1e-14 * system_rhs.l2_norm());
     //     dealii::SolverGMRES<VectorType> solver(solver_control);
     //     dealii::TrilinosWrappers::PreconditionJacobi precondition;
     //     precondition.initialize(system_matrix);
@@ -529,7 +662,7 @@ namespace MeshMover {
 
     //     assemble_system();
 
-    //     dealii::SolverControl solver_control(5000, 1e-14 * system_rhs.l2_norm());
+    //     dealii::SolverControl solver_control(20000, 1e-14 * system_rhs.l2_norm());
     //     dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
     //     dealii::TrilinosWrappers::PreconditionJacobi      precondition;
     //     precondition.initialize(system_matrix_unconstrained);
@@ -618,7 +751,7 @@ namespace MeshMover {
 
     //     output_matrix.reinit(row_part, col_part, full_sp, mpi_communicator);
 
-    //     dealii::SolverControl solver_control(5000, 1e-14 * system_rhs.l2_norm());
+    //     dealii::SolverControl solver_control(20000, 1e-14 * system_rhs.l2_norm());
     //     dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
     //     dealii::TrilinosWrappers::PreconditionJacobi      precondition;
     //     precondition.initialize(system_matrix_unconstrained);
@@ -702,7 +835,7 @@ namespace MeshMover {
     //     pcout << "Applying [transpose(dXvdXvs)] onto a vector..." << std::endl;
     //     assemble_system();
 
-    //     dealii::SolverControl solver_control(5000, 1e-14 * system_rhs.l2_norm());
+    //     dealii::SolverControl solver_control(20000, 1e-14 * system_rhs.l2_norm());
     //     dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
     //     dealii::TrilinosWrappers::PreconditionJacobi      precondition;
     //     precondition.initialize(system_matrix_unconstrained);
@@ -780,7 +913,7 @@ namespace MeshMover {
 
     //     all_constraints.set_zero(trilinos_solution);
 
-    //     dealii::SolverControl solver_control(5000, 1e-14 * system_rhs.l2_norm());
+    //     dealii::SolverControl solver_control(20000, 1e-14 * system_rhs.l2_norm());
     //     dealii::SolverGMRES<VectorType> solver(solver_control);
     //     dealii::TrilinosWrappers::PreconditionJacobi      precondition;
     //     precondition.initialize(system_matrix_unconstrained);
@@ -913,7 +1046,7 @@ namespace MeshMover {
     //     //   //trilinos_solution.print(std::cout, 4);
     //     //   system_rhs.print(std::cout, 4);
 
-    //     dealii::SolverControl solver_control(5000, 1e-14 * system_rhs.l2_norm());
+    //     dealii::SolverControl solver_control(20000, 1e-14 * system_rhs.l2_norm());
     //     dealii::SolverGMRES<VectorType> solver(solver_control);
     //     dealii::TrilinosWrappers::PreconditionJacobi      precondition;
     //     //precondition.initialize(system_matrix);

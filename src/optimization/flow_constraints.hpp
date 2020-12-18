@@ -51,6 +51,8 @@ private:
     /// Design variables values.
     dealii::LinearAlgebra::distributed::Vector<double> ffd_des_var;
 
+    dealii::LinearAlgebra::distributed::Vector<double> initial_ffd_des_var;
+
     /// Jacobian preconditioner.
     /** Currently uses ILUT */
     Ifpack_Preconditioner *jacobian_prec;
@@ -61,11 +63,12 @@ private:
 protected:
     /// ID used when outputting the flow solution.
     int i_out = 1000;
+    int iupdate = 9000;
 
+public:
     /// Stores the mesh sensitivities.
     dealii::TrilinosWrappers::SparseMatrix dXvdXp;
 
-public:
     /// Avoid -Werror=overloaded-virtual.
     using ROL::Constraint_SimOpt<double>::value;
 
@@ -93,7 +96,14 @@ public:
     FlowConstraints(
         std::shared_ptr<DGBase<dim,double>> &_dg, 
         const FreeFormDeformation<dim> &_ffd,
-        std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim);
+        std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim,
+        dealii::TrilinosWrappers::SparseMatrix *precomputed_dXvdXp = nullptr);
+    ///// Constructor
+    //FlowConstraints(
+    //    std::shared_ptr<DGBase<dim,double>> &_dg, 
+    //    const FreeFormDeformation<dim> &_ffd,
+    //    std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim,
+    //    const dealii::TrilinosWrappers::SparseMatrix *existing_dXvdXp = NULL);
     /// Destructor.
     ~FlowConstraints();
 

@@ -13,16 +13,32 @@ template <int dim, int nstate>
 ROLObjectiveSimOpt<dim,nstate>::ROLObjectiveSimOpt(
     Functional<dim,nstate,double> &_functional, 
     const FreeFormDeformation<dim> &_ffd,
-    std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim)
+    std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim,
+    dealii::TrilinosWrappers::SparseMatrix *precomputed_dXvdXp)
     : functional(_functional)
     , ffd(_ffd)
     , ffd_design_variables_indices_dim(_ffd_design_variables_indices_dim)
 {
-    ffd_des_var.reinit(ffd_design_variables_indices_dim.size());
+    const unsigned int n_design_variables = ffd_design_variables_indices_dim.size();
+    const dealii::IndexSet row_part = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_design_variables);
+    dealii::IndexSet ghost_row_part(n_design_variables);
+    ghost_row_part.add_range(0,n_design_variables);
+    ffd_des_var.reinit(row_part, ghost_row_part, MPI_COMM_WORLD);
+
     ffd.get_design_variables(ffd_design_variables_indices_dim, ffd_des_var);
 
-    ffd.get_dXvdXp ( *(functional.dg->high_order_grid), ffd_design_variables_indices_dim, dXvdXp);
+    initial_ffd_des_var = ffd_des_var;
+    initial_ffd_des_var.update_ghost_values();
+
+    if (precomputed_dXvdXp) {
+        if (precomputed_dXvdXp->m() == functional.dg->high_order_grid->volume_nodes.size() && precomputed_dXvdXp->n() == n_design_variables) {
+            dXvdXp.copy_from(*precomputed_dXvdXp);
+        }
+    } else {
+        ffd.get_dXvdXp ( *(functional.dg->high_order_grid), ffd_design_variables_indices_dim, dXvdXp);
+    }
 }
+
 
 template <int dim, int nstate>
 void ROLObjectiveSimOpt<dim,nstate>::update(
@@ -41,7 +57,17 @@ void ROLObjectiveSimOpt<dim,nstate>::update(
     const double l2_norm = diff.l2_norm();
     if (l2_norm != 0.0) {
         ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_des_var);
-        ffd.deform_mesh(*(functional.dg->high_order_grid));
+
+        //ffd.deform_mesh(*(functional.dg->high_order_grid));
+        auto dXp = ffd_des_var;
+        dXp -= initial_ffd_des_var;
+        dXp.update_ghost_values();
+        auto dXv = functional.dg->high_order_grid->volume_nodes;
+        dXvdXp.vmult(dXv, dXp);
+        dXv.update_ghost_values();
+        functional.dg->high_order_grid->volume_nodes = functional.dg->high_order_grid->initial_volume_nodes;
+        functional.dg->high_order_grid->volume_nodes += dXv;
+        functional.dg->high_order_grid->volume_nodes.update_ghost_values();
     }
 }
 
@@ -50,8 +76,13 @@ template <int dim, int nstate>
 double ROLObjectiveSimOpt<dim,nstate>::value(
     const ROL::Vector<double> &des_var_sim,
     const ROL::Vector<double> &des_var_ctl,
-    double &/*tol*/ )
+    double &tol )
 {
+    // Tolerance tends to not be used except in the case of a reduced objective function.
+    // In that scenario, tol is the constraint norm.
+    // If the flow has not converged (>1e-5 or is nan), simply return a high functional.
+    // This is likely happening in the linesearch while optimizing in the reduced-space.
+    if (tol > 1e-5 || std::isnan(tol)) return 1e200;
     update(des_var_sim, des_var_ctl);
 
     const bool compute_dIdW = false;

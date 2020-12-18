@@ -173,7 +173,7 @@ void read_gmsh_entities(std::ifstream &infile, std::array<std::map<int, int>, 4>
         for (unsigned int j = 0; j < n_physicals; ++j) {
             infile >> physical_tag;
         }
-        std::cout << "Entity point tag " << entity_tag << " with physical tag " << physical_tag << std::endl;
+        //std::cout << "Entity point tag " << entity_tag << " with physical tag " << physical_tag << std::endl;
         tag_maps[0][entity_tag] = physical_tag;
     }
     for (unsigned int i = 0; i < n_curves; ++i) {
@@ -189,7 +189,7 @@ void read_gmsh_entities(std::ifstream &infile, std::array<std::map<int, int>, 4>
             infile >> physical_tag;
         }
         tag_maps[1][entity_tag] = physical_tag;
-        std::cout << "Entity curve tag " << entity_tag << " with physical tag " << physical_tag << std::endl;
+        //std::cout << "Entity curve tag " << entity_tag << " with physical tag " << physical_tag << std::endl;
         // we don't care about the points associated to a curve, but have
         // to parse them anyway because their format is unstructured
         infile >> n_points;
@@ -209,7 +209,7 @@ void read_gmsh_entities(std::ifstream &infile, std::array<std::map<int, int>, 4>
         for (unsigned int j = 0; j < n_physicals; ++j) {
           infile >> physical_tag;
         }
-        std::cout << "Entity surface tag " << entity_tag << " with physical tag " << physical_tag << std::endl;
+        //std::cout << "Entity surface tag " << entity_tag << " with physical tag " << physical_tag << std::endl;
         tag_maps[2][entity_tag] = physical_tag;
         // we don't care about the curves associated to a surface, but
         // have to parse them anyway because their format is unstructured
@@ -231,7 +231,7 @@ void read_gmsh_entities(std::ifstream &infile, std::array<std::map<int, int>, 4>
         for (unsigned int j = 0; j < n_physicals; ++j) {
             infile >> physical_tag;
         }
-        std::cout << "Entity volume tag " << entity_tag << " with physical tag " << physical_tag << std::endl;
+        //std::cout << "Entity volume tag " << entity_tag << " with physical tag " << physical_tag << std::endl;
         tag_maps[3][entity_tag] = physical_tag;
         // we don't care about the surfaces associated to a volume, but
         // have to parse them anyway because their format is unstructured
@@ -254,7 +254,7 @@ void read_gmsh_nodes( std::ifstream &infile, std::vector<dealii::Point<spacedim>
     int max_node_tag;
     infile >> n_entity_blocks >> n_vertices >> min_node_tag >> max_node_tag;
     std::cout << "Reading nodes..." << std::endl;
-    std::cout << "Number of entity blocks: " << n_entity_blocks << " with a total of " << n_vertices << " vertices." << std::endl;
+    //std::cout << "Number of entity blocks: " << n_entity_blocks << " with a total of " << n_vertices << " vertices." << std::endl;
 
     vertices.resize(n_vertices);
   
@@ -268,7 +268,7 @@ void read_gmsh_nodes( std::ifstream &infile, std::vector<dealii::Point<spacedim>
         int tagEntity, dimEntity;
         infile >> tagEntity >> dimEntity >> parametric >> numNodes;
 
-        std::cout << "Entity block: " << entity_block << " with tag " << tagEntity << " in " << dimEntity << " dimension with " << numNodes << " nodes. Parametric: " << parametric << std::endl;
+        //std::cout << "Entity block: " << entity_block << " with tag " << tagEntity << " in " << dimEntity << " dimension with " << numNodes << " nodes. Parametric: " << parametric << std::endl;
 
         std::vector<int> vertex_numbers;
 
@@ -367,7 +367,7 @@ unsigned int find_grid_order(std::ifstream &infile)
 
         int tagEntity, dimEntity;
         infile >> dimEntity >> tagEntity >> cell_type >> numElements;
-        std::cout << "Entity block " << entity_block << " of dimension " << dimEntity << " with tag " << tagEntity << " and celltype = " << cell_type << " containing " << numElements << " elements. " << std::endl;
+        //std::cout << "Entity block " << entity_block << " of dimension " << dimEntity << " with tag " << tagEntity << " and celltype = " << cell_type << " containing " << numElements << " elements. " << std::endl;
 
         const unsigned int cell_order = gmsh_cell_type_to_order(cell_type);
         const unsigned int nodes_per_element = std::pow(cell_order + 1, dimEntity);
@@ -632,7 +632,7 @@ void fe_q_node_number(const unsigned int index,
 
 template <int dim, int spacedim>
 std::shared_ptr< HighOrderGrid<dim, double> >
-read_gmsh(std::string filename)
+read_gmsh(std::string filename, int requested_grid_order)
 {
 
     //for (unsigned int deg = 1; deg < 7; ++deg) {
@@ -1154,14 +1154,52 @@ read_gmsh(std::string filename)
     high_order_grid->update_surface_nodes();
     high_order_grid->update_mapping_fe_field();
     high_order_grid->output_results_vtk(9999);
+    high_order_grid->reset_initial_nodes();
     
-    return high_order_grid;
+    //return high_order_grid;
+
+    if (requested_grid_order > 0) {
+        auto grid = std::make_shared<HighOrderGrid<dim, double>>(requested_grid_order, triangulation);
+        grid->initialize_with_triangulation_manifold();
+        
+        /// Convert the mesh by interpolating from one order to another.
+        {
+            std::vector<dealii::Point<1>> equidistant_points(grid_order+1);
+            const double dx = 1.0 / grid_order;
+            for (unsigned int i=0; i<grid_order+1; ++i) {
+                equidistant_points[i](0) = i*dx;
+            }
+            dealii::Quadrature<1> quad_equidistant(equidistant_points);
+            dealii::FE_Q<dim> fe_q_equidistant(quad_equidistant);
+            dealii::FESystem<dim> fe_system_equidistant(fe_q_equidistant, dim);
+            dealii::DoFHandler<dim> dof_handler_equidistant(*triangulation);
+
+            dof_handler_equidistant.initialize(*triangulation, fe_system_equidistant);
+            dof_handler_equidistant.distribute_dofs(fe_system_equidistant);
+            dealii::DoFRenumbering::Cuthill_McKee(dof_handler_equidistant);
+
+            auto equidistant_nodes = high_order_grid->volume_nodes;
+            equidistant_nodes.update_ghost_values();
+            grid->volume_nodes.update_ghost_values();
+            dealii::FETools::interpolate(dof_handler_equidistant, equidistant_nodes, grid->dof_handler_grid, grid->volume_nodes);
+            grid->volume_nodes.update_ghost_values();
+            grid->ensure_conforming_mesh();
+        }
+        grid->update_surface_nodes();
+        grid->update_mapping_fe_field();
+        grid->output_results_vtk(9999);
+        grid->reset_initial_nodes();
+
+        return grid;
+    } else {
+        return high_order_grid;
+    }
 }
 
 
 #if PHILIP_DIM==1 
 #else
-template std::shared_ptr< HighOrderGrid<PHILIP_DIM, double> > read_gmsh<PHILIP_DIM,PHILIP_DIM>(std::string filename);
+template std::shared_ptr< HighOrderGrid<PHILIP_DIM, double> > read_gmsh<PHILIP_DIM,PHILIP_DIM>(std::string filename, int requested_grid_order);
 #endif
 
 } // namespace PHiLiP

@@ -21,9 +21,11 @@ namespace ODE {
 template <int dim, typename real>
 class ODESolver
 {
-private:
+protected:
     bool refine;
+    double CFL_factor;
 public:
+    int n_refine;
     ODESolver(int ode_solver_type); ///< Constructor.
     ODESolver(std::shared_ptr< DGBase<dim, real> > dg_input); ///< Constructor.
     virtual ~ODESolver() {}; ///< Destructor.

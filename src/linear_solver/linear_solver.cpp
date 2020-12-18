@@ -45,6 +45,9 @@ solve_linear (
         direct.solve(system_matrix, solution, right_hand_side);
         return {solver_control.last_step(), solver_control.last_value()};
     } else if (param.linear_solver_type == gmres_type) {
+        //solution = right_hand_side;
+        //solution *= 1e-3;
+        solution *= 0.0;
         Epetra_Vector x(View,
                         system_matrix.trilinos_matrix().DomainMap(),
                         solution.begin());
@@ -52,44 +55,72 @@ solve_linear (
                         system_matrix.trilinos_matrix().RangeMap(),
                         right_hand_side.begin());
         AztecOO solver;
-        solver.SetAztecOption( AZ_output, (param.linear_solver_output ? AZ_all : AZ_none));
+        solver.SetAztecOption( AZ_output, (param.linear_solver_output ? AZ_all : AZ_last));
         solver.SetAztecOption(AZ_solver, AZ_gmres);
         solver.SetAztecOption(AZ_kspace, param.restart_number);
         solver.SetRHS(&b);
         solver.SetLHS(&x);
-        solver.SetAztecOption(AZ_precond, AZ_dom_decomp);
-        solver.SetAztecOption(AZ_subdomain_solve, AZ_ilut);
-        solver.SetAztecOption(AZ_overlap, 1);
-        solver.SetAztecOption(AZ_reorder, 1); // RCM re-ordering
+
 
         const double rhs_norm = right_hand_side.l2_norm();
-        const double
-          ilut_drop = param.ilut_drop,
-          ilut_rtol = param.ilut_rtol,//0.0,//1.1,
-          ilut_atol = param.ilut_atol,//0.0,//1e-9,
-          linear_residual = param.linear_residual * rhs_norm;//1e-4;
-        const int
-          ilut_fill = param.ilut_fill,//1,
-          max_iterations = param.max_iterations;//200
-
-        solver.SetAztecParam(AZ_drop, ilut_drop);
-        solver.SetAztecParam(AZ_ilut_fill, ilut_fill);
-        solver.SetAztecParam(AZ_athresh, ilut_atol);
-        solver.SetAztecParam(AZ_rthresh, ilut_rtol);
+        const double linear_residual = param.linear_residual * rhs_norm;//1e-4;
+        const int max_iterations = param.max_iterations;//200
         solver.SetUserMatrix(const_cast<Epetra_CrsMatrix *>(&system_matrix.trilinos_matrix()));
         dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
         pcout << " Solving linear system with max_iterations = " << max_iterations
               << " and linear residual tolerance: " << linear_residual << std::endl;
-        solver.Iterate(max_iterations,
-                       linear_residual);
 
-        pcout << " Linear solver took " << solver.NumIters()
+
+        //solver.SetAztecOption(AZ_orthog, AZ_modified);
+        solver.SetAztecOption(AZ_orthog, AZ_classic);
+        solver.SetAztecOption(AZ_conv, AZ_rhs);
+
+
+        const int ilut_fill = param.ilut_fill;
+
+        solver.SetAztecOption(AZ_precond, AZ_dom_decomp);
+        solver.SetAztecOption(AZ_overlap, 1);
+        solver.SetAztecOption(AZ_reorder, 1); // RCM re-ordering
+        if (ilut_fill < 1) {
+            solver.SetAztecOption(AZ_subdomain_solve, AZ_ilu);
+            solver.SetAztecOption(AZ_graph_fill, std::abs(ilut_fill));
+        } else {
+            const double ilut_drop = param.ilut_drop;
+            double ilut_rtol = param.ilut_rtol;//0.0,//1.1,
+            double ilut_atol = param.ilut_atol;//0.0,//1e-9,
+            solver.SetAztecOption(AZ_subdomain_solve, AZ_ilut);
+
+            solver.SetAztecParam(AZ_drop, ilut_drop);
+            solver.SetAztecParam(AZ_ilut_fill, ilut_fill);
+            solver.SetAztecParam(AZ_athresh, ilut_atol);
+            solver.SetAztecParam(AZ_rthresh, ilut_rtol);
+        }
+
+        // Jacobi preconditioner.
+        // solver.SetAztecOption(AZ_precond, AZ_Jacobi);
+        // solver.SetAztecOption(AZ_poly_ord, 1);
+
+        unsigned int n_iterations = 0;
+        const int n_solves = 2;
+        for (int i_solve = 0; i_solve < n_solves; ++i_solve) {
+            solver.Iterate(max_iterations,
+                           linear_residual);
+            n_iterations += solver.NumIters();
+            pcout << " Solve #" << i_solve + 1 << " out of " << n_solves << "."
+                  << " Linear solver took " << solver.NumIters()
+                  << " iterations resulting in a linear residual of " << solver.ScaledResidual()
+                  << std::endl;
+        }
+
+        pcout << " Totalling " << n_iterations
               << " iterations resulting in a linear residual of " << solver.ScaledResidual() << std::endl
               << " Current RHS norm: " << right_hand_side.l2_norm()
               << " Linear solution norm: " << solution.l2_norm() << std::endl;
 
-        n_vmult += 3*solver.NumIters();
-        dRdW_mult += 3*solver.NumIters();
+        //n_vmult += 3*solver.NumIters();
+        //dRdW_mult += 3*solver.NumIters();
+        n_vmult += 7*solver.NumIters();
+        dRdW_mult += 7*solver.NumIters();
 
         return {solver.NumIters(), solver.TrueResidual()};
     }

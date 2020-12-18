@@ -16,7 +16,9 @@ ODESolver<dim,real>::ODESolver(std::shared_ptr< DGBase<dim, real> > dg_input)
     , all_parameters(dg->all_parameters)
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
-{}
+{
+    n_refine = 0;
+}
 
 template <int dim, typename real>
 void ODESolver<dim,real>::initialize_steady_polynomial_ramping (const unsigned int global_final_poly_degree)
@@ -86,14 +88,21 @@ int ODESolver<dim,real>::steady_state ()
           << std::endl;
 
     // Initial Courant-Friedrichs-Lax number
-    double initial_CFL = all_parameters->ode_solver_param.initial_time_step;
+    const double initial_CFL = all_parameters->ode_solver_param.initial_time_step;
+    CFL_factor = 1.0;
+
+    auto initial_solution = dg->solution;
 
     double old_residual_norm = this->residual_norm; (void) old_residual_norm;
+
+    int i_refine = 0;
     // Output initial solution
     while (    this->residual_norm     > ode_param.nonlinear_steady_residual_tolerance
             && this->residual_norm_decrease > ode_param.nonlinear_steady_residual_tolerance
             //&& update_norm             > ode_param.nonlinear_steady_residual_tolerance
-            && this->current_iteration < ode_param.nonlinear_max_iterations )
+            && this->current_iteration < ode_param.nonlinear_max_iterations
+            && this->residual_norm     < 1e5
+            && CFL_factor > 1e-2)
     {
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose
             && (this->current_iteration%ode_param.print_iteration_modulo) == 0
@@ -115,11 +124,11 @@ int ODESolver<dim,real>::steady_state ()
             pcout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
         }
 
-        double ramped_CFL = initial_CFL;
+        double ramped_CFL = initial_CFL * CFL_factor;
         if (this->residual_norm_decrease < 1.0) {
             ramped_CFL *= pow((1.0-std::log10(this->residual_norm_decrease)*ode_param.time_step_factor_residual), ode_param.time_step_factor_residual_exp);
         }
-        ramped_CFL = std::max(ramped_CFL,initial_CFL);
+        ramped_CFL = std::max(ramped_CFL,initial_CFL*CFL_factor);
         pcout << "Initial CFL = " << initial_CFL << ". Current CFL = " << ramped_CFL << std::endl;
 
         //if (this->residual_norm > 1e-9) this->dg->update_artificial_dissipation_discontinuity_sensor();
@@ -148,13 +157,23 @@ int ODESolver<dim,real>::steady_state ()
         //if ((current_iteration+1) % 10 == 0 || this->residual_norm > old_residual_norm) {
         //if (refine && global_step < 0.25 && this->current_iteration+1 > 10) {
         //if ( refine && (current_iteration+1) % 5 == 0 && this->residual_norm < 1e-11) {
-        //    dg->refine_residual_based();
-        //    allocate_ode_system ();
-        //}
+        if ( refine && this->residual_norm < 1e-9 && i_refine < n_refine) {
+            i_refine++;
+            dg->refine_residual_based();
+            allocate_ode_system ();
+        }
 
         old_residual_norm = this->residual_norm;
         this->residual_norm = this->dg->get_residual_l2norm();
         this->residual_norm_decrease = this->residual_norm / this->initial_residual_norm;
+    }
+    if (this->residual_norm > 1e5
+        || std::isnan(this->residual_norm)
+        || CFL_factor <= 1e-2)
+    {
+        this->dg->solution = initial_solution;
+
+        if(CFL_factor <= 1e-2) this->dg->right_hand_side.add(1.0);
     }
 
     pcout << " ********************************************************** "
@@ -291,21 +310,7 @@ double Implicit_ODESolver<dim,real>::linesearch ()
         new_residual = this->dg->get_residual_l2norm();
         pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
     }
-    if (iline == maxline) {
-        step_length = -1.0;
-        this->dg->solution.add(step_length, this->solution_update);
-        this->dg->assemble_residual ();
-        new_residual = this->dg->get_residual_l2norm();
-        pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
-        for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_1 ; ++iline) {
-            step_length = step_length * step_reduction;
-            this->dg->solution = old_solution;
-            this->dg->solution.add(step_length, this->solution_update);
-            this->dg->assemble_residual ();
-            new_residual = this->dg->get_residual_l2norm();
-            pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
-        }
-    }
+    if (iline == 0) this->CFL_factor *= 2.0;
 
     if (iline == maxline) {
         step_length = 1.0;
@@ -315,6 +320,29 @@ double Implicit_ODESolver<dim,real>::linesearch ()
         new_residual = this->dg->get_residual_l2norm();
         pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
         for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_2 ; ++iline) {
+            step_length = step_length * step_reduction;
+            this->dg->solution = old_solution;
+            this->dg->solution.add(step_length, this->solution_update);
+            this->dg->assemble_residual ();
+            new_residual = this->dg->get_residual_l2norm();
+            pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+        }
+    }
+    if (iline == maxline) {
+        this->CFL_factor *= 0.5;
+        pcout << " Reached maximum number of linesearches. Terminating... " << std::endl;
+        pcout << " Resetting solution and reducing CFL_factor by : " << this->CFL_factor << std::endl;
+        this->dg->solution = old_solution;
+        return 0.0;
+    }
+
+    if (iline == maxline) {
+        step_length = -1.0;
+        this->dg->solution.add(step_length, this->solution_update);
+        this->dg->assemble_residual ();
+        new_residual = this->dg->get_residual_l2norm();
+        pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+        for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_1 ; ++iline) {
             step_length = step_length * step_reduction;
             this->dg->solution = old_solution;
             this->dg->solution.add(step_length, this->solution_update);
@@ -343,6 +371,9 @@ double Implicit_ODESolver<dim,real>::linesearch ()
     }
     if (iline == maxline) {
         pcout << " Reached maximum number of linesearches. Terminating... " << std::endl;
+        pcout << " Resetting solution and reducing CFL_factor by : " << this->CFL_factor << std::endl;
+        this->dg->solution = old_solution;
+        this->CFL_factor *= 0.5;
     }
 
     return step_length;

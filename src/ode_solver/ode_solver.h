@@ -22,10 +22,21 @@ template <int dim, typename real>
 class ODESolver
 {
 protected:
+    /// Hard-coded way to play around with h-adaptivity.
+    /// Not recommended to be used.
     bool refine;
+
+    /// CFL factor for (un)successful linesearches
+    /** When the linesearch succeeds on its first try, double the CFL on top of
+     *  the CFL ramping. If the linesearch fails and needs to look at the other direction
+     *  or accept a higher residual, halve the CFL on top of the residual (de)ramping
+     */
     double CFL_factor;
 public:
+    /// Hard-coded way to play around with h-adaptivity.
+    /// Not recommended to be used.
     int n_refine;
+
     ODESolver(int ode_solver_type); ///< Constructor.
     ODESolver(std::shared_ptr< DGBase<dim, real> > dg_input); ///< Constructor.
     virtual ~ODESolver() {}; ///< Destructor.

@@ -15,9 +15,9 @@
 
 int main (int argc, char *argv[])
 {
-#if !defined(__APPLE__)
-    feenableexcept(FE_INVALID | FE_OVERFLOW); // catch nan
-#endif
+// #if !defined(__APPLE__)
+//     feenableexcept(FE_INVALID | FE_OVERFLOW); // catch nan
+// #endif
 
     n_vmult = 0;
     dRdW_form = 0;

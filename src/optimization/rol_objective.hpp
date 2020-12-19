@@ -32,16 +32,20 @@ private:
     /// Design variables.
     dealii::LinearAlgebra::distributed::Vector<double> ffd_des_var;
 
-    /// Stored mesh sensitivity evaluated at initialization.
-    dealii::TrilinosWrappers::SparseMatrix dXvdXp;
+    /// Design variables.
+    dealii::LinearAlgebra::distributed::Vector<double> initial_ffd_des_var;
 
 public:
+
+    /// Stored mesh sensitivity evaluated at initialization.
+    dealii::TrilinosWrappers::SparseMatrix dXvdXp;
 
     /// Constructor.
     ROLObjectiveSimOpt(
         Functional<dim,nstate,double> &_functional, 
         const FreeFormDeformation<dim> &_ffd,
-        std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim);
+        std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim,
+        dealii::TrilinosWrappers::SparseMatrix *precomputed_dXvdXp = nullptr);
   
     using ROL::Objective_SimOpt<double>::value;
     using ROL::Objective_SimOpt<double>::update;

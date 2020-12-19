@@ -21,6 +21,32 @@
 #include "target_functional.h"
 
 namespace PHiLiP {
+template<int dim, typename real1, typename real2>
+dealii::Tensor<1,dim,real1> vmult(const dealii::Tensor<2,dim,real1> A, const dealii::Tensor<1,dim,real2> x)
+{
+     dealii::Tensor<1,dim,real1> y;
+     for (int row=0;row<dim;++row) {
+         y[row] = 0.0;
+         for (int col=0;col<dim;++col) {
+             y[row] += A[row][col] * x[col];
+         }
+     }
+     return y;
+}
+/// Returns norm of dealii::Tensor<1,dim,real>
+/** Had to rewrite this instead of 
+ *  x.norm()
+ *  because norm() doesn't allow the use of codi variables.
+ */
+template<int dim, typename real1>
+real1 norm(const dealii::Tensor<1,dim,real1> x)
+{
+     real1 val = 0.0;
+     for (int row=0;row<dim;++row) {
+         val += x[row] * x[row];
+     }
+     return sqrt(val);
+}
 
 template <int dim, int nstate, typename real>
 TargetFunctional<dim,nstate,real>::TargetFunctional(
@@ -28,7 +54,7 @@ TargetFunctional<dim,nstate,real>::TargetFunctional(
     const bool _uses_solution_values,
     const bool _uses_solution_gradient)
     : Functional<dim,nstate,real>::Functional(_dg, _uses_solution_values, _uses_solution_gradient)
- , target_solution(dg->solution)
+    , target_solution(dg->solution)
 { 
     using FadType = Sacado::Fad::DFad<real>;
     using FadFadType = Sacado::Fad::DFad<FadType>;
@@ -42,7 +68,7 @@ TargetFunctional<dim,nstate,real>::TargetFunctional(
     const bool _uses_solution_values,
     const bool _uses_solution_gradient)
     : Functional<dim,nstate,real>::Functional(_dg, _uses_solution_values, _uses_solution_gradient)
- , target_solution(target_solution)
+    , target_solution(target_solution)
 { 
     using FadType = Sacado::Fad::DFad<real>;
     using FadFadType = Sacado::Fad::DFad<FadType>;
@@ -56,7 +82,7 @@ TargetFunctional<dim,nstate,real>::TargetFunctional(
     const bool _uses_solution_values,
     const bool _uses_solution_gradient)
     : Functional<dim,nstate,real>::Functional(_dg, _physics_fad_fad, _uses_solution_values, _uses_solution_gradient)
- , target_solution(dg->solution)
+    , target_solution(dg->solution)
 { }
 
 template <int dim, int nstate, typename real>
@@ -67,7 +93,7 @@ TargetFunctional<dim,nstate,real>::TargetFunctional(
     const bool _uses_solution_values,
     const bool _uses_solution_gradient)
     : Functional<dim,nstate,real>::Functional(_dg, _physics_fad_fad, _uses_solution_values, _uses_solution_gradient)
- , target_solution(target_solution)
+    , target_solution(target_solution)
 { }
 
 
@@ -110,7 +136,7 @@ real2 TargetFunctional<dim, nstate, real>::evaluate_volume_cell_functional(
         }
         const real2 jacobian_determinant = dealii::determinant(metric_jacobian);
         dealii::Tensor<2,dim,real2> jacobian_transpose_inverse;
-        if (uses_solution_gradient) jacobian_transpose_inverse = dealii::transpose(dealii::invert(metric_jacobian));
+        jacobian_transpose_inverse = dealii::transpose(dealii::invert(metric_jacobian));
 
         // Evaluate the solution and gradient at the quadrature points
         std::array<real2, nstate> soln_at_q;
@@ -131,12 +157,15 @@ real2 TargetFunctional<dim, nstate, real>::evaluate_volume_cell_functional(
                 target_soln_grad_at_q[istate] += target_soln_coeff[idof] * phys_shape_grad;
             }
         }
-        real2 volume_integrand = this->evaluate_volume_integrand(physics, phys_coord, soln_at_q, target_soln_at_q, soln_grad_at_q, target_soln_grad_at_q);
+        real2 volume_integrand = evaluate_volume_integrand(physics, phys_coord, soln_at_q, target_soln_at_q, soln_grad_at_q, target_soln_grad_at_q);
 
         (void) jacobian_determinant;
         (void) quad_weight;
-        if (jacobian_determinant < 0) volume_local_sum += 1e200;
         volume_local_sum += volume_integrand;// * jacobian_determinant * quad_weight;
+        if (volume_local_sum != 0.0 && jacobian_determinant < 0) {
+            std::cout << "Bad jacobian... setting volume_local_sum *= 1e200" << std::endl;
+            volume_local_sum += 1e200;
+        }
     }
     return volume_local_sum;
 }
@@ -169,15 +198,20 @@ Sacado::Fad::DFad<Sacado::Fad::DFad<real>> TargetFunctional<dim, nstate, real>::
 
 template <int dim, int nstate, typename real>
 template <typename real2>
-real2 TargetFunctional<dim, nstate, real>::evaluate_face_cell_functional(
+real2 TargetFunctional<dim, nstate, real>::evaluate_boundary_cell_functional(
     const Physics::PhysicsBase<dim,nstate,real2> &physics,
+    const unsigned int boundary_id,
     const std::vector< real2 > &soln_coeff,
     const std::vector< real > &target_soln_coeff,
     const dealii::FESystem<dim> &fe_solution,
     const std::vector< real2 > &coords_coeff,
     const dealii::FESystem<dim> &fe_metric,
-    const dealii::Quadrature<dim> &face_quadrature) const
+    const dealii::Quadrature<dim-1> &fquadrature,
+    const unsigned int face_number) const
 {
+    const dealii::Quadrature<dim> face_quadrature = dealii::QProjector<dim>::project_to_face( dealii::ReferenceCell::get_hypercube(dim), fquadrature, face_number);
+    const dealii::Tensor<1,dim,real> ref_unit_normal = dealii::GeometryInfo<dim>::unit_normal_vector[face_number];
+
     const unsigned int n_face_quad_pts = face_quadrature.size();
     const unsigned int n_soln_dofs_cell = soln_coeff.size();
     const unsigned int n_metric_dofs_cell = coords_coeff.size();
@@ -206,7 +240,7 @@ real2 TargetFunctional<dim, nstate, real>::evaluate_face_cell_functional(
         }
         const real2 jacobian_determinant = dealii::determinant(metric_jacobian);
         dealii::Tensor<2,dim,real2> jacobian_transpose_inverse;
-        if (uses_solution_gradient) jacobian_transpose_inverse = dealii::transpose(dealii::invert(metric_jacobian));
+        jacobian_transpose_inverse = dealii::transpose(dealii::invert(metric_jacobian));
 
         // Evaluate the solution and gradient at the quadrature points
         std::array<real2, nstate> soln_at_q;
@@ -227,41 +261,52 @@ real2 TargetFunctional<dim, nstate, real>::evaluate_face_cell_functional(
                 target_soln_grad_at_q[istate] += target_soln_coeff[idof] * phys_shape_grad;
             }
         }
-        real2 face_integrand = evaluate_face_integrand(physics, phys_coord, soln_at_q, target_soln_at_q, soln_grad_at_q, target_soln_grad_at_q);
 
-        (void) jacobian_determinant;
-        (void) quad_weight;
-        if (jacobian_determinant < 0) face_local_sum += 1e200;
-        face_local_sum += face_integrand * jacobian_determinant * quad_weight;
-        //face_local_sum += face_integrand;// * jacobian_determinant * quad_weight;
+        const dealii::Tensor<1,dim,real2> phys_normal = vmult(jacobian_transpose_inverse, ref_unit_normal);
+        const real2 area = norm(phys_normal);
+        const dealii::Tensor<1,dim,real2> phys_unit_normal = phys_normal/area;
+        real2 boundary_integrand = evaluate_boundary_integrand(physics, boundary_id, phys_coord, phys_unit_normal, soln_at_q, target_soln_at_q, soln_grad_at_q, target_soln_grad_at_q);
+
+        real2 surface_jacobian_determinant = area*jacobian_determinant;
+
+        face_local_sum += boundary_integrand * surface_jacobian_determinant * quad_weight;
+        if (face_local_sum != 0.0 && jacobian_determinant < 0) {
+            std::cout << "Bad jacobian... setting face_local_sum *= 1e40" << std::endl;
+            face_local_sum += 1e40;
+        }
+        //face_local_sum += boundary_integrand;// * jacobian_determinant * quad_weight;
     }
     return face_local_sum;
 }
 
 template <int dim, int nstate, typename real>
-real TargetFunctional<dim, nstate, real>::evaluate_face_cell_functional(
+real TargetFunctional<dim, nstate, real>::evaluate_boundary_cell_functional(
     const Physics::PhysicsBase<dim,nstate,real> &physics,
+    const unsigned int boundary_id,
     const std::vector< real > &soln_coeff,
     const std::vector< real > &target_soln_coeff,
     const dealii::FESystem<dim> &fe_solution,
     const std::vector< real > &coords_coeff,
     const dealii::FESystem<dim> &fe_metric,
-    const dealii::Quadrature<dim> &face_quadrature) const
+    const dealii::Quadrature<dim-1> &face_quadrature,
+    const unsigned int face_number) const
 {
-    return evaluate_face_cell_functional<real>(physics, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, face_quadrature);
+    return evaluate_boundary_cell_functional<real>(physics, boundary_id, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, face_quadrature, face_number);
 }
 
 template <int dim, int nstate, typename real>
-Sacado::Fad::DFad<Sacado::Fad::DFad<real>> TargetFunctional<dim, nstate, real>::evaluate_face_cell_functional(
+Sacado::Fad::DFad<Sacado::Fad::DFad<real>> TargetFunctional<dim, nstate, real>::evaluate_boundary_cell_functional(
     const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> &physics_fad_fad,
+    const unsigned int boundary_id,
     const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &soln_coeff,
     const std::vector< real > &target_soln_coeff,
     const dealii::FESystem<dim> &fe_solution,
     const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &coords_coeff,
     const dealii::FESystem<dim> &fe_metric,
-    const dealii::Quadrature<dim> &face_quadrature) const
+    const dealii::Quadrature<dim-1> &face_quadrature,
+    const unsigned int face_number) const
 {
-    return evaluate_face_cell_functional<Sacado::Fad::DFad<Sacado::Fad::DFad<real>>>(physics_fad_fad, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, face_quadrature);
+    return evaluate_boundary_cell_functional<Sacado::Fad::DFad<Sacado::Fad::DFad<real>>>(physics_fad_fad, boundary_id, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, face_quadrature, face_number);
 }
 
 template <int dim, int nstate, typename real>
@@ -386,13 +431,10 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
             auto face = soln_cell->face(iface);
             
             if(face->at_boundary()){
-                const dealii::Quadrature<dim-1> &used_face_quadrature = dg->face_quadrature_collection[i_quad]; // or i_quad
-                const dealii::Quadrature<dim> face_quadrature
-                = dealii::QProjector<dim>::project_to_face(
-                    dealii::ReferenceCell::get_hypercube(dim),
-                    used_face_quadrature,iface);
 
-                volume_local_sum += evaluate_face_cell_functional(*physics_fad_fad, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
+                const unsigned int boundary_id = face->boundary_id();
+
+                volume_local_sum += evaluate_boundary_cell_functional(*physics_fad_fad, boundary_id, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, dg->face_quadrature_collection[i_quad], iface);
             }
 
         }
@@ -402,9 +444,9 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
 
         this->set_derivatives(actually_compute_dIdW, actually_compute_dIdX, actually_compute_d2I, volume_local_sum, cell_soln_dofs_indices, cell_metric_dofs_indices);
     }
- //std::cout << local_functional << std::endl;
+    //std::cout << local_functional << std::endl;
     current_functional_value = dealii::Utilities::MPI::sum(local_functional, MPI_COMM_WORLD);
- //std::cout << current_functional_value << std::endl;
+    //std::cout << current_functional_value << std::endl;
     // compress before the return
     if (actually_compute_dIdW) dIdw.compress(dealii::VectorOperation::add);
     if (actually_compute_dIdX) dIdX.compress(dealii::VectorOperation::add);
@@ -493,15 +535,8 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
             auto face = cell->face(iface);
             
             if(face->at_boundary()){
-
-                const dealii::Quadrature<dim-1> &used_face_quadrature = dg.face_quadrature_collection[i_quad]; // or i_quad
-                const dealii::Quadrature<dim> face_quadrature
-                    = dealii::QProjector<dim>::project_to_face(
-                        dealii::ReferenceCell::get_hypercube(dim),
-                        used_face_quadrature,iface);
-
-                local_sum_old += evaluate_face_cell_functional(physics, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
-
+                const unsigned int boundary_id = face->boundary_id();
+                local_sum_old += evaluate_boundary_cell_functional(physics, boundary_id, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, dg.face_quadrature_collection[i_quad], iface);
             }
 
         }
@@ -524,13 +559,8 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
                 auto face = cell->face(iface);
                 
                 if(face->at_boundary()){
-                    const dealii::Quadrature<dim-1> &used_face_quadrature = dg.face_quadrature_collection[i_quad]; // or i_quad
-                    const dealii::Quadrature<dim> face_quadrature
-                        = dealii::QProjector<dim>::project_to_face(
-                            dealii::ReferenceCell::get_hypercube(dim),
-                            used_face_quadrature,iface);
-
-                    local_sum_new += evaluate_face_cell_functional(physics, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
+                    const unsigned int boundary_id = face->boundary_id();
+                    local_sum_new += evaluate_boundary_cell_functional(physics, boundary_id, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, dg.face_quadrature_collection[i_quad], iface);
                 }
 
             }
@@ -619,13 +649,8 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
             auto face = cell->face(iface);
             
             if(face->at_boundary()){
-                const dealii::Quadrature<dim-1> &used_face_quadrature = dg.face_quadrature_collection[i_quad]; // or i_quad
-                const dealii::Quadrature<dim> face_quadrature
-                    = dealii::QProjector<dim>::project_to_face(
-                        dealii::ReferenceCell::get_hypercube(dim),
-                        used_face_quadrature,iface);
-
-                local_sum_old += evaluate_face_cell_functional(physics, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
+                const unsigned int boundary_id = face->boundary_id();
+                local_sum_old += evaluate_boundary_cell_functional(physics, boundary_id, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, dg.face_quadrature_collection[i_quad], iface);
             }
 
         }
@@ -647,13 +672,8 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
                 auto face = cell->face(iface);
                 
                 if(face->at_boundary()){
-                    const dealii::Quadrature<dim-1> &used_face_quadrature = dg.face_quadrature_collection[i_quad]; // or i_quad
-                    const dealii::Quadrature<dim> face_quadrature
-                        = dealii::QProjector<dim>::project_to_face(
-                            dealii::ReferenceCell::get_hypercube(dim),
-                            used_face_quadrature,iface);
-
-                    local_sum_new += evaluate_face_cell_functional(physics, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
+                    const unsigned int boundary_id = face->boundary_id();
+                    local_sum_new += evaluate_boundary_cell_functional(physics, boundary_id, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, dg.face_quadrature_collection[i_quad], iface);
                 }
 
             }

@@ -1221,6 +1221,8 @@ void HighOrderGrid<dim,real>::update_surface_indices() {
         for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
             const auto face = cell->face(iface);
 
+            if (!face->at_boundary()) continue;
+
             const unsigned int boundary_id = face->boundary_id();
             // Can't assign a face of dim 0 (point) a user_index...
             // Works in 2D and 3D, but not 1D

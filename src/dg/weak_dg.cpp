@@ -2034,6 +2034,13 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
                         std::cout << std::endl;
                         std::cout << "iquad " << iquad
                         << " Non-matching surface jacobians " << surface_jac_det_int << " " << surface_jac_det_ext<< std::endl;
+
+                        //for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
+                        //    rhs_int[itest_int] += 1e20;
+                        //}
+                        //for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
+                        //    rhs_ext[itest_ext] += 1e20;
+                        //}
                     }
                 }
                 real2 diff_norm = 0;
@@ -2046,12 +2053,19 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
                     std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
                     std::cout << "Non-matching normals. Error norm: " << diff_norm << std::endl;
                     for (int d=0;d<dim;++d) {
-                        assert(abs(normal_normalized_int[d]+normal_normalized_ext[d]) < 1e-10);
+                        //assert(abs(normal_normalized_int[d]+normal_normalized_ext[d]) < 1e-10);
                         std::cout << " normal_int["<<d<<"] : " << normal_normalized_int[d] 
                                   << " normal_ext["<<d<<"] : " << normal_normalized_ext[d]
                                   << std::endl;
                     }
+                    //for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
+                    //    rhs_int[itest_int] += 1e20;
+                    //}
+                    //for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
+                    //    rhs_ext[itest_ext] += 1e20;
+                    //}
                 }
+
             }
             //normal_normalized_ext = -normal_normalized_int;//normal_ext / area_ext; Must use opposite normal to be consistent with explicit
 

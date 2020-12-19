@@ -2035,12 +2035,12 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
                         std::cout << "iquad " << iquad
                         << " Non-matching surface jacobians " << surface_jac_det_int << " " << surface_jac_det_ext<< std::endl;
 
-                        for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
-                            rhs_int[itest_int] += 1e20;
-                        }
-                        for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
-                            rhs_ext[itest_ext] += 1e20;
-                        }
+                        //for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
+                        //    rhs_int[itest_int] += 1e20;
+                        //}
+                        //for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
+                        //    rhs_ext[itest_ext] += 1e20;
+                        //}
                     }
                 }
                 real2 diff_norm = 0;
@@ -2058,12 +2058,12 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
                                   << " normal_ext["<<d<<"] : " << normal_normalized_ext[d]
                                   << std::endl;
                     }
-                    for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
-                        rhs_int[itest_int] += 1e20;
-                    }
-                    for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
-                        rhs_ext[itest_ext] += 1e20;
-                    }
+                    //for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
+                    //    rhs_int[itest_int] += 1e20;
+                    //}
+                    //for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
+                    //    rhs_ext[itest_ext] += 1e20;
+                    //}
                 }
 
             }

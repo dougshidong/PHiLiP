@@ -46,11 +46,6 @@ public:
         const FreeFormDeformation<dim> &_ffd,
         std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim,
         dealii::TrilinosWrappers::SparseMatrix *precomputed_dXvdXp = nullptr);
-    ROLObjectiveSimOpt(
-        Functional<dim,nstate,double> &_functional, 
-        const FreeFormDeformation<dim> &_ffd,
-        std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim,
-        const dealii::TrilinosWrappers::SparseMatrix &_dXvdXp);
   
     using ROL::Objective_SimOpt<double>::value;
     using ROL::Objective_SimOpt<double>::update;

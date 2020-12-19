@@ -51,6 +51,7 @@ private:
     /// Design variables values.
     dealii::LinearAlgebra::distributed::Vector<double> ffd_des_var;
 
+    /// Used to store initial FFD design to compute FFD point displacements.
     dealii::LinearAlgebra::distributed::Vector<double> initial_ffd_des_var;
 
     /// Jacobian preconditioner.
@@ -63,6 +64,7 @@ private:
 protected:
     /// ID used when outputting the flow solution.
     int i_out = 1000;
+    /// ID used when outputting the flow solution.
     int iupdate = 9000;
 
 public:

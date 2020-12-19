@@ -68,14 +68,14 @@ dealii::Point<spacedim,real> PeriodicSineManifold<dim,spacedim,chartdim>::mappin
 
     phys_point[0] = chart_point[0];
     if constexpr (dim >= 2) {
-		const double amplitude = 0.2;
+        const double amplitude = 0.2;
         phys_point[0] = chart_point[0];
         phys_point[0] += amplitude*sin(pi*chart_point[1]);;
         phys_point[1] = chart_point[1];
         phys_point[1] += amplitude*sin(pi*chart_point[0]);
     }
     if constexpr (dim >= 3) {
-		const double amplitude = 0.2;
+        const double amplitude = 0.2;
         phys_point[0] = chart_point[0];
         phys_point[0] += amplitude*sin(pi*chart_point[1]);
         phys_point[1] = chart_point[1];

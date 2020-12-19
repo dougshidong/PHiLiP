@@ -19,10 +19,13 @@ set add_artificial_dissipation = true
 #set add_artificial_dissipation = false
 set overintegration = 0
 
+set sipg_penalty_factor = 20
+
+
 subsection euler
   set reference_length = 1.0
   set mach_infinity = 0.80
-  set angle_of_attack = 1.2
+  set angle_of_attack = 1.25
 end
 
 subsection linear solver
@@ -46,7 +49,7 @@ subsection linear solver
     set ilut_fill                 = 10
 
     # Linear residual tolerance for convergence of the linear system
-    set linear_residual_tolerance = 1e-7
+    set linear_residual_tolerance = 1e-13
 
     # Maximum number of iterations for linear solver
     set max_iterations            = 2000
@@ -67,7 +70,7 @@ subsection ODE solver
 
   # Explicit or implicit solverChoices are <explicit|implicit>.
   set ode_solver_type  = implicit
-  set initial_time_step = 1e8
+  set initial_time_step = 1e3
   set time_step_factor_residual = 15.0
   set time_step_factor_residual_exp = 2
 

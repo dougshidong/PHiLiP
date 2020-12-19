@@ -52,11 +52,11 @@ const double CHANNEL_HEIGHT = 0.8;
 const unsigned int NY_CELL = 5;
 const unsigned int NX_CELL = 10*NY_CELL;
 
-const unsigned int POLY_START = 1;
+const unsigned int POLY_START = 0;
 const unsigned int POLY_END = 1; // Can do until at least P2
 
 const unsigned int n_des_var_start = 20;//20;
-const unsigned int n_des_var_end   = 20;//100; // Can do untill at least 100
+const unsigned int n_des_var_end   = 40;//100; // Can do untill at least 100
 const unsigned int n_des_var_step  = 20;//20;
 
 const int max_design_cycle = 1000;

@@ -29,6 +29,7 @@
 // Finally, we take our exact solution from the library as well as volume_quadrature
 // and additional tools.
 #include <deal.II/numerics/data_out.h>
+#include <deal.II/numerics/data_out_faces.h>
 #include <deal.II/numerics/data_out_dof_data.h>
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/vector_tools.templates.h>
@@ -43,6 +44,8 @@
 #include <deal.II/numerics/derivative_approximation.h>
 #include <deal.II/grid/grid_refinement.h>
 #include <deal.II/distributed/grid_refinement.h>
+
+#include <EpetraExt_Transpose_RowMatrix.h>
 
 
 #include "global_counter.hpp"
@@ -1013,8 +1016,10 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
             const double l2_norm_node = diff_node.l2_norm();
 
             if (l2_norm_node == 0.0) {
-                pcout << " which is already assembled..." << std::endl;
-                return;
+                if (CFL_mass_dRdW == CFL_mass) {
+                    pcout << " which is already assembled..." << std::endl;
+                    return;
+                }
             }
         }
         {
@@ -1025,6 +1030,7 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
         }
         solution_dRdW = solution;
         volume_nodes_dRdW = high_order_grid->volume_nodes;
+        CFL_mass_dRdW = CFL_mass;
 
         system_matrix = 0;
     }
@@ -1174,9 +1180,14 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
     }
 
     right_hand_side.compress(dealii::VectorOperation::add);
+    right_hand_side.update_ghost_values();
     if ( compute_dRdW ) {
         system_matrix.compress(dealii::VectorOperation::add);
 
+        if (global_mass_matrix.m() != system_matrix.m()) {
+            const bool do_inverse_mass_matrix = false;
+            evaluate_mass_matrices (do_inverse_mass_matrix);
+        }
         if (CFL_mass != 0.0) {
             time_scaled_mass_matrices(CFL_mass);
             add_time_scaled_mass_matrices();
@@ -1186,9 +1197,28 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
         Epetra_CrsMatrix *output_matrix;
         epetra_rowmatrixtransposer_dRdW = std::make_unique<Epetra_RowMatrixTransposer> ( input_matrix );
         const bool make_data_contiguous = true;
-        epetra_rowmatrixtransposer_dRdW->CreateTranspose( make_data_contiguous, output_matrix);
-        system_matrix_transpose.reinit(*output_matrix);
+        int error_transpose = epetra_rowmatrixtransposer_dRdW->CreateTranspose( make_data_contiguous, output_matrix);
+        if (error_transpose) {
+            std::cout << "Failed to create dRdW transpose... Aborting" << std::endl;
+            //std::abort();
+        }
+        bool copy_values = true;
+        system_matrix_transpose.reinit(*output_matrix, copy_values);
         delete(output_matrix);
+
+        //Epetra_CrsMatrix *input_matrix  = const_cast<Epetra_CrsMatrix *>(&(system_matrix.trilinos_matrix()));
+        //std::shared_ptr<Epetra_CrsMatrix> output_matrix = std::make_shared<Epetra_CrsMatrix> ();
+        //epetra_rowmatrixtransposer_dRdW = std::make_unique<Epetra_RowMatrixTransposer> ( input_matrix );
+        //const bool make_data_contiguous = true;
+        //epetra_rowmatrixtransposer_dRdW->CreateTranspose( make_data_contiguous, output_matrix.get());
+        //system_matrix_transpose.reinit(*output_matrix);
+        
+        //EpetraExt::RowMatrix_Transpose transposer;
+        //Epetra_CrsMatrix* input_matrix  = const_cast<Epetra_CrsMatrix *>(&(system_matrix.trilinos_matrix()));
+        //Epetra_CrsMatrix* output_matrix = dynamic_cast<Epetra_CrsMatrix*>(&transposer(*input_matrix));
+        //system_matrix_transpose.reinit(*output_matrix);
+        //std::cout << output_matrix << std::endl;
+        //delete(output_matrix);
 
 
         //double condition_estimate;
@@ -1314,13 +1344,310 @@ unsigned int DGBase<dim,real>::n_dofs () const
     return dof_handler.n_dofs();
 }
 
+
+#if PHILIP_DIM > 1
+template <int dim, typename DoFHandlerType = dealii::DoFHandler<dim>>
+class DataOutEulerFaces : public dealii::DataOutFaces<dim, DoFHandlerType>
+{
+    static const unsigned int dimension = DoFHandlerType::dimension;
+    static const unsigned int space_dimension = DoFHandlerType::space_dimension;
+    using cell_iterator = typename dealii::DataOut_DoFData<DoFHandlerType, dimension - 1, dimension>::cell_iterator;
+
+    using FaceDescriptor = typename std::pair<cell_iterator, unsigned int>;
+    /**
+     * Return the first face which we want output for. The default
+     * implementation returns the first face of a (locally owned) active cell
+     * or, if the @p surface_only option was set in the destructor (as is the
+     * default), the first such face that is located on the boundary.
+     *
+     * If you want to use a different logic to determine which faces should
+     * contribute to the creation of graphical output, you can overload this
+     * function in a derived class.
+     */
+    virtual FaceDescriptor first_face() override;
+ 
+    /**
+     * Return the next face after which we want output for. If there are no more
+     * faces, <tt>dofs->end()</tt> is returned as the first component of the
+     * return value.
+     *
+     * The default implementation returns the next face of a (locally owned)
+     * active cell, or the next such on the boundary (depending on whether the
+     * @p surface_only option was provided to the constructor).
+     *
+     * This function traverses the mesh active cell by active cell (restricted to
+     * locally owned cells), and then through all faces of the cell. As a result,
+     * interior faces are output twice, a feature that is useful for
+     * discontinuous Galerkin methods or if a DataPostprocessor is used that
+     * might produce results that are discontinuous between cells).
+     *
+     * This function can be overloaded in a derived class to select a
+     * different set of faces. Note that the default implementation assumes that
+     * the given @p face is active, which is guaranteed as long as first_face()
+     * is also used from the default implementation. Overloading only one of the
+     * two functions should be done with care.
+     */
+    virtual FaceDescriptor next_face(const FaceDescriptor &face) override;
+
+};
+
+template <int dim, typename DoFHandlerType>
+typename DataOutEulerFaces<dim, DoFHandlerType>::FaceDescriptor
+DataOutEulerFaces<dim, DoFHandlerType>::first_face()
+{
+    // simply find first active cell with a face on the boundary
+    typename dealii::Triangulation<dimension, space_dimension>::active_cell_iterator
+        cell = this->triangulation->begin_active();
+    for (; cell != this->triangulation->end(); ++cell)
+        if (cell->is_locally_owned())
+            for (const unsigned int f : dealii::GeometryInfo<dimension>::face_indices())
+                if (cell->face(f)->at_boundary())
+                    if (cell->face(f)->boundary_id() == 1001)
+                        return FaceDescriptor(cell, f);
+  
+    // just return an invalid descriptor if we haven't found a locally
+    // owned face. this can happen in parallel where all boundary
+    // faces are owned by other processors
+    return FaceDescriptor();
+}
+    
+template <int dim, typename DoFHandlerType>
+typename DataOutEulerFaces<dim, DoFHandlerType>::FaceDescriptor
+DataOutEulerFaces<dim, DoFHandlerType>::next_face(const FaceDescriptor &old_face)
+{
+    FaceDescriptor face = old_face;
+  
+    // first check whether the present cell has more faces on the boundary. since
+    // we started with this face, its cell must clearly be locally owned
+    Assert(face.first->is_locally_owned(), dealii::ExcInternalError());
+    for (unsigned int f = face.second + 1; f < dealii::GeometryInfo<dimension>::faces_per_cell; ++f)
+        if (face.first->face(f)->at_boundary()) 
+            if (face.first->face(f)->boundary_id() == 1001) {
+                // yup, that is so, so return it
+                face.second = f;
+                return face;
+            }
+  
+    // otherwise find the next active cell that has a face on the boundary
+  
+    // convert the iterator to an active_iterator and advance this to the next
+    // active cell
+    typename dealii::Triangulation<dimension, space_dimension>::active_cell_iterator
+      active_cell = face.first;
+  
+    // increase face pointer by one
+    ++active_cell;
+  
+    // while there are active cells
+    while (active_cell != this->triangulation->end()) {
+        // check all the faces of this active cell. but skip it altogether
+        // if it isn't locally owned
+        if (active_cell->is_locally_owned())
+            for (const unsigned int f : dealii::GeometryInfo<dimension>::face_indices())
+                if (active_cell->face(f)->at_boundary())
+                    if (active_cell->face(f)->boundary_id() == 1001) {
+                        face.first  = active_cell;
+                        face.second = f;
+                        return face;
+                    }
+            
+        // the present cell had no faces on the boundary (or was not locally
+        // owned), so check next cell
+        ++active_cell;
+    }   
+      
+    // we fell off the edge, so return with invalid pointer
+    face.first  = this->triangulation->end();
+    face.second = 0;
+    return face;
+} 
+
+template <int dim>
+class NormalPostprocessor : public dealii::DataPostprocessorVector<dim>
+{
+public:
+    NormalPostprocessor ()
+    : dealii::DataPostprocessorVector<dim> ("normal", dealii::update_normal_vectors)
+    {}
+    virtual void
+    evaluate_vector_field (const dealii::DataPostprocessorInputs::Vector<dim> &input_data, std::vector<dealii::Vector<double>> &computed_quantities) const override
+    {
+        // ensure that there really are as many output slots
+        // as there are points at which DataOut provides the
+        // gradients:
+        AssertDimension (input_data.normals.size(), computed_quantities.size());
+        // then loop over all of these inputs:
+        for (unsigned int p=0; p<input_data.solution_gradients.size(); ++p) {
+            // ensure that each output slot has exactly 'dim'
+            // components (as should be expected, given that we
+            // want to create vector-valued outputs), and copy the
+            // gradients of the solution at the evaluation points
+            // into the output slots:
+            AssertDimension (computed_quantities[p].size(), dim);
+            for (unsigned int d=0; d<dim; ++d)
+              computed_quantities[p][d] = input_data.normals[p][d];
+        }
+    }
+    virtual void
+    evaluate_scalar_field (const dealii::DataPostprocessorInputs::Scalar<dim> &input_data, std::vector<dealii::Vector<double> > &computed_quantities) const override
+    {
+        // ensure that there really are as many output slots
+        // as there are points at which DataOut provides the
+        // gradients:
+        AssertDimension (input_data.normals.size(), computed_quantities.size());
+        // then loop over all of these inputs:
+        for (unsigned int p=0; p<input_data.solution_gradients.size(); ++p) {
+            // ensure that each output slot has exactly 'dim'
+            // components (as should be expected, given that we
+            // want to create vector-valued outputs), and copy the
+            // gradients of the solution at the evaluation points
+            // into the output slots:
+            AssertDimension (computed_quantities[p].size(), dim);
+            for (unsigned int d=0; d<dim; ++d)
+              computed_quantities[p][d] = input_data.normals[p][d];
+        }
+    }
+};
+
+
+
+template <int dim, typename real>
+void DGBase<dim,real>::output_face_results_vtk (const unsigned int cycle)// const
+{
+
+    DataOutEulerFaces<dim, dealii::DoFHandler<dim>> data_out;
+
+    data_out.attach_dof_handler (dof_handler);
+
+    std::vector<std::string> position_names;
+    for(int d=0;d<dim;++d) {
+        if (d==0) position_names.push_back("x");
+        if (d==1) position_names.push_back("y");
+        if (d==2) position_names.push_back("z");
+    }
+    std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> data_component_interpretation(dim, dealii::DataComponentInterpretation::component_is_scalar);
+    data_out.add_data_vector (high_order_grid->dof_handler_grid, high_order_grid->volume_nodes, position_names, data_component_interpretation);
+
+    dealii::Vector<float> subdomain(triangulation->n_active_cells());
+    for (unsigned int i = 0; i < subdomain.size(); ++i) {
+        subdomain(i) = triangulation->locally_owned_subdomain();
+    }
+    const std::string name = "subdomain";
+    data_out.add_data_vector(subdomain, name, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
+
+    //if (all_parameters->add_artificial_dissipation) {
+        data_out.add_data_vector(artificial_dissipation_coeffs, std::string("artificial_dissipation_coeffs"), dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
+        data_out.add_data_vector(artificial_dissipation_se, std::string("artificial_dissipation_se"), dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
+    //}
+    data_out.add_data_vector(dof_handler_artificial_dissipation, artificial_dissipation_c0, std::string("artificial_dissipation"));
+
+    data_out.add_data_vector(max_dt_cell, std::string("max_dt_cell"), dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
+
+    data_out.add_data_vector(cell_volume, std::string("cell_volume"), dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
+
+
+    // Let the physics post-processor determine what to output.
+    const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
+    data_out.add_data_vector (solution, *post_processor);
+
+    NormalPostprocessor<dim> normals_post_processor;
+    data_out.add_data_vector (solution, normals_post_processor);
+
+    // Output the polynomial degree in each cell
+    std::vector<unsigned int> active_fe_indices;
+    dof_handler.get_active_fe_indices(active_fe_indices);
+    dealii::Vector<double> active_fe_indices_dealiivector(active_fe_indices.begin(), active_fe_indices.end());
+    dealii::Vector<double> cell_poly_degree = active_fe_indices_dealiivector;
+
+    data_out.add_data_vector (active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
+
+    // Output absolute value of the residual so that we can visualize it on a logscale.
+    std::vector<std::string> residual_names;
+    for(int s=0;s<nstate;++s) {
+        std::string varname = "residual" + dealii::Utilities::int_to_string(s,1);
+        residual_names.push_back(varname);
+    }
+    auto residual = right_hand_side;
+    for (auto &&rhs_value : residual) {
+        if (std::signbit(rhs_value)) rhs_value = -rhs_value;
+        if (rhs_value == 0.0) rhs_value = std::numeric_limits<double>::min();
+    }
+    residual.update_ghost_values();
+    data_out.add_data_vector (residual, residual_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_dof_data);
+
+    //for(int s=0;s<nstate;++s) {
+    //    residual_names[s] = "scaled_" + residual_names[s];
+    //}
+    //global_mass_matrix.vmult(residual, right_hand_side);
+    //for (auto &&rhs_value : residual) {
+    //    if (std::signbit(rhs_value)) rhs_value = -rhs_value;
+    //    if (rhs_value == 0.0) rhs_value = std::numeric_limits<double>::min();
+    //}
+    //residual.update_ghost_values();
+    //data_out.add_data_vector (residual, residual_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_dof_data);
+
+
+    //typename dealii::DataOut<dim,dealii::DoFHandler<dim>>::CurvedCellRegion curved = dealii::DataOut<dim,dealii::DoFHandler<dim>>::CurvedCellRegion::curved_inner_cells;
+    //typename dealii::DataOut<dim>::CurvedCellRegion curved = dealii::DataOut<dim>::CurvedCellRegion::curved_boundary;
+    //typename dealii::DataOut<dim>::CurvedCellRegion curved = dealii::DataOut<dim>::CurvedCellRegion::no_curved_cells;
+
+    const dealii::Mapping<dim> &mapping = (*(high_order_grid->mapping_fe_field));
+    const int grid_degree = high_order_grid->max_degree;
+    //const int n_subdivisions = max_degree+1;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
+    //const int n_subdivisions = 1;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
+    const int n_subdivisions = grid_degree;
+    data_out.build_patches(mapping, n_subdivisions);
+    //const bool write_higher_order_cells = (dim>1 && max_degree > 1) ? true : false;
+    const bool write_higher_order_cells = false;//(dim>1 && grid_degree > 1) ? true : false;
+    dealii::DataOutBase::VtkFlags vtkflags(0.0,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
+    data_out.set_flags(vtkflags);
+
+    const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
+    std::string filename = "surface_solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
+    filename += dealii::Utilities::int_to_string(cycle, 4) + ".";
+    filename += dealii::Utilities::int_to_string(iproc, 4);
+    filename += ".vtu";
+    std::ofstream output(filename);
+    data_out.write_vtu(output);
+    //std::cout << "Writing out file: " << filename << std::endl;
+
+    if (iproc == 0) {
+        std::vector<std::string> filenames;
+        for (unsigned int iproc = 0; iproc < dealii::Utilities::MPI::n_mpi_processes(mpi_communicator); ++iproc) {
+            std::string fn = "surface_solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
+            fn += dealii::Utilities::int_to_string(cycle, 4) + ".";
+            fn += dealii::Utilities::int_to_string(iproc, 4);
+            fn += ".vtu";
+            filenames.push_back(fn);
+        }
+        std::string master_fn = "surface_solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
+        master_fn += dealii::Utilities::int_to_string(cycle, 4) + ".pvtu";
+        std::ofstream master_output(master_fn);
+        data_out.write_pvtu_record(master_output, filenames);
+    }
+
+}
+#endif
+
 template <int dim, typename real>
 void DGBase<dim,real>::output_results_vtk (const unsigned int cycle)// const
 {
+#if PHILIP_DIM>1
+    output_face_results_vtk (cycle);
+#endif
 
     dealii::DataOut<dim, dealii::DoFHandler<dim>> data_out;
 
     data_out.attach_dof_handler (dof_handler);
+
+    std::vector<std::string> position_names;
+    for(int d=0;d<dim;++d) {
+        if (d==0) position_names.push_back("x");
+        if (d==1) position_names.push_back("y");
+        if (d==2) position_names.push_back("z");
+    }
+    std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> data_component_interpretation(dim, dealii::DataComponentInterpretation::component_is_scalar);
+    data_out.add_data_vector (high_order_grid->dof_handler_grid, high_order_grid->volume_nodes, position_names, data_component_interpretation);
 
     dealii::Vector<float> subdomain(triangulation->n_active_cells());
     for (unsigned int i = 0; i < subdomain.size(); ++i) {
@@ -1534,6 +1861,8 @@ void DGBase<dim,real>::allocate_system ()
     volume_nodes_dRdW.reinit(high_order_grid->volume_nodes);
     volume_nodes_dRdW *= 0.0;
 
+    CFL_mass_dRdW = 0.0;
+
     solution_dRdX.reinit(solution);
     solution_dRdX *= 0.0;
     volume_nodes_dRdX.reinit(high_order_grid->volume_nodes);
@@ -1660,9 +1989,13 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
         const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
 
         for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+
             const unsigned int istate_test = fe_values_volume.get_fe().system_to_component_index(itest).first;
+
             for (unsigned int itrial=itest; itrial<n_dofs_cell; ++itrial) {
+
                 const unsigned int istate_trial = fe_values_volume.get_fe().system_to_component_index(itrial).first;
+
                 real value = 0.0;
                 for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
                     value +=
@@ -1694,6 +2027,10 @@ void DGBase<dim,real>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
         global_inverse_mass_matrix.compress(dealii::VectorOperation::insert);
     } else {
         global_mass_matrix.compress(dealii::VectorOperation::insert);
+        //std::cout << " global_mass_matrix "  << std::endl;
+        //std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+        //global_mass_matrix.print(std::cout);
+        ////std::abort();
     }
 
     return;
@@ -1735,11 +2072,13 @@ void DGBase<dim,real>::time_scaled_mass_matrices(const real dt_scale)
                 const unsigned int istate_trial = current_fe_ref.system_to_component_index(itrial).first;
 
                 if(istate_test==istate_trial) {
-                    const double value = global_mass_matrix.el(dofs_indices[itest],dofs_indices[itrial]);
+                    const unsigned int row = dofs_indices[itest];
+                    const unsigned int col = dofs_indices[itrial];
+                    const double value = global_mass_matrix.el(row, col);
                     const double new_val = value / (dt_scale * max_dt);
                     AssertIsFinite(new_val);
-                    time_scaled_global_mass_matrix.set(dofs_indices[itest],dofs_indices[itrial],new_val);
-                    time_scaled_global_mass_matrix.set(dofs_indices[itrial],dofs_indices[itest],new_val);
+                    time_scaled_global_mass_matrix.set(row, col, new_val);
+                    if (row!=col) time_scaled_global_mass_matrix.set(col, row, new_val);
                 }
             }
         }

@@ -298,6 +298,9 @@ private:
     /// Will be used to avoid recomputing dRdW.
     dealii::LinearAlgebra::distributed::Vector<double> volume_nodes_dRdW;
 
+    /// CFL used to add mass matrix in the optimization FlowConstraints class
+    double CFL_mass_dRdW;
+
     /// Modal coefficients of the solution used to compute dRdX last
     /// Will be used to avoid recomputing dRdX.
     dealii::LinearAlgebra::distributed::Vector<double> solution_dRdX;
@@ -399,6 +402,7 @@ public:
     void initialize_manufactured_solution (); ///< Virtual function defined in DG
 
     void output_results_vtk (const unsigned int ith_grid); ///< Output solution
+    void output_face_results_vtk (const unsigned int ith_grid); ///< Output Euler face solution
     void output_paraview_results (std::string filename); ///< Outputs a paraview file to view the solution
 
     /// Main loop of the DG class.

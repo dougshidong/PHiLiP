@@ -120,7 +120,7 @@ dealii::SparsityPattern DGBase<dim,real>::get_dRdX_sparsity_pattern ()
         } 
     } // end of cell loop
 
-    dealii::SparsityTools::distribute_sparsity_pattern(dsp, dof_handler.locally_owned_dofs(), MPI_COMM_WORLD, locally_owned_dofs);
+    dealii::SparsityTools::distribute_sparsity_pattern(dsp, dof_handler.locally_owned_dofs(), MPI_COMM_WORLD, locally_relevant_dofs);
     dealii::SparsityPattern sparsity_pattern;
     sparsity_pattern.copy_from(dsp);
 

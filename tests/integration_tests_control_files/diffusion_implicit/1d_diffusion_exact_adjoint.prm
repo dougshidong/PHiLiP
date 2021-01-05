@@ -10,6 +10,8 @@ set dimension = 1
 # <diffusion|diffusion|convection_diffusion>.
 set pde_type  = diffusion
 
+set diss_num_flux = symm_internal_penalty
+
 subsection linear solver
   set linear_solver_type = direct
 # set linear_solver_output = verbose

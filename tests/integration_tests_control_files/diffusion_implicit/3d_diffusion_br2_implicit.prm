@@ -1,33 +1,15 @@
-
 # Listing of Parameters
 # ---------------------
-
-set test_type = diffusion_exact_adjoint
-
 # Number of dimensions
-set dimension = 2
+set dimension = 3
 
 # The PDE we want to solve. Choices are
-# <diffusion|diffusion|convection_diffusion>.
+# <advection|diffusion|convection_diffusion>.
 set pde_type  = diffusion
 
-set diss_num_flux = symm_internal_penalty
-
-subsection linear solver
-#set linear_solver_type = direct
-  subsection gmres options
-    set linear_residual_tolerance = 1e-12
-    set max_iterations = 2000
-    set restart_number = 50
-    set ilut_fill = 2
-    set ilut_drop = 1e-2
-  end 
-#set linear_solver_output = verbose
-end
+set diss_num_flux = bassi_rebay_2
 
 subsection ODE solver
-  set ode_output                          = verbose
-
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations            = 500
 
@@ -42,22 +24,23 @@ subsection ODE solver
 end
 
 subsection manufactured solution convergence study
-  # using a custom source term already
-  set use_manufactured_source_term = false
-
-  # Starting degree for convergence study
-  set degree_start      = 1
+  set use_manufactured_source_term = true
 
   # Last degree used for convergence study
   set degree_end        = 3
 
-  # Initial grid of size (initial_grid_size)^dim
-  set initial_grid_size = 2
+  # Starting degree for convergence study
+  set degree_start      = 1
 
   # Multiplier on grid size. nth-grid will be of size
   # (initial_grid^grid_progression)^dim
   set grid_progression  = 1.5
 
+  # Initial grid of size (initial_grid_size)^dim
+  set initial_grid_size = 2
+
   # Number of grids in grid study
-  set number_of_grids   = 8
+  set number_of_grids   = 4
 end
+
+

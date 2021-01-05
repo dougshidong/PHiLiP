@@ -122,7 +122,7 @@ public:
     ConvectiveNumericalFlux conv_num_flux_type;
 
     /// Currently only symmetric internal penalty can be used as an input parameter
-    enum DissipativeNumericalFlux { symm_internal_penalty };
+    enum DissipativeNumericalFlux { symm_internal_penalty, bassi_rebay_2 };
     /// Store diffusive flux type
     DissipativeNumericalFlux diss_num_flux_type;
 

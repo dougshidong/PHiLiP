@@ -7,6 +7,8 @@ set dimension = 3
 # <advection|diffusion|convection_diffusion>.
 set pde_type  = diffusion
 
+set diss_num_flux = symm_internal_penalty
+
 subsection ODE solver
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations            = 500

@@ -12,7 +12,7 @@
 #include "mesh/grids/gaussian_bump.h"
 #include "parameters/parameters.h"
 #include "physics/physics_factory.h"
-#include "numerical_flux/numerical_flux.h"
+#include "numerical_flux/convective_numerical_flux.hpp"
 
 using PDEType  = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
 using ConvType = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;

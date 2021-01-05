@@ -1,6 +1,6 @@
 #include "ADTypes.hpp"
 
-#include "viscous_numerical_flux.h"
+#include "viscous_numerical_flux.hpp"
 
 namespace PHiLiP {
 namespace NumericalFlux {

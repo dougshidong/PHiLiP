@@ -2,7 +2,6 @@
 #define __NUMERICAL_FLUX__
 
 #include <deal.II/base/tensor.h>
-#include "numerical_flux/viscous_numerical_flux.h"
 #include "physics/physics.h"
 #include "physics/euler.h"
 

@@ -1,4 +1,4 @@
-#include "split_form_numerical_flux.h"
+#include "split_form_numerical_flux.hpp"
 #include "ADTypes.hpp"
 //#include <Sacado.hpp>
 //#include <deal.II/differentiation/ad/sacado_product_types.h>

@@ -1,6 +1,6 @@
 set(FLUX_SOURCE
     viscous_numerical_flux.cpp
-    numerical_flux.cpp
+    convective_numerical_flux.cpp
     split_form_numerical_flux.cpp
     numerical_flux_factory.cpp
     )

@@ -1,7 +1,7 @@
 #include "numerical_flux_factory.hpp"
 
 #include "ADTypes.hpp"
-#include "split_form_numerical_flux.h"
+#include "split_form_numerical_flux.hpp"
 
 namespace PHiLiP {
 namespace NumericalFlux {

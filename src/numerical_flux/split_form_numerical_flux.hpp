@@ -3,7 +3,7 @@
 
 #include <deal.II/base/tensor.h>
 #include "physics/physics.h"
-#include "numerical_flux/numerical_flux.h"
+#include "numerical_flux/convective_numerical_flux.hpp"
 
 namespace PHiLiP {
 namespace NumericalFlux {

@@ -1,6 +1,6 @@
 #include "ADTypes.hpp"
 
-#include "numerical_flux.h"
+#include "convective_numerical_flux.hpp"
 
 namespace PHiLiP {
 namespace NumericalFlux {

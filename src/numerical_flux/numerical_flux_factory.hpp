@@ -3,8 +3,8 @@
 
 #include "physics/physics.h"
 
-#include "numerical_flux.h"
-#include "viscous_numerical_flux.h"
+#include "convective_numerical_flux.hpp"
+#include "viscous_numerical_flux.hpp"
 
 namespace PHiLiP {
 namespace NumericalFlux {

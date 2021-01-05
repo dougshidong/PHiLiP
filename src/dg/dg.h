@@ -35,8 +35,8 @@
 #include "mesh/high_order_grid.h"
 #include "physics/physics.h"
 #include "numerical_flux/numerical_flux_factory.hpp"
-#include "numerical_flux/numerical_flux.h"
-#include "numerical_flux/viscous_numerical_flux.h"
+#include "numerical_flux/convective_numerical_flux.hpp"
+#include "numerical_flux/viscous_numerical_flux.hpp"
 #include "parameters/all_parameters.h"
 
 // Template specialization of MappingFEField

@@ -112,9 +112,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Choices are <lax_friedrichs | roe | split_form>.");
 
     prm.declare_entry("diss_num_flux", "symm_internal_penalty",
-                      dealii::Patterns::Selection("symm_internal_penalty"),
+                      dealii::Patterns::Selection("symm_internal_penalty | bassi_rebay_2"),
                       "Dissipative numerical flux. "
-                      "Choices are <symm_internal_penalty>.");
+                      "Choices are <symm_internal_penalty | bassi_rebay_2>.");
 
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
@@ -185,6 +185,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     const std::string diss_num_flux_string = prm.get("diss_num_flux");
     if (diss_num_flux_string == "symm_internal_penalty") diss_num_flux_type = symm_internal_penalty;
+    if (diss_num_flux_string == "bassi_rebay_2") diss_num_flux_type = bassi_rebay_2;
 
 
     pcout << "Parsing linear solver subsection..." << std::endl;

@@ -185,7 +185,10 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     const std::string diss_num_flux_string = prm.get("diss_num_flux");
     if (diss_num_flux_string == "symm_internal_penalty") diss_num_flux_type = symm_internal_penalty;
-    if (diss_num_flux_string == "bassi_rebay_2") diss_num_flux_type = bassi_rebay_2;
+    if (diss_num_flux_string == "bassi_rebay_2") {
+        diss_num_flux_type = bassi_rebay_2;
+        sipg_penalty_factor = 0.0;
+    }
 
 
     pcout << "Parsing linear solver subsection..." << std::endl;

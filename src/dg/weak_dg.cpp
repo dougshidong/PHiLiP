@@ -3,8 +3,8 @@
 
 #include <deal.II/base/qprojector.h>
 
-//#include <deal.II/lac/full_matrix.templates.h>
-#include <deal.II/lac/full_matrix.h>
+#include <deal.II/lac/full_matrix.templates.h>
+//#include <deal.II/lac/full_matrix.h>
 
 #include <deal.II/fe/fe_values.h>
 
@@ -191,12 +191,53 @@ void evaluate_finite_element_values (
         for (unsigned int idof = 0; idof < n_dofs; ++idof) {
             const int icomp = finite_element.system_to_component_index(idof).first;
             values[ipoint][icomp] += coefficients[idof] * finite_element.shape_value_component(idof, unit_points[ipoint], icomp);
-            // std::cout << "idof " << idof
-            //           << "  coeff " << coefficients[idof]
-            //           << " shape_value " << finite_element.shape_value_component(idof, unit_points[ipoint], icomp)
-            //           << " values[ipoint][icomp] " << values[ipoint][icomp] << std::endl;
         }
     }
+}
+
+
+template <int dim, typename real>
+bool check_same_coords (
+    const std::vector<dealii::Point<dim>> &unit_quad_pts_int,
+    const std::vector<dealii::Point<dim>> &unit_quad_pts_ext,
+    const std::vector<real> &coords_coeff_int,
+    const std::vector<real> &coords_coeff_ext,
+    const dealii::FESystem<dim,dim> &fe_metric,
+    const double tolerance)
+{
+    assert(unit_quad_pts_int.size() == unit_quad_pts_ext.size());
+    const unsigned int nquad = unit_quad_pts_int.size();
+    std::vector < std::array< real,dim> > coords_int(nquad);
+    std::vector < std::array< real,dim> > coords_ext(nquad);
+    evaluate_finite_element_values  <dim, real, dim> (unit_quad_pts_int, coords_coeff_int, fe_metric, coords_int);
+    evaluate_finite_element_values  <dim, real, dim> (unit_quad_pts_ext, coords_coeff_ext, fe_metric, coords_ext);
+
+    bool issame = true;
+    for (unsigned int iquad = 0; iquad < nquad; ++iquad) {
+        for (int d=0; d<dim; ++d) {
+            real abs_diff = abs(coords_int[iquad][d] - coords_ext[iquad][d]);
+            if (abs_diff > tolerance) {
+                real rel_diff = abs_diff / coords_int[iquad][d];
+                if (rel_diff > tolerance) {
+                    issame = false;
+                }
+            }
+        }
+        if (!issame) {
+            std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+            std::cout << "coords_int ";
+            for (int d=0;d<dim;++d) {
+                std::cout << coords_int[iquad][d] << " ";
+            }
+            std::cout << std::endl;
+            std::cout << "coords_ext ";
+            for (int d=0;d<dim;++d) {
+                std::cout << coords_ext[iquad][d] << " ";
+            }
+            std::cout << std::endl;
+        }
+    }
+    return issame;
 }
 
 template <int dim, typename real, int n_components>
@@ -908,25 +949,25 @@ void DGWeak<dim,nstate,real>::assemble_face_term_explicit(
 }
 
 template <int dim, int nstate, typename real>
-template <typename adtype>
+template <typename real2>
 void DGWeak<dim,nstate,real>::assemble_boundary_term(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
-    const std::vector< adtype > &soln_coeff,
-    const std::vector< adtype > &coords_coeff,
+    const std::vector< real2 > &soln_coeff,
+    const std::vector< real2 > &coords_coeff,
     const std::vector< real > &local_dual,
     const unsigned int face_number,
     const unsigned int boundary_id,
-    const Physics::PhysicsBase<dim, nstate, adtype> &physics,
-    const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype> &conv_num_flux,
-    const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+    const Physics::PhysicsBase<dim, nstate, real2> &physics,
+    const NumericalFlux::NumericalFluxConvective<dim, nstate, real2> &conv_num_flux,
+    const NumericalFlux::NumericalFluxDissipative<dim, nstate, real2> &diss_num_flux,
     const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
     const real penalty,
     const dealii::FESystem<dim,dim> &fe_soln,
     const dealii::FESystem<dim,dim> &fe_metric,
     const dealii::Quadrature<dim-1> &quadrature,
-    std::vector<adtype> &rhs,
-    adtype &dual_dot_residual,
+    std::vector<real2> &rhs,
+    real2 &dual_dot_residual,
     const bool compute_metric_derivatives)
 {
     const unsigned int n_soln_dofs = fe_soln.dofs_per_cell;
@@ -938,8 +979,9 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term(
         rhs[itest] = 0.0;
     }
 
-    using ADArray = std::array<adtype,nstate>;
-    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,adtype>, nstate >;
+    using ADArray = std::array<real2,nstate>;
+    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,real2>, nstate >;
+    using Tensor2D = dealii::Tensor<2,dim,real2>;
 
     const dealii::Quadrature<dim> face_quadrature
         = dealii::QProjector<dim>::project_to_face(
@@ -947,15 +989,15 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term(
             quadrature,
             face_number);
     const std::vector<dealii::Point<dim,real>> &unit_quad_pts = face_quadrature.get_points();
-    std::vector<dealii::Point<dim,adtype>> real_quad_pts(unit_quad_pts.size());
+    std::vector<dealii::Point<dim,real2>> real_quad_pts(unit_quad_pts.size());
 
-    std::vector<dealii::Tensor<2,dim,adtype>> metric_jacobian = evaluate_metric_jacobian (unit_quad_pts, coords_coeff, fe_metric);
-    std::vector<adtype> jac_det(n_quad_pts);
-    std::vector<adtype> surface_jac_det(n_quad_pts);
-    std::vector<dealii::Tensor<2,dim,adtype>> jac_inv_tran(n_quad_pts);
+    std::vector<dealii::Tensor<2,dim,real2>> metric_jacobian = evaluate_metric_jacobian (unit_quad_pts, coords_coeff, fe_metric);
+    std::vector<real2> jac_det(n_quad_pts);
+    std::vector<real2> surface_jac_det(n_quad_pts);
+    std::vector<dealii::Tensor<2,dim,real2>> jac_inv_tran(n_quad_pts);
 
     const dealii::Tensor<1,dim,real> unit_normal = dealii::GeometryInfo<dim>::unit_normal_vector[face_number];
-    std::vector<dealii::Tensor<1,dim,adtype>> normals(n_quad_pts);
+    std::vector<dealii::Tensor<1,dim,real2>> phys_unit_normal(n_quad_pts);
 
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         if (compute_metric_derivatives) {
@@ -965,32 +1007,32 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term(
                 real_quad_pts[iquad][iaxis] += coords_coeff[idof] * fe_metric.shape_value(idof,unit_quad_pts[iquad]);
             }
 
-            const adtype jacobian_determinant = dealii::determinant(metric_jacobian[iquad]);
-            const dealii::Tensor<2,dim,adtype> jacobian_transpose_inverse = dealii::transpose(dealii::invert(metric_jacobian[iquad]));
+            const real2 jacobian_determinant = dealii::determinant(metric_jacobian[iquad]);
+            const dealii::Tensor<2,dim,real2> jacobian_transpose_inverse = dealii::transpose(dealii::invert(metric_jacobian[iquad]));
 
             jac_det[iquad] = jacobian_determinant;
             jac_inv_tran[iquad] = jacobian_transpose_inverse;
 
-            const dealii::Tensor<1,dim,adtype> normal = vmult(jacobian_transpose_inverse, unit_normal);
-            const adtype area = norm(normal);
+            const dealii::Tensor<1,dim,real2> normal = vmult(jacobian_transpose_inverse, unit_normal);
+            const real2 area = norm(normal);
 
             surface_jac_det[iquad] = norm(normal)*jac_det[iquad];
             // Technically the normals have jac_det multiplied.
             // However, we use normalized normals by convention, so the the term
             // ends up appearing in the surface jacobian.
             for (int d=0;d<dim;++d) { 
-                normals[iquad][d] = normal[d] / area;
+                phys_unit_normal[iquad][d] = normal[d] / area;
             }
 
             // Exact mapping
             // real_quad_pts[iquad] = fe_values_boundary.quadrature_point(iquad);
             // surface_jac_det[iquad] = fe_values_boundary.JxW(iquad) / face_quadrature.weight(iquad);
-            // normals[iquad] = fe_values_boundary.normal_vector(iquad);
+            // phys_unit_normal[iquad] = fe_values_boundary.normal_vector(iquad);
 
         } else {
             real_quad_pts[iquad] = fe_values_boundary.quadrature_point(iquad);
             surface_jac_det[iquad] = fe_values_boundary.JxW(iquad) / face_quadrature.weight(iquad);
-            normals[iquad] = fe_values_boundary.normal_vector(iquad);
+            phys_unit_normal[iquad] = fe_values_boundary.normal_vector(iquad);
         }
 
     }
@@ -999,7 +1041,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term(
     auto old_jac_inv_tran = jac_inv_tran;
 
     if constexpr (dim != 1) {
-        evaluate_covariant_metric_jacobian<dim,adtype> ( face_quadrature, coords_coeff, fe_metric, jac_inv_tran, jac_det);
+        evaluate_covariant_metric_jacobian<dim,real2> ( face_quadrature, coords_coeff, fe_metric, jac_inv_tran, jac_det);
     }
 
     //for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
@@ -1021,25 +1063,25 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term(
     //    }
     //}
 #endif
+
+    std::vector<real2> faceJxW(n_quad_pts);
+
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         if (compute_metric_derivatives) {
-            const dealii::Tensor<1,dim,adtype> normal = vmult(jac_inv_tran[iquad], unit_normal);
-            const adtype area = norm(normal);
+            const dealii::Tensor<1,dim,real2> normal = vmult(jac_inv_tran[iquad], unit_normal);
+            const real2 area = norm(normal);
 
             surface_jac_det[iquad] = norm(normal)*jac_det[iquad];
             // Technically the normals have jac_det multiplied.
             // However, we use normalized normals by convention, so the the term
             // ends up appearing in the surface jacobian.
             for (int d=0;d<dim;++d) { 
-                normals[iquad][d] = normal[d] / area;
+                phys_unit_normal[iquad][d] = normal[d] / area;
             }
         }
-    }
 
-    std::vector<ADArray> conv_num_flux_dot_n(n_quad_pts);
-    std::vector<ADArray> diss_soln_num_flux(n_quad_pts); // u*
-    std::vector<ADArrayTensor1> diss_flux_jump_int(n_quad_pts); // u*-u_int
-    std::vector<ADArray> diss_auxi_num_flux_dot_n(n_quad_pts); // sigma*
+        faceJxW[iquad] = surface_jac_det[iquad] * face_quadrature.weight(iquad);
+    }
 
     dealii::FullMatrix<real> interpolation_operator(n_soln_dofs,n_quad_pts);
     for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
@@ -1047,11 +1089,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term(
             interpolation_operator[idof][iquad] = fe_soln.shape_value(idof,unit_quad_pts[iquad]);
         }
     }
-    //std::array<dealii::FullMatrix<adtype>,dim> gradient_operator;
-    // for (int d=0;d<dim;++d) {
-    //     gradient_operator[d].reinit(n_soln_dofs, n_quad_pts);
-    // }
-    std::array<dealii::Table<2,adtype>,dim> gradient_operator;
+    std::array<dealii::Table<2,real2>,dim> gradient_operator;
     for (int d=0;d<dim;++d) {
         gradient_operator[d].reinit(dealii::TableIndices<2>(n_soln_dofs, n_quad_pts));
     }
@@ -1059,7 +1097,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term(
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             if (compute_metric_derivatives) {
                 const dealii::Tensor<1,dim,real> ref_shape_grad = fe_soln.shape_grad(idof,unit_quad_pts[iquad]);
-                const dealii::Tensor<1,dim,adtype> phys_shape_grad = vmult(jac_inv_tran[iquad], ref_shape_grad);
+                const dealii::Tensor<1,dim,real2> phys_shape_grad = vmult(jac_inv_tran[iquad], ref_shape_grad);
                 for (int d=0;d<dim;++d) {
                     gradient_operator[d][idof][iquad] = phys_shape_grad[d];
                 }
@@ -1078,11 +1116,144 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term(
         }
     }
 
-    //const adtype cell_diameter = fe_values_boundary.get_cell()->diameter();
-    //const adtype artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
+
+    std::vector<std::array<real2,nstate>> soln_int(n_quad_pts), soln_ext(n_quad_pts);
+    std::vector<std::array< dealii::Tensor<1,dim,real2>, nstate >> soln_grad_int(n_quad_pts), soln_grad_ext(n_quad_pts);
+
+    evaluate_finite_element_values<dim, real2, nstate> (unit_quad_pts, soln_coeff, fe_soln, soln_int);
+
+    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+
+        for (int istate=0; istate<nstate; istate++) {
+            soln_grad_int[iquad][istate] = 0;
+        }
+        for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
+            const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
+            for (int d=0;d<dim;++d) {
+                soln_grad_int[iquad][istate][d] += soln_coeff[idof] * gradient_operator[d][idof][iquad];
+            }
+        }
+    }
+
+    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        const dealii::Tensor<1,dim,real2> normal_int = phys_unit_normal[iquad];
+        physics.boundary_face_values (boundary_id, real_quad_pts[iquad], normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
+    }
+
+    // Assemble BR2 gradient correction right-hand side
+    const dealii::FiniteElement<dim> &base_fe_int = fe_soln.get_sub_fe(0,1);
+    const unsigned int n_base_dofs_int = base_fe_int.n_dofs_per_cell();
+
+    std::vector<ADArrayTensor1> soln_grad_correction_int(n_base_dofs_int);
+    using DissFlux = Parameters::AllParameters::DissipativeNumericalFlux;
+    const unsigned int n_faces = std::pow(2,dim);
+    const double br2_factor = n_faces * 1.01;
+    if (this->all_parameters->diss_num_flux_type == DissFlux::bassi_rebay_2) {
+
+        // Obtain solution jump
+        std::vector<std::array<dealii::Tensor<1,dim,real2>, nstate>> soln_jump(n_quad_pts);
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            for (int s=0; s<nstate; s++) {
+                for (int d=0; d<dim; d++) {
+                    soln_jump[iquad][s][d] = (soln_int[iquad][s] - soln_ext[iquad][s]) * phys_unit_normal[iquad][d];
+                }
+            }
+        }
+
+
+        std::vector<ADArrayTensor1> lifting_op_R_rhs_int(n_base_dofs_int);
+        for (unsigned int idof=0; idof<n_base_dofs_int; ++idof) {
+            for (int s=0; s<nstate; s++) {
+
+                lifting_op_R_rhs_int[idof][s] = 0.0;
+
+                for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+
+                    for (int d=0; d<dim; ++d) {
+                        lifting_op_R_rhs_int[idof][s][d] += soln_jump[iquad][s][d] * ( base_fe_int.shape_value(idof,unit_quad_pts[iquad]) ) * faceJxW[iquad];
+                    }
+                }
+
+            }
+        }
+
+        // Build Vandermonde inverse used in the lifting term of BR2
+        // For this purposes of BR2, do NOT overintegrate to have a square invertible Vandermonde matrix
+        const int degree_int = base_fe_int.tensor_degree();
+        dealii::QGauss<dim> vol_quad_int(degree_int+1);
+        const unsigned int n_vol_quad_int = vol_quad_int.size();
+
+        if (n_base_dofs_int != n_vol_quad_int) std::abort();
+        dealii::FullMatrix<real> vandermonde_int(n_base_dofs_int, n_vol_quad_int);
+        dealii::FullMatrix<real> vandermonde_inverse_int(n_base_dofs_int, n_vol_quad_int);
+        for (unsigned int idof=0; idof<n_base_dofs_int; ++idof) {
+            for (unsigned int iquad=0; iquad<n_vol_quad_int; ++iquad) {
+                vandermonde_int[idof][iquad] = base_fe_int.shape_value(idof, vol_quad_int.point(iquad));
+            }
+        }
+        vandermonde_inverse_int.invert(vandermonde_int);
+
+        std::vector<ADArrayTensor1> vandermonde_inv_rhs_int(n_vol_quad_int);
+        for (unsigned int kquad=0; kquad<n_vol_quad_int; ++kquad) {
+
+            for (int s=0; s<nstate; s++) {
+                vandermonde_inv_rhs_int[kquad][s] = 0.0;
+
+                for (unsigned int jdof=0; jdof<n_base_dofs_int; ++jdof) {
+                    for (int d=0; d<dim; ++d) {
+                        vandermonde_inv_rhs_int[kquad][s][d] += vandermonde_inverse_int[kquad][jdof] * lifting_op_R_rhs_int[jdof][s][d];
+                    }
+                }
+            }
+        }
+
+        const std::vector<dealii::Point<dim,double>> &vol_unit_quad_pts_int = vol_quad_int.get_points();
+        std::vector<Tensor2D> volume_metric_jac_int = evaluate_metric_jacobian (vol_unit_quad_pts_int, coords_coeff, fe_metric);
+
+        for (unsigned int kquad=0; kquad<n_vol_quad_int; ++kquad) {
+            real2 vol_jac_det = dealii::determinant(volume_metric_jac_int[kquad]);
+            for (int s=0; s<nstate; s++) {
+                for (int d=0; d<dim; ++d) {
+                    vandermonde_inv_rhs_int[kquad][s][d] /= vol_jac_det * vol_quad_int.weight(kquad);
+                }
+            }
+        }
+
+        for (unsigned int idof=0; idof<n_base_dofs_int; ++idof) {
+            for (int s=0; s<nstate; s++) {
+                soln_grad_correction_int[idof][s] = 0.0;
+                for (int d=0; d<dim; ++d) {
+                    for (unsigned int kquad=0; kquad<n_vol_quad_int; ++kquad) {
+                        soln_grad_correction_int[idof][s][d] += vandermonde_inverse_int[idof][kquad] * vandermonde_inv_rhs_int[kquad][s][d];
+                    }
+                    soln_grad_correction_int[idof][s][d] *= br2_factor;
+                }
+            }
+        }
+
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
+                const unsigned int istate = fe_soln.system_to_component_index(idof).first;
+                const unsigned int idof_base = fe_soln.system_to_component_index(idof).second;
+                for (int d=0;d<dim;++d) {
+                    soln_grad_int[iquad][istate][d] += soln_grad_correction_int[idof_base][istate][d] * gradient_operator[d][idof][iquad];
+                    soln_grad_ext[iquad][istate][d] = soln_grad_int[iquad][istate][d];
+                }
+            }
+        }
+    }
+
+
+    std::vector<ADArray> conv_num_flux_dot_n(n_quad_pts);
+    std::vector<ADArray> diss_soln_num_flux(n_quad_pts); // u*
+    std::vector<ADArrayTensor1> diss_flux_jump_int(n_quad_pts); // u*-u_int
+    std::vector<ADArray> diss_auxi_num_flux_dot_n(n_quad_pts); // sigma*
+
+    //const real2 cell_diameter = fe_values_boundary.get_cell()->diameter();
+    //const real2 artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
     //                                       this->discontinuity_sensor(cell_diameter, soln_coeff, fe_values_boundary.get_fe())
     //                                       : 0.0;
-    const adtype artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
+    const real2 artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
                                          this->artificial_dissipation_coeffs[current_cell_index]
                                          : 0.0;
     (void) artificial_diss_coeff;
@@ -1107,25 +1278,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term(
 
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
-        const dealii::Tensor<1,dim,adtype> normal_int = normals[iquad];
-
-        std::array<adtype,nstate> soln_int;
-        std::array<adtype,nstate> soln_ext;
-        std::array< dealii::Tensor<1,dim,adtype>, nstate > soln_grad_int;
-        std::array< dealii::Tensor<1,dim,adtype>, nstate > soln_grad_ext;
-        for (int istate=0; istate<nstate; istate++) {
-            soln_int[istate]      = 0;
-            soln_grad_int[istate] = 0;
-        }
-        for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
-            const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
-            soln_int[istate] += soln_coeff[idof] * interpolation_operator[idof][iquad];
-            for (int d=0;d<dim;++d) {
-                soln_grad_int[istate][d] += soln_coeff[idof] * gradient_operator[d][idof][iquad];
-            }
-        }
-
-        physics.boundary_face_values (boundary_id, real_quad_pts[iquad], normal_int, soln_int, soln_grad_int, soln_ext, soln_grad_ext);
+        const dealii::Tensor<1,dim,real2> normal_int = phys_unit_normal[iquad];
 
         // Evaluate physical convective flux, physical dissipative flux
         // Following the the boundary treatment given by
@@ -1138,22 +1291,22 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term(
         // Changing it back to the standdard F* = F*(Uin, Ubc)
         // This is known not be adjoint consistent as per the paper above. Page 85, second to last paragraph.
         // Losing 2p+1 OOA on functionals for all PDEs.
-        //conv_num_flux_dot_n[iquad] = conv_num_flux.evaluate_flux(soln_int, soln_ext, normal_int);
-        conv_num_flux_dot_n[iquad] = conv_num_flux.evaluate_flux(soln_int, soln_ext, normal_int);
+        //conv_num_flux_dot_n[iquad] = conv_num_flux.evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
+        conv_num_flux_dot_n[iquad] = conv_num_flux.evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
         // Notice that the flux uses the solution given by the Dirichlet or Neumann boundary condition
-        diss_soln_num_flux[iquad] = diss_num_flux.evaluate_solution_flux(soln_ext, soln_ext, normal_int);
+        diss_soln_num_flux[iquad] = diss_num_flux.evaluate_solution_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
 
         ADArrayTensor1 diss_soln_jump_int;
         for (int s=0; s<nstate; s++) {
             for (int d=0; d<dim; d++) {
-                diss_soln_jump_int[s][d] = (diss_soln_num_flux[iquad][s] - soln_int[s]) * normal_int[d];
+                diss_soln_jump_int[s][d] = (diss_soln_num_flux[iquad][s] - soln_int[iquad][s]) * normal_int[d];
             }
         }
-        diss_flux_jump_int[iquad] = physics.dissipative_flux (soln_int, diss_soln_jump_int);
+        diss_flux_jump_int[iquad] = physics.dissipative_flux (soln_int[iquad], diss_soln_jump_int);
 
         if (this->all_parameters->add_artificial_dissipation) {
-            //const ADArrayTensor1 artificial_diss_flux_jump_int = physics.artificial_dissipative_flux (artificial_diss_coeff, soln_int, diss_soln_jump_int);
-            const ADArrayTensor1 artificial_diss_flux_jump_int = physics.artificial_dissipative_flux (artificial_diss_coeff_at_q[iquad], soln_int, diss_soln_jump_int);
+            //const ADArrayTensor1 artificial_diss_flux_jump_int = physics.artificial_dissipative_flux (artificial_diss_coeff, soln_int[iquad], diss_soln_jump_int);
+            const ADArrayTensor1 artificial_diss_flux_jump_int = physics.artificial_dissipative_flux (artificial_diss_coeff_at_q[iquad], soln_int[iquad], diss_soln_jump_int);
             for (int s=0; s<nstate; s++) {
                 diss_flux_jump_int[iquad][s] += artificial_diss_flux_jump_int[s];
             }
@@ -1164,21 +1317,21 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term(
             //artificial_diss_coeff,
             artificial_diss_coeff_at_q[iquad],
             artificial_diss_coeff_at_q[iquad],
-            soln_int, soln_ext,
-            soln_grad_int, soln_grad_ext,
+            soln_int[iquad], soln_ext[iquad],
+            soln_grad_int[iquad], soln_grad_ext[iquad],
             normal_int, penalty, true);
     }
 
     // Applying convection boundary condition
     for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
 
-        adtype rhs_val = 0.0;
+        real2 rhs_val = 0.0;
 
         const unsigned int istate = fe_values_boundary.get_fe().system_to_component_index(itest).first;
 
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
-            const adtype JxW_iquad = surface_jac_det[iquad] * face_quadrature.weight(iquad);
+            const real2 JxW_iquad = faceJxW[iquad];
             // Convection
             rhs_val = rhs_val - interpolation_operator[itest][iquad] * conv_num_flux_dot_n[iquad][istate] * JxW_iquad;
             // Diffusive
@@ -1790,39 +1943,11 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
 
     const dealii::Tensor<1,dim,real> unit_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[face_subface_int.first];
     const dealii::Tensor<1,dim,real> unit_normal_ext = dealii::GeometryInfo<dim>::unit_normal_vector[face_subface_ext.first];
-    //const dealii::Tensor<1,dim,real> unit_normal_ext = -unit_normal_int;
-    //assert(unit_normal_int == -unit_normal_ext);
-
-    //Assert(unit_normal_int == -unit_normal_ext,
-    //    dealii::ExcMessage("Inconsistent normals. Direction " + std::to_string(d)
-    //        + " N1: " + std::to_string(unit_normal_int[d])
-    //        + " N2: " + std::to_string(unit_normal_ext[d])));
 
     // Use quadrature points of neighbor cell
     // Might want to use the maximum n_quad_pts1 and n_quad_pts2
     //const unsigned int n_face_quad_pts = fe_values_ext.n_quadrature_points;
 
-    // Interpolate solution to the face quadrature points
-    ADArray soln_int;
-    ADArray soln_ext;
-
-    ADArrayTensor1 soln_grad_int; // Tensor initialize with zeros
-    ADArrayTensor1 soln_grad_ext; // Tensor initialize with zeros
-
-    ADArray conv_num_flux_dot_n;
-    ADArray diss_soln_num_flux; // u*
-    ADArray diss_auxi_num_flux_dot_n; // sigma*
-
-    ADArrayTensor1 diss_flux_jump_int; // u*-u_int
-    ADArrayTensor1 diss_flux_jump_ext; // u*-u_ext
-
-    std::vector<real> interpolation_operator_int(n_soln_dofs_int);
-    std::vector<real> interpolation_operator_ext(n_soln_dofs_ext);
-    std::array<std::vector<real2>,dim> gradient_operator_int, gradient_operator_ext;
-    for (int d=0;d<dim;++d) {
-        gradient_operator_int[d].resize(n_soln_dofs_int);
-        gradient_operator_ext[d].resize(n_soln_dofs_ext);
-    }
     //const real2 cell_diameter_int = fe_values_int.get_cell()->diameter();
     //const real2 cell_diameter_ext = fe_values_ext.get_cell()->diameter();
     //const real2 artificial_diss_coeff_int = this->all_parameters->add_artificial_dissipation ?
@@ -1921,77 +2046,25 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
     //}
 #endif
 
+    check_same_coords<dim,real2>(unit_quad_pts_int, unit_quad_pts_ext, coords_coeff_int, coords_coeff_ext, fe_metric, 1e-10);
 
-    // for (unsigned int idof = 0; idof < fe_metric.n_dofs_per_cell(); ++idof) {
-    //     std::cout << "idof int " << idof
-    //               << " base index " << fe_metric.system_to_component_index(idof).second
-    //               << " component " << fe_metric.system_to_component_index(idof).first
-    //               << " value: " << coords_coeff_int[idof]
-    //               << std::endl;
-    // }
+    // Compute metrics
+    std::vector<Tensor1D> phys_unit_normal_int(n_face_quad_pts), phys_unit_normal_ext(n_face_quad_pts);
+    std::vector<real2> surface_jac_det(n_face_quad_pts);
+    std::vector<real2> faceJxW(n_face_quad_pts);
 
-    std::vector < std::array< real2,dim> > coords_int(n_face_quad_pts);
-    evaluate_finite_element_values  <dim, real2, dim> (unit_quad_pts_int, coords_coeff_int, fe_metric, coords_int);
-
-    // for (unsigned int idof = 0; idof < fe_metric.n_dofs_per_cell(); ++idof) {
-    //     std::cout << "idof ext " << idof
-    //               << " base index " << fe_metric.system_to_component_index(idof).second
-    //               << " component " << fe_metric.system_to_component_index(idof).first
-    //               << " value: " << coords_coeff_ext[idof]
-    //               << std::endl;
-    // }
-    std::vector < std::array< real2,dim> > coords_ext(n_face_quad_pts);
-    evaluate_finite_element_values  <dim, real2, dim> (unit_quad_pts_ext, coords_coeff_ext, fe_metric, coords_ext);
+    dealii::FullMatrix<real> interpolation_operator_int(n_face_quad_pts, n_soln_dofs_int);
+    dealii::FullMatrix<real> interpolation_operator_ext(n_face_quad_pts, n_soln_dofs_int);
+    std::array<dealii::FullMatrix<real2>,dim> gradient_operator_int, gradient_operator_ext;
+    for (int d=0;d<dim;++d) {
+        gradient_operator_int[d].reinit(dealii::TableIndices<2>(n_face_quad_pts, n_soln_dofs_int));
+        gradient_operator_ext[d].reinit(dealii::TableIndices<2>(n_face_quad_pts, n_soln_dofs_ext));
+    }
 
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
-        //std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
-        //std::cout << "iquad " << iquad << std::endl;
 
-        //std::cout << "quad_pt_int " << unit_quad_pts_int[iquad] << std::endl;
-        //std::cout << "quad_pt_ext " << unit_quad_pts_ext[iquad] << std::endl;
+        real2 surface_jac_det_int, surface_jac_det_ext;
 
-        //std::cout << "coords_int ";
-        //for (int d=0;d<dim;++d) {
-        //    std::cout << coords_int[iquad][d] << " ";
-        //}
-        //std::cout << std::endl;
-
-        //std::cout << "coords_ext ";
-        //for (int d=0;d<dim;++d) {
-        //    std::cout << coords_ext[iquad][d] << " ";
-        //}
-        //std::cout << std::endl;
-
-        //std::cout << "quad_int " << fe_values_int.quadrature_point(iquad) << std::endl;
-        //std::cout << "quad_ext " << fe_values_ext.quadrature_point(iquad) << std::endl;
-
-        bool same = true;
-        for (int d=0; d<dim; ++d) {
-            real2 abs_diff = abs(coords_int[iquad][d] - coords_ext[iquad][d]);
-            if (abs_diff > 1e-10) {
-                real2 rel_diff = abs_diff / coords_int[iquad][d];
-                if (rel_diff > 1e-10) {
-                    same = false;
-                }
-            }
-        }
-        if (!same) {
-            std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
-            std::cout << "coords_int ";
-            for (int d=0;d<dim;++d) {
-                std::cout << coords_int[iquad][d] << " ";
-            }
-            std::cout << std::endl;
-            std::cout << "coords_ext ";
-            for (int d=0;d<dim;++d) {
-                std::cout << coords_ext[iquad][d] << " ";
-            }
-            std::cout << std::endl;
-        }
-        Tensor1D normal_normalized_int;
-        Tensor1D normal_normalized_ext;
-        real2 surface_jac_det_int;
-        real2 surface_jac_det_ext;
         if (compute_metric_derivatives) {
 
             const real2 jac_det_int = jacobian_determinant_int[iquad];
@@ -2010,16 +2083,18 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
             // ends up appearing in the surface jacobian.
 
             for (int d=0;d<dim;++d) {
-                normal_normalized_int[d] = normal_int[d] / area_int;
+                phys_unit_normal_int[iquad][d] = normal_int[d] / area_int;
             }
             for (int d=0;d<dim;++d) {
-                normal_normalized_ext[d] = normal_ext[d] / area_ext;
+                phys_unit_normal_ext[iquad][d] = normal_ext[d] / area_ext;
             }
 
             surface_jac_det_int = area_int*jac_det_int;
             surface_jac_det_ext = area_ext*jac_det_ext;
 
+
             if (std::is_same<double,real2>::value) {
+                bool valid_metrics = true;
                 // surface_jac_det is the 'volume' compression/expansion of the face w.r.t. the reference cell,
                 // analogous to volume jacobian determinant.
                 //
@@ -2027,25 +2102,20 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
                 //
                 // When the cells do not have the same coarseness, their surface Jacobians will not be the same.
                 // Therefore, we must use the Jacobians coming from the smaller face since it accurately represents
-                // the surface area being computed.
+                // the surface area being integrated.
                 if (face_subface_int.second == -1 && face_subface_ext.second == -1) {
-                    assert(abs(surface_jac_det_int-surface_jac_det_ext) < 1e-12);
                     if(abs(surface_jac_det_int-surface_jac_det_ext) > 1e-12) {
                         std::cout << std::endl;
-                        std::cout << "iquad " << iquad
-                        << " Non-matching surface jacobians " << surface_jac_det_int << " " << surface_jac_det_ext<< std::endl;
+                        std::cout << "iquad " << iquad << " Non-matching surface jacobians "
+                            << surface_jac_det_int << " " << surface_jac_det_ext<< std::endl;
 
-                        //for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
-                        //    rhs_int[itest_int] += 1e20;
-                        //}
-                        //for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
-                        //    rhs_ext[itest_ext] += 1e20;
-                        //}
+                        assert(abs(surface_jac_det_int-surface_jac_det_ext) < 1e-12);
+                        valid_metrics = false;
                     }
                 }
                 real2 diff_norm = 0;
                 for (int d=0;d<dim;++d) {
-                    const real2 diff = normal_normalized_int[d]+normal_normalized_ext[d];
+                    const real2 diff = phys_unit_normal_int[iquad][d]+phys_unit_normal_ext[iquad][d];
                     diff_norm += diff*diff;
                 }
                 diff_norm = sqrt(diff_norm);
@@ -2053,61 +2123,64 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
                     std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
                     std::cout << "Non-matching normals. Error norm: " << diff_norm << std::endl;
                     for (int d=0;d<dim;++d) {
-                        //assert(abs(normal_normalized_int[d]+normal_normalized_ext[d]) < 1e-10);
-                        std::cout << " normal_int["<<d<<"] : " << normal_normalized_int[d] 
-                                  << " normal_ext["<<d<<"] : " << normal_normalized_ext[d]
+                        //assert(abs(phys_unit_normal_int[iquad][d]+phys_unit_normal_ext[iquad][d]) < 1e-10);
+                        std::cout << " normal_int["<<d<<"] : " << phys_unit_normal_int[iquad][d] 
+                                  << " normal_ext["<<d<<"] : " << phys_unit_normal_ext[iquad][d]
                                   << std::endl;
                     }
+                    valid_metrics = false;
+                }
+                if (!valid_metrics) {
                     //for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
-                    //    rhs_int[itest_int] += 1e20;
+                    //   rhs_int[itest_int] += 1e20;
                     //}
                     //for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
-                    //    rhs_ext[itest_ext] += 1e20;
+                    //   rhs_ext[itest_ext] += 1e20;
                     //}
                 }
 
             }
-            //normal_normalized_ext = -normal_normalized_int;//normal_ext / area_ext; Must use opposite normal to be consistent with explicit
+            //phys_unit_normal_ext[iquad] = -phys_unit_normal_int[iquad];//normal_ext / area_ext; Must use opposite normal to be consistent with explicit
 
             for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
-                interpolation_operator_int[idof] = fe_int.shape_value(idof,unit_quad_pts_int[iquad]);
+                interpolation_operator_int[iquad][idof] = fe_int.shape_value(idof,unit_quad_pts_int[iquad]);
                 dealii::Tensor<1,dim,real> ref_shape_grad = fe_int.shape_grad(idof,unit_quad_pts_int[iquad]);
                 const Tensor1D phys_shape_grad = vmult(jac_inv_tran_int, ref_shape_grad);
                 for (int d=0;d<dim;++d) {
-                    gradient_operator_int[d][idof] = phys_shape_grad[d];
+                    gradient_operator_int[d][iquad][idof] = phys_shape_grad[d];
                 }
             }
             for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
-                interpolation_operator_ext[idof] = fe_ext.shape_value(idof,unit_quad_pts_ext[iquad]);
+                interpolation_operator_ext[iquad][idof] = fe_ext.shape_value(idof,unit_quad_pts_ext[iquad]);
                 dealii::Tensor<1,dim,real> ref_shape_grad = fe_ext.shape_grad(idof,unit_quad_pts_ext[iquad]);
                 const Tensor1D phys_shape_grad = vmult(jac_inv_tran_ext, ref_shape_grad);
                 for (int d=0;d<dim;++d) {
-                    gradient_operator_ext[d][idof] = phys_shape_grad[d];
+                    gradient_operator_ext[d][iquad][idof] = phys_shape_grad[d];
                 }
             }
 
         } else {
             for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
-                interpolation_operator_int[idof] = fe_int.shape_value(idof,unit_quad_pts_int[iquad]);
+                interpolation_operator_int[iquad][idof] = fe_int.shape_value(idof,unit_quad_pts_int[iquad]);
             }
             for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
-                interpolation_operator_ext[idof] = fe_ext.shape_value(idof,unit_quad_pts_ext[iquad]);
+                interpolation_operator_ext[iquad][idof] = fe_ext.shape_value(idof,unit_quad_pts_ext[iquad]);
             }
             for (int d=0;d<dim;++d) {
                 for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
                     const unsigned int istate = fe_int.system_to_component_index(idof).first;
-                    gradient_operator_int[d][idof] = fe_values_int.shape_grad_component(idof, iquad, istate)[d];
+                    gradient_operator_int[d][iquad][idof] = fe_values_int.shape_grad_component(idof, iquad, istate)[d];
                 }
                 for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
                     const unsigned int istate = fe_ext.system_to_component_index(idof).first;
-                    gradient_operator_ext[d][idof] = fe_values_ext.shape_grad_component(idof, iquad, istate)[d];
+                    gradient_operator_ext[d][iquad][idof] = fe_values_ext.shape_grad_component(idof, iquad, istate)[d];
                 }
             }
             surface_jac_det_int = fe_values_int.JxW(iquad)/face_quadrature_int.weight(iquad);
             surface_jac_det_ext = fe_values_ext.JxW(iquad)/face_quadrature_ext.weight(iquad);
 
-            normal_normalized_int = fe_values_int.normal_vector(iquad);
-            normal_normalized_ext = -normal_normalized_int; // Must use opposite normal to be consistent with explicit
+            phys_unit_normal_int[iquad] = fe_values_int.normal_vector(iquad);
+            phys_unit_normal_ext[iquad] = -phys_unit_normal_int[iquad]; // Must use opposite normal to be consistent with explicit
         }
         // When the cells do not have the same coarseness, their surface Jacobians will not be the same.
         // Therefore, we must use the Jacobians coming from the smaller face since it accurately represents
@@ -2115,62 +2188,252 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
         //
         // Note that it is possible for the smaller cell to have larger surface Jacobians than the larger cell,
         // but not at the same physical location.
-        real2 surface_jac_det;
         if ( surface_jac_det_int > surface_jac_det_ext) {
             // Interior is the large face.
             // Exterior is the small face.
-            surface_jac_det = surface_jac_det_ext;
-            //normal_normalized_ext = -normal_normalized_int;
+            surface_jac_det[iquad] = surface_jac_det_ext;
+            //phys_unit_normal_ext[iquad] = -phys_unit_normal_int[iquad];
         } else {
             // Exterior is the large face.
             // Interior is the small face.
-            surface_jac_det = surface_jac_det_int;
-            //normal_normalized_int = -normal_normalized_ext;
+            surface_jac_det[iquad] = surface_jac_det_int;
+            //phys_unit_normal_int[iquad] = -phys_unit_normal_ext[iquad];
+        }
+
+        faceJxW[iquad] = surface_jac_det[iquad] * face_quadrature_int.weight(iquad);
+    }
+
+
+    // Interpolate solution
+    std::vector<ADArray> soln_int(n_face_quad_pts), soln_ext(n_face_quad_pts);
+    evaluate_finite_element_values<dim, real2, nstate> (unit_quad_pts_int, soln_coeff_int, fe_int, soln_int);
+    evaluate_finite_element_values<dim, real2, nstate> (unit_quad_pts_ext, soln_coeff_ext, fe_ext, soln_ext);
+
+    // Assemble BR2 gradient correction right-hand side
+    const unsigned int n_faces = std::pow(2,dim);
+    const double br2_factor = n_faces * 1.01;
+    const dealii::FiniteElement<dim> &base_fe_int = fe_int.get_sub_fe(0,1);
+    const unsigned int n_base_dofs_int = base_fe_int.n_dofs_per_cell();
+    const dealii::FiniteElement<dim> &base_fe_ext = fe_ext.get_sub_fe(0,1);
+    const unsigned int n_base_dofs_ext = base_fe_ext.n_dofs_per_cell();
+
+    std::vector<ADArrayTensor1> soln_grad_correction_int(n_base_dofs_int);
+    std::vector<ADArrayTensor1> soln_grad_correction_ext(n_base_dofs_ext);
+    using DissFlux = Parameters::AllParameters::DissipativeNumericalFlux;
+    if (this->all_parameters->diss_num_flux_type == DissFlux::bassi_rebay_2) {
+
+        // Obtain solution jump
+        std::vector<std::array<dealii::Tensor<1,dim,real2>, nstate>> soln_jump(n_face_quad_pts);
+        for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+            for (int s=0; s<nstate; s++) {
+                for (int d=0; d<dim; d++) {
+                    soln_jump[iquad][s][d] = (soln_int[iquad][s] - soln_ext[iquad][s]) * phys_unit_normal_int[iquad][d];
+                }
+            }
         }
 
 
+        std::vector<ADArrayTensor1> lifting_op_R_rhs_int(n_base_dofs_int);
+        for (unsigned int idof=0; idof<n_base_dofs_int; ++idof) {
+            for (int s=0; s<nstate; s++) {
+
+                lifting_op_R_rhs_int[idof][s] = 0.0;
+
+                for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+
+                    for (int d=0; d<dim; ++d) {
+                        lifting_op_R_rhs_int[idof][s][d] += soln_jump[iquad][s][d] * 0.5 * ( base_fe_int.shape_value(idof,unit_quad_pts_int[iquad]) + 0.0 ) * faceJxW[iquad];
+                    }
+                }
+
+            }
+        }
+
+        // Build Vandermonde inverse used in the lifting term of BR2
+        // For this purposes of BR2, do NOT overintegrate to have a square invertible Vandermonde matrix
+        const int degree_int = base_fe_int.tensor_degree();
+        dealii::QGauss<dim> vol_quad_int(degree_int+1);
+        const unsigned int n_vol_quad_int = vol_quad_int.size();
+
+        if (n_base_dofs_int != n_vol_quad_int) std::abort();
+        dealii::FullMatrix<real> vandermonde_int(n_base_dofs_int, n_vol_quad_int);
+        dealii::FullMatrix<real> vandermonde_inverse_int(n_base_dofs_int, n_vol_quad_int);
+        for (unsigned int idof=0; idof<n_base_dofs_int; ++idof) {
+            for (unsigned int iquad=0; iquad<n_vol_quad_int; ++iquad) {
+                vandermonde_int[idof][iquad] = base_fe_int.shape_value(idof, vol_quad_int.point(iquad));
+            }
+        }
+        vandermonde_inverse_int.invert(vandermonde_int);
+
+        std::vector<ADArrayTensor1> vandermonde_inv_rhs_int(n_vol_quad_int);
+        for (unsigned int kquad=0; kquad<n_vol_quad_int; ++kquad) {
+
+            for (int s=0; s<nstate; s++) {
+                vandermonde_inv_rhs_int[kquad][s] = 0.0;
+
+                for (unsigned int jdof=0; jdof<n_base_dofs_int; ++jdof) {
+                    for (int d=0; d<dim; ++d) {
+                        vandermonde_inv_rhs_int[kquad][s][d] += vandermonde_inverse_int[kquad][jdof] * lifting_op_R_rhs_int[jdof][s][d];
+                    }
+                }
+            }
+        }
+
+        const std::vector<dealii::Point<dim,double>> &vol_unit_quad_pts_int = vol_quad_int.get_points();
+        std::vector<Tensor2D> volume_metric_jac_int = evaluate_metric_jacobian (vol_unit_quad_pts_int, coords_coeff_int, fe_metric);
+
+        for (unsigned int kquad=0; kquad<n_vol_quad_int; ++kquad) {
+            real2 vol_jac_det = dealii::determinant(volume_metric_jac_int[kquad]);
+            for (int s=0; s<nstate; s++) {
+                for (int d=0; d<dim; ++d) {
+                    vandermonde_inv_rhs_int[kquad][s][d] /= vol_jac_det * vol_quad_int.weight(kquad);
+                }
+            }
+        }
+
+        for (unsigned int idof=0; idof<n_base_dofs_int; ++idof) {
+            for (int s=0; s<nstate; s++) {
+                soln_grad_correction_int[idof][s] = 0.0;
+                for (int d=0; d<dim; ++d) {
+                    for (unsigned int kquad=0; kquad<n_vol_quad_int; ++kquad) {
+                        soln_grad_correction_int[idof][s][d] += vandermonde_inverse_int[idof][kquad] * vandermonde_inv_rhs_int[kquad][s][d];
+                    }
+                    soln_grad_correction_int[idof][s][d] *= br2_factor;
+                }
+            }
+        }
+
+        // Assemble BR2 gradient correction right-hand side
+        std::vector<ADArrayTensor1> lifting_op_R_rhs_ext(n_base_dofs_ext);
+        for (unsigned int idof=0; idof<n_base_dofs_ext; ++idof) {
+            for (int s=0; s<nstate; s++) {
+
+                lifting_op_R_rhs_ext[idof][s] = 0.0;
+
+                for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+
+                    for (int d=0; d<dim; ++d) {
+                        lifting_op_R_rhs_ext[idof][s][d] += (-soln_jump[iquad][s][d]) * 0.5 * ( 0.0 + base_fe_ext.shape_value(idof,unit_quad_pts_ext[iquad]) ) * faceJxW[iquad];
+                    }
+                }
+
+            }
+        }
+
+        // Build Vandermonde inverse used in the lifting term of BR2
+        // For this purposes of BR2, do NOT overintegrate to have a square invertible Vandermonde matrix
+        const int degree_ext = base_fe_ext.tensor_degree();
+        dealii::QGauss<dim> vol_quad_ext(degree_ext+1);
+        const unsigned int n_vol_quad_ext = vol_quad_ext.size();
+
+        if (n_base_dofs_ext != n_vol_quad_ext) std::abort();
+        dealii::FullMatrix<real> vandermonde_ext(n_base_dofs_ext, n_vol_quad_ext);
+        dealii::FullMatrix<real> vandermonde_inverse_ext(n_base_dofs_ext, n_vol_quad_ext);
+        for (unsigned int idof=0; idof<n_base_dofs_ext; ++idof) {
+            for (unsigned int iquad=0; iquad<n_vol_quad_ext; ++iquad) {
+                vandermonde_ext[idof][iquad] = base_fe_ext.shape_value(idof, vol_quad_ext.point(iquad));
+            }
+        }
+        vandermonde_inverse_ext.invert(vandermonde_ext);
+
+        std::vector<ADArrayTensor1> vandermonde_inv_rhs_ext(n_vol_quad_ext);
+        for (unsigned int kquad=0; kquad<n_vol_quad_ext; ++kquad) {
+
+            for (int s=0; s<nstate; s++) {
+                vandermonde_inv_rhs_ext[kquad][s] = 0.0;
+
+                for (unsigned int jdof=0; jdof<n_base_dofs_ext; ++jdof) {
+                    for (int d=0; d<dim; ++d) {
+                        vandermonde_inv_rhs_ext[kquad][s][d] += vandermonde_inverse_ext[kquad][jdof] * lifting_op_R_rhs_ext[jdof][s][d];
+                    }
+                }
+            }
+        }
+
+        const std::vector<dealii::Point<dim,double>> &vol_unit_quad_pts_ext = vol_quad_ext.get_points();
+        std::vector<Tensor2D> volume_metric_jac_ext = evaluate_metric_jacobian (vol_unit_quad_pts_ext, coords_coeff_ext, fe_metric);
+
+        for (unsigned int kquad=0; kquad<n_vol_quad_ext; ++kquad) {
+            real2 vol_jac_det = dealii::determinant(volume_metric_jac_ext[kquad]);
+            for (int s=0; s<nstate; s++) {
+                for (int d=0; d<dim; ++d) {
+                    vandermonde_inv_rhs_ext[kquad][s][d] /= vol_jac_det * vol_quad_ext.weight(kquad);
+                }
+            }
+        }
+
+        for (unsigned int idof=0; idof<n_base_dofs_ext; ++idof) {
+            for (int s=0; s<nstate; s++) {
+                soln_grad_correction_ext[idof][s] = 0.0;
+                for (int d=0; d<dim; ++d) {
+                    for (unsigned int kquad=0; kquad<n_vol_quad_ext; ++kquad) {
+                        soln_grad_correction_ext[idof][s][d] += vandermonde_inverse_ext[idof][kquad] * vandermonde_inv_rhs_ext[kquad][s][d];
+                    }
+                    soln_grad_correction_ext[idof][s][d] *= br2_factor;
+                }
+            }
+        }
+    }
+
+
+    ADArrayTensor1 soln_grad_int; // Tensor initialize with zeros
+    ADArrayTensor1 soln_grad_ext; // Tensor initialize with zeros
+
+    ADArray conv_num_flux_dot_n;
+    ADArray diss_soln_num_flux; // u*
+    ADArray diss_auxi_num_flux_dot_n; // sigma*
+
+    ADArrayTensor1 diss_flux_jump_int; // u*-u_int
+    ADArrayTensor1 diss_flux_jump_ext; // u*-u_ext
+
+    for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+
         for (int istate=0; istate<nstate; istate++) {
-            soln_int[istate]      = 0;
             soln_grad_int[istate] = 0;
-            soln_ext[istate]      = 0;
             soln_grad_ext[istate] = 0;
         }
 
         // Interpolate solution to face
         for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
             const unsigned int istate = fe_int.system_to_component_index(idof).first;
-            soln_int[istate]      += soln_coeff_int[idof] * interpolation_operator_int[idof];
+            const unsigned int idof_base = fe_int.system_to_component_index(idof).second;
             for (int d=0;d<dim;++d) {
-                soln_grad_int[istate][d] += soln_coeff_int[idof] * gradient_operator_int[d][idof];
+                soln_grad_int[istate][d] += soln_coeff_int[idof] * gradient_operator_int[d][iquad][idof];
+                if (this->all_parameters->diss_num_flux_type == DissFlux::bassi_rebay_2) {
+                    soln_grad_int[istate][d] += soln_grad_correction_int[idof_base][istate][d] * gradient_operator_int[d][iquad][idof];
+                }
             }
         }
         for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
             const unsigned int istate = fe_ext.system_to_component_index(idof).first;
-            soln_ext[istate]      += soln_coeff_ext[idof] * interpolation_operator_ext[idof];
+            const unsigned int idof_base = fe_ext.system_to_component_index(idof).second;
             for (int d=0;d<dim;++d) {
-                soln_grad_ext[istate][d] += soln_coeff_ext[idof] * gradient_operator_ext[d][idof];
+                soln_grad_ext[istate][d] += soln_coeff_ext[idof] * gradient_operator_ext[d][iquad][idof];
+                if (this->all_parameters->diss_num_flux_type == DissFlux::bassi_rebay_2) {
+                    soln_grad_int[istate][d] += soln_grad_correction_ext[idof_base][istate][d] * gradient_operator_ext[d][iquad][idof];
+                }
             }
         }
 
         // Evaluate physical convective flux, physical dissipative flux, and source term
-        conv_num_flux_dot_n = conv_num_flux.evaluate_flux(soln_int, soln_ext, normal_normalized_int);
-        diss_soln_num_flux = diss_num_flux.evaluate_solution_flux(soln_int, soln_ext, normal_normalized_int);
+        conv_num_flux_dot_n = conv_num_flux.evaluate_flux(soln_int[iquad], soln_ext[iquad], phys_unit_normal_int[iquad]);
+        diss_soln_num_flux = diss_num_flux.evaluate_solution_flux(soln_int[iquad], soln_ext[iquad], phys_unit_normal_int[iquad]);
 
         ADArrayTensor1 diss_soln_jump_int, diss_soln_jump_ext;
         for (int s=0; s<nstate; s++) {
             for (int d=0; d<dim; d++) {
-                diss_soln_jump_int[s][d] = (diss_soln_num_flux[s] - soln_int[s]) * normal_normalized_int[d];
-                diss_soln_jump_ext[s][d] = (diss_soln_num_flux[s] - soln_ext[s]) * normal_normalized_ext[d];
+                diss_soln_jump_int[s][d] = (diss_soln_num_flux[s] - soln_int[iquad][s]) * phys_unit_normal_int[iquad][d];
+                diss_soln_jump_ext[s][d] = (diss_soln_num_flux[s] - soln_ext[iquad][s]) * phys_unit_normal_ext[iquad][d];
             }
         }
-        diss_flux_jump_int = physics.dissipative_flux (soln_int, diss_soln_jump_int);
-        diss_flux_jump_ext = physics.dissipative_flux (soln_ext, diss_soln_jump_ext);
+        diss_flux_jump_int = physics.dissipative_flux (soln_int[iquad], diss_soln_jump_int);
+        diss_flux_jump_ext = physics.dissipative_flux (soln_ext[iquad], diss_soln_jump_ext);
 
         if (this->all_parameters->add_artificial_dissipation) {
-            //const ADArrayTensor1 artificial_diss_flux_jump_int = physics.artificial_dissipative_flux (artificial_diss_coeff_int, soln_int, diss_soln_jump_int);
-            //const ADArrayTensor1 artificial_diss_flux_jump_ext = physics.artificial_dissipative_flux (artificial_diss_coeff_ext, soln_ext, diss_soln_jump_ext);
-            const ADArrayTensor1 artificial_diss_flux_jump_int = physics.artificial_dissipative_flux (artificial_diss_coeff_at_q[iquad], soln_int, diss_soln_jump_int);
-            const ADArrayTensor1 artificial_diss_flux_jump_ext = physics.artificial_dissipative_flux (artificial_diss_coeff_at_q[iquad], soln_ext, diss_soln_jump_ext);
+            //const ADArrayTensor1 artificial_diss_flux_jump_int = physics.artificial_dissipative_flux (artificial_diss_coeff_int, soln_int[iquad], diss_soln_jump_int);
+            //const ADArrayTensor1 artificial_diss_flux_jump_ext = physics.artificial_dissipative_flux (artificial_diss_coeff_ext, soln_ext[iquad], diss_soln_jump_ext);
+            const ADArrayTensor1 artificial_diss_flux_jump_int = physics.artificial_dissipative_flux (artificial_diss_coeff_at_q[iquad], soln_int[iquad], diss_soln_jump_int);
+            const ADArrayTensor1 artificial_diss_flux_jump_ext = physics.artificial_dissipative_flux (artificial_diss_coeff_at_q[iquad], soln_ext[iquad], diss_soln_jump_ext);
             for (int s=0; s<nstate; s++) {
                 diss_flux_jump_int[s] += artificial_diss_flux_jump_int[s];
                 diss_flux_jump_ext[s] += artificial_diss_flux_jump_ext[s];
@@ -2183,22 +2446,22 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
             //artificial_diss_coeff_ext,
             artificial_diss_coeff_at_q[iquad],
             artificial_diss_coeff_at_q[iquad],
-            soln_int, soln_ext,
+            soln_int[iquad], soln_ext[iquad],
             soln_grad_int, soln_grad_ext,
-            normal_normalized_int, penalty);
+            phys_unit_normal_int[iquad], penalty);
 
         // From test functions associated with interior cell point of view
         for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
             real2 rhs = 0.0;
             const unsigned int istate = fe_int.system_to_component_index(itest_int).first;
 
-            const real2 JxW_iquad = surface_jac_det * face_quadrature_int.weight(iquad);
+            const real2 JxW_iquad = faceJxW[iquad];
             // Convection
-            rhs = rhs - interpolation_operator_int[itest_int] * conv_num_flux_dot_n[istate] * JxW_iquad;
+            rhs = rhs - interpolation_operator_int[iquad][itest_int] * conv_num_flux_dot_n[istate] * JxW_iquad;
             // Diffusive
-            rhs = rhs - interpolation_operator_int[itest_int] * diss_auxi_num_flux_dot_n[istate] * JxW_iquad;
+            rhs = rhs - interpolation_operator_int[iquad][itest_int] * diss_auxi_num_flux_dot_n[istate] * JxW_iquad;
             for (int d=0;d<dim;++d) {
-                rhs = rhs + gradient_operator_int[d][itest_int] * diss_flux_jump_int[istate][d] * JxW_iquad;
+                rhs = rhs + gradient_operator_int[d][iquad][itest_int] * diss_flux_jump_int[istate][d] * JxW_iquad;
             }
 
             rhs_int[itest_int] += rhs;
@@ -2210,13 +2473,13 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
             real2 rhs = 0.0;
             const unsigned int istate = fe_ext.system_to_component_index(itest_ext).first;
 
-            const real2 JxW_iquad = surface_jac_det * face_quadrature_int.weight(iquad);
+            const real2 JxW_iquad = faceJxW[iquad];
             // Convection
-            rhs = rhs - interpolation_operator_ext[itest_ext] * (-conv_num_flux_dot_n[istate]) * JxW_iquad;
+            rhs = rhs - interpolation_operator_ext[iquad][itest_ext] * (-conv_num_flux_dot_n[istate]) * JxW_iquad;
             // Diffusive
-            rhs = rhs - interpolation_operator_ext[itest_ext] * (-diss_auxi_num_flux_dot_n[istate]) * JxW_iquad;
+            rhs = rhs - interpolation_operator_ext[iquad][itest_ext] * (-diss_auxi_num_flux_dot_n[istate]) * JxW_iquad;
             for (int d=0;d<dim;++d) {
-                rhs = rhs + gradient_operator_ext[d][itest_ext] * diss_flux_jump_ext[istate][d] * JxW_iquad;
+                rhs = rhs + gradient_operator_ext[d][iquad][itest_ext] * diss_flux_jump_ext[istate][d] * JxW_iquad;
             }
 
             rhs_ext[itest_ext] += rhs;

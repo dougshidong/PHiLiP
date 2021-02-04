@@ -479,6 +479,120 @@ void evaluate_covariant_metric_jacobian (
 
 }
 
+//template<int dim, int nstate, typename real>
+//inline std::array<dealii::Tensor<1,dim,real>,nstate> array_jump(
+//    const std::array<real, nstate> &array1,
+//    const std::array<real, nstate> &array2,
+//    const dealii::Tensor<1,dim,real> &normal1)
+//{
+//    std::array<dealii::Tensor<1,dim,real>,nstate> array_jump;
+//    for (int s=0; s<nstate; s++) {
+//        for (int d=0; d<dim; d++) {
+//            array_jump[s][d] = (array1[s] - array2[s]) * normal1[d];
+//        }
+//    }
+//    return array_jump;
+//}
+//
+//template <int dim, int nstate, typename real>
+//void bassi_rebay_2_gradient_correction(
+//    std::vector<ADArrayTensor1> &soln_grad_correction_int
+//{
+//    using DissFlux = Parameters::AllParameters::DissipativeNumericalFlux;
+//    const unsigned int n_faces = std::pow(2,dim);
+//    const double br2_factor = n_faces * 1.01;
+//
+//    // Obtain solution jump
+//    std::vector<std::array<dealii::Tensor<1,dim,real2>, nstate>> soln_jump_int(n_quad_pts);
+//    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+//        soln_jump_int[iquad] = array_jump(soln_int[iquad], soln_ext[iquad], phys_unit_normal[iquad]);
+//    }
+//
+//
+//    std::vector<ADArrayTensor1> lifting_op_R_rhs_int(n_base_dofs_int);
+//    for (unsigned int idof=0; idof<n_base_dofs_int; ++idof) {
+//        for (int s=0; s<nstate; s++) {
+//
+//            lifting_op_R_rhs_int[idof][s] = 0.0;
+//
+//            for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+//
+//                for (int d=0; d<dim; ++d) {
+//                    lifting_op_R_rhs_int[idof][s][d] -= soln_jump_int[iquad][s][d] * ( base_fe_int.shape_value(idof,unit_quad_pts[iquad]) ) * faceJxW[iquad];
+//                }
+//            }
+//
+//        }
+//    }
+//
+//    // Build Vandermonde inverse used in the lifting term of BR2
+//    // For this purposes of BR2, do NOT overintegrate to have a square invertible Vandermonde matrix
+//    const int degree_int = base_fe_int.tensor_degree();
+//    dealii::QGauss<dim> vol_quad_int(degree_int+1);
+//    const unsigned int n_vol_quad_int = vol_quad_int.size();
+//
+//    if (n_base_dofs_int != n_vol_quad_int) std::abort();
+//    dealii::FullMatrix<real> vandermonde_int(n_base_dofs_int, n_vol_quad_int);
+//    dealii::FullMatrix<real> vandermonde_inverse_int(n_base_dofs_int, n_vol_quad_int);
+//    for (unsigned int idof=0; idof<n_base_dofs_int; ++idof) {
+//        for (unsigned int iquad=0; iquad<n_vol_quad_int; ++iquad) {
+//            //vandermonde_int[idof][iquad] = base_fe_int.shape_value(idof, vol_quad_int.point(iquad));
+//            vandermonde_int[iquad][idof] = base_fe_int.shape_value(idof, vol_quad_int.point(iquad));
+//        }
+//    }
+//    vandermonde_inverse_int.invert(vandermonde_int);
+//
+//    std::vector<ADArrayTensor1> vandermonde_inv_rhs_int(n_vol_quad_int);
+//    for (unsigned int kquad=0; kquad<n_vol_quad_int; ++kquad) {
+//
+//        for (int s=0; s<nstate; s++) {
+//            vandermonde_inv_rhs_int[kquad][s] = 0.0;
+//
+//            for (unsigned int jdof=0; jdof<n_base_dofs_int; ++jdof) {
+//                for (int d=0; d<dim; ++d) {
+//                    vandermonde_inv_rhs_int[kquad][s][d] += vandermonde_inverse_int[kquad][jdof] * lifting_op_R_rhs_int[jdof][s][d];
+//                }
+//            }
+//        }
+//    }
+//
+//    const std::vector<dealii::Point<dim,double>> &vol_unit_quad_pts_int = vol_quad_int.get_points();
+//    std::vector<Tensor2D> volume_metric_jac_int = evaluate_metric_jacobian (vol_unit_quad_pts_int, coords_coeff, fe_metric);
+//
+//    for (unsigned int kquad=0; kquad<n_vol_quad_int; ++kquad) {
+//        real2 vol_jac_det = dealii::determinant(volume_metric_jac_int[kquad]);
+//        for (int s=0; s<nstate; s++) {
+//            for (int d=0; d<dim; ++d) {
+//                vandermonde_inv_rhs_int[kquad][s][d] /= vol_jac_det * vol_quad_int.weight(kquad);
+//            }
+//        }
+//    }
+//
+//    for (unsigned int idof=0; idof<n_base_dofs_int; ++idof) {
+//        for (int s=0; s<nstate; s++) {
+//            soln_grad_correction_int[idof][s] = 0.0;
+//            for (int d=0; d<dim; ++d) {
+//                for (unsigned int kquad=0; kquad<n_vol_quad_int; ++kquad) {
+//                    soln_grad_correction_int[idof][s][d] += vandermonde_inverse_int[idof][kquad] * vandermonde_inv_rhs_int[kquad][s][d];
+//                }
+//                soln_grad_correction_int[idof][s][d] *= br2_factor;
+//            }
+//        }
+//    }
+//
+//    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+//        for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
+//            const unsigned int istate = fe_soln.system_to_component_index(idof).first;
+//            const unsigned int idof_base = fe_soln.system_to_component_index(idof).second;
+//            for (int d=0;d<dim;++d) {
+//                soln_grad_int[iquad][istate][d] += soln_grad_correction_int[idof_base][istate][d] * gradient_operator[d][idof][iquad];
+//                soln_grad_ext[iquad][istate][d] = soln_grad_int[iquad][istate][d];
+//            }
+//        }
+//    }
+//}
+
+
 template <int dim, int nstate, typename real>
 void DGWeak<dim,nstate,real>::assemble_volume_term_explicit(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
@@ -1155,7 +1269,8 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term(
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             for (int s=0; s<nstate; s++) {
                 for (int d=0; d<dim; d++) {
-                    soln_jump[iquad][s][d] = (soln_int[iquad][s] - soln_ext[iquad][s]) * phys_unit_normal[iquad][d];
+                    //soln_jump[iquad][s][d] = (soln_int[iquad][s] - soln_ext[iquad][s]) * abs(phys_unit_normal[iquad][d]);
+                    soln_jump[iquad][s][d] = (soln_int[iquad][s] - soln_ext[iquad][s]) * (phys_unit_normal[iquad][d]);
                 }
             }
         }
@@ -1170,7 +1285,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term(
                 for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
                     for (int d=0; d<dim; ++d) {
-                        lifting_op_R_rhs_int[idof][s][d] += soln_jump[iquad][s][d] * ( base_fe_int.shape_value(idof,unit_quad_pts[iquad]) ) * faceJxW[iquad];
+                        lifting_op_R_rhs_int[idof][s][d] -= soln_jump[iquad][s][d] * ( base_fe_int.shape_value(idof,unit_quad_pts[iquad]) ) * faceJxW[iquad];
                     }
                 }
 
@@ -1224,7 +1339,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term(
                 soln_grad_correction_int[idof][s] = 0.0;
                 for (int d=0; d<dim; ++d) {
                     for (unsigned int kquad=0; kquad<n_vol_quad_int; ++kquad) {
-                        soln_grad_correction_int[idof][s][d] += vandermonde_inverse_int[idof][kquad] * vandermonde_inv_rhs_int[kquad][s][d];
+                        soln_grad_correction_int[idof][s][d] += vandermonde_inverse_int[kquad][idof] * vandermonde_inv_rhs_int[kquad][s][d];
                     }
                     soln_grad_correction_int[idof][s][d] *= br2_factor;
                 }
@@ -1238,6 +1353,15 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term(
                 for (int d=0;d<dim;++d) {
                     soln_grad_int[iquad][istate][d] += soln_grad_correction_int[idof_base][istate][d] * gradient_operator[d][idof][iquad];
                     soln_grad_ext[iquad][istate][d] = soln_grad_int[iquad][istate][d];
+                }
+            }
+        }
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
+                const unsigned int istate = fe_soln.system_to_component_index(idof).first;
+                const unsigned int idof_base = fe_soln.system_to_component_index(idof).second;
+                for (int d=0;d<dim;++d) {
+                    soln_grad_ext[iquad][istate][d] -= 0.0*soln_grad_correction_int[idof_base][istate][d] * gradient_operator[d][idof][iquad];
                 }
             }
         }
@@ -1305,7 +1429,6 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term(
         diss_flux_jump_int[iquad] = physics.dissipative_flux (soln_int[iquad], diss_soln_jump_int);
 
         if (this->all_parameters->add_artificial_dissipation) {
-            //const ADArrayTensor1 artificial_diss_flux_jump_int = physics.artificial_dissipative_flux (artificial_diss_coeff, soln_int[iquad], diss_soln_jump_int);
             const ADArrayTensor1 artificial_diss_flux_jump_int = physics.artificial_dissipative_flux (artificial_diss_coeff_at_q[iquad], soln_int[iquad], diss_soln_jump_int);
             for (int s=0; s<nstate; s++) {
                 diss_flux_jump_int[iquad][s] += artificial_diss_flux_jump_int[s];
@@ -1451,7 +1574,8 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_derivatives(
                 residual_derivatives[idof] = rhs[itest].dx(i_dx).val();
                 AssertIsFinite(residual_derivatives[idof]);
             }
-            this->system_matrix.add(soln_dof_indices[itest], soln_dof_indices, residual_derivatives);
+            const bool elide_zero_values = false;
+            this->system_matrix.add(soln_dof_indices[itest], soln_dof_indices, residual_derivatives, elide_zero_values);
         }
         if (compute_dRdX) {
             std::vector<real> residual_derivatives(n_metric_dofs);
@@ -1616,7 +1740,8 @@ void DGWeak<dim,nstate,real>::assemble_boundary_codi_taped_derivatives(
                 residual_derivatives[idof] = jac(itest,i_dx);
                 AssertIsFinite(residual_derivatives[idof]);
             }
-            this->system_matrix.add(soln_dof_indices[itest], soln_dof_indices, residual_derivatives);
+            const bool elide_zero_values = false;
+            this->system_matrix.add(soln_dof_indices[itest], soln_dof_indices, residual_derivatives, elide_zero_values);
         }
         th.deleteJacobian(jac);
 
@@ -2242,7 +2367,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
                 for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
 
                     for (int d=0; d<dim; ++d) {
-                        lifting_op_R_rhs_int[idof][s][d] += soln_jump[iquad][s][d] * 0.5 * ( base_fe_int.shape_value(idof,unit_quad_pts_int[iquad]) + 0.0 ) * faceJxW[iquad];
+                        lifting_op_R_rhs_int[idof][s][d] -= soln_jump[iquad][s][d] * 0.5 * ( base_fe_int.shape_value(idof,unit_quad_pts_int[iquad]) + 0.0 ) * faceJxW[iquad];
                     }
                 }
 
@@ -2296,7 +2421,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
                 soln_grad_correction_int[idof][s] = 0.0;
                 for (int d=0; d<dim; ++d) {
                     for (unsigned int kquad=0; kquad<n_vol_quad_int; ++kquad) {
-                        soln_grad_correction_int[idof][s][d] += vandermonde_inverse_int[idof][kquad] * vandermonde_inv_rhs_int[kquad][s][d];
+                        soln_grad_correction_int[idof][s][d] += vandermonde_inverse_int[kquad][idof] * vandermonde_inv_rhs_int[kquad][s][d];
                     }
                     soln_grad_correction_int[idof][s][d] *= br2_factor;
                 }
@@ -2313,7 +2438,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
                 for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
 
                     for (int d=0; d<dim; ++d) {
-                        lifting_op_R_rhs_ext[idof][s][d] += (-soln_jump[iquad][s][d]) * 0.5 * ( 0.0 + base_fe_ext.shape_value(idof,unit_quad_pts_ext[iquad]) ) * faceJxW[iquad];
+                        lifting_op_R_rhs_ext[idof][s][d] -= (-soln_jump[iquad][s][d]) * 0.5 * ( 0.0 + base_fe_ext.shape_value(idof,unit_quad_pts_ext[iquad]) ) * faceJxW[iquad];
                     }
                 }
 
@@ -2367,7 +2492,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
                 soln_grad_correction_ext[idof][s] = 0.0;
                 for (int d=0; d<dim; ++d) {
                     for (unsigned int kquad=0; kquad<n_vol_quad_ext; ++kquad) {
-                        soln_grad_correction_ext[idof][s][d] += vandermonde_inverse_ext[idof][kquad] * vandermonde_inv_rhs_ext[kquad][s][d];
+                        soln_grad_correction_ext[idof][s][d] += vandermonde_inverse_ext[kquad][idof] * vandermonde_inv_rhs_ext[kquad][s][d];
                     }
                     soln_grad_correction_ext[idof][s][d] *= br2_factor;
                 }
@@ -2410,7 +2535,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term(
             for (int d=0;d<dim;++d) {
                 soln_grad_ext[istate][d] += soln_coeff_ext[idof] * gradient_operator_ext[d][iquad][idof];
                 if (this->all_parameters->diss_num_flux_type == DissFlux::bassi_rebay_2) {
-                    soln_grad_int[istate][d] += soln_grad_correction_ext[idof_base][istate][d] * gradient_operator_ext[d][iquad][idof];
+                    soln_grad_ext[istate][d] += soln_grad_correction_ext[idof_base][istate][d] * gradient_operator_ext[d][iquad][idof];
                 }
             }
         }
@@ -2647,7 +2772,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
                 const unsigned int i_dx = idof+w_int_start;
                 residual_derivatives[idof] = rhs_int[itest_int].dx(i_dx).val();
             }
-            this->system_matrix.add(soln_dof_indices_int[itest_int], soln_dof_indices_int, residual_derivatives);
+            const bool elide_zero_values = false;
+            this->system_matrix.add(soln_dof_indices_int[itest_int], soln_dof_indices_int, residual_derivatives, elide_zero_values);
 
             // dR_int_dW_ext
             residual_derivatives.resize(n_soln_dofs_ext);
@@ -2655,7 +2781,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
                 const unsigned int i_dx = idof+w_ext_start;
                 residual_derivatives[idof] = rhs_int[itest_int].dx(i_dx).val();
             }
-            this->system_matrix.add(soln_dof_indices_int[itest_int], soln_dof_indices_ext, residual_derivatives);
+            this->system_matrix.add(soln_dof_indices_int[itest_int], soln_dof_indices_ext, residual_derivatives, elide_zero_values);
         }
 
         for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
@@ -2665,7 +2791,8 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
                 const unsigned int i_dx = idof+w_int_start;
                 residual_derivatives[idof] = rhs_ext[itest_ext].dx(i_dx).val();
             }
-            this->system_matrix.add(soln_dof_indices_ext[itest_ext], soln_dof_indices_int, residual_derivatives);
+            const bool elide_zero_values = false;
+            this->system_matrix.add(soln_dof_indices_ext[itest_ext], soln_dof_indices_int, residual_derivatives, elide_zero_values);
 
             // dR_ext_dW_ext
             residual_derivatives.resize(n_soln_dofs_ext);
@@ -2673,7 +2800,7 @@ void DGWeak<dim,nstate,real>::assemble_face_term_derivatives(
                 const unsigned int i_dx = idof+w_ext_start;
                 residual_derivatives[idof] = rhs_ext[itest_ext].dx(i_dx).val();
             }
-            this->system_matrix.add(soln_dof_indices_ext[itest_ext], soln_dof_indices_ext, residual_derivatives);
+            this->system_matrix.add(soln_dof_indices_ext[itest_ext], soln_dof_indices_ext, residual_derivatives, elide_zero_values);
         }
     }
     if (compute_dRdX) {
@@ -3009,7 +3136,8 @@ void DGWeak<dim,nstate,real>::assemble_face_codi_taped_derivatives(
                     const unsigned int i_dx = idof+w_int_start;
                     residual_derivatives[idof] = jac(i_dependent,i_dx);
                 }
-                this->system_matrix.add(soln_dof_indices_int[itest_int], soln_dof_indices_int, residual_derivatives);
+                const bool elide_zero_values = false;
+                this->system_matrix.add(soln_dof_indices_int[itest_int], soln_dof_indices_int, residual_derivatives, elide_zero_values);
 
                 // dR_int_dW_ext
                 residual_derivatives.resize(n_soln_dofs_ext);
@@ -3017,7 +3145,7 @@ void DGWeak<dim,nstate,real>::assemble_face_codi_taped_derivatives(
                     const unsigned int i_dx = idof+w_ext_start;
                     residual_derivatives[idof] = jac(i_dependent,i_dx);
                 }
-                this->system_matrix.add(soln_dof_indices_int[itest_int], soln_dof_indices_ext, residual_derivatives);
+                this->system_matrix.add(soln_dof_indices_int[itest_int], soln_dof_indices_ext, residual_derivatives, elide_zero_values);
             }
 
             for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
@@ -3030,7 +3158,8 @@ void DGWeak<dim,nstate,real>::assemble_face_codi_taped_derivatives(
                     const unsigned int i_dx = idof+w_int_start;
                     residual_derivatives[idof] = jac(i_dependent,i_dx);
                 }
-                this->system_matrix.add(soln_dof_indices_ext[itest_ext], soln_dof_indices_int, residual_derivatives);
+                const bool elide_zero_values = false;
+                this->system_matrix.add(soln_dof_indices_ext[itest_ext], soln_dof_indices_int, residual_derivatives, elide_zero_values);
 
                 // dR_ext_dW_ext
                 residual_derivatives.resize(n_soln_dofs_ext);
@@ -3038,7 +3167,7 @@ void DGWeak<dim,nstate,real>::assemble_face_codi_taped_derivatives(
                     const unsigned int i_dx = idof+w_ext_start;
                     residual_derivatives[idof] = jac(i_dependent,i_dx);
                 }
-                this->system_matrix.add(soln_dof_indices_ext[itest_ext], soln_dof_indices_ext, residual_derivatives);
+                this->system_matrix.add(soln_dof_indices_ext[itest_ext], soln_dof_indices_ext, residual_derivatives, elide_zero_values);
             }
         }
 
@@ -3699,7 +3828,8 @@ void DGWeak<dim,nstate,real>::assemble_volume_term_derivatives(
                 residual_derivatives[idof] = rhs[itest].dx(i_dx).val();
                 AssertIsFinite(residual_derivatives[idof]);
             }
-            this->system_matrix.add(soln_dof_indices[itest], soln_dof_indices, residual_derivatives);
+            const bool elide_zero_values = false;
+            this->system_matrix.add(soln_dof_indices[itest], soln_dof_indices, residual_derivatives, elide_zero_values);
         }
         if (compute_dRdX) {
             std::vector<real> residual_derivatives(n_metric_dofs);
@@ -3871,7 +4001,8 @@ void DGWeak<dim,nstate,real>::assemble_volume_codi_taped_derivatives(
                 residual_derivatives[idof] = jac(itest,i_dx);
                 AssertIsFinite(residual_derivatives[idof]);
             }
-            this->system_matrix.add(soln_dof_indices[itest], soln_dof_indices, residual_derivatives);
+            const bool elide_zero_values = false;
+            this->system_matrix.add(soln_dof_indices[itest], soln_dof_indices, residual_derivatives, elide_zero_values);
         }
         th.deleteJacobian(jac);
 

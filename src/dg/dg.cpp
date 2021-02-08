@@ -103,6 +103,7 @@ DGBase<dim,real>::DGBase(
     , dof_handler_artificial_dissipation(*triangulation, false)
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
+    , freeze_artificial_dissipation(false)
 {
 
     dof_handler.initialize(*triangulation, fe_collection);
@@ -845,6 +846,7 @@ void DGBase<dim,real>::update_artificial_dissipation_discontinuity_sensor()
     const unsigned int n_dofs_arti_diss = fe_q_artificial_dissipation.dofs_per_cell;
     std::vector<dealii::types::global_dof_index> dof_indices_artificial_dissipation(n_dofs_arti_diss);
 
+    if (freeze_artificial_dissipation) return;
     artificial_dissipation_c0 *= 0.0;
     for (auto cell : dof_handler.active_cell_iterators()) {
         if (!(cell->is_locally_owned() || cell->is_ghost())) continue;
@@ -917,6 +919,8 @@ void DGBase<dim,real>::update_artificial_dissipation_discontinuity_sensor()
             }
             // Quadrature
             element_volume += fe_values_volume.JxW(iquad);
+            // Only integrate over the first state variable.
+            // Persson and Peraire only did density.
             for (unsigned int s=0; s<1/*nstate*/; ++s) {
                 error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * fe_values_volume.JxW(iquad);
                 soln_norm += soln_high[s] * soln_high[s] * fe_values_volume.JxW(iquad);
@@ -938,8 +942,8 @@ void DGBase<dim,real>::update_artificial_dissipation_discontinuity_sensor()
         //const double kappa = 1.0;
 
         const double mu_scale = 1.0 * 10e0;
-        //const double s_0 = - 4.25*log10(degree);
-        const double s_0 = -1.00 - 4.25*log10(degree);
+        const double s_0 = - 4.25*log10(degree);
+        //const double s_0 = -1.00 - 4.25*log10(degree);
         const double kappa = 1.0;
         const double low = s_0 - kappa;
         const double upp = s_0 + kappa;
@@ -1753,7 +1757,13 @@ void DGBase<dim,real>::allocate_system ()
     // system matrices and vectors.
 
     dof_handler.distribute_dofs(fe_collection);
-    dealii::DoFRenumbering::Cuthill_McKee(dof_handler,true);
+    //dealii::DoFRenumbering::Cuthill_McKee(dof_handler,true);
+    //const bool reversed_numbering = true;
+    //dealii::DoFRenumbering::Cuthill_McKee(dof_handler, reversed_numbering);
+    //const bool reversed_numbering = false;
+    //const bool use_constraints = false;
+    //dealii::DoFRenumbering::boost::minimum_degree(dof_handler, reversed_numbering, use_constraints);
+    //dealii::DoFRenumbering::boost::king_ordering(dof_handler, reversed_numbering, use_constraints);
 
     //dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> mapping = high_order_grid->get_MappingFEField();
     //dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> mapping = *(high_order_grid->mapping_fe_field);
@@ -2148,13 +2158,14 @@ std::vector< real > project_function(
                 }
             }
         }
-        mass.gauss_jordan();
+        dealii::FullMatrix<double> inverse_mass(n_dofs_out, n_dofs_out);
+        inverse_mass.invert(mass);
 
         for(unsigned int row=0; row<n_dofs_out; ++row) {
             const unsigned int idof_vector = fe_output.component_to_system_index(istate,row);
             function_coeff_out[idof_vector] = 0.0;
             for(unsigned int col=0; col<n_dofs_out; ++col) {
-                function_coeff_out[idof_vector] += mass[row][col] * rhs[col];
+                function_coeff_out[idof_vector] += inverse_mass[row][col] * rhs[col];
             }
         }
     }

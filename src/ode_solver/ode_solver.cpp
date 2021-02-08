@@ -97,7 +97,9 @@ int ODESolver<dim,real>::steady_state ()
 
     int i_refine = 0;
     // Output initial solution
-    while (    this->residual_norm     > ode_param.nonlinear_steady_residual_tolerance
+    int convergence_error = this->residual_norm > ode_param.nonlinear_steady_residual_tolerance;
+
+    while (    convergence_error
             && this->residual_norm_decrease > ode_param.nonlinear_steady_residual_tolerance
             //&& update_norm             > ode_param.nonlinear_steady_residual_tolerance
             && this->current_iteration < ode_param.nonlinear_max_iterations
@@ -136,6 +138,16 @@ int ODESolver<dim,real>::steady_state ()
         //if (this->residual_norm > 1e-9 || this->current_iteration > 50 ) this->dg->update_artificial_dissipation_discontinuity_sensor();
         //if ( this->current_iteration < 50 ) this->dg->update_artificial_dissipation_discontinuity_sensor();
 
+        //if (this->residual_norm < 1e-8 || this->current_iteration > 20) {
+        //    this->dg->freeze_artificial_dissipation = true;
+        //} else {
+        //    this->dg->freeze_artificial_dissipation = false;
+        //}
+        if (this->current_iteration % 1 == 0) {
+            this->dg->freeze_artificial_dissipation = false;
+        } else {
+            this->dg->freeze_artificial_dissipation = true;
+        }
         const bool pseudotime = true;
         step_in_time(ramped_CFL, pseudotime);
 
@@ -166,6 +178,9 @@ int ODESolver<dim,real>::steady_state ()
         old_residual_norm = this->residual_norm;
         this->residual_norm = this->dg->get_residual_l2norm();
         this->residual_norm_decrease = this->residual_norm / this->initial_residual_norm;
+
+        convergence_error = this->residual_norm > ode_param.nonlinear_steady_residual_tolerance
+                            && this->residual_norm_decrease > ode_param.nonlinear_steady_residual_tolerance;
     }
     if (this->residual_norm > 1e5
         || std::isnan(this->residual_norm)
@@ -186,7 +201,7 @@ int ODESolver<dim,real>::steady_state ()
           << " ********************************************************** "
           << std::endl;
 
-    return 1;
+    return convergence_error;
 }
 
 template <int dim, typename real>

@@ -5,7 +5,7 @@
 #include <deal.II/base/function_time.templates.h> // Needed to instantiate dealii::Function<PHILIP_DIM,Sacado::Fad::DFad<double>>
 
 #include "manufactured_solution.h"
-
+// TEST
 //#define ADDITIVE_SOLUTION
 //#define COSINE_SOLUTION
 //#define ATAN_SOLUTION

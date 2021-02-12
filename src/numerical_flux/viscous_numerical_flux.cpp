@@ -80,27 +80,16 @@ std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
         // Hartmann, R., Numerical Analysis of Higher Order Discontinuous Galerkin Finite Element Methods, Institute of Aerodynamics and Flow Technology, DLR (German Aerospace Center), 2008.
         // Details given on page 93
         const std::array<real, nstate> soln_bc = soln_ext;
+        const std::array<dealii::Tensor<1,dim,real>, nstate> soln_grad_bc = soln_grad_int;
         //const std::array<dealii::Tensor<1,dim,real>, nstate> soln_grad_bc = soln_grad_ext;
-        const ArrayTensor1 phys_flux_bc = pde_physics->dissipative_flux (soln_bc, soln_grad_int);
-        const ArrayTensor1 artificial_phys_flux_bc = pde_physics->artificial_dissipative_flux (artificial_diss_coeff_int, soln_bc, soln_grad_int);
+        real artificial_diss_coeff_bc = artificial_diss_coeff_int;
 
-        const ArrayTensor1 soln_jump    = array_jump<dim,nstate,real>(soln_int, soln_bc, normal_int);
-        const ArrayTensor1 Abc_jumpu    = pde_physics->dissipative_flux (soln_bc, soln_jump);
-        const ArrayTensor1 artificial_Abc_jumpu    = pde_physics->artificial_dissipative_flux (artificial_diss_coeff_int, soln_bc, soln_jump);
-        std::array<real,nstate> auxiliary_flux_dot_n;
-        for (int s=0; s<nstate; s++) {
-            //auxiliary_flux_dot_n[s] = (phys_flux_bc[s] - penalty * Abc_jumpu[s]) * normal_int;
-            //auxiliary_flux_dot_n[s] += (artificial_phys_flux_bc[s] - penalty * artificial_Abc_jumpu[s]) * normal_int;
-            real phys = 0.0;
-            real arti = 0.0;
-            for (int d=0; d<dim; ++d) {
-                phys += (phys_flux_bc[s][d] - penalty * Abc_jumpu[s][d]) * normal_int[d];
-                arti += (artificial_phys_flux_bc[s][d] - penalty * artificial_Abc_jumpu[s][d]) * normal_int[d];
-            }
-            auxiliary_flux_dot_n[s] = phys + arti;
-        }
-        return auxiliary_flux_dot_n;
-    } 
+        return evaluate_auxiliary_flux ( artificial_diss_coeff_int, artificial_diss_coeff_bc,
+                                         soln_int, soln_bc,
+                                         soln_grad_int, soln_grad_bc,
+                                         normal_int, penalty,
+                                         false);
+    }
 
     ArrayTensor1 phys_flux_int, phys_flux_ext;
 
@@ -108,7 +97,6 @@ std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
     phys_flux_int = pde_physics->dissipative_flux (soln_int, soln_grad_int);
     phys_flux_ext = pde_physics->dissipative_flux (soln_ext, soln_grad_ext);
 
-    //ArrayTensor1 phys_flux_avg = array_average<nstate,dealii::Tensor<1,dim,real>>(phys_flux_int, phys_flux_ext);
     ArrayTensor1 phys_flux_avg = array_average<nstate,dim,real>(phys_flux_int, phys_flux_ext);
 
     // {{A}}*[[u]]
@@ -126,8 +114,6 @@ std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
             phys += (phys_flux_avg[s][d] - penalty * A_jumpu_avg[s][d]) * normal_int[d];
         }
         auxiliary_flux_dot_n[s] = phys;
-        //if (on_boundary) auxiliary_flux_dot_n[s] = (phys_flux_ext[s] - penalty * A_jumpu_int[s]) * normal_int;
-        //auxiliary_flux_dot_n[s] = (phys_flux_avg[s] - penalty * soln_jump[s]) * normal_int;
     }
 
     if (artificial_diss_coeff_int > 1e-13 || artificial_diss_coeff_ext > 1e-13) {
@@ -184,32 +170,23 @@ std::array<real, nstate> BassiRebay2<dim,nstate,real>
 {
     using ArrayTensor1 = std::array<dealii::Tensor<1,dim,real>, nstate>;
 
-    if (on_boundary) {
-        // Following the the boundary treatment given by 
-        // Hartmann, R., Numerical Analysis of Higher Order Discontinuous Galerkin Finite Element Methods, Institute of Aerodynamics and Flow Technology, DLR (German Aerospace Center), 2008.
-        // Details given on page 93
-        const std::array<real, nstate> soln_bc = soln_ext;
-        //const std::array<dealii::Tensor<1,dim,real>, nstate> soln_grad_bc = soln_grad_ext;
-        const ArrayTensor1 phys_flux_bc = pde_physics->dissipative_flux (soln_bc, soln_grad_int);
-        const ArrayTensor1 artificial_phys_flux_bc = pde_physics->artificial_dissipative_flux (artificial_diss_coeff_int, soln_bc, soln_grad_int);
+    (void) on_boundary;
+    (void) penalty;
+    //if (on_boundary) {
+    //    // Following the the boundary treatment given by 
+    //    // Hartmann, R., Numerical Analysis of Higher Order Discontinuous Galerkin Finite Element Methods, Institute of Aerodynamics and Flow Technology, DLR (German Aerospace Center), 2008.
+    //    // Details given on page 93
+    //    const std::array<real, nstate> soln_bc = soln_ext;
+    //    const std::array<dealii::Tensor<1,dim,real>, nstate> soln_grad_bc = soln_grad_int;
+    //    //const std::array<dealii::Tensor<1,dim,real>, nstate> soln_grad_bc = soln_grad_ext;
+    //    real artificial_diss_coeff_bc = artificial_diss_coeff_int;
 
-        const ArrayTensor1 soln_jump    = array_jump<dim,nstate,real>(soln_int, soln_bc, normal_int);
-        const ArrayTensor1 Abc_jumpu    = pde_physics->dissipative_flux (soln_bc, soln_jump);
-        const ArrayTensor1 artificial_Abc_jumpu    = pde_physics->artificial_dissipative_flux (artificial_diss_coeff_int, soln_bc, soln_jump);
-        std::array<real,nstate> auxiliary_flux_dot_n;
-        for (int s=0; s<nstate; s++) {
-            //auxiliary_flux_dot_n[s] = (phys_flux_bc[s] - penalty * Abc_jumpu[s]) * normal_int;
-            //auxiliary_flux_dot_n[s] += (artificial_phys_flux_bc[s] - penalty * artificial_Abc_jumpu[s]) * normal_int;
-            real phys = 0.0;
-            real arti = 0.0;
-            for (int d=0; d<dim; ++d) {
-                phys += (phys_flux_bc[s][d] - penalty * Abc_jumpu[s][d]) * normal_int[d];
-                arti += (artificial_phys_flux_bc[s][d] - penalty * artificial_Abc_jumpu[s][d]) * normal_int[d];
-            }
-            auxiliary_flux_dot_n[s] = phys + arti;
-        }
-        return auxiliary_flux_dot_n;
-    } 
+    //    return evaluate_auxiliary_flux ( artificial_diss_coeff_int, artificial_diss_coeff_bc,
+    //                                     soln_int, soln_bc,
+    //                                     soln_grad_int, soln_grad_bc,
+    //                                     normal_int, penalty,
+    //                                     false);
+    //}
 
     ArrayTensor1 phys_flux_int, phys_flux_ext;
 
@@ -217,26 +194,15 @@ std::array<real, nstate> BassiRebay2<dim,nstate,real>
     phys_flux_int = pde_physics->dissipative_flux (soln_int, soln_grad_int);
     phys_flux_ext = pde_physics->dissipative_flux (soln_ext, soln_grad_ext);
 
-    //ArrayTensor1 phys_flux_avg = array_average<nstate,dealii::Tensor<1,dim,real>>(phys_flux_int, phys_flux_ext);
     ArrayTensor1 phys_flux_avg = array_average<nstate,dim,real>(phys_flux_int, phys_flux_ext);
-
-    // {{A}}*[[u]]
-    ArrayTensor1 soln_jump     = array_jump<dim,nstate,real>(soln_int, soln_ext, normal_int);
-    ArrayTensor1 A_jumpu_int, A_jumpu_ext;
-    A_jumpu_int = pde_physics->dissipative_flux (soln_int, soln_jump);
-    A_jumpu_ext = pde_physics->dissipative_flux (soln_ext, soln_jump);
-    const ArrayTensor1 A_jumpu_avg = array_average<nstate,dim,real>(A_jumpu_int, A_jumpu_ext);
 
     std::array<real,nstate> auxiliary_flux_dot_n;
     for (int s=0; s<nstate; s++) {
-        //auxiliary_flux_dot_n[s] = (phys_flux_avg[s] - penalty * A_jumpu_avg[s]) * normal_int;
         real phys = 0.0;
         for (int d=0; d<dim; ++d) {
-            phys += (phys_flux_avg[s][d] - penalty * A_jumpu_avg[s][d]) * normal_int[d];
+            phys += phys_flux_avg[s][d] * normal_int[d];
         }
         auxiliary_flux_dot_n[s] = phys;
-        //if (on_boundary) auxiliary_flux_dot_n[s] = (phys_flux_ext[s] - penalty * A_jumpu_int[s]) * normal_int;
-        //auxiliary_flux_dot_n[s] = (phys_flux_avg[s] - penalty * soln_jump[s]) * normal_int;
     }
 
     if (artificial_diss_coeff_int > 1e-13 || artificial_diss_coeff_ext > 1e-13) {
@@ -247,17 +213,10 @@ std::array<real, nstate> BassiRebay2<dim,nstate,real>
         artificial_phys_flux_ext = pde_physics->artificial_dissipative_flux (artificial_diss_coeff_ext, soln_ext, soln_grad_ext);
         ArrayTensor1 artificial_phys_flux_avg = array_average<nstate,dim,real>(artificial_phys_flux_int, artificial_phys_flux_ext);
 
-        // {{A}}*[[u]]
-        ArrayTensor1 artificial_A_jumpu_int, artificial_A_jumpu_ext;
-        artificial_A_jumpu_int = pde_physics->artificial_dissipative_flux (artificial_diss_coeff_int, soln_int, soln_jump);
-        artificial_A_jumpu_ext = pde_physics->artificial_dissipative_flux (artificial_diss_coeff_ext, soln_ext, soln_jump);
-        const ArrayTensor1 artificial_A_jumpu_avg = array_average<nstate,dim,real>(artificial_A_jumpu_int, artificial_A_jumpu_ext);
-
         for (int s=0; s<nstate; s++) {
-            //auxiliary_flux_dot_n[s] += (artificial_phys_flux_avg[s] - penalty * artificial_A_jumpu_avg[s]) * normal_int;
             real arti = 0.0;
             for (int d=0; d<dim; ++d) {
-                arti += (artificial_phys_flux_avg[s][d] - penalty * artificial_A_jumpu_avg[s][d]) * normal_int[d];
+                arti += artificial_phys_flux_avg[s][d] * normal_int[d];
             }
             auxiliary_flux_dot_n[s] += arti;
         }
@@ -265,39 +224,6 @@ std::array<real, nstate> BassiRebay2<dim,nstate,real>
 
     return auxiliary_flux_dot_n;
 }
-//::evaluate_auxiliary_flux (
-//    const std::array<real, nstate> &soln_int,
-//    const std::array<real, nstate> &soln_ext,
-//    const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_int,
-//    const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_ext,
-//    const dealii::Tensor<1,dim,real> &normal_int,
-//    const real &penalty) const
-//{
-//    using ArrayTensor1 = std::array<dealii::Tensor<1,dim,real>, nstate>;
-//    ArrayTensor1 phys_flux_int, phys_flux_ext;
-//
-//    // {{A*grad_u}}
-//    pde_physics->dissipative_flux (soln_int, soln_grad_int, phys_flux_int);
-//    pde_physics->dissipative_flux (soln_ext, soln_grad_ext, phys_flux_ext);
-//    ArrayTensor1 phys_flux_avg = array_average<nstate,dealii::Tensor<1,dim,real>>(phys_flux_int, phys_flux_ext);
-//
-//    // {{A}}*[[u]]
-//    ArrayTensor1 soln_jump     = array_jump<dim,nstate,real>(soln_int, soln_ext, normal_int);
-//    ArrayTensor1 A_jumpu_int, A_jumpu_ext;
-//    pde_physics->dissipative_flux (soln_int, soln_jump, A_jumpu_int);
-//    pde_physics->dissipative_flux (soln_ext, soln_jump, A_jumpu_ext);
-//    const ArrayTensor1 A_jumpu_avg = array_average<nstate,dealii::Tensor<1,dim,real>>(A_jumpu_int, A_jumpu_ext);
-//
-//
-//    std::array<real,nstate> auxiliary_flux_dot_n;
-//    for (int s=0; s<nstate; s++) {
-//        auxiliary_flux_dot_n[s] = (phys_flux_avg[s] - penalty * A_jumpu_avg[s]) * normal_int;
-//        //auxiliary_flux_dot_n[s] = (phys_flux_avg[s] - penalty * soln_jump[s]) * normal_int;
-//    }
-//    return auxiliary_flux_dot_n;
-//
-//}
-
 
 
 // Instantiation

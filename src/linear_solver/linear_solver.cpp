@@ -184,7 +184,7 @@ solve_linear (
     //    dealii::FullMatrix<double> fullA(system_matrix.m());
     //    fullA.copy_from(system_matrix);
     //    pcout<<"Dense matrix:"<<std::endl;
-    //    if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), 3, true, 10, "0", 1., 0.);
+    //    if (pcout.is_active()) fullA.print_formatted(pcout.get_stream(), 12, true, 10, "0", 1., 0.);
     //}
     if (param.linear_solver_type == direct_type) {
 
@@ -209,6 +209,7 @@ solve_linear (
         solver.SetAztecOption( AZ_output, (param.linear_solver_output ? AZ_all : AZ_last));
         solver.SetAztecOption(AZ_solver, AZ_gmres);
         //solver.SetAztecOption(AZ_solver, AZ_bicgstab);
+        //solver.SetAztecOption(AZ_solver, AZ_cg);
         solver.SetAztecOption(AZ_kspace, param.restart_number);
         solver.SetRHS(&b);
         solver.SetLHS(&x);
@@ -228,12 +229,24 @@ solve_linear (
         solver.SetAztecOption(AZ_conv, AZ_rhs);
 
         solver.SetAztecOption(AZ_precond, AZ_dom_decomp);
-        solver.SetAztecOption(AZ_overlap, 10);
+        solver.SetAztecOption(AZ_overlap, 1);
         solver.SetAztecOption(AZ_reorder, 1); // RCM re-ordering
         const int ilut_fill = param.ilut_fill;
-        if (ilut_fill < 1) {
+        if (ilut_fill < -99) {
+            // // Jacobi preconditioner.
+            //solver.SetAztecOption(AZ_precond, AZ_Jacobi);
+            //solver.SetAztecOption(AZ_poly_ord, 1);
+
+            // No Preconditioner.
+            solver.SetAztecOption(AZ_precond, AZ_none);
+        } else if (ilut_fill < 1) {
             solver.SetAztecOption(AZ_subdomain_solve, AZ_ilu);
             solver.SetAztecOption(AZ_graph_fill, std::abs(ilut_fill));
+
+            double ilut_rtol = param.ilut_rtol;//0.0,//1.1,
+            double ilut_atol = param.ilut_atol;//0.0,//1e-9,
+            solver.SetAztecParam(AZ_athresh, ilut_atol);
+            solver.SetAztecParam(AZ_rthresh, ilut_rtol);
         } else {
             const double ilut_drop = param.ilut_drop;
             double ilut_rtol = param.ilut_rtol;//0.0,//1.1,
@@ -245,13 +258,6 @@ solve_linear (
             solver.SetAztecParam(AZ_athresh, ilut_atol);
             solver.SetAztecParam(AZ_rthresh, ilut_rtol);
         }
-
-        // Jacobi preconditioner.
-        // solver.SetAztecOption(AZ_precond, AZ_Jacobi);
-        // solver.SetAztecOption(AZ_poly_ord, 1);
-
-        // No Preconditioner.
-        // solver.SetAztecOption(AZ_precond, AZ_none);
 
         unsigned int n_iterations = 0;
         const int n_solves = 2;
@@ -275,6 +281,7 @@ solve_linear (
         n_vmult += 7*solver.NumIters();
         dRdW_mult += 7*solver.NumIters();
 
+        //std::abort();
         return {solver.NumIters(), solver.TrueResidual()};
     }
     return {-1.0, -1.0};

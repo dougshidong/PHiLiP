@@ -3446,7 +3446,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_term(
         evaluate_covariant_metric_jacobian<dim,real2> ( quadrature, coords_coeff, fe_metric, jac_inv_tran, jac_det);
     }
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        if (abs(old_jac_det[iquad] - jac_det[iquad]) > 1e-10) {
+        if (abs(old_jac_det[iquad] - jac_det[iquad])/abs(old_jac_det[iquad]) > 1e-10) {
             std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
             std::cout << "Not the same jac det, iquad " << iquad << std::endl;
             std::cout << old_jac_det[iquad] << std::endl;

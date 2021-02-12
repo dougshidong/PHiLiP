@@ -48,6 +48,12 @@ void GridStudy<dim,nstate>
     solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
     const auto mapping = (*(dg.high_order_grid->mapping_fe_field));
     dealii::VectorTools::interpolate(mapping, dg.dof_handler, *physics.manufactured_solution_function, solution_no_ghost);
+    //solution_no_ghost *= 1.0+1e-3;
+    //solution_no_ghost = 0.0;
+    //int i = 0;
+    //for (auto sol = solution_no_ghost.begin(); sol != solution_no_ghost.end(); ++sol) {
+    //    *sol = (++i) * 0.01;
+    //}
     dg.solution = solution_no_ghost;
 }
 template <int dim, int nstate>
@@ -107,6 +113,7 @@ template<int dim, int nstate>
 int GridStudy<dim,nstate>
 ::run_test () const
 {
+    int test_fail = 0;
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
     using GridEnum = ManParam::GridEnum;
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
@@ -171,6 +178,7 @@ int GridStudy<dim,nstate>
         pcout << "Exact solution integral is " << exact_solution_integral << std::endl;
     }
 
+    int n_flow_convergence_error = 0;
     std::vector<int> fail_conv_poly;
     std::vector<double> fail_conv_slop;
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
@@ -329,7 +337,9 @@ int GridStudy<dim,nstate>
                  << std::endl;
 
             // Solve the steady state problem
-            ode_solver->steady_state();
+            //ode_solver->initialize_steady_polynomial_ramping (poly_degree);
+            const int flow_convergence_error = ode_solver->steady_state();
+            if (flow_convergence_error) n_flow_convergence_error += 1;
 
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;
@@ -389,6 +399,7 @@ int GridStudy<dim,nstate>
             convergence_table.add_value("cells", n_global_active_cells);
             convergence_table.add_value("DoFs", n_dofs);
             convergence_table.add_value("dx", dx);
+            convergence_table.add_value("residual", dg->get_residual_l2norm ());
             convergence_table.add_value("soln_L2_error", l2error_mpi_sum);
             convergence_table.add_value("output_error", output_error[igrid]);
 
@@ -433,6 +444,7 @@ int GridStudy<dim,nstate>
         convergence_table.evaluate_convergence_rates("soln_L2_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.evaluate_convergence_rates("output_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.set_scientific("dx", true);
+        convergence_table.set_scientific("residual", true);
         convergence_table.set_scientific("soln_L2_error", true);
         convergence_table.set_scientific("output_error", true);
         if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
@@ -493,7 +505,14 @@ int GridStudy<dim,nstate>
                  << std::endl;
         }
     }
-    return n_fail_poly;
+    if (n_fail_poly) test_fail += 1;
+    test_fail += n_flow_convergence_error;
+    if (n_flow_convergence_error) {
+        pcout << std::endl
+              << "Flow did not converge some some cases. Please check the residuals achieved versus the residual tolerance."
+              << std::endl;
+    }
+    return test_fail;
 }
 
 template <int dim, int nstate>

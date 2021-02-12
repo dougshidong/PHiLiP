@@ -201,9 +201,9 @@ int EulerNACA0012<dim,nstate>
             std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, solution_degree, solution_degree, grid_degree, grid);
 
             //std::shared_ptr<HighOrderGrid<dim,double>> joukowski_mesh = read_gmsh <dim, dim> ("joukowski_R1_Q"+std::to_string(grid_degree)+".msh");
-            //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh");
             //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("new_msh41.msh");
-            std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_ref3_hopw.msh");
+            //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw.msh");
+            std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh");
             dg->set_high_order_grid(naca0012_mesh);
             for (unsigned int i=0; i<igrid; ++i) {
                 dg->high_order_grid->refine_global();

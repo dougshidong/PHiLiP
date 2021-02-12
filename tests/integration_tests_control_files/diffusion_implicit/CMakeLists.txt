@@ -28,7 +28,7 @@ add_test(
 configure_file(2d_diffusion_br2_implicit.prm 2d_diffusion_br2_implicit.prm COPYONLY)
 add_test(
   NAME 2D_DIFFUSION_BR2_IMPLICIT_MANUFACTURED_SOLUTION
-  COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_diffusion_br2_implicit.prm
+  COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_diffusion_br2_implicit.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 configure_file(3d_diffusion_br2_implicit.prm 3d_diffusion_br2_implicit.prm COPYONLY)

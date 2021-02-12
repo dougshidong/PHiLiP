@@ -138,16 +138,17 @@ int ODESolver<dim,real>::steady_state ()
         //if (this->residual_norm > 1e-9 || this->current_iteration > 50 ) this->dg->update_artificial_dissipation_discontinuity_sensor();
         //if ( this->current_iteration < 50 ) this->dg->update_artificial_dissipation_discontinuity_sensor();
 
-        //if (this->residual_norm < 1e-8 || this->current_iteration > 20) {
-        //    this->dg->freeze_artificial_dissipation = true;
-        //} else {
-        //    this->dg->freeze_artificial_dissipation = false;
-        //}
-        if (this->current_iteration % 1 == 0) {
-            this->dg->freeze_artificial_dissipation = false;
-        } else {
+        //if (this->residual_norm < 1e-12 || this->current_iteration > 20) {
+        if (this->residual_norm < 1e-12) {
             this->dg->freeze_artificial_dissipation = true;
+        } else {
+            this->dg->freeze_artificial_dissipation = false;
         }
+        //if (this->current_iteration % 1 == 0) {
+        //    this->dg->freeze_artificial_dissipation = false;
+        //} else {
+        //    this->dg->freeze_artificial_dissipation = true;
+        //}
         const bool pseudotime = true;
         step_in_time(ramped_CFL, pseudotime);
 

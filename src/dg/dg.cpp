@@ -941,9 +941,9 @@ void DGBase<dim,real>::update_artificial_dissipation_discontinuity_sensor()
         //const double s_0 = -0.5 - 4.25*log10(degree);
         //const double kappa = 1.0;
 
-        const double mu_scale = 1.0 * 10e0;
-        const double s_0 = - 4.25*log10(degree);
-        //const double s_0 = -1.00 - 4.25*log10(degree);
+        const double mu_scale = 1.0 * 1e-0;
+        //const double s_0 = - 4.25*log10(degree);
+        const double s_0 = -0.00 - 4.00*log10(degree);
         const double kappa = 1.0;
         const double low = s_0 - kappa;
         const double upp = s_0 + kappa;
@@ -989,6 +989,15 @@ void DGBase<dim,real>::update_artificial_dissipation_discontinuity_sensor()
         //        }
         //    }
         //}
+    }
+    dealii::IndexSet boundary_dofs(dof_handler_artificial_dissipation.n_dofs());
+    dealii::DoFTools::extract_boundary_dofs(dof_handler_artificial_dissipation,
+                                dealii::ComponentMask(),
+                                boundary_dofs);
+    for (unsigned int i = 0; i < dof_handler_artificial_dissipation.n_dofs(); ++i) {
+        if (boundary_dofs.is_element(i)) {
+            artificial_dissipation_c0[i] = 0.0;
+        }
     }
     // artificial_dissipation_c0 *= 0.0;
     // artificial_dissipation_c0.add(1e-1);

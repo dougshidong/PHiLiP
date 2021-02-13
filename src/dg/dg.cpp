@@ -1766,7 +1766,7 @@ void DGBase<dim,real>::allocate_system ()
     // system matrices and vectors.
 
     dof_handler.distribute_dofs(fe_collection);
-    //dealii::DoFRenumbering::Cuthill_McKee(dof_handler,true);
+    dealii::DoFRenumbering::Cuthill_McKee(dof_handler,true);
     //const bool reversed_numbering = true;
     //dealii::DoFRenumbering::Cuthill_McKee(dof_handler, reversed_numbering);
     //const bool reversed_numbering = false;

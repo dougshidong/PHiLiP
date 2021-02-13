@@ -15,11 +15,8 @@
 #include "dg/dg_factory.hpp"
 #include "parameters/parameters.h"
 #include "physics/physics_factory.h"
-#include "numerical_flux/numerical_flux.h"
 
 using PDEType  = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
-using ConvType = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;
-using DissType = PHiLiP::Parameters::AllParameters::DissipativeNumericalFlux;
 
 #if PHILIP_DIM==1
     using Triangulation = dealii::Triangulation<PHILIP_DIM>;

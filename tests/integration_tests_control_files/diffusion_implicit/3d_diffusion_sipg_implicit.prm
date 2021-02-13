@@ -1,11 +1,13 @@
 # Listing of Parameters
 # ---------------------
 # Number of dimensions
-set dimension = 2
+set dimension = 3
 
 # The PDE we want to solve. Choices are
 # <advection|diffusion|convection_diffusion>.
 set pde_type  = diffusion
+
+set diss_num_flux = symm_internal_penalty
 
 subsection ODE solver
   # Maximum nonlinear solver iterations
@@ -38,6 +40,7 @@ subsection manufactured solution convergence study
   set initial_grid_size = 2
 
   # Number of grids in grid study
-  set number_of_grids   = 5
+  set number_of_grids   = 4
 end
+
 

@@ -10,7 +10,7 @@
 #include "dg/dg_factory.hpp"
 #include "parameters/parameters.h"
 #include "physics/physics.h"
-#include "numerical_flux/numerical_flux.h"
+#include "numerical_flux/convective_numerical_flux.hpp"
 
 using PDEType  = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
 using ConvType = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;

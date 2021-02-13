@@ -13,7 +13,6 @@
 
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
-#include "numerical_flux/numerical_flux.h"
 #include "physics/physics_factory.h"
 #include "physics/physics.h"
 #include "dg/dg_factory.hpp"

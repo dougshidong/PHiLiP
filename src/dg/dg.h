@@ -34,7 +34,9 @@
 
 #include "mesh/high_order_grid.h"
 #include "physics/physics.h"
-#include "numerical_flux/numerical_flux.h"
+#include "numerical_flux/numerical_flux_factory.hpp"
+#include "numerical_flux/convective_numerical_flux.hpp"
+#include "numerical_flux/viscous_numerical_flux.hpp"
 #include "parameters/all_parameters.h"
 
 // Template specialization of MappingFEField
@@ -405,6 +407,7 @@ public:
     void output_face_results_vtk (const unsigned int ith_grid); ///< Output Euler face solution
     void output_paraview_results (std::string filename); ///< Outputs a paraview file to view the solution
 
+    bool update_artificial_diss;
     /// Main loop of the DG class.
     /** Evaluates the right-hand-side \f$ \mathbf{R(\mathbf{u}}) \f$ of the system
      *
@@ -637,6 +640,7 @@ private:
     MassiveCollectionTuple create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const;
 
 public:
+    bool freeze_artificial_dissipation;
     /// Update discontinuity sensor.
     void update_artificial_dissipation_discontinuity_sensor();
 

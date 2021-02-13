@@ -12,7 +12,9 @@ template<int dim, int nstate, typename real>
 class NumericalFluxDissipative
 {
 public:
-virtual ~NumericalFluxDissipative() = 0; ///< Base class destructor required for abstract classes.
+NumericalFluxDissipative(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input)
+: pde_physics(physics_input)
+{};
 
 /// Solution flux at the interface.
 virtual std::array<real, nstate> evaluate_solution_flux (
@@ -32,10 +34,8 @@ virtual std::array<real, nstate> evaluate_auxiliary_flux (
     const real &penalty,
     const bool on_boundary = false) const = 0;
 
-// dealii::Tensor<1,dim, dealii::Tensor<1,nstate,real>> diffusion_matrix_int;
-// dealii::Tensor<1,dim, dealii::Tensor<1,nstate,real>> diffusion_matrix_int_transpose;
-// dealii::Tensor<1,dim, dealii::Tensor<1,nstate,real>> diffusion_matrix_ext;
-// dealii::Tensor<1,dim, dealii::Tensor<1,nstate,real>> diffusion_matrix_ext_transpose;
+protected:
+const std::shared_ptr < Physics::PhysicsBase<dim, nstate, real> > pde_physics; ///< Associated physics.
 
 };
 
@@ -43,13 +43,12 @@ virtual std::array<real, nstate> evaluate_auxiliary_flux (
 template<int dim, int nstate, typename real>
 class SymmetricInternalPenalty: public NumericalFluxDissipative<dim, nstate, real>
 {
+using NumericalFluxDissipative<dim,nstate,real>::pde_physics;
 public:
 /// Constructor
 SymmetricInternalPenalty(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input)
-:
-pde_physics(physics_input)
+: NumericalFluxDissipative<dim,nstate,real>(physics_input)
 {};
-~SymmetricInternalPenalty() {}; ///< Destructor
 
 /// Evaluate solution flux at the interface
 /** \f[\hat{u} = {u_h} \f]
@@ -57,7 +56,7 @@ pde_physics(physics_input)
 std::array<real, nstate> evaluate_solution_flux (
     const std::array<real, nstate> &soln_int,
     const std::array<real, nstate> &soln_ext,
-    const dealii::Tensor<1,dim,real> &normal_int) const;
+    const dealii::Tensor<1,dim,real> &normal_int) const override;
 
 /// Evaluate auxiliary flux at the interface
 /** \f[ \hat{A} = {{ A \nabla u_h }} - \mu {{ A }} [[ u_h ]] \f]
@@ -75,46 +74,47 @@ std::array<real, nstate> evaluate_auxiliary_flux (
     const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_ext,
     const dealii::Tensor<1,dim,real> &normal_int,
     const real &penalty,
-    const bool on_boundary = false) const;
+    const bool on_boundary = false) const override;
     
-protected:
-const std::shared_ptr < Physics::PhysicsBase<dim, nstate, real> > pde_physics; ///< Associated physics.
-
 };
 
-//template<int dim, int nstate, typename real>
-//class BassiRebay2: public NumericalFluxDissipative<dim, nstate, real>
-//{
-//public:
-///// Constructor
-//SymmetricInternalPenalty(Physics::PhysicsBase<dim, nstate, real> *physics_input)
-//:
-//pde_physics(physics_input)
-//{};
-///// Destructor
-//~SymmetricInternalPenalty() {};
+template<int dim, int nstate, typename real>
+class BassiRebay2: public NumericalFluxDissipative<dim, nstate, real>
+{
+using NumericalFluxDissipative<dim,nstate,real>::pde_physics;
+public:
+/// Constructor
+BassiRebay2(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input)
+: NumericalFluxDissipative<dim,nstate,real>(physics_input)
+{};
 
-///// Evaluate solution and gradient flux
-///*  $\hat{u} = {u_h}$, 
-// *  $ \hat{A} = {{ A \nabla u_h }} - \mu {{ A }} [[ u_h ]] $
-// */
-//std::array<real, nstate> evaluate_solution_flux (
-//    const std::array<real, nstate> &soln_int,
-//    const std::array<real, nstate> &soln_ext,
-//    const dealii::Tensor<1,dim,real> &normal_int) const;
+/// Evaluate solution flux at the interface
+/** \f[\hat{u} = {u_h} \f]
+ */
+std::array<real, nstate> evaluate_solution_flux (
+    const std::array<real, nstate> &soln_int,
+    const std::array<real, nstate> &soln_ext,
+    const dealii::Tensor<1,dim,real> &normal_int) const override;
 
-//std::array<real, nstate> evaluate_auxiliary_flux (
-//    const std::array<real, nstate> &soln_int,
-//    const std::array<real, nstate> &soln_ext,
-//    const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_int,
-//    const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_ext,
-//    const dealii::Tensor<1,dim,real> &normal_int,
-//    const real &penalty) const;
-//    
-//protected:
-//const Physics::PhysicsBase<dim, nstate, real> *pde_physics;
+/// Evaluate auxiliary flux at the interface
+/** \f[ \hat{A} = {{ A \nabla u_h }} + \Chi {{ A r_e( [[u_h]]_2 ) }}
+ *  
+ *  Note that \f$ \Chi > N_{faces} \f$ to have a stable scheme.
+ *
+ *
+ */
+std::array<real, nstate> evaluate_auxiliary_flux (
+    const real artificial_diss_coeff_int,
+    const real artificial_diss_coeff_ext,
+    const std::array<real, nstate> &soln_int,
+    const std::array<real, nstate> &soln_ext,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_int,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_ext,
+    const dealii::Tensor<1,dim,real> &normal_int,
+    const real &penalty,
+    const bool on_boundary = false) const override;
 
-//};
+};
 
 } // NumericalFlux namespace
 } // PHiLiP namespace

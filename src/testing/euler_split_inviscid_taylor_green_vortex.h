@@ -21,19 +21,12 @@
 
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
-#include "numerical_flux/numerical_flux.h"
 #include "physics/physics_factory.h"
 #include "physics/physics.h"
 #include "ode_solver/ode_solver.h"
 
 #include<fenv.h>
 
-//using PDEType  = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
-//using ConvType = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;
-//using DissType = PHiLiP::Parameters::AllParameters::DissipativeNumericalFlux;
-//
-//
-//const double TOLERANCE = 1E-12;
 namespace PHiLiP {
 namespace Tests {
 

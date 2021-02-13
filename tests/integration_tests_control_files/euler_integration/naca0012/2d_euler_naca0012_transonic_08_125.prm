@@ -10,17 +10,14 @@ set dimension = 2
 # <advection|diffusion|convection_diffusion>.
 set pde_type  = euler
 
-set conv_num_flux = lax_friedrichs #roe
-#set conv_num_flux = roe
+set conv_num_flux = roe
+set diss_num_flux = bassi_rebay_2
+#set sipg_penalty_factor = 20
 
 set use_split_form = false
 
 set add_artificial_dissipation = true
-#set add_artificial_dissipation = false
 set overintegration = 0
-
-set sipg_penalty_factor = 20
-
 
 subsection euler
   set reference_length = 1.0
@@ -66,7 +63,7 @@ subsection ODE solver
   set nonlinear_max_iterations            = 2000
 
   # Nonlinear solver residual tolerance
-  set nonlinear_steady_residual_tolerance = 1e-14
+  set nonlinear_steady_residual_tolerance = 1e-15
 
   # Explicit or implicit solverChoices are <explicit|implicit>.
   set ode_solver_type  = implicit
@@ -86,10 +83,10 @@ end
 
 subsection manufactured solution convergence study
   # Last degree used for convergence study
-  set degree_end        = 1
+  set degree_end        = 3
 
   # Starting degree for convergence study
-  set degree_start      = 1
+  set degree_start      = 3
 
   set grid_progression  = 2
 

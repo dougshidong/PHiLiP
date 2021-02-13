@@ -711,6 +711,9 @@ void Euler<dim,nstate,real>
     } else if (boundary_type == 1001) {
 
         boundary_slip_wall ( normal_int, soln_int, soln_bc);
+        for (int istate=0; istate<nstate; ++istate) {
+            soln_grad_bc[istate] = -soln_grad_int[istate];
+        }
 
     } else if (boundary_type == 1002) {
         // Pressure Outflow Boundary Condition (back pressure)

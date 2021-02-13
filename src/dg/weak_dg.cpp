@@ -1393,6 +1393,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term(
                     soln_grad_ext[iquad][istate][d] = soln_grad_int[iquad][istate][d];
                 }
             }
+            physics.boundary_face_values (boundary_id, real_quad_pts[iquad], phys_unit_normal[iquad], soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
         }
 
     } 

@@ -10,7 +10,8 @@ foreach(dim RANGE 2 3)
 
     execute_process(COMMAND gmsh ${GMSH_GEO} -
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                    RESULT_VARIABLE GMSH_RESULT)
+                    RESULT_VARIABLE GMSH_RESULT
+                    OUTPUT_QUIET)
     if(NOT GMSH_RESULT EQUAL "0")
         message(FATAL_ERROR
                 "gmsh ${GMSH_RESULT}, please check ${GMSH_GEO} file")

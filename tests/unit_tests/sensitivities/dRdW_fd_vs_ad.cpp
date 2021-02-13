@@ -27,7 +27,7 @@ using DissType = PHiLiP::Parameters::AllParameters::DissipativeNumericalFlux;
     using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
 #endif
 
-const double TOLERANCE = 1E-6;
+const double TOLERANCE = 1E-5;
 
 /** This test checks that dRdW evaluated using automatic differentiation
  *  matches with the results obtained using finite-difference.
@@ -89,7 +89,7 @@ int test (
     const dealii::IndexSet &col_parallel_partitioning = dg->locally_owned_dofs;
     dRdW_fd.reinit(row_parallel_partitioning, col_parallel_partitioning, sparsity_pattern, MPI_COMM_WORLD);
 
-    const double eps = 1e-6;
+    const double eps = 1e-5;
 
     pcout << "Evaluating AD..." << std::endl;
     dg->assemble_residual(true, false, false);
@@ -200,6 +200,7 @@ int main (int argc, char * argv[])
             for (unsigned int igrid=2; igrid<4; ++igrid) {
                 pcout << "Using " << pde_name[ipde] << std::endl;
                 all_parameters.pde_type = *pde;
+                all_parameters.diss_num_flux_type = Parameters::AllParameters::DissipativeNumericalFlux::bassi_rebay_2;
                 // Generate grids
                 std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
 #if PHILIP_DIM!=1

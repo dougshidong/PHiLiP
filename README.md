@@ -31,7 +31,7 @@ The math supporting this code can be viewed in this **very rough draft in progre
 - Supports weak and strong (InProgress) form of discontinuous Galerkin (DG), and flux reconstruction (FR) (InProgress)
 - Supported Partial Differential Equations: Linear advection, diffusion, convection-diffusion, Burgers, Euler, TODO: Navier-Stokes.
 - Supported convective numerical fluxes: Lax-Friedrichs, Roe (Harten's entropy fix) for Euler, InProgress: Split-Form
-- Supported diffusive numerical fluxes: Symmetric Interior Penalty
+- Supported diffusive numerical fluxes: Symmetric Interior Penalty, Bassi-Rebay's 2nd formulation (BR2)
 - Supported elements: LINEs, QUADs, HEXs since it uses deal.II
 - Supported refinements: h (size) or p (order) (InProgress).
 
@@ -48,7 +48,7 @@ Finally, I am also always available to answer questions regarding the code by e-
 ## Building and Running the Code
 
 The code has been succesfully built in the following environments:
-- linux (ubuntu 18.04 and later);
+- linux (ubuntu 20.04 and later);
 
 Please consult the [installation instructions](INSTALL.md) for details concerning required software.
 

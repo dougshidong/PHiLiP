@@ -1,5 +1,6 @@
 #include<limits>
 #include<fstream>
+
 #include <deal.II/base/parameter_handler.h>
 #include <deal.II/base/tensor.h>
 
@@ -1254,6 +1255,9 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
     solution.update_ghost_values();
 
     int assembly_error = 0;
+    bool negative_pressure = false;
+    bool negative_density = false;
+    bool inconsistent_normals = false;
     try {
 
         update_artificial_dissipation_discontinuity_sensor();
@@ -1286,16 +1290,32 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
                 fe_values_collection_volume_lagrange,
                 right_hand_side);
         } // end of cell loop
-    } catch(...) {
+    } catch(const PHiLiP::ExcInconsistentNormals& e) {
+        assembly_error = 2;
+        inconsistent_normals = true;
+    } catch(int e) {
+        negative_pressure = true;
+        negative_density = true;
         assembly_error = 1;
     }
-    const int mpi_assembly_error = dealii::Utilities::MPI::sum(assembly_error, mpi_communicator);
+    (void) assembly_error;
 
-    if (mpi_assembly_error != 0) {
+    bool inconsistent_normals_reduction = false;
+    (void) MPI_Allreduce(&inconsistent_normals, &inconsistent_normals_reduction, 1, MPI::BOOL, MPI::LOR, MPI_COMM_WORLD);
+    bool negative_pressure_reduction = false;
+    (void) MPI_Allreduce(&negative_pressure, &negative_pressure_reduction, 1, MPI::BOOL, MPI::LOR, MPI_COMM_WORLD);
+    bool negative_density_reduction = false;
+    (void) MPI_Allreduce(&negative_density, &negative_density_reduction, 1, MPI::BOOL, MPI::LOR, MPI_COMM_WORLD);
+
+    const bool mpi_assembly_error = inconsistent_normals_reduction || negative_pressure_reduction || negative_density_reduction;
+    //const int mpi_assembly_error = dealii::Utilities::MPI::sum(assembly_error, mpi_communicator);
+    //MPI_Allreduce(void* send_data, void* recv_data, int count, MPI_Datatype datatype, MPI_Op op, MPI_Comm communicator)
+    //if (mpi_assembly_error != 0) {
+    if (mpi_assembly_error) {
         std::cout << "Invalid residual assembly encountered..."
-                  << " Filling up RHS with 1s. " << std::endl;
+                  << " Filling up RHS with 1e20s. " << std::endl;
         right_hand_side *= 0.0;
-        right_hand_side.add(1.0);
+        right_hand_side.add(1.0e20);
         if (compute_dRdW) {
             std::cout << " Filling up Jacobian with mass matrix. " << std::endl;
             const bool do_inverse_mass_matrix = false;
@@ -1362,6 +1382,10 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         d2RdWdW.compress(dealii::VectorOperation::add);
         d2RdXdX.compress(dealii::VectorOperation::add);
         d2RdWdX.compress(dealii::VectorOperation::add);
+    }
+
+    if (inconsistent_normals_reduction) {
+        throw PHiLiP::ExcInconsistentNormals();
     }
     //if ( compute_dRdW ) system_matrix.compress(dealii::VectorOperation::insert);
     //system_matrix.print(std::cout);
@@ -2397,6 +2421,159 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     return eps;
 }
 
+template <int dim, typename real>
+template <typename real2>
+real2 DGBase<dim,real>::discontinuity_sensor(
+    const dealii::Quadrature<dim> &volume_quadrature,
+    const std::vector< real2 > &soln_coeff_high,
+    const dealii::FiniteElement<dim,dim> &fe_high,
+    const std::vector<real2> &jac_det)
+{
+    const unsigned int degree = fe_high.tensor_degree();
+
+    if (degree == 0) return 0;
+
+    const unsigned int nstate = fe_high.components;
+    const unsigned int n_dofs_high = fe_high.dofs_per_cell;
+
+    // Lower degree basis.
+    const unsigned int lower_degree = degree-1;
+    const dealii::FE_DGQLegendre<dim> fe_dgq_lower(lower_degree);
+    const dealii::FESystem<dim,dim> fe_lower(fe_dgq_lower, nstate);
+
+    // Projection quadrature.
+    const dealii::QGauss<dim> projection_quadrature(degree+5);
+    std::vector< real2 > soln_coeff_lower = project_function<dim,real2>( soln_coeff_high, fe_high, fe_lower, projection_quadrature);
+
+    // Quadrature used for solution difference.
+    const std::vector<dealii::Point<dim,double>> &unit_quad_pts = volume_quadrature.get_points();
+
+    const unsigned int n_quad_pts = volume_quadrature.size();
+    const unsigned int n_dofs_lower = fe_lower.dofs_per_cell;
+
+    real2 element_volume = 0.0;
+    real2 error = 0.0;
+    real2 soln_norm = 0.0;
+    std::vector<real2> soln_high(nstate);
+    std::vector<real2> soln_lower(nstate);
+    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        for (unsigned int s=0; s<nstate; ++s) {
+            soln_high[s] = 0.0;
+            soln_lower[s] = 0.0;
+        }
+        // Interpolate solution
+        for (unsigned int idof=0; idof<n_dofs_high; ++idof) {
+              const unsigned int istate = fe_high.system_to_component_index(idof).first;
+              soln_high[istate] += soln_coeff_high[idof] * fe_high.shape_value_component(idof,unit_quad_pts[iquad],istate);
+        }
+        // Interpolate low order solution
+        for (unsigned int idof=0; idof<n_dofs_lower; ++idof) {
+              const unsigned int istate = fe_lower.system_to_component_index(idof).first;
+              soln_lower[istate] += soln_coeff_lower[idof] * fe_lower.shape_value_component(idof,unit_quad_pts[iquad],istate);
+        }
+        // Quadrature
+        const real2 JxW = jac_det[iquad] * volume_quadrature.weight(iquad);
+        element_volume += JxW;
+        // Only integrate over the first state variable.
+        // Persson and Peraire only did density.
+        for (unsigned int s=0; s<1/*nstate*/; ++s) {
+            error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * JxW;
+            soln_norm += soln_high[s] * soln_high[s] * JxW;
+        }
+    }
+
+    if (soln_norm < 1e-12) return 0;
+
+    real2 S_e, s_e;
+    S_e = sqrt(error / soln_norm);
+    s_e = log10(S_e);
+
+    const double mu_scale = 2.0 * 1e-0;
+    const double s_0 = -0.00 - 4.00*log10(degree);
+    const double kappa = 1.0;
+    const double low = s_0 - kappa;
+    const double upp = s_0 + kappa;
+
+    const real2 diameter = pow(element_volume, 1.0/dim);
+    const real2 eps_0 = mu_scale * diameter / (double)degree;
+
+    if ( s_e < low) return 0.0;
+
+    if ( s_e > upp) {
+        return eps_0;
+    }
+
+    const double PI = 4*atan(1);
+    real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
+    eps *= eps_0 * 0.5;
+    return eps;
+}
+
+template<int dim, typename real>
+void DGBase<dim,real>::refine_residual_based()
+{
+    dealii::Vector<float> gradient_indicator(high_order_grid->triangulation->n_active_cells());
+
+    const auto mapping = (*(high_order_grid->mapping_fe_field));
+    dealii::DerivativeApproximation::approximate_gradient(mapping,
+                                                  dof_handler,
+                                                  solution,
+                                                  gradient_indicator);
+
+    for (const auto &cell : high_order_grid->triangulation->active_cell_iterators()) {
+        gradient_indicator[cell->active_cell_index()] *= std::pow(cell->diameter(), 1 + 1.0 * dim / 2);
+    }
+    std::vector<dealii::types::global_dof_index> dofs_indices;
+    for (const auto &cell : dof_handler.active_cell_iterators()) {
+        if (!cell->is_locally_owned()) continue;
+
+        const int i_fele = cell->active_fe_index();
+        const dealii::FESystem<dim,dim> &fe_ref = fe_collection[i_fele];
+        const unsigned int n_dofs_cell = fe_ref.n_dofs_per_cell();
+        dofs_indices.resize(n_dofs_cell);
+        cell->get_dof_indices (dofs_indices);
+        double max_residual = 0;
+        for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
+        //for (const auto &idof : dofs_indices) {
+            const unsigned int index = dofs_indices[idof];
+            const unsigned int istate = fe_ref.system_to_component_index(idof).first;
+            if (istate == dim+2-1) {
+                const double res = std::abs(right_hand_side[index]);
+                if (res > max_residual) max_residual = res;
+            }
+        }
+        gradient_indicator[cell->active_cell_index()] = max_residual;
+    }
+
+    dealii::LinearAlgebra::distributed::Vector<double> old_solution(solution);
+    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dof_handler);
+    solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
+    high_order_grid->prepare_for_coarsening_and_refinement();
+
+    //high_order_grid->triangulation->refine_global (1);
+    if constexpr(dim == 1) {
+        dealii::GridRefinement::refine_and_coarsen_fixed_number(*high_order_grid->triangulation,
+                                                        gradient_indicator,
+                                                        0.05,
+                                                        0.025);
+    } else {
+        dealii::parallel::distributed::GridRefinement::refine_and_coarsen_fixed_number(*(high_order_grid->triangulation),
+                                                        gradient_indicator,
+                                                        0.05,
+                                                        0.01);
+    }
+    high_order_grid->triangulation->execute_coarsening_and_refinement();
+    high_order_grid->execute_coarsening_and_refinement();
+    allocate_system ();
+    solution.zero_out_ghosts();
+    solution_transfer.interpolate(solution);
+    solution.update_ghost_values();
+
+    assemble_residual ();
+
+>>>>>>> Error throwing, catching, and handling in DG.
+}
+
 // No support for anisotropic mesh refinement with parallel::distributed::Triangulation
 // template<int dim, typename real>
 // void DGBase<dim,real,MeshType>::set_anisotropic_flags()
@@ -2579,5 +2756,16 @@ template FadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulatio
 template RadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
 template FadFadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
 template RadFadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
+
+template double
+DGBase<PHILIP_DIM,double>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
+template FadType
+DGBase<PHILIP_DIM,double>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
+template RadType
+DGBase<PHILIP_DIM,double>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
+template FadFadType
+DGBase<PHILIP_DIM,double>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
+template RadFadType
+DGBase<PHILIP_DIM,double>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
 
 } // PHiLiP namespace

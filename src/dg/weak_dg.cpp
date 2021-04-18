@@ -2286,6 +2286,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
                     valid_metrics = false;
                 }
                 if (!valid_metrics) {
+                    throw PHiLiP::ExcInconsistentNormals();
+                    throw 1;
                     //for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
                     //   rhs_int[itest_int] += 1e20;
                     //}
@@ -3564,7 +3566,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
     const unsigned int n_dofs_arti_diss = this->fe_q_artificial_dissipation.dofs_per_cell;
     std::vector<dealii::types::global_dof_index> dof_indices_artificial_dissipation(n_dofs_arti_diss);
     artificial_dissipation_cell->get_dof_indices (dof_indices_artificial_dissipation);
-/*
     std::vector<real> artificial_diss_coeff_at_q(n_quad_pts);
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         artificial_diss_coeff_at_q[iquad] = 0.0;
@@ -3578,7 +3579,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
         }
     }
 
-*/
 
     std::vector<real2> artificial_diss_coeff_at_q(n_quad_pts);
     real2 arti_diss = this->discontinuity_sensor(quadrature, soln_coeff, fe_soln, jac_det);

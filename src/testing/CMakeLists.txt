@@ -7,6 +7,7 @@ set(TESTS_SOURCE
     euler_naca0012.cpp
     euler_bump_optimization.cpp
     euler_naca0012_optimization.cpp
+    euler_naca0012_optimization_lift_constrained.cpp
     shock_1d.cpp
 #euler_gaussian_bump_adjoint.cpp
     euler_cylinder.cpp

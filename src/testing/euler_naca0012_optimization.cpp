@@ -64,13 +64,13 @@ enum BirosGhattasPreconditioner { P2, P2A, P4, P4A, identity };
 //const std::vector<BirosGhattasPreconditioner> precond_list { P2, P2A, P4, P4A };
 const std::vector<BirosGhattasPreconditioner> precond_list { P2A };//, P2, P4, P4A };
 //const std::vector<BirosGhattasPreconditioner> precond_list { P2A };
-const std::vector<OptimizationAlgorithm> opt_list { reduced_space_bfgs, full_space_birosghattas, reduced_space_newton };
+const std::vector<OptimizationAlgorithm> opt_list { full_space_birosghattas, reduced_space_bfgs, reduced_space_newton };
 //const std::vector<OptimizationAlgorithm> opt_list { full_space_birosghattas, reduced_space_bfgs, reduced_space_newton };
 //const std::vector<OptimizationAlgorithm> opt_list { reduced_space_newton };
 //const std::vector<OptimizationAlgorithm> opt_list { full_space_birosghattas, reduced_space_bfgs};
 //const std::vector<OptimizationAlgorithm> opt_list { reduced_space_bfgs};
 
-const unsigned int POLY_START = 0;
+const unsigned int POLY_START = 1;
 const unsigned int POLY_END = 1; // Can do until at least P2
 
 const unsigned int n_des_var_start = 10;//20;

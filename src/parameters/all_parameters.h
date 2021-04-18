@@ -82,6 +82,7 @@ public:
         optimization_inverse_manufactured,
         euler_bump_optimization,
         euler_naca_optimization,
+        euler_naca_optimization_constrained,
         shock_1d,
         euler_naca0012,
         advection_periodicity,

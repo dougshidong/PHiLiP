@@ -104,11 +104,6 @@ PrimalDualActiveSetStep<Real>::PrimalDualActiveSetStep( ROL::ParameterList &parl
     krylov_ = ROL::KrylovFactory<Real>(parlist);
 }
 
-bnd_ = ROL::makePtr<BoundConstraint<Real>>();
-bnd_->deactivate();
-initialize(x,g,l,c,obj,con,*bnd_,algo_state);
-}
-  
 template<typename Real>
 void PrimalDualActiveSetStep<Real>::initialize(
     ROL::Vector<Real> &design_variables,

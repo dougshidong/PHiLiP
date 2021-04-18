@@ -146,9 +146,12 @@ void FlowConstraints<dim>
     dg->output_results_vtk(i_out++);
     ffd.output_ffd_vtu(i_out);
     std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver_1 = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-    ode_solver_1->steady_state();
-
-    dg->assemble_residual();
+    try {
+        ode_solver_1->steady_state();
+        dg->assemble_residual();
+    } catch(const PHiLiP::ExcInconsistentNormals& e) {
+        tol = 1e99;
+    }
     tol = dg->get_residual_l2norm();
     auto &constraint = ROL_vector_to_dealii_vector_reference(constraint_values);
     constraint = dg->right_hand_side;
@@ -169,7 +172,10 @@ void FlowConstraints<dim>
     update_1(des_var_sim);
     update_2(des_var_ctl);
 
-    dg->assemble_residual();
+    try {
+        dg->assemble_residual();
+    } catch(const PHiLiP::ExcInconsistentNormals& e) {
+    }
     auto &constraint = ROL_vector_to_dealii_vector_reference(constraint_values);
     constraint = dg->right_hand_side;
 }
@@ -189,7 +195,11 @@ void FlowConstraints<dim>
     update_2(des_var_ctl);
 
     const bool compute_dRdW=true; const bool compute_dRdX=false; const bool compute_d2R=false;
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+    try {
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+    } catch(const PHiLiP::ExcInconsistentNormals& e) {
+    }
+
 
     const auto &input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
     auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
@@ -214,7 +224,10 @@ void FlowConstraints<dim>
     update_2(des_var_ctl);
 
     const bool compute_dRdW=true; const bool compute_dRdX=false; const bool compute_d2R=false;
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+    try {
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+    } catch(const PHiLiP::ExcInconsistentNormals& e) {
+    }
 
     if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     //solve_linear_2 (
@@ -276,7 +289,10 @@ int FlowConstraints<dim>
     update_2(des_var_ctl);
 
     const bool compute_dRdW=true; const bool compute_dRdX=false; const bool compute_d2R=false;
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+    try {
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+    } catch(const PHiLiP::ExcInconsistentNormals& e) {
+    }
 
     Epetra_CrsMatrix * jacobian = const_cast<Epetra_CrsMatrix *>(&(dg->system_matrix.trilinos_matrix()));
 
@@ -320,7 +336,10 @@ int FlowConstraints<dim>
     update_2(des_var_ctl);
 
     const bool compute_dRdW=true; const bool compute_dRdX=false; const bool compute_d2R=false;
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+    try {
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+    } catch(const PHiLiP::ExcInconsistentNormals& e) {
+    }
 
     Epetra_CrsMatrix * adjoint_jacobian = const_cast<Epetra_CrsMatrix *>(&(dg->system_matrix_transpose.trilinos_matrix()));
 
@@ -428,7 +447,10 @@ double& /*tol*/ )
     update_2(des_var_ctl);
 
     const bool compute_dRdW=true; const bool compute_dRdX=false; const bool compute_d2R=false;
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+    try {
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+    } catch(const PHiLiP::ExcInconsistentNormals& e) {
+    }
 
     // Input vector is copied into temporary non-const vector.
     auto input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
@@ -480,7 +502,10 @@ double& /*tol*/ )
 
     {
         const bool compute_dRdW=false; const bool compute_dRdX=true; const bool compute_d2R=false;
-        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+        try {
+            dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+        } catch(const PHiLiP::ExcInconsistentNormals& e) {
+        }
         dg->dRdXv.vmult(output_vector_v, dXvdXp_input);
     }
 
@@ -503,6 +528,10 @@ double& /*tol*/ )
 
     const bool compute_dRdW=true; const bool compute_dRdX=false; const bool compute_d2R=false;
     dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+    try {
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+    } catch(const PHiLiP::ExcInconsistentNormals& e) {
+    }
 
     const auto &input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
     auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
@@ -531,7 +560,10 @@ double& /*tol*/ )
     auto input_dRdXv = dg->high_order_grid->volume_nodes;
     {
         const bool compute_dRdW=false; const bool compute_dRdX=true; const bool compute_d2R=false;
-        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+        try {
+            dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+        } catch(const PHiLiP::ExcInconsistentNormals& e) {
+        }
         dg->dRdXv.Tvmult(input_dRdXv, input_vector_v);
     }
 
@@ -581,7 +613,10 @@ void FlowConstraints<dim>
     update_2(des_var_ctl);
 
     const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+    try {
+        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+    } catch(const PHiLiP::ExcInconsistentNormals& e) {
+    }
     dg->d2RdWdW.vmult(ROL_vector_to_dealii_vector_reference(output_vector), ROL_vector_to_dealii_vector_reference(input_vector));
 
     n_vmult += 6;
@@ -613,7 +648,10 @@ void FlowConstraints<dim>
     auto input_d2RdWdX = dg->high_order_grid->volume_nodes;
     {
         const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
-        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+        try {
+            dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+        } catch(const PHiLiP::ExcInconsistentNormals& e) {
+        }
         dg->d2RdWdX.Tvmult(input_d2RdWdX, input_vector_v);
     }
 
@@ -693,7 +731,10 @@ void FlowConstraints<dim>
     auto &output_vector_v = ROL_vector_to_dealii_vector_reference(output_vector);
     {
         const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
-        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+        try {
+            dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+        } catch(const PHiLiP::ExcInconsistentNormals& e) {
+        }
         dg->d2RdWdX.vmult(output_vector_v, dXvdXp_input);
     }
 
@@ -753,7 +794,10 @@ void FlowConstraints<dim>
     auto d2RdXdX_dXvdXp_input = dg->high_order_grid->volume_nodes;
     {
         const bool compute_dRdW=false; const bool compute_dRdX=false; const bool compute_d2R=true;
-        dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+        try {
+            dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+        } catch(const PHiLiP::ExcInconsistentNormals& e) {
+        }
         dg->d2RdXdX.vmult(d2RdXdX_dXvdXp_input, dXvdXp_input);
     }
 

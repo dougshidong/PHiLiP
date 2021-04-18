@@ -39,9 +39,16 @@
 #include "numerical_flux/viscous_numerical_flux.hpp"
 #include "parameters/all_parameters.h"
 
-// Template specialization of MappingFEField
-//extern template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM> >;
+#include <exception>
+
 namespace PHiLiP {
+
+DeclExceptionMsg(ExcInconsistentNormals,
+                 "Inconsistent face normals for neighbor cells."
+                 "This can happen if: "
+                 "\n1. The grid has not been read correctly wrongfully "
+                 "\n2. The normal computations has been changed and results in an inconsistent result between the two cells"
+                 "\n3. A large mesh deformation led to an inverted cell. ");
 
 /// DGBase is independent of the number of state variables.
 /**  This base class allows the use of arrays to efficiently allocate the data structures
@@ -347,6 +354,14 @@ public:
         const real2 diameter,
         const std::vector< real2 > &soln_coeff_high,
         const dealii::FiniteElement<dim,dim> &fe_high);
+
+    /// Discontinuity sensor based on projecting to p-1
+    template <typename real2>
+    real2 discontinuity_sensor(
+        const dealii::Quadrature<dim> &volume_quadrature,
+        const std::vector< real2 > &soln_coeff_high,
+        const dealii::FiniteElement<dim,dim> &fe_high,
+        const std::vector<real2> &jac_det);
 
     /// Current optimization dual variables corresponding to the residual constraints also known as the adjoint
     /** This is used to evaluate the dot-product between the dual and the 2nd derivatives of the residual

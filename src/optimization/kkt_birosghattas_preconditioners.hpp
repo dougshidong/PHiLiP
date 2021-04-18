@@ -391,7 +391,7 @@ public:
     }
 
 };
-/// Preconditioners from Biros & Ghattas 2005.
+/// Preconditioners from Biros & Ghattas 2005 with additional constraints.
 /** Option to use or ignore second-order term to obtain P4 or P2 preconditioners
  *  Option to use approximate or exact inverses of the Jacobian (transpose) to obtain the Tilde version.
  */
@@ -409,8 +409,11 @@ protected:
 
     /// Design variables.
     using BirosGhattasPreconditioner<Real>::design_variables_;
-    /// Lagrange multipliers.
+    /// Lagrange multipliers for PDE constraints.
     using BirosGhattasPreconditioner<Real>::lagrange_mult_;
+
+    /// Lagrange multipliers for other constraints.
+    const ROL::Ptr<const ROL::Vector<Real>> other_lagrange_mult_;
 
     /// Simulation design variables.
     using BirosGhattasPreconditioner<Real>::simulation_variables_;
@@ -432,10 +435,14 @@ protected:
     ROL::Ptr<ROL::Vector<Real>> y1;
     ROL::Ptr<ROL::Vector<Real>> y2;
     ROL::Ptr<ROL::Vector<Real>> y3;
+    ROL::Ptr<ROL::Vector<Real>> y4;
 
     ROL::Ptr<ROL::Vector<Real>> temp_1;
     ROL::Ptr<ROL::Vector<Real>> Lxs_Rsinv_y1;
     ROL::Ptr<ROL::Vector<Real>> Rsinv_y1;
+
+    std::vector<ROL::Ptr<ROL::Vector<Real>>> cs;
+    ROL::Ptr<ROL::Vector<Real>> RsTinv_cs;
 
     bool use_second_order_terms;
 public:
@@ -446,6 +453,7 @@ public:
         const ROL::Ptr<ROL::Constraint<Real>> other_equal_constraints,
         const ROL::Ptr<const ROL::Vector<Real>> design_variables,
         const ROL::Ptr<const ROL::Vector<Real>> state_lagrange_mult,
+        const ROL::Ptr<const ROL::Vector<Real>> other_lagrange_mult,
         const ROL::Ptr<ROL::Secant<Real> > secant,
         const bool use_second_order_terms,
         const bool use_approximate_preconditioner = false)
@@ -457,6 +465,7 @@ public:
                                            use_approximate_preconditioner)
         , other_equal_constraints_
             (ROL::makePtrFromRef<ROL::Constraint_SimOpt<Real>>(dynamic_cast<ROL::Constraint_SimOpt<Real>&>(*other_equal_constraints_)))
+        , other_lagrange_mult_(other_lagrange_mult)
         , use_second_order_terms(use_second_order_terms)
     {
         const auto &design_simopt = dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*design_variables);
@@ -464,16 +473,31 @@ public:
         const ROL::Ptr<const ROL::Vector<Real>> input_1 = design_simopt.get_1();
         const ROL::Ptr<const ROL::Vector<Real>> input_2 = design_simopt.get_2();
         const ROL::Ptr<const ROL::Vector<Real>> input_3 = state_lagrange_mult;
+        const ROL::Ptr<const ROL::Vector<Real>> input_4 = other_lagrange_mult;
 
         y1 = input_1->clone();
         y2 = input_2->clone();
         y3 = input_3->clone();
+        y4 = input_4->clone();
 
         temp_1 = input_1->clone();
         if (use_second_order_terms) {
             Rsinv_y1 = input_1->clone();
             Lxs_Rsinv_y1 = input_2->clone();
         }
+
+        const unsigned int n_other_constraints = other_lagrange_mult_->dimension();
+        cs.resize(n_other_constraints);
+        //for (unsigned int i_other_constraints = 0; i_other_constraints < n_other_constraints; ++i_other_constraints) {
+        //    cs[i_other_constraints] = input_1->clone();
+
+        //    const auto i_basis_vector = cs[i_other_constraints].basis(i_other_constraints);
+        //    other_equal_constraints_->applyAdjointJacobian_1(
+
+        //    other_equal_constraints_->applyJacobian_2
+        //}
+
+        RsTinv_cs = input_1->clone();
     };
 
     /// Application of KKT preconditionner on vector src outputted into dst.
@@ -486,23 +510,33 @@ public:
         Real tol = 1e-15;
         //const Real one = 1.0;
 
+        // Split output vector
         ROL::Ptr<ROL::Vector<Real>> dst_rol = dst.getVector();
-        auto &dst_split = dynamic_cast<ROL::Vector_SimOpt<Real>&>(*dst_rol);
-        ROL::Ptr<ROL::Vector<Real>> dst_design = dst_split.get_1();
-        auto &dst_design_split = dynamic_cast<ROL::Vector_SimOpt<Real>&>(*dst_design);
+        auto &dst_design_split_constraint = dynamic_cast<ROL::Vector_SimOpt<Real>&>(*dst_rol);
 
-        ROL::Ptr<ROL::Vector<Real>> x1 = dst_design_split.get_1();
-        ROL::Ptr<ROL::Vector<Real>> x2 = dst_design_split.get_2();
-        ROL::Ptr<ROL::Vector<Real>> x3 = dst_split.get_2();
+        ROL::Ptr<ROL::Vector<Real>> dst_design = dst_design_split_constraint.get_1();
+        auto &dst_state_split_control = dynamic_cast<ROL::Vector_SimOpt<Real>&>(*dst_design);
+        ROL::Ptr<ROL::Vector<Real>> x1 = dst_state_split_control.get_1();
+        ROL::Ptr<ROL::Vector<Real>> x2 = dst_state_split_control.get_2();
 
+        ROL::Ptr<ROL::Vector<Real>> dst_constraint = dst_design_split_constraint.get_2();
+        auto &dst_constraintpde_split_constraintother = dynamic_cast<ROL::Vector_SimOpt<Real>&>(*dst_constraint);
+        ROL::Ptr<ROL::Vector<Real>> x3 = dst_constraintpde_split_constraintother.get_1();
+        ROL::Ptr<ROL::Vector<Real>> x4 = dst_constraintpde_split_constraintother.get_2();
+
+        // Split input vector
         const ROL::Ptr<const ROL::Vector<Real>> src_rol = src.getVector();
-        const auto &src_split = dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*src_rol);
-        const ROL::Ptr<const ROL::Vector<Real>> src_design = src_split.get_1();
-        const auto &src_design_split = dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*src_design);
+        const auto &src_design_split_constraint = dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*src_rol);
 
-        const ROL::Ptr<const ROL::Vector<Real>> z1 = src_design_split.get_1();
-        const ROL::Ptr<const ROL::Vector<Real>> z2 = src_design_split.get_2();
-        const ROL::Ptr<const ROL::Vector<Real>> z3 = src_split.get_2();
+        const ROL::Ptr<const ROL::Vector<Real>> src_design = src_design_split_constraint.get_1();
+        const auto &src_state_split_control = dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*src_design);
+        const ROL::Ptr<const ROL::Vector<Real>> z1 = src_state_split_control.get_1();
+        const ROL::Ptr<const ROL::Vector<Real>> z2 = src_state_split_control.get_2();
+
+        const ROL::Ptr<const ROL::Vector<Real>> src_constraint = src_design_split_constraint.get_2();
+        const auto &src_constraintpde_split_constraintother = dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*src_constraint);
+        const ROL::Ptr<const ROL::Vector<Real>> z3 = src_constraintpde_split_constraintother.get_1();
+        const ROL::Ptr<const ROL::Vector<Real>> z4 = src_constraintpde_split_constraintother.get_2();
 
 
         // Evaluate y ********************
@@ -510,10 +544,11 @@ public:
         // Evaluate y1 = z3
         y1->set(*z3);
 
-        // Evaluate y3 = z1 - Lss Rs^{-1} y1
-        y3->set(*z1);
+        // Evaluate y2 = z4 - (cs Rs^{-1}) y1
+        y2->set(*z4);
 
         if (use_second_order_terms) {
+            // Evaluate Rs^{-1} y1
             if (use_approximate_preconditioner_) {
                 equal_constraints_->applyInverseJacobianPreconditioner_1(*Rsinv_y1, *y1, *simulation_variables_, *control_variables_, tol);
             } else {
@@ -698,13 +733,13 @@ public:
         //const Real one = 1.0;
 
         ROL::Ptr<ROL::Vector<Real>> dst_rol = dst.getVector();
-        auto &dst_split = dynamic_cast<ROL::Vector_SimOpt<Real>&>(*dst_rol);
-        ROL::Ptr<ROL::Vector<Real>> dst_design = dst_split.get_1();
-        auto &dst_design_split = dynamic_cast<ROL::Vector_SimOpt<Real>&>(*dst_design);
+        auto &dst_design_split_constraint = dynamic_cast<ROL::Vector_SimOpt<Real>&>(*dst_rol);
+        ROL::Ptr<ROL::Vector<Real>> dst_design = dst_design_split_constraint.get_1();
+        auto &dst_state_split_control = dynamic_cast<ROL::Vector_SimOpt<Real>&>(*dst_design);
 
-        ROL::Ptr<ROL::Vector<Real>> x1 = dst_design_split.get_1();
-        ROL::Ptr<ROL::Vector<Real>> x2 = dst_design_split.get_2();
-        ROL::Ptr<ROL::Vector<Real>> x3 = dst_split.get_2();
+        ROL::Ptr<ROL::Vector<Real>> x1 = dst_state_split_control.get_1();
+        ROL::Ptr<ROL::Vector<Real>> x2 = dst_state_split_control.get_2();
+        ROL::Ptr<ROL::Vector<Real>> x3 = dst_design_split_constraint.get_2();
 
         const ROL::Ptr<const ROL::Vector<Real>> src_rol = src.getVector();
         const auto &src_split = dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*src_rol);

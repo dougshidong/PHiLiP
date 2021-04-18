@@ -4,6 +4,8 @@ set(TESTS_SOURCE
     flow_constraints.cpp
     rol_objective.cpp
     full_space_step.cpp
+    sequential_quadratic_programming.cpp
+    primal_dual_active_set.cpp
 )
 
 foreach(dim RANGE 1 3)

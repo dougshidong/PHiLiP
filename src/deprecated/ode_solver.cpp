@@ -79,7 +79,20 @@ int ODESolver<dim,real,MeshType>::steady_state ()
     if (ode_param.output_solution_every_x_steps >= 0) this->dg->output_results_vtk(this->current_iteration);
 
     pcout << " Evaluating right-hand side and setting system_matrix to Jacobian before starting iterations... " << std::endl;
-    this->dg->assemble_residual ();
+
+    bool inconsistent_normals = false;
+    try {
+        this->dg->assemble_residual ();
+    } catch(const PHiLiP::ExcInconsistentNormals& e) {
+        inconsistent_normals = true;
+    }
+    bool inconsistent_normals_reduction = false;
+    (void) MPI_Allreduce(&inconsistent_normals, &inconsistent_normals_reduction, 1, MPI::BOOL, MPI::LOR, MPI_COMM_WORLD);
+    if (inconsistent_normals_reduction) {
+        this->residual_norm = 1e99;
+        return 1;
+    }
+
     initial_residual_norm = this->dg->get_residual_l2norm();
     this->residual_norm = initial_residual_norm;
     pcout << " ********************************************************** "
@@ -139,11 +152,11 @@ int ODESolver<dim,real,MeshType>::steady_state ()
         //if ( this->current_iteration < 50 ) this->dg->update_artificial_dissipation_discontinuity_sensor();
 
         //if (this->residual_norm < 1e-12 || this->current_iteration > 20) {
-        if (this->residual_norm < 1e-12) {
-            this->dg->freeze_artificial_dissipation = true;
-        } else {
-            this->dg->freeze_artificial_dissipation = false;
-        }
+        // if (this->residual_norm < 1e-12) {
+        //     this->dg->freeze_artificial_dissipation = true;
+        // } else {
+        //     this->dg->freeze_artificial_dissipation = false;
+        // }
         //if (this->current_iteration % 1 == 0) {
         //    this->dg->freeze_artificial_dissipation = false;
         //} else {

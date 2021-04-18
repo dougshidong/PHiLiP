@@ -3,7 +3,10 @@ set(TESTS_SOURCE
     dealii_solver_rol_vector.cpp
     flow_constraints.cpp
     rol_objective.cpp
-    full_space_step.cpp)
+    full_space_step.cpp
+    sequential_quadratic_programming.cpp
+    primal_dual_active_set.cpp
+)
 
 foreach(dim RANGE 1 3)
     # Output library

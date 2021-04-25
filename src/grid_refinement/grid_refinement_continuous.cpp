@@ -639,6 +639,16 @@ void GridRefinement_Continuous_Adjoint<dim,nstate,real,MeshType>::field_h()
             this->volume_update_flags,
             this->h_field,
             poly_degree);
+        // SizeField<dim,real>::adjoint_h_equal(
+        //     this->complexity_target,
+        //     dwr,
+        //     this->dg->dof_handler,
+        //     mapping_collection,
+        //     this->dg->fe_collection,
+        //     this->dg->volume_quadrature_collection,
+        //     this->volume_update_flags,
+        //     this->h_field,
+        //     poly_degree);
 
     }else{
         // the case of non-uniform p

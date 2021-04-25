@@ -80,7 +80,7 @@ public:
         const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
         const dealii::UpdateFlags &                update_flags,          // update flags for for volume fe
         std::unique_ptr<Field<dim,real>>&          h_field,               // (output) target size_field
-        const real &                               poly_degree);           // uniform polynomial degree
+        const real &                               poly_degree);          // uniform polynomial degree
 
     // performs adjoint based size-field adaptation with general p-field. Based on:
     // Balan, A., Woopen, M., & May, G. (2016). 
@@ -99,7 +99,28 @@ public:
         std::unique_ptr<Field<dim,real>>&          h_field,               // (output) target size_field
         const dealii::Vector<real> &               p_field);              // polynomial degree vector
 
+    // performs adjoint based size field adaptatation with uniform p-field
+    // peforms equidistribution of DWR to sizes based on 2p+1 power of convergence
+    static void adjoint_h_equal(
+        const real                                 complexity,            // target complexity
+        const dealii::Vector<real> &               eta,                   // error indicator (DWR)
+        const dealii::hp::DoFHandler<dim> &        dof_handler,           // dof_handler
+        const dealii::hp::MappingCollection<dim> & mapping_collection,    // mapping collection
+        const dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
+        const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
+        const dealii::UpdateFlags &                update_flags,          // update flags for for volume fe
+        std::unique_ptr<Field<dim,real>>&          h_field,               // (output) target size_field
+        const real &                               poly_degree);          // uniform polynomial degree
+
 protected:
+    // sets the h_field sizes based on a reference value and DWR distribution
+    static void update_h_dwr(
+        const real                          tau,          // reference value for settings sizes
+        const dealii::Vector<real> &        eta,          // error indicator (DWR)
+        const dealii::hp::DoFHandler<dim> & dof_handler,  // dof_handler
+        std::unique_ptr<Field<dim,real>>&   h_field,      // (output) target size_field
+        const real &                        poly_degree); // uniform polynomial degree
+
     // given a p-field, redistribute h_field according to B
     static void update_h_optimal(
         const real                          lambda,      // (input) bisection parameter
@@ -139,8 +160,9 @@ protected:
     static real bisection(
         const std::function<real(real)> func,         // lambda function that takes real -> real 
         real                            lower_bound,  // lower bound of the search
-        real                            upper_bound); // upper bound of the search
-
+        real                            upper_bound,  // upper bound of the search
+        real                            rel_tolerance = 1e-6,
+        real                            abs_tolerance = 1.0);
 };
 
 } // namespace GridRefinement

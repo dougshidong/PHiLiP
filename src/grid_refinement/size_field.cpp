@@ -409,6 +409,122 @@ void SizeField<dim,real>::adjoint_h_balan(
 
 }
 
+// performs adjoint based size field adaptatation with uniform p-field
+// peforms equidistribution of DWR to sizes based on 2p+1 power of convergence
+template <int dim, typename real>
+void SizeField<dim,real>::adjoint_h_equal(
+    const real                                 complexity,            // target complexity
+    const dealii::Vector<real> &               eta,                   // error indicator (DWR)
+    const dealii::hp::DoFHandler<dim> &        dof_handler,           // dof_handler
+    const dealii::hp::MappingCollection<dim> & mapping_collection,    // mapping collection
+    const dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
+    const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
+    const dealii::UpdateFlags &                update_flags,          // update flags for for volume fe
+    std::unique_ptr<Field<dim,real>>&          h_field,               // (output) target size_field
+    const real &                               poly_degree)           // uniform polynomial degree
+{
+    std::cout << "Starting equal distribution of DWR based on 2p+1 power." << std::endl;
+
+    // creating a proper polynomial vector
+    dealii::Vector<real> p_field(dof_handler.get_triangulation().n_active_cells());
+    for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell)
+        if(cell->is_locally_owned())
+            p_field[cell->active_cell_index()] = poly_degree;
+
+    // getting minimum and maximum of eta
+    real eta_min_local, eta_max_local;
+    bool first = true;
+    for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell){
+        if(!cell->is_locally_owned()) continue;
+
+        unsigned int index = cell->active_cell_index();
+
+        // for first cell found, setting the value 
+        if(first){
+            eta_min_local = eta[index];
+            eta_max_local = eta[index];
+            first = false;
+        }else{
+
+            // performing checks
+            if(eta[index] < eta_min_local)
+                eta_min_local = eta[index];
+
+            if(eta[index] > eta_max_local)
+                eta_max_local = eta[index];
+
+        }
+    }
+
+    // each processor needs atleast 1 cell
+    Assert(first, dealii::ExcInternalError());
+
+    // perform mpi call
+    real eta_min = dealii::Utilities::MPI::min(eta_min_local, MPI_COMM_WORLD);
+    real eta_max = dealii::Utilities::MPI::max(eta_max_local, MPI_COMM_WORLD);
+
+    // setting up the bisection functional, based on an input value of tau
+    // determines new size from 2p+1 root relative to local DWR
+    auto f = [&](real tau) -> real{
+        // updating the size field
+        update_h_dwr(
+            tau,
+            eta, 
+            dof_handler,
+            h_field,
+            poly_degree);
+
+        // getting the complexity and returning the difference with the target
+        real current_complexity = evaluate_complexity(
+            dof_handler, 
+            mapping_collection, 
+            fe_collection, 
+            quadrature_collection, 
+            update_flags, 
+            h_field, 
+            p_field);
+        return current_complexity - complexity;
+    };
+
+    // performing the bisection call
+    real tau_target = bisection(f, eta_min, eta_max, 1e-10);
+
+    // updating the size field
+    update_h_dwr(
+        tau_target,
+        eta, 
+        dof_handler,
+        h_field,
+        poly_degree);
+}
+
+// sets the h_field sizes based on a reference value and DWR distribution
+template <int dim, typename real>
+void SizeField<dim,real>::update_h_dwr(
+    const real                          tau,         // reference value for settings sizes
+    const dealii::Vector<real> &        eta,         // error indicator (DWR)
+    const dealii::hp::DoFHandler<dim> & dof_handler, // dof_handler
+    std::unique_ptr<Field<dim,real>>&   h_field,     // (output) target size_field
+    const real &                        poly_degree) // uniform polynomial degree
+{
+    // exponent for inverse DWR scaling
+    const real Nrt = 1.0/(2*poly_degree+1);
+
+    // looping through the cells and updating their size using tau
+     for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell){
+        if(!cell->is_locally_owned()) continue;
+
+        unsigned int index = cell->active_cell_index();
+
+        // getting the new length based on Nrt
+        const real h_target = pow(tau/eta[index], Nrt);
+
+        // applying in the field
+        h_field->set_scale(index, h_target);
+    }
+
+}
+
 // updates the size targets for the entire mesh (from alpha)
 // based on the input of a bisection parameter eta_ref
 template <int dim, typename real>
@@ -499,7 +615,9 @@ template <int dim, typename real>
 real SizeField<dim,real>::bisection(
     const std::function<real(real)> func,  
     real                            lower_bound, 
-    real                            upper_bound)
+    real                            upper_bound,
+    real                            rel_tolerance,
+    real                            abs_tolerance)
 {
     real f_lb = func(lower_bound);
     real f_ub = func(upper_bound);
@@ -513,10 +631,12 @@ real SizeField<dim,real>::bisection(
     real x   = (lower_bound + upper_bound)/2.0;
     real f_x = func(x);
 
-    const real         rel_tolerance = 1e-6;
-    const unsigned int max_iter      = 1000;
+    // const real         rel_tolerance = 1e-6;
+    const unsigned int max_iter = 1000;
 
-    const real tolerance = rel_tolerance * abs(f_ub-f_lb);
+    real tolerance = rel_tolerance * abs(f_ub-f_lb);
+    if(abs_tolerance < tolerance)
+        tolerance = abs_tolerance;
 
     unsigned int i = 0;
     while(abs(f_x) > tolerance && i < max_iter){

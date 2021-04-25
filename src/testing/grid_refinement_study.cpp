@@ -1,5 +1,6 @@
 #include <stdlib.h>     /* srand, rand */
 #include <iostream>
+#include <chrono>
 
 #include <type_traits>
 
@@ -164,8 +165,14 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
                  << ". Number of degrees of freedom: " << n_dofs
                  << std::endl;
 
+            /* temp, zeroing solution */
+            // {
+            //     dg->solution *= 0.;
+            // }
+
             // solving the system
             // option of whether to solve the problem or interpolate it from the manufactured solution
+            auto solve_start = std::chrono::steady_clock::now();
             if(!grs_param.use_interpolation){
                 ode_solver->steady_state();
             }else{
@@ -174,6 +181,8 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
                 dealii::VectorTools::interpolate(dg->dof_handler, *(physics_double->manufactured_solution_function), solution_no_ghost);
                 dg->solution = solution_no_ghost;
             }
+            auto solve_end = std::chrono::steady_clock::now();
+            auto solve_diff = solve_end - solve_start;
 
             // TODO: computing necessary values
             int overintegrate = 10;
@@ -237,12 +246,23 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
 
             // optional output of the adjoint results to vtk
             if(grs_param.output_adjoint_vtk){
+            {
                 // evaluating the derivatives and the fine grid adjoint
                 if(dg->get_max_fe_degree() + 1 <= dg->max_degree){ // don't output if at max order (as p-enrichment will segfault)
+                {
+                    auto adj_start = std::chrono::steady_clock::now();
                     adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double,MeshType>::AdjointStateEnum::fine);
                     adjoint->fine_grid_adjoint();
                     estimated_error_per_cell.reinit(grid->n_active_cells());
                     estimated_error_per_cell = adjoint->dual_weighted_residual();
+                    auto adj_end = std::chrono::steady_clock::now();
+                    auto adj_diff = adj_end - adj_start;
+
+                    // entries for timing
+                    if(grs_param.output_adjoint_time){
+                        convergence_table.add_value("adj_time", ((double)std::chrono::duration_cast<std::chrono::milliseconds>(adj_diff).count())/1000.);
+                    }
+
                     adjoint->output_results_vtk(iref*10+igrid);
                 }
 
@@ -272,6 +292,11 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
             if(grs_param.output_solution_error){
                 convergence_table.add_value("l2_error", l2_norm_mpi);
                 convergence_table.add_value("linf_error", linf_norm_mpi);
+            }
+
+            // entries for timing
+            if(grs_param.output_solution_time){
+                convergence_table.add_value("solve_time", ((double)std::chrono::duration_cast<std::chrono::milliseconds>(solve_diff).count())/1000.);
             }
 
             solution_error.push_back(l2_norm_mpi);

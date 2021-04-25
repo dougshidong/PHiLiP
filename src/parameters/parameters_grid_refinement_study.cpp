@@ -105,6 +105,14 @@ void GridRefinementStudyParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Bool(),
                           "Indicates whetherto output a new gnuplot figure at every iteration."
                           "Requires output_gnuplot == true.");
+
+        prm.declare_entry("output_solution_time", "false",
+                          dealii::Patterns::Bool(),
+                          "Output flag for wall clock solution timing.");
+
+        prm.declare_entry("output_adjoint_time", "false",
+                          dealii::Patterns::Bool(),
+                          "Output flag for wall clock adjoint timing.");
     }
     prm.leave_subsection();
 }
@@ -161,6 +169,9 @@ void GridRefinementStudyParam::parse_parameters(dealii::ParameterHandler &prm)
         output_gnuplot_solution   = prm.get_bool("output_gnuplot_solution");
         output_gnuplot_functional = prm.get_bool("output_gnuplot_functional");
         refresh_gnuplot           = prm.get_bool("refresh_gnuplot");
+
+        output_solution_time = prm.get_bool("output_solution_time");
+        output_adjoint_time  = prm.get_bool("output_adjoint_time");
     }
     prm.leave_subsection();
 }

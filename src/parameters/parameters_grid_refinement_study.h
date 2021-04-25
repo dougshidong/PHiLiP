@@ -59,8 +59,12 @@ public:
     bool output_gnuplot_functional;
     bool refresh_gnuplot;
 
+    bool output_solution_time;
+    bool output_adjoint_time;
+
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters(dealii::ParameterHandler &prm);
+    
     /// Parses input file and sets the variables.
     void parse_parameters(dealii::ParameterHandler &prm);
 };

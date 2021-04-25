@@ -35,87 +35,135 @@ end
 
 subsection grid refinement study
   # polyonomial degrees
-  set poly_degree      = 2
+  set poly_degree      = 3
   set poly_degree_max  = 4
   set poly_degree_grid = 1
 
   # grid setup
-  # set grid_type = read_grid
-  # set input_grid = output_bl_16_4b.msh
+  set grid_type = read_grid
+  set input_grid = output_bl15_fb_p3_5.msh
 
-  set grid_type  = hypercube
+  # set grid_type  = hypercube
   #set input_grid = NaN
   set grid_left  = 0.0
   set grid_right = 1.0
   set grid_size  = 16
 
-  # manufactured solution
-  #set use_manufactured_source_term = true
-  #set manufactured_solution_type   = atan_solution
-
-  # enabling interpolation for error measurement
-  # set use_interpolation = true
-  # set use_interpolation = true
-
-  # # for the lpcvt runs
-  # subsection grid refinement
-  #   set refinement_steps  = 1
-  #   set refinement_method = continuous
-  #   set refinement_type   = h
-
-  #   set anisotropic = true
-  #   set anisotropic_ratio_min = 0.2
-  #   set anisotropic_ratio_max = 5.0
-
-  #   set error_indicator = hessian_based
-  #   set norm_Lq = 2.0
-  #   # set complexity_vector = [2304, 4608, 9216, 18432, 36864]
-  #   # set complexity_vector = [1296, 2592, 5184, 10368, 20736]
-  #   set complexity_vector = [36864]
-
-  #   set output_type = msh_out
-  #   set output_data_type = metric_field    
-  # end
-
-  # for the alltogether run
-  set num_refinements = 3
-
-  subsection grid refinement [1]
+  # for the lpcvt runs
+  subsection grid refinement
     set refinement_steps  = 1
-    set refinement_method = uniform
-  end
-
-  # grid refinement
-  subsection grid refinement [0]
-    set refinement_steps  = 7
     set refinement_method = continuous
     set refinement_type   = h
+
+    set anisotropic = true
+    set anisotropic_ratio_min = 0.2
+    set anisotropic_ratio_max = 5.0
+
+    set error_indicator = hessian_based
+    set norm_Lq = 2.0
+    # set complexity_vector = [256, 512, 1024, 2048, 4096, 8192, 16,384, 32768, 65536]
+    # set complexity_vector = [576, 1152, 2304, 4608, 9216]
+
+    # p=1, 1.5x
+    # set complexity_vector = [1024, 1536, 2304, 3456, 5184, 7776, 11664, 17496, 26244, 39366, 59049]
+
+    # p=2, 1.5x
+    # set complexity_vector = [2304, 3456, 5184, 7776, 11664, 17496, 26244, 39366, 59049, 88574]
+
+    # p=3, 1.5x
+    # set complexity_vector = [4096, 6144, 9216, 13824, 20736, 31104, 46656, 69984, 104976, 157464]
+
+    set complexity_vector = [69984]
+
+    set output_type = msh_out
+    set output_data_type = metric_field    
+  end
+
+  # # for the alltogether run
+  # set num_refinements = 4
+
+  # # grid refinement
+  # subsection grid refinement [0]
+  #   set refinement_steps  = 8
+  #   set refinement_method = continuous
+  #   set refinement_type   = h
     
-    #set anisotropic       = false
-    set anisotropic       = true
-    set anisotropic_ratio_min = 0.1
-    set anisotropic_ratio_max = 10.0
+  #   #set anisotropic       = false
+  #   set anisotropic       = true
+  #   set anisotropic_ratio_min = 0.1
+  #   set anisotropic_ratio_max = 10.0
+  #   # set anisotropic_ratio_min = 0.2
+  #   # set anisotropic_ratio_max = 5.0
 
-    set error_indicator   = hessian_based
-    set norm_Lq           = 2.0
-    set complexity_scale  = 2.0
-    set complexity_add    = 0.0
+  #   set error_indicator   = hessian_based
+  #   set norm_Lq           = 2.0
+  #   set complexity_scale = 1.5 # p=1 w/p=2 scaling & p=3 
+  #   # set complexity_scale  = 1.502 # p =2
+  #   set complexity_add    = 0.0
 
-    # output options
-    set output_type      = gmsh_out
-  end
+  #   # output options
+  #   set output_type      = gmsh_out
+  # end
 
-  subsection grid refinement [2]
-    set refinement_steps    = 1
-    set refinement_method   = fixed_fraction
-    set refinement_type     = h
-    set anisotropic         = false
-    set error_indicator     = hessian_based
-    set norm_Lq             = 2.0
-    set refinement_fraction = 0.3
-    set coarsening_fraction = 0.0
-  end
+  # subsection grid refinement [1]
+  #   set refinement_steps  = 6
+  #   set refinement_method = continuous
+  #   set refinement_type   = h
+    
+  #   #set anisotropic       = false
+  #   set anisotropic       = true
+  #   set anisotropic_ratio_min = 0.1
+  #   set anisotropic_ratio_max = 10.0
+  #   # set anisotropic_ratio_min = 0.2
+  #   # set anisotropic_ratio_max = 5.0
 
+  #   set error_indicator   = hessian_based
+  #   set norm_Lq           = 2.0
+  #   # set complexity_scale  = 2.0 #p=1, p=2
+  #   set complexity_scale = 2.01 # p=3
+  #   set complexity_add    = 0.0
+
+  #   # output options
+  #   set output_type      = gmsh_out
+  # end
+
+  # # subsection grid refinement [0]
+  # #   set refinement_steps  = 8
+  # #   set refinement_method = continuous
+  # #   set refinement_type   = h
+    
+  # #   #set anisotropic       = false
+  # #   set anisotropic       = true
+  # #   set anisotropic_ratio_min = 0.3333
+  # #   set anisotropic_ratio_max = 3.0
+  # #   # set anisotropic_ratio_min = 0.2
+  # #   # set anisotropic_ratio_max = 5.0
+
+  # #   set error_indicator   = hessian_based
+  # #   set norm_Lq           = 2.0
+  # #   # set complexity_scale  = 1.502 #p=1, p=2
+  # #   # set complexity_scale = 2.01 # p=3
+  # #   set complexity_add    = 0.0
+
+  # #   # output options
+  # #   set output_type      = gmsh_out
+  # # end
+
+  # subsection grid refinement [3]
+  #   set refinement_steps  = 3
+  #   set refinement_method = uniform
+  # end
+
+  # subsection grid refinement [2]
+  #   set refinement_steps = 5
+  #   set refinement_method = fixed_fraction
+
+  #   set refinement_type = h
+  #   set anisotropic = false
+  #   set error_indicator = hessian_based
+  #   set refinement_fraction = 0.3
+  #   set coarsening_fraction = 0.00
+  # end
 end
 
 subsection manufactured solution convergence study

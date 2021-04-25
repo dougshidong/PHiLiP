@@ -156,4 +156,18 @@ end
 subsection manufactured solution convergence study
   set use_manufactured_source_term = true
   set manufactured_solution_type   = s_shock_solution
+
+  # setting the default diffusion tensor
+  set diffusion_00 = 12
+  set diffusion_01 = 3
+  set diffusion_10 = 3
+  set diffusion_11 = 20
+
+  # setting the advection vector
+  set advection_0 = 1.1
+  set advection_1 = -1.155727 # -pi/e
+
+  # setting the diffusion coefficient, 0.01*pi/e
+  set diffusion_coefficient = 0.0115573
+
 end

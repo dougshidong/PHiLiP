@@ -167,4 +167,18 @@ end
 subsection manufactured solution convergence study
   set use_manufactured_source_term = true
   set manufactured_solution_type   = boundary_layer_solution
+
+  # setting the default diffusion tensor
+  set diffusion_00 = 1
+  set diffusion_01 = 0
+  set diffusion_10 = 0
+  set diffusion_11 = 1
+
+  # setting the advection vector
+  set advection_0 = 1
+  set advection_1 = 1 
+
+  # setting the diffusion coefficient
+  set diffusion_coefficient = 0.1
+  
 end

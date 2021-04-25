@@ -3,6 +3,7 @@
 
 #include <deal.II/base/tensor.h>
 #include "physics.h"
+#include "parameters/parameters_manufactured_solution.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -77,8 +78,16 @@ class Euler : public PhysicsBase <dim, nstate, real>
 {
 public:
     /// Constructor
-    Euler(const double ref_length, const double gamma_gas, const double mach_inf, const double angle_of_attack, const double side_slip_angle, std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr)
-    : PhysicsBase<dim,nstate,real>(manufactured_solution_function)
+    Euler(
+        const double                                              ref_length, 
+        const double                                              gamma_gas, 
+        const double                                              mach_inf, 
+        const double                                              angle_of_attack, 
+        const double                                              side_slip_angle, 
+        const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
+        const dealii::Tensor<1,3,double>                          input_advection_vector = Parameters::ManufacturedSolutionParam::get_default_advection_vector(),
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr)
+    : PhysicsBase<dim,nstate,real>(input_diffusion_tensor, input_advection_vector, manufactured_solution_function)
     , ref_length(ref_length)
     , gam(gamma_gas)
     , gamm1(gam-1.0)

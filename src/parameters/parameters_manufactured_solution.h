@@ -4,6 +4,8 @@
 #include <deal.II/base/parameter_handler.h>
 #include "parameters/parameters.h"
 
+#include <deal.II/base/tensor.h>
+
 namespace PHiLiP {
 
 namespace Parameters {
@@ -32,10 +34,21 @@ public:
         };
     ManufacturedSolutionType manufactured_solution_type; ///< Selected ManufacturedSolutionType from the input file
 
+    /// Diffusion tensor
+    dealii::Tensor<2,3,double> diffusion_tensor;
+
+    /// Advection velocity
+    dealii::Tensor<1,3,double> advection_vector;
+
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
     /// Parses input file and sets the variables.
     void parse_parameters (dealii::ParameterHandler &prm);
+
+    /// gets the default diffusion tensor
+    static dealii::Tensor<2,3,double> get_default_diffusion_tensor();
+    /// gets the default advection vector
+    static dealii::Tensor<1,3,double> get_default_advection_vector();
 };
 
 } // Parameters namespace

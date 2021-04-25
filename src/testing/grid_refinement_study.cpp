@@ -246,10 +246,8 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
 
             // optional output of the adjoint results to vtk
             if(grs_param.output_adjoint_vtk){
-            {
                 // evaluating the derivatives and the fine grid adjoint
                 if(dg->get_max_fe_degree() + 1 <= dg->max_degree){ // don't output if at max order (as p-enrichment will segfault)
-                {
                     auto adj_start = std::chrono::steady_clock::now();
                     adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double,MeshType>::AdjointStateEnum::fine);
                     adjoint->fine_grid_adjoint();

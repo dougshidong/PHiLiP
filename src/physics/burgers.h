@@ -4,6 +4,7 @@
 #include <deal.II/base/tensor.h>
 
 #include "parameters/all_parameters.h"
+#include "parameters/parameters_manufactured_solution.h"
 
 #include "physics.h"
 
@@ -36,8 +37,15 @@ public:
     const bool hasDiffusion;
 
     /// Constructor
-    Burgers(const bool convection = true, const bool diffusion = true, std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr)
-        : PhysicsBase<dim,nstate,real>(manufactured_solution_function), hasConvection(convection), hasDiffusion(diffusion)
+    Burgers(
+        const bool                                                convection = true, 
+        const bool                                                diffusion = true, 
+        const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
+        const dealii::Tensor<1,3,double>                          input_advection_vector = Parameters::ManufacturedSolutionParam::get_default_advection_vector(),
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr) : 
+            PhysicsBase<dim,nstate,real>(input_diffusion_tensor, input_advection_vector, manufactured_solution_function), 
+            hasConvection(convection), 
+            hasDiffusion(diffusion)
     {
         static_assert(nstate==dim, "Physics::Burgers() should be created with nstate==dim");
     };

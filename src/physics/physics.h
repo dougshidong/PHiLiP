@@ -6,6 +6,7 @@
 #include <deal.II/fe/fe_update_flags.h>
 
 #include "parameters/all_parameters.h"
+#include "parameters/parameters_manufactured_solution.h"
 #include "physics/manufactured_solution.h"
 
 
@@ -32,7 +33,10 @@ class PhysicsBase
 {
 public:
     /// Default constructor that will set the constants.
-    PhysicsBase(std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
+    PhysicsBase(
+        const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
+        const dealii::Tensor<1,3,double>                          input_advection_vector = Parameters::ManufacturedSolutionParam::get_default_advection_vector(),
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
 
     /// Virtual destructor required for abstract classes.
     virtual ~PhysicsBase() = 0;

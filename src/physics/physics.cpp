@@ -13,66 +13,37 @@ namespace PHiLiP {
 namespace Physics {
 
 template <int dim, int nstate, typename real>
-PhysicsBase<dim,nstate,real>::PhysicsBase(std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input):
-    manufactured_solution_function(manufactured_solution_function_input)
+PhysicsBase<dim,nstate,real>::PhysicsBase(
+    const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
+    const dealii::Tensor<1,3,double>                          input_advection_vector,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input):
+        manufactured_solution_function(manufactured_solution_function_input)
 {
     // if provided with a null ptr, give it the default manufactured solution
     // currently only necessary for the unit test
     if(!manufactured_solution_function)
         manufactured_solution_function = std::make_shared<ManufacturedSolutionSine<dim,real>>(nstate);
 
-    const double pi = atan(1)*4.0;
-    const double ee = exp(1);
+    // advection velocity
+    velo_x = input_advection_vector[0];
+    velo_y = input_advection_vector[1];
+    velo_z = input_advection_vector[2];
 
-    // Some constants used to define manufactured solution
-    // s-shock
-    velo_x = 1.1; velo_y = -pi/ee; velo_z = ee/pi;
-    // bl
-    // velo_x = 1; velo_y = 1; 
-
-    // s-shock
-    diff_coeff = 0.01*pi/ee;
-    // bl
-    // diff_coeff = 0.1;
-
-    // Anisotropic diffusion matrix
-    //A11 =   9; A12 =  -2; A13 =  -6;
-    //A21 =   3; A22 =  20; A23 =   4;
-    //A31 =  -2; A32 = 0.5; A33 =   8;
-
-    // diffusion_tensor[0][0] = 12;
-    // if (dim>=2) {
-    //     diffusion_tensor[0][1] = -2;
-    //     diffusion_tensor[1][0] = 3;
-    //     diffusion_tensor[1][1] = 20;
-    // }
-    // if (dim>=3) {
-    //     diffusion_tensor[0][2] = -6;
-    //     diffusion_tensor[1][2] = -4;
-    //     diffusion_tensor[2][0] = -2;
-    //     diffusion_tensor[2][1] = 0.5;
-    //     diffusion_tensor[2][2] = 8;
-    // }
-
-    // s-shock
-    diffusion_tensor[0][0] = 12;
-    if (dim>=2) {
-        diffusion_tensor[0][1] = 3;
-        diffusion_tensor[1][0] = 3;
-        diffusion_tensor[1][1] = 20;
+    // anisotropic diffusion matrix
+    diffusion_tensor[0][0] = input_diffusion_tensor[0][0];
+    if constexpr(dim >= 2) {
+        diffusion_tensor[0][1] = input_diffusion_tensor[0][1];
+        diffusion_tensor[1][0] = input_diffusion_tensor[1][0];
+        diffusion_tensor[1][1] = input_diffusion_tensor[1][1];
     }
-    if (dim>=3) {
-        diffusion_tensor[0][2] = -2;
-        diffusion_tensor[2][0] = 2;
-        diffusion_tensor[2][1] = 5;
-        diffusion_tensor[1][2] = -5;
-        diffusion_tensor[2][2] = 18;
+    if constexpr(dim >= 3) {
+        diffusion_tensor[0][2] = input_diffusion_tensor[0][2];
+        diffusion_tensor[2][0] = input_diffusion_tensor[2][0];
+        diffusion_tensor[1][2] = input_diffusion_tensor[1][2];
+        diffusion_tensor[2][1] = input_diffusion_tensor[2][1];
+        diffusion_tensor[2][2] = input_diffusion_tensor[2][2];
     }
 
-    // bl
-    // for (int i=0;i<dim;i++)
-    //    for (int j=0;j<dim;j++)
-    //        diffusion_tensor[i][j] = (i==j) ? 1.0 : 0.0;
 }
 
 template <int dim, int nstate, typename real>

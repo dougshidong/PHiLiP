@@ -28,32 +28,33 @@ PhysicsFactory<dim,nstate,real>
         = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(parameters_input, nstate);
 
     // setting the diffusion tensor and advection vectors from parameters (if needed)
-    const dealii::Tensor<2,3,double> diffusion_tensor = parameters_input->manufactured_convergence_study_param.manufactured_solution_param.diffusion_tensor;
-    const dealii::Tensor<1,3,double> advection_vector = parameters_input->manufactured_convergence_study_param.manufactured_solution_param.advection_vector;
+    const dealii::Tensor<2,3,double> diffusion_tensor      = parameters_input->manufactured_convergence_study_param.manufactured_solution_param.diffusion_tensor;
+    const dealii::Tensor<1,3,double> advection_vector      = parameters_input->manufactured_convergence_study_param.manufactured_solution_param.advection_vector;
+    const double                     diffusion_coefficient = parameters_input->manufactured_convergence_study_param.manufactured_solution_param.diffusion_coefficient;
 
     if (pde_type == PDE_enum::advection || pde_type == PDE_enum::advection_vector) {
         if constexpr (nstate<=2) 
             return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(
                 true, false,
-                diffusion_tensor, advection_vector,
+                diffusion_tensor, advection_vector, diffusion_coefficient,
                 manufactured_solution_function);
     } else if (pde_type == PDE_enum::diffusion) {
         if constexpr (nstate==1) 
             return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(
                 false, true,
-                diffusion_tensor, advection_vector,
+                diffusion_tensor, advection_vector, diffusion_coefficient,
                 manufactured_solution_function);
     } else if (pde_type == PDE_enum::convection_diffusion) {
         if constexpr (nstate==1) 
             return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(
                 true, true,
-                diffusion_tensor, advection_vector,
+                diffusion_tensor, advection_vector, diffusion_coefficient,
                 manufactured_solution_function);
     } else if (pde_type == PDE_enum::burgers_inviscid) {
         if constexpr (nstate==dim) 
             return std::make_shared < Burgers<dim,nstate,real> >(
                 true, false,
-                diffusion_tensor, advection_vector,
+                diffusion_tensor, advection_vector, diffusion_coefficient,
                 manufactured_solution_function);
     } else if (pde_type == PDE_enum::euler) {
         if constexpr (nstate==dim+2) {
@@ -63,7 +64,7 @@ PhysicsFactory<dim,nstate,real>
                 parameters_input->euler_param.mach_inf,
                 parameters_input->euler_param.angle_of_attack,
                 parameters_input->euler_param.side_slip_angle,
-                diffusion_tensor, advection_vector,
+                diffusion_tensor, advection_vector, diffusion_coefficient,
                 manufactured_solution_function);
         }
 
@@ -71,12 +72,13 @@ PhysicsFactory<dim,nstate,real>
         if constexpr (nstate == 8) 
             return std::make_shared < MHD<dim,nstate,real> > (
                 parameters_input->euler_param.gamma_gas,
-                diffusion_tensor, advection_vector,
+                diffusion_tensor, advection_vector, diffusion_coefficient,
                 manufactured_solution_function);
     } else {
         // prevent warnings for dim=3,nstate=4, etc.
         (void) diffusion_tensor;
         (void) advection_vector;
+        (void) diffusion_coefficient;
     }
     std::cout << "Can't create PhysicsBase, invalid PDE type: " << pde_type << std::endl;
     assert(0==1 && "Can't create PhysicsBase, invalid PDE type");

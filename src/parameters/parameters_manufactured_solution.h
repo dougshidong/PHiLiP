@@ -40,6 +40,9 @@ public:
     /// Advection velocity
     dealii::Tensor<1,3,double> advection_vector;
 
+    /// Diffusion coefficient
+    double diffusion_coefficient;
+
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
     /// Parses input file and sets the variables.
@@ -49,6 +52,8 @@ public:
     static dealii::Tensor<2,3,double> get_default_diffusion_tensor();
     /// gets the default advection vector
     static dealii::Tensor<1,3,double> get_default_advection_vector();
+    /// gets the default diffusion coefficient;
+    static double get_default_diffusion_coefficient();
 };
 
 } // Parameters namespace

@@ -74,6 +74,11 @@ void ManufacturedSolutionParam::declare_parameters(dealii::ParameterHandler &prm
                           description);
     }
 
+    // diffusion coefficient
+    prm.declare_entry("diffusion_coefficient", std::to_string(get_default_diffusion_coefficient()),
+                      dealii::Patterns::Double(),
+                      "Set the diffusion matrix coefficient.");
+
 }
 
 void ManufacturedSolutionParam::parse_parameters(dealii::ParameterHandler &prm)
@@ -104,6 +109,8 @@ void ManufacturedSolutionParam::parse_parameters(dealii::ParameterHandler &prm)
     advection_vector[0] = prm.get_double("advection_0");
     advection_vector[1] = prm.get_double("advection_1");
     advection_vector[2] = prm.get_double("advection_2");
+
+    diffusion_coefficient = prm.get_double("diffusion_coefficient");
 }
 
 dealii::Tensor<2,3,double> ManufacturedSolutionParam::get_default_diffusion_tensor()
@@ -147,6 +154,13 @@ dealii::Tensor<1,3,double> ManufacturedSolutionParam::get_default_advection_vect
     default_advection_vector[2] = ee/pi;
 
     return default_advection_vector;
+}
+
+double ManufacturedSolutionParam::get_default_diffusion_coefficient()
+{
+    const double pi = atan(1)*4.0;
+    const double ee = exp(1);
+    return 0.1 * pi/ee;
 }
 
 } // Parameters namespace

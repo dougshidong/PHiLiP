@@ -16,6 +16,7 @@ template <int dim, int nstate, typename real>
 PhysicsBase<dim,nstate,real>::PhysicsBase(
     const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
     const dealii::Tensor<1,3,double>                          input_advection_vector,
+    const double                                              input_diffusion_coefficient,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input):
         manufactured_solution_function(manufactured_solution_function_input)
 {
@@ -44,6 +45,8 @@ PhysicsBase<dim,nstate,real>::PhysicsBase(
         diffusion_tensor[2][2] = input_diffusion_tensor[2][2];
     }
 
+    // diffusion coefficient
+    diff_coeff = input_diffusion_coefficient;
 }
 
 template <int dim, int nstate, typename real>

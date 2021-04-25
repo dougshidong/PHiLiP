@@ -25,28 +25,36 @@ PhysicsBase<dim,nstate,real>::PhysicsBase(std::shared_ptr< ManufacturedSolutionF
     const double ee = exp(1);
 
     // Some constants used to define manufactured solution
+    // s-shock
     velo_x = 1.1; velo_y = -pi/ee; velo_z = ee/pi;
+    // bl
+    // velo_x = 1; velo_y = 1; 
+
+    // s-shock
     diff_coeff = 0.01*pi/ee;
+    // bl
+    // diff_coeff = 0.1;
 
     // Anisotropic diffusion matrix
     //A11 =   9; A12 =  -2; A13 =  -6;
     //A21 =   3; A22 =  20; A23 =   4;
     //A31 =  -2; A32 = 0.5; A33 =   8;
 
-    diffusion_tensor[0][0] = 12;
-    if (dim>=2) {
-        diffusion_tensor[0][1] = -2;
-        diffusion_tensor[1][0] = 3;
-        diffusion_tensor[1][1] = 20;
-    }
-    if (dim>=3) {
-        diffusion_tensor[0][2] = -6;
-        diffusion_tensor[1][2] = -4;
-        diffusion_tensor[2][0] = -2;
-        diffusion_tensor[2][1] = 0.5;
-        diffusion_tensor[2][2] = 8;
-    }
+    // diffusion_tensor[0][0] = 12;
+    // if (dim>=2) {
+    //     diffusion_tensor[0][1] = -2;
+    //     diffusion_tensor[1][0] = 3;
+    //     diffusion_tensor[1][1] = 20;
+    // }
+    // if (dim>=3) {
+    //     diffusion_tensor[0][2] = -6;
+    //     diffusion_tensor[1][2] = -4;
+    //     diffusion_tensor[2][0] = -2;
+    //     diffusion_tensor[2][1] = 0.5;
+    //     diffusion_tensor[2][2] = 8;
+    // }
 
+    // s-shock
     diffusion_tensor[0][0] = 12;
     if (dim>=2) {
         diffusion_tensor[0][1] = 3;
@@ -60,6 +68,8 @@ PhysicsBase<dim,nstate,real>::PhysicsBase(std::shared_ptr< ManufacturedSolutionF
         diffusion_tensor[1][2] = -5;
         diffusion_tensor[2][2] = 18;
     }
+
+    // bl
     // for (int i=0;i<dim;i++)
     //    for (int j=0;j<dim;j++)
     //        diffusion_tensor[i][j] = (i==j) ? 1.0 : 0.0;

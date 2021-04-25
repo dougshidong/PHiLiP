@@ -175,11 +175,15 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_gmsh()
 
     // check for anisotropy
     if(this->grid_refinement_param.anisotropic){
+        // polynomial order from max
+        const int poly_degree = this->dg->get_max_fe_degree();
+
         // using an anisotropic BAMG with merge
         GmshOut<dim,real>::write_pos_anisotropic(
             *(this->tria),
             this->h_field->get_inverse_quadratic_metric_vector(),
-            outpos);
+            outpos,
+            poly_degree);
     }else{
         // using a frontal approach to quad generation
         GmshOut<dim,real>::write_pos(
@@ -370,7 +374,7 @@ real GridRefinement_Continuous<dim,nstate,real,MeshType>::current_complexity()
     if(this->dg->get_min_fe_degree() == this->dg->get_max_fe_degree()){
         // case 1: uniform p-order, complexity relates to total dof
         unsigned int poly_degree = this->dg->get_min_fe_degree();
-        return pow(poly_degree+1, dim) * this->tria->n_global_active_cells(); //TODO: check how this behaves in MPI
+        return pow(poly_degree+1, dim) * this->tria->n_global_active_cells(); 
     }else{
         // case 2: non-uniform p-order, complexity related to the local sizes
         for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)

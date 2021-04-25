@@ -26,7 +26,8 @@ public:
     static void write_pos_anisotropic(
         const dealii::Triangulation<dim,dim>&                   tria,
         const std::vector<dealii::SymmetricTensor<2,dim,real>>& data,
-        std::ostream&                                           out);
+        std::ostream&                                           out,
+        const int                                               p_scale = 1);
 
     // writing the geo file
     static void write_geo(

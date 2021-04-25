@@ -156,7 +156,8 @@ template <int dim, typename real>
 void GmshOut<dim,real>::write_pos_anisotropic(
     const dealii::Triangulation<dim,dim>&                   tria,
     const std::vector<dealii::SymmetricTensor<2,dim,real>>& data,
-    std::ostream&                                           out)
+    std::ostream&                                           out,
+    const int                                               p_scale)
 {
     const unsigned int n_vertices = tria.n_used_vertices();
 
@@ -239,10 +240,15 @@ void GmshOut<dim,real>::write_pos_anisotropic(
                     // writing the tensor itself, always 3x3
                     const unsigned int N = 3;
 
-                    // scaling for the complexity match
-                    // const double scale = 0.25*0.5/sqrt(2.0); // p = 1
-                    const double scale = 0.25/sqrt(3.0); // p = 2
-                    // const double scale = 0.25/sqrt(2.0); // p = 3
+                    // empirical scaling for the complexity match
+                    double scale = 1.0;
+                    if(p_scale == 1){
+                        scale = 0.25*0.5/sqrt(2.0);
+                    }else if(p_scale == 2){
+                        scale = 0.25/sqrt(3.0);
+                    }else if(p_scale == 3){
+                        scale = 0.25/sqrt(2.0);
+                    }
 
                     for(unsigned int i = 0; i < N; ++i){
                         for(unsigned int j = 0; j < N; ++j){

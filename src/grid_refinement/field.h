@@ -13,77 +13,110 @@ namespace PHiLiP {
 
 namespace GridRefinement {
 
-// element base class that accesses field information at a point (corresponding element)
+/// Element class
+/** This provides a base class for incorporating both isotropic (size) and anisotropic (size, anisotropy orientation)
+  * in controlling unstructured mesh adaptation methods. Provides functions for setting and accesing the local values 
+  * for a given cell. A collection of elements is contained in the corresponding Field class (with respective extensions
+  * for anisotropy). Note: setting anisotropic properties in the isotropic case will assert(0) and make no changes.
+  */
 template <int dim, typename real>
 class Element
 {
 public:
-	// reference for element size
+	/// Reference for element size
+	/** Allows direct read/write of scale of mean element axis.
+	  * Measure of element (length, area, volume) will be $scale^{dim}$
+	  */
 	virtual real& scale() = 0;
 
-	// setting the scale
+	/// Set the scale for the element
 	virtual void set_scale(
 		const real val) = 0;
 
-	// getting the scale
+	/// Get the scale for the element
 	virtual real get_scale() const = 0;
 
-	// setting the anisotropic ratio
+	/// Set the anisotropic ratio for each reference axis
+	/** Requires array of order matching axis definition. 
+	  * Each reference axis will have length $l = \alpha * scale$.
+	  * Note: does nothing in the isotropic case. 
+	  */
 	virtual void set_anisotropic_ratio(
 		const std::array<real,dim>& ratio) = 0;
 
-	// getting the anisotropic ratio (array)
+	/// Get the anisotropic ratio of each reference axis as an array
+	/** Note: equals 1 for each axis in isotropic case.
+	  */ 
 	virtual std::array<real,dim> get_anisotropic_ratio() = 0;
 
-	// getting the anisotropic ratio
+	/// Get the anisotropic ratio corresponding to the $j^{th}$ reference axis
+	/** Note: equals 1 for each axis in isotropic case.
+	  */ 
 	virtual real get_anisotropic_ratio(
 		const unsigned int j) = 0;
 
-	// setting the (unit) axis direction
+	/// Set the unit axes of the element
+	/** Requires an ordered array of dealii::Tensor with vector axes.
+	  * If none unit values are provided, will be rescaled and factored in to anisotropic ratios.
+	  * Note: does nothing in the isotropic case.
+	  */
 	virtual void set_unit_axis(
 		const std::array<dealii::Tensor<1,dim,real>,dim>& unit_axis) = 0;
 
-	// getting the (unit) axis direction (array)
+	/// Get unit axis directions as an array
 	virtual std::array<dealii::Tensor<1,dim,real>,dim> get_unit_axis() = 0;
 
-	// getting the (unit) axis direction
+	/// Get the $j^{th}$ reference axis
 	virtual dealii::Tensor<1,dim,real> get_unit_axis(
 		const unsigned int j) = 0;
 
-	// setting frame axis j (scaled) at index
+	/// Set the scaled local frame axes based on vector set (length and direction)
+	/** Describe the axes of reference parrelogram or parrelopiped at point.
+	  * Note: does nothing in the isotropic case.
+	  */
 	virtual void set_axis(
 		const std::array<dealii::Tensor<1,dim,real>,dim>& axis) = 0;
 
-	// getting frame axis j (scaled) at index (array)
+	/// Get the array of axes of the local frame field $(v_1,v_2,v_3)$
 	virtual std::array<dealii::Tensor<1,dim,real>,dim> get_axis() = 0;
 
-	// getting frame axis j (scaled) at index
+	/// Get the vector corresponding to the $j^{th}$ frame axis $v_j$
 	virtual dealii::Tensor<1,dim,real> get_axis(
 		const unsigned int j) = 0;
 
-	// get metric value at index
+	/// Get metric matrix at point describing mapping from reference element
+	/** In 2D orthorgonal case, $V = [v,w] = h * R(\theta) * \operatorname{diag}{\rho,1/\rho}$.
+	  * Under transformation, order of axes is maintained with $(i,j,k)$ vectors mapping to $(v_1,v_2,v_3)$
+	  */ 
 	virtual dealii::Tensor<2,dim,real> get_metric() = 0;
 
-	// gets the inverse metric
+	///. Get inverse metric matrix for the reference element
+	/** In 2D orthogonal case, $V = 1/h * \operatorname{diag}{\rho,1/\rho} * R(-\theta)$.
+	  */ 
 	virtual dealii::Tensor<2,dim,real> get_inverse_metric() = 0;
 
-	// defining the type of the vertices and chord lists for easier definition
+	/// Type alias for array of vertex coordinates for element
 	using VertexList = std::array<dealii::Tensor<1,dim,real>, dealii::GeometryInfo<dim>::vertices_per_cell>;
+	/// Type alias for array of chord veectors (face center to face center) in Deal.II ordering
 	using ChordList  = std::array<dealii::Tensor<1,dim,real>, dim>;
 
 protected:
-	// gets the chord list from an input set of vertices
+	/// Get the chord list from an input set of vertices
 	ChordList get_chord_list(
 		const VertexList& vertices);
 
-	// sets the element based on a list of vertices
-	// internal function for handling set_cell below
+	/// Set element to match geometry of input vertex set
+	/** Vertices describe the tensor product element in Deal.II ordering.
+	  * Internal function used in handling of set_cell().
+	  */
 	virtual void set_cell_internal(
 		const VertexList& vertices) = 0;
 
 public:
 
-	// sets the Element based on the input cell (from current mesh)
+	/// Set the Element based on the input cell (from current mesh)
+	/** Tempated on the mesh/dof type of the input cell from DoFHandler.
+	  */
 	template <typename DoFCellAccessorType>
 	void set_cell(
 		const DoFCellAccessorType& cell)
@@ -96,92 +129,138 @@ public:
 		set_cell_internal(vertices);
 	}
 
-	// Dolejsi's anisotropy from reconstructed directional derivatives (reconstruct_poly)
+	/// Set anisotropy from reconstructed directional derivatives
+	/** Based on Dolejsi's method for simplices, uses values obtained from
+	  * reconstructed polynomial on neighbouring cell patch.
+	  */
 	virtual void set_anisotropy(
 		const std::array<real,dim>&                       derivative_value,
 		const std::array<dealii::Tensor<1,dim,real>,dim>& derivative_direction,
 		const unsigned int                                order) = 0;
 
-	// limits the anisotropic ratios to a given bandwidth
+	/// Limits the anisotropic ratios to a given bandwidth
+	/** First finds ratio above max, redistributes length change to maintain constant volume and scale.
+	  * Then the process is repeated with a lower bound.
+	  * Note: does nothing in the isotropic case.
+	  */ 
 	virtual void apply_anisotropic_limit(
 		const real anisotropic_ratio_min,
 		const real anisotropic_ratio_max) = 0;
 
 };
 
-// isotropic element case (element scale only)
+/// Isotropic element class
+/** Specialization of the element type for the isotropic remeshing case.
+  * Contains only the scale of local element (size field) .
+  * A collection of elements is contained in the corresponding Field class.
+  * Note: virtual functions controlling axes or anisotropic ratio do nothing, assert(0).
+  */
 template <int dim, typename real>
 class ElementIsotropic : public Element<dim,real>
 {
 public:
-	// reference for element size
+	/// Reference for element size
+	/** Allows direct read/write of scale of mean element axis.
+	  * Measure of element (length, area, volume) will be $scale^{dim}$
+	  */
 	real& scale() override;
 
-	// setting the scale
+	/// Set the scale for the element
 	void set_scale(
 		const real val) override;
 
-	// getting the scale
+	/// Get the scale for the element
 	real get_scale() const override;
 
-	// setting the anisotropic ratio
+	/// Set the anisotropic ratio for each reference axis
+	/** Requires array of order matching axis definition. 
+	  * Each reference axis will have length $l = \alpha * scale$.
+	  * Note: does nothing in the isotropic case. 
+	  */
 	void set_anisotropic_ratio(
 		const std::array<real,dim>& ratio) override;
 
-	// getting the anisotropic ratio (array)
+	/// Get the anisotropic ratio of each reference axis as an array
+	/** Note: equals 1 for each axis in isotropic case.
+	  */ 
 	std::array<real,dim> get_anisotropic_ratio() override;
 
-	// getting the anisotropic ratio
+	/// Get the anisotropic ratio corresponding to the $j^{th}$ reference axis
+	/** Note: equals 1 for each axis in isotropic case.
+	  */ 
 	real get_anisotropic_ratio(
 		const unsigned int j) override;
 
-	// setting the (unit) axis direction
+	/// Set the unit axes of the element
+	/** Requires an ordered array of dealii::Tensor with vector axes.
+	  * If none unit values are provided, will be rescaled and factored in to anisotropic ratios.
+	  * Note: does nothing in the isotropic case.
+	  */
 	void set_unit_axis(
 		const std::array<dealii::Tensor<1,dim,real>,dim>& unit_axis) override;
 
-	// getting the (unit) axis direction (array)
+	/// Get unit axis directions as an array
 	std::array<dealii::Tensor<1,dim,real>,dim> get_unit_axis() override;
 
-	// getting the (unit) axis direction
+	/// Get the $j^{th}$ reference axis
 	dealii::Tensor<1,dim,real> get_unit_axis(
 		const unsigned int j) override;
 
-	// setting frame axis j (scaled) at index
+	/// Set the scaled local frame axes based on vector set (length and direction)
+	/** Describe the axes of reference parrelogram or parrelopiped at point.
+	  * Note: does nothing in the isotropic case.
+	  */
 	void set_axis(
 		const std::array<dealii::Tensor<1,dim,real>,dim>& axis) override;
 
-	// getting frame axis j (scaled) at index (array)
+	/// Get the array of axes of the local frame field $(v_1,v_2,v_3)$
 	std::array<dealii::Tensor<1,dim,real>,dim> get_axis() override;
 
-	// getting frame axis j (scaled) at index
+	/// Get the vector corresponding to the $j^{th}$ frame axis $v_j$
 	dealii::Tensor<1,dim,real> get_axis(
 		const unsigned int j) override;
 
-	// get metric value at index
+	/// Get metric matrix at point describing mapping from reference element
+	/** In 2D orthorgonal case, $V = [v,w] = h * R(\theta) * \operatorname{diag}{\rho,1/\rho}$.
+	  * Under transformation, order of axes is maintained with $(i,j,k)$ vectors mapping to $(v_1,v_2,v_3)$
+	  */
 	dealii::Tensor<2,dim,real> get_metric() override;
 
-	// get inverse metric value
+	///. Get inverse metric matrix for the reference element
+	/** In 2D orthogonal case, $V = 1/h * \operatorname{diag}{\rho,1/\rho} * R(-\theta)$.
+	  */ 
 	dealii::Tensor<2,dim,real> get_inverse_metric() override;
 
 protected:
-	// sets the element based on a list of vertices
-	// internal function for handling set_cell below
+	/// Set element to match geometry of input vertex set
+	/** Vertices describe the tensor product element in Deal.II ordering.
+	  * Internal function used in handling of set_cell().
+	  */
 	void set_cell_internal(
 		const typename Element<dim,real>::VertexList& vertices) override;
 
 public:
-	// Dolejsi's anisotropy from reconstructed directional derivatives (reconstruct_poly)
+	/// Set anisotropy from reconstructed directional derivatives
+	/** Based on Dolejsi's method for simplices, uses values obtained from
+	  * reconstructed polynomial on neighbouring cell patch.
+	  */
 	void set_anisotropy(
 		const std::array<real,dim>&                       derivative_value,
 		const std::array<dealii::Tensor<1,dim,real>,dim>& derivative_direction,
 		const unsigned int                                order) override;
 
-	// limits the anisotropic ratios to a given bandwidth
+	/// Limits the anisotropic ratios to a given bandwidth
+	/** First finds ratio above max, redistributes length change to maintain constant volume and scale.
+	  * Then the process is repeated with a lower bound.
+	  * Note: does nothing in the isotropic case.
+	  */ 
 	void apply_anisotropic_limit(
 		const real anisotropic_ratio_min,
 		const real anisotropic_ratio_max);
 
-	// output to ostream
+	/// Write properties of element to ostream
+	/** Used in Field.serialize(os) in to provide summary of field.
+	  */ 
 	friend std::ostream& operator<<(
 		std::ostream&                     os,
 		const ElementIsotropic<dim,real>& element) 
@@ -193,36 +272,54 @@ public:
 	}
 
 private:
-	// element size
+	/// element size
 	real m_scale;
 };
 
-// anisotropic element case (stores frame axes)
+/// Anisotropic element class
+/** Specialization of the element type for the anisotropic remeshing case.
+  * Stores decomposed frame field axes (size, orientation and anisotropy).
+  * A collection of elements is contained in the corresponding Field class.
+  */
 template <int dim, typename real>
 class ElementAnisotropic : public Element<dim,real>
 {
 public:
-	// constructor
+	/// Constructor, sets default element definition
+	/** Sets the scale to 0 (non-existant) and axes
+	  * to the unit reference coordinate axes.
+	  */
 	ElementAnisotropic();
 
-	// reference for element size
+	/// Reference for element size
+	/** Allows direct read/write of scale of mean element axis.
+	  * Measure of element (length, area, volume) will be $scale^{dim}$
+	  */
 	real& scale() override;
 
-	// setting the scale
+	/// Set the scale for the element
 	void set_scale(
 		const real val) override;
 
-	// getting the scale
+	/// Get the scale for the element
 	real get_scale() const override;
 
-	// setting the anisotropic ratio
+	/// Set the anisotropic ratio for each reference axis
+	/** Requires array of order matching axis definition. 
+	  * Each reference axis will have length $l = \alpha * scale$.
+	  * Note: does nothing in the isotropic case. 
+	  */
 	void set_anisotropic_ratio(
 		const std::array<real,dim>& ratio) override;
 
-	// getting the anisotropic ratio (array)
+	/// Get the anisotropic ratio of each reference axis as an array
+	/** Note: equals 1 for each axis in isotropic case.
+	  */ 
 	std::array<real,dim> get_anisotropic_ratio() override;
 
-	// getting the anisotropic ratio
+	/// Get the anisotropic ratio corresponding to the $j^{th}$ reference axis
+	/** Note: equals 1 for each axis in isotropic case.
+	  */ 
 	real get_anisotropic_ratio(
 		const unsigned int j) override;
 

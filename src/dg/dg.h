@@ -143,7 +143,6 @@ public:
      *  this is not a constant member variables.
      */
     //dealii::hp::MappingCollection<dim> mapping_collection;
-
     void set_all_cells_fe_degree ( const unsigned int degree );
 
     /// Gets the maximum value of currently active FE degree

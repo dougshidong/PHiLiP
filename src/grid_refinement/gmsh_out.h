@@ -39,6 +39,12 @@ public:
         std::vector<std::string> &posFile_vec,
         std::ostream &            out);
 
+    // perform call to gmsh for grid generation if availible
+    // returns 1 if system call is performed, 0 otherwise
+    static int call_gmsh(
+        std::string geo_name,
+        std::string output_name);
+
 private:
     // writing the part of the geo file for a hyper cube
     static void write_geo_hyper_cube(

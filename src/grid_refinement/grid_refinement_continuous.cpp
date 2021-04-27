@@ -220,25 +220,9 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_gmsh()
                 outgeo);
         }
 
-        std::string args = " " + write_geoname + " -2 -save_all -o " + output_name;
-
-        #if 0
-        // uses old version of gmsh
-        std::string cmd = "/usr/local/include/gmsh-master/build/gmsh" + args;
-        std::cout << "Command is: " << cmd << '\n';
-        int ret = std::system(cmd.c_str());
-        #elif 0
-        // hardcode redirect to my version 4.7.0
-        std::string cmd = "~/gmsh/gmsh-4.7.0-Linux64/bin/gmsh" + args;
-        std::cout << "Command is: " << cmd << '\n';
-        int ret = std::system(cmd.c_str());
-        #else
-        // hardcode redirect to my version 4.6.0
-        std::string cmd = "~/gmsh/gmsh-4.6.0-Linux64/bin/gmsh" + args;
-        std::cout << "Command is: " << cmd << '\n';
-        int ret = std::system(cmd.c_str());
-        #endif
-        (void) ret;
+        // run gmsh with check for non-availibility
+        if(!GmshOut<dim,real>::call_gmsh(write_geoname, output_name))
+            return;
     }
 
     // barrier

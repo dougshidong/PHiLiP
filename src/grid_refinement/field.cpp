@@ -700,13 +700,13 @@ std::vector<dealii::Tensor<2,dim,real>> Field<dim,real>::get_metric_vector()
 	std::vector<dealii::Tensor<2,dim,real>> vec(this->size());
 
 	for(unsigned int i = 0; i < this->size(); ++i){
-		// temp
-		std::cout << "metric[" << i << "] = "
-			<< ", alpha = " << this->get_scale(i)
-			<< ", r1 = " << this->get_anisotropic_ratio(i, 0)
-			<< ", v1 = {" << this->get_unit_axis(i, 0) 
-			<< "}, r2 = " << this->get_anisotropic_ratio(i, 1)
-			<< ", v2 = {" << this->get_unit_axis(i, 1) << "}" << std::endl;
+		// // temp
+		// std::cout << "metric[" << i << "] = "
+		// 	<< ", alpha = " << this->get_scale(i)
+		// 	<< ", r1 = " << this->get_anisotropic_ratio(i, 0)
+		// 	<< ", v1 = {" << this->get_unit_axis(i, 0) 
+		// 	<< "}, r2 = " << this->get_anisotropic_ratio(i, 1)
+		// 	<< ", v2 = {" << this->get_unit_axis(i, 1) << "}" << std::endl;
 		
 		vec[i] = this->get_metric(i);
 	}
@@ -720,13 +720,13 @@ std::vector<dealii::Tensor<2,dim,real>> Field<dim,real>::get_inverse_metric_vect
 	std::vector<dealii::Tensor<2,dim,real>> vec(this->size());
 
 	for(unsigned int i = 0; i < this->size(); ++i){
-		// temp
-		std::cout << "metric[" << i << "] = "
-			<< ", 1/alpha = " << (1.0/this->get_scale(i))
-			<< ", 1/r1 = " << (1.0/this->get_anisotropic_ratio(i, 0))
-			<< ", v1 = {" << this->get_unit_axis(i, 0) 
-			<< "}, 1/r2 = " << (1.0/this->get_anisotropic_ratio(i, 1))
-			<< ", v1 = {" << this->get_unit_axis(i, 1) << "}" << std::endl;
+		// // temp
+		// std::cout << "metric[" << i << "] = "
+		// 	<< ", 1/alpha = " << (1.0/this->get_scale(i))
+		// 	<< ", 1/r1 = " << (1.0/this->get_anisotropic_ratio(i, 0))
+		// 	<< ", v1 = {" << this->get_unit_axis(i, 0) 
+		// 	<< "}, 1/r2 = " << (1.0/this->get_anisotropic_ratio(i, 1))
+		// 	<< ", v1 = {" << this->get_unit_axis(i, 1) << "}" << std::endl;
 		
 		vec[i] = this->get_inverse_metric(i);
 	}
@@ -979,8 +979,8 @@ std::ostream& FieldInternal<dim,real,ElementType>::serialize(
 	std::ostream& os) const 
 {
 	for(unsigned int index = 0; index < this->size(); ++index){
-		std::cout << "writing element index = " << index << std::endl;
-		std::cout << "with size = " << field[index].get_scale() << std::endl;
+		// std::cout << "writing element index = " << index << std::endl;
+		// std::cout << "with size = " << field[index].get_scale() << std::endl;
 		os << field[index] << std::endl;
 	}
 

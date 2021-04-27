@@ -77,7 +77,7 @@ void GridRefinementStudyParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Bool(),
                           "Indicates whether to interpolate the problem instead of solving with DG.");
 
-        prm.declare_entry("approximate_functional", "true",
+        prm.declare_entry("approximate_functional", "false",
                           dealii::Patterns::Bool(),
                           "Indicates whether function is to be approximated from manufactured solution"
                           "or exact value read from functional_value parameter.");

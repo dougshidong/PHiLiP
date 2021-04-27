@@ -16,7 +16,11 @@ foreach(dim RANGE 1 3)
     string(CONCAT GridRefinementLib GridRefinement_${dim}D)
     add_library(${GridRefinementLib} STATIC ${GRID_REFINEMENT_SOURCE})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
-    target_compile_definitions(${GridRefinementLib} PRIVATE PHILIP_DIM=${dim})
+    target_compile_definitions(${GridRefinementLib} PRIVATE 
+        PHILIP_DIM=${dim} 
+        ENABLE_GMSH=1 
+        GMSH_PATH=\"/usr/local/include/gmsh-master/build/gmsh\" 
+        ENABLE_GNUPLOT=1)
 
     # Setup target with deal.II
     if(NOT DOC_ONLY)

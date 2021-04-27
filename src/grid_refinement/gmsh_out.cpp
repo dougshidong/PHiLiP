@@ -1,4 +1,5 @@
 #include <float.h>
+#include <string>
 
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/grid/tria.h>
@@ -420,6 +421,28 @@ void GmshOut<dim,real>::write_geo_hyper_cube(
     }
 
 }
+
+template <int dim, typename real>
+int GmshOut<dim,real>::call_gmsh(
+    std::string geo_name,
+    std::string output_name)
+{
+#if ENABLE_GMSH && defined GMSH_PATH
+    // enabled, call with suitable args
+    std::string args = " " + geo_name + " -" + std::to_string(dim) + " -save_all -o " + output_name;
+    std::string cmd = GMSH_PATH + args;
+    std::cout << "Command is: " << cmd << '\n';
+    int ret = std::system(cmd.c_str());
+    (void) ret;
+    return 1;
+#else
+    // disabled
+    std::cerr << "Error: Call to gmsh without gmsh enabled." << std::endl;
+    std::cerr << "       Please set ENABLE_GMSH and GMSH_PATH and try again." << std::endl;
+    return 0;
+#endif
+}
+
 
 template class GmshOut <PHILIP_DIM, double>;
 template class GmshOut <PHILIP_DIM, float>;

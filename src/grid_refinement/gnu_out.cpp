@@ -207,8 +207,13 @@ void GnuFig<real>::write_xy_data(
 template <typename real>
 void GnuFig<real>::exec_gnuplot()
 {
+#if ENABLE_GNUPLOT
     int ret =  std::system(("gnuplot \"" + name + ".gp\"").c_str());
     (void) ret;
+#else
+    std::cout << "Note: gnuplot not availible. Set ENABLE_GNUPLOT to automatically run \"" 
+              << name << ".gp\"" << std::endl;
+#endif
 }
 
 template class GnuFig <double>;

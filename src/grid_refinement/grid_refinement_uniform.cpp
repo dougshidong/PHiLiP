@@ -86,9 +86,6 @@ std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_Unifo
     return data_out_vector;
 }
 
-// large amount of templating to be done, move to an .inst file
-// try reducing this with BOOST
-
 // dealii::Triangulation<PHILIP_DIM>
 template class GridRefinement_Uniform<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
 template class GridRefinement_Uniform<PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;

@@ -51,13 +51,21 @@ protected:
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics_input);
 
     using GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase;
-    void refine_grid()    override;
+
+    // virtual refinement method from base class
+    void refine_grid() override;
+
 protected:
-    void refine_grid_h()  override;
-    void refine_grid_p()  override;
-    void refine_grid_hp() override;    
+
+    // specified refinement functions for different cases
+    void refine_grid_h();
+    void refine_grid_p();
+    void refine_grid_hp();    
+
+    // vtk output function
     std::vector< std::pair<dealii::Vector<real>, std::string> > output_results_vtk_method() override;
 
+    // getting the size or tensor fields based on indicator
     void field();
     virtual void field_h() = 0;
     virtual void field_p() = 0;
@@ -67,6 +75,7 @@ protected:
     void refine_grid_gmsh();
     void refine_grid_msh();
 
+    // scheduling of complexity growth
     real current_complexity();
     void target_complexity();
 

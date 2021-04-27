@@ -64,13 +64,7 @@ protected:
 
 public:
     // refine_grid is the main function
-    virtual void refine_grid()    = 0;
-
-protected:
-    // refine grid functions to be called
-    virtual void refine_grid_h()  = 0;
-    virtual void refine_grid_p()  = 0;
-    virtual void refine_grid_hp() = 0;
+    virtual void refine_grid() = 0;
 
 public:
     // main output class
@@ -109,6 +103,10 @@ protected:
 
     // parameters
     PHiLiP::Parameters::GridRefinementParam grid_refinement_param;
+
+    // indicator type
+    using ErrorIndicatorEnum = PHiLiP::Parameters::GridRefinementParam::ErrorIndicator;
+    ErrorIndicatorEnum error_indicator_type;
 
     // adj
     std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> > adjoint;

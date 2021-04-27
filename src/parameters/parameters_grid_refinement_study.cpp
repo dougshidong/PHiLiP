@@ -98,7 +98,7 @@ void GridRefinementStudyParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Bool(),
                           "ouput the convergence table for the solution error.");
 
-        prm.declare_entry("output_functional_error", "true",
+        prm.declare_entry("output_functional_error", "false",
                           dealii::Patterns::Bool(),
                           "ouput the convergence table for the functional error.");
 
@@ -106,7 +106,7 @@ void GridRefinementStudyParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Bool(),
                           "Output flag for gnuplot solution error figure.");
 
-        prm.declare_entry("output_gnuplot_functional", "true",
+        prm.declare_entry("output_gnuplot_functional", "false",
                           dealii::Patterns::Bool(),
                           "Output flag for gnuplot functional error figure.");
 

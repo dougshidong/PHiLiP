@@ -164,6 +164,12 @@ subsection grid refinement study
   #   set refinement_fraction = 0.3
   #   set coarsening_fraction = 0.00
   # end
+
+  # output
+  set output_solution_error = false
+  set output_functional_error = true
+  set output_gnuplot_solution = false
+  set output_gnuplot_functional = true
 end
 
 subsection manufactured solution convergence study

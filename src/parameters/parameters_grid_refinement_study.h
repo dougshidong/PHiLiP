@@ -49,6 +49,9 @@ public:
 
     bool use_interpolation;
 
+    bool approximate_functional;
+    double functional_value;
+
     bool output_vtk;
     bool output_adjoint_vtk;
 

@@ -51,6 +51,8 @@ subsection grid refinement study
   set grid_size  = 16
 
   # functional
+  set approximate_functional = false
+  set functional_value       = 0.0
   subsection functional
     # functional choice
     set functional_type = normLp_boundary

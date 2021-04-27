@@ -77,6 +77,15 @@ void GridRefinementStudyParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Bool(),
                           "Indicates whether to interpolate the problem instead of solving with DG.");
 
+        prm.declare_entry("approximate_functional", "true",
+                          dealii::Patterns::Bool(),
+                          "Indicates whether function is to be approximated from manufactured solution"
+                          "or exact value read from functional_value parameter.");
+
+        prm.declare_entry("functional_value", "0.0",
+                          dealii::Patterns::Double(),
+                          "Exact value of functional for goal-oriented convergence.");
+
         prm.declare_entry("output_vtk", "true",
                           dealii::Patterns::Bool(),
                           "Output flag for grid_refinement vtk files.");
@@ -159,6 +168,9 @@ void GridRefinementStudyParam::parse_parameters(dealii::ParameterHandler &prm)
         grid_size  = prm.get_integer("grid_size");
 
         use_interpolation = prm.get_bool("use_interpolation");
+
+        approximate_functional = prm.get_bool("approximate_functional");
+        functional_value       = prm.get_double("functional_value");
 
         output_vtk         = prm.get_bool("output_vtk");
         output_adjoint_vtk = prm.get_bool("output_adjoint_vtk");

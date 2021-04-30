@@ -115,7 +115,7 @@ protected:
 public:
 
 	/// Set the Element based on the input cell (from current mesh)
-	/** Tempated on the mesh/dof type of the input cell from DoFHandler.
+	/** Templated on the mesh/dof type of the input cell from DoFHandler.
 	  */
 	template <typename DoFCellAccessorType>
 	void set_cell(
@@ -226,7 +226,7 @@ public:
 	  */
 	dealii::Tensor<2,dim,real> get_metric() override;
 
-	///. Get inverse metric matrix for the reference element
+	/// Get inverse metric matrix for the reference element
 	/** In 2D orthogonal case, $V = 1/h * \operatorname{diag}{\rho,1/\rho} * R(-\theta)$.
 	  */ 
 	dealii::Tensor<2,dim,real> get_inverse_metric() override;
@@ -259,7 +259,7 @@ public:
 		const real anisotropic_ratio_max);
 
 	/// Write properties of element to ostream
-	/** Used in Field.serialize(os) in to provide summary of field.
+	/** Used in Field.serialize(os) to provide summary of field.
 	  */ 
 	friend std::ostream& operator<<(
 		std::ostream&                     os,
@@ -323,53 +323,64 @@ public:
 	real get_anisotropic_ratio(
 		const unsigned int j) override;
 
-	// setting the (unit) axis direction
+	/// setting the (unit) axis direction
 	void set_unit_axis(
 		const std::array<dealii::Tensor<1,dim,real>,dim>& unit_axis) override;
 
-	// getting the (unit) axis direction (array)
+	/// getting the (unit) axis direction (array)
 	std::array<dealii::Tensor<1,dim,real>,dim> get_unit_axis() override;
 
-	// getting the (unit) axis direction
+	/// getting the (unit) axis direction
 	dealii::Tensor<1,dim,real> get_unit_axis(
 		const unsigned int j) override;
 
-	// setting frame axis j (scaled) at index
+	/// setting frame axis j (scaled) at index
 	void set_axis(
 		const std::array<dealii::Tensor<1,dim,real>,dim>& axis) override;
 
-	// getting frame axis j (scaled) at index (array)
+	/// getting frame axis j (scaled) at index (array)
 	std::array<dealii::Tensor<1,dim,real>,dim> get_axis() override;
 
-	// getting frame axis j (scaled) at index
+	/// getting frame axis j (scaled) at index
 	dealii::Tensor<1,dim,real> get_axis(
 		const unsigned int j) override;
 
-	// get metric value at index
+	/// get metric value at index
 	dealii::Tensor<2,dim,real> get_metric() override;
 
-	// get inverse metric value
+	/// get inverse metric value
 	dealii::Tensor<2,dim,real> get_inverse_metric() override;
 
 protected:
-	// sets the element based on a list of vertices
-	// internal function for handling set_cell below
+	/// Set element to match geometry of input vertex set
+	/** Vertices describe the tensor product element in Deal.II ordering.
+	  * Internal function used in handling of set_cell().
+	  */
 	void set_cell_internal(
 		const typename Element<dim,real>::VertexList& vertices) override;
 
 public:
-	// Dolejsi's anisotropy from reconstructed directional derivatives (reconstruct_poly)
+	/// Set anisotropy from reconstructed directional derivatives
+	/** Based on Dolejsi's method for simplices, uses values obtained from
+	  * reconstructed polynomial on neighbouring cell patch.
+	  */
 	void set_anisotropy(
 		const std::array<real,dim>&                       derivative_value,
 		const std::array<dealii::Tensor<1,dim,real>,dim>& derivative_direction,
 		const unsigned int                                order) override;
 
-	// limits the anisotropic ratios to a given bandwidth
+	/// Limits the anisotropic ratios to a given bandwidth
+	/** First finds ratio above max, redistributes length change to maintain constant volume and scale.
+	  * Then the process is repeated with a lower bound.
+	  * Note: does nothing in the isotropic case.
+	  */ 
 	void apply_anisotropic_limit(
 		const real anisotropic_ratio_min,
 		const real anisotropic_ratio_max);
 
-	// output to ostream
+	/// Write properties of element to ostream
+	/** Used in Field.serialize(os) to provide summary of field.
+	  */ 
 	friend std::ostream& operator<<(
 		std::ostream&                       os,
 		const ElementAnisotropic<dim,real>& element)
@@ -394,179 +405,196 @@ public:
 
 private:
 
-	// resets the element
+	/// resets the element
 	void clear();
 
-	// corrects the values stored internally
+	/// Corrects internal values to ensure consistent treatement
+	/** Element size, direction unit vectors and anisotropic ratios
+	  * are renormalized based on expected definitions.
+	  */
 	void correct_element();
 
-	// renormalize the unit_axis by factoring any scaling into anisotropic ratio
-	// correct_anisotropic_ratio() should be called immediately afterward
+	/// renormalize the unit_axis
+	/** Uses factoring and rescaling non-unit length into anisotropic ratio.
+	  * correct_anisotropic_ratio() should be called immediately afterward.
+	  */
 	void correct_unit_axis();
 
-	// adjust the ratio values s.t. product of anisotropic ratios equals 1 
+	/// Correct the anisotropic ratio values
+	/** Guarantees that their product is equal to 1
+	  */ 
 	void correct_anisotropic_ratio();
 
-	// sorts the anisotropic ratio values (and corresponding unit axis)
+	/// Sorts the anisotropic ratio values (and corresponding unit axis) in ascending order
 	void sort_anisotropic_ratio();
 
-	// element size
+	/// element size based on $(Volume)^{1/dim}$
 	real m_scale;
 
-	// axes ratios
+	/// Anisotropic axis ratios (relative to element scale)
 	std::array<real, dim> m_anisotropic_ratio;
 
-	// axes directions
+	/// axis unit vector directions
 	std::array<dealii::Tensor<1,dim,real>, dim> m_unit_axis;
 };
 
-// object to store the anisotropic description of the field
+/// Field element class
+/** This class describes the anisotropic size specification for continuous
+  * mesh remeshing methods. Each DG mesh element is associated with an isotropic
+  * or anisotropic description for the ideal target element at each point during remeshing.
+  * Provides wraper to access these values to output to mesh generators without knowledge of mesh type. 
+  * Each local element is stored in ElementIsotropic or ELementAnisotropic
+  * specified above and the FieldInternal class is used to differentiate.
+  */
 template <int dim, typename real>
 class Field 
 {
 public:
-	// reinitialize the internal vector
+	/// reinitialize the internal data structure 
 	virtual void reinit(
 		const unsigned int size) = 0;
 
-	// returns the internal vector size
+	/// returns the internal vector size
 	virtual unsigned int size() const = 0;
 
-	// reference for element size
+	/// reference for element size
 	virtual real& scale(
 		const unsigned int index) = 0;
 
-	// setting the scale
+	/// Sets scale for the specified element index
 	virtual void set_scale(
 		const unsigned int index,
 		const real         val) = 0;
 
-	// getting the scale
+	/// Gets scale for the specified element index
 	virtual real get_scale(
 		const unsigned int index) const = 0;
 
-	// setting the scale vector (dealii::Vector)
+	/// Sets scale for all elements from a scale vector (dealii::Vector)
 	void set_scale_vector_dealii(
 		const dealii::Vector<real>& vec);
 	
-	// setting the scale vector (std::vector)
+	/// Sets scale for all elements from a scale vector(std::vector)
 	void set_scale_vector(
 		const std::vector<real>& vec);
 
-	// getting the scale vector (dealii::Vector)
+	/// Gets scale for all elements from a scale vector (dealii::Vector)
 	dealii::Vector<real> get_scale_vector_dealii() const;
 
-	// getting the scale vector (std::vector)
+	/// Gets scale fpr all elements from a scale vector (std::vector)
 	std::vector<real> get_scale_vector() const;
 
-	// setting the anisotropic ratio
+	/// Sets anisotropic ratio for the specified element index (if anisotropic)
 	virtual void set_anisotropic_ratio(
 		const unsigned int          index,
 		const std::array<real,dim>& ratio) = 0;
 
-	// getting the anisotropic ratio
+	/// Gets the anisotropic ratio for the specified element index
 	virtual std::array<real,dim> get_anisotropic_ratio(
 		const unsigned int index) = 0;
 
-	// getting the anisotropic ratio
+	/// Gets the anisotropic ratio for the specified element index along axis j
 	virtual real get_anisotropic_ratio(
 		const unsigned int index,
 		const unsigned int j) = 0;
 
-	// gets the dealii vector of max anisotropic ratio for each cell
+	/// Gets the vector of largest anisotropic ratio for each element (dealii::Vector)
 	dealii::Vector<real> get_max_anisotropic_ratio_vector_dealii();
 
-	// setting the (unit) axis direction
+	/// Sets the group of dim (unit) axis directions for the specified element index
 	virtual void set_unit_axis(
 		const unsigned int                                index,
 		const std::array<dealii::Tensor<1,dim,real>,dim>& unit_axis) = 0;
 
-	// getting the (unit) axis direction
+	/// Gets the group of dim (unit) axis direction for the specified element index
 	virtual std::array<dealii::Tensor<1,dim,real>,dim> get_unit_axis(
 		const unsigned int index) = 0;
 
-	// getting the (unit) axis direction
+	/// Sets the j^th (unit) axis direction for the specified element index
 	virtual dealii::Tensor<1,dim,real> get_unit_axis(
 		const unsigned int index,
 		const unsigned int j) = 0;
 
-	// setting frame axis j (scaled) at index
+	/// Sets the j^th (scale) axis direction for the specified element index
 	virtual void set_axis(
 		const unsigned int                                index,
 		const std::array<dealii::Tensor<1,dim,real>,dim>& axis) = 0;
 
-	// getting frame axis j (scaled) at index
+	/// Gets the frame (dim scaled axis vectors) for the specified element index
 	virtual std::array<dealii::Tensor<1,dim,real>,dim> get_axis(
 		const unsigned int index) = 0;
 
-	// getting frame axis j (scaled) at index
+	/// Gets the j^th frame component (scaled axis vector) for the specified element index
 	virtual dealii::Tensor<1,dim,real> get_axis(
 		const unsigned int index,
 		const unsigned int j) = 0;
 
-	// setting frame axis j (scaled) vector (std::vector)
+	/// Sets the frame (dim scaled axis vectors) for each element (std::vector)
 	void set_axis_vector(
 		const std::vector<std::array<dealii::Tensor<1,dim,real>,dim>>& vec);
 
-	// getting frame axis j (scaled) vector (std::vector)
+	/// Gets the frame (dim scaled axis vectors) for each element (std::vector)
 	std::vector<std::array<dealii::Tensor<1,dim,real>,dim>> get_axis_vector();
 
-	// getting frame axis j (scaled) vector (std::vector)
+	/// Sets the j^th frame component (scaled axis vector) for each element (std::vector)
 	std::vector<dealii::Tensor<1,dim,real>> get_axis_vector(
 		const unsigned int j);
 
-	// get metric value at index
+	/// Gets the anisotropic metric tensor, $M$, for the specified element index
 	virtual dealii::Tensor<2,dim,real> get_metric(
 		const unsigned int index) = 0;
 
-	// getting the metric vector (std::vector)
+	/// Gets the anisotropic metric tensor, $M$, for each element (std::vector)
 	std::vector<dealii::Tensor<2,dim,real>> get_metric_vector();
 
-	// gets the inverse metric at index
+	/// Gets the inverse metric tensor, $M^{-1}$, for the specified element index
 	virtual dealii::Tensor<2,dim,real> get_inverse_metric(
 		const unsigned int index) = 0;
 
-	// getting the inverse metric vector (std::vector)
+	/// Gets the inverse metric tensor, $M^{-1}$,  for each element (std::vector)
 	std::vector<dealii::Tensor<2,dim,real>> get_inverse_metric_vector();
 
-	// get riemanian quadratic metric \mathcal{M} = M^T M
+	/// Gets the quadratic Riemannian metric, $\mathcal{M} = M^T M$, for the specified element index
 	dealii::SymmetricTensor<2,dim,real> get_quadratic_metric(
 		const unsigned int index);
 
-	// gets the riemanian quadratic metric \mathcal{M} = M^T M in vector format
+	/// Gets the quadratic Riemannian metric, $\mathcal{M} = M^T M$, for each element (std::vector)
 	std::vector<dealii::SymmetricTensor<2,dim,real>> get_quadratic_metric_vector();
 
-	// get metric from inverse mapping function (used in BAMG)
+	/// Gets the inverse quadratic Riemannian metric used with BAMG, $\mathcal{M}^{-1}$, for a specified element index
 	dealii::SymmetricTensor<2,dim,real> get_inverse_quadratic_metric(
 		const unsigned int index);
 
-	// gets vector of inverse mapping functions squared (used in BAMG)
+	/// Gets the inverse quadratic Riemannian metric used with BAMG, $\mathcal{M}^{-1}$, for each element (std::vector)
 	std::vector<dealii::SymmetricTensor<2,dim,real>> get_inverse_quadratic_metric_vector();
 
-	// defining the associated DofHandler type
+	/// Associated DofHandler type
 	using DoFHandlerType = dealii::hp::DoFHandler<dim>;
 
-	// asigns the field based on an input DoFHandlerType
+	/// Assigns the existing field based on an input DoFHandlerType
 	virtual void set_cell(
 		const DoFHandlerType& dof_handler) = 0;
 
-	// Dolejsi's anisotropy from reconstructed directional derivatives (reconstruct_poly)
+	/// Compute anisotropic ratio from directional derivatives
+	/** Uses Dolejsi's anisotropy method based on reconstructed $p+1$ directional derivatives.
+	  * Derivatives are obtained in reconstruct_poly.cpp.
+	  */ 
 	virtual void set_anisotropy(
 		const dealii::hp::DoFHandler<dim>&                             dof_handler,
 		const std::vector<std::array<real,dim>>&                       derivative_value,
 		const std::vector<std::array<dealii::Tensor<1,dim,real>,dim>>& derivative_direction,
 		const int                                                      relative_order) = 0;
 	
-	// limits the anisotropic ratios to a given bandwidth
+	/// Globally limit anisotropic ratio to a specified range
 	virtual void apply_anisotropic_limit(
 		const real anisotropic_ratio_min,
 		const real anisotropic_ratio_max) = 0;
 
-	// performs the internal call to writing to an ostream from the field
+	/// Performs internal call for writing the field description to an ostream
 	virtual std::ostream& serialize(
 		std::ostream& os) const = 0;
 
-	// outputs to ostream
+	/// Performs output to ostream using internal serialization
 	friend std::ostream& operator<<(
 		std::ostream&          os,
 		const Field<dim,real>& field)
@@ -576,82 +604,88 @@ public:
 
 };
 
-// wrapper to hide element type
+/// Internal Field element class
+/** This class reimplements the above generalized function with internal handling of the 
+  * ElementType. This prevents i/o and certain adaption functions from needing to directly
+  * check the type of field which is being used. Internally stores the target output mesh 
+  * description from the continuous space as a discrete vector associated with each element.
+  */
 template <int dim, typename real, typename ElementType>
 class FieldInternal : public Field<dim,real>
 {
 public:
-	// reinitialize the internal vector
+	/// reinitialize the internal data structure 
+	
 	void reinit(
 		const unsigned int size);
 
-	// returns the internal vector size
+	/// returns the internal vector size
 	unsigned int size() const;
 
-	// reference for element size
+	/// reference for element size of specified element index
 	real& scale(
 		const unsigned int index) override;
 
-	// setting the scale
+	/// Sets scale for the specified element index
 	void set_scale(
 		const unsigned int index,
 		const real         val) override;
 
-	// getting the scale
+	/// Gets scale for the specified element index
 	real get_scale(
 		const unsigned int index) const override;
 
-	// setting the anisotropic ratio
+	/// Sets anisotropic ratio for the specified element index (if anisotropic)
 	void set_anisotropic_ratio(
 		const unsigned int          index,
 		const std::array<real,dim>& ratio) override;
 
-	// getting the anisotropic ratio
+	/// Gets the anisotropic ratio for the specified element index
 	std::array<real,dim> get_anisotropic_ratio(
 		const unsigned int index) override;
 
-	// getting the anisotropic ratio
+	/// Gets the anisotropic ratio for the specified element index along axis j
 	real get_anisotropic_ratio(
 		const unsigned int index,
 		const unsigned int j) override;
 
-	// setting the (unit) axis direction
+	/// Sets the group of dim (unit) axis directions for the specified element index
 	void set_unit_axis(
 		const unsigned int                index,
 		const std::array<dealii::Tensor<1,dim,real>,dim>& unit_axis) override;
 
-	// getting the (unit) axis direction
+	/// Sets the group of dim (unit) axis directions for the specified element index
 	std::array<dealii::Tensor<1,dim,real>,dim> get_unit_axis(
 		const unsigned int index) override;
 
-	// getting the (unit) axis direction
+	/// Gets the group of dim (unit) axis direction for the specified element index
 	dealii::Tensor<1,dim,real> get_unit_axis(
 		const unsigned int index,
 		const unsigned int j) override;
 
-	// setting frame axis j (scaled) at index
+	/// Sets the j^th (unit) axis direction for the specified element index
 	void set_axis(
 		const unsigned int                                index,
 		const std::array<dealii::Tensor<1,dim,real>,dim>& axis) override;
 
-	// getting frame axis j (scaled) at index
+	/// Gets the frame (dim scaled axis vectors) for the specified element index
 	std::array<dealii::Tensor<1,dim,real>,dim> get_axis(
 		const unsigned int index) override;
 
-	// getting frame axis j (scaled) at index
+	/// Gets the j^th frame component (scaled axis vector) for the specified element index
 	dealii::Tensor<1,dim,real> get_axis(
 		const unsigned int index,
 		const unsigned int j) override;
 
-	// get metric value at index
+	// Gets the anisotropic metric tensor, $M$, for the specified element index
 	dealii::Tensor<2,dim,real> get_metric(
 		const unsigned int index) override;
 
-	// get inverse metric at index
+	//  Gets the inverse metric tensor, $M^{-1}$, for the specified element index
 	dealii::Tensor<2,dim,real> get_inverse_metric(
 		const unsigned int index) override;
 
-	// asigns the field based on an input DoFHandlerType
+	// Assigns the existing field based on an input DoFHandlerType
 	void set_cell(
 		const typename Field<dim,real>::DoFHandlerType& dof_handler) override
 	{
@@ -662,32 +696,40 @@ public:
 				field[cell->active_cell_index()].set_cell(cell);
 	}
 
-	// Dolejsi's anisotropy from reconstructed directional derivatives (reconstruct_poly)
+	/// Compute anisotropic ratio from directional derivatives
+	/** Uses Dolejsi's anisotropy method based on reconstructed $p+1$ directional derivatives.
+	  * Derivatives are obtained in reconstruct_poly.cpp.
+	  */ 
 	void set_anisotropy(
 		const dealii::hp::DoFHandler<dim>&                             dof_handler,
 		const std::vector<std::array<real,dim>>&                       derivative_value,
 		const std::vector<std::array<dealii::Tensor<1,dim,real>,dim>>& derivative_direction,
 		const int                                                      relative_order) override;
 
-	// limits the anisotropic ratios to a given bandwidth
+	/// Globally limit anisotropic ratio to a specified range
 	void apply_anisotropic_limit(
 		const real anisotropic_ratio_min,
 		const real anisotropic_ratio_max) override;
 
-	// performs the internal call to writing to an ostream from the field
+	/// Performs internal call for writing the field description to an ostream
 	std::ostream& serialize(
 		std::ostream& os) const override;
 
 private:
-	// vector of element data
+	/// Internal vector storage of element data for each index
 	std::vector<ElementType> field;
 };
 
-// isotropic element case (element scale only)
+/// Field with isotropic element 
+/** Describes target size field for the mesh only
+  */ 
 template <int dim, typename real>
 using FieldIsotropic = FieldInternal<dim,real,ElementIsotropic<dim,real>>;
 
-// anisotropic element case (stores frame axes)
+/// Field with anisotropic element
+/** Describes mesh size, orientation and anisotropy. Description is based
+  * on storage of frame axes for the target tensor-product element in dim dimensions.
+  */
 template <int dim, typename real>
 using FieldAnisotropic = FieldInternal<dim,real,ElementAnisotropic<dim,real>>;
 

@@ -67,9 +67,26 @@ protected:
 
     // getting the size or tensor fields based on indicator
     void field();
-    virtual void field_h() = 0;
-    virtual void field_p() = 0;
-    virtual void field_hp() = 0;
+
+    // based on exact error function from manufactured solution
+    void field_h_error();
+    void field_p_error();
+    void field_hp_error();
+
+    // based on hessian or feature-based error
+    void field_h_hessian();
+    void field_p_hessian();
+    void field_hp_hessian();
+
+    // based on high-order solution residual
+    void field_h_residual();
+    void field_p_residual();
+    void field_hp_residual();
+
+    // based on adjoint solution and dual-weighted residual
+    void field_h_adjoint();
+    void field_p_adjoint();
+    void field_hp_adjoint();
     
     // performing output to appropriate mesh generator
     void refine_grid_gmsh();
@@ -87,63 +104,7 @@ protected:
     void get_current_field_p();
 
     std::unique_ptr<Field<dim,real>> h_field;
-    dealii::Vector<real> p_field;
-};
-
-#if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
-#else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
-#endif
-class GridRefinement_Continuous_Error : public GridRefinement_Continuous<dim,nstate,real,MeshType>
-{
-public:
-    using GridRefinement_Continuous<dim,nstate,real,MeshType>::GridRefinement_Continuous;
-    void field_h()  override;
-    void field_p()  override;
-    void field_hp() override;
-};
-
-#if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
-#else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
-#endif
-class GridRefinement_Continuous_Hessian : public GridRefinement_Continuous<dim,nstate,real,MeshType>
-{
-public:
-    using GridRefinement_Continuous<dim,nstate,real,MeshType>::GridRefinement_Continuous;
-    void field_h()  override;
-    void field_p()  override;
-    void field_hp() override;
-};
-
-#if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
-#else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
-#endif
-class GridRefinement_Continuous_Residual : public GridRefinement_Continuous<dim,nstate,real,MeshType>
-{
-public:
-    using GridRefinement_Continuous<dim,nstate,real,MeshType>::GridRefinement_Continuous;
-    void field_h()  override;
-    void field_p()  override;
-    void field_hp() override;
-};
-
-#if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
-#else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
-#endif
-class GridRefinement_Continuous_Adjoint : public GridRefinement_Continuous<dim,nstate,real,MeshType>
-{
-public:
-    using GridRefinement_Continuous<dim,nstate,real,MeshType>::GridRefinement_Continuous;
-    void field_h()  override;
-    void field_p()  override;
-    void field_hp() override;
+    dealii::Vector<real>             p_field;
 };
 
 } // namespace GridRefinement

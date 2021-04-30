@@ -375,7 +375,7 @@ GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
         return std::make_shared< GridRefinement_FixedFraction<dim,nstate,real,MeshType> >(gr_param, adj, physics);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::adjoint_based){
-        return std::make_shared< GridRefinement_Continuous_Adjoint<dim,nstate,real,MeshType> >(gr_param, adj, physics);
+        return std::make_shared< GridRefinement_Continuous<dim,nstate,real,MeshType> >(gr_param, adj, physics);
     }
 
     // dg + physics
@@ -387,10 +387,10 @@ GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
         return std::make_shared< GridRefinement_FixedFraction<dim,nstate,real,MeshType> >(gr_param, adj, physics);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::hessian_based){
-        return std::make_shared< GridRefinement_Continuous_Hessian<dim,nstate,real,MeshType> >(gr_param, adj, physics);
+        return std::make_shared< GridRefinement_Continuous<dim,nstate,real,MeshType> >(gr_param, adj, physics);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::error_based){
-        return std::make_shared< GridRefinement_Continuous_Error<dim,nstate,real,MeshType> >(gr_param, adj, physics);
+        return std::make_shared< GridRefinement_Continuous<dim,nstate,real,MeshType> >(gr_param, adj, physics);
     }
 
     // dg
@@ -399,7 +399,7 @@ GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
         return std::make_shared< GridRefinement_FixedFraction<dim,nstate,real,MeshType> >(gr_param, adj, physics);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::residual_based){
-        return std::make_shared< GridRefinement_Continuous_Residual<dim,nstate,real,MeshType> >(gr_param, adj, physics);
+        return std::make_shared< GridRefinement_Continuous<dim,nstate,real,MeshType> >(gr_param, adj, physics);
     }else if(refinement_method == RefinementMethodEnum::uniform){
         return std::make_shared< GridRefinement_Uniform<dim,nstate,real,MeshType> >(gr_param, adj, physics);
     }
@@ -431,10 +431,10 @@ GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
         return std::make_shared< GridRefinement_FixedFraction<dim,nstate,real,MeshType> >(gr_param, dg, physics, functional);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::hessian_based){
-        return std::make_shared< GridRefinement_Continuous_Hessian<dim,nstate,real,MeshType> >(gr_param, dg, physics, functional);
+        return std::make_shared< GridRefinement_Continuous<dim,nstate,real,MeshType> >(gr_param, dg, physics, functional);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::error_based){
-        return std::make_shared< GridRefinement_Continuous_Error<dim,nstate,real,MeshType> >(gr_param, dg, physics, functional);
+        return std::make_shared< GridRefinement_Continuous<dim,nstate,real,MeshType> >(gr_param, dg, physics, functional);
     }
 
     // dg
@@ -443,7 +443,7 @@ GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
         return std::make_shared< GridRefinement_FixedFraction<dim,nstate,real,MeshType> >(gr_param, dg, physics, functional);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::residual_based){
-        return std::make_shared< GridRefinement_Continuous_Residual<dim,nstate,real,MeshType> >(gr_param, dg, physics, functional);
+        return std::make_shared< GridRefinement_Continuous<dim,nstate,real,MeshType> >(gr_param, dg, physics, functional);
     }else if(refinement_method == RefinementMethodEnum::uniform){
         return std::make_shared< GridRefinement_Uniform<dim,nstate,real,MeshType> >(gr_param, dg, physics, functional);
     }
@@ -474,10 +474,10 @@ GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
         return std::make_shared< GridRefinement_FixedFraction<dim,nstate,real,MeshType> >(gr_param, dg, physics);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::hessian_based){
-        return std::make_shared< GridRefinement_Continuous_Hessian<dim,nstate,real,MeshType> >(gr_param, dg, physics);
+        return std::make_shared< GridRefinement_Continuous<dim,nstate,real,MeshType> >(gr_param, dg, physics);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::error_based){
-        return std::make_shared< GridRefinement_Continuous_Error<dim,nstate,real,MeshType> >(gr_param, dg, physics);
+        return std::make_shared< GridRefinement_Continuous<dim,nstate,real,MeshType> >(gr_param, dg, physics);
     }
 
     // dg
@@ -486,7 +486,7 @@ GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
         return std::make_shared< GridRefinement_FixedFraction<dim,nstate,real,MeshType> >(gr_param, dg, physics);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::residual_based){
-        return std::make_shared< GridRefinement_Continuous_Residual<dim,nstate,real,MeshType> >(gr_param, dg, physics);
+        return std::make_shared< GridRefinement_Continuous<dim,nstate,real,MeshType> >(gr_param, dg, physics);
     }else if(refinement_method == RefinementMethodEnum::uniform){
         return std::make_shared< GridRefinement_Uniform<dim,nstate,real,MeshType> >(gr_param, dg, physics);
     }
@@ -512,7 +512,7 @@ GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
         return std::make_shared< GridRefinement_FixedFraction<dim,nstate,real,MeshType> >(gr_param, dg);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::residual_based){
-        return std::make_shared< GridRefinement_Continuous_Residual<dim,nstate,real,MeshType> >(gr_param, dg);
+        return std::make_shared< GridRefinement_Continuous<dim,nstate,real,MeshType> >(gr_param, dg);
     }else if(refinement_method == RefinementMethodEnum::uniform){
         return std::make_shared< GridRefinement_Uniform<dim,nstate,real,MeshType> >(gr_param, dg);
     }

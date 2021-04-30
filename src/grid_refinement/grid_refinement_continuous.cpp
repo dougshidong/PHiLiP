@@ -318,6 +318,7 @@ template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinement_Continuous<dim,nstate,real,MeshType>::field()
 {
     using RefinementTypeEnum = PHiLiP::Parameters::GridRefinementParam::RefinementType;
+    using ErrorIndicatorEnum = PHiLiP::Parameters::GridRefinementParam::ErrorIndicator;
     RefinementTypeEnum refinement_type = this->grid_refinement_param.refinement_type;
 
     // updating the target complexity for this iteration
@@ -325,11 +326,38 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field()
 
     // compute the necessary size fields
     if(refinement_type == RefinementTypeEnum::h){
-        field_h();
+        // mesh size and shape
+        if(this->error_indicator_type == ErrorIndicatorEnum::error_based){
+            field_h_error();
+        }else if(this->error_indicator_type == ErrorIndicatorEnum::hessian_based){
+            field_h_hessian();
+        }else if(this->error_indicator_type == ErrorIndicatorEnum::residual_based){
+            field_h_residual();
+        }else if(this->error_indicator_type == ErrorIndicatorEnum::adjoint_based){
+            field_h_adjoint();
+        }
     }else if(refinement_type == RefinementTypeEnum::p){
-        field_p();
+        // polynomial order distribution
+        if(this->error_indicator_type == ErrorIndicatorEnum::error_based){
+            field_p_error();
+        }else if(this->error_indicator_type == ErrorIndicatorEnum::hessian_based){
+            field_p_hessian();
+        }else if(this->error_indicator_type == ErrorIndicatorEnum::residual_based){
+            field_p_residual();
+        }else if(this->error_indicator_type == ErrorIndicatorEnum::adjoint_based){
+            field_p_adjoint();
+        }
     }else if(refinement_type == RefinementTypeEnum::hp){
-        field_hp();
+        // combined refinement methods
+        if(this->error_indicator_type == ErrorIndicatorEnum::error_based){
+            field_hp_error();
+        }else if(this->error_indicator_type == ErrorIndicatorEnum::hessian_based){
+            field_hp_hessian();
+        }else if(this->error_indicator_type == ErrorIndicatorEnum::residual_based){
+            field_hp_residual();
+        }else if(this->error_indicator_type == ErrorIndicatorEnum::adjoint_based){
+            field_hp_adjoint();
+        }
     }
 }
 
@@ -391,7 +419,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::get_current_field_p()
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous_Error<dim,nstate,real,MeshType>::field_h()
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_error()
 {
     real q = 2.0;
 
@@ -447,12 +475,12 @@ void GridRefinement_Continuous_Error<dim,nstate,real,MeshType>::field_h()
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous_Error<dim,nstate,real,MeshType>::field_p(){}
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_p_error(){}
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous_Error<dim,nstate,real,MeshType>::field_hp(){}
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_hp_error(){}
 
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous_Hessian<dim,nstate,real,MeshType>::field_h()
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_hessian()
 {
     // beginning h_field computation
     std::cout << "Beggining field_h() computation" << std::endl;
@@ -545,19 +573,19 @@ void GridRefinement_Continuous_Hessian<dim,nstate,real,MeshType>::field_h()
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous_Hessian<dim,nstate,real,MeshType>::field_p(){}
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_p_hessian(){}
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous_Hessian<dim,nstate,real,MeshType>::field_hp(){}
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_hp_hessian(){}
 
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous_Residual<dim,nstate,real,MeshType>::field_h(){}
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_residual(){}
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous_Residual<dim,nstate,real,MeshType>::field_p(){}
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_p_residual(){}
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous_Residual<dim,nstate,real,MeshType>::field_hp(){}
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_hp_residual(){}
 
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous_Adjoint<dim,nstate,real,MeshType>::field_h()
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_adjoint()
 {
     // beginning h_field computation
     std::cout << "Beggining anisotropic field_h() computation" << std::endl;
@@ -660,9 +688,9 @@ void GridRefinement_Continuous_Adjoint<dim,nstate,real,MeshType>::field_h()
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous_Adjoint<dim,nstate,real,MeshType>::field_p(){}
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_p_adjoint(){}
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous_Adjoint<dim,nstate,real,MeshType>::field_hp(){}
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_hp_adjoint(){}
 
 template <int dim, int nstate, typename real, typename MeshType>
 std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_Continuous<dim,nstate,real,MeshType>::output_results_vtk_method()
@@ -745,60 +773,12 @@ template class GridRefinement_Continuous<PHILIP_DIM, 3, double, dealii::Triangul
 template class GridRefinement_Continuous<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
 template class GridRefinement_Continuous<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
 
-template class GridRefinement_Continuous_Error<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Error<PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Error<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Error<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Error<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
-
-template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
-
-template class GridRefinement_Continuous_Residual<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Residual<PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Residual<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Residual<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Residual<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
-
-template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
-
 // dealii::parallel::shared::Triangulation<PHILIP_DIM>
 template class GridRefinement_Continuous<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class GridRefinement_Continuous<PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class GridRefinement_Continuous<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class GridRefinement_Continuous<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class GridRefinement_Continuous<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-
-template class GridRefinement_Continuous_Error<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Error<PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Error<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Error<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Error<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-
-template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-
-template class GridRefinement_Continuous_Residual<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Residual<PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Residual<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Residual<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Residual<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-
-template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 
 #if PHILIP_DIM != 1
 // dealii::parallel::distributed::Triangulation<PHILIP_DIM>
@@ -807,30 +787,6 @@ template class GridRefinement_Continuous<PHILIP_DIM, 2, double, dealii::parallel
 template class GridRefinement_Continuous<PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class GridRefinement_Continuous<PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class GridRefinement_Continuous<PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-
-template class GridRefinement_Continuous_Error<PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Error<PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Error<PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Error<PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Error<PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-
-template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Hessian<PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-
-template class GridRefinement_Continuous_Residual<PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Residual<PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Residual<PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Residual<PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Residual<PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-
-template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous_Adjoint<PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 
 } // namespace GridRefinement

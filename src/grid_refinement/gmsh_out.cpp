@@ -36,11 +36,6 @@ namespace GridRefinement {
 
 // file for writing SQ output 
 
-// also need some system of writing the data vectors, preferably identically to how
-// the usual data_out as used in dg does it
-// probably needs to add a flag system for the quad/point decision
-
-// might need to add a dofhandler when processing the data
 template <int dim, typename real>
 void GmshOut<dim,real>::write_pos(
     const dealii::Triangulation<dim, dim> &tria,

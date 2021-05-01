@@ -153,6 +153,41 @@ public:
         const unsigned int                                             rel_order);            ///< Relative order of the approximation
 
 private:
+    /// Performs polynomial patchwise reconstruction on the current cell in the selected norm
+    /** In order to obtain the high-order derivative terms, an enriched polynomial spaced solution $\tilde{u}\in\mathbb{P}^{p+1}$
+      * is obtained on the set of neighboring elements, $D(k)$ for the current element $k$. This leads to finding an equality for the
+      * inner-product between the original discontinuous solution $u_h$ and the new enriched continuous solution $\tilde{u}$:
+      * 
+      * \f[
+      *    \left< \tilde{u}, \phi \right>_{L \left(D(k)\right)} 
+      *    = \left< u_h, \phi \right>_{L \left(D(k)\right)},
+      *    \quad \forall \phi \in \mathbb{P}^{p+1}\left(D(k)\right)
+      * \f]
+      * 
+      * Where $L$ is the normed integral space chosen for the reconstruction to take place. This leads to a system of equations
+      * for each polynomial shape function on the patch of cells. This is then evaluated on the set of element quadrature 
+      * points to a matrix system that can be solved for the coefficients of the enriched solution in the polynomial space:
+      * 
+      * \f[
+      *     \tilde{u}(x,y) = \sum_{i=0}^{N} {a_i \phi_i(x,y)}
+      * \f]
+      * \f[
+      *     \left[\begin{matrix}
+      *     <\phi_0,\phi_0>_{N(D(k))} & \cdots & <\phi_0,\phi_N>_{N(D(k))} \\ 
+      *     \vdots & \ddots & \vdots \\ 
+      *     <\phi_N,\phi_0>_{N(D(k))} & \cdots & <\phi_N,\phi_N>_{N(D(k))}
+      *     \end{matrix}\right]
+      *     \left[\begin{matrix}
+      *     a_0 \\ \vdots \\ a_N \\
+      *     \end{matrix}\right]
+      *     = \left[\begin{matrix} 
+      *     <u_h,\phi_0>_{N(D(k))} \\ \vdots \\ <u_h,\phi_N>_{N(D(k))} 
+      *     \end{matrix}\right]
+      * \f]
+      * 
+      * and returned as a vector for further processing of the directional derivatives. For the current class, the polynomial space
+      * is selected as the set of non-homogeneous polynomials of maximum order $p+1$. For example, $\phi_i(x,y) = \left[1, x, y, x^2, ...\right]$.
+      */ 
     template <typename DoFCellAccessorType>
     dealii::Vector<real> reconstruct_norm(
         const NormType                                          norm_type,
@@ -160,38 +195,86 @@ private:
         const dealii::PolynomialSpace<dim>                      ps,
         const dealii::LinearAlgebra::distributed::Vector<real> &solution);
 
+    /// Performs polynomial patchwise reconstruction on the current cell in the H1 semi-norm
+    /** See general form of reconstruct_norm for basic reconstruction problem description. This function
+      * is specialized to work based on the selected H1 semi-norm leading to the patchwise norm definition:
+      * 
+      * \f[
+      *     \left<f,g\right>_{H^1(D(k))} 
+      *     = \int_{D(k)}{\left[
+      *     f(\bm{x})g(\bm{x}) 
+      *     + \sum_{i=0}^{dim} {\partial_i f(\bm{x}) \partial_i g(\bm{x})}
+      *     \mathrm{d} \bm{x}
+      *     \right]}
+      * \f]
+      * 
+      * This requires the polynomial space values and derivatives to be constructed for each pair of shape functions 
+      * on the quadrature points and also integrated with the discrete solution approximation values and derivatives.
+      */ 
     template <typename DoFCellAccessorType>
     dealii::Vector<real> reconstruct_H1_norm(
         const DoFCellAccessorType &                             curr_cell,
         const dealii::PolynomialSpace<dim>                      ps,
         const dealii::LinearAlgebra::distributed::Vector<real> &solution);
 
+    /// Performs polynomial patchwise reconstruction on the current cell in the L2 norm
+    /** See general form of reconstruct_norm for basic reconstruction problem description. This function
+      * is specialized to work based on the selected H1 semi-norm leading to the patchwise norm definition:
+      * 
+      * \f[
+      *     \left<f,g\right>_{L^2(D(k))} 
+      *     = \int_{D(k)}{\left[
+      *     f(\bm{x})g(\bm{x}) 
+      *     \mathrm{d} \bm{x}
+      *     \right]}
+      * \f]
+      * 
+      * This requires the polynomial space values to be constructed for each pair of shape functions
+      * on the quadrature points and also integrated with the discrete solution approximation values.
+      */ 
     template <typename DoFCellAccessorType>
     dealii::Vector<real> reconstruct_L2_norm(
         const DoFCellAccessorType &                             curr_cell,
         const dealii::PolynomialSpace<dim>                      ps,
         const dealii::LinearAlgebra::distributed::Vector<real> &solution);
 
+    /// Get the patch of cells surrounding the current cell of DofCellAccessorType
+    /** Returns a list of neighbor cells sharing a face (or subface) with the current cell. 
+      * Based on dealii::GridTools::get_patch_around_cell and modified to work directly on the dof_handler
+      * accesor for use with dealii::hp::DoFHandler instead of needing to be cast back and forth.
+      */ 
     template <typename DoFCellAccessorType>
     std::vector<DoFCellAccessorType> get_patch_around_dof_cell(
         const DoFCellAccessorType &cell);
 
     // member attributes
-    const dealii::hp::DoFHandler<dim>&         dof_handler;
-    const dealii::hp::MappingCollection<dim> & mapping_collection;
-    const dealii::hp::FECollection<dim> &      fe_collection;
-    const dealii::hp::QCollection<dim> &       quadrature_collection;
-    const dealii::UpdateFlags &                update_flags;
+    const dealii::hp::DoFHandler<dim>&         dof_handler;           ///< Degree of freedom handler for iteration over mesh elements and their nodes
+    const dealii::hp::MappingCollection<dim> & mapping_collection;    ///< Collection of mapping rules for reference element conversion
+    const dealii::hp::FECollection<dim> &      fe_collection;         ///< Collection of Finite elements to represent discontinuous $hp$ solution space
+    const dealii::hp::QCollection<dim> &       quadrature_collection; ///< Collection of quadrature rules used to evaluate volume integrals
+    const dealii::UpdateFlags &                update_flags;          ///< Update flags used in obtaining local cell representation
 
-    // controls the norm settings
+    /// Setting controls the choice of norm used in reconstruction. Set via set_norm_type.
     NormType norm_type;
 
 public:
-    // values for return
+    /// Derivative values
+    /** For each element, array of values indicates the scale of the $p+1$^th (or rel_order) directional
+      * derivatives that have been evaluated from the specified chord directions (in reconstruct_chord_derivative)
+      * or from the largest orthogonal set of directions (in reconstruct_directional_derivative).
+      * These correspond with the numbering of the unit vector directions in derivative_direction. 
+      */ 
     std::vector<std::array<real,dim>>                       derivative_value;
+    
+    /// Derivative directions
+    /** For each element, array of unit vectors indicate the direction of the $p+1$^th (or rel_order) directional
+      * derivatives that have been evaluated from the specified chord directions (in reconstruct_chord_derivative)
+      * or from the largest orthogonal set of directions (in reconstruct_directional_derivative).
+      * These correspond with the numbering of the scalar derivative values in derivative_value. 
+      */ 
     std::vector<std::array<dealii::Tensor<1,dim,real>,dim>> derivative_direction;
 
-    // returning the directional derivative dealii::Vector for the i^th largest component
+    /// Gets the i^th largest componet of the directional derivative vector as a dealii::Vector
     dealii::Vector<real> get_derivative_value_vector_dealii(
         const unsigned int index);
 };

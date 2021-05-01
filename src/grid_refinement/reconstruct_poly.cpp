@@ -639,7 +639,6 @@ dealii::Vector<real> ReconstructPoly<dim,nstate,real>::reconstruct_H1_norm(
 
         // take inner product of \psi_i and u (solution)
         // if multiple states, taking the 2 norm of the different states
-        // TODO: look into other possibilities
         dealii::Vector<real> rhs_poly(nstate);
         for(unsigned int istate = 0; istate < nstate; ++istate)
             for(unsigned int i_vec = 0; i_vec < n_vec; ++i_vec)
@@ -734,7 +733,7 @@ dealii::Vector<real> ReconstructPoly<dim,nstate,real>::reconstruct_L2_norm(
     for(unsigned int i_poly = 0; i_poly < n_poly; ++i_poly){
         for(unsigned int j_poly = 0; j_poly < n_poly; ++j_poly){
             // taking the inner product between \psi_i and \psi_j
-            // <u,v>_{H^1(\Omega)} = \int_{\Omega} u*v + \sum_i^N {\partial_i u * \partial_i v} dx
+            // <u,v>_{L^2(\Omega)} = \int_{\Omega} u*v dx
             for(unsigned int i_vec = 0; i_vec < n_vec; ++i_vec)
                 mat.add(i_poly, j_poly, 
                     (ps.compute_value(i_poly, qpoint_vec[i_vec]) * ps.compute_value(j_poly, qpoint_vec[i_vec]))
@@ -743,7 +742,6 @@ dealii::Vector<real> ReconstructPoly<dim,nstate,real>::reconstruct_L2_norm(
 
         // take inner product of \psi_i and u (solution)
         // if multiple states, taking the 2 norm of the different states
-        // TODO: look into other possibilities
         dealii::Vector<real> rhs_poly(nstate);
         for(unsigned int istate = 0; istate < nstate; ++istate)
             for(unsigned int i_vec = 0; i_vec < n_vec; ++i_vec)

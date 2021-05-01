@@ -26,7 +26,6 @@ enum class NormType{
     L2,
     };
 
-// forward declaration of multi-index computation from Dealii
 /// Modified implementaiton of polynomial space indexing from Deal.II
 /** Computes multi-index of polynomial term for different dimensions. 
   * Based on the Deal.II protected function: 
@@ -37,7 +36,18 @@ std::array<unsigned int, dim> compute_index(
     const unsigned int i,
     const unsigned int size);
 
-// funcitons for polynomial reconstruction
+/// Polynomial Reconstruction Class
+/** This class contains functionality to approximate high-order derivative terms from
+  * the discrete solution. This is done by building a patchwise polynomial reconstruction 
+  * with additional solution terms, matching the original function in the chosen error norm.
+  * The class contains functionality to perform this reconstruction either along specified
+  * element chord directions, or, by using the largest values sampled over the unit-ball 
+  * of the error. This plays a key role in many mesh adaptation strategies used in the 
+  * various grid refinement classes. It is especially important for the continuous methods
+  * where the additional directional derivatives provide anisotropic information to the
+  * remeshing process. After computation, the results can be extracted from the corresponding
+  * derivative_value and derivative_direction fields.
+  */ 
 template <int dim, int nstate, typename real>
 class ReconstructPoly
 {

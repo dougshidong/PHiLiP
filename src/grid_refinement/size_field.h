@@ -12,8 +12,54 @@ namespace PHiLiP {
 
 namespace GridRefinement {
 
-// wrapper for the set of functions to determine mesh size density functions
-// based on input of spatial error data (and possibly anisotropy)
+/// Size Field Static Class
+/** This class contains various utilities for computing updated continuous mesh representations.
+  * Notably, these are used along with continuous error estimation models to drive unstructured
+  * mesh adaptation methods from grid_refinement_continuous.cpp. Depending on the remeshing 
+  * targets, mesh type and information availible, different functions are included for isotropic,
+  * anisotropic ($h$-adaptation), varying polynomial order ($h$-adaptation), hybrid ($hp$-adaptation)
+  * and goal-oriented (adjoint based) cases. The results are used to modify the local continuous element
+  * representation of the Field class (with isotropic or anisotropic element definitions) and a vector
+  * of local polynomial orders. For the quad meshing case, this anisotropic field is represented by the 
+  * frame field:
+  * 
+  * \f[
+  *     f_\bm{x} 
+  *     = \left< \bm{v}, \bm{w}, -\bm{v}, -\bm{w} \right>
+  *     = V \left< \bm{e}_1, \bm{e}_2, -\bm{e}_1, -\bm{e}_2 \right>
+  * \f]
+  * 
+  * Where the vectors $v$ and $w$ are sized and aligned with the target element axis, and $V$ is the local
+  * transformation matrix from the reference element axis $e_i$ to form this physical frame. For the orthogonal 
+  * frame-field adaptation case this can be decomposed as
+  * 
+  * \f[
+  *     V 
+  *     = \left[\begin{matrix} \bm{v} & \bm{w} \end{matrix}\right]
+  *     = h \left[\begin{matrix} 
+  *         cos(\thea) & -sin(\theta) \\
+  *         sin(\theta) & cos(\theta) \end{matrix}\right] 
+  *     \left[\begin{matrix} 
+  *         \sqrt{\rho} & \\
+  *          & 1/\sqrt{\rho}
+  *     \end{matrix}\right]
+  * \f]
+  * 
+  * where $h$ represents the size field, $\theta$ the orientation and $\rho$ the anisotropy.Central to many 
+  * of the techniques is the target complexity defined by
+  * 
+  * \f[
+  *     \mathcal{C}(\mathcal{M}) = 
+  *     \int_{\Omega} {
+  *         \operatorname{det}{(V(\bm{x}))} 
+  *         \left(\mathcal{P}(\bm{x})+1\right)^2 
+  *     \mathrm{d}\bm{x}}
+  * \f]
+  * 
+  * This uses the frame field transformation $V(x)$ and continuous polynomial field $\mathcal{P})(x)$.
+  * Together these provide an approximation of the continuous degrees of freedoms in the adapted target mesh.
+  * Note: $p-$ based functionality is still not complete and requires updates in other parts of the code.
+  */ 
 template <int dim, typename real>
 class SizeField
 {

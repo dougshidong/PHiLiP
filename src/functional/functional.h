@@ -193,6 +193,13 @@ protected:
 
 }; // Functional class
 
+/// Lp volume norm functional class
+/** Default functional type based on Lp norm evaluated over the domain volume
+  * 
+  * \f[
+  *     J = \int_{\Omega} {|u(\bm{x})|^{Lp} \mathrm{d}\bm{x}}
+  * \f] 
+  */ 
 #if PHILIP_DIM==1
 template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
@@ -234,9 +241,20 @@ public:
     }
 
 protected:
+    /// Norm exponent value
     const double normLp;
 };
 
+/// Lp boundary norm functional class
+/** Default functional type based on Lp norm evaluated over domain boundaries
+  * 
+  * \f[
+  *     J = \int_{\partial\Omega} {|u(\bm{x})|^{Lp} \mathrm{d}\bm{x}}
+  * \f] 
+  * 
+  * where $\partial\Omega$ is a selected subset or all domain boundaries depending on 
+  * the chosen setup parameters.
+  */ 
 #if PHILIP_DIM==1
 template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
@@ -280,11 +298,23 @@ public:
     }
 
 protected:
+    /// Norm exponent value
     const double              normLp;
+    /// Ids of selected boundaries for integration
     std::vector<unsigned int> boundary_vector;
+    /// Flag to use all domain boundaries
     const bool                use_all_boundaries;
 };
 
+/// Weighted volume norm functional class
+/** Default functional type based on the weighted Lp norm evaluated over the domain volume. 
+  * Based on a selected manufactured solution function $f(\bm{x})$ to perform weighting. Optional flag
+  * use_weight_function_laplacian replaces evaluation with hessian trace
+  * 
+  * \f[
+  *     J = \int_{\Omega} {f(\bm{x})u(\bm{x}) \mathrm{d}\bm{x}}
+  * \f] 
+  */ 
 #if PHILIP_DIM==1
 template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
@@ -329,11 +359,26 @@ public:
     }
 
 protected:
+    /// Manufactured solution weighting function of double return type
     std::shared_ptr<ManufacturedSolutionFunction<dim,real>>   weight_function_double;
+    /// Manufactured solution weighting function of adtype return type
     std::shared_ptr<ManufacturedSolutionFunction<dim,ADtype>> weight_function_adtype;
+    /// Flag to enable using the weight function laplacian
     const bool                                                use_weight_function_laplacian;
 };
 
+/// Weighted boundary norm functional class
+/** Default functional type based on the weighted Lp norm evaluated over the domain voboundarieslume. 
+  * Based on a selected manufactured solution function $f(\bm{x})$ to perform weighting. Optional flag
+  * use_weight_function_laplacian replaces evaluation with hessian trace
+  * 
+  * \f[
+  *     J = \int_{\partial\Omega} {f(\bm{x})u(\bm{x}) \mathrm{d}\bm{x}}
+  * \f] 
+  * 
+  * where $\partial\Omega$ is a selected subset or all domain boundaries depending on 
+  * the chosen setup parameters.
+  */ 
 #if PHILIP_DIM==1
 template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
@@ -380,13 +425,26 @@ public:
     }
 
 protected:
+    /// Manufactured solution weighting function of double return type
     std::shared_ptr<ManufacturedSolutionFunction<dim,real>>   weight_function_double;
+    /// Manufactured solution weighting function of adtype return type
     std::shared_ptr<ManufacturedSolutionFunction<dim,ADtype>> weight_function_adtype;
+    /// Flag to enable using the weight function laplacian
     const bool                                                use_weight_function_laplacian;
+    /// Ids of selected boundaries for integration
     std::vector<unsigned int>                                 boundary_vector;
+    /// Flag to use all domain boundaries
     const bool                                                use_all_boundaries;
 };
 
+/// Lp volume error norm functional class
+/** Default functional type based on Lp norm of error evaluated over domain volume 
+  * relative to an exact manufactured solution function $\tilde{u}(\bm{x})$
+  * 
+  * \f[
+  *     J = \int_{\Omega} {|u(\bm{x})-\tilde{u}(\bm{x})|^{Lp} \mathrm{d}\bm{x}}
+  * \f]
+  */ 
 #if PHILIP_DIM==1
 template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
@@ -428,9 +486,21 @@ public:
     }
 
 protected:
+    /// Norm exponent value
     const double normLp;
 };
 
+/// Lp boundary error norm functional class
+/** Default functional type based on Lp norm of error evaluated over domain boundaries 
+  * relative to an exact manufactured solution function $\tilde{u}(\bm{x})$
+  * 
+  * \f[
+  *     J = \int_{\partial\Omega} {|u(\bm{x})-\tilde{u}(\bm{x})|^{Lp} \mathrm{d}\bm{x}}
+  * \f]
+  * 
+  * where $\partial\Omega$ is a selected subset or all domain boundaries depending on 
+  * the chosen setup parameters.
+  */ 
 #if PHILIP_DIM==1
 template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
@@ -474,11 +544,19 @@ public:
     }
 
 protected:
+    /// Norm exponent value
     const double              normLp;
+    /// Ids of selected boundaries for integration
     std::vector<unsigned int> boundary_vector;
+    /// Flag to use all domain boundaries
     const bool                use_all_boundaries;
 };
 
+/// Factory class to construct default functional types
+/** Functions based on PhiLiP::Paramters::FunctionalParam type. Enum choice is used
+  * to setup one of the default volume or boundary norm functional types. Other custom 
+  * functionals may still be used without this interface in the adjoint class.
+  */ 
 #if PHILIP_DIM==1
 template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
@@ -487,11 +565,13 @@ template <int dim, int nstate, typename real, typename MeshType = dealii::parall
 class FunctionalFactory
 {
 public:
+    /// Create standard functional object from constant parameter file
     static std::shared_ptr< Functional<dim,nstate,real,MeshType> >
     create_Functional(
         PHiLiP::Parameters::AllParameters const *const       param,
         std::shared_ptr< PHiLiP::DGBase<dim,real,MeshType> > dg);
 
+    /// Create standard functional object from parameter file
     static std::shared_ptr< Functional<dim,nstate,real,MeshType> >
     create_Functional(
         PHiLiP::Parameters::FunctionalParam                  param,

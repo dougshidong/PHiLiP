@@ -19,7 +19,6 @@ namespace PHiLiP {
 
 namespace GridRefinement {
 
-// central class of the grid_refinement, controls refinements
 /// Base Grid Refinement Class
 /** This class provides access to the basic refinement control methods implemented for 
   * uniform, fixed-fraction and continuous style methods in the associated *.cpp files.
@@ -89,7 +88,7 @@ public:
       * and various refinement types based on the grid refinement parameters
       * passed at setup to the grid refinement factor class.
       * 
-      * See subclasses for details of refinement types.
+      * See subclass functions for details of refinement types.
       */
     virtual void refine_grid() = 0;
 

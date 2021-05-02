@@ -185,30 +185,66 @@ protected:
         const dealii::Vector<real> &               p_field);              // (input) poly field  
 
     static void update_alpha_vector_balan(
-        const dealii::Vector<real>&        eta,         // vector of DWR indicators
-        const real                         r_max,       // max refinement factor
-        const real                         c_max,       // max coarsening factor
-        const real                         eta_min,     // minimum DWR
-        const real                         eta_max,     // maximum DWR
-        const real                         eta_ref,     // reference parameter for bisection
-        const dealii::hp::DoFHandler<dim>& dof_handler, // dof_handler
-        const dealii::Vector<real>&        I_c,         // cell area measure
-        std::unique_ptr<Field<dim,real>>&  h_field);    // (output) size-field
+        const dealii::Vector<real>&        eta,         ///< Vector of DWR indicator values
+        const real                         r_max,       ///< Maximum refinement scaling factor
+        const real                         c_max,       ///< Maximum coarsening scaling factor
+        const real                         eta_min,     ///< Minimum value of DWR indicator
+        const real                         eta_max,     ///< Maximum value of DWR indicator
+        const real                         eta_ref,     ///< Threshold value of DWR for deciding between coarsening and refinement
+        const dealii::hp::DoFHandler<dim>& dof_handler, ///< DoFHandler describing the mesh
+        const dealii::Vector<real>&        I_c,         ///< Vector of cell current cell area measure
+        std::unique_ptr<Field<dim,real>>&  h_field);    ///< (Output) Updated size-field 
 
+    /// Determines local $\alpha$ sizing factor (from adjoint estimates)
+    /** Uses relative scale of local Dual-Weighted Residual (DWR) relative to global maximum and minimums and
+      * a chosen threshold value based on target output complexity. Sizing update is basaed on Eq. 30-33 from
+      * Balan et al. "Adjoint-based hp-adaptivity on anisotropic mesh for high-order..." where the scaling is
+      * fit quadratically to a predefined range in the logarithmic space:
+      * 
+      * \f[
+      *     \alpha_{k}=\left\{\begin{array}{ll}
+      *         \left(\left(r_{max }-1\right) \xi_{k}^{2}+1\right)^{-1}, & 
+      *         \eta_{k} \geq \eta_{ref}, \\
+      *         \left(\left(c_{max}-1\right) \xi_{k}^{2}+1\right), 
+      *         & \eta_{k}<\eta_{ref},
+      *     \end{array}\right.
+      * \f]
+      * 
+      * where 
+      * 
+      * \f[
+      *     \xi_{k}=
+      *     \left\{\begin{array}{ll}
+      *         \frac{\log \left(\eta_{k}\right)-\log \left(\eta_{ref}\right)}{\log \left(\eta_{max }\right)-\log \left(\eta_{ref}\right)}, & 
+      *         \eta_{k} \geq \eta_{ref}, \\
+      *         \frac{\log \left(\eta_{k}\right)-\log \left(\eta_{ref}\right)}{\log \left(\eta_{min }\right)-\log \left(\eta_{ref}\right)}, & 
+      *         \eta_{k}<\eta_{ref}.
+      *     \end{array}\right.
+      * \f]
+      * 
+      * This function returns the value $\alpha$ used to update the local size measure.
+      */ 
     static real update_alpha_k_balan(
-        const real eta_k,   // local DWR factor
-        const real r_max,   // maximum refinement factor
-        const real c_max,   // maximum coarsening factor
-        const real eta_min, // minimum DWR indicator
-        const real eta_max, // maximum DWR indicator
-        const real eta_ref);// referebce DWR for determining coarsening/refinement
+        const real eta_k,   ///< Local value of DWR indicator
+        const real r_max,   ///< Maximum refinement scaling factor
+        const real c_max,   ///< Maximum coarsening scaling factor
+        const real eta_min, ///< Minimum value of DWR indicator
+        const real eta_max, ///< Maximum value of DWR indicator
+        const real eta_ref);///< Threshold value of DWR for deciding between coarsening and refinement
 
+    /// Bisect function based on starting bounds
+    /** Performs bisection on an input lambda function $f(x)$ with starting bounds
+      * $x\in\left[a,b\right]$. Assumes that $f(a)$ and $f(b)$ are of opposite sign
+      * and iteratively chooses half interval until a suitably accurate approximation
+      * of $f(x)\approx 0 $ is found. Stops when either a absolute or relative (to
+      * the initial range) function value tolerance is achieved.
+      */ 
     static real bisection(
-        const std::function<real(real)> func,         // lambda function that takes real -> real 
-        real                            lower_bound,  // lower bound of the search
-        real                            upper_bound,  // upper bound of the search
-        real                            rel_tolerance = 1e-6,
-        real                            abs_tolerance = 1.0);
+        const std::function<real(real)> func,                 ///< Input lambda function to be solved for $f(x)=0$, takes real value and returns real value 
+        real                            lower_bound,          ///< lower bound of the search, $a$
+        real                            upper_bound,          ///< upper bound of the search, $b$
+        real                            rel_tolerance = 1e-6, ///< Relative tolerance scale, stops search when $\left|f(x_i)\right|<\epsilon \left|f(a)-f(b)\right|$
+        real                            abs_tolerance = 1.0); ///< Absolute tolerance scale, stops search when $\left|f(x_i)\right|<\epsilon$
 };
 
 } // namespace GridRefinement

@@ -523,7 +523,7 @@ GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
 }
 
 // large amount of templating to be done, move to an .inst file
-// try reducing this with BOOST
+// could also try reducing this with BOOST
 
 // dealii::Triangulation<PHILIP_DIM>
 template class GridRefinementBase<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;

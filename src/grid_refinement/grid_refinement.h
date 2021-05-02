@@ -160,6 +160,20 @@ protected:
         dealii::update_JxW_values;
 };
 
+/// Grid Refinement Class Factory
+/** Contains various factory functions for generating different grid refinement classes 
+  * dependant on what input information is provided. For example, certain grid refinement
+  * operations will need access to additional infomation such as the adjoint, or problem
+  * physics in addition to discontinuous galerkin formulation. If a more stringent initial
+  * call is made but only a simple refinement operation is needed, the factory calls will 
+  * chain to provide the proper output. 
+  * 
+  * The choice of refinement object is made based on the selected refinement_method and error_indicator
+  * from the PHiLiP::Parameters::GridRefinementParam object needed for each call.
+  * 
+  * Note: This class templated on the mesh type as anisotropic fixed-fraction splitting is 
+  *       not availible in parralel at this time. 
+  */ 
 #if PHILIP_DIM==1
 template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
@@ -168,15 +182,23 @@ template <int dim, int nstate, typename real, typename MeshType = dealii::parall
 class GridRefinementFactory
 {
 public:
-    // different factory calls have access to different Grid refinements
-    // adjoint (dg + functional)
+
+    /// Construct grid refinement class based on adjoint and physics
+    /** Provides access to all refinement types. Needs to be called for adjoint_based
+      * error indicators. Adjoint object also provides access to dg and functional objects.
+      */ 
     static std::shared_ptr< GridRefinementBase<dim,nstate,real,MeshType> > 
     create_GridRefinement(
         PHiLiP::Parameters::GridRefinementParam                          gr_param,
         std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >  adj,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input);
 
-    // dg + physics + Functional
+    /// Construct grid refinement class based on dg, physics and functional
+    /** Provides access to non-adjoint based method. However, allows the functional object
+      * to still be passed to the grid refinement class for tracking the goal-oriented error
+      * convergence when working with feature-based refinement types (if an adjoint-object 
+      * itself is not availible).
+      */ 
     static std::shared_ptr< GridRefinementBase<dim,nstate,real,MeshType> > 
     create_GridRefinement(
         PHiLiP::Parameters::GridRefinementParam                            gr_param,
@@ -184,14 +206,20 @@ public:
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics,
         std::shared_ptr< PHiLiP::Functional<dim, nstate, real, MeshType> > functional);
 
-    // dg + physics
+    /// Construct grid refinement class based on dg and physics
+    /** Provides access to feature-based (hessian_based) error indicators and exact error-based
+      * refinement methods using the manufactured solution from the physics object. 
+      */
     static std::shared_ptr< GridRefinementBase<dim,nstate,real,MeshType> > 
     create_GridRefinement(
         PHiLiP::Parameters::GridRefinementParam                          gr_param,
         std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics);
 
-    // dg 
+    /// Construct grid refinement class based on dg only
+    /** Provides access to basic uniform refinement methods and residual based refinement
+      * methods (not yet implemented).
+      */ 
     static std::shared_ptr< GridRefinementBase<dim,nstate,real,MeshType> > 
     create_GridRefinement(
         PHiLiP::Parameters::GridRefinementParam                gr_param,

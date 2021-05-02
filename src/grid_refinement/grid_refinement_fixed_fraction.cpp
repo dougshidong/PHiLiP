@@ -127,9 +127,16 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::refine_grid_hp()
     for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
         if(cell->is_locally_owned() && cell->active_fe_index()+1 <= this->dg->max_degree)
             if(cell->refine_flag_set()){
+                
                 // perform the h/p decision making
-                cell->clear_refine_flag();
-                cell->set_active_fe_index(cell->active_fe_index()+1);
+                assert(0); // NOT YET IMPLEMENTED
+                bool perform_p_refinement_instead = true;
+
+                if(perform_p_refinement instead)
+                {
+                    cell->clear_refine_flag();
+                    cell->set_active_fe_index(cell->active_fe_index()+1);
+                }
             }
 }
 
@@ -155,6 +162,11 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::smoothness_indicato
 {
     // reads the options and determines the proper smoothness indicator
     smoothness.reinit(this->tria->n_active_cells());
+    
+    // NOT IMPLEMENTED
+    assert(0);
+
+    // placeholder function for future added hp-refinement threshold function
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -494,6 +506,9 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::error_indicator_hes
 template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::error_indicator_residual()
 {
+    // NOT IMPLEMENTED
+    assert(0);
+
     // // projecting the solution to a finer (p) space
     // // this->coarse_to_fine();
 

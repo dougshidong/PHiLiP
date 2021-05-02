@@ -133,6 +133,7 @@ protected:
     //@}
 };
 
+/// Product of sine waves manufactured solution
 template <int dim, typename real>
 class ManufacturedSolutionSine 
     : public ManufacturedSolutionFunction<dim, real>
@@ -158,6 +159,7 @@ public:
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
+/// Product of cosine waves manufactured solution
 template <int dim, typename real>
 class ManufacturedSolutionCosine 
     : public ManufacturedSolutionFunction<dim, real>
@@ -182,6 +184,7 @@ public:
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
+/// Sum of sine waves manufactured solution
 template <int dim, typename real>
 class ManufacturedSolutionAdd 
     : public ManufacturedSolutionFunction<dim, real>
@@ -206,6 +209,7 @@ public:
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
+/// Sum of exponential functions manufactured solution
 template <int dim, typename real>
 class ManufacturedSolutionExp
     : public ManufacturedSolutionFunction<dim, real>
@@ -230,6 +234,7 @@ public:
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
+/// Sum of polynomial manufactured solution
 template <int dim, typename real>
 class ManufacturedSolutionPoly 
     : public ManufacturedSolutionFunction<dim, real>
@@ -254,6 +259,7 @@ public:
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
+/// Sum of even order polynomial functions manufactured solution
 template <int dim, typename real>
 class ManufacturedSolutionEvenPoly 
     : public ManufacturedSolutionFunction<dim, real>
@@ -278,6 +284,7 @@ public:
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
+/// Hump manufactured solution based on arctangent functions
 template <int dim, typename real>
 class ManufacturedSolutionAtan
     : public ManufacturedSolutionFunction<dim, real>
@@ -326,11 +333,12 @@ public:
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 
 private:
-    std::vector<unsigned int> n_shocks; // number of shocks
-    std::vector<std::vector<real>> S_j; // shock strengths
-    std::vector<std::vector<real>> x_j; // shock positions
+    std::vector<unsigned int> n_shocks; ///< number of shocks
+    std::vector<std::vector<real>> S_j; ///< shock strengths
+    std::vector<std::vector<real>> x_j; ///< shock positions
 };
 
+/// Scalar boundary layer manufactured solution
 template <int dim, typename real>
 class ManufacturedSolutionBoundaryLayer
     : public ManufacturedSolutionFunction<dim, real>
@@ -364,9 +372,11 @@ public:
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 
 private:
+    /// Boundary layer strength parameter
     std::vector<dealii::Tensor<1,dim,real>> epsilon;
 };
 
+/// S-Shock manufactured solution
 template <int dim, typename real>
 class ManufacturedSolutionSShock 
     : public ManufacturedSolutionFunction<dim, real>
@@ -414,11 +424,12 @@ public:
     dealii::SymmetricTensor<2,dim,real> hessian(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 
 private:
-    // equation constants
+    /// equation constants
     real a, b, c, d, e, f; 
 
 };
 
+/// Quadratic function manufactured solution
 template <int dim, typename real>
 class ManufacturedSolutionQuadratic
     : public ManufacturedSolutionFunction<dim, real>
@@ -450,19 +461,32 @@ public:
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 
 private:
-    std::array<real, dim> alpha_diag; // diagonal components scaling
+    std::array<real, dim> alpha_diag; ///< Diagonal hessian component scaling
 };
 
+/// Manufactured solution function factory
+/** Based on input from Parameters file, generates a standard form
+  * of manufactured solution function with suitable value, gradient 
+  * and hessian functions for the chosen distribution type.
+  * 
+  * Functions are selected from enumerator list in 
+  * Parameters::ManufacturedSolutionParam::ManufacturedSolutionType
+  * 
+  * Some Manufactured solutions included additional scaling constants
+  * that can also be can also be controlled from the parameter file
+  */ 
 template <int dim, typename real>
 class ManufacturedSolutionFactory
 {
     using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
 public:
+    /// Construct Manufactured solution object from global parameter file
     static std::shared_ptr< ManufacturedSolutionFunction<dim,real> > 
     create_ManufacturedSolution(
         Parameters::AllParameters const *const param, 
         int                                    nstate);
 
+    /// Construct Manufactured solution object from enumerator list
     static std::shared_ptr< ManufacturedSolutionFunction<dim,real> >
     create_ManufacturedSolution(
         ManufacturedSolutionEnum solution_type,

@@ -20,6 +20,25 @@ namespace PHiLiP {
 namespace GridRefinement {
 
 // central class of the grid_refinement, controls refinements
+/// Base Grid Refinement Class
+/** This class provides access to the basic refinement control methods implemented for 
+  * uniform, fixed-fraction and continuous style methods in the associated *.cpp files.
+  * Although this class contains no refinement functionality of its own, the virtual functions
+  * implemented from here provide a uniform interface for adapting the grid based on a variety
+  * of h-, p- and hp- style refinement techniques with indicators from the exact error (manufactured
+  * solution), feature-based (generalization of hessian based methods for high order), the local
+  * residual distribution on the fine grid and goal-oriented adjoint-based techniques.
+  * 
+  * Additionally, this class contains functionality for writing a description of the current 
+  * grid refinement object to a .vtk file with additional refinement information passed
+  * from the subclass implementations.
+  * 
+  * See the related parameter object PHiLiP::Parameters::GridRefinementParam for more information about
+  * the various options and controls availible.
+  * 
+  * Note: This class templated on the mesh type as anisotropic fixed-fraction splitting is 
+  *       not availible in parralel at this time. 
+  */
 #if PHILIP_DIM==1
 template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
@@ -28,33 +47,35 @@ template <int dim, int nstate, typename real, typename MeshType = dealii::parall
 class GridRefinementBase
 {
 public:
-    // deleting the default constructor
+    /// Deleted default constructor
     GridRefinementBase() = delete;
 
-    // constructor stores the parameters
+    /// Constructor. Stores the adjoint object, physics and parameters
     GridRefinementBase(
         PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
         std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >  adj_input,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input);
 
+    /// Constructor. Storers the dg object, physics, functional and parameters.
     GridRefinementBase(
         PHiLiP::Parameters::GridRefinementParam                            gr_param_input,
         std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg_input,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics_input,
         std::shared_ptr< PHiLiP::Functional<dim, nstate, real, MeshType> > functional_input);
 
+    /// Constructor. Stores the dg object, physics and parameters
     GridRefinementBase(
         PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
         std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg_input,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input);
 
+    /// Constructor. Stores the dg object and parameters
     GridRefinementBase(
         PHiLiP::Parameters::GridRefinementParam                gr_param_input,
-        // PHiLiP::Parameters::AllParameters const *const param_input,
         std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> > dg_input);
 
 protected:
-    // delegated constructor
+    /// Delegated constructor which handles the various optional inputs and setup.
     GridRefinementBase(
         PHiLiP::Parameters::GridRefinementParam                            gr_param_input,
         std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >    adj_input,
@@ -63,15 +84,28 @@ protected:
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics_input);
 
 public:
-    // refine_grid is the main function
+    /// Perform call to the grid refinement object of choice
+    /** This will automatically select the proper subclass, error indicator
+      * and various refinement types based on the grid refinement parameters
+      * passed at setup to the grid refinement factor class.
+      * 
+      * See subclasses for details of refinement types.
+      */
     virtual void refine_grid() = 0;
 
 public:
-    // main output class
+    /// Write information about the grid refinement step to a .vtk file
+    /** Includes various information about the mesh, solution, error indicators,
+      * target refinements (both h- and p-), functional solution, physics, etc.
+      * 
+      * also provides interface for subclasses to output additional visualization fields.
+      */
     void output_results_vtk(const unsigned int iref);
 
 protected:
     // helper output classes
+
+    /// Output refinement results related to the DG object
     void output_results_vtk_dg(
         dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out,
         std::shared_ptr< dealii::DataPostprocessor<dim> > &post_processor,
@@ -80,12 +114,15 @@ protected:
         dealii::Vector<double> &                           cell_poly_degree,
         std::vector<std::string> &                         residual_names);
 
+    /// Output refinement results related to the functional object
     void output_results_vtk_functional(
         dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out);
 
+    /// Output refinement results related to the problem physics
     void output_results_vtk_physics(
         dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out);
 
+    /// Output refinement results related to the adjoint object
     void output_results_vtk_adjoint(
         dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out,
         std::vector<std::string> &                         dIdw_names_coarse,
@@ -93,43 +130,50 @@ protected:
         std::vector<std::string> &                         dIdw_names_fine,
         std::vector<std::string> &                         adjoint_names_fine);
     
+    /// Output refinement results related to the solution error
     void output_results_vtk_error(
         dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out,
         dealii::Vector<real> &                             l2_error_vec);  
 
 protected:
-    // refinement method dependent outputs (to be overrided in derived classes)
+    /// Output refinement method dependent results
+    /** This class is overridden in the subclasses with any additional visualization fields.
+      */ 
     virtual std::vector< std::pair<dealii::Vector<real>, std::string> > output_results_vtk_method() = 0; 
 
-    // parameters
+    /// Grid refinement parameters
     PHiLiP::Parameters::GridRefinementParam grid_refinement_param;
 
-    // indicator type
     using ErrorIndicatorEnum = PHiLiP::Parameters::GridRefinementParam::ErrorIndicator;
+    // Error indicator type
     ErrorIndicatorEnum error_indicator_type;
 
-    // adj
+    /// Adjoint object (if provided to factory)
     std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> > adjoint;
 
-    // Functional
+    /// Functional object (if provided to factory, directly or indirectly)
     std::shared_ptr< PHiLiP::Functional<dim, nstate, real, MeshType> > functional;
 
-    // dg
+    /// Discontinuous Galerkin object
     std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> > dg;
 
     // high order grid, not a pointer 
     // so needs to be manipulated through dg->high_order_grid
     // HighOrderGrid<dim,real> high_order_grid
     
-    // physics
+    /// Problem physics (if provided to factory, directly or indirectly)
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics;
 
     // triangulation
     // dealii::Triangulation<dim, dim> &tria;
     // Triangulation &tria;
+
+    /// Triangulation object of templated mesh type
+    /** Note: anisotropic, p- type and other refinements may not work in all cases.
+      */ 
     MeshType *const tria;
 
-    // iteration counter
+    /// Internal refinement steps iteration counter
     unsigned int iteration;
 
     MPI_Comm mpi_communicator; ///< MPI communicator

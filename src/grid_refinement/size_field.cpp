@@ -164,6 +164,9 @@ void SizeField<dim,real>::update_h_optimal(
     }
 }
 
+// computes updated p-field with a constant h-field
+// NOT IMPLEMENTED yet
+/*
 template <int dim, typename real>
 void SizeField<dim,real>::isotropic_p(
     const dealii::Vector<real> &               Bm,                    // constant for p-1
@@ -197,6 +200,7 @@ void SizeField<dim,real>::isotropic_p(
     // coarsen progressively if above
     // need some way of measuring when stability is reached. Maybe can be done as a bulk criterion
 }
+*/
 
 template <int dim, typename real>
 void SizeField<dim,real>::isotropic_hp(

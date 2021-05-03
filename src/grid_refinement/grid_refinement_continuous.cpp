@@ -158,6 +158,9 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_p()
 template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_hp()
 {
+    // NOT IMPLEMENTED
+    assert(0);
+
     // make a copy of the old grid and build a P1 continuous solution averaged at each of the nodes
     // new P will be the weighted average of the integral over the new cell
 }
@@ -475,9 +478,17 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_error()
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_p_error(){}
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_p_error()
+{
+    // NOT IMPLEMENTED
+    assert(0);
+}
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_hp_error(){}
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_hp_error()
+{
+    // NOT IMPLEMENTED
+    assert(0);
+}
 
 template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_hessian()
@@ -573,16 +584,36 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_hessian()
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_p_hessian(){}
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_p_hessian()
+{
+    // NOT IMPLEMENTED
+    assert(0);
+}
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_hp_hessian(){}
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_hp_hessian()
+{
+    // NOT IMPLEMENTED
+    assert(0);
+}
 
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_residual(){}
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_residual()
+{
+    // NOT IMPLEMENTED
+    assert(0);
+}
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_p_residual(){}
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_p_residual()
+{
+    // NOT IMPLEMENTED
+    assert(0);
+}
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_hp_residual(){}
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_hp_residual()
+{
+    // NOT IMPLEMENTED
+    assert(0);
+}
 
 template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_adjoint()
@@ -688,9 +719,17 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_adjoint()
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_p_adjoint(){}
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_p_adjoint()
+{
+    // NOT IMPLEMENTED
+    assert(0);
+}
 template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_hp_adjoint(){}
+void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_hp_adjoint()
+{
+    // NOT IMPLEMENTED
+    assert(0);
+}
 
 template <int dim, int nstate, typename real, typename MeshType>
 std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_Continuous<dim,nstate,real,MeshType>::output_results_vtk_method()

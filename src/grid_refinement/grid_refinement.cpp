@@ -74,12 +74,14 @@ void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk(const unsi
         output_results_vtk_physics(data_out);
 
     // adjoint
+    /*
     std::vector<std::string> dIdw_names_coarse;
     std::vector<std::string> adjoint_names_coarse;
     std::vector<std::string> dIdw_names_fine;
     std::vector<std::string> adjoint_names_fine;
     if(adjoint)
         output_results_vtk_adjoint(data_out, dIdw_names_coarse, adjoint_names_coarse, dIdw_names_fine, adjoint_names_fine);
+    */
 
     // plotting the error compared to the manufactured solution
     dealii::Vector<real> l2_error_vec;

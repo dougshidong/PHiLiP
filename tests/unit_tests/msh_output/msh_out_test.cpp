@@ -9,6 +9,7 @@
 #include <deal.II/fe/fe_dgq.h>
 
 #include <fstream>
+#include <iostream> 
 
 #include "dg/dg.h"
 #include "parameters/parameters.h"
@@ -322,7 +323,9 @@ void msh_out_test_helper(
     std::ofstream out_msh(write_msh_name);
 
     // performing write to disk
+    std::cout << "Writing \"" << write_msh_name << ".msh\"... ";
     msh_out.write_msh(out_msh);
+    std::cout << "Done!" << std::endl;
 }
 
 // generating output file for each storageType and dataType using MshOut

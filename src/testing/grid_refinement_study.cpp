@@ -153,6 +153,10 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
         for(unsigned int igrid = 0; igrid < refinement_steps; ++igrid){
             if(igrid > 0){
                 grid_refinement->refine_grid();
+
+                // option to quit here for testing mesh output
+                if(gr_param.exit_after_refine)
+                    continue;
             }
 
             // outputting the grid information

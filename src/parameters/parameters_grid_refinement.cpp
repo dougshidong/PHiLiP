@@ -134,6 +134,10 @@ void GridRefinementParam::declare_parameters(dealii::ParameterHandler &prm)
                           "Will iterate over and then switch to scaling and adding. "
                           "Formatted in square brackets and seperated by commas, eg. \"[1000,2000]\"");
 
+        prm.declare_entry("exit_after_refine", "false",
+                          dealii::Patterns::Bool(),
+                          "Option to exit after call to the grid refinement (for debugging mesh write).");
+
     // }
     // prm.leave_subsection();
 }
@@ -201,6 +205,8 @@ void GridRefinementParam::parse_parameters(dealii::ParameterHandler &prm)
         // pushing into a vector
         for(auto entry : complexity_string_vector)
             complexity_vector.push_back(dealii::Utilities::string_to_int(entry));
+        
+        exit_after_refine = prm.get_bool("exit_after_refine");
     }
     // prm.leave_subsection();
 }

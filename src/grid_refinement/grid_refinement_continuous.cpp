@@ -314,7 +314,15 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_msh()
 
     // full cycle-not yet implemented
     std::cout << ".msh file written. (" << "/" << write_msh_name << ")" << std::endl;
-    throw;
+
+    // allow to continue only if it will exit immediately afterwards
+    if(this->grid_refinement_param.exit_after_refine)
+    {
+        std::cout << "refine_grid_msh: read not supported, proceeding to results." << std::endl;
+    }else{
+        std::cout << "refine_grid_msh: read not supported, use option exit_after_refine to stop after .msh write." << std::endl;
+        throw;
+    }
 }
 
 template <int dim, int nstate, typename real, typename MeshType>

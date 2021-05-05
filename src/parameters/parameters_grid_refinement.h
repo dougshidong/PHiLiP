@@ -108,6 +108,9 @@ public:
       */
     std::vector<double> complexity_vector; 
 
+    /// Flag to exit after call to refinement
+    bool exit_after_refine;
+
     GridRefinementParam(); ///< Constructor
 
     /// Declares the possible variables and sets the defaults.

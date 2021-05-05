@@ -55,7 +55,7 @@ subsection grid refinement study
 
   # grid refinement
   subsection grid refinement
-    set refinement_steps  = 2
+    set refinement_steps  = 2 # step 1 is calculation, step 2 performs write then exits (see exit_after_refine)
     set refinement_method = continuous
     set refinement_type   = h
     
@@ -72,6 +72,9 @@ subsection grid refinement study
     # output options
     set output_type      = msh_out
     set output_data_type = metric_field #<size_field, frame_field, metric_field>
+
+    # to avoid error with msh write (exit immediately)
+    set exit_after_refine = true
   end
 
 end

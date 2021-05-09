@@ -50,12 +50,13 @@ subsection grid refinement study
   # runs uniform, fixed-fraction, BAMG (x1.5) and BAMG (x2.0)
   set num_refinements = 4
 
-  # grid refinement
+  # uniform
   subsection grid refinement [0]
     set refinement_steps  = 3 # 4
     set refinement_method = uniform
   end
 
+  # fixed-fraction (30%)
   subsection grid refinement [1]
     set refinement_steps = 4 # 5
     set refinement_method = fixed_fraction
@@ -67,6 +68,7 @@ subsection grid refinement study
     set coarsening_fraction = 0.00
   end
 
+  # BAMG (1.5x)
   subsection grid refinement [2]
     set refinement_steps  = 6 # 8
     set refinement_method = continuous
@@ -85,6 +87,7 @@ subsection grid refinement study
     set output_type      = gmsh_out
   end
 
+  # BAMG (2.0x)
   subsection grid refinement [3]
     set refinement_steps  = 4 # 6
     set refinement_method = continuous

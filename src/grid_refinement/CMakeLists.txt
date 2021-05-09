@@ -18,9 +18,9 @@ foreach(dim RANGE 1 3)
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${GridRefinementLib} PRIVATE 
         PHILIP_DIM=${dim} 
-        ENABLE_GMSH=1 
+        ENABLE_GMSH=${ENABLE_GMSH}
         GMSH_PATH=\"/usr/local/include/gmsh-master/build/gmsh\" 
-        ENABLE_GNUPLOT=1)
+        ENABLE_GNUPLOT=${ENABLE_GNUPLOT})
 
     # Setup target with deal.II
     if(NOT DOC_ONLY)

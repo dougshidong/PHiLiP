@@ -9,6 +9,8 @@ set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -Werror")
 
 set(MPIMAX 4 CACHE STRING "Default number of processors used in ctest mpirun -np MPIMAX. Not the same as ctest -jX")
 
+set(ENABLE_GMSH 0 CACHE STRING "Enable GMSH access through command lines and tests.")
+set(ENABLE_GNUPLOT 0 CACHE STRING "Enable Gnu Plot outputs.")
 
 #set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -Og -g")
 

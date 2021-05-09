@@ -432,6 +432,8 @@ int GmshOut<dim,real>::call_gmsh(
     return 1;
 #else
     // disabled
+    (void) geo_name;
+    (void) output_name;
     std::cerr << "Error: Call to gmsh without gmsh enabled." << std::endl;
     std::cerr << "       Please set ENABLE_GMSH and GMSH_PATH and try again." << std::endl;
     return 0;

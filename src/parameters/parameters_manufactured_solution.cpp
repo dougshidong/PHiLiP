@@ -100,6 +100,7 @@ void ManufacturedSolutionParam::parse_parameters(dealii::ParameterHandler &prm)
     diffusion_tensor[0][0] = prm.get_double("diffusion_00");
     diffusion_tensor[0][1] = prm.get_double("diffusion_01");
     diffusion_tensor[1][0] = prm.get_double("diffusion_10");
+    diffusion_tensor[1][1] = prm.get_double("diffusion_11");
     diffusion_tensor[0][2] = prm.get_double("diffusion_02");
     diffusion_tensor[2][0] = prm.get_double("diffusion_20");
     diffusion_tensor[2][1] = prm.get_double("diffusion_21");

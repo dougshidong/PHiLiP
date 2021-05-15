@@ -105,40 +105,40 @@ endif(${ENABLE_GMSH})
 # Feature-based S-Shock (p=1, p=2)
 configure_file(msh_in/output_ss15_fb_p1_2.msh msh_in/output_ss15_fb_p1_2.msh COPYONLY)
 configure_file(msh_out/input_ss15_fb_p1_3.msh msh_out/input_ss15_fb_p1_3.msh COPYONLY)
-#configure_file(2d_lpcvt_fb_sshock_p1.prm 2d_lpcvt_fb_sshock_p1.prm COPYONLY)
-#add_test(
-#  NAME 2D_LPCVT_FB_SSHOCK_P1
-#  COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_lpcvt_fb_sshock_p1.prm
-#  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-#)
+configure_file(2d_lpcvt_fb_sshock_p1.prm 2d_lpcvt_fb_sshock_p1.prm COPYONLY)
+add_test(
+  NAME 2D_LPCVT_FB_SSHOCK_P1
+  COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_lpcvt_fb_sshock_p1.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
 
 configure_file(msh_in/output_ss15_fb_p2_2.msh msh_in/output_ss15_fb_p2_2.msh COPYONLY)
 configure_file(msh_out/input_ss15_fb_p2_3.msh msh_out/input_ss15_fb_p2_3.msh COPYONLY)
-#configure_file(2d_lpcvt_fb_sshock_p2.prm 2d_lpcvt_fb_sshock_p2.prm COPYONLY)
-#add_test(
-#  NAME 2D_LPCVT_FB_SSHOCK_P2
-#  COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_lpcvt_fb_sshock_p2.prm
-#  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-#)
+configure_file(2d_lpcvt_fb_sshock_p2.prm 2d_lpcvt_fb_sshock_p2.prm COPYONLY)
+add_test(
+  NAME 2D_LPCVT_FB_SSHOCK_P2
+  COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_lpcvt_fb_sshock_p2.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
 
 # Feature-based Boundary Layer (p=2, p=3)
 configure_file(msh_in/output_bl15_fb_p2_2.msh msh_in/output_bl15_fb_p2_2.msh COPYONLY)
 configure_file(msh_out/input_bl15_fb_p2_3.msh msh_out/input_bl15_fb_p2_3.msh COPYONLY)
-#configure_file(2d_lpcvt_fb_boundarylayer_p2.prm 2d_lpcvt_fb_boundarylayer_p2.prm COPYONLY)
-#add_test(
-#  NAME 2D_LPCVT_FB_BOUNDARYLAYER_P2
-#  COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_lpcvt_fb_boundarylayer_p2.prm
-#  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-#)
+configure_file(2d_lpcvt_fb_boundarylayer_p2.prm 2d_lpcvt_fb_boundarylayer_p2.prm COPYONLY)
+add_test(
+  NAME 2D_LPCVT_FB_BOUNDARYLAYER_P2
+  COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_lpcvt_fb_boundarylayer_p2.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
 
 configure_file(msh_in/output_bl15_fb_p3_2.msh msh_in/output_bl15_fb_p3_2.msh COPYONLY)
 configure_file(msh_out/input_bl15_fb_p3_3.msh msh_out/input_bl15_fb_p3_3.msh COPYONLY)
-#configure_file(2d_lpcvt_fb_boundarylayer_p3.prm 2d_lpcvt_fb_boundarylayer_p3.prm COPYONLY)
-#add_test(
-#  NAME 2D_LPCVT_FB_BOUNDARYLAYER_P3
-#  COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_lpcvt_fb_boundarylayer_p3.prm
-#  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-#)
+configure_file(2d_lpcvt_fb_boundarylayer_p3.prm 2d_lpcvt_fb_boundarylayer_p3.prm COPYONLY)
+add_test(
+  NAME 2D_LPCVT_FB_BOUNDARYLAYER_P3
+  COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_lpcvt_fb_boundarylayer_p3.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
 
 
 # Adjoint-based S-Shock (p=1, p=2)

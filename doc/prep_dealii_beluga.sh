@@ -1,0 +1,19 @@
+rm CMakeCache.txt
+cmake \
+    /home/ddong/projects/rrg-nadaraja-ac/Libraries/dealii/ \
+    -DCMAKE_INSTALL_PREFIX=/project/rrg-nadaraja-ac/Libraries/dealii/install \
+    -DCMAKE_C_COMPILER=mpicc \
+    -DCMAKE_CXX_COMPILER=mpicxx \
+    -DCMAKE_CXX_FLAGS="-std=c++14 -march=native -Wno-suggest-override -pthread" \
+    -DCMAKE_C_FLAGS="-pthread" \
+    -DCMAKE_Fortran_COMPILER= \
+    -DDEAL_II_ALLOW_BUNDLED=ON \
+    -DDEAL_II_WITH_MPI=ON \
+    -DDEAL_II_WITH_CUDA_AWARE_MPI=OFF \
+    -DDEAL_II_WITH_HDF5=OFF \
+    -DDEAL_II_WITH_TRILINOS=ON \
+    -DDEAL_II_WITH_P4EST=ON \
+    -DDEAL_II_WITH_BOOST=ON \
+    -DDEAL_II_WITH_PETSC=ON \
+    -DDEAL_II_COMPONENT_EXAMPLES=OFF \
+    -DDEAL_II_COMPILER_HAS_FUSE_LD_GOLD=OFF \

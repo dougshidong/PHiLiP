@@ -18,12 +18,12 @@ int main (int /*argc*/, char * /*argv*/[])
     std::cout << "vector1 " << std::endl << vector1 << std::endl;
     std::cout << "vector2 " << std::endl << vector2 << std::endl;
 
-    using ADtype = Sacado::Fad::DFad<double>;
-    using ADADtype = Sacado::Fad::DFad<ADtype>;
+    using FadType = Sacado::Fad::DFad<double>;
+    using FadFadType = Sacado::Fad::DFad<FadType>;
 
-    ADtype scalarA_AD = 1.0;
+    FadType scalarA_AD = 1.0;
 
-    Tensor <1, 3, ADtype> vectorA_AD;
+    Tensor <1, 3, FadType> vectorA_AD;
     vectorA_AD[0] = 1*scalarA_AD;
     vectorA_AD[1] = 2*scalarA_AD;
     vectorA_AD[2] = 3*scalarA_AD;
@@ -33,7 +33,7 @@ int main (int /*argc*/, char * /*argv*/[])
     vectorA_AD[1].diff(2, 4);
     vectorA_AD[2].diff(3, 4);
     
-    Tensor <1, 3, ADtype> vector_scalar_AD;
+    Tensor <1, 3, FadType> vector_scalar_AD;
     vector_scalar_AD = vectorA_AD * scalarA_AD;
 
     Tensor <1, 3, double> vectorB_double;
@@ -42,7 +42,7 @@ int main (int /*argc*/, char * /*argv*/[])
     vectorB_double[2] = 3.0;
 
     
-    ADtype vector_vector_AD;
+    FadType vector_vector_AD;
     vector_vector_AD = vectorA_AD * vectorB_double;
 
     std::cout<<"Should be 2 AD is " << vector_scalar_AD[0].dx(0) << std::endl;
@@ -71,7 +71,7 @@ int main (int /*argc*/, char * /*argv*/[])
     //vectorA_AD[1] = 2*scalarA_AD*scalarA_AD*scalarA_AD;
     //vectorA_AD[3] = 3*scalarA_AD*scalarA_AD*scalarA_AD*scalarA_AD;
 
-    //Tensor <1, 3, ADADtype> vectorA_ADAD;
+    //Tensor <1, 3, FadFadType> vectorA_ADAD;
     //vectorA_ADAD[0] = 1*scalarA_AD*scalarA_AD;
     //vectorA_ADAD[1] = 2*scalarA_AD*scalarA_AD*scalarA_AD;
     //vectorA_ADAD[3] = 3*scalarA_AD*scalarA_AD*scalarA_AD*scalarA_AD;

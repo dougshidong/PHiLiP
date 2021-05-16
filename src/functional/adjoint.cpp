@@ -1,5 +1,6 @@
 #include <vector>
 #include <iostream>
+#include <fstream>
 
 #include <Epetra_RowMatrixTransposer.h>
 
@@ -23,7 +24,6 @@
 #include "dg/dg.h"
 #include "adjoint.h"
 #include "functional.h"
-#include "dg/high_order_grid.h"
 #include "physics/physics.h"
 #include "linear_solver/linear_solver.h"
 #include "post_processor/physics_post_processor.h"
@@ -170,7 +170,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nstate, real, Mesh
     // dIdw_fine.reinit(dg->solution);
     // dIdw_fine = functional.evaluate_dIdw(dg, physics);
     const bool compute_dIdW = true, compute_dIdX = false;
-    const real functional_value = functional->evaluate_functional(*(physics),compute_dIdW,compute_dIdX);
+    const real functional_value = functional.evaluate_functional(compute_dIdW,compute_dIdX);
     (void) functional_value;
     dIdw_fine = functional->dIdw;
 
@@ -184,9 +184,10 @@ dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nstate, real, Mesh
 
     Epetra_RowMatrixTransposer epmt(const_cast<Epetra_CrsMatrix *>(&dg->system_matrix.trilinos_matrix()));
     epmt.CreateTranspose(false, system_matrix_transpose_tril);
-    system_matrix_transpose.reinit(*system_matrix_transpose_tril);
+    system_matrix_transpose.reinit(*system_matrix_transpose_tril,true);
+    delete system_matrix_transpose_tril;
     solve_linear(system_matrix_transpose, dIdw_fine, adjoint_fine, dg->all_parameters->linear_solver_param);
-    // solve_linear(dg->system_matrix, dIdw_fine, adjoint_fine, dg->all_parameters->linear_solver_param);
+    // solve_linear(dg.system_matrix, dIdw_fine, adjoint_fine, dg.all_parameters->linear_solver_param);
 
     return adjoint_fine;
 }
@@ -266,7 +267,7 @@ void Adjoint<dim, nstate, real, MeshType>::output_results_vtk(const unsigned int
     for (unsigned int i = 0; i < subdomain.size(); ++i) {
         subdomain(i) = dg->triangulation->locally_owned_subdomain();
     }
-    data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
     // Output the polynomial degree in each cell
     std::vector<unsigned int> active_fe_indices;
@@ -274,7 +275,7 @@ void Adjoint<dim, nstate, real, MeshType>::output_results_vtk(const unsigned int
     dealii::Vector<double> active_fe_indices_dealiivector(active_fe_indices.begin(), active_fe_indices.end());
     dealii::Vector<double> cell_poly_degree = active_fe_indices_dealiivector;
 
-    data_out.add_data_vector(active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector(active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
     std::vector<std::string> residual_names;
     for(int s=0;s<nstate;++s) {
@@ -315,10 +316,6 @@ void Adjoint<dim, nstate, real, MeshType>::output_results_vtk(const unsigned int
     //data_out.build_patches(*(high_order_grid.mapping_fe_field), fe_collection.size(), dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells);
     std::string filename = "adjoint-" ;
     if(adjoint_state == AdjointStateEnum::fine)
-        filename += "fine-";
-    else if(adjoint_state == AdjointStateEnum::coarse)
-        filename += "coarse-";
-    filename += dealii::Utilities::int_to_string(dim, 1) + "D-";
     filename += dealii::Utilities::int_to_string(cycle, 4) + ".";
     filename += dealii::Utilities::int_to_string(iproc, 4);
     filename += ".vtu";

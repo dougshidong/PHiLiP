@@ -1,3 +1,4 @@
+#include <CoDiPack/include/codi.hpp>
 #include <Sacado.hpp>
 #include <deal.II/base/function.h>
 #include <deal.II/base/function.templates.h> // Needed to instantiate dealii::Function<PHILIP_DIM,Sacado::Fad::DFad<double>>
@@ -10,9 +11,28 @@ template class dealii::Function<PHILIP_DIM,Sacado::Fad::DFad<double>>;
 
 namespace PHiLiP {
 
+///< Provide isfinite for double.
+bool isfinite(double value)
+{
+    return std::isfinite(static_cast<double>(value));
+}
+
+///< Provide isfinite for FadType
 bool isfinite(Sacado::Fad::DFad<double> value)
 {
     return std::isfinite(static_cast<double>(value.val()));
+}
+
+///< Provide isfinite for FadFadType
+bool isfinite(Sacado::Fad::DFad<Sacado::Fad::DFad<double>> value)
+{
+    return std::isfinite(static_cast<double>(value.val().val()));
+}
+
+///< Provide isfinite for RadFadType
+bool isfinite(Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> value)
+{
+    return std::isfinite(static_cast<double>(value.val().val()));
 }
 
 template <int dim, typename real>
@@ -880,30 +900,84 @@ ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(
     return nullptr;
 }
 
-template class ManufacturedSolutionSine<PHILIP_DIM,double>;
-template class ManufacturedSolutionSine<PHILIP_DIM,Sacado::Fad::DFad<double>>;
-template class ManufacturedSolutionCosine<PHILIP_DIM,double>;
-template class ManufacturedSolutionCosine<PHILIP_DIM,Sacado::Fad::DFad<double>>;
-template class ManufacturedSolutionAdd<PHILIP_DIM,double>;
-template class ManufacturedSolutionAdd<PHILIP_DIM,Sacado::Fad::DFad<double>>;
-template class ManufacturedSolutionExp<PHILIP_DIM,double>;
-template class ManufacturedSolutionExp<PHILIP_DIM,Sacado::Fad::DFad<double>>;
-template class ManufacturedSolutionPoly<PHILIP_DIM,double>;
-template class ManufacturedSolutionPoly<PHILIP_DIM,Sacado::Fad::DFad<double>>;
-template class ManufacturedSolutionEvenPoly<PHILIP_DIM,double>;
-template class ManufacturedSolutionEvenPoly<PHILIP_DIM,Sacado::Fad::DFad<double>>;
-template class ManufacturedSolutionAtan<PHILIP_DIM,double>;
-template class ManufacturedSolutionAtan<PHILIP_DIM,Sacado::Fad::DFad<double>>;
-template class ManufacturedSolutionBoundaryLayer<PHILIP_DIM,double>;
-template class ManufacturedSolutionBoundaryLayer<PHILIP_DIM,Sacado::Fad::DFad<double>>;
-template class ManufacturedSolutionSShock<PHILIP_DIM,double>;
-template class ManufacturedSolutionSShock<PHILIP_DIM,Sacado::Fad::DFad<double>>;
-template class ManufacturedSolutionQuadratic<PHILIP_DIM,double>;
-template class ManufacturedSolutionQuadratic<PHILIP_DIM,Sacado::Fad::DFad<double>>;
+using FadType = Sacado::Fad::DFad<double>; ///< Sacado AD type for first derivatives.
+using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
+
+static constexpr int dimForwardAD = 1; ///< Size of the forward vector mode for CoDiPack.
+static constexpr int dimReverseAD = 1; ///< Size of the reverse vector mode for CoDiPack.
+
+using codi_FadType = codi::RealForwardGen<double, codi::Direction<double,dimForwardAD>>; ///< Tapeless forward mode.
+//using codi_FadType = codi::RealForwardGen<double, codi::DirectionVar<double>>;
+
+using codi_JacobianComputationType = codi::RealReverseIndexVec<dimReverseAD>; ///< Reverse mode type for Jacobian computation using TapeHelper.
+using codi_HessianComputationType = codi::RealReversePrimalIndexGen< codi::RealForwardVec<dimForwardAD>,
+                                                  codi::Direction< codi::RealForwardVec<dimForwardAD>, dimReverseAD>
+                                                >; ///< Nested reverse-forward mode type for Jacobian and Hessian computation using TapeHelper.
+//using RadFadType = Sacado::Rad::ADvar<FadType>; ///< Sacado AD type that allows 2nd derivatives.
+//using RadFadType = codi_JacobianComputationType; ///< Reverse only mode that only allows Jacobian computation.
+using RadType = codi_JacobianComputationType; ///< CoDiPaco reverse-AD type for first derivatives.
+using RadFadType = codi_HessianComputationType; ///< Nested reverse-forward mode type for Jacobian and Hessian computation using TapeHelper.
 
 template class ManufacturedSolutionFunction<PHILIP_DIM,double>;
-template class ManufacturedSolutionFunction<PHILIP_DIM,Sacado::Fad::DFad<double>>;
+template class ManufacturedSolutionFunction<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionFunction<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionFunction<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionFunction<PHILIP_DIM,RadFadType>;
+
+template class ManufacturedSolutionSine<PHILIP_DIM,double>;
+template class ManufacturedSolutionSine<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionSine<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionSine<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionSine<PHILIP_DIM,RadRadType>;
+template class ManufacturedSolutionCosine<PHILIP_DIM,double>;
+template class ManufacturedSolutionCosine<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionCosine<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionCosine<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionCosine<PHILIP_DIM,RadRadType>;
+template class ManufacturedSolutionAdd<PHILIP_DIM,double>;
+template class ManufacturedSolutionAdd<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionAdd<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionAdd<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionAdd<PHILIP_DIM,RadRadType>;
+template class ManufacturedSolutionExp<PHILIP_DIM,double>;
+template class ManufacturedSolutionExp<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionExp<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionExp<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionExp<PHILIP_DIM,RadRadType>;
+template class ManufacturedSolutionPoly<PHILIP_DIM,double>;
+template class ManufacturedSolutionPoly<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionPoly<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionPoly<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionPoly<PHILIP_DIM,RadRadType>;
+template class ManufacturedSolutionEvenPoly<PHILIP_DIM,double>;
+template class ManufacturedSolutionEvenPoly<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionEvenPoly<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionEvenPoly<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionEvenPoly<PHILIP_DIM,RadRadType>;
+template class ManufacturedSolutionAtan<PHILIP_DIM,double>;
+template class ManufacturedSolutionAtan<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionAtan<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionAtan<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionAtan<PHILIP_DIM,RadRadType>;
+template class ManufacturedSolutionBoundaryLayer<PHILIP_DIM,double>;
+template class ManufacturedSolutionBoundaryLayer<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionBoundaryLayer<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionBoundaryLayer<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionBoundaryLayer<PHILIP_DIM,RadRadType>;
+template class ManufacturedSolutionSShock<PHILIP_DIM,double>;
+template class ManufacturedSolutionSShock<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionSShock<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionSShock<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionSShock<PHILIP_DIM,RadRadType>;
+template class ManufacturedSolutionQuadratic<PHILIP_DIM,double>;
+template class ManufacturedSolutionQuadratic<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionQuadratic<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionQuadratic<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionQuadratic<PHILIP_DIM,RadRadType>;
 
 template class ManufacturedSolutionFactory<PHILIP_DIM,double>;
-template class ManufacturedSolutionFactory<PHILIP_DIM,Sacado::Fad::DFad<double>>;
+template class ManufacturedSolutionFactory<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionFactory<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionFactory<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionFactory<PHILIP_DIM,RadRadType>;
 }

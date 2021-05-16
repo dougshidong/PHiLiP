@@ -31,6 +31,7 @@
 #include "physics/manufactured_solution.h"
 
 #include "dg/dg.h"
+#include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver.h"
 
 #include "functional/functional.h"
@@ -40,56 +41,63 @@
 namespace PHiLiP {
 namespace Tests {
 
+/** L2 norm of entropy generated in the domain
+ */
 template <int dim, int nstate, typename real>
 class L2normError : public Functional<dim, nstate, real>
 {
-    public:
-        /// Constructor
-        L2normError(
-            std::shared_ptr<PHiLiP::DGBase<dim,real>> dg_input,
-            const bool uses_solution_values = true,
-            const bool uses_solution_gradient = true)
-        : PHiLiP::Functional<dim,nstate,real>(dg_input,uses_solution_values,uses_solution_gradient)
-        {}
+public:
+    /// Constructor
+    L2normError(
+        std::shared_ptr<PHiLiP::DGBase<dim,real>> dg_input,
+        const bool uses_solution_values = true,
+        const bool uses_solution_gradient = true)
+    : PHiLiP::Functional<dim,nstate,real>(dg_input,uses_solution_values,uses_solution_gradient)
+    {}
 
-        template <typename real2>
-        real2 evaluate_volume_integrand(
-            const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
-            const dealii::Point<dim,real2> &/*phys_coord*/,
-            const std::array<real2,nstate> &soln_at_q,
-            const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/)
-        {
+    /// Templated volume integrand of the functional, which is the point entropy generated squared.
+    template <typename real2>
+    real2 evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+        const dealii::Point<dim,real2> &/*phys_coord*/,
+        const std::array<real2,nstate> &soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
+    {
 
-            real2 cell_l2error = 0;
+        real2 cell_l2error = 0;
 
-            const Physics::Euler<dim,nstate,real2>& euler_physics = dynamic_cast<const Physics::Euler<dim,nstate,real2>&>(physics);
+        const Physics::Euler<dim,nstate,real2>& euler_physics = dynamic_cast<const Physics::Euler<dim,nstate,real2>&>(physics);
 
-            const real2 entropy = euler_physics.compute_entropy_measure(soln_at_q);
+        const real2 entropy = euler_physics.compute_entropy_measure(soln_at_q);
 
-            const real2 uexact = euler_physics.entropy_inf;
-            cell_l2error = pow(entropy - uexact, 2);
+        const real2 uexact = euler_physics.entropy_inf;
+        cell_l2error = pow(entropy - uexact, 2);
 
-            return cell_l2error;
-        }
+        return cell_l2error;
+    }
 
-    	// non-template functions to override the template classes
-		real evaluate_volume_integrand(
-            const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
-            const dealii::Point<dim,real> &phys_coord,
-            const std::array<real,nstate> &soln_at_q,
-            const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) override
-		{
-			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
-		}
-        using ADtype = Sacado::Fad::DFad<real>;
-		ADtype evaluate_volume_integrand(
-            const PHiLiP::Physics::PhysicsBase<dim,nstate,ADtype> &physics,
-            const dealii::Point<dim,ADtype> &phys_coord,
-            const std::array<ADtype,nstate> &soln_at_q,
-            const std::array<dealii::Tensor<1,dim,ADtype>,nstate> &soln_grad_at_q) override
-		{
-			return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
-		}
+    /// non-template functions to override the template classes
+    real evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+        const dealii::Point<dim,real> &phys_coord,
+        const std::array<real,nstate> &soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override
+    {
+        return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
+    }
+
+    using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
+    using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
+
+    /// non-template functions to override the template classes
+    FadFadType evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,
+        const dealii::Point<dim,FadFadType> &phys_coord,
+        const std::array<FadFadType,nstate> &soln_at_q,
+        const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &soln_grad_at_q) const override
+    {
+        return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
+    }
 };
 
 dealii::Point<2> center_adjoint(0.0,0.0);
@@ -103,7 +111,7 @@ dealii::Point<2> warp_cylinder_adjoint (const dealii::Point<2> &p)//, const doub
 
     //const double radius = std::abs(p[0]);
 
-    const double power = 2.25;
+    const double power = 1.8;
     const double radius = outer_radius_adjoint*(inner_radius_adjoint/outer_radius_adjoint + pow(std::abs(p[0]), power));
 
     dealii::Point<2> q = p;
@@ -155,38 +163,6 @@ void half_cylinder_adjoint(dealii::parallel::distributed::Triangulation<2> & tri
         }
     }
 }
-
-
-/// Function used to evaluate farfield conservative solution
-template <int dim, int nstate>
-class FreeStreamInitialConditions_adjoint : public dealii::Function<dim>
-{
-public:
-    /// Farfield conservative solution
-    std::array<double,nstate> farfield_conservative;
-
-    /// Constructor.
-    /** Evaluates the primary farfield solution and converts it into the store farfield_conservative solution
-     */
-    FreeStreamInitialConditions_adjoint (const Physics::Euler<dim,nstate,double> euler_physics)
-    : dealii::Function<dim,double>(nstate)
-    {
-        const double density_bc = euler_physics.density_inf;
-        const double pressure_bc = 1.0/(euler_physics.gam*euler_physics.mach_inf_sqr);
-        std::array<double,nstate> primitive_boundary_values;
-        primitive_boundary_values[0] = density_bc;
-        for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = euler_physics.velocities_inf[d]; }
-        primitive_boundary_values[nstate-1] = pressure_bc;
-        farfield_conservative = euler_physics.convert_primitive_to_conservative(primitive_boundary_values);
-    }
-  
-    /// Returns the istate-th farfield conservative value
-    double value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const
-    {
-        return farfield_conservative[istate];
-    }
-};
-template class FreeStreamInitialConditions_adjoint <PHILIP_DIM, PHILIP_DIM+2>;
 
 template <int dim, int nstate>
 EulerCylinderAdjoint<dim,nstate>::EulerCylinderAdjoint(const Parameters::AllParameters *const parameters_input)
@@ -240,7 +216,7 @@ int EulerCylinderAdjoint<dim,nstate>
     //         param.euler_param.angle_of_attack,
     //         param.euler_param.side_slip_angle);
 
-    FreeStreamInitialConditions_adjoint<dim,nstate> initial_conditions(*(euler_physics_double));
+    Physics::FreeStreamInitialConditions<dim,nstate> initial_conditions(euler_physics_double);
 
     std::vector<int> fail_conv_poly;
     std::vector<double> fail_conv_slop;
@@ -260,17 +236,15 @@ int EulerCylinderAdjoint<dim,nstate>
         dealii::ConvergenceTable convergence_table;
 
         // Generate grid and mapping
-        dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator);//,
-            // typename dealii::Triangulation<dim>::MeshSmoothing(
-            //     dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_refinement |
-            //     dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_coarsening));
+        using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+        std::shared_ptr <Triangulation> grid = std::make_shared<Triangulation> (this->mpi_communicator);
 
         const unsigned int n_cells_circle = n_1d_cells[0];
-        const unsigned int n_cells_radial = 2*n_cells_circle;
-        half_cylinder_adjoint(grid, n_cells_circle, n_cells_radial);
+        const unsigned int n_cells_radial = 1.5*n_cells_circle;
+        half_cylinder_adjoint(*grid, n_cells_circle, n_cells_radial);
 
         // Create DG object, using max_poly = p+1 to allow for adjoint computation
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, poly_degree+1, &grid);
+        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, poly_degree+1, grid);
 
         dg->allocate_system ();
         // Initialize coarse grid solution with free-stream
@@ -287,26 +261,26 @@ int EulerCylinderAdjoint<dim,nstate>
         // initializing an adjoint for this case
         Adjoint<dim, nstate, double> adjoint(dg, L2normFunctional, euler_physics_adtype);
 
-        dealii::Vector<float> estimated_error_per_cell(grid.n_active_cells());
+        dealii::Vector<float> estimated_error_per_cell(grid->n_active_cells());
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
 
             // Interpolate solution from previous grid
             if (igrid>0) {
                 dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
-                dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+                dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
                 solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
-                dg->high_order_grid.prepare_for_coarsening_and_refinement();
+                dg->high_order_grid->prepare_for_coarsening_and_refinement();
 
-                // grid.refine_global (1);
-                // dealii::GridRefinement::refine_and_coarsen_fixed_fraction(grid,
-                // dealii::parallel::distributed::GridRefinement::refine_and_coarsen_fixed_fraction(grid,
-                dealii::parallel::distributed::GridRefinement::refine_and_coarsen_fixed_number(grid,
-                // dealii::GridRefinement::refine_and_coarsen_fixed_number(grid,
+                // grid->refine_global (1);
+                // dealii::GridRefinement::refine_and_coarsen_fixed_fraction(*grid,
+                // dealii::parallel::distributed::GridRefinement::refine_and_coarsen_fixed_fraction(*grid,
+                dealii::parallel::distributed::GridRefinement::refine_and_coarsen_fixed_number(*grid,
+                // dealii::GridRefinement::refine_and_coarsen_fixed_number(*grid,
                                                estimated_error_per_cell,
                                                0.3,
                                                0.03);
-                grid.execute_coarsening_and_refinement();
-                dg->high_order_grid.execute_coarsening_and_refinement();
+                grid->execute_coarsening_and_refinement();
+                dg->high_order_grid->execute_coarsening_and_refinement();
                 dg->allocate_system ();
                 dg->solution.zero_out_ghosts();
                 solution_transfer.interpolate(dg->solution);
@@ -316,12 +290,12 @@ int EulerCylinderAdjoint<dim,nstate>
             // std::string filename = "grid_cylinder-" + dealii::Utilities::int_to_string(igrid, 1) + ".eps";
             // std::ofstream out (filename);
             // dealii::GridOut grid_out;
-            // grid_out.write_eps (grid, out);
-            // pcout << " Grid #" << igrid+1 << " . Number of cells: " << grid.n_global_active_cells() << std::endl;
+            // grid_out.write_eps (*grid, out);
+            // pcout << " Grid #" << igrid+1 << " . Number of cells: " << grid->n_global_active_cells() << std::endl;
             // pcout << " written to " << filename << std::endl << std::endl;
 
 
-            const unsigned int n_global_active_cells = grid.n_global_active_cells();
+            const unsigned int n_global_active_cells = grid->n_global_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
             pcout << "Dimension: " << dim << "\t Polynomial degree p: " << poly_degree << std::endl
                  << "Grid number: " << igrid+1 << "/" << n_grids
@@ -333,13 +307,13 @@ int EulerCylinderAdjoint<dim,nstate>
             // Solve the steady state problem
             ode_solver->steady_state();
 
-            const auto mapping = (*(dg->high_order_grid.mapping_fe_field));
+            const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
             dealii::hp::MappingCollection<dim> mapping_collection(mapping);
             dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, dealii::update_values | dealii::update_JxW_values); ///< FEValues of volume.
             // Overintegrate the error to make sure there is not integration error in the error estimate
             //int overintegrate = 0;
             //dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
-            //dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid.mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
+            //dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
             //        dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             std::array<double,nstate> soln_at_q;
 
@@ -350,7 +324,7 @@ int EulerCylinderAdjoint<dim,nstate>
 
             const double entropy_inf = euler_physics_double->entropy_inf;
 
-            estimated_error_per_cell.reinit(grid.n_active_cells());
+            estimated_error_per_cell.reinit(grid->n_active_cells());
             // Integrate solution error and output error
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
 
@@ -390,7 +364,7 @@ int EulerCylinderAdjoint<dim,nstate>
             const double area_mpi_sum = dealii::Utilities::MPI::sum(area, mpi_communicator);
 
             // computing using Functional for comparison
-            const double l2error_functional = L2normFunctional->evaluate_functional(*euler_physics_adtype,false,false);
+            const double l2error_functional = L2normFunctional.evaluate_functional(false,false);
             pcout << "Error computed by original loop: " << l2error_mpi_sum << std::endl << "Error computed by the functional: " << std::sqrt(l2error_functional) << std::endl; 
 
             // reinitializing the adjoint with the current values (from references)

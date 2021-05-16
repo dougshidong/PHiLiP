@@ -89,6 +89,7 @@ public:
     std::vector<real> stdvector_values (const dealii::Point<dim,real> &point) const;
 
   
+    /// See dealii::Function<dim,real>::vector_gradient
     void vector_gradient (const dealii::Point<dim,real> &p,
                           std::vector<dealii::Tensor<1,dim, real> > &gradients) const;
 
@@ -123,12 +124,12 @@ public:
     // virtual void vector_gradient_list (const std::vector<Point<dim,real> > &points,
     //                                   std::vector<std::vector<Tensor<1,dim, real> > > &gradients) const;
 
-protected:
-    //@{
+private:
+    ///@{
     /** Constants used to manufactured solution.
      */
-    std::vector<real> base_values;
-    std::vector<real> amplitudes;
+    std::vector<double> base_values;
+    std::vector<double> amplitudes;
     std::vector<dealii::Tensor<1,dim,real>> frequencies;
     //@}
 };

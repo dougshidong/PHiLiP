@@ -46,10 +46,66 @@
 namespace PHiLiP {
 namespace Tests {
 
+// template <int dim, int nstate, typename real>
+// class L2_Norm_Functional : public Functional<dim, nstate, real>
+// {
+//  public:
+//   template <typename real2>
+//   real2 evaluate_cell_volume(
+//    const Physics::PhysicsBase<dim,nstate,real> &physics,
+//    const dealii::FEValues<dim,dim> &fe_values_volume,
+//    std::vector<real2> local_solution)
+//   {
+//    unsigned int n_quad_pts = fe_values_volume.n_quadrature_points;
+
+//    std::array<real2,nstate> soln_at_q;
+
+//    real2 l2error = 0;
+
+//    // looping over the quadrature points
+//    for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+//     std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
+//     for (unsigned int idof=0; idof<fe_values_volume.dofs_per_cell; ++idof) {
+//      const unsigned int istate = fe_values_volume.get_fe().system_to_component_index(idof).first;
+//      soln_at_q[istate] += local_solution[idof] * fe_values_volume.shape_value_component(idof, iquad, istate);
+//     }
+   
+//     const dealii::Point<dim> qpoint = (fe_values_volume.quadrature_point(iquad));
+
+//     for (int istate=0; istate<nstate; ++istate) {
+//      const double uexact = physics.manufactured_solution_function.value(qpoint, istate);
+//      l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_volume.JxW(iquad);
+//     }
+//    }
+
+//    return l2error;
+//   }
+
+//   // non-template functions to override the template classes
+//   real evaluate_cell_volume(
+//    const Physics::PhysicsBase<dim,nstate,real> &physics,
+//    const dealii::FEValues<dim,dim> &fe_values_volume,
+//    std::vector<real> local_solution) override
+//   {
+//    return evaluate_cell_volume<>(physics, fe_values_volume, local_solution);
+//   }
+//   Sacado::Fad::DFad<real> evaluate_cell_volume(
+//    const Physics::PhysicsBase<dim,nstate,real> &physics,
+//    const dealii::FEValues<dim,dim> &fe_values_volume,
+//    std::vector<Sacado::Fad::DFad<real>> local_solution) override
+//   {
+//    return evaluate_cell_volume<>(physics, fe_values_volume, local_solution);
+//   }
+// };
+
+/** Boundary integral for the Euler Gaussian bump.
+ *  Pressure integral on the outlet.
+ */
 template <int dim, int nstate, typename real>
 class BoundaryIntegral : public PHiLiP::Functional<dim, nstate, real>
 {
-	public:
+ public:
+        /// Templated function to evaluate exit pressure integral.
         template <typename real2>
         real2 evaluate_cell_boundary(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
@@ -81,35 +137,75 @@ class BoundaryIntegral : public PHiLiP::Functional<dim, nstate, real>
                     l2error += pressure * fe_values_boundary.JxW(iquad);
                 }
             }
+            // std::cout << boundary_id << " == 10002? " << (boundary_id == 1002) << std::endl;
+            // if(boundary_id ==  1002){
+            //     for(unsigned int idof=0; idof<fe_values_boundary.dofs_per_cell; idof++){
+            //         l2error += local_solution[idof];
+            //     }
+            // }
 
+            // unsigned int n_quad_pts = fe_values_boundary.n_quadrature_points;
+
+            // std::array<real2,nstate> soln_at_q;
+
+            // trying with the functional from the test case but only on the boundaray
+            // // seeing if evaluating anything seems to work
+            // for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            // for(unsigned int idof=0; idof<fe_values_boundary.dofs_per_cell; idof++){
+            //     const unsigned int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
+            //     soln_at_q[istate] += local_solution[idof] * fe_values_boundary.shape_value_component(idof, iquad, istate);
+            // }
+            // const dealii::Point<dim> qpoint = (fe_values_boundary.quadrature_point(iquad));
+            // for (int istate=0; istate<nstate; ++istate) {
+   //  const double uexact = physics.manufactured_solution_function.value(qpoint, istate);
+   //  l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_boundary.JxW(iquad);
+   // }
+
+            // }
+
+
+            // // only for the outflow conditions
+            // if(boundary_id == 1002){
+            //     const std::vector<real> &JxW       = fe_values_boundary.get_JxW_values();
+            //     const unsigned int n_dofs_cell     = fe_values_boundary.dofs_per_cell;
+            //     const unsigned int n_face_quad_pts = fe_values_boundary.n_quadrature_points;
+
+            //     for(unsigned int itest=0; itest<n_dofs_cell; itest++){
+            //         const unsigned int istate = fe_values_boundary.get_fe().system_to_component_index(itest).first;
+
+            //         for(unsigned int iquad=0; iquad<n_face_quad_pts; iquad++){
+            //             local_sum += std::pow(fe_values_boundary.shape_value_component(itest,iquad,istate) * local_solution[itest], 2.0) * JxW[iquad];
+            //         }
+            //     }
+            // }
             return l2error;
         }
 
-		real evaluate_cell_boundary(
+        /// Corresponding non-templated function for evaluate_cell_boundary.
+  real evaluate_cell_boundary(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
             const unsigned int boundary_id,
             const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
             std::vector<real> local_solution) override {return evaluate_cell_boundary<>(physics, boundary_id, fe_values_boundary, local_solution);}
 
-        Sacado::Fad::DFad<real> evaluate_cell_boundary(
+        /// Corresponding non-templated function for evaluate_cell_boundary.
+  Sacado::Fad::DFad<real> evaluate_cell_boundary(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> &physics,
             const unsigned int boundary_id,
             const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
             std::vector<Sacado::Fad::DFad<real>> local_solution) override {return evaluate_cell_boundary<>(physics, boundary_id, fe_values_boundary, local_solution);}
 };
 
-/// Function used to evaluate farfield conservative solution
+/// Initial conditions to initialize our flow with.
 template <int dim, int nstate>
 class FreeStreamInitialConditionsAdjoint : public dealii::Function<dim>
 {
 public:
-    /// Farfield conservative solution
-    std::array<double,nstate> farfield_conservative;
+    /// Conservative freestream variables.
+    std::array<double,nstate> far_field_conservative;
 
-    /// Constructor.
-    /** Evaluates the primary farfield solution and converts it into the store farfield_conservative solution
-     */
-    FreeStreamInitialConditionsAdjoint (const Physics::Euler<dim,nstate,double> euler_physics)
+    /// Constructor
+    FreeStreamInitialConditions (const Physics::Euler<dim,nstate,double> euler_physics)
     : dealii::Function<dim,double>(nstate)
     {
         const double density_bc = 2.33333*euler_physics.density_inf;
@@ -120,9 +216,12 @@ public:
         primitive_boundary_values[nstate-1] = pressure_bc;
         farfield_conservative = euler_physics.convert_primitive_to_conservative(primitive_boundary_values);
     }
+
+    /// Destructor
+    ~FreeStreamInitialConditions() {};
   
-    /// Returns the istate-th farfield conservative value
-    double value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const
+    /// Corresponds to dealii::Function::value
+    double value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const override
     {
         return farfield_conservative[istate];
     }

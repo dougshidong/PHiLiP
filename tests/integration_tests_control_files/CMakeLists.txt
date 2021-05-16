@@ -9,3 +9,9 @@ add_subdirectory(euler_split_inviscid_taylor_green_vortex)
 add_subdirectory(advection_explicit_periodic)
 add_subdirectory(euler_integration)
 add_subdirectory(grid_refinement)
+add_subdirectory(euler_bump_optimization)
+add_subdirectory(euler_naca_optimization)
+
+add_subdirectory(optimization_inverse_manufactured)
+
+add_subdirectory(1d_shock)

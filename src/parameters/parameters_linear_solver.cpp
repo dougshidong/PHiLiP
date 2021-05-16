@@ -35,11 +35,23 @@ void LinearSolverParam::declare_parameters (dealii::ParameterHandler &prm)
             // ILU with threshold parameters
             prm.declare_entry("ilut_fill", "1",
                               dealii::Patterns::Integer(),
-                              "Amount of additional fill-in elements besides the sparse matrix structure");
+                              "Amount of additional fill-in elements besides the sparse matrix structure."
+                              "For ilut_fill >= 1.0, "
+                              "Number of entries to keep in the strict upper triangle of the "
+                              " current row, and in the strict lower triangle of the current "
+                              " row.  It does NOT correspond to the $p$ parameter in Saad's original. "
+                              " description. This parameter represents a maximum fill fraction. "
+                              " In this implementation, the L and U factors always contains nonzeros corresponding "
+                              " to the original sparsity pattern of A, so this value should be >= 1.0. "
+                              " Letting $fill = \frac{(level-of-fill - 1)*nnz(A)}{2*N}$, "
+                              " each row of the computed L and U factors contains at most $fill$ "
+                              " nonzero elements in addition to those from the sparsity pattern of A."
+                              " For ilut_fill >= 1.0, "
+                              " Typical graph-based level of-fill of the factorization such that the pattern corresponds to A^(p+1). ");
             prm.declare_entry("ilut_drop", "0.0",
                               dealii::Patterns::Double(),
                               "relative size of elements which should be dropped when forming an incomplete lu decomposition with threshold");
-            prm.declare_entry("ilut_rtol", "0.0",
+            prm.declare_entry("ilut_rtol", "1.0",
                               dealii::Patterns::Double(),
                               "Amount of an absolute perturbation that will be added to the diagonal of the matrix, "
                               "which sometimes can help to get better preconditioners");
@@ -64,7 +76,7 @@ void LinearSolverParam ::parse_parameters (dealii::ParameterHandler &prm)
         const std::string solver_string = prm.get("linear_solver_type");
         if (solver_string == "direct") linear_solver_type = LinearSolverEnum::direct;
 
-        if (solver_string == "gmres") 
+        if (solver_string == "gmres")
         {
             linear_solver_type = LinearSolverEnum::gmres;
             prm.enter_subsection("gmres options");

@@ -1,17 +1,67 @@
  #include <cmath>
 #include <vector>
 
-#include <Sacado.hpp>
-#include <deal.II/differentiation/ad/sacado_math.h>
-#include <deal.II/differentiation/ad/sacado_number_types.h>
-#include <deal.II/differentiation/ad/sacado_product_types.h>
+#include "ADTypes.hpp"
 
 #include "physics.h"
 #include "euler.h"
-
+const double BIG_NUMBER = 1e100;
 
 namespace PHiLiP {
 namespace Physics {
+
+template <int dim, int nstate, typename real>
+Euler<dim,nstate,real>::Euler ( 
+    const double                                              ref_length,
+    const double                                              gamma_gas,
+    const double                                              mach_inf,
+    const double                                              angle_of_attack,
+    const double                                              side_slip_angle,
+    const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
+    const dealii::Tensor<1,3,double>                          input_advection_vector = Parameters::ManufacturedSolutionParam::get_default_advection_vector(),
+    const double                                              input_diffusion_coefficient = Parameters::ManufacturedSolutionParam::get_default_diffusion_coefficient(),
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr)
+    : PhysicsBase<dim,nstate,real>(input_diffusion_tensor, input_advection_vector, input_diffusion_coefficient, manufactured_solution_function)
+    , ref_length(ref_length)
+    , gam(gamma_gas)
+    , gamm1(gam-1.0)
+    , density_inf(1.0)
+    , mach_inf(mach_inf)
+    , mach_inf_sqr(mach_inf*mach_inf)
+    , angle_of_attack(angle_of_attack)
+    , side_slip_angle(side_slip_angle)
+    , sound_inf(1.0/(mach_inf))
+    , pressure_inf(1.0/(gam*mach_inf_sqr))
+    , entropy_inf(pressure_inf*pow(density_inf,-gam))
+    //, internal_energy_inf(mach_inf_sqr/(gam*(gam-1.0)))
+{
+    static_assert(nstate==dim+2, "Physics::Euler() should be created with nstate=dim+2");
+
+    temperature_inf = gam*pressure_inf/density_inf * mach_inf_sqr;
+
+    // For now, don't allow side-slip angle
+    if (std::abs(side_slip_angle) >= 1e-14) {
+        std::cout << "Side slip angle = " << side_slip_angle << ". Side_slip_angle must be zero. " << std::endl;
+        std::cout << "I have not figured out the side slip angles just yet." << std::endl;
+        std::abort();
+    }
+    if(dim==1) {
+        velocities_inf[0] = 1.0;
+    } else if(dim==2) {
+        velocities_inf[0] = cos(angle_of_attack);
+        velocities_inf[1] = sin(angle_of_attack); // Maybe minus??
+    } else if (dim==3) {
+        velocities_inf[0] = cos(angle_of_attack)*cos(side_slip_angle);
+        velocities_inf[1] = sin(angle_of_attack)*cos(side_slip_angle);
+        velocities_inf[2] = sin(side_slip_angle);
+    }
+
+    assert(std::abs(velocities_inf.norm() - 1.0) < 1e-14);
+
+    double velocity_inf_sqr = 1.0;
+    dynamic_pressure_inf = 0.5 * density_inf * velocity_inf_sqr;
+
+}
 
 template <int dim, int nstate, typename real>
 std::array<real,nstate> Euler<dim,nstate,real>
@@ -22,6 +72,9 @@ std::array<real,nstate> Euler<dim,nstate,real>
     std::array<real,nstate> manufactured_solution;
     for (int s=0; s<nstate; s++) {
         manufactured_solution[s] = this->manufactured_solution_function->value (pos, s);
+        if (s==0) {
+            assert(manufactured_solution[s] > 0);
+        }
     }
     std::vector<dealii::Tensor<1,dim,real>> manufactured_solution_gradient_dealii(nstate);
     this->manufactured_solution_function->vector_gradient (pos, manufactured_solution_gradient_dealii);
@@ -37,7 +90,15 @@ std::array<real,nstate> Euler<dim,nstate,real>
         dealii::Tensor<1,dim,real> normal;
         normal[d] = 1.0;
         const dealii::Tensor<2,nstate,real> jacobian = convective_flux_directional_jacobian(manufactured_solution, normal);
-        convective_flux_divergence += jacobian*manufactured_solution_gradient[d];
+
+        //convective_flux_divergence += jacobian*manufactured_solution_gradient[d];
+        for (int sr = 0; sr < nstate; ++sr) {
+            real jac_grad_row = 0.0;
+            for (int sc = 0; sc < nstate; ++sc) {
+                jac_grad_row += jacobian[sr][sc]*manufactured_solution_gradient[d][sc];
+            }
+            convective_flux_divergence[sr] += jac_grad_row;
+        }
     }
     std::array<real,nstate> source_term;
     for (int s=0; s<nstate; s++) {
@@ -57,11 +118,16 @@ inline std::array<real,nstate> Euler<dim,nstate,real>
     dealii::Tensor<1,dim,real> vel = compute_velocities (conservative_soln);
     real pressure = compute_pressure (conservative_soln);
 
+    //if (density < 0.0) density = density_inf;
+    //if (pressure < 0.0) pressure = pressure_inf;
+    if (density < 0.0) density = BIG_NUMBER;
+    if (pressure < 0.0) pressure = BIG_NUMBER;
     primitive_soln[0] = density;
     for (int d=0; d<dim; ++d) {
         primitive_soln[1+d] = vel[d];
     }
     primitive_soln[nstate-1] = pressure;
+
     return primitive_soln;
 }
 
@@ -135,10 +201,21 @@ template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
 ::compute_entropy_measure ( const std::array<real,nstate> &conservative_soln ) const
 {
-    const real density = conservative_soln[0];
+    real density = conservative_soln[0];
+    //if (density < 0.0) density = density_inf;//BIG_NUMBER;
     const real pressure = compute_pressure(conservative_soln);
-    const real entropy_measure = pressure*pow(density,-gam);
-    return entropy_measure;
+    return compute_entropy_measure(density, pressure);
+}
+
+template <int dim, int nstate, typename real>
+inline real Euler<dim,nstate,real>
+::compute_entropy_measure ( const real density, const real pressure ) const
+{
+    if (density < 0.0) {
+        return BIG_NUMBER;
+    } else {
+        return pressure*pow(density,-gam);
+    }
 }
 
 
@@ -192,28 +269,18 @@ inline real Euler<dim,nstate,real>
 ::compute_pressure ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real density = conservative_soln[0];
-    //std::cout << "density " << density << std::endl;
 
     const real tot_energy  = conservative_soln[nstate-1];
-  //  std::cout << "tot_energy " << tot_energy << std::endl;
 
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
-   // std::cout << "vel1 " << vel[0] << std::endl
-   //                      << vel[1] << std::endl
-//                         << vel[2] <<std::endl;
 
     const real vel2 = compute_velocity_squared(vel);
-    //std::cout << "vel ^2 " << vel2 <<std::endl;
     real pressure = gamm1*(tot_energy - 0.5*density*vel2);
-    //std::cout << "calculated pressure is" << pressure << std::endl;
     if(pressure<0.0) {
-        std::cout<<"Cannot compute pressure..."<<std::endl;
-        std::cout<<"density "<<density<<std::endl;
-        for(int d=0;d<dim;d++) std::cout<<"vel"<<d<<" "<<vel[d]<<std::endl;
-        std::cout<<"energy "<<tot_energy<<std::endl;
+        //pressure = pressure_inf;
+        pressure = BIG_NUMBER;
     }
-    assert(pressure>0.0);
-    //if(pressure<1e-4) pressure = 0.01;
+    //assert(pressure>0.0);
     return pressure;
 }
 
@@ -222,16 +289,13 @@ inline real Euler<dim,nstate,real>
 ::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
     real density = conservative_soln[0];
-    //if(density<1e-4) density = 0.01;
     if(density<0.0) {
-        std::cout<<"density"<<density<<std::endl;
-        std::abort();
+        //density = density_inf;
+        density = BIG_NUMBER;
     }
-    assert(density > 0);
+    //assert(density>0.0);
     const real pressure = compute_pressure(conservative_soln);
-    //std::cout << "pressure is" << pressure << std::endl;
-    const real sound = std::sqrt(pressure*gam/density);
-    //std::cout << "sound is " << sound << std::endl;
+    const real sound = sqrt(pressure*gam/density);
     return sound;
 }
 
@@ -239,8 +303,8 @@ template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
 ::compute_sound ( const real density, const real pressure ) const
 {
-    assert(density > 0);
-    const real sound = std::sqrt(pressure*gam/density);
+    //assert(density > 0);
+    const real sound = sqrt(pressure*gam/density);
     return sound;
 }
 
@@ -310,7 +374,11 @@ compute_mean_velocities(const std::array<real,nstate> &conservative_soln1,
 {
     dealii::Tensor<1,dim,real> vel_1 = compute_velocities(conservative_soln1);
     dealii::Tensor<1,dim,real> vel_2 = compute_velocities(conservative_soln2);
-    return (vel_1 + vel_2)/2.;
+    dealii::Tensor<1,dim,real> mean_vel;
+    for (int d=0; d<dim; ++d) {
+        mean_vel[d] = 0.5*(vel_1[d]+vel_2[d]);
+    }
+    return mean_vel;
 }
 
 template <int dim, int nstate, typename real>
@@ -355,7 +423,10 @@ std::array<real,nstate> Euler<dim,nstate,real>
     const real density = conservative_soln[0];
     const real pressure = compute_pressure (conservative_soln);
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
-    const real normal_vel = vel*normal;
+    real normal_vel = 0.0;
+    for (int d=0; d<dim; ++d) {
+        normal_vel += vel[d]*normal[d];
+    }
     const real total_energy = conservative_soln[nstate-1];
     const real specific_total_enthalpy = (total_energy + pressure) / density;
 
@@ -439,21 +510,13 @@ template <int dim, int nstate, typename real>
 real Euler<dim,nstate,real>
 ::max_convective_eigenvalue (const std::array<real,nstate> &conservative_soln) const
 {
-    //std::cout << "going to calculate max eig" << std::endl;
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
-    //std::cout << "velocities calculated" << std::endl;
 
     const real sound = compute_sound (conservative_soln);
-    //std::cout << "sound calculated" << std::endl;
 
-    /*const*/ real vel2 = compute_velocity_squared(vel);
-    //std::cout << "vel2 calculated" << std::endl;
-
-    if (vel2 < 0.0001)
-        vel2 = 0.0001;
+    real vel2 = compute_velocity_squared(vel);
 
     const real max_eig = sqrt(vel2) + sound;
-    //std::cout << "max eig calculated" << std::endl;
 
     return max_eig;
 }
@@ -471,6 +534,122 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
         diss_flux[i] = 0;
     }
     return diss_flux;
+}
+
+template <int dim, int nstate, typename real>
+void Euler<dim,nstate,real>
+::boundary_riemann (
+   const dealii::Tensor<1,dim,real> &normal_int,
+   const std::array<real,nstate> &soln_int,
+   std::array<real,nstate> &soln_bc) const
+{
+    std::array<real,nstate> primitive_int = convert_conservative_to_primitive(soln_int);
+    std::array<real,nstate> primitive_ext;
+    primitive_ext[0] = density_inf;
+    for (int d=0;d<dim;d++) { primitive_ext[1+d] = velocities_inf[d]; }
+    primitive_ext[nstate-1] = pressure_inf;
+
+    const dealii::Tensor<1,dim,real> velocities_int = extract_velocities_from_primitive(primitive_int);
+    const dealii::Tensor<1,dim,real> velocities_ext = extract_velocities_from_primitive(primitive_ext);
+
+    const real sound_int  = compute_sound ( primitive_int[0], primitive_int[nstate-1] );
+    const real sound_ext  = compute_sound ( primitive_ext[0], primitive_ext[nstate-1] );
+
+    real vel_int_dot_normal = 0.0;
+    real vel_ext_dot_normal = 0.0;
+    for (int d=0; d<dim; d++) {
+        vel_int_dot_normal = vel_int_dot_normal + velocities_int[d]*normal_int[d];
+        vel_ext_dot_normal = vel_ext_dot_normal + velocities_ext[d]*normal_int[d];
+    }
+
+    // Riemann invariants
+    const real out_riemann_invariant = vel_int_dot_normal + 2.0/gamm1*sound_int, // Outgoing
+               inc_riemann_invariant = vel_ext_dot_normal - 2.0/gamm1*sound_ext; // Incoming
+
+    const real normal_velocity_bc = 0.5*(out_riemann_invariant+inc_riemann_invariant),
+               sound_bc  = 0.25*gamm1*(out_riemann_invariant-inc_riemann_invariant);
+
+    std::array<real,nstate> primitive_bc;
+    if (abs(normal_velocity_bc) >= abs(sound_bc)) { // Supersonic
+        if (normal_velocity_bc < 0.0) { // Inlet
+            primitive_bc = primitive_ext;
+        } else { // Outlet
+            primitive_bc = primitive_int;
+        }
+    } else { // Subsonic
+
+        real density_bc;
+        dealii::Tensor<1,dim,real> velocities_bc;
+        real pressure_bc;
+
+        dealii::Tensor<1,dim,real> velocities_tangential;
+        if (normal_velocity_bc < 0.0) { // Inlet
+            const real entropy_ext = compute_entropy_measure(primitive_ext[0], primitive_ext[nstate-1]);
+            density_bc = pow( 1.0/gam * sound_bc * sound_bc / entropy_ext, 1.0/gamm1 );
+            for (int d=0; d<dim; ++d) {
+                velocities_tangential[d] = velocities_ext[d] - vel_ext_dot_normal * normal_int[d];
+            }
+        } else { // Outlet
+            const real entropy_int = compute_entropy_measure(primitive_int[0], primitive_int[nstate-1]);
+            density_bc = pow( 1.0/gam * sound_bc * sound_bc / entropy_int, 1.0/gamm1 );
+            for (int d=0; d<dim; ++d) {
+                velocities_tangential[d] = velocities_int[d] - vel_int_dot_normal * normal_int[d];
+            }
+        }
+        for (int d=0; d<dim; ++d) {
+            velocities_bc[d] = velocities_tangential[d] + normal_velocity_bc*normal_int[d];
+        }
+
+        pressure_bc = 1.0/gam * sound_bc * sound_bc * density_bc;
+
+        primitive_bc[0] = density_bc;
+        for (int d=0;d<dim;d++) { primitive_bc[1+d] = velocities_bc[d]; }
+        primitive_bc[nstate-1] = pressure_bc;
+    }
+
+    soln_bc = convert_primitive_to_conservative(primitive_bc);
+}
+
+template <int dim, int nstate, typename real>
+void Euler<dim,nstate,real>
+::boundary_slip_wall (
+   const dealii::Tensor<1,dim,real> &normal_int,
+   const std::array<real,nstate> &soln_int,
+   std::array<real,nstate> &soln_bc) const
+{
+    // No penetration,
+    // Given by Algorithm II of the following paper
+    // Krivodonova, L., and Berger, M.,
+    // “High-order accurate implementation of solid wall boundary conditions in curved geometries,”
+    // Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
+    const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(soln_int);
+
+    // Copy density and pressure
+    std::array<real,nstate> primitive_boundary_values;
+    primitive_boundary_values[0] = primitive_interior_values[0];
+    primitive_boundary_values[nstate-1] = primitive_interior_values[nstate-1];
+
+    const dealii::Tensor<1,dim,real> surface_normal = -normal_int;
+    const dealii::Tensor<1,dim,real> velocities_int = extract_velocities_from_primitive(primitive_interior_values);
+    //const dealii::Tensor<1,dim,real> velocities_bc = velocities_int - 2.0*(velocities_int*surface_normal)*surface_normal;
+    real vel_int_dot_normal = 0.0;
+    for (int d=0; d<dim; d++) {
+        vel_int_dot_normal = vel_int_dot_normal + velocities_int[d]*surface_normal[d];
+    }
+    dealii::Tensor<1,dim,real> velocities_bc;
+    for (int d=0; d<dim; d++) {
+        velocities_bc[d] = velocities_int[d] - 2.0*(vel_int_dot_normal)*surface_normal[d];
+        //velocities_bc[d] = velocities_int[d] - (vel_int_dot_normal)*surface_normal[d];
+        //velocities_bc[d] += velocities_int[d] * surface_normal.norm_square();
+    }
+    for (int d=0; d<dim; ++d) {
+        primitive_boundary_values[1+d] = velocities_bc[d];
+    }
+
+    const std::array<real,nstate> modified_conservative_boundary_values = convert_primitive_to_conservative(primitive_boundary_values);
+    for (int istate=0; istate<nstate; ++istate) {
+        soln_bc[istate] = modified_conservative_boundary_values[istate];
+    }
 }
 
 template <int dim, int nstate, typename real>
@@ -512,7 +691,8 @@ void Euler<dim,nstate,real>
                 // for(int d=0;d<dim;d++){
                 //    primitive_boundary_values[1+d] = soln_int[1+d]/soln_int[0];;
                 //}
-                conservative_boundary_values = convert_primitive_to_conservative(primitive_boundary_values);
+                const std::array<real,nstate> modified_conservative_boundary_values = convert_primitive_to_conservative(primitive_boundary_values);
+                (void) modified_conservative_boundary_values;
                 //conservative_boundary_values[nstate-1] = soln_int[nstate-1];
                 soln_bc[istate] = conservative_boundary_values[istate];
 
@@ -535,53 +715,44 @@ void Euler<dim,nstate,real>
 
         }
     } else if (boundary_type == 1001) {
-        // No penetration,
-        // Given by Algorithm II of the following paper
-        // Krivodonova, L., and Berger, M.,
-        // “High-order accurate implementation of solid wall boundary conditions in curved geometries,”
-        // Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
-        const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(soln_int);
-        
-        // Copy density and pressure
-        std::array<real,nstate> primitive_boundary_values;
-        primitive_boundary_values[0] = primitive_interior_values[0];
-        primitive_boundary_values[nstate-1] = primitive_interior_values[nstate-1];
 
-        const dealii::Tensor<1,dim,real> surface_normal = -normal_int;
-        const dealii::Tensor<1,dim,real> velocities_int = extract_velocities_from_primitive(primitive_interior_values);
-        const dealii::Tensor<1,dim,real> velocities_bc = velocities_int - 2.0*(velocities_int*surface_normal)*surface_normal;
-        for (int d=0; d<dim; ++d) {
-            primitive_boundary_values[1+d] = velocities_bc[d];
+        boundary_slip_wall ( normal_int, soln_int, soln_bc);
+        for (int istate=0; istate<nstate; ++istate) {
+            soln_grad_bc[istate] = -soln_grad_int[istate];
         }
-
-        soln_bc = convert_primitive_to_conservative(primitive_boundary_values);
 
     } else if (boundary_type == 1002) {
         // Pressure Outflow Boundary Condition (back pressure)
         // Carlson 2011, sec. 2.4
 
         const real back_pressure = 0.99; // Make it as an input later on
-        
+
         const real mach_int = compute_mach_number(soln_int);
-        const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(soln_int);
-        const real pressure_int = primitive_interior_values[nstate-1];
-
-        const real radicant = 1.0+0.5*gamm1*mach_inf_sqr;
-        const real pressure_inlet = total_inlet_pressure * pow(radicant, -gam/gamm1);
-        const real pressure_bc = (mach_int >= 1) ? pressure_int : back_pressure*pressure_inlet;
-        const real temperature_int = compute_temperature(primitive_interior_values);
-
-        // Assign primitive boundary values
-        std::array<real,nstate> primitive_boundary_values;
-        primitive_boundary_values[0] = compute_density_from_pressure_temperature(pressure_bc, temperature_int);
-        for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = primitive_interior_values[1+d]; }
-        primitive_boundary_values[nstate-1] = pressure_bc;
-
-        soln_bc = convert_primitive_to_conservative(primitive_boundary_values);
-
-        // Supersonic, simply extrapolate
         if (mach_int > 1.0) {
-            soln_bc = soln_int;
+            // Supersonic, simply extrapolate
+            for (int istate=0; istate<nstate; ++istate) {
+                soln_bc[istate] = soln_int[istate];
+            }
+        } else {
+
+            const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(soln_int);
+            const real pressure_int = primitive_interior_values[nstate-1];
+
+            const real radicant = 1.0+0.5*gamm1*mach_inf_sqr;
+            const real pressure_inlet = total_inlet_pressure * pow(radicant, -gam/gamm1);
+            const real pressure_bc = (mach_int >= 1) * pressure_int + (1-(mach_int >= 1)) * back_pressure*pressure_inlet;
+            const real temperature_int = compute_temperature(primitive_interior_values);
+
+            // Assign primitive boundary values
+            std::array<real,nstate> primitive_boundary_values;
+            primitive_boundary_values[0] = compute_density_from_pressure_temperature(pressure_bc, temperature_int);
+            for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = primitive_interior_values[1+d]; }
+            primitive_boundary_values[nstate-1] = pressure_bc;
+
+            const std::array<real,nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
+            for (int istate=0; istate<nstate; ++istate) {
+                soln_bc[istate] = conservative_bc[istate];
+            }
         }
 
     } else if (boundary_type == 1003) {
@@ -596,7 +767,11 @@ void Euler<dim,nstate,real>
         const dealii::Tensor<1,dim,real> velocities_i = extract_velocities_from_primitive(primitive_interior_values);
         const real                       pressure_i   = primitive_interior_values[nstate-1];
 
-        const real                       normal_vel_i = velocities_i*normal;
+        //const real                       normal_vel_i = velocities_i*normal;
+        real                       normal_vel_i = 0.0;
+        for (int d=0; d<dim; ++d) {
+            normal_vel_i += velocities_i[d]*normal[d];
+        }
         const real                       sound_i      = compute_sound(soln_int);
         //const real                       mach_i       = std::abs(normal_vel_i)/sound_i;
 
@@ -637,13 +812,16 @@ void Euler<dim,nstate,real>
             //std::cout << " pressure_bc " << pressure_bc << "pressure_inf" << pressure_inf << std::endl;
             //std::cout << " temperature_bc " << temperature_bc << "temperature_inf" << temperature_inf << std::endl;
             //
-   
+
             const real density_bc  = compute_density_from_pressure_temperature(pressure_bc, temperature_bc);
             std::array<real,nstate> primitive_boundary_values;
             primitive_boundary_values[0] = density_bc;
             for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = velocity_magnitude_bc*normal[d]; }
             primitive_boundary_values[nstate-1] = pressure_bc;
-            soln_bc = convert_primitive_to_conservative(primitive_boundary_values);
+            const std::array<real,nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
+            for (int istate=0; istate<nstate; ++istate) {
+                soln_bc[istate] = conservative_bc[istate];
+            }
 
             //std::cout << " entropy_bc " << compute_entropy_measure(soln_bc) << "entropy_inf" << entropy_inf << std::endl;
 
@@ -661,20 +839,22 @@ void Euler<dim,nstate,real>
             const real density_bc  = compute_density_from_pressure_temperature(pressure_bc, temperature_bc);
             const real sound_bc = sqrt(gam * pressure_bc / density_bc);
             const real velocity_magnitude_bc = mach_inf * sound_bc;
-   
+
             // Assign primitive boundary values
             std::array<real,nstate> primitive_boundary_values;
             primitive_boundary_values[0] = density_bc;
             for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = -velocity_magnitude_bc*normal_int[d]; } // minus since it's inflow
             primitive_boundary_values[nstate-1] = pressure_bc;
-            soln_bc = convert_primitive_to_conservative(primitive_boundary_values);
-            //std::cout << "Inlet density : " << density_bc << std::endl;
-            //std::cout << "Inlet vel_x   : " << primitive_boundary_values[1] << std::endl;
-            //std::cout << "Inlet vel_y   : " << primitive_boundary_values[2] << std::endl;
-            //std::cout << "Inlet pressure: " << pressure_bc << std::endl;
+            const std::array<real,nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
+            for (int istate=0; istate<nstate; ++istate) {
+                soln_bc[istate] = conservative_bc[istate];
+            }
         }
 
     } else if (boundary_type == 1004) {
+        // Farfield boundary condition
+        boundary_riemann (normal_int, soln_int, soln_bc);
+    } else if (boundary_type == 1005) {
         // Farfield boundary condition
         const real density_bc = density_inf;
         const real pressure_bc = 1.0/(gam*mach_inf_sqr);
@@ -682,11 +862,11 @@ void Euler<dim,nstate,real>
         primitive_boundary_values[0] = density_bc;
         for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = velocities_inf[d]; } // minus since it's inflow
         primitive_boundary_values[nstate-1] = pressure_bc;
-        soln_bc = convert_primitive_to_conservative(primitive_boundary_values);
-        //std::cout << "Density inf " << soln_bc[0] << std::endl;
-        //std::cout << "momxinf " << soln_bc[1] << std::endl;
-        //std::cout << "momxinf " << soln_bc[2] << std::endl;
-        //std::cout << "energy inf " << soln_bc[3] << std::endl;
+        const std::array<real,nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
+        for (int istate=0; istate<nstate; ++istate) {
+            soln_bc[istate] = conservative_bc[istate];
+        }
+
     } else{
         std::cout << "Invalid boundary_type: " << boundary_type << std::endl;
         std::abort();
@@ -712,6 +892,7 @@ dealii::Vector<double> Euler<dim,nstate,real>::post_compute_derived_quantities_v
             conservative_soln[s] = uh(s);
         }
         const std::array<double, nstate> primitive_soln = convert_conservative_to_primitive(conservative_soln);
+        // if (primitive_soln[0] < 0) std::cout << evaluation_points << std::endl;
 
         // Density
         computed_quantities(++current_data_index) = primitive_soln[0];
@@ -727,7 +908,9 @@ dealii::Vector<double> Euler<dim,nstate,real>::post_compute_derived_quantities_v
         computed_quantities(++current_data_index) = conservative_soln[nstate-1];
         // Pressure
         computed_quantities(++current_data_index) = primitive_soln[nstate-1];
-        // Pressure
+        // Pressure coefficient
+        computed_quantities(++current_data_index) = (primitive_soln[nstate-1] - pressure_inf) / dynamic_pressure_inf;
+        // Temperature
         computed_quantities(++current_data_index) = compute_temperature(primitive_soln);
         // Entropy generation
         computed_quantities(++current_data_index) = compute_entropy_measure(conservative_soln) - entropy_inf;
@@ -759,6 +942,7 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Eu
     }
     interpretation.push_back (DCI::component_is_scalar); // Energy
     interpretation.push_back (DCI::component_is_scalar); // Pressure
+    interpretation.push_back (DCI::component_is_scalar); // Pressure coefficient
     interpretation.push_back (DCI::component_is_scalar); // Temperature
     interpretation.push_back (DCI::component_is_scalar); // Entropy generation
     interpretation.push_back (DCI::component_is_scalar); // Mach number
@@ -784,6 +968,7 @@ std::vector<std::string> Euler<dim,nstate,real> ::post_get_names () const
     }
     names.push_back ("energy");
     names.push_back ("pressure");
+    names.push_back ("pressure_coeffcient");
     names.push_back ("temperature");
 
     names.push_back ("entropy_generation");
@@ -796,13 +981,17 @@ dealii::UpdateFlags Euler<dim,nstate,real>
 ::post_get_needed_update_flags () const
 {
     //return update_values | update_gradients;
-    return dealii::update_values;
+    return dealii::update_values
+           | dealii::update_quadrature_points
+           ;
 }
 
 // Instantiate explicitly
-
 template class Euler < PHILIP_DIM, PHILIP_DIM+2, double >;
-template class Euler < PHILIP_DIM, PHILIP_DIM+2, Sacado::Fad::DFad<double>  >;
+template class Euler < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
+template class Euler < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
+template class Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
+template class Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 
 } // Physics namespace
 } // PHiLiP namespace

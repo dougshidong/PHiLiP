@@ -16,7 +16,7 @@ add_test(
 
 configure_file(2d_convection_diffusion_implicit_collocated.prm 2d_convection_diffusion_implicit_collocated.prm COPYONLY)
 add_test(
-	NAME 2D_CONVECTION_DIFFUSION_IMPLICIT_COLLOCATED_MANUFACTURED_SOLUTION
+ NAME 2D_CONVECTION_DIFFUSION_IMPLICIT_COLLOCATED_MANUFACTURED_SOLUTION
   COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_convection_diffusion_implicit_collocated.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )

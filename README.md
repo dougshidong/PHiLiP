@@ -1,3 +1,22 @@
+# Table of Contents
+
+- [Parallel High-Order Library for PDEs](#parallel-high-order-library-for-pdes)
+  * [Code Description](#code-description)
+  * [Documentation](#documentation)
+  * [Building and Running the Code](#building-and-running-the-code)
+    + [Build using CMake](#build-using-cmake)
+    + [Compile using Make](#compile-using-make)
+  * [Testing](#testing)
+  * [Debugging](#debugging)
+    + [Memory](#memory)
+    + [Parallel debugging](#parallel-debugging)
+  * [Performance](#performance)
+    + [Computational](#computational)
+    + [Memory](#memory-1)
+  * [Contributing checklist](#contributing-checklist)
+- [License](#license)
+
+
 # Parallel High-Order Library for PDEs
 
 [![Documentation](https://codedocs.xyz/dougshidong/PHiLiP.svg)](https://codedocs.xyz/dougshidong/PHiLiP/)
@@ -12,9 +31,9 @@ The math supporting this code can be viewed in this **very rough draft in progre
 - Supports weak and strong (InProgress) form of discontinuous Galerkin (DG), and flux reconstruction (FR) (InProgress)
 - Supported Partial Differential Equations: Linear advection, diffusion, convection-diffusion, Burgers, Euler, TODO: Navier-Stokes.
 - Supported convective numerical fluxes: Lax-Friedrichs, Roe (Harten's entropy fix) for Euler, InProgress: Split-Form
-- Supported diffusive numerical fluxes: Symmetric Interior Penalty
+- Supported diffusive numerical fluxes: Symmetric Interior Penalty, Bassi-Rebay's 2nd formulation (BR2)
 - Supported elements: LINEs, QUADs, HEXs since it uses deal.II
-- Supported refinements: h (size) or p (order).
+- Supported refinements: h (size) or p (order) (InProgress).
 
 ## Documentation
 
@@ -26,10 +45,10 @@ Another great ressource is the [deal.II Google Groups](https://groups.google.com
 
 Finally, I am also always available to answer questions regarding the code by e-mail at doug.shi-dong@mail.mcgill.ca
 
-## Building/Running the Code
+## Building and Running the Code
 
 The code has been succesfully built in the following environments:
-- linux (ubuntu 18.04 and later);
+- linux (ubuntu 20.04 and later);
 
 Please consult the [installation instructions](INSTALL.md) for details concerning required software.
 
@@ -87,7 +106,7 @@ ROOT$ ctest -V (Enable verbose output from tests)
 ```
 Note that running `ctest` in `Debug` will take forever since some integration tests fully solve nonlinear problems with multiple orders and multiple meshes. It is suggested to perform `ctest` in `Release` mode, and only use `Debug` mode for debugging purposes.
 
-## Debugging
+## Serial Debugging
 
 Here is a quickstart guide to debugging. It is highly suggested to use gdb and/or valgrind when the program crashes unexpectedly.
 The first step is to compile the program in `DEBUG` mode through `CMAKE_BUILD_TYPE=Debug`.
@@ -122,7 +141,7 @@ Memory leaks can be detected using Valgrind's tool `memcheck`. The application m
 valgrind --leak-check=full --track-origins=yes /home/ddong/Codes/PHiLiP/build_debug/bin/2D_HighOrder_MappingFEField
 ```
 
-### Parallel debugging
+## Parallel debugging
 
 If the error only occurs when using parallelism, you can use the following example command
 ```sh
@@ -130,6 +149,12 @@ mpirun -np 2 xterm -hold -e gdb -ex 'break MPI_Abort' -ex run --args /home/ddong
 ```
 This launches 2 xterm processes, each of which will launch gdb processes that will run the code and will have a breakpoint when MPI_Abort is encountered.
 
+### Memory
+Since no interaction is needed with Valgrind, we don't need xterm anymore. We can simply use
+```sh
+mpiexec -np 2 valgrind --leak-check=full  --show-reachable=yes --log-file=logfile.%p.log "/home/ddong/Codes/PHiLiP/build_debug/bin/objective_check"
+```
+to output to multiple logfiles.
 ## Performance
 
 Problems tend to show up in the 3D version if an algorithm has been implemented inefficiently. It is therefore highly recommended that a 3D test accompanies the implemented features.
@@ -159,16 +184,24 @@ will generate a `massif.out.#####` file that can be visualized using `massif-vis
 
 ## Contributing checklist
 
-1. A unit test, integration test, or regression test accompanies the feature. Tests longer than a few seconds should be tagged as with the suffix MEDIUM, and tests a minute or longer should be tagged with LONG.
+In terms of syntax, the only rule of thumb is to use descriptive variable names even if they end up being long. Otherwise, any preferred reasonable syntax will be accepted.
+
+However, the we must put an emphasis on code testing:
+
+1. A unit test, integration test, or regression test accompanies the feature. 
+This test should automatically fail when the code is erroneously changed.
+This mean that we should not `return 0` or copy-paste the tested sections, since changes to the actual code will not affect the outcome of the test.
+Tests longer than a few seconds should be tagged as with the suffix MEDIUM, and tests a minute or longer should be tagged with LONG. Long tests are very undesirable and should be avoided when possible.
   * A unit test is often most appropriate, and is aimed at testing a single component of the code. See the test on [Euler's primitive to conservative conversion](https://github.com/dougshidong/PHiLiP/blob/master/tests/unit_tests/euler_unit_test/euler_convert_primitive_conservative.cpp)
   * An integration test runs the entire main program by taking an input file and calling PHiLiP_1/2/3D. It should be derived from the [`TestBase` class](https://github.com/dougshidong/PHiLiP/blob/master/src/testing/tests.h), and have a control file located in the [integration test directory](https://github.com/dougshidong/PHiLiP/tree/master/tests/integration_tests_control_files). Since integrations tests uses multiple components, they usually take longer. Furthermore, the cause of failure is sometimes less obvious. A good suggestion is to use an existing test control file, and only change 1 parameter to help pinpoint issues when it fails.
    * A regression test stores previously computed data to validate future results. Note that this type of test is rarely appropriate since valid changes in the code can fail this type of test. If implemented, a script/code should be made available such that newly computed results can replace the old results. See [file1](https://github.com/dougshidong/PHiLiP/blob/master/tests/unit_tests/regression/jacobian_matrix_regression.cpp) and [file2](https://github.com/dougshidong/PHiLiP/blob/master/tests/unit_tests/regression/matrix_data/copy_matrices.sh)
 2. The feature has been documented.
-  * Function and member variable documentation should be presented in the associated header file. `make doc` should generate a html file in the `/path_to_build/doc/html/index.html` that can be opened used your browser of choice.
-  * Comments in the code as appropriate.
+  * Doxygen is currently used to generate documentation. Please visit their [website](http://www.doxygen.nl/manual/docblocks.html) to see how to properly document the code.
+  * Function and member variable documentation should be presented in the associated header file. `make doc` should generate a html file in the `/path_to_build/doc/html/index.html` that can be opened used your browser of choice. A non-documented element will generate a warning, which in turn will fail the pull request test.
+  * Comments in the .cpp code as appropriate, but prioritize self-documented code by assigning proper variable names.
 3. The `master` branch of `https://github.com/dougshidong/PHiLiP` has been merged into your fork and merge conflicts have been resolved.
-4. The entire `ctest` suite has been run in `Release` mode and the short/medium length tests have been run in `Debug` mode (using `ctest -E LONG`). Please save the log for the next point.
-5. Submit a pull request with a log of the tests.
+4. The entire `ctest` suite has been run in `Release` mode and the short/medium length tests have been run in `Debug` mode (using `ctest -E LONG`). Make sure that no tests fails other than the ones listed in the [GitHub issues](https://github.com/dougshidong/PHiLiP/issues?q=is%3Aissue+is%3Aopen+label%3Atestfail) with `testfail` tags.
+5. Submit a pull request. Undocumented code will be automatically detected.
 
 # License
 

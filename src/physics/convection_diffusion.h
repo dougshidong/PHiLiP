@@ -28,6 +28,11 @@ namespace Physics {
 template <int dim, int nstate, typename real>
 class ConvectionDiffusion : public PhysicsBase <dim, nstate, real>
 {
+protected:
+    /// Linear advection velocity in x, y, and z directions.
+    double linear_advection_velocity[3] = { 1.1, -atan(1)*4.0 / exp(1), exp(1)/(atan(1)*4.0) };
+    /// Diffusion scaling coefficient in front of the diffusion tensor.
+    double diffusion_scaling_coeff = 0.1*atan(1)*4.0/exp(1);
 public:
     const bool hasConvection; ///< Turns ON/OFF convection term.
 

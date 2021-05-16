@@ -1,0 +1,47 @@
+diff --git a/include/codi/tapes/primalValueIndexTape.hpp b/include/codi/tapes/primalValueIndexTape.hpp
+index 635654d..e22c38d 100644
+--- a/include/codi/tapes/primalValueIndexTape.hpp
++++ b/include/codi/tapes/primalValueIndexTape.hpp
+@@ -540,6 +540,7 @@ namespace codi {
+ 
+     WRAP_FUNCTION(Wrap_evaluateStackPrimal, evaluateStackPrimal);
+ 
++  public:
+ 
+     /**
+      * @brief Allocates a copy of the primal vector that is used in the evaluation.
+@@ -579,6 +580,8 @@ namespace codi {
+       }
+     }
+ 
++  private:
++
+     /**
+      * @brief Allocates a copy of the primal vector that is used in the evaluation.
+      *
+diff --git a/include/codi/tools/algorithms.hpp b/include/codi/tools/algorithms.hpp
+index f23a420..523e796 100644
+--- a/include/codi/tools/algorithms.hpp
++++ b/include/codi/tools/algorithms.hpp
+@@ -365,7 +365,7 @@ namespace codi {
+             setGradientOnGradientData(tape, i, output, outputSize, typename GT::Data(1.0));
+ 
+             // propagate the derivatives backward for second order derivatives
+-            tape.evaluatePreacc(end, start);
++            tape.evaluateInternal(end, start, &tape.gradient(0), false);
+ 
+             for(size_t k = 0; k < inputSize; k += 1) {
+               for(size_t vecPos1st = 0; vecPos1st < gradDim1st && i + vecPos1st < outputSize; vecPos1st += 1) {
+@@ -392,9 +392,9 @@ namespace codi {
+ 
+           setGradient2ndOnGradientData(tape, j, input, inputSize, typename GT2nd::Data());
+ 
+-          if(j + gradDim2nd < inputSize) {
+-            tape.revertPrimals(start);
+-          }
++          //if(j + gradDim2nd < inputSize) {
++          //  tape.revertPrimals(start);
++          //}
+         }
+       }
+ 

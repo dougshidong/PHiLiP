@@ -79,8 +79,6 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler_cylinder_adjoint | "
                       " euler_vortex | "
                       " euler_entropy_waves | "
-                      " numerical_flux_convervation | "
-                      " jacobian_regression |"
                       " euler_split_taylor_green | "
                       " euler_bump_optimization | "
                       " euler_naca_optimization | "
@@ -100,8 +98,6 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_cylinder_adjoint | "
                       "  euler_vortex | "
                       "  euler_entropy_waves | "
-                      "  numerical_flux_convervation | "
-                      "  jacobian_regression |"
 					  "  euler_split_taylor_green |"
                       "  euler_bump_optimization | "
                       "  euler_naca_optimization | "
@@ -172,8 +168,6 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "euler_cylinder_adjoint")            { test_type = euler_cylinder_adjoint; }
     else if (test_string == "euler_vortex")                      { test_type = euler_vortex; }
     else if (test_string == "euler_entropy_waves")               { test_type = euler_entropy_waves; }
-    else if (test_string == "numerical_flux_convervation")       { test_type = numerical_flux_convervation; }
-    else if (test_string == "jacobian_regression")               { test_type = jacobian_regression; }
     else if (test_string == "advection_periodicity")             { test_type = advection_periodicity; }
     else if (test_string == "euler_split_taylor_green")          { test_type = euler_split_taylor_green; }
     else if (test_string == "euler_bump_optimization")           { test_type = euler_bump_optimization; }

@@ -124,7 +124,7 @@ public:
     // virtual void vector_gradient_list (const std::vector<Point<dim,real> > &points,
     //                                   std::vector<std::vector<Tensor<1,dim, real> > > &gradients) const;
 
-private:
+protected:
     ///@{
     /** Constants used to manufactured solution.
      */

@@ -27,10 +27,12 @@ end
 subsection linear solver
 #set linear_solver_type = direct
   subsection gmres options
-    set linear_residual_tolerance = 1e-2
-    set max_iterations = 2000
-    set restart_number = 50
-    set ilut_fill = 2
+    set linear_residual_tolerance = 1e-4
+    set max_iterations = 1000
+    set restart_number = 100
+    set ilut_fill = 5
+    set ilut_atol = 1e-3
+    set ilut_rtol = 1.01
     set ilut_drop = 1e-2
   end 
 end
@@ -41,11 +43,11 @@ subsection ODE solver
   set nonlinear_max_iterations            = 100
 
   # Nonlinear solver residual tolerance
-  set nonlinear_steady_residual_tolerance = 5e-12
+  set nonlinear_steady_residual_tolerance = 5e-14
 
-  set initial_time_step = 0.01
+  set initial_time_step = 100
   set time_step_factor_residual = 50.0
-  set time_step_factor_residual_exp = 3.0
+  set time_step_factor_residual_exp = 4.0
 
   # Print every print_iteration_modulo iterations of the nonlinear solver
   set print_iteration_modulo              = 1
@@ -62,7 +64,7 @@ subsection manufactured solution convergence study
   set degree_start      = 1
 
   # Initial grid of size (initial_grid_size)^dim
-  set initial_grid_size = 4
+  set initial_grid_size = 8
 
   # Number of grids in grid study
   set number_of_grids   = 4

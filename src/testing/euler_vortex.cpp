@@ -27,7 +27,7 @@
 
 #include "physics/physics_factory.h"
 #include "physics/manufactured_solution.h"
-#include "dg/dg.h"
+#include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver.h"
 
 
@@ -111,7 +111,7 @@ inline real EulerVortexFunction<dim,real>
     const double vel_y    = euler_physics.velocities_inf[1] + x*vortex_strength/(variance)*exp(-0.5*r2);
     const double pressure = euler_physics.pressure_inf  - euler_physics.density_inf*(vortex_strength*vortex_strength)/(2*variance)*exp(-r2);
 
-    const std::array<double, 4> primitive_values = {density, vel_x, vel_y, pressure};
+    const std::array<double, 4> primitive_values = {{density, vel_x, vel_y, pressure}};
     const std::array<double, 4> conservative_values = euler_physics.convert_primitive_to_conservative(primitive_values);
 
     //std::cout << density << " " << pressure << std::endl;
@@ -185,7 +185,8 @@ int EulerVortex<dim,nstate>
             // DG will be destructed before Triangulation
             // thus removing any dependence of Triangulation and allowing Triangulation to be destructed
             // Otherwise, a Subscriptor error will occur
-            dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator,
+            using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+            std::shared_ptr <Triangulation> grid = std::make_shared<Triangulation> (this->mpi_communicator,
                 typename dealii::Triangulation<dim>::MeshSmoothing(
                     dealii::Triangulation<dim>::smoothing_on_refinement |
                     dealii::Triangulation<dim>::smoothing_on_coarsening));
@@ -198,8 +199,8 @@ int EulerVortex<dim,nstate>
                 n_subdivisions[1] = n_1d_cells[igrid];
                 const bool colorize = true;
                 dealii::Point<dim> p1(-half_length,-half_length), p2(half_length,half_length);
-                dealii::GridGenerator::subdivided_hyper_rectangle (grid, n_subdivisions, p1, p2, colorize);
-                for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+                dealii::GridGenerator::subdivided_hyper_rectangle (*grid, n_subdivisions, p1, p2, colorize);
+                for (typename Triangulation::active_cell_iterator cell = grid->begin_active(); cell != grid->end(); ++cell) {
                     // Set a dummy boundary ID
                     for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
                         if (cell->face(face)->at_boundary()) {
@@ -225,10 +226,10 @@ int EulerVortex<dim,nstate>
             // Distort grid by random amount if requested
             const double random_factor = manu_grid_conv_param.random_distortion;
             const bool keep_boundary = true;
-            if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, grid, keep_boundary);
+            if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, *grid, keep_boundary);
 
             // Create DG object using the factory
-            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
+            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
             dg->allocate_system ();
 
             // Initialize solution with vortex function at time t=0
@@ -244,7 +245,7 @@ int EulerVortex<dim,nstate>
             // Create ODE solver using the factory and providing the DG object
             std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
-            const unsigned int n_active_cells = grid.n_active_cells();
+            const unsigned int n_active_cells = grid->n_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
             std::cout
                       << "Dimension: " << dim << "\t Polynomial degree p: " << poly_degree << std::endl
@@ -303,7 +304,7 @@ int EulerVortex<dim,nstate>
 
             // Convergence table
             double dx = 1.0/pow(n_dofs,(1.0/dim));
-            //dx = dealii::GridTools::maximal_cell_diameter(grid);
+            //dx = dealii::GridTools::maximal_cell_diameter(*grid);
             grid_size[igrid] = dx;
             soln_error[igrid] = l2error;
 

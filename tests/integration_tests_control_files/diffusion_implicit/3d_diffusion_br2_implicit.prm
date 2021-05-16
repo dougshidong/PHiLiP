@@ -1,0 +1,81 @@
+# Listing of Parameters
+# ---------------------
+# Number of dimensions
+set dimension = 3
+
+# The PDE we want to solve. Choices are
+# <advection|diffusion|convection_diffusion>.
+set pde_type  = diffusion
+
+set diss_num_flux = bassi_rebay_2
+
+subsection ODE solver
+  # Maximum nonlinear solver iterations
+  set nonlinear_max_iterations            = 30
+
+  # Nonlinear solver residual tolerance
+  set nonlinear_steady_residual_tolerance = 1e-11
+
+  # Print every print_iteration_modulo iterations of the nonlinear solver
+  set print_iteration_modulo              = 1
+
+  # Explicit or implicit solverChoices are <explicit|implicit>.
+  set ode_solver_type                         = implicit
+
+  set initial_time_step = 1000
+  set time_step_factor_residual = 15.0
+  set time_step_factor_residual_exp = 2
+end
+subsection linear solver
+  #set linear_solver_type = direct
+  #set linear_solver_output = verbose
+  subsection gmres options
+    # Factor by which the diagonal of the matrix will be scaled, which
+    # sometimes can help to get better preconditioners
+    set ilut_atol                 = 0.0 #1e-3
+
+    # Amount of an absolute perturbation that will be added to the diagonal of
+    # the matrix, which sometimes can help to get better preconditioners
+    set ilut_rtol                 = 1.0 #1.001
+
+    # relative size of elements which should be dropped when forming an
+    # incomplete lu decomposition with threshold
+    set ilut_drop                 = 0.0
+
+    # Amount of additional fill-in elements besides the sparse matrix
+    # structure
+    set ilut_fill                 = 1
+
+    # Linear residual tolerance for convergence of the linear system
+    set linear_residual_tolerance = 1e-12
+
+    # Maximum number of iterations for linear solver
+    set max_iterations            = 2000
+
+    # Number of iterations before restarting GMRES
+    set restart_number            = 200
+
+  end 
+end
+
+subsection manufactured solution convergence study
+  set use_manufactured_source_term = true
+
+  # Last degree used for convergence study
+  set degree_end        = 3
+
+  # Starting degree for convergence study
+  set degree_start      = 1
+
+  # Multiplier on grid size. nth-grid will be of size
+  # (initial_grid^grid_progression)^dim
+  set grid_progression  = 1.5
+
+  # Initial grid of size (initial_grid_size)^dim
+  set initial_grid_size = 2
+
+  # Number of grids in grid study
+  set number_of_grids   = 4
+end
+
+

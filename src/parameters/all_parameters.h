@@ -32,6 +32,11 @@ public:
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;
 
+    /// Number of additional quadrature points to use.
+    /** overintegration = 0 leads to number_quad_points = dg_solution_degree + 1
+     */
+    int overintegration;
+
     /// Flag to use weak or strong form of DG
     bool use_weak_form;
 
@@ -45,6 +50,18 @@ public:
     /** Not fully tested.
      */
     bool use_periodic_bc;
+
+    /// Flag to add artificial dissipation from Persson's shock capturing paper.
+    /** This feature is currently not fully working. It dissipates the Burger's
+     *  invisid shock, but loses all the order of accuracy for the Gaussian bump.
+     */
+    bool add_artificial_dissipation;
+
+    /// Scaling of Symmetric Interior Penalty term to ensure coercivity.
+    /** 
+     *  invisid shock, but loses all the order of accuracy for the Gaussian bump.
+     */
+    double sipg_penalty_factor;
 
     /// Number of state variables. Will depend on PDE
     int nstate;
@@ -61,9 +78,12 @@ public:
         euler_vortex,
         euler_entropy_waves,
         euler_split_taylor_green,
-        numerical_flux_convervation,
-        jacobian_regression,
         burgers_split_form,
+        optimization_inverse_manufactured,
+        euler_bump_optimization,
+        euler_naca_optimization,
+        shock_1d,
+        euler_naca0012,
         advection_periodicity,
         };
     TestType test_type; ///< Selected TestType from the input file.
@@ -102,7 +122,7 @@ public:
     ConvectiveNumericalFlux conv_num_flux_type;
 
     /// Currently only symmetric internal penalty can be used as an input parameter
-    enum DissipativeNumericalFlux { symm_internal_penalty };
+    enum DissipativeNumericalFlux { symm_internal_penalty, bassi_rebay_2 };
     /// Store diffusive flux type
     DissipativeNumericalFlux diss_num_flux_type;
 

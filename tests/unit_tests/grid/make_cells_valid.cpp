@@ -1,5 +1,4 @@
 #include <deal.II/base/conditional_ostream.h>
-#include <deal.II/base/parameter_handler.h>
 
 #include <deal.II/dofs/dof_tools.h>
 
@@ -13,8 +12,9 @@
 
 #include <deal.II/fe/mapping_fe_field.h> 
 
-#include "dg/high_order_grid.h"
-#include "parameters/all_parameters.h"
+#include "mesh/high_order_grid.h"
+
+using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
 
 dealii::Point<2> center(0.0,0.0);
 const double inner_radius = 1, outer_radius = inner_radius*20;
@@ -99,24 +99,20 @@ int main (int argc, char * argv[])
     for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
 
         // Generate grid and mapping
-        dealii::parallel::distributed::Triangulation<dim> grid(MPI_COMM_WORLD,
+        std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+            MPI_COMM_WORLD,
             typename dealii::Triangulation<dim>::MeshSmoothing(
-                dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_refinement |
-                dealii::Triangulation<dim>::MeshSmoothing::smoothing_on_coarsening));
+                dealii::Triangulation<dim>::smoothing_on_refinement |
+                dealii::Triangulation<dim>::smoothing_on_coarsening));
 
         // This grid is known to generated a negative Jacobian as seen
         // in the EulerCylinder test case described in 
         // https://github.com/dougshidong/PHiLiP/issues/27
         const unsigned int n_cells_circle = 2;
         const unsigned int n_cells_radial = 2*n_cells_circle;
-        half_cylinder(grid, n_cells_circle, n_cells_radial);
+        half_cylinder(*grid, n_cells_circle, n_cells_radial);
 
-        dealii::ParameterHandler parameter_handler;
-        PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler);
-        PHiLiP::Parameters::AllParameters all_parameters;
-        all_parameters.parse_parameters (parameter_handler);
-
-        PHiLiP::HighOrderGrid<dim,double> high_order_grid(&all_parameters, poly_degree, &grid);
+        PHiLiP::HighOrderGrid<dim,double> high_order_grid(poly_degree, grid);
 
         //bool has_invalid_grid = false;
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
@@ -124,11 +120,11 @@ int main (int argc, char * argv[])
             // Interpolate solution from previous grid
             if (igrid>0) {
                 high_order_grid.prepare_for_coarsening_and_refinement();
-                grid.refine_global (1);
+                grid->refine_global (1);
                 high_order_grid.execute_coarsening_and_refinement();
 
                 high_order_grid.prepare_for_coarsening_and_refinement();
-                grid.repartition();
+                grid->repartition();
                 high_order_grid.execute_coarsening_and_refinement(true);
             }
 
@@ -144,12 +140,12 @@ int main (int argc, char * argv[])
                               << " Grid: " << igrid
                               << " Cell: " << cell->active_cell_index() << " has an invalid Jacobian." << std::endl;
                     //has_invalid_grid = true;
-					bool fixed_invalid_cell = high_order_grid.fix_invalid_cell(cell);
-					if (fixed_invalid_cell) std::cout << "Fixed it." << std::endl;
+     bool fixed_invalid_cell = high_order_grid.fix_invalid_cell(cell);
+     if (fixed_invalid_cell) std::cout << "Fixed it." << std::endl;
                     else has_invalid_poly = true;
                 }
             }
-            high_order_grid.nodes.update_ghost_values();
+            high_order_grid.volume_nodes.update_ghost_values();
             if (has_invalid_poly) std::abort();
         }
     }

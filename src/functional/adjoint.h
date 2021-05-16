@@ -15,7 +15,6 @@
 
 #include "functional.h"
 #include "dg/dg.h"
-#include "dg/high_order_grid.h"
 #include "physics/physics.h"
 
 namespace PHiLiP {
@@ -44,8 +43,10 @@ template <int dim, int nstate, typename real>
 class Adjoint
 {
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+    /// Triangulation type.
     using Triangulation = dealii::Triangulation<dim>;
 #else
+    /// Triangulation type.
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
 #endif
 public:

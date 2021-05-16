@@ -3,7 +3,7 @@
 
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
-#include "numerical_flux/numerical_flux.h"
+#include "numerical_flux/numerical_flux_factory.hpp"
 #include "physics/physics_factory.h"
 
 using PDEType  = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
@@ -60,19 +60,22 @@ int test_dissipative_numerical_flux_conservation (const PHiLiP::Parameters::AllP
         soln_grad_ext[s] = pde_physics->manufactured_solution_function->gradient(point_2,s);
     }
 
-    NumericalFlux::NumericalFluxDissipative<dim, nstate, double> *diss_num_flux = 
+    std::unique_ptr<NumericalFlux::NumericalFluxDissipative<dim, nstate, double>> diss_num_flux = 
         NumericalFlux::NumericalFluxFactory<dim, nstate, double>
         ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics);
     std::array<double, nstate> diss_num_flux_dot_n_1 = diss_num_flux->evaluate_solution_flux(soln_int, soln_ext, normal_int);
     std::array<double, nstate> diss_num_flux_dot_n_2 = diss_num_flux->evaluate_solution_flux(soln_ext, soln_int, -normal_int);
 
     double penalty = 100;
+    const double artificial_diss_int = 1.0, artificial_diss_ext = 2.0;
     std::array<double, nstate> diss_auxi_num_flux_dot_n_1 = diss_num_flux->evaluate_auxiliary_flux(
+                 artificial_diss_int, artificial_diss_ext,
                  soln_int, soln_ext,
                  soln_grad_int, soln_grad_ext,
                  normal_int, penalty);
 
     std::array<double, nstate> diss_auxi_num_flux_dot_n_2 = diss_num_flux->evaluate_auxiliary_flux(
+                 artificial_diss_ext, artificial_diss_int,
                  soln_ext, soln_int,
                  soln_grad_ext, soln_grad_int,
                  -normal_int, penalty);
@@ -84,8 +87,6 @@ int test_dissipative_numerical_flux_conservation (const PHiLiP::Parameters::AllP
     std::cout << "Dissipative auxiliary flux conservation (should be equal and opposite since it is dotted with normal)" << std::endl;
     compare_array<dim,nstate> (diss_auxi_num_flux_dot_n_1, diss_auxi_num_flux_dot_n_2, -1.0);
 
-    delete diss_num_flux;
-
     return 0;
 }
 
@@ -95,7 +96,7 @@ int test_dissipative_numerical_flux_consistency (const PHiLiP::Parameters::AllPa
     using namespace PHiLiP;
     std::shared_ptr <Physics::PhysicsBase<dim, nstate, double>> pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(all_parameters);
 
-    NumericalFlux::NumericalFluxDissipative<dim, nstate, double> *diss_num_flux = 
+    std::unique_ptr<NumericalFlux::NumericalFluxDissipative<dim, nstate, double>> diss_num_flux = 
         NumericalFlux::NumericalFluxFactory<dim, nstate, double>
         ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics);
 
@@ -123,7 +124,9 @@ int test_dissipative_numerical_flux_consistency (const PHiLiP::Parameters::AllPa
     // Evaluate numerical fluxes
     const std::array<double, nstate> diss_soln_num_flux_dot_n = diss_num_flux->evaluate_solution_flux(soln_int, soln_ext, normal_int);
     double penalty = 100;
+    const double artificial_diss_int = 1.0, artificial_diss_ext = 2.0;
     const std::array<double, nstate> diss_auxi_num_flux_dot_n = diss_num_flux->evaluate_auxiliary_flux(
+                 artificial_diss_int, artificial_diss_ext,
                  soln_int, soln_ext,
                  soln_grad_int, soln_grad_ext,
                  normal_int, penalty);
@@ -143,8 +146,6 @@ int test_dissipative_numerical_flux_consistency (const PHiLiP::Parameters::AllPa
     std::cout << "Dissipative auxiliary flux should be consistent (equal) with gradient, when same values on each side of boundary" << std::endl;
     compare_array<dim,nstate> (diss_auxi_num_flux_dot_n, diss_phys_flux_dot_n, 1.0);
 
-    delete diss_num_flux;
-
     return 0;
 }
 
@@ -154,7 +155,7 @@ int test_convective_numerical_flux_conservation (const PHiLiP::Parameters::AllPa
     using namespace PHiLiP;
     std::shared_ptr <Physics::PhysicsBase<dim, nstate, double>> pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(all_parameters);
 
-    NumericalFlux::NumericalFluxConvective<dim, nstate, double> *conv_num_flux = 
+    std::unique_ptr<NumericalFlux::NumericalFluxConvective<dim, nstate, double>> conv_num_flux = 
         NumericalFlux::NumericalFluxFactory<dim, nstate, double>
         ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, pde_physics);
 
@@ -180,8 +181,6 @@ int test_convective_numerical_flux_conservation (const PHiLiP::Parameters::AllPa
     std::cout << "Convective numerical flux conservation (should be equal and opposite)" << std::endl;
     compare_array<dim,nstate> (conv_num_flux_dot_n_1, conv_num_flux_dot_n_2, -1.0);
 
-    delete conv_num_flux;
-
     return 0;
 }
 
@@ -191,7 +190,7 @@ int test_convective_numerical_flux_consistency (const PHiLiP::Parameters::AllPar
     using namespace PHiLiP;
     std::shared_ptr <Physics::PhysicsBase<dim, nstate, double>> pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(all_parameters);
 
-    NumericalFlux::NumericalFluxConvective<dim, nstate, double> *conv_num_flux = 
+    std::unique_ptr<NumericalFlux::NumericalFluxConvective<dim, nstate, double>> conv_num_flux = 
         NumericalFlux::NumericalFluxFactory<dim, nstate, double>
         ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, pde_physics);
 
@@ -225,8 +224,6 @@ int test_convective_numerical_flux_consistency (const PHiLiP::Parameters::AllPar
 
     std::cout << "Convective numerical flux should be consistent with physical flux (equal), when same values on each side of boundary" << std::endl;
     compare_array<dim,nstate> (conv_num_flux_dot_n, conv_phys_flux_dot_n, 1.0);
-
-    delete conv_num_flux;
 
     return 0;
 }

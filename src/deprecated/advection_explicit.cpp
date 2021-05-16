@@ -19,8 +19,7 @@
 
 #include "advection_explicit.h"
 #include "advection_boundary.h"
-namespace PHiLiP
-{
+namespace PHiLiP {
     using namespace dealii;
 
     // Constructors definition

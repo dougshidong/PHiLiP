@@ -26,8 +26,7 @@
 #include "advection_boundary.h"
 
 #include "parameters.h"
-namespace PHiLiP
-{
+namespace PHiLiP {
     using namespace dealii;
 
     template <int dim, typename real>

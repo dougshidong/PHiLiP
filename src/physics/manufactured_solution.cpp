@@ -1,24 +1,49 @@
+#include <CoDiPack/include/codi.hpp>
 #include <Sacado.hpp>
 #include <deal.II/base/function.h>
 #include <deal.II/base/function.templates.h> // Needed to instantiate dealii::Function<PHILIP_DIM,Sacado::Fad::DFad<double>>
 #include <deal.II/base/function_time.templates.h> // Needed to instantiate dealii::Function<PHILIP_DIM,Sacado::Fad::DFad<double>>
 
 #include "manufactured_solution.h"
-
+// TEST
 //#define ADDITIVE_SOLUTION
 //#define COSINE_SOLUTION
+//#define ATAN_SOLUTION
+#ifdef ATAN_SOLUTION
+const double S1 = 50, S2 = -50;
+const double loc1 = 0.25, loc2 = 0.75;
+#endif
 #define EXP_SOLUTION
 //#define EVENPOLY_SOLUTION
 //#define POLY_SOLUTION
 
-template class dealii::FunctionTime<Sacado::Fad::DFad<double>>; // Needed by Function
-template class dealii::Function<PHILIP_DIM,Sacado::Fad::DFad<double>>;
+//template class dealii::FunctionTime<Sacado::Fad::DFad<double>>; // Needed by Function
+//template class dealii::Function<PHILIP_DIM,Sacado::Fad::DFad<double>>;
 
 namespace PHiLiP {
 
+///< Provide isfinite for double.
+bool isfinite(double value)
+{
+    return std::isfinite(static_cast<double>(value));
+}
+
+///< Provide isfinite for FadType
 bool isfinite(Sacado::Fad::DFad<double> value)
 {
     return std::isfinite(static_cast<double>(value.val()));
+}
+
+///< Provide isfinite for FadFadType
+bool isfinite(Sacado::Fad::DFad<Sacado::Fad::DFad<double>> value)
+{
+    return std::isfinite(static_cast<double>(value.val().val()));
+}
+
+///< Provide isfinite for RadFadType
+bool isfinite(Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> value)
+{
+    return std::isfinite(static_cast<double>(value.val().val()));
 }
 
 template <int dim, typename real>
@@ -96,6 +121,16 @@ inline real ManufacturedSolutionFunction<dim,real>
 #endif
 
     value += base_values[istate];
+
+#ifdef ATAN_SOLUTION
+    value = 1.0;
+    for (int d=0; d<dim; d++) {
+        const real dimval = atan(S1*(point[d]-loc1)) + atan(S2*(point[d]-loc2));
+        value *= dimval;
+        assert(isfinite(value));
+    }
+#endif
+
     return value;
 }
 
@@ -188,6 +223,40 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionFunction<dim,real>
         gradient[0] = exp(point[0]);
         gradient[1] = exp(point[1]);
         gradient[2] = exp(point[2]);
+    }
+#endif
+#ifdef ATAN_SOLUTION
+    if (dim==1) {
+        gradient[0]  = S1 / (pow(S1*(point[0]-loc1), 2) + 1.0);
+        gradient[0] += S2 / (pow(S2*(point[0]-loc2), 2) + 1.0);
+    }
+    if (dim==2) {
+        const real x = point[0], y = point[1];
+        const real xval = atan(S1*(x-loc1)) + atan(S2*(x-loc2));
+        const real yval = atan(S1*(y-loc1)) + atan(S2*(y-loc2));
+
+        gradient[0]  = S1 / (pow(S1*(x-loc1), 2) + 1.0) + S2 / (pow(S2*(x-loc2), 2) + 1.0);
+        gradient[0] *= yval;
+
+        gradient[1]  = S1 / (pow(S1*(y-loc1), 2) + 1.0) + S2 / (pow(S2*(y-loc2), 2) + 1.0);
+        gradient[1] *= xval;
+    }
+    if (dim==3) {
+        const real xval = atan(S1*(point[0]-loc1)) + atan(S2*(point[0]-loc2));
+        const real yval = atan(S1*(point[1]-loc1)) + atan(S2*(point[1]-loc2));
+        const real zval = atan(S1*(point[2]-loc1)) + atan(S2*(point[2]-loc2));
+        gradient[0]  = S1 / (pow(S1*(point[0]-loc1), 2) + 1.0);
+        gradient[0] += S2 / (pow(S2*(point[0]-loc2), 2) + 1.0);
+        gradient[0] *= yval;
+        gradient[0] *= zval;
+        gradient[1]  = S1 / (pow(S1*(point[1]-loc1), 2) + 1.0);
+        gradient[1] += S2 / (pow(S2*(point[1]-loc2), 2) + 1.0);
+        gradient[1] *= xval;
+        gradient[1] *= zval;
+        gradient[2]  = S1 / (pow(S1*(point[2]-loc1), 2) + 1.0);
+        gradient[2] += S2 / (pow(S2*(point[2]-loc2), 2) + 1.0);
+        gradient[2] *= xval;
+        gradient[2] *= yval;
     }
 #endif
 #ifdef EVENPOLY_SOLUTION
@@ -371,6 +440,53 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionFunction<dim,real
         hessian[2][2] = exp(point[2]);
     }
 #endif
+#ifdef ATAN_SOLUTION
+    dealii::Tensor<1,dim,real> gradient;
+    if (dim==1) {
+        const real x = point[0];
+        gradient[0] = S1 / (pow(S1*(point[0]-loc1), 2) + 1.0);
+        gradient[0] += S2 / (pow(S2*(point[0]-loc2), 2) + 1.0);
+
+        hessian[0][0] = -(2* pow(S1,3)*(-loc1 + x))/pow(1 + pow(S1*(-loc1 + x),2),2)
+                        -(2* pow(S2,3)*(-loc2 + x))/pow(1 + pow(S2*(-loc2 + x),2),2);
+    }
+    if (dim==2) {
+        const real x = point[0], y = point[1];
+        const real xval = atan(S1*(x-loc1)) + atan(S2*(x-loc2));
+        const real yval = atan(S1*(y-loc1)) + atan(S2*(y-loc2));
+
+        gradient[0]  = S1 / (pow(S1*(x-loc1), 2) + 1.0) + S2 / (pow(S2*(x-loc2), 2) + 1.0);
+        gradient[0] *= yval;
+
+        gradient[1]  = S1 / (pow(S1*(y-loc1), 2) + 1.0) + S2 / (pow(S2*(y-loc2), 2) + 1.0);
+        gradient[1] *= xval;
+
+        hessian[0][0] = -(2* pow(S1,3)*(-loc1 + x))/pow(1 + pow(S1*(-loc1 + x),2),2)
+                        -(2* pow(S2,3)*(-loc2 + x))/pow(1 + pow(S2*(-loc2 + x),2),2);
+        hessian[0][0] *= yval;
+
+        hessian[0][1]  = S1 / (pow(S1*(x-loc1), 2) + 1.0);
+        hessian[0][1] += S2 / (pow(S2*(x-loc2), 2) + 1.0);
+        real temp = S1 / (pow(S1*(y-loc1), 2) + 1.0);
+        temp += S2 / (pow(S2*(y-loc2), 2) + 1.0);
+        hessian[0][1] *= temp;
+        
+
+        hessian[0][1] = (S1 / (pow(S1*(x-loc1), 2) + 1.0) +  S2 / (pow(S2*(x-loc2), 2) + 1.0));
+        temp          = (S1 / (pow(S1*(y-loc1), 2) + 1.0) +  S2 / (pow(S2*(y-loc2), 2) + 1.0));
+        hessian[0][1] *= temp;
+
+        hessian[1][0] = hessian[0][1];
+
+        hessian[1][1] = -(2* pow(S1,3)*(-loc1 + y))/pow(1 + pow(S1*(-loc1 + y),2),2)
+                        -(2* pow(S2,3)*(-loc2 + y))/pow(1 + pow(S2*(-loc2 + y),2),2);
+        hessian[1][1] *= xval;
+
+    }
+    if (dim==3) {
+        std::abort();
+    }
+#endif
 #ifdef EVENPOLY_SOLUTION
     const double poly_max = 7;
     if (dim==1) {
@@ -469,7 +585,28 @@ inline std::vector<real> ManufacturedSolutionFunction<dim,real>
     return values;
 }
 
+using FadType = Sacado::Fad::DFad<double>; ///< Sacado AD type for first derivatives.
+using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
+
+static constexpr int dimForwardAD = 1; ///< Size of the forward vector mode for CoDiPack.
+static constexpr int dimReverseAD = 1; ///< Size of the reverse vector mode for CoDiPack.
+
+using codi_FadType = codi::RealForwardGen<double, codi::Direction<double,dimForwardAD>>; ///< Tapeless forward mode.
+//using codi_FadType = codi::RealForwardGen<double, codi::DirectionVar<double>>;
+
+using codi_JacobianComputationType = codi::RealReverseIndexVec<dimReverseAD>; ///< Reverse mode type for Jacobian computation using TapeHelper.
+using codi_HessianComputationType = codi::RealReversePrimalIndexGen< codi::RealForwardVec<dimForwardAD>,
+                                                  codi::Direction< codi::RealForwardVec<dimForwardAD>, dimReverseAD>
+                                                >; ///< Nested reverse-forward mode type for Jacobian and Hessian computation using TapeHelper.
+//using RadFadType = Sacado::Rad::ADvar<FadType>; ///< Sacado AD type that allows 2nd derivatives.
+//using RadFadType = codi_JacobianComputationType; ///< Reverse only mode that only allows Jacobian computation.
+using RadType = codi_JacobianComputationType; ///< CoDiPaco reverse-AD type for first derivatives.
+using RadFadType = codi_HessianComputationType; ///< Nested reverse-forward mode type for Jacobian and Hessian computation using TapeHelper.
+
 template class ManufacturedSolutionFunction<PHILIP_DIM,double>;
-template class ManufacturedSolutionFunction<PHILIP_DIM,Sacado::Fad::DFad<double>>;
+template class ManufacturedSolutionFunction<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionFunction<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionFunction<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionFunction<PHILIP_DIM,RadFadType>;
 
 }

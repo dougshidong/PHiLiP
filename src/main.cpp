@@ -11,16 +11,29 @@
 #include "ode_solver/ode_solver.h"
 #include "parameters/all_parameters.h"
 
+#include "global_counter.hpp"
 
 int main (int argc, char *argv[])
 {
-//#if !defined(__APPLE__)
-//    feenableexcept(FE_INVALID | FE_OVERFLOW); // catch nan
-//#endif
-    dealii::deallog.depth_console(99);
+// #if !defined(__APPLE__)
+//     feenableexcept(FE_INVALID | FE_OVERFLOW); // catch nan
+// #endif
+
+    n_vmult = 0;
+    dRdW_form = 0;
+    dRdW_mult = 0;
+    dRdX_mult = 0;
+    d2R_mult = 0;
+
     dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
     const int n_mpi = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
     const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    if (n_mpi==1 || mpi_rank==0) {
+        dealii::deallog.depth_console(99);
+    } else {
+        dealii::deallog.depth_console(0);
+    }
+
     dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
     pcout << "Starting program with " << n_mpi << " processors..." << std::endl;
     if ((PHILIP_DIM==1) && !(n_mpi==1)) {
@@ -51,6 +64,7 @@ int main (int argc, char *argv[])
         std::unique_ptr<PHiLiP::Tests::TestsBase> test = PHiLiP::Tests::TestsFactory<max_dim,max_nstate>::create_test(&all_parameters);
         test_error = test->run_test();
 
+        pcout << "Finished test with test error code: " << test_error << std::endl;
     }
     catch (std::exception &exc)
     {

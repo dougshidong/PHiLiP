@@ -17,8 +17,8 @@ int main (int /*argc*/, char * /*argv*/[])
     using namespace dealii;
     dealii::LinearAlgebra::distributed::Vector<double> vector_double;
 
-    using ADtype = Sacado::Fad::DFad<double>;
-    dealii::LinearAlgebra::distributed::Vector<ADtype> vector_ad;
+    using FadType = Sacado::Fad::DFad<double>;
+    dealii::LinearAlgebra::distributed::Vector<FadType> vector_ad;
 
     return 0;
 }

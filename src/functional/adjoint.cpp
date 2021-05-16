@@ -1,5 +1,6 @@
 #include <vector>
 #include <iostream>
+#include <fstream>
 
 #include <Epetra_RowMatrixTransposer.h>
 
@@ -19,7 +20,6 @@
 #include "dg/dg.h"
 #include "adjoint.h"
 #include "functional.h"
-#include "dg/high_order_grid.h"
 #include "physics/physics.h"
 #include "linear_solver/linear_solver.h"
 #include "post_processor/physics_post_processor.h"
@@ -106,11 +106,11 @@ void Adjoint<dim, nstate, real>::coarse_to_fine()
     
     // Solution Transfer to fine grid
     dealii::parallel::distributed::SolutionTransfer< 
-        dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim> 
+        dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim> 
         > solution_transfer(dg.dof_handler);
     solution_transfer.prepare_for_coarsening_and_refinement(solution_coarse);
 
-    dg.high_order_grid.prepare_for_coarsening_and_refinement();
+    dg.high_order_grid->prepare_for_coarsening_and_refinement();
     dg.triangulation->prepare_coarsening_and_refinement();
 
     for (auto cell = dg.dof_handler.begin_active(); cell != dg.dof_handler.end(); ++cell)
@@ -118,7 +118,7 @@ void Adjoint<dim, nstate, real>::coarse_to_fine()
             cell->set_future_fe_index(cell->active_fe_index()+1);
 
     dg.triangulation->execute_coarsening_and_refinement();
-    dg.high_order_grid.execute_coarsening_and_refinement();
+    dg.high_order_grid->execute_coarsening_and_refinement();
 
     dg.allocate_system();
     dg.solution.zero_out_ghosts();
@@ -131,7 +131,7 @@ void Adjoint<dim, nstate, real>::coarse_to_fine()
 template <int dim, int nstate, typename real>
 void Adjoint<dim, nstate, real>::fine_to_coarse()
 {
-    dg.high_order_grid.prepare_for_coarsening_and_refinement();
+    dg.high_order_grid->prepare_for_coarsening_and_refinement();
     dg.triangulation->prepare_coarsening_and_refinement();
 
     for (auto cell = dg.dof_handler.begin_active(); cell != dg.dof_handler.end(); ++cell)
@@ -139,7 +139,7 @@ void Adjoint<dim, nstate, real>::fine_to_coarse()
             cell->set_future_fe_index(coarse_fe_index[cell->active_cell_index()]);
 
     dg.triangulation->execute_coarsening_and_refinement();
-    dg.high_order_grid.execute_coarsening_and_refinement();
+    dg.high_order_grid->execute_coarsening_and_refinement();
 
     dg.allocate_system();
     dg.solution.zero_out_ghosts();
@@ -157,7 +157,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nstate, real>::fin
     // dIdw_fine.reinit(dg.solution);
     // dIdw_fine = functional.evaluate_dIdw(dg, physics);
     const bool compute_dIdW = true, compute_dIdX = false;
-    const real functional_value = functional.evaluate_functional(physics,compute_dIdW,compute_dIdX);
+    const real functional_value = functional.evaluate_functional(compute_dIdW,compute_dIdX);
     (void) functional_value;
     dIdw_fine = functional.dIdw;
 
@@ -171,7 +171,8 @@ dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nstate, real>::fin
 
     Epetra_RowMatrixTransposer epmt(const_cast<Epetra_CrsMatrix *>(&dg.system_matrix.trilinos_matrix()));
     epmt.CreateTranspose(false, system_matrix_transpose_tril);
-    system_matrix_transpose.reinit(*system_matrix_transpose_tril);
+    system_matrix_transpose.reinit(*system_matrix_transpose_tril,true);
+    delete system_matrix_transpose_tril;
     solve_linear(system_matrix_transpose, dIdw_fine, adjoint_fine, dg.all_parameters->linear_solver_param);
     // solve_linear(dg.system_matrix, dIdw_fine, adjoint_fine, dg.all_parameters->linear_solver_param);
 
@@ -186,7 +187,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nstate, real>::coa
     dIdw_coarse.reinit(dg.solution);
     //dIdw_coarse = functional.evaluate_dIdw(dg, physics);
     const bool compute_dIdW = true, compute_dIdX = false;
-    const real functional_value = functional.evaluate_functional(physics,compute_dIdW,compute_dIdX);
+    const real functional_value = functional.evaluate_functional(compute_dIdW,compute_dIdX);
     (void) functional_value;
     dIdw_coarse = functional.dIdw;
 
@@ -243,7 +244,7 @@ dealii::Vector<real> Adjoint<dim, nstate, real>::dual_weighted_residual()
 template <int dim, int nstate, typename real>
 void Adjoint<dim,nstate,real>::output_results_vtk(const unsigned int cycle)
 {
-    dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> data_out;
+    dealii::DataOut<dim, dealii::DoFHandler<dim>> data_out;
     data_out.attach_dof_handler(dg.dof_handler);
 
     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(dg.all_parameters);
@@ -253,7 +254,7 @@ void Adjoint<dim,nstate,real>::output_results_vtk(const unsigned int cycle)
     for (unsigned int i = 0; i < subdomain.size(); ++i) {
         subdomain(i) = dg.triangulation->locally_owned_subdomain();
     }
-    data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
     // Output the polynomial degree in each cell
     std::vector<unsigned int> active_fe_indices;
@@ -261,7 +262,7 @@ void Adjoint<dim,nstate,real>::output_results_vtk(const unsigned int cycle)
     dealii::Vector<double> active_fe_indices_dealiivector(active_fe_indices.begin(), active_fe_indices.end());
     dealii::Vector<double> cell_poly_degree = active_fe_indices_dealiivector;
 
-    data_out.add_data_vector(active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector(active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
     std::vector<std::string> residual_names;
     for(int s=0;s<nstate;++s) {
@@ -269,7 +270,7 @@ void Adjoint<dim,nstate,real>::output_results_vtk(const unsigned int cycle)
         residual_names.push_back(varname);
     }
 
-    data_out.add_data_vector(dg.right_hand_side, residual_names, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+    data_out.add_data_vector(dg.right_hand_side, residual_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
 
     // setting up the naming
     std::vector<std::string> dIdw_names;
@@ -286,20 +287,20 @@ void Adjoint<dim,nstate,real>::output_results_vtk(const unsigned int cycle)
 
     // adding the data structures specific to this particular class, checking if currently fine or coarse
     if(adjoint_state == AdjointEnum::fine){
-        data_out.add_data_vector(dIdw_fine, dIdw_names, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
-        data_out.add_data_vector(adjoint_fine, adjoint_names, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+        data_out.add_data_vector(dIdw_fine, dIdw_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+        data_out.add_data_vector(adjoint_fine, adjoint_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
 
-        data_out.add_data_vector(dual_weighted_residual_fine, "DWR", dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+        data_out.add_data_vector(dual_weighted_residual_fine, "DWR", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
     }else if(adjoint_state == AdjointEnum::coarse){
-        data_out.add_data_vector(dIdw_coarse, dIdw_names, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
-        data_out.add_data_vector(adjoint_coarse, adjoint_names, dealii::DataOut_DoFData<dealii::hp::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+        data_out.add_data_vector(dIdw_coarse, dIdw_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+        data_out.add_data_vector(adjoint_coarse, adjoint_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
     }
 
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
     //data_out.build_patches (mapping_collection[mapping_collection.size()-1]);
     data_out.build_patches();
-    // data_out.build_patches(*(dg.high_order_grid.mapping_fe_field), dg.max_degree, dealii::DataOut<dim, dealii::hp::DoFHandler<dim>>::CurvedCellRegion::curved_inner_cells);
-    //data_out.build_patches(*(high_order_grid.mapping_fe_field), fe_collection.size(), dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells);
+    // data_out.build_patches(*(dg.high_order_grid->mapping_fe_field), dg.max_degree, dealii::DataOut<dim, dealii::DoFHandler<dim>>::CurvedCellRegion::curved_inner_cells);
+    //data_out.build_patches(*(high_order_grid->mapping_fe_field), fe_collection.size(), dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells);
     std::string filename = "adjoint-" ;
     if(adjoint_state == AdjointEnum::fine)
         filename += "fine-";

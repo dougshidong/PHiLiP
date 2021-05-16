@@ -1,6 +1,5 @@
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/convergence_table.h>
-#include <deal.II/base/parameter_handler.h>
 
 #include <deal.II/dofs/dof_tools.h>
 
@@ -21,8 +20,7 @@
 #include <deal.II/fe/mapping_fe_field.h> 
 #include <deal.II/fe/mapping_q.h> 
 
-#include "dg/high_order_grid.h"
-#include "parameters/all_parameters.h"
+#include "mesh/high_order_grid.h"
 
 // https://en.wikipedia.org/wiki/Volume_of_an_n-ball#Recursions
 template <int dim>
@@ -45,11 +43,6 @@ int main (int argc, char * argv[])
 
     using namespace PHiLiP;
 
-    dealii::ParameterHandler parameter_handler;
-    Parameters::AllParameters::declare_parameters (parameter_handler);
-    Parameters::AllParameters all_parameters;
-    all_parameters.parse_parameters (parameter_handler);
-
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
 
     const unsigned int p_start = 1; // Must be at least order 1
@@ -67,36 +60,37 @@ int main (int argc, char * argv[])
     for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
 
         // Generate the original grid and assign a manifold to it
-        dealii::parallel::distributed::Triangulation<dim> grid(
+        using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+        std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
             MPI_COMM_WORLD,
             typename dealii::Triangulation<dim>::MeshSmoothing(
                 dealii::Triangulation<dim>::smoothing_on_refinement |
                 dealii::Triangulation<dim>::smoothing_on_coarsening));
 
         const int n_cells = 0;
-        dealii::GridGenerator::quarter_hyper_shell<dim>(grid, center, inner_radius, outer_radius, n_cells);//, n_cells = 0, colorize = false);
+        dealii::GridGenerator::quarter_hyper_shell<dim>(*grid, center, inner_radius, outer_radius, n_cells);//, n_cells = 0, colorize = false);
         // Set a spherical manifold
         // Works but we will usually not have a volume manifold that we can provide.
-        //grid.set_all_manifold_ids(0);
-        //grid.set_manifold(0, dealii::SphericalManifold<dim>(center));
+        //grid->set_all_manifold_ids(0);
+        //grid->set_manifold(0, dealii::SphericalManifold<dim>(center));
 
         // Set a spherical manifold on the boundary and a TransfiniteInterpolationManifold in the domain
         // This is more realistic with what we will be doing since we will usually provide and boundary parametrization
         // but have no idea of the volume parametrization. The initial curving of the TransfiniteInterpolationManifold
         // will ensure that no cells initially have a negative Jacobians. This curvature will be transfered to a polynomial
         // representation using MappingFEField
-        grid.set_all_manifold_ids(1);
-        grid.set_all_manifold_ids_on_boundary(0);
-        grid.set_manifold(0, dealii::SphericalManifold<dim>(center));
+        grid->set_all_manifold_ids(1);
+        grid->set_all_manifold_ids_on_boundary(0);
+        grid->set_manifold(0, dealii::SphericalManifold<dim>(center));
         dealii::TransfiniteInterpolationManifold<dim> transfinite_interpolation;
-        transfinite_interpolation.initialize(grid);
-        grid.set_manifold(1, transfinite_interpolation);
+        transfinite_interpolation.initialize(*grid);
+        grid->set_manifold(1, transfinite_interpolation);
 
 
-        HighOrderGrid<dim,double> high_order_grid(&all_parameters, poly_degree, &grid);
+        HighOrderGrid<dim,double> high_order_grid(poly_degree, grid);
         //std::shared_ptr < dealii::MappingFEField<dim,dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> > mapping = (high_order_grid.mapping_fe_field);
         auto mapping = (high_order_grid.mapping_fe_field);
-        grid.reset_all_manifolds();
+        grid->reset_all_manifolds();
 
         dealii::ConvergenceTable convergence_table;
         std::vector<double> grid_size(n_grids);
@@ -106,9 +100,9 @@ int main (int argc, char * argv[])
 
             high_order_grid.prepare_for_coarsening_and_refinement();
 
-            grid.refine_global (1);
+            grid->refine_global (1);
             //int icell = 0;
-            //for (auto cell = grid.begin_active(); cell!=grid.end(); ++cell) {
+            //for (auto cell = grid->begin_active(); cell!=grid->end(); ++cell) {
             //    if (!cell->is_locally_owned()) continue;
             //    icell++;
             //    if (icell < 3) {
@@ -119,17 +113,17 @@ int main (int argc, char * argv[])
             //        cell->set_coarsen_flag();
             //    }
             //}
-            //grid.execute_coarsening_and_refinement();
+            //grid->execute_coarsening_and_refinement();
 
             high_order_grid.execute_coarsening_and_refinement();
 
             high_order_grid.prepare_for_coarsening_and_refinement();
-            grid.repartition();
+            grid->repartition();
             high_order_grid.execute_coarsening_and_refinement(true);
 
             const unsigned int n_dofs = high_order_grid.dof_handler_grid.n_dofs();
 
-            const unsigned int n_global_active_cells = grid.n_global_active_cells();
+            const unsigned int n_global_active_cells = grid->n_global_active_cells();
 
             // Output for Paraview visualization
             dealii::DataOut<dim> data_out;
@@ -140,7 +134,7 @@ int main (int argc, char * argv[])
                 if (d==1) solution_names.push_back("y");
                 if (d==2) solution_names.push_back("z");
             }
-            data_out.add_data_vector(high_order_grid.nodes, solution_names);
+            data_out.add_data_vector(high_order_grid.volume_nodes, solution_names);
 
             const int iproc = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
             data_out.build_patches(*mapping, poly_degree, dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells);
@@ -171,12 +165,12 @@ int main (int argc, char * argv[])
 
 
             // Perform a mesh deformation
-            // This basically translates all the nodes by 1.0 in every direction
+            // This basically translates all the volume_nodes by 1.0 in every direction
             // This translation should not affect the volume estimate
-            for (auto dof = high_order_grid.nodes.begin(); dof != high_order_grid.nodes.end(); ++dof) {
+            for (auto dof = high_order_grid.volume_nodes.begin(); dof != high_order_grid.volume_nodes.end(); ++dof) {
                 *dof += 1.0;
             }
-            high_order_grid.nodes.update_ghost_values();
+            high_order_grid.volume_nodes.update_ghost_values();
             
             // This grid transformation is not necessary, it is simply to prove a point that once we use MappingFEField,
             // the Triangulation's vertices locations become irrelevant. All that matters is the cell to cell connectivity.
@@ -185,7 +179,7 @@ int main (int argc, char * argv[])
             // https://github.com/dealii/dealii/issues/8877#issuecomment-536831446
             
             // Weirdly enough, it does affect the p1 geometry discretization. Not sure why.
-            // It might be using some of the Triangulation's vertices instead of the MappingFEField nodes?
+            // It might be using some of the Triangulation's vertices instead of the MappingFEField volume_nodes?
             dealii::GridTools::transform(
                 [](const dealii::Point<dim> &old_point) -> dealii::Point<dim> {
                     dealii::Point<dim> new_point;
@@ -194,7 +188,7 @@ int main (int argc, char * argv[])
                     }
                     return new_point;
                 },
-                grid);
+                *grid);
 
             // Integrate solution error and output error
             // Overintegrate the error to make sure there is no integration error in the error estimate

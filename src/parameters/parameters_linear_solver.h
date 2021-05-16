@@ -28,13 +28,8 @@ public:
 
     // GMRES options
     double ilut_drop; ///< Threshold to drop terms close to zero.
-    //@{
-    /// Add to the diagonal.
-    /** Based on deal.II doc it helps some problems?
-     *  From what I have seen, it doesn't help ours.
-     */
-    double ilut_rtol, ilut_atol; 
-    //@}
+    double ilut_rtol; ///< Multiplies diagonal by ilut_rtol for more diagonal dominance.
+    double ilut_atol; ///< Add ilu_rtol to diagonal for more diagonal dominance.
 
     int ilut_fill; ///< ILU fill-in
 

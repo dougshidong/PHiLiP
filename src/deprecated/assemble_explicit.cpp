@@ -11,8 +11,7 @@
 #include "boundary.h"
 
 #include "manufactured_solution.h"
-namespace PHiLiP
-{
+namespace PHiLiP {
     using namespace dealii;
 
     // For now hard-code advection speed

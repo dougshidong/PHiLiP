@@ -1,0 +1,28 @@
+cmake \
+-D BLAS_LIBRARY_NAMES='openblas' \
+-D LAPACK_LIBRARY_NAMES='openblas' \
+-D Trilinos_ENABLE_Amesos=ON \
+-D Trilinos_ENABLE_Epetra=ON \
+-D Trilinos_ENABLE_EpetraExt=ON \
+-D Trilinos_ENABLE_Ifpack=ON \
+-D Trilinos_ENABLE_AztecOO=ON \
+-D Trilinos_ENABLE_Sacado=ON \
+-D Trilinos_ENABLE_Teuchos=ON \
+-D Trilinos_ENABLE_ML=ON \
+-D Trilinos_ENABLE_ROL=ON \
+-D Trilinos_ENABLE_COMPLEX_DOUBLE=ON \
+-D Trilinos_ENABLE_COMPLEX_FLOAT=ON \
+-D Trilinos_ENABLE_Zoltan=ON \
+-D Trilinos_ENABLE_MueLu=OFF \
+-D Trilinos_ENABLE_Tpetra=OFF \
+-D Trilinos_ENABLE_Xpetra=OFF \
+-D Trilinos_ENABLE_Thyra=OFF \
+-D Trilinos_ENABLE_Kokkos=OFF \
+-D Trilinos_ENABLE_EXPLICIT_INSTANTIATION=ON \
+-D Trilinos_VERBOSE_CONFIGURE=OFF \
+-D TPL_ENABLE_MPI=ON \
+-D BUILD_SHARED_LIBS=ON \
+-D CMAKE_VERBOSE_MAKEFILE=OFF \
+-D CMAKE_BUILD_TYPE=RELEASE \
+-D CMAKE_INSTALL_PREFIX="$TRILINOS_DIR" \
+..\

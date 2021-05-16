@@ -21,7 +21,22 @@ namespace ODE {
 template <int dim, typename real>
 class ODESolver
 {
+protected:
+    /// Hard-coded way to play around with h-adaptivity.
+    /// Not recommended to be used.
+    bool refine;
+
+    /// CFL factor for (un)successful linesearches
+    /** When the linesearch succeeds on its first try, double the CFL on top of
+     *  the CFL ramping. If the linesearch fails and needs to look at the other direction
+     *  or accept a higher residual, halve the CFL on top of the residual (de)ramping
+     */
+    double CFL_factor;
 public:
+    /// Hard-coded way to play around with h-adaptivity.
+    /// Not recommended to be used.
+    int n_refine;
+
     ODESolver(int ode_solver_type); ///< Constructor.
     ODESolver(std::shared_ptr< DGBase<dim, real> > dg_input); ///< Constructor.
     virtual ~ODESolver() {}; ///< Destructor.
@@ -43,8 +58,16 @@ public:
     void initialize_steady_polynomial_ramping (const unsigned int global_final_poly_degree);
 
 
+    /// Checks whether the DG vector has valid values.
+    /** By default, the DG solution vector is initialized with the lowest possible value.
+     */
+    bool valid_initial_conditions () const;
+
     /// Virtual function to advance solution to time+dt
     int advance_solution_time (double time_advance);
+
+    /// Virtual function to evaluate solution update
+    virtual void step_in_time(real dt, const bool pseudotime) = 0;
 
     /// Virtual function to allocate the ODE system
     virtual void allocate_ode_system () = 0;
@@ -57,9 +80,6 @@ public:
 protected:
     double update_norm; ///< Norm of the solution update.
     double initial_residual_norm; ///< Initial residual norm.
-
-    /// Virtual function to evaluate solution update
-    virtual void step_in_time(real dt) = 0;
 
     /// Evaluate stable time-step
     /** Currently not used */
@@ -82,6 +102,7 @@ protected:
     const MPI_Comm mpi_communicator; ///< MPI communicator.
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
+public:
 
 }; // end of ODESolver class
 
@@ -121,7 +142,15 @@ public:
     void allocate_ode_system ();
 protected:
     /// Advances the solution in time by \p dt.
-    void step_in_time(real dt);
+    void step_in_time(real dt, const bool pseudotime = false) override;
+
+    /// Performs a linesearch to reduce the residual.
+    /** It first does a backtracking linesearch to make sure the residual is reduced.
+     *  If not found, a linesearch is made to check that the residual is valid.
+     *  Otherwise, take step in the other direction or accept current linesearch, while
+     *  reducing the CFL for the next time step.
+     */
+    double linesearch ();
 
     using ODESolver<dim,real>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
@@ -149,7 +178,8 @@ public:
     void allocate_ode_system ();
 
 protected:
-    void step_in_time(real dt); ///< Advances the solution in time by \p dt.
+    ///< Advances the solution in time by \p dt.
+    void step_in_time(real dt, const bool pseudotime = false) override;
     using ODESolver<dim,real>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 }; // end of Explicit_ODESolver class
 

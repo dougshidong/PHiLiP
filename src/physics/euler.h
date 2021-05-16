@@ -77,47 +77,11 @@ class Euler : public PhysicsBase <dim, nstate, real>
 {
 public:
     /// Constructor
-    Euler (const double ref_length, const double gamma_gas, const double mach_inf, const double angle_of_attack, const double side_slip_angle)
-    : ref_length(ref_length)
-    , gam(gamma_gas)
-    , gamm1(gam-1.0)
-    , density_inf(1.0)
-    , mach_inf(mach_inf)
-    , mach_inf_sqr(mach_inf*mach_inf)
-    , angle_of_attack(angle_of_attack)
-    , side_slip_angle(side_slip_angle)
-    , sound_inf(1.0/(mach_inf))
-    , pressure_inf(1.0/(gam*mach_inf_sqr))
-    , entropy_inf(pressure_inf*pow(density_inf,-gam))
-    //, internal_energy_inf(mach_inf_sqr/(gam*(gam-1.0)))
-    {
-        static_assert(nstate==dim+2, "Physics::Euler() should be created with nstate=dim+2");
-
-        temperature_inf = gam*pressure_inf/density_inf * mach_inf_sqr;
-
-        // For now, don't allow side-slip angle
-        if (std::abs(side_slip_angle) >= 1e-14) {
-            std::cout << "Side slip angle = " << side_slip_angle << ". Side_slip_angle must be zero. " << std::endl;
-            std::cout << "I have not figured out the side slip angles just yet." << std::endl;
-            std::abort();
-        }
-        if(dim==1) {
-            velocities_inf[0] = 1.0;
-        } else if(dim==2) {
-            velocities_inf[0] = cos(angle_of_attack);
-            velocities_inf[1] = sin(angle_of_attack); // Maybe minus??
-        } else if (dim==3) {
-            velocities_inf[0] = cos(angle_of_attack)*cos(side_slip_angle);
-            velocities_inf[1] = sin(angle_of_attack)*cos(side_slip_angle);
-            velocities_inf[2] = sin(side_slip_angle);
-        }
-        assert(std::abs(velocities_inf.norm() - 1.0) < 1e-14);
-
-
-    };
-    /// Destructor
-    ~Euler ()
-    {};
+    Euler ( const double ref_length,
+            const double gamma_gas,
+            const double mach_inf,
+            const double angle_of_attack,
+            const double side_slip_angle);
 
     const double ref_length; ///< Reference length.
     const double gam; ///< Constant heat capacity ratio of fluid.
@@ -144,6 +108,7 @@ public:
     const double pressure_inf; ///< Non-dimensionalized pressure* at infinity
     const double entropy_inf; ///< Entropy measure at infinity
     double temperature_inf; ///< Non-dimensionalized temperature* at infinity. Should equal 1/density*(inf)
+    double dynamic_pressure_inf; ///< Non-dimensionalized dynamic pressure* at infinity
 
     //const double internal_energy_inf;
     /// Non-dimensionalized Velocity vector at farfield
@@ -178,7 +143,7 @@ public:
     real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
 
     /// Dissipative flux: 0
-    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
+    virtual std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
 
@@ -237,6 +202,9 @@ public:
      */
     real compute_entropy_measure ( const std::array<real,nstate> &conservative_soln ) const;
 
+    /// Evaluate entropy from density and pressure. 
+    real compute_entropy_measure ( const real density, const real pressure ) const;
+
     /// Given conservative variables, returns Mach number
     real compute_mach_number ( const std::array<real,nstate> &conservative_soln ) const;
 
@@ -289,6 +257,18 @@ public:
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &convervative_soln2) const;
 
+    /// Evaluate the no-slip boundary conditions for an Euler wall.
+    void boundary_slip_wall (
+       const dealii::Tensor<1,dim,real> &normal_int,
+       const std::array<real,nstate> &soln_int,
+       std::array<real,nstate> &soln_bc) const;
+
+    /// Evaluate the Riemann-based farfield boundary conditions based on freestream values.
+    void boundary_riemann (
+       const dealii::Tensor<1,dim,real> &normal_int,
+       const std::array<real,nstate> &soln_int,
+       std::array<real,nstate> &soln_bc) const;
+
     void boundary_face_values (
         const int /*boundary_type*/,
         const dealii::Point<dim, real> &/*pos*/,
@@ -310,6 +290,37 @@ public:
 protected:
 
 
+};
+
+/// Function used to evaluate farfield conservative solution
+template <int dim, int nstate>
+class FreeStreamInitialConditions : public dealii::Function<dim>
+{
+public:
+    /// Farfield conservative solution
+    std::array<double,nstate> farfield_conservative;
+
+    /// Constructor.
+    /** Evaluates the primary farfield solution and converts it into the store farfield_conservative solution
+     */
+    FreeStreamInitialConditions (const Physics::Euler<dim,nstate,double> euler_physics)
+    : dealii::Function<dim,double>(nstate)
+    {
+        //const double density_bc = 2.33333*euler_physics.density_inf;
+        const double density_bc = euler_physics.density_inf;
+        const double pressure_bc = 1.0/(euler_physics.gam*euler_physics.mach_inf_sqr);
+        std::array<double,nstate> primitive_boundary_values;
+        primitive_boundary_values[0] = density_bc;
+        for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = euler_physics.velocities_inf[d]; }
+        primitive_boundary_values[nstate-1] = pressure_bc;
+        farfield_conservative = euler_physics.convert_primitive_to_conservative(primitive_boundary_values);
+    }
+  
+    /// Returns the istate-th farfield conservative value
+    double value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const
+    {
+        return farfield_conservative[istate];
+    }
 };
 
 } // Physics namespace

@@ -27,7 +27,8 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
                           "Maximum nonlinear solver iterations");
         prm.declare_entry("nonlinear_steady_residual_tolerance", "1e-13",
-                          dealii::Patterns::Double(1e-16,dealii::Patterns::Double::max_double_value),
+                          //dealii::Patterns::Double(1e-16,dealii::Patterns::Double::max_double_value),
+                          dealii::Patterns::Double(1e-300,dealii::Patterns::Double::max_double_value),
                           "Nonlinear solver residual tolerance");
         prm.declare_entry("initial_time_step", "100.0",
                           dealii::Patterns::Double(1e-16,dealii::Patterns::Double::max_double_value),

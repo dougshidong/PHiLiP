@@ -26,7 +26,7 @@
 #include <deal.II/fe/mapping_q.h>
 
 #include "physics/physics_factory.h"
-#include "dg/dg.h"
+#include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver.h"
 
 
@@ -125,13 +125,22 @@ int EulerEntropyWaves<dim,nstate>
         dealii::ConvergenceTable convergence_table;
 
         // Create periodicity vector to store the periodic info.
-        std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<dim>::cell_iterator > > periodicity_vector;
+#if PHILIP_DIM==1
+        using Triangulation = dealii::Triangulation<dim>;
+#else
+        using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+#endif
+
+        std::vector<dealii::GridTools::PeriodicFacePair<typename Triangulation::cell_iterator > > periodicity_vector;
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
             // Note that Triangulation must be declared before DG
             // DG will be destructed before Triangulation
             // thus removing any dependence of Triangulation and allowing Triangulation to be destructed
             // Otherwise, a Subscriptor error will occur
-            dealii::parallel::distributed::Triangulation<dim> grid(this->mpi_communicator,
+            std::shared_ptr <Triangulation> grid = std::make_shared<Triangulation> (
+#if PHILIP_DIM!=1
+                this->mpi_communicator,
+#endif
                 typename dealii::Triangulation<dim>::MeshSmoothing(
                     dealii::Triangulation<dim>::smoothing_on_refinement |
                     dealii::Triangulation<dim>::smoothing_on_coarsening));
@@ -148,18 +157,18 @@ int EulerEntropyWaves<dim,nstate>
                     p1[d] = 0.0;
                     p2[d] = 1.0;
                 }
-                dealii::GridGenerator::subdivided_hyper_rectangle (grid, n_subdivisions, p1, p2, colorize);
+                dealii::GridGenerator::subdivided_hyper_rectangle (*grid, n_subdivisions, p1, p2, colorize);
 
                 dealii::FullMatrix<double> rotation_matrix(dim);
                 rotation_matrix[1][0] = 1.;
                 rotation_matrix[0][1] = 1.;
                 for (int d=0;d<dim;d++) {
-                    dealii::GridTools::collect_periodic_faces< dealii::parallel::distributed::Triangulation<dim>> (grid, 2*d, 2*d+1, d, periodicity_vector, dealii::Tensor<1, dim>(),
+                    dealii::GridTools::collect_periodic_faces< Triangulation > (*grid, 2*d, 2*d+1, d, periodicity_vector, dealii::Tensor<1, dim>(),
                                   rotation_matrix);
                 }
-                grid.add_periodicity(periodicity_vector);
+                grid->add_periodicity(periodicity_vector);
 
-                //for (typename dealii::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+                //for (typename dealii::Triangulation<dim>::active_cell_iterator cell = grid->begin_active(); cell != grid->end(); ++cell) {
                 //    // Set a dummy boundary ID
                 //    for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
                 //        if (cell->face(face)->at_boundary()) {
@@ -185,10 +194,10 @@ int EulerEntropyWaves<dim,nstate>
             // Distort grid by random amount if requested
             const double random_factor = manu_grid_conv_param.random_distortion;
             const bool keep_boundary = true;
-            if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, grid, keep_boundary);
+            if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, *grid, keep_boundary);
 
             // Create DG object using the factory
-            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
+            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
             dg->allocate_system ();
 
             // Initialize solution with vortex function at time t=0
@@ -197,7 +206,7 @@ int EulerEntropyWaves<dim,nstate>
             // Create ODE solver using the factory and providing the DG object
             std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
-            unsigned int n_active_cells = grid.n_active_cells();
+            unsigned int n_active_cells = grid->n_active_cells();
             std::cout
                       << "Dimension: " << dim
                       << "\t Polynomial degree p: " << poly_degree
@@ -259,12 +268,12 @@ int EulerEntropyWaves<dim,nstate>
 
             // Convergence table
             double dx = 1.0/pow(n_active_cells,(1.0/dim));
-            dx = dealii::GridTools::maximal_cell_diameter(grid);
+            dx = dealii::GridTools::maximal_cell_diameter(*grid);
             grid_size[igrid] = dx;
             soln_error[igrid] = l2error;
 
             convergence_table.add_value("p", poly_degree);
-            convergence_table.add_value("cells", grid.n_active_cells());
+            convergence_table.add_value("cells", grid->n_active_cells());
             convergence_table.add_value("dx", dx);
             convergence_table.add_value("soln_L2_error", l2error);
 

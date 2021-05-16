@@ -16,6 +16,11 @@
 #include "euler_entropy_waves.h"
 #include "advection_explicit_periodic.h"
 #include "euler_split_inviscid_taylor_green_vortex.h"
+#include "optimization_inverse_manufactured/optimization_inverse_manufactured.h"
+#include "euler_bump_optimization.h"
+#include "euler_naca0012_optimization.hpp"
+#include "shock_1d.h"
+#include "euler_naca0012.hpp"
 
 namespace PHiLiP {
 namespace Tests {
@@ -25,7 +30,9 @@ using AllParam = Parameters::AllParameters;
 TestsBase::TestsBase(Parameters::AllParameters const *const parameters_input)
     : all_parameters(parameters_input)
     , mpi_communicator(MPI_COMM_WORLD)
-    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
+    , mpi_rank (dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
+    , n_mpi (dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD))
+    , pcout(std::cout, mpi_rank==0)
 {}
 
 std::vector<int> TestsBase::get_number_1d_cells(const int n_grids) const
@@ -79,9 +86,19 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate>
     } else if(test_type == Test_enum::euler_entropy_waves) {
         if constexpr (dim>=2 && nstate==PHILIP_DIM+2) return std::make_unique<EulerEntropyWaves<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_split_taylor_green) {
-    	if constexpr (dim==3 && nstate == dim+2) return std::make_unique<EulerTaylorGreen<dim,nstate>>(parameters_input);
+     if constexpr (dim==3 && nstate == dim+2) return std::make_unique<EulerTaylorGreen<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::optimization_inverse_manufactured) {
+     return std::make_unique<OptimizationInverseManufactured<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::euler_bump_optimization) {
+        if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerBumpOptimization<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::euler_naca_optimization) {
+        if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerNACAOptimization<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::shock_1d) {
+        if constexpr (dim==1 && nstate==1) return std::make_unique<Shock1D<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::euler_naca0012) {
+        if constexpr (dim==2 && nstate==4) return std::make_unique<EulerNACA0012<dim,nstate>>(parameters_input);
     } else{
-        std::cout << "Invalid test." << std::endl;
+        std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
     }
 
     return nullptr;

@@ -12,8 +12,6 @@ namespace Physics {
 template <int dim, int nstate, typename real>
 PhysicsBase<dim,nstate,real>::PhysicsBase(
     const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
-    const dealii::Tensor<1,3,double>                          input_advection_vector,
-    const double                                              input_diffusion_coefficient,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input):
         manufactured_solution_function(manufactured_solution_function_input)
 {
@@ -21,11 +19,6 @@ PhysicsBase<dim,nstate,real>::PhysicsBase(
     // currently only necessary for the unit test
     if(!manufactured_solution_function)
         manufactured_solution_function = std::make_shared<ManufacturedSolutionSine<dim,real>>(nstate);
-
-    // advection velocity
-    velo_x = input_advection_vector[0];
-    velo_y = input_advection_vector[1];
-    velo_z = input_advection_vector[2];
 
     // anisotropic diffusion matrix
     diffusion_tensor[0][0] = input_diffusion_tensor[0][0];
@@ -41,9 +34,6 @@ PhysicsBase<dim,nstate,real>::PhysicsBase(
         diffusion_tensor[2][1] = input_diffusion_tensor[2][1];
         diffusion_tensor[2][2] = input_diffusion_tensor[2][2];
     }
-
-    // diffusion coefficient
-    diff_coeff = input_diffusion_coefficient;
 }
 
 template <int dim, int nstate, typename real>

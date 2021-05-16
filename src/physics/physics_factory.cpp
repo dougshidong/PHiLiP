@@ -56,7 +56,7 @@ PhysicsFactory<dim,nstate,real>
         if constexpr (nstate==dim) 
             return std::make_shared < Burgers<dim,nstate,real> >(
                 true, false,
-                diffusion_tensor, advection_vector, diffusion_coefficient,
+                diffusion_tensor, 
                 manufactured_solution_function);
     } else if (pde_type == PDE_enum::euler) {
         if constexpr (nstate==dim+2) {
@@ -66,7 +66,7 @@ PhysicsFactory<dim,nstate,real>
                 parameters_input->euler_param.mach_inf,
                 parameters_input->euler_param.angle_of_attack,
                 parameters_input->euler_param.side_slip_angle,
-                diffusion_tensor, advection_vector, diffusion_coefficient,
+                diffusion_tensor, 
                 manufactured_solution_function);
         }
 
@@ -74,7 +74,7 @@ PhysicsFactory<dim,nstate,real>
         if constexpr (nstate == 8) 
             return std::make_shared < MHD<dim,nstate,real> > (
                 parameters_input->euler_param.gamma_gas,
-                diffusion_tensor, advection_vector, diffusion_coefficient,
+                diffusion_tensor, 
                 manufactured_solution_function);
     } else {
         // prevent warnings for dim=3,nstate=4, etc.

@@ -35,8 +35,6 @@ public:
     /// Default constructor that will set the constants.
     PhysicsBase(
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
-        const dealii::Tensor<1,3,double>                          input_advection_vector = Parameters::ManufacturedSolutionParam::get_default_advection_vector(),
-        const double                                              input_diffusion_coefficient = Parameters::ManufacturedSolutionParam::get_default_diffusion_coefficient(),
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
 
     /// Virtual destructor required for abstract classes.
@@ -147,10 +145,7 @@ protected:
      *  we should have a stable diffusive system
      */
     dealii::Tensor<2,dim,double> diffusion_tensor;
-private:
-    /// Used to initialize @ref diffusion_tensor in constructor initializer list.
-    dealii::Tensor<2,dim,double> eval_diffusion_tensor();
-    
+
 };
 } // Physics namespace
 } // PHiLiP namespace

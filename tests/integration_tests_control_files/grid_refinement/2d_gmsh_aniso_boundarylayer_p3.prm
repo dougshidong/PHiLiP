@@ -99,7 +99,7 @@ subsection grid refinement study
 
     set error_indicator   = hessian_based
     set norm_Lq           = 2.0
-    set complexity_scale  = 2.0 
+    set complexity_scale  = 2.01 # perturbed to prevent triangles appearing
     set complexity_add    = 0.0
 
     # output options

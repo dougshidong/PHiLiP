@@ -45,14 +45,14 @@ if(${ENABLE_GMSH})
   configure_file(2d_gmsh_aniso_boundarylayer_p2.prm 2d_gmsh_aniso_boundarylayer_p2.prm COPYONLY)
   add_test(
     NAME 2D_GMSH_ANISO_BOUNDARYLAYER_P2
-    COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_gmsh_aniso_boundarylayer.prm
+    COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_gmsh_aniso_boundarylayer_p2.prm
     WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
   )
 
-  configure_file(2d_gmsh_aniso_boundarylayer_p2.prm 2d_gmsh_aniso_boundarylayer_p2.prm COPYONLY)
+  configure_file(2d_gmsh_aniso_boundarylayer_p3.prm 2d_gmsh_aniso_boundarylayer_p3.prm COPYONLY)
   add_test(
     NAME 2D_GMSH_ANISO_BOUNDARYLAYER_P3
-    COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_gmsh_aniso_boundarylayer_p2.prm
+    COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_gmsh_aniso_boundarylayer_p3.prm
     WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
   )
 endif(${ENABLE_GMSH})
@@ -79,14 +79,14 @@ if(${ENABLE_GMSH})
   configure_file(2d_gmsh_adjoint_boundarylayer_p2.prm 2d_gmsh_adjoint_boundarylayer_p2.prm COPYONLY)
   add_test(
     NAME 2D_GMSH_ADJOINT_BOUNDARYLAYER_P2
-    COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_gmsh_aniso_boundarylayer_p2.prm
+    COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_gmsh_adjoint_boundarylayer_p2.prm
     WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
   )
 
   configure_file(2d_gmsh_adjoint_boundarylayer_p3.prm 2d_gmsh_adjoint_boundarylayer_p3.prm COPYONLY)
   add_test(
     NAME 2D_GMSH_ADJOINT_BOUNDARYLAYER_P3
-    COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_gmsh_aniso_boundarylayer_p3.prm
+    COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_gmsh_adjoint_boundarylayer_p3.prm
     WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
   )
 endif(${ENABLE_GMSH})

@@ -19,7 +19,7 @@ foreach(dim RANGE 1 3)
     target_compile_definitions(${GridRefinementLib} PRIVATE 
         PHILIP_DIM=${dim} 
         ENABLE_GMSH=${ENABLE_GMSH}
-        GMSH_PATH=\"/usr/local/include/gmsh-master/build/gmsh\" 
+        GMSH_PATH=\"~/gmsh/gmsh-4.6.0-Linux64/bin/gmsh\" 
         ENABLE_GNUPLOT=${ENABLE_GNUPLOT})
 
     # Setup target with deal.II

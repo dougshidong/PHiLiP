@@ -26,6 +26,8 @@
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/trilinos_vector.h>
 
+#include "parameters/all_parameters.h"
+
 namespace PHiLiP {
 
 // determines the associated typenames for HO grid from the meshType
@@ -37,21 +39,21 @@ template <>
 class MeshTypeHelper<dealii::Triangulation<PHILIP_DIM>>
 {
 public:
-    using VectorType     = dealii::Vector<double>;
+    using VectorType     = dealii::LinearAlgebra::distributed::Vector<double>;
     using DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>;
 
     template <int dim = PHILIP_DIM, typename Vector = VectorType, typename DoFHandler = DoFHandlerType>
     using SolutionTransfer = dealii::SolutionTransfer<dim, Vector, DoFHandler>;
 
-    // reinitialize vector based on non-parralel Dofhandler
+    // reinitialize vector based on parralel Dofhandler
     static void reinit_vector(
         VectorType             &vector, 
-        DoFHandlerType const   &dof_handler,
-        dealii::IndexSet const &/* locally_owned_dofs */,
-        dealii::IndexSet const &/* ghost_dofs */,
-        MPI_Comm const          /* mpi_communicator */)
+        DoFHandlerType const   &/* dof_handler */,
+        dealii::IndexSet const &locally_owned_dofs,
+        dealii::IndexSet const &ghost_dofs,
+        MPI_Comm const          mpi_communicator)
     {
-        vector.reinit(dof_handler.n_dofs());
+        vector.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
     }
 };
 
@@ -130,9 +132,8 @@ class HighOrderGrid
 public:
     /// Principal constructor that will call delegated constructor.
     HighOrderGrid(
-        const Parameters::AllParameters *const parameters_input, 
-        const unsigned int                     max_degree, 
-        MeshType *const                        triangulation_input);
+        const unsigned int              max_degree, 
+        const std::shared_ptr<MeshType> triangulation_input);
 
     /// Reinitialize high_order_grid after a change in triangulation
     void reinit();

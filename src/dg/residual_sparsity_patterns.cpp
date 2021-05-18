@@ -7,13 +7,13 @@
 
 namespace PHiLiP {
 
-template <int dim, typename real>
-dealii::SparsityPattern DGBase<dim,real>::get_d2RdWdX_sparsity_pattern ()
+template <int dim, typename real, typename MeshType>
+dealii::SparsityPattern DGBase<dim,real,MeshType>::get_d2RdWdX_sparsity_pattern ()
 {
     return get_dRdX_sparsity_pattern ();
 }
-template <int dim, typename real>
-dealii::SparsityPattern DGBase<dim,real>::get_dRdW_sparsity_pattern ()
+template <int dim, typename real, typename MeshType>
+dealii::SparsityPattern DGBase<dim,real,MeshType>::get_dRdW_sparsity_pattern ()
 {
     dealii::DynamicSparsityPattern dsp(locally_relevant_dofs);
     dealii::DoFTools::make_flux_sparsity_pattern(dof_handler, dsp);
@@ -24,13 +24,13 @@ dealii::SparsityPattern DGBase<dim,real>::get_dRdW_sparsity_pattern ()
     return sparsity_pattern;
 }
 
-template <int dim, typename real>
-dealii::SparsityPattern DGBase<dim,real>::get_d2RdWdW_sparsity_pattern ()
+template <int dim, typename real, typename MeshType>
+dealii::SparsityPattern DGBase<dim,real,MeshType>::get_d2RdWdW_sparsity_pattern ()
 {
     return get_dRdW_sparsity_pattern();
 }
-template <int dim, typename real>
-dealii::SparsityPattern DGBase<dim,real>::get_d2RdXdX_sparsity_pattern ()
+template <int dim, typename real, typename MeshType>
+dealii::SparsityPattern DGBase<dim,real,MeshType>::get_d2RdXdX_sparsity_pattern ()
 {
     dealii::IndexSet locally_relevant_dofs;
     dealii::DoFTools::extract_locally_relevant_dofs(high_order_grid->dof_handler_grid, locally_relevant_dofs);
@@ -43,8 +43,8 @@ dealii::SparsityPattern DGBase<dim,real>::get_d2RdXdX_sparsity_pattern ()
     return sparsity_pattern;
 }
 
-template <int dim, typename real>
-dealii::SparsityPattern DGBase<dim,real>::get_dRdX_sparsity_pattern ()
+template <int dim, typename real, typename MeshType>
+dealii::SparsityPattern DGBase<dim,real,MeshType>::get_dRdX_sparsity_pattern ()
 {
     const unsigned n_residuals = dof_handler.n_dofs();
     const unsigned n_nodes_coeff = high_order_grid->dof_handler_grid.n_dofs();
@@ -127,15 +127,15 @@ dealii::SparsityPattern DGBase<dim,real>::get_dRdX_sparsity_pattern ()
     return sparsity_pattern;
 }
 
-template <int dim, typename real>
-dealii::SparsityPattern DGBase<dim,real>::get_d2RdWdXs_sparsity_pattern ()
+template <int dim, typename real, typename MeshType>
+dealii::SparsityPattern DGBase<dim,real,MeshType>::get_d2RdWdXs_sparsity_pattern ()
 {
     return get_dRdXs_sparsity_pattern ();
 }
 
 
-template <int dim, typename real>
-dealii::SparsityPattern DGBase<dim,real>::get_d2RdXsdXs_sparsity_pattern ()
+template <int dim, typename real, typename MeshType>
+dealii::SparsityPattern DGBase<dim,real,MeshType>::get_d2RdXsdXs_sparsity_pattern ()
 {
     const auto &partitionner = high_order_grid->surface_to_volume_indices.get_partitioner();
     const dealii::IndexSet owned = partitionner->locally_owned_range();
@@ -156,8 +156,8 @@ dealii::SparsityPattern DGBase<dim,real>::get_d2RdXsdXs_sparsity_pattern ()
     return sparsity_pattern;
 }
 
-template <int dim, typename real>
-dealii::SparsityPattern DGBase<dim,real>::get_dRdXs_sparsity_pattern ()
+template <int dim, typename real, typename MeshType>
+dealii::SparsityPattern DGBase<dim,real,MeshType>::get_dRdXs_sparsity_pattern ()
 {
     const unsigned n_residuals = dof_handler.n_dofs();
     const unsigned n_nodes_coeff = high_order_grid->surface_nodes.size();
@@ -189,7 +189,13 @@ dealii::SparsityPattern DGBase<dim,real>::get_dRdXs_sparsity_pattern ()
     return sparsity_pattern;
 }
 
-template class DGBase <PHILIP_DIM, double>;
+#if PHILIP_DIM==1
+template class DGBase <PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
+#else
+template class DGBase <PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGBase <PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGBase <PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#endif
 
 } // namespace PHiLiP
 

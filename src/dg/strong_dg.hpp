@@ -8,12 +8,12 @@ namespace PHiLiP {
 /// DGStrong class templated on the number of state variables
 /*  Contains the functions that need to be templated on the number of state variables.
  */
-template <int dim, int nstate, typename real>
-class DGStrong: public DGBaseState<dim, nstate, real>
+template <int dim, int nstate, typename real, typename MeshType>
+class DGStrong: public DGBaseState<dim, nstate, real, MeshType>
 {
 protected:
     /// Alias to base class Triangulation.
-    using Triangulation = typename DGBaseState<dim,nstate,real>::Triangulation;
+    using Triangulation = typename DGBaseState<dim,nstate,real,MeshType>::Triangulation;
 public:
     /// Constructor
     DGStrong(
@@ -110,9 +110,9 @@ private:
         dealii::Vector<real>          &current_cell_rhs,
         dealii::Vector<real>          &neighbor_cell_rhs);
 
-    using DGBase<dim,real>::all_parameters; ///< Pointer to all parameters
-    using DGBase<dim,real>::mpi_communicator; ///< MPI communicator
-    using DGBase<dim,real>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
+    using DGBase<dim,real,MeshType>::all_parameters; ///< Pointer to all parameters
+    using DGBase<dim,real,MeshType>::mpi_communicator; ///< MPI communicator
+    using DGBase<dim,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
 }; // end of DGStrong class
 

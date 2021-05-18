@@ -53,11 +53,9 @@ unsigned int HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::nth_ref
 
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
 HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::HighOrderGrid(
-        const Parameters::AllParameters *const parameters_input,
         const unsigned int max_degree,
         const std::shared_ptr<MeshType> triangulation_input)
-    : all_parameters(parameters_input)
-    , max_degree(max_degree)
+    : max_degree(max_degree)
     , triangulation(triangulation_input)
     , dof_handler_grid(*triangulation)
     , fe_q(max_degree) // The grid must be at least p1. A p0 solution required a p1 grid.
@@ -79,8 +77,8 @@ HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::HighOrderGrid(
     }
 }
 
-template <int dim, typename real>
-void HighOrderGrid<dim,real>::initialize_with_triangulation_manifold()
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::initialize_with_triangulation_manifold()
 {
     allocate();
     const dealii::ComponentMask mask(dim, true);
@@ -124,8 +122,8 @@ template <int dim, typename real, typename MeshType, typename VectorType, typena
 void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::reinit(){
     allocate();
     const dealii::ComponentMask mask(dim, true);
-    get_position_vector(dof_handler_grid, nodes, mask);
-    nodes.update_ghost_values();
+    get_position_vector(dof_handler_grid, volume_nodes, mask);
+    volume_nodes.update_ghost_values();
     update_surface_indices();
     update_surface_nodes();
     update_mapping_fe_field();
@@ -253,8 +251,8 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>
     }
 }
 
-template <int dim, typename real>
-void HighOrderGrid<dim,real>
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>
 ::get_projected_position_vector(const DoFHandlerType &dh, VectorType &position_vector, const dealii::ComponentMask &mask)
 {
     AssertDimension(position_vector.size(), dh.n_dofs());
@@ -417,9 +415,9 @@ void HighOrderGrid<dim,real>
 //}
 
 
-template <int dim, typename real>
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
 template <typename real2>
-inline real2 HighOrderGrid<dim,real>
+inline real2 HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>
 ::determinant(const std::array< dealii::Tensor<1,dim,real2>, dim > jacobian) const
 {
     if constexpr(dim == 1) return jacobian[0][0];
@@ -1189,8 +1187,8 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::update_surface_
 }
 
 
-template <int dim, typename real>
-void HighOrderGrid<dim,real>::update_map_nodes_surf_to_vol()
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::update_map_nodes_surf_to_vol()
 {
     const unsigned int n_rows = volume_nodes.size();
     const unsigned int n_cols = surface_nodes.size();
@@ -1337,7 +1335,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::update_surface_
 
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
 
-dealii::LinearAlgebra::distributed::Vector<real>
+VectorType
 HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::transform_surface_nodes(std::function<dealii::Point<dim>(dealii::Point<dim>)> transformation) const
 {
     VectorType new_surface_nodes(surface_nodes);
@@ -1361,8 +1359,8 @@ HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::transform_surface_no
     return new_surface_nodes;
 }
 
-template <int dim, typename real>
-void HighOrderGrid<dim,real>::output_results_vtk (const unsigned int cycle) const
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::output_results_vtk (const unsigned int cycle) const
 {
     std::string master_fn = "Mesh-" + dealii::Utilities::int_to_string(dim, 1) +"D_GridP"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
     master_fn += dealii::Utilities::int_to_string(cycle, 4) + ".pvtu";

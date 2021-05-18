@@ -74,7 +74,7 @@ namespace PHiLiP {
 
 
 // template <int dim, typename real>
-// dealii::SparsityPattern DGBase<dim,real>::get_dRdX_sparsity_pattern () {
+// dealii::SparsityPattern DGBase<dim,real,MeshType>::get_dRdX_sparsity_pattern () {
 // 
 //     const unsigned n_residuals = dof_handler.n_dofs();
 //     const unsigned n_nodes_coeff = high_order_grid.dof_handler_grid.n_dofs();

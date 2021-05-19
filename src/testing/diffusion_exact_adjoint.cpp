@@ -478,13 +478,13 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
 
             pcout << "Creating DiffusionFunctional... " << std::endl; 
             // functional for computations
-            DiffusionFunctional<dim,nstate,double> diffusion_functional_u(dg_u,physics_u_fadfadtype,true,false);
-            DiffusionFunctional<dim,nstate,double> diffusion_functional_v(dg_v,physics_v_fadfadtype,true,false);
+            auto diffusion_functional_u = std::make_shared<DiffusionFunctional<dim,nstate,double>>(dg_u,physics_u_fadfadtype,true,false);
+            auto diffusion_functional_v = std::make_shared<DiffusionFunctional<dim,nstate,double>>(dg_v,physics_v_fadfadtype,true,false);
 
             pcout << "Evaluating functional... " << std::endl; 
             // evaluating functionals from both methods
-            double functional_val_u = diffusion_functional_u.evaluate_functional(false,false);
-            double functional_val_v = diffusion_functional_v.evaluate_functional(false,false);
+            double functional_val_u = diffusion_functional_u->evaluate_functional(false,false);
+            double functional_val_v = diffusion_functional_v->evaluate_functional(false,false);
 
             // comparison betweent the values, add these to the convergence table
             pcout << std::endl << "Val1 = " << functional_val_u << "\tVal2 = " << functional_val_v << std::endl << std::endl; 
@@ -496,8 +496,8 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             pcout << std::endl << "error_val1 = " << error_functional_u << "\terror_val2 = " << error_functional_v << std::endl << std::endl; 
 
             // // Initializing the adjoints for each problem
-            Adjoint<dim, nstate, double> adj_u(*dg_u, diffusion_functional_u, *physics_u_fadtype.get());
-            Adjoint<dim, nstate, double> adj_v(*dg_v, diffusion_functional_v, *physics_v_fadtype.get());
+            Adjoint<dim, nstate, double> adj_u(dg_u, diffusion_functional_u, physics_u_fadtype);
+            Adjoint<dim, nstate, double> adj_v(dg_v, diffusion_functional_v, physics_v_fadtype);
 
             // solving for each coarse adjoint
             pcout << "Solving for the discrete adjoints." << std::endl;

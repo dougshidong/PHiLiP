@@ -73,11 +73,9 @@ DGFactory<dim,real,MeshType>
     return create_discontinuous_galerkin(parameters_input, degree, degree, triangulation_input);
 }
 
-#if PHILIP_DIM==1
-template class DGFactory <PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
-#else
 template class DGFactory <PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
 template class DGFactory <PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+#if PHILIP_DIM!=1
 template class DGFactory <PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 

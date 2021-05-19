@@ -54,7 +54,6 @@ class ManufacturedSolutionU : public ManufacturedSolutionFunction <dim, real>
 protected:
     using dealii::Function<dim,real>::value;
     using dealii::Function<dim,real>::gradient;
-    using dealii::Function<dim,real>::hessian;
 public:
     /// constructor
     ManufacturedSolutionU(){}
@@ -73,7 +72,6 @@ class ManufacturedSolutionV : public ManufacturedSolutionFunction <dim, real>
 protected:
     using dealii::Function<dim,real>::value;
     using dealii::Function<dim,real>::gradient;
-    using dealii::Function<dim,real>::hessian;
 public:
     /// constructor
     ManufacturedSolutionV(){}
@@ -126,7 +124,7 @@ public:
         diffusion_objective<dim,nstate,real>::diffusion_objective(convection, diffusion)
     {
         this->manufactured_solution_function 
-            = std::shared_ptr< ManufacturedSolutionU<dim,real> >(new ManufacturedSolutionU<dim,real>());
+            = std::shared_ptr< ManufacturedSolutionU<dim,real> >();
     }
 
     /// source term = f
@@ -149,7 +147,7 @@ public:
         diffusion_objective<dim,nstate,real>::diffusion_objective(convection, diffusion)
     {
         this->manufactured_solution_function 
-            = std::shared_ptr< ManufacturedSolutionV<dim,real> >(new ManufacturedSolutionV<dim,real>());
+            = std::shared_ptr< ManufacturedSolutionV<dim,real> >();
     }
 
     /// source term = g

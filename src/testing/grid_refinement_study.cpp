@@ -33,6 +33,7 @@
 #include "physics/manufactured_solution.h"
 
 #include "dg/dg.h"
+#include "dg/dg_factory.hpp"
 
 #include "ode_solver/ode_solver.h"
 
@@ -117,7 +118,7 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
                 poly_degree,
                 poly_degree_max,
                 poly_degree_grid,
-                grid.get());
+                grid);
         dg->allocate_system();
 
         // initialize the solution
@@ -239,7 +240,7 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
             const double linf_norm_mpi = dealii::Utilities::MPI::max(linf_norm, mpi_communicator);
 
             // computing the functional value
-            double functional_value = functional->evaluate_functional(*(physics_adtype));
+            double functional_value = functional->evaluate_functional();
 
             // getting the functional error from the approximated fine grid functional value
             double func_error = abs(functional_value - functional_value_exact);
@@ -436,7 +437,7 @@ void GridRefinementStudy<dim,nstate,MeshType>::get_grid(
 template <int dim, int nstate, typename MeshType>
 double GridRefinementStudy<dim,nstate,MeshType>::approximate_exact_functional(
     const std::shared_ptr<Physics::PhysicsBase<dim,nstate,double>>& physics_double,
-    const std::shared_ptr<Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<double>>>& physics_adtype,
+    const std::shared_ptr<Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<double>>>& /* physics_adtype */,
     const Parameters::AllParameters& param,
     const Parameters::GridRefinementStudyParam& grs_param) const
 {
@@ -465,7 +466,7 @@ double GridRefinementStudy<dim,nstate,MeshType>::approximate_exact_functional(
             poly_degree,
             poly_degree_max,
             poly_degree_grid,
-            grid_fine.get());
+            grid_fine);
     dg_fine->allocate_system();
 
     // interpolating the solution from the manufactured solution
@@ -482,7 +483,7 @@ double GridRefinementStudy<dim,nstate,MeshType>::approximate_exact_functional(
 
     // getting the "exact" value using it
     std::cout << "Computing and returning approximation" << std::endl;
-    return functional_fine->evaluate_functional(*(physics_adtype));
+    return functional_fine->evaluate_functional();
 }
 
 // function to perform the formatted output to gnuplot (of the solution error)

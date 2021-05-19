@@ -1015,7 +1015,8 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::prepare_for_coa
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
 void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::execute_coarsening_and_refinement(const bool output_mesh) {
     allocate();
-    if constexpr(PHILIP_DIM==1) {
+    if constexpr (std::is_same_v<typename dealii::SolutionTransfer<dim,VectorType,DoFHandlerType>,
+                                 decltype(solution_transfer)>){
         solution_transfer.interpolate(old_volume_nodes, volume_nodes);
     } else {
         solution_transfer.interpolate(volume_nodes);
@@ -1513,5 +1514,10 @@ dealii::UpdateFlags GridPostprocessor<dim>::get_needed_update_flags () const
     return dealii::update_values | dealii::update_gradients;
 }
 
-template class HighOrderGrid<PHILIP_DIM, double>;
+
+template class HighOrderGrid <PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
+template class HighOrderGrid <PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+#if PHILIP_DIM!=1
+template class HighOrderGrid <PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#endif
 } // namespace PHiLiP

@@ -258,7 +258,7 @@ private:
         const DoFCellAccessorType &cell);
 
     // member attributes
-    const dealii::DoFHandler<dim>&         dof_handler;           ///< Degree of freedom handler for iteration over mesh elements and their nodes
+    const dealii::DoFHandler<dim>&             dof_handler;           ///< Degree of freedom handler for iteration over mesh elements and their nodes
     const dealii::hp::MappingCollection<dim> & mapping_collection;    ///< Collection of mapping rules for reference element conversion
     const dealii::hp::FECollection<dim> &      fe_collection;         ///< Collection of Finite elements to represent discontinuous $hp$ solution space
     const dealii::hp::QCollection<dim> &       quadrature_collection; ///< Collection of quadrature rules used to evaluate volume integrals

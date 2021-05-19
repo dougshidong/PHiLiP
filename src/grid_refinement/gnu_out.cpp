@@ -1,6 +1,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <fstream>
 
 #include <deal.II/base/exceptions.h>
 

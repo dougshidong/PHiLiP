@@ -276,7 +276,7 @@ unsigned int const MshOutDataInternal<PHILIP_DIM,Matrix>::num_components = 9;
 template <>
 void MshOutDataInternal<PHILIP_DIM,Scalar>::write_msh_data_internal(
     const dealii::DoFHandler<PHILIP_DIM> &dof_handler,
-    std::ostream &                            out)
+    std::ostream &                        out)
 {
     const unsigned int dim = PHILIP_DIM;
 
@@ -345,7 +345,7 @@ void MshOutDataInternal<PHILIP_DIM,Scalar>::write_msh_data_internal(
 template <>
 void MshOutDataInternal<PHILIP_DIM,Vector>::write_msh_data_internal(
     const dealii::DoFHandler<PHILIP_DIM> &dof_handler,
-    std::ostream &                            out)
+    std::ostream &                        out)
 {
     const unsigned int dim = PHILIP_DIM;
 
@@ -439,7 +439,7 @@ void MshOutDataInternal<PHILIP_DIM,Vector>::write_msh_data_internal(
 template <>
 void MshOutDataInternal<PHILIP_DIM,Matrix>::write_msh_data_internal(
     const dealii::DoFHandler<PHILIP_DIM> &dof_handler,
-    std::ostream &                            out)
+    std::ostream &                        out)
 {
     const unsigned int dim = PHILIP_DIM;
 

@@ -212,7 +212,7 @@ int GridStudy<dim,nstate>
                 dealii::Triangulation<dim>::smoothing_on_refinement |
                 dealii::Triangulation<dim>::smoothing_on_coarsening));
 
-        dealii::Vector<float> estimated_error_per_cell;
+        dealii::Vector<float>  estimated_error_per_cell;
         dealii::Vector<double> estimated_error_per_cell_double;
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
             grid->clear();
@@ -359,8 +359,8 @@ int GridStudy<dim,nstate>
             // Integrate solution error and output error
 
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
-            estimated_error_per_cell.reinit(grid.n_active_cells());
-            estimated_error_per_cell_double.reinit(grid.n_active_cells());
+            estimated_error_per_cell.reinit(grid->n_active_cells());
+            estimated_error_per_cell_double.reinit(grid->n_active_cells());
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
 
                 if (!cell->is_locally_owned()) continue;
@@ -395,6 +395,7 @@ int GridStudy<dim,nstate>
 
             double solution_integral = integrate_solution_over_domain(*dg);
 
+            /*
             dg->output_results_vtk(igrid);
 
             std::string write_posname = "error-"+std::to_string(igrid)+".pos";
@@ -407,6 +408,7 @@ int GridStudy<dim,nstate>
             gr->refine_grid();
 
             // dg->output_results_vtk(igrid);
+            */
 
             // Convergence table
             const double dx = 1.0/pow(n_dofs,(1.0/dim));

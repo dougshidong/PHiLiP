@@ -8,7 +8,11 @@ namespace PHiLiP {
 /// DGStrong class templated on the number of state variables
 /*  Contains the functions that need to be templated on the number of state variables.
  */
-template <int dim, int nstate, typename real, typename MeshType>
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
 class DGStrong: public DGBaseState<dim, nstate, real, MeshType>
 {
 protected:

@@ -192,7 +192,7 @@ public:
 protected:
     ///< Advances the solution in time by \p dt.
     void step_in_time(real dt, const bool pseudotime = false) override;
-    using ODESolver<dim,real>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
+    using ODESolver<dim,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 }; // end of Explicit_ODESolver class
 
 /// Creates and assemble Explicit_ODESolver or Implicit_ODESolver as ODESolver based on input.

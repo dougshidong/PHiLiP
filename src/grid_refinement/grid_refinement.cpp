@@ -22,7 +22,7 @@
 #include "parameters/parameters_grid_refinement.h"
 
 #include "dg/dg.h"
-#include "dg/high_order_grid.h"
+#include "mesh/high_order_grid.h"
 
 #include "functional/functional.h"
 #include "functional/adjoint.h"

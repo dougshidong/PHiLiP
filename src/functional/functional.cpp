@@ -73,7 +73,7 @@ real2 FunctionalNormLpVolume<dim,nstate,real,MeshType>::evaluate_volume_integran
     const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
     const dealii::Point<dim,real2> &                      /*phys_coord*/,
     const std::array<real2,nstate> &                      soln_at_q,
-    const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/)
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
 {
     real2 lpnorm_value = 0;
     for(unsigned int istate = 0; istate < nstate; ++istate)
@@ -96,11 +96,13 @@ FunctionalNormLpBoundary<dim,nstate,real,MeshType>::FunctionalNormLpBoundary(
 
 template <int dim, int nstate, typename real, typename MeshType>
 template <typename real2>
-real2 FunctionalNormLpBoundary<dim,nstate,real,MeshType>::evaluate_cell_boundary(
-    const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
+real2 FunctionalNormLpBoundary<dim,nstate,real,MeshType>::evaluate_boundary_integrand(
+    const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/* physics */,
     const unsigned int                                    boundary_id,
-    const dealii::FEFaceValues<dim,dim> &                 fe_values_boundary,
-    std::vector<real2>                                    local_solution)
+    const dealii::Point<dim,real2> &                      /* phys_coord */,
+    const dealii::Tensor<1,dim,real2> &                   /* normal */,
+    const std::array<real2,nstate> &                      soln_at_q,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &/* soln_grad_at_q */) const
 {
     real2 lpnorm_value = 0;
 
@@ -111,19 +113,8 @@ real2 FunctionalNormLpBoundary<dim,nstate,real,MeshType>::evaluate_cell_boundary
     if(!eval_boundary)
         return lpnorm_value;
 
-    const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
-    const unsigned int n_quad      = fe_values_boundary.n_quadrature_points;
-
-    std::array<real2,nstate> soln_at_q;
-    for(unsigned int iquad = 0; iquad < n_quad; ++iquad){
-        soln_at_q.fill(0.0);
-        for(unsigned int idof = 0; idof < n_dofs_cell; ++idof){
-            const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
-            soln_at_q[istate] += local_solution[idof] * fe_values_boundary.shape_value_component(idof, iquad, istate);
-        }
-        for(int istate = 0; istate < nstate; ++istate)
-            lpnorm_value += pow(abs(soln_at_q[istate]), this->normLp) * fe_values_boundary.JxW(iquad);
-    }
+    for(unsigned int istate = 0; istate < nstate; ++istate)
+        lpnorm_value += pow(abs(soln_at_q[istate]), this->normLp);
 
     return lpnorm_value;
 }
@@ -131,7 +122,7 @@ real2 FunctionalNormLpBoundary<dim,nstate,real,MeshType>::evaluate_cell_boundary
 template <int dim, int nstate, typename real, typename MeshType>
 FunctionalWeightedIntegralVolume<dim,nstate,real,MeshType>::FunctionalWeightedIntegralVolume(
     std::shared_ptr<ManufacturedSolutionFunction<dim,real>>                    _weight_function_double,
-    std::shared_ptr<ManufacturedSolutionFunction<dim,Sacado::Fad::DFad<real>>> _weight_function_adtype,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>>              _weight_function_adtype,
     const bool                                                                 _use_weight_function_laplacian,
     std::shared_ptr<DGBase<dim,real,MeshType>>                                 _dg,
     const bool                                                                 _uses_solution_values,
@@ -148,7 +139,7 @@ real2 FunctionalWeightedIntegralVolume<dim,nstate,real,MeshType>::evaluate_volum
     const dealii::Point<dim,real2> &                        phys_coord,
     const std::array<real2,nstate> &                        soln_at_q,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &  /*soln_grad_at_q*/,
-    std::shared_ptr<ManufacturedSolutionFunction<dim,real2>> weight_function)
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real2>> weight_function) const
 {
     real2 val = 0;
 
@@ -166,7 +157,7 @@ real2 FunctionalWeightedIntegralVolume<dim,nstate,real,MeshType>::evaluate_volum
 template <int dim, int nstate, typename real, typename MeshType>
 FunctionalWeightedIntegralBoundary<dim,nstate,real,MeshType>::FunctionalWeightedIntegralBoundary(
     std::shared_ptr<ManufacturedSolutionFunction<dim,real>>                    _weight_function_double,
-    std::shared_ptr<ManufacturedSolutionFunction<dim,Sacado::Fad::DFad<real>>> _weight_function_adtype,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>>              _weight_function_adtype,
     const bool                                                                 _use_weight_function_laplacian,
     std::vector<unsigned int>                                                  _boundary_vector,
     const bool                                                                 _use_all_boundaries,
@@ -182,12 +173,14 @@ FunctionalWeightedIntegralBoundary<dim,nstate,real,MeshType>::FunctionalWeighted
 
 template <int dim, int nstate, typename real, typename MeshType>
 template <typename real2>
-real2 FunctionalWeightedIntegralBoundary<dim,nstate,real,MeshType>::evaluate_cell_boundary(
-    const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &   /*physics*/,
-    const unsigned int                                       boundary_id,
-    const dealii::FEFaceValues<dim,dim> &                    fe_values_boundary,
-    std::vector<real2>                                       local_solution,
-    std::shared_ptr<ManufacturedSolutionFunction<dim,real2>> weight_function)
+real2 FunctionalWeightedIntegralBoundary<dim,nstate,real,MeshType>::evaluate_boundary_integrand(
+    const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/* physics */,
+    const unsigned int                                    boundary_id,
+    const dealii::Point<dim,real2> &                      phys_coord,
+    const dealii::Tensor<1,dim,real2> &                   /* normal */,
+    const std::array<real2,nstate> &                      soln_at_q,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &/* soln_grad_at_q */,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real2>> weight_function) const
 {
     real2 val = 0;
 
@@ -198,25 +191,12 @@ real2 FunctionalWeightedIntegralBoundary<dim,nstate,real,MeshType>::evaluate_cel
     if(!eval_boundary)
         return val;
 
-    const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
-    const unsigned int n_quad      = fe_values_boundary.n_quadrature_points;
-
-    std::array<real2,nstate> soln_at_q;
-    for(unsigned int iquad = 0; iquad < n_quad; ++iquad){
-        soln_at_q.fill(0.0);
-        for(unsigned int idof = 0; idof < n_dofs_cell; ++idof){
-            const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
-            soln_at_q[istate] += local_solution[idof] * fe_values_boundary.shape_value_component(idof, iquad, istate);
-        }
-        const dealii::Point<dim> &      qpoint_double = (fe_values_boundary.quadrature_point(iquad));
-        const dealii::Point<dim,real2> &qpoint        = dealii::Point<dim,real2>(qpoint_double); 
-        if(this->use_weight_function_laplacian){
-            for(unsigned int istate = 0; istate < nstate; ++istate)
-                val += soln_at_q[istate] * dealii::trace(weight_function->hessian(qpoint, istate)) * fe_values_boundary.JxW(iquad);
-        }else{
-            for(unsigned int istate = 0; istate < nstate; ++istate)
-                val += soln_at_q[istate] * weight_function->value(qpoint, istate) * fe_values_boundary.JxW(iquad);
-        }
+    if(this->use_weight_function_laplacian){
+        for(unsigned int istate = 0; istate < nstate; ++istate)
+            val += soln_at_q[istate] * dealii::trace(weight_function->hessian(phys_coord, istate));
+    }else{
+        for(unsigned int istate = 0; istate < nstate; ++istate)
+            val += soln_at_q[istate] * weight_function->value(phys_coord, istate);
     }
 
     return val;
@@ -237,7 +217,7 @@ real2 FunctionalErrorNormLpVolume<dim,nstate,real,MeshType>::evaluate_volume_int
     const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
     const dealii::Point<dim,real2> &                      phys_coord,
     const std::array<real2,nstate> &                      soln_at_q,
-    const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/)
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
 {
     real2 lpnorm_value = 0;
     for(unsigned int istate = 0; istate < nstate; ++istate){
@@ -262,13 +242,15 @@ FunctionalErrorNormLpBoundary<dim,nstate,real,MeshType>::FunctionalErrorNormLpBo
 
 template <int dim, int nstate, typename real, typename MeshType>
 template <typename real2>
-real2 FunctionalErrorNormLpBoundary<dim,nstate,real,MeshType>::evaluate_cell_boundary(
+real2 FunctionalErrorNormLpBoundary<dim,nstate,real,MeshType>::evaluate_boundary_integrand(
     const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
     const unsigned int                                    boundary_id,
-    const dealii::FEFaceValues<dim,dim> &                 fe_values_boundary,
-    std::vector<real2>                                    local_solution)
+    const dealii::Point<dim,real2> &                      phys_coord,
+    const dealii::Tensor<1,dim,real2> &                   /* normal */,
+    const std::array<real2,nstate> &                      soln_at_q,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &/* soln_grad_at_q */) const
 {
-    real2 lpnorm_value = 0;
+     real2 lpnorm_value = 0;
 
     // condition for whether the current cell should be evaluated
     auto boundary_vector_index = std::find(this->boundary_vector.begin(), this->boundary_vector.end(), boundary_id);
@@ -277,22 +259,9 @@ real2 FunctionalErrorNormLpBoundary<dim,nstate,real,MeshType>::evaluate_cell_bou
     if(!eval_boundary)
         return lpnorm_value;
 
-    const unsigned int n_dofs_cell = fe_values_boundary.dofs_per_cell;
-    const unsigned int n_quad      = fe_values_boundary.n_quadrature_points;
-
-    std::array<real2,nstate> soln_at_q;
-    for(unsigned int iquad = 0; iquad < n_quad; ++iquad){
-        soln_at_q.fill(0.0);
-        for(unsigned int idof = 0; idof < n_dofs_cell; ++idof){
-            const int istate = fe_values_boundary.get_fe().system_to_component_index(idof).first;
-            soln_at_q[istate] += local_solution[idof] * fe_values_boundary.shape_value_component(idof, iquad, istate);
-        }
-        const dealii::Point<dim> &      qpoint_double = (fe_values_boundary.quadrature_point(iquad));
-        const dealii::Point<dim,real2> &qpoint        = dealii::Point<dim,real2>(qpoint_double); 
-        for(int istate = 0; istate < nstate; ++istate){
-            const real2 uexact = physics.manufactured_solution_function->value(qpoint, istate);
-            lpnorm_value += pow(abs(soln_at_q[istate] - uexact), this->normLp) * fe_values_boundary.JxW(iquad);
-        }
+    for(int istate = 0; istate < nstate; ++istate){
+        const real2 uexact = physics.manufactured_solution_function->value(phys_coord, istate);
+        lpnorm_value += pow(abs(soln_at_q[istate] - uexact), this->normLp);
     }
 
     return lpnorm_value;
@@ -663,7 +632,6 @@ Sacado::Fad::DFad<Sacado::Fad::DFad<real>> Functional<dim,nstate,real,MeshType>:
     return evaluate_volume_cell_functional<Sacado::Fad::DFad<Sacado::Fad::DFad<real>>>(physics_fad_fad, soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 }
 
-
 template <int dim, int nstate, typename real, typename MeshType>
 void Functional<dim,nstate,real,MeshType>::need_compute(bool &compute_value, bool &compute_dIdW, bool &compute_dIdX, bool &compute_d2I)
 {
@@ -771,7 +739,6 @@ void Functional<dim,nstate,real,MeshType>::need_compute(bool &compute_value, boo
 
 template <int dim, int nstate, typename real, typename MeshType>
 real Functional<dim, nstate, real, MeshType>::evaluate_functional(
-    const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> &physics,
     const bool compute_dIdW,
     const bool compute_dIdX,
     const bool compute_d2I)
@@ -822,9 +789,9 @@ real Functional<dim, nstate, real, MeshType>::evaluate_functional(
         if(!soln_cell->is_locally_owned()) continue;
 
         // setting up the volume integration
-        const unsigned int i_mapp = 0;
+        // const unsigned int i_mapp = 0;
         const unsigned int i_fele = soln_cell->active_fe_index();
-        const unsigned int i_quad = i_fele + overintegrate;
+        const unsigned int i_quad = i_fele;
 
         // Get solution coefficients
         const dealii::FESystem<dim,dim> &fe_solution = dg->fe_collection[i_fele];
@@ -1216,7 +1183,7 @@ FunctionalFactory<dim,nstate,real,MeshType>::create_Functional(
     PHiLiP::Parameters::FunctionalParam param,
     std::shared_ptr< PHiLiP::DGBase<dim,real,MeshType> > dg)
 {
-    using ADtype = Sacado::Fad::DFad<real>;
+    using FadFadType = Sacado::Fad::DFad<FadType>;
 
     using FunctionalTypeEnum       = Parameters::FunctionalParam::FunctionalType;
     using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
@@ -1227,8 +1194,9 @@ FunctionalFactory<dim,nstate,real,MeshType>::create_Functional(
     ManufacturedSolutionEnum  weight_function_type = param.weight_function_type;
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > weight_function_double 
         = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(weight_function_type, nstate);
-    std::shared_ptr< ManufacturedSolutionFunction<dim,ADtype> > weight_function_adtype 
-        = ManufacturedSolutionFactory<dim,ADtype>::create_ManufacturedSolution(weight_function_type, nstate);
+    std::shared_ptr< ManufacturedSolutionFunction<dim,FadFadType> > weight_function_adtype 
+        = ManufacturedSolutionFactory<dim,FadFadType>::create_ManufacturedSolution(weight_function_type, nstate);
+    
     const bool use_weight_function_laplacian       = param.use_weight_function_laplacian;
 
     std::vector<unsigned int> boundary_vector    = param.boundary_vector;

@@ -69,7 +69,7 @@ int ODESolver<dim,real,MeshType>::steady_state ()
     {
         std::abort();
     }
-    Parameters::ODESolverParam ode_param = ODESolver<dim,real>::all_parameters->ode_solver_param;
+    Parameters::ODESolverParam ode_param = ODESolver<dim,real,MeshType>::all_parameters->ode_solver_param;
     pcout << " Performing steady state analysis... " << std::endl;
     allocate_ode_system ();
 

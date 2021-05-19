@@ -142,8 +142,8 @@ void MshOut<dim,real>::write_msh(
 // writing the data from a MshOutData
 template <int dim>
 void MshOutData<dim>::write_msh_data(
-    const dealii::hp::DoFHandler<dim> &dof_handler,
-    std::ostream &                     out)
+    const dealii::DoFHandler<dim> &dof_handler,
+    std::ostream &                 out)
 {
     // opening section
     switch(storage_type){
@@ -205,7 +205,7 @@ void MshOutData<dim>::write_msh_data(
 // getting the number of entries (rows associated with the section)
 template <int dim>
 unsigned int MshOutData<dim>::num_entries(
-    const dealii::hp::DoFHandler<dim> &dof_handler)
+    const dealii::DoFHandler<dim> &dof_handler)
 {
     switch(storage_type){
         case StorageType::node:
@@ -275,7 +275,7 @@ unsigned int const MshOutDataInternal<PHILIP_DIM,Matrix>::num_components = 9;
 // writing the data for scalar data
 template <>
 void MshOutDataInternal<PHILIP_DIM,Scalar>::write_msh_data_internal(
-    const dealii::hp::DoFHandler<PHILIP_DIM> &dof_handler,
+    const dealii::DoFHandler<PHILIP_DIM> &dof_handler,
     std::ostream &                            out)
 {
     const unsigned int dim = PHILIP_DIM;
@@ -344,7 +344,7 @@ void MshOutDataInternal<PHILIP_DIM,Scalar>::write_msh_data_internal(
 // writing the data for vector data
 template <>
 void MshOutDataInternal<PHILIP_DIM,Vector>::write_msh_data_internal(
-    const dealii::hp::DoFHandler<PHILIP_DIM> &dof_handler,
+    const dealii::DoFHandler<PHILIP_DIM> &dof_handler,
     std::ostream &                            out)
 {
     const unsigned int dim = PHILIP_DIM;
@@ -438,7 +438,7 @@ void MshOutDataInternal<PHILIP_DIM,Vector>::write_msh_data_internal(
 // writing the data for matrix data
 template <>
 void MshOutDataInternal<PHILIP_DIM,Matrix>::write_msh_data_internal(
-    const dealii::hp::DoFHandler<PHILIP_DIM> &dof_handler,
+    const dealii::DoFHandler<PHILIP_DIM> &dof_handler,
     std::ostream &                            out)
 {
     const unsigned int dim = PHILIP_DIM;

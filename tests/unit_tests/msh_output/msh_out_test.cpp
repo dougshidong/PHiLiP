@@ -194,8 +194,8 @@ dealii::hp::FECollection<dim> get_fe_collection(
 // gets the length of vector that needs to be alocated for a given storage type
 template <int dim>
 unsigned int get_vector_length(
-    const dealii::hp::DoFHandler<dim> &dof_handler,
-    const StorageType                 &storage_type)
+    const dealii::DoFHandler<dim> &dof_handler,
+    const StorageType             &storage_type)
 {
     switch(storage_type){
         case StorageType::node:
@@ -214,8 +214,8 @@ unsigned int get_vector_length(
 // getting the coordinate associated with an index for a given storage type
 template <int dim>
 std::vector<dealii::Point<dim,double>> get_vector_coord(
-    const dealii::hp::DoFHandler<dim> &dof_handler,
-    const StorageType                 &storage_type)
+    const dealii::DoFHandler<dim> &dof_handler,
+    const StorageType             &storage_type)
 {
     // if storageType is node, directly accesible
     if(storage_type == StorageType::node)
@@ -270,9 +270,9 @@ std::vector<dealii::Point<dim,double>> get_vector_coord(
 // helper to run a single case of output
 template <int dim, typename T>
 void msh_out_test_helper(
-    const dealii::hp::DoFHandler<dim> &dof_handler,
-    const DataType                    &data_type,
-    const StorageType                 &storage_type)
+    const dealii::DoFHandler<dim> &dof_handler,
+    const DataType                &data_type,
+    const StorageType             &storage_type)
 {
     // generating the MshOut
     PHiLiP::GridRefinement::MshOut<dim,double> msh_out(dof_handler);
@@ -362,7 +362,7 @@ int main(int argc, char *argv[])
     dealii::GridGenerator::subdivided_hyper_cube(grid, grid_size, left, right);
 
     // initializing the dof_handler
-    dealii::hp::DoFHandler<dim> dof_handler(grid);
+    dealii::DoFHandler<dim> dof_handler(grid);
     dof_handler.initialize(grid, get_fe_collection<dim>(degree, nstate, use_collocated_nodes));
 
     // setting the cell fe_degree

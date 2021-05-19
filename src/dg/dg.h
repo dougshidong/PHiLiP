@@ -103,6 +103,12 @@ public:
            const std::shared_ptr<Triangulation> triangulation_input);
 
 
+    /// Reinitializes the DG object after a change of triangulation
+    /** Calls respective function for high-order-grid and initializes dof_handler
+     *  again. Also resets all fe_degrees to intial_degree set during constructor.
+     */
+    void reinit();
+
     /// Makes for cleaner doxygen documentation
     using MassiveCollectionTuple = std::tuple<
         //dealii::hp::MappingCollection<dim>, // Mapping

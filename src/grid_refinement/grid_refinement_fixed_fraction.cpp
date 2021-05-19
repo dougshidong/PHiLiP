@@ -34,13 +34,13 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::refine_grid()
     solution_old.update_ghost_values();
 
     using VectorType       = typename dealii::LinearAlgebra::distributed::Vector<double>;
-    using DoFHandlerType   = typename dealii::hp::DoFHandler<dim>;
+    using DoFHandlerType   = typename dealii::DoFHandler<dim>;
     using SolutionTransfer = typename MeshTypeHelper<MeshType>::template SolutionTransfer<dim,VectorType,DoFHandlerType>;
 
     SolutionTransfer solution_transfer(this->dg->dof_handler);
     solution_transfer.prepare_for_coarsening_and_refinement(solution_old);
 
-    this->dg->high_order_grid.prepare_for_coarsening_and_refinement();
+    this->dg->high_order_grid->prepare_for_coarsening_and_refinement();
     this->dg->triangulation->prepare_coarsening_and_refinement();
 
     // performing the refinement
@@ -64,7 +64,7 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::refine_grid()
     }
 
     this->tria->execute_coarsening_and_refinement();
-    this->dg->high_order_grid.execute_coarsening_and_refinement();
+    this->dg->high_order_grid->execute_coarsening_and_refinement();
 
     // transfering the solution from solution_old
     this->dg->allocate_system();
@@ -187,7 +187,7 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h()
 template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h_jump_based()
 {
-    const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid.mapping_fe_field));
+    const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid->mapping_fe_field));
     const dealii::hp::FECollection<dim>      fe_collection(this->dg->fe_collection);
     const dealii::hp::QCollection<dim-1>     face_quadrature_collection(this->dg->face_quadrature_collection);
 
@@ -318,7 +318,7 @@ template <int dim, int nstate, typename real, typename MeshType>
 void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h_reconstruction_based()
 {
     // mapping
-    const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid.mapping_fe_field));
+    const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid->mapping_fe_field));
 
     // using p+1 reconstruction
     const unsigned int rel_order = 1;
@@ -415,7 +415,7 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::error_indicator_err
     int overintegrate = 10;
     int poly_degree =  this->dg->get_max_fe_degree(); 
     dealii::QGauss<dim> quadrature(this->dg->max_degree+overintegrate);
-    dealii::FEValues<dim,dim> fe_values(*(this->dg->high_order_grid.mapping_fe_field), this->dg->fe_collection[poly_degree], quadrature, 
+    dealii::FEValues<dim,dim> fe_values(*(this->dg->high_order_grid->mapping_fe_field), this->dg->fe_collection[poly_degree], quadrature, 
         dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
 
     const unsigned int n_quad_pts = fe_values.n_quadrature_points;
@@ -459,7 +459,7 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::error_indicator_hes
     // TODO: Feature based, should use the reconstructed next mode as an indicator
 
     // mapping
-    const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid.mapping_fe_field));
+    const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid->mapping_fe_field));
 
     // using p+1 reconstruction
     const unsigned int rel_order = 1;

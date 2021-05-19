@@ -47,8 +47,8 @@ public:
       * data storage type and value type to output data.
       */
     void write_msh_data(
-        const dealii::hp::DoFHandler<dim> &dof_handler,
-        std::ostream &                     out);
+        const dealii::DoFHandler<dim> &dof_handler,
+        std::ostream &                 out);
 
 protected:
     /// Storage location of the .msh data field entries
@@ -81,15 +81,15 @@ protected:
       * setup through the integer_tags field.
       */
     virtual void write_msh_data_internal(
-        const dealii::hp::DoFHandler<dim> &dof_handler,
-        std::ostream &                     out) = 0;
+        const dealii::DoFHandler<dim> &dof_handler,
+        std::ostream &                 out) = 0;
 
     /// Gets the number of data entries associated with the mesh
     /** Can be the number of mesh nodes or elements depending 
       * on the storage location of the data entries.
       */ 
     unsigned int num_entries(
-        const dealii::hp::DoFHandler<dim> &dof_handler);
+        const dealii::DoFHandler<dim> &dof_handler);
 
     /// Sets the string tags for the data field
     /** Default GMSH treatment for the data field name 
@@ -135,13 +135,13 @@ class MshOutDataInternal : public MshOutData<dim>
 public:
     /// Construct data field
     /** Based on vector of data type, storage location for the specified
-      * data and a mesh description (dealii::hp::DoFHandler) to represent
+      * data and a mesh description (dealii::DoFHandler) to represent
       * the internal data field structure.
       */ 
     MshOutDataInternal(
         std::vector<T> data,
         StorageType    storage_type,
-        const dealii::hp::DoFHandler<dim> &dof_handler) : 
+        const dealii::DoFHandler<dim> &dof_handler) : 
             MshOutData<dim>(storage_type),
             data(data)
     {
@@ -150,15 +150,15 @@ public:
 
     /// Construct data field with name
     /** Based on vector of data type, storage location for the specified
-      * data and a mesh description (dealii::hp::DoFHandler) to represent
+      * data and a mesh description (dealii::DoFHandler) to represent
       * the internal data field structure. Additionally includes name tag 
       * to differentiate between fields.
       */ 
     MshOutDataInternal(
-        std::vector<T>                     data,
-        StorageType                        storage_type,
-        std::string                        name,
-        const dealii::hp::DoFHandler<dim> &dof_handler) :
+        std::vector<T>                 data,
+        StorageType                    storage_type,
+        std::string                    name,
+        const dealii::DoFHandler<dim> &dof_handler) :
             MshOutData<dim>(storage_type),
             data(data)
     {
@@ -173,8 +173,8 @@ protected:
       * setup through the integer_tags field.
       */
     void write_msh_data_internal(
-        const dealii::hp::DoFHandler<dim> &dof_handler,
-        std::ostream &                     out) override;
+        const dealii::DoFHandler<dim> &dof_handler,
+        std::ostream &                 out) override;
 
 private:
     /// Internal data storage vector
@@ -199,18 +199,18 @@ private:
   * allowing extended data types to be read in GMSH for visualization or as a method
   * of interfacing with the external LpCVT mesh generator using elementwise metric data.
   * Note: Currently this class only supports p1 all-quad mesh types with information
-  *       accesed through a dealii::hp::DoFHandler.
+  *       accesed through a dealii::DoFHandler.
   */
 template <int dim, typename real>
 class MshOut
 {
 public: 
     /// Construct mesh output handler
-    /** Mesh description dealii::hp::DoFHandler used to specify the linear mesh to 
+    /** Mesh description dealii::DoFHandler used to specify the linear mesh to 
       * be written along with any additional data fields in a consistent way. 
       */ 
     MshOut(
-        const dealii::hp::DoFHandler<dim> &dof_handler) :
+        const dealii::DoFHandler<dim> &dof_handler) :
             dof_handler(dof_handler){};
 
     /// Add data vector of specified storage type and values
@@ -270,7 +270,7 @@ public:
         std::ostream &out);
 
 private:
-    const dealii::hp::DoFHandler<dim> &           dof_handler; ///< Mesh description for acccess to node location and connecitviity information
+    const dealii::DoFHandler<dim> &               dof_handler; ///< Mesh description for acccess to node location and connecitviity information
     std::vector<std::shared_ptr<MshOutData<dim>>> data_vector; ///< Vector of data field entries stored in MshOutDataInternal based on data type of entries
 };
 

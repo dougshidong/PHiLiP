@@ -58,7 +58,7 @@ public:
 
     /// Constructor. Stores required information about the mesh and quadrature rules.
     ReconstructPoly(
-        const dealii::hp::DoFHandler<dim>&        dof_handler,           // dof_handler
+        const dealii::DoFHandler<dim>&            dof_handler,           // dof_handler
         const dealii::hp::MappingCollection<dim>& mapping_collection,    // mapping collection
         const dealii::hp::FECollection<dim>&      fe_collection,         // fe collection
         const dealii::hp::QCollection<dim>&       quadrature_collection, // quadrature collection
@@ -251,14 +251,14 @@ private:
     /// Get the patch of cells surrounding the current cell of DofCellAccessorType
     /** Returns a list of neighbor cells sharing a face (or subface) with the current cell. 
       * Based on dealii::GridTools::get_patch_around_cell and modified to work directly on the dof_handler
-      * accesor for use with dealii::hp::DoFHandler instead of needing to be cast back and forth.
+      * accesor for use with dealii::DoFHandler instead of needing to be cast back and forth.
       */ 
     template <typename DoFCellAccessorType>
     std::vector<DoFCellAccessorType> get_patch_around_dof_cell(
         const DoFCellAccessorType &cell);
 
     // member attributes
-    const dealii::hp::DoFHandler<dim>&         dof_handler;           ///< Degree of freedom handler for iteration over mesh elements and their nodes
+    const dealii::DoFHandler<dim>&         dof_handler;           ///< Degree of freedom handler for iteration over mesh elements and their nodes
     const dealii::hp::MappingCollection<dim> & mapping_collection;    ///< Collection of mapping rules for reference element conversion
     const dealii::hp::FECollection<dim> &      fe_collection;         ///< Collection of Finite elements to represent discontinuous $hp$ solution space
     const dealii::hp::QCollection<dim> &       quadrature_collection; ///< Collection of quadrature rules used to evaluate volume integrals

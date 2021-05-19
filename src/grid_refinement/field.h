@@ -569,7 +569,7 @@ public:
 	std::vector<dealii::SymmetricTensor<2,dim,real>> get_inverse_quadratic_metric_vector();
 
 	/// Associated DofHandler type
-	using DoFHandlerType = dealii::hp::DoFHandler<dim>;
+	using DoFHandlerType = dealii::DoFHandler<dim>;
 
 	/// Assigns the existing field based on an input DoFHandlerType
 	virtual void set_cell(
@@ -580,7 +580,7 @@ public:
 	  * Derivatives are obtained in reconstruct_poly.cpp.
 	  */ 
 	virtual void set_anisotropy(
-		const dealii::hp::DoFHandler<dim>&                             dof_handler,
+		const dealii::DoFHandler<dim>&                                 dof_handler,
 		const std::vector<std::array<real,dim>>&                       derivative_value,
 		const std::vector<std::array<dealii::Tensor<1,dim,real>,dim>>& derivative_direction,
 		const int                                                      relative_order) = 0;
@@ -701,7 +701,7 @@ public:
 	  * Derivatives are obtained in reconstruct_poly.cpp.
 	  */ 
 	void set_anisotropy(
-		const dealii::hp::DoFHandler<dim>&                             dof_handler,
+		const dealii::DoFHandler<dim>&                                 dof_handler,
 		const std::vector<std::array<real,dim>>&                       derivative_value,
 		const std::vector<std::array<dealii::Tensor<1,dim,real>,dim>>& derivative_direction,
 		const int                                                      relative_order) override;

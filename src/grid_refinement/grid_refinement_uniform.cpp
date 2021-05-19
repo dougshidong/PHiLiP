@@ -3,7 +3,7 @@
 #include "parameters/parameters_grid_refinement.h"
 
 #include "dg/dg.h"
-#include "dg/high_order_grid.h"
+#include "mesh/high_order_grid.h"
 
 #include "grid_refinement_uniform.h"
 
@@ -26,11 +26,11 @@ void GridRefinement_Uniform<dim,nstate,real,MeshType>::refine_grid()
     solution_old.update_ghost_values();
 
     dealii::parallel::distributed::SolutionTransfer< 
-        dim, dealii::LinearAlgebra::distributed::Vector<real>, dealii::hp::DoFHandler<dim> 
+        dim, dealii::LinearAlgebra::distributed::Vector<real>, dealii::DoFHandler<dim> 
         > solution_transfer(this->dg->dof_handler);
     solution_transfer.prepare_for_coarsening_and_refinement(solution_old);
 
-    this->dg->high_order_grid.prepare_for_coarsening_and_refinement();
+    this->dg->high_order_grid->prepare_for_coarsening_and_refinement();
     this->dg->triangulation->prepare_coarsening_and_refinement();
 
     if(refinement_type == RefinementTypeEnum::h){
@@ -42,7 +42,7 @@ void GridRefinement_Uniform<dim,nstate,real,MeshType>::refine_grid()
     }
 
     this->tria->execute_coarsening_and_refinement();
-    this->dg->high_order_grid.execute_coarsening_and_refinement();
+    this->dg->high_order_grid->execute_coarsening_and_refinement();
 
     // transfering the solution from solution_old
     this->dg->allocate_system();

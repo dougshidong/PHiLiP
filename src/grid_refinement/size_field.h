@@ -103,7 +103,7 @@ public:
     static void isotropic_uniform(
         const real &                               complexity,   ///< Target global continuous mesh complexity
         const dealii::Vector<real> &               B,            ///< Continuous error model for $p+1$ directional derivatives
-        const dealii::hp::DoFHandler<dim> &        dof_handler,  ///< DoFHandler describing the mesh
+        const dealii::DoFHandler<dim> &            dof_handler,  ///< DoFHandler describing the mesh
         std::unique_ptr<Field<dim,real>> &         h_field,      ///< (Output) Target size-field
         const real &                               poly_degree); ///< (Input) Uniform polynomial degree
 
@@ -143,7 +143,7 @@ public:
     static void isotropic_h(
         const real                                 complexity,            ///< Target global continuous mesh complexity
         const dealii::Vector<real> &               B,                     ///< Continuous error model for $p+1$ directional derivatives
-        const dealii::hp::DoFHandler<dim> &        dof_handler,           ///< DoFHandler describing the mesh
+        const dealii::DoFHandler<dim> &            dof_handler,           ///< DoFHandler describing the mesh
         const dealii::hp::MappingCollection<dim> & mapping_collection,    ///< Element mapping collection
         const dealii::hp::FECollection<dim> &      fe_collection,         ///< Finite element collection
         const dealii::hp::QCollection<dim> &       quadrature_collection, ///< Quadrature rules collection
@@ -157,7 +157,7 @@ public:
         const dealii::Vector<real> &               Bm,                    ///< Continuous error model for $p$ directional derivatives
         const dealii::Vector<real> &               B,                     ///< Continuous error model for $p+1$ directional derivatives
         const dealii::Vector<real> &               Bp,                    ///< Continuous error model for $p+2$ directional derivatives
-        const dealii::hp::DoFHandler<dim> &        dof_handler,           ///< DoFHandler describing the mesh
+        const dealii::DoFHandler<dim> &            dof_handler,           ///< DoFHandler describing the mesh
         const dealii::hp::MappingCollection<dim> & mapping_collection,    ///< Element mapping collection
         const dealii::hp::FECollection<dim> &      fe_collection,         ///< Finite element collection
         const dealii::hp::QCollection<dim> &       quadrature_collection, ///< Quadrature rules collection
@@ -225,7 +225,7 @@ public:
         const dealii::Vector<real> &               Bm,                    ///< Continuous error model for $p$ directional derivatives
         const dealii::Vector<real> &               B,                     ///< Continuous error model for $p+1$ directional derivatives
         const dealii::Vector<real> &               Bp,                    ///< Continuous error model for $p+2$ directional derivatives
-        const dealii::hp::DoFHandler<dim> &        dof_handler,           ///< DoFHandler describing the mesh
+        const dealii::DoFHandler<dim> &            dof_handler,           ///< DoFHandler describing the mesh
         const dealii::hp::MappingCollection<dim> & mapping_collection,    ///< Element mapping collection
         const dealii::hp::FECollection<dim> &      fe_collection,         ///< Finite element collection
         const dealii::hp::QCollection<dim> &       quadrature_collection, ///< Quadrature rules collection
@@ -243,7 +243,7 @@ public:
         const real                                 r_max,                 ///< Maximum refinement scaling factor
         const real                                 c_max,                 ///< Maximum coarsening scaling factor
         const dealii::Vector<real> &               eta,                   ///< Dual-weighted residual (DWR) error indicator distribution
-        const dealii::hp::DoFHandler<dim> &        dof_handler,           ///< DoFHandler describing the mesh
+        const dealii::DoFHandler<dim> &            dof_handler,           ///< DoFHandler describing the mesh
         const dealii::hp::MappingCollection<dim> & mapping_collection,    ///< Element mapping collection
         const dealii::hp::FECollection<dim> &      fe_collection,         ///< Finite element collection
         const dealii::hp::QCollection<dim> &       quadrature_collection, ///< Quadrature rules collection
@@ -270,7 +270,7 @@ public:
         const real                                 r_max,                 ///< Maximum refinement scaling factor
         const real                                 c_max,                 ///< Maximum coarsening scaling factor
         const dealii::Vector<real> &               eta,                   ///< Dual-weighted residual (DWR) error indicator distribution
-        const dealii::hp::DoFHandler<dim> &        dof_handler,           ///< DoFHandler describing the mesh
+        const dealii::DoFHandler<dim> &            dof_handler,           ///< DoFHandler describing the mesh
         const dealii::hp::MappingCollection<dim> & mapping_collection,    ///< Element mapping collection
         const dealii::hp::FECollection<dim> &      fe_collection,         ///< Finite element collection
         const dealii::hp::QCollection<dim> &       quadrature_collection, ///< Quadrature rules collection
@@ -291,7 +291,7 @@ public:
     static void adjoint_h_equal(
         const real                                 complexity,            ///< Target global continuous mesh complexity
         const dealii::Vector<real> &               eta,                   ///< Dual-weighted residual (DWR) error indicator distribution
-        const dealii::hp::DoFHandler<dim> &        dof_handler,           ///< DoFHandler describing the mesh
+        const dealii::DoFHandler<dim> &            dof_handler,           ///< DoFHandler describing the mesh
         const dealii::hp::MappingCollection<dim> & mapping_collection,    ///< Element mapping collection
         const dealii::hp::FECollection<dim> &      fe_collection,         ///< Finite element collection
         const dealii::hp::QCollection<dim> &       quadrature_collection, ///< Quadrature rules collection
@@ -318,7 +318,7 @@ protected:
     static void update_h_dwr(
         const real                          tau,          ///< Bisection reference value for scaling
         const dealii::Vector<real> &        eta,          ///< Dual-weighted residual (DWR) error indicator distribution
-        const dealii::hp::DoFHandler<dim> & dof_handler,  ///< DoFHandler describing the mesh
+        const dealii::DoFHandler<dim> &     dof_handler,  ///< DoFHandler describing the mesh
         std::unique_ptr<Field<dim,real>>&   h_field,      ///< (Output) Target size-field
         const real &                        poly_degree); ///< (Input) Uniform polynomial degree
 
@@ -341,7 +341,7 @@ protected:
     static void update_h_optimal(
         const real                          lambda,      ///< (Input) Current complexity bisection parameter
         const dealii::Vector<real> &        B,           ///< Continuous error constant for quadratic model of $p+1$ directional derivatives
-        const dealii::hp::DoFHandler<dim> & dof_handler, ///< DoFHandler describing the mesh
+        const dealii::DoFHandler<dim> &     dof_handler, ///< DoFHandler describing the mesh
         std::unique_ptr<Field<dim,real>> &  h_field,     ///< (Input) Target size-field
         const dealii::Vector<real> &        p_field);    ///< (Input) Current polynomial field  
 
@@ -373,7 +373,7 @@ protected:
       * a bisection function as used in many of the methods listed above.
       */     
     static real evaluate_complexity(
-        const dealii::hp::DoFHandler<dim> &        dof_handler,           ///< DoFHandler describing the mesh
+        const dealii::DoFHandler<dim> &            dof_handler,           ///< DoFHandler describing the mesh
         const dealii::hp::MappingCollection<dim> & mapping_collection,    ///< Element mapping collection
         const dealii::hp::FECollection<dim> &      fe_collection,         ///< Finite element collection
         const dealii::hp::QCollection<dim> &       quadrature_collection, ///< Quadrature rules collection
@@ -407,7 +407,7 @@ protected:
         const real                         eta_min,     ///< Minimum value of DWR indicator
         const real                         eta_max,     ///< Maximum value of DWR indicator
         const real                         eta_ref,     ///< Threshold value of DWR for deciding between coarsening and refinement
-        const dealii::hp::DoFHandler<dim>& dof_handler, ///< DoFHandler describing the mesh
+        const dealii::DoFHandler<dim>&     dof_handler, ///< DoFHandler describing the mesh
         const dealii::Vector<real>&        I_c,         ///< Vector of cell current cell area measure
         std::unique_ptr<Field<dim,real>>&  h_field);    ///< (Output) Updated size-field 
 

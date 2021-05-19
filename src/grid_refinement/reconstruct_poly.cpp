@@ -18,7 +18,7 @@ namespace GridRefinement {
 
 template <int dim, int nstate, typename real>
 ReconstructPoly<dim,nstate,real>::ReconstructPoly(
-        const dealii::hp::DoFHandler<dim>&        dof_handler,           // dof_handler
+        const dealii::DoFHandler<dim>&            dof_handler,           // dof_handler
         const dealii::hp::MappingCollection<dim>& mapping_collection,    // mapping collection
         const dealii::hp::FECollection<dim>&      fe_collection,         // fe collection
         const dealii::hp::QCollection<dim>&       quadrature_collection, // quadrature collection

@@ -106,7 +106,7 @@ protected:
 
     /// Output refinement results related to the DG object
     void output_results_vtk_dg(
-        dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out,
+        dealii::DataOut<dim, dealii::DoFHandler<dim>> &    data_out,
         std::shared_ptr< dealii::DataPostprocessor<dim> > &post_processor,
         dealii::Vector<float> &                            subdomain,
         std::vector<unsigned int> &                        active_fe_indices,
@@ -115,24 +115,24 @@ protected:
 
     /// Output refinement results related to the functional object
     void output_results_vtk_functional(
-        dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out);
+        dealii::DataOut<dim, dealii::DoFHandler<dim>> &data_out);
 
     /// Output refinement results related to the problem physics
     void output_results_vtk_physics(
-        dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out);
+        dealii::DataOut<dim, dealii::DoFHandler<dim>> &data_out);
 
     /// Output refinement results related to the adjoint object
     void output_results_vtk_adjoint(
-        dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out,
-        std::vector<std::string> &                         dIdw_names_coarse,
-        std::vector<std::string> &                         adjoint_names_coarse,
-        std::vector<std::string> &                         dIdw_names_fine,
-        std::vector<std::string> &                         adjoint_names_fine);
+        dealii::DataOut<dim, dealii::DoFHandler<dim>> &data_out,
+        std::vector<std::string> &                     dIdw_names_coarse,
+        std::vector<std::string> &                     adjoint_names_coarse,
+        std::vector<std::string> &                     dIdw_names_fine,
+        std::vector<std::string> &                     adjoint_names_fine);
     
     /// Output refinement results related to the solution error
     void output_results_vtk_error(
-        dealii::DataOut<dim, dealii::hp::DoFHandler<dim>> &data_out,
-        dealii::Vector<real> &                             l2_error_vec);  
+        dealii::DataOut<dim, dealii::DoFHandler<dim>> &data_out,
+        dealii::Vector<real> &                         l2_error_vec);  
 
 protected:
     /// Output refinement method dependent results
@@ -170,7 +170,7 @@ protected:
     /// Triangulation object of templated mesh type
     /** Note: anisotropic, p- type and other refinements may not work in all cases.
       */ 
-    MeshType *const tria;
+    std::shared_ptr<MeshType> tria;
 
     /// Internal refinement steps iteration counter
     unsigned int iteration;

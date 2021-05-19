@@ -38,7 +38,7 @@ template <int dim, typename real>
 void SizeField<dim,real>::isotropic_uniform(
     const real &                               complexity,  // (input) complexity target
     const dealii::Vector<real> &               B,           // only one since p is constant
-    const dealii::hp::DoFHandler<dim> &        dof_handler, // dof_handler
+    const dealii::DoFHandler<dim> &            dof_handler, // dof_handler
     std::unique_ptr<Field<dim,real>> &         h_field,     // (output) size field
     const real &                               poly_degree) // (input)  polynomial degree
 {
@@ -70,7 +70,7 @@ template <int dim, typename real>
 void SizeField<dim,real>::isotropic_h(
     const real                                 complexity,            // (input) complexity target
     const dealii::Vector<real> &               B,                     // only one since p is constant
-    const dealii::hp::DoFHandler<dim> &        dof_handler,           // dof_handler
+    const dealii::DoFHandler<dim> &            dof_handler,           // dof_handler
     const dealii::hp::MappingCollection<dim> & mapping_collection,    // mapping collection
     const dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
     const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
@@ -97,7 +97,7 @@ void SizeField<dim,real>::isotropic_h(
 
 template <int dim, typename real>
 real SizeField<dim,real>::evaluate_complexity(
-    const dealii::hp::DoFHandler<dim> &        dof_handler,           // dof_handler
+    const dealii::DoFHandler<dim> &            dof_handler,           // dof_handler
     const dealii::hp::MappingCollection<dim> & mapping_collection,    // mapping collection
     const dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
     const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
@@ -143,7 +143,7 @@ template <int dim, typename real>
 void SizeField<dim,real>::update_h_optimal(
     const real                          lam,         // (input) bisection parameter
     const dealii::Vector<real> &        B,           // constant for current p
-    const dealii::hp::DoFHandler<dim> & dof_handler, // dof_handler
+    const dealii::DoFHandler<dim> &     dof_handler, // dof_handler
     std::unique_ptr<Field<dim,real>> &  h_field,     // (output) size field
     const dealii::Vector<real> &        p_field)     // (input)  poly field
 {
@@ -172,7 +172,7 @@ void SizeField<dim,real>::isotropic_p(
     const dealii::Vector<real> &               Bm,                    // constant for p-1
     const dealii::Vector<real> &               B,                     // constant for p
     const dealii::Vector<real> &               Bp,                    // constant for p+1
-    const dealii::hp::DoFHandler<dim> &        dof_handler,           // dof_handler
+    const dealii::DoFHandler<dim> &            dof_handler,           // dof_handler
     const dealii::hp::MappingCollection<dim> & mapping_collection,    // mapping collection
     const dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
     const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
@@ -208,7 +208,7 @@ void SizeField<dim,real>::isotropic_hp(
     const dealii::Vector<real> &               Bm,                    // constant for p-1
     const dealii::Vector<real> &               B,                     // constant for p
     const dealii::Vector<real> &               Bp,                    // constant for p+1
-    const dealii::hp::DoFHandler<dim> &        dof_handler,           // dof_handler
+    const dealii::DoFHandler<dim> &            dof_handler,           // dof_handler
     const dealii::hp::MappingCollection<dim> & mapping_collection,    // mapping collection
     const dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
     const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
@@ -274,7 +274,7 @@ void SizeField<dim,real>::adjoint_uniform_balan(
     const real                                 r_max,                 // maximum refinement factor
     const real                                 c_max,                 // maximum coarsening factor
     const dealii::Vector<real> &               eta,                   // error indicator (DWR)
-    const dealii::hp::DoFHandler<dim> &        dof_handler,           // dof_handler
+    const dealii::DoFHandler<dim> &            dof_handler,           // dof_handler
     const dealii::hp::MappingCollection<dim> & mapping_collection,    // mapping collection
     const dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
     const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
@@ -309,7 +309,7 @@ void SizeField<dim,real>::adjoint_h_balan(
     const real                                 r_max,                 // maximum refinement factor
     const real                                 c_max,                 // maximum coarsening factor
     const dealii::Vector<real> &               eta,                   // error indicator (DWR)
-    const dealii::hp::DoFHandler<dim> &        dof_handler,           // dof_handler
+    const dealii::DoFHandler<dim> &            dof_handler,           // dof_handler
     const dealii::hp::MappingCollection<dim> & mapping_collection,    // mapping collection
     const dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
     const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
@@ -419,7 +419,7 @@ template <int dim, typename real>
 void SizeField<dim,real>::adjoint_h_equal(
     const real                                 complexity,            // target complexity
     const dealii::Vector<real> &               eta,                   // error indicator (DWR)
-    const dealii::hp::DoFHandler<dim> &        dof_handler,           // dof_handler
+    const dealii::DoFHandler<dim> &            dof_handler,           // dof_handler
     const dealii::hp::MappingCollection<dim> & mapping_collection,    // mapping collection
     const dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
     const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
@@ -507,7 +507,7 @@ template <int dim, typename real>
 void SizeField<dim,real>::update_h_dwr(
     const real                          tau,         // reference value for settings sizes
     const dealii::Vector<real> &        eta,         // error indicator (DWR)
-    const dealii::hp::DoFHandler<dim> & dof_handler, // dof_handler
+    const dealii::DoFHandler<dim> &     dof_handler, // dof_handler
     std::unique_ptr<Field<dim,real>>&   h_field,     // (output) target size_field
     const real &                        poly_degree) // uniform polynomial degree
 {
@@ -539,7 +539,7 @@ void SizeField<dim,real>::update_alpha_vector_balan(
     const real                         eta_min,     // minimum DWR
     const real                         eta_max,     // maximum DWR
     const real                         eta_ref,     // reference parameter for bisection
-    const dealii::hp::DoFHandler<dim>& dof_handler, // dof_handler
+    const dealii::DoFHandler<dim>&     dof_handler, // dof_handler
     const dealii::Vector<real>&        I_c,         // cell area measure
     std::unique_ptr<Field<dim,real>>&  h_field)     // (output) size-field
 {

@@ -932,7 +932,7 @@ dealii::Tensor<2,dim,real> FieldInternal<dim,real,ElementType>::get_inverse_metr
 
 template <int dim, typename real, typename ElementType>
 void FieldInternal<dim,real,ElementType>::set_anisotropy(
-	const dealii::hp::DoFHandler<dim>&                             dof_handler,
+	const dealii::DoFHandler<dim>&                                 dof_handler,
 	const std::vector<std::array<real,dim>>&                       derivative_value,
 	const std::vector<std::array<dealii::Tensor<1,dim,real>,dim>>& derivative_direction,
 	const int                                                      relative_order)

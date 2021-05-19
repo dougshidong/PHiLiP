@@ -469,7 +469,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_error()
         GridRefinement_Continuous<dim,nstate,real,MeshType>::get_current_field_p();
 
         // mapping
-        const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid.mapping_fe_field));
+        const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid->mapping_fe_field));
 
         SizeField<dim,real>::isotropic_h(
             this->complexity_target,
@@ -505,7 +505,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_hessian()
     std::cout << "Beggining field_h() computation" << std::endl;
 
     // mapping
-    const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid.mapping_fe_field));
+    const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid->mapping_fe_field));
 
     // using p+1 reconstruction
     const unsigned int rel_order = 1;
@@ -630,7 +630,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_adjoint()
     std::cout << "Beggining anisotropic field_h() computation" << std::endl;
 
     // mapping
-    const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid.mapping_fe_field));
+    const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid->mapping_fe_field));
 
     // using p+1 reconstruction
     const unsigned int rel_order = 1;
@@ -779,7 +779,7 @@ std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_Conti
     
         // reconstructing the directional derivatives again
         // mapping
-        const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid.mapping_fe_field));
+        const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid->mapping_fe_field));
 
         // using p+1 reconstruction
         const unsigned int rel_order = 1;

@@ -118,6 +118,15 @@ DGBase<dim,real,MeshType>::DGBase(
 }
 
 template <int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::reinit()
+{
+    high_order_grid->reinit();
+
+    dof_handler.initialize(*triangulation, fe_collection);
+    set_all_cells_fe_degree(initial_degree);
+}
+
+template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::set_high_order_grid(std::shared_ptr<HighOrderGrid<dim,real,MeshType>> new_high_order_grid)
 {
     high_order_grid = new_high_order_grid;

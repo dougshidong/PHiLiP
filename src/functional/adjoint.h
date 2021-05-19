@@ -130,7 +130,7 @@ public:
     std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> > physics;
     
     /// Grid
-    MeshType *const triangulation;
+    std::shared_ptr<MeshType> triangulation;
     /// original solution
     dealii::LinearAlgebra::distributed::Vector<real> solution_coarse;
     /// functional derivative (on the fine grid)

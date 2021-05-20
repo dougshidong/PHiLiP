@@ -50,6 +50,18 @@ namespace PHiLiP {
     
 namespace Tests {
 
+template <int dim, int nstate>
+class InitialConditions : public dealii::Function<dim>
+{
+public:
+    InitialConditions() : dealii::Function<dim,double>(nstate){}
+
+    double value(const dealii::Point<dim> &/* point */, const unsigned int /* istate */) const override
+    {
+        return 0.0;
+    }
+};
+
 template <int dim, int nstate, typename MeshType>
 GridRefinementStudy<dim,nstate,MeshType>::GridRefinementStudy(
     const Parameters::AllParameters *const parameters_input) :
@@ -122,7 +134,14 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
         dg->allocate_system();
 
         // initialize the solution
-        // dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
+        std::shared_ptr<dealii::Function<dim>> initial_conditions = 
+            std::make_shared<InitialConditions<dim,nstate>>();
+        
+        dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
+        solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
+        const auto mapping = *(dg->high_order_grid->mapping_fe_field);
+        dealii::VectorTools::interpolate(mapping, dg->dof_handler, *initial_conditions, solution_no_ghost);
+        dg->solution = solution_no_ghost;
 
         // generate ODE solver
         std::shared_ptr< ODE::ODESolver<dim,double,MeshType> > ode_solver

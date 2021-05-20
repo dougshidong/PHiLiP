@@ -14,7 +14,6 @@
 #include "dg/dg.h"
 #include "parameters/parameters.h"
 #include "physics/physics.h"
-#include "numerical_flux/numerical_flux.h"
 #include "grid_refinement/msh_out.h"
 
 //  data types and storage types imported from msh_out.cpp

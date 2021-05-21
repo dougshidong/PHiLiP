@@ -93,6 +93,7 @@ template class PhysicsFactory<PHILIP_DIM, 3, double>;
 template class PhysicsFactory<PHILIP_DIM, 4, double>;
 template class PhysicsFactory<PHILIP_DIM, 5, double>;
 template class PhysicsFactory<PHILIP_DIM, 8, double>;
+
 template class PhysicsFactory<PHILIP_DIM, 1, FadType >;
 template class PhysicsFactory<PHILIP_DIM, 2, FadType >;
 template class PhysicsFactory<PHILIP_DIM, 3, FadType >;

@@ -119,26 +119,26 @@ dealii::Tensor<2,3,double> ManufacturedSolutionParam::get_default_diffusion_tens
     dealii::Tensor<2,3,double> default_diffusion_tensor;
 
     /* Default before merge */
-    default_diffusion_tensor[0][0] = 12;
-    default_diffusion_tensor[0][1] = -2;
-    default_diffusion_tensor[1][0] = 3;
-    default_diffusion_tensor[1][1] = 20;
-    default_diffusion_tensor[0][2] = -6;
-    default_diffusion_tensor[2][0] = -2;
-    default_diffusion_tensor[2][1] = 0.5;
-    default_diffusion_tensor[1][2] = -4;
-    default_diffusion_tensor[2][2] = 8;
-
-    /* For after merge, current as of 2021-04-25 */
     // default_diffusion_tensor[0][0] = 12;
-    // default_diffusion_tensor[0][1] = 3;
+    // default_diffusion_tensor[0][1] = -2;
     // default_diffusion_tensor[1][0] = 3;
     // default_diffusion_tensor[1][1] = 20;
-    // default_diffusion_tensor[0][2] = -2;
-    // default_diffusion_tensor[2][0] = 2;
-    // default_diffusion_tensor[2][1] = 5;
-    // default_diffusion_tensor[1][2] = -5;
-    // default_diffusion_tensor[2][2] = 18;
+    // default_diffusion_tensor[0][2] = -6;
+    // default_diffusion_tensor[2][0] = -2;
+    // default_diffusion_tensor[2][1] = 0.5;
+    // default_diffusion_tensor[1][2] = -4;
+    // default_diffusion_tensor[2][2] = 8;
+
+    /* For after merge, current as of 2021-04-25 */
+    default_diffusion_tensor[0][0] = 12;
+    default_diffusion_tensor[0][1] = 3;
+    default_diffusion_tensor[1][0] = 3;
+    default_diffusion_tensor[1][1] = 20;
+    default_diffusion_tensor[0][2] = -2;
+    default_diffusion_tensor[2][0] = 2;
+    default_diffusion_tensor[2][1] = 5;
+    default_diffusion_tensor[1][2] = -5;
+    default_diffusion_tensor[2][2] = 18;
 
     return default_diffusion_tensor;
 }

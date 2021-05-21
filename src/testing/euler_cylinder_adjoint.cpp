@@ -216,7 +216,7 @@ int EulerCylinderAdjoint<dim,nstate>
     //         param.euler_param.angle_of_attack,
     //         param.euler_param.side_slip_angle);
 
-    Physics::FreeStreamInitialConditions<dim,nstate> initial_conditions(euler_physics_double);
+    Physics::FreeStreamInitialConditions<dim,nstate> initial_conditions(*euler_physics_double);
 
     std::vector<int> fail_conv_poly;
     std::vector<double> fail_conv_slop;
@@ -364,7 +364,7 @@ int EulerCylinderAdjoint<dim,nstate>
             const double area_mpi_sum = dealii::Utilities::MPI::sum(area, mpi_communicator);
 
             // computing using Functional for comparison
-            const double l2error_functional = L2normFunctional.evaluate_functional(false,false);
+            const double l2error_functional = L2normFunctional->evaluate_functional(false,false);
             pcout << "Error computed by original loop: " << l2error_mpi_sum << std::endl << "Error computed by the functional: " << std::sqrt(l2error_functional) << std::endl; 
 
             // reinitializing the adjoint with the current values (from references)

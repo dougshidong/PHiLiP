@@ -1,6 +1,8 @@
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/grid_in.h>
 
+#include <deal.II/numerics/vector_tools.h>
+
 #include "grid_refinement/gmsh_out.h"
 #include "grid_refinement/msh_out.h"
 #include "grid_refinement/size_field.h"
@@ -12,6 +14,19 @@
 namespace PHiLiP {
 
 namespace GridRefinement {
+
+// Function class to rezero the solution on grid read
+template <int dim, int nstate>
+class InitialConditions : public dealii::Function<dim>
+{
+public:
+    InitialConditions() : dealii::Function<dim,double>(nstate){}
+
+    double value(const dealii::Point<dim> &/* point */, const unsigned int /* istate */) const override
+    {
+        return 0.0;
+    }
+};
 
 template <int dim, int nstate, typename real, typename MeshType>
 GridRefinement_Continuous<dim,nstate,real,MeshType>::GridRefinement_Continuous(
@@ -126,6 +141,16 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid()
 
     // interpolate the solution from the previous solution space
     this->dg->allocate_system();
+
+    // zeroing the solution
+    std::shared_ptr<dealii::Function<dim>> initial_conditions = 
+        std::make_shared<InitialConditions<dim,nstate>>();
+    
+    dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
+    solution_no_ghost.reinit(this->dg->locally_owned_dofs, MPI_COMM_WORLD);
+    const auto mapping = *(this->dg->high_order_grid->mapping_fe_field);
+    dealii::VectorTools::interpolate(mapping, this->dg->dof_handler, *initial_conditions, solution_no_ghost);
+    this->dg->solution = solution_no_ghost;
 
     // increase the count
     this->iteration++;

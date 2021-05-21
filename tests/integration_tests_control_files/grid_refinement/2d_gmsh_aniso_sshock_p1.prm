@@ -8,6 +8,8 @@ set dimension = 2
 set pde_type  = convection_diffusion # advection #     
 set test_type = grid_refinement_study
 
+set sipg_penalty_factor = 20.0
+
 subsection linear solver
 #set linear_solver_type = direct
   subsection gmres options

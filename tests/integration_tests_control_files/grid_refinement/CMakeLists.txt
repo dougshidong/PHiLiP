@@ -9,13 +9,6 @@ add_test(
 )
 
 # sizefield write tests
-configure_file(2d_msh_size_field.prm 2d_msh_size_field.prm COPYONLY)
-add_test(
-  NAME 2D_MSH_SIZE_FIELD_H
-  COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_msh_size_field.prm
-  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
-
 configure_file(2d_msh_quadratic_field.prm 2d_msh_quadratic_field.prm COPYONLY)
 add_test(
   NAME 2D_MSH_QUADRATIC_FIELD_H

@@ -326,7 +326,7 @@ protected:
 /** Default functional type based on Lp norm evaluated over the domain volume
   * 
   * \f[
-  *     J = \int_{\Omega} {|u(\bm{x})|^{Lp} \mathrm{d}\bm{x}}
+  *     J = \int_{\Omega} {|u(\boldsymbol{x})|^{Lp} \mathrm{d}\boldsymbol{x}}
   * \f] 
   */ 
 #if PHILIP_DIM==1
@@ -379,10 +379,10 @@ protected:
 /** Default functional type based on Lp norm evaluated over domain boundaries
   * 
   * \f[
-  *     J = \int_{\partial\Omega} {|u(\bm{x})|^{Lp} \mathrm{d}\bm{x}}
+  *     J = \int_{\partial\Omega} {|u(\boldsymbol{x})|^{Lp} \mathrm{d}\boldsymbol{x}}
   * \f] 
   * 
-  * where $\partial\Omega$ is a selected subset or all domain boundaries depending on 
+  * where \f$\partial\Omega\f$ is a selected subset or all domain boundaries depending on 
   * the chosen setup parameters.
   */ 
 #if PHILIP_DIM==1
@@ -445,11 +445,11 @@ protected:
 
 /// Weighted volume norm functional class
 /** Default functional type based on the weighted Lp norm evaluated over the domain volume. 
-  * Based on a selected manufactured solution function $f(\bm{x})$ to perform weighting. Optional flag
+  * Based on a selected manufactured solution function \f$f(\boldsymbol{x})\f$ to perform weighting. Optional flag
   * use_weight_function_laplacian replaces evaluation with hessian trace
   * 
   * \f[
-  *     J = \int_{\Omega} {f(\bm{x})u(\bm{x}) \mathrm{d}\bm{x}}
+  *     J = \int_{\Omega} {f(\boldsymbol{x})u(\boldsymbol{x}) \mathrm{d}\boldsymbol{x}}
   * \f] 
   */ 
 #if PHILIP_DIM==1
@@ -507,14 +507,14 @@ protected:
 
 /// Weighted boundary norm functional class
 /** Default functional type based on the weighted Lp norm evaluated over the domain voboundarieslume. 
-  * Based on a selected manufactured solution function $f(\bm{x})$ to perform weighting. Optional flag
+  * Based on a selected manufactured solution function \f$f(\boldsymbol{x})\f$ to perform weighting. Optional flag
   * use_weight_function_laplacian replaces evaluation with hessian trace
   * 
   * \f[
-  *     J = \int_{\partial\Omega} {f(\bm{x})u(\bm{x}) \mathrm{d}\bm{x}}
+  *     J = \int_{\partial\Omega} {f(\boldsymbol{x})u(\boldsymbol{x}) \mathrm{d}\boldsymbol{x}}
   * \f] 
   * 
-  * where $\partial\Omega$ is a selected subset or all domain boundaries depending on 
+  * where \f$\partial\Omega\f$ is a selected subset or all domain boundaries depending on 
   * the chosen setup parameters.
   */ 
 #if PHILIP_DIM==1
@@ -584,10 +584,10 @@ protected:
 
 /// Lp volume error norm functional class
 /** Default functional type based on Lp norm of error evaluated over domain volume 
-  * relative to an exact manufactured solution function $\tilde{u}(\bm{x})$
+  * relative to an exact manufactured solution function \f$\tilde{u}(\boldsymbol{x})\f$
   * 
   * \f[
-  *     J = \int_{\Omega} {|u(\bm{x})-\tilde{u}(\bm{x})|^{Lp} \mathrm{d}\bm{x}}
+  *     J = \int_{\Omega} {|u(\boldsymbol{x})-\tilde{u}(\boldsymbol{x})|^{Lp} \mathrm{d}\boldsymbol{x}}
   * \f]
   */ 
 #if PHILIP_DIM==1
@@ -638,13 +638,13 @@ protected:
 
 /// Lp boundary error norm functional class
 /** Default functional type based on Lp norm of error evaluated over domain boundaries 
-  * relative to an exact manufactured solution function $\tilde{u}(\bm{x})$
+  * relative to an exact manufactured solution function \f$\tilde{u}(\boldsymbol{x})\f$
   * 
   * \f[
-  *     J = \int_{\partial\Omega} {|u(\bm{x})-\tilde{u}(\bm{x})|^{Lp} \mathrm{d}\bm{x}}
+  *     J = \int_{\partial\Omega} {|u(\boldsymbol{x})-\tilde{u}(\boldsymbol{x})|^{Lp} \mathrm{d}\boldsymbol{x}}
   * \f]
   * 
-  * where $\partial\Omega$ is a selected subset or all domain boundaries depending on 
+  * where \f$\partial\Omega\f$ is a selected subset or all domain boundaries depending on 
   * the chosen setup parameters.
   */ 
 #if PHILIP_DIM==1

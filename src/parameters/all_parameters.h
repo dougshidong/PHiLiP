@@ -45,7 +45,7 @@ public:
         parallel_shared_triangulation,
         parallel_distributed_triangulation,
         };
-    MeshType mesh_type; //< Selected MeshType from the input file
+    MeshType mesh_type; ///< Selected MeshType from the input file
     
     /// Number of additional quadrature points to use.
     /** overintegration = 0 leads to number_quad_points = dg_solution_degree + 1

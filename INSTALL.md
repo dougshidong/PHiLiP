@@ -1,7 +1,20 @@
+
+## Dependencies
+
+There is a heavy dependencies on various different libraries. While it means we are not reinventing the wheel for many solved problems or optimized algorithms, it also leads to a more complicated setup.
+
+On a clean install of Ubuntu 20.04, you may run the following script:
+https://github.com/dougshidong/PHiLiP/blob/master/doc/install_ubuntu2004_VM.sh
+
+If you are on another OS, the above script still serves as a nice guideline since it lists all the necessary options from the dependent libraries.
+
+Note that some features and tests from a recent pull request only work with Gmsh 4.6. See
+https://github.com/dougshidong/PHiLiP/pull/55
+
+
 ## deal.II
 
-This is the main library being used by this code. Since we are using advanced features, we only support the `master` of deal.II, which means it will have to be installed from source by cloning their [repository](https://github.com/dealii/dealii).
-
+This is the main library being used by this code. We keep track of the working version from our [fork](https://github.com/dougshidong/dealii).
 Most of the packages are readily available through `apt install`. p4est might need to be installed from source since the current p4est version available on `apt` is lower than what is required by deal.II (p4est 2.0). A small set of instructions is available [here](https://www.dealii.org/current/external-libs/p4est.html).
 
 There is an [example script](doc/install_dealii.sh) for what has been used to install deal.II. You may need to provide the path such as `-DTRILINOS_DIR` if CMake does not find the package on its own.
@@ -174,3 +187,7 @@ cmake \
     -DDEAL_II_COMPONENT_EXAMPLES=OFF \
     -DDEAL_II_COMPILER_HAS_FUSE_LD_GOLD=OFF \
 ~~~~
+
+## Trilinos
+This is an important dependency of both deal.II and PHiLiP library being used by this code. We keep track of the working version from our [fork](https://github.com/dougshidong/Trilinos). Our fork also contains some bug fixes that have yet to be merged within their repository. An installation script with all the necessary options is given in
+https://raw.githubusercontent.com/dougshidong/PHiLiP/master/doc/prep_trilinos.sh

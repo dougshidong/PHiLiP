@@ -1,5 +1,3 @@
-#include <mpi.h>
-
 #include <type_traits>
 
 #include <deal.II/base/exceptions.h>

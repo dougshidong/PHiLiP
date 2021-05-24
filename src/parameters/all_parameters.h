@@ -66,6 +66,16 @@ public:
      */
     bool use_periodic_bc;
 
+    ///Flag to use an energy monotonicity test
+    bool use_energy;
+
+    ///Flag to use an L2 energy monotonicity test (for FR)
+    bool use_L2_norm;
+
+    ///Flag to use a Classical ESFR scheme where only the surface is reconstructed
+    //The default ESFR scheme is the Nonlinearly Stable FR where the volume is also reconstructed
+    bool use_classical_FR;
+
     /// Flag to add artificial dissipation from Persson's shock capturing paper.
     /** This feature is currently not fully working. It dissipates the Burger's
      *  invisid shock, but loses all the order of accuracy for the Gaussian bump.
@@ -141,6 +151,19 @@ public:
     enum DissipativeNumericalFlux { symm_internal_penalty, bassi_rebay_2 };
     /// Store diffusive flux type
     DissipativeNumericalFlux diss_num_flux_type;
+
+
+    /// Type of correction in Flux Reconstruction
+    enum Flux_Reconstruction {cDG, cSD, cHU, cNegative, cNegative2, cPlus, cPlus1D, c10Thousand, cHULumped};
+
+    /// Store flux reconstruction type
+    Flux_Reconstruction flux_reconstruction_type;
+
+    /// Type of correction in Flux Reconstruction for the auxiliary variables
+    enum Flux_Reconstruction_Aux {kDG, kSD, kHU, kNegative, kNegative2, kPlus, k10Thousand};
+
+    /// Store flux reconstruction type
+    Flux_Reconstruction_Aux flux_reconstruction_aux_type;
 
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()

@@ -176,7 +176,8 @@ template <int dim, typename real, typename MeshType, typename VectorType, typena
 void 
 HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::allocate() 
 {
-    dof_handler_grid.initialize(*triangulation, fe_system);
+   // dof_handler_grid.initialize(*triangulation, fe_system);
+    dof_handler_grid.reinit(*triangulation);
     dof_handler_grid.distribute_dofs(fe_system);
     dealii::DoFRenumbering::Cuthill_McKee(dof_handler_grid);
 

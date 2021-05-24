@@ -1,6 +1,7 @@
 set(TESTS_SOURCE
     tests.cpp
     grid_study.cpp
+    grid_refinement_study.cpp
     burgers_stability.cpp
     diffusion_exact_adjoint.cpp
     euler_gaussian_bump.cpp
@@ -34,6 +35,7 @@ foreach(dim RANGE 1 3)
     string(CONCAT ODESolverLib ODESolver_${dim}D)
     string(CONCAT OptimizationLib Optimization_${dim}D)
     string(CONCAT LinearSolverLib LinearSolver)
+    string(CONCAT GridRefinementLib GridRefinement_${dim}D)
     target_link_libraries(${TestsLib} ${GridsLib})
     target_link_libraries(${TestsLib} ${NumericalFluxLib})
     target_link_libraries(${TestsLib} ${PhysicsLib})
@@ -41,6 +43,7 @@ foreach(dim RANGE 1 3)
     target_link_libraries(${TestsLib} ${DiscontinuousGalerkinLib})
     target_link_libraries(${TestsLib} ${ODESolverLib})
     target_link_libraries(${TestsLib} ${LinearSolverLib})
+    target_link_libraries(${TestsLib} ${GridRefinementLib})
     target_link_libraries(${TestsLib} ${OptimizationLib})
     # Setup target with deal.II
     if(NOT DOC_ONLY)
@@ -55,6 +58,7 @@ foreach(dim RANGE 1 3)
     unset(NumericalFluxLib)
     unset(PhysicsLib)
     unset(LinearSolverLib)
+    unset(GridRefinementLib)
     unset(OptimizationLib)
 
 endforeach()

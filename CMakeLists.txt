@@ -12,6 +12,9 @@ set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${WARNING_CXX_FLAGS} -march=native -std
 
 set(MPIMAX 4 CACHE STRING "Default number of processors used in ctest mpirun -np MPIMAX. Not the same as ctest -jX")
 
+set(ENABLE_GMSH 0 CACHE STRING "Enable GMSH access through command lines and tests.")
+set(ENABLE_GNUPLOT 0 CACHE STRING "Enable Gnu Plot outputs.")
+
 find_package(Git QUIET)
 if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
 # Update submodules as needed

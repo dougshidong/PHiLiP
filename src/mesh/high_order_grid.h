@@ -4,6 +4,8 @@
 #include <deal.II/base/conditional_ostream.h>
 
 #include <deal.II/grid/tria.h>
+#include <deal.II/distributed/shared_tria.h>
+#include <deal.II/distributed/tria.h>
 
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_system.h>
@@ -24,12 +26,82 @@
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/trilinos_vector.h>
 
+#include "parameters/all_parameters.h"
+
 namespace PHiLiP {
-//#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-//    template <int dim> using Triangulation = dealii::Triangulation<dim>;
-//#else
-//    template <int dim> using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-//#endif
+
+// determines the associated typenames for HO grid from the meshType
+template <typename MeshType>
+class MeshTypeHelper{};
+
+// specializations
+template <>
+class MeshTypeHelper<dealii::Triangulation<PHILIP_DIM>>
+{
+public:
+    using VectorType     = dealii::LinearAlgebra::distributed::Vector<double>;
+    using DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>;
+
+    template <int dim = PHILIP_DIM, typename Vector = VectorType, typename DoFHandler = DoFHandlerType>
+    using SolutionTransfer = dealii::SolutionTransfer<dim, Vector, DoFHandler>;
+
+    // reinitialize vector based on parralel Dofhandler
+    static void reinit_vector(
+        VectorType             &vector, 
+        DoFHandlerType const   &/* dof_handler */,
+        dealii::IndexSet const &locally_owned_dofs,
+        dealii::IndexSet const &ghost_dofs,
+        MPI_Comm const          mpi_communicator)
+    {
+        vector.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
+    }
+};
+
+template <>
+class MeshTypeHelper<dealii::parallel::distributed::Triangulation<PHILIP_DIM>>
+{
+public:
+    using VectorType     = dealii::LinearAlgebra::distributed::Vector<double>;
+    using DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>;
+    
+    template <int dim = PHILIP_DIM, typename Vector = VectorType, typename DoFHandler = DoFHandlerType>
+    using SolutionTransfer = dealii::parallel::distributed::SolutionTransfer<dim, Vector, DoFHandler>;
+
+    // reinitialize vector based on parralel Dofhandler
+    static void reinit_vector(
+        VectorType             &vector, 
+        DoFHandlerType const   &/* dof_handler */,
+        dealii::IndexSet const &locally_owned_dofs,
+        dealii::IndexSet const &ghost_dofs,
+        MPI_Comm const          mpi_communicator)
+    {
+        vector.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
+    }
+};
+
+#if PHILIP_DIM1!=1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+template <>
+class MeshTypeHelper<dealii::parallel::shared::Triangulation<PHILIP_DIM>>
+{
+public:
+    using VectorType     = dealii::LinearAlgebra::distributed::Vector<double>;
+    using DoFHandlerType = dealii::DoFHandler<PHILIP_DIM>;
+
+    template <int dim = PHILIP_DIM, typename Vector = VectorType, typename DoFHandler = DoFHandlerType>
+    using SolutionTransfer = dealii::SolutionTransfer<dim, Vector, DoFHandler>;
+
+    // reinitialize vector based on parralel Dofhandler
+    static void reinit_vector(
+        VectorType             &vector, 
+        DoFHandlerType const   &/* dof_handler */,
+        dealii::IndexSet const &locally_owned_dofs,
+        dealii::IndexSet const &ghost_dofs,
+        MPI_Comm const          mpi_communicator)
+    {
+        vector.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
+    }
+};
+#endif
 
 /** This HighOrderGrid class basically contains all the different part necessary to generate
  *  a dealii::MappingFEField that corresponds to the current Triangulation and attached Manifold.
@@ -41,36 +113,30 @@ namespace PHiLiP {
  *  and the Vector class act quite differently between serial and parallel implementation. Hopefully,
  *  deal.II will change this one day such that we have one interface for both.
  */
-template <int dim = PHILIP_DIM, typename real = double>
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+template <int      dim            = PHILIP_DIM, 
+          typename real           = double, 
+          typename MeshType       = dealii::Triangulation<dim>, 
+          typename VectorType     = typename MeshTypeHelper<MeshType>::VectorType, 
+          typename DoFHandlerType = typename MeshTypeHelper<MeshType>::DoFHandlerType>
+#else
+template <int      dim            = PHILIP_DIM, 
+          typename real           = double, 
+          typename MeshType       = dealii::parallel::distributed::Triangulation<dim>, 
+          typename VectorType     = typename MeshTypeHelper<MeshType>::VectorType, 
+          typename DoFHandlerType = typename MeshTypeHelper<MeshType>::DoFHandlerType>
+#endif
 class HighOrderGrid
 {
-    /// Distributed vector of double.
-    using VectorType = dealii::LinearAlgebra::distributed::Vector<real>;
-    /// DoFHandler
-    using DoFHandlerType = dealii::DoFHandler<dim>;
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-    /** Triangulation to store the grid.
-     *  In 1D, dealii::Triangulation<dim> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-     */
-    using Triangulation = dealii::Triangulation<dim>;
-
-    /// SolutionTransfer using VectorType
-    using SolutionTransfer = dealii::SolutionTransfer<dim, VectorType, dealii::DoFHandler<dim>>;
-#else
-    /** Triangulation to store the grid.
-     *  In 1D, dealii::Triangulation<dim> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-     */
-    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-
-    /// SolutionTransfer using VectorType
-    using SolutionTransfer = dealii::parallel::distributed::SolutionTransfer<dim, VectorType, dealii::DoFHandler<dim>>;
-#endif
+    using SolutionTransfer = typename MeshTypeHelper<MeshType>::template SolutionTransfer<dim,VectorType,DoFHandlerType>;
 public:
     /// Principal constructor that will call delegated constructor.
-    HighOrderGrid(const unsigned int max_degree,
-                  const std::shared_ptr<Triangulation> triangulation_input);
+    HighOrderGrid(
+        const unsigned int              max_degree, 
+        const std::shared_ptr<MeshType> triangulation_input);
+
+    /// Reinitialize high_order_grid after a change in triangulation
+    void reinit();
 
     /// Update the MappingFEField
     /** Note that this rarely needs to be called since MappingFEField stores a
@@ -93,7 +159,7 @@ public:
     /// Maximum degree of the geometry polynomial representing the grid.
     const unsigned int max_degree;
 
-    const std::shared_ptr<Triangulation> triangulation; ///< Mesh
+    const std::shared_ptr<MeshType> triangulation; ///< Mesh
 
     /// Degrees of freedom handler for the high-order grid
     dealii::DoFHandler<dim> dof_handler_grid;

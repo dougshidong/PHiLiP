@@ -1,0 +1,129 @@
+# Listing of Parameters
+# ---------------------
+# Number of dimensions
+set dimension = 2
+
+# The PDE we want to solve. Choices are
+# <advection|diffusion|convection_diffusion>.
+set pde_type  = convection_diffusion # advection # 
+set test_type = grid_refinement_study
+
+set sipg_penalty_factor = 20.0
+
+subsection linear solver
+#set linear_solver_type = direct
+  subsection gmres options
+    set linear_residual_tolerance = 1e-4
+    set max_iterations = 2000
+    set restart_number = 50
+    set ilut_fill = 10
+    # set ilut_drop = 1e-4
+  end 
+end
+
+subsection ODE solver
+  # Maximum nonlinear solver iterations
+  set nonlinear_max_iterations            = 500
+
+  # Nonlinear solver residual tolerance
+  set nonlinear_steady_residual_tolerance = 1e-12
+
+  # Print every print_iteration_modulo iterations of the nonlinear solver
+  set print_iteration_modulo              = 1
+
+  # Explicit or implicit solverChoices are <explicit|implicit>.
+  set ode_solver_type                         = implicit
+end
+
+subsection grid refinement study
+  # polyonomial degrees
+  set poly_degree      = 2
+  set poly_degree_max  = 4
+  set poly_degree_grid = 1
+
+  # grid setup
+  set grid_type  = hypercube
+
+  #set input_grid = NaN
+  set grid_left  = 0.0
+  set grid_right = 1.0
+  set grid_size  = 16
+
+  # runs uniform, fixed-fraction, BAMG (x1.5) and BAMG (x2.0)
+  set num_refinements = 4
+
+  # uniform
+  subsection grid refinement [0]
+    set refinement_steps  = 3
+    set refinement_method = uniform
+  end
+
+  # fixed-fraction (30%)
+  subsection grid refinement [1]
+    set refinement_steps = 4 # 5
+    set refinement_method = fixed_fraction
+
+    set refinement_type = h
+    set anisotropic = false
+    set error_indicator = hessian_based
+    set refinement_fraction = 0.3
+    set coarsening_fraction = 0.00
+  end
+
+  # BAMG (1.5x)
+  subsection grid refinement [2]
+    set refinement_steps  = 6 # 8
+    set refinement_method = continuous
+    set refinement_type   = h
+    
+    set anisotropic       = true
+    set anisotropic_ratio_min = 0.1
+    set anisotropic_ratio_max = 10.0
+
+    set error_indicator   = hessian_based
+    set norm_Lq           = 2.0
+    set complexity_scale  = 1.5 
+    set complexity_add    = 0.0
+
+    # output options
+    set output_type      = gmsh_out
+  end
+
+  # BAMG (2.0x)
+  subsection grid refinement [3]
+    set refinement_steps  = 4 # 6
+    set refinement_method = continuous
+    set refinement_type   = h
+    
+    set anisotropic       = true
+    set anisotropic_ratio_min = 0.1
+    set anisotropic_ratio_max = 10.0
+
+    set error_indicator   = hessian_based
+    set norm_Lq           = 2.0
+    set complexity_scale  = 2.0
+    set complexity_add    = 0.0
+
+    # output options
+    set output_type      = gmsh_out
+  end
+end
+
+subsection manufactured solution convergence study
+  set use_manufactured_source_term = true
+  set manufactured_solution_type   = boundary_layer_solution
+
+  # setting the default diffusion tensor
+  set diffusion_00 = 1
+  set diffusion_01 = 0
+  set diffusion_10 = 0
+  set diffusion_11 = 1
+
+  # setting the advection vector
+  set advection_0 = 1
+  set advection_1 = 1 
+
+  # setting the diffusion coefficient
+  set diffusion_coefficient = 0.1
+  
+end

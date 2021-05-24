@@ -1,7 +1,12 @@
 // includes
 #include <vector>
+#include <algorithm>
 
 #include <Sacado.hpp>
+
+#include <deal.II/base/function.h>
+#include <deal.II/base/symmetric_tensor.h>
+
 #include <deal.II/lac/la_parallel_vector.h>
 
 #include <deal.II/differentiation/ad/sacado_math.h>
@@ -53,11 +58,220 @@ real1 norm(const dealii::Tensor<1,dim,real1> x)
 
 namespace PHiLiP {
 
-template <int dim, int nstate, typename real>
-Functional<dim,nstate,real>::Functional(
-    std::shared_ptr<DGBase<dim,real>> _dg,
-    const bool _uses_solution_values,
-    const bool _uses_solution_gradient)
+template <int dim, int nstate, typename real, typename MeshType>
+FunctionalNormLpVolume<dim,nstate,real,MeshType>::FunctionalNormLpVolume(
+    const double                               _normLp,
+    std::shared_ptr<DGBase<dim,real,MeshType>> _dg,
+    const bool                                 _uses_solution_values,
+    const bool                                 _uses_solution_gradient) : 
+        Functional<dim,nstate,real,MeshType>::Functional(_dg, _uses_solution_values, _uses_solution_gradient),
+        normLp(_normLp) {}
+
+template <int dim, int nstate, typename real, typename MeshType>
+template <typename real2>
+real2 FunctionalNormLpVolume<dim,nstate,real,MeshType>::evaluate_volume_integrand(
+    const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
+    const dealii::Point<dim,real2> &                      /*phys_coord*/,
+    const std::array<real2,nstate> &                      soln_at_q,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
+{
+    real2 lpnorm_value = 0;
+    for(unsigned int istate = 0; istate < nstate; ++istate)
+        lpnorm_value += pow(abs(soln_at_q[istate]), this->normLp);
+    return lpnorm_value;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+FunctionalNormLpBoundary<dim,nstate,real,MeshType>::FunctionalNormLpBoundary(
+    const double                               _normLp,
+    std::vector<unsigned int>                  _boundary_vector,
+    const bool                                 _use_all_boundaries,
+    std::shared_ptr<DGBase<dim,real,MeshType>> _dg,
+    const bool                                 _uses_solution_values,
+    const bool                                 _uses_solution_gradient) : 
+        Functional<dim,nstate,real,MeshType>::Functional(_dg, _uses_solution_values, _uses_solution_gradient),
+        normLp(_normLp),
+        boundary_vector(_boundary_vector),
+        use_all_boundaries(_use_all_boundaries) {}
+
+template <int dim, int nstate, typename real, typename MeshType>
+template <typename real2>
+real2 FunctionalNormLpBoundary<dim,nstate,real,MeshType>::evaluate_boundary_integrand(
+    const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/* physics */,
+    const unsigned int                                    boundary_id,
+    const dealii::Point<dim,real2> &                      /* phys_coord */,
+    const dealii::Tensor<1,dim,real2> &                   /* normal */,
+    const std::array<real2,nstate> &                      soln_at_q,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &/* soln_grad_at_q */) const
+{
+    real2 lpnorm_value = 0;
+
+    // condition for whether the current cell should be evaluated
+    auto boundary_vector_index = std::find(this->boundary_vector.begin(), this->boundary_vector.end(), boundary_id);
+    bool eval_boundary = this->use_all_boundaries || boundary_vector_index != this->boundary_vector.end();
+
+    if(!eval_boundary)
+        return lpnorm_value;
+
+    for(unsigned int istate = 0; istate < nstate; ++istate)
+        lpnorm_value += pow(abs(soln_at_q[istate]), this->normLp);
+
+    return lpnorm_value;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+FunctionalWeightedIntegralVolume<dim,nstate,real,MeshType>::FunctionalWeightedIntegralVolume(
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real>>                    _weight_function_double,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>>              _weight_function_adtype,
+    const bool                                                                 _use_weight_function_laplacian,
+    std::shared_ptr<DGBase<dim,real,MeshType>>                                 _dg,
+    const bool                                                                 _uses_solution_values,
+    const bool                                                                 _uses_solution_gradient) : 
+        Functional<dim,nstate,real,MeshType>::Functional(_dg, _uses_solution_values, _uses_solution_gradient),
+        weight_function_double(_weight_function_double),
+        weight_function_adtype(_weight_function_adtype),
+        use_weight_function_laplacian(_use_weight_function_laplacian) {}
+
+template <int dim, int nstate, typename real, typename MeshType>
+template <typename real2>
+real2 FunctionalWeightedIntegralVolume<dim,nstate,real,MeshType>::evaluate_volume_integrand(
+    const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &  /*physics*/,
+    const dealii::Point<dim,real2> &                        phys_coord,
+    const std::array<real2,nstate> &                        soln_at_q,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &  /*soln_grad_at_q*/,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real2>> weight_function) const
+{
+    real2 val = 0;
+
+    if(this->use_weight_function_laplacian){
+        for(unsigned int istate = 0; istate < nstate; ++istate)
+            val += soln_at_q[istate] * dealii::trace(weight_function->hessian(phys_coord, istate));
+    }else{
+        for(unsigned int istate = 0; istate < nstate; ++istate)
+            val += soln_at_q[istate] * weight_function->value(phys_coord, istate);
+    }
+
+    return val;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+FunctionalWeightedIntegralBoundary<dim,nstate,real,MeshType>::FunctionalWeightedIntegralBoundary(
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real>>                    _weight_function_double,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>>              _weight_function_adtype,
+    const bool                                                                 _use_weight_function_laplacian,
+    std::vector<unsigned int>                                                  _boundary_vector,
+    const bool                                                                 _use_all_boundaries,
+    std::shared_ptr<DGBase<dim,real,MeshType>>                                 _dg,
+    const bool                                                                 _uses_solution_values,
+    const bool                                                                 _uses_solution_gradient) : 
+        Functional<dim,nstate,real,MeshType>::Functional(_dg, _uses_solution_values, _uses_solution_gradient),
+        weight_function_double(_weight_function_double),
+        weight_function_adtype(_weight_function_adtype),
+        use_weight_function_laplacian(_use_weight_function_laplacian),
+        boundary_vector(_boundary_vector),
+        use_all_boundaries(_use_all_boundaries) {}
+
+template <int dim, int nstate, typename real, typename MeshType>
+template <typename real2>
+real2 FunctionalWeightedIntegralBoundary<dim,nstate,real,MeshType>::evaluate_boundary_integrand(
+    const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/* physics */,
+    const unsigned int                                    boundary_id,
+    const dealii::Point<dim,real2> &                      phys_coord,
+    const dealii::Tensor<1,dim,real2> &                   /* normal */,
+    const std::array<real2,nstate> &                      soln_at_q,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &/* soln_grad_at_q */,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real2>> weight_function) const
+{
+    real2 val = 0;
+
+    // condition for whether the current cell should be evaluated
+    auto boundary_vector_index = std::find(this->boundary_vector.begin(), this->boundary_vector.end(), boundary_id);
+    bool eval_boundary = this->use_all_boundaries || boundary_vector_index != this->boundary_vector.end();
+
+    if(!eval_boundary)
+        return val;
+
+    if(this->use_weight_function_laplacian){
+        for(unsigned int istate = 0; istate < nstate; ++istate)
+            val += soln_at_q[istate] * dealii::trace(weight_function->hessian(phys_coord, istate));
+    }else{
+        for(unsigned int istate = 0; istate < nstate; ++istate)
+            val += soln_at_q[istate] * weight_function->value(phys_coord, istate);
+    }
+
+    return val;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+FunctionalErrorNormLpVolume<dim,nstate,real,MeshType>::FunctionalErrorNormLpVolume(
+    const double                               _normLp,
+    std::shared_ptr<DGBase<dim,real,MeshType>> _dg,
+    const bool                                 _uses_solution_values,
+    const bool                                 _uses_solution_gradient) : 
+        Functional<dim,nstate,real,MeshType>::Functional(_dg, _uses_solution_values, _uses_solution_gradient),
+        normLp(_normLp) {}
+
+template <int dim, int nstate, typename real, typename MeshType>
+template <typename real2>
+real2 FunctionalErrorNormLpVolume<dim,nstate,real,MeshType>::evaluate_volume_integrand(
+    const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+    const dealii::Point<dim,real2> &                      phys_coord,
+    const std::array<real2,nstate> &                      soln_at_q,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
+{
+    real2 lpnorm_value = 0;
+    for(unsigned int istate = 0; istate < nstate; ++istate){
+        const real2 uexact = physics.manufactured_solution_function->value(phys_coord, istate);
+        lpnorm_value += pow(abs(soln_at_q[istate] - uexact), this->normLp);
+    }
+    return lpnorm_value;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+FunctionalErrorNormLpBoundary<dim,nstate,real,MeshType>::FunctionalErrorNormLpBoundary(
+    const double                               _normLp,
+    std::vector<unsigned int>                  _boundary_vector,
+    const bool                                 _use_all_boundaries,
+    std::shared_ptr<DGBase<dim,real,MeshType>> _dg,
+    const bool                                 _uses_solution_values,
+    const bool                                 _uses_solution_gradient) : 
+        Functional<dim,nstate,real,MeshType>::Functional(_dg, _uses_solution_values, _uses_solution_gradient),
+        normLp(_normLp),
+        boundary_vector(_boundary_vector),
+        use_all_boundaries(_use_all_boundaries) {}
+
+template <int dim, int nstate, typename real, typename MeshType>
+template <typename real2>
+real2 FunctionalErrorNormLpBoundary<dim,nstate,real,MeshType>::evaluate_boundary_integrand(
+    const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+    const unsigned int                                    boundary_id,
+    const dealii::Point<dim,real2> &                      phys_coord,
+    const dealii::Tensor<1,dim,real2> &                   /* normal */,
+    const std::array<real2,nstate> &                      soln_at_q,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &/* soln_grad_at_q */) const
+{
+     real2 lpnorm_value = 0;
+
+    // condition for whether the current cell should be evaluated
+    auto boundary_vector_index = std::find(this->boundary_vector.begin(), this->boundary_vector.end(), boundary_id);
+    bool eval_boundary = this->use_all_boundaries || boundary_vector_index != this->boundary_vector.end();
+
+    if(!eval_boundary)
+        return lpnorm_value;
+
+    for(int istate = 0; istate < nstate; ++istate){
+        const real2 uexact = physics.manufactured_solution_function->value(phys_coord, istate);
+        lpnorm_value += pow(abs(soln_at_q[istate] - uexact), this->normLp);
+    }
+
+    return lpnorm_value;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+Functional<dim,nstate,real,MeshType>::Functional(
+    std::shared_ptr<DGBase<dim,real,MeshType>> _dg,
+    const bool                                 _uses_solution_values,
+    const bool                                 _uses_solution_gradient)
     : dg(_dg)
     , uses_solution_values(_uses_solution_values)
     , uses_solution_gradient(_uses_solution_gradient)
@@ -69,8 +283,8 @@ Functional<dim,nstate,real>::Functional(
 
     init_vectors();
 }
-template <int dim, int nstate, typename real>
-void Functional<dim,nstate,real>::init_vectors()
+template <int dim, int nstate, typename real, typename MeshType>
+void Functional<dim,nstate,real,MeshType>::init_vectors()
 {
     solution_value.reinit(dg->solution);
     solution_value *= 0.0;
@@ -93,9 +307,9 @@ void Functional<dim,nstate,real>::init_vectors()
     volume_nodes_d2I *= 0.0;
 }
 
-template <int dim, int nstate, typename real>
-Functional<dim,nstate,real>::Functional(
-    std::shared_ptr<PHiLiP::DGBase<dim,real>> _dg,
+template <int dim, int nstate, typename real, typename MeshType>
+Functional<dim,nstate,real,MeshType>::Functional(
+    std::shared_ptr<PHiLiP::DGBase<dim,real,MeshType>> _dg,
     std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>> >> _physics_fad_fad,
     const bool _uses_solution_values,
     const bool _uses_solution_gradient)
@@ -104,20 +318,20 @@ Functional<dim,nstate,real>::Functional(
     physics_fad_fad = _physics_fad_fad;
 }
 
-template <int dim, int nstate, typename real>
-void Functional<dim,nstate,real>::set_state(const dealii::LinearAlgebra::distributed::Vector<real> &solution_set)
+template <int dim, int nstate, typename real, typename MeshType>
+void Functional<dim,nstate,real,MeshType>::set_state(const dealii::LinearAlgebra::distributed::Vector<real> &solution_set)
 {
     dg->solution = solution_set;
 }
 
-template <int dim, int nstate, typename real>
-void Functional<dim,nstate,real>::set_geom(const dealii::LinearAlgebra::distributed::Vector<real> &volume_nodes_set)
+template <int dim, int nstate, typename real, typename MeshType>
+void Functional<dim,nstate,real,MeshType>::set_geom(const dealii::LinearAlgebra::distributed::Vector<real> &volume_nodes_set)
 {
     dg->high_order_grid->volume_nodes = volume_nodes_set;
 }
 
-template <int dim, int nstate, typename real>
-void Functional<dim,nstate,real>::allocate_dIdX(dealii::LinearAlgebra::distributed::Vector<real> &dIdX) const
+template <int dim, int nstate, typename real, typename MeshType>
+void Functional<dim,nstate,real,MeshType>::allocate_dIdX(dealii::LinearAlgebra::distributed::Vector<real> &dIdX) const
 {
     // allocating the vector
     dealii::IndexSet locally_owned_dofs = dg->high_order_grid->dof_handler_grid.locally_owned_dofs();
@@ -128,8 +342,8 @@ void Functional<dim,nstate,real>::allocate_dIdX(dealii::LinearAlgebra::distribut
     dIdX.reinit(locally_owned_dofs, ghost_dofs, MPI_COMM_WORLD);
 }
 
-template <int dim, int nstate, typename real>
-void Functional<dim,nstate,real>::allocate_derivatives(const bool compute_dIdW, const bool compute_dIdX, const bool compute_d2I)
+template <int dim, int nstate, typename real, typename MeshType>
+void Functional<dim,nstate,real,MeshType>::allocate_derivatives(const bool compute_dIdW, const bool compute_dIdX, const bool compute_d2I)
 {
     if (compute_dIdW) {
         // allocating the vector
@@ -164,8 +378,8 @@ void Functional<dim,nstate,real>::allocate_derivatives(const bool compute_dIdW, 
 }
 
 
-template <int dim, int nstate, typename real>
-void Functional<dim,nstate,real>::set_derivatives(
+template <int dim, int nstate, typename real, typename MeshType>
+void Functional<dim,nstate,real,MeshType>::set_derivatives(
     const bool compute_dIdW, const bool compute_dIdX, const bool compute_d2I,
     const Sacado::Fad::DFad<Sacado::Fad::DFad<real>> volume_local_sum,
     std::vector<dealii::types::global_dof_index> cell_soln_dofs_indices,
@@ -231,9 +445,9 @@ void Functional<dim,nstate,real>::set_derivatives(
     AssertDimension(i_derivative, n_total_indep);
 }
 
-template <int dim, int nstate, typename real>
+template <int dim, int nstate, typename real, typename MeshType>
 template <typename real2>
-real2 Functional<dim, nstate, real>::evaluate_volume_cell_functional(
+real2 Functional<dim, nstate, real, MeshType>::evaluate_volume_cell_functional(
     const Physics::PhysicsBase<dim,nstate,real2> &physics,
     const std::vector< real2 > &soln_coeff,
     const dealii::FESystem<dim> &fe_solution,
@@ -292,9 +506,9 @@ real2 Functional<dim, nstate, real>::evaluate_volume_cell_functional(
     return volume_local_sum;
 }
 
-template <int dim, int nstate, typename real>
+template <int dim, int nstate, typename real, typename MeshType>
 template <typename real2>
-real2 Functional<dim, nstate, real>::evaluate_boundary_cell_functional(
+real2 Functional<dim,nstate,real,MeshType>::evaluate_boundary_cell_functional(
     const Physics::PhysicsBase<dim,nstate,real2> &physics,
     const unsigned int boundary_id,
     const std::vector< real2 > &soln_coeff,
@@ -366,8 +580,8 @@ real2 Functional<dim, nstate, real>::evaluate_boundary_cell_functional(
     return boundary_local_sum;
 }
 
-template <int dim, int nstate, typename real>
-real Functional<dim, nstate, real>::evaluate_boundary_cell_functional(
+template <int dim, int nstate, typename real, typename MeshType>
+real Functional<dim,nstate,real,MeshType>::evaluate_boundary_cell_functional(
     const Physics::PhysicsBase<dim,nstate,real> &physics,
     const unsigned int boundary_id,
     const std::vector< real > &soln_coeff,
@@ -380,8 +594,8 @@ real Functional<dim, nstate, real>::evaluate_boundary_cell_functional(
     return evaluate_boundary_cell_functional<real>(physics, boundary_id, soln_coeff, fe_solution, coords_coeff, fe_metric, face_number, fquadrature);
 }
 
-template <int dim, int nstate, typename real>
-Sacado::Fad::DFad<Sacado::Fad::DFad<real>> Functional<dim, nstate, real>::evaluate_boundary_cell_functional(
+template <int dim, int nstate, typename real, typename MeshType>
+Sacado::Fad::DFad<Sacado::Fad::DFad<real>> Functional<dim,nstate,real,MeshType>::evaluate_boundary_cell_functional(
     const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> &physics,
     const unsigned int boundary_id,
     const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &soln_coeff,
@@ -394,8 +608,8 @@ Sacado::Fad::DFad<Sacado::Fad::DFad<real>> Functional<dim, nstate, real>::evalua
     return evaluate_boundary_cell_functional<Sacado::Fad::DFad<Sacado::Fad::DFad<real>>>(physics, boundary_id, soln_coeff, fe_solution, coords_coeff, fe_metric, face_number, fquadrature);
 }
 
-template <int dim, int nstate, typename real>
-real Functional<dim, nstate, real>::evaluate_volume_cell_functional(
+template <int dim, int nstate, typename real, typename MeshType>
+real Functional<dim,nstate,real,MeshType>::evaluate_volume_cell_functional(
     const Physics::PhysicsBase<dim,nstate,real> &physics,
     const std::vector< real > &soln_coeff,
     const dealii::FESystem<dim> &fe_solution,
@@ -406,8 +620,8 @@ real Functional<dim, nstate, real>::evaluate_volume_cell_functional(
     return evaluate_volume_cell_functional<real>(physics, soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 }
 
-template <int dim, int nstate, typename real>
-Sacado::Fad::DFad<Sacado::Fad::DFad<real>> Functional<dim, nstate, real>::evaluate_volume_cell_functional(
+template <int dim, int nstate, typename real, typename MeshType>
+Sacado::Fad::DFad<Sacado::Fad::DFad<real>> Functional<dim,nstate,real,MeshType>::evaluate_volume_cell_functional(
     const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> &physics_fad_fad,
     const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &soln_coeff,
     const dealii::FESystem<dim> &fe_solution,
@@ -418,9 +632,8 @@ Sacado::Fad::DFad<Sacado::Fad::DFad<real>> Functional<dim, nstate, real>::evalua
     return evaluate_volume_cell_functional<Sacado::Fad::DFad<Sacado::Fad::DFad<real>>>(physics_fad_fad, soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 }
 
-
-template <int dim, int nstate, typename real>
-void Functional<dim, nstate, real>::need_compute(bool &compute_value, bool &compute_dIdW, bool &compute_dIdX, bool &compute_d2I)
+template <int dim, int nstate, typename real, typename MeshType>
+void Functional<dim,nstate,real,MeshType>::need_compute(bool &compute_value, bool &compute_dIdW, bool &compute_dIdX, bool &compute_d2I)
 {
     if (compute_value) {
         pcout << " with value...";
@@ -524,8 +737,8 @@ void Functional<dim, nstate, real>::need_compute(bool &compute_value, bool &comp
     }
 }
 
-template <int dim, int nstate, typename real>
-real Functional<dim, nstate, real>::evaluate_functional(
+template <int dim, int nstate, typename real, typename MeshType>
+real Functional<dim, nstate, real, MeshType>::evaluate_functional(
     const bool compute_dIdW,
     const bool compute_dIdX,
     const bool compute_d2I)
@@ -576,7 +789,7 @@ real Functional<dim, nstate, real>::evaluate_functional(
         if(!soln_cell->is_locally_owned()) continue;
 
         // setting up the volume integration
-        //const unsigned int i_mapp = 0; // *** ask doug if this will ever be 
+        // const unsigned int i_mapp = 0;
         const unsigned int i_fele = soln_cell->active_fe_index();
         const unsigned int i_quad = i_fele;
 
@@ -713,9 +926,9 @@ real Functional<dim, nstate, real>::evaluate_functional(
     return current_functional_value;
 }
 
-template <int dim, int nstate, typename real>
-dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::evaluate_dIdw_finiteDifferences(
-    PHiLiP::DGBase<dim,real> &dg, 
+template <int dim, int nstate, typename real, typename MeshType>
+dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real,MeshType>::evaluate_dIdw_finiteDifferences(
+    PHiLiP::DGBase<dim,real,MeshType> &dg, 
     const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
     const double stepsize)
 {
@@ -836,9 +1049,9 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
     return dIdw;
 }
 
-template <int dim, int nstate, typename real>
-dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::evaluate_dIdX_finiteDifferences(
-    PHiLiP::DGBase<dim,real> &dg, 
+template <int dim, int nstate, typename real, typename MeshType>
+dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real,MeshType>::evaluate_dIdX_finiteDifferences(
+    PHiLiP::DGBase<dim,real,MeshType> &dg, 
     const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
     const double stepsize)
 {
@@ -955,10 +1168,240 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nstate,real>::ev
     return dIdX_FD;
 }
 
-template class Functional <PHILIP_DIM, 1, double>;
-template class Functional <PHILIP_DIM, 2, double>;
-template class Functional <PHILIP_DIM, 3, double>;
-template class Functional <PHILIP_DIM, 4, double>;
-template class Functional <PHILIP_DIM, 5, double>;
+template <int dim, int nstate, typename real, typename MeshType>
+std::shared_ptr< Functional<dim,nstate,real,MeshType> >
+FunctionalFactory<dim,nstate,real,MeshType>::create_Functional(
+    PHiLiP::Parameters::AllParameters const *const param,
+    std::shared_ptr< PHiLiP::DGBase<dim,real,MeshType> > dg)
+{
+    return FunctionalFactory<dim,nstate,real,MeshType>::create_Functional(param->grid_refinement_study_param.functional_param, dg);
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+std::shared_ptr< Functional<dim,nstate,real,MeshType> >
+FunctionalFactory<dim,nstate,real,MeshType>::create_Functional(
+    PHiLiP::Parameters::FunctionalParam param,
+    std::shared_ptr< PHiLiP::DGBase<dim,real,MeshType> > dg)
+{
+    using FadFadType = Sacado::Fad::DFad<FadType>;
+
+    using FunctionalTypeEnum       = Parameters::FunctionalParam::FunctionalType;
+    using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
+    FunctionalTypeEnum functional_type = param.functional_type;
+
+    const double normLp = param.normLp;
+
+    ManufacturedSolutionEnum  weight_function_type = param.weight_function_type;
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > weight_function_double 
+        = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(weight_function_type, nstate);
+    std::shared_ptr< ManufacturedSolutionFunction<dim,FadFadType> > weight_function_adtype 
+        = ManufacturedSolutionFactory<dim,FadFadType>::create_ManufacturedSolution(weight_function_type, nstate);
+    
+    const bool use_weight_function_laplacian       = param.use_weight_function_laplacian;
+
+    std::vector<unsigned int> boundary_vector    = param.boundary_vector;
+    const bool                use_all_boundaries = param.use_all_boundaries;
+
+    if(functional_type == FunctionalTypeEnum::normLp_volume){
+        return std::make_shared<FunctionalNormLpVolume<dim,nstate,real,MeshType>>(
+            normLp,
+            dg,
+            true,
+            false);
+    }else if(functional_type == FunctionalTypeEnum::normLp_boundary){
+        return std::make_shared<FunctionalNormLpBoundary<dim,nstate,real,MeshType>>(
+            normLp,
+            boundary_vector,
+            use_all_boundaries,
+            dg,
+            true,
+            false);
+    }else if(functional_type == FunctionalTypeEnum::weighted_integral_volume){
+        return std::make_shared<FunctionalWeightedIntegralVolume<dim,nstate,real,MeshType>>(
+            weight_function_double,
+            weight_function_adtype,
+            use_weight_function_laplacian,
+            dg,
+            true,
+            false);
+    }else if(functional_type == FunctionalTypeEnum::weighted_integral_boundary){
+        return std::make_shared<FunctionalWeightedIntegralBoundary<dim,nstate,real,MeshType>>(
+            weight_function_double,
+            weight_function_adtype,
+            use_weight_function_laplacian,
+            boundary_vector,
+            use_all_boundaries,
+            dg,
+            true,
+            false);
+    }else if(functional_type == FunctionalTypeEnum::error_normLp_volume){
+        return std::make_shared<FunctionalErrorNormLpVolume<dim,nstate,real,MeshType>>(
+            normLp,
+            dg,
+            true,
+            false);
+    }else if(functional_type == FunctionalTypeEnum::error_normLp_boundary){
+        return std::make_shared<FunctionalErrorNormLpBoundary<dim,nstate,real,MeshType>>(
+            normLp,
+            boundary_vector,
+            use_all_boundaries,
+            dg,
+            true,
+            false);
+    }else{
+        std::cout << "Invalid Functional." << std::endl;
+    }
+
+    return nullptr;
+}
+
+// dealii::Triangulation<PHILIP_DIM>
+template class FunctionalNormLpVolume <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalNormLpBoundary <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+
+template class Functional <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class Functional <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class Functional <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class Functional <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class Functional <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalFactory <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalFactory <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalFactory <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalFactory <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class FunctionalFactory <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+
+// dealii::parallel::shared::Triangulation<PHILIP_DIM>
+template class FunctionalNormLpVolume <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalNormLpBoundary <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class Functional <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class Functional <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class Functional <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class Functional <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class Functional <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalFactory <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalFactory <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalFactory <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalFactory <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class FunctionalFactory <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+#if PHILIP_DIM != 1
+// dealii::parallel::distributed::Triangulation<PHILIP_DIM>
+template class FunctionalNormLpVolume <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpVolume <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalNormLpBoundary <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalNormLpBoundary <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralVolume <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpVolume <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalErrorNormLpBoundary <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class Functional <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class Functional <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class Functional <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class Functional <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class Functional <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+template class FunctionalFactory <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalFactory <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalFactory <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalFactory <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class FunctionalFactory <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#endif
 
 } // PHiLiP namespace

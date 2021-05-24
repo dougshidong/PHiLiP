@@ -3,12 +3,16 @@
 
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/parameter_handler.h>
+
 #include "parameters.h"
 #include "parameters/parameters_ode_solver.h"
 #include "parameters/parameters_linear_solver.h"
 #include "parameters/parameters_manufactured_convergence_study.h"
 
 #include "parameters/parameters_euler.h"
+
+#include "parameters/parameters_grid_refinement_study.h"
+#include "parameters/parameters_grid_refinement.h"
 
 namespace PHiLiP {
 namespace Parameters {
@@ -28,10 +32,21 @@ public:
     LinearSolverParam linear_solver_param;
     /// Contains parameters for the Euler equations non-dimensionalization
     EulerParam euler_param;
+    /// contains the parameters for grid refinement study
+    GridRefinementStudyParam grid_refinement_study_param;
 
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;
 
+    /// Mesh type to be used in defining the triangulation
+    enum MeshType {
+        default_triangulation,
+        triangulation,
+        parallel_shared_triangulation,
+        parallel_distributed_triangulation,
+        };
+    MeshType mesh_type; //< Selected MeshType from the input file
+    
     /// Number of additional quadrature points to use.
     /** overintegration = 0 leads to number_quad_points = dg_solution_degree + 1
      */
@@ -69,6 +84,7 @@ public:
     /// Currently allows to solve advection, diffusion, convection-diffusion
     enum TestType { 
         run_control,
+        grid_refinement_study,
         burgers_energy_stability,
         diffusion_exact_adjoint,
         euler_gaussian_bump,

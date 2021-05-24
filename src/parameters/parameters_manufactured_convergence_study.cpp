@@ -4,15 +4,14 @@ namespace PHiLiP {
 namespace Parameters {
 
 // Manufactured Solution inputs
-ManufacturedConvergenceStudyParam::ManufacturedConvergenceStudyParam () {}
+ManufacturedConvergenceStudyParam::ManufacturedConvergenceStudyParam () :
+    manufactured_solution_param(ManufacturedSolutionParam()) {}
 
 void ManufacturedConvergenceStudyParam::declare_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("manufactured solution convergence study");
     {
-        prm.declare_entry("use_manufactured_source_term", "false",
-                          dealii::Patterns::Bool(),
-                          "Uses non-zero source term based on the manufactured solution and the PDE.");
+        Parameters::ManufacturedSolutionParam::declare_parameters(prm);
 
         prm.declare_entry("grid_type", "hypercube",
                           dealii::Patterns::Selection("hypercube|sinehypercube|read_grid"),
@@ -67,7 +66,8 @@ void ManufacturedConvergenceStudyParam ::parse_parameters (dealii::ParameterHand
 {
     prm.enter_subsection("manufactured solution convergence study");
     {
-        use_manufactured_source_term = prm.get_bool("use_manufactured_source_term");
+        manufactured_solution_param.parse_parameters(prm);
+
         const std::string grid_string = prm.get("grid_type");
         if (grid_string == "hypercube") grid_type = GridEnum::hypercube;
         if (grid_string == "sinehypercube") grid_type = GridEnum::sinehypercube;

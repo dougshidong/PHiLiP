@@ -1,0 +1,74 @@
+# Listing of Parameters
+# ---------------------
+# Number of dimensions
+set dimension = 2
+
+# Changing the mesh type to allow for anisotropic refinements
+set mesh_type = triangulation
+
+# The PDE we want to solve. Choices are
+# <advection|diffusion|convection_diffusion>.
+set pde_type  = advection #convection_diffusion
+set test_type = grid_refinement_study
+
+subsection linear solver
+#set linear_solver_type = direct
+  subsection gmres options
+    set linear_residual_tolerance = 1e-4
+    set max_iterations = 2000
+    set restart_number = 50
+    set ilut_fill = 1
+    # set ilut_drop = 1e-4
+  end 
+end
+
+subsection ODE solver
+  # Maximum nonlinear solver iterations
+  set nonlinear_max_iterations            = 500
+
+  # Nonlinear solver residual tolerance
+  set nonlinear_steady_residual_tolerance = 1e-12
+
+  # Print every print_iteration_modulo iterations of the nonlinear solver
+  set print_iteration_modulo              = 1
+
+  # Explicit or implicit solverChoices are <explicit|implicit>.
+  set ode_solver_type                         = implicit
+end
+
+subsection grid refinement study
+  # polyonomial degrees
+  set poly_degree      = 1
+  set poly_degree_max  = 4
+  set poly_degree_grid = 1
+
+  # grid setup
+  set grid_type  = hypercube
+  #set input_grid = NaN
+  set grid_left  = 0.0
+  set grid_right = 1.0
+  set grid_size  = 4
+
+  # indicate whether to solve the problem (faster for testing)
+  set use_interpolation = true
+
+  # grid refinement - 0
+  subsection grid refinement
+    set refinement_steps      = 9
+    set refinement_method     = fixed_fraction
+    set refinement_type       = h
+    set anisotropic           = true
+    set anisotropic_indicator = reconstruction_based
+    set error_indicator       = hessian_based
+    set refinement_fraction   = 0.3
+    set coarsening_fraction   = 0.00
+  end
+
+  # output options (defaults)
+end
+
+subsection manufactured solution convergence study
+  set use_manufactured_source_term = true
+  set manufactured_solution_type   = atan_solution #boundary_layer_solution #s_shock_solution  #
+end
+

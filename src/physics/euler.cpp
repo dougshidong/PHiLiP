@@ -11,12 +11,16 @@ namespace PHiLiP {
 namespace Physics {
 
 template <int dim, int nstate, typename real>
-Euler<dim,nstate,real>::Euler ( const double ref_length,
-                                const double gamma_gas,
-                                const double mach_inf,
-                                const double angle_of_attack,
-                                const double side_slip_angle)
-    : ref_length(ref_length)
+Euler<dim,nstate,real>::Euler ( 
+    const double                                              ref_length,
+    const double                                              gamma_gas,
+    const double                                              mach_inf,
+    const double                                              angle_of_attack,
+    const double                                              side_slip_angle,
+    const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function)
+    : PhysicsBase<dim,nstate,real>(input_diffusion_tensor, manufactured_solution_function)
+    , ref_length(ref_length)
     , gam(gamma_gas)
     , gamm1(gam-1.0)
     , density_inf(1.0)

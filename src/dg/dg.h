@@ -59,24 +59,20 @@ namespace PHiLiP {
   *  \f]
   *
   */
-template <int dim, typename real>
-class DGBase
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class DGBase 
 {
 public:
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
     /** Triangulation to store the grid.
      *  In 1D, dealii::Triangulation<dim> is used.
      *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
      */
-    using Triangulation = dealii::Triangulation<dim>;
-#else
-    /** Triangulation to store the grid.
-     *  In 1D, dealii::Triangulation<dim> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-     */
-    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
-#endif
-public:
+    using Triangulation = MeshType;
+
     const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
 
     /// Number of state variables.
@@ -84,7 +80,10 @@ public:
      *  DGBase cannot use nstate as a compile-time known.  */
     const int nstate;
 
-    /// Maximum degree used for p-refinement.
+    /// Initial polynomial degree assigned during constructor
+    const unsigned int initial_degree;
+
+    /// Maximum degree used for p-refi1nement.
     /** This is known through the constructor parameters.
      *  DGBase cannot use nstate as a compile-time known.  */
     const unsigned int max_degree;
@@ -103,6 +102,12 @@ public:
            const unsigned int grid_degree_input,
            const std::shared_ptr<Triangulation> triangulation_input);
 
+
+    /// Reinitializes the DG object after a change of triangulation
+    /** Calls respective function for high-order-grid and initializes dof_handler
+     *  again. Also resets all fe_degrees to intial_degree set during constructor.
+     */
+    void reinit();
 
     /// Makes for cleaner doxygen documentation
     using MassiveCollectionTuple = std::tuple<
@@ -130,15 +135,20 @@ public:
 
 
     /// Sets the associated high order grid with the provided one.
-    void set_high_order_grid(std::shared_ptr<HighOrderGrid<dim,real>> new_high_order_grid);
+    void set_high_order_grid(std::shared_ptr<HighOrderGrid<dim,real,MeshType>> new_high_order_grid);
 
     /// Refers to a collection Mappings, which represents the high-order grid.
     /** Since we are interested in performing mesh movement for optimization purposes,
      *  this is not a constant member variables.
      */
     //dealii::hp::MappingCollection<dim> mapping_collection;
-
     void set_all_cells_fe_degree ( const unsigned int degree );
+
+    /// Gets the maximum value of currently active FE degree
+    unsigned int get_max_fe_degree();
+
+    /// Gets the minimum value of currently active FE degree
+    unsigned int get_min_fe_degree();
 
     /// Allocates the system.
     /** Must be done after setting the mesh and before assembling the system. */
@@ -495,7 +505,7 @@ public:
     dealii::DoFHandler<dim> dof_handler;
 
     /// High order grid that will provide the MappingFEField
-    std::shared_ptr<HighOrderGrid<dim,real>> high_order_grid;
+    std::shared_ptr<HighOrderGrid<dim,real,MeshType>> high_order_grid;
 
 protected:
     /// Continuous distribution of artificial dissipation.
@@ -649,15 +659,19 @@ public:
 /// Abstract class templated on the number of state variables
 /*  Contains the objects and functions that need to be templated on the number of state variables.
  */
-template <int dim, int nstate, typename real>
-class DGBaseState : public DGBase<dim, real>
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class DGBaseState : public DGBase<dim, real, MeshType>
 {
 protected:
     /// Alias to base class Triangulation.
-    using Triangulation = typename DGBase<dim,real>::Triangulation;
+    using Triangulation = typename DGBase<dim,real,MeshType>::Triangulation;
 
 public:
-    using DGBase<dim,real>::all_parameters; ///< Parallel std::cout that only outputs on mpi_rank==0
+    using DGBase<dim,real,MeshType>::all_parameters; ///< Parallel std::cout that only outputs on mpi_rank==0
     /// Constructor.
     DGBaseState(
         const Parameters::AllParameters *const parameters_input,

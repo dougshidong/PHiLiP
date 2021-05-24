@@ -3,6 +3,7 @@
 
 #include <deal.II/base/tensor.h>
 #include "physics.h"
+#include "parameters/parameters_manufactured_solution.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -77,11 +78,14 @@ class Euler : public PhysicsBase <dim, nstate, real>
 {
 public:
     /// Constructor
-    Euler ( const double ref_length,
-            const double gamma_gas,
-            const double mach_inf,
-            const double angle_of_attack,
-            const double side_slip_angle);
+    Euler ( 
+        const double                                              ref_length,
+        const double                                              gamma_gas,
+        const double                                              mach_inf,
+        const double                                              angle_of_attack,
+        const double                                              side_slip_angle,
+        const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
 
     const double ref_length; ///< Reference length.
     const double gam; ///< Constant heat capacity ratio of fluid.

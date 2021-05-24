@@ -13,6 +13,10 @@ foreach(dim RANGE 1 3)
     string(CONCAT PhysicsLib Physics_${dim}D)
     add_library(${PhysicsLib} STATIC ${SOURCE})
 
+    # Library dependency
+    string(CONCAT ParameterLib ParametersLibrary)
+    target_link_libraries(${PhysicsLib} ${ParameterLib})
+
     # Setup target with deal.II
     if(NOT DOC_ONLY)
         DEAL_II_SETUP_TARGET(${PhysicsLib})

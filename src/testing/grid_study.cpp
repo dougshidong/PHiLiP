@@ -30,6 +30,9 @@
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver.h"
 
+#include "grid_refinement/grid_refinement.h"
+#include "grid_refinement/gmsh_out.h"
+#include "grid_refinement/size_field.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -209,7 +212,8 @@ int GridStudy<dim,nstate>
                 dealii::Triangulation<dim>::smoothing_on_refinement |
                 dealii::Triangulation<dim>::smoothing_on_coarsening));
 
-        dealii::Vector<float> estimated_error_per_cell;
+        dealii::Vector<float>  estimated_error_per_cell;
+        dealii::Vector<double> estimated_error_per_cell_double;
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
             grid->clear();
             dealii::GridGenerator::subdivided_hyper_cube(*grid, n_1d_cells[igrid]);
@@ -356,6 +360,7 @@ int GridStudy<dim,nstate>
 
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
             estimated_error_per_cell.reinit(grid->n_active_cells());
+            estimated_error_per_cell_double.reinit(grid->n_active_cells());
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
 
                 if (!cell->is_locally_owned()) continue;
@@ -382,12 +387,28 @@ int GridStudy<dim,nstate>
                     }
                 }
                 estimated_error_per_cell[cell->active_cell_index()] = cell_l2error;
+                estimated_error_per_cell_double[cell->active_cell_index()] = cell_l2error;
                 l2error += cell_l2error;
 
             }
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
 
             double solution_integral = integrate_solution_over_domain(*dg);
+
+            /*
+            dg->output_results_vtk(igrid);
+
+            std::string write_posname = "error-"+std::to_string(igrid)+".pos";
+            std::ofstream outpos(write_posname);
+            GridRefinement::GmshOut<dim,double>::write_pos(grid,estimated_error_per_cell_double,outpos);
+
+            std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  gr 
+                = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);
+
+            gr->refine_grid();
+
+            // dg->output_results_vtk(igrid);
+            */
 
             // Convergence table
             const double dx = 1.0/pow(n_dofs,(1.0/dim));

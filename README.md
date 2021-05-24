@@ -52,6 +52,11 @@ The code has been succesfully built in the following environments:
 
 Please consult the [installation instructions](INSTALL.md) for details concerning required software.
 
+### Failing tests
+
+Since this library is developed by graduate students at McGill, there will always be sections that are work-in-progress. Some tests currently fail and are left here as part of "to-do" fixes. Therefore, if you experience any issues with tests, please consult the following list of known test failures.
+https://github.com/dougshidong/PHiLiP/issues?q=is%3Aissue+is%3Aopen+label%3Atestfail
+
 ### Build using CMake
 
 This must be build out-of-source. An in-source build is likely to fail. For example, to configure for the debug build:

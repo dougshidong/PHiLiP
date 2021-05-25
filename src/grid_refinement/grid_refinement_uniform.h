@@ -40,19 +40,19 @@ protected:
 
     // specified refinement functions for different cases
 
-    /// Uniform $h$ grid refinement
-    /** Uniformly refines the mesh with $h$-refinement by subdividing all cells.
+    /// Uniform \f$h\f$ grid refinement
+    /** Uniformly refines the mesh with \f$h\f$-refinement by subdividing all cells.
       */ 
     void refine_grid_h();
     
-    /// Uniform $p$ grid refinement
+    /// Uniform \f$p\f$ grid refinement
     /** Increments the polynomial order of each cell by 1.
       */ 
     void refine_grid_p();
 
-    /// Uniform $hp$ grid refinement
-    /** Performs call to uniform mesh $h$-refinement by splitting all cells followed
-      * by uniform $p$-refinement where the polynomial order of each cell is
+    /// Uniform \f$hp\f$ grid refinement
+    /** Performs call to uniform mesh \f$h\f$-refinement by splitting all cells followed
+      * by uniform \f$p\f$-refinement where the polynomial order of each cell is
       * incremented by 1.
       */ 
     void refine_grid_hp();

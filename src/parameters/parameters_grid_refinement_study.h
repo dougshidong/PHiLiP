@@ -46,7 +46,7 @@ public:
     /// Number of different refinement procedures stored, 0 indicates to use the default pathway
     unsigned int num_refinements; 
 
-    // simplified set of descriptors for the grid for now, replace by grid in param
+    /// simplified set of descriptors for the grid for now, replace by grid in param
     using GridEnum = Parameters::ManufacturedConvergenceStudyParam::GridEnum;
     /// Grid type selection
     GridEnum grid_type;

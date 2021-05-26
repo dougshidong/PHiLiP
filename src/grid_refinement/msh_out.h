@@ -11,15 +11,15 @@ namespace GridRefinement {
 /// Enum of mesh storage locations for .msh data fields
 enum class StorageType{
     node,        ///< Values stored at mesh nodes
-    element,     ///< Values stored at mesh elements ($C^0$)
-    elementNode, ///< Values stored at each node of each element ($C^1$)
+    element,     ///< Values stored at mesh elements (\f$C^0\f$)
+    elementNode, ///< Values stored at each node of each element (\f$C^1\f$)
 };
 
 /// Enum of data types for .msh data fields
 enum class DataType{
     scalar, ///< Scalar data entries 
-    vector, ///< Vector data entries ($3\times1$)
-    matrix, ///< Matrix data entries ($3\times3$)
+    vector, ///< Vector data entries (\f$3\times1\f$)
+    matrix, ///< Matrix data entries (\f$3\times3\f$)
 };
 
 /// Data structure class for data fields of .msh files

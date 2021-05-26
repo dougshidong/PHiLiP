@@ -12,6 +12,7 @@ namespace Parameters {
 /// Parameterse related to the functional object
 class FunctionalParam
 {
+    /// Enumerator of manufactured solution types
     using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
 public:
     /// Choices for functional types to be used

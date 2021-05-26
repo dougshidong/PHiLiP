@@ -11,10 +11,10 @@ namespace GridRefinement {
 /** This class offers methods to perform fixed-fraction style refinement using
   * built in Deal.II refinement methods. These methods work by first flagging a
   * chosen fraction of the mesh with largest error indicator to be refined. In 
-  * $h$-refinement, this is applied by splitting each cell into a set of subcells
-  * (which may potentially be anisotropic). Methods for $p$-refinement are also
+  * \f$h\f$-refinement, this is applied by splitting each cell into a set of subcells
+  * (which may potentially be anisotropic). Methods for \f$p\f$-refinement are also
   * supported which locally increment the polynomial order of the discretization.
-  * $hp$-refinement is not fully supported, but some placeholder functions have been
+  * \f$hp\f$-refinement is not fully supported, but some placeholder functions have been
   * included to facilitate this in the future. 
   * Note: Some functionality and behaviour will vary depending on the choice of triangulation
   *       used for both the refinement step and in other parts of the code.
@@ -35,7 +35,7 @@ public:
       * passed at setup to the grid refinement factor class.
       * 
       * For fixed-fraction refinement, this function first computes the error-indicator
-      * and optionally smoothness indicator (if used for anisotropy or $hp$-refinement)
+      * and optionally smoothness indicator (if used for anisotropy or \f$hp\f$-refinement)
       * then calls proper refinement function to flag and modify the grid in the desired 
       * manner (locally splitting cells or change polynomial orderes). Also automatically
       * transfers the solution onto the new embedded mesh.
@@ -52,7 +52,7 @@ protected:
     /** Based on the distribution of the error indicator, the fraction of cells with the
       * largest values will be marked for refinement and the fraction with the lowest values
       * will be marked for coarsening. At the end of the refine_grid function, when the refinement
-      * is executed refined cells will be split into $2^{dim}$ subcells along with any neighbors
+      * is executed refined cells will be split into \f$2^{dim}\f$ subcells along with any neighbors
       * needed to maintain 2:1 face connectivity. Coarsened cells will be recombined if neighbor
       * cells have also been marked in such a way that they can be merged. Usually coarsening
       * is less consistently applied and it may be simpler to only target refinements.
@@ -68,9 +68,9 @@ protected:
 
     /// (NOT IMPLEMENTED) Based on error and smoothness indicator, perform fixed-fraction flagging and decision between element splitting and polynomial order enrichment
     /** After first flagging the cells using the refine_grid_h function, this method 
-      * loops back over the grid and selectively changes the local cell to target $p$-refinement
+      * loops back over the grid and selectively changes the local cell to target \f$p\f$-refinement
       * if the smoothness indicator is above a specified tolerance. This offers better overall
-      * convergence in smooth areas of the flow, but, due to Gibb's phenomenon, $h$-refinement
+      * convergence in smooth areas of the flow, but, due to Gibb's phenomenon, \f$h\f$-refinement
       * is better suited for areas with discontinuities (such as shocks).
       */ 
     void refine_grid_hp();   
@@ -82,11 +82,11 @@ protected:
       */ 
     void refine_boundary_h();
 
-    /// (NOT IMPLEMENTED) Computes smoothness indicator for $hp$-refinement decisions
+    /// (NOT IMPLEMENTED) Computes smoothness indicator for \f$hp\f$-refinement decisions
     /** Due to Gibbs phenomenon, even with a high-order method convergence degrades in 
       * regions with discontinuities. Therefore, for capturing shocks and other phenomenon
-      * $h$-refinement is more suitable. However, in smoother areas of the problem,
-      * $p$-refinement is capable of capturing large areas with fewer elements offering
+      * \f$h\f$-refinement is more suitable. However, in smoother areas of the problem,
+      * \f$p\f$-refinement is capable of capturing large areas with fewer elements offering
       * potential spectral convergence. Therefore, this placeholder function is intended
       * to approximate the smoothness of the flow for choosing between the refinement types.
       */ 
@@ -112,7 +112,7 @@ protected:
     void anisotropic_h_jump_based();
 
     /// Sets anisotropic refinement flags for cells based on directional derivatives reconstructed along the chord lines
-    /** Uses a polynomial reconstruction of the high-order $p+1$ derivatives to estimate the 
+    /** Uses a polynomial reconstruction of the high-order \f$p+1\f$ derivatives to estimate the 
       * effectivness of refinement along a single cell axis instead of isotropically. The indicator
       * along each cell chord (the vector from opposing face center to opposing face center) and
       * compared relative to the anisotropic_threshold_ratio needed to alter the flagging of the cell
@@ -134,29 +134,29 @@ protected:
     /// Compute error indicator based on Lq norm relative to exact manufactured solution
     /** For debugging and testing, uses the manufactured solution function to determine
       * innacuracies in the current results. Not useful for any actual refinement as it 
-      * requires knowledge about the exact problem solution, $u(\bm{x})$:
+      * requires knowledge about the exact problem solution, \f$u(\boldsymbol{x}\f$:
       * 
       * \f[
-      *     E_i = \int_{\Omega_i} {|u_h(\bm{x}) - u(\bm{x})|^{Lq} \mathrm{d}\bm{x}}
+      *     E_i = \int_{\Omega_i} {|u_h(\boldsymbol{x}) - u(\boldsymbol{x})|^{Lq} \mathrm{d}\boldsymbol{x}}
       * \f]
       * 
-      * Evaluated for each element $\Omega_i$ in the mesh.
+      * Evaluated for each element \f$\Omega_i\f$ in the mesh.
       */ 
     void error_indicator_error();
 
-    /// Compute error indicator based on reconstructed $p+1$ directional derivatives
+    /// Compute error indicator based on reconstructed \f$p+1\f$ directional derivatives
     /** Uses the reconstructed enriched solution space to determine which areas of
       * the mesh result in the largest discretization error. It is similar in strategy
       * to existing hessian-based and similar high-order approximations. However, in
       * the current scope it is applied to flag cells for splitting. This is done based
-      * on the fact the error approximates the $p+1$ solution:
+      * on the fact the error approximates the \f$p+1\f$ solution:
       * 
       * \f[
-      *     E_i = u_{h,p+1}(\bm{x}+h\bm{\xi}) - u_{h,p}(\bm{x}+h\bm{\xi}) 
-      *         = D_{\bm{\xi}}^{p+1} u(x) h^{p+1}
+      *     E_i = u_{h,p+1}(\boldsymbol{x}+h\boldsymbol{\xi}) - u_{h,p}(\boldsymbol{x}+h\boldsymbol{\xi}) 
+      *         = D_{\boldsymbol{\xi}}^{p+1} u(x) h^{p+1}
       * \f]
       * 
-      * based on the taylor series expansion where $\bm{\xi}$ is the direction vector used
+      * based on the taylor series expansion where \f$\boldsymbol{\xi}\f$ is the direction vector used
       * in the largest directional derivative
       */ 
     void error_indicator_hessian();
@@ -171,7 +171,7 @@ protected:
       *     E_i = |\mathcal{R}_h(u_h^H)|
       * \f]
       * 
-      * where $u_h^H$ is the prolongation operator to the fine mesh.
+      * where \f$u_h^H\f$ is the prolongation operator to the fine mesh.
       */
     void error_indicator_residual();
 

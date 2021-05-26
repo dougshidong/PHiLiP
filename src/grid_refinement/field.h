@@ -25,7 +25,7 @@ class Element
 public:
 	/// Reference for element size
 	/** Allows direct read/write of scale of mean element axis.
-	  * Measure of element (length, area, volume) will be $scale^{dim}$
+	  * Measure of element (length, area, volume) will be \f$scale^{dim}\f$
 	  */
 	virtual real& scale() = 0;
 
@@ -38,7 +38,7 @@ public:
 
 	/// Set the anisotropic ratio for each reference axis
 	/** Requires array of order matching axis definition. 
-	  * Each reference axis will have length $l = \alpha * scale$.
+	  * Each reference axis will have length \f$l = \alpha * scale\f$.
 	  * Note: does nothing in the isotropic case. 
 	  */
 	virtual void set_anisotropic_ratio(
@@ -49,7 +49,7 @@ public:
 	  */ 
 	virtual std::array<real,dim> get_anisotropic_ratio() = 0;
 
-	/// Get the anisotropic ratio corresponding to the $j^{th}$ reference axis
+	/// Get the anisotropic ratio corresponding to the \f$j^{th}\f$ reference axis
 	/** Note: equals 1 for each axis in isotropic case.
 	  */ 
 	virtual real get_anisotropic_ratio(
@@ -66,7 +66,7 @@ public:
 	/// Get unit axis directions as an array
 	virtual std::array<dealii::Tensor<1,dim,real>,dim> get_unit_axis() = 0;
 
-	/// Get the $j^{th}$ reference axis
+	/// Get the \f$j^{th}\f$ reference axis
 	virtual dealii::Tensor<1,dim,real> get_unit_axis(
 		const unsigned int j) = 0;
 
@@ -77,21 +77,21 @@ public:
 	virtual void set_axis(
 		const std::array<dealii::Tensor<1,dim,real>,dim>& axis) = 0;
 
-	/// Get the array of axes of the local frame field $(v_1,v_2,v_3)$
+	/// Get the array of axes of the local frame field \f$(v_1,v_2,v_3)\f$
 	virtual std::array<dealii::Tensor<1,dim,real>,dim> get_axis() = 0;
 
-	/// Get the vector corresponding to the $j^{th}$ frame axis $v_j$
+	/// Get the vector corresponding to the \f$j^{th}\f$ frame axis \f$v_j\f$
 	virtual dealii::Tensor<1,dim,real> get_axis(
 		const unsigned int j) = 0;
 
 	/// Get metric matrix at point describing mapping from reference element
-	/** In 2D orthorgonal case, $V = [v,w] = h * R(\theta) * \operatorname{diag}{\rho,1/\rho}$.
-	  * Under transformation, order of axes is maintained with $(i,j,k)$ vectors mapping to $(v_1,v_2,v_3)$
+	/** In 2D orthorgonal case, \f$V = [v,w] = h * R(\theta) * \mathrm{diag}{\rho,1/\rho}\f$.
+	  * Under transformation, order of axes is maintained with \f$(i,j,k)\f$ vectors mapping to \f$(v_1,v_2,v_3)\f$
 	  */ 
 	virtual dealii::Tensor<2,dim,real> get_metric() = 0;
 
 	///. Get inverse metric matrix for the reference element
-	/** In 2D orthogonal case, $V = 1/h * \operatorname{diag}{\rho,1/\rho} * R(-\theta)$.
+	/** In 2D orthogonal case, \f$V = 1/h * \mathrm{diag}{\rho,1/\rho} * R(-\theta)\f$.
 	  */ 
 	virtual dealii::Tensor<2,dim,real> get_inverse_metric() = 0;
 
@@ -161,7 +161,7 @@ class ElementIsotropic : public Element<dim,real>
 public:
 	/// Reference for element size
 	/** Allows direct read/write of scale of mean element axis.
-	  * Measure of element (length, area, volume) will be $scale^{dim}$
+	  * Measure of element (length, area, volume) will be \f$scale^{dim}\f$
 	  */
 	real& scale() override;
 
@@ -174,7 +174,7 @@ public:
 
 	/// Set the anisotropic ratio for each reference axis
 	/** Requires array of order matching axis definition. 
-	  * Each reference axis will have length $l = \alpha * scale$.
+	  * Each reference axis will have length \f$l = \alpha * scale\f$.
 	  * Note: does nothing in the isotropic case. 
 	  */
 	void set_anisotropic_ratio(
@@ -185,7 +185,7 @@ public:
 	  */ 
 	std::array<real,dim> get_anisotropic_ratio() override;
 
-	/// Get the anisotropic ratio corresponding to the $j^{th}$ reference axis
+	/// Get the anisotropic ratio corresponding to the \f$j^{th}\f$ reference axis
 	/** Note: equals 1 for each axis in isotropic case.
 	  */ 
 	real get_anisotropic_ratio(
@@ -202,7 +202,7 @@ public:
 	/// Get unit axis directions as an array
 	std::array<dealii::Tensor<1,dim,real>,dim> get_unit_axis() override;
 
-	/// Get the $j^{th}$ reference axis
+	/// Get the \f$j^{th}\f$ reference axis
 	dealii::Tensor<1,dim,real> get_unit_axis(
 		const unsigned int j) override;
 
@@ -213,21 +213,21 @@ public:
 	void set_axis(
 		const std::array<dealii::Tensor<1,dim,real>,dim>& axis) override;
 
-	/// Get the array of axes of the local frame field $(v_1,v_2,v_3)$
+	/// Get the array of axes of the local frame field \f$(v_1,v_2,v_3)\f$
 	std::array<dealii::Tensor<1,dim,real>,dim> get_axis() override;
 
-	/// Get the vector corresponding to the $j^{th}$ frame axis $v_j$
+	/// Get the vector corresponding to the \f$j^{th}\f$ frame axis \f$v_j\f$
 	dealii::Tensor<1,dim,real> get_axis(
 		const unsigned int j) override;
 
 	/// Get metric matrix at point describing mapping from reference element
-	/** In 2D orthorgonal case, $V = [v,w] = h * R(\theta) * \operatorname{diag}{\rho,1/\rho}$.
-	  * Under transformation, order of axes is maintained with $(i,j,k)$ vectors mapping to $(v_1,v_2,v_3)$
+	/** In 2D orthorgonal case, \f$V = [v,w] = h * R(\theta) * \mathrm{diag}{\rho,1/\rho}\f$.
+	  * Under transformation, order of axes is maintained with \f$(i,j,k)\f$ vectors mapping to \f$(v_1,v_2,v_3)\f$
 	  */
 	dealii::Tensor<2,dim,real> get_metric() override;
 
 	/// Get inverse metric matrix for the reference element
-	/** In 2D orthogonal case, $V = 1/h * \operatorname{diag}{\rho,1/\rho} * R(-\theta)$.
+	/** In 2D orthogonal case, \f$V = 1/h * \mathrm{diag}{\rho,1/\rho} * R(-\theta)\f$.
 	  */ 
 	dealii::Tensor<2,dim,real> get_inverse_metric() override;
 
@@ -293,7 +293,7 @@ public:
 
 	/// Reference for element size
 	/** Allows direct read/write of scale of mean element axis.
-	  * Measure of element (length, area, volume) will be $scale^{dim}$
+	  * Measure of element (length, area, volume) will be \f$scale^{dim}\f$
 	  */
 	real& scale() override;
 
@@ -306,7 +306,7 @@ public:
 
 	/// Set the anisotropic ratio for each reference axis
 	/** Requires array of order matching axis definition. 
-	  * Each reference axis will have length $l = \alpha * scale$.
+	  * Each reference axis will have length \f$l = \alpha * scale\f$.
 	  * Note: does nothing in the isotropic case. 
 	  */
 	void set_anisotropic_ratio(
@@ -317,7 +317,7 @@ public:
 	  */ 
 	std::array<real,dim> get_anisotropic_ratio() override;
 
-	/// Get the anisotropic ratio corresponding to the $j^{th}$ reference axis
+	/// Get the anisotropic ratio corresponding to the \f$j^{th}\f$ reference axis
 	/** Note: equals 1 for each axis in isotropic case.
 	  */ 
 	real get_anisotropic_ratio(
@@ -428,7 +428,7 @@ private:
 	/// Sorts the anisotropic ratio values (and corresponding unit axis) in ascending order
 	void sort_anisotropic_ratio();
 
-	/// element size based on $(Volume)^{1/dim}$
+	/// element size based on \f$(Volume)^{1/dim}\f$
 	real m_scale;
 
 	/// Anisotropic axis ratios (relative to element scale)
@@ -540,32 +540,32 @@ public:
 	std::vector<dealii::Tensor<1,dim,real>> get_axis_vector(
 		const unsigned int j);
 
-	/// Gets the anisotropic metric tensor, $M$, for the specified element index
+	/// Gets the anisotropic metric tensor, \f$M\f$, for the specified element index
 	virtual dealii::Tensor<2,dim,real> get_metric(
 		const unsigned int index) = 0;
 
-	/// Gets the anisotropic metric tensor, $M$, for each element (std::vector)
+	/// Gets the anisotropic metric tensor, \f$M\f$, for each element (std::vector)
 	std::vector<dealii::Tensor<2,dim,real>> get_metric_vector();
 
-	/// Gets the inverse metric tensor, $M^{-1}$, for the specified element index
+	/// Gets the inverse metric tensor, \f$M^{-1}\f$, for the specified element index
 	virtual dealii::Tensor<2,dim,real> get_inverse_metric(
 		const unsigned int index) = 0;
 
-	/// Gets the inverse metric tensor, $M^{-1}$,  for each element (std::vector)
+	/// Gets the inverse metric tensor, \f$M^{-1}\f$,  for each element (std::vector)
 	std::vector<dealii::Tensor<2,dim,real>> get_inverse_metric_vector();
 
-	/// Gets the quadratic Riemannian metric, $\mathcal{M} = M^T M$, for the specified element index
+	/// Gets the quadratic Riemannian metric, \f$\mathcal{M} = M^T M\f$, for the specified element index
 	dealii::SymmetricTensor<2,dim,real> get_quadratic_metric(
 		const unsigned int index);
 
-	/// Gets the quadratic Riemannian metric, $\mathcal{M} = M^T M$, for each element (std::vector)
+	/// Gets the quadratic Riemannian metric, \f$\mathcal{M} = M^T M\f$, for each element (std::vector)
 	std::vector<dealii::SymmetricTensor<2,dim,real>> get_quadratic_metric_vector();
 
-	/// Gets the inverse quadratic Riemannian metric used with BAMG, $\mathcal{M}^{-1}$, for a specified element index
+	/// Gets the inverse quadratic Riemannian metric used with BAMG, \f$\mathcal{M}^{-1}\f$, for a specified element index
 	dealii::SymmetricTensor<2,dim,real> get_inverse_quadratic_metric(
 		const unsigned int index);
 
-	/// Gets the inverse quadratic Riemannian metric used with BAMG, $\mathcal{M}^{-1}$, for each element (std::vector)
+	/// Gets the inverse quadratic Riemannian metric used with BAMG, \f$\mathcal{M}^{-1}\f$, for each element (std::vector)
 	std::vector<dealii::SymmetricTensor<2,dim,real>> get_inverse_quadratic_metric_vector();
 
 	/// Associated DofHandler type
@@ -576,7 +576,7 @@ public:
 		const DoFHandlerType& dof_handler) = 0;
 
 	/// Compute anisotropic ratio from directional derivatives
-	/** Uses Dolejsi's anisotropy method based on reconstructed $p+1$ directional derivatives.
+	/** Uses Dolejsi's anisotropy method based on reconstructed \f$p+1\f$ directional derivatives.
 	  * Derivatives are obtained in reconstruct_poly.cpp.
 	  */ 
 	virtual void set_anisotropy(
@@ -677,11 +677,11 @@ public:
 		const unsigned int index,
 		const unsigned int j) override;
 
-	// Gets the anisotropic metric tensor, $M$, for the specified element index
+	// Gets the anisotropic metric tensor, \f$M\f$, for the specified element index
 	dealii::Tensor<2,dim,real> get_metric(
 		const unsigned int index) override;
 
-	//  Gets the inverse metric tensor, $M^{-1}$, for the specified element index
+	//  Gets the inverse metric tensor, \f$M^{-1}\f$, for the specified element index
 	dealii::Tensor<2,dim,real> get_inverse_metric(
 		const unsigned int index) override;
 
@@ -697,7 +697,7 @@ public:
 	}
 
 	/// Compute anisotropic ratio from directional derivatives
-	/** Uses Dolejsi's anisotropy method based on reconstructed $p+1$ directional derivatives.
+	/** Uses Dolejsi's anisotropy method based on reconstructed \f$p+1\f$ directional derivatives.
 	  * Derivatives are obtained in reconstruct_poly.cpp.
 	  */ 
 	void set_anisotropy(

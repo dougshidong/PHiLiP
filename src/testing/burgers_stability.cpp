@@ -16,6 +16,10 @@
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
 #include "dg/dg.h"
+<<<<<<< HEAD
+=======
+#include "dg/dg_factory.hpp"
+>>>>>>> 355f9d2acfa1d865a761a149c906f36189d69b67
 #include "ode_solver/ode_solver.h"
 #include <fstream>
 
@@ -116,11 +120,16 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
 	unsigned int poly_degree = 4;
         dealii::ConvergenceTable convergence_table;
         const unsigned int igrid_start = 3;
+<<<<<<< HEAD
+=======
+        const unsigned int grid_degree = 1;
+>>>>>>> 355f9d2acfa1d865a761a149c906f36189d69b67
 
 //        const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids_input);
         for(unsigned int igrid = igrid_start; igrid<n_grids; igrid++){
 
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+<<<<<<< HEAD
 			dealii::Triangulation<dim> grid(
 				typename dealii::Triangulation<dim>::MeshSmoothing(
 					dealii::Triangulation<dim>::smoothing_on_refinement |
@@ -131,6 +140,23 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
 #endif
 //straight
     dealii::GridGenerator::hyper_cube(grid, left, right, true);
+=======
+    using Triangulation = dealii::Triangulation<dim>;
+    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+        typename dealii::Triangulation<dim>::MeshSmoothing(
+            dealii::Triangulation<dim>::smoothing_on_refinement |
+            dealii::Triangulation<dim>::smoothing_on_coarsening));
+#else
+    using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+        MPI_COMM_WORLD,
+        typename dealii::Triangulation<dim>::MeshSmoothing(
+            dealii::Triangulation<dim>::smoothing_on_refinement |
+            dealii::Triangulation<dim>::smoothing_on_coarsening));
+#endif
+//straight
+    dealii::GridGenerator::hyper_cube(*grid, left, right, true);
+>>>>>>> 355f9d2acfa1d865a761a149c906f36189d69b67
     //dealii::GridGenerator::subdivided_hyper_cube(grid,static_cast<int>(pow(2, igrid)),left, right);
       //  dealii::GridGenerator::subdivided_hyper_cube(grid_super_fine, n_1d_cells[n_grids_input-1]);
 //curvilinear
@@ -150,6 +176,7 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 #if PHILIP_DIM==1
 #else
 	std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
+<<<<<<< HEAD
 		dealii::GridTools::collect_periodic_faces(grid,0,1,0,matched_pairs);
                 if(dim == 2)
 		dealii::GridTools::collect_periodic_faces(grid,2,3,1,matched_pairs);
@@ -161,6 +188,19 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 	pcout << "Grid generated and refined" << std::endl;
 //CFL number
     const unsigned int n_global_active_cells2 = grid.n_global_active_cells();
+=======
+		dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
+                if(dim == 2)
+		dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
+                if(dim==3)
+		dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
+		grid->add_periodicity(matched_pairs);
+#endif
+	grid->refine_global(igrid);
+	pcout << "Grid generated and refined" << std::endl;
+//CFL number
+    const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
+>>>>>>> 355f9d2acfa1d865a761a149c906f36189d69b67
     double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
     double delta_x = (right-left)/pow(n_dofs_cfl,(1.0/dim)); 
     all_parameters_new.ode_solver_param.initial_time_step =  0.00005*delta_x;
@@ -176,7 +216,12 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
          
 //allocate dg
 //	std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, &grid);
+<<<<<<< HEAD
 	std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, &grid);
+=======
+//	std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, &grid);
+    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+>>>>>>> 355f9d2acfa1d865a761a149c906f36189d69b67
 	pcout << "dg created" <<std::endl;
 	dg->allocate_system ();
 
@@ -252,7 +297,11 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 
           //  finalTime = 10.0 * all_parameters_new.ode_solver_param.initial_time_step;
 	    ode_solver->advance_solution_time(finalTime);
+<<<<<<< HEAD
             const unsigned int n_global_active_cells = grid.n_global_active_cells();
+=======
+            const unsigned int n_global_active_cells = grid->n_global_active_cells();
+>>>>>>> 355f9d2acfa1d865a761a149c906f36189d69b67
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
             pcout << "Dimension: " << dim
                  << "\t Polynomial degree p: " << poly_degree
@@ -267,7 +316,11 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
             //dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
             dealii::QGauss<dim> quad_extra(poly_degree+1+overintegrate);
             //dealii::MappingQ<dim,dim> mappingq(dg->max_degree+1);
+<<<<<<< HEAD
             dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid.mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
+=======
+            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
+>>>>>>> 355f9d2acfa1d865a761a149c906f36189d69b67
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;

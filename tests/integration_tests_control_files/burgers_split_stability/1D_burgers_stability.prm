@@ -8,15 +8,28 @@ set use_collocated_nodes = false
 
 set use_split_form = true
 
+<<<<<<< HEAD
+=======
+#set use_projected_flux = false
+
+>>>>>>> 355f9d2acfa1d865a761a149c906f36189d69b67
 set use_energy = true
 
 set use_L2_norm = false
 
+<<<<<<< HEAD
 set use_classical_Flux_Reconstruction = true
 
 set use_periodic_bc = true
 
 set flux_reconstruction = cHU
+=======
+#set use_classical_Flux_Reconstruction = true
+
+set use_periodic_bc = true
+
+set flux_reconstruction = cPlus
+>>>>>>> 355f9d2acfa1d865a761a149c906f36189d69b67
 
 #set use_skew_sym_deriv = false
 

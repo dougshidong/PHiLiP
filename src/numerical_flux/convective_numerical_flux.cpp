@@ -81,6 +81,7 @@ std::array<real, nstate> Roe<dim,nstate,real>
 {
     // Blazek 2015
     // p. 103-105
+    // Note: This is in fact the Roe-Pike method of Roe & Pike (1984 - Efficient)
     const std::array<real,nstate> prim_soln_int = euler_physics->convert_conservative_to_primitive(soln_int);
     const std::array<real,nstate> prim_soln_ext = euler_physics->convert_conservative_to_primitive(soln_ext);
     // Left cell
@@ -150,21 +151,71 @@ std::array<real, nstate> Roe<dim,nstate,real>
     eig_R[1] = abs(normal_vel_R);
     eig_R[2] = abs(normal_vel_R+sound_R);
 
-    // Harten's entropy fix
+    // // Harten's entropy fix
+    // for(int e=0;e<3;e++) {
+    //     const real eps = std::max(abs(eig_ravg[e]-eig_L[e]), abs(eig_R[e]-eig_ravg[e]));
+    //     if(eig_ravg[e] < eps) {
+    //         eig_ravg[e] = 0.5*(eig_ravg[e]*eig_ravg[e]/eps + eps);
+    //     }
+    // }
+
+    // Van Leer et al. (1989 Sonic) entropy fix for acoustic waves -- double check with Osswald paper + van leer paper + cite it here
+    // -- p.74 of Osswald et al. (2016 L2Roe)
     for(int e=0;e<3;e++) {
-        const real eps = std::max(abs(eig_ravg[e]-eig_L[e]), abs(eig_R[e]-eig_ravg[e]));
-        if(abs(eig_ravg[e]) < eps) {
-            eig_ravg[e] = 0.5*(eig_ravg[e]*eig_ravg[e]/eps + eps);
+        if(e!=1) {
+            // const real deig = std::max((eig_R[e]-eig_L[e]), 0.0);
+            const real deig = std::max(static_cast<real>(eig_R[e]-eig_L[e]), static_cast<real>(0.0));
+            if(eig_ravg[e] < 2.0*deig) {
+                eig_ravg[e] = 0.25*(eig_ravg[e]*eig_ravg[e]/deig) + deig;
+            }
         }
+    }
+
+    // Shock indicator of Wada & Liou (1994 Flux) -- Eq.(39)
+    // -- See also p.74 of Osswald et al. (2016 L2Roe)
+    int ssw_L=0, ssw_R=0;
+    // ssw_L: i=L --> j=R
+    if((eig_L[0]>0.0 && eig_R[0]<0.0) || (eig_L[2]>0.0 && eig_R[2]<0.0)) {
+        ssw_L = 1;
+    }
+    // ssw_R: i=R --> j=L
+    if((eig_R[0]>0.0 && eig_L[0]<0.0) || (eig_R[2]>0.0 && eig_L[2]<0.0)) {
+        ssw_R = 1;
+    }
+
+    // Entropy fix of Liou (2000 Mass)
+    // -- p.74 of Osswald et al. (2016 L2Roe)
+    if(ssw_L!=0 || ssw_R!=0) {
+        eig_ravg[1] = std::max(sound_ravg, static_cast<real>(sqrt(vel2_ravg)));
     }
 
     // Physical fluxes
     const std::array<real,nstate> normal_flux_int = euler_physics->convective_normal_flux (soln_int, normal_int);
     const std::array<real,nstate> normal_flux_ext = euler_physics->convective_normal_flux (soln_ext, normal_int);
 
-    const real dVn = normal_vel_R-normal_vel_L;
+    real dVn = normal_vel_R-normal_vel_L;
     const real dp = pressure_R - pressure_L;
     const real drho = density_R - density_L;
+
+    // Jumps in tangential velocities -- testing
+    dealii::Tensor<1,dim,real> dVt;
+    for (int d=0;d<dim;d++) {
+        dVt[d] = (velocities_R[d] - velocities_L[d]) - dVn*normal_int[d];
+    }
+
+    // Osswald's two modifications to Roe-Pike scheme --> L2Roe
+    const real mach_number_L = euler_physics->compute_mach_number(soln_int);
+    const real mach_number_R = euler_physics->compute_mach_number(soln_ext);
+    const real blending_factor = std::min(static_cast<real>(1.0), std::max(mach_number_L,mach_number_R)); // 'z' variable in reference
+    // - Scale jump in (1) normal and (2) tangential velocities
+    if(ssw_L==0 && ssw_R==0)
+    {
+        dVn *= blending_factor;
+        for (int d=0;d<dim;d++)
+        { 
+            dVt[d] *= blending_factor;
+        }
+    }
 
     // Product of eigenvalues and wave strengths
     real coeff[4];
@@ -191,17 +242,23 @@ std::array<real, nstate> Roe<dim,nstate,real>
     AdW[nstate-1] += coeff[1] * vel2_ravg * 0.5;
 
     AdW[0] += coeff[2] * 0.0;
-    //const dealii::Tensor<1,dim,real> dvel = velocities_R - velocities_L;
-    dealii::Tensor<1,dim,real> dvel;
-    for (int d=0; d<dim; ++d) {
-        dvel[d] = velocities_R[d] - velocities_L[d];
-    }
-    real dvel_dot_vel_ravg = 0.0;
+    // //const dealii::Tensor<1,dim,real> dvel = velocities_R - velocities_L;
+    // dealii::Tensor<1,dim,real> dvel;
+    // for (int d=0; d<dim; ++d) {
+    //     dvel[d] = velocities_R[d] - velocities_L[d];
+    // }
+    // real dvel_dot_vel_ravg = 0.0;
+    // for (int d=0;d<dim;d++) {
+    //     AdW[1+d] += coeff[2] * (dvel[d] - dVn*normal_int[d]);
+    //     dvel_dot_vel_ravg += velocities_ravg[d]*dvel[d];
+    // }
+    // AdW[nstate-1] += coeff[2] * (dvel_dot_vel_ravg - normal_vel_ravg*dVn);
+    real dVt_dot_vel_ravg = 0.0; // testing
     for (int d=0;d<dim;d++) {
-        AdW[1+d] += coeff[2] * (dvel[d] - dVn*normal_int[d]);
-        dvel_dot_vel_ravg += velocities_ravg[d]*dvel[d];
+        AdW[1+d] += coeff[2]*dVt[d]; // testing
+        dVt_dot_vel_ravg += velocities_ravg[d]*dVt[d]; // testing
     }
-    AdW[nstate-1] += coeff[2] * (dvel_dot_vel_ravg - normal_vel_ravg*dVn);
+    AdW[nstate-1] += coeff[2]*dVt_dot_vel_ravg; // testing
 
     // Vn+c
     AdW[0] += coeff[3] * 1.0;

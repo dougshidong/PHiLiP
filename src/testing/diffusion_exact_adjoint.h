@@ -118,13 +118,13 @@ public:
                 manufactured_solution_function)
     {}
 
-    /// negative one is used for the diffusion coefficient so that the problem becomes \del u(x) = f(x)
+    /// negative one is used for the diffusion coefficient so that the problem becomes \f$\nabla u(x) = f(x)\f$
     static double default_diffusion_coefficient()
     {
         return -1.0;
     }
 
-    /// Default diffusion tensor is set for isotropic diffusion, D=I
+    /// Default diffusion tensor is set for isotropic diffusion, \f$D=I\f$
     static dealii::Tensor<2,3,double> default_diffusion_tensor()
     {
         dealii::Tensor<2,3,double> diffusion_tensor;

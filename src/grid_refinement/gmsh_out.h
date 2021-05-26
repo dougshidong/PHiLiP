@@ -24,7 +24,7 @@ namespace GridRefinement {
   * 
   * GMSH is an open source 2D and 3D mesh generation software with
   * specialized functions for treatment of all-quad meshing domains
-  * (E.g. $L^\infty$ advacing front methods and BlossomQuad for recombination).
+  * (E.g. \f$L^\infty\f$ advacing front methods and BlossomQuad for recombination).
   * It uses a combination of .geo files to describe the part and case setup
   * and .pos files for addittional field information (e.g. mesh size).
   * See link for more details: https://gmsh.info/
@@ -48,7 +48,7 @@ public:
     /// Write anisotropic tensor .pos file for use with GMSH
     /** Written as TT (Tensor triangles) using a split quad representation.
       * Each element is described by a 3x3 matrix specifying the local anisotropic
-      * quadratic sizing function $x^T \mathcal{M} x$ for use with the BAMG meshing
+      * quadratic sizing function \f$x^T \mathcal{M} x\f$ for use with the BAMG meshing
       * methods in 2D. Use with write_geo_anisotropic to specify recombination with
       * default BlossomQuad methods for best perfomance.
       */ 
@@ -61,7 +61,7 @@ public:
     /// Writes the central .geo file for call to GMSH on main process with isotropic quad meshing
     /** posFile_vec contains list of data files written from each subprocess to the filesystem 
       * to be read from parralel run for serial remeshing. Uses advancing front delaunay method 
-      * for quads based on $L^\infty$ node insertion to produce a right angle mesh. Final isotropic
+      * for quads based on \f$L^\infty\f$ node insertion to produce a right angle mesh. Final isotropic
       * mesh with target size field is reocmbined using BlossomQuad to produce all-quad output mesh
       * Note: Currently only hybercube geometries are supported
       */ 

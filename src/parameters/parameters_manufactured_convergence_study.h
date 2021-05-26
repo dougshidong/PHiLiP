@@ -15,6 +15,7 @@ class ManufacturedConvergenceStudyParam
 public:
     ManufacturedConvergenceStudyParam (); ///< Constructor
 
+    /// Associated manufactured solution parameters
     ManufacturedSolutionParam manufactured_solution_param;
 
     /// Types of grids that can be used for convergence study.

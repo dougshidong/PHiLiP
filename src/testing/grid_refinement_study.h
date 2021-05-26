@@ -33,7 +33,7 @@ public:
 
     int run_test() const;
 
-    // gets the grid from the enum and reads file if neccesary
+    /// gets the grid from the enum and reads file if neccesary
     void get_grid(
         const std::shared_ptr<MeshType>&            grid,
         const Parameters::GridRefinementStudyParam& grs_param) const;

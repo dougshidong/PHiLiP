@@ -1139,8 +1139,7 @@ read_gmsh(std::string filename, int requested_grid_order)
         dealii::FESystem<dim> fe_system_equidistant(fe_q_equidistant, dim);
         dealii::DoFHandler<dim> dof_handler_equidistant(*triangulation);
 
-       // dof_handler_equidistant.initialize(*triangulation, fe_system_equidistant);
-        dof_handler_equidistant.reinit(*triangulation);
+        dof_handler_equidistant.initialize(*triangulation, fe_system_equidistant);
         dof_handler_equidistant.distribute_dofs(fe_system_equidistant);
         dealii::DoFRenumbering::Cuthill_McKee(dof_handler_equidistant);
 
@@ -1175,8 +1174,7 @@ read_gmsh(std::string filename, int requested_grid_order)
             dealii::FESystem<dim> fe_system_equidistant(fe_q_equidistant, dim);
             dealii::DoFHandler<dim> dof_handler_equidistant(*triangulation);
 
-           // dof_handler_equidistant.initialize(*triangulation, fe_system_equidistant);
-            dof_handler_equidistant.reinit(*triangulation);
+            dof_handler_equidistant.initialize(*triangulation, fe_system_equidistant);
             dof_handler_equidistant.distribute_dofs(fe_system_equidistant);
             dealii::DoFRenumbering::Cuthill_McKee(dof_handler_equidistant);
 

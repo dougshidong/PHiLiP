@@ -61,19 +61,21 @@ public:
 public:
 
 
+    ///Constructor
     OperatorBase(///std::shared_ptr< DGBase<dim, real> > dg_input);//,
           const Parameters::AllParameters *const parameters_input,
-          const unsigned int degree,
-          const unsigned int max_degree_input,
-          const unsigned int grid_degree_input,
-          const std::shared_ptr<Triangulation> triangulation_input);
+          const unsigned int degree,///degree not really needed at the moment
+          const unsigned int max_degree_input,///max poly degree for operators
+          const unsigned int grid_degree_input);///max grid degree for operators
     ///Destructor
     ~OperatorBase();
 
 
     /// Input parameters.
     const Parameters::AllParameters *const all_parameters;
+    ///max polynomial degree
     const unsigned int max_degree;
+    ///max grid degree
     const unsigned int max_grid_degree;
 
 
@@ -93,14 +95,10 @@ public:
             const unsigned int degree,
             const unsigned int max_degree_input,
             const unsigned int grid_degree_input,
-            const std::shared_ptr<Triangulation> triangulation_input,
             const MassiveCollectionTuple collection_tuple);
 
+    ///the collection tuple
     MassiveCollectionTuple create_collection_tuple(const unsigned int max_degree, const Parameters::AllParameters *const parameters_input) const;
-
-    std::shared_ptr<Triangulation> triangulation; ///< Mesh
-//    /// Sets the associated high order grid with the provided one.
-//    void set_high_order_grid(std::shared_ptr<HighOrderGrid<dim,real>> new_high_order_grid);
 
     ///The collections of FE (basis) and Quadrature sets
     const dealii::hp::FECollection<dim>    fe_collection_basis;
@@ -140,12 +138,12 @@ public:
 *      EXAMPLE:
 *      std::vector<std::vector<dealii::FullMatrix<real>>> gradient_flux_basis;
 *      This is the gradient of the flux basis,
-*      gradient_flux_basis = [  [ d flux_basis / d \xi], [ d flux_basis / d \eta], [ d flux_basis / d \zeta] ;//p=1
+*     \f gradient_flux_basis = [  [ d flux_basis / d \xi], [ d flux_basis / d \eta], [ d flux_basis / d \zeta] ;//p=1
 *                               [ d flux_basis / d \xi], [ d flux_basis / d \eta], [ d flux_basis / d \zeta] ;//p=2
 *                               ... 
-*                               [ d flux_basis / d \xi], [ d flux_basis / d \eta], [ d flux_basis / d \zeta] ]//p=max_degree
+*                               [ d flux_basis / d \xi], [ d flux_basis / d \eta], [ d flux_basis / d \zeta] ]//p=max_degree\f
 *                               
-*      where [d flux_basis / d \xi] is a matrix storing the derivative of all flux_basis functions evaluated at volume cubature nodes 
+*      where \f[d flux_basis / d \xi]\f is a matrix storing the derivative of all flux_basis functions evaluated at volume cubature nodes 
 *
 *
 * **************************************************************************/    
@@ -167,11 +165,12 @@ public:
     ///but n_dofs_flux_basis = pow(p+1,dim)
     ///Also flux basis has an extra vector by nstate so that we can use .vmult later on with state vectors (in the residuals)
      ///So example flux_basis_at_vol_cubature[poly_degree][state_number][test_functions_for_state_number][flux_basis_shape_functions]
+     ///
      std::vector<std::vector<dealii::FullMatrix<real>>> flux_basis_at_vol_cubature;
      ///gradient of flux basis functions evaluated at volume cubature nodes
      ///Note that since it is gradient and not derivative, it is a tensor of dim
      std::vector<std::vector<std::vector<dealii::FullMatrix<real>>>> gradient_flux_basis;
-     ///This is the solution basis D_i, the modal differential opertaor commonly seen in DG defined as D_i = M^{-1}*S_i
+     ///This is the solution basis \f$D_i\f$, the modal differential opertaor commonly seen in DG defined as \f$D_i = M^{-1}*S_i\f$
     std::vector<std::vector<dealii::FullMatrix<real>>> modal_basis_differential_operator;
     ///local mass matrix without jacobian dependence
     std::vector<dealii::FullMatrix<real>> local_mass;
@@ -190,23 +189,25 @@ public:
     ///ESFR OPERATORS
     /// ESFR correction matrix without jac dependence
     std::vector<dealii::FullMatrix<real>> local_K_operator;
+    ///ESFR c parameter K operator
     std::vector<real> c_param_FR;
    /// ESFR correction matrix for AUX EQUATION without jac dependence
    /// NOTE Auxiliary equation is a vector in dim, so theres an ESFR correction for each dim -> K_aux also a vector of dim
    /// ie/ local_K_operator_aux[degree_index][dimension_index] = K_operator for AUX eaquation in direction dimension_index for
    /// polynomial degree of degree_index+1
     std::vector<std::vector<dealii::FullMatrix<real>>> local_K_operator_aux;
+    ///ESFR k parameter K-auxiliary operator
     std::vector<real> k_param_FR;
-    /// pth order modal derivative of basis fuctions, ie/ [D_\xi^p, D_\eta^p, D_\zeta^p]
+    /// pth order modal derivative of basis fuctions, ie/\f$ [D_\xi^p, D_\eta^p, D_\zeta^p]\f$
     std::vector<std::vector<dealii::FullMatrix<real>>> derivative_p;
-    /// 2pth order modal derivative of basis fuctions, ie/ [D_\xi^p*D_\eta^p, D_\xi^p*D_\zeta^p, D_\eta^p*D_\zeta^p]
+    /// 2pth order modal derivative of basis fuctions, ie/ \f$[D_\xi^p*D_\eta^p, D_\xi^p*D_\zeta^p, D_\eta^p*D_\zeta^p]\f$
     std::vector<std::vector<dealii::FullMatrix<real>>> derivative_2p;
-    /// 3pth order modal derivative of basis fuctions [D_\xi^p*D_\eta^p*D_\zeta^p]
+    /// 3pth order modal derivative of basis fuctions \f$[D_\xi^p*D_\eta^p*D_\zeta^p]\f$
     std::vector<dealii::FullMatrix<real>> derivative_3p;
 
     ///projection operator corresponding to basis functions onto M-norm (L2)
     std::vector<dealii::FullMatrix<real>> vol_projection_operator;
-    ///projection operator corresponding to basis functions onto (M+K)-norm
+    ///projection operator corresponding to basis functions onto \f$(M+K)\f$-norm
     std::vector<dealii::FullMatrix<real>> vol_projection_operator_FR;
 
     /********************************************
@@ -241,8 +242,8 @@ public:
     ///constructs the vector of K operators (ESFR correction operator) for each poly degree
     void build_K_operators ();
    ///Computes a single local K operator (ESFR correction operator) on the fly for a local element
-   ///Note that this is dependent on the Mass MAtrix, so for metric Jacobian dependent K_m,
-   ///pass the metric Jacobian dependent Mass Matrix M_m
+   ///Note that this is dependent on the Mass MAtrix, so for metric Jacobian dependent \f$K_m\f$,
+   ///pass the metric Jacobian dependent Mass Matrix \f$M_m\f$
     void build_local_K_operator(
                                 const dealii::FullMatrix<real> &local_Mass_Matrix,
                                 const unsigned int  n_dofs_cell, const unsigned int degree_index, 
@@ -271,7 +272,7 @@ public:
  *      and throughout the code the degree_index and face_index (iface)
  *      is usually knwon, the basic structure is vector of size
  *      max_degree storing for each degree, then vector of size
- *      n_faces = 2.0*dim (2 faces in 1D, 4 faces in 2D, 6 faces in 3D)
+ *      \f$n_faces = 2.0*dim \f$(2 faces in 1D, 4 faces in 2D, 6 faces in 3D)
  *      which stores the corresponding local matrix
  *              *******************************************/
 
@@ -282,19 +283,22 @@ public:
    ///diag(\hat{n}^r)*W_f*Chi_f
    ///ie/ diag of REFERENCE unit normal times facet quadrature weights times solution basis functions evaluated on that face
    ///in DG surface integral would be (face_integral_basis)^T * flux_on_face
+   ///
     std::vector<std::vector<std::vector<dealii::FullMatrix<real>>>> face_integral_basis;
    /// the DG lifting operator is defined as the operator that lifts
    /// inner products of polynomials of some order p onto
    /// the L2-space
-   ///in DG lifting operator is L=M^{-1}*(face_integral_basis)^T
-   ///so DG surface is L*f_face
+   ///in DG lifting operator is \f$L=M^{-1}*(face_integral_basis)^T\f$
+   ///so DG surface is \f$L*f_face\f$
    ///NOTE this doesn't have metric Jacobian dependence, for DG solver
    ///we build that using the functions below on the fly!
+   ///
     std::vector<std::vector<std::vector<dealii::FullMatrix<real>>>> lifting_operator;
    ///the ESFR lifting opertaor, below is a proper definition for the
-   ///broken Sobolev-space W_{\delta}^{dim*p,2}(\bm{\Omega}_r which is the ESFR norm)
-   /// for u \in W_{\delta}^{dim*p,2}(\bm{\Omega}_r),
-   /// L_FR: <L_FR *u,v>_\bm{\Omega}_r = <u,v>_{\bm{\Gamma}_2}, for v\in P^p(\bm{\Omega}_r)
+   ///broken Sobolev-space \f$W_{\delta}^{dim*p,2}(\bm{\Omega}_r\f$ which is the ESFR norm)
+   /// for \f$u \in W_{\delta}^{dim*p,2}(\bm{\Omega}_r)\f$,
+   /// \f L_FR\f: \f$<L_FR *u,v>_\bm{\Omega}_r = <u,v>_{\bm{\Gamma}_2}, for v\in P^p(\bm{\Omega}_r)\f$
+   ///
     std::vector<std::vector<std::vector<dealii::FullMatrix<real>>>> lifting_operator_FR;
 
 
@@ -334,15 +338,15 @@ public:
    ///the grid nodes are derived by the manifold of some reference GLL nodal set.
    ///The metric cofactor matrix is formulated similar to the paper of Abe et al. 
    /// using the invariant-conservative curl form of Kopriva 2006.
-   ///EXPLICITLY: Let \\bm{\Theta}(\bm{\xi}^r) represent the mapping shape functions
+   ///EXPLICITLY: Let \f$\bm{\Theta}(\bm{\xi}^r)\f$ represent the mapping shape functions
    ///Then:  for conservative curl 
-   ///J(a^i)_n = -\hat{\bm{e}}_i \cdot \nabla^r\times\bm{\Theta}(\bm{\xi}_{{flux nodes}}^r) *
+   ///\f$J(a^i)_n = -\hat{\bm{e}}_i \cdot \nabla^r\times\bm{\Theta}(\bm{\xi}_{{flux nodes}}^r) *
 ///     \Big[ \bm{\Theta}(\bm{\xi}_{{grid nodes}}^r)\hat{\bm{x}}_l^{c^T}
 ///                      \nabla^r \bm{\Theta}(\bm{\xi}_{{grid nodes}}^r)\hat{\bm{x}}_m^{c^T} \Big]
-///              i=1,2,3{, }n=1,2,3{ }(n,m,l){ cyclic,}
+///              i=1,2,3{, }n=1,2,3{ }(n,m,l){ cyclic,}\f$
 ///
 ///             SO  metric Cofactor matrix transpose corresponds to Jacobian inverse
-///             implies (metric_cofactor)_{j,i} = (metric_cofactor^T)_{i,j}= |J| * ( d \xi_i / d x_j ), for i,j = 1,2,3
+///             implies \f$(metric_cofactor)_{j,i} = (metric_cofactor^T)_{i,j}= |J| * ( d \xi_i / d x_j ), for i,j = 1,2,3\f$
 ///
 ///              LASTLY the operators act on mapping support points of size [dim][n_shape_functions]
 ///              This is not the same as the "volume_nodes" in the high_order_grid class, 

@@ -122,7 +122,7 @@ int main (int argc, char * argv[])
         dealii::GridGenerator::hyper_cube (*grid, left, right, colorize);
         grid->refine_global(igrid);
 
-        OPERATOR::OperatorBase<dim,nstate,real> operators(&all_parameters_new, poly_degree, poly_degree, poly_degree, grid); 
+        OPERATOR::OperatorBase<dim,nstate,real> operators(&all_parameters_new, poly_degree, poly_degree, poly_degree); 
 
         const unsigned int n_dofs = nstate * pow(poly_degree+1,dim);
        // dealii::QGaussLobatto<dim> vol_quad_GLL (poly_degree+1+overint);

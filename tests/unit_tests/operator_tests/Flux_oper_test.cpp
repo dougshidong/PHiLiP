@@ -118,7 +118,7 @@ int main (int argc, char * argv[])
     for(unsigned int poly_degree=2; poly_degree<6; poly_degree++){
 
 
-        OPERATOR::OperatorBase<dim,nstate,real> operators(&all_parameters_new, poly_degree, poly_degree, poly_degree, grid); 
+        OPERATOR::OperatorBase<dim,nstate,real> operators(&all_parameters_new, poly_degree, poly_degree, poly_degree); 
 
         const unsigned int n_dofs = operators.fe_collection_basis[poly_degree].dofs_per_cell;
         const unsigned int n_dofs_flux = operators.fe_collection_flux_basis[poly_degree].dofs_per_cell;

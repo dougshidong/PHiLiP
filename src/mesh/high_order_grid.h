@@ -154,7 +154,7 @@ public:
     void allocate();
 
     /// Return a MappingFEField that corresponds to the current node locations
-    dealii::MappingFEField<dim,dim,VectorType> get_MappingFEField();
+    dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> get_MappingFEField();
 
     /// Maximum degree of the geometry polynomial representing the grid.
     const unsigned int max_degree;
@@ -379,7 +379,7 @@ public:
      *  See discussion in the following
      *  <a href=" https://stackoverflow.com/questions/7557153/defining-an-object-without-calling-its-constructor-in-c">thread</a>.
      */
-    std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType>> mapping_fe_field;
+    std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> mapping_fe_field;
 
     /// MappingFEField that will provide the polynomial-based grid for the initial volume_nodes.
     /** Will likely be used for deformations based on initial grids.
@@ -387,7 +387,7 @@ public:
      *  See discussion in the following
      *  <a href=" https://stackoverflow.com/questions/7557153/defining-an-object-without-calling-its-constructor-in-c">thread</a>.
      */
-    std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType>> initial_mapping_fe_field;
+    std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> initial_mapping_fe_field;
 
     dealii::IndexSet locally_owned_dofs_grid; ///< Locally own degrees of freedom for the grid
     dealii::IndexSet ghost_dofs_grid; ///< Locally relevant ghost degrees of freedom for the grid

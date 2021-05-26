@@ -42,9 +42,8 @@ OperatorBase<dim,nstate,real>::OperatorBase(
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
     const unsigned int max_degree_input,
-    const unsigned int grid_degree_input,
-    const std::shared_ptr<Triangulation> triangulation_input)
-    : OperatorBase<dim,nstate,real>(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input, this->create_collection_tuple(max_degree_input, parameters_input))
+    const unsigned int grid_degree_input)
+    : OperatorBase<dim,nstate,real>(parameters_input, degree, max_degree_input, grid_degree_input, this->create_collection_tuple(max_degree_input, parameters_input))
 { }
 
 template <int dim, int nstate, typename real>
@@ -53,19 +52,15 @@ OperatorBase<dim,nstate,real>::OperatorBase(
     const unsigned int /*degree*/,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
-    const std::shared_ptr<Triangulation> triangulation_input,
     const MassiveCollectionTuple collection_tuple)
     : all_parameters(parameters_input)
     , max_degree(max_degree_input)
     , max_grid_degree(grid_degree_input)
-    , triangulation(triangulation_input)
     , fe_collection_basis(std::get<0>(collection_tuple))
     , volume_quadrature_collection(std::get<1>(collection_tuple))
     , face_quadrature_collection(std::get<2>(collection_tuple))
     , oned_quadrature_collection(std::get<3>(collection_tuple))
     , fe_collection_flux_basis(std::get<4>(collection_tuple))
-//    , dof_handler(*triangulation)
-//    , high_order_grid(std::make_shared<HighOrderGrid<dim,real>>(grid_degree_input, triangulation))
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 { 
@@ -848,7 +843,7 @@ void OperatorBase<dim,nstate,real>::create_surface_basis_operators ()
         unsigned int n_quad_face_pts = face_quadrature_collection[idegree].size();
         const std::vector<real> &quad_weights = face_quadrature_collection[idegree].get_weights ();
         for(unsigned int iface=0; iface<n_faces; iface++){ 
-            const dealii::Quadrature<dim> quadrature = dealii::QProjector<dim>::project_to_face(dealii::ReferenceCells::get_hypercube<dim>(),
+            const dealii::Quadrature<dim> quadrature = dealii::QProjector<dim>::project_to_face(dealii::ReferenceCell::get_hypercube(dim),
                                                                                                 face_quadrature_collection[idegree],
                                                                                                 iface);
         
@@ -1000,7 +995,7 @@ void OperatorBase<dim,nstate,real>::create_metric_basis_operators ()
     }
     unsigned int n_faces1 = 2.0*dim;
     for(unsigned int iface=0; iface<n_faces1; iface++){
-        const dealii::Quadrature<dim> quadrature1 = dealii::QProjector<dim>::project_to_face(dealii::ReferenceCells::get_hypercube<dim>(),
+        const dealii::Quadrature<dim> quadrature1 = dealii::QProjector<dim>::project_to_face(dealii::ReferenceCell::get_hypercube(dim),
                                                                                             face_quadrature_collection[0],
                                                                                             iface);
         const unsigned int n_quad_face_pts1 = face_quadrature_collection[0].size();
@@ -1047,7 +1042,7 @@ void OperatorBase<dim,nstate,real>::create_metric_basis_operators ()
             }
             unsigned int n_faces = dealii::GeometryInfo<dim>::faces_per_cell;
             for(unsigned int iface=0; iface<n_faces; iface++){
-                const dealii::Quadrature<dim> quadrature = dealii::QProjector<dim>::project_to_face(dealii::ReferenceCells::get_hypercube<dim>(),
+                const dealii::Quadrature<dim> quadrature = dealii::QProjector<dim>::project_to_face(dealii::ReferenceCell::get_hypercube(dim),
                                                                                                     face_quadrature_collection[ipoly],
                                                                                                     iface);
             const unsigned int n_quad_face_pts = face_quadrature_collection[ipoly].size();

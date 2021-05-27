@@ -58,6 +58,28 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Use other boundary conditions by default. Otherwise use periodic (for 1d burgers only");
 
+    prm.declare_entry("use_energy", "false",
+                      dealii::Patterns::Bool(),
+                      "Not calculate energy by default. Otherwise, get energy per iteration.");
+
+    prm.declare_entry("use_L2_norm", "false",
+                      dealii::Patterns::Bool(),
+                      "Not calculate L2 norm by default (M+K). Otherwise, get L2 norm per iteration.");
+
+    prm.declare_entry("use_classical_Flux_Reconstruction", "false",
+                      dealii::Patterns::Bool(),
+                      "Not use Classical Flux Reconstruction by default. Otherwise, use Classical Flux Reconstruction.");
+
+    prm.declare_entry("flux_reconstruction", "cDG",
+                      dealii::Patterns::Selection("cDG | cSD | cHU | cNegative | cNegative2 | cPlus | cPlus1D |c10Thousand | cHULumped"),
+                      "Flux Reconstruction. "
+                      "Choices are <cDG | cSD | cHU | cNegative | cNegative2 | cPlus | cPlus1D | c10Thousand | cHULumped>.");
+
+    prm.declare_entry("flux_reconstruction_aux", "kDG",
+                      dealii::Patterns::Selection("kDG | kSD | kHU | kNegative | kNegative2 | kPlus | k10Thousand"),
+                      "Flux Reconstruction for Auxiliary Equation. "
+                      "Choices are <kDG | kSD | kHU | kNegative | kNegative2 | kPlus | k10Thousand>.");
+
     prm.declare_entry("add_artificial_dissipation", "false",
                       dealii::Patterns::Bool(),
                       "Persson's subscell shock capturing artificial dissipation.");
@@ -202,6 +224,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_collocated_nodes = prm.get_bool("use_collocated_nodes");
     use_split_form = prm.get_bool("use_split_form");
     use_periodic_bc = prm.get_bool("use_periodic_bc");
+    use_energy = prm.get_bool("use_energy");
+    use_L2_norm = prm.get_bool("use_L2_norm");
+    use_classical_FR = prm.get_bool("use_classical_Flux_Reconstruction");
     add_artificial_dissipation = prm.get_bool("add_artificial_dissipation");
     sipg_penalty_factor = prm.get_double("sipg_penalty_factor");
 
@@ -216,6 +241,26 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
         diss_num_flux_type = bassi_rebay_2;
         sipg_penalty_factor = 0.0;
     }
+
+    const std::string flux_reconstruction_string = prm.get("flux_reconstruction");
+    if (flux_reconstruction_string == "cDG") flux_reconstruction_type = cDG;
+    if (flux_reconstruction_string == "cSD") flux_reconstruction_type = cSD;
+    if (flux_reconstruction_string == "cHU") flux_reconstruction_type = cHU;
+    if (flux_reconstruction_string == "cNegative") flux_reconstruction_type = cNegative;
+    if (flux_reconstruction_string == "cNegative2") flux_reconstruction_type = cNegative2;
+    if (flux_reconstruction_string == "cPlus") flux_reconstruction_type = cPlus;
+    if (flux_reconstruction_string == "cPlus1D") flux_reconstruction_type = cPlus1D;
+    if (flux_reconstruction_string == "c10Thousand") flux_reconstruction_type = c10Thousand;
+    if (flux_reconstruction_string == "cHULumped") flux_reconstruction_type = cHULumped;
+
+    const std::string flux_reconstruction_aux_string = prm.get("flux_reconstruction_aux");
+    if (flux_reconstruction_aux_string == "kDG") flux_reconstruction_aux_type = kDG;
+    if (flux_reconstruction_aux_string == "kSD") flux_reconstruction_aux_type = kSD;
+    if (flux_reconstruction_aux_string == "kHU") flux_reconstruction_aux_type = kHU;
+    if (flux_reconstruction_aux_string == "kNegative") flux_reconstruction_aux_type = kNegative;
+    if (flux_reconstruction_aux_string == "kNegative2") flux_reconstruction_aux_type = kNegative2;
+    if (flux_reconstruction_aux_string == "kPlus") flux_reconstruction_aux_type = kPlus;
+    if (flux_reconstruction_aux_string == "k10Thousand") flux_reconstruction_aux_type = k10Thousand;
 
 
     pcout << "Parsing linear solver subsection..." << std::endl;

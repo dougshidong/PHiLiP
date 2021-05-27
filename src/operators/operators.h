@@ -33,7 +33,6 @@
 #include <CoDiPack/include/codi.hpp>
 
 
-#include "mesh/high_order_grid.h"
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
 #include "dg/dg.h"
@@ -48,8 +47,8 @@ namespace OPERATOR {
  * In more detail for each type of operator:
  * (1) Volume Operators: Always start as a vector of polynomial degree, then if its a flux vector of state variables, then dimension, then Matrix where the evaluations happen on Volume Cubature nodes. 
  * (2) Surface Operators: Always start as a vector of polynomial degree, then if its a flux vector of state variables, then the face index which goes from face 0 clockwise as-per dealii standard to nfaces, then dimension, then Matrix where the evaluations happen on Volume Cubature nodes. Lastly, currently assume tensor-product elements so \f$n_{faces} = 2.0 * dim\f$. 
- * (3) Flux Operators: See above. It is important to note that since flux operators are "collocated" on the cubature set, the number of degrees of freedom of the flux basis MUST equal the number of cubature nodes. Importantly on the surface, the flux basis interpolates from the volume to the surface, thus corresponds to volume cubature nodes collocation. 
- * (4) Metric Operators: Since the solution polynomial degree for each state varies, along with the local grid element's polynomial degree varying, the operators distinguish between polynomial degree (for solution or flux) and grid degree (for element). The mapping-support-points follow the standard from dealii, where they are always Gauss-Legendre-Lobatto quadrature nodes making the polynomial elements continuous in a sense. 
+ * (3) Flux Operators: See above. It is important to note that since flux operators are "collocated" on the cubature set, the number of degrees of freedom of the flux basis MUST equal the number of cubature nodes. Importantly on the surface, the flux basis interpolates from the volume to the surface, thus corresponds to volume cubature nodes collocation.  
+ * (4) Metric Operators: Since the solution polynomial degree for each state varies, along with the local grid element's polynomial degree varying, the operators distinguish between polynomial degree (for solution or flux) and grid degree (for element). Explicitly, they first go vector of grid_degree, then vector of polynomial degree for the ones that are applied on the flux nodes. The mapping-support-points follow the standard from dealii, where they are always Gauss-Legendre-Lobatto quadrature nodes making the polynomial elements continuous in a sense. 
  */
 
 template <int dim, int nstate, typename real>
@@ -84,13 +83,13 @@ public:
 
     /// Input parameters.
     const Parameters::AllParameters *const all_parameters;
-    ///max polynomial degree
+    ///Max polynomial degree.
     const unsigned int max_degree;
-    ///max grid degree
+    ///Max grid degree.
     const unsigned int max_grid_degree;
 
 
-    /// Makes for cleaner doxygen documentation
+    /// Makes for cleaner doxygen documentation.
     using MassiveCollectionTuple = std::tuple<
         dealii::hp::FECollection<dim>, // Solution FE
         dealii::hp::QCollection<dim>,  // Volume quadrature
@@ -109,10 +108,10 @@ public:
             const unsigned int grid_degree_input,
             const MassiveCollectionTuple collection_tuple);
 
-    ///the collection tuple
+    ///The collection tuple.
     MassiveCollectionTuple create_collection_tuple(const unsigned int max_degree, const Parameters::AllParameters *const parameters_input) const;
 
-    ///The collections of FE (basis) and Quadrature sets
+    ///The collections of FE (basis) and Quadrature sets.
     const dealii::hp::FECollection<dim>    fe_collection_basis;
     /// Quadrature used to evaluate volume integrals.
     dealii::hp::QCollection<dim>     volume_quadrature_collection;
@@ -120,19 +119,19 @@ public:
     dealii::hp::QCollection<dim-1>   face_quadrature_collection;
     /// 1D quadrature to generate Lagrange polynomials for the sake of flux interpolation.
     dealii::hp::QCollection<1>       oned_quadrature_collection;
-    ///Storing the "Flux" basis (basis collocated on flux volume nodes) previously referred to as the fe_collection_Lagrange
+    ///Storing the "Flux" basis (basis collocated on flux volume nodes) previously referred to as the fe_collection_Lagrange.
     const dealii::hp::FECollection<dim>    fe_collection_flux_basis;
 
-    ///allocates the volume operators
+    ///Allocates the volume operators.
     void allocate_volume_operators ();
-    ///allocates the surface operators
+    ///Allocates the surface operators.
     void allocate_surface_operators ();
 
-    ///standard function to compute factorial of a number
+    ///Standard function to compute factorial of a number.
     double compute_factorial(double n);
 protected:
 
-    /// Smart pointer to DGBase
+    /// Smart pointer to DGBase.
     std::shared_ptr<DGBase<dim,real>> dg;
 
     const MPI_Comm mpi_communicator; ///< MPI communicator.
@@ -140,44 +139,50 @@ protected:
 
 public:
 
-     ///solution basis functions evaluated at volume cubature nodes
+     ///Solution basis functions evaluated at volume cubature nodes.
      std::vector<dealii::FullMatrix<real>> basis_at_vol_cubature;
-     ///\f$ \mathbf{W}*\mathbf{\chi}(\mathbf{\xi}_v^r) \f$  That is Quadrature Weights multiplies with basis_at_vol_cubature
+     ///\f$ \mathbf{W}*\mathbf{\chi}(\mathbf{\xi}_v^r) \f$  That is Quadrature Weights multiplies with basis_at_vol_cubature.
      std::vector<dealii::FullMatrix<real>> vol_integral_basis;
-     ///the flax basis functions evaluated at volume cubature nodes
-    /**flux (over int) basis functions evaluated at volume cubature nodes (should always be identity)
+     ///The flux basis functions evaluated at volume cubature nodes.
+    /**Flux (over int) basis functions evaluated at volume cubature nodes (should always be identity).
     *NOTE THE FLUX BASIS IS COLLOCATED ON FLUX NODES
-    *so it does not have vector state, ie/ 
+    *so it does not have vector state embedded in its degrees of freedom, so we make the operator have a vector by state, ie/ 
     *\f$\text{n_dofs_for_solution_basis} = \text{nstate} *pow(p+1,dim)\f$
-    *but \f$\text{n_dofs_flux_basis} = pow(p+1,dim)\f$
+    *but \f$\text{n_dofs_flux_basis} = pow(p+1,dim)\f$.
     *Also flux basis has an extra vector by nstate so that we can use .vmult later on with state vectors (in the residuals)
      *So example flux_basis_at_vol_cubature[poly_degree][state_number][test_functions_for_state_number][flux_basis_shape_functions]
         */
      std::vector<std::vector<dealii::FullMatrix<real>>> flux_basis_at_vol_cubature;
-     ///gradient of flux basis functions evaluated at volume cubature nodes
-     /**Note that since it is gradient and not derivative, it is a tensor of dim
+     ///Gradient of flux basis functions evaluated at volume cubature nodes.
+     /**Note that since it is gradient and not derivative, it is a tensor of dim.
      */
      std::vector<std::vector<std::vector<dealii::FullMatrix<real>>>> gradient_flux_basis;
-     ///This is the solution basis \f$\mathbf{D}_i\f$, the modal differential opertaor commonly seen in DG defined as \f$\mathbf{D}_i=\mathbf{M}^{-1}*\mathbf{S}_i\f$
+     ///This is the solution basis \f$\mathbf{D}_i\f$, the modal differential opertaor commonly seen in DG defined as \f$\mathbf{D}_i=\mathbf{M}^{-1}*\mathbf{S}_i\f$.
     std::vector<std::vector<dealii::FullMatrix<real>>> modal_basis_differential_operator;
-    ///local mass matrix without jacobian dependence
+    ///Local mass matrix without jacobian dependence.
     std::vector<dealii::FullMatrix<real>> local_mass;
-    ///local stiffness matrix without jacobian dependence,
+    ///Local stiffness matrix without jacobian dependence.
     /**NOTE: this is not used in DG volume integral since that needs to use the derivative of the flux basis and is multiplied by flux at volume cubature nodes this is strictly for consturtcing D operator
+   *\f[
+        (\mathbf{S}_\xi)_{ij}  = \int_\mathbf{{\Omega}_r} \mathbf{\chi}_i(\mathbf{\xi}^r) \frac{\mathbf{\chi}_{j}(\mathbf{\xi}^r)}{\partial \xi} d\mathbf{\Omega}_r
+        \f]
     */
     std::vector<std::vector<dealii::FullMatrix<real>>> local_basis_stiffness;
-    ///Classic stiffness operators size dofs by dofs
-   /**Since the vol integral uses the flux basis this is the operator used in DG strong volume integral
-   *That is this is integral of basis_functions and the gradient of the flux basis
+    ///"Stiffness" opertaor used in DG Strong form.
+   /**Since the volume integral in strong form uses the flux basis spanning the flux.
+   *Explicitly, this is integral of basis_functions and the gradient of the flux basis
    *\f[
-        (\mathbf{S}_\xi)_{ij}  = \int_\mathbf{{\Omega}_r} \mathbf{\chi}_i(\mathbf{\xi}^r) \frac{\mathbf{\chi}_j(\mathbf{\xi}^r)}{\partial \xi} d\mathbf{\Omega}_r
+        (\mathbf{S}_{\text{FLUX},\xi})_{ij}  = \int_\mathbf{{\Omega}_r} \mathbf{\chi}_i(\mathbf{\xi}^r) \frac{\mathbf{\chi}_{\text{FLUX},j}(\mathbf{\xi}^r)}{\partial \xi} d\mathbf{\Omega}_r
         \f]
     */
     std::vector<std::vector<std::vector<dealii::FullMatrix<real>>>> local_flux_basis_stiffness;
-    ///the integration of gradient of flux basis against test functions
+    ///The integration of gradient of solution basis.
    /**Please note that for the weak form volume integral with arbitrary integration strength, use the transpose of the following operator.
    *Note: that it is also a vector of nstate since it will be applied to a flux vector per state.
    *Lastly its gradient of basis functions NOT flux basis because in the weak form the test function is the basis function not the flux basis (technically the flux is spanned by the flux basis at quadrature nodes).
+    *   \f[
+    *           \mathbf{W}\nabla\Big(\chi_i(\mathbf{\xi}^r)\Big)  
+    *   \]
     */
     std::vector<std::vector<std::vector<dealii::FullMatrix<real>>>> vol_integral_gradient_basis;
     /// ESFR correction matrix without jac dependence
@@ -194,27 +199,27 @@ public:
     std::vector<real> k_param_FR;
     ///\f$ p\f$ -th order modal derivative of basis fuctions, ie/\f$ [D_\xi^p, D_\eta^p, D_\zeta^p]\f$
     std::vector<std::vector<dealii::FullMatrix<real>>> derivative_p;
-    /// \f$2p\f$-th order modal derivative of basis fuctions, ie/ \f$[D_\xi^p*D_\eta^p, D_\xi^p*D_\zeta^p, D_\eta^p*D_\zeta^p]\f$
+    /// \f$2p\f$-th order modal derivative of basis fuctions, ie/ \f$[D_\xi^p D_\eta^p, D_\xi^p D_\zeta^p, D_\eta^p D_\zeta^p]\f$
     std::vector<std::vector<dealii::FullMatrix<real>>> derivative_2p;
-    /// \f$3p\f$-th order modal derivative of basis fuctions \f$[D_\xi^p*D_\eta^p*D_\zeta^p]\f$
+    /// \f$3p\f$-th order modal derivative of basis fuctions \f$[D_\xi^p D_\eta^p D_\zeta^p]\f$
     std::vector<dealii::FullMatrix<real>> derivative_3p;
 
-    ///projection operator corresponding to basis functions onto M-norm (L2)
+    ///Projection operator corresponding to basis functions onto M-norm (L2).
     std::vector<dealii::FullMatrix<real>> vol_projection_operator;
-    ///projection operator corresponding to basis functions onto \f$(M+K)\f$-norm
+    ///Projection operator corresponding to basis functions onto \f$(M+K)\f$-norm.
     std::vector<dealii::FullMatrix<real>> vol_projection_operator_FR;
 
-    ///builds basis and flux functions operators and gradient operator
+    ///Builds basis and flux functions operators and gradient operator.
     void create_vol_basis_operators ();
-    ///constructs a mass matrix on the fly for a single degree NOTE: for Jacobian dependence pass JxW to quad_weights
+    ///Constructs a mass matrix on the fly for a single degree NOTE: for Jacobian dependence pass JxW to quad_weights.
     void build_local_Mass_Matrix (
                                 const std::vector<real> &quad_weights,
                                 const unsigned int n_dofs_cell, const unsigned int n_quad_pts,
                                 const int current_fe_index,
                                 dealii::FullMatrix<real> &Mass_Matrix);
-    ///constructs local_mass which is a vector of metric Jacobian independent local mass matrices
+    ///Constructs local_mass which is a vector of metric Jacobian independent local mass matrices.
     void build_Mass_Matrix_operators ();
-    ///constructs local stiffness operator corresponding to the basis, 
+    ///Constructs local stiffness operator corresponding to the basis. 
     /**Also it constructs the flux basis stiffness as \f$\int_{\mathbf{\Omega}_r}\chi_i(\mathbf{\xi}^r)\frac{\partial \chi_{\text{FLUX},j}(\mathbf{\xi}^r)}{\partial \xi} d\mathbf{\Omega}_r \f$.
     *Also builds modal_basis_differential_operator since has the stiffness matrix there.
     */
@@ -223,72 +228,72 @@ public:
     /**builds the \f$ p,\: 2p,\f$ and \f$ 3p \f$ derivative operators to compute broken Sobolev-space.
     */    
     void get_higher_derivatives ();
-    ///gets the FR correction parameter for both primary and auxiliary equations and stores for each degree
-    /**these values are name specified in parameters/all_parameters.h, passed through control file/or test and here converts/stores as value.
+    ///Gets the FR correction parameter for both primary and auxiliary equations and stores for each degree.
+    /**These values are name specified in parameters/all_parameters.h, passed through control file/or test and here converts/stores as value.
     */
     void get_FR_correction_parameter (
                                     const unsigned int curr_cell_degree,
                                     real &c, real &k);
-    ///constructs the vector of K operators (ESFR correction operator) for each poly degree
+    ///Constructs the vector of K operators (ESFR correction operator) for each poly degree.
     void build_K_operators ();
    ///Computes a single local K operator (ESFR correction operator) on the fly for a local element.
    /**Note that this is dependent on the Mass Matrix, so for metric Jacobian dependent \f$K_m\f$,
-   *pass the metric Jacobian dependent Mass Matrix \f$M_m\f$
+   *pass the metric Jacobian dependent Mass Matrix \f$M_m\f$.
     */
     void build_local_K_operator(
                                 const dealii::FullMatrix<real> &local_Mass_Matrix,
                                 const unsigned int  n_dofs_cell, const unsigned int degree_index, 
                                 dealii::FullMatrix<real> &K_operator);
-    ///Similar to above but for the local K operator for the Auxiliary equation
+    ///Similar to above but for the local K operator for the Auxiliary equation.
     void build_local_K_operator_AUX(
                                 const dealii::FullMatrix<real> &local_Mass_Matrix,
                                 const unsigned int  n_dofs_cell, const unsigned int degree_index, 
                                 std::vector<dealii::FullMatrix<real>> &K_operator_aux);
 
-    ///computes the volume projection operators
+    ///Computes the volume projection operators.
     void get_vol_projection_operators();
-    ///computes a single local projection operator on some space (norm)
+    ///Computes a single local projection operator on some space (norm).
     void compute_local_vol_projection_operator(
                                 const unsigned int degree_index, 
                                 const unsigned int n_dofs_cell, 
                                 const dealii::FullMatrix<real> &norm_matrix, 
                                 dealii::FullMatrix<real> &volume_projection);
 
-    ///solution basis functions evaluated at facet cubature nodes
+    ///Solution basis functions evaluated at facet cubature nodes.
     std::vector<std::vector<dealii::FullMatrix<real>>> basis_at_facet_cubature;
-    ///flux basis functions evaluated at facet cubature nodes
+    ///Flux basis functions evaluated at facet cubature nodes.
     std::vector<std::vector<std::vector<dealii::FullMatrix<real>>>> flux_basis_at_facet_cubature;
-    ///The surface integral of test functions WITH unit reference normals
+    ///The surface integral of test functions WITH unit reference normals.
    /**\f[
-   *     \text{diag}(\hat{\mathbf{n}}^r)*\mathbf{W}_f*\mathbf{\chi}(\mathbf{\xi}_f^r) 
+   *     \text{diag}(\hat{\mathbf{n}}^r) \mathbf{W}_f \mathbf{\chi}(\mathbf{\xi}_f^r) 
    * \f]
    *ie/ diag of REFERENCE unit normal times facet quadrature weights times solution basis functions evaluated on that face
-   *in DG surface integral would be transpose(face_integral_basis) times  flux_on_face
+   *in DG surface integral would be transpose(face_integral_basis) times flux_on_face
    */
     std::vector<std::vector<std::vector<dealii::FullMatrix<real>>>> face_integral_basis;
-   /// the DG lifting operator is defined as the operator that lifts inner products of polynomials of some order \f$p\f$ onto the L2-space
-   /**in DG lifting operator is \f$L=\mathbf{M}^{-1}*(\text{face_integral_basis})^T\f$
-   *so DG surface is \f$L*\text{flux_interpolated_to_face}\f$
+   /// The DG lifting operator is defined as the operator that lifts inner products of polynomials of some order \f$p\f$ onto the L2-space.
+   /**In DG lifting operator is \f$L=\mathbf{M}^{-1}*(\text{face_integral_basis})^T\f$.
+   *So DG surface is \f$L*\text{flux_interpolated_to_face}\f$.
    *NOTE this doesn't have metric Jacobian dependence, for DG solver
    *we build that using the functions below on the fly!
    */
     std::vector<std::vector<std::vector<dealii::FullMatrix<real>>>> lifting_operator;
-   ///the ESFR lifting opertaor 
-   /**Proper definition for the
-   *Consider the broken Sobolev-space \f$W_{\delta}^{dim*p,2}(\mathbf{\Omega}_r\f$ (which is the ESFR norm)
+   ///The ESFR lifting operator. 
+   /**
+   *Consider the broken Sobolev-space \f$W_{\delta}^{dim*p,2}(\mathbf{\Omega}_r)\f$ (which is the ESFR norm)
    * for \f$u \in W_{\delta}^{dim*p,2}(\mathbf{\Omega}_r)\f$,
    * \f[
-   * L_{FR}: <L_{FR} u,v>_{\mathbf{\Omega}_r} = <u,v>_{\mathbf{\Gamma}_2}, \forall v\in P^p(\mathbf{\Omega}_r)
-   * \f]
+   * L_{FR}:\: <L_{FR} u,v>_{\mathbf{\Omega}_r} = <u,v>_{\mathbf{\Gamma}_2}, \forall v\in P^p(\mathbf{\Omega}_r)
+   * \f].
    */
     std::vector<std::vector<std::vector<dealii::FullMatrix<real>>>> lifting_operator_FR;
 
 
-    ///builds surface basis and flux functions operators and gradient operator
+    ///Builds surface basis and flux functions operators and gradient operator.
     void create_surface_basis_operators ();
-    ///builds surface lifting operators
+    ///Builds surface lifting operators.
     void get_surface_lifting_operators ();
-    ///builds the local lifting operator 
+    ///Builds the local lifting operator. 
     void build_local_surface_lifting_operator (
                                 const unsigned int degree_index, 
                                 const unsigned int n_dofs_cell, 
@@ -296,39 +301,39 @@ public:
                                 const dealii::FullMatrix<real> &norm_matrix, 
                                 std::vector<dealii::FullMatrix<real>> &lifting);
     
-    ///the mapping shape functions evaluated at the volume grid nodes (facet set included in volume grid nodes for consistency)
+    ///The mapping shape functions evaluated at the volume grid nodes (facet set included in volume grid nodes for consistency).
     std::vector<dealii::FullMatrix<real>> mapping_shape_functions_grid_nodes; 
-    ///REFERENCE gradient of the the mapping shape functions evaluated at the volume grid nodes
+    ///REFERENCE gradient of the the mapping shape functions evaluated at the volume grid nodes.
     std::vector<std::vector<dealii::FullMatrix<real>>> gradient_mapping_shape_functions_grid_nodes; 
 
-    ///mapping shape functions evaluated at the VOLUME flux nodes (arbitrary, does not have to be on the surface ex/ GL)
+    ///Mapping shape functions evaluated at the VOLUME flux nodes (arbitrary, does not have to be on the surface ex/ GL).
 /** FOR Flux Nodes operators there is the grid degree, then the degree of the cubature set it is applied on
-* to handle all general cases 
+* to handle all general cases. 
 */
     std::vector<std::vector<dealii::FullMatrix<real>>> mapping_shape_functions_vol_flux_nodes; 
-    ///mapping shape functions evaluated at the SURFACE flux nodes 
+    ///Mapping shape functions evaluated at the SURFACE flux nodes. 
     std::vector<std::vector<std::vector<dealii::FullMatrix<real>>>> mapping_shape_functions_face_flux_nodes; 
-   ///gradient of mapping shape functions evalutated at VOLUME flux nodes
+   ///Gradient of mapping shape functions evalutated at VOLUME flux nodes.
    /**Note that for a single grid degree it can evaluate at varying degree of fluxnodes 
    *ie allows of sub/super parametric etc and over integration
    *Vector order goes: [Grid_Degree][Flux_Poly_Degree][Dim][n_quad_pts][n_mapping_shape_functions]
     */
     std::vector<std::vector<std::vector<dealii::FullMatrix<real>>>> gradient_mapping_shape_functions_vol_flux_nodes; 
-    ///gradient of mapping shape functions evalutated at surface flux nodes
-    /**is a vector of degree->vector of n_faces -> vector of dim -> Matrix n_face_quad_pts x n_shape_functions
+    ///Gradient of mapping shape functions evalutated at surface flux nodes.
+    /**Is a vector of degree->vector of n_faces -> vector of dim -> Matrix n_face_quad_pts x n_shape_functions.
  */
     std::vector<std::vector<std::vector<std::vector<dealii::FullMatrix<real>>>>> gradient_mapping_shape_functions_face_flux_nodes; 
 
-    ///allocates metric shape functions operators
+    ///Allocates metric shape functions operators.
     void allocate_metric_operators();
-    ///creates metric shape functions operators
+    ///Creates metric shape functions operators.
     void create_metric_basis_operators ();
-    ///called on the fly and returns the metric cofactor and determinant of Jacobian at VOLUME cubature nodes
+    ///Called on the fly and returns the metric cofactor and determinant of Jacobian at VOLUME cubature nodes.
     /**
  *We compute the metric cofactor matrix \f$\mathbf{C}_m\f$ via the invariant curl form of Abe 2014 and Kopriva 2006. To ensure consistent normals, we consider
  * the two cubature sets, grid nodes (mapping-support-points), and flux nodes (quadrature nodes). The metric cofactor matrix is thus:
  * \f[
- *      (\mathbf{C})_{ni}= -\frac{1}{2}\hat{\mathbf{e}}_i \cdot \nabla^r\times\mathbf{\Theta}(\mathbf{\xi}_{\text{flux nodes}}^r)\Big[
+ *      (\mathbf{C})_{ni} = J(\mabthbf{a}^i)_n= -\frac{1}{2}\hat{\mathbf{e}}_i \cdot \nabla^r\times\mathbf{\Theta}(\mathbf{\xi}_{\text{flux nodes}}^r)\Big[
           \mathbf{\Theta}(\mathbf{\xi}_{\text{grid nodes}}^r)\hat{\mathbf{x}}_l^{c^T}
     \nabla^r \mathbf{\Theta}(\mathbf{\xi}_{\text{grid nodes}}^r)\hat{\mathbf{x}}_m^{c^T}
      -
@@ -345,7 +350,7 @@ public:
                                     const std::vector<std::vector<real>> &mapping_support_points,
                                     std::vector<real> &determinant_Jacobian,
                                     std::vector<dealii::FullMatrix<real>> &metric_cofactor);
-    ///called on the fly and returns the metric cofactor and determinant of Jacobian at face cubature nodes
+    ///Called on the fly and returns the metric cofactor and determinant of Jacobian at face cubature nodes.
     void build_local_face_metric_cofactor_matrix_and_det_Jac(
                                     const unsigned int grid_degree, const unsigned int poly_degree,
                                     const unsigned int iface,
@@ -353,27 +358,27 @@ public:
                                     const std::vector<std::vector<real>> &mapping_support_points,
                                     std::vector<real> &determinant_Jacobian,
                                     std::vector<dealii::FullMatrix<real>> &metric_cofactor);
-    ///computes local 3D cofactor matrix in VOLUME
+    ///Computes local 3D cofactor matrix in VOLUME.
     void compute_local_3D_cofactor_vol(
                                     const unsigned int grid_degree, const unsigned int poly_degree,
                                     const unsigned int n_quad_pts,
                                     const unsigned int n_metric_dofs,
                                     const std::vector<std::vector<real>> &mapping_support_points,
                                     std::vector<dealii::FullMatrix<real>> &metric_cofactor);
-    ///computes local 3D cofactor matrix on FACE for consistent normals with water-tight mesh
+    ///Computes local 3D cofactor matrix on FACE for consistent normals with water-tight mesh.
     void compute_local_3D_cofactor_face(
                                     const unsigned int grid_degree, const unsigned int poly_degree,
                                     const unsigned int n_quad_pts,
                                     const unsigned int n_metric_dofs, const unsigned int iface,
                                     const std::vector<std::vector<real>> &mapping_support_points,
                                     std::vector<dealii::FullMatrix<real>> &metric_cofactor);
-    ///computes \f$(\mathbf{x}_l * \nabla(\mathbf{x}_m))\f$ at GRID NODES
+    ///Computes \f$(\mathbf{x}_l * \nabla(\mathbf{x}_m))\f$ at GRID NODES.
     void compute_Xl_grad_Xm(
                                     const unsigned int grid_degree,
                                     const unsigned int n_metric_dofs, 
                                     const std::vector<std::vector<real>> &mapping_support_points,
                                     std::vector<dealii::DerivativeForm<1,dim,dim>> &Xl_grad_Xm);
-    ///computes the cyclic curl loop for metric cofactor matrix
+    ///Computes the cyclic curl loop for metric cofactor matrix.
     /**
  *      This function is currently no longer used, but left in with the conservative curl form commented out
  *      incase we want to compare the forms in the future.
@@ -384,7 +389,7 @@ public:
                                     std::vector<dealii::FullMatrix<real>> &metric_cofactor);
                                 
 
-};///end operator base class
+};///End operator base class.
 
 
 } /// OPERATOR namespace

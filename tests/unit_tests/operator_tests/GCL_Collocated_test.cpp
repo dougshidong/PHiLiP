@@ -32,9 +32,6 @@
 #include <deal.II/lac/sparse_matrix.h>
 
 #include <deal.II/meshworker/dof_info.h>
-#include <deal.II/meshworker/integration_info.h>
-#include <deal.II/meshworker/simple.h>
-#include <deal.II/meshworker/loop.h>
 
 // Finally, we take our exact solution from the library as well as volume_quadrature
 // and additional tools.

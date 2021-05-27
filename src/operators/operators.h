@@ -215,7 +215,7 @@ public:
     ///constructs local_mass which is a vector of metric Jacobian independent local mass matrices
     void build_Mass_Matrix_operators ();
     ///constructs local stiffness operator corresponding to the basis, 
-    /**also the flux basis stiffness which integrates the gradient of the flux basis with the solution basis functions as the test function (the DG strong over-integrated or flux projected however you want to see it volume integral).
+    /**Also it constructs the flux basis stiffness as \f$\int_{\mathbf{\Omega}_r}\chi_i(\mathbf{\xi}^r)\frac{\partial \chi_{\text{FLUX},j}(\mathbf{\xi}^r)}{\partial \xi} d\mathbf{\Omega}_r \f$.
     *Also builds modal_basis_differential_operator since has the stiffness matrix there.
     */
     void build_Stiffness_Matrix_operators ();
@@ -232,7 +232,7 @@ public:
     ///constructs the vector of K operators (ESFR correction operator) for each poly degree
     void build_K_operators ();
    ///Computes a single local K operator (ESFR correction operator) on the fly for a local element.
-   /**Note that this is dependent on the Mass MAtrix, so for metric Jacobian dependent \f$K_m\f$,
+   /**Note that this is dependent on the Mass Matrix, so for metric Jacobian dependent \f$K_m\f$,
    *pass the metric Jacobian dependent Mass Matrix \f$M_m\f$
     */
     void build_local_K_operator(
@@ -353,14 +353,14 @@ public:
                                     const std::vector<std::vector<real>> &mapping_support_points,
                                     std::vector<real> &determinant_Jacobian,
                                     std::vector<dealii::FullMatrix<real>> &metric_cofactor);
-    ///computes 3D conservative curl cofactor matrix in VOLUME
+    ///computes local 3D cofactor matrix in VOLUME
     void compute_local_3D_cofactor_vol(
                                     const unsigned int grid_degree, const unsigned int poly_degree,
                                     const unsigned int n_quad_pts,
                                     const unsigned int n_metric_dofs,
                                     const std::vector<std::vector<real>> &mapping_support_points,
                                     std::vector<dealii::FullMatrix<real>> &metric_cofactor);
-    ///computes 3D conservative curl cofactor matrix on FACE for consistent normals with water-tight mesh
+    ///computes local 3D cofactor matrix on FACE for consistent normals with water-tight mesh
     void compute_local_3D_cofactor_face(
                                     const unsigned int grid_degree, const unsigned int poly_degree,
                                     const unsigned int n_quad_pts,

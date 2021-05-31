@@ -52,34 +52,112 @@ const std::shared_ptr < Physics::PhysicsBase<dim, nstate, real> > pde_physics;
 
 };
 
-/// Roe flux with entropy fix. Derived from NumericalFluxConvective.
+/// Base class of Roe flux with entropy fix. Derived from NumericalFluxConvective.
 template<int dim, int nstate, typename real>
-class Roe: public NumericalFluxConvective<dim, nstate, real>
+class RoeBase: public NumericalFluxConvective<dim, nstate, real>
+{
+protected:
+	/// Numerical flux requires physics to evaluate convective eigenvalues.
+	const std::shared_ptr < Physics::Euler<dim, nstate, real> > euler_physics;
+
+public:
+	/// Constructor
+	RoeBase(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
+	:
+	euler_physics(std::dynamic_pointer_cast<Physics::Euler<dim,nstate,real>>(physics_input))
+	{};
+
+    /// Virtual destructor required for abstract classes.
+	/// virtual ~RoeBase() = 0;
+	~RoeBase() {};
+
+	virtual void evaluate_entropy_fix (
+	    const std::array<real, 3> &eig_L,
+	    const std::array<real, 3> &eig_R,
+	    std::array<real, 3> &eig_RoeAvg,
+	    const real vel2_ravg,
+	    const real sound_ravg) const = 0;
+
+	virtual void evaluate_additional_modifications (
+	    const std::array<real, nstate> &soln_int,
+	    const std::array<real, nstate> &soln_ext,
+	    const std::array<real, 3> &eig_L,
+	    const std::array<real, 3> &eig_R,
+	    real &dV_normal, 
+	    dealii::Tensor<1,dim,real> &dV_tangent) const = 0;
+
+	/// Returns the convective flux at an interface
+	std::array<real, nstate> evaluate_flux (
+	    const std::array<real, nstate> &soln_int,
+	    const std::array<real, nstate> &soln_ext,
+	    const dealii::Tensor<1,dim,real> &normal1) const;
+};
+
+/// RoePike flux with entropy fix. Derived from RoeBase.
+template<int dim, int nstate, typename real>
+class RoePike: public RoeBase<dim, nstate, real>
 {
 public:
+	/// Constructor -- confirm with Doug
+	RoePike(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
+		:	RoeBase<dim, nstate, real>(physics_input){}
 
-/// Constructor
-Roe(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
-:
-euler_physics(std::dynamic_pointer_cast<Physics::Euler<dim,nstate,real>>(physics_input))
-{};
-/// Destructor
-~Roe() {};
+	/// Destructor
+	///~RoePike () {};
 
-/// Returns the Roe convective numerical flux at an interface.
-std::array<real, nstate> evaluate_flux (
-    const std::array<real, nstate> &soln_int,
-    const std::array<real, nstate> &soln_ext,
-    const dealii::Tensor<1,dim,real> &normal1) const;
+	void evaluate_entropy_fix(
+	    const std::array<real, 3> &eig_L,
+	    const std::array<real, 3> &eig_R,
+	    std::array<real, 3> &eig_RoeAvg,
+	    const real vel2_ravg,
+	    const real sound_ravg) const;
 
-protected:
-/// Numerical flux requires physics to evaluate convective eigenvalues.
-const std::shared_ptr < Physics::Euler<dim, nstate, real> > euler_physics;
+	void evaluate_additional_modifications(
+	    const std::array<real, nstate> &soln_int,
+	    const std::array<real, nstate> &soln_ext,
+	    const std::array<real, 3> &eig_L,
+	    const std::array<real, 3> &eig_R,
+	    real &dV_normal, 
+	    dealii::Tensor<1,dim,real> &dV_tangent) const;
+};
 
+/// L2Roe flux with entropy fix. Derived from RoeBase.
+template<int dim, int nstate, typename real>
+class L2Roe: public RoeBase<dim, nstate, real>
+{
+public:
+	/// Constructor -- confirm with Doug
+	L2Roe(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
+		:	RoeBase<dim, nstate, real>(physics_input){}
+
+	/// Destructor
+	///~L2Roe () {};
+
+	void evaluate_entropy_fix(
+	    const std::array<real, 3> &eig_L,
+	    const std::array<real, 3> &eig_R,
+	    std::array<real, 3> &eig_RoeAvg,
+	    const real vel2_ravg,
+	    const real sound_ravg) const;
+	
+	void evaluate_additional_modifications(
+	    const std::array<real, nstate> &soln_int,
+	    const std::array<real, nstate> &soln_ext,
+	    const std::array<real, 3> &eig_L,
+	    const std::array<real, 3> &eig_R,
+	    real &dV_normal, 
+	    dealii::Tensor<1,dim,real> &dV_tangent) const;
+
+protected: /// ask Doug if below has to be public
+	void evaluate_shock_indicator(
+		const std::array<real, 3> &eig_L,
+	    const std::array<real, 3> &eig_R,
+	    int &ssw_LEFT,
+	    int &ssw_RIGHT) const;
 };
 
 
-} // NumericalFlux namespace
-} // PHiLiP namespace
+} /// NumericalFlux namespace
+} /// PHiLiP namespace
 
 #endif

@@ -125,9 +125,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  mhd>.");
     
     prm.declare_entry("conv_num_flux", "lax_friedrichs",
-                      dealii::Patterns::Selection("lax_friedrichs | roe | split_form"),
+                      dealii::Patterns::Selection("lax_friedrichs | roe | l2roe | split_form"),
                       "Convective numerical flux. "
-                      "Choices are <lax_friedrichs | roe | split_form>.");
+                      "Choices are <lax_friedrichs | roe | l2roe | split_form>.");
 
     prm.declare_entry("diss_num_flux", "symm_internal_penalty",
                       dealii::Patterns::Selection("symm_internal_penalty | bassi_rebay_2"),
@@ -209,6 +209,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (conv_num_flux_string == "lax_friedrichs") conv_num_flux_type = lax_friedrichs;
     if (conv_num_flux_string == "split_form")     conv_num_flux_type = split_form;
     if (conv_num_flux_string == "roe")            conv_num_flux_type = roe;
+    if (conv_num_flux_string == "l2roe")            conv_num_flux_type = l2roe;
 
     const std::string diss_num_flux_string = prm.get("diss_num_flux");
     if (diss_num_flux_string == "symm_internal_penalty") diss_num_flux_type = symm_internal_penalty;

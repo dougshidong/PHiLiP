@@ -68,7 +68,6 @@ public:
 	{};
 
     /// Virtual destructor required for abstract classes.
-	/// virtual ~RoeBase() = 0;
 	~RoeBase() {};
 
 	virtual void evaluate_entropy_fix (
@@ -98,12 +97,9 @@ template<int dim, int nstate, typename real>
 class RoePike: public RoeBase<dim, nstate, real>
 {
 public:
-	/// Constructor -- confirm with Doug
+	/// Constructor
 	RoePike(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
 		:	RoeBase<dim, nstate, real>(physics_input){}
-
-	/// Destructor
-	///~RoePike () {};
 
 	void evaluate_entropy_fix(
 	    const std::array<real, 3> &eig_L,
@@ -126,12 +122,9 @@ template<int dim, int nstate, typename real>
 class L2Roe: public RoeBase<dim, nstate, real>
 {
 public:
-	/// Constructor -- confirm with Doug
+	/// Constructor
 	L2Roe(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
 		:	RoeBase<dim, nstate, real>(physics_input){}
-
-	/// Destructor
-	///~L2Roe () {};
 
 	void evaluate_entropy_fix(
 	    const std::array<real, 3> &eig_L,
@@ -148,7 +141,7 @@ public:
 	    real &dV_normal, 
 	    dealii::Tensor<1,dim,real> &dV_tangent) const;
 
-protected: /// ask Doug if below has to be public
+protected:
 	void evaluate_shock_indicator(
 		const std::array<real, 3> &eig_L,
 	    const std::array<real, 3> &eig_R,

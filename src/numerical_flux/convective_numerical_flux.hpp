@@ -67,7 +67,7 @@ public:
 	euler_physics(std::dynamic_pointer_cast<Physics::Euler<dim,nstate,real>>(physics_input))
 	{};
 
-    /// Destructor
+	/// Destructor
 	~RoeBase() {};
 
 	/// Virtual member function for evaluating the entropy fix for a Roe-Pike flux.
@@ -90,8 +90,8 @@ public:
 	/// Returns the convective flux at an interface
 	/// --- See Blazek 2015, p.103-105
 	/// --- Note: Modified calculation of alpha_{3,4} to use 
-    ///           dVt (jump in tangential velocities);
-    ///           expressions are equivalent.
+	///           dVt (jump in tangential velocities);
+	///           expressions are equivalent.
 	std::array<real, nstate> evaluate_flux (
 	    const std::array<real, nstate> &soln_int,
 	    const std::array<real, nstate> &soln_ext,
@@ -108,7 +108,7 @@ public:
 		:	RoeBase<dim, nstate, real>(physics_input){}
 
 	/// Evaluates the entropy fix of Harten
-    /// --- See Blazek 2015, p.103-105
+	/// --- See Blazek 2015, p.103-105
 	void evaluate_entropy_fix(
 	    const std::array<real, 3> &eig_L,
 	    const std::array<real, 3> &eig_R,
@@ -138,7 +138,7 @@ public:
 
 	/// (1) Van Leer et al. (1989 Sonic) entropy fix for acoustic waves (i.e. i=1,5)
 	/// (2) For waves (i=2,3,4) --> Entropy fix of Liou (2000 Mass)
-    /// --- See p.74 of Osswald et al. (2016 L2Roe)
+	/// --- See p.74 of Osswald et al. (2016 L2Roe)
 	void evaluate_entropy_fix(
 	    const std::array<real, 3> &eig_L,
 	    const std::array<real, 3> &eig_R,
@@ -158,7 +158,7 @@ public:
 
 protected:
 	/// Shock indicator of Wada & Liou (1994 Flux) -- Eq.(39)
-    /// --- See also p.74 of Osswald et al. (2016 L2Roe)
+	/// --- See also p.74 of Osswald et al. (2016 L2Roe)
 	void evaluate_shock_indicator(
 		const std::array<real, 3> &eig_L,
 	    const std::array<real, 3> &eig_R,

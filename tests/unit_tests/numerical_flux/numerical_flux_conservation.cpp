@@ -242,7 +242,8 @@ int main (int argc, char * argv[])
 
     std::vector<ConvType> conv_type {
         ConvType::lax_friedrichs,
-        ConvType::roe
+        ConvType::roe,
+        ConvType::l2roe
     };
     std::vector<DissType> diss_type {
         DissType::symm_internal_penalty
@@ -261,7 +262,7 @@ int main (int argc, char * argv[])
 
         for (auto conv = conv_type.begin(); conv != conv_type.end() && success == 0; conv++) {
 
-            if((*conv == ConvType::roe) && (*pde!=PDEType::euler)) continue;
+            if(((*conv == ConvType::roe) || (*conv == ConvType::l2roe)) && (*pde!=PDEType::euler)) continue;
 
             all_parameters.conv_num_flux_type = *conv;
 

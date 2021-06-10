@@ -87,6 +87,10 @@ public:
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
 
+    /// Destructor
+    // virtual ~Euler() =0;
+    ~Euler() {};
+
     const double ref_length; ///< Reference length.
     const double gam; ///< Constant heat capacity ratio of fluid.
     const double gamm1; ///< Constant heat capacity ratio (Gamma-1.0) used often.
@@ -152,9 +156,13 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
 
     /// Source term is zero or depends on manufactured solution
-    std::array<real,nstate> source_term (
+    virtual std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &conservative_soln) const;
+
+    /// Convective flux contribution to the source term
+    std::array<real,nstate> convective_source_term (
+        const dealii::Point<dim,real> &pos) const;
 
     /// Given conservative variables [density, [momentum], total energy],
     /// returns primitive variables [density, [velocities], pressure].

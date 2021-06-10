@@ -1,4 +1,4 @@
- #include <cmath>
+#include <cmath>
 #include <vector>
 
 #include "ADTypes.hpp"
@@ -23,7 +23,7 @@ Euler<dim,nstate,real>::Euler (
     , ref_length(ref_length)
     , gam(gamma_gas)
     , gamm1(gam-1.0)
-    , density_inf(1.0)
+    , density_inf(1.0) // Nondimensional - Free stream values
     , mach_inf(mach_inf)
     , mach_inf_sqr(mach_inf*mach_inf)
     , angle_of_attack(angle_of_attack)
@@ -31,11 +31,13 @@ Euler<dim,nstate,real>::Euler (
     , sound_inf(1.0/(mach_inf))
     , pressure_inf(1.0/(gam*mach_inf_sqr))
     , entropy_inf(pressure_inf*pow(density_inf,-gam))
-    //, internal_energy_inf(mach_inf_sqr/(gam*(gam-1.0)))
+    //, internal_energy_inf(1.0/(gam*(gam-1.0)*mach_inf_sqr)) 
+    // Note: Eq.(3.11.18) has a typo in internal_energy_inf expression, mach_inf_sqr should be in denominator. 
 {
     static_assert(nstate==dim+2, "Physics::Euler() should be created with nstate=dim+2");
 
-    temperature_inf = gam*pressure_inf/density_inf * mach_inf_sqr;
+    // Nondimensional temperature at infinity
+    temperature_inf = gam*pressure_inf/density_inf * mach_inf_sqr; // Note by JB: this can simply be set = 1
 
     // For now, don't allow side-slip angle
     if (std::abs(side_slip_angle) >= 1e-14) {
@@ -47,7 +49,7 @@ Euler<dim,nstate,real>::Euler (
         velocities_inf[0] = 1.0;
     } else if(dim==2) {
         velocities_inf[0] = cos(angle_of_attack);
-        velocities_inf[1] = sin(angle_of_attack); // Maybe minus??
+        velocities_inf[1] = sin(angle_of_attack); // Maybe minus?? -- Clarify with Doug
     } else if (dim==3) {
         velocities_inf[0] = cos(angle_of_attack)*cos(side_slip_angle);
         velocities_inf[1] = sin(angle_of_attack)*cos(side_slip_angle);
@@ -58,7 +60,6 @@ Euler<dim,nstate,real>::Euler (
 
     double velocity_inf_sqr = 1.0;
     dynamic_pressure_inf = 0.5 * density_inf * velocity_inf_sqr;
-
 }
 
 template <int dim, int nstate, typename real>
@@ -66,6 +67,15 @@ std::array<real,nstate> Euler<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &/*conservative_soln*/) const
+{
+    std::array<real,nstate> source_term = convective_source_term(pos);
+    return source_term;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> Euler<dim,nstate,real>
+::convective_source_term (
+    const dealii::Point<dim,real> &pos) const
 {
     std::array<real,nstate> manufactured_solution;
     for (int s=0; s<nstate; s++) {
@@ -98,12 +108,12 @@ std::array<real,nstate> Euler<dim,nstate,real>
             convective_flux_divergence[sr] += jac_grad_row;
         }
     }
-    std::array<real,nstate> source_term;
+    std::array<real,nstate> convective_source_term;
     for (int s=0; s<nstate; s++) {
-        source_term[s] = convective_flux_divergence[s];
+        convective_source_term[s] = convective_flux_divergence[s];
     }
 
-    return source_term;
+    return convective_source_term;
 }
 
 template <int dim, int nstate, typename real>
@@ -446,7 +456,9 @@ dealii::Tensor<2,nstate,real> Euler<dim,nstate,real>
     const std::array<real,nstate> &conservative_soln,
     const dealii::Tensor<1,dim,real> &normal) const
 {
-    // See Blazek Appendix A.9 p. 429-430
+    // See Blazek (year?) Appendix A.9 p. 429-430
+    // For Blazek (2001), see Appendix A.7 p. 419-420
+    // Alternatively, see Masatsuka 2018 "I do like CFD", p.77, eq.(3.6.8)
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
     real vel_normal = 0.0;
     for (int d=0;d<dim;d++) { vel_normal += vel[d] * normal[d]; }

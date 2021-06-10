@@ -11,6 +11,7 @@ AllParameters::AllParameters ()
     , ode_solver_param(ODESolverParam())
     , linear_solver_param(LinearSolverParam())
     , euler_param(EulerParam())
+    , navier_stokes_param(NavierStokesParam())
     , grid_refinement_study_param(GridRefinementStudyParam())
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 { }
@@ -120,7 +121,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_cylinder_adjoint | "
                       "  euler_vortex | "
                       "  euler_entropy_waves | "
-					  "  euler_split_taylor_green |"
+					            "  euler_split_taylor_green |"
                       "  euler_bump_optimization | "
                       "  euler_naca_optimization | "
                       "  shock_1d | "
@@ -135,7 +136,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                           " advection_vector | "
                           " burgers_inviscid | "
                           " euler |"
-                          " mhd"),
+                          " mhd |"
+                          " navier_stokes"),
                       "The PDE we want to solve. "
                       "Choices are " 
                       " <advection | " 
@@ -144,7 +146,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  advection_vector | "
                       "  burgers_inviscid | "
                       "  euler | "
-                      "  mhd>.");
+                      "  mhd |"
+                      "  navier_stokes>.");
     
     prm.declare_entry("conv_num_flux", "lax_friedrichs",
                       dealii::Patterns::Selection("lax_friedrichs | roe | l2roe | split_form"),
@@ -218,6 +221,10 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
         pde_type = euler;
         nstate = dimension+2;
     }
+    else if (pde_string == "navier_stokes") {
+        pde_type = navier_stokes;
+        nstate = dimension+2;
+    }
     overintegration = prm.get_integer("overintegration");
 
     use_weak_form = prm.get_bool("use_weak_form");
@@ -275,6 +282,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     pcout << "Parsing euler subsection..." << std::endl;
     euler_param.parse_parameters (prm);
+
+    pcout << "Parsing navier stokes subsection..." << std::endl;
+    navier_stokes_param.parse_parameters (prm);
 
     pcout << "Parsing grid refinement study subsection..." << std::endl;
     grid_refinement_study_param.parse_parameters (prm);

@@ -158,6 +158,7 @@ public:
 
     real evaluate_functional( const bool compute_dIdW = false, const bool compute_dIdX = false, const bool compute_d2I = false) override
     {
+        //if(Functional<dim,nstate,real>::dg->get_residual_l2norm() > 1e-9) return 1.7e199;
         double value = Functional<dim,nstate,real>::evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I);
 
         if (functional_type == Functional_types::lift) {
@@ -167,6 +168,7 @@ public:
         }
         if (functional_type == Functional_types::drag) {
             this->pcout << "Drag value: " << value << "\n";
+            value = abs(value);
         }
 
         return value;

@@ -198,7 +198,9 @@ int ODESolver<dim,real,MeshType>::steady_state ()
     }
     if (this->residual_norm > 1e5
         || std::isnan(this->residual_norm)
-        || CFL_factor <= 1e-2)
+        || CFL_factor <= 1e-2
+        || this->current_iteration >= ode_param.nonlinear_max_iterations
+       )
     {
         this->dg->solution = initial_solution;
 
@@ -333,7 +335,7 @@ double Implicit_ODESolver<dim,real,MeshType>::linesearch ()
     double step_length = 1.0;
 
     const double step_reduction = 0.5;
-    const int maxline = 10;
+    const int maxline = 5;
     const double reduction_tolerance_1 = 1.0;
     const double reduction_tolerance_2 = 2.0;
 
@@ -353,7 +355,9 @@ double Implicit_ODESolver<dim,real,MeshType>::linesearch ()
         new_residual = this->dg->get_residual_l2norm();
         pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
     }
-    if (iline == 0) this->CFL_factor *= 2.0;
+    if (iline == 0) {
+        this->CFL_factor *= 2.0;
+    }
 
     if (iline == maxline) {
         step_length = 1.0;

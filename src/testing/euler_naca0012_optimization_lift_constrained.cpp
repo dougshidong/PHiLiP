@@ -12,6 +12,9 @@
 #include "ROL_Algorithm.hpp"
 #include "ROL_Reduced_Objective_SimOpt.hpp"
 #include "ROL_Reduced_Constraint_SimOpt.hpp"
+
+#include "ROL_Constraint_Partitioned.hpp"
+
 #include "ROL_OptimizationSolver.hpp"
 #include "ROL_LineSearchStep.hpp"
 #include "ROL_StatusTest.hpp"
@@ -41,9 +44,38 @@
 
 #include "mesh/gmsh_reader.hpp"
 #include "functional/lift_drag.hpp"
+#include "functional/geometric_volume.hpp"
 #include "functional/target_wall_pressure.hpp"
 
 #include "global_counter.hpp"
+
+enum class OptimizationAlgorithm { full_space_birosghattas, full_space_composite_step, reduced_space_bfgs, reduced_space_newton, reduced_sqp };
+enum class Preconditioner { P2, P2A, P4, P4A, identity };
+
+const std::vector<Preconditioner> precond_list { Preconditioner::P2, Preconditioner::P2A, Preconditioner::P4, Preconditioner::P4A };
+//const std::vector<OptimizationAlgorithm> opt_list { OptimizationAlgorithm::full_space_birosghattas, OptimizationAlgorithm::reduced_space_bfgs, OptimizationAlgorithm::reduced_space_newton };
+//const std::vector<OptimizationAlgorithm> opt_list { OptimizationAlgorithm::reduced_space_bfgs };
+//const std::vector<OptimizationAlgorithm> opt_list { OptimizationAlgorithm::reduced_sqp };
+const std::vector<OptimizationAlgorithm> opt_list { OptimizationAlgorithm::reduced_space_newton };
+
+const unsigned int POLY_START = 1;
+const unsigned int POLY_END = 1; // Can do until at least P2
+
+const unsigned int n_des_var_start = 10;//20;
+const unsigned int n_des_var_end   = 50;//100;
+const unsigned int n_des_var_step  = 10;//20;
+
+const int max_design_cycle = 1000;
+
+const double FD_TOL = 1e-6;
+const double CONSISTENCY_ABS_TOL = 1e-10;
+
+const bool USE_BFGS = true;
+const int LINESEARCH_MAX_ITER = 10;
+const int PDAS_MAX_ITER = 2;
+
+const std::string line_search_curvature = "Null Curvature Condition";
+const std::string line_search_method = "Backtracking";
 
 namespace PHiLiP {
 namespace Tests {
@@ -108,7 +140,10 @@ ROL::Ptr<ROL::BoundConstraint<double>> getBoundConstraint(ROL::Ptr<ROL::Vector<d
     l->applyUnary(setlower);
     u->applyUnary(setupper);
 
-    return ROL::makePtr<ROL::Bounds<double>>(l,u);
+    double scale = 1;
+    double feasTol = 1e-4;
+
+    return ROL::makePtr<ROL::Bounds<double>>(l,u, scale, feasTol);
 }
 
 ROL::Ptr<ROL::Constraint<double>> getEqualityConstraint(void) {
@@ -119,12 +154,14 @@ ROL::Ptr<ROL::Vector<double>> getEqualityMultiplier(void) {
     return ROL::nullPtr;
 }
 
-ROL::Ptr<ROL::Constraint<double>> getInequalityConstraint(
+std::vector<ROL::Ptr<ROL::Constraint<double>>> getInequalityConstraint(
     const ROL::Ptr<ROL::Objective_SimOpt<double>> lift_objective,
     const ROL::Ptr<ROL::Constraint_SimOpt<double>> flow_constraints,
     const ROL::Ptr<ROL::Vector<double>> simulation_variables,
     const ROL::Ptr<ROL::Vector<double>> control_variables,
-    const double lift_target
+    const double lift_target,
+    const ROL::Ptr<ROL::Objective_SimOpt<double>> volume_objective,
+    const double volume_target = -1
     )
 {
     ROL::Ptr<ROL::SimController<double> > stateStore = ROL::makePtr<ROL::SimController<double>>();
@@ -136,49 +173,54 @@ ROL::Ptr<ROL::Constraint<double>> getInequalityConstraint(
     const double offset = lift_target;
     const ROL::Ptr<ROL::Constraint<double>> reduced_lift_constraint = ROL::makePtr<ROL::ConstraintFromObjective<double>> (reduced_lift_objective, offset);
 
-    return reduced_lift_constraint;
+    std::vector<ROL::Ptr<ROL::Constraint<double> > > cvec;
+    cvec.push_back(reduced_lift_constraint);
+    if (volume_target > 0) {
+        auto reduced_volume_objective = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( volume_objective, flow_constraints, simulation_variables, control_variables, lift_adjoint, storage, useFDHessian);
+        const ROL::Ptr<ROL::Constraint<double>> volume_constraint = ROL::makePtr<ROL::ConstraintFromObjective<double>> (reduced_volume_objective, volume_target);
+        cvec.push_back(volume_constraint);
+    }
+    return cvec;
+
 }
 
-ROL::Ptr<ROL::Vector<double>> getInequalityMultiplier(void) {
+std::vector<ROL::Ptr<ROL::Vector<double>>> getInequalityMultiplier(const double volume_target = -1) {
     const ROL::Ptr<ROL::SingletonVector<double>> lift_constraint_dual = ROL::makePtr<ROL::SingletonVector<double>> (1.0);
-    return lift_constraint_dual;
+    std::vector<ROL::Ptr<ROL::Vector<double>>> emul;
+    emul.push_back(lift_constraint_dual);
+    if (volume_target > 0) {
+        const ROL::Ptr<ROL::SingletonVector<double>> volume_constraint_dual = ROL::makePtr<ROL::SingletonVector<double>> (1.0);
+        emul.push_back(volume_constraint_dual);
+    }
+    return emul;
 }
 
-ROL::Ptr<ROL::BoundConstraint<double>> getSlackBoundConstraint(const double lift_target) {
+std::vector<ROL::Ptr<ROL::BoundConstraint<double>>> getSlackBoundConstraint(const double lift_target, const double volume_target = -1)
+{
 
     (void) lift_target;
     //const ROL::Ptr<ROL::SingletonVector<double>> lift_lower_bound = ROL::makePtr<ROL::SingletonVector<double>> (lift_target);
     // Constraint is already (lift - target_lift), therefore, the lower bound is 0.0.
     const ROL::Ptr<ROL::SingletonVector<double>> lift_lower_bound = ROL::makePtr<ROL::SingletonVector<double>> (0.0);
-    const bool isLower = true;
-    return ROL::makePtr<ROL::Bounds<double>>(*lift_lower_bound, isLower);
+    const ROL::Ptr<ROL::SingletonVector<double>> lift_upper_bound = ROL::makePtr<ROL::SingletonVector<double>> (1.0);
+    //const bool isLower = true;
+    double scale = 1;
+    double feasTol = 1e-4;
+    auto lift_bounds = ROL::makePtr<ROL::Bounds<double>> (lift_lower_bound, lift_upper_bound, scale, feasTol);
+
+
+    std::vector<ROL::Ptr<ROL::BoundConstraint<double>>> bcon;
+    bcon.push_back(lift_bounds);
+    if (volume_target > 0) {
+        const ROL::Ptr<ROL::SingletonVector<double>> volume_lower_bound = ROL::makePtr<ROL::SingletonVector<double>> (-1e-4);
+        const ROL::Ptr<ROL::SingletonVector<double>> volume_upper_bound = ROL::makePtr<ROL::SingletonVector<double>> (1e-4);
+        auto volume_bounds = ROL::makePtr<ROL::Bounds<double>> (volume_lower_bound, volume_upper_bound, scale, feasTol);
+        bcon.push_back(volume_bounds);
+    }
+    return bcon;
 }
 
 
-
-enum OptimizationAlgorithm { full_space_birosghattas, full_space_composite_step, reduced_space_bfgs, reduced_space_newton, reduced_sqp };
-enum BirosGhattasPreconditioner { P2, P2A, P4, P4A, identity };
-
-const std::vector<BirosGhattasPreconditioner> precond_list { P2, P2A, P4, P4A };
-//const std::vector<OptimizationAlgorithm> opt_list { full_space_birosghattas, reduced_space_bfgs, reduced_space_newton };
-//const std::vector<OptimizationAlgorithm> opt_list { reduced_space_bfgs };
-//const std::vector<OptimizationAlgorithm> opt_list { reduced_sqp };
-const std::vector<OptimizationAlgorithm> opt_list { reduced_space_newton };
-
-const unsigned int POLY_START = 1;
-const unsigned int POLY_END = 1; // Can do until at least P2
-
-const unsigned int n_des_var_start = 5;//20;
-const unsigned int n_des_var_end   = 5;//100;
-const unsigned int n_des_var_step  = 5;//20;
-
-const int max_design_cycle = 1000;
-
-const double FD_TOL = 1e-6;
-const double CONSISTENCY_ABS_TOL = 1e-10;
-
-const std::string line_search_curvature = "Null Curvature Condition";
-const std::string line_search_method = "Backtracking";
 
 template <int dim, int nstate>
 EulerNACAOptimizationConstrained<dim,nstate>::EulerNACAOptimizationConstrained(const Parameters::AllParameters *const parameters_input)
@@ -322,30 +364,30 @@ int EulerNACAOptimizationConstrained<dim,nstate>
     std::string descent_method = "";
     std::string preconditioner_string = "";
     switch(opt_type) {
-        case full_space_birosghattas: {
+        case OptimizationAlgorithm::full_space_birosghattas: {
             opt_output_name = "full_space";
             switch(precond_type) {
-                case P2: {
+                case Preconditioner::P2: {
                     opt_output_name += "_p2";
                     preconditioner_string = "P2";
                     break;
                 }
-                case P2A: {
+                case Preconditioner::P2A: {
                     opt_output_name += "_p2a";
                     preconditioner_string = "P2A";
                     break;
                 }
-                case P4: {
+                case Preconditioner::P4: {
                     opt_output_name += "_p4";
                     preconditioner_string = "P4";
                     break;
                 }
-                case P4A: {
+                case Preconditioner::P4A: {
                     opt_output_name += "_p4a";
                     preconditioner_string = "P4A";
                     break;
                 }
-                case identity: {
+                case Preconditioner::identity: {
                     opt_output_name += "_identity";
                     preconditioner_string = "identity";
                     break;
@@ -353,18 +395,18 @@ int EulerNACAOptimizationConstrained<dim,nstate>
             }
             break;
         }
-        case full_space_composite_step: {
+        case OptimizationAlgorithm::full_space_composite_step: {
             opt_output_name = "full_space_composite_step";
             break;
         }
-        case reduced_space_bfgs: {
+        case OptimizationAlgorithm::reduced_space_bfgs: {
             opt_output_name = "reduced_space_bfgs";
             descent_method = "Quasi-Newton Method";
             break;
         }
-        case reduced_sqp: {
+        case OptimizationAlgorithm::reduced_sqp: {
         }
-        case reduced_space_newton: {
+        case OptimizationAlgorithm::reduced_space_newton: {
             opt_output_name = "reduced_space_newton";
             descent_method = "Newton-Krylov";
             break;
@@ -416,7 +458,7 @@ int EulerNACAOptimizationConstrained<dim,nstate>
 
 
     const dealii::Point<dim> ffd_origin(0.0,-0.061);
-    const std::array<double,dim> ffd_rectangle_lengths = {{0.9,0.122}};
+    const std::array<double,dim> ffd_rectangle_lengths = {{0.999,0.122}};
     const std::array<unsigned int,dim> ffd_ndim_control_pts = {{nx_ffd,3}};
     FreeFormDeformation<dim> ffd( ffd_origin, ffd_rectangle_lengths, ffd_ndim_control_pts);
 
@@ -498,12 +540,14 @@ int EulerNACAOptimizationConstrained<dim,nstate>
 
     LiftDragFunctional<dim,nstate,double> lift_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::lift );
     LiftDragFunctional<dim,nstate,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::drag );
+    GeometricVolume<dim,nstate,double> volume_functional( dg );
 
     std::cout << " Current lift = " << lift_functional.evaluate_functional()
               << ". Current drag = " << drag_functional.evaluate_functional()
               << std::endl;
 
-    double lift_target = lift_functional.evaluate_functional() * 1.01;
+    double lift_target = lift_functional.evaluate_functional() * 1.0;
+    double volume_target = volume_functional.evaluate_functional() * 1.0;
 
 
     ffd.output_ffd_vtu(8999);
@@ -512,6 +556,7 @@ int EulerNACAOptimizationConstrained<dim,nstate>
 
     auto drag_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( drag_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
     auto lift_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
+    auto volume_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( volume_functional, ffd, ffd_design_variables_indices_dim, &(flow_constraints->dXvdXp) );
 
     const unsigned int n_other_constraints = 1;
     const dealii::IndexSet constraint_row_part = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_other_constraints);
@@ -519,7 +564,7 @@ int EulerNACAOptimizationConstrained<dim,nstate>
     constraint_ghost_row_part.add_range(0,n_other_constraints);
 
     double tol = 0.0;
-    std::cout << "Drag with quadratic lift penalty = " << drag_objective->value(*simulation_variables, *control_variables, tol) << std::endl;
+    std::cout << "Drag value= " << drag_objective->value(*simulation_variables, *control_variables, tol) << std::endl;
 
     dg->output_results_vtk(9999);
 
@@ -535,7 +580,7 @@ int EulerNACAOptimizationConstrained<dim,nstate>
     parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
     parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",3e-1); // Might be needed for p2 BFGS
     parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",1e-0);
-    parlist.sublist("Step").sublist("Line Search").set("Function Evaluation Limit",30); // 0.5^30 ~  1e-10
+    parlist.sublist("Step").sublist("Line Search").set("Function Evaluation Limit",LINESEARCH_MAX_ITER); // 0.5^30 ~  1e-10
     parlist.sublist("Step").sublist("Line Search").set("Accept Linesearch Minimizer",true);//false);
     parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type",line_search_method);
     parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type",line_search_curvature);
@@ -554,7 +599,7 @@ int EulerNACAOptimizationConstrained<dim,nstate>
     d2R_mult = 0;
 
     switch (opt_type) {
-        case full_space_composite_step: {
+        case OptimizationAlgorithm::full_space_composite_step: {
             // Full space problem
             auto dual_sim_p = simulation_variables->clone();
             //opt = ROL::OptimizationProblem<double> ( drag_objective, des_var_p, flow_constraints, dual_sim_p );
@@ -581,20 +626,22 @@ int EulerNACAOptimizationConstrained<dim,nstate>
 
             break;
         }
-        case reduced_space_bfgs:
+        case OptimizationAlgorithm::reduced_space_bfgs:
             [[fallthrough]];
-        case reduced_space_newton: {
+        case OptimizationAlgorithm::reduced_space_newton: {
             *outStream << "Starting optimization with " << n_design_variables << "..." << std::endl;
 
             ROL::Ptr<ROL::Objective<double>>       reduced_drag_objective       = getObjective(drag_objective, flow_constraints, simulation_variables, control_variables);
             ROL::Ptr<ROL::BoundConstraint<double>> des_var_bound                = getBoundConstraint(control_variables);
-            ROL::Ptr<ROL::Constraint<double>>      reduced_lift_constraint      = ROL::nullPtr;//getInequalityConstraint(lift_objective, flow_constraints, simulation_variables, control_variables, lift_target);
-            ROL::Ptr<ROL::Vector<double>>          reduced_lift_constraint_dual = ROL::nullPtr;//getInequalityMultiplier();
-            ROL::Ptr<ROL::BoundConstraint<double>> slack_bound                  = getSlackBoundConstraint(lift_target);
+            std::vector<ROL::Ptr<ROL::Constraint<double>>>      reduced_lift_constraint      = getInequalityConstraint(lift_objective, flow_constraints, simulation_variables, control_variables, lift_target, volume_objective, volume_target);
+            std::vector<ROL::Ptr<ROL::Vector<double>>>          reduced_lift_constraint_dual = getInequalityMultiplier(volume_target);
+            //ROL::Ptr<ROL::Constraint<double>>      reduced_lift_constraint      = ROL::nullPtr;
+            //ROL::Ptr<ROL::Vector<double>>          reduced_lift_constraint_dual = ROL::nullPtr;
+            std::vector<ROL::Ptr<ROL::BoundConstraint<double>>> slack_bound                  = getSlackBoundConstraint(lift_target, volume_target);
             (void) reduced_lift_constraint_dual;
             (void) slack_bound;
-            //ROL::EProblem problem_type = ROL::TYPE_EB;
-            ROL::EProblem problem_type = ROL::TYPE_B;
+            //ROL::EProblem problem_type = ROL::TYPE_B;
+            ROL::EProblem problem_type = ROL::TYPE_EB;
             switch(problem_type) {
                 case ROL::TYPE_U:
                     *outStream << "Unconstrained Optimization Problem " << std::endl;
@@ -607,6 +654,8 @@ int EulerNACAOptimizationConstrained<dim,nstate>
                     parlist.sublist("Step").set("Type","Primal Dual Active Set");
                     parlist.sublist("Step").sublist("Primal Dual Active Set").set("Iteration Limit",5);
                     parlist.sublist("General").sublist("Secant").set("Use as Hessian", true);
+                    //parlist.sublist("General").sublist("Secant").set("Use as Hessian", false);
+                    //parlist.sublist("General").sublist("Secant").set("Use as Preconditioner", true);
 
                     parlist.sublist("General").sublist("Krylov").set("Absolute Tolerance", 1e-8);
                     parlist.sublist("General").sublist("Krylov").set("Relative Tolerance", 1e-6);
@@ -638,6 +687,16 @@ int EulerNACAOptimizationConstrained<dim,nstate>
                     //parlist.sublist("Step").sublist("Fletcher").set("Subproblem Solver","Line Search");
                     //parlist.sublist("Step").sublist("Fletcher").set("Subproblem Solver","Trust Region");
 
+                    parlist.sublist("Step").set("Type","Primal Dual Active Set");
+                    parlist.sublist("Step").sublist("Primal Dual Active Set").set("Iteration Limit",10);
+                    parlist.sublist("General").sublist("Secant").set("Use as Hessian", true);
+                    //parlist.sublist("General").sublist("Secant").set("Use as Hessian", false);
+                    //parlist.sublist("General").sublist("Secant").set("Use as Preconditioner", true);
+
+                    parlist.sublist("General").sublist("Krylov").set("Absolute Tolerance", 1e-8);
+                    parlist.sublist("General").sublist("Krylov").set("Relative Tolerance", 1e-6);
+                    parlist.sublist("General").sublist("Krylov").set("Iteration Limit", 30);
+
                     break;
                 case ROL::TYPE_LAST:
                     throw;
@@ -658,17 +717,56 @@ int EulerNACAOptimizationConstrained<dim,nstate>
             //solver.solve( *outStream );
             //algo_state = solver.getAlgorithmState();
 
+            parlist.sublist("Step").sublist("Primal Dual Active Set").set("Iteration Limit",PDAS_MAX_ITER);
+            parlist.sublist("General").sublist("Secant").set("Use as Hessian", USE_BFGS);
+            parlist.sublist("General").sublist("Krylov").set("Absolute Tolerance", 1e-8);
+            parlist.sublist("General").sublist("Krylov").set("Relative Tolerance", 1e-6);
+            parlist.sublist("General").sublist("Krylov").set("Iteration Limit", 300);
+            parlist.sublist("General").sublist("Krylov").set("Use Initial Guess", true);
+            //parlist.sublist("General").sublist("Secant").set("Use as Hessian", false);
+
+            parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
+            parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",3e-1); // Might be needed for p2 BFGS
+            parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",1e-0);
+            parlist.sublist("Step").sublist("Line Search").set("Function Evaluation Limit",LINESEARCH_MAX_ITER); // 0.5^30 ~  1e-10
+            parlist.sublist("Step").sublist("Line Search").set("Accept Linesearch Minimizer",true);//false);
+            parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type",line_search_method);
+            parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type",line_search_curvature);
+
             auto pdas_step = ROL::makePtr<PHiLiP::PrimalDualActiveSetStep<double>>(parlist);
             auto status_test = ROL::makePtr<ROL::StatusTest<double>>(parlist);
-            const bool printHeader = false;
+            const bool printHeader = true;
             const ROL::Ptr<ROL::Algorithm<double>> algorithm = ROL::makePtr<ROL::Algorithm<double>>( pdas_step, status_test, printHeader );
             auto gradient_vector = control_variables->dual().clone();
-            algorithm->run(*control_variables,*gradient_vector,*reduced_drag_objective,*des_var_bound,true,*outStream);
+            // B
+            //algorithm->run(*control_variables,
+            //               *gradient_vector,
+            //               *reduced_drag_objective,
+            //               *des_var_bound,
+            //               true,
+            //               *outStream);
+
+            // This step transforms the inequality into equality + slack variables with box constraints.
+            opt = ROL::OptimizationProblem<double> ( reduced_drag_objective, control_variables, des_var_bound,
+                                                     reduced_lift_constraint, reduced_lift_constraint_dual, slack_bound);
+            auto x      = opt.getSolutionVector();
+            auto g      = x->dual().clone();
+            auto l      = opt.getMultiplierVector();
+            auto c      = l->dual().clone();
+            auto obj    = opt.getObjective();
+            auto con    = opt.getConstraint();
+            auto bnd    = opt.getBoundConstraint();
+
+            for (auto &constraint_dual : reduced_lift_constraint_dual) {
+                constraint_dual->zero();
+            }
+            //reduced_lift_constraint->value(*reduced_lift_constraint_dual,*control_variables,tol);
+            algorithm->run(*x, *g, *l, *c, *obj, *con, *bnd, true, *outStream);
             algo_state = algorithm->getState();
 
             break;
         }
-        case reduced_sqp: {
+        case OptimizationAlgorithm::reduced_sqp: {
 
             // Reduced space problem
             const bool storage = true;
@@ -706,7 +804,7 @@ int EulerNACAOptimizationConstrained<dim,nstate>
             algo_state = algorithm.getState();
             break;
         }
-        case full_space_birosghattas: {
+        case OptimizationAlgorithm::full_space_birosghattas: {
             auto full_space_step = ROL::makePtr<ROL::FullSpace_BirosGhattas<double>>(parlist);
             auto status_test = ROL::makePtr<ROL::StatusTest<double>>(parlist);
             const bool printHeader = true;

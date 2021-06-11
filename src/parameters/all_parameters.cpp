@@ -164,6 +164,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     Parameters::ODESolverParam::declare_parameters (prm);
 
     Parameters::EulerParam::declare_parameters (prm);
+    Parameters::NavierStokesParam::declare_parameters (prm);
 
     Parameters::GridRefinementStudyParam::declare_parameters (prm);
 

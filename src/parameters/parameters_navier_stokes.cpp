@@ -2,7 +2,7 @@
 
 namespace PHiLiP {
 namespace Parameters {
-
+    
 // NavierStokes inputs
 NavierStokesParam::NavierStokesParam () {}
 
@@ -24,7 +24,7 @@ void NavierStokesParam::parse_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("navier_stokes");
     {
-        prandtl_number  = prm.get_double("prandtl_number");
+        prandtl_number      = prm.get_double("prandtl_number");
         reynolds_number_inf = prm.get_double("reynolds_number_inf");
     }
     prm.leave_subsection();

@@ -82,6 +82,7 @@ double ROLObjectiveSimOpt<dim,nstate>::value(
     // In that scenario, tol is the constraint norm.
     // If the flow has not converged (>1e-5 or is nan), simply return a high functional.
     // This is likely happening in the linesearch while optimizing in the reduced-space.
+    (void) tol;
     if (tol > 1e-10 || std::isnan(tol)) return 1e200;
     update(des_var_sim, des_var_ctl);
 

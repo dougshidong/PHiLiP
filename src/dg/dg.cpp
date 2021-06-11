@@ -1095,8 +1095,14 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
                 if (l2_norm_dual == 0.0) {
                     pcout << " which is already assembled..." << std::endl;
                     return;
+                } else {
+                    pcout << " Reassembling Hessian since dual differ by " << diff_dual.l2_norm() << " since last computation" << std::endl;
                 }
+            } else {
+                pcout << " Reassembling Hessian since nodes differ by " << diff_node.l2_norm() << " since last computation" << std::endl;
             }
+        } else {
+            pcout << " Reassembling Hessian since solution differs by " << diff_sol.l2_norm() << " since last computation" << std::endl;
         }
         solution_d2R = solution;
         volume_nodes_d2R = high_order_grid->volume_nodes;

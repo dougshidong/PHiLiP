@@ -505,6 +505,11 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
     }
 }
 
+/*******************************************************
+ *
+ *              EXPLICIT
+ *
+ *              **********************************************/
 
 template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
@@ -556,7 +561,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
         for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
               const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(idof).first;
               soln_at_q[iquad][istate]      += soln_coeff[idof] * fe_values_vol.shape_value_component(idof, iquad, istate);
+              //soln_at_q[iquad][istate]      += soln_coeff[idof] * operators.fe_collection[poly_degree].shape_value_component(idof, iquad, istate);
               soln_grad_at_q[iquad][istate] += soln_coeff[idof] * fe_values_vol.shape_grad_component(idof, iquad, istate);
+             // soln_grad_at_q[iquad][istate] += soln_coeff[idof] * operators.fe_collection[poly_degree].shape_grad_component(idof, iquad, istate);//should be auxiliary variable leave it for now
         }
         //std::cout << "Density " << soln_at_q[iquad][0] << std::endl;
         //if(nstate>1) std::cout << "Momentum " << soln_at_q[iquad][1] << std::endl;
@@ -573,6 +580,66 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     const unsigned int cell_index = fe_values_vol.get_cell()->active_cell_index();
     const unsigned int cell_degree = fe_values_vol.get_fe().tensor_degree();
     this->max_dt_cell[cell_index] = DGBaseState<dim,nstate,real,MeshType>::evaluate_CFL ( soln_at_q, 0.0, cell_diameter, cell_degree);
+
+
+#if 0
+    //get local cofactor matrix
+    std::vector<std::vector<real>> mapping_support_points(dim);
+    for(int idim=0; idim<dim; idim++){
+        mapping_support_points[idim].resize(n_metric_dofs);
+    }
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        const real val = (dg->high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+        const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+        const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
+        mapping_support_points[istate][ishape] = val; 
+    }
+    std::vector<dealii::FullMatrix<real>> metric_cofactor(n_quad_pts);
+    std::vector<real> determinant_Jacobian(n_quad_pts);
+    for(unsigned int iquad=0;iquad<n_quad_pts; iquad++){
+        metric_cofactor[iquad].reinit(dim, dim);
+    }
+    operators.build_local_vol_metric_cofactor_matrix_and_det_Jac(grid_degree, poly_degree, n_quad_pts, n_metric_dofs/dim, mapping_support_points, determinant_Jacobian, metric_cofactor);
+
+    //get reference flux
+
+
+
+    //evaluate rhs
+    std::vector<realArray> flux_divergence(n_quad_pts);
+    std::vector<realArray> rhs(n_dofs_cell);
+    if (this->all_parameters->use_split_form == true){
+        for (int istate = 0; istate<nstate; ++istate) {
+            for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                flux_divergence[iquad][istate] = 0.0;
+                for ( unsigned int flux_basis = 0; flux_basis < n_quad_pts; ++flux_basis ) {
+                        flux_divergence[iquad][istate] += 2* DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->convective_numerical_split_flux(soln_at_q[iquad],soln_at_q[flux_basis])[istate] *  operators.gradient_flux_basis[poly_degree][istate][iquad][flux_basis];
+                }
+            }
+        }
+        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+            const unsigned int istate = operators.fe_collection_basis[poly_degree].system_to_component_index(idof).first; 
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                rhs[idof] += operators.vol_integral_basis[poly_degree][iquad][idof] * flux_divergence[iquad][istate];
+            }
+        }
+    }
+    else {
+        for(unsigned int itest=0; itest<n_dofs_cell; itest++){
+            const unsigned int istate = operators.fe_collection_basis[poly_degree].system_to_component_index(itest).first; 
+            const unsigned int idof = operators.fe_collection_basis[poly_degree].system_to_component_index(itest).second; 
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                for(int idim=0; idim<dim; idim++){
+                    rhs[idof] += operators.local_flux_basis_stiffness[poly_degree][istate][idim][idof][iquad] * flux_divergence[iquad][istate][idim];
+                }
+            }
+        }
+    }
+
+
+    //apply mass inverse on residual
+
+#endif
 
 
     // Evaluate flux divergence by interpolating the flux
@@ -595,6 +662,30 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
         }
     }
 
+
+    dealii::FullMatrix<real> ESFR_filter(n_dofs_cell);
+    if(this->all_parameters->use_classical_FR == true){
+        dealii::FullMatrix<real> Mass_matrix(n_dofs_cell);
+        const unsigned int current_fe_index = fe_values_vol.get_fe().tensor_degree();
+        this->operators.build_local_Mass_Matrix(JxW, n_dofs_cell, n_quad_pts, current_fe_index, Mass_matrix); 
+        dealii::FullMatrix<real> K_operator(n_dofs_cell);
+        this->operators.build_local_K_operator(Mass_matrix, n_dofs_cell, current_fe_index, K_operator);
+        dealii::FullMatrix<real> temp(n_dofs_cell);
+        temp.add(1.0, Mass_matrix, 1.0, K_operator);
+        dealii::FullMatrix<real> m_inv(n_dofs_cell);
+        m_inv.invert(Mass_matrix);
+        dealii::FullMatrix<real> temp2(n_dofs_cell);
+        temp.mmult(temp2, m_inv);
+        temp2.mTmult(ESFR_filter, this->operators.basis_at_vol_cubature[current_fe_index]);
+    }
+    else{
+        const unsigned int current_fe_index = fe_values_vol.get_fe().tensor_degree();
+        ESFR_filter.Tadd(1.0, this->operators.basis_at_vol_cubature[current_fe_index]);
+    }
+
+
+
+
     // Strong form
     // The right-hand side sends all the term to the side of the source term
     // Therefore, 
@@ -613,7 +704,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
 
             // Convective
             // Now minus such 2 integrations by parts
-            rhs = rhs - fe_values_vol.shape_value_component(itest,iquad,istate) * flux_divergence[iquad][istate] * JxW[iquad];
+           // rhs = rhs - fe_values_vol.shape_value_component(itest,iquad,istate) * flux_divergence[iquad][istate] * JxW[iquad];
+            rhs = rhs - ESFR_filter[itest][iquad] * flux_divergence[iquad][istate] * JxW[iquad];
 
             //// Diffusive
             //// Note that for diffusion, the negative is defined in the physics

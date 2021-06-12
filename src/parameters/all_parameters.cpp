@@ -66,7 +66,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Not calculate L2 norm by default (M+K). Otherwise, get L2 norm per iteration.");
 
-    prm.declare_entry("use_classical_Flux_Reconstruction", "false",
+    prm.declare_entry("use_classical_FR", "false",
                       dealii::Patterns::Bool(),
                       "Not use Classical Flux Reconstruction by default. Otherwise, use Classical Flux Reconstruction.");
 
@@ -226,7 +226,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_periodic_bc = prm.get_bool("use_periodic_bc");
     use_energy = prm.get_bool("use_energy");
     use_L2_norm = prm.get_bool("use_L2_norm");
-    use_classical_FR = prm.get_bool("use_classical_Flux_Reconstruction");
+    use_classical_FR = prm.get_bool("use_classical_FR");
     add_artificial_dissipation = prm.get_bool("add_artificial_dissipation");
     sipg_penalty_factor = prm.get_double("sipg_penalty_factor");
 

@@ -103,6 +103,7 @@ DGBase<dim,real,MeshType>::DGBase(
     , fe_collection_lagrange(std::get<4>(collection_tuple))
     , dof_handler(*triangulation, true)
     , high_order_grid(std::make_shared<HighOrderGrid<dim,real,MeshType>>(grid_degree_input, triangulation))
+    , operators(all_parameters, nstate, max_degree, max_degree, grid_degree_input)
     , fe_q_artificial_dissipation(1)
     , dof_handler_artificial_dissipation(*triangulation, false)
     , mpi_communicator(MPI_COMM_WORLD)
@@ -266,6 +267,7 @@ DGBaseState<dim,nstate,real,MeshType>::DGBaseState(
     pde_physics_rad_fad = Physics::PhysicsFactory<dim,nstate,RadFadType> ::create_Physics(parameters_input);
 
     reset_numerical_fluxes();
+
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -2001,6 +2003,9 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
     mass_sparsity_pattern.copy_from(dsp);
     if (do_inverse_mass_matrix == true) {
         global_inverse_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
+        if (this->all_parameters->use_energy == true){//for split form get energy
+            global_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
+        }
     } else {
         global_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
     }
@@ -2070,12 +2075,29 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
             }
         }
 
+        //For flux reconstruction
+        dealii::FullMatrix<real> K_operator(n_dofs_cell);
+        const unsigned int curr_cell_degree = current_fe_ref.tensor_degree();
+        operators.build_local_K_operator(local_mass_matrix, n_dofs_cell, curr_cell_degree, K_operator);
+        for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+            for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
+                local_mass_matrix[itest][itrial] = local_mass_matrix[itest][itrial] + K_operator[itest][itrial];
+            }
+        }
+
+
+
+
         dofs_indices.resize(n_dofs_cell);
         cell->get_dof_indices (dofs_indices);
         if (do_inverse_mass_matrix == true) {
             dealii::FullMatrix<real> local_inverse_mass_matrix(n_dofs_cell);
             local_inverse_mass_matrix.invert(local_mass_matrix);
             global_inverse_mass_matrix.set (dofs_indices, local_inverse_mass_matrix);
+        
+            if (this->all_parameters->use_energy == true){//for split form energy
+                global_mass_matrix.set (dofs_indices, local_mass_matrix);
+            }
         } else {
             global_mass_matrix.set (dofs_indices, local_mass_matrix);
         }
@@ -2083,6 +2105,9 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
 
     if (do_inverse_mass_matrix == true) {
         global_inverse_mass_matrix.compress(dealii::VectorOperation::insert);
+        if (this->all_parameters->use_energy == true){//for split form energy
+            global_mass_matrix.compress(dealii::VectorOperation::insert);
+        }
     } else {
         global_mass_matrix.compress(dealii::VectorOperation::insert);
         //std::cout << " global_mass_matrix "  << std::endl;

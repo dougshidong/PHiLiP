@@ -37,18 +37,20 @@ namespace PHiLiP {
 namespace OPERATOR {
 
 //Constructor
-template <int dim, int nstate, typename real>
-OperatorBase<dim,nstate,real>::OperatorBase(
+template <int dim, typename real>
+OperatorBase<dim,real>::OperatorBase(
     const Parameters::AllParameters *const parameters_input,
+    const int nstate_input,
     const unsigned int degree,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input)
-    : OperatorBase<dim,nstate,real>(parameters_input, degree, max_degree_input, grid_degree_input, this->create_collection_tuple(max_degree_input, parameters_input))
+    : OperatorBase<dim,real>(parameters_input, nstate_input, degree, max_degree_input, grid_degree_input, this->create_collection_tuple(max_degree_input, nstate_input, parameters_input))
 { }
 
-template <int dim, int nstate, typename real>
-OperatorBase<dim,nstate,real>::OperatorBase(
+template <int dim, typename real>
+OperatorBase<dim,real>::OperatorBase(
     const Parameters::AllParameters *const parameters_input,
+    const int nstate_input,
     const unsigned int /*degree*/,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
@@ -56,6 +58,7 @@ OperatorBase<dim,nstate,real>::OperatorBase(
     : all_parameters(parameters_input)
     , max_degree(max_degree_input)
     , max_grid_degree(grid_degree_input)
+    , nstate(nstate_input)
     , fe_collection_basis(std::get<0>(collection_tuple))
     , volume_quadrature_collection(std::get<1>(collection_tuple))
     , face_quadrature_collection(std::get<2>(collection_tuple))
@@ -85,19 +88,19 @@ OperatorBase<dim,nstate,real>::OperatorBase(
 
 }
 // Destructor
-template <int dim, int nstate, typename real>
-OperatorBase<dim,nstate,real>::~OperatorBase ()
+template <int dim, typename real>
+OperatorBase<dim,real>::~OperatorBase ()
 {
     pcout << "Destructing Operators..." << std::endl;
 }
-template <int dim, int nstate, typename real>
+template <int dim, typename real>
 std::tuple<
         dealii::hp::FECollection<dim>, // Solution FE basis functions
         dealii::hp::QCollection<dim>,  // Volume quadrature
         dealii::hp::QCollection<dim-1>, // Face quadrature
         dealii::hp::QCollection<1>, // 1D quadrature for strong form
         dealii::hp::FECollection<dim> >   // Flux Basis polynomials for strong form
-OperatorBase<dim,nstate,real>::create_collection_tuple(const unsigned int max_degree, const Parameters::AllParameters *const parameters_input) const
+OperatorBase<dim,real>::create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const
 {
     dealii::hp::FECollection<dim>      fe_coll;//basis functions collection
     dealii::hp::QCollection<dim>       volume_quad_coll;//volume flux nodes
@@ -201,8 +204,8 @@ OperatorBase<dim,nstate,real>::create_collection_tuple(const unsigned int max_de
     return std::make_tuple(fe_coll, volume_quad_coll, face_quad_coll, oned_quad_coll, fe_coll_lagr);
 }
 
-template <int dim, int nstate, typename real>
-double OperatorBase<dim,nstate,real>::compute_factorial(double n)
+template <int dim, typename real>
+double OperatorBase<dim,real>::compute_factorial(double n)
 {
     if ((n==0)||(n==1))
       return 1;
@@ -215,8 +218,8 @@ double OperatorBase<dim,nstate,real>::compute_factorial(double n)
  *
  *
  *      *****************************************/
-template <int dim, int nstate, typename real>
-void OperatorBase<dim,nstate,real>::allocate_volume_operators ()
+template <int dim, typename real>
+void OperatorBase<dim,real>::allocate_volume_operators ()
 {
 
     //basis functions evaluated at volume cubature (flux) nodes
@@ -283,8 +286,8 @@ void OperatorBase<dim,nstate,real>::allocate_volume_operators ()
 
 }
 
-template <int dim, int nstate, typename real>
-void OperatorBase<dim,nstate,real>::create_vol_basis_operators ()
+template <int dim, typename real>
+void OperatorBase<dim,real>::create_vol_basis_operators ()
 {
 
     for(unsigned int idegree=0; idegree<=max_degree; idegree++){
@@ -322,8 +325,8 @@ void OperatorBase<dim,nstate,real>::create_vol_basis_operators ()
 }
 
 
-template <int dim, int nstate, typename real>
-void OperatorBase<dim,nstate,real>::build_local_Mass_Matrix (
+template <int dim, typename real>
+void OperatorBase<dim,real>::build_local_Mass_Matrix (
                                 const std::vector<real> &quad_weights,
                                 const unsigned int n_dofs_cell, const unsigned int n_quad_pts,
                                 const int current_fe_index,
@@ -355,8 +358,8 @@ void OperatorBase<dim,nstate,real>::build_local_Mass_Matrix (
     }
 }
 
-template <int dim, int nstate, typename real>
-void OperatorBase<dim,nstate,real>::build_Mass_Matrix_operators ()
+template <int dim, typename real>
+void OperatorBase<dim,real>::build_Mass_Matrix_operators ()
 {
     for(unsigned int idegree=0; idegree<=max_degree; idegree++){
         unsigned int n_quad_pts = volume_quadrature_collection[idegree].size();
@@ -365,8 +368,8 @@ void OperatorBase<dim,nstate,real>::build_Mass_Matrix_operators ()
         build_local_Mass_Matrix(quad_weights, n_dofs_cell, n_quad_pts, idegree, local_mass[idegree]);
     }
 }
-template <int dim, int nstate, typename real>
-void OperatorBase<dim,nstate,real>::build_Stiffness_Matrix_operators ()
+template <int dim, typename real>
+void OperatorBase<dim,real>::build_Stiffness_Matrix_operators ()
 {
     for(unsigned int idegree=0; idegree<=max_degree; idegree++){
         unsigned int n_quad_pts = volume_quadrature_collection[idegree].size();
@@ -427,8 +430,8 @@ void OperatorBase<dim,nstate,real>::build_Stiffness_Matrix_operators ()
     }
 
 }
-template <int dim, int nstate, typename real>
-void OperatorBase<dim,nstate,real>::get_higher_derivatives ()
+template <int dim, typename real>
+void OperatorBase<dim,real>::get_higher_derivatives ()
 {
 
     for(unsigned int curr_cell_degree=0;curr_cell_degree<=max_degree; curr_cell_degree++){
@@ -501,8 +504,8 @@ void OperatorBase<dim,nstate,real>::get_higher_derivatives ()
         }
     }
 }
-template <int dim, int nstate, typename real>
-void OperatorBase<dim,nstate,real>::get_FR_correction_parameter (
+template <int dim, typename real>
+void OperatorBase<dim,real>::get_FR_correction_parameter (
                                 const unsigned int curr_cell_degree,
                                 real &c, real &k)
 {
@@ -665,8 +668,8 @@ void OperatorBase<dim,nstate,real>::get_FR_correction_parameter (
 //        k /= pow((2.0*curr_cell_degree+1.0)*(pow(pfact*cp,2)),dim -1.0);//for multiple dim tensor product
     }
 }
-template <int dim, int nstate, typename real>
-void OperatorBase<dim, nstate, real>::build_local_K_operator(
+template <int dim, typename real>
+void OperatorBase<dim, real>::build_local_K_operator(
                                 const dealii::FullMatrix<real> &local_Mass_Matrix,
                                 const unsigned int  n_dofs_cell, const unsigned int degree_index, 
                                 dealii::FullMatrix<real> &K_operator)
@@ -722,8 +725,8 @@ void OperatorBase<dim, nstate, real>::build_local_K_operator(
     }
     
 }
-template <int dim, int nstate, typename real>
-void OperatorBase<dim, nstate, real>::build_local_K_operator_AUX(
+template <int dim, typename real>
+void OperatorBase<dim, real>::build_local_K_operator_AUX(
                                 const dealii::FullMatrix<real> &local_Mass_Matrix,
                                 const unsigned int  n_dofs_cell, const unsigned int degree_index, 
                                 std::vector<dealii::FullMatrix<real>> &K_operator_aux)
@@ -740,8 +743,8 @@ void OperatorBase<dim, nstate, real>::build_local_K_operator_AUX(
     }
     
 }
-template <int dim, int nstate, typename real>
-void OperatorBase<dim,nstate,real>::build_K_operators ()
+template <int dim, typename real>
+void OperatorBase<dim,real>::build_K_operators ()
 {
     for(unsigned int degree_index=0; degree_index<=max_degree; degree_index++){
         unsigned int n_dofs_cell = fe_collection_basis[degree_index].dofs_per_cell;
@@ -761,8 +764,8 @@ pcout<<std::endl;
     }
 }
 
-template <int dim, int nstate, typename real>
-void OperatorBase<dim, nstate, real>::compute_local_vol_projection_operator(
+template <int dim, typename real>
+void OperatorBase<dim, real>::compute_local_vol_projection_operator(
                                 const unsigned int degree_index, 
                                 const unsigned int n_dofs_cell,
                                 const dealii::FullMatrix<real> &norm_matrix, 
@@ -772,8 +775,8 @@ void OperatorBase<dim, nstate, real>::compute_local_vol_projection_operator(
     norm_inv.invert(norm_matrix);
     norm_inv.mTmult(volume_projection, vol_integral_basis[degree_index]);
 }
-template <int dim, int nstate, typename real>
-void OperatorBase<dim,nstate,real>::get_vol_projection_operators ()
+template <int dim, typename real>
+void OperatorBase<dim,real>::get_vol_projection_operators ()
 {
     for(unsigned int degree_index=0; degree_index<=max_degree; degree_index++){
         unsigned int n_dofs = fe_collection_basis[degree_index].dofs_per_cell;
@@ -790,8 +793,8 @@ void OperatorBase<dim,nstate,real>::get_vol_projection_operators ()
  *
  *
  *      *****************************************/
-template <int dim, int nstate, typename real>
-void OperatorBase<dim,nstate,real>::allocate_surface_operators ()
+template <int dim, typename real>
+void OperatorBase<dim,real>::allocate_surface_operators ()
 {
     unsigned int n_faces = dealii::GeometryInfo<dim>::faces_per_cell;
     basis_at_facet_cubature.resize(max_degree+1);
@@ -809,14 +812,9 @@ void OperatorBase<dim,nstate,real>::allocate_surface_operators ()
         lifting_operator_FR[idegree].resize(n_faces);
         for(unsigned int iface=0; iface<n_faces; iface++){
             basis_at_facet_cubature[idegree][iface].reinit(n_quad_face_pts, n_dofs);
-            face_integral_basis[idegree][iface].resize(dim);
-            lifting_operator[idegree][iface].resize(dim);
-            lifting_operator_FR[idegree][iface].resize(dim);
-            for(int idim=0; idim<dim; idim++){
-                face_integral_basis[idegree][iface][idim].reinit(n_quad_face_pts, n_dofs);
-                lifting_operator[idegree][iface][idim].reinit(n_dofs, n_quad_face_pts);
-                lifting_operator_FR[idegree][iface][idim].reinit(n_dofs, n_quad_face_pts);
-            }
+            face_integral_basis[idegree][iface].reinit(n_quad_face_pts, n_dofs);
+            lifting_operator[idegree][iface].reinit(n_dofs, n_quad_face_pts);
+            lifting_operator_FR[idegree][iface].reinit(n_dofs, n_quad_face_pts);
         }
         //for flux basis by nstate
         flux_basis_at_facet_cubature[idegree].resize(nstate);
@@ -831,8 +829,8 @@ void OperatorBase<dim,nstate,real>::allocate_surface_operators ()
         }
     }
 }
-template <int dim, int nstate, typename real>
-void OperatorBase<dim,nstate,real>::create_surface_basis_operators ()
+template <int dim, typename real>
+void OperatorBase<dim,real>::create_surface_basis_operators ()
 {
     unsigned int n_faces = dealii::GeometryInfo<dim>::faces_per_cell;
     for(unsigned int idegree=0; idegree<=max_degree; idegree++){
@@ -847,17 +845,13 @@ void OperatorBase<dim,nstate,real>::create_surface_basis_operators ()
                                                                                                 face_quadrature_collection[idegree],
                                                                                                 iface);
         
-            const dealii::Tensor<1,dim,real> unit_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
             for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
                 for(unsigned int idof=0; idof<n_dofs; idof++){
                     const int istate = fe_collection_basis[idegree].system_to_component_index(idof).first;
                     basis_at_facet_cubature[idegree][iface][iquad][idof] = fe_collection_basis[idegree].shape_value_component(idof,quadrature.point(iquad),istate);
-                    for(int idim=0; idim<dim; idim++){
-                        face_integral_basis[idegree][iface][idim][iquad][idof] = 
-                                    basis_at_facet_cubature[idegree][iface][iquad][idof] 
-                                *   unit_normal_int[idim] 
-                                *   quad_weights[iquad];
-                    }
+                    face_integral_basis[idegree][iface][iquad][idof] = 
+                                basis_at_facet_cubature[idegree][iface][iquad][idof] 
+                            *   quad_weights[iquad];
                 }
                 for(int istate=0; istate<nstate; istate++){
                     for(unsigned int idof=0; idof<n_dofs_flux; idof++){
@@ -869,35 +863,24 @@ void OperatorBase<dim,nstate,real>::create_surface_basis_operators ()
     }
 
 }
-template <int dim, int nstate, typename real>
-void OperatorBase<dim,nstate,real>::build_local_surface_lifting_operator (
+template <int dim, typename real>
+void OperatorBase<dim,real>::build_local_surface_lifting_operator (
                                 const unsigned int degree_index, 
                                 const unsigned int n_dofs_cell, 
                                 const unsigned int face_number, 
                                 const dealii::FullMatrix<real> &norm_matrix, 
-                                std::vector<dealii::FullMatrix<real>> &lifting)
+                                dealii::FullMatrix<real> &lifting)
 {
     dealii::FullMatrix<real> norm_inv(n_dofs_cell);
     norm_inv.invert(norm_matrix);
-    for(int idim=0; idim<dim; idim++){
-        norm_matrix.mTmult(lifting[idim], face_integral_basis[degree_index][face_number][idim]);
-    }
+    norm_matrix.mTmult(lifting, face_integral_basis[degree_index][face_number]);
 }
-template <int dim, int nstate, typename real>
-void OperatorBase<dim,nstate,real>::get_surface_lifting_operators ()
+template <int dim, typename real>
+void OperatorBase<dim,real>::get_surface_lifting_operators ()
 {
     unsigned int n_faces = dealii::GeometryInfo<dim>::faces_per_cell;
     for(unsigned int degree_index=0; degree_index<=max_degree; degree_index++){
         unsigned int n_dofs = fe_collection_basis[degree_index].dofs_per_cell;
-#if 0
-pcout<<"K operator "<<std::endl;
-for(unsigned int idof=0; idof<n_dofs; idof++){
-for(unsigned int idof2=0; idof2<n_dofs; idof2++){
-pcout<<local_K_operator[degree_index][idof][idof2]<<"  ";
-}
-pcout<<std::endl;
-}
-#endif
         for(unsigned int iface=0; iface<n_faces; iface++){
             build_local_surface_lifting_operator(degree_index, n_dofs, iface, local_mass[degree_index], lifting_operator[degree_index][iface]);
             dealii::FullMatrix<real> M_plus_K(n_dofs);
@@ -912,8 +895,8 @@ pcout<<std::endl;
  *              METRIC OPERATOR FUNCTIONS
  *
  *              ******************************************************/
-template <int dim, int nstate, typename real>
-void OperatorBase<dim,nstate,real>::allocate_metric_operators ()
+template <int dim, typename real>
+void OperatorBase<dim,real>::allocate_metric_operators ()
 {
     unsigned int n_faces = dealii::GeometryInfo<dim>::faces_per_cell;
     mapping_shape_functions_grid_nodes.resize(max_grid_degree+1);
@@ -967,8 +950,8 @@ void OperatorBase<dim,nstate,real>::allocate_metric_operators ()
          
     }
 }
-template <int dim, int nstate, typename real>
-void OperatorBase<dim,nstate,real>::create_metric_basis_operators ()
+template <int dim, typename real>
+void OperatorBase<dim,real>::create_metric_basis_operators ()
 {
 #if 0 //GRID CANNOT BE DEGREE 0
     //degree 0 GLL not exist
@@ -1062,8 +1045,8 @@ void OperatorBase<dim,nstate,real>::create_metric_basis_operators ()
     }
 }
 
-template <int dim, int nstate, typename real>
-void OperatorBase<dim,nstate,real>::build_local_vol_metric_cofactor_matrix_and_det_Jac(
+template <int dim, typename real>
+void OperatorBase<dim,real>::build_local_vol_metric_cofactor_matrix_and_det_Jac(
                                     const unsigned int grid_degree, const unsigned int poly_degree, 
                                     const unsigned int n_quad_pts,//number volume quad pts
                                     const unsigned int n_metric_dofs,//dofs of metric basis
@@ -1106,8 +1089,8 @@ void OperatorBase<dim,nstate,real>::build_local_vol_metric_cofactor_matrix_and_d
         compute_local_3D_cofactor_vol(grid_degree, poly_degree, n_quad_pts, n_metric_dofs, mapping_support_points, metric_cofactor);
     }
 }
-template <int dim, int nstate, typename real>
-void OperatorBase<dim,nstate,real>::compute_local_3D_cofactor_vol(
+template <int dim, typename real>
+void OperatorBase<dim,real>::compute_local_3D_cofactor_vol(
                                     const unsigned int grid_degree, const unsigned int poly_degree,
                                     const unsigned int n_quad_pts,
                                     const unsigned int n_metric_dofs,
@@ -1209,8 +1192,8 @@ void OperatorBase<dim,nstate,real>::compute_local_3D_cofactor_vol(
 
 }
 
-template <int dim, int nstate, typename real>
-void OperatorBase<dim,nstate,real>::build_local_face_metric_cofactor_matrix_and_det_Jac(
+template <int dim, typename real>
+void OperatorBase<dim,real>::build_local_face_metric_cofactor_matrix_and_det_Jac(
                                     const unsigned int grid_degree, const unsigned int poly_degree,
                                     const unsigned int iface,
                                     const unsigned int n_quad_pts, const unsigned int n_metric_dofs,
@@ -1255,8 +1238,8 @@ void OperatorBase<dim,nstate,real>::build_local_face_metric_cofactor_matrix_and_
 
 }
 
-template <int dim, int nstate, typename real>
-void OperatorBase<dim,nstate,real>::compute_local_3D_cofactor_face(
+template <int dim, typename real>
+void OperatorBase<dim,real>::compute_local_3D_cofactor_face(
                                     const unsigned int grid_degree, const unsigned int poly_degree,
                                     const unsigned int n_quad_pts,
                                     const unsigned int n_metric_dofs, const unsigned int iface,
@@ -1358,8 +1341,8 @@ void OperatorBase<dim,nstate,real>::compute_local_3D_cofactor_face(
 #endif
 
 }
-template <int dim, int nstate, typename real>
-void OperatorBase<dim,nstate,real>::compute_Xl_grad_Xm(
+template <int dim, typename real>
+void OperatorBase<dim,real>::compute_Xl_grad_Xm(
                                     const unsigned int grid_degree,
                                     const unsigned int n_metric_dofs, 
                                     const std::vector<std::vector<real>> &mapping_support_points,
@@ -1401,8 +1384,8 @@ void OperatorBase<dim,nstate,real>::compute_Xl_grad_Xm(
         }
     }
 }
-template <int dim, int nstate, typename real>
-void OperatorBase<dim,nstate,real>::do_curl_loop_metric_cofactor(
+template <int dim, typename real>
+void OperatorBase<dim,real>::do_curl_loop_metric_cofactor(
                                     const unsigned int n_quad_pts,
                                     const std::vector<dealii::DerivativeForm<2,dim,dim>> grad_Xl_grad_Xm,
                                     std::vector<dealii::FullMatrix<real>> &metric_cofactor)
@@ -1435,11 +1418,12 @@ void OperatorBase<dim,nstate,real>::do_curl_loop_metric_cofactor(
 
 
 
-template class OperatorBase <PHILIP_DIM, 1, double>;
-template class OperatorBase <PHILIP_DIM, 2, double>;
-template class OperatorBase <PHILIP_DIM, 3, double>;
-template class OperatorBase <PHILIP_DIM, 4, double>;
-template class OperatorBase <PHILIP_DIM, 5, double>;
+template class OperatorBase <PHILIP_DIM, double>;
+//template class OperatorBase <PHILIP_DIM, 1, double>;
+//template class OperatorBase <PHILIP_DIM, 2, double>;
+//template class OperatorBase <PHILIP_DIM, 3, double>;
+//template class OperatorBase <PHILIP_DIM, 4, double>;
+//template class OperatorBase <PHILIP_DIM, 5, double>;
 
 } // OPERATOR namespace
 } // PHiLiP namespace

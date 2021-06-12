@@ -12,6 +12,7 @@
 #include <deal.II/fe/fe_dgp.h>
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/fe/mapping_fe_field.h>
+#include <deal.II/fe/fe_q.h>
 
 
 #include <deal.II/dofs/dof_handler.h>
@@ -35,7 +36,7 @@
 
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
-#include "dg/dg.h"
+//#include "dg/dg.h"
 
 namespace PHiLiP {
 namespace OPERATOR {
@@ -51,7 +52,7 @@ namespace OPERATOR {
  * (4) Metric Operators: Since the solution polynomial degree for each state varies, along with the local grid element's polynomial degree varying, the operators distinguish between polynomial degree (for solution or flux) and grid degree (for element). Explicitly, they first go vector of grid_degree, then vector of polynomial degree for the ones that are applied on the flux nodes. The mapping-support-points follow the standard from dealii, where they are always Gauss-Legendre-Lobatto quadrature nodes making the polynomial elements continuous in a sense. 
  */
 
-template <int dim, int nstate, typename real>
+template <int dim, typename real>
 class OperatorBase
 {
 public:
@@ -74,6 +75,7 @@ public:
     ///Constructor
     OperatorBase(
           const Parameters::AllParameters *const parameters_input,
+          const int nstate_input,//number of states input
           const unsigned int degree,//degree not really needed at the moment
           const unsigned int max_degree_input,//max poly degree for operators
           const unsigned int grid_degree_input);//max grid degree for operators
@@ -87,6 +89,8 @@ public:
     const unsigned int max_degree;
     ///Max grid degree.
     const unsigned int max_grid_degree;
+    ///Number of states.
+    const int nstate;
 
 
     /// Makes for cleaner doxygen documentation.
@@ -103,13 +107,14 @@ public:
      *  The tuple is built from create_collection_tuple(). */
     OperatorBase( 
             const Parameters::AllParameters *const parameters_input,
+            const int nstate_input,//number of states input
             const unsigned int degree,
             const unsigned int max_degree_input,
             const unsigned int grid_degree_input,
             const MassiveCollectionTuple collection_tuple);
 
     ///The collection tuple.
-    MassiveCollectionTuple create_collection_tuple(const unsigned int max_degree, const Parameters::AllParameters *const parameters_input) const;
+    MassiveCollectionTuple create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const;
 
     ///The collections of FE (basis) and Quadrature sets.
     const dealii::hp::FECollection<dim>    fe_collection_basis;
@@ -131,8 +136,8 @@ public:
     double compute_factorial(double n);
 protected:
 
-    /// Smart pointer to DGBase.
-    std::shared_ptr<DGBase<dim,real>> dg;
+//    /// Smart pointer to DGBase.
+//    std::shared_ptr<DGBase<dim,real>> dg;
 
     const MPI_Comm mpi_communicator; ///< MPI communicator.
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
@@ -265,19 +270,19 @@ public:
     std::vector<std::vector<std::vector<dealii::FullMatrix<real>>>> flux_basis_at_facet_cubature;
     ///The surface integral of test functions WITH unit reference normals.
    /**\f[
-   *     \text{diag}(\hat{\mathbf{n}}^r) \mathbf{W}_f \mathbf{\chi}(\mathbf{\xi}_f^r) 
+   *     \mathbf{W}_f \mathbf{\chi}(\mathbf{\xi}_f^r) 
    * \f]
    *ie/ diag of REFERENCE unit normal times facet quadrature weights times solution basis functions evaluated on that face
    *in DG surface integral would be transpose(face_integral_basis) times flux_on_face
    */
-    std::vector<std::vector<std::vector<dealii::FullMatrix<real>>>> face_integral_basis;
+    std::vector<std::vector<dealii::FullMatrix<real>>> face_integral_basis;
    /// The DG lifting operator is defined as the operator that lifts inner products of polynomials of some order \f$p\f$ onto the L2-space.
    /**In DG lifting operator is \f$L=\mathbf{M}^{-1}*(\text{face_integral_basis})^T\f$.
    *So DG surface is \f$L*\text{flux_interpolated_to_face}\f$.
    *NOTE this doesn't have metric Jacobian dependence, for DG solver
    *we build that using the functions below on the fly!
    */
-    std::vector<std::vector<std::vector<dealii::FullMatrix<real>>>> lifting_operator;
+    std::vector<std::vector<dealii::FullMatrix<real>>> lifting_operator;
    ///The ESFR lifting operator. 
    /**
    *Consider the broken Sobolev-space \f$W_{\delta}^{dim*p,2}(\mathbf{\Omega}_r)\f$ (which is the ESFR norm)
@@ -286,7 +291,7 @@ public:
    * L_{FR}:\: <L_{FR} u,v>_{\mathbf{\Omega}_r} = <u,v>_{\mathbf{\Gamma}_2}, \forall v\in P^p(\mathbf{\Omega}_r)
    * \f].
    */
-    std::vector<std::vector<std::vector<dealii::FullMatrix<real>>>> lifting_operator_FR;
+    std::vector<std::vector<dealii::FullMatrix<real>>> lifting_operator_FR;
 
 
     ///Builds surface basis and flux functions operators and gradient operator.
@@ -299,7 +304,7 @@ public:
                                 const unsigned int n_dofs_cell, 
                                 const unsigned int face_number, 
                                 const dealii::FullMatrix<real> &norm_matrix, 
-                                std::vector<dealii::FullMatrix<real>> &lifting);
+                                dealii::FullMatrix<real> &lifting);
     
     ///The mapping shape functions evaluated at the volume grid nodes (facet set included in volume grid nodes for consistency).
     std::vector<dealii::FullMatrix<real>> mapping_shape_functions_grid_nodes; 

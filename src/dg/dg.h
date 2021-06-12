@@ -38,6 +38,7 @@
 #include "numerical_flux/convective_numerical_flux.hpp"
 #include "numerical_flux/viscous_numerical_flux.hpp"
 #include "parameters/all_parameters.h"
+#include "operators/operators.h"
 
 // Template specialization of MappingFEField
 //extern template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM> >;
@@ -506,6 +507,10 @@ public:
 
     /// High order grid that will provide the MappingFEField
     std::shared_ptr<HighOrderGrid<dim,real,MeshType>> high_order_grid;
+
+    /// Operators base that will provide the Operators
+    OPERATOR::OperatorBase<dim,real> operators;
+   // std::shared_ptr<OPERATOR::OperatorBase<dim,nstate,real>> operators;
 
 protected:
     /// Continuous distribution of artificial dissipation.

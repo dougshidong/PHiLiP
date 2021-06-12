@@ -223,7 +223,8 @@ int ODESolver<dim,real,MeshType>::advance_solution_time (double time_advance)
         << number_of_time_steps << " iterations of size dt=" << constant_time_step << " ... " << std::endl;
     allocate_ode_system ();
 
-    this->current_iteration = 0;
+   // this->current_iteration = 0;
+   pcout<<" curr iter "<<this->current_iteration<<std::endl;
 
     // Output initial solution
     this->dg->output_results_vtk(this->current_iteration);

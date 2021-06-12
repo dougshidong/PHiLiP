@@ -111,7 +111,7 @@ int main (int argc, char * argv[])
     for(unsigned int poly_degree=2; poly_degree<6; poly_degree++){
 
 
-        OPERATOR::OperatorBase<dim,nstate,real> operators(&all_parameters_new, poly_degree, poly_degree, poly_degree); 
+        OPERATOR::OperatorBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, poly_degree); 
 
         const unsigned int n_dofs = operators.fe_collection_basis[poly_degree].dofs_per_cell;
         std::vector<dealii::FullMatrix<real>> vol_int_parts(dim);
@@ -137,7 +137,8 @@ int main (int argc, char * argv[])
                     const unsigned int istate_dof = operators.fe_collection_basis[poly_degree].system_to_component_index(idof).first;
                     double value= 0.0;
                     for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
-                        value +=        operators.face_integral_basis[poly_degree][iface][jdim][iquad][itest] 
+                        value +=        operators.face_integral_basis[poly_degree][iface][iquad][itest] 
+                                *       unit_normal[jdim]
                                 *       operators.basis_at_facet_cubature[poly_degree][iface][iquad][idof];
                     }
                     if(istate_test == istate_dof){

@@ -172,6 +172,7 @@ double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(std::shared_ptr < D
          const double quadrature_kinetic_energy =  0.5*(soln_at_q[1]*soln_at_q[1] +
                    soln_at_q[2]*soln_at_q[2] +
                    soln_at_q[3]*soln_at_q[3] )/density;
+//pcout<<" SOLUTION BABY "<<soln_at_q[0]<<"  "<<soln_at_q[1]<<"  "<<soln_at_q[2]<<"  "<<soln_at_q[3]<<std::endl;
 
          //const double quadrature_kinetic_energy = compute_quadrature_kinetic_energy(soln_at_q);
 
@@ -192,8 +193,9 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
  double left = 0.0;
  double right = 2 * dealii::numbers::PI;
  const bool colorize = true;
- int n_refinements = 3;
+ int n_refinements = 2;
  unsigned int poly_degree = 3;
+ const unsigned int grid_degree = 1;
  dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
 
  std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
@@ -204,14 +206,18 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
 
  grid->refine_global(n_refinements);
 
-  //  const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
-  //  double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
-  //  double delta_x = (right-left)/pow(n_dofs_cfl,(1.0/dim)); 
-    double delta_x = (right-left)/(pow(2.0,n_refinements)*(poly_degree+1));
-    all_parameters_new.ode_solver_param.initial_time_step =  0.1 * delta_x;
+     const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
+     double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
+     double delta_x = (right-left)/pow(n_dofs_cfl,(1.0/dim)); 
+   // double delta_x = (right-left)/(pow(2.0,n_refinements)*(poly_degree+1));
+   // all_parameters_new.ode_solver_param.initial_time_step =  0.1 * delta_x;
+    all_parameters_new.ode_solver_param.initial_time_step =  0.2 * delta_x;
 pcout<<" timestep "<<all_parameters_new.ode_solver_param.initial_time_step<<std::endl;
    // all_parameters_new.ode_solver_param.initial_time_step =  0.001;
- std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, grid);
+
+    //Create DG
+// std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, grid);
+ std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
  dg->allocate_system ();
 
  std::cout << "Implement initial conditions" << std::endl;
@@ -266,30 +272,38 @@ std::cout<<" number dofs "<<
  //also the ode solver output doesn't make sense (says "iteration 1 out of 1")
  //but it works. I'll keep it for now and need to modify the output functions later to account for this.
 
+  pcout << "Energy at time " << 0 << " is " << compute_kinetic_energy(dg, poly_degree) << std::endl;
     ode_solver->current_iteration = 0;
 	ode_solver->advance_solution_time(dt/10.0);
+	//ode_solver->advance_solution_time(dt/100000.0);
 	double initial_energy = compute_kinetic_energy(dg, poly_degree);
+        double initial_MK_energy = compute_MK_energy(dg, poly_degree);
+    
+  pcout << "Energy at one timestep is " << initial_energy << std::endl;
 //	double initial_MK_energy = compute_MK_energy(dg, poly_degree);
- std::ofstream myfile ("kinetic_energy_plot.gpl" , std::ios::trunc);
+ std::ofstream myfile ("kinetic_energy_plot_cplus_CLASSICAL_grid2_p3_cfl02.gpl" , std::ios::trunc);
 
  for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
  {
   ode_solver->advance_solution_time(dt);
-  double current_energy = compute_kinetic_energy(dg,poly_degree);
+  //double current_energy = compute_kinetic_energy(dg,poly_degree);
+  double current_energy = compute_kinetic_energy(dg,poly_degree) / initial_energy;
   std::cout << std::setprecision(16) << std::fixed;
   pcout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
   myfile << i * dt << " " << current_energy << std::endl;
-  if (current_energy - initial_energy >= 10.00)
+ // if (current_energy - initial_energy >= 10.00)
+  if (current_energy*initial_energy - initial_energy >= 1000.00)
     {
         pcout << " Energy was not monotonically decreasing" << std::endl;
 	return 1;
 	break;
     }
-    double current_MK_energy = compute_MK_energy(dg, poly_degree);
+   // double current_MK_energy = compute_MK_energy(dg, poly_degree);
+    double current_MK_energy = compute_MK_energy(dg, poly_degree)/initial_MK_energy;
     std::cout << std::setprecision(16) << std::fixed;
     pcout << "M plus K norm at time " << i * dt << " is " << current_MK_energy<< std::endl;
     myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_MK_energy << std::endl;
-    ode_solver->current_iteration++;
+   // ode_solver->current_iteration++;
 
  }
 

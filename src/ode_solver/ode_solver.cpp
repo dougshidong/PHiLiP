@@ -221,15 +221,19 @@ int ODESolver<dim,real,MeshType>::advance_solution_time (double time_advance)
     pcout
         << " Advancing solution by " << time_advance << " time units, using "
         << number_of_time_steps << " iterations of size dt=" << constant_time_step << " ... " << std::endl;
-    allocate_ode_system ();
+  //  allocate_ode_system ();
 
    // this->current_iteration = 0;
    pcout<<" curr iter "<<this->current_iteration<<std::endl;
 
     // Output initial solution
-    this->dg->output_results_vtk(this->current_iteration);
+    if(this->current_iteration == 0){
+pcout<<"allocating ode sys"<<std::endl;
+        allocate_ode_system ();
+        this->dg->output_results_vtk(this->current_iteration);
+    }
 
-    while (this->current_iteration < number_of_time_steps)
+   // while (this->current_iteration < number_of_time_steps)
     {
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
             (this->current_iteration%ode_param.print_iteration_modulo) == 0 ) {
@@ -238,15 +242,16 @@ int ODESolver<dim,real,MeshType>::advance_solution_time (double time_advance)
               << " Iteration: " << this->current_iteration + 1
               << " out of: " << number_of_time_steps
               << std::endl;
-    }
+        }
         dg->assemble_residual(false);
 
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
             (this->current_iteration%ode_param.print_iteration_modulo) == 0 ) {
         pcout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
-    }
+        }
 
-    const bool pseudotime = true;//false;
+    //const bool pseudotime = true;//false;
+    const bool pseudotime = false;//false;
     step_in_time(constant_time_step, pseudotime);
 
 

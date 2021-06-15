@@ -521,7 +521,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     const dealii::FEValues<dim,dim> &fe_values_lagrange)
 {
     (void) current_cell_index;
-    //std::cout << "assembling cell terms" << std::endl;
+   // std::cout << "assembling cell terms" << std::endl;
     using realtype = real;
     using realArray = std::array<realtype,nstate>;
     using realArrayTensor1 = std::array< dealii::Tensor<1,dim,realtype>, nstate >;
@@ -575,6 +575,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
             source_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad]);
         }
     }
+//pcout<<" SOLUTION VOLUME  BABY "<<soln_at_q[0][0]<<"  "<<soln_at_q[0][1]<<"  "<<soln_at_q[0][2]<<"  "<<soln_at_q[0][3]<<std::endl;
 
     const double cell_diameter = fe_values_vol.get_cell()->diameter();
     const unsigned int cell_index = fe_values_vol.get_cell()->active_cell_index();
@@ -663,7 +664,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     }
 
 
-    dealii::FullMatrix<real> ESFR_filter(n_dofs_cell);
+    dealii::FullMatrix<real> ESFR_filter(n_dofs_cell, n_quad_pts);
     if(this->all_parameters->use_classical_FR == true){
         dealii::FullMatrix<real> Mass_matrix(n_dofs_cell);
         const unsigned int current_fe_index = fe_values_vol.get_fe().tensor_degree();
@@ -680,10 +681,29 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     }
     else{
         const unsigned int current_fe_index = fe_values_vol.get_fe().tensor_degree();
-        ESFR_filter.Tadd(1.0, this->operators.basis_at_vol_cubature[current_fe_index]);
+        //ESFR_filter.Tadd(1.0, this->operators.basis_at_vol_cubature[current_fe_index]);
+        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                ESFR_filter[idof][iquad] = this->operators.basis_at_vol_cubature[current_fe_index][iquad][idof];
+            }
+        }
     }
 
+#if 0
+        const unsigned int current_fe_index = fe_values_vol.get_fe().tensor_degree();
+pcout<<" size filter "<<ESFR_filter.m()<<" "<<ESFR_filter.n()<<" oper size "<<this->operators.basis_at_vol_cubature[current_fe_index].m()<<" "<<this->operators.basis_at_vol_cubature[current_fe_index].n()<<std::endl;
 
+    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+        const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(idof).first;
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            if(std::abs(this->operators.basis_at_vol_cubature[current_fe_index][iquad][idof] - fe_values_vol.shape_value_component(idof,iquad,istate)) >1e-12){
+                pcout<<"HOUSTON WE GOT A PROBLEM"<<std::endl;
+            }
+       // pcout<<" basis vol cub"<<this->operators.basis_at_vol_cubature[current_fe_index][idof][iquad]<<" fe val "<<fe_values_vol.shape_value_component(idof,iquad,istate)<<std::endl;
+     //   pcout<<" esfr filter"<<ESFR_filter[idof][iquad]<<" fe val "<<fe_values_vol.shape_value_component(idof,iquad,istate)<<std::endl;
+        }
+    }
+#endif
 
 
     // Strong form
@@ -705,6 +725,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
             // Convective
             // Now minus such 2 integrations by parts
            // rhs = rhs - fe_values_vol.shape_value_component(itest,iquad,istate) * flux_divergence[iquad][istate] * JxW[iquad];
+            //rhs = rhs - this->operators.basis_at_vol_cubature[current_fe_index][iquad][itest] * flux_divergence[iquad][istate] * JxW[iquad];
             rhs = rhs - ESFR_filter[itest][iquad] * flux_divergence[iquad][istate] * JxW[iquad];
 
             //// Diffusive
@@ -873,7 +894,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_explicit(
 {
     (void) current_cell_index;
     (void) neighbor_cell_index;
-    //std::cout << "assembling face terms" << std::endl;
+   // std::cout << "assembling face terms" << std::endl;
     using ADArray = std::array<FadType,nstate>;
     using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,FadType>, nstate >;
 

@@ -515,15 +515,15 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
 
     const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
 
-    assemble_volume_term_explicit (
-        current_cell,
-        current_cell_index,
-        fe_values_volume,
-        current_dofs_indices,
-        current_cell_rhs,
-        fe_values_lagrange);
-    current_cell_rhs*=0.0;
-    //if ( compute_dRdW || compute_dRdX || compute_d2R ) {
+   //assemble_volume_term_explicit (
+   //    current_cell,
+   //    current_cell_index,
+   //    fe_values_volume,
+   //    current_dofs_indices,
+   //    current_cell_rhs,
+   //    fe_values_lagrange);
+   // current_cell_rhs*=0.0;
+    if ( compute_dRdW || compute_dRdX || compute_d2R ) {
         assemble_volume_term_derivatives (
             current_cell,
             current_cell_index,
@@ -531,6 +531,16 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             current_metric_dofs_indices, current_dofs_indices,
             current_cell_rhs, fe_values_lagrange,
             compute_dRdW, compute_dRdX, compute_d2R);
+    } else {
+    assemble_volume_term_explicit (
+        current_cell,
+        current_cell_index,
+        fe_values_volume,
+        current_dofs_indices,
+        current_cell_rhs,
+        fe_values_lagrange);
+    }
+
     //} else {
     //    assemble_volume_term_explicit (
     //    cell,
@@ -556,7 +566,107 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         if (current_face->at_boundary() && !current_cell->has_periodic_neighbor(iface) ) {
 
             fe_values_collection_face_int.reinit(current_cell, iface, i_quad, i_mapp, i_fele);
+        //for 1D periodic
 
+                if(current_face->at_boundary() && all_parameters->use_periodic_bc == true && dim == 1) //using periodic BCs (for 1d)
+                {
+                    int cell_index  = current_cell->index();
+                    auto neighbor_cell = dof_handler.begin_active();
+                    //int cell_index = current_cell->index();
+                    if (cell_index == 0 && iface == 0)
+                    {
+                        fe_values_collection_face_int.reinit(current_cell, iface, i_quad, i_mapp, i_fele);
+                        neighbor_cell = dof_handler.begin_active();
+                       for (unsigned int i = 0 ; i < triangulation->n_active_cells() - 1; ++i)
+                       {
+                           ++neighbor_cell;
+                       }
+                    neighbor_dofs_indices.resize(n_dofs_curr_cell);
+                        neighbor_cell->get_dof_indices(neighbor_dofs_indices);
+                         const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
+                        const unsigned int quad_index_neigh_cell = fe_index_neigh_cell;
+                        const unsigned int mapping_index_neigh_cell = 0;
+
+                        fe_values_collection_face_ext.reinit(neighbor_cell,(iface == 1) ? 0 : 1,quad_index_neigh_cell,mapping_index_neigh_cell,fe_index_neigh_cell);
+
+                    }
+                    else if (cell_index == (int) triangulation->n_active_cells() - 1 && iface == 1)
+                    {
+                     //   fe_values_collection_face_int.reinit(current_cell, iface, i_quad, i_mapp, i_fele);
+                        neighbor_cell = dof_handler.begin_active();
+                        neighbor_dofs_indices.resize(n_dofs_curr_cell);
+                        neighbor_cell->get_dof_indices(neighbor_dofs_indices);
+                        const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
+                        const unsigned int quad_index_neigh_cell = fe_index_neigh_cell;
+                        const unsigned int mapping_index_neigh_cell = 0;
+                        fe_values_collection_face_ext.reinit(neighbor_cell,(iface == 1) ? 0 : 1, quad_index_neigh_cell, mapping_index_neigh_cell, fe_index_neigh_cell); //not sure how changing the face number would work in dim!=1-dimensions.
+                    }
+
+                    //std::cout << "cell " << current_cell->index() << "'s " << iface << "th face has neighbour: " << neighbor_cell->index() << std::endl;
+                  //  const int neighbor_face_no = (iface ==1) ? 0:1;
+                    const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
+
+                    const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
+                    const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
+
+                    const dealii::FESystem<dim,dim> &neigh_fe_ref = fe_collection[fe_index_neigh_cell];
+                   // const unsigned int neigh_cell_degree = neigh_fe_ref.tensor_degree();
+                    const unsigned int n_dofs_neigh_cell = neigh_fe_ref.n_dofs_per_cell();
+
+                    dealii::Vector<double> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
+
+
+                #if 0
+                    const unsigned int normal_direction1 = dealii::GeometryInfo<dim>::unit_normal_direction[iface];
+                    const unsigned int normal_direction2 = dealii::GeometryInfo<dim>::unit_normal_direction[neighbor_face_no];
+                    const unsigned int deg1sq = (curr_cell_degree == 0) ? 1 : curr_cell_degree * (curr_cell_degree+1);
+                    const unsigned int deg2sq = (neigh_cell_degree == 0) ? 1 : neigh_cell_degree * (neigh_cell_degree+1);
+
+                    //const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction1) / current_face->number_of_children();
+                    const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction1);
+                    const real vol_div_facearea2 = neighbor_cell->extent_in_direction(normal_direction2);
+
+                    const real penalty1 = deg1sq / vol_div_facearea1;
+                    const real penalty2 = deg2sq / vol_div_facearea2;
+
+                    real penalty = 0.5 * ( penalty1 + penalty2 );
+                #endif
+                    const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
+
+              //      fe_values_collection_volume_neigh.reinit (neighbor_cell, i_quad, i_mapp, fe_index_neigh_cell);
+               //     const dealii::FEValues<dim,dim> &fe_values_volume_neigh = fe_values_collection_volume_neigh.get_present_fe_values();
+
+              //      if ( compute_dRdW ) {
+              //         assemble_face_term_implicit (
+              //                                     iface, neighbor_face_no, 
+              //                                     fe_values_face_int, fe_values_face_ext,
+              //                                     fe_values_volume, fe_values_volume_neigh,
+              //                                     penalty,
+              //                                     current_dofs_indices, neighbor_dofs_indices,
+              //                                     current_cell_rhs, neighbor_cell_rhs);
+              //     } else {
+    const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
+                    assemble_face_term_explicit (
+                        current_cell,
+                        current_cell_index,
+                        neighbor_cell_index,
+                        fe_values_face_int, fe_values_face_ext,
+                        penalty,
+                        current_dofs_indices, neighbor_dofs_indices,
+                        current_cell_rhs, neighbor_cell_rhs);
+                //        assemble_face_term_explicit (
+                //                                   iface, neighbor_face_no, 
+                //                                   fe_values_face_int, fe_values_face_ext,
+                //                   fe_values_face_int_soln_flux, fe_values_face_ext_soln_flux,  
+                //                                   fe_values_volume, fe_values_volume_neigh,
+                //                                   penalty,
+                //                                   current_dofs_indices, neighbor_dofs_indices,
+                //                                   current_cell_rhs, neighbor_cell_rhs);
+               //     }
+
+                } else {
+
+        
             const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
 
             const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
@@ -572,6 +682,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     current_metric_dofs_indices, current_dofs_indices, current_cell_rhs,
                     compute_dRdW, compute_dRdX, compute_d2R);
 
+            }//end check 1Dper
             //} else {
             //    assemble_boundary_term_explicit (
             //        current_cell,
@@ -635,6 +746,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                                                   neighbor_cell->face_flip(neighbor_iface),
                                                                                                   neighbor_cell->face_rotation(neighbor_iface),
                                                                                                   used_face_quadrature.size());
+                if ( compute_dRdW || compute_dRdX || compute_d2R ) {
                     assemble_face_term_derivatives (
                         current_cell,
                         current_cell_index,
@@ -650,16 +762,16 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                         current_dofs_indices, neighbor_dofs_indices,
                         current_cell_rhs, neighbor_cell_rhs,
                         compute_dRdW, compute_dRdX, compute_d2R);
-                //} else {
-                //    assemble_face_term_explicit (
-                //        current_cell,
-                //        current_cell_index,
-                //        neighbor_cell_index,
-                //        fe_values_face_int, fe_values_face_ext,
-                //        penalty,
-                //        current_dofs_indices, neighbor_dofs_indices,
-                //        current_cell_rhs, neighbor_cell_rhs);
-                //}
+                } else {
+                    assemble_face_term_explicit (
+                        current_cell,
+                        current_cell_index,
+                        neighbor_cell_index,
+                        fe_values_face_int, fe_values_face_ext,
+                        penalty,
+                        current_dofs_indices, neighbor_dofs_indices,
+                        current_cell_rhs, neighbor_cell_rhs);
+                }
 
                 // Add local contribution from neighbor cell to global vector
                 for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
@@ -742,6 +854,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                                                     neighbor_cell->face_rotation(neighbor_iface),
                                                                                                     used_face_quadrature.size(),
                                                                                                     neighbor_cell->subface_case(neighbor_iface));
+            if ( compute_dRdW || compute_dRdX || compute_d2R ) {
                 assemble_face_term_derivatives (
                     current_cell,
                     current_cell_index,
@@ -757,16 +870,16 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     current_dofs_indices, neighbor_dofs_indices,
                     current_cell_rhs, neighbor_cell_rhs,
                     compute_dRdW, compute_dRdX, compute_d2R);
-            //} else {
-            //    assemble_face_term_explicit (
-            //        current_cell,
-            //        current_cell_index,
-            //        neighbor_cell_index,
-            //        fe_values_face_int, fe_values_face_ext,
-            //        penalty,
-            //        current_dofs_indices, neighbor_dofs_indices,
-            //        current_cell_rhs, neighbor_cell_rhs);
-            //}
+            } else {
+                assemble_face_term_explicit (
+                    current_cell,
+                    current_cell_index,
+                    neighbor_cell_index,
+                    fe_values_face_int, fe_values_face_ext,
+                    penalty,
+                    current_dofs_indices, neighbor_dofs_indices,
+                    current_cell_rhs, neighbor_cell_rhs);
+            }
             // Add local contribution from neighbor cell to global vector
             for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
                 rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
@@ -823,6 +936,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                                               neighbor_cell->face_flip(neighbor_iface),
                                                                                               neighbor_cell->face_rotation(neighbor_iface),
                                                                                               used_face_quadrature.size());
+            if ( compute_dRdW || compute_dRdX || compute_d2R ) {
                 assemble_face_term_derivatives (
                     current_cell,
                     current_cell_index,
@@ -838,16 +952,16 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     current_dofs_indices, neighbor_dofs_indices,
                     current_cell_rhs, neighbor_cell_rhs,
                     compute_dRdW, compute_dRdX, compute_d2R);
-            //} else {
-            //    assemble_face_term_explicit (
-            //        current_cell,
-            //        current_cell_index,
-            //        neighbor_cell_index,
-            //        fe_values_face_int, fe_values_face_ext,
-            //        penalty,
-            //        current_dofs_indices, neighbor_dofs_indices,
-            //        current_cell_rhs, neighbor_cell_rhs);
-            //}
+            } else {
+                assemble_face_term_explicit (
+                    current_cell,
+                    current_cell_index,
+                    neighbor_cell_index,
+                    fe_values_face_int, fe_values_face_ext,
+                    penalty,
+                    current_dofs_indices, neighbor_dofs_indices,
+                    current_cell_rhs, neighbor_cell_rhs);
+            }
 
             // Add local contribution from neighbor cell to global vector
             for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
@@ -1055,7 +1169,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         &&  !(compute_dRdX && compute_d2R)
             , dealii::ExcMessage("Can only do one at a time compute_dRdW or compute_dRdX or compute_d2R"));
 
-    //pcout << "Assembling DG residual...";
+    pcout << "Assembling DG residual...";
     if (compute_dRdW) {
         pcout << " with dRdW...";
 

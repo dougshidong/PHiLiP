@@ -4,7 +4,7 @@ set dimension = 1
 
 set use_weak_form = false
 
-set use_collocated_nodes = false
+set use_collocated_nodes = true
 
 set use_split_form = true
 
@@ -12,7 +12,7 @@ set use_energy = true
 
 set use_L2_norm = false
 
-#set use_classical_Flux_Reconstruction = true
+set use_classical_FR = false
 
 set use_periodic_bc = true
 

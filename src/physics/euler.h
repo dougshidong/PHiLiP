@@ -168,7 +168,8 @@ public:
     /// returns primitive variables [density, [velocities], pressure].
     ///
     /// Opposite of convert_primitive_to_conservative
-    std::array<real,nstate> convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const;
+    template<typename real2>
+    std::array<real2,nstate> convert_conservative_to_primitive ( const std::array<real2,nstate> &conservative_soln ) const;
 
     /// Given primitive variables [density, [velocities], pressure],
     /// returns conservative variables [density, [momentum], total energy].
@@ -177,7 +178,8 @@ public:
     std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const;
 
     /// Evaluate pressure from conservative variables
-    real compute_pressure ( const std::array<real,nstate> &conservative_soln ) const;
+    template<typename real2>
+    real2 compute_pressure ( const std::array<real2,nstate> &conservative_soln ) const;
 
     /// Evaluate pressure from conservative variables
     real compute_pressure_from_enthalpy ( const std::array<real,nstate> &conservative_soln ) const;
@@ -191,12 +193,15 @@ public:
     real compute_sound ( const real density, const real pressure ) const;
 
     /// Evaluate velocities from conservative variables
-    dealii::Tensor<1,dim,real> compute_velocities ( const std::array<real,nstate> &conservative_soln ) const;
+    template<typename real2>
+    dealii::Tensor<1,dim,real2> compute_velocities ( const std::array<real2,nstate> &conservative_soln ) const;
     /// Given the velocity vector \f$ \mathbf{u} \f$, returns the dot-product  \f$ \mathbf{u} \cdot \mathbf{u} \f$
-    real compute_velocity_squared ( const dealii::Tensor<1,dim,real> &velocities ) const;
+    template<typename real2>
+    real2 compute_velocity_squared ( const dealii::Tensor<1,dim,real2> &velocities ) const;
 
     /// Given primitive variables, returns velocities.
-    dealii::Tensor<1,dim,real> extract_velocities_from_primitive ( const std::array<real,nstate> &primitive_soln ) const;
+    template<typename real2>
+    dealii::Tensor<1,dim,real2> extract_velocities_from_primitive ( const std::array<real2,nstate> &primitive_soln ) const;
     /// Given primitive variables, returns total energy
     /** @param[in] primitive_soln    Primitive solution (density, momentum, energy)
      *  \return                      Entropy measure
@@ -221,11 +226,13 @@ public:
     real compute_mach_number ( const std::array<real,nstate> &conservative_soln ) const;
 
     /// Given primitive variables, returns DIMENSIONALIZED temperature using the equation of state
-    real compute_dimensional_temperature ( const std::array<real,nstate> &primitive_soln ) const;
+    template<typename real2>
+    real2 compute_dimensional_temperature ( const std::array<real2,nstate> &primitive_soln ) const;
 
     /// Given primitive variables, returns NON-DIMENSIONALIZED temperature using free-stream non-dimensionalization
     /** See the book I do like CFD, sec 4.14.2 */
-    real compute_temperature ( const std::array<real,nstate> &primitive_soln ) const;
+    template<typename real2>
+    real2 compute_temperature ( const std::array<real2,nstate> &primitive_soln ) const;
 
     /// Given pressure and temperature, returns NON-DIMENSIONALIZED density using free-stream non-dimensionalization
     /** See the book I do like CFD, sec 4.14.2 */

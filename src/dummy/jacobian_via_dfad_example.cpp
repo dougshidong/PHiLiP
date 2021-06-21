@@ -90,10 +90,6 @@ int main(int /*argc*/, char ** /*argv*/)
       args[0] = afad;
       args[1] = bfad;
       args[2] = cfad;
-      // DFadType afad=a;
-      // DFadType bfad;
-      // bfad.number_derivates = 3;
-      // DFadType cfad=c;
       std::array<DFadType,2> rfad;
 
       // Compute function

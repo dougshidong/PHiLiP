@@ -6,6 +6,8 @@
 namespace PHiLiP {
 namespace Physics {
 
+// using Euler::convert_conservative_to_primitive;
+
 template <int dim, int nstate, typename real>
 class NavierStokes : public Euler <dim, nstate, real>
 {
@@ -30,15 +32,17 @@ public:
 	const double reynolds_number_inf;
 
     /** Obtain gradient of primitive variables from gradient of conservative variables */
-    std::array<dealii::Tensor<1,dim,real>,nstate> 
+    template<typename real2>
+    std::array<dealii::Tensor<1,dim,real2>,nstate> 
     convert_conservative_gradient_to_primitive_gradient (
-    	const std::array<real,nstate> &conservative_soln,
-    	const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+    	const std::array<real2,nstate> &conservative_soln,
+    	const std::array<dealii::Tensor<1,dim,real2>,nstate> &conservative_soln_gradient) const;
 
     /** Nondimensionalized temperature gradient */
-    dealii::Tensor<1,dim,real> compute_temperature_gradient (
-    	const std::array<real,nstate> &primitive_soln,
-    	const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
+    template<typename real2>
+    dealii::Tensor<1,dim,real2> compute_temperature_gradient (
+    	const std::array<real2,nstate> &primitive_soln,
+    	const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
 
     /** Nondimensionalized viscosity coefficient, $\mu^{*}$ 
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.16)
@@ -47,37 +51,43 @@ public:
      * * Reference: Sutherland, W. (1893), "The viscosity of gases and molecular force", Philosophical Magazine, S. 5, 36, pp. 507-531 (1893)
      * * Values: https://www.cfd-online.com/Wiki/Sutherland%27s_law
      */
-    real compute_viscosity_coefficient (const std::array<real,nstate> &primitive_soln) const;
+    template<typename real2>//=real>
+    real2 compute_viscosity_coefficient (const std::array<real2,nstate> &primitive_soln) const;
 
     /** Scaled nondimensionalized viscosity coefficient, $\hat{\mu}^{*}$ 
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.14)
      */
-    real compute_scaled_viscosity_coefficient (const std::array<real,nstate> &primitive_soln) const;
+    template<typename real2>//=real>
+    real2 compute_scaled_viscosity_coefficient (const std::array<real2,nstate> &primitive_soln) const;
 
     /** Scaled nondimensionalized heat conductivity, $\hat{\kappa}^{*}$ 
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.13)
      */
-    real compute_scaled_heat_conductivity (const std::array<real,nstate> &primitive_soln) const;
+    template<typename real2>//=real>
+    real2 compute_scaled_heat_conductivity (const std::array<real2,nstate> &primitive_soln) const;
 
     /** Nondimensionalized heat flux, $\bm{q}^{*}$ 
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.13)
      */
-    dealii::Tensor<1,dim,real> compute_heat_flux (
-    	const std::array<real,nstate> &primitive_soln,
-    	const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
+    template<typename real2>//=real>
+    dealii::Tensor<1,dim,real2> compute_heat_flux (
+    	const std::array<real2,nstate> &primitive_soln,
+    	const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
 
     /** Extract gradient of velocities */
-    std::array<dealii::Tensor<1,dim,real>,dim> 
+    template<typename real2>//=real>
+    std::array<dealii::Tensor<1,dim,real2>,dim> 
     extract_velocities_gradient_from_primitive_solution_gradient (
-    	const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
+    	const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
 
     /** Nondimensionalized viscous stress tensor, $\bm{\tau}^{*}$ 
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.12)
      */
-    std::array<dealii::Tensor<1,dim,real>,dim> 
+    template<typename real2>//=real>
+    std::array<dealii::Tensor<1,dim,real2>,dim> 
     compute_viscous_stress_tensor (
-    const std::array<real,nstate> &primitive_soln,
-    const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
+    const std::array<real2,nstate> &primitive_soln,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
 
     /** Nondimensionalized viscous flux (i.e. dissipative flux)
      *  Reference: Masatsuka 2018 "I do like CFD", p.142, eq.(4.12.1-4.12.4)
@@ -86,29 +96,32 @@ public:
 	dissipative_flux (
     	const std::array<real,nstate> &conservative_soln,
     	const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const override;
-	/// Here, dissipative_flux() is the only virtual from Euler
 
 	/** Gradient of the scaled nondimensionalized viscosity coefficient
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.14 and 4.14.17)
      */
-	dealii::Tensor<1,dim,real> compute_scaled_viscosity_gradient (
-    	const std::array<real,nstate> &primitive_soln,
-    	const dealii::Tensor<1,dim,real> temperature_gradient) const;
+	// dealii::Tensor<1,dim,real> compute_scaled_viscosity_gradient (
+ //    	const std::array<real,nstate> &primitive_soln,
+ //    	const dealii::Tensor<1,dim,real> temperature_gradient) const;
 
 	/** Dissipative flux Jacobian 
-	 *  Reference: Masatsuka 2018 "I do like CFD", p.?
+	 *  Note: Only used for computing the manufactured solution source term;
+     *        computed numerically using the complex difference scheme (2nd order accurate)
 	 */
-	// dealii::Tensor<2,nstate,real> dissipative_flux_directional_jacobian (
- //    	const std::array<real,nstate> &conservative_soln,
- //    	const dealii::Tensor<1,dim,real> &normal) const;
+	dealii::Tensor<2,nstate,real> dissipative_flux_directional_jacobian (
+        std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const dealii::Tensor<1,dim,real> &normal) const;
 
+    /// Dissipative flux contribution to the source term
+    std::array<real,nstate> dissipative_source_term (
+        const dealii::Point<dim,real> &pos) const;
 
-	/// Source term is zero or depends on manufactured solution
-	/// Not a virtual in euler.hpp --> Must change it to virtual class
-	/// --- do we need to specify override??
-    // std::array<real,nstate> source_term (
-    //     const dealii::Point<dim,real> &pos,
-    //     const std::array<real,nstate> &conservative_soln) const override;
+    /// Source term is zero or depends on manufactured solution
+    std::array<real,nstate> source_term (
+        const dealii::Point<dim,real> &pos,
+        const std::array<real,nstate> &conservative_soln) const override;
+
 protected:
     /** Constants for Sutherland's law for viscosity
      *  Reference: Sutherland, W. (1893), "The viscosity of gases and molecular force", Philosophical Magazine, S. 5, 36, pp. 507-531 (1893)
@@ -117,6 +130,16 @@ protected:
     const double free_stream_temperature = 273.15; // Free stream temperature. Units: [K]
     const double sutherlands_temperature = 110.4; // Sutherland's temperature. Units: [K]
     const double temperature_ratio = sutherlands_temperature/free_stream_temperature;
+
+    /** Nondimensionalized viscous flux (i.e. dissipative flux)
+     *  Reference: Masatsuka 2018 "I do like CFD", p.142, eq.(4.12.1-4.12.4)
+     */
+    template <typename real2>
+    std::array<dealii::Tensor<1,dim,real2>,nstate> 
+    dissipative_flux_templated (
+        const std::array<real2,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const;
+
 };
 
 } // Physics namespace

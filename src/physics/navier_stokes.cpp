@@ -272,45 +272,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes<dim,nstate,real>
 //     return scaled_viscosity_coefficient_gradient;
 // }
 
-// template <int dim, int nstate, typename real>
-// dealii::Tensor<2,nstate,real> NavierStokes<dim,nstate,real>
-// ::dissipative_flux_directional_jacobian (
-//     const std::array<real,nstate> &conservative_soln,
-//     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-//     const dealii::Tensor<1,dim,real> &normal) const
-// {
-//     // typedef real rcomp; // real
-//     // TO BE MODIFIED WITH AUTOMATIC DIFFERENTIATION
-//     dealii::Tensor<2,nstate,real> jacobian;
-//     std::array<dealii::Tensor<1,dim,real>,nstate> rate_of_change_dissipative_flux_wrt_state_var;
-
-//     // std::array<rcomp,nstate> conservative_soln_perturbed;
-//     for (int sp=0; sp<nstate; sp++) {
-//     //     // Perturb conservative solution
-//     //     for (int s=0; s<nstate; s++) {
-//     //         conservative_soln_perturbed[s] = conservative_soln[s]; // initialize
-//     //     }
-//     //     // std::complex<real> val_complex(conservative_soln[sp],complex_step_size);
-//     //     // conservative_soln_perturbed[sp] = val_complex;
-//     //     conservative_soln_perturbed[sp] = conservative_soln[sp] + i1*complex_step_size; // val'=(val+i*h) perturb with complex step (sp = state perturbed)
-
-//         // Compute dissipative flux at perturbed state
-//         std::array<dealii::Tensor<1,dim,real>,nstate> computed_dissipative_flux = dissipative_flux_templated(conservative_soln,solution_gradient);
-        
-//         // Compute Jacobian
-//         for (int s=0; s<nstate; s++) {
-//             jacobian[s][sp] = 0.0;
-//             for (int d=0;d<dim;d++) {
-//                 // Compute the rate of change of the dissipative flux wrt to the perturbed state variable
-//                 rate_of_change_dissipative_flux_wrt_state_var[s][d] = computed_dissipative_flux[s][d];
-//                 // Compute directional jacobian
-//                 jacobian[s][sp] += rate_of_change_dissipative_flux_wrt_state_var[s][d]*normal[d];
-//             }
-//         }
-//     }
-//     return jacobian;
-// }
-
 /// Returns the value from a CoDiPack or Sacado variable.
 /** The recursive calling allows to retrieve nested CoDiPack/Sacado types.
  */

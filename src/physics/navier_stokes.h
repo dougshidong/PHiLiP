@@ -122,6 +122,15 @@ public:
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &conservative_soln) const override;
 
+    /// Convective flux Jacobian computed via dfad (automatic differentiation)
+    /// -- same procedure as for the dissipative flux jacobian
+    dealii::Tensor<2,nstate,real> convective_flux_directional_jacobian_via_dfad (
+        std::array<real,nstate> &conservative_soln,
+        const dealii::Tensor<1,dim,real> &normal) const;
+
+    real compute_scaled_viscosity_coefficient_derivative_wrt_temperature_via_dfad (
+        std::array<real,nstate> &conservative_soln) const;
+
 protected:
     /** Constants for Sutherland's law for viscosity
      *  Reference: Sutherland, W. (1893), "The viscosity of gases and molecular force", Philosophical Magazine, S. 5, 36, pp. 507-531 (1893)

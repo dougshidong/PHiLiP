@@ -325,7 +325,7 @@ dealii::Tensor<2,nstate,real> NavierStokes<dim,nstate,real>
             jacobian[s][sp] = 0.0;
             for (int d=0;d<dim;d++) {
                 // Compute directional jacobian
-                jacobian[s][sp] += AD_dissipative_flux[s][d].dx(s)*normal[d];
+                jacobian[s][sp] += AD_dissipative_flux[s][d].dx(sp)*normal[d];
             }
         }
     }
@@ -397,6 +397,83 @@ std::array<real,nstate> NavierStokes<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
+dealii::Tensor<2,nstate,real> NavierStokes<dim,nstate,real>
+::convective_flux_directional_jacobian_via_dfad (
+    std::array<real,nstate> &conservative_soln,
+    const dealii::Tensor<1,dim,real> &normal) const
+{
+    using adtype = FadType;
+
+    // Initialize AD objects
+    std::array<adtype,nstate> AD_conservative_soln;
+    for (int s=0; s<nstate; s++) {
+        adtype ADvar(nstate, s, getValue<real>(conservative_soln[s])); // create AD variable
+        AD_conservative_soln[s] = ADvar;
+    }
+
+    // Compute AD convective flux
+    // -- taken exactly from euler.cpp:
+    std::array<dealii::Tensor<1,dim,adtype>,nstate> AD_conv_flux;
+    const adtype density = AD_conservative_soln[0];
+    const adtype pressure = this->template compute_pressure<adtype>(AD_conservative_soln);
+    const dealii::Tensor<1,dim,adtype> vel = this->template compute_velocities<adtype>(AD_conservative_soln);
+    const adtype specific_total_energy = AD_conservative_soln[nstate-1]/AD_conservative_soln[0];
+    const adtype specific_total_enthalpy = specific_total_energy + pressure/density;
+    for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
+        // Density equation
+        AD_conv_flux[0][flux_dim] = AD_conservative_soln[1+flux_dim];
+        // Momentum equation
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+            AD_conv_flux[1+velocity_dim][flux_dim] = density*vel[flux_dim]*vel[velocity_dim];
+        }
+        AD_conv_flux[1+flux_dim][flux_dim] += pressure; // Add diagonal of pressure
+        // Energy equation
+        AD_conv_flux[nstate-1][flux_dim] = density*vel[flux_dim]*specific_total_enthalpy;
+    }
+    // -- end of computing the AD convective flux
+
+    // Assemble the directional Jacobian
+    dealii::Tensor<2,nstate,real> jacobian;
+    for (int sp=0; sp<nstate; sp++) {
+        // for each perturbed state (sp) variable
+        for (int s=0; s<nstate; s++) {
+            jacobian[s][sp] = 0.0;
+            for (int d=0;d<dim;d++) {
+                // Compute directional jacobian
+                jacobian[s][sp] += AD_conv_flux[s][d].dx(sp)*normal[d];
+            }
+        }
+    }
+    return jacobian;
+}
+
+template <int dim, int nstate, typename real>
+inline real NavierStokes<dim,nstate,real>
+::compute_scaled_viscosity_coefficient_derivative_wrt_temperature_via_dfad (
+    std::array<real,nstate> &conservative_soln) const
+{
+    using adtype = FadType;
+
+    // Step 1: Primitive solution
+    const std::array<real,nstate> primitive_soln = this->template convert_conservative_to_primitive<real>(conservative_soln); // from Euler
+    
+    // Step 2: Compute temperature
+    real temperature = this->template compute_temperature<real>(primitive_soln); // from Euler
+
+    // Initialize AD objects
+    adtype AD_temperature(1, 0, getValue<real>(temperature));
+    
+    // Compute the AD scaled viscosity coefficient
+    adtype viscosity_coefficient = ((1.0 + temperature_ratio)/(AD_temperature + temperature_ratio))*pow(AD_temperature,1.5);
+    adtype scaled_viscosity_coefficient = viscosity_coefficient/reynolds_number_inf;
+
+    // Get the derivative from AD
+    real dmudT = scaled_viscosity_coefficient.dx(0);
+
+    return dmudT;
+}
+
+template <int dim, int nstate, typename real>
 template<typename real2>
 std::array<dealii::Tensor<1,dim,real2>,nstate> NavierStokes<dim,nstate,real>
 ::dissipative_flux_templated (
@@ -445,7 +522,7 @@ template class NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 
 // -- Templated member functions:
-
+template double     NavierStokes < PHILIP_DIM, PHILIP_DIM+2, double     >::compute_scaled_viscosity_coefficient< double     >(const std::array<double,    PHILIP_DIM+2> &primitive_soln) const;
 
 } // Physics namespace
 } // PHiLiP namespace

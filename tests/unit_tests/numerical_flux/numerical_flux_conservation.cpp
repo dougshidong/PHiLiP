@@ -271,13 +271,13 @@ int main (int argc, char * argv[])
         if(*pde==PDEType::navier_stokes)        pde_string = "navier_stokes";
 
         if(*pde==PDEType::navier_stokes){
-            // We want a non-zero viscous (dissipative) flux for testing NavierStokes (default is 10000000.0)
+            // We want a non-zero viscous (dissipative) flux for testing Navier-Stokes (default is 10000000.0)
             all_parameters.navier_stokes_param.reynolds_number_inf = 1.0;
         }
         
         for (auto conv = conv_type.begin(); conv != conv_type.end() && success == 0; conv++) {
 
-            // Roe-type fluxes are defined only for the Euler and Navier Stokes equations
+            // Roe-type fluxes are defined only for the Euler and Navier-Stokes equations
             if(((*conv == ConvType::roe) || (*conv == ConvType::l2roe)) && ((*pde!=PDEType::euler) && (*pde!=PDEType::navier_stokes))) continue;
 
             all_parameters.conv_num_flux_type = *conv;

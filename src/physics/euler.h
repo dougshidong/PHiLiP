@@ -133,7 +133,6 @@ public:
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
         const std::array<real,nstate> &conservative_soln) const;
 
-
     /// Convective normal flux: \f$ \mathbf{F}_{conv} \cdot \hat{n} \f$
     std::array<real,nstate> convective_normal_flux (const std::array<real,nstate> &conservative_soln, const dealii::Tensor<1,dim,real> &normal) const;
 
@@ -276,18 +275,7 @@ public:
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &convervative_soln2) const;
 
-    /// Evaluate the no-slip boundary conditions for an Euler wall.
-    void boundary_slip_wall (
-       const dealii::Tensor<1,dim,real> &normal_int,
-       const std::array<real,nstate> &soln_int,
-       std::array<real,nstate> &soln_bc) const;
-
-    /// Evaluate the Riemann-based farfield boundary conditions based on freestream values.
-    void boundary_riemann (
-       const dealii::Tensor<1,dim,real> &normal_int,
-       const std::array<real,nstate> &soln_int,
-       std::array<real,nstate> &soln_bc) const;
-
+    /// Boundary condition handler
     void boundary_face_values (
         const int /*boundary_type*/,
         const dealii::Point<dim, real> &/*pos*/,
@@ -297,17 +285,73 @@ public:
         std::array<real,nstate> &/*soln_bc*/,
         std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
 
+    /// For post processing purposes (update comment later)
     virtual dealii::Vector<double> post_compute_derived_quantities_vector (
         const dealii::Vector<double>      &uh,
         const std::vector<dealii::Tensor<1,dim> > &duh,
         const std::vector<dealii::Tensor<2,dim> > &dduh,
         const dealii::Tensor<1,dim>                  &normals,
         const dealii::Point<dim>                  &evaluation_points) const;
+    
+    /// For post processing purposes (update comment later)
     virtual std::vector<std::string> post_get_names () const;
+    
+    /// For post processing purposes (update comment later)
     virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const;
+    
+    /// For post processing purposes (update comment later)
     virtual dealii::UpdateFlags post_get_needed_update_flags () const;
-protected:
 
+protected:
+    /** Slip wall boundary conditions (No penetration)
+     *  * Given by Algorithm II of the following paper:
+     *  * * Krivodonova, L., and Berger, M.,
+     *      “High-order accurate implementation of solid wall boundary conditions in curved geometries,”
+     *      Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
+     */
+    void boundary_slip_wall (
+        const dealii::Tensor<1,dim,real> &normal_int,
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+
+    /// Evaluate the manufactured solution boundary conditions.
+    void boundary_manufactured_solution (
+        const dealii::Point<dim, real> &pos,
+        const dealii::Tensor<1,dim,real> &normal_int,
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+
+    /// Pressure Outflow Boundary Condition (back pressure)
+    /// Reference: Carlson 2011, sec. 2.4
+    void boundary_pressure_outflow (
+        const real total_inlet_pressure,
+        const real back_pressure,
+        const std::array<real,nstate> &soln_int,
+        std::array<real,nstate> &soln_bc) const;
+
+    /// Inflow boundary conditions (both subsonic and supersonic)
+    /// Reference: Carlson 2011, sec. 2.2 & sec 2.9
+    void boundary_inflow (
+        const real total_inlet_pressure,
+        const real total_inlet_temperature,
+        const dealii::Tensor<1,dim,real> &normal_int,
+        const std::array<real,nstate> &soln_int,
+        std::array<real,nstate> &soln_bc) const;
+
+    /// Riemann-based farfield boundary conditions based on freestream values.
+    /// Reference: ? (ask Doug)
+    void boundary_riemann (
+       const dealii::Tensor<1,dim,real> &normal_int,
+       const std::array<real,nstate> &soln_int,
+       std::array<real,nstate> &soln_bc) const;
+
+    /// Simple farfield boundary conditions based on freestream values
+    void boundary_farfield (
+        std::array<real,nstate> &soln_bc) const;
 
 };
 

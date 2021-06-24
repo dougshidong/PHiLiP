@@ -131,6 +131,15 @@ public:
     real compute_scaled_viscosity_coefficient_derivative_wrt_temperature_via_dfad (
         std::array<real,nstate> &conservative_soln) const;
 
+    void boundary_face_values (
+       const int boundary_type,
+       const dealii::Point<dim, real> &pos,
+       const dealii::Tensor<1,dim,real> &normal_int,
+       const std::array<real,nstate> &soln_int,
+       const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+       std::array<real,nstate> &soln_bc,
+       std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const override; 
+
 protected:
     /** Constants for Sutherland's law for viscosity
      *  Reference: Sutherland, W. (1893), "The viscosity of gases and molecular force", Philosophical Magazine, S. 5, 36, pp. 507-531 (1893)

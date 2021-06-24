@@ -120,6 +120,8 @@ inline real2 NavierStokes<dim,nstate,real>
      */
     const real2 viscosity_coefficient = compute_viscosity_coefficient<real2>(primitive_soln);
     const real2 scaled_viscosity_coefficient = viscosity_coefficient/reynolds_number_inf;
+    // print the value for Re
+    // std::cout << "\n Reynolds number inside compute_scaled_viscosity_coefficient(): " << reynolds_number_inf << "\n" << std::endl;
 
     return scaled_viscosity_coefficient;
 }
@@ -217,34 +219,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes<dim,nstate,real>
     /* Nondimensionalized viscous flux (i.e. dissipative flux)
      * Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.12.1-4.12.4)
      */
-
-    // Step 1: Primitive solution
-    const std::array<real,nstate> primitive_soln = this->template convert_conservative_to_primitive<real>(conservative_soln); // from Euler
-    
-    // Step 2: Gradient of primitive solution
-    const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = convert_conservative_gradient_to_primitive_gradient<real>(conservative_soln, solution_gradient);
-    
-    // Step 3: Viscous stress tensor, Velocities, Heat flux
-    const std::array<dealii::Tensor<1,dim,real>,dim> viscous_stress_tensor = compute_viscous_stress_tensor<real>(primitive_soln, primitive_soln_gradient);
-    const dealii::Tensor<1,dim,real> vel = this->template extract_velocities_from_primitive<real>(primitive_soln); // from Euler
-    const dealii::Tensor<1,dim,real> heat_flux = compute_heat_flux<real>(primitive_soln, primitive_soln_gradient);
-
-    // Step 4: Construct viscous flux; Note: sign corresponds to LHS
-    std::array<dealii::Tensor<1,dim,real>,nstate> viscous_flux;
-    for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
-        // Density equation
-        viscous_flux[0][flux_dim] = 0.0;
-        // Momentum equation
-        for (int stress_dim=0; stress_dim<dim; ++stress_dim){
-            viscous_flux[1+stress_dim][flux_dim] = -viscous_stress_tensor[stress_dim][flux_dim];
-        }
-        // Energy equation
-        viscous_flux[nstate-1][flux_dim] = 0.0;
-        for (int stress_dim=0; stress_dim<dim; ++stress_dim){
-            viscous_flux[nstate-1][flux_dim] -= vel[stress_dim]*viscous_stress_tensor[flux_dim][stress_dim];
-        }
-        viscous_flux[nstate-1][flux_dim] += heat_flux[flux_dim];
-    }
+    std::array<dealii::Tensor<1,dim,real>,nstate> viscous_flux = dissipative_flux_templated<real>(conservative_soln, solution_gradient);
     return viscous_flux;
 }
 
@@ -272,9 +247,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes<dim,nstate,real>
 //     return scaled_viscosity_coefficient_gradient;
 // }
 
-/// Returns the value from a CoDiPack or Sacado variable.
-/** The recursive calling allows to retrieve nested CoDiPack/Sacado types.
- */
+// Returns the value from a CoDiPack or Sacado variable.
 template<typename real>
 double getValue(const real &x) {
     if constexpr(std::is_same<real,double>::value) {
@@ -512,6 +485,31 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> NavierStokes<dim,nstate,real>
         viscous_flux[nstate-1][flux_dim] += heat_flux[flux_dim];
     }
     return viscous_flux;
+}
+
+template <int dim, int nstate, typename real>
+void NavierStokes<dim,nstate,real>
+::boundary_face_values (
+   const int boundary_type,
+   const dealii::Point<dim, real> &pos,
+   const dealii::Tensor<1,dim,real> &normal_int,
+   const std::array<real,nstate> &soln_int,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+   std::array<real,nstate> &soln_bc,
+   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+{
+    if (boundary_type == 1000) {
+        // Manufactured solution boundary condition
+        this->boundary_manufactured_solution (pos, normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+    } 
+    else if (boundary_type == 1005) {
+        // Simple farfield boundary condition
+        this->boundary_farfield(soln_bc);
+    } 
+    else {
+        std::cout << "Invalid boundary_type: " << boundary_type << std::endl;
+        std::abort();
+    }
 }
 
 // Instantiate explicitly

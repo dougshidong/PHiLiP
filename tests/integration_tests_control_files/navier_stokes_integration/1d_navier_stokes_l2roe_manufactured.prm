@@ -5,10 +5,12 @@ set dimension = 1
 
 set pde_type  = navier_stokes
 
-set conv_num_flux  = l2roe
+#set conv_num_flux  = l2roe
+
+#set diss_num_flux = bassi_rebay_2
 
 #subsection navier_stokes
-#  set reynolds_number_inf                 = 500.0
+#  set reynolds_number_inf                 = 1.0
 #end
 
 subsection ODE solver

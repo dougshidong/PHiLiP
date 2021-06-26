@@ -31,8 +31,13 @@ public:
         boundary_layer_solution,
         s_shock_solution,
         quadratic_solution,
+        navah_solution
         };
     ManufacturedSolutionType manufactured_solution_type; ///< Selected ManufacturedSolutionType from the input file
+
+    /// Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
+    /// Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
+    std::array<dealii::Tensor<1,7,double>,5> NavahCoefficientMatrix;
 
     /// Diffusion tensor
     dealii::Tensor<2,3,double> diffusion_tensor;
@@ -54,6 +59,11 @@ public:
     static dealii::Tensor<1,3,double> get_default_advection_vector();
     /// gets the default diffusion coefficient;
     static double get_default_diffusion_coefficient();
+
+    /// Gets the NavahCoefficientMatrix for the specified navah_solution. 
+    /// Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
+    /// Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
+    static std::array<dealii::Tensor<1,7,double>,5> get_navah_coefficient_matrix(int navah_manufactured_solution_number);
 };
 
 } // Parameters namespace

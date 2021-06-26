@@ -33,6 +33,7 @@ NavierStokes<dim, nstate, real>::NavierStokes(
     , prandtl_number(prandtl_number)
     , reynolds_number_inf(reynolds_number_inf)
 {
+    static_assert(nstate==dim+2, "Physics::NavierStokes() should be created with nstate=dim+2");
     // Nothing to do here so far
 }
 

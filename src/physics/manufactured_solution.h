@@ -465,6 +465,47 @@ private:
     std::array<real, dim> alpha_diag; ///< Diagonal hessian component scaling
 };
 
+/// Navah and Nadarajah free flows manufactured solution
+template <int dim, typename real>
+class ManufacturedSolutionNavah
+    : public ManufacturedSolutionFunction<dim, real>
+{
+// We want the Point to be templated on the type,
+// however, dealii does not template that part of the Function.
+// Therefore, we end up overloading the functions and need to "import"
+// those non-overloaded functions to avoid the warning -Woverloaded-virtual
+// See: https://stackoverflow.com/questions/18515183/c-overloaded-virtual-function-warning-by-clang
+protected:
+    using dealii::Function<dim,real>::value;
+    using dealii::Function<dim,real>::gradient;
+    using dealii::Function<dim,real>::hessian;
+public:
+    ManufacturedSolutionNavah(const unsigned int nstate = (dim+2))
+        :   ManufacturedSolutionFunction<dim,real>(nstate)
+    {
+        static_assert(dim==2, "ManufacturedSolutionNavah() should be created with dim=2");
+        static_assert(nstate==dim+2, "ManufacturedSolutionNavah() should be created with nstate=dim+2");
+        
+        const double pi = atan(1)*4.0;
+        real L = 1.0;  /// reference length
+        c = pi/L; /// constant
+    }
+
+    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+
+    dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+
+    dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+
+private:
+    std::array<dealii::Tensor<1,7,double>,5> ncm = Parameters::ManufacturedSolutionParam::NavahCoefficientMatrix;
+
+    real c; ///< Constant, pi/L
+    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+    dealii::Tensor<1,dim,real> primitive_gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+    dealii::SymmetricTensor<2,dim,real> primitive_hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+};
+
 /// Manufactured solution function factory
 /** Based on input from Parameters file, generates a standard form
   * of manufactured solution function with suitable value, gradient 

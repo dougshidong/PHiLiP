@@ -170,13 +170,12 @@ inline real ManufacturedSolutionQuadratic<dim,real>
 }
 
 template <int dim, typename real>
-real ManufacturedSolutionNavah<dim,real>
+real ManufacturedSolutionNavahBase<dim,real>
 ::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     real value = 0.;
     if constexpr(dim == 2) {
-        real x = point[0];
-        real y = point[1];
+        const real x = point[0], y = point[1];
         // // for RANS
         // const real v_tilde = ncm[istate][0] + ncm[istate][1]*cos(ncm[istate][4]*c*x) + ncm[istate][2]*cos(ncm[istate][5]*c*y) + ncm[istate][3]*cos(ncm[istate][6]*c*x)*cos(ncm[istate][6]*c*y);
             
@@ -201,11 +200,11 @@ real ManufacturedSolutionNavah<dim,real>
 }
 
 template <int dim, typename real>
-inline real ManufacturedSolutionNavah<dim,real>
+inline real ManufacturedSolutionNavahBase<dim,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
-    real value = 0.;
-    if constexpr(dim == 2) {
+    real value = 0.0;
+    if (dim == 2) {
         const real rho = primitive_value(point,0);
         const real u   = primitive_value(point,1);
         const real v   = primitive_value(point,2);
@@ -215,21 +214,20 @@ inline real ManufacturedSolutionNavah<dim,real>
         if(istate==0) value = rho; // density
         if(istate==1) value = rho*u; // x-momentum
         if(istate==2) value = rho*v; // y-momentum
-        if(istate==3) value = P/(1.4-1.0) + 0.5*rho*(u*u + v*v); // total energy
+        if(istate==3) value = p/(1.4-1.0) + 0.5*rho*(u*u + v*v); // total energy
     }
 
     return value;
 }
 
 template <int dim, typename real>
-dealii::Tensor<1,dim,real> ManufacturedSolutionNavah<dim,real>
+dealii::Tensor<1,dim,real> ManufacturedSolutionNavahBase<dim,real>
 ::primitive_gradient (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::Tensor<1,dim,real> gradient;
     // Gradients of primitive variables 
-    if constexpr(dim == 2) {
-        real x = point[0];
-        real y = point[1];
+    if (dim == 2) {
+        const real x = point[0], y = point[1];
 
         if(istate==0) {
             // density
@@ -256,16 +254,16 @@ dealii::Tensor<1,dim,real> ManufacturedSolutionNavah<dim,real>
 }
 
 template <int dim, typename real>
-inline dealii::Tensor<1,dim,real> ManufacturedSolutionNavah<dim,real>
+inline dealii::Tensor<1,dim,real> ManufacturedSolutionNavahBase<dim,real>
 ::gradient (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::Tensor<1,dim,real> gradient;
 
-    if constexpr(dim == 2) {
+    if (dim == 2) {
         const real rho = primitive_value(point,0);
         const real u   = primitive_value(point,1);
         const real v   = primitive_value(point,2);
-        const real p   = primitive_value(point,3);
+        // const real p   = primitive_value(point,3);
         const dealii::Tensor<1,dim,real> rho_grad = primitive_gradient(point,0);
         const dealii::Tensor<1,dim,real> u_grad   = primitive_gradient(point,1);
         const dealii::Tensor<1,dim,real> v_grad   = primitive_gradient(point,2);
@@ -301,23 +299,13 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionNavah<dim,real>
 }
 
 template <int dim, typename real>
-dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionNavah<dim,real>
+dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionNavahBase<dim,real>
 ::primitive_hessian (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::SymmetricTensor<2,dim,real> hessian;
 
-    if constexpr(dim == 2) {
-        const real rho = primitive_value(point,0);
-        const real u   = primitive_value(point,1);
-        const real v   = primitive_value(point,2);
-        const real p   = primitive_value(point,3);
-        const dealii::Tensor<1,dim,real> rho_grad = primitive_gradient(point,0);
-        const dealii::Tensor<1,dim,real> u_grad   = primitive_gradient(point,1);
-        const dealii::Tensor<1,dim,real> v_grad   = primitive_gradient(point,2);
-        const dealii::Tensor<1,dim,real> p_grad   = primitive_gradient(point,3);
-
-        real x = point[0];
-        real y = point[1];
+    if (dim == 2) {
+        const real x = point[0], y = point[1];
 
         if(istate==0) {
             // density
@@ -352,20 +340,20 @@ dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionNavah<dim,real>
 }
 
 template <int dim, typename real>
-inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionNavah<dim,real>
+inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionNavahBase<dim,real>
 ::hessian (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::SymmetricTensor<2,dim,real> hessian;
 
-    if constexpr(dim == 2) {
+    if (dim == 2) {
         const real rho = primitive_value(point,0);
         const real u   = primitive_value(point,1);
         const real v   = primitive_value(point,2);
-        const real p   = primitive_value(point,3);
+        // const real p   = primitive_value(point,3);
         const dealii::Tensor<1,dim,real> rho_grad = primitive_gradient(point,0);
         const dealii::Tensor<1,dim,real> u_grad   = primitive_gradient(point,1);
         const dealii::Tensor<1,dim,real> v_grad   = primitive_gradient(point,2);
-        const dealii::Tensor<1,dim,real> p_grad   = primitive_gradient(point,3);
+        // const dealii::Tensor<1,dim,real> p_grad   = primitive_gradient(point,3);
         const dealii::SymmetricTensor<2,dim,real> rho_hess = primitive_hessian(point,0);
         const dealii::SymmetricTensor<2,dim,real> u_hess   = primitive_hessian(point,1);
         const dealii::SymmetricTensor<2,dim,real> v_hess   = primitive_hessian(point,2);
@@ -1102,6 +1090,7 @@ ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(
 {
     using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
     ManufacturedSolutionEnum solution_type = param->manufactured_convergence_study_param.manufactured_solution_param.manufactured_solution_type;
+    //param->manufactured_convergence_study_param.manufactured_solution_param.NavahCoefficientMatrix;
 
     return create_ManufacturedSolution(solution_type, nstate);
 }
@@ -1132,9 +1121,25 @@ ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(
         return std::make_shared<ManufacturedSolutionSShock<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::quadratic_solution){
         return std::make_shared<ManufacturedSolutionQuadratic<dim,real>>(nstate);
-    }else if(solution_type == ManufacturedSolutionEnum::navah_solution){
-        if constexpr((dim==2) && (nstate==dim+2)) {
-            return std::make_shared<ManufacturedSolutionNavah<dim,real>>(nstate);
+    }else if(solution_type == ManufacturedSolutionEnum::navah_solution_1){
+        if constexpr((dim==2) /*&& (nstate==dim+2)*/) {
+            return std::make_shared<ManufacturedSolutionNavah_MS1<dim,real>>(nstate);
+        }
+    }else if(solution_type == ManufacturedSolutionEnum::navah_solution_2){
+        if constexpr((dim==2) /*&& (nstate==dim+2)*/) {
+            return std::make_shared<ManufacturedSolutionNavah_MS2<dim,real>>(nstate);
+        }
+    }else if(solution_type == ManufacturedSolutionEnum::navah_solution_3){
+        if constexpr((dim==2) /*&& (nstate==dim+2)*/) {
+            return std::make_shared<ManufacturedSolutionNavah_MS3<dim,real>>(nstate);
+        }
+    }else if(solution_type == ManufacturedSolutionEnum::navah_solution_4){
+        if constexpr((dim==2) /*&& (nstate==dim+2)*/) {
+            return std::make_shared<ManufacturedSolutionNavah_MS4<dim,real>>(nstate);
+        }
+    }else if(solution_type == ManufacturedSolutionEnum::navah_solution_5){
+        if constexpr((dim==2) /*&& (nstate==dim+2)*/) {
+            return std::make_shared<ManufacturedSolutionNavah_MS5<dim,real>>(nstate);
         }
     }else{
         std::cout << "Invalid Manufactured Solution." << std::endl;
@@ -1218,11 +1223,37 @@ template class ManufacturedSolutionQuadratic<PHILIP_DIM,RadType>;
 template class ManufacturedSolutionQuadratic<PHILIP_DIM,FadFadType>;
 template class ManufacturedSolutionQuadratic<PHILIP_DIM,RadFadType>;
 
-template class ManufacturedSolutionNavah<2,double>;
-template class ManufacturedSolutionNavah<2,FadType>;
-template class ManufacturedSolutionNavah<2,RadType>;
-template class ManufacturedSolutionNavah<2,FadFadType>;
-template class ManufacturedSolutionNavah<2,RadFadType>;
+// Ask Doug: Instantiate for "2" directly instead of PHILIP_DIM ?? SShock is only for 2 but instantiated for PHILIP_DIM
+template class ManufacturedSolutionNavahBase<PHILIP_DIM,double>;
+template class ManufacturedSolutionNavahBase<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionNavahBase<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionNavahBase<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionNavahBase<PHILIP_DIM,RadFadType>;
+template class ManufacturedSolutionNavah_MS1<PHILIP_DIM,double>;
+template class ManufacturedSolutionNavah_MS1<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionNavah_MS1<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionNavah_MS1<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionNavah_MS1<PHILIP_DIM,RadFadType>;
+template class ManufacturedSolutionNavah_MS2<PHILIP_DIM,double>;
+template class ManufacturedSolutionNavah_MS2<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionNavah_MS2<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionNavah_MS2<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionNavah_MS2<PHILIP_DIM,RadFadType>;
+template class ManufacturedSolutionNavah_MS3<PHILIP_DIM,double>;
+template class ManufacturedSolutionNavah_MS3<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionNavah_MS3<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionNavah_MS3<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionNavah_MS3<PHILIP_DIM,RadFadType>;
+template class ManufacturedSolutionNavah_MS4<PHILIP_DIM,double>;
+template class ManufacturedSolutionNavah_MS4<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionNavah_MS4<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionNavah_MS4<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionNavah_MS4<PHILIP_DIM,RadFadType>;
+template class ManufacturedSolutionNavah_MS5<PHILIP_DIM,double>;
+template class ManufacturedSolutionNavah_MS5<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionNavah_MS5<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionNavah_MS5<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionNavah_MS5<PHILIP_DIM,RadFadType>;
 
 template class ManufacturedSolutionFactory<PHILIP_DIM,double>;
 template class ManufacturedSolutionFactory<PHILIP_DIM,FadType>;

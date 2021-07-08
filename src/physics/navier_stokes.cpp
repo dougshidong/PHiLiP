@@ -502,7 +502,10 @@ void NavierStokes<dim,nstate,real>
     if (boundary_type == 1000) {
         // Manufactured solution boundary condition
         this->boundary_manufactured_solution (pos, normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
-    } 
+        for (int istate=0; istate<nstate; istate++) {
+            soln_grad_bc[istate] = this->manufactured_solution_function->gradient (pos, istate);
+        }
+    }
     else if (boundary_type == 1005) {
         // Simple farfield boundary condition
         this->boundary_farfield(soln_bc);

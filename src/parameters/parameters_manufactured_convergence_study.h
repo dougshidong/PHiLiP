@@ -62,6 +62,9 @@ public:
     /// Tolerance within which the convergence orders are considered to be optimal.
     double slope_deficit_tolerance;
 
+    /// Output the convergence tables (for each p) as txt files
+    bool output_convergence_tables;
+
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
     /// Parses input file and sets the variables.

@@ -58,6 +58,11 @@ void ManufacturedConvergenceStudyParam::declare_parameters (dealii::ParameterHan
         prm.declare_entry("degree_end", "3",
                           dealii::Patterns::Integer(),
                           "Last degree used for convergence study");
+
+        prm.declare_entry("output_convergence_tables", "false",
+                          dealii::Patterns::Bool(),
+                          "Writes the convergence tables for each polynomial degree p."
+                          "Output will be txt files named convergence_table_[dim]d_[pde_string]_[conv_num_flux_string]_[manufactured_solution_string]_p[poly_degree].txt");
     }
     prm.leave_subsection();
 }

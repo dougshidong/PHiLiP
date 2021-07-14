@@ -364,6 +364,7 @@ int main (int argc, char * argv[])
          //, PDEType::convection_diffusion
          //, PDEType::advection_vector
          , PDEType::euler
+         , PDEType::navier_stokes
     };
     std::vector<std::string> pde_name {
          " PDEType::diffusion "
@@ -371,6 +372,7 @@ int main (int argc, char * argv[])
         //, " PDEType::convection_diffusion "
         //, " PDEType::advection_vector "
         , " PDEType::euler "
+        , " PDEType::navier_stokes "
     };
 
     int ipde = -1;

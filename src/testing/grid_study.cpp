@@ -361,6 +361,8 @@ int GridStudy<dim,nstate>
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
             estimated_error_per_cell.reinit(grid->n_active_cells());
             estimated_error_per_cell_double.reinit(grid->n_active_cells());
+            std::cout << "\n - - - - - - - - - - - - - - - - - - - - - - - - - - - - " << std::endl;
+            std::cout << "[cell index] \t cell_l2error" << std::endl;
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
 
                 if (!cell->is_locally_owned()) continue;
@@ -390,10 +392,22 @@ int GridStudy<dim,nstate>
                 estimated_error_per_cell_double[cell->active_cell_index()] = cell_l2error;
                 l2error += cell_l2error;
 
+                // START TESTING
+                std::cout << "[" << cell->active_cell_index() << "] \t " << std::sqrt(cell_l2error) << std::endl;
+                // END TESTING
+
             }
+            std::cout << "- - - - - - - - - - - - - - - - - - - - - - - - - - - -" << std::endl;
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
 
             double solution_integral = integrate_solution_over_domain(*dg);
+
+            std::cout << "CONVERGENCE DETAILS:" << std::endl;
+            std::cout << "p\t cells\t DoFs\t dx\t residual\t soln_L2_error\t output_error" << std::endl;
+            std::cout << poly_degree << "\t" << n_global_active_cells << "\t" << n_dofs << "\t" << 1.0/pow(n_dofs,(1.0/dim))
+             << "\t" << dg->get_residual_l2norm () << "\t" << l2error_mpi_sum << "\t" << std::abs(solution_integral - exact_solution_integral)
+             << std::endl;
+             std::cout << "- - - - - - - - - - - - - - - - - - - - - - - - - - - - \n" << std::endl;
 
             /*
             dg->output_results_vtk(igrid);
@@ -409,6 +423,12 @@ int GridStudy<dim,nstate>
 
             // dg->output_results_vtk(igrid);
             */
+
+            // START -- TESTING
+            std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  gr 
+                = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);
+            if(poly_degree == 0) gr->output_results_vtk(igrid);
+            // END -- TESTING
 
             // Convergence table
             const double dx = 1.0/pow(n_dofs,(1.0/dim));
@@ -469,6 +489,55 @@ int GridStudy<dim,nstate>
         convergence_table.set_scientific("soln_L2_error", true);
         convergence_table.set_scientific("output_error", true);
         if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
+
+        // Write the convergence table to a file
+        // Future code development: create get_pde_string(), get_conv_num_flux_string(), get_manufactured_solution_string() in appropriate classes
+        if (manu_grid_conv_param.output_convergence_tables) {
+            // using PartialDifferentialEquationEnum = Parameters::PartialDifferentialEquation;
+            std::string pde_string;
+            if (param.pde_type == param.PartialDifferentialEquation::advection)            {pde_string = "advection";}
+            if (param.pde_type == param.PartialDifferentialEquation::advection_vector)     {pde_string = "advection_vector";}
+            if (param.pde_type == param.PartialDifferentialEquation::diffusion)            {pde_string = "diffusion";}
+            if (param.pde_type == param.PartialDifferentialEquation::convection_diffusion) {pde_string = "convection_diffusion";}
+            if (param.pde_type == param.PartialDifferentialEquation::burgers_inviscid)     {pde_string = "burgers_inviscid";}
+            if (param.pde_type == param.PartialDifferentialEquation::euler)                {pde_string = "euler";}
+            if (param.pde_type == param.PartialDifferentialEquation::navier_stokes)        {pde_string = "navier_stokes";}
+
+            // using ConvectiveNumericalFluxEnum = Parameters::ConvectiveNumericalFlux;
+            std::string conv_num_flux_string;
+            if (param.conv_num_flux_type == param.ConvectiveNumericalFlux::lax_friedrichs) {conv_num_flux_string = "lax_friedrichs";}
+            if (param.conv_num_flux_type == param.ConvectiveNumericalFlux::split_form)     {conv_num_flux_string = "split_form";}
+            if (param.conv_num_flux_type == param.ConvectiveNumericalFlux::roe)            {conv_num_flux_string = "roe";}
+            if (param.conv_num_flux_type == param.ConvectiveNumericalFlux::l2roe)          {conv_num_flux_string = "l2roe";}
+
+            using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType; // ::ManufacturedConvergenceStudyParam
+            std::string manufactured_solution_string;
+            if (manu_grid_conv_param.manufactured_solution_param.manufactured_solution_type == ManufacturedSolutionEnum::sine_solution)           {manufactured_solution_string = "sine_solution";}
+            if (manu_grid_conv_param.manufactured_solution_param.manufactured_solution_type == ManufacturedSolutionEnum::cosine_solution)         {manufactured_solution_string = "cosine_solution";}
+            if (manu_grid_conv_param.manufactured_solution_param.manufactured_solution_type == ManufacturedSolutionEnum::additive_solution)       {manufactured_solution_string = "additive_solution";}
+            if (manu_grid_conv_param.manufactured_solution_param.manufactured_solution_type == ManufacturedSolutionEnum::exp_solution)            {manufactured_solution_string = "exp_solution";}
+            if (manu_grid_conv_param.manufactured_solution_param.manufactured_solution_type == ManufacturedSolutionEnum::poly_solution)           {manufactured_solution_string = "poly_solution";}
+            if (manu_grid_conv_param.manufactured_solution_param.manufactured_solution_type == ManufacturedSolutionEnum::even_poly_solution)      {manufactured_solution_string = "even_poly_solution";}
+            if (manu_grid_conv_param.manufactured_solution_param.manufactured_solution_type == ManufacturedSolutionEnum::atan_solution)           {manufactured_solution_string = "atan_solution";}
+            if (manu_grid_conv_param.manufactured_solution_param.manufactured_solution_type == ManufacturedSolutionEnum::boundary_layer_solution) {manufactured_solution_string = "boundary_layer_solution";}
+            if (manu_grid_conv_param.manufactured_solution_param.manufactured_solution_type == ManufacturedSolutionEnum::s_shock_solution)        {manufactured_solution_string = "s_shock_solution";}
+            if (manu_grid_conv_param.manufactured_solution_param.manufactured_solution_type == ManufacturedSolutionEnum::quadratic_solution)      {manufactured_solution_string = "quadratic_solution";}
+            if (manu_grid_conv_param.manufactured_solution_param.manufactured_solution_type == ManufacturedSolutionEnum::navah_solution_1)        {manufactured_solution_string = "navah_solution_1";}
+            if (manu_grid_conv_param.manufactured_solution_param.manufactured_solution_type == ManufacturedSolutionEnum::navah_solution_2)        {manufactured_solution_string = "navah_solution_2";}
+            if (manu_grid_conv_param.manufactured_solution_param.manufactured_solution_type == ManufacturedSolutionEnum::navah_solution_3)        {manufactured_solution_string = "navah_solution_3";}
+            if (manu_grid_conv_param.manufactured_solution_param.manufactured_solution_type == ManufacturedSolutionEnum::navah_solution_4)        {manufactured_solution_string = "navah_solution_4";}
+            if (manu_grid_conv_param.manufactured_solution_param.manufactured_solution_type == ManufacturedSolutionEnum::navah_solution_5)        {manufactured_solution_string = "navah_solution_5";}
+
+            std::string error_filename = "convergence_table"; // base name
+            error_filename += std::string("_") + std::to_string(dim) + std::string("d");
+            error_filename += std::string("_") + pde_string;
+            error_filename += std::string("_") + conv_num_flux_string;
+            error_filename += std::string("_") + manufactured_solution_string;
+            error_filename += std::string("_") + std::string("p") + std::to_string(poly_degree);
+            std::string error_fileType = std::string("txt");
+            std::ofstream error_table_file(error_filename + std::string(".") + error_fileType);
+            convergence_table.write_text(error_table_file);
+        }
 
         convergence_table_vector.push_back(convergence_table);
 

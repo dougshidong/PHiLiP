@@ -357,6 +357,7 @@ int main (int argc, char * argv[])
          //, PDEType::convection_diffusion
          //, PDEType::advection_vector
          , PDEType::euler
+         , PDEType::navier_stokes
     };
     std::vector<std::string> pde_name {
          " PDEType::diffusion "
@@ -364,6 +365,7 @@ int main (int argc, char * argv[])
         //, " PDEType::convection_diffusion "
         //, " PDEType::advection_vector "
         , " PDEType::euler "
+        , " PDEType::navier_stokes "
     };
 
     int ipde = -1;
@@ -393,7 +395,7 @@ int main (int argc, char * argv[])
                     }
                 }
 
-                if (*pde==PDEType::euler) {
+                if ((*pde==PDEType::euler) || (*pde==PDEType::navier_stokes)) {
                     error = test<dim,dim+2>(poly_degree, grid, all_parameters);
                 } else if (*pde==PDEType::burgers_inviscid) {
                     error = test<dim,dim>(poly_degree, grid, all_parameters);

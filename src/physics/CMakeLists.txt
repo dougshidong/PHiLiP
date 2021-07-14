@@ -6,6 +6,7 @@ SET(SOURCE
     euler.cpp
     manufactured_solution.cpp
     mhd.cpp
+    navier_stokes.cpp
     )
 
 foreach(dim RANGE 1 3)

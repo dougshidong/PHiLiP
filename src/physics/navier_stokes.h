@@ -106,12 +106,22 @@ public:
 
 	/** Dissipative flux Jacobian 
 	 *  Note: Only used for computing the manufactured solution source term;
-     *        computed numerically using the complex difference scheme (2nd order accurate)
+     *        computed using automatic differentiation
 	 */
 	dealii::Tensor<2,nstate,real> dissipative_flux_directional_jacobian (
         std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::Tensor<1,dim,real> &normal) const;
+
+    /** Dissipative flux Jacobian wrt gradient component
+     *  Note: Only used for computing the manufactured solution source term;
+     *        computed using automatic differentiation
+     */
+    dealii::Tensor<2,nstate,real> dissipative_flux_directional_jacobian_wrt_gradient_component (
+        std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const dealii::Tensor<1,dim,real> &normal,
+        const int d_gradient) const;
 
     /// Dissipative flux contribution to the source term
     std::array<real,nstate> dissipative_source_term (

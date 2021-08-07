@@ -307,20 +307,66 @@ dealii::Tensor<2,nstate,real> NavierStokes<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
+dealii::Tensor<2,nstate,real> NavierStokes<dim,nstate,real>
+::dissipative_flux_directional_jacobian_wrt_gradient_component (
+    std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+    const dealii::Tensor<1,dim,real> &normal,
+    const int d_gradient) const
+{
+    using adtype = FadType;
+
+    // Initialize AD objects
+    std::array<adtype,nstate> AD_conservative_soln;
+    std::array<dealii::Tensor<1,dim,adtype>,nstate> AD_solution_gradient;
+    for (int s=0; s<nstate; s++) {
+        AD_conservative_soln[s] = getValue<real>(conservative_soln[s]);
+        for (int d=0;d<dim;d++) {
+            if(d == d_gradient){
+                adtype ADvar(nstate, s, getValue<real>(solution_gradient[s][d])); // create AD variable
+                AD_solution_gradient[s][d] = ADvar;
+            }
+            else {
+                AD_solution_gradient[s][d] = getValue<real>(solution_gradient[s][d]);
+            }
+        }
+    }
+
+    // Compute AD dissipative flux
+    std::array<dealii::Tensor<1,dim,adtype>,nstate> AD_dissipative_flux = dissipative_flux_templated<adtype>(AD_conservative_soln, AD_solution_gradient);
+
+    // Assemble the directional Jacobian
+    dealii::Tensor<2,nstate,real> jacobian;
+    for (int sp=0; sp<nstate; sp++) {
+        // for each perturbed state (sp) variable
+        for (int s=0; s<nstate; s++) {
+            jacobian[s][sp] = 0.0;
+            for (int d=0;d<dim;d++) {
+                // Compute directional jacobian
+                jacobian[s][sp] += AD_dissipative_flux[s][d].dx(sp)*normal[d];
+            }
+        }
+    }
+    return jacobian;
+}
+
+template <int dim, int nstate, typename real>
 std::array<real,nstate> NavierStokes<dim,nstate,real>
 ::dissipative_source_term (
     const dealii::Point<dim,real> &pos) const
 {
     /* START: Repeated code */
+    // Get MS values
     std::array<real,nstate> manufactured_solution;
     for (int s=0; s<nstate; s++) {
-        manufactured_solution[s] = this->manufactured_solution_function->value (pos, s);
+        manufactured_solution[s] = this->manufactured_solution_function->value(pos,s);
         if (s==0) {
             assert(manufactured_solution[s] > 0);
         }
     }
+    // Get MS gradient
     std::vector<dealii::Tensor<1,dim,real>> manufactured_solution_gradient_dealii(nstate);
-    this->manufactured_solution_function->vector_gradient(pos, manufactured_solution_gradient_dealii);
+    this->manufactured_solution_function->vector_gradient(pos,manufactured_solution_gradient_dealii);
     std::array<dealii::Tensor<1,dim,real>,nstate> manufactured_solution_gradient;
     for (int d=0;d<dim;d++) {
         for (int s=0; s<nstate; s++) {
@@ -328,19 +374,50 @@ std::array<real,nstate> NavierStokes<dim,nstate,real>
         }
     }
     /* END of repeated code */
+    // Get MS hessian
+    std::array<dealii::SymmetricTensor<2,dim,real>,nstate> manufactured_solution_hessian;
+    for (int s=0; s<nstate; s++) {
+        dealii::SymmetricTensor<2,dim,real> hessian = this->manufactured_solution_function->hessian(pos,s);
+        for (int dr=0;dr<dim;dr++) {
+            for (int dc=0;dc<dim;dc++) {
+                manufactured_solution_hessian[s][dr][dc] = hessian[dr][dc];
+            }
+        }
+    }
 
-    // This is similar, should simply provide this function a flux_directional_jacobian() -- will have to restructure later
+    // First term -- wrt to the conservative variables
+    // This is similar, should simply provide this function a flux_directional_jacobian() -- could restructure later
     dealii::Tensor<1,nstate,real> dissipative_flux_divergence;
     for (int d=0;d<dim;d++) {
         dealii::Tensor<1,dim,real> normal;
         normal[d] = 1.0;
         const dealii::Tensor<2,nstate,real> jacobian = dissipative_flux_directional_jacobian(manufactured_solution, manufactured_solution_gradient, normal);
+        
+        // get the directional jacobian wrt gradient
+        std::array<dealii::Tensor<2,nstate,real>,dim> jacobian_wrt_gradient;
+        for (int d_gradient=0;d_gradient<dim;d_gradient++) {
+            
+            // get the directional jacobian wrt gradient component (x,y,z)
+            const dealii::Tensor<2,nstate,real> jacobian_wrt_gradient_component = dissipative_flux_directional_jacobian_wrt_gradient_component(manufactured_solution, manufactured_solution_gradient, normal, d_gradient);
+            
+            // store each component in jacobian_wrt_gradient -- could do this in the function used above
+            for (int sr = 0; sr < nstate; ++sr) {
+                for (int sc = 0; sc < nstate; ++sc) {
+                    jacobian_wrt_gradient[d_gradient][sr][sc] = jacobian_wrt_gradient_component[sr][sc];
+                }
+            }
+        }
 
-        //dissipative_flux_divergence += jacobian*manufactured_solution_gradient[d];
+        //dissipative_flux_divergence += jacobian*manufactured_solution_gradient[d]; <-- needs second term! (jac wrt gradient)
         for (int sr = 0; sr < nstate; ++sr) {
             real jac_grad_row = 0.0;
             for (int sc = 0; sc < nstate; ++sc) {
                 jac_grad_row += jacobian[sr][sc]*manufactured_solution_gradient[sc][d]; // CHANGED THE INDEXING HERE
+                // Second term -- wrt to the gradient of conservative variables
+                // -- add the contribution of each gradient component (e.g. x,y,z for dim==3)
+                for (int d_gradient=0;d_gradient<dim;d_gradient++) {
+                    jac_grad_row += jacobian_wrt_gradient[d_gradient][sr][sc]*manufactured_solution_hessian[sc][d_gradient][d]; // symmetric so d indexing works both ways
+                }
             }
             dissipative_flux_divergence[sr] += jac_grad_row;
         }
@@ -481,7 +558,7 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> NavierStokes<dim,nstate,real>
         // Energy equation
         viscous_flux[nstate-1][flux_dim] = 0.0;
         for (int stress_dim=0; stress_dim<dim; ++stress_dim){
-            viscous_flux[nstate-1][flux_dim] -= vel[stress_dim]*viscous_stress_tensor[flux_dim][stress_dim];
+           viscous_flux[nstate-1][flux_dim] -= vel[stress_dim]*viscous_stress_tensor[flux_dim][stress_dim];
         }
         viscous_flux[nstate-1][flux_dim] += heat_flux[flux_dim];
     }
@@ -501,10 +578,72 @@ void NavierStokes<dim,nstate,real>
 {
     if (boundary_type == 1000) {
         // Manufactured solution boundary condition
+        
+        // ORIGINAL:
         this->boundary_manufactured_solution (pos, normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
-        for (int istate=0; istate<nstate; istate++) {
-            soln_grad_bc[istate] = this->manufactured_solution_function->gradient (pos, istate);
+        // for (int istate=0; istate<nstate; istate++) {
+        //     soln_grad_bc[istate] = this->manufactured_solution_function->gradient (pos, istate);
+        // }
+            
+        // ATTEMPT 1 -- same as the convection_diffusion.cpp -- no change
+        // Note: This is consistent with Navah & Nadarajah (2018)
+        std::array<real,nstate> boundary_values;
+        std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
+        for (int i=0; i<nstate; i++) {
+            boundary_values[i] = this->manufactured_solution_function->value (pos, i);
+            boundary_gradients[i] = this->manufactured_solution_function->gradient (pos, i);
         }
+        for (int istate=0; istate<nstate; istate++) {
+            soln_bc[istate] = boundary_values[istate];
+            // soln_grad_bc[istate] = soln_grad_int[istate]; // attempt 1 -- convection_diffusion.cpp
+            soln_grad_bc[istate] = boundary_gradients[istate];
+        }
+
+        // ATTEMPT 2 -- outflow and inflow differences
+        // std::array<real,nstate> conservative_boundary_values;
+        // std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
+        // for (int s=0; s<nstate; s++) {
+        //     conservative_boundary_values[s] = this->manufactured_solution_function->value (pos, s);
+        //     boundary_gradients[s] = this->manufactured_solution_function->gradient (pos, s);
+        // }
+        // std::array<real,nstate> primitive_boundary_values = this->template convert_conservative_to_primitive<real>(conservative_boundary_values);
+        // for (int istate=0; istate<nstate; ++istate) {
+
+        //     std::array<real,nstate> characteristic_dot_n = this->convective_eigenvalues(conservative_boundary_values, normal_int);
+        //     const bool inflow = (characteristic_dot_n[istate] <= 0.);
+
+        //     if (inflow) { // Dirichlet boundary condition
+
+        //         soln_bc[istate] = conservative_boundary_values[istate];// Attempt 2.1,2.2
+        //         soln_grad_bc[istate] = soln_grad_int[istate];// Attempt 2.1,2.2
+        //         soln_grad_bc[istate] = boundary_gradients[istate];// Attempt 2.4
+
+        //         // Only set the pressure and velocity
+        //         // primitive_boundary_values[0] = soln_int[0];;
+        //         // for(int d=0;d<dim;d++){
+        //         //    primitive_boundary_values[1+d] = soln_int[1+d]/soln_int[0];;
+        //         //}
+        //         const std::array<real,nstate> modified_conservative_boundary_values = this->convert_primitive_to_conservative(primitive_boundary_values);
+        //         (void) modified_conservative_boundary_values;
+        //         //conservative_boundary_values[nstate-1] = soln_int[nstate-1];
+        //         // soln_bc[istate] = conservative_boundary_values[istate];
+
+        //     } else { // Neumann boundary condition
+        //         // soln_bc[istate] = -soln_int[istate]+2*conservative_boundary_values[istate];
+        //         soln_bc[istate] = soln_int[istate]; // Attempt 2.1
+        //         soln_bc[istate] = conservative_boundary_values[istate]; // Attempt 2.2,2.3,2.4
+
+        //         // **************************************************************************************************************
+        //         // Note I don't know how to properly impose the soln_grad_bc to obtain an adjoint consistent scheme
+        //         // Currently, Neumann boundary conditions are only imposed for the linear advection
+        //         // Therefore, soln_grad_bc does not affect the solution
+        //         // **************************************************************************************************************
+        //         // soln_grad_bc[istate] = soln_grad_int[istate]; // Attempt 2.1,2.2
+        //         soln_grad_bc[istate] = boundary_gradients[istate]; // Attempt 2.3
+        //         //soln_grad_bc[istate] = boundary_gradients[istate];
+        //         //soln_grad_bc[istate] = -soln_grad_int[istate]+2*boundary_gradients[istate];
+        //     }
+        // }
     }
     else if (boundary_type == 1005) {
         // Simple farfield boundary condition

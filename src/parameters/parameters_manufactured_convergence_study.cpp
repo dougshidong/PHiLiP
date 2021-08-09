@@ -63,6 +63,11 @@ void ManufacturedConvergenceStudyParam::declare_parameters (dealii::ParameterHan
                           dealii::Patterns::Bool(),
                           "Writes the convergence tables for each polynomial degree p."
                           "Output will be txt files named convergence_table_[dim]d_[pde_string]_[conv_num_flux_string]_[manufactured_solution_string]_p[poly_degree].txt");
+
+        prm.declare_entry("add_statewise_solution_error_to_convergence_tables", "false",
+                          dealii::Patterns::Bool(),
+                          "Adds the soln_L2_error of each state to the convergence table."
+                          "Field names are soln_L2_error_state_istate, where istate=[0,1,...,nstate-1]");
     }
     prm.leave_subsection();
 }

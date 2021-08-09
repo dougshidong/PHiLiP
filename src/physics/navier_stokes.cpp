@@ -224,29 +224,29 @@ std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes<dim,nstate,real>
     return viscous_flux;
 }
 
-// template <int dim, int nstate, typename real>
-// dealii::Tensor<1,dim,real> NavierStokes<dim,nstate,real>
-// ::compute_scaled_viscosity_gradient (
-//     const std::array<real,nstate> &primitive_soln,
-//     const dealii::Tensor<1,dim,real> temperature_gradient) const
-// {
-//     /* Gradient of the scaled nondimensionalized viscosity coefficient
-//      * Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.14 and 4.14.17)
-//      */
-//     const real temperature = this->compute_temperature(primitive_soln); // from Euler
-//     const real scaled_viscosity_coefficient = compute_scaled_viscosity_coefficient(primitive_soln);
+template <int dim, int nstate, typename real>
+dealii::Tensor<1,dim,real> NavierStokes<dim,nstate,real>
+::compute_scaled_viscosity_gradient (
+    const std::array<real,nstate> &primitive_soln,
+    const dealii::Tensor<1,dim,real> temperature_gradient) const
+{
+    /* Gradient of the scaled nondimensionalized viscosity coefficient
+     * Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.14 and 4.14.17)
+     */
+    const real temperature = this->compute_temperature(primitive_soln); // from Euler
+    const real scaled_viscosity_coefficient = compute_scaled_viscosity_coefficient(primitive_soln);
 
-//     // Eq.(4.14.17)
-//     real dmudT = 0.5*(scaled_viscosity_coefficient/(temperature + temperature_ratio))*(1.0 + 3.0*temperature_ratio/temperature);
+    // Eq.(4.14.17)
+    real dmudT = 0.5*(scaled_viscosity_coefficient/(temperature + temperature_ratio))*(1.0 + 3.0*temperature_ratio/temperature);
 
-//     // Gradient (dmudX) from dmudT and dTdX
-//     dealii::Tensor<1,dim,real> scaled_viscosity_coefficient_gradient;
-//     for (int d=0; d<dim; d++) {
-//         scaled_viscosity_coefficient_gradient[d] = dmudT*temperature_gradient[d];
-//     }
+    // Gradient (dmudX) from dmudT and dTdX
+    dealii::Tensor<1,dim,real> scaled_viscosity_coefficient_gradient;
+    for (int d=0; d<dim; d++) {
+        scaled_viscosity_coefficient_gradient[d] = dmudT*temperature_gradient[d];
+    }
 
-//     return scaled_viscosity_coefficient_gradient;
-// }
+    return scaled_viscosity_coefficient_gradient;
+}
 
 // Returns the value from a CoDiPack or Sacado variable.
 template<typename real>
@@ -570,22 +570,15 @@ void NavierStokes<dim,nstate,real>
 ::boundary_face_values (
    const int boundary_type,
    const dealii::Point<dim, real> &pos,
-   const dealii::Tensor<1,dim,real> &normal_int,
-   const std::array<real,nstate> &soln_int,
-   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+   const dealii::Tensor<1,dim,real> &/*normal_int*/,
+   const std::array<real,nstate> &/*soln_int*/,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
    std::array<real,nstate> &soln_bc,
    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
     if (boundary_type == 1000) {
-        // Manufactured solution boundary condition
-        
-        // ORIGINAL:
-        this->boundary_manufactured_solution (pos, normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
-        // for (int istate=0; istate<nstate; istate++) {
-        //     soln_grad_bc[istate] = this->manufactured_solution_function->gradient (pos, istate);
-        // }
-            
-        // ATTEMPT 1 -- same as the convection_diffusion.cpp -- no change
+        // Manufactured solution boundary condition 
+        // -- TO DO: could make this a function later on, similar to how its done in euler
         // Note: This is consistent with Navah & Nadarajah (2018)
         std::array<real,nstate> boundary_values;
         std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
@@ -595,60 +588,14 @@ void NavierStokes<dim,nstate,real>
         }
         for (int istate=0; istate<nstate; istate++) {
             soln_bc[istate] = boundary_values[istate];
-            // soln_grad_bc[istate] = soln_grad_int[istate]; // attempt 1 -- convection_diffusion.cpp
+            // soln_grad_bc[istate] = soln_grad_int[istate]; // done in convection_diffusion.cpp
             soln_grad_bc[istate] = boundary_gradients[istate];
         }
-
-        // ATTEMPT 2 -- outflow and inflow differences
-        // std::array<real,nstate> conservative_boundary_values;
-        // std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
-        // for (int s=0; s<nstate; s++) {
-        //     conservative_boundary_values[s] = this->manufactured_solution_function->value (pos, s);
-        //     boundary_gradients[s] = this->manufactured_solution_function->gradient (pos, s);
-        // }
-        // std::array<real,nstate> primitive_boundary_values = this->template convert_conservative_to_primitive<real>(conservative_boundary_values);
-        // for (int istate=0; istate<nstate; ++istate) {
-
-        //     std::array<real,nstate> characteristic_dot_n = this->convective_eigenvalues(conservative_boundary_values, normal_int);
-        //     const bool inflow = (characteristic_dot_n[istate] <= 0.);
-
-        //     if (inflow) { // Dirichlet boundary condition
-
-        //         soln_bc[istate] = conservative_boundary_values[istate];// Attempt 2.1,2.2
-        //         soln_grad_bc[istate] = soln_grad_int[istate];// Attempt 2.1,2.2
-        //         soln_grad_bc[istate] = boundary_gradients[istate];// Attempt 2.4
-
-        //         // Only set the pressure and velocity
-        //         // primitive_boundary_values[0] = soln_int[0];;
-        //         // for(int d=0;d<dim;d++){
-        //         //    primitive_boundary_values[1+d] = soln_int[1+d]/soln_int[0];;
-        //         //}
-        //         const std::array<real,nstate> modified_conservative_boundary_values = this->convert_primitive_to_conservative(primitive_boundary_values);
-        //         (void) modified_conservative_boundary_values;
-        //         //conservative_boundary_values[nstate-1] = soln_int[nstate-1];
-        //         // soln_bc[istate] = conservative_boundary_values[istate];
-
-        //     } else { // Neumann boundary condition
-        //         // soln_bc[istate] = -soln_int[istate]+2*conservative_boundary_values[istate];
-        //         soln_bc[istate] = soln_int[istate]; // Attempt 2.1
-        //         soln_bc[istate] = conservative_boundary_values[istate]; // Attempt 2.2,2.3,2.4
-
-        //         // **************************************************************************************************************
-        //         // Note I don't know how to properly impose the soln_grad_bc to obtain an adjoint consistent scheme
-        //         // Currently, Neumann boundary conditions are only imposed for the linear advection
-        //         // Therefore, soln_grad_bc does not affect the solution
-        //         // **************************************************************************************************************
-        //         // soln_grad_bc[istate] = soln_grad_int[istate]; // Attempt 2.1,2.2
-        //         soln_grad_bc[istate] = boundary_gradients[istate]; // Attempt 2.3
-        //         //soln_grad_bc[istate] = boundary_gradients[istate];
-        //         //soln_grad_bc[istate] = -soln_grad_int[istate]+2*boundary_gradients[istate];
-        //     }
-        // }
     }
-    else if (boundary_type == 1005) {
-        // Simple farfield boundary condition
-        this->boundary_farfield(soln_bc);
-    } 
+    // else if (boundary_type == 1005) {
+    //     // Simple farfield boundary condition
+    //     this->boundary_farfield(soln_bc);
+    // }
     else {
         std::cout << "Invalid boundary_type: " << boundary_type << std::endl;
         std::abort();
@@ -662,8 +609,8 @@ template class NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
 template class NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 
-// -- Templated member functions:
-template double     NavierStokes < PHILIP_DIM, PHILIP_DIM+2, double     >::compute_scaled_viscosity_coefficient< double     >(const std::array<double,    PHILIP_DIM+2> &primitive_soln) const;
+// Templated member functions:
+template double NavierStokes < PHILIP_DIM, PHILIP_DIM+2, double>::compute_scaled_viscosity_coefficient< double >(const std::array<double,PHILIP_DIM+2> &primitive_soln) const;
 
 } // Physics namespace
 } // PHiLiP namespace

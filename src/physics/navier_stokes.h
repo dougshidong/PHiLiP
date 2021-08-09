@@ -51,13 +51,13 @@ public:
      * * Reference: Sutherland, W. (1893), "The viscosity of gases and molecular force", Philosophical Magazine, S. 5, 36, pp. 507-531 (1893)
      * * Values: https://www.cfd-online.com/Wiki/Sutherland%27s_law
      */
-    template<typename real2>//=real>
+    template<typename real2>
     real2 compute_viscosity_coefficient (const std::array<real2,nstate> &primitive_soln) const;
 
     /** Scaled nondimensionalized viscosity coefficient, $\hat{\mu}^{*}$ 
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.14)
      */
-    template<typename real2>//=real>
+    template<typename real2>
     real2 compute_scaled_viscosity_coefficient (const std::array<real2,nstate> &primitive_soln) const;
 
     /** Scaled nondimensionalized heat conductivity, $\hat{\kappa}^{*}$ 
@@ -69,13 +69,13 @@ public:
     /** Nondimensionalized heat flux, $\bm{q}^{*}$ 
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.13)
      */
-    template<typename real2>//=real>
+    template<typename real2>
     dealii::Tensor<1,dim,real2> compute_heat_flux (
     	const std::array<real2,nstate> &primitive_soln,
     	const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
 
     /** Extract gradient of velocities */
-    template<typename real2>//=real>
+    template<typename real2>
     std::array<dealii::Tensor<1,dim,real2>,dim> 
     extract_velocities_gradient_from_primitive_solution_gradient (
     	const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
@@ -83,7 +83,7 @@ public:
     /** Nondimensionalized viscous stress tensor, $\bm{\tau}^{*}$ 
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.12)
      */
-    template<typename real2>//=real>
+    template<typename real2>
     std::array<dealii::Tensor<1,dim,real2>,dim> 
     compute_viscous_stress_tensor (
     const std::array<real2,nstate> &primitive_soln,
@@ -100,9 +100,9 @@ public:
 	/** Gradient of the scaled nondimensionalized viscosity coefficient
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.14 and 4.14.17)
      */
-	// dealii::Tensor<1,dim,real> compute_scaled_viscosity_gradient (
- //    	const std::array<real,nstate> &primitive_soln,
- //    	const dealii::Tensor<1,dim,real> temperature_gradient) const;
+	dealii::Tensor<1,dim,real> compute_scaled_viscosity_gradient (
+    	const std::array<real,nstate> &primitive_soln,
+    	const dealii::Tensor<1,dim,real> temperature_gradient) const;
 
 	/** Dissipative flux Jacobian 
 	 *  Note: Only used for computing the manufactured solution source term;
@@ -133,22 +133,25 @@ public:
         const std::array<real,nstate> &conservative_soln) const override;
 
     /// Convective flux Jacobian computed via dfad (automatic differentiation)
-    /// -- same procedure as for the dissipative flux jacobian
+    /// -- Only used for verifying the dfad procedure used in dissipative flux jacobian
     dealii::Tensor<2,nstate,real> convective_flux_directional_jacobian_via_dfad (
         std::array<real,nstate> &conservative_soln,
         const dealii::Tensor<1,dim,real> &normal) const;
 
+    /// Scaled viscosity coefficient derivative wrt temperature via dfad (automatic differentiation)
+    /// -- Only used for verifying the basic dfad procedure that is extended in convective_flux_directional_jacobian_via_dfad()
     real compute_scaled_viscosity_coefficient_derivative_wrt_temperature_via_dfad (
         std::array<real,nstate> &conservative_soln) const;
 
+    /// Boundary face values
     void boundary_face_values (
-       const int boundary_type,
-       const dealii::Point<dim, real> &pos,
-       const dealii::Tensor<1,dim,real> &normal_int,
-       const std::array<real,nstate> &soln_int,
-       const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
-       std::array<real,nstate> &soln_bc,
-       std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const override; 
+        const int boundary_type,
+        const dealii::Point<dim, real> &pos,
+        const dealii::Tensor<1,dim,real> &normal,
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const override;
 
 protected:
     /** Constants for Sutherland's law for viscosity

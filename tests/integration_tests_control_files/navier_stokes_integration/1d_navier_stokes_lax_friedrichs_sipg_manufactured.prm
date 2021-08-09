@@ -3,15 +3,14 @@
 # Number of dimensions
 set dimension = 1
 
-set pde_type  = navier_stokes
+set pde_type = navier_stokes
 
-#set conv_num_flux  = l2roe
+set conv_num_flux = roe
+set diss_num_flux = symm_internal_penalty
 
-#set diss_num_flux = bassi_rebay_2
-
-#subsection navier_stokes
-#  set reynolds_number_inf                 = 1.0
-#end
+subsection navier_stokes
+  set reynolds_number_inf                 = 1000
+end
 
 subsection ODE solver
 
@@ -51,7 +50,7 @@ subsection manufactured solution convergence study
   set initial_grid_size = 10
 
   # Number of grids in grid study
-  set number_of_grids   = 4
+  set number_of_grids   = 6
 
   set slope_deficit_tolerance = 0.2
 end

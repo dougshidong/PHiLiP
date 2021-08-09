@@ -98,6 +98,9 @@ void ManufacturedConvergenceStudyParam ::parse_parameters (dealii::ParameterHand
         grid_progression_add        = prm.get_integer("grid_progression_add");
 
         slope_deficit_tolerance     = prm.get_double("slope_deficit_tolerance");
+
+        output_convergence_tables   = prm.get_bool("output_convergence_tables");
+        add_statewise_solution_error_to_convergence_tables = prm.get_bool("add_statewise_solution_error_to_convergence_tables");
     }
     prm.leave_subsection();
 }

@@ -3,13 +3,14 @@
 # Number of dimensions
 set dimension = 2
 
-set pde_type  = euler
+set pde_type  = navier_stokes
 
 set conv_num_flux  = lax_friedrichs
+set diss_num_flux = symm_internal_penalty
 
-set use_weak_form = true
-
-set use_collocated_nodes = false
+subsection navier_stokes
+  set reynolds_number_inf                 = 1000.0
+end
 
 subsection ODE solver
   # Maximum nonlinear solver iterations
@@ -39,7 +40,7 @@ end
 
 subsection manufactured solution convergence study
   set use_manufactured_source_term = true
-  set manufactured_solution_type = navah_solution_2
+  set manufactured_solution_type = navah_solution_1
 
   # Last degree used for convergence study
   set degree_end        = 3
@@ -64,5 +65,8 @@ subsection manufactured solution convergence study
 
   # Output convergence tables
   set output_convergence_tables = true
+
+  # Add the solution L2 error for each state to the convergence table
+  set add_statewise_solution_error_to_convergence_tables = true
 end
 

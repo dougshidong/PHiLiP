@@ -293,10 +293,10 @@ public:
         const dealii::Tensor<1,dim>                  &normals,
         const dealii::Point<dim>                  &evaluation_points) const;
     
-    /// For post processing purposes (update comment later)
+    /// For post processing purposes, sets the base names (with no prefix or suffix) of the computed quantities
     virtual std::vector<std::string> post_get_names () const;
     
-    /// For post processing purposes (update comment later)
+    /// For post processing purposes, sets the interpretation of each computed quantity as either scalar or vector
     virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const;
     
     /// For post processing purposes (update comment later)

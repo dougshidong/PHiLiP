@@ -62,8 +62,11 @@ public:
     /// Tolerance within which the convergence orders are considered to be optimal.
     double slope_deficit_tolerance;
 
-    /// Output the convergence tables (for each p) as txt files
+    /// Output the convergence tables (for each p) as txt files; currently only works for tests using grid_study.cpp
     bool output_convergence_tables;
+
+    /// Adds the statewise solution L2 error to the convergence tables; currently only works for tests using grid_study.cpp
+    bool add_statewise_solution_error_to_convergence_tables;
 
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);

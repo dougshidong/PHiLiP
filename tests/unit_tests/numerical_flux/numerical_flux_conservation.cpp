@@ -272,7 +272,7 @@ int main (int argc, char * argv[])
 
         if(*pde==PDEType::navier_stokes){
             // We want a non-zero viscous (dissipative) flux for testing Navier-Stokes
-            all_parameters.navier_stokes_param.reynolds_number_inf = 1.0; // default is 10000000.0
+            all_parameters.navier_stokes_param.reynolds_number_inf = 1.0; // default is 10000000.0 (i.e. inviscid Navier-Stokes)
         }
         
         for (auto conv = conv_type.begin(); conv != conv_type.end() && success == 0; conv++) {

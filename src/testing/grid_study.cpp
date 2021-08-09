@@ -354,6 +354,13 @@ int GridStudy<dim,nstate>
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;
 
+            // l2error for each state
+            std::array<double,nstate> cell_l2error_state;
+            std::array<double,nstate> l2error_state;
+            for (int istate=0; istate<nstate; ++istate) {
+                l2error_state[istate] = 0.0;
+            }
+
             double l2error = 0;
 
             // Integrate solution error and output error
@@ -361,8 +368,6 @@ int GridStudy<dim,nstate>
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
             estimated_error_per_cell.reinit(grid->n_active_cells());
             estimated_error_per_cell_double.reinit(grid->n_active_cells());
-            std::cout << "\n - - - - - - - - - - - - - - - - - - - - - - - - - - - - " << std::endl;
-            std::cout << "[cell index] \t cell_l2error" << std::endl;
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
 
                 if (!cell->is_locally_owned()) continue;
@@ -371,6 +376,11 @@ int GridStudy<dim,nstate>
                 cell->get_dof_indices (dofs_indices);
 
                 double cell_l2error = 0;
+
+                for (int istate=0; istate<nstate; ++istate) {
+                    cell_l2error_state[istate] = 0.0;
+                }
+
                 for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
                     std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
@@ -386,28 +396,26 @@ int GridStudy<dim,nstate>
                         //l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
 
                         cell_l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
+
+                        cell_l2error_state[istate] += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad); // TESTING
                     }
                 }
                 estimated_error_per_cell[cell->active_cell_index()] = cell_l2error;
                 estimated_error_per_cell_double[cell->active_cell_index()] = cell_l2error;
                 l2error += cell_l2error;
 
-                // START TESTING
-                std::cout << "[" << cell->active_cell_index() << "] \t " << std::sqrt(cell_l2error) << std::endl;
-                // END TESTING
-
+                for (int istate=0; istate<nstate; ++istate) {
+                    l2error_state[istate] += cell_l2error_state[istate];
+                }
             }
-            std::cout << "- - - - - - - - - - - - - - - - - - - - - - - - - - - -" << std::endl;
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
 
-            double solution_integral = integrate_solution_over_domain(*dg);
+            std::array<double,nstate> l2error_mpi_sum_state;
+            for (int istate=0; istate<nstate; ++istate) {
+                l2error_mpi_sum_state[istate] = std::sqrt(dealii::Utilities::MPI::sum(l2error_state[istate], mpi_communicator));
+            }
 
-            std::cout << "CONVERGENCE DETAILS:" << std::endl;
-            std::cout << "p\t cells\t DoFs\t dx\t residual\t soln_L2_error\t output_error" << std::endl;
-            std::cout << poly_degree << "\t" << n_global_active_cells << "\t" << n_dofs << "\t" << 1.0/pow(n_dofs,(1.0/dim))
-             << "\t" << dg->get_residual_l2norm () << "\t" << l2error_mpi_sum << "\t" << std::abs(solution_integral - exact_solution_integral)
-             << std::endl;
-             std::cout << "- - - - - - - - - - - - - - - - - - - - - - - - - - - - \n" << std::endl;
+            double solution_integral = integrate_solution_over_domain(*dg);
 
             /*
             dg->output_results_vtk(igrid);
@@ -424,11 +432,12 @@ int GridStudy<dim,nstate>
             // dg->output_results_vtk(igrid);
             */
 
-            // START -- TESTING
+            /*
+            // // Use gr->output_results_vtk(), which includes L2error per cell, instead of dg->output_results_vtk()
             //std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  gr 
             //    = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);
             //if(poly_degree == 1) gr->output_results_vtk(igrid);
-            // END -- TESTING
+            */
 
             // Convergence table
             const double dx = 1.0/pow(n_dofs,(1.0/dim));
@@ -444,6 +453,14 @@ int GridStudy<dim,nstate>
             convergence_table.add_value("soln_L2_error", l2error_mpi_sum);
             convergence_table.add_value("output_error", output_error[igrid]);
 
+            // add l2error for each state to the convergence table
+            if (manu_grid_conv_param.add_statewise_solution_error_to_convergence_tables) {
+                std::array<std::string,nstate> soln_L2_error_state_str;
+                for (int istate=0; istate<nstate; ++istate) {
+                    soln_L2_error_state_str[istate] = std::string("soln_L2_error_state") + std::string("_") + std::to_string(istate);
+                    convergence_table.add_value(soln_L2_error_state_str[istate], l2error_mpi_sum_state[istate]);
+                }
+            }
 
             pcout << " Grid size h: " << dx 
                  << " L2-soln_error: " << l2error_mpi_sum
@@ -488,6 +505,14 @@ int GridStudy<dim,nstate>
         convergence_table.set_scientific("residual", true);
         convergence_table.set_scientific("soln_L2_error", true);
         convergence_table.set_scientific("output_error", true);
+        if (manu_grid_conv_param.add_statewise_solution_error_to_convergence_tables) {
+            std::string test_str;
+            for (int istate=0; istate<nstate; ++istate) {
+                test_str = std::string("soln_L2_error_state") + std::string("_") + std::to_string(istate);
+                convergence_table.set_scientific(test_str,true);
+            }
+        }
+
         if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
 
         // Write the convergence table to a file // add these to the parameter files as member functions /// look into creating a dictionary/map for this so were not double hard coding it
@@ -507,15 +532,14 @@ int GridStudy<dim,nstate>
             using CNF_enum = Parameters::AllParameters::ConvectiveNumericalFlux;
             std::string conv_num_flux_string;
             CNF_enum CNF_type = param.conv_num_flux_type;
-            if (param.conv_num_flux_type == param.ConvectiveNumericalFlux::lax_friedrichs) {conv_num_flux_string = "lax_friedrichs";}
-            if (param.conv_num_flux_type == param.ConvectiveNumericalFlux::split_form)     {conv_num_flux_string = "split_form";}
-            if (param.conv_num_flux_type == param.ConvectiveNumericalFlux::roe)            {conv_num_flux_string = "roe";}
+            if (CNF_type == CNF_enum::lax_friedrichs) {conv_num_flux_string = "lax_friedrichs";}
+            if (CNF_type == CNF_enum::split_form)     {conv_num_flux_string = "split_form";}
+            if (CNF_type == CNF_enum::roe)            {conv_num_flux_string = "roe";}
             if (CNF_type == CNF_enum::l2roe)          {conv_num_flux_string = "l2roe";}
 
-            using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType; // ::ManufacturedConvergenceStudyParam
+            using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
             std::string manufactured_solution_string;
             ManufacturedSolutionEnum MS_type = manu_grid_conv_param.manufactured_solution_param.manufactured_solution_type;
-            // clean up this section
             if (MS_type == ManufacturedSolutionEnum::sine_solution)           {manufactured_solution_string = "sine_solution";}
             if (MS_type == ManufacturedSolutionEnum::cosine_solution)         {manufactured_solution_string = "cosine_solution";}
             if (MS_type == ManufacturedSolutionEnum::additive_solution)       {manufactured_solution_string = "additive_solution";}

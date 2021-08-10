@@ -3,13 +3,12 @@ set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 # =======================================
 # Default manufactured solution
 # =======================================
-# - Currenty failing: Roe+BR2, L2Roe+SIP
 # ----------------------------------------
 # - dim = 1; conv_num_flux = LxF; diss_num_flux = SIP (default)
 # ----------------------------------------
 configure_file(1d_navier_stokes_lax_friedrichs_sipg_manufactured.prm 1d_navier_stokes_lax_friedrichs_sipg_manufactured.prm COPYONLY)
 add_test(
-  NAME 1D_NAVIER_STOKES_LAXFRIEDRICHS_SIPG_MANUFACTURED_SOLUTION_LONG
+  NAME 1D_NAVIER_STOKES_LAXFRIEDRICHS_SIPG_MANUFACTURED_SOLUTION
   COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_navier_stokes_lax_friedrichs_sipg_manufactured.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
@@ -18,7 +17,7 @@ add_test(
 # ----------------------------------------
 configure_file(1d_navier_stokes_roe_sipg_manufactured.prm 1d_navier_stokes_roe_sipg_manufactured.prm COPYONLY)
 add_test(
-  NAME 1D_NAVIER_STOKES_ROE_SIPG_MANUFACTURED_SOLUTION_LONG
+  NAME 1D_NAVIER_STOKES_ROE_SIPG_MANUFACTURED_SOLUTION
   COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_navier_stokes_roe_sipg_manufactured.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
@@ -27,7 +26,7 @@ add_test(
 # ----------------------------------------
 configure_file(1d_navier_stokes_l2roe_sipg_manufactured.prm 1d_navier_stokes_l2roe_sipg_manufactured.prm COPYONLY)
 add_test(
-  NAME 1D_NAVIER_STOKES_L2ROE_SIPG_MANUFACTURED_SOLUTION_LONG
+  NAME 1D_NAVIER_STOKES_L2ROE_SIPG_MANUFACTURED_SOLUTION
   COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_navier_stokes_l2roe_sipg_manufactured.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
@@ -36,7 +35,7 @@ add_test(
 # ----------------------------------------
 configure_file(1d_navier_stokes_roe_br2_manufactured.prm 1d_navier_stokes_roe_br2_manufactured.prm COPYONLY)
 add_test(
-  NAME 1D_NAVIER_STOKES_ROE_BR2_MANUFACTURED_SOLUTION_LONG
+  NAME 1D_NAVIER_STOKES_ROE_BR2_MANUFACTURED_SOLUTION
   COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_navier_stokes_roe_br2_manufactured.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
@@ -109,7 +108,7 @@ add_test(
 # =======================================
 # Navah's MS-3
 # =======================================
-# - Currenty failing: L2Roe+SIP
+# - Currenty failing: LxF+SIP, L2Roe+SIP
 # ----------------------------------------
 # - conv_num_flux = LxF; diss_num_flux = SIP (default)
 # ----------------------------------------

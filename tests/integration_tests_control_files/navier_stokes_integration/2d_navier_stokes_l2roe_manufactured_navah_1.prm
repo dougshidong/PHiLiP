@@ -46,7 +46,7 @@ subsection manufactured solution convergence study
   set degree_end        = 3
 
   # Starting degree for convergence study
-  set degree_start      = 3
+  set degree_start      = 0
 
   set grid_progression  = 1.0
 

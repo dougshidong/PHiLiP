@@ -49,7 +49,7 @@ add_test(
 # ----------------------------------------
 configure_file(2d_navier_stokes_laxfriedrichs_manufactured_navah_1.prm 2d_navier_stokes_laxfriedrichs_manufactured_navah_1.prm COPYONLY)
 add_test(
-  NAME MPI_2D_NAVIER_STOKES_LAXFRIEDRICHS_MANUFACTURED_SOLUTION_NAVAH_1_MEDIUM
+  NAME MPI_2D_NAVIER_STOKES_LAXFRIEDRICHS_MANUFACTURED_SOLUTION_NAVAH_1
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_navier_stokes_laxfriedrichs_manufactured_navah_1.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
@@ -58,7 +58,7 @@ add_test(
 # ----------------------------------------
 configure_file(2d_navier_stokes_roe_manufactured_navah_1.prm 2d_navier_stokes_roe_manufactured_navah_1.prm COPYONLY)
 add_test(
-  NAME MPI_2D_NAVIER_STOKES_ROE_MANUFACTURED_SOLUTION_NAVAH_1_MEDIUM
+  NAME MPI_2D_NAVIER_STOKES_ROE_MANUFACTURED_SOLUTION_NAVAH_1
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_navier_stokes_roe_manufactured_navah_1.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
@@ -67,7 +67,7 @@ add_test(
 # ----------------------------------------
 configure_file(2d_navier_stokes_l2roe_manufactured_navah_1.prm 2d_navier_stokes_l2roe_manufactured_navah_1.prm COPYONLY)
 add_test(
-  NAME MPI_2D_NAVIER_STOKES_L2ROE_MANUFACTURED_SOLUTION_NAVAH_1_MEDIUM
+  NAME MPI_2D_NAVIER_STOKES_L2ROE_MANUFACTURED_SOLUTION_NAVAH_1
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_navier_stokes_l2roe_manufactured_navah_1.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
@@ -81,7 +81,7 @@ add_test(
 # ----------------------------------------
 configure_file(2d_navier_stokes_laxfriedrichs_manufactured_navah_2.prm 2d_navier_stokes_laxfriedrichs_manufactured_navah_2.prm COPYONLY)
 add_test(
-  NAME MPI_2D_NAVIER_STOKES_LAXFRIEDRICHS_MANUFACTURED_SOLUTION_NAVAH_2_MEDIUM
+  NAME MPI_2D_NAVIER_STOKES_LAXFRIEDRICHS_MANUFACTURED_SOLUTION_NAVAH_2
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_navier_stokes_laxfriedrichs_manufactured_navah_2.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
@@ -90,7 +90,7 @@ add_test(
 # ----------------------------------------
 configure_file(2d_navier_stokes_roe_manufactured_navah_2.prm 2d_navier_stokes_roe_manufactured_navah_2.prm COPYONLY)
 add_test(
-  NAME MPI_2D_NAVIER_STOKES_ROE_MANUFACTURED_SOLUTION_NAVAH_2_MEDIUM
+  NAME MPI_2D_NAVIER_STOKES_ROE_MANUFACTURED_SOLUTION_NAVAH_2
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_navier_stokes_roe_manufactured_navah_2.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
@@ -99,7 +99,7 @@ add_test(
 # ----------------------------------------
 configure_file(2d_navier_stokes_l2roe_manufactured_navah_2.prm 2d_navier_stokes_l2roe_manufactured_navah_2.prm COPYONLY)
 add_test(
-  NAME MPI_2D_NAVIER_STOKES_L2ROE_MANUFACTURED_SOLUTION_NAVAH_2_MEDIUM
+  NAME MPI_2D_NAVIER_STOKES_L2ROE_MANUFACTURED_SOLUTION_NAVAH_2
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_navier_stokes_l2roe_manufactured_navah_2.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
@@ -114,7 +114,7 @@ add_test(
 # ----------------------------------------
 configure_file(2d_navier_stokes_laxfriedrichs_manufactured_navah_3.prm 2d_navier_stokes_laxfriedrichs_manufactured_navah_3.prm COPYONLY)
 add_test(
-  NAME MPI_2D_NAVIER_STOKES_LAXFRIEDRICHS_MANUFACTURED_SOLUTION_NAVAH_3_MEDIUM
+  NAME MPI_2D_NAVIER_STOKES_LAXFRIEDRICHS_MANUFACTURED_SOLUTION_NAVAH_3
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_navier_stokes_laxfriedrichs_manufactured_navah_3.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
@@ -123,7 +123,7 @@ add_test(
 # ----------------------------------------
 configure_file(2d_navier_stokes_roe_manufactured_navah_3.prm 2d_navier_stokes_roe_manufactured_navah_3.prm COPYONLY)
 add_test(
-  NAME MPI_2D_NAVIER_STOKES_ROE_MANUFACTURED_SOLUTION_NAVAH_3_MEDIUM
+  NAME MPI_2D_NAVIER_STOKES_ROE_MANUFACTURED_SOLUTION_NAVAH_3
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_navier_stokes_roe_manufactured_navah_3.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
@@ -132,7 +132,7 @@ add_test(
 # ----------------------------------------
 configure_file(2d_navier_stokes_l2roe_manufactured_navah_3.prm 2d_navier_stokes_l2roe_manufactured_navah_3.prm COPYONLY)
 add_test(
-  NAME MPI_2D_NAVIER_STOKES_L2ROE_MANUFACTURED_SOLUTION_NAVAH_3_MEDIUM
+  NAME MPI_2D_NAVIER_STOKES_L2ROE_MANUFACTURED_SOLUTION_NAVAH_3
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_navier_stokes_l2roe_manufactured_navah_3.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )

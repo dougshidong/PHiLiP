@@ -36,7 +36,7 @@ end
 subsection manufactured solution convergence study
   set use_manufactured_source_term = true
   # Last degree used for convergence study
-  set degree_end        = 3
+  set degree_end        = 2
 
   # Starting degree for convergence study
   set degree_start      = 0
@@ -50,7 +50,10 @@ subsection manufactured solution convergence study
   set initial_grid_size = 10
 
   # Number of grids in grid study
-  set number_of_grids   = 6
+  set number_of_grids   = 8
 
   set slope_deficit_tolerance = 0.2
+
+  # Output convergence tables
+  set output_convergence_tables = true
 end

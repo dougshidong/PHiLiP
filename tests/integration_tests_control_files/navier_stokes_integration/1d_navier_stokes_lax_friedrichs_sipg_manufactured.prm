@@ -5,7 +5,7 @@ set dimension = 1
 
 set pde_type = navier_stokes
 
-set conv_num_flux = roe
+set conv_num_flux = lax_friedrichs
 set diss_num_flux = symm_internal_penalty
 
 subsection navier_stokes
@@ -50,7 +50,10 @@ subsection manufactured solution convergence study
   set initial_grid_size = 10
 
   # Number of grids in grid study
-  set number_of_grids   = 6
+  set number_of_grids   = 5
 
   set slope_deficit_tolerance = 0.2
+
+  # Output convergence tables
+  set output_convergence_tables = true
 end

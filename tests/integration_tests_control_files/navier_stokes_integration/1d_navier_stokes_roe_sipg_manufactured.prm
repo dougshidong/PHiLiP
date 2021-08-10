@@ -53,4 +53,7 @@ subsection manufactured solution convergence study
   set number_of_grids   = 6
 
   set slope_deficit_tolerance = 0.2
+
+  # Output convergence tables
+  set output_convergence_tables = true
 end

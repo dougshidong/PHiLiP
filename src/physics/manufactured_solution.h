@@ -150,13 +150,14 @@ protected:
     using dealii::Function<dim,real>::hessian;
 
 public:
+    /// Constructor
     ManufacturedSolutionSine(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate){}
-
+    /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Gradient
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Hessian
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
@@ -175,13 +176,14 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::hessian;
 public:
+    /// Constructor
     ManufacturedSolutionCosine(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate){}
-
+    /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Gradient
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Hessian
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
@@ -200,13 +202,14 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::hessian;
 public:
+    /// Constructor
     ManufacturedSolutionAdd(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate){}
-
+    /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Gradient
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Hessian
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
@@ -225,13 +228,14 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::hessian;
 public:
+    /// Constructor
     ManufacturedSolutionExp(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate){}
-
+    /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Gradient
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Hessian
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
@@ -250,13 +254,14 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::hessian;
 public:
+    /// Constructor
     ManufacturedSolutionPoly(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate){}
-
+    /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Gradient
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Hessian
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
@@ -275,13 +280,14 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::hessian;
 public:
+    /// Constructor
     ManufacturedSolutionEvenPoly(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate){}
-
+    /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Gradient
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Hessian
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
@@ -300,6 +306,7 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::hessian;
 public:
+    /// Constructor
     ManufacturedSolutionAtan(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate)
     {
@@ -326,11 +333,11 @@ public:
             // x_j[i][1] = 1/sqrt(2);
         }
     }
-
+    /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Gradient
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Hessian
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 
 private:
@@ -354,6 +361,7 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::hessian;
 public:
+    /// Constructor
     ManufacturedSolutionBoundaryLayer(const unsigned int nstate = 1)
         : ManufacturedSolutionFunction<dim,real>(nstate)
         , epsilon(nstate)
@@ -365,11 +373,11 @@ public:
             }
         }
     }
-
+    /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Gradient
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Hessian
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 
 private:
@@ -392,6 +400,7 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::hessian;
 public:
+    /// Constructor
     ManufacturedSolutionSShock(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate)
     {
@@ -417,17 +426,18 @@ public:
         e = -12.0*scale_atan;
         f =   6.0*scale_atan;
     }
-
+    /// Value
     real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Gradient
     dealii::Tensor<1,dim,real> gradient(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Hessian
     dealii::SymmetricTensor<2,dim,real> hessian(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 
 private:
+    ///@{
     /// equation constants
     real a, b, c, d, e, f; 
-
+    //@}
 };
 
 /// Quadratic function manufactured solution
@@ -445,6 +455,7 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::hessian;
 public:
+    /// Constructor
     ManufacturedSolutionQuadratic(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate)
     {
@@ -454,11 +465,11 @@ public:
             alpha_diag[d] = (d+1)*(d+1);
         }
     }
-
+    /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Gradient
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Hessian
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 
 private:
@@ -481,27 +492,31 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::hessian;
 public:
+    /// Constructor
     ManufacturedSolutionNavahBase(const unsigned int nstate = 4)
         :   ManufacturedSolutionFunction<dim,real>(nstate)
     {
         // static_assert(dim==2, "ManufacturedSolutionNavahBase() should be created with dim=2");
         // static_assert(nstate==dim+2, "ManufacturedSolutionNavahBase() should be created with nstate=dim+2");
         
-        const double pi = atan(1)*4.0;
-        real L = 1.0;  /// reference length
-        c = pi/L; /// constant
+        const double pi = atan(1)*4.0;///< pi constant
+        real L = 1.0;  ///< reference length
+        c = pi/L; ///< constant
     }
-
+    /// Value of conservative variables
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Gradient of conservative variables
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Hessian of conservative variables
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 protected:
     std::array<dealii::Tensor<1,7,double>,5> ncm; ///< Navah Coefficient Matrix (ncm); placeholder
     real c; ///< Constant, pi/L
+    /// Value of primitive variables
     real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+    /// Gradient of primitive variables
     dealii::Tensor<1,dim,real> primitive_gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+    /// Hessian of primitive variables
     dealii::SymmetricTensor<2,dim,real> primitive_hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 };
 
@@ -511,12 +526,14 @@ class ManufacturedSolutionNavah_MS1
     : public ManufacturedSolutionNavahBase<dim, real>
 {
 public:
+    /** Constructor for MS-1
+     *  Sets the Navah Coefficient Matrix for the specified navah_solution.
+     *  Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
+     *  Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
+     */
     ManufacturedSolutionNavah_MS1(const unsigned int nstate = 4)
         :   ManufacturedSolutionNavahBase<dim,real>(nstate)
     {
-        /// Sets the Navah Coefficient Matrix for the specified navah_solution. 
-        /// Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
-        /// Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
         std::array<dealii::Tensor<1,7,double>,5> ncm; ///< Navah Coefficient Matrix (ncm)
         /* MS-1 */
         ncm[0][0]= 1.0; ncm[0][1]=0.3; ncm[0][2]=-0.2; ncm[0][3]=0.3; ncm[0][4]=1.0; ncm[0][5]=1.0; ncm[0][6]=1.0;
@@ -536,12 +553,14 @@ class ManufacturedSolutionNavah_MS2
     : public ManufacturedSolutionNavahBase<dim, real>
 {
 public:
+    /** Constructor for MS-2
+     *  Sets the Navah Coefficient Matrix for the specified navah_solution.
+     *  Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
+     *  Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
+     */
     ManufacturedSolutionNavah_MS2(const unsigned int nstate = 4)
         :   ManufacturedSolutionNavahBase<dim,real>(nstate)
     {
-        /// Sets the Navah Coefficient Matrix for the specified navah_solution. 
-        /// Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
-        /// Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
         std::array<dealii::Tensor<1,7,double>,5> ncm; ///< Navah Coefficient Matrix (ncm)
         /* MS-2 */
         ncm[0][0]=2.7; ncm[0][1]=0.9; ncm[0][2]=-0.9; ncm[0][3]=1.0; ncm[0][4]=1.5; ncm[0][5]=1.5; ncm[0][6]=1.5;
@@ -561,12 +580,14 @@ class ManufacturedSolutionNavah_MS3
     : public ManufacturedSolutionNavahBase<dim, real>
 {
 public:
+    /** Constructor for MS-3
+     *  Sets the Navah Coefficient Matrix for the specified navah_solution.
+     *  Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
+     *  Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
+     */
     ManufacturedSolutionNavah_MS3(const unsigned int nstate = 4)
         :   ManufacturedSolutionNavahBase<dim,real>(nstate)
     {
-        /// Sets the Navah Coefficient Matrix for the specified navah_solution. 
-        /// Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
-        /// Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
         std::array<dealii::Tensor<1,7,double>,5> ncm; ///< Navah Coefficient Matrix (ncm)
         /* MS-3 */
         ncm[0][0]= 1.0; ncm[0][1]=0.1; ncm[0][2]=-0.2; ncm[0][3]=0.1; ncm[0][4]=1.0; ncm[0][5]=1.0; ncm[0][6]=1.0;
@@ -586,12 +607,14 @@ class ManufacturedSolutionNavah_MS4
     : public ManufacturedSolutionNavahBase<dim, real>
 {
 public:
+    /** Constructor for MS-4
+     *  Sets the Navah Coefficient Matrix for the specified navah_solution.
+     *  Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
+     *  Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
+     */
     ManufacturedSolutionNavah_MS4(const unsigned int nstate = 4)
         :   ManufacturedSolutionNavahBase<dim,real>(nstate)
     {
-        /// Sets the Navah Coefficient Matrix for the specified navah_solution. 
-        /// Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
-        /// Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
         std::array<dealii::Tensor<1,7,double>,5> ncm; ///< Navah Coefficient Matrix (ncm)
         /* MS-4 */
         ncm[0][0]= 1.0; ncm[0][1]=  0.1; ncm[0][2]= -0.2; ncm[0][3]= 0.1; ncm[0][4]=1.0; ncm[0][5]=1.0; ncm[0][6]=1.0;
@@ -609,12 +632,14 @@ class ManufacturedSolutionNavah_MS5
     : public ManufacturedSolutionNavahBase<dim, real>
 {
 public:
+    /** Constructor for MS-5
+     *  Sets the Navah Coefficient Matrix for the specified navah_solution.
+     *  Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
+     *  Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
+     */
     ManufacturedSolutionNavah_MS5(const unsigned int nstate = 4)
         :   ManufacturedSolutionNavahBase<dim,real>(nstate)
     {
-        /// Sets the Navah Coefficient Matrix for the specified navah_solution. 
-        /// Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
-        /// Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
         std::array<dealii::Tensor<1,7,double>,5> ncm; ///< Navah Coefficient Matrix (ncm)
         /* MS-5 */
         ncm[0][0]= 1.0; ncm[0][1]= 0.1; ncm[0][2]=-0.2; ncm[0][3]=0.1; ncm[0][4]=1.0; ncm[0][5]=1.0; ncm[0][6]=1.0;
@@ -641,6 +666,7 @@ public:
 template <int dim, typename real>
 class ManufacturedSolutionFactory
 {
+    /// Enumeration of all manufactured solution types defined in the Parameters class
     using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
 public:
     /// Construct Manufactured solution object from global parameter file

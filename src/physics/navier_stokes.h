@@ -6,8 +6,7 @@
 namespace PHiLiP {
 namespace Physics {
 
-// using Euler::convert_conservative_to_primitive;
-
+/// Navier-Stokes equations. Derived from Euler for the convective terms, which is derived from PhysicsBase. 
 template <int dim, int nstate, typename real>
 class NavierStokes : public Euler <dim, nstate, real>
 {
@@ -44,7 +43,7 @@ public:
     	const std::array<real2,nstate> &primitive_soln,
     	const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
 
-    /** Nondimensionalized viscosity coefficient, $\mu^{*}$ 
+    /** Nondimensionalized viscosity coefficient, mu*
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.16)
      * 
      *  Based on Sutherland's law for viscosity
@@ -54,19 +53,19 @@ public:
     template<typename real2>
     real2 compute_viscosity_coefficient (const std::array<real2,nstate> &primitive_soln) const;
 
-    /** Scaled nondimensionalized viscosity coefficient, $\hat{\mu}^{*}$ 
+    /** Scaled nondimensionalized viscosity coefficient, hat{mu*} 
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.14)
      */
     template<typename real2>
     real2 compute_scaled_viscosity_coefficient (const std::array<real2,nstate> &primitive_soln) const;
 
-    /** Scaled nondimensionalized heat conductivity, $\hat{\kappa}^{*}$ 
+    /** Scaled nondimensionalized heat conductivity, hat{kappa*}
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.13)
      */
-    template<typename real2>//=real>
+    template<typename real2>
     real2 compute_scaled_heat_conductivity (const std::array<real2,nstate> &primitive_soln) const;
 
-    /** Nondimensionalized heat flux, $\bm{q}^{*}$ 
+    /** Nondimensionalized heat flux, q*
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.13)
      */
     template<typename real2>
@@ -80,7 +79,7 @@ public:
     extract_velocities_gradient_from_primitive_solution_gradient (
     	const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
 
-    /** Nondimensionalized viscous stress tensor, $\bm{\tau}^{*}$ 
+    /** Nondimensionalized viscous stress tensor, tau*
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.12)
      */
     template<typename real2>
@@ -153,14 +152,16 @@ public:
         std::array<real,nstate> &soln_bc,
         std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const override;
 
-protected:
+protected:    
+    ///@{
     /** Constants for Sutherland's law for viscosity
      *  Reference: Sutherland, W. (1893), "The viscosity of gases and molecular force", Philosophical Magazine, S. 5, 36, pp. 507-531 (1893)
      *  Values: https://www.cfd-online.com/Wiki/Sutherland%27s_law
      */
-    const double free_stream_temperature = 273.15; // Free stream temperature. Units: [K]
-    const double sutherlands_temperature = 110.4; // Sutherland's temperature. Units: [K]
+    const double free_stream_temperature = 273.15; ///< Free stream temperature. Units: [K]
+    const double sutherlands_temperature = 110.4; ///< Sutherland's temperature. Units: [K]
     const double temperature_ratio = sutherlands_temperature/free_stream_temperature;
+    //@}
 
     /** Nondimensionalized viscous flux (i.e. dissipative flux)
      *  Reference: Masatsuka 2018 "I do like CFD", p.142, eq.(4.12.1-4.12.4)

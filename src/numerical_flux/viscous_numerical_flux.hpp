@@ -12,6 +12,7 @@ template<int dim, int nstate, typename real>
 class NumericalFluxDissipative
 {
 public:
+/// Constructor
 NumericalFluxDissipative(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input)
 : pde_physics(physics_input)
 {};

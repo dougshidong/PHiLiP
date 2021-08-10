@@ -5,7 +5,7 @@ set dimension = 2
 
 set pde_type = navier_stokes
 
-set conv_num_flux  = l2roe
+set conv_num_flux = l2roe
 set diss_num_flux = symm_internal_penalty
 
 subsection navier_stokes
@@ -46,7 +46,7 @@ subsection manufactured solution convergence study
   set degree_end        = 3
 
   # Starting degree for convergence study
-  set degree_start      = 3
+  set degree_start      = 0
 
   set grid_progression  = 1.0
 

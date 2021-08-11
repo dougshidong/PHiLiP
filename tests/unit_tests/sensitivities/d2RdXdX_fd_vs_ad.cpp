@@ -402,7 +402,7 @@ int main (int argc, char * argv[])
                     }
                 }
 
-                if (*pde==PDEType::euler) {
+                if (*pde==PDEType::euler || *pde==PDEType::navier_stokes) {
                     error = test<dim,dim+2>(poly_degree, grid, all_parameters);
                 } else if (*pde==PDEType::burgers_inviscid) {
                     error = test<dim,dim>(poly_degree, grid, all_parameters);

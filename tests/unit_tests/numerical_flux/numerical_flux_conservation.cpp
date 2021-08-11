@@ -237,7 +237,8 @@ int main (int argc, char * argv[])
         PDEType::convection_diffusion,
         PDEType::advection_vector,
         PDEType::burgers_inviscid,
-        PDEType::euler
+        PDEType::euler,
+        PDEType::navier_stokes
     };
 
     std::vector<ConvType> conv_type {
@@ -260,11 +261,35 @@ int main (int argc, char * argv[])
 
         all_parameters.pde_type = *pde;
 
+        std::string pde_string;
+        if(*pde==PDEType::advection)            pde_string = "advection";
+        if(*pde==PDEType::diffusion)            pde_string = "diffusion";
+        if(*pde==PDEType::convection_diffusion) pde_string = "convection_diffusion";
+        if(*pde==PDEType::advection_vector)     pde_string = "advection_vector";
+        if(*pde==PDEType::burgers_inviscid)     pde_string = "burgers_inviscid";
+        if(*pde==PDEType::euler)                pde_string = "euler";
+        if(*pde==PDEType::navier_stokes)        pde_string = "navier_stokes";
+
+        if(*pde==PDEType::navier_stokes){
+            // We want a non-zero viscous (dissipative) flux for testing Navier-Stokes
+            all_parameters.navier_stokes_param.reynolds_number_inf = 1.0; // default is 10000000.0 (i.e. inviscid Navier-Stokes)
+        }
+        
         for (auto conv = conv_type.begin(); conv != conv_type.end() && success == 0; conv++) {
 
-            if(((*conv == ConvType::roe) || (*conv == ConvType::l2roe)) && (*pde!=PDEType::euler)) continue;
+            // Roe-type fluxes are defined only for the Euler and Navier-Stokes equations
+            if(((*conv == ConvType::roe) || (*conv == ConvType::l2roe)) && ((*pde!=PDEType::euler) && (*pde!=PDEType::navier_stokes))) continue;
 
             all_parameters.conv_num_flux_type = *conv;
+
+            std::string conv_string;
+            if(*conv==ConvType::lax_friedrichs) conv_string = "lax_friedrichs";
+            if(*conv==ConvType::roe)            conv_string = "roe";
+            if(*conv==ConvType::l2roe)          conv_string = "l2roe";
+
+            std::cout << "============================================================================" << std::endl;
+            std::cout << "PDE Type: " << pde_string << "\t Convective Flux Type: " << conv_string << std::endl;
+            std::cout << "----------------------------------------------------------------------------" << std::endl;
 
             if(*pde==PDEType::advection) success = test_convective_numerical_flux_conservation<PHILIP_DIM,1> (&all_parameters);
             if(*pde==PDEType::diffusion) success = test_convective_numerical_flux_conservation<PHILIP_DIM,1> (&all_parameters);
@@ -272,6 +297,7 @@ int main (int argc, char * argv[])
             if(*pde==PDEType::advection_vector) success = test_convective_numerical_flux_conservation<PHILIP_DIM,2> (&all_parameters);
             if(*pde==PDEType::burgers_inviscid) success = test_convective_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM> (&all_parameters);
             if(*pde==PDEType::euler) success = test_convective_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+            if(*pde==PDEType::navier_stokes) success = test_convective_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
 
             if(*pde==PDEType::advection) success = test_convective_numerical_flux_consistency<PHILIP_DIM,1> (&all_parameters);
             if(*pde==PDEType::diffusion) success = test_convective_numerical_flux_consistency<PHILIP_DIM,1> (&all_parameters);
@@ -279,10 +305,18 @@ int main (int argc, char * argv[])
             if(*pde==PDEType::advection_vector) success = test_convective_numerical_flux_consistency<PHILIP_DIM,2> (&all_parameters);
             if(*pde==PDEType::burgers_inviscid) success = test_convective_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM> (&all_parameters);
             if(*pde==PDEType::euler) success = test_convective_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+            if(*pde==PDEType::navier_stokes) success = test_convective_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
         }
         for (auto diss = diss_type.begin(); diss != diss_type.end() && success == 0; diss++) {
 
             all_parameters.diss_num_flux_type = *diss;
+
+            std::string diss_string;
+            if(*diss==DissType::symm_internal_penalty) diss_string = "symm_internal_penalty";
+
+            std::cout << "============================================================================" << std::endl;
+            std::cout << "PDE Type: " << pde_string << "\t Dissipative Flux Type: " << diss_string << std::endl;
+            std::cout << "----------------------------------------------------------------------------" << std::endl;
 
             if(*pde==PDEType::advection) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,1> (&all_parameters);
             if(*pde==PDEType::diffusion) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,1> (&all_parameters);
@@ -290,6 +324,7 @@ int main (int argc, char * argv[])
             if(*pde==PDEType::advection_vector) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,2> (&all_parameters);
             if(*pde==PDEType::burgers_inviscid) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM> (&all_parameters);
             if(*pde==PDEType::euler) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+            if(*pde==PDEType::navier_stokes) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
 
             if(*pde==PDEType::advection) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,1> (&all_parameters);
             if(*pde==PDEType::diffusion) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,1> (&all_parameters);
@@ -297,6 +332,7 @@ int main (int argc, char * argv[])
             if(*pde==PDEType::advection_vector) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,2> (&all_parameters);
             if(*pde==PDEType::burgers_inviscid) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM> (&all_parameters);
             if(*pde==PDEType::euler) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+            if(*pde==PDEType::navier_stokes) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
         }
     }
     return success;

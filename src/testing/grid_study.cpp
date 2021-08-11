@@ -354,6 +354,13 @@ int GridStudy<dim,nstate>
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;
 
+            // l2error for each state
+            std::array<double,nstate> cell_l2error_state;
+            std::array<double,nstate> l2error_state;
+            for (int istate=0; istate<nstate; ++istate) {
+                l2error_state[istate] = 0.0;
+            }
+
             double l2error = 0;
 
             // Integrate solution error and output error
@@ -369,6 +376,11 @@ int GridStudy<dim,nstate>
                 cell->get_dof_indices (dofs_indices);
 
                 double cell_l2error = 0;
+
+                for (int istate=0; istate<nstate; ++istate) {
+                    cell_l2error_state[istate] = 0.0;
+                }
+
                 for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
                     std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
@@ -384,14 +396,24 @@ int GridStudy<dim,nstate>
                         //l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
 
                         cell_l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
+
+                        cell_l2error_state[istate] += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad); // TESTING
                     }
                 }
                 estimated_error_per_cell[cell->active_cell_index()] = cell_l2error;
                 estimated_error_per_cell_double[cell->active_cell_index()] = cell_l2error;
                 l2error += cell_l2error;
 
+                for (int istate=0; istate<nstate; ++istate) {
+                    l2error_state[istate] += cell_l2error_state[istate];
+                }
             }
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
+
+            std::array<double,nstate> l2error_mpi_sum_state;
+            for (int istate=0; istate<nstate; ++istate) {
+                l2error_mpi_sum_state[istate] = std::sqrt(dealii::Utilities::MPI::sum(l2error_state[istate], mpi_communicator));
+            }
 
             double solution_integral = integrate_solution_over_domain(*dg);
 
@@ -410,6 +432,13 @@ int GridStudy<dim,nstate>
             // dg->output_results_vtk(igrid);
             */
 
+            /*
+            // // Use gr->output_results_vtk(), which includes L2error per cell, instead of dg->output_results_vtk()
+            //std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  gr 
+            //    = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);
+            //if(poly_degree == 1) gr->output_results_vtk(igrid);
+            */
+
             // Convergence table
             const double dx = 1.0/pow(n_dofs,(1.0/dim));
             grid_size[igrid] = dx;
@@ -424,6 +453,14 @@ int GridStudy<dim,nstate>
             convergence_table.add_value("soln_L2_error", l2error_mpi_sum);
             convergence_table.add_value("output_error", output_error[igrid]);
 
+            // add l2error for each state to the convergence table
+            if (manu_grid_conv_param.add_statewise_solution_error_to_convergence_tables) {
+                std::array<std::string,nstate> soln_L2_error_state_str;
+                for (int istate=0; istate<nstate; ++istate) {
+                    soln_L2_error_state_str[istate] = std::string("soln_L2_error_state") + std::string("_") + std::to_string(istate);
+                    convergence_table.add_value(soln_L2_error_state_str[istate], l2error_mpi_sum_state[istate]);
+                }
+            }
 
             pcout << " Grid size h: " << dx 
                  << " L2-soln_error: " << l2error_mpi_sum
@@ -468,7 +505,67 @@ int GridStudy<dim,nstate>
         convergence_table.set_scientific("residual", true);
         convergence_table.set_scientific("soln_L2_error", true);
         convergence_table.set_scientific("output_error", true);
+        if (manu_grid_conv_param.add_statewise_solution_error_to_convergence_tables) {
+            std::string test_str;
+            for (int istate=0; istate<nstate; ++istate) {
+                test_str = std::string("soln_L2_error_state") + std::string("_") + std::to_string(istate);
+                convergence_table.set_scientific(test_str,true);
+            }
+        }
+
         if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
+
+        // Write the convergence table to a file // add these to the parameter files as member functions /// look into creating a dictionary/map for this so were not double hard coding it
+        // Future code development: create get_pde_string(), get_conv_num_flux_string(), get_manufactured_solution_string() in appropriate classes
+        if (manu_grid_conv_param.output_convergence_tables) {
+            using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+            PDE_enum pde_type = param.pde_type;
+            std::string pde_string;
+            if (pde_type == PDE_enum::advection)            {pde_string = "advection";}
+            if (pde_type == PDE_enum::advection_vector)     {pde_string = "advection_vector";}
+            if (pde_type == PDE_enum::diffusion)            {pde_string = "diffusion";}
+            if (pde_type == PDE_enum::convection_diffusion) {pde_string = "convection_diffusion";}
+            if (pde_type == PDE_enum::burgers_inviscid)     {pde_string = "burgers_inviscid";}
+            if (pde_type == PDE_enum::euler)                {pde_string = "euler";}
+            if (pde_type == PDE_enum::navier_stokes)        {pde_string = "navier_stokes";}
+
+            using CNF_enum = Parameters::AllParameters::ConvectiveNumericalFlux;
+            std::string conv_num_flux_string;
+            CNF_enum CNF_type = param.conv_num_flux_type;
+            if (CNF_type == CNF_enum::lax_friedrichs) {conv_num_flux_string = "lax_friedrichs";}
+            if (CNF_type == CNF_enum::split_form)     {conv_num_flux_string = "split_form";}
+            if (CNF_type == CNF_enum::roe)            {conv_num_flux_string = "roe";}
+            if (CNF_type == CNF_enum::l2roe)          {conv_num_flux_string = "l2roe";}
+
+            using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
+            std::string manufactured_solution_string;
+            ManufacturedSolutionEnum MS_type = manu_grid_conv_param.manufactured_solution_param.manufactured_solution_type;
+            if (MS_type == ManufacturedSolutionEnum::sine_solution)           {manufactured_solution_string = "sine_solution";}
+            if (MS_type == ManufacturedSolutionEnum::cosine_solution)         {manufactured_solution_string = "cosine_solution";}
+            if (MS_type == ManufacturedSolutionEnum::additive_solution)       {manufactured_solution_string = "additive_solution";}
+            if (MS_type == ManufacturedSolutionEnum::exp_solution)            {manufactured_solution_string = "exp_solution";}
+            if (MS_type == ManufacturedSolutionEnum::poly_solution)           {manufactured_solution_string = "poly_solution";}
+            if (MS_type == ManufacturedSolutionEnum::even_poly_solution)      {manufactured_solution_string = "even_poly_solution";}
+            if (MS_type == ManufacturedSolutionEnum::atan_solution)           {manufactured_solution_string = "atan_solution";}
+            if (MS_type == ManufacturedSolutionEnum::boundary_layer_solution) {manufactured_solution_string = "boundary_layer_solution";}
+            if (MS_type == ManufacturedSolutionEnum::s_shock_solution)        {manufactured_solution_string = "s_shock_solution";}
+            if (MS_type == ManufacturedSolutionEnum::quadratic_solution)      {manufactured_solution_string = "quadratic_solution";}
+            if (MS_type == ManufacturedSolutionEnum::navah_solution_1)        {manufactured_solution_string = "navah_solution_1";}
+            if (MS_type == ManufacturedSolutionEnum::navah_solution_2)        {manufactured_solution_string = "navah_solution_2";}
+            if (MS_type == ManufacturedSolutionEnum::navah_solution_3)        {manufactured_solution_string = "navah_solution_3";}
+            if (MS_type == ManufacturedSolutionEnum::navah_solution_4)        {manufactured_solution_string = "navah_solution_4";}
+            if (MS_type == ManufacturedSolutionEnum::navah_solution_5)        {manufactured_solution_string = "navah_solution_5";}
+
+            std::string error_filename = "convergence_table"; // base name
+            error_filename += std::string("_") + std::to_string(dim) + std::string("d");
+            error_filename += std::string("_") + pde_string;
+            error_filename += std::string("_") + conv_num_flux_string;
+            error_filename += std::string("_") + manufactured_solution_string;
+            error_filename += std::string("_") + std::string("p") + std::to_string(poly_degree);
+            std::string error_fileType = std::string("txt");
+            std::ofstream error_table_file(error_filename + std::string(".") + error_fileType);
+            convergence_table.write_text(error_table_file);
+        }
 
         convergence_table_vector.push_back(convergence_table);
 

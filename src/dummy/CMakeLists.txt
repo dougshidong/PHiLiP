@@ -99,6 +99,32 @@ message("Adding executable " ${SMALL_TEST} " with files " ${SMALL_TEST_SRC} "\n"
 unset(SMALL_TEST)
 unset(TARGET ${SMALL_TEST})
 
+set(SMALL_TEST diff4)
+set(TARGET ${SMALL_TEST})
+set(SMALL_TEST_SRC 
+    dfad_example.cpp)
+add_executable(${SMALL_TEST} ${SMALL_TEST_SRC})
+target_link_libraries(${SMALL_TEST} mpi )
+if(NOT DOC_ONLY)
+    DEAL_II_SETUP_TARGET(${SMALL_TEST})
+endif()
+message("Adding executable " ${SMALL_TEST} " with files " ${SMALL_TEST_SRC} "\n")
+unset(SMALL_TEST)
+unset(TARGET ${SMALL_TEST})
+
+set(SMALL_TEST diff5)
+set(TARGET ${SMALL_TEST})
+set(SMALL_TEST_SRC 
+    jacobian_via_dfad_example.cpp)
+add_executable(${SMALL_TEST} ${SMALL_TEST_SRC})
+target_link_libraries(${SMALL_TEST} mpi )
+if(NOT DOC_ONLY)
+    DEAL_II_SETUP_TARGET(${SMALL_TEST})
+endif()
+message("Adding executable " ${SMALL_TEST} " with files " ${SMALL_TEST_SRC} "\n")
+unset(SMALL_TEST)
+unset(TARGET ${SMALL_TEST})
+
 # Need to turn warning off to compile this.
 # set(SMALL_TEST quasi-static)
 # set(TARGET ${SMALL_TEST})

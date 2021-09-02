@@ -518,7 +518,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
     dealii::Vector<real> &local_rhs_int_cell,
-    const dealii::FEValues<dim,dim> &fe_values_lagrange)
+    const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/)
 {
     (void) current_cell_index;
    // std::cout << "assembling cell terms" << std::endl;
@@ -531,7 +531,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
 
     AssertDimension (n_dofs_cell, cell_dofs_indices.size());
 
-    const std::vector<real> &JxW = fe_values_vol.get_JxW_values ();
+ //   const std::vector<real> &JxW = fe_values_vol.get_JxW_values ();
 
 
     std::vector<real> residual_derivatives(n_dofs_cell);
@@ -575,15 +575,16 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
             source_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad]);
         }
     }
-//pcout<<" SOLUTION VOLUME  BABY "<<soln_at_q[0][0]<<"  "<<soln_at_q[0][1]<<"  "<<soln_at_q[0][2]<<"  "<<soln_at_q[0][3]<<std::endl;
 
+#if 0
     const double cell_diameter = fe_values_vol.get_cell()->diameter();
     const unsigned int cell_index = fe_values_vol.get_cell()->active_cell_index();
     const unsigned int cell_degree = fe_values_vol.get_fe().tensor_degree();
     this->max_dt_cell[cell_index] = DGBaseState<dim,nstate,real,MeshType>::evaluate_CFL ( soln_at_q, 0.0, cell_diameter, cell_degree);
+#endif
 
 
-#if 0
+//#if 0
     //get local cofactor matrix
     std::vector<std::vector<real>> mapping_support_points(dim);
     for(int idim=0; idim<dim; idim++){
@@ -614,14 +615,24 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
             for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
                 flux_divergence[iquad][istate] = 0.0;
                 for ( unsigned int flux_basis = 0; flux_basis < n_quad_pts; ++flux_basis ) {
-                        flux_divergence[iquad][istate] += 2* DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->convective_numerical_split_flux(soln_at_q[iquad],soln_at_q[flux_basis])[istate] *  operators.gradient_flux_basis[poly_degree][istate][iquad][flux_basis];
+                    std::vector<real> ref_flux(dim);
+                    for(int idim=0; idim<dim; idim++){
+                        ref_flux[idim] = 0.0;
+                        for(int jdim=0; jdim<dim; jdim++){
+                            ref_flux[idim] += metric_cofactor[iquad][idim][jdim] * DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->convective_numerical_split_flux(soln_at_q[iquad],soln_at_q[flux_basis])[istate][jdim];
+                        }
+                    }
+                    for(int idim=0; idim<dim; idim++){
+                        flux_divergence[iquad][istate] += 2.0 * ref_flux[idim] *  operators.gradient_flux_basis[poly_degree][istate][idim][iquad][flux_basis];
+                    }
+                    //    flux_divergence[iquad][istate] += 2* DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->convective_numerical_split_flux(soln_at_q[iquad],soln_at_q[flux_basis])[istate] *  operators.gradient_flux_basis[poly_degree][istate][iquad][jdim][flux_basis];
                 }
             }
         }
         for(unsigned int idof=0; idof<n_dofs_cell; idof++){
             const unsigned int istate = operators.fe_collection_basis[poly_degree].system_to_component_index(idof).first; 
             for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                rhs[idof] += operators.vol_integral_basis[poly_degree][iquad][idof] * flux_divergence[iquad][istate];
+                local_rhs_int_cell[idof] += operators.vol_integral_basis[poly_degree][iquad][idof] * flux_divergence[iquad][istate];
             }
         }
     }
@@ -631,7 +642,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
             const unsigned int idof = operators.fe_collection_basis[poly_degree].system_to_component_index(itest).second; 
             for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
                 for(int idim=0; idim<dim; idim++){
-                    rhs[idof] += operators.local_flux_basis_stiffness[poly_degree][istate][idim][idof][iquad] * flux_divergence[iquad][istate][idim];
+                    local_rhs_int_cell[idof] += operators.local_flux_basis_stiffness[poly_degree][istate][idim][idof][iquad] * flux_divergence[iquad][istate][idim];
                 }
             }
         }
@@ -640,8 +651,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
 
     //apply mass inverse on residual
 
-#endif
+//#endif
 
+#if 0//old comment out
 
     // Evaluate flux divergence by interpolating the flux
     // Since we have nodal values of the flux, we use the Lagrange polynomials to obtain the gradients at the quadrature points.
@@ -740,6 +752,8 @@ pcout<<" size filter "<<ESFR_filter.m()<<" "<<ESFR_filter.n()<<" oper size "<<th
 
         local_rhs_int_cell(itest) += rhs;
     }
+
+#endif//old comment out
 }
 
 

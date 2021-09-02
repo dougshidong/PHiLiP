@@ -210,8 +210,8 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
      double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
      double delta_x = (right-left)/pow(n_dofs_cfl,(1.0/dim)); 
    // double delta_x = (right-left)/(pow(2.0,n_refinements)*(poly_degree+1));
-   // all_parameters_new.ode_solver_param.initial_time_step =  0.1 * delta_x;
-    all_parameters_new.ode_solver_param.initial_time_step =  0.2 * delta_x;
+    all_parameters_new.ode_solver_param.initial_time_step =  0.1 * delta_x;
+   // all_parameters_new.ode_solver_param.initial_time_step =  0.2 * delta_x;
 pcout<<" timestep "<<all_parameters_new.ode_solver_param.initial_time_step<<std::endl;
    // all_parameters_new.ode_solver_param.initial_time_step =  0.001;
 
@@ -281,7 +281,7 @@ std::cout<<" number dofs "<<
     
   pcout << "Energy at one timestep is " << initial_energy << std::endl;
 //	double initial_MK_energy = compute_MK_energy(dg, poly_degree);
- std::ofstream myfile ("kinetic_energy_plot_cplus_CLASSICAL_grid2_p3_cfl02.gpl" , std::ios::trunc);
+ std::ofstream myfile ("kinetic_energy_plot_cplus_CLASSICAL_grid2_p3_cfl01.gpl" , std::ios::trunc);
 
  for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
  {

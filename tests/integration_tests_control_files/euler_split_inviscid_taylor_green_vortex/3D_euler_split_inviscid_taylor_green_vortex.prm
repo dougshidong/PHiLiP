@@ -19,7 +19,7 @@ set use_energy = true
 
 set flux_reconstruction = cPlus
 
-set use_classical_FR = false
+set use_classical_FR = true
 
 subsection ODE solver
 

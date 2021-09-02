@@ -672,7 +672,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
 
             const unsigned int boundary_id = current_face->boundary_id();
-            //if (compute_dRdW || compute_dRdX || compute_d2R) {
+            if (compute_dRdW || compute_dRdX || compute_d2R) {
                 const dealii::Quadrature<dim-1> face_quadrature = face_quadrature_collection[i_quad];
                 assemble_boundary_term_derivatives (
                     current_cell,
@@ -682,13 +682,13 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     current_metric_dofs_indices, current_dofs_indices, current_cell_rhs,
                     compute_dRdW, compute_dRdX, compute_d2R);
 
-            }//end check 1Dper
-            //} else {
-            //    assemble_boundary_term_explicit (
-            //        current_cell,
-            //        current_cell_index,
-            //        boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
             //}
+            } else {
+                assemble_boundary_term_explicit (
+                    current_cell,
+                    current_cell_index,
+                    boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
+            }
 
         //CASE 2: PERIODIC BOUNDARY CONDITIONS
         //note that periodicity is not adapted for hp adaptivity yet. this needs to be figured out in the future

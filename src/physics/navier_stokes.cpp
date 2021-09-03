@@ -181,7 +181,7 @@ template <int dim, int nstate, typename real>
 template<typename real2>
 std::array<dealii::Tensor<1,dim,real2>,dim> NavierStokes<dim,nstate,real>
 ::compute_strain_rate_tensor (
-    const std::array<dealii::Tensor<1,dim,real2>,dim> vel_gradient) const
+    const std::array<dealii::Tensor<1,dim,real2>,dim> &vel_gradient) const
 {
     // Strain rate tensor, S_{i,j}
     std::array<dealii::Tensor<1,dim,real2>,dim> strain_rate_tensor;

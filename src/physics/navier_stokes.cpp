@@ -205,25 +205,29 @@ std::array<dealii::Tensor<1,dim,real2>,dim> NavierStokes<dim,nstate,real>
      * Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.12)
      */
     const std::array<dealii::Tensor<1,dim,real2>,dim> vel_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real2>(primitive_soln_gradient);
+    const std::array<dealii::Tensor<1,dim,real2>,dim> strain_rate_tensor = compute_strain_rate_tensor(vel_gradient);
     const real2 scaled_viscosity_coefficient = compute_scaled_viscosity_coefficient<real2>(primitive_soln);
-    
+
     // Divergence of velocity
+    // -- Initialize
     real2 vel_divergence; // complex initializes it as 0+0i
     if(std::is_same<real2,real>::value){ 
         vel_divergence = 0.0;
     }
+    // -- Obtain from trace of strain rate tensor
     for (int d=0; d<dim; d++) {
-        vel_divergence += vel_gradient[d][d];
+        vel_divergence += strain_rate_tensor[d][d];
     }
 
     // Viscous stress tensor, \tau_{i,j}
     std::array<dealii::Tensor<1,dim,real2>,dim> viscous_stress_tensor;
+    const real2 scaled_2nd_viscosity_coefficient;
+    scaled_2nd_viscosity_coefficient = (-2.0/3.0)*scaled_viscosity_coefficient; // Stoke's hypothesis
     for (int d1=0; d1<dim; d1++) {
         for (int d2=0; d2<dim; d2++) {
-            // rate of strain (deformation) tensor:
-            viscous_stress_tensor[d1][d2] = scaled_viscosity_coefficient*(vel_gradient[d1][d2] + vel_gradient[d2][d1]);
+            viscous_stress_tensor[d1][d2] = 2.0*scaled_viscosity_coefficient*strain_rate_tensor[d1][d2];
         }
-        viscous_stress_tensor[d1][d1] += (-2.0/3.0)*scaled_viscosity_coefficient*vel_divergence;
+        viscous_stress_tensor[d1][d1] += scaled_2nd_viscosity_coefficient*vel_divergence;
     }
     return viscous_stress_tensor;
 }

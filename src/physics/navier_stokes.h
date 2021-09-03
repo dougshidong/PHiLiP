@@ -79,14 +79,22 @@ public:
     extract_velocities_gradient_from_primitive_solution_gradient (
     	const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
 
+    /** Nondimensionalized strain rate tensor, S*
+     *  Reference: Masatsuka 2018 "I do like CFD", p.148, extracted from eq.(4.14.12)
+     */
+    template<typename real2>
+    std::array<dealii::Tensor<1,dim,real2>,dim> 
+    compute_strain_rate_tensor (
+        const std::array<dealii::Tensor<1,dim,real2>,dim> &vel_gradient) const;
+
     /** Nondimensionalized viscous stress tensor, tau*
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.12)
      */
     template<typename real2>
     std::array<dealii::Tensor<1,dim,real2>,dim> 
     compute_viscous_stress_tensor (
-    const std::array<real2,nstate> &primitive_soln,
-    const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
+        const std::array<real2,nstate> &primitive_soln,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
 
     /** Nondimensionalized viscous flux (i.e. dissipative flux)
      *  Reference: Masatsuka 2018 "I do like CFD", p.142, eq.(4.12.1-4.12.4)

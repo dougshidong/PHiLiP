@@ -180,6 +180,23 @@ std::array<dealii::Tensor<1,dim,real2>,dim> NavierStokes<dim,nstate,real>
 template <int dim, int nstate, typename real>
 template<typename real2>
 std::array<dealii::Tensor<1,dim,real2>,dim> NavierStokes<dim,nstate,real>
+::compute_strain_rate_tensor (
+    const std::array<dealii::Tensor<1,dim,real2>,dim> vel_gradient) const
+{
+    // Strain rate tensor, S_{i,j}
+    std::array<dealii::Tensor<1,dim,real2>,dim> strain_rate_tensor;
+    for (int d1=0; d1<dim; d1++) {
+        for (int d2=0; d2<dim; d2++) {
+            // rate of strain (deformation) tensor:
+            strain_rate_tensor[d1][d2] = 0.5*(vel_gradient[d1][d2] + vel_gradient[d2][d1]);
+        }
+    }
+    return strain_rate_tensor;
+}
+
+template <int dim, int nstate, typename real>
+template<typename real2>
+std::array<dealii::Tensor<1,dim,real2>,dim> NavierStokes<dim,nstate,real>
 ::compute_viscous_stress_tensor (
     const std::array<real2,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const

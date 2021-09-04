@@ -18,6 +18,9 @@ int main (int argc, char *argv[])
 // #if !defined(__APPLE__)
 //     feenableexcept(FE_INVALID | FE_OVERFLOW); // catch nan
 // #endif
+#ifdef __GNUC__
+    std::set_terminate(__gnu_cxx::__verbose_terminate_handler);
+#endif // ifdef __GNUC__
 
     n_vmult = 0;
     dRdW_form = 0;

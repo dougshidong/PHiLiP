@@ -895,32 +895,62 @@ public:
         const std::string preconditioner_name_ = parlist.sublist("Full Space").get("Preconditioner","Identity"); 
         const bool use_approximate_full_space_preconditioner_ = (preconditioner_name_ == "P2A" || preconditioner_name_ == "P4A");
 
-        if (preconditioner_name_ == "P2" || preconditioner_name_ == "P2A") {
-            return std::make_shared<KKT_P2_Preconditioner<Real>> (
-                ROL::makePtrFromRef<ROL::Objective<Real>>(objective),
-                ROL::makePtrFromRef<ROL::Constraint<Real>>(state_constraints),
-                ROL::makePtrFromRef<const ROL::Vector<Real>>(design_variables),
-                ROL::makePtrFromRef<const ROL::Vector<Real>>(state_lagrange_mult),
-                secant_,
-                use_approximate_full_space_preconditioner_);
-        } else if (preconditioner_name_ == "P4" || preconditioner_name_ == "P4A") {
-            return std::make_shared<KKT_P4_Preconditioner<Real>> (
-                ROL::makePtrFromRef<ROL::Objective<Real>>(objective),
-                ROL::makePtrFromRef<ROL::Constraint<Real>>(state_constraints),
-                ROL::makePtrFromRef<const ROL::Vector<Real>>(design_variables),
-                ROL::makePtrFromRef<const ROL::Vector<Real>>(state_lagrange_mult),
-                secant_,
-                use_approximate_full_space_preconditioner_);
-        } else {
-            return std::make_shared<KKT_Identity_Preconditioner<Real>> (
-                ROL::makePtrFromRef<ROL::Objective<Real>>(objective),
-                ROL::makePtrFromRef<ROL::Constraint<Real>>(state_constraints),
-                ROL::makePtrFromRef<const ROL::Vector<Real>>(design_variables),
-                ROL::makePtrFromRef<const ROL::Vector<Real>>(state_lagrange_mult),
-                secant_,
-                false);
+        ROL::Ptr<PHiLiP::FlowConstraints<PHILIP_DIM>> flow_constraints;
+        try {
+            /// Unconstrained full-space
+            flow_constraints = (ROL::makePtrFromRef<PHiLiP::FlowConstraints<PHILIP_DIM>>(dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(state_constraints)));
+
+            if (preconditioner_name_ == "P2" || preconditioner_name_ == "P2A") {
+                return std::make_shared<KKT_P2_Preconditioner<Real>> (
+                    ROL::makePtrFromRef<ROL::Objective<Real>>(objective),
+                    ROL::makePtrFromRef<ROL::Constraint<Real>>(state_constraints),
+                    ROL::makePtrFromRef<const ROL::Vector<Real>>(design_variables),
+                    ROL::makePtrFromRef<const ROL::Vector<Real>>(state_lagrange_mult),
+                    secant_,
+                    use_approximate_full_space_preconditioner_);
+            } else if (preconditioner_name_ == "P4" || preconditioner_name_ == "P4A") {
+                return std::make_shared<KKT_P4_Preconditioner<Real>> (
+                    ROL::makePtrFromRef<ROL::Objective<Real>>(objective),
+                    ROL::makePtrFromRef<ROL::Constraint<Real>>(state_constraints),
+                    ROL::makePtrFromRef<const ROL::Vector<Real>>(design_variables),
+                    ROL::makePtrFromRef<const ROL::Vector<Real>>(state_lagrange_mult),
+                    secant_,
+                    use_approximate_full_space_preconditioner_);
+            } else {
+                return std::make_shared<KKT_Identity_Preconditioner<Real>> (
+                    ROL::makePtrFromRef<ROL::Objective<Real>>(objective),
+                    ROL::makePtrFromRef<ROL::Constraint<Real>>(state_constraints),
+                    ROL::makePtrFromRef<const ROL::Vector<Real>>(design_variables),
+                    ROL::makePtrFromRef<const ROL::Vector<Real>>(state_lagrange_mult),
+                    secant_,
+                    false);
+            }
+        } catch (...) {
+                return std::make_shared<KKT_Identity_Preconditioner<Real>> (
+                    ROL::makePtrFromRef<ROL::Objective<Real>>(objective),
+                    ROL::makePtrFromRef<ROL::Constraint<Real>>(state_constraints),
+                    ROL::makePtrFromRef<const ROL::Vector<Real>>(design_variables),
+                    ROL::makePtrFromRef<const ROL::Vector<Real>>(state_lagrange_mult),
+                    secant_,
+                    false);
+            // try {
+            //     /// Constrained full-space
+            //     flow_constraints = (ROL::makePtrFromRef<PHiLiP::FlowConstraints<PHILIP_DIM>>(dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(*(state_constraints.get(0)))));
+
+            //     return std::make_shared<KKT_P4_Preconditioner<Real>> (
+            //         ROL::makePtrFromRef<ROL::Objective<Real>>(objective),
+            //         ROL::makePtrFromRef<ROL::Constraint<Real>>(flow_constraints),
+            //         ROL::makePtrFromRef<ROL::Constraint<Real>>(flow_constraints),
+            //         ROL::makePtrFromRef<const ROL::Vector<Real>>(design_variables),
+            //         ROL::makePtrFromRef<const ROL::Vector<Real>>(state_lagrange_mult),
+            //         secant_,
+            //         use_approximate_full_space_preconditioner_);
+            // } catch (...) {
+            // }
         }
+
     }
 };
+
 
 #endif

@@ -52,7 +52,7 @@ const ObjectiveType objective_type
     //= ObjectiveType::polynomial;
     = ObjectiveType::rosenbrock;
 
-const bool USE_BFGS = true;
+const bool USE_BFGS = false;//true;
 const int LINESEARCH_MAX_ITER = 5;
 const int PDAS_MAX_ITER = 7;
 
@@ -411,16 +411,19 @@ int test(const unsigned int n_des_var)
     if constexpr (std::is_same_v<VectorType, distributed_Vector>) {
 
         dealii::IndexSet ghost_dofs(n_des_var);
-        for (auto ip = locally_owned_dofs.begin(); ip != locally_owned_dofs.end(); ++ip) {
-            const auto index = *ip;
-
-            const auto ghost_low = (index > 0) ? index-1 : 0;
-            if (!locally_owned_dofs.is_element(ghost_low)) ghost_dofs.add_index(ghost_low);
-
-            const auto ghost_high = (index < n_des_var-1) ? index+1 : n_des_var-1;
-            if (!locally_owned_dofs.is_element(ghost_high)) ghost_dofs.add_index(ghost_high);
-            
+        for (unsigned int i=0; i<n_des_var; ++i) {
+            ghost_dofs.add_index(i);
         }
+        //for (auto ip = locally_owned_dofs.begin(); ip != locally_owned_dofs.end(); ++ip) {
+        //    const auto index = *ip;
+
+        //    const auto ghost_low = (index > 0) ? index-1 : 0;
+        //    if (!locally_owned_dofs.is_element(ghost_low)) ghost_dofs.add_index(ghost_low);
+
+        //    const auto ghost_high = (index < n_des_var-1) ? index+1 : n_des_var-1;
+        //    if (!locally_owned_dofs.is_element(ghost_high)) ghost_dofs.add_index(ghost_high);
+        //    
+        //}
         design_variables_rcp->reinit(locally_owned_dofs, ghost_dofs, MPI_COMM_WORLD);
     }
 

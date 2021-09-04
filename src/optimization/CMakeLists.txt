@@ -6,6 +6,7 @@ set(TESTS_SOURCE
     full_space_step.cpp
     sequential_quadratic_programming.cpp
     primal_dual_active_set.cpp
+    primal_dual_active_set_full_space2.cpp
 )
 
 foreach(dim RANGE 1 3)

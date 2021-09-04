@@ -48,6 +48,7 @@
 
 #include "ROL_Step.hpp"
 #include "ROL_Vector.hpp"
+#include "ROL_Vector_SimOpt.hpp"
 #include "ROL_KrylovFactory.hpp"
 #include "ROL_Objective.hpp"
 #include "ROL_BoundConstraint.hpp"
@@ -132,6 +133,8 @@
 
 namespace PHiLiP {
 
+const bool symmetrize_matrix_ = true;
+
 template <class Real>
 class PrimalDualActiveSetStep : public ROL::Step<Real>
 {
@@ -156,6 +159,8 @@ private:
     Real neps_;      ///< \f$\epsilon\f$-active set parameter 
     bool feasible_;  ///< Flag whether the current iterate is feasible or not
     int kkt_linesearches_;  ///< Number of linesearches done within the KKT iteration.
+
+    bool is_full_space_;
 
   
     // Dual Variable
@@ -198,6 +203,7 @@ private:
 
             ROL::Ptr<ROL::Vector<Real> > v_;
 
+            const Real add_identity_;
             Real bounded_constraint_tolerance_;
             const ROL::Ptr<ROL::Secant<Real> > secant_;
             bool useSecant_;
@@ -209,6 +215,7 @@ private:
                     const ROL::Ptr<const ROL::Vector<Real> > &design_variables,
                     const ROL::Ptr<const ROL::Vector<Real> > &dual_equality,
                     const ROL::Ptr<const ROL::Vector<Real> > &des_plus_dual,
+                    const Real add_identity,
                     const Real constraint_tolerance = 0,
                     const ROL::Ptr<ROL::Secant<Real> > &secant = ROL::nullPtr,
                     const bool useSecant = false );
@@ -366,6 +373,26 @@ protected:
     static ROL::Ptr<const ROL::Vector<Real>> getOpt( const ROL::Vector<Real> &xs )
     {
         return dynamic_cast<const ROL::PartitionedVector<Real>&>(xs).get(0);
+    }
+    static ROL::Ptr<ROL::Vector<Real>> getCtlOpt( ROL::Vector<Real> &xs )
+    {
+        ROL::Ptr<ROL::Vector<Real>> xopt = getOpt( xs );
+        try {
+            ROL::Vector_SimOpt<Real> &xopt_simopt = dynamic_cast<ROL::Vector_SimOpt<Real>&>(*xopt);
+            return xopt_simopt.get_2();
+        } catch (...) {
+        }
+        return xopt;
+    }
+    static ROL::Ptr<const ROL::Vector<Real>> getCtlOpt( const ROL::Vector<Real> &xs )
+    {
+        ROL::Ptr<const ROL::Vector<Real>> xopt = getOpt( xs );
+        try {
+            const ROL::Vector_SimOpt<Real> &xopt_simopt = dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*xopt);
+            return xopt_simopt.get_2();
+        } catch (...) {
+        }
+        return xopt;
     }
 private:
 

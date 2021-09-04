@@ -276,6 +276,8 @@ int test(const unsigned int nx_ffd)
     {
         const auto direction_ctl = des_var_ctl_rol_p->clone();
         *outStream << "robj->checkGradient..." << std::endl;
+        dg->solution.update_ghost_values();
+        dg->solution.zero_out_ghosts();
         dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
         std::vector<std::vector<double>> results
             = robj->checkGradient( *des_var_ctl_rol_p, *direction_ctl, steps, true, *outStream, order);

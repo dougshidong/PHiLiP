@@ -83,7 +83,7 @@ double ROLObjectiveSimOpt<dim,nstate>::value(
     // If the flow has not converged (>1e-5 or is nan), simply return a high functional.
     // This is likely happening in the linesearch while optimizing in the reduced-space.
     (void) tol;
-    if (tol > 1e-10 || std::isnan(tol)) return 1e200;
+    if (tol > 1e-6 || std::isnan(tol)) return 1.9763e200;
     update(des_var_sim, des_var_ctl);
 
     const bool compute_dIdW = false;

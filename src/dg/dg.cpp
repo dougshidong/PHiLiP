@@ -314,7 +314,7 @@ real DGBaseState<dim,nstate,real>::evaluate_CFL (
     const real cfl_convective = (cell_diameter / max_eig) / (2*p+1);//(p * p);
     const real cfl_diffusive  = artificial_dissipation != 0.0 ?
                                 (0.5*cell_diameter*cell_diameter / artificial_dissipation) / (p*p*p*p)
-                                : 1e200;
+                                : 1.923e200;
     real min_cfl = std::min(cfl_convective, cfl_diffusive);
 
     if (min_cfl >= 1e190) min_cfl = cell_diameter / 1;
@@ -1081,18 +1081,18 @@ void DGBase<dim,real>::assemble_residual (const bool compute_dRdW, const bool co
         diff_sol -= solution_d2R;
         const double l2_norm_sol = diff_sol.l2_norm();
 
-        if (l2_norm_sol == 0.0) {
+        if (l2_norm_sol < 1e-12) {
 
             auto diff_node = high_order_grid->volume_nodes;
             diff_node -= volume_nodes_d2R;
             const double l2_norm_node = diff_node.l2_norm();
 
-            if (l2_norm_node == 0.0) {
+            if (l2_norm_node < 1e-12) {
 
                 auto diff_dual = dual;
                 diff_dual -= dual_d2R;
                 const double l2_norm_dual = diff_dual.l2_norm();
-                if (l2_norm_dual == 0.0) {
+                if (l2_norm_dual < 1e-12) {
                     pcout << " which is already assembled..." << std::endl;
                     return;
                 } else {

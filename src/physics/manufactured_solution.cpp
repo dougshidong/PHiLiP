@@ -203,6 +203,10 @@ real ManufacturedSolutionNavahBase<dim,real>
             // pressure
             value = ncm[3][0] + ncm[3][1]*cos(ncm[3][4]*c*x) + ncm[3][2]*sin(ncm[3][5]*c*y) + ncm[3][3]*cos(ncm[3][6]*c*x)*cos(ncm[3][6]*c*y);
         }
+        if(istate==4) {
+            // turbulent working variable
+            value = ncm[4][0] + ncm[4][1]*cos(ncm[4][4]*c*x) + ncm[4][2]*cos(ncm[4][5]*c*y) + ncm[4][3]*cos(ncm[4][6]*c*x)*cos(ncm[4][6]*c*y);
+        }
     }
     return value;
 }
@@ -213,16 +217,18 @@ inline real ManufacturedSolutionNavahBase<dim,real>
 {
     real value = 0.0;
     if (dim == 2) {
-        const real rho = primitive_value(point,0);
-        const real u   = primitive_value(point,1);
-        const real v   = primitive_value(point,2);
-        const real p   = primitive_value(point,3);
+        const real rho = primitive_value(point,0); // density
+        const real u   = primitive_value(point,1); // x-velocity
+        const real v   = primitive_value(point,2); // y-velocity
+        const real p   = primitive_value(point,3); // pressure
+        const real twv = primitive_value(point,4); // turbulent working variable (twv)
 
         // convert primitive to conservative solution
         if(istate==0) value = rho; // density
         if(istate==1) value = rho*u; // x-momentum
         if(istate==2) value = rho*v; // y-momentum
         if(istate==3) value = p/(1.4-1.0) + 0.5*rho*(u*u + v*v); // total energy
+        if(istate==4) value = rho*twv; // transport of the turbulent working variable
     }
 
     return value;
@@ -518,6 +524,11 @@ dealii::Tensor<1,dim,real> ManufacturedSolutionNavahBase<dim,real>
             gradient[0] = -ncm[3][4]*c*ncm[3][1]*sin(ncm[3][4]*c*x) - ncm[3][6]*c*ncm[3][3]*sin(ncm[3][6]*c*x)*cos(ncm[3][6]*c*y); // dx
             gradient[1] =  ncm[3][5]*c*ncm[3][2]*cos(ncm[3][5]*c*y) - ncm[3][6]*c*ncm[3][3]*cos(ncm[3][6]*c*x)*sin(ncm[3][6]*c*y); // dy
         }
+        if(istate==3) {
+            // turbulent working variable
+            gradient[0] = -ncm[4][4]*c*ncm[4][1]*sin(ncm[4][4]*c*x) - ncm[4][6]*c*ncm[4][3]*sin(ncm[4][6]*c*x)*cos(ncm[4][6]*c*y); // dx
+            gradient[1] = -ncm[4][5]*c*ncm[4][2]*sin(ncm[4][5]*c*y) - ncm[4][6]*c*ncm[4][3]*cos(ncm[4][6]*c*x)*sin(ncm[4][6]*c*y); // dy
+        }
     }
     return gradient;
 }
@@ -561,6 +572,13 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionNavahBase<dim,real>
             // total energy
             for(int d=0; d<dim; d++) {
                 gradient[d] = p_grad[d]/(1.4-1.0) + 0.5*rho_grad[d]*(u*u + v*v) + rho*(u*u_grad[d]+v*v_grad[d]);
+            }
+        }
+        if(istate==4) {
+            // transport of the turbulent working variable (twv)
+            const dealii::Tensor<1,dim,real> twv_grad = primitive_gradient(point,4); // only used for RANS
+            for(int d=0; d<dim; d++) {
+                gradient[d] = twv*rho_grad[d] + rho*twv_grad[d];
             }
         }
     }
@@ -959,6 +977,13 @@ dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionNavahBase<dim,real>
             hessian[1][0] =  hessian[0][1]; // dydx
             hessian[1][1] = -ncm[3][5]*c*ncm[3][5]*c*ncm[3][2]*sin(ncm[3][5]*c*y) - ncm[3][6]*c*ncm[3][6]*c*ncm[3][3]*cos(ncm[3][6]*c*x)*cos(ncm[3][6]*c*y); // dydy
         }
+        if(istate==4) {
+            // turbulent working variable
+            hessian[0][0] = -ncm[4][4]*c*ncm[4][4]*c*ncm[4][1]*cos(ncm[4][4]*c*x) - ncm[4][6]*c*ncm[4][6]*c*ncm[4][3]*cos(ncm[4][6]*c*x)*cos(ncm[4][6]*c*y); // dxdx
+            hessian[0][1] =  ncm[4][6]*c*ncm[4][6]*c*ncm[4][3]*sin(ncm[4][6]*c*x)*sin(ncm[4][6]*c*y); // dxdy
+            hessian[1][0] =  hessian[0][1]; // dydx
+            hessian[1][1] = -ncm[4][5]*c*ncm[4][5]*c*ncm[4][2]*cos(ncm[4][5]*c*y) - ncm[4][6]*c*ncm[4][6]*c*ncm[4][3]*cos(ncm[4][6]*c*x)*cos(ncm[4][6]*c*y); // dydy
+        }
     }
     return hessian;
 }
@@ -1015,6 +1040,17 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionNavahBase<dim,rea
                     hessian[i][j]  = p_hess[i][j]/(1.4-1.0) + (u*u_grad[j]+v*v_grad[j])*rho_grad[i] + 0.5*(u*u + v*v)*rho_hess[i][j];
                     hessian[i][j] += rho_grad[j]*(u*u_grad[i]+v*v_grad[i]);
                     hessian[i][j] += rho*(u_grad[j]*u_grad[i] + u*u_hess[i][j] + v_grad[j]*v_grad[i] + v*v_hess[i][j]);
+                }
+            }
+        }
+        if(istate==4) {
+            // transport of the turbulent working variable (twv)
+            const real twv = primitive_value(point,4); // only used by istate=4
+            const dealii::Tensor<1,dim,real> twv_grad = primitive_gradient(point,4); // only used by istate=4
+            const dealii::SymmetricTensor<2,dim,real> twv_hess = primitive_hessian(point,4); // only used by istate=4
+            for(int i=0; i<dim; i++) { 
+                for(int j=0; j<dim; j++) { 
+                    hessian[i][j] = twv_grad[j]*rho_grad[i] + twv*rho_hess[i][j] + rho_grad[j]*twv_grad[i] + rho*twv_hess[i][j];
                 }
             }
         }
@@ -1150,34 +1186,23 @@ ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(
         return std::make_shared<ManufacturedSolutionAtan<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::boundary_layer_solution){
         return std::make_shared<ManufacturedSolutionBoundaryLayer<dim,real>>(nstate);
-    }else if(solution_type == ManufacturedSolutionEnum::s_shock_solution && dim == 2){
+    }else if((solution_type == ManufacturedSolutionEnum::s_shock_solution) && (dim==2)){
         return std::make_shared<ManufacturedSolutionSShock<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::quadratic_solution){
         return std::make_shared<ManufacturedSolutionQuadratic<dim,real>>(nstate);
-    }else if(solution_type == ManufacturedSolutionEnum::navah_solution_1){
-        if constexpr((dim==2) /*&& (nstate==dim+2)*/) {
-            return std::make_shared<ManufacturedSolutionNavah_MS1<dim,real>>(nstate);
-        }
-    }else if(solution_type == ManufacturedSolutionEnum::navah_solution_2){
-        if constexpr((dim==2) /*&& (nstate==dim+2)*/) {
-            return std::make_shared<ManufacturedSolutionNavah_MS2<dim,real>>(nstate);
-        }
-    }else if(solution_type == ManufacturedSolutionEnum::navah_solution_3){
-        if constexpr((dim==2) /*&& (nstate==dim+2)*/) {
-            return std::make_shared<ManufacturedSolutionNavah_MS3<dim,real>>(nstate);
-        }
-    }else if(solution_type == ManufacturedSolutionEnum::navah_solution_4){
-        if constexpr((dim==2) /*&& (nstate==dim+2)*/) {
-            return std::make_shared<ManufacturedSolutionNavah_MS4<dim,real>>(nstate);
-        }
-    }else if(solution_type == ManufacturedSolutionEnum::navah_solution_5){
-        if constexpr((dim==2) /*&& (nstate==dim+2)*/) {
-            return std::make_shared<ManufacturedSolutionNavah_MS5<dim,real>>(nstate);
-        }
+    }else if(((solution_type == ManufacturedSolutionEnum::navah_solution_1) && (dim==2)) && (nstate==dim+2 || nstate==dim+3)){
+        return std::make_shared<ManufacturedSolutionNavah_MS1<dim,real>>(nstate);
+    }else if(((solution_type == ManufacturedSolutionEnum::navah_solution_2) && (dim==2)) && (nstate==dim+2 || nstate==dim+3)){
+        return std::make_shared<ManufacturedSolutionNavah_MS2<dim,real>>(nstate);
+    }else if(((solution_type == ManufacturedSolutionEnum::navah_solution_3) && (dim==2)) && (nstate==dim+2 || nstate==dim+3)){
+        return std::make_shared<ManufacturedSolutionNavah_MS3<dim,real>>(nstate);
+    }else if(((solution_type == ManufacturedSolutionEnum::navah_solution_4) && (dim==2)) && (nstate==dim+2 || nstate==dim+3)){
+        return std::make_shared<ManufacturedSolutionNavah_MS4<dim,real>>(nstate);
+    }else if(((solution_type == ManufacturedSolutionEnum::navah_solution_5) && (dim==2)) && (nstate==dim+2 || nstate==dim+3)){
+        return std::make_shared<ManufacturedSolutionNavah_MS5<dim,real>>(nstate);
     }else{
-        std::cout << "Invalid Manufactured Solution." << std::endl;
+        std::cout << "Invalid combination of Manufactured Solution, Number of Dimensions, and PDE Type." << std::endl;
     }
-
     return nullptr;
 }
 

@@ -74,7 +74,7 @@ std::array<real,nstate> Euler<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 std::array<real,nstate> Euler<dim,nstate,real>
-::convective_source_term (
+::get_manufactured_solution_value (
     const dealii::Point<dim,real> &pos) const
 {
     std::array<real,nstate> manufactured_solution;
@@ -84,14 +84,32 @@ std::array<real,nstate> Euler<dim,nstate,real>
             assert(manufactured_solution[s] > 0);
         }
     }
+    return manufactured_solution;
+}
+
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
+::get_manufactured_solution_gradient (
+    const dealii::Point<dim,real> &pos) const
+{
     std::vector<dealii::Tensor<1,dim,real>> manufactured_solution_gradient_dealii(nstate);
-    this->manufactured_solution_function->vector_gradient (pos, manufactured_solution_gradient_dealii);
-    std::array<dealii::Tensor<1,nstate,real>,dim> manufactured_solution_gradient;
+    this->manufactured_solution_function->vector_gradient(pos,manufactured_solution_gradient_dealii);
+    std::array<dealii::Tensor<1,dim,real>,nstate> manufactured_solution_gradient;
     for (int d=0;d<dim;d++) {
         for (int s=0; s<nstate; s++) {
-            manufactured_solution_gradient[d][s] = manufactured_solution_gradient_dealii[s][d];
+            manufactured_solution_gradient[s][d] = manufactured_solution_gradient_dealii[s][d];
         }
     }
+    return manufactured_solution_gradient;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> Euler<dim,nstate,real>
+::convective_source_term (
+    const dealii::Point<dim,real> &pos) const
+{
+    const std::array<real,nstate> manufactured_solution = get_manufactured_solution_value(pos);
+    const std::array<dealii::Tensor<1,nstate,real>,dim> manufactured_solution_gradient = get_manufactured_solution_gradient(pos);
 
     dealii::Tensor<1,nstate,real> convective_flux_divergence;
     for (int d=0;d<dim;d++) {
@@ -103,7 +121,7 @@ std::array<real,nstate> Euler<dim,nstate,real>
         for (int sr = 0; sr < nstate; ++sr) {
             real jac_grad_row = 0.0;
             for (int sc = 0; sc < nstate; ++sc) {
-                jac_grad_row += jacobian[sr][sc]*manufactured_solution_gradient[d][sc];
+                jac_grad_row += jacobian[sr][sc]*manufactured_solution_gradient[sc][d];
             }
             convective_flux_divergence[sr] += jac_grad_row;
         }

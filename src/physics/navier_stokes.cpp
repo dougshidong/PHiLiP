@@ -397,27 +397,14 @@ template <int dim, int nstate, typename real>
 std::array<real,nstate> NavierStokes<dim,nstate,real>
 ::dissipative_source_term (
     const dealii::Point<dim,real> &pos) const
-{
-    /* START: Repeated code */
-    // Get MS values
-    std::array<real,nstate> manufactured_solution;
-    for (int s=0; s<nstate; s++) {
-        manufactured_solution[s] = this->manufactured_solution_function->value(pos,s);
-        if (s==0) {
-            assert(manufactured_solution[s] > 0);
-        }
-    }
-    // Get MS gradient
-    std::vector<dealii::Tensor<1,dim,real>> manufactured_solution_gradient_dealii(nstate);
-    this->manufactured_solution_function->vector_gradient(pos,manufactured_solution_gradient_dealii);
-    std::array<dealii::Tensor<1,dim,real>,nstate> manufactured_solution_gradient;
-    for (int d=0;d<dim;d++) {
-        for (int s=0; s<nstate; s++) {
-            manufactured_solution_gradient[s][d] = manufactured_solution_gradient_dealii[s][d]; // CHANGED THE INDEXING HERE
-        }
-    }
-    /* END of repeated code */
-    // Get MS hessian
+{    
+    // Get Manufactured Solution values
+    const std::array<real,nstate> manufactured_solution = this->get_manufactured_solution_value(pos); // from Euler
+    
+    // Get Manufactured Solution gradient
+    const std::array<dealii::Tensor<1,dim,real>,nstate> manufactured_solution_gradient = this->get_manufactured_solution_gradient(pos); // from Euler
+    
+    // Get Manufactured Solution hessian
     std::array<dealii::SymmetricTensor<2,dim,real>,nstate> manufactured_solution_hessian;
     for (int s=0; s<nstate; s++) {
         dealii::SymmetricTensor<2,dim,real> hessian = this->manufactured_solution_function->hessian(pos,s);
@@ -455,7 +442,7 @@ std::array<real,nstate> NavierStokes<dim,nstate,real>
         for (int sr = 0; sr < nstate; ++sr) {
             real jac_grad_row = 0.0;
             for (int sc = 0; sc < nstate; ++sc) {
-                jac_grad_row += jacobian[sr][sc]*manufactured_solution_gradient[sc][d]; // CHANGED THE INDEXING HERE
+                jac_grad_row += jacobian[sr][sc]*manufactured_solution_gradient[sc][d]; // Euler is the same as this
                 // Second term -- wrt to the gradient of conservative variables
                 // -- add the contribution of each gradient component (e.g. x,y,z for dim==3)
                 for (int d_gradient=0;d_gradient<dim;d_gradient++) {

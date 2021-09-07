@@ -6,6 +6,7 @@ set(SOURCE
     parameters_manufactured_solution.cpp
     parameters_euler.cpp
     parameters_navier_stokes.cpp
+    parameters_large_eddy_simulation.cpp
     parameters_grid_refinement_study.cpp
     parameters_functional.cpp
     parameters_grid_refinement.cpp

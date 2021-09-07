@@ -14,6 +14,7 @@ AllParameters::AllParameters ()
     , navier_stokes_param(NavierStokesParam())
     , reduced_order_param(ReducedOrderModelParam())
     , burgers_param(BurgersParam())
+    , large_eddy_simulation_param(LargeEddySimulationParam())
     , grid_refinement_study_param(GridRefinementStudyParam())
     , artificial_dissipation_param(ArtificialDissipationParam())
     , flow_solver_param(FlowSolverParam())
@@ -152,19 +153,21 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                           " burgers_rewienski | "
                           " euler |"
                           " mhd |"
-                          " navier_stokes"),
-                      "The PDE we want to solve. "
-                      "Choices are " 
-                      " <advection | " 
-                      "  diffusion | "
-                      "  convection_diffusion | "
-                      "  advection_vector | "
-                      "  burgers_inviscid | "
-                      "  burgers_viscous | "
-                      "  burgers_rewienski | "
-                      "  euler | "
-                      "  mhd |"
-                      "  navier_stokes>.");
+                          " navier_stokes |"
+                          " large_eddy_simulation"),
+                          "The PDE we want to solve. "
+                          "Choices are " 
+                          " <advection | " 
+                          "  diffusion | "
+                          "  convection_diffusion | "
+                          "  advection_vector | "
+                          "  burgers_inviscid | "
+                          "  burgers_viscous | "
+                          "  burgers_rewienski | "
+                          "  euler | "
+                          "  mhd |"
+                          "  navier_stokes |"
+                          "  large_eddy_simulation>.");
     
     prm.declare_entry("conv_num_flux", "lax_friedrichs",
                       dealii::Patterns::Selection("lax_friedrichs | roe | l2roe | split_form"),
@@ -182,6 +185,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     Parameters::EulerParam::declare_parameters (prm);
     Parameters::NavierStokesParam::declare_parameters (prm);
+    Parameters::LargeEddySimulationParam::declare_parameters (prm);
 
     Parameters::ReducedOrderModelParam::declare_parameters (prm);
     Parameters::BurgersParam::declare_parameters (prm);
@@ -264,6 +268,15 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
         pde_type = navier_stokes;
         nstate = dimension+2;
     }
+    else if (pde_string == "large_eddy_simulation") {
+        pde_type = large_eddy_simulation;
+        nstate = dimension+2;
+    }
+    // else if (pde_string == "reynolds_averaged_navier_stokes") {
+    //     pde_type = reynolds_averaged_navier_stokes;
+    //     nstate = dimension+3;
+    // }
+    
     overintegration = prm.get_integer("overintegration");
 
     use_weak_form = prm.get_bool("use_weak_form");
@@ -329,6 +342,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     pcout << "Parsing Burgers subsection..." << std::endl;
     burgers_param.parse_parameters (prm);
+
+    pcout << "Parsing large eddy simulation subsection..." << std::endl;
+    large_eddy_simulation_param.parse_parameters (prm);
 
     pcout << "Parsing grid refinement study subsection..." << std::endl;
     grid_refinement_study_param.parse_parameters (prm);

@@ -1285,8 +1285,6 @@ template class ManufacturedSolutionQuadratic<PHILIP_DIM,FadType>;
 template class ManufacturedSolutionQuadratic<PHILIP_DIM,RadType>;
 template class ManufacturedSolutionQuadratic<PHILIP_DIM,FadFadType>;
 template class ManufacturedSolutionQuadratic<PHILIP_DIM,RadFadType>;
-
-// Ask Doug: Instantiate for "2" directly instead of PHILIP_DIM ?? SShock is only for 2 but instantiated for PHILIP_DIM
 template class ManufacturedSolutionNavahBase<PHILIP_DIM,double>;
 template class ManufacturedSolutionNavahBase<PHILIP_DIM,FadType>;
 template class ManufacturedSolutionNavahBase<PHILIP_DIM,RadType>;

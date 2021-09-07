@@ -14,6 +14,7 @@
 #include "euler.h"
 #include "mhd.h"
 #include "navier_stokes.h"
+#include "large_eddy_simulation.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -107,6 +108,31 @@ PhysicsFactory<dim,nstate,real>
                 parameters_input->navier_stokes_param.reynolds_number_inf,
                 diffusion_tensor, 
                 manufactured_solution_function);
+        }
+    } else if (pde_type == PDE_enum::large_eddy_simulation) {
+        if constexpr (nstate==dim+2) {
+            using SGS_model_enum = Parameters::AllParameters::LargeEddySimulationParam::SubGridScaleModel;
+            SGS_model_enum sgs_model_type = parameters_input->large_eddy_simulation_param.SGS_model_type;
+            
+            if (sgs_model_type == SGS_model_enum::smagorinsky) {
+                return std::make_shared < LargeEddySimulation_Smagorinsky<dim,nstate,real> > (
+                    parameters_input->euler_param.ref_length,
+                    parameters_input->euler_param.gamma_gas,
+                    parameters_input->euler_param.mach_inf,
+                    parameters_input->euler_param.angle_of_attack,
+                    parameters_input->euler_param.side_slip_angle,
+                    parameters_input->navier_stokes_param.prandtl_number,
+                    parameters_input->navier_stokes_param.reynolds_number_inf,
+                    parameters_input->large_eddy_simulation_param.turbulent_prandtl_number,
+                    parameters_input->large_eddy_simulation_param.smagorinsky_model_constant,
+                    diffusion_tensor, 
+                    manufactured_solution_function);
+            }
+            // TO DO: remaining SGS models once the Smagorinsky is working
+            
+            // OR have a LES factory?? would just be moving this operation to inside the LES .h/.cpp files
+            // std::shared_ptr< LargeEddySimulation<dim,real> >  large_eddy_simulation
+            // = LargeEddySimulationFactory<dim,real>::create_LargeEddySimulation(parameters_input, nstate);
         }
     } else {
         // prevent warnings for dim=3,nstate=4, etc.

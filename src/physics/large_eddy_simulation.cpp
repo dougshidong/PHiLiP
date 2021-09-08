@@ -80,6 +80,10 @@ std::array<dealii::Tensor<1,dim,real2>,dim> LargeEddySimulationBase<dim,nstate,r
     return viscous_stress_tensor;
 }
 
+//===========================================
+// Smagorinsky model
+//===========================================
+
 template <int dim, int nstate, typename real>
 LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorinsky( 
     const double                                              ref_length,
@@ -106,26 +110,6 @@ LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorin
     , model_constant(model_constant)
 {
     // Nothing to do here so far
-}
-
-template <int dim, int nstate, typename real>
-template<typename real2>
-dealii::Tensor<1,dim,real2> LargeEddySimulationBase<dim,nstate,real>
-::compute_heat_flux (
-    const std::array<real2,nstate> &primitive_soln,
-    const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const
-{
-    // Get Navier-Stokes heat flux 
-    const dealii::Tensor<1,dim,real2> heat_flux_navier_stokes = this->template compute_navier_stokes_heat_flux<real2>(primitive_soln, primitive_soln_gradient);
-    // Get SGS heat flux
-    const dealii::Tensor<1,dim,real2> heat_flux_SGS = compute_SGS_heat_flux<real2>(primitive_soln, primitive_soln_gradient);
-    
-    // Add SGS heat flux to Navier-Stokes heat flux
-    dealii::Tensor<1,dim,real2> heat_flux;
-    for (int d=0; d<dim; ++d) {
-        heat_flux[d] = heat_flux_navier_stokes[d] + heat_flux_SGS[d];
-    }
-    return heat_flux;
 }
 
 template <int dim, int nstate, typename real>
@@ -189,8 +173,8 @@ std::array<dealii::Tensor<1,dim,real2>,dim> LargeEddySimulation_Smagorinsky<dim,
     const std::array<dealii::Tensor<1,dim,real2>,dim> strain_rate_tensor = this->template compute_strain_rate_tensor<real2>(vel_gradient);
 
     // Compute the SGS stress tensor via the eddy_viscosity and the strain rate tensor
-    std::array<dealii::Tensor<1,dim,real2>,dim> SGS_stress_tensor; // dont forget to nondim the eddy_viscosity
-    //SGS_stress_tensor = this->template compute_stress_tensor_via_viscosity_and_strain_rate_tensor<real2>(eddy_viscosity,strain_rate_tensor);
+    std::array<dealii::Tensor<1,dim,real2>,dim> SGS_stress_tensor;
+    SGS_stress_tensor = this->template compute_stress_tensor_via_viscosity_and_strain_rate_tensor<real2>(eddy_viscosity,strain_rate_tensor);
     // TO DO: Define the function above in NavierStokes
     return SGS_stress_tensor;
 }
@@ -201,7 +185,6 @@ template class LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
 template class LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
 template class LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
-
 template class LargeEddySimulation_Smagorinsky < PHILIP_DIM, PHILIP_DIM+2, double >;
 template class LargeEddySimulation_Smagorinsky < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
 template class LargeEddySimulation_Smagorinsky < PHILIP_DIM, PHILIP_DIM+2, RadType  >;

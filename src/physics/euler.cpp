@@ -1086,7 +1086,7 @@ template class Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >;
 template class Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 
-// -> Templated inline member functions: // could be automated later on using Boost MPL
+// -> Templated member functions: // could be automated later on using Boost MPL
 // -- compute_pressure()
 template double     Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::compute_pressure< double     >(const std::array<double,    PHILIP_DIM+2> &conservative_soln) const;
 template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::compute_pressure< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;

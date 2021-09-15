@@ -2306,9 +2306,9 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
 
     // log10(a/p^4) = log10(a) - 4*log10(p)
     //const real2 s_0 = -1.5 - 4.25*log10(degree);
-    const double mu_scale = 0.1;
+    const double mu_scale = all_parameters->mu_artificial_dissipation; //0.1
     const real2 s_0 = log10(0.1) - 4.25*log10(degree);
-    const double kappa = 2.0;
+    const double kappa = all_parameters->kappa_artificial_dissipation; //2.0
     const real2 low = s_0 - kappa;
     const real2 upp = s_0 + kappa;
 

@@ -38,6 +38,7 @@
 #include "numerical_flux/convective_numerical_flux.hpp"
 #include "numerical_flux/viscous_numerical_flux.hpp"
 #include "parameters/all_parameters.h"
+#include "artificial_dissipation.h"
 
 // Template specialization of MappingFEField
 //extern template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM> >;
@@ -87,6 +88,7 @@ public:
     /** This is known through the constructor parameters.
      *  DGBase cannot use nstate as a compile-time known.  */
     const unsigned int max_degree;
+
 
     /// Principal constructor that will call delegated constructor.
     /** Will initialize mapping, fe_dg, all_parameters, volume_quadrature, and face_quadrature
@@ -660,6 +662,7 @@ public:
 /*  Contains the objects and functions that need to be templated on the number of state variables.
  */
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+//template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
 template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
@@ -672,6 +675,7 @@ protected:
 
 public:
     using DGBase<dim,real,MeshType>::all_parameters; ///< Parallel std::cout that only outputs on mpi_rank==0
+	///Number of states for the artificial dissipation class, differs for physics type.
     /// Constructor.
     DGBaseState(
         const Parameters::AllParameters *const parameters_input,
@@ -686,6 +690,8 @@ public:
     std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, real > > conv_num_flux_double;
     /// Dissipative numerical flux with real type
     std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, real > > diss_num_flux_double;
+	/// Artificial dissipation pointer
+    std::unique_ptr <ArtificialDissipationBase<dim,nstate>> artificial_dissipation_pointer;
 
     /// Contains the physics of the PDE with FadType
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, FadType > > pde_physics_fad;

@@ -43,6 +43,7 @@
 #include "dg.h"
 #include "physics/physics_factory.h"
 #include "post_processor/physics_post_processor.h"
+#include "artificial_dissipation.h"
 
 #include <deal.II/numerics/derivative_approximation.h>
 #include <deal.II/grid/grid_refinement.h>
@@ -259,11 +260,33 @@ DGBaseState<dim,nstate,real,MeshType>::DGBaseState(
     const std::shared_ptr<Triangulation> triangulation_input)
     : DGBase<dim,real,MeshType>::DGBase(nstate, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input) // Use DGBase constructor
 {
-    pde_physics_double = Physics::PhysicsFactory<dim,nstate,real> ::create_Physics(parameters_input);
-    pde_physics_fad = Physics::PhysicsFactory<dim,nstate,FadType> ::create_Physics(parameters_input);
-    pde_physics_rad = Physics::PhysicsFactory<dim,nstate,RadType> ::create_Physics(parameters_input);
+    pde_physics_double  = Physics::PhysicsFactory<dim,nstate,real>       ::create_Physics(parameters_input);
+    pde_physics_fad     = Physics::PhysicsFactory<dim,nstate,FadType>    ::create_Physics(parameters_input);
+    pde_physics_rad     = Physics::PhysicsFactory<dim,nstate,RadType>    ::create_Physics(parameters_input);
     pde_physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType> ::create_Physics(parameters_input);
     pde_physics_rad_fad = Physics::PhysicsFactory<dim,nstate,RadFadType> ::create_Physics(parameters_input);
+    
+    if (parameters_input->physical_artificial_dissipation)
+	{
+		if constexpr(dim+2==nstate)
+		{
+			artificial_dissipation_pointer = std::make_unique<PhysicalArtificialDissipation<dim,nstate>>(parameters_input);
+			std::cout<<"Physical Artifical Dissipation pointer created"<<std::endl;
+		}
+		else
+		{
+			std::cout<<"Cannot create PHYSICAL ARTIFICIAL DISSIPATION pointer. nstate != dim+2. ERROR!"<<std::endl;
+		}
+	}
+	else 
+	{
+		dealii::Tensor<2,3,double> diffusion_tensor;
+		diffusion_tensor[0][0]=1.0;	diffusion_tensor[0][1]=0.0; diffusion_tensor[0][2]=0.0; 
+		diffusion_tensor[1][0]=0.0; diffusion_tensor[1][1]=1.0; diffusion_tensor[1][2]=0.0; 
+		diffusion_tensor[2][0]=0.0;	diffusion_tensor[2][1]=0.0; diffusion_tensor[2][2]=1.0;
+		artificial_dissipation_pointer = std::make_unique<LaplacianArtificialDissipation<dim,nstate>>(diffusion_tensor);
+		std::cout<<"Laplacian Artifical Dissipation pointer created"<<std::endl;
+    }
 
     reset_numerical_fluxes();
 }
@@ -980,10 +1003,10 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
         //const double s_0 = -0.5 - 4.25*log10(degree);
         //const double kappa = 1.0;
 
-        const double mu_scale = 1.0 * 1e-0;
+        const double mu_scale = all_parameters->mu_artificial_dissipation; //1.0
         //const double s_0 = - 4.25*log10(degree);
         const double s_0 = -0.00 - 4.00*log10(degree);
-        const double kappa = 1.0;
+        const double kappa = all_parameters->kappa_artificial_dissipation; //1.0
         const double low = s_0 - kappa;
         const double upp = s_0 + kappa;
 

@@ -78,26 +78,31 @@ This section is aimed McGill's group who use Compute Canada's Beluga cluster.
 
 The deal.II library is already installed in `/project/rrg-nadaraja-ac/Libraries/dealii/install`. The required modules were installed by Bart Oldeman from Compute Canada's team through modules. Therefore, simply put the following line in your .bashrc and source it.
 ~~~~
-module purge
-module load gcc/7.3.0
-module load trilinos/12.12.1
+module --force purge
+module load StdEnv/2020
+module load gcc/9.3.0
+module load openmpi/4.0.3
+module load petsc/3.14.1
+module load trilinos/13.0.1
 export TRILINOS_DIR=$EBROOTTRILINOS
+module load opencascade/7.5.0
+module load gmsh/4.7.0
 module load metis/5.1.0
-module load muparser/2.2.6
-module load boost-mpi/1.68.0
-module load p4est/2.0
-module load petsc/3.10.2
+module load muparser/2.3.2
+module load boost-mpi/1.72.0
+module load p4est/2.2
 export P4EST_DIR=$EBROOTP4EST
-module load slepc/3.10.2
-module load gmsh/4.0.7
-module load gsl/2.5
-module load cmake/3.12.3
-module load netcdf-mpi
+module load slepc/3.14.2
+module load gsl/2.6
+module load cmake/3.18.4
+module load netcdf-c++-mpi/4.2
 export METIS_DIR=$EBROOTMETIS
 export GSL_DIR=$EBROOTGSL
 export P4EST_DIR=$EBROOTP4EST
-
-export DEAL_II_DIR=/project/rrg-nadaraja-ac/Libraries/dealii/install
+export METIS_DIR=/cvmfs/soft.computecanada.ca/easybuild/software/2017/avx512/Compiler/intel2018.3/metis/5.1.0
+export DEAL_II_DIR=/project/rrg-nadaraja-ac/Libraries/dealii_updated/dealii/install/install
+export GMSH_DIR=/cvmfs/soft.computecanada.ca/easybuild/software/2020/avx512/Compiler/intel2020/gmsh/4.7.0
+export OMP_NUM_THREADS=1
 ~~~~
 
 Ideally, you would have forked your own version of PHiLiP if you plan on developing. See the following link for the [forking workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/forking-workflow).

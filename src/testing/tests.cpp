@@ -25,6 +25,7 @@
 #include "euler_bump_optimization.h"
 #include "euler_naca0012_optimization.hpp"
 #include "shock_1d.h"
+#include "reduced_order.h"
 #include "euler_naca0012.hpp"
 
 namespace PHiLiP {
@@ -131,6 +132,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerNACAOptimization<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::shock_1d) {
         if constexpr (dim==1 && nstate==1) return std::make_unique<Shock1D<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::reduced_order) {
+        if constexpr (dim==1 && nstate==1) return std::make_unique<ReducedOrder<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_naca0012) {
         if constexpr (dim==2 && nstate==4) return std::make_unique<EulerNACA0012<dim,nstate>>(parameters_input);
     } else{

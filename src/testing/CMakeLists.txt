@@ -17,7 +17,7 @@ set(TESTS_SOURCE
     advection_explicit_periodic.cpp
     euler_split_inviscid_taylor_green_vortex.cpp
  optimization_inverse_manufactured/optimization_inverse_manufactured.cpp
-)
+        reduced_order.cpp reduced_order.h)
 
 foreach(dim RANGE 1 3)
     # Output library

@@ -1,5 +1,8 @@
 # Listing of Parameters
 # ---------------------
+
+set test_type = reduced_order
+
 # Number of dimensions
 set dimension = 1
 
@@ -11,6 +14,11 @@ set use_weak_form = true
 
 set use_collocated_nodes = false
 
+#Test new reduced order subsection
+subsection reduced order
+  set mach_number = 0.3
+end
+
 subsection ODE solver
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations            = 500
@@ -19,27 +27,9 @@ subsection ODE solver
   set nonlinear_steady_residual_tolerance = 1e-12
 
   # Print every print_iteration_modulo iterations of the nonlinear solver
-  set print_iteration_modulo              = 1
+  #set print_iteration_modulo              = 10
 
   # Explicit or implicit solverChoices are <explicit|implicit>.
   set ode_solver_type                         = implicit
 end
 
-subsection manufactured solution convergence study
-  set use_manufactured_source_term = true
-  # Last degree used for convergence study
-  set degree_end        = 3
-
-  # Starting degree for convergence study
-  set degree_start      = 1
-
-  # Multiplier on grid size. nth-grid will be of size
-  # (initial_grid^grid_progression)^dim
-  set grid_progression  = 1.5
-
-  # Initial grid of size (initial_grid_size)^dim
-  set initial_grid_size = 3
-
-  # Number of grids in grid study
-  set number_of_grids   = 6
-end

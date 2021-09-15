@@ -12,6 +12,7 @@ AllParameters::AllParameters ()
     , linear_solver_param(LinearSolverParam())
     , euler_param(EulerParam())
     , navier_stokes_param(NavierStokesParam())
+    , rom_param(ROMParam())
     , grid_refinement_study_param(GridRefinementStudyParam())
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 { }
@@ -107,6 +108,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler_naca_optimization | "
                       " shock_1d | "
                       " euler_naca0012 | "
+                      " reduced_order | "
                       " advection_periodicity"),
                       "The type of test we want to solve. "
                       "Choices are (only run control has been coded up for now)" 
@@ -126,6 +128,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_naca_optimization | "
                       "  shock_1d | "
                       "  euler_naca0012 | "
+                      "  reduced_order |"
                       "  advection_periodicity >.");
 
     prm.declare_entry("pde_type", "advection",
@@ -166,6 +169,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     Parameters::EulerParam::declare_parameters (prm);
     Parameters::NavierStokesParam::declare_parameters (prm);
 
+    Parameters::ROMParam::declare_parameters (prm);
     Parameters::GridRefinementStudyParam::declare_parameters (prm);
 
     pcout << "Done declaring inputs." << std::endl;
@@ -199,6 +203,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "euler_bump_optimization")           { test_type = euler_bump_optimization; }
     else if (test_string == "euler_naca_optimization")           { test_type = euler_naca_optimization; }
     else if (test_string == "shock_1d")                          { test_type = shock_1d; }
+    else if (test_string == "reduced_order")                     { test_type = reduced_order; }
     else if (test_string == "euler_naca0012")                    { test_type = euler_naca0012; }
     else if (test_string == "optimization_inverse_manufactured") {test_type = optimization_inverse_manufactured; }
     
@@ -286,6 +291,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     pcout << "Parsing navier stokes subsection..." << std::endl;
     navier_stokes_param.parse_parameters (prm);
+
+    pcout << "Parsing reduced order subsection..." << std::endl;
+    rom_param.parse_parameters (prm);
 
     pcout << "Parsing grid refinement study subsection..." << std::endl;
     grid_refinement_study_param.parse_parameters (prm);

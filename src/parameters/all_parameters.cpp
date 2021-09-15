@@ -86,6 +86,18 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Persson's subscell shock capturing artificial dissipation.");
 
+    prm.declare_entry("physical_artificial_dissipation", "false",
+                      dealii::Patterns::Bool(),
+                      "If true, Physical Artificial Dissipation (from Persson's subscell shock capturing) is implemented. If false, Laplacian Artifiial Disspation is implemented.");
+    
+    prm.declare_entry("mu_artificial_dissipation", "1.0",
+                      dealii::Patterns::Double(-1e20,1e20),
+                      "Mu (viscosity) from Persson's subcell shock capturing.");
+					  
+    prm.declare_entry("kappa_artificial_dissipation", "1.0",
+                      dealii::Patterns::Double(-1e20,1e20),
+                      "Kappa from Persson's subcell shock capturing");
+
     prm.declare_entry("sipg_penalty_factor", "1.0",
                       dealii::Patterns::Double(1.0,1e200),
                       "Scaling of Symmetric Interior Penalty term to ensure coercivity.");
@@ -249,6 +261,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_L2_norm = prm.get_bool("use_L2_norm");
     use_classical_FR = prm.get_bool("use_classical_Flux_Reconstruction");
     add_artificial_dissipation = prm.get_bool("add_artificial_dissipation");
+    physical_artificial_dissipation = prm.get_bool("physical_artificial_dissipation");
+    mu_artificial_dissipation = prm.get_double("mu_artificial_dissipation");
+    kappa_artificial_dissipation = prm.get_double("kappa_artificial_dissipation");
     sipg_penalty_factor = prm.get_double("sipg_penalty_factor");
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");

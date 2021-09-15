@@ -80,7 +80,7 @@ int EulerGaussianBump<dim,nstate>
         unsigned int n_grids = n_grids_input;
         if (poly_degree <= 1) n_grids = n_grids_input;
 
-        std::vector<double> entropy_error(n_grids);
+        std::vector<double> Error(n_grids);
         std::vector<double> grid_size(n_grids);
 
         const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids);
@@ -172,7 +172,7 @@ int EulerGaussianBump<dim,nstate>
 
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
 
-            const double entropy_inf = euler_physics_double.entropy_inf;
+           // const double entropy_inf = euler_physics_double.entropy_inf;
 
             // Integrate solution error and output error
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
@@ -188,10 +188,16 @@ int EulerGaussianBump<dim,nstate>
                         const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
                         soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
                     }
-                    const double entropy = euler_physics_double.compute_entropy_measure(soln_at_q);
 
-                    const double uexact = entropy_inf;
-                    l2error += pow(entropy - uexact, 2) * fe_values_extra.JxW(iquad);
+                   // const double unumerical = euler_physics_double.compute_entropy_measure(soln_at_q);
+
+                   // const double uexact = entropy_inf;
+
+				   const double pressure = euler_physics_double.compute_pressure(soln_at_q);
+				   const double unumerical = euler_physics_double.compute_specific_enthalpy(soln_at_q,pressure);
+				   const double uexact = euler_physics_double.gam*euler_physics_double.pressure_inf/euler_physics_double.density_inf*(1.0/euler_physics_double.gamm1+0.5*euler_physics_double.mach_inf_sqr);
+
+                    l2error += pow(unumerical - uexact, 2) * fe_values_extra.JxW(iquad);
                 }
             }
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
@@ -201,30 +207,32 @@ int EulerGaussianBump<dim,nstate>
             double dx = 1.0/pow(n_dofs,(1.0/dim));
             //dx = dealii::GridTools::maximal_cell_diameter(*grid);
             grid_size[igrid] = dx;
-            entropy_error[igrid] = l2error_mpi_sum;
+           Error[igrid] = l2error_mpi_sum;
 
             convergence_table.add_value("p", poly_degree);
             convergence_table.add_value("cells", n_global_active_cells);
             convergence_table.add_value("DoFs", n_dofs);
             convergence_table.add_value("dx", dx);
-            convergence_table.add_value("L2_entropy_error", l2error_mpi_sum);
+           // convergence_table.add_value("L2_Error", l2error_mpi_sum);
+            convergence_table.add_value("L2_enthalpy_error", l2error_mpi_sum);
+			convergence_table.add_value("Residual",ode_solver->residual_norm);
 
 
             pcout << " Grid size h: " << dx 
-                 << " L2-entropy_error: " << l2error_mpi_sum
+                 << " L2-Error: " << l2error_mpi_sum
                  << " Residual: " << ode_solver->residual_norm
                  << std::endl;
 
             if (igrid > 0) {
-                const double slope_soln_err = log(entropy_error[igrid]/entropy_error[igrid-1])
+                const double slope_soln_err = log(Error[igrid]/Error[igrid-1])
                                       / log(grid_size[igrid]/grid_size[igrid-1]);
                 pcout << "From grid " << igrid-1
                      << "  to grid " << igrid
                      << "  dimension: " << dim
                      << "  polynomial degree p: " << poly_degree
                      << std::endl
-                     << "  entropy_error1 " << entropy_error[igrid-1]
-                     << "  entropy_error2 " << entropy_error[igrid]
+                     << "  Error1 " << Error[igrid-1]
+                     << "  Error2 " << Error[igrid]
                      << "  slope " << slope_soln_err
                      << std::endl;
             }
@@ -234,20 +242,22 @@ int EulerGaussianBump<dim,nstate>
         pcout << " ********************************************" << std::endl
              << " Convergence rates for p = " << poly_degree << std::endl
              << " ********************************************" << std::endl;
-        convergence_table.evaluate_convergence_rates("L2_entropy_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+        convergence_table.evaluate_convergence_rates("L2_enthalpy_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.set_scientific("dx", true);
-        convergence_table.set_scientific("L2_entropy_error", true);
+        convergence_table.set_scientific("L2_enthalpy_error", true);
+		convergence_table.set_scientific("Residual",true);
+        //convergence_table.set_scientific("L2_Error", true);
         if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
 
         convergence_table_vector.push_back(convergence_table);
 
         const double expected_slope = poly_degree+1;
 
-        const double last_slope = log(entropy_error[n_grids-1]/entropy_error[n_grids-2])
+        const double last_slope = log(Error[n_grids-1]/Error[n_grids-2])
                                   / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
         //double before_last_slope = last_slope;
         //if ( n_grids > 2 ) {
-        //    before_last_slope = log(entropy_error[n_grids-2]/entropy_error[n_grids-3])
+        //    before_last_slope = log(Error[n_grids-2]/Error[n_grids-3])
         //                        / log(grid_size[n_grids-2]/grid_size[n_grids-3]);
         //}
         //const double slope_avg = 0.5*(before_last_slope+last_slope);

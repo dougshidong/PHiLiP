@@ -88,6 +88,14 @@ public:
      */
     bool add_artificial_dissipation;
 
+	/// Add physical artificial dissipation
+
+	bool physical_artificial_dissipation;
+
+	double mu_artificial_dissipation;
+
+	double kappa_artificial_dissipation;
+
     /// Scaling of Symmetric Interior Penalty term to ensure coercivity.
     /** 
      *  invisid shock, but loses all the order of accuracy for the Gaussian bump.

@@ -86,7 +86,7 @@ configure_file(2d_euler_l2roe_manufactured_navah.prm 2d_euler_l2roe_manufactured
 add_test(
   NAME MPI_2D_EULER_L2ROE_MANUFACTURED_SOLUTION_NAVAH_MEDIUM
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_l2roe_manufactured_navah.prm
-  WORKING_DIRECTORY ${TEST_OUTPUT_DIR} 
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
 # Exact solutions

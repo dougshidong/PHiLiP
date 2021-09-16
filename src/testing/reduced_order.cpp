@@ -31,7 +31,7 @@ namespace PHiLiP {
         template <int dim, int nstate>
         int ReducedOrder<dim, nstate>::run_test() const
         {
-            pcout << " Running Burgers " << std::endl;
+            pcout << " Running Burgers Rewienski" << std::endl;
             using Triangulation = dealii::Triangulation<dim>;
             std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>();
 
@@ -41,12 +41,12 @@ namespace PHiLiP {
             double right = 2.0;
             const bool colorize = true;
             int n_refinements = 5;
-            unsigned int poly_degree = 3;
+            unsigned int poly_degree = 5;
             dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
 
-            std::vector<dealii::GridTools::PeriodicFacePair<typename Triangulation::cell_iterator> > matched_pairs;
-            dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
-            grid->add_periodicity(matched_pairs);
+            //std::vector<dealii::GridTools::PeriodicFacePair<typename Triangulation::cell_iterator> > matched_pairs;
+            //dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
+            //grid->add_periodicity(matched_pairs);
 
 
             grid->refine_global(n_refinements);
@@ -61,7 +61,7 @@ namespace PHiLiP {
             std::string variables = "x";
             std::map<std::string,double> constants;
             constants["pi"] = dealii::numbers::PI;
-            std::string expression = "sin(pi*(x)) + 0.01";
+            std::string expression = "1";
             initial_condition.initialize(variables,
                                          expression,
                                          constants);
@@ -69,8 +69,8 @@ namespace PHiLiP {
             // Create ODE solver using the factory and providing the DG object
             std::shared_ptr<PHiLiP::ODE::ODESolver<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
-            double finalTime = 30.;
-            double dt = 0.5;
+            double finalTime = 10.;
+            double dt = 0.1;
 
             for (int i = 0; i < std::ceil(finalTime/dt); ++i) {
                 ode_solver->advance_solution_time(dt);

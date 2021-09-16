@@ -7,7 +7,7 @@ SET(SOURCE
     manufactured_solution.cpp
     mhd.cpp
     navier_stokes.cpp
-        burgers_modified.cpp burgers_modified.h)
+        burgers_rewienski.cpp burgers_rewienski.h)
 
 foreach(dim RANGE 1 3)
     # Output library

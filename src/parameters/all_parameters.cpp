@@ -138,7 +138,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                           " convection_diffusion | "
                           " advection_vector | "
                           " burgers_inviscid | "
-                          " burgers_modified | "
+                          " burgers_rewienski | "
                           " euler |"
                           " mhd |"
                           " navier_stokes"),
@@ -149,7 +149,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  convection_diffusion | "
                       "  advection_vector | "
                       "  burgers_inviscid | "
-                      "  burgers_modified | "
+                      "  burgers_rewienski | "
                       "  euler | "
                       "  mhd |"
                       "  navier_stokes>.");
@@ -225,8 +225,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     } else if (pde_string == "burgers_inviscid") {
         pde_type = burgers_inviscid;
         nstate = dimension;
-    } else if (pde_string == "burgers_modified") {
-        pde_type = burgers_modified;
+    } else if (pde_string == "burgers_rewienski") {
+        pde_type = burgers_rewienski;
         nstate = dimension;
     } else if (pde_string == "euler") {
         pde_type = euler;

@@ -1,5 +1,5 @@
-#ifndef __BURGERS_MODIFIED__
-#define __BURGERS_MODIFIED__
+#ifndef __BURGERS_REWIENSKI__
+#define __BURGERS_REWIENSKI__
 
 #include <deal.II/base/tensor.h>
 
@@ -27,7 +27,7 @@ namespace PHiLiP {
  *  \f]
  */
         template <int dim, int nstate, typename real>
-        class BurgersModified : public PhysicsBase <dim, nstate, real>
+        class BurgersRewienski : public PhysicsBase <dim, nstate, real>
         {
         protected:
             /// Diffusion scaling coefficient in front of the diffusion tensor.
@@ -40,7 +40,7 @@ namespace PHiLiP {
             const bool hasDiffusion;
 
             /// Constructor
-            BurgersModified(
+            BurgersRewienski(
                     const bool                                                convection = true,
                     const bool                                                diffusion = true,
                     const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
@@ -53,7 +53,7 @@ namespace PHiLiP {
             };
 
             /// Destructor
-            ~BurgersModified () {};
+            ~BurgersRewienski () {};
             /// Convective flux: \f$ \mathbf{F}_{conv} =  u \f$
             std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (const std::array<real,nstate> &solution) const;
 

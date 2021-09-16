@@ -10,7 +10,7 @@
 #include "physics.h"
 #include "convection_diffusion.h"
 #include "burgers.h"
-#include "burgers_modified.h"
+#include "burgers_rewienski.h"
 #include "euler.h"
 #include "mhd.h"
 #include "navier_stokes.h"
@@ -60,9 +60,9 @@ PhysicsFactory<dim,nstate,real>
                 true, false,
                 diffusion_tensor, 
                 manufactured_solution_function);
-    } else if (pde_type == PDE_enum::burgers_modified) {
+    } else if (pde_type == PDE_enum::burgers_rewienski) {
         if constexpr (nstate==dim)
-            return std::make_shared < BurgersModified<dim,nstate,real> >(
+            return std::make_shared < BurgersRewienski<dim,nstate,real> >(
                     true, false,
                     diffusion_tensor,
                     manufactured_solution_function);

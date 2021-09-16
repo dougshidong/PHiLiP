@@ -1,12 +1,12 @@
 #include "ADTypes.hpp"
 
-#include "burgers_modified.h"
+#include "burgers_rewienski.h"
 
 namespace PHiLiP {
     namespace Physics {
 
         template <int dim, int nstate, typename real>
-        void BurgersModified<dim,nstate,real>
+        void BurgersRewienski<dim,nstate,real>
         ::boundary_face_values (
                 const int /*boundary_type*/,
                 const dealii::Point<dim, real> &pos,
@@ -32,7 +32,8 @@ namespace PHiLiP {
                     // soln_bc[istate] = boundary_values[istate];
                     // soln_grad_bc[istate] = soln_grad_int[istate];
 
-                    soln_bc[istate] = boundary_values[istate];
+                    //soln_bc[istate] = boundary_values[istate];
+                    soln_bc[istate] = 2.5;
                     soln_grad_bc[istate] = soln_grad_int[istate];
 
                 } else { // Neumann boundary condition
@@ -54,7 +55,7 @@ namespace PHiLiP {
         }
 
         template <int dim, int nstate, typename real>
-        std::array<dealii::Tensor<1,dim,real>,nstate> BurgersModified<dim,nstate,real>
+        std::array<dealii::Tensor<1,dim,real>,nstate> BurgersRewienski<dim,nstate,real>
         ::convective_flux (const std::array<real,nstate> &solution) const
         {
             std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
@@ -67,7 +68,7 @@ namespace PHiLiP {
         }
 
         template <int dim, int nstate, typename real>
-        std::array<dealii::Tensor<1,dim,real>,nstate> BurgersModified<dim,nstate,real>::convective_numerical_split_flux (
+        std::array<dealii::Tensor<1,dim,real>,nstate> BurgersRewienski<dim,nstate,real>::convective_numerical_split_flux (
                 const std::array<real,nstate> &soln_const,
                 const std::array<real,nstate> & soln_loop) const
         {
@@ -81,7 +82,7 @@ namespace PHiLiP {
         }
 
         template <int dim, int nstate, typename real>
-        real BurgersModified<dim,nstate,real>
+        real BurgersRewienski<dim,nstate,real>
         ::diffusion_coefficient () const
         {
             if(hasDiffusion) return this->diffusion_scaling_coeff;
@@ -90,7 +91,7 @@ namespace PHiLiP {
         }
 
         template <int dim, int nstate, typename real>
-        std::array<real,nstate> BurgersModified<dim,nstate,real>
+        std::array<real,nstate> BurgersRewienski<dim,nstate,real>
         ::convective_eigenvalues (
                 const std::array<real,nstate> &solution,
                 const dealii::Tensor<1,dim,real> &normal) const
@@ -106,7 +107,7 @@ namespace PHiLiP {
         }
 
         template <int dim, int nstate, typename real>
-        real BurgersModified<dim,nstate,real>
+        real BurgersRewienski<dim,nstate,real>
         ::max_convective_eigenvalue (const std::array<real,nstate> &soln) const
         {
             real max_eig = 0;
@@ -120,7 +121,7 @@ namespace PHiLiP {
         }
 
         template <int dim, int nstate, typename real>
-        std::array<dealii::Tensor<1,dim,real>,nstate> BurgersModified<dim,nstate,real>
+        std::array<dealii::Tensor<1,dim,real>,nstate> BurgersRewienski<dim,nstate,real>
         ::dissipative_flux (
                 const std::array<real,nstate> &/*solution*/,
                 const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const
@@ -139,7 +140,7 @@ namespace PHiLiP {
         }
 
         template <int dim, int nstate, typename real>
-        std::array<real,nstate> BurgersModified<dim,nstate,real>
+        std::array<real,nstate> BurgersRewienski<dim,nstate,real>
         ::source_term (
                 const dealii::Point<dim,real> &pos,
                 const std::array<real,nstate> &/*solution*/) const
@@ -203,11 +204,11 @@ namespace PHiLiP {
             return source;
         }
 
-        template class BurgersModified < PHILIP_DIM, PHILIP_DIM, double >;
-        template class BurgersModified < PHILIP_DIM, PHILIP_DIM, FadType  >;
-        template class BurgersModified < PHILIP_DIM, PHILIP_DIM, RadType  >;
-        template class BurgersModified < PHILIP_DIM, PHILIP_DIM, FadFadType >;
-        template class BurgersModified < PHILIP_DIM, PHILIP_DIM, RadFadType >;
+        template class BurgersRewienski < PHILIP_DIM, PHILIP_DIM, double >;
+        template class BurgersRewienski < PHILIP_DIM, PHILIP_DIM, FadType  >;
+        template class BurgersRewienski < PHILIP_DIM, PHILIP_DIM, RadType  >;
+        template class BurgersRewienski < PHILIP_DIM, PHILIP_DIM, FadFadType >;
+        template class BurgersRewienski < PHILIP_DIM, PHILIP_DIM, RadFadType >;
 
     } // Physics namespace
 } // PHiLiP namespace

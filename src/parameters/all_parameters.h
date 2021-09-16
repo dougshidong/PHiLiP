@@ -128,6 +128,7 @@ public:
         convection_diffusion,
         advection_vector,
         burgers_inviscid,
+        burgers_modified,
         euler,
         mhd,
         navier_stokes,

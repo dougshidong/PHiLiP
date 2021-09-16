@@ -28,6 +28,8 @@ DGFactory<dim,real,MeshType>
             return std::make_shared< DGWeak<dim,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::burgers_inviscid) {
             return std::make_shared< DGWeak<dim,dim,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+        } else if (pde_type == PDE_enum::burgers_modified) {
+            return std::make_shared< DGWeak<dim,dim,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::euler) {
             return std::make_shared< DGWeak<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::navier_stokes) {
@@ -43,6 +45,8 @@ DGFactory<dim,real,MeshType>
         } else if (pde_type == PDE_enum::convection_diffusion) {
             return std::make_shared< DGStrong<dim,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::burgers_inviscid) {
+            return std::make_shared< DGStrong<dim,dim,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+        } else if (pde_type == PDE_enum::burgers_modified) {
             return std::make_shared< DGStrong<dim,dim,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::euler) {
             return std::make_shared< DGStrong<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);

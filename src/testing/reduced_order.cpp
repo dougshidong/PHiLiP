@@ -28,11 +28,10 @@ namespace PHiLiP {
                 : TestsBase::TestsBase(parameters_input)
         {}
 
-
         template <int dim, int nstate>
         int ReducedOrder<dim, nstate>::run_test() const
         {
-            pcout << " Running Burgers energy stability. " << std::endl;
+            pcout << " Running Burgers " << std::endl;
             using Triangulation = dealii::Triangulation<dim>;
             std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>();
 
@@ -73,10 +72,12 @@ namespace PHiLiP {
             double finalTime = 30.;
             double dt = 0.5;
 
-            for (int i = 0; i < std::ceil(finalTime/dt); ++ i) {
+            for (int i = 0; i < std::ceil(finalTime/dt); ++i) {
                 ode_solver->advance_solution_time(dt);
                 dg->output_results_vtk(i);
             }
+
+
 
             //TEST NEW PARAMETER
             pcout << "***TESTING NEW ROM PARAMETER***";

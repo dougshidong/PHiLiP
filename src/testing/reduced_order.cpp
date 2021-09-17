@@ -38,9 +38,9 @@ namespace PHiLiP {
             const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
             double left = 0.0;
-            double right = 2.0;
+            double right = 100.0;
             const bool colorize = true;
-            int n_refinements = 5;
+            int n_refinements = 6;
             unsigned int poly_degree = 5;
             dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
 
@@ -69,15 +69,30 @@ namespace PHiLiP {
             // Create ODE solver using the factory and providing the DG object
             std::shared_ptr<PHiLiP::ODE::ODESolver<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
-            double finalTime = 10.;
+            const unsigned int n_global_active_cells = grid->n_global_active_cells();
+            const unsigned int n_dofs = dg->dof_handler.n_dofs();
+            pcout << "Dimension: " << dim
+                  << "\t Polynomial degree p: " << poly_degree
+                  << std::endl
+                  << ". Number of active cells: " << n_global_active_cells
+                  << ". Number of degrees of freedom: " << n_dofs
+                  << std::endl;
+
+            double finalTime = 800.;
+
+
+            ode_solver->advance_solution_time(finalTime);
+
+            /*
             double dt = 0.1;
 
             for (int i = 0; i < std::ceil(finalTime/dt); ++i) {
                 ode_solver->advance_solution_time(dt);
-                dg->output_results_vtk(i);
+                if(i % 10 == 0){
+                    dg->output_results_vtk(i);
+                }
             }
-
-
+            */
 
             //TEST NEW PARAMETER
             pcout << "***TESTING NEW ROM PARAMETER***";

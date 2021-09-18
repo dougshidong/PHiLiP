@@ -73,6 +73,8 @@ public:
     /** Calls the Function(const unsigned int n_components) constructor in deal.II
      *  This sets the public attribute n_components = nstate, which can then be accessed
      *  by all the other functions
+     *  Reference: Gassner2016split, plata2019performance
+     *  These initial conditions are given in nondimensional form (free-stream as reference)
      */
     TaylorGreenVortex_InitialCondition (
         const unsigned int nstate,

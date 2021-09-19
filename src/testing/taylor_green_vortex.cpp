@@ -187,7 +187,35 @@ inline dealii::Tensor<1,dim,real> InitialConditionFunction_TaylorGreenVortex<dim
     return gradient;
 }
 
+
+template <int dim, int nstate>
+int TaylorGreenVortex<dim, nstate>::run_test() const
+{
+    // pcout << " Running Burgers energy stability. " << std::endl;
+
+    // // Grid Generation
+    // using Triangulation = dealii::Triangulation<dim>;
+    // std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>();
+   
+    // double left = 0.0;
+    // double right = 2.0;
+    // const bool colorize = true;
+    // int n_refinements = 5;
+    // unsigned int poly_degree = 7;
+    // dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
+   
+    // std::vector<dealii::GridTools::PeriodicFacePair<typename Triangulation::cell_iterator> > matched_pairs;
+    // dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
+    // grid->add_periodicity(matched_pairs);
+   
+   
+    // grid->refine_global(n_refinements);
+    // pcout << "Grid generated and refined" << std::endl;
+}
+
+
 #if PHILIP_DIM==3
+    // InitialConditionFunction
     template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM,PHILIP_DIM+2>;
 #endif
 

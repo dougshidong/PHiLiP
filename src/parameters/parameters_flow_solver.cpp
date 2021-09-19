@@ -24,9 +24,13 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
 
 void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
 {   
-    const std::string flow_case_type_string = prm.get("flow_case_type");
-    if     (flow_case_type_string == "inviscid_taylor_green_vortex")  {flow_case_type = inviscid_taylor_green_vortex;} 
-    else if(flow_case_type_string == "viscous_taylor_green_vortex")   {flow_case_type = viscous_taylor_green_vortex;} 
+    prm.enter_subsection("flow_solver");
+    {
+        const std::string flow_case_type_string = prm.get("flow_case_type");
+        if     (flow_case_type_string == "inviscid_taylor_green_vortex")  {flow_case_type = inviscid_taylor_green_vortex;} 
+        else if(flow_case_type_string == "viscous_taylor_green_vortex")   {flow_case_type = viscous_taylor_green_vortex;} 
+    }
+    prm.leave_subsection();
 }
 
 } // Parameters namespace

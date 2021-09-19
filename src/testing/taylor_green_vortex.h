@@ -1,8 +1,13 @@
-#ifndef __INITIALCONDITIONFUNCTION_H__
-#define __INITIALCONDITIONFUNCTION_H__
+#ifndef __TAYLOR_GREEN_VORTEX_H__
+#define __TAYLOR_GREEN_VORTEX_H__
 
+#include "flow_solver.h"
+
+// header files for all flow cases:
+#include "taylor_green_vortex.h"
+
+// for InitialConditionFunction:
 #include <deal.II/lac/vector.h>
-
 #include <deal.II/base/function.h>
 
 //#include <Sacado.hpp>
@@ -14,48 +19,9 @@
 namespace PHiLiP {
 namespace Tests {
 
-
-/// Manufactured solution used for grid studies to check convergence orders.
-/** This class also provides derivatives necessary  to evaluate source terms.
- */
+/// Initial Condition Function: Taylor Green Vortex
 template <int dim, typename real>
-class InitialConditionFunction_FlowSolver : public dealii::Function<dim,real>
-{
-// We want the Point to be templated on the type,
-// however, dealii does not template that part of the Function.
-// Therefore, we end up overloading the functions and need to "import"
-// those non-overloaded functions to avoid the warning -Woverloaded-virtual
-// See: https://stackoverflow.com/questions/18515183/c-overloaded-virtual-function-warning-by-clang
-protected:
-    using dealii::Function<dim,real>::value;
-    using dealii::Function<dim,real>::gradient;
-    using dealii::Function<dim,real>::hessian;
-    // using dealii::Function<dim,real>::vector_gradient; // TO DO: is this needed?
-public:
-    const unsigned int nstate; ///< Corresponds to n_components in the dealii::Function
-    /// Constructor
-    InitialConditionFunction_FlowSolver(const unsigned int nstate);
-    /// Destructor
-    ~InitialConditionFunction_FlowSolver() {};
-
-    /// Value of the initial condition
-    virtual real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const = 0;
-
-    /// Gradient of the initial condition
-    virtual dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const = 0;
-
-    /// Hessian of the initial condition
-    virtual dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const = 0;
-
-    /// See dealii::Function<dim,real>::vector_gradient [TO DO: Is this necessary?]
-    // void vector_gradient (const dealii::Point<dim,real> &p,
-    //                       std::vector<dealii::Tensor<1,dim, real> > &gradients) const;
-protected:
-
-};
-
-template <int dim, typename real>
-class TaylorGreenVortex_InitialCondition
+class InitialConditionFunction_TaylorGreenVortex
     : public InitialConditionFunction_FlowSolver<dim,real>
 {
 // We want the Point to be templated on the type,
@@ -76,7 +42,7 @@ public:
      *  Reference: Gassner2016split, plata2019performance
      *  These initial conditions are given in nondimensional form (free-stream as reference)
      */
-    TaylorGreenVortex_InitialCondition (
+    InitialConditionFunction_TaylorGreenVortex (
         const unsigned int nstate,
         const double       gamma_gas,
         const double       mach_inf_sqr);
@@ -100,9 +66,6 @@ protected:
     /// Converts gradient from: primitive to conservative
     dealii::Tensor<1,dim,real> convert_primitive_to_conversative_gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 };
-
-// protected:
-//     using dealii::Function<dim,real>::value;
 
 } // Tests namespace
 } // PHiLiP namespace

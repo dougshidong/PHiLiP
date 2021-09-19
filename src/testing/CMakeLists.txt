@@ -19,7 +19,9 @@ set(TESTS_SOURCE
     euler_split_inviscid_taylor_green_vortex.cpp
     optimization_inverse_manufactured/optimization_inverse_manufactured.cpp
     burgers_rewienski_snapshot.cpp
-    reduced_order.cpp)
+    reduced_order.cpp
+    flow_solver.cpp
+    initial_condition.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

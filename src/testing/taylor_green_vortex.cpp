@@ -1,20 +1,12 @@
+#include "taylor_green_vortex.h"
+
 namespace PHiLiP {
 namespace Tests {
 
 // done
 template <int dim, typename real>
-InitialConditionFunction_FlowSolver<dim,real>
-::InitialConditionFunction_FlowSolver (const unsigned int nstate)
-    :
-    dealii::Function<dim,real>(nstate,0.0) // 0.0 denotes initial time (t=0)
-    , nstate(nstate)
-{ 
-    // Nothing to do here yet
-}
-// done
-template <int dim, typename real>
-TaylorGreenVortex_InitialCondition<dim,real>
-::TaylorGreenVortex_InitialCondition (
+InitialConditionFunction_TaylorGreenVortex<dim,real>
+::InitialConditionFunction_TaylorGreenVortex (
     const unsigned int nstate,
     const double       gamma_gas,
     const double       mach_inf_sqr)
@@ -23,11 +15,11 @@ TaylorGreenVortex_InitialCondition<dim,real>
     , mach_inf_sqr(mach_inf_sqr)    
 {
     // casting `nstate` as `int` to avoid errors
-    static_assert(((int)nstate)==dim+2, "Tests::TaylorGreenVortex_InitialCondition() should be created with nstate=dim+2");
+    static_assert(((int)nstate)==dim+2, "Tests::InitialConditionFunction_TaylorGreenVortex() should be created with nstate=dim+2");
 }
 // done
 template <int dim, typename real>
-real TaylorGreenVortex_InitialCondition<dim,real>
+real InitialConditionFunction_TaylorGreenVortex<dim,real>
 ::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     // Note: This is in non-dimensional form (free-stream values as reference)
@@ -60,7 +52,7 @@ real TaylorGreenVortex_InitialCondition<dim,real>
 }
 // done
 template <int dim, typename real>
-real TaylorGreenVortex_InitialCondition<dim,real>
+real InitialConditionFunction_TaylorGreenVortex<dim,real>
 ::convert_primitive_to_conversative_value(
     const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
@@ -84,7 +76,7 @@ real TaylorGreenVortex_InitialCondition<dim,real>
 }
 // done
 template <int dim, typename real>
-inline real TaylorGreenVortex_InitialCondition<dim,real>
+inline real InitialConditionFunction_TaylorGreenVortex<dim,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     real value = 0.0;
@@ -93,7 +85,7 @@ inline real TaylorGreenVortex_InitialCondition<dim,real>
 }
 // done
 template <int dim, typename real>
-dealii::Tensor<1,dim,real> TaylorGreenVortex_InitialCondition<dim,real>
+dealii::Tensor<1,dim,real> InitialConditionFunction_TaylorGreenVortex<dim,real>
 ::primitive_gradient (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::Tensor<1,dim,real> gradient;
@@ -136,7 +128,7 @@ dealii::Tensor<1,dim,real> TaylorGreenVortex_InitialCondition<dim,real>
 }
 // done
 template <int dim, typename real>
-dealii::Tensor<1,dim,real> TaylorGreenVortex_InitialCondition<dim,real>
+dealii::Tensor<1,dim,real> InitialConditionFunction_TaylorGreenVortex<dim,real>
 ::convert_primitive_to_conversative_gradient (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::Tensor<1,dim,real> gradient;
@@ -188,12 +180,16 @@ dealii::Tensor<1,dim,real> TaylorGreenVortex_InitialCondition<dim,real>
 }
 // done
 template <int dim, typename real>
-inline dealii::Tensor<1,dim,real> TaylorGreenVortex_InitialCondition<dim,real>
+inline dealii::Tensor<1,dim,real> InitialConditionFunction_TaylorGreenVortex<dim,real>
 ::gradient (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::Tensor<1,dim,real> gradient = convert_primitive_to_conversative_gradient(point, istate);
     return gradient;
 }
+
+#if PHILIP_DIM==3
+    template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM,PHILIP_DIM+2>;
+#endif
 
 } // Tests namespace
 } // PHiLiP namespace

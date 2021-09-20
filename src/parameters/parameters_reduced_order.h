@@ -11,7 +11,7 @@ namespace PHiLiP {
         public:
             double mach_number;
 
-            ROMParam (); ///< Constructor
+            ReducedOrderModelParam (); ///< Constructor
 
             /// Declares the possible variables and sets the defaults.
             static void declare_parameters (dealii::ParameterHandler &prm);

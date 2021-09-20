@@ -432,12 +432,13 @@ int GridStudy<dim,nstate>
             // dg->output_results_vtk(igrid);
             */
 
-            /*
-            // // Use gr->output_results_vtk(), which includes L2error per cell, instead of dg->output_results_vtk()
-            //std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  gr 
-            //    = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);
-            //if(poly_degree == 1) gr->output_results_vtk(igrid);
-            */
+            
+            // Use gr->output_results_vtk(), which includes L2error per cell, instead of dg->output_results_vtk()
+            std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  gr 
+               = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);
+            // if(poly_degree == 1) gr->output_results_vtk(igrid);
+            gr->output_results_vtk(igrid);
+            
 
             // Convergence table
             const double dx = 1.0/pow(n_dofs,(1.0/dim));

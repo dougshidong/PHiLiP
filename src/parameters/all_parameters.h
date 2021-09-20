@@ -37,7 +37,7 @@ public:
     /// Contains parameters for the Navier-Stokes equations non-dimensionalization
     NavierStokesParam navier_stokes_param;
     /// Contains parameters for the Reduced-Order model
-    ROMParam rom_param;
+    ReducedOrderModelParam rom_param;
     /// contains the parameters for grid refinement study
     GridRefinementStudyParam grid_refinement_study_param;
 

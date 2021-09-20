@@ -47,7 +47,7 @@ namespace PHiLiP {
 
             for (int istate=0; istate<nstate; istate++) {
                 double b = 0.02; //test b = 0.02
-                source[istate] = 0.02*exp(b*pos(0));
+                source[istate] = 0.02*exp(b*pos[0]);
             }
             return source;
         }

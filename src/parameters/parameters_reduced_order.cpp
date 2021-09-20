@@ -16,7 +16,7 @@ namespace PHiLiP {
             prm.leave_subsection();
         }
 
-        void ROMParam::parse_parameters (dealii::ParameterHandler &prm)
+        void ReducedOrderModelParam::parse_parameters (dealii::ParameterHandler &prm)
         {
             prm.enter_subsection("reduced order");
             {

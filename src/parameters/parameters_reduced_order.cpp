@@ -5,7 +5,7 @@ namespace PHiLiP {
 // NavierStokes inputs
         ReducedOrderModelParam::ReducedOrderModelParam () {}
 
-        void ROMParam::declare_parameters (dealii::ParameterHandler &prm)
+        void ReducedOrderModelParam::declare_parameters (dealii::ParameterHandler &prm)
         {
             prm.enter_subsection("reduced order");
             {

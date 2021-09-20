@@ -6,7 +6,7 @@
 namespace PHiLiP {
     namespace Parameters {
 /// Parameters related to basis creation for reduced-order model
-        class ROMParam
+        class ReducedOrderModelParam
         {
         public:
             double mach_number;

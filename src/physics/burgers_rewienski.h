@@ -30,7 +30,7 @@ namespace PHiLiP {
             /// Source term is zero or depends on manufactured solution
             std::array<real,nstate> source_term (
                     const dealii::Point<dim,real> &pos,
-                    const std::array<real,nstate> &solution) const;
+                    const std::array<real,nstate> &solution) const override;
 
             /// If diffusion is present, assign Dirichlet boundary condition
             /** Using Neumann boundary conditions might need to modify the functional

@@ -3,7 +3,7 @@ namespace PHiLiP {
     namespace Parameters {
 
 // NavierStokes inputs
-        ROMParam::ROMParam () {}
+        ReducedOrderModelParam::ReducedOrderModelParam () {}
 
         void ROMParam::declare_parameters (dealii::ParameterHandler &prm)
         {

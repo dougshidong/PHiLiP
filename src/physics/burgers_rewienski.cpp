@@ -20,7 +20,6 @@ namespace PHiLiP {
             std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
             for (int i=0; i<nstate; i++) {
                 boundary_values[i] = this->manufactured_solution_function->value (pos, i);
-                boundary_gradients[i] = this->manufactured_solution_function->gradient (pos, i);
             }
 
             for (int istate=0; istate<nstate; ++istate) {

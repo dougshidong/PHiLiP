@@ -171,7 +171,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     Parameters::EulerParam::declare_parameters (prm);
     Parameters::NavierStokesParam::declare_parameters (prm);
 
-    Parameters::ROMParam::declare_parameters (prm);
+    Parameters::ReducedOrderModelParam::declare_parameters (prm);
     Parameters::GridRefinementStudyParam::declare_parameters (prm);
 
     pcout << "Done declaring inputs." << std::endl;

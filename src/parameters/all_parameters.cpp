@@ -12,7 +12,7 @@ AllParameters::AllParameters ()
     , linear_solver_param(LinearSolverParam())
     , euler_param(EulerParam())
     , navier_stokes_param(NavierStokesParam())
-    , rom_param(ROMParam())
+    , rom_param(ReducedOrderModelParam())
     , grid_refinement_study_param(GridRefinementStudyParam())
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 { }

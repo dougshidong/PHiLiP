@@ -19,8 +19,7 @@ subsection reduced order
 end
 
 subsection ODE solver
-  set initial_time_step = 5
-
+  set initial_time_step = 0.05
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations            = 500
 
@@ -28,10 +27,10 @@ subsection ODE solver
   set nonlinear_steady_residual_tolerance = 1e-12
 
   # Print every print_iteration_modulo iterations of the nonlinear solver
-  set print_iteration_modulo              = 2
+  set print_iteration_modulo              = 5
 
   # Explicit or implicit solverChoices are <explicit|implicit>.
-  set ode_solver_type                         = implicit
+  set ode_solver_type                         = explicit
 end
 
 subsection manufactured solution convergence study

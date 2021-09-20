@@ -18,7 +18,7 @@ namespace PHiLiP {
         {
             std::array<real,nstate> boundary_values;
             for (int i=0; i<nstate; i++) {
-                boundary_values[i] = this->manufactured_solution_function->value (pos, i);
+                boundary_values[i] = sqrt(5); // corresponds to 'a' in eq.(?) of reference [fill this out]
             }
 
             for (int istate=0; istate<nstate; ++istate) {

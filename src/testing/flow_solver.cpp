@@ -1,17 +1,65 @@
-
-// for the actual test:
-#include "tests.h"
-#include "flow_solver.h" // which includes all required for InitialConditionFunction
-
 // for the grid:
 #include "grid_refinement_study.h"
-// -- which includes:
+// which includes:
 // #include "tests.h"
+// -- which includes:
+// -- // #include "parameters/all_parameters.h"
+// -- // #include <deal.II/grid/tria.h>
+// -- // #include <deal.II/base/conditional_ostream.h>
 // #include "dg/dg.h"
 // #include "physics/physics.h"
 // #include "parameters/all_parameters.h"
 // #include "grid_refinement/gnu_out.h"
 
+// for the actual test:
+#include "flow_solver.h" // which includes all required for InitialConditionFunction
+
+// whats in grid_refinement_study.cpp:
+#include <stdlib.h>     /* srand, rand */
+#include <iostream>
+// #include <chrono> // not needed?
+// #include <type_traits> // not needed?
+
+// #include <deal.II/base/convergence_table.h> // not needed?
+
+#include <deal.II/dofs/dof_tools.h>
+
+#include <deal.II/distributed/tria.h>
+
+// #include <deal.II/grid/tria.h> // included in tests.h
+#include <deal.II/distributed/shared_tria.h>
+#include <deal.II/distributed/tria.h>
+
+#include <deal.II/grid/grid_generator.h>
+// #include <deal.II/grid/grid_refinement.h> // not needed?
+// #include <deal.II/grid/grid_tools.h> // not needed?
+// #include <deal.II/grid/grid_out.h> // not needed?
+// #include <deal.II/grid/grid_in.h> // not needed?
+
+// #include <deal.II/numerics/vector_tools.h> // not needed?
+
+#include <deal.II/fe/fe_values.h>
+
+// #include <Sacado.hpp> // not needed?
+
+// #include "tests.h" // already included
+// #include "grid_refinement_study.h" // already included
+
+#include "physics/physics_factory.h"
+// #include "physics/manufactured_solution.h" // not needed?
+
+#include "dg/dg.h"
+#include "dg/dg_factory.hpp"
+
+#include "ode_solver/ode_solver.h"
+
+// #include "functional/functional.h" // not needed?
+// #include "functional/adjoint.h" // not needed?
+// #include "grid_refinement/grid_refinement.h" // not needed?
+// #include "grid_refinement/gmsh_out.h" // not needed?
+// #include "grid_refinement/msh_out.h" // not needed?
+// #include "grid_refinement/size_field.h" // not needed?
+// #include "grid_refinement/gnu_out.h" // not needed?
 
 namespace PHiLiP {
 namespace Tests {

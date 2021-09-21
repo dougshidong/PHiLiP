@@ -14,6 +14,9 @@
 
 // for FlowSolver class:
 #include "tests.h"
+#include "dg/dg.h"
+#include "physics/physics.h"
+#include "parameters/all_parameters.h"
 
 namespace PHiLiP {
 namespace Tests {

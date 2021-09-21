@@ -54,18 +54,57 @@ public:
     /// See dealii::Function<dim,real>::vector_gradient [TO DO: Is this necessary?]
     // void vector_gradient (const dealii::Point<dim,real> &p,
     //                       std::vector<dealii::Tensor<1,dim, real> > &gradients) const;
-protected:
+};
 
+/// Initial Condition Function: Taylor Green Vortex
+template <int dim, typename real>
+class InitialConditionFunction_TaylorGreenVortex
+    : public InitialConditionFunction_FlowSolver<dim,real>
+{
+// We want the Point to be templated on the type,
+// however, dealii does not template that part of the Function.
+// Therefore, we end up overloading the functions and need to "import"
+// those non-overloaded functions to avoid the warning -Woverloaded-virtual
+// See: https://stackoverflow.com/questions/18515183/c-overloaded-virtual-function-warning-by-clang
+protected:
+    using dealii::Function<dim,real>::value;
+    using dealii::Function<dim,real>::gradient;
+    // using dealii::Function<dim,real>::hessian;
+    // using dealii::Function<dim,real>::vector_gradient;
+public:
+    /// Constructor for TaylorGreenVortex_InitialCondition
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II
+     *  This sets the public attribute n_components = nstate, which can then be accessed
+     *  by all the other functions
+     *  Reference: Gassner2016split, plata2019performance
+     *  These initial conditions are given in nondimensional form (free-stream as reference)
+     */
+    InitialConditionFunction_TaylorGreenVortex (
+        const unsigned int nstate,
+        const double       gamma_gas,
+        const double       mach_inf_sqr);
+
+    const double gamma_gas; ///< Constant heat capacity ratio of fluid.
+    const double mach_inf_sqr; ///< Farfield Mach number squared.
+        
+    /// Value of initial condition expressed in terms of conservative variables
+    real value (const dealii::Point<dim> &point, const unsigned int istate = 0) const override;
+    /// Gradient of initial condition expressed in terms of conservative variables
+    dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+    /// Gradient of initial condition expressed in terms of primitive variables
+    dealii::Tensor<1,dim,real> primitive_gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+    /// Hessian of initial condition expressed in terms of primitive variables
+    dealii::SymmetricTensor<2,dim,real> primitive_hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+    /// Converts value from: primitive to conservative
+    real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+    /// Converts gradient from: primitive to conservative
+    dealii::Tensor<1,dim,real> convert_primitive_to_conversative_gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 };
 
 /// Initial condition function factory
-/** Based on input from Parameters file, generates a standard form
-  * of manufactured solution function with suitable value, gradient 
-  * and hessian functions for the chosen distribution type.
-  * 
-  * Functions are selected from enumerator list in 
-  * Parameters::FlowSolverParam::FlowCaseType
-  */ 
 template <int dim, typename real>
 class InitialConditionFactory_FlowSolver
 {
@@ -92,25 +131,20 @@ class FlowSolver: public TestsBase
 public:
     /// Constructor.
     FlowSolver(const Parameters::AllParameters *const parameters_input);
+    
     /// Destructor
     ~FlowSolver() {}; ///< Destructor.
+    
+    /// Initial condition function; Assigned in constructor
+    // std::shared_ptr< InitialConditionFunction_FlowSolver<dim,double> > initial_condition_function;
+    
+    /// Generates the grid from the parameters
+    // void get_grid() const;
 
-    // /// Warp grid into Gaussian bump
-    // static dealii::Point<dim> warp (const dealii::Point<dim> &p);
+    /// Initializes the solution with the initial condition // TO DO
+    // void initialize_solution(PHiLiP::DGBase<dim,double> &dg, const PHiLiP::Physics::PhysicsBase<dim,nstate,double> &physics) const;
 
-    // define virtuals here
-
-    /// Grid convergence on Euler Gaussian Bump [TO DO: Update this comment]
-    /** Will run the a grid convergence test for various p
-     *  on multiple grids to determine the order of convergence.
-     *
-     *  Expecting the solution to converge at p+1. and output to converge at 2p+1.
-     *  Note that the output solution currently convergens slightly suboptimally
-     *  depending on the case (around 2p). The implementation of the boundary conditions
-     *  play a large role on this adjoint consistency.
-     *  
-     *  Want to see entropy go to 0.
-     */
+    /// Runs the test (i.e. flow solver)
     int run_test () const;
 
 protected:

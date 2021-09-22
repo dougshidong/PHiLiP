@@ -57,6 +57,8 @@ cd build_release
 cmake -DDEAL_II_DIR=$DEAL_II_DIR ../PHiLiP -DMPIMAX=2 -DCMAKE_BUILD_TYPE=Release -DGMSH_DIR=$GMSH_DIR/bin/gmsh -DGMSH_LIB=$GMSH_DIR -DCMAKE_SKIP_INSTALL_RPATH=ON 
 make -j2
 
+cp ${SLURM_TMPDIR}/build_release/bin/PHiLiP_1D /home/brillon/scratch/PHiLiP_1D
+cp ${SLURM_TMPDIR}/build_release/bin/PHiLiP_2D /home/brillon/scratch/PHiLiP_2D
 cp ${SLURM_TMPDIR}/build_release/bin/PHiLiP_3D /home/brillon/scratch/PHiLiP_3D
 
 # ctest -R MPI_2D_NAVIER_STOKES_ROE_MANUFACTURED_SOLUTION_NAVAH_3_HIGH_ORDER -V

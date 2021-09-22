@@ -6,6 +6,26 @@ namespace PHiLiP {
     namespace Physics {
 
         template <int dim, int nstate, typename real>
+        BurgersRewienski<dim,nstate,real>::BurgersRewienski(
+                const double rewienski_a,
+                const double rewienski_b,
+                const bool convection,
+                const bool diffusion,
+                const dealii::Tensor<2, 3> input_diffusion_tensor,
+                std::shared_ptr<ManufacturedSolutionFunction<dim, real>> manufactured_solution_function)
+                : Burgers<dim, nstate, real>(convection,
+                                             diffusion,
+                                             input_diffusion_tensor,
+                                             manufactured_solution_function)
+                , rewienski_a(rewienski_a)
+                , rewienski_b(rewienski_b)
+        {
+            static_assert(nstate==dim, "Physics::Burgers() should be created with nstate==dim");
+        }
+
+
+
+        template <int dim, int nstate, typename real>
         void BurgersRewienski<dim,nstate,real>
         ::boundary_face_values (
                 const int /*boundary_type*/,
@@ -16,9 +36,10 @@ namespace PHiLiP {
                 std::array<real,nstate> &soln_bc,
                 std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
         {
+            (void) pos; //stop compiler from complaining about unused parameter
             std::array<real,nstate> boundary_values;
             for (int i=0; i<nstate; i++) {
-                boundary_values[i] = sqrt(5); // corresponds to 'a' in eq.(?) of reference [fill this out]
+                boundary_values[i] = rewienski_a; // corresponds to 'a' in eq.(18) of reference Carlberg 2013
             }
 
             for (int istate=0; istate<nstate; ++istate) {
@@ -27,7 +48,7 @@ namespace PHiLiP {
                 const bool inflow = (characteristic_dot_n[istate] <= 0.);
 
                 if (inflow || this->hasDiffusion) { // Dirichlet boundary condition
-                    soln_bc[istate] = sqrt(5); //for testing
+                    soln_bc[istate] = rewienski_a;
                     soln_grad_bc[istate] = soln_grad_int[istate];
 
                 } else { // Neumann boundary condition
@@ -46,7 +67,7 @@ namespace PHiLiP {
             std::array<real,nstate> source;
 
             for (int istate=0; istate<nstate; istate++) {
-                double b = 0.02; //test b = 0.02
+                double b = rewienski_b; // corresponds to 'b' in eq.(18) of reference Carlberg 2013
                 source[istate] = 0.02*exp(b*pos[0]);
             }
             return source;

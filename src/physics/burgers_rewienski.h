@@ -12,20 +12,18 @@ namespace PHiLiP {
         public:
             /// Constructor
             BurgersRewienski(
+                    const double                                              rewienski_a,
+                    const double                                              rewienski_b,
                     const bool                                                convection,
                     const bool                                                diffusion,
-                    const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
-                    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function)
-                    : Burgers<dim, nstate, real>(convection,
-                                                 diffusion,
-                                                 input_diffusion_tensor,
-                                                 manufactured_solution_function)
-            {
-                static_assert(nstate==dim, "Physics::Burgers() should be created with nstate==dim");
-            };
+                    const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
+                    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
 
             /// Destructor
             ~BurgersRewienski () {};
+
+            const double rewienski_a;
+            const double rewienski_b;
 
             /// Source term is zero or depends on manufactured solution
             std::array<real,nstate> source_term (
@@ -43,7 +41,7 @@ namespace PHiLiP {
                     const std::array<real,nstate> &/*soln_int*/,
                     const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
                     std::array<real,nstate> &/*soln_bc*/,
-                    std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
+                    std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const override;
 
         };
     } // Physics namespace

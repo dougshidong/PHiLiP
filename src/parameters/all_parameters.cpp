@@ -12,7 +12,7 @@ AllParameters::AllParameters ()
     , linear_solver_param(LinearSolverParam())
     , euler_param(EulerParam())
     , navier_stokes_param(NavierStokesParam())
-    , rom_param(ReducedOrderModelParam())
+    , reduced_order_param(ReducedOrderModelParam())
     , grid_refinement_study_param(GridRefinementStudyParam())
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 { }
@@ -298,7 +298,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     navier_stokes_param.parse_parameters (prm);
 
     pcout << "Parsing reduced order subsection..." << std::endl;
-    rom_param.parse_parameters (prm);
+    reduced_order_param.parse_parameters (prm);
 
     pcout << "Parsing grid refinement study subsection..." << std::endl;
     grid_refinement_study_param.parse_parameters (prm);

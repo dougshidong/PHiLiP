@@ -213,10 +213,10 @@ int ODESolver<dim,real,MeshType>::advance_solution_time (double time_advance)
     const unsigned int number_of_time_steps = static_cast<int>(ceil(time_advance/ode_param.initial_time_step));
     const double constant_time_step = time_advance/number_of_time_steps;
 
-    if (!valid_initial_conditions())
-    {
-        std::abort();
-    }
+    //if (!valid_initial_conditions())
+    //{
+        //std::abort();
+    //}
 
     pcout
         << " Advancing solution by " << time_advance << " time units, using "
@@ -245,7 +245,7 @@ int ODESolver<dim,real,MeshType>::advance_solution_time (double time_advance)
         pcout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
     }
 
-    const bool pseudotime = true;//false;
+    const bool pseudotime = false;
     step_in_time(constant_time_step, pseudotime);
 
 

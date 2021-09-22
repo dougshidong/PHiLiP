@@ -40,10 +40,9 @@ namespace PHiLiP {
             double left = 0.0;
             double right = 100.0;
             const bool colorize = true;
-            int n_refinements = 6;
-            unsigned int poly_degree = 5;
+            int n_refinements = 8;
+            unsigned int poly_degree = 0;
             dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
-
 
             grid->refine_global(n_refinements);
             pcout << "Grid generated and refined" << std::endl;
@@ -65,34 +64,21 @@ namespace PHiLiP {
             // Create ODE solver using the factory and providing the DG object
             std::shared_ptr<PHiLiP::ODE::ODESolver<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
-            const unsigned int n_global_active_cells = grid->n_global_active_cells();
-            const unsigned int n_dofs = dg->dof_handler.n_dofs();
+            //TEST NEW PARAMETER
+            pcout << "Running Burgers Rewienski with parameter a: "
+                  << param.reduced_order_param.rewienski_a
+                  << " and parameter b: "
+                  << param.reduced_order_param.rewienski_b;
+
             pcout << "Dimension: " << dim
                   << "\t Polynomial degree p: " << poly_degree
                   << std::endl
-                  << ". Number of active cells: " << n_global_active_cells
-                  << ". Number of degrees of freedom: " << n_dofs
+                  << ". Number of active cells: " << grid->n_global_active_cells()
+                  << ". Number of degrees of freedom: " << dg->dof_handler.n_dofs()
                   << std::endl;
 
             double finalTime = 50.;
-
-
             ode_solver->advance_solution_time(finalTime);
-
-            /*
-            double dt = 0.1;
-
-            for (int i = 0; i < std::ceil(finalTime/dt); ++i) {
-                ode_solver->advance_solution_time(dt);
-                if(i % 10 == 0){
-                    dg->output_results_vtk(i);
-                }
-            }
-            */
-
-            //TEST NEW PARAMETER
-            pcout << "***TESTING NEW ROM PARAMETER***";
-            pcout << param.rom_param.mach_number;
 
             return 0; //need to change
         }

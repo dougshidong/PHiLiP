@@ -63,6 +63,8 @@ PhysicsFactory<dim,nstate,real>
     } else if (pde_type == PDE_enum::burgers_rewienski) {
         if constexpr (nstate==dim)
             return std::make_shared < BurgersRewienski<dim,nstate,real> >(
+                    parameters_input->reduced_order_param.rewienski_a,
+                    parameters_input->reduced_order_param.rewienski_b,
                     true, false,
                     diffusion_tensor,
                     manufactured_solution_function);

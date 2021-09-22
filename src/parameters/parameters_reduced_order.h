@@ -9,7 +9,8 @@ namespace PHiLiP {
         class ReducedOrderModelParam
         {
         public:
-            double mach_number;
+            double rewienski_a;
+            double rewienski_b;
 
             ReducedOrderModelParam (); ///< Constructor
 

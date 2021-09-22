@@ -6,20 +6,19 @@ set test_type = reduced_order
 # Number of dimensions
 set dimension = 1
 
-# The PDE we want to solve. Choices are
-# <diffusion|diffusion|convection_diffusion>.
+# The PDE we want to solve.
 set pde_type  = burgers_rewienski
 set use_weak_form = true
-
 set use_collocated_nodes = false
 
-#Test new reduced order subsection
+#Reduced order parameters
 subsection reduced order
-  set mach_number = 0.3
+  set rewienski_a = 2
+  set rewienski_b = 0.08
 end
 
 subsection ODE solver
-  set initial_time_step = 0.05
+  set initial_time_step = 0.01
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations            = 500
 

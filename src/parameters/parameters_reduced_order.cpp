@@ -9,9 +9,12 @@ namespace PHiLiP {
         {
             prm.enter_subsection("reduced order");
             {
-                prm.declare_entry("mach_number", "0.70",
-                                  dealii::Patterns::Double(0, 1.5),
-                                  "Mach number");
+                prm.declare_entry("rewienski_a", "2.2360679775", //sqrt(5)
+                                  dealii::Patterns::Double(2, 10),
+                                  "Burgers Rewienski parameter a");
+                prm.declare_entry("rewienski_b", "0.02",
+                                  dealii::Patterns::Double(0.01, 0.08),
+                                  "Burgers Rewienski parameter b");
             }
             prm.leave_subsection();
         }
@@ -20,7 +23,8 @@ namespace PHiLiP {
         {
             prm.enter_subsection("reduced order");
             {
-                mach_number = prm.get_double("mach_number");
+                rewienski_a = prm.get_double("rewienski_a");
+                rewienski_b = prm.get_double("rewienski_b");
             }
             prm.leave_subsection();
         }

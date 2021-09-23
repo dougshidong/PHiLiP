@@ -25,6 +25,7 @@ public:
 
     unsigned int nonlinear_max_iterations; ///< Maximum number of iterations.
     unsigned int print_iteration_modulo; ///< If ode_output==verbose, print every print_iteration_modulo iterations.
+    unsigned int output_solution_vector_modulo; ///< Output solution vector every output_solution_vector_modulo iterations of the nonlinear solver
 
     double nonlinear_steady_residual_tolerance; ///< Tolerance to determine steady-state convergence.
 

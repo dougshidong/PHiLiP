@@ -252,10 +252,24 @@ int ODESolver<dim,real,MeshType>::advance_solution_time (double time_advance)
     if (this->current_iteration%ode_param.print_iteration_modulo == 0) {
         this->dg->output_results_vtk(this->current_iteration);
     }
+
+    if (ode_param.output_solution_vector_modulo > 0) {
+        if (this->current_iteration % ode_param.output_solution_vector_modulo == 0) {
+            for (unsigned int i = 0; i < this->dg->solution.size(); ++i) {
+                solutions_table.template add_value(
+                        "Time: " + std::to_string(this->current_iteration * constant_time_step),
+                        this->dg->solution[i]);
+            }
+        }
+    }
         ++(this->current_iteration);
 
-
         //this->dg->output_results_vtk(this->current_iteration);
+    }
+
+    if (ode_param.output_solution_vector_modulo > 0) {
+        std::ofstream out_file("solutions_table.txt");
+        solutions_table.write_text(out_file);
     }
     return 1;
 }

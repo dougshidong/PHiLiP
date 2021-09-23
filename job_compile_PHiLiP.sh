@@ -10,7 +10,7 @@
 #SBATCH --mail-type=ALL                               ## what kind of updates to receive by email
 
 SLURM_USER="brillon" ## <-- Enter beluga username here
-NUM_PROCS="2" 		 ## WARNING: must correspond to --ntasks above
+NUM_PROCS="2"        ## WARNING: must correspond to --ntasks above
 
 ## Below are the modules needed to compile PHiLiP
 module --force purge

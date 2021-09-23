@@ -201,6 +201,9 @@ cmake \
     -DDEAL_II_COMPILER_HAS_FUSE_LD_GOLD=OFF \
 ~~~~
 
+## Running PHiLiP using Parameter Files on the Beluga cluster
+After running `job_compile_PHiLiP.sh`, three PHiLiP executables are generated: `PHiLiP_1D`, `PHiLiP_2D`, `PHiLiP_3D`. These will be located in `home/username/scratch/`. For running PHiLiP using parameter files (`.prm`), create an appropriate directory for the runs e.g. `home/username/projects/rrg-nadaraja-ac/username/run_dir_name`, copy the 3 executables and the `job_parameters_file_PHiLiP.sh` to this directory, and modify the shell script accordingly. Submit jobs using `sbatch job_parameters_file_PHiLiP.sh`. 
+
 ## Trilinos
 This is an important dependency of both deal.II and PHiLiP library being used by this code. We keep track of the working version from our [fork](https://github.com/dougshidong/Trilinos). Our fork also contains some bug fixes that have yet to be merged within their repository. An installation script with all the necessary options is given in
 https://raw.githubusercontent.com/dougshidong/PHiLiP/master/doc/prep_trilinos.sh

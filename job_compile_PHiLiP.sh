@@ -4,13 +4,13 @@
 #SBATCH --job-name=compile_PHiLiP
 #SBATCH --output=%x-%j.out
 #SBATCH --nodes=1
-#SBATCH --ntasks=2 ##there are max 40 per node
-#SBATCH --mem-per-cpu=3048M      # memory; default unit is megabytes
-# #SBATCH --mail-user=firstname.lastname@mail.mcgill.ca # uncomment to send an email whe job starts/end
-# #SBATCH --mail-type=ALL # uncomment to send an email whe job starts/end
+#SBATCH --ntasks=2                                    ## <-- there are max 40 per node
+#SBATCH --mem-per-cpu=3048M                           ## <-- memory; default unit is megabytes
+#SBATCH --mail-user=firstname.lastname@mail.mcgill.ca ## for receiving job updates via email
+#SBATCH --mail-type=ALL                               ## what kind of updates to receive by email
 
-SLURM_USER="brillon" # <-- Enter beluga username here
-NUM_PROCS="2" # WARNING: must correspond to --ntasks above
+SLURM_USER="brillon" ## <-- Enter beluga username here
+NUM_PROCS="2" 		 ## WARNING: must correspond to --ntasks above
 
 ## Below are the modules needed to compile PHiLiP
 module --force purge

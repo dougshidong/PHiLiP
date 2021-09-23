@@ -76,6 +76,14 @@ The deal.II library has been setup with the following options:
 
 This section is aimed McGill's group who use Compute Canada's Beluga cluster.
 
+If you are a new user on the Beluga cluster, you must configure git modules by explicitly running `./configure_git_submodules_beluga.sh` on Beluga before proceeding, which runs the following commands:
+~~~~
+git submodule init
+git submodule update
+git config --global http.proxy ""
+git pull --recurse-submodules
+git submodule update --recursive
+~~~~
 The deal.II library is already installed in `/project/rrg-nadaraja-ac/Libraries/dealii/install`. The required modules were installed by Bart Oldeman from Compute Canada's team through modules. Therefore, simply put the following line in your .bashrc and source it.
 ~~~~
 module --force purge

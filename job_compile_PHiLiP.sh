@@ -52,7 +52,7 @@ mkdir build_release
 
 cd build_release
 cmake -DDEAL_II_DIR=$DEAL_II_DIR ../PHiLiP -DMPIMAX=2 -DCMAKE_BUILD_TYPE=Release -DGMSH_DIR=$GMSH_DIR/bin/gmsh -DGMSH_LIB=$GMSH_DIR -DCMAKE_SKIP_INSTALL_RPATH=ON 
-make -j${num_procs}
+make -j${NUM_PROCS}
 ##ctest
 
 for((i=1;i<=3;i++)); do

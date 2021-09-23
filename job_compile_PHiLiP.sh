@@ -4,10 +4,13 @@
 #SBATCH --job-name=compile_PHiLiP
 #SBATCH --output=%x-%j.out
 #SBATCH --nodes=1
-#SBATCH --ntasks=2 ##there are max 40 per node
-#SBATCH --mem-per-cpu=3048M      # memory; default unit is megabytes
-# #SBATCH --mail-user=your_email@mail.mcgill.ca # uncomment to send an email whe job starts/end
-# #SBATCH --mail-type=ALL # uncomment to send an email whe job starts/end
+#SBATCH --ntasks=2                                    ## <-- there are max 40 per node
+#SBATCH --mem-per-cpu=3048M                           ## <-- memory; default unit is megabytes
+#SBATCH --mail-user=firstname.lastname@mail.mcgill.ca ## for receiving job updates via email
+#SBATCH --mail-type=ALL                               ## what kind of updates to receive by email
+
+SLURM_USER="brillon" ## <-- Enter beluga username here
+NUM_PROCS="2"        ## WARNING: must correspond to --ntasks above
 
 ## Below are the modules needed to compile PHiLiP
 module --force purge
@@ -43,23 +46,17 @@ export DEAL_II_DIR=/project/rrg-nadaraja-ac/Libraries/dealii_updated/dealii/inst
 export GMSH_DIR=/cvmfs/soft.computecanada.ca/easybuild/software/2020/avx512/Compiler/intel2020/gmsh/4.7.0
 export OMP_NUM_THREADS=1
 
-##git submodule init
-##git submodule update
-##git config --global http.proxy ""
-##git pull --recurse-submodules
-##git submodule update --recursive
-
 cd ${SLURM_TMPDIR}
 rsync  -axvH --no-g --no-p --exclude 'build*' --exclude .git --exclude '*.log' --exclude '*.out' ${SLURM_SUBMIT_DIR} .
 mkdir build_release
 
 cd build_release
 cmake -DDEAL_II_DIR=$DEAL_II_DIR ../PHiLiP -DMPIMAX=2 -DCMAKE_BUILD_TYPE=Release -DGMSH_DIR=$GMSH_DIR/bin/gmsh -DGMSH_LIB=$GMSH_DIR -DCMAKE_SKIP_INSTALL_RPATH=ON 
-make -j2
-#ctest -R MPI_2D_ADVECTION_EXPLICIT_PERIODIC_LONG -V
+make -j${NUM_PROCS}
+##ctest
 
-cp ${SLURM_TMPDIR}/build_release/bin/PHiLiP_3D /home/cicchino/scratch/PHiLiP_3D_cplus
-
-mpirun -n 2 "/home/cicchino/scratch/PHiLiP_3D_cplus" -i "/home/cicchino/projects/rrg-nadaraja-ac/cicchino/PHiLiP_Feb2021/PHiLiP/tests/integration_tests_control_files/euler_split_inviscid_taylor_green_vortex/3D_euler_split_inviscid_taylor_green_vortex.prm"
+for((i=1;i<=3;i++)); do
+	cp ${SLURM_TMPDIR}/build_release/bin/PHiLiP_${i}D /home/${SLURM_USER}/scratch/PHiLiP_${i}D
+done
 
 rsync -axvH --no-g --no-p  ${SLURM_TMPDIR}/build_release ${SLURM_SUBMIT_DIR}

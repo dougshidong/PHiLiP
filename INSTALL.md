@@ -76,6 +76,14 @@ The deal.II library has been setup with the following options:
 
 This section is aimed McGill's group who use Compute Canada's Beluga cluster.
 
+If you are a new user on the Beluga cluster, you must configure git modules by explicitly running `./configure_git_submodules_beluga.sh` on Beluga before proceeding, which runs the following commands:
+~~~~
+git submodule init
+git submodule update
+git config --global http.proxy ""
+git pull --recurse-submodules
+git submodule update --recursive
+~~~~
 The deal.II library is already installed in `/project/rrg-nadaraja-ac/Libraries/dealii/install`. The required modules were installed by Bart Oldeman from Compute Canada's team through modules. Therefore, simply put the following line in your .bashrc and source it.
 ~~~~
 module --force purge
@@ -192,6 +200,9 @@ cmake \
     -DDEAL_II_COMPONENT_EXAMPLES=OFF \
     -DDEAL_II_COMPILER_HAS_FUSE_LD_GOLD=OFF \
 ~~~~
+
+## Running PHiLiP using Parameter Files on the Beluga cluster
+After running `job_compile_PHiLiP.sh`, three PHiLiP executables are generated: `PHiLiP_1D`, `PHiLiP_2D`, `PHiLiP_3D`. These will be located in `home/username/scratch/`. For running PHiLiP using parameter files (`.prm`), create an appropriate directory for the runs e.g. `home/username/projects/rrg-nadaraja-ac/username/run_dir_name`, copy the 3 executables and the `job_parameters_file_PHiLiP.sh` to this directory, and modify the shell script accordingly. Submit jobs using `sbatch job_parameters_file_PHiLiP.sh`. 
 
 ## Trilinos
 This is an important dependency of both deal.II and PHiLiP library being used by this code. We keep track of the working version from our [fork](https://github.com/dougshidong/Trilinos). Our fork also contains some bug fixes that have yet to be merged within their repository. An installation script with all the necessary options is given in

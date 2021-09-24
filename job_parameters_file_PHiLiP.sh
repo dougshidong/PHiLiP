@@ -24,7 +24,6 @@ module load gcc/9.3.0 # not needed?
 module load openmpi/4.0.3 # required
 
 cd ${SLURM_TMPDIR}
-rsync  -axvH --no-g --no-p --exclude 'build*' --exclude .git --exclude '*.log' --exclude '*.out' ${SLURM_SUBMIT_DIR} .
 
 mpirun -n ${NUM_PROCS} "${SLURM_SUBMIT_DIR}/${PHiLiP_EXECUTABLE_NAME}" -i "${SLURM_SUBMIT_DIR}/${PARAMETERS_FILE}"
 

@@ -417,27 +417,27 @@ int GridStudy<dim,nstate>
 
             double solution_integral = integrate_solution_over_domain(*dg);
 
-            /*
-            dg->output_results_vtk(igrid);
+            if (manu_grid_conv_param.output_solution) {
+                /*
+                dg->output_results_vtk(igrid);
 
-            std::string write_posname = "error-"+std::to_string(igrid)+".pos";
-            std::ofstream outpos(write_posname);
-            GridRefinement::GmshOut<dim,double>::write_pos(grid,estimated_error_per_cell_double,outpos);
+                std::string write_posname = "error-"+std::to_string(igrid)+".pos";
+                std::ofstream outpos(write_posname);
+                GridRefinement::GmshOut<dim,double>::write_pos(grid,estimated_error_per_cell_double,outpos);
 
-            std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  gr 
-                = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);
+                std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  gr 
+                    = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);
 
-            gr->refine_grid();
+                gr->refine_grid();
 
-            // dg->output_results_vtk(igrid);
-            */
-
+                // dg->output_results_vtk(igrid);
+                */
             
-            // Use gr->output_results_vtk(), which includes L2error per cell, instead of dg->output_results_vtk()
-            std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  gr 
-               = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);
-            // if(poly_degree == 1) gr->output_results_vtk(igrid);
-            gr->output_results_vtk(igrid);
+                // Use gr->output_results_vtk(), which includes L2error per cell, instead of dg->output_results_vtk() as done above
+                std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  gr 
+                   = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);
+                gr->output_results_vtk(igrid);
+            }
             
 
             // Convergence table
@@ -539,6 +539,12 @@ int GridStudy<dim,nstate>
             if (CNF_type == CNF_enum::roe)            {conv_num_flux_string = "roe";}
             if (CNF_type == CNF_enum::l2roe)          {conv_num_flux_string = "l2roe";}
 
+            using DNF_enum = Parameters::AllParameters::DissipativeNumericalFlux;
+            std::string diss_num_flux_string;
+            DNF_enum DNF_type = param.diss_num_flux_type;
+            if (DNF_type == DNF_enum::symm_internal_penalty) {diss_num_flux_string = "symm_internal_penalty";}
+            if (DNF_type == DNF_enum::bassi_rebay_2)         {diss_num_flux_string = "bassi_rebay_2";}
+
             using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
             std::string manufactured_solution_string;
             ManufacturedSolutionEnum MS_type = manu_grid_conv_param.manufactured_solution_param.manufactured_solution_type;
@@ -562,6 +568,7 @@ int GridStudy<dim,nstate>
             error_filename += std::string("_") + std::to_string(dim) + std::string("d");
             error_filename += std::string("_") + pde_string;
             error_filename += std::string("_") + conv_num_flux_string;
+            error_filename += std::string("_") + diss_num_flux_string;
             error_filename += std::string("_") + manufactured_solution_string;
             error_filename += std::string("_") + std::string("p") + std::to_string(poly_degree);
             std::string error_fileType = std::string("txt");

@@ -62,7 +62,12 @@ void ManufacturedConvergenceStudyParam::declare_parameters (dealii::ParameterHan
         prm.declare_entry("output_convergence_tables", "false",
                           dealii::Patterns::Bool(),
                           "Writes the convergence tables for each polynomial degree p."
-                          "Output will be txt files named convergence_table_[dim]d_[pde_string]_[conv_num_flux_string]_[manufactured_solution_string]_p[poly_degree].txt");
+                          "Output will be txt files named convergence_table_[dim]d_[pde_string]_[conv_num_flux_string]_[diss_num_flux_string]_[manufactured_solution_string]_p[poly_degree].txt");
+
+        prm.declare_entry("output_solution", "false",
+                          dealii::Patterns::Bool(),
+                          "Writes the solution files."
+                          "Output will be vtu and pvtu files.");
 
         prm.declare_entry("add_statewise_solution_error_to_convergence_tables", "false",
                           dealii::Patterns::Bool(),
@@ -100,6 +105,7 @@ void ManufacturedConvergenceStudyParam ::parse_parameters (dealii::ParameterHand
         slope_deficit_tolerance     = prm.get_double("slope_deficit_tolerance");
 
         output_convergence_tables   = prm.get_bool("output_convergence_tables");
+        output_solution             = prm.get_bool("output_solution");
         add_statewise_solution_error_to_convergence_tables = prm.get_bool("add_statewise_solution_error_to_convergence_tables");
     }
     prm.leave_subsection();

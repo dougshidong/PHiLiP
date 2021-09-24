@@ -135,12 +135,3 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_navier_stokes_l2roe_manufactured_navah_3.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
-# ----------------------------------------
-# - High Order
-# ----------------------------------------
-configure_file(2d_navier_stokes_roe_manufactured_navah_3_high_order.prm 2d_navier_stokes_roe_manufactured_navah_3_high_order.prm COPYONLY)
-add_test(
-  NAME MPI_2D_NAVIER_STOKES_ROE_MANUFACTURED_SOLUTION_NAVAH_3_HIGH_ORDER
-  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_navier_stokes_roe_manufactured_navah_3_high_order.prm
-  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)

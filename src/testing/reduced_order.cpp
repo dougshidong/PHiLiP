@@ -1,8 +1,7 @@
 #include <fstream>
+#include <iostream>
+#include <filesystem>
 
-#include <deal.II/base/tensor.h>
-#include <deal.II/base/function.h>
-#include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/solution_transfer.h>
 #include <deal.II/base/numbers.h>
@@ -15,6 +14,7 @@
 
 #include "reduced_order.h"
 #include "parameters/all_parameters.h"
+#include <deal.II/lac/full_matrix.h>
 #include "parameters/parameters.h"
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver.h"
@@ -31,54 +31,87 @@ namespace PHiLiP {
         template <int dim, int nstate>
         int ReducedOrder<dim, nstate>::run_test() const
         {
-            pcout << " Running Burgers Rewienski" << std::endl;
-            using Triangulation = dealii::Triangulation<dim>;
-            std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>();
-
+            //Testing for how to extract vectors from file and make POD basis. Will likely end up being a class of its own.
             const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
-            double left = 0.0;
-            double right = 100.0;
-            const bool colorize = true;
-            int n_refinements = 8;
-            unsigned int poly_degree = 0;
-            dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
+            std::vector<dealii::FullMatrix<double>> snapshotMatrixContainer;
+            std::string path = "snapshot_generation"; //Search this directory for solutions_table.txt files
+            for (const auto & entry : std::filesystem::recursive_directory_iterator(path)){ //Recursive seach
+                if(entry.path().filename() == "solutions_table.txt"){
+                    pcout << "Processing " << entry.path() << std::endl;
+                    std::ifstream myfile(entry.path());
+                    if(!myfile)
+                    {
+                        pcout<<"Error opening file. Please ensure that solutions_table.txt is located in the current directory."<< std::endl;
+                        return -1;
+                    }
+                    std::string line;
+                    int rows = 0;
+                    int cols = 0;
+                    //First loop set to count rows and columns
+                    while(std::getline(myfile, line)){ //for each line
+                        std::istringstream stream(line);
+                        std::string field;
+                        cols = 0;
+                        while (getline(stream, field,' ')){ //parse data values on each line
+                            if (field.empty()){ //due to whitespace
+                                continue;
+                            }else{
+                                cols++;
+                            }
+                        }
+                        rows++;
+                    }
 
-            grid->refine_global(n_refinements);
-            pcout << "Grid generated and refined" << std::endl;
+                    dealii::FullMatrix<double> solutions_matrix(rows-1, cols); //Subtract 1 from row because of header row
+                    rows = 0;
+                    myfile.clear();
+                    myfile.seekg(0); //Bring back to beginning of file
+                    //Second loop set to build solutions matrix
+                    while(std::getline(myfile, line)){ //for each line
+                        std::istringstream stream(line);
+                        std::string field;
+                        cols = 0;
+                        if(rows != 0){
+                            while (getline(stream, field,' ')) { //parse data values on each line
+                                if (field.empty()) {
+                                    continue;
+                                } else {
+                                    solutions_matrix.set(rows - 1, cols, std::stod(field));
+                                    cols++;
+                                }
+                            }
+                        }
+                        rows++;
+                    }
+                    myfile.close();
+                    snapshotMatrixContainer.push_back(solutions_matrix);
+                }
+            }
 
-            std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);
-            pcout << "dg created" <<std::endl;
-            dg->allocate_system ();
+            int numMat = snapshotMatrixContainer.size();
+            int totalCols = 0;
+            std::vector<int> j_offset;
+            for(int i = 0; i < numMat; i++){
+                totalCols = totalCols + snapshotMatrixContainer[i].n_cols();
+                if (i == 0){
+                    j_offset.push_back(0);
+                }else{
+                    j_offset.push_back(j_offset[i-1] + snapshotMatrixContainer[i-1].n_cols());
+                }
+            }
 
-            pcout << "Implement initial conditions" << std::endl;
-            dealii::FunctionParser<1> initial_condition;
-            std::string variables = "x";
-            std::map<std::string,double> constants;
-            constants["pi"] = dealii::numbers::PI;
-            std::string expression = "1";
-            initial_condition.initialize(variables,
-                                         expression,
-                                         constants);
-            dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
-            // Create ODE solver using the factory and providing the DG object
-            std::shared_ptr<PHiLiP::ODE::ODESolver<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+            dealii::LAPACKFullMatrix<double> snapshot_matrix(snapshotMatrixContainer[0].n_rows(), totalCols);
 
-            //TEST NEW PARAMETER
-            pcout << "Running Burgers Rewienski with parameter a: "
-                  << param.reduced_order_param.rewienski_a
-                  << " and parameter b: "
-                  << param.reduced_order_param.rewienski_b;
+            for(int i = 0; i < numMat; i++){
+                dealii::FullMatrix<double> snapshot_submatrix = snapshotMatrixContainer[i];
+                snapshot_matrix.fill(snapshot_submatrix, 0, j_offset[i], 0, 0);
+            }
 
-            pcout << "Dimension: " << dim
-                  << "\t Polynomial degree p: " << poly_degree
-                  << std::endl
-                  << ". Number of active cells: " << grid->n_global_active_cells()
-                  << ". Number of degrees of freedom: " << dg->dof_handler.n_dofs()
-                  << std::endl;
+            pcout << "Snapshot matrix generated." << std::endl;
 
-            double finalTime = 50.;
-            ode_solver->advance_solution_time(finalTime);
+            std::ofstream out_file("snapshot_matrix.txt");
+            snapshot_matrix.print_formatted(out_file, 4);
 
             return 0; //need to change
         }

@@ -257,7 +257,7 @@ int ODESolver<dim,real,MeshType>::advance_solution_time (double time_advance)
         if (this->current_iteration % ode_param.output_solution_vector_modulo == 0) {
             for (unsigned int i = 0; i < this->dg->solution.size(); ++i) {
                 solutions_table.template add_value(
-                        "Time: " + std::to_string(this->current_iteration * constant_time_step),
+                        "Time:" + std::to_string(this->current_iteration * constant_time_step),
                         this->dg->solution[i]);
             }
         }

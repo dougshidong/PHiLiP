@@ -15,6 +15,9 @@ namespace PHiLiP {
                 prm.declare_entry("rewienski_b", "0.02",
                                   dealii::Patterns::Double(0.01, 0.08),
                                   "Burgers Rewienski parameter b");
+                prm.declare_entry("final_time", "50",
+                                  dealii::Patterns::Double(0, 1000),
+                                  "Final solution time");
             }
             prm.leave_subsection();
         }
@@ -25,6 +28,7 @@ namespace PHiLiP {
             {
                 rewienski_a = prm.get_double("rewienski_a");
                 rewienski_b = prm.get_double("rewienski_b");
+                final_time = prm.get_double("final_time");
             }
             prm.leave_subsection();
         }

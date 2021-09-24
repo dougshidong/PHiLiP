@@ -11,6 +11,7 @@ namespace PHiLiP {
         public:
             double rewienski_a;
             double rewienski_b;
+            double final_time;
 
             ReducedOrderModelParam (); ///< Constructor
 

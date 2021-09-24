@@ -109,6 +109,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " shock_1d | "
                       " euler_naca0012 | "
                       " reduced_order | "
+                      " burgers_rewienski_test |"
                       " advection_periodicity"),
                       "The type of test we want to solve. "
                       "Choices are (only run control has been coded up for now)" 
@@ -129,6 +130,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  shock_1d | "
                       "  euler_naca0012 | "
                       "  reduced_order |"
+                      "  burgers_rewienski_test |"
                       "  advection_periodicity >.");
 
     prm.declare_entry("pde_type", "advection",
@@ -206,6 +208,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "euler_naca_optimization")           { test_type = euler_naca_optimization; }
     else if (test_string == "shock_1d")                          { test_type = shock_1d; }
     else if (test_string == "reduced_order")                     { test_type = reduced_order; }
+    else if (test_string == "burgers_rewienski_test")            { test_type = burgers_rewienski_test; }
     else if (test_string == "euler_naca0012")                    { test_type = euler_naca0012; }
     else if (test_string == "optimization_inverse_manufactured") {test_type = optimization_inverse_manufactured; }
     

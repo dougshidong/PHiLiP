@@ -13,7 +13,7 @@ add_subdirectory(functional)
 add_subdirectory(grid_refinement)
 add_subdirectory(optimization)
 add_subdirectory(operators)
-
+add_subdirectory(pod)
 add_subdirectory(testing)
 
 foreach(dim RANGE 1 3)

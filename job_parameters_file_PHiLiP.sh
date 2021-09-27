@@ -4,15 +4,15 @@
 #SBATCH --job-name=run_parameters_file
 #SBATCH --output=%x.out ##%x-%j.out                   ## <-- use this to append job ID
 #SBATCH --nodes=1
-#SBATCH --ntasks=2                                    ## <-- there are max 40 per node
-#SBATCH --mem-per-cpu=3048M                           ## <-- memory; default unit is megabytes
+#SBATCH --ntasks-per-node=2                           ## <-- there are max 40 per node
+#SBATCH --mem=32G                                     ## <-- total shared memory; default unit is megabytes
 #SBATCH --mail-user=firstname.lastname@mail.mcgill.ca ## for receiving job updates via email
 #SBATCH --mail-type=ALL                               ## what kind of updates to receive by email
 
-SLURM_USER="brillon"
-PARAMETERS_FILE="2d_navier_stokes_roe_manufactured_navah_3_high_order.prm"
-PHiLiP_DIMENSIONS="2" ## WARNING: must correspond to the DIM in the .prm file
-NUM_PROCS="2"         ## WARNING: must correspond to --ntasks
+SLURM_USER="username"                    ## <-- Enter beluga username here
+PARAMETERS_FILE="my_parameters_file.prm" ## <-- Enter .prm filename here
+PHiLiP_DIMENSIONS="2"                    ## WARNING: must correspond to the DIM in the .prm file
+NUM_PROCS="2"                            ## WARNING: must correspond to --ntasks
 PHiLiP_EXECUTABLE_NAME="PHiLiP_${PHiLiP_DIMENSIONS}D"
 OUTPUT_FILES_DIRECTORY_NAME="output_files"
 

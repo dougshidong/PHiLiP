@@ -176,7 +176,9 @@ int GridStudy<dim,nstate>
         dg_super_fine->allocate_system ();
 
         initialize_perturbed_solution(*dg_super_fine, *physics_double);
-        dg_super_fine->output_results_vtk(9999);
+        if (manu_grid_conv_param.output_solution) {
+            dg_super_fine->output_results_vtk(9999);
+        }
         exact_solution_integral = integrate_solution_over_domain(*dg_super_fine);
         pcout << "Exact solution integral is " << exact_solution_integral << std::endl;
     }

@@ -18,6 +18,11 @@ namespace PHiLiP {
             /// Final solution time for PDE
             double final_time;
 
+            /** Set as true for running a manufactured solution.
+             *  Adds the manufactured solution source term to the PDE source term
+             */
+            bool rewienski_manufactured_solution;
+
             ReducedOrderModelParam (); ///< Constructor
 
             /// Declares the possible variables and sets the defaults.

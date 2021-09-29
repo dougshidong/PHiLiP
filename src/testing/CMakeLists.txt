@@ -17,7 +17,7 @@ set(TESTS_SOURCE
     advection_explicit_periodic.cpp
     euler_split_inviscid_taylor_green_vortex.cpp
     optimization_inverse_manufactured/optimization_inverse_manufactured.cpp
-    burgers_rewienski_test.cpp
+    burgers_rewienski_snapshot.cpp
     reduced_order.cpp)
 
 foreach(dim RANGE 1 3)

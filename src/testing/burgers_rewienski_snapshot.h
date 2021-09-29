@@ -8,13 +8,13 @@
 namespace PHiLiP {
 namespace Tests {
 
-/// Burgers Rewienski test
+/// Burgers Rewienski snapshot
 template <int dim, int nstate>
-class BurgersRewienskiTest: public TestsBase
+class BurgersRewienskiSnapshot: public TestsBase
 {
 public:
     /// Constructor.
- BurgersRewienskiTest(const Parameters::AllParameters *const parameters_input);
+ BurgersRewienskiSnapshot(const Parameters::AllParameters *const parameters_input);
 
     /// Run test
     int run_test () const override;

@@ -117,7 +117,7 @@ public:
         shock_1d,
         euler_naca0012,
         reduced_order,
-        burgers_rewienski_test,
+        burgers_rewienski_snapshot,
         advection_periodicity,
     };
     TestType test_type; ///< Selected TestType from the input file.

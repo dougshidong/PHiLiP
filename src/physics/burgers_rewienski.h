@@ -14,6 +14,7 @@ namespace PHiLiP {
             BurgersRewienski(
                     const double                                              rewienski_a,
                     const double                                              rewienski_b,
+                    const bool                                                rewienski_manufactured_solution,
                     const bool                                                convection,
                     const bool                                                diffusion,
                     const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
@@ -27,6 +28,9 @@ namespace PHiLiP {
 
             /// Parameter b for eq.(18) in Carlberg 2011
             const double rewienski_b;
+
+            /// Run manufactured solution for this case
+            const bool rewienski_manufactured_solution;
 
             /// Source term depends on manufactured solution
             std::array<real,nstate> source_term (

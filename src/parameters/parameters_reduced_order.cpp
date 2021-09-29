@@ -18,6 +18,10 @@ namespace PHiLiP {
                 prm.declare_entry("final_time", "50",
                                   dealii::Patterns::Double(0, 1000),
                                   "Final solution time");
+                prm.declare_entry("rewienski_manufactured_solution", "false",
+                                  dealii::Patterns::Bool(),
+                                  "Adds the manufactured solution source term to the PDE source term."
+                                  "Set as true for running a manufactured solution.");
             }
             prm.leave_subsection();
         }
@@ -29,6 +33,7 @@ namespace PHiLiP {
                 rewienski_a = prm.get_double("rewienski_a");
                 rewienski_b = prm.get_double("rewienski_b");
                 final_time = prm.get_double("final_time");
+                rewienski_manufactured_solution = prm.get_bool("rewienski_manufactured_solution");
             }
             prm.leave_subsection();
         }

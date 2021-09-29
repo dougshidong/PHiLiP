@@ -10,7 +10,7 @@
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/grid_in.h>
 
-#include "burgers_rewienski_test.h"
+#include "burgers_rewienski_snapshot.h"
 #include "parameters/all_parameters.h"
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver.h"
@@ -20,12 +20,12 @@ namespace PHiLiP {
     namespace Tests {
 
         template <int dim, int nstate>
-        BurgersRewienskiTest<dim, nstate>::BurgersRewienskiTest(const PHiLiP::Parameters::AllParameters *const parameters_input)
+        BurgersRewienskiSnapshot<dim, nstate>::BurgersRewienskiSnapshot(const PHiLiP::Parameters::AllParameters *const parameters_input)
                 : TestsBase::TestsBase(parameters_input)
         {}
 
         template <int dim, int nstate>
-        int BurgersRewienskiTest<dim, nstate>::run_test() const
+        int BurgersRewienskiSnapshot<dim, nstate>::run_test() const
         {
             const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
@@ -77,7 +77,7 @@ namespace PHiLiP {
             return 0; //need to change
         }
 #if PHILIP_DIM==1
-        template class BurgersRewienskiTest<PHILIP_DIM,PHILIP_DIM>;
+        template class BurgersRewienskiSnapshot<PHILIP_DIM,PHILIP_DIM>;
 #endif
     } // Tests namespace
 } // PHiLiP namespace

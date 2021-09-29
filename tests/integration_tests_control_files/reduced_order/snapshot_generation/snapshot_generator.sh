@@ -8,12 +8,12 @@ mkdir "${rewienski_a[i]}_${rewienski_b[i]}"
 
 cd "${rewienski_a[i]}_${rewienski_b[i]}"
 
-file="${rewienski_a[i]}_${rewienski_b[i]}_1d_burgers_rewienski.prm"
+file="${rewienski_a[i]}_${rewienski_b[i]}_1d_burgers_rewienski_snapshot.prm"
 
 echo "# Listing of Parameters"                                                        >> $file                                    
 echo "# ---------------------"                                                        >> $file
 echo " "                                                                              >> $file
-echo " set test_type = burgers_rewienski_test"                                        >> $file
+echo " set test_type = burgers_rewienski_snapshot"                                    >> $file
 echo " "                                                                              >> $file
 echo "# Number of dimensions"                                                         >> $file
 echo " set dimension = 1"                                                             >> $file
@@ -60,7 +60,7 @@ echo "subsection manufactured solution convergence study"                       
 echo " set use_manufactured_source_term = true"                                       >> $file
 echo "end"                                                                            >> $file
 
-/usr/bin/mpirun "-n" "1" "$HOME/Codes/PHiLiP/cmake-build-release/bin/PHiLiP_1D" "-i" "$HOME/Codes/PHiLiP/cmake-build-release/tests/integration_tests_control_files/reduced_order/snapshot_generation/${rewienski_a[i]}_${rewienski_b[i]}/${rewienski_a[i]}_${rewienski_b[i]}_1d_burgers_rewienski.prm"
+/usr/bin/mpirun "-n" "1" "$HOME/Codes/PHiLiP/cmake-build-release/bin/PHiLiP_1D" "-i" "$HOME/Codes/PHiLiP/cmake-build-release/tests/integration_tests_control_files/reduced_order/snapshot_generation/${rewienski_a[i]}_${rewienski_b[i]}/${rewienski_a[i]}_${rewienski_b[i]}_1d_burgers_rewienski_snapshot.prm"
 
 cd ..
 done

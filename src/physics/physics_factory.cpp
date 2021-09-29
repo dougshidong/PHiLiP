@@ -65,7 +65,9 @@ PhysicsFactory<dim,nstate,real>
             return std::make_shared < BurgersRewienski<dim,nstate,real> >(
                     parameters_input->reduced_order_param.rewienski_a,
                     parameters_input->reduced_order_param.rewienski_b,
-                    true, false,
+                    parameters_input->reduced_order_param.rewienski_manufactured_solution,
+                    true,
+                    false,
                     diffusion_tensor,
                     manufactured_solution_function);
     } else if (pde_type == PDE_enum::euler) {

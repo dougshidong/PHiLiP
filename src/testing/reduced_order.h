@@ -6,20 +6,20 @@
 #include "parameters/all_parameters.h"
 
 namespace PHiLiP {
-    namespace Tests {
+namespace Tests {
 
 /// POD reduced order
-        template <int dim, int nstate>
-        class ReducedOrder: public TestsBase
-        {
-        public:
-            /// Constructor.
-            ReducedOrder(const Parameters::AllParameters *const parameters_input);
+template <int dim, int nstate>
+class ReducedOrder: public TestsBase
+{
+public:
+    /// Constructor.
+    ReducedOrder(const Parameters::AllParameters *const parameters_input);
 
-            /// Run POD reduced order
-            int run_test () const override;
-        };
-    } // End of Tests namespace
+    /// Run POD reduced order
+    int run_test () const override;
+};
+} // End of Tests namespace
 } // End of PHiLiP namespace
 
 #endif

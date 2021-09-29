@@ -567,7 +567,6 @@ int GridStudy<dim,nstate>
                 }
             }
 
-            // add some sort of update frequency??
             if (manu_grid_conv_param.output_convergence_tables) {
                 std::string error_filename = error_filename_baseline;
                 std::string error_fileType = std::string("txt");

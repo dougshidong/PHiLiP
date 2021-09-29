@@ -38,7 +38,8 @@
 #include "numerical_flux/convective_numerical_flux.hpp"
 #include "numerical_flux/viscous_numerical_flux.hpp"
 #include "parameters/all_parameters.h"
-#include "artificial_dissipation.h"
+//#include "artificial_dissipation.h"
+#include "artificial_dissipation_factory.h"
 
 // Template specialization of MappingFEField
 //extern template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM> >;
@@ -691,7 +692,7 @@ public:
     /// Dissipative numerical flux with real type
     std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, real > > diss_num_flux_double;
 	/// Artificial dissipation pointer
-    std::unique_ptr <ArtificialDissipationBase<dim,nstate>> artificial_dissipation_pointer;
+    std::shared_ptr <ArtificialDissipationBase<dim,nstate>> artificial_dissipation_pointer;
 
     /// Contains the physics of the PDE with FadType
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, FadType > > pde_physics_fad;

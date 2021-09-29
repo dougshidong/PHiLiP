@@ -927,7 +927,7 @@ void Euler<dim,nstate,real>
     } 
     else if (boundary_type == 1002) {
         // Pressure outflow boundary condition (back pressure)
-        const real back_pressure = 0.99;
+        const real back_pressure = 1.0;
         boundary_pressure_outflow (total_inlet_pressure, back_pressure, soln_int, soln_bc);
     } 
     else if (boundary_type == 1003) {

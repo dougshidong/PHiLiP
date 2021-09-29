@@ -3,6 +3,7 @@
 
 #include <deal.II/base/tensor.h>
 #include "physics/physics.h"
+#include "dg/artificial_dissipation.h"
 
 namespace PHiLiP {
 namespace NumericalFlux {
@@ -13,8 +14,8 @@ class NumericalFluxDissipative
 {
 public:
 /// Constructor
-NumericalFluxDissipative(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input)
-: pde_physics(physics_input)
+NumericalFluxDissipative(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input, std::shared_ptr<ArtificialDissipationBase<dim, nstate>> artificial_dissipation_input)
+: pde_physics(physics_input), artificial_dissipation_pointer(artificial_dissipation_input)
 {};
 
 /// Solution flux at the interface.
@@ -36,19 +37,20 @@ virtual std::array<real, nstate> evaluate_auxiliary_flux (
     const bool on_boundary = false) const = 0;
 
 protected:
-const std::shared_ptr < Physics::PhysicsBase<dim, nstate, real> > pde_physics; ///< Associated physics.
-
+const std::shared_ptr < Physics::PhysicsBase<dim, nstate, real> >			pde_physics; ///< Associated physics.
+const std::shared_ptr < ArtificialDissipationBase<dim, nstate> >  artificial_dissipation_pointer;
 };
 
 /// Symmetric interior penalty method.
 template<int dim, int nstate, typename real>
 class SymmetricInternalPenalty: public NumericalFluxDissipative<dim, nstate, real>
 {
-using NumericalFluxDissipative<dim,nstate,real>::pde_physics;
+using NumericalFluxDissipative<dim,nstate,real>::	pde_physics;
+using NumericalFluxDissipative<dim,nstate,real>::	artificial_dissipation_pointer;
 public:
 /// Constructor
-SymmetricInternalPenalty(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input)
-: NumericalFluxDissipative<dim,nstate,real>(physics_input)
+SymmetricInternalPenalty(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input, std::shared_ptr < ArtificialDissipationBase<dim, nstate>> artificial_dissipation_input)
+: NumericalFluxDissipative<dim,nstate,real>(physics_input,artificial_dissipation_input)
 {};
 
 /// Evaluate solution flux at the interface
@@ -83,10 +85,11 @@ template<int dim, int nstate, typename real>
 class BassiRebay2: public NumericalFluxDissipative<dim, nstate, real>
 {
 using NumericalFluxDissipative<dim,nstate,real>::pde_physics;
+using NumericalFluxDissipative<dim,nstate,real>::	artificial_dissipation_pointer;
 public:
 /// Constructor
-BassiRebay2(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input)
-: NumericalFluxDissipative<dim,nstate,real>(physics_input)
+BassiRebay2(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input, std::shared_ptr<ArtificialDissipationBase<dim, nstate>> artificial_dissipation_input)
+: NumericalFluxDissipative<dim,nstate,real>(physics_input,artificial_dissipation_input)
 {};
 
 /// Evaluate solution flux at the interface

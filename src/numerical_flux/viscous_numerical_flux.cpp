@@ -120,14 +120,14 @@ std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
         ArrayTensor1 artificial_phys_flux_int, artificial_phys_flux_ext;
 
         // {{A*grad_u}}
-        artificial_phys_flux_int = pde_physics->artificial_dissipative_flux (artificial_diss_coeff_int, soln_int, soln_grad_int);
-        artificial_phys_flux_ext = pde_physics->artificial_dissipative_flux (artificial_diss_coeff_ext, soln_ext, soln_grad_ext);
+        artificial_phys_flux_int = artificial_dissipation_pointer->calc_artificial_dissipation_flux (soln_int, soln_grad_int, artificial_diss_coeff_int);
+        artificial_phys_flux_ext = artificial_dissipation_pointer->calc_artificial_dissipation_flux (soln_ext, soln_grad_ext, artificial_diss_coeff_ext);
         ArrayTensor1 artificial_phys_flux_avg = array_average<nstate,dim,real>(artificial_phys_flux_int, artificial_phys_flux_ext);
 
         // {{A}}*[[u]]
         ArrayTensor1 artificial_A_jumpu_int, artificial_A_jumpu_ext;
-        artificial_A_jumpu_int = pde_physics->artificial_dissipative_flux (artificial_diss_coeff_int, soln_int, soln_jump);
-        artificial_A_jumpu_ext = pde_physics->artificial_dissipative_flux (artificial_diss_coeff_ext, soln_ext, soln_jump);
+        artificial_A_jumpu_int = artificial_dissipation_pointer->calc_artificial_dissipation_flux (soln_int, soln_jump,	artificial_diss_coeff_int);
+        artificial_A_jumpu_ext = artificial_dissipation_pointer->calc_artificial_dissipation_flux (soln_ext, soln_jump, artificial_diss_coeff_ext);
         const ArrayTensor1 artificial_A_jumpu_avg = array_average<nstate,dim,real>(artificial_A_jumpu_int, artificial_A_jumpu_ext);
 
         for (int s=0; s<nstate; s++) {
@@ -209,8 +209,8 @@ std::array<real, nstate> BassiRebay2<dim,nstate,real>
         ArrayTensor1 artificial_phys_flux_int, artificial_phys_flux_ext;
 
         // {{A*grad_u}}
-        artificial_phys_flux_int = pde_physics->artificial_dissipative_flux (artificial_diss_coeff_int, soln_int, soln_grad_int);
-        artificial_phys_flux_ext = pde_physics->artificial_dissipative_flux (artificial_diss_coeff_ext, soln_ext, soln_grad_ext);
+        artificial_phys_flux_int = artificial_dissipation_pointer->calc_artificial_dissipation_flux (soln_int, soln_grad_int, artificial_diss_coeff_int);
+        artificial_phys_flux_ext = artificial_dissipation_pointer->calc_artificial_dissipation_flux (soln_ext, soln_grad_ext, artificial_diss_coeff_ext);
         ArrayTensor1 artificial_phys_flux_avg = array_average<nstate,dim,real>(artificial_phys_flux_int, artificial_phys_flux_ext);
 
         for (int s=0; s<nstate; s++) {

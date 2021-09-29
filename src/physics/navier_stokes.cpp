@@ -616,5 +616,11 @@ template RadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadType>::compute_scal
 template FadFadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadFadType>::compute_scaled_viscosity_coefficient< FadFadType >(const std::array<FadFadType,PHILIP_DIM+2> &primitive_soln) const;
 template RadFadType NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadFadType>::compute_scaled_viscosity_coefficient< RadFadType >(const std::array<RadFadType,PHILIP_DIM+2> &primitive_soln) const;
 
+template std::array<dealii::Tensor<1,PHILIP_DIM,double>,PHILIP_DIM+2>  NavierStokes < PHILIP_DIM, PHILIP_DIM+2, double>::convert_conservative_gradient_to_primitive_gradient< double >(const std::array<double,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1, PHILIP_DIM, double>, PHILIP_DIM+2> &conservative_soln_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+2>  NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadType>::convert_conservative_gradient_to_primitive_gradient< FadType >(const std::array<FadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1, PHILIP_DIM, FadType>, PHILIP_DIM+2> &conservative_soln_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM,RadType>,PHILIP_DIM+2> NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadType>::convert_conservative_gradient_to_primitive_gradient< RadType >(const std::array<RadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1, PHILIP_DIM, RadType>, PHILIP_DIM+2> &conservative_soln_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM,FadFadType>,PHILIP_DIM+2> NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadFadType>::convert_conservative_gradient_to_primitive_gradient< FadFadType >(const std::array<FadFadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1, PHILIP_DIM, FadFadType>, PHILIP_DIM+2> &conservative_soln_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM,RadFadType>,PHILIP_DIM+2> NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadFadType>::convert_conservative_gradient_to_primitive_gradient< RadFadType >(const std::array<RadFadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1, PHILIP_DIM, RadFadType>, PHILIP_DIM+2> &conservative_soln_gradient) const;
+
 } // Physics namespace
 } // PHiLiP namespace

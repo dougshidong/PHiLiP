@@ -43,7 +43,7 @@
 #include "dg.h"
 #include "physics/physics_factory.h"
 #include "post_processor/physics_post_processor.h"
-#include "artificial_dissipation.h"
+//#include "artificial_dissipation_factory.h"
 
 #include <deal.II/numerics/derivative_approximation.h>
 #include <deal.II/grid/grid_refinement.h>
@@ -260,17 +260,18 @@ DGBaseState<dim,nstate,real,MeshType>::DGBaseState(
     const std::shared_ptr<Triangulation> triangulation_input)
     : DGBase<dim,real,MeshType>::DGBase(nstate, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input) // Use DGBase constructor
 {
-    pde_physics_double  = Physics::PhysicsFactory<dim,nstate,real>       ::create_Physics(parameters_input);
-    pde_physics_fad     = Physics::PhysicsFactory<dim,nstate,FadType>    ::create_Physics(parameters_input);
-    pde_physics_rad     = Physics::PhysicsFactory<dim,nstate,RadType>    ::create_Physics(parameters_input);
-    pde_physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType> ::create_Physics(parameters_input);
-    pde_physics_rad_fad = Physics::PhysicsFactory<dim,nstate,RadFadType> ::create_Physics(parameters_input);
-    
+    pde_physics_double  = Physics::PhysicsFactory<dim,nstate,real>			  ::create_Physics(parameters_input);
+    pde_physics_fad     = Physics::PhysicsFactory<dim,nstate,FadType>		  ::create_Physics(parameters_input);
+    pde_physics_rad     = Physics::PhysicsFactory<dim,nstate,RadType>		  ::create_Physics(parameters_input);
+    pde_physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType>	  ::create_Physics(parameters_input);
+    pde_physics_rad_fad = Physics::PhysicsFactory<dim,nstate,RadFadType>	  ::create_Physics(parameters_input);
+	artificial_dissipation_pointer = ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation_pointer(parameters_input);
+   /* 
     if (parameters_input->physical_artificial_dissipation)
 	{
 		if constexpr(dim+2==nstate)
 		{
-			artificial_dissipation_pointer = std::make_unique<PhysicalArtificialDissipation<dim,nstate>>(parameters_input);
+			artificial_dissipation_pointer = std::make_shared<PhysicalArtificialDissipation<dim,nstate>>(parameters_input);
 			std::cout<<"Physical Artifical Dissipation pointer created"<<std::endl;
 		}
 		else
@@ -284,10 +285,10 @@ DGBaseState<dim,nstate,real,MeshType>::DGBaseState(
 		diffusion_tensor[0][0]=1.0;	diffusion_tensor[0][1]=0.0; diffusion_tensor[0][2]=0.0; 
 		diffusion_tensor[1][0]=0.0; diffusion_tensor[1][1]=1.0; diffusion_tensor[1][2]=0.0; 
 		diffusion_tensor[2][0]=0.0;	diffusion_tensor[2][1]=0.0; diffusion_tensor[2][2]=1.0;
-		artificial_dissipation_pointer = std::make_unique<LaplacianArtificialDissipation<dim,nstate>>(diffusion_tensor);
+		artificial_dissipation_pointer = std::make_shared<LaplacianArtificialDissipation<dim,nstate>>(diffusion_tensor);
 		std::cout<<"Laplacian Artifical Dissipation pointer created"<<std::endl;
     }
-
+*/
     reset_numerical_fluxes();
 }
 
@@ -295,19 +296,19 @@ template <int dim, int nstate, typename real, typename MeshType>
 void DGBaseState<dim,nstate,real,MeshType>::reset_numerical_fluxes()
 {
     conv_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, pde_physics_double);
-    diss_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_double);
+    diss_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_double, artificial_dissipation_pointer);
 
     conv_num_flux_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadType> ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, pde_physics_fad);
-    diss_num_flux_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadType> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_fad);
+    diss_num_flux_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadType> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_fad, artificial_dissipation_pointer);
 
     conv_num_flux_rad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadType> ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, pde_physics_rad);
-    diss_num_flux_rad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadType> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_rad);
+    diss_num_flux_rad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadType> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_rad, artificial_dissipation_pointer);
 
     conv_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadFadType> ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, pde_physics_fad_fad);
-    diss_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadFadType> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_fad_fad);
+    diss_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadFadType> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_fad_fad, artificial_dissipation_pointer);
 
     conv_num_flux_rad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadType> ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, pde_physics_rad_fad);
-    diss_num_flux_rad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadType> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_rad_fad);
+    diss_num_flux_rad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadType> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_rad_fad, artificial_dissipation_pointer);
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -984,8 +985,17 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
             // Only integrate over the first state variable.
             // Persson and Peraire only did density.
             for (unsigned int s=0; s<1/*nstate*/; ++s) {
-                error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * fe_values_volume.JxW(iquad);
-                soln_norm += soln_high[s] * soln_high[s] * fe_values_volume.JxW(iquad);
+               error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * fe_values_volume.JxW(iquad);
+               soln_norm += soln_high[s] * soln_high[s] * fe_values_volume.JxW(iquad);
+			  /* double v_high2 = soln_high[1]*soln_high[1] + soln_high[2]*soln_high[2];
+			   double v_low2 = soln_lower[1]*soln_lower[1] + soln_lower[2]*soln_lower[2];
+			   double p_high = 0.4*(soln_high[nstate-1] - 0.5*v_high2/soln_high[0]);
+			   double p_low = 0.4*(soln_lower[nstate-1] - 0.5*v_low2/soln_lower[0]);
+			   double entropy_high = p_high*pow(soln_high[0],-1.4);
+			   double entropy_low = p_low*pow(soln_lower[0],-1.4);
+			   error+= (entropy_high - entropy_low) *(entropy_high - entropy_low) * fe_values_volume.JxW(iquad);
+			   soln_norm+= entropy_high * entropy_high * fe_values_volume.JxW(iquad);
+			   */
             }
         }
 
@@ -1011,8 +1021,15 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
         const double upp = s_0 + kappa;
 
         const double diameter = std::pow(element_volume, 1.0/dim);
-        const double eps_0 = mu_scale * diameter / (double)degree;
-
+		double eps_0 = 1.0;
+		if(all_parameters->physical_artificial_dissipation)
+		{
+        eps_0 = mu_scale * diameter / (double)degree;
+		}
+		else
+		{
+        eps_0 = mu_scale * diameter / (double)degree;
+		}
         //std::cout << " lower < s_e < upp " << low << " < " << s_e << " < " << upp << " ? " << std::endl;
 
         if ( s_e < low) continue;
@@ -2341,7 +2358,16 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     // const real2 low = Skappa - m_Kappa;
     // const real2 upp = Skappa + m_Kappa;
 
-    const real2 eps_0 = mu_scale * diameter / (double)degree;
+    //const real2 eps_0 =1.0;// mu_scale * diameter / (double)degree;
+	real2 eps_0 = 1.0;
+		if(all_parameters->physical_artificial_dissipation)
+		{
+		 eps_0 =mu_scale* diameter / (double)degree;
+		}
+		else
+		{
+		 eps_0 = mu_scale * diameter / (double)degree;
+		}
 
     if ( s_e < low) return 0.0;
 

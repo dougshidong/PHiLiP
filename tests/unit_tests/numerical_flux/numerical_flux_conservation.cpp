@@ -5,6 +5,7 @@
 #include "parameters/parameters.h"
 #include "numerical_flux/numerical_flux_factory.hpp"
 #include "physics/physics_factory.h"
+#include "dg/artificial_dissipation_factory.h"
 
 using PDEType  = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
 using ConvType = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;
@@ -42,9 +43,10 @@ int test_dissipative_numerical_flux_conservation (const PHiLiP::Parameters::AllP
 
 
     using namespace PHiLiP;
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, double> > pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(all_parameters);
-
-    dealii::Tensor<1,dim,double> normal_int;
+    std::shared_ptr < Physics::PhysicsBase<dim, nstate, double> > pde_physics = Physics::PhysicsFactory<dim, nstate, double>		  ::create_Physics(all_parameters);
+    std::shared_ptr <ArtificialDissipationBase<dim,nstate>> artificial_dissipation_pointer = ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation_pointer(all_parameters);
+    
+	dealii::Tensor<1,dim,double> normal_int;
     std::array<double, nstate> soln_int, soln_ext;
     std::array<dealii::Tensor<1,dim,double>, nstate> soln_grad_int, soln_grad_ext;
     dealii::Point<dim> point_1;
@@ -62,7 +64,7 @@ int test_dissipative_numerical_flux_conservation (const PHiLiP::Parameters::AllP
 
     std::unique_ptr<NumericalFlux::NumericalFluxDissipative<dim, nstate, double>> diss_num_flux = 
         NumericalFlux::NumericalFluxFactory<dim, nstate, double>
-        ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics);
+        ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics, artificial_dissipation_pointer);
     std::array<double, nstate> diss_num_flux_dot_n_1 = diss_num_flux->evaluate_solution_flux(soln_int, soln_ext, normal_int);
     std::array<double, nstate> diss_num_flux_dot_n_2 = diss_num_flux->evaluate_solution_flux(soln_ext, soln_int, -normal_int);
 
@@ -95,10 +97,11 @@ int test_dissipative_numerical_flux_consistency (const PHiLiP::Parameters::AllPa
 {
     using namespace PHiLiP;
     std::shared_ptr <Physics::PhysicsBase<dim, nstate, double>> pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(all_parameters);
-
+    std::shared_ptr <ArtificialDissipationBase<dim,nstate>> artificial_dissipation_pointer = ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation_pointer(all_parameters);
+    
     std::unique_ptr<NumericalFlux::NumericalFluxDissipative<dim, nstate, double>> diss_num_flux = 
         NumericalFlux::NumericalFluxFactory<dim, nstate, double>
-        ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics);
+        ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics, artificial_dissipation_pointer);
 
     dealii::Tensor<1,dim,double> normal_int;
     std::array<double, nstate> soln_int, soln_ext;

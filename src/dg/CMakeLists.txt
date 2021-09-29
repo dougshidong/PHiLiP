@@ -5,6 +5,7 @@ set(DG_SOURCE
     weak_dg.cpp
     strong_dg.cpp
 	artificial_dissipation.cpp
+	artificial_dissipation_factory.cpp
     )
 
 foreach(dim RANGE 1 3)

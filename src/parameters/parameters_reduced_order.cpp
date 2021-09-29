@@ -2,7 +2,7 @@
 namespace PHiLiP {
     namespace Parameters {
 
-// NavierStokes inputs
+// Reduced Order Model inputs
         ReducedOrderModelParam::ReducedOrderModelParam () {}
 
         void ReducedOrderModelParam::declare_parameters (dealii::ParameterHandler &prm)

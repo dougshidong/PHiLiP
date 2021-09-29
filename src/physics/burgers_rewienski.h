@@ -5,7 +5,7 @@
 
 namespace PHiLiP {
     namespace Physics {
-/// Burgers Rewienski equation. Derived from Burgers, which is derived from PhysicsBase.
+/// Burgers Rewienski equation. Derived from Burgers, which is derived from PhysicsBase. Based on eq.(18) in Carlberg 2011
         template <int dim, int nstate, typename real>
         class BurgersRewienski : public Burgers <dim, nstate, real>
         {
@@ -22,18 +22,18 @@ namespace PHiLiP {
             /// Destructor
             ~BurgersRewienski () {};
 
+            /// Parameter a for eq.(18) in Carlberg 2011
             const double rewienski_a;
+
+            /// Parameter b for eq.(18) in Carlberg 2011
             const double rewienski_b;
 
-            /// Source term is zero or depends on manufactured solution
+            /// Source term depends on manufactured solution
             std::array<real,nstate> source_term (
                     const dealii::Point<dim,real> &pos,
                     const std::array<real,nstate> &solution) const override;
 
             /// If diffusion is present, assign Dirichlet boundary condition
-            /** Using Neumann boundary conditions might need to modify the functional
-             *  in order to obtain the optimal 2p convergence of the functional error
-             */
             void boundary_face_values (
                     const int /*boundary_type*/,
                     const dealii::Point<dim, real> &/*pos*/,

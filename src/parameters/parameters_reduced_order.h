@@ -5,12 +5,17 @@
 
 namespace PHiLiP {
     namespace Parameters {
-/// Parameters related to basis creation for reduced-order model
+/// Parameters related to reduced-order model
         class ReducedOrderModelParam
         {
         public:
+            /// Parameter a for eq.(18) in Carlberg 2011
             double rewienski_a;
+
+            /// Parameter b for eq.(18) in Carlberg 2011
             double rewienski_b;
+
+            /// Final solution time for PDE
             double final_time;
 
             ReducedOrderModelParam (); ///< Constructor

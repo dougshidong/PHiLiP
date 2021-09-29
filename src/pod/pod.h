@@ -12,13 +12,14 @@
 namespace PHiLiP {
     namespace ProperOrthogonalDecomposition {
 
+        /// Class for Proper Orthogonal Decomposition reduced order modelling
         class POD
         {
         public:
 
-            int num_basis;
-            std::unique_ptr<dealii::FullMatrix<double>> svd_u;
-            std::unique_ptr<dealii::FullMatrix<double>> pod_basis;
+            int num_basis; ///< Number of basis functions to keep for the reduced order model
+            std::unique_ptr<dealii::FullMatrix<double>> svd_u; ///< U matrix output from SVD
+            std::unique_ptr<dealii::FullMatrix<double>> pod_basis; ///< First num_basis columns of svd_u
 
             /// Constructor
             POD(int num_basis);
@@ -26,8 +27,10 @@ namespace PHiLiP {
             /// Destructor
             ~POD () {};
 
+            /// Get full POD basis consisting of svd_u
             dealii::FullMatrix<double> get_full_pod_basis();
 
+            /// Get reduced POD basis consisting of the first num_basis columns of svd_u
             dealii::FullMatrix<double> get_reduced_pod_basis();
 
         protected:

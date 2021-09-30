@@ -1,0 +1,76 @@
+#ifndef __IMPLICIT_ODESOLVER__
+#define __IMPLICIT_ODESOLVER__
+
+#include "dg/dg.h"
+#include "ode_solver_base.h"
+#include "linear_solver/linear_solver.h"
+
+namespace PHiLiP {
+namespace ODE {
+
+#if PHILIP_DIM==1
+template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+/// Implicit ODE solver derived from ODESolver.
+/** Currently works to find steady state of linear problems.
+ *  Need to add mass matrix to operator to handle nonlinear problems
+ *  and time-accurate solutions.
+ *
+ *  Uses backward-Euler by linearizing the residual
+ *  \f[
+ *      \mathbf{R}(\mathbf{u}^{n+1}) = \mathbf{R}(\mathbf{u}^{n}) +
+ *      \left. \frac{\partial \mathbf{R}}{\partial \mathbf{u}} \right|_{\mathbf{u}^{n}} (\mathbf{u}^{n+1} - \mathbf{u}^{n})
+ *  \f]
+ *  \f[
+ *      \frac{\partial \mathbf{u}}{\partial t} = \mathbf{R}(\mathbf{u}^{n+1})
+ *  \f]
+ *  \f[
+ *      \frac{\mathbf{u}^{n+1} - \mathbf{u}^{n}}{\Delta t} = \mathbf{R}(\mathbf{u}^{n}) +
+ *      \left. \frac{\partial \mathbf{R}}{\partial \mathbf{u}} \right|_{\mathbf{u}^{n}} (\mathbf{u}^{n+1} - \mathbf{u}^{n})
+ *  \f]
+ */
+class ImplicitODESolver: public ODESolverBase <dim, real, MeshType>
+{
+public:
+    /// Default constructor that will set the constants.
+    ImplicitODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input); ///< Constructor.
+
+    virtual ~ImplicitODESolver() {}; ///< Destructor.
+
+    /// Hard-coded way to play around with h-adaptivity.
+    /// Not recommended to be used.
+    int n_refine;
+
+    /// Useful for accurate time-stepping.
+    /** This variable will change when advance_solution_time() or step_in_time() is called. */
+    double current_time;
+
+    /// Function to evaluate solution update
+    void step_in_time(real dt, const bool pseudotime);
+
+    /// Function to allocate the ODE system
+    void allocate_ode_system ();
+
+    /// Line search algorithm
+    double linesearch ();
+
+    double global_step = 1.0;
+
+protected:
+    /// Smart pointer to DGBase
+    std::shared_ptr<DGBase<dim,real,MeshType>> dg;
+
+    /// Input parameters.
+    const Parameters::AllParameters *const all_parameters;
+
+    const MPI_Comm mpi_communicator; ///< MPI communicator.
+    dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
+
+};
+
+} // ODE namespace
+} // PHiLiP namespace
+
+#endif

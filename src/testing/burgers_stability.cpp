@@ -17,7 +17,7 @@
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
 #include "dg/dg_factory.hpp"
-#include "ode_solver/ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 
 
 namespace PHiLiP {
@@ -76,7 +76,7 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
                                  constants);
     dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
     // Create ODE solver using the factory and providing the DG object
-    std::shared_ptr<PHiLiP::ODE::ODESolver<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
    
     double finalTime = 3.;
    

@@ -36,7 +36,7 @@
 #include "physics/physics_factory.h"
 #include "physics/physics.h"
 #include "dg/dg_factory.hpp"
-#include "ode_solver/ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 
 #include "functional/target_functional.h"
 #include "functional/adjoint.h"
@@ -441,7 +441,7 @@ int OptimizationInverseManufactured<dim,nstate>
  initialize_perturbed_solution(*dg, *physics_double);
  dg->output_results_vtk(999);
  high_order_grid->output_results_vtk(high_order_grid->nth_refinement++);
- std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+ std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
  ode_solver->steady_state();
 
  // Save target solution and volume_nodes

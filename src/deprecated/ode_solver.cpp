@@ -1,4 +1,3 @@
-/*
 #include <deal.II/distributed/solution_transfer.h>
 
 #include "ode_solver_factory.h"
@@ -564,4 +563,3 @@ template class ODESolverFactory<PHILIP_DIM, double, dealii::parallel::distribute
 
 } // ODE namespace
 } // PHiLiP namespace
-*/

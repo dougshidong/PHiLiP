@@ -526,7 +526,7 @@ int GridStudy<dim,nstate>
             if (pde_type == PDE_enum::diffusion)            {pde_string = "diffusion";}
             if (pde_type == PDE_enum::convection_diffusion) {pde_string = "convection_diffusion";}
             if (pde_type == PDE_enum::burgers_inviscid)     {pde_string = "burgers_inviscid";}
-            if (pde_type == PDE_enum::burgers_rewienski)     {pde_string = "burgers_rewienski";}
+            if (pde_type == PDE_enum::burgers_rewienski)    {pde_string = "burgers_rewienski";}
             if (pde_type == PDE_enum::euler)                {pde_string = "euler";}
             if (pde_type == PDE_enum::navier_stokes)        {pde_string = "navier_stokes";}
 

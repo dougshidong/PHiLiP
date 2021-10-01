@@ -14,7 +14,7 @@ class BurgersRewienskiSnapshot: public TestsBase
 {
 public:
     /// Constructor.
- BurgersRewienskiSnapshot(const Parameters::AllParameters *const parameters_input);
+    BurgersRewienskiSnapshot(const Parameters::AllParameters *const parameters_input);
 
     /// Run test
     int run_test () const override;

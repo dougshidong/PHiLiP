@@ -1,5 +1,5 @@
 set(SOURCE
-    pod.cpp
+        proper_orthogonal_decomposition.cpp
     )
 
 foreach(dim RANGE 1 3)

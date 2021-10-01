@@ -29,10 +29,12 @@ public:
     /// Parameter b for eq.(18) in Carlberg 2011
     const double rewienski_b;
 
-    /// Run manufactured solution for this case
+    /** Run manufactured solution for this case if set to "true"
+      *  * Additional parameter since parameter "use_manufactured_solution_source" is already set to "true" for the PDE's source term
+      */
     const bool rewienski_manufactured_solution;
 
-    /// Source term depends on manufactured solution
+    /// PDE Source term. If rewienski_manufactured_solution==true then the manufactured solution source term is also included.
     std::array<real,nstate> source_term (
             const dealii::Point<dim,real> &pos,
             const std::array<real,nstate> &solution) const override;

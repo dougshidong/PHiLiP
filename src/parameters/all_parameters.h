@@ -90,7 +90,9 @@ public:
 
 	/// Add physical artificial dissipation
 
-	bool physical_artificial_dissipation;
+	
+	enum ArtificialDissipationType {laplacian, physical, enthalpy_conserving_laplacian};
+	ArtificialDissipationType artificial_dissipation_type;
 
 	double mu_artificial_dissipation;
 
@@ -188,6 +190,7 @@ public:
 
     /// Store flux reconstruction type
     Flux_Reconstruction_Aux flux_reconstruction_aux_type;
+
 
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()

@@ -266,30 +266,8 @@ DGBaseState<dim,nstate,real,MeshType>::DGBaseState(
     pde_physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType>	  ::create_Physics(parameters_input);
     pde_physics_rad_fad = Physics::PhysicsFactory<dim,nstate,RadFadType>	  ::create_Physics(parameters_input);
 	artificial_dissipation_pointer = ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation_pointer(parameters_input);
-   /* 
-    if (parameters_input->physical_artificial_dissipation)
-	{
-		if constexpr(dim+2==nstate)
-		{
-			artificial_dissipation_pointer = std::make_shared<PhysicalArtificialDissipation<dim,nstate>>(parameters_input);
-			std::cout<<"Physical Artifical Dissipation pointer created"<<std::endl;
-		}
-		else
-		{
-			std::cout<<"Cannot create PHYSICAL ARTIFICIAL DISSIPATION pointer. nstate != dim+2. ERROR!"<<std::endl;
-		}
-	}
-	else 
-	{
-		dealii::Tensor<2,3,double> diffusion_tensor;
-		diffusion_tensor[0][0]=1.0;	diffusion_tensor[0][1]=0.0; diffusion_tensor[0][2]=0.0; 
-		diffusion_tensor[1][0]=0.0; diffusion_tensor[1][1]=1.0; diffusion_tensor[1][2]=0.0; 
-		diffusion_tensor[2][0]=0.0;	diffusion_tensor[2][1]=0.0; diffusion_tensor[2][2]=1.0;
-		artificial_dissipation_pointer = std::make_shared<LaplacianArtificialDissipation<dim,nstate>>(diffusion_tensor);
-		std::cout<<"Laplacian Artifical Dissipation pointer created"<<std::endl;
-    }
-*/
-    reset_numerical_fluxes();
+    
+	reset_numerical_fluxes();
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -1021,15 +999,8 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
         const double upp = s_0 + kappa;
 
         const double diameter = std::pow(element_volume, 1.0/dim);
-		double eps_0 = 1.0;
-		if(all_parameters->physical_artificial_dissipation)
-		{
-        eps_0 = mu_scale * diameter / (double)degree;
-		}
-		else
-		{
-        eps_0 = mu_scale * diameter / (double)degree;
-		}
+        const double eps_0 = mu_scale * diameter / (double)degree;
+	
         //std::cout << " lower < s_e < upp " << low << " < " << s_e << " < " << upp << " ? " << std::endl;
 
         if ( s_e < low) continue;
@@ -2358,16 +2329,7 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     // const real2 low = Skappa - m_Kappa;
     // const real2 upp = Skappa + m_Kappa;
 
-    //const real2 eps_0 =1.0;// mu_scale * diameter / (double)degree;
-	real2 eps_0 = 1.0;
-		if(all_parameters->physical_artificial_dissipation)
-		{
-		 eps_0 =mu_scale* diameter / (double)degree;
-		}
-		else
-		{
-		 eps_0 = mu_scale * diameter / (double)degree;
-		}
+	const real2 eps_0 =mu_scale* diameter / (double)degree;
 
     if ( s_e < low) return 0.0;
 

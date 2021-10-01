@@ -86,9 +86,12 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Persson's subscell shock capturing artificial dissipation.");
 
-    prm.declare_entry("physical_artificial_dissipation", "false",
-                      dealii::Patterns::Bool(),
-                      "If true, Physical Artificial Dissipation (from Persson's subscell shock capturing) is implemented. If false, Laplacian Artifiial Disspation is implemented.");
+    prm.declare_entry("artificial_dissipation_type", "laplacian",
+                      dealii::Patterns::Selection(
+					  "laplacian |"
+					  "physical |"
+					  "enthalpy_conserving_laplacian |"),
+                      "Type of artificial dissipation we want to implement. Choices are laplacian, physical and enthalpy_conserving_laplacian");
     
     prm.declare_entry("mu_artificial_dissipation", "1.0",
                       dealii::Patterns::Double(-1e20,1e20),
@@ -261,7 +264,16 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_L2_norm = prm.get_bool("use_L2_norm");
     use_classical_FR = prm.get_bool("use_classical_Flux_Reconstruction");
     add_artificial_dissipation = prm.get_bool("add_artificial_dissipation");
-    physical_artificial_dissipation = prm.get_bool("physical_artificial_dissipation");
+
+	const std::string artificial_dissipation_string = prm.get("artificial_dissipation_type");
+	if (artificial_dissipation_string == "laplacian")
+	{  artificial_dissipation_type = laplacian;
+	} else if (artificial_dissipation_string == "physical")
+	{  artificial_dissipation_type = physical;
+	} else if (artificial_dissipation_string == "enthalpy_conserving_laplacian")
+    {  artificial_dissipation_type = enthalpy_conserving_laplacian;
+	}
+
     mu_artificial_dissipation = prm.get_double("mu_artificial_dissipation");
     kappa_artificial_dissipation = prm.get_double("kappa_artificial_dissipation");
     sipg_penalty_factor = prm.get_double("sipg_penalty_factor");

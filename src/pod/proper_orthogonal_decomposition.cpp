@@ -1,4 +1,4 @@
-#include "pod.h"
+#include "proper_orthogonal_decomposition.h"
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {

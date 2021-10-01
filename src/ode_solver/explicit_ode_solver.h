@@ -7,13 +7,12 @@
 namespace PHiLiP {
 namespace ODE {
 
+/// Explicit ODE solver derived from ODESolver.
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
 template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-
-/// Explicit ODE solver derived from ODESolver.
 class ExplicitODESolver: public ODESolverBase <dim, real, MeshType>
 {
 public:

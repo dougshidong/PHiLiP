@@ -2,8 +2,9 @@
 #include "parameters/all_parameters.h"
 #include "dg/dg.h"
 #include "ode_solver_base.h"
-#include "explicit_ODESolver.h"
-#include "implicit_ODESolver.h"
+#include "explicit_ode_solver.h"
+#include "implicit_ode_solver.h"
+#include <deal.II/distributed/solution_transfer.h>
 
 namespace PHiLiP {
 namespace ODE {

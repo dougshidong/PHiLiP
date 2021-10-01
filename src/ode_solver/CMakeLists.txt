@@ -1,8 +1,8 @@
 set(ODE_SOURCE
     ode_solver_factory.cpp
     ode_solver_base.cpp
-    explicit_ODESolver.cpp
-    implicit_ODESolver.cpp)
+    explicit_ode_solver.cpp
+    implicit_ode_solver.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

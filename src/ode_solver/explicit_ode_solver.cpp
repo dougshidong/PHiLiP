@@ -1,4 +1,4 @@
-#include "explicit_ODESolver.h"
+#include "explicit_ode_solver.h"
 
 namespace PHiLiP {
 namespace ODE {

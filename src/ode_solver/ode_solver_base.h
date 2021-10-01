@@ -12,6 +12,8 @@
 namespace PHiLiP {
 namespace ODE {
 
+/// Base class ODE solver.
+
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else

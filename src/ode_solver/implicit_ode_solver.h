@@ -8,11 +8,6 @@
 namespace PHiLiP {
 namespace ODE {
 
-#if PHILIP_DIM==1
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
-#else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
-#endif
 /// Implicit ODE solver derived from ODESolver.
 /** Currently works to find steady state of linear problems.
  *  Need to add mass matrix to operator to handle nonlinear problems
@@ -31,6 +26,11 @@ template <int dim, typename real, typename MeshType = dealii::parallel::distribu
  *      \left. \frac{\partial \mathbf{R}}{\partial \mathbf{u}} \right|_{\mathbf{u}^{n}} (\mathbf{u}^{n+1} - \mathbf{u}^{n})
  *  \f]
  */
+#if PHILIP_DIM==1
+template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
 class ImplicitODESolver: public ODESolverBase <dim, real, MeshType>
 {
 public:

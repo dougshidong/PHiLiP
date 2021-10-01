@@ -29,7 +29,9 @@ public:
     /// Parameter b for eq.(18) in Carlberg 2011
     const double rewienski_b;
 
-    /// Run manufactured solution for this case
+    /** Run manufactured solution for this case if set to "true"
+      *  * Additional parameter since parameter "use_manufactured_solution_source" is already set to "true" for the PDE's source term
+      */
     const bool rewienski_manufactured_solution;
 
     /// Source term depends on manufactured solution

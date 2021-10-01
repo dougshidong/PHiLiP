@@ -2,7 +2,7 @@
 #SBATCH --time=2:00:00
 #SBATCH --account=rrg-nadaraja-ac
 #SBATCH --job-name=compile_PHiLiP
-#SBATCH --output=%x.out
+#SBATCH --output=%x-%j.out
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=6                           ## <-- there are max 40 per node
 #SBATCH --mem=32G                           		  ## <-- total shared memory; default unit is megabytes

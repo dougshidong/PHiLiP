@@ -2,6 +2,8 @@
 #define __ODESOLVER_H__
 
 #include <deal.II/base/conditional_ostream.h>
+#include <deal.II/base/table_handler.h>
+#include <iostream>
 
 #include <deal.II/lac/vector.h>
 
@@ -48,6 +50,9 @@ public:
     /// Useful for accurate time-stepping.
     /** This variable will change when advance_solution_time() or step_in_time() is called. */
     double current_time;
+
+    /// Table used to output solution vector at each time step
+    dealii::TableHandler solutions_table;
 
     /// Evaluate steady state solution.
     int steady_state ();

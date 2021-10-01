@@ -44,6 +44,10 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
                           "Print every print_iteration_modulo iterations of "
                           "the nonlinear solver");
+        prm.declare_entry("output_solution_vector_modulo", "0",
+                          dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
+                          "Output solution vector every output_solution_vector_modulo iterations of "
+                          "the nonlinear solver. Set to 0 to disable.");
     }
     prm.leave_subsection();
 }
@@ -69,6 +73,7 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         time_step_factor_residual_exp = prm.get_double("time_step_factor_residual_exp");
 
         print_iteration_modulo = prm.get_integer("print_iteration_modulo");
+        output_solution_vector_modulo = prm.get_integer("output_solution_vector_modulo");
     }
     prm.leave_subsection();
 }

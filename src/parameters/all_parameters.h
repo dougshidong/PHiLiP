@@ -12,6 +12,7 @@
 #include "parameters/parameters_euler.h"
 #include "parameters/parameters_navier_stokes.h"
 
+#include "parameters/parameters_reduced_order.h"
 #include "parameters/parameters_grid_refinement_study.h"
 #include "parameters/parameters_grid_refinement.h"
 
@@ -35,6 +36,8 @@ public:
     EulerParam euler_param;
     /// Contains parameters for the Navier-Stokes equations non-dimensionalization
     NavierStokesParam navier_stokes_param;
+    /// Contains parameters for the Reduced-Order model
+    ReducedOrderModelParam reduced_order_param;
     /// contains the parameters for grid refinement study
     GridRefinementStudyParam grid_refinement_study_param;
 
@@ -113,6 +116,8 @@ public:
         euler_naca_optimization,
         shock_1d,
         euler_naca0012,
+        reduced_order,
+        burgers_rewienski_snapshot,
         advection_periodicity,
     };
     TestType test_type; ///< Selected TestType from the input file.
@@ -124,6 +129,7 @@ public:
         convection_diffusion,
         advection_vector,
         burgers_inviscid,
+        burgers_rewienski,
         euler,
         mhd,
         navier_stokes,

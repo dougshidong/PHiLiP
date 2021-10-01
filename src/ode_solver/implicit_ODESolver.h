@@ -37,15 +37,8 @@ public:
     /// Default constructor that will set the constants.
     ImplicitODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input); ///< Constructor.
 
-    virtual ~ImplicitODESolver() {}; ///< Destructor.
-
-    /// Hard-coded way to play around with h-adaptivity.
-    /// Not recommended to be used.
-    int n_refine;
-
-    /// Useful for accurate time-stepping.
-    /** This variable will change when advance_solution_time() or step_in_time() is called. */
-    double current_time;
+    /// Destructor.
+    ~ImplicitODESolver() {};
 
     /// Function to evaluate solution update
     void step_in_time(real dt, const bool pseudotime);
@@ -55,18 +48,6 @@ public:
 
     /// Line search algorithm
     double linesearch ();
-
-    double global_step = 1.0;
-
-protected:
-    /// Smart pointer to DGBase
-    std::shared_ptr<DGBase<dim,real,MeshType>> dg;
-
-    /// Input parameters.
-    const Parameters::AllParameters *const all_parameters;
-
-    const MPI_Comm mpi_communicator; ///< MPI communicator.
-    dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
 };
 

@@ -1,21 +1,17 @@
 #include "ode_solver_base.h"
-#include <stdexcept>
 
 namespace PHiLiP {
 namespace ODE{
 
-//double global_step = 1.0;
-
 template <int dim, typename real, typename MeshType>
 ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
-        : current_time(0.0)
+        : n_refine(0)
+        , current_time(0.0)
         , dg(dg_input)
         , all_parameters(dg->all_parameters)
         , mpi_communicator(MPI_COMM_WORLD)
         , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
-{
-    n_refine = 0;
-}
+        {}
 
 template <int dim, typename real, typename MeshType>
 void ODESolverBase<dim,real,MeshType>::initialize_steady_polynomial_ramping (const unsigned int global_final_poly_degree)
@@ -257,13 +253,8 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
     return 1;
 }
 
-
-// dealii::Triangulation<PHILIP_DIM>
 template class ODESolverBase<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
-
-// dealii::parallel::shared::Triangulation<PHILIP_DIM>
 template class ODESolverBase<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-
 #if PHILIP_DIM != 1
 template class ODESolverBase<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif

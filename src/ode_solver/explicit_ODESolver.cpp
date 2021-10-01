@@ -6,14 +6,7 @@ namespace ODE {
 template <int dim, typename real, typename MeshType>
 ExplicitODESolver<dim,real,MeshType>::ExplicitODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
         : ODESolverBase<dim,real,MeshType>(dg_input)
-        , current_time(0.0)
-        , dg(dg_input)
-        , all_parameters(dg->all_parameters)
-        , mpi_communicator(MPI_COMM_WORLD)
-        , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
-{
-    n_refine = 0;
-}
+        {}
 
 template <int dim, typename real, typename MeshType>
 void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pseudotime)
@@ -36,7 +29,7 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
         this->rk_stage[0] = this->dg->solution;
 
         // Stage 1
-        pcout<< "Stage 1... " << std::flush;
+        this->pcout<< "Stage 1... " << std::flush;
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
 
         this->rk_stage[1] = this->rk_stage[0];
@@ -50,7 +43,7 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
         }
 
         // Stage 2
-        pcout<< "2... " << std::flush;
+        this->pcout<< "2... " << std::flush;
         this->dg->solution = this->rk_stage[1];
         this->dg->assemble_residual ();
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
@@ -68,7 +61,7 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
         }
 
         // Stage 3
-        pcout<< "3... " << std::flush;
+        this->pcout<< "3... " << std::flush;
         this->dg->solution = this->rk_stage[2];
         this->dg->assemble_residual ();
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
@@ -86,7 +79,7 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
         }
 
         this->dg->solution = this->rk_stage[3];
-        pcout<< "done." << std::endl;
+        this->pcout<< "done." << std::endl;
     }
 
 }
@@ -94,7 +87,7 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
 template <int dim, typename real, typename MeshType>
 void ExplicitODESolver<dim,real,MeshType>::allocate_ode_system ()
 {
-    pcout << "Allocating ODE system and evaluating inverse mass matrix..." << std::endl;
+    this->pcout << "Allocating ODE system and evaluating inverse mass matrix..." << std::endl;
     const bool do_inverse_mass_matrix = true;
     this->solution_update.reinit(this->dg->right_hand_side);
     this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
@@ -105,13 +98,8 @@ void ExplicitODESolver<dim,real,MeshType>::allocate_ode_system ()
     }
 }
 
-
-// dealii::Triangulation<PHILIP_DIM>
 template class ExplicitODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
-
-// dealii::parallel::shared::Triangulation<PHILIP_DIM>
 template class ExplicitODESolver<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-
 #if PHILIP_DIM != 1
 template class ExplicitODESolver<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif

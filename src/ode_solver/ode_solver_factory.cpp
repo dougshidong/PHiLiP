@@ -29,12 +29,9 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
 }
 }
 
-// dealii::Triangulation<PHILIP_DIM>
+
 template class ODESolverFactory<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
-
-// dealii::parallel::shared::Triangulation<PHILIP_DIM>
 template class ODESolverFactory<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-
 #if PHILIP_DIM != 1
 template class ODESolverFactory<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif

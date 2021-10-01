@@ -4,12 +4,10 @@
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/table_handler.h>
 #include <iostream>
-
 #include <deal.II/lac/vector.h>
 #include "parameters/all_parameters.h"
 #include "dg/dg.h"
-
-
+#include <stdexcept>
 
 namespace PHiLiP {
 namespace ODE {
@@ -84,10 +82,6 @@ protected:
 
     double update_norm; ///< Norm of the solution update.
     double initial_residual_norm; ///< Initial residual norm.
-
-    /// Evaluate stable time-step
-    /** Currently not used */
-    void compute_time_step();
 
     /// Solution update given by the ODE solver
     dealii::LinearAlgebra::distributed::Vector<double> solution_update;

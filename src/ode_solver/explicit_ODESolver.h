@@ -20,32 +20,14 @@ public:
     /// Default constructor that will set the constants.
     ExplicitODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input); ///< Constructor.
 
-    virtual ~ExplicitODESolver() {}; ///< Destructor.
-
-    /// Hard-coded way to play around with h-adaptivity.
-    /// Not recommended to be used.
-    int n_refine;
-
-    /// Useful for accurate time-stepping.
-    /** This variable will change when advance_solution_time() or step_in_time() is called. */
-    double current_time;
+    /// Destructor
+    ~ExplicitODESolver() {};
 
     /// Function to evaluate solution update
     void step_in_time(real dt, const bool pseudotime);
 
     /// Function to allocate the ODE system
     void allocate_ode_system ();
-
-protected:
-    /// Smart pointer to DGBase
-    std::shared_ptr<DGBase<dim,real,MeshType>> dg;
-
-    /// Input parameters.
-    const Parameters::AllParameters *const all_parameters;
-
-    const MPI_Comm mpi_communicator; ///< MPI communicator.
-    dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
-
 };
 
 } // ODE namespace

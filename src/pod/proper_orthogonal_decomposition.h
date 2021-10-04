@@ -8,6 +8,7 @@
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/base/conditional_ostream.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
@@ -18,8 +19,8 @@ class POD
 public:
 
     int num_basis; ///< Number of basis functions to keep for the reduced order model
-    std::unique_ptr<dealii::FullMatrix<double>> svd_u; ///< U matrix output from SVD
-    std::unique_ptr<dealii::FullMatrix<double>> pod_basis; ///< First num_basis columns of svd_u
+    std::unique_ptr<dealii::LAPACKFullMatrix<double>> svd_u; ///< U matrix output from SVD
+    dealii::TrilinosWrappers::SparseMatrix pod_basis; ///< First num_basis columns of svd_u
 
     /// Constructor
     POD(int num_basis);
@@ -28,10 +29,10 @@ public:
     ~POD () {};
 
     /// Get full POD basis consisting of svd_u
-    dealii::FullMatrix<double> get_full_pod_basis();
+    dealii::LAPACKFullMatrix<double> get_full_pod_basis();
 
     /// Get reduced POD basis consisting of the first num_basis columns of svd_u
-    dealii::FullMatrix<double> get_reduced_pod_basis();
+    void build_reduced_pod_basis();
 
 protected:
     const MPI_Comm mpi_communicator; ///< MPI communicator.

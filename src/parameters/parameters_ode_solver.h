@@ -15,7 +15,8 @@ public:
     /// Types of ODE solver
     enum ODESolverEnum {
         explicit_solver, /// RK4
-        implicit_solver  /// Backward-Euler
+        implicit_solver,  /// Backward-Euler
+        pod_galerkin_solver ///Proper Orthogonal Decomposition with Galerkin projection
     };
 
     OutputEnum ode_output; ///< verbose or quiet.

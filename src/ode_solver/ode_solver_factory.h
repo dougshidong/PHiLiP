@@ -3,6 +3,7 @@
 
 #include "parameters/all_parameters.h"
 #include "dg/dg.h"
+#include "pod/proper_orthogonal_decomposition.h"
 #include "ode_solver_base.h"
 
 namespace PHiLiP {
@@ -19,7 +20,7 @@ class ODESolverFactory
 {
 public:
     /// Creates the ODE solver given a DGBase.
-    static std::shared_ptr<ODESolverBase<dim,real,MeshType>> create_ODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
+    static std::shared_ptr<ODESolverBase<dim,real,MeshType>> create_ODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::POD> pod = NULL);
 };
 
 } // ODE namespace

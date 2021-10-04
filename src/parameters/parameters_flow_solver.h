@@ -20,6 +20,11 @@ public:
         viscous_taylor_green_vortex
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
+
+    /// Declares the possible variables and sets the defaults.
+    static void declare_parameters (dealii::ParameterHandler &prm);
+    /// Parses input file and sets the variables.
+    void parse_parameters (dealii::ParameterHandler &prm);
 };
 
 } // Parameters namespace

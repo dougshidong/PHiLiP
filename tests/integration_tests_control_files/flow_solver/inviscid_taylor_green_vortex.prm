@@ -18,6 +18,7 @@ subsection grid refinement study
   set num_refinements = 0
   set poly_degree = 3
   set grid_type = hypercube
+  # boundaries
   set grid_left = 0.0
   set grid_right = 6.283185308
   # number of elements per side

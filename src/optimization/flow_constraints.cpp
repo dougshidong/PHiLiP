@@ -63,7 +63,7 @@ FlowConstraints<dim>
     //this->linear_solver_param.ilut_rtol = 1.0+1e-2;
     this->linear_solver_param.ilut_atol = 1e-5;
     this->linear_solver_param.ilut_rtol = 1.0+1e-2;
-    this->linear_solver_param.linear_solver_output = Parameters::OutputEnum::verbose;
+    this->linear_solver_param.linear_solver_output = dg->all_parameters->linear_solver_param.linear_solver_output;
     this->linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
     //this->linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::direct;
 }
@@ -140,7 +140,7 @@ void FlowConstraints<dim>
     double& tol
     )
 {
-
+    if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     update_2(des_var_ctl);
 
     dg->output_results_vtk(i_out++);

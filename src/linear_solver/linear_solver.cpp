@@ -211,7 +211,7 @@ solve_linear (
                         system_matrix.trilinos_matrix().RangeMap(),
                         right_hand_side.begin());
         AztecOO solver;
-        solver.SetAztecOption( AZ_output, (param.linear_solver_output ? AZ_all : AZ_last));
+        solver.SetAztecOption( AZ_output, (param.linear_solver_output ? AZ_all : AZ_none));
         solver.SetAztecOption(AZ_solver, AZ_gmres);
         //solver.SetAztecOption(AZ_solver, AZ_bicgstab);
         //solver.SetAztecOption(AZ_solver, AZ_cg);
@@ -269,13 +269,15 @@ solve_linear (
             solver.Iterate(max_iterations,
                            linear_residual);
             n_iterations += solver.NumIters();
-            pcout << " Solve #" << i_solve + 1 << " out of " << n_solves << "."
-                  << " Linear solver took " << solver.NumIters()
-                  << " iterations resulting in a linear residual of " << solver.ScaledResidual()
-                  << std::endl;
+            if (param.linear_solver_output == Parameters::OutputEnum::verbose) {
+                pcout << " Solve #" << i_solve + 1 << " out of " << n_solves << "."
+                      << " Linear solver took " << solver.NumIters()
+                      << " iterations resulting in a linear residual of " << solver.ScaledResidual()
+                      << std::endl;
+            }
         }
 
-        pcout << " Totalling " << n_iterations
+        pcout << " Total of " << n_iterations
               << " iterations resulting in a linear residual of " << solver.ScaledResidual() << std::endl
               << " Current RHS norm: " << right_hand_side.l2_norm()
               << " Linear solution norm: " << solution.l2_norm() << std::endl;

@@ -1,16 +1,16 @@
 #!/bin/bash
-#SBATCH --time=1:15:00
+#SBATCH --time=2:00:00
 #SBATCH --account=rrg-nadaraja-ac
 #SBATCH --job-name=compile_PHiLiP
 #SBATCH --output=%x-%j.out
 #SBATCH --nodes=1
-#SBATCH --ntasks=2                                    ## <-- there are max 40 per node
-#SBATCH --mem-per-cpu=3048M                           ## <-- memory; default unit is megabytes
-#SBATCH --mail-user=firstname.lastname@mail.mcgill.ca ## for receiving job updates via email
-#SBATCH --mail-type=ALL                               ## what kind of updates to receive by email
+#SBATCH --ntasks-per-node=6                           ## <-- there are max 40 per node
+#SBATCH --mem=32G                           		  ## <-- total shared memory; default unit is megabytes
+#SBATCH --mail-user=firstname.lastname@mail.mcgill.ca ## <-- for receiving job updates via email
+#SBATCH --mail-type=ALL                               ## <-- what kind of updates to receive by email
 
-SLURM_USER="brillon" ## <-- Enter beluga username here
-NUM_PROCS="2"        ## WARNING: must correspond to --ntasks above
+SLURM_USER="username" ## <-- Enter beluga username here
+NUM_PROCS="6"         ## WARNING: must correspond to --ntasks above
 
 ## Below are the modules needed to compile PHiLiP
 module --force purge
@@ -51,7 +51,7 @@ rsync  -axvH --no-g --no-p --exclude 'build*' --exclude .git --exclude '*.log' -
 mkdir build_release
 
 cd build_release
-cmake -DDEAL_II_DIR=$DEAL_II_DIR ../PHiLiP -DMPIMAX=2 -DCMAKE_BUILD_TYPE=Release -DGMSH_DIR=$GMSH_DIR/bin/gmsh -DGMSH_LIB=$GMSH_DIR -DCMAKE_SKIP_INSTALL_RPATH=ON 
+cmake -DDEAL_II_DIR=$DEAL_II_DIR ../PHiLiP -DMPIMAX=${NUM_PROCS} -DCMAKE_BUILD_TYPE=Release -DGMSH_DIR=$GMSH_DIR/bin/gmsh -DGMSH_LIB=$GMSH_DIR -DCMAKE_SKIP_INSTALL_RPATH=ON 
 make -j${NUM_PROCS}
 ##ctest
 

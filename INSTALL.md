@@ -76,7 +76,12 @@ The deal.II library has been setup with the following options:
 
 This section is aimed McGill's group who use Compute Canada's Beluga cluster.
 
-If you are a new user on the Beluga cluster, you must configure git modules by explicitly running `./configure_git_submodules_beluga.sh` on Beluga before proceeding, which runs the following commands:
+If you are a new user on the Beluga cluster, you must configure git modules by explicitly running the following on Beluga before proceeding:
+~~~~
+chmod +x configure_git_submodules_beluga.sh
+./configure_git_submodules_beluga.sh
+~~~~
+in which the shell script runs the following commands:
 ~~~~
 git submodule init
 git submodule update

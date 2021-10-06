@@ -14,6 +14,10 @@ PODGalerkinODESolver<dim,real,MeshType>::PODGalerkinODESolver(std::shared_ptr< D
 template <int dim, typename real, typename MeshType>
 void PODGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const bool /*pseudotime*/)
 {
+    double duration;
+    std::clock_t start;
+    start = std::clock();
+
     const bool compute_dRdW = true;
     this->dg->assemble_residual(compute_dRdW);
     this->current_time += dt;
@@ -30,11 +34,12 @@ void PODGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const bool 
         this->pcout << " Evaluating system update... " << std::endl;
     }
 
+    duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
+    this->pcout << "First section of step_in_time time: "<< duration <<'\n';
+
     //Galerkin projection, pod_basis = V
     //V^T*J*V*p = -V^T*R
 
-    std::clock_t start;
-    double duration;
     start = std::clock();
 
     pod->pod_basis.Tvmult(this->reduced_rhs, this->dg->right_hand_side); // reduced_rhs = (pod_basis)^T * right_hand_side
@@ -45,7 +50,6 @@ void PODGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const bool 
 
 
     duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
-
     this->pcout << "Multiplication time: "<< duration <<'\n';
 
     start = std::clock();
@@ -61,6 +65,8 @@ void PODGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const bool 
     duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
     this->pcout << "Solver time: "<< duration <<'\n';
 
+    start = std::clock();
+
     const double initial_residual = this->dg->get_residual_l2norm();
     double step_length = 1.0;
     this->dg->solution.add(step_length, this->solution_update);
@@ -69,6 +75,9 @@ void PODGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const bool 
     this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
 
     this->update_norm = this->solution_update.l2_norm();
+
+    duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
+    this->pcout << "Last section of step_in_time time: "<< duration <<'\n';
 
 }
 

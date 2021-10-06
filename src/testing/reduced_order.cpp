@@ -33,7 +33,7 @@ ReducedOrder<dim, nstate>::ReducedOrder(const PHiLiP::Parameters::AllParameters 
 template <int dim, int nstate>
 int ReducedOrder<dim, nstate>::run_test() const
 {
-    int num_basis = 30;
+    int num_basis = 100;
 
     std::shared_ptr<ProperOrthogonalDecomposition::POD> pod= std::make_shared<ProperOrthogonalDecomposition::POD>(num_basis);
 

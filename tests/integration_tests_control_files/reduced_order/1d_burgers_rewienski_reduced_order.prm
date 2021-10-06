@@ -13,7 +13,7 @@ set use_collocated_nodes = false
 
 # use the grid refinement study class to generate the grid
 subsection grid refinement study
- set num_refinements = 8
+ set num_refinements = 10
  set poly_degree = 0
  set grid_left = 0.0
  set grid_right = 100.0
@@ -23,7 +23,7 @@ end
 subsection reduced order
   set rewienski_a = 2
   set rewienski_b = 0.02
-  set final_time = 15
+  set final_time = 5
 end
 
 #subsection linear solver
@@ -31,7 +31,7 @@ end
 #end
 
 subsection ODE solver
-  set initial_time_step = 0.01
+  set initial_time_step = 0.05
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations            = 500
 

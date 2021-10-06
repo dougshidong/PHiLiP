@@ -1,11 +1,11 @@
 #ifndef __POD_GALERKIN_ODE_SOLVER__
 #define __POD_GALERKIN_ODE_SOLVER__
 
-
 #include "dg/dg.h"
 #include "ode_solver_base.h"
 #include "linear_solver/linear_solver.h"
 #include "pod/proper_orthogonal_decomposition.h"
+#include <deal.II/lac/trilinos_sparsity_pattern.h>
 
 namespace PHiLiP {
 namespace ODE {

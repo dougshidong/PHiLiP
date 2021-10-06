@@ -44,9 +44,9 @@ void PODGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const bool 
 
     pod->pod_basis.Tvmult(this->reduced_rhs, this->dg->right_hand_side); // reduced_rhs = (pod_basis)^T * right_hand_side
 
-    this->dg->system_matrix.mmult(this->reduced_lhs_tmp, pod->pod_basis); // reduced_lhs_tmp = system_matrix*pod_basis
+    pod->pod_basis.Tmmult(this->reduced_lhs_tmp, this->dg->system_matrix); //reduced_lhs_tmp = pod_basis^T * system_matrix
 
-    pod->pod_basis.Tmmult(this->reduced_lhs, this->reduced_lhs_tmp); //reduced_lhs = pod_basis^T * reduced_lhs_tmp
+    this->reduced_lhs_tmp.mmult(this->reduced_lhs, pod->pod_basis); // reduced_lhs = reduced_lhs_tmp*pod_basis
 
 
     duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
@@ -93,14 +93,7 @@ void PODGalerkinODESolver<dim,real,MeshType>::allocate_ode_system ()
     this->reduced_solution_update.reinit(pod->pod_basis.n());
     this->reduced_rhs.reinit(pod->pod_basis.n());
     this->reduced_lhs_tmp.reinit(pod->pod_basis);
-    dealii::TrilinosWrappers::SparseMatrix dummy_matrix(pod->pod_basis.n(), pod->pod_basis.n(), pod->pod_basis.n());
-    dummy_matrix.compress(dealii::VectorOperation::add);
-    this->reduced_lhs.reinit(dummy_matrix); //Use dummy matrix to reinit to necessary size
-
-    this->reduced_lhs.compress(dealii::VectorOperation::add);
-    this->reduced_lhs_tmp.compress(dealii::VectorOperation::add);
-    this->reduced_rhs.compress(dealii::VectorOperation::add);
-    this->reduced_solution_update(dealii::VectorOperation::add);
+    this->reduced_lhs.reinit(dealii::SparsityPattern(pod->pod_basis.n(), pod->pod_basis.n(), pod->pod_basis.n()));
 }
 
 template class PODGalerkinODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;

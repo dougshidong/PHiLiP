@@ -16,7 +16,8 @@ public:
     enum ODESolverEnum {
         explicit_solver, /// RK4
         implicit_solver,  /// Backward-Euler
-        pod_galerkin_solver ///Proper Orthogonal Decomposition with Galerkin projection
+        pod_galerkin_solver, ///Proper Orthogonal Decomposition with Galerkin projection
+        pod_petrov_galerkin_solver ///Proper Orthogonal Decomposition with Petrov-Galerkin projection (LSPG)
     };
 
     OutputEnum ode_output; ///< verbose or quiet.

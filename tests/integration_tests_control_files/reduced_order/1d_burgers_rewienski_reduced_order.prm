@@ -26,9 +26,9 @@ subsection reduced order
   set final_time = 5
 end
 
-#subsection linear solver
-#  set linear_solver_type = direct
-#end
+subsection linear solver
+  set linear_solver_type = direct
+end
 
 subsection ODE solver
   set initial_time_step = 0.05
@@ -42,10 +42,10 @@ subsection ODE solver
   set print_iteration_modulo              = 1
 
   # Output solution every output_solution_vector_modulo iterations in text file
-  set output_solution_vector_modulo        = 100
+  set output_solution_vector_modulo        = 1
 
   # Explicit or implicit solverChoices are <explicit|implicit>.
-  set ode_solver_type                         = pod_galerkin
+  set ode_solver_type                         = pod_petrov_galerkin
 end
 
 subsection manufactured solution convergence study

@@ -4,6 +4,7 @@
 #include "explicit_ode_solver.h"
 #include "implicit_ode_solver.h"
 #include "pod_galerkin_ode_solver.h"
+#include "pod_petrov_galerkin_ode_solver.h"
 #include <deal.II/distributed/solution_transfer.h>
 
 namespace PHiLiP {
@@ -17,6 +18,7 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
     if(ode_solver_type == ODEEnum::explicit_solver) return std::make_shared<ExplicitODESolver<dim,real,MeshType>>(dg_input);
     if(ode_solver_type == ODEEnum::implicit_solver) return std::make_shared<ImplicitODESolver<dim,real,MeshType>>(dg_input);
     if(ode_solver_type == ODEEnum::pod_galerkin_solver) return std::make_shared<PODGalerkinODESolver<dim,real,MeshType>>(dg_input, pod);
+    if(ode_solver_type == ODEEnum::pod_petrov_galerkin_solver) return std::make_shared<PODPetrovGalerkinODESolver<dim,real,MeshType>>(dg_input, pod);
     else {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
     pcout << "********************************************************************" << std::endl;
@@ -26,6 +28,7 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
     pcout <<  ODEEnum::explicit_solver << std::endl;
     pcout <<  ODEEnum::implicit_solver << std::endl;
     pcout <<  ODEEnum::pod_galerkin_solver << std::endl;
+    pcout <<  ODEEnum::pod_petrov_galerkin_solver << std::endl;
     pcout << "********************************************************************" << std::endl;
     std::abort();
     return nullptr;

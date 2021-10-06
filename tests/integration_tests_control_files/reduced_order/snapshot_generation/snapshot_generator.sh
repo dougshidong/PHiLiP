@@ -25,7 +25,7 @@ echo " set use_collocated_nodes = false"                                        
 echo " "                                                                              >> $file
 echo "#use the grid refinement study class to generate the grid"                      >> $file
 echo "subsection grid refinement study"                                               >> $file
-echo " set num_refinements = 8"                                                       >> $file
+echo " set num_refinements = 10"                                                      >> $file
 echo " set poly_degree = 0"                                                           >> $file
 echo " set grid_left = 0.0"                                                           >> $file
 echo " set grid_right = 100.0"                                                        >> $file
@@ -39,7 +39,7 @@ echo " set final_time = 5"                                                      
 echo "end"                                                                            >> $file
 echo " "                                                                              >> $file
 echo "subsection ODE solver"                                                          >> $file
-echo " set initial_time_step = 0.01"                                                  >> $file
+echo " set initial_time_step = 0.05"                                                  >> $file
 echo " # Maximum nonlinear solver iterations"                                         >> $file
 echo " set nonlinear_max_iterations            = 500"                                 >> $file
 echo " "                                                                              >> $file
@@ -50,7 +50,7 @@ echo " # Print every print_iteration_modulo iterations of the nonlinear solver" 
 echo " set print_iteration_modulo              = 10000"                               >> $file
 echo " "                                                                              >> $file
 echo " # Output solution every output_solution_vector_modulo iterations in text file" >> $file
-echo " set output_solution_vector_modulo        = 10"                                 >> $file
+echo " set output_solution_vector_modulo        = 1"                                  >> $file
 echo " "                                                                              >> $file
 echo " # Explicit or implicit solverChoices are <explicit|implicit>."                 >> $file
 echo " set ode_solver_type                         = implicit"                        >> $file

@@ -9,47 +9,47 @@
 #include <deal.II/lac/trilinos_sparsity_pattern.h>
 
 namespace PHiLiP {
-    namespace ODE {
+namespace ODE {
 
 /// POD-Galerkin ODE solver derived from ODESolver.
 #if PHILIP_DIM==1
-        template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-        template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-        class PODPetrovGalerkinODESolver: public ODESolverBase <dim, real, MeshType>
-        {
-        public:
-            /// Default constructor that will set the constants.
-            PODPetrovGalerkinODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::POD> pod); ///< Constructor.
+class PODPetrovGalerkinODESolver: public ODESolverBase <dim, real, MeshType>
+{
+public:
+    /// Default constructor that will set the constants.
+    PODPetrovGalerkinODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::POD> pod); ///< Constructor.
 
-            ///POD
-            std::shared_ptr<ProperOrthogonalDecomposition::POD> pod;
+    ///POD
+    std::shared_ptr<ProperOrthogonalDecomposition::POD> pod;
 
-            /// Destructor
-            ~PODPetrovGalerkinODESolver() {};
+    /// Destructor
+    ~PODPetrovGalerkinODESolver() {};
 
-            /// Function to evaluate solution update
-            void step_in_time(real dt, const bool pseudotime);
+    /// Function to evaluate solution update
+    void step_in_time(real dt, const bool pseudotime);
 
-            /// Function to allocate the ODE system
-            void allocate_ode_system ();
+    /// Function to allocate the ODE system
+    void allocate_ode_system ();
 
-            /// Reduced solution update given by the ODE solver
-            dealii::LinearAlgebra::distributed::Vector<double> reduced_solution_update;
+    /// Reduced solution update given by the ODE solver
+    dealii::LinearAlgebra::distributed::Vector<double> reduced_solution_update;
 
-            /// Reduced rhs for linear solver
-            dealii::LinearAlgebra::distributed::Vector<double> reduced_rhs;
+    /// Reduced rhs for linear solver
+    dealii::LinearAlgebra::distributed::Vector<double> reduced_rhs;
 
-            /// Psi = J * V
-            dealii::TrilinosWrappers::SparseMatrix psi;
+    /// Psi = J * V
+    dealii::TrilinosWrappers::SparseMatrix psi;
 
-            /// Reduced lhs for linear solver
-            dealii::TrilinosWrappers::SparseMatrix reduced_lhs;
+    /// Reduced lhs for linear solver
+    dealii::TrilinosWrappers::SparseMatrix reduced_lhs;
 
-        };
+};
 
-    } // ODE namespace
+} // ODE namespace
 } // PHiLiP namespace
 
 #endif

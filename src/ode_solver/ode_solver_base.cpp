@@ -247,7 +247,7 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
     }
 
     if (ode_param.output_solution_vector_modulo > 0) {
-        std::ofstream out_file("solutions_table.txt");
+        std::ofstream out_file("solutions_table" + std::to_string(ODESolverBase<dim,real,MeshType>::all_parameters->reduced_order_param.rewienski_a) + ".txt");
         solutions_table.write_text(out_file);
     }
     return 1;

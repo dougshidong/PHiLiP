@@ -12,9 +12,10 @@ POD::POD(int num_basis)
 
 dealii::LAPACKFullMatrix<double> POD::get_full_pod_basis() {
     std::vector<dealii::FullMatrix<double>> snapshotMatrixContainer;
-    std::string path = "snapshot_generation"; //Search this directory for solutions_table.txt files
+    std::string path = "."; //Search current directory for files containing "solutions_table"
+    pcout << "Collecting snapshots from files" << std::endl;
     for (const auto & entry : std::filesystem::recursive_directory_iterator(path)){ //Recursive seach
-        if(entry.path().filename() == "solutions_table.txt"){
+        if(std::string(entry.path().filename()).std::string::find("solutions_table") != std::string::npos){
             pcout << "Processing " << entry.path() << std::endl;
             std::ifstream myfile(entry.path());
             if(!myfile)

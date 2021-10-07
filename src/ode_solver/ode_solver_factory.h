@@ -19,8 +19,11 @@ template <int dim, typename real, typename MeshType = dealii::parallel::distribu
 class ODESolverFactory
 {
 public:
-    /// Creates the ODE solver given a DGBase.
+    /// Creates the ODE solver given a DGBase and POD basis if needed.
     static std::shared_ptr<ODESolverBase<dim,real,MeshType>> create_ODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::POD> pod = NULL);
+
+    /// Creates ODE solver manually, allows for overriding the parameter and manually choosing which solver. Useful for testing.
+    static std::shared_ptr<ODESolverBase<dim,real,MeshType>> create_ODESolver_manual(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::POD> pod = NULL);
 };
 
 } // ODE namespace

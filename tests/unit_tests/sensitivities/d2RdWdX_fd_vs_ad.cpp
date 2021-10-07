@@ -12,7 +12,7 @@
 
 #include <deal.II/dofs/dof_tools.h>
 
-#include "ode_solver/ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 #include "dg/dg_factory.hpp"
 #include "parameters/parameters.h"
 #include "physics/physics_factory.h"
@@ -82,7 +82,7 @@ int test (
     dg->solution.update_ghost_values();
 
     // Solving the flow to make sure that we're not at the point of non-differentiality between elements.
-    std::shared_ptr<PHiLiP::ODE::ODESolver<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
     ode_solver->steady_state();
 
     // Set dual to 1.0 so that every 2nd derivative of the residual is accounted for.

@@ -1,3 +1,4 @@
+
 #ifndef __ODESOLVER_H__
 #define __ODESOLVER_H__
 
@@ -20,6 +21,7 @@ namespace ODE {
  *      \frac{\partial \mathbf{u}}{\partial t} = \mathbf{R}(\mathbf{u})
  *  \f]
  */
+
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
@@ -221,4 +223,3 @@ public:
 } // PHiLiP namespace
 
 #endif
-

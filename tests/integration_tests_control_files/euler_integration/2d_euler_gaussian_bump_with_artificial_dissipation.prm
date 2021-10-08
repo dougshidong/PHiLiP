@@ -18,7 +18,7 @@ set use_split_form = false
 
 set add_artificial_dissipation = true
 
-set entropy_error_discontinuity_sensor = true
+set entropy_error_discontinuity_sensor = false
 
 set artificial_dissipation_type = enthalpy_conserving_laplacian
 

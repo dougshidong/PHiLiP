@@ -116,7 +116,7 @@ std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
         auxiliary_flux_dot_n[s] = phys;
     }
 
-    if (artificial_diss_coeff_int > 1e-13 || artificial_diss_coeff_ext > 1e-13) {
+    if (artificial_diss_coeff_int > 1e-20 || artificial_diss_coeff_ext > 1e-20) {
         ArrayTensor1 artificial_phys_flux_int, artificial_phys_flux_ext;
 
         // {{A*grad_u}}
@@ -205,7 +205,7 @@ std::array<real, nstate> BassiRebay2<dim,nstate,real>
         auxiliary_flux_dot_n[s] = phys;
     }
 
-    if (artificial_diss_coeff_int > 1e-13 || artificial_diss_coeff_ext > 1e-13) {
+    if (artificial_diss_coeff_int > 1e-20 || artificial_diss_coeff_ext > 1e-20) {
         ArrayTensor1 artificial_phys_flux_int, artificial_phys_flux_ext;
 
         // {{A*grad_u}}

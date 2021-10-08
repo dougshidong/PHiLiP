@@ -5,14 +5,15 @@
  #include "artificial_dissipation.h"
 
 
- namespace PHiLiP{
- 
- template<int dim, int nstate>
- class ArtificialDissipationFactory
+ namespace PHiLiP
  {
-	public:
-	static std::shared_ptr<ArtificialDissipationBase<dim,nstate>> create_artificial_dissipation_pointer(const Parameters::AllParameters *const parameters_input);
- };
+ 
+	template<int dim, int nstate>
+	class ArtificialDissipationFactory
+	 {
+		public:
+		static std::shared_ptr<ArtificialDissipationBase<dim,nstate>> create_artificial_dissipation_pointer(const Parameters::AllParameters *const parameters_input);
+	};
 
  } // PHiLiP namespace
 

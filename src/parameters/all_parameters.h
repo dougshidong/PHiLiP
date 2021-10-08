@@ -88,6 +88,8 @@ public:
      */
     bool add_artificial_dissipation;
 
+	bool entropy_error_discontinuity_sensor;
+
 	/// Add physical artificial dissipation
 
 	

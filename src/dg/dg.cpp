@@ -961,26 +961,35 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
             // Quadrature
             element_volume += fe_values_volume.JxW(iquad);
             // Only integrate over the first state variable.
-            // Persson and Peraire only did density.
             for (unsigned int s=0; s<1/*nstate*/; ++s) {
-               error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * fe_values_volume.JxW(iquad);
-               soln_norm += soln_high[s] * soln_high[s] * fe_values_volume.JxW(iquad);
-			  /* double v_high2 = soln_high[1]*soln_high[1] + soln_high[2]*soln_high[2];
-			   double v_low2 = soln_lower[1]*soln_lower[1] + soln_lower[2]*soln_lower[2];
-			   double p_high = 0.4*(soln_high[nstate-1] - 0.5*v_high2/soln_high[0]);
-			   double p_low = 0.4*(soln_lower[nstate-1] - 0.5*v_low2/soln_lower[0]);
-			   double entropy_high = p_high*pow(soln_high[0],-1.4);
-			   double entropy_low = p_low*pow(soln_lower[0],-1.4);
-			   error+= (entropy_high - entropy_low) *(entropy_high - entropy_low) * fe_values_volume.JxW(iquad);
-			   soln_norm+= entropy_high * entropy_high * fe_values_volume.JxW(iquad);
-			   */
+
+				if(all_parameters->entropy_error_discontinuity_sensor)
+				{
+					double v_high2 = soln_high[1]*soln_high[1] + soln_high[2]*soln_high[2];
+					double v_low2 = soln_lower[1]*soln_lower[1] + soln_lower[2]*soln_lower[2];
+					double p_high = 0.4*(soln_high[nstate-1] - 0.5*v_high2/soln_high[0]);
+					double p_low = 0.4*(soln_lower[nstate-1] - 0.5*v_low2/soln_lower[0]);
+					double entropy_high = p_high*pow(soln_high[0],-1.4);
+					double entropy_low = p_low*pow(soln_lower[0],-1.4);
+					error+= (entropy_high - entropy_low) *(entropy_high - entropy_low) * fe_values_volume.JxW(iquad);
+					soln_norm+= entropy_high * entropy_high * fe_values_volume.JxW(iquad);
+				}
+				else
+				{
+					 error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * fe_values_volume.JxW(iquad);
+					soln_norm += soln_high[s] * soln_high[s] * fe_values_volume.JxW(iquad);
+				}
+			   
             }
         }
 
         //std::cout << " error: " << error
         //          << " soln_norm: " << soln_norm << std::endl;
         //if (error < 1e-12) continue;
-        if (soln_norm < 1e-12) continue;
+        if (soln_norm < 1e-20) 
+		{
+		continue;
+		}
 
         double S_e, s_e;
         S_e = sqrt(error / soln_norm);

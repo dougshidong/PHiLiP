@@ -9,8 +9,9 @@ subsection euler
   set mach_infinity = 0.1
 end
 
+set test_type = flow_solver
 subsection flow_solver
-  flow_case_type = inviscid_taylor_green_vortex
+  set flow_case_type = inviscid_taylor_green_vortex
 end
 
 # Grid parameters + Polynomial Order of Solution
@@ -23,26 +24,4 @@ subsection grid refinement study
   set grid_right = 6.283185308
   # number of elements per side
   set grid_size = 16
-end
-
-# TO DO: ODE section
-subsection ODE solver
-
-  set ode_output                          = verbose
-
-  set initial_time_step = 1000
-  set time_step_factor_residual = 10
-  set time_step_factor_residual_exp = 2
-
-  # Maximum nonlinear solver iterations
-  set nonlinear_max_iterations            = 500000
-
-  # Nonlinear solver residual tolerance
-  set nonlinear_steady_residual_tolerance = 1e-12
-
-  # Print every print_iteration_modulo iterations of the nonlinear solver
-  set print_iteration_modulo              = 1
-
-  # Explicit or implicit solverChoices are <explicit|implicit>.
-  set ode_solver_type                         = implicit
 end

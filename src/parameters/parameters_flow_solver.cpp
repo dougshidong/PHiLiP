@@ -11,15 +11,19 @@ FlowSolverParam::FlowSolverParam() {}
 
 void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
 {
-    prm.declare_entry("flow_case_type","inviscid_taylor_green_vortex",
-                      dealii::Patterns::Selection(
-                      " inviscid_taylor_green_vortex | "
-                      " viscous_taylor_green_vortex"
-                      ),
-                      "The type of flow we want to simulate. "
-                      "Choices are "
-                      " <inviscid_taylor_green_vortex | "
-                      "  viscous_taylor_green_vortex>.");
+    prm.enter_subsection("flow_solver");
+    {
+        prm.declare_entry("flow_case_type","inviscid_taylor_green_vortex",
+                          dealii::Patterns::Selection(
+                          " inviscid_taylor_green_vortex | "
+                          " viscous_taylor_green_vortex"
+                          ),
+                          "The type of flow we want to simulate. "
+                          "Choices are "
+                          " <inviscid_taylor_green_vortex | "
+                          "  viscous_taylor_green_vortex>.");
+    }
+    prm.leave_subsection();
 }
 
 void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)

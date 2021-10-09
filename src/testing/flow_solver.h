@@ -36,6 +36,9 @@ public:
     /// Initializes the solution with the initial condition // TO DO
     // void initialize_solution(PHiLiP::DGBase<dim,double> &dg, const PHiLiP::Physics::PhysicsBase<dim,nstate,double> &physics) const;
 
+    /// Displays the flow setup parameters
+    void display_flow_solver_setup(const Parameters::AllParameters *const param) const;
+
     /// Runs the test (i.e. flow solver)
     int run_test () const;
 

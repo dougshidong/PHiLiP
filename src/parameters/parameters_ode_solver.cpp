@@ -48,6 +48,9 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
                           "Output solution vector every output_solution_vector_modulo iterations of "
                           "the nonlinear solver. Set to 0 to disable.");
+        prm.declare_entry("solutions_table_filename", "solutions_table",
+                          dealii::Patterns::Anything(),
+                          "Filename to use when outputting solution vectors in a table format.");
     }
     prm.leave_subsection();
 }
@@ -76,6 +79,7 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
 
         print_iteration_modulo = prm.get_integer("print_iteration_modulo");
         output_solution_vector_modulo = prm.get_integer("output_solution_vector_modulo");
+        solutions_table_filename = prm.get("solutions_table_filename");
     }
     prm.leave_subsection();
 }

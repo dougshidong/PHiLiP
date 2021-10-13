@@ -42,7 +42,7 @@ subsection ODE solver
   set print_iteration_modulo              = 1
 
   # Output solution every output_solution_vector_modulo iterations in text file
-  set output_solution_vector_modulo        = 1
+  set output_solution_vector_modulo        = 0
 
   # Explicit or implicit solverChoices are <explicit|implicit>.
   set ode_solver_type                         = pod_galerkin

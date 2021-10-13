@@ -1,7 +1,6 @@
 #ifndef __POD_PETROV_GALERKIN_ODE_SOLVER__
 #define __POD_PETROV_GALERKIN_ODE_SOLVER__
 
-
 #include "dg/dg.h"
 #include "ode_solver_base.h"
 #include "linear_solver/linear_solver.h"

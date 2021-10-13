@@ -25,6 +25,9 @@ public:
     /// Constructor
     POD(int num_basis);
 
+    /// Constructor not specifying number of basis functions
+    POD();
+
     /// Destructor
     ~POD () {};
 

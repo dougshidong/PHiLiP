@@ -10,6 +10,12 @@ POD::POD(int num_basis)
 , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {}
 
+POD::POD()
+        : num_basis(50)
+        , mpi_communicator(MPI_COMM_WORLD)
+        , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
+{}
+
 dealii::LAPACKFullMatrix<double> POD::get_full_pod_basis() {
     std::vector<dealii::FullMatrix<double>> snapshotMatrixContainer;
     std::string path = "."; //Search current directory for files containing "solutions_table"

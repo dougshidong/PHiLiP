@@ -7,8 +7,8 @@ namespace ODE {
 
 template <int dim, typename real, typename MeshType>
 PODPetrovGalerkinODESolver<dim,real,MeshType>::PODPetrovGalerkinODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::POD> pod)
-        : ODESolverBase<dim,real,MeshType>(dg_input)
-        , pod(pod)
+    : ODESolverBase<dim,real,MeshType>(dg_input)
+    , pod(pod)
 {}
 
 template <int dim, typename real, typename MeshType>
@@ -99,7 +99,7 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::allocate_ode_system ()
 template class PODPetrovGalerkinODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
 template class PODPetrovGalerkinODESolver<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 #if PHILIP_DIM != 1
-template class PODGalerkinODESolver<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class PODPetrovGalerkinODESolver<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 
 } // ODE namespace

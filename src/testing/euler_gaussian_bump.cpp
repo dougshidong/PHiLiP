@@ -252,9 +252,13 @@ int EulerGaussianBump<dim,nstate>
         convergence_table_vector.push_back(convergence_table);
 
         const double expected_slope = poly_degree+1;
+	
+		double last_slope = 0.0;
 
-        const double last_slope = log(Error[n_grids-1]/Error[n_grids-2])
-                                  / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
+		if(n_grids>=2)
+		{
+        last_slope = log(Error[n_grids-1]/Error[n_grids-2]) / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
+		}
         //double before_last_slope = last_slope;
         //if ( n_grids > 2 ) {
         //    before_last_slope = log(Error[n_grids-2]/Error[n_grids-3])

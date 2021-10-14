@@ -10,7 +10,7 @@
 namespace PHiLiP {
 namespace ODE {
 
-/// POD-Galerkin ODE solver derived from ODESolver.
+/// POD-Petrov-Galerkin ODE solver derived from ODESolver.
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else

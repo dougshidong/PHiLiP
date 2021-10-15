@@ -111,7 +111,10 @@ namespace PHiLiP
 				Den = heat_flux[i] - Flux_navier_stokes[nstate-1][i];
 
 				Pr[i] = Num/Den;
-
+				if(Pr[i]<1.0e-5)  // Stabilize Prandtl number
+				{
+					Pr[i] = 0.75;
+				}
 				Flux_navier_stokes[nstate-1][i] = Flux_navier_stokes[nstate-1][i] - heat_flux[i] + heat_flux[i]*1.0/Pr[i];
 			}
 		}

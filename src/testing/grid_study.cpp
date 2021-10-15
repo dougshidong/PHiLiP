@@ -1,7 +1,7 @@
 #include <stdlib.h>     /* srand, rand */
 #include <iostream>
 
-#include <deal.II/base/convergence_table.h>
+//#include <deal.II/base/convergence_table.h> //<-- included in header file
 
 #include <deal.II/dofs/dof_tools.h>
 
@@ -113,6 +113,83 @@ double GridStudy<dim,nstate>
 }
 
 template<int dim, int nstate>
+std::string GridStudy<dim,nstate>::
+get_convergence_tables_baseline_filename(const Parameters::AllParameters *const param) const
+{
+    using ManParam = Parameters::ManufacturedConvergenceStudyParam;
+    ManParam manu_grid_conv_param = param->manufactured_convergence_study_param;
+    
+    // Future code development: create get_pde_string(), get_conv_num_flux_string(), get_manufactured_solution_string() in appropriate classes
+    std::string error_filename_baseline = "convergence_table"; // initial base name
+    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+    const PDE_enum pde_type = param->pde_type;
+    std::string pde_string;
+    if (pde_type == PDE_enum::advection)            {pde_string = "advection";}
+    if (pde_type == PDE_enum::advection_vector)     {pde_string = "advection_vector";}
+    if (pde_type == PDE_enum::diffusion)            {pde_string = "diffusion";}
+    if (pde_type == PDE_enum::convection_diffusion) {pde_string = "convection_diffusion";}
+    if (pde_type == PDE_enum::burgers_inviscid)     {pde_string = "burgers_inviscid";}
+    if (pde_type == PDE_enum::burgers_rewienski)    {pde_string = "burgers_rewienski";}
+    if (pde_type == PDE_enum::euler)                {pde_string = "euler";}
+    if (pde_type == PDE_enum::navier_stokes)        {pde_string = "navier_stokes";}
+
+    using CNF_enum = Parameters::AllParameters::ConvectiveNumericalFlux;
+    const CNF_enum CNF_type = param->conv_num_flux_type;
+    std::string conv_num_flux_string;
+    if (CNF_type == CNF_enum::lax_friedrichs) {conv_num_flux_string = "lax_friedrichs";}
+    if (CNF_type == CNF_enum::split_form)     {conv_num_flux_string = "split_form";}
+    if (CNF_type == CNF_enum::roe)            {conv_num_flux_string = "roe";}
+    if (CNF_type == CNF_enum::l2roe)          {conv_num_flux_string = "l2roe";}
+
+    using DNF_enum = Parameters::AllParameters::DissipativeNumericalFlux;
+    const DNF_enum DNF_type = param->diss_num_flux_type;
+    std::string diss_num_flux_string;
+    if (DNF_type == DNF_enum::symm_internal_penalty) {diss_num_flux_string = "symm_internal_penalty";}
+    if (DNF_type == DNF_enum::bassi_rebay_2)         {diss_num_flux_string = "bassi_rebay_2";}
+
+    using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
+    const ManufacturedSolutionEnum MS_type = manu_grid_conv_param.manufactured_solution_param.manufactured_solution_type;
+    std::string manufactured_solution_string;
+    if (MS_type == ManufacturedSolutionEnum::sine_solution)           {manufactured_solution_string = "sine_solution";}
+    if (MS_type == ManufacturedSolutionEnum::cosine_solution)         {manufactured_solution_string = "cosine_solution";}
+    if (MS_type == ManufacturedSolutionEnum::additive_solution)       {manufactured_solution_string = "additive_solution";}
+    if (MS_type == ManufacturedSolutionEnum::exp_solution)            {manufactured_solution_string = "exp_solution";}
+    if (MS_type == ManufacturedSolutionEnum::poly_solution)           {manufactured_solution_string = "poly_solution";}
+    if (MS_type == ManufacturedSolutionEnum::even_poly_solution)      {manufactured_solution_string = "even_poly_solution";}
+    if (MS_type == ManufacturedSolutionEnum::atan_solution)           {manufactured_solution_string = "atan_solution";}
+    if (MS_type == ManufacturedSolutionEnum::boundary_layer_solution) {manufactured_solution_string = "boundary_layer_solution";}
+    if (MS_type == ManufacturedSolutionEnum::s_shock_solution)        {manufactured_solution_string = "s_shock_solution";}
+    if (MS_type == ManufacturedSolutionEnum::quadratic_solution)      {manufactured_solution_string = "quadratic_solution";}
+    if (MS_type == ManufacturedSolutionEnum::navah_solution_1)        {manufactured_solution_string = "navah_solution_1";}
+    if (MS_type == ManufacturedSolutionEnum::navah_solution_2)        {manufactured_solution_string = "navah_solution_2";}
+    if (MS_type == ManufacturedSolutionEnum::navah_solution_3)        {manufactured_solution_string = "navah_solution_3";}
+    if (MS_type == ManufacturedSolutionEnum::navah_solution_4)        {manufactured_solution_string = "navah_solution_4";}
+    if (MS_type == ManufacturedSolutionEnum::navah_solution_5)        {manufactured_solution_string = "navah_solution_5";}
+
+    error_filename_baseline += std::string("_") + std::to_string(dim) + std::string("d");
+    error_filename_baseline += std::string("_") + pde_string;
+    error_filename_baseline += std::string("_") + conv_num_flux_string;
+    error_filename_baseline += std::string("_") + diss_num_flux_string;
+    error_filename_baseline += std::string("_") + manufactured_solution_string;
+    return error_filename_baseline;
+}
+
+template<int dim, int nstate>
+void GridStudy<dim,nstate>::
+write_convergence_table_to_output_file(
+    const std::string error_filename_baseline,
+    const dealii::ConvergenceTable convergence_table,
+    const unsigned int poly_degree) const
+{
+    std::string error_filename = error_filename_baseline;
+    std::string error_fileType = std::string("txt");
+    error_filename += std::string("_") + std::string("p") + std::to_string(poly_degree);
+    std::ofstream error_table_file(error_filename + std::string(".") + error_fileType);
+    convergence_table.write_text(error_table_file);
+}
+
+
+template<int dim, int nstate>
 int GridStudy<dim,nstate>
 ::run_test () const
 {
@@ -176,7 +253,9 @@ int GridStudy<dim,nstate>
         dg_super_fine->allocate_system ();
 
         initialize_perturbed_solution(*dg_super_fine, *physics_double);
-        dg_super_fine->output_results_vtk(9999);
+        if (manu_grid_conv_param.output_solution) {
+            dg_super_fine->output_results_vtk(9999);
+        }
         exact_solution_integral = integrate_solution_over_domain(*dg_super_fine);
         pcout << "Exact solution integral is " << exact_solution_integral << std::endl;
     }
@@ -185,6 +264,11 @@ int GridStudy<dim,nstate>
     std::vector<int> fail_conv_poly;
     std::vector<double> fail_conv_slop;
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
+
+    std::string error_filename_baseline;
+    if (manu_grid_conv_param.output_convergence_tables) {
+        error_filename_baseline = get_convergence_tables_baseline_filename(&param);
+    }
 
     for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
 
@@ -214,6 +298,7 @@ int GridStudy<dim,nstate>
 
         dealii::Vector<float>  estimated_error_per_cell;
         dealii::Vector<double> estimated_error_per_cell_double;
+
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
             grid->clear();
             dealii::GridGenerator::subdivided_hyper_cube(*grid, n_1d_cells[igrid]);
@@ -417,27 +502,28 @@ int GridStudy<dim,nstate>
 
             double solution_integral = integrate_solution_over_domain(*dg);
 
-            /*
-            dg->output_results_vtk(igrid);
+            if (manu_grid_conv_param.output_solution) {
+                /*
+                dg->output_results_vtk(igrid);
 
-            std::string write_posname = "error-"+std::to_string(igrid)+".pos";
-            std::ofstream outpos(write_posname);
-            GridRefinement::GmshOut<dim,double>::write_pos(grid,estimated_error_per_cell_double,outpos);
+                std::string write_posname = "error-"+std::to_string(igrid)+".pos";
+                std::ofstream outpos(write_posname);
+                GridRefinement::GmshOut<dim,double>::write_pos(grid,estimated_error_per_cell_double,outpos);
 
-            std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  gr 
-                = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);
+                std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  gr 
+                    = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);
 
-            gr->refine_grid();
+                gr->refine_grid();
 
-            // dg->output_results_vtk(igrid);
-            */
-
-            /*
-            // // Use gr->output_results_vtk(), which includes L2error per cell, instead of dg->output_results_vtk()
-            //std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  gr 
-            //    = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);
-            //if(poly_degree == 1) gr->output_results_vtk(igrid);
-            */
+                // dg->output_results_vtk(igrid);
+                */
+            
+                // Use gr->output_results_vtk(), which includes L2error per cell, instead of dg->output_results_vtk() as done above
+                std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  gr 
+                   = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);
+                gr->output_results_vtk(igrid);
+            }
+            
 
             // Convergence table
             const double dx = 1.0/pow(n_dofs,(1.0/dim));
@@ -492,6 +578,27 @@ int GridStudy<dim,nstate>
                      << std::endl;
             }
 
+            // update the table with additional grid
+            convergence_table.evaluate_convergence_rates("soln_L2_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+            convergence_table.evaluate_convergence_rates("output_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+            convergence_table.set_scientific("dx", true);
+            convergence_table.set_scientific("residual", true);
+            convergence_table.set_scientific("soln_L2_error", true);
+            convergence_table.set_scientific("output_error", true);
+            if (manu_grid_conv_param.add_statewise_solution_error_to_convergence_tables) {
+                std::string test_str;
+                for (int istate=0; istate<nstate; ++istate) {
+                    test_str = std::string("soln_L2_error_state") + std::string("_") + std::to_string(istate);
+                    convergence_table.set_scientific(test_str,true);
+                }
+            }
+
+            if (manu_grid_conv_param.output_convergence_tables) {
+                write_convergence_table_to_output_file(
+                    error_filename_baseline,
+                    convergence_table,
+                    poly_degree);
+            }
         }
         pcout << " ********************************************"
              << std::endl
@@ -499,74 +606,8 @@ int GridStudy<dim,nstate>
              << std::endl
              << " ********************************************"
              << std::endl;
-        convergence_table.evaluate_convergence_rates("soln_L2_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        convergence_table.evaluate_convergence_rates("output_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        convergence_table.set_scientific("dx", true);
-        convergence_table.set_scientific("residual", true);
-        convergence_table.set_scientific("soln_L2_error", true);
-        convergence_table.set_scientific("output_error", true);
-        if (manu_grid_conv_param.add_statewise_solution_error_to_convergence_tables) {
-            std::string test_str;
-            for (int istate=0; istate<nstate; ++istate) {
-                test_str = std::string("soln_L2_error_state") + std::string("_") + std::to_string(istate);
-                convergence_table.set_scientific(test_str,true);
-            }
-        }
 
         if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
-
-        // Write the convergence table to a file // add these to the parameter files as member functions /// look into creating a dictionary/map for this so were not double hard coding it
-        // Future code development: create get_pde_string(), get_conv_num_flux_string(), get_manufactured_solution_string() in appropriate classes
-        if (manu_grid_conv_param.output_convergence_tables) {
-            using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-            PDE_enum pde_type = param.pde_type;
-            std::string pde_string;
-            if (pde_type == PDE_enum::advection)            {pde_string = "advection";}
-            if (pde_type == PDE_enum::advection_vector)     {pde_string = "advection_vector";}
-            if (pde_type == PDE_enum::diffusion)            {pde_string = "diffusion";}
-            if (pde_type == PDE_enum::convection_diffusion) {pde_string = "convection_diffusion";}
-            if (pde_type == PDE_enum::burgers_inviscid)     {pde_string = "burgers_inviscid";}
-            if (pde_type == PDE_enum::burgers_rewienski)    {pde_string = "burgers_rewienski";}
-            if (pde_type == PDE_enum::euler)                {pde_string = "euler";}
-            if (pde_type == PDE_enum::navier_stokes)        {pde_string = "navier_stokes";}
-
-            using CNF_enum = Parameters::AllParameters::ConvectiveNumericalFlux;
-            std::string conv_num_flux_string;
-            CNF_enum CNF_type = param.conv_num_flux_type;
-            if (CNF_type == CNF_enum::lax_friedrichs) {conv_num_flux_string = "lax_friedrichs";}
-            if (CNF_type == CNF_enum::split_form)     {conv_num_flux_string = "split_form";}
-            if (CNF_type == CNF_enum::roe)            {conv_num_flux_string = "roe";}
-            if (CNF_type == CNF_enum::l2roe)          {conv_num_flux_string = "l2roe";}
-
-            using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
-            std::string manufactured_solution_string;
-            ManufacturedSolutionEnum MS_type = manu_grid_conv_param.manufactured_solution_param.manufactured_solution_type;
-            if (MS_type == ManufacturedSolutionEnum::sine_solution)           {manufactured_solution_string = "sine_solution";}
-            if (MS_type == ManufacturedSolutionEnum::cosine_solution)         {manufactured_solution_string = "cosine_solution";}
-            if (MS_type == ManufacturedSolutionEnum::additive_solution)       {manufactured_solution_string = "additive_solution";}
-            if (MS_type == ManufacturedSolutionEnum::exp_solution)            {manufactured_solution_string = "exp_solution";}
-            if (MS_type == ManufacturedSolutionEnum::poly_solution)           {manufactured_solution_string = "poly_solution";}
-            if (MS_type == ManufacturedSolutionEnum::even_poly_solution)      {manufactured_solution_string = "even_poly_solution";}
-            if (MS_type == ManufacturedSolutionEnum::atan_solution)           {manufactured_solution_string = "atan_solution";}
-            if (MS_type == ManufacturedSolutionEnum::boundary_layer_solution) {manufactured_solution_string = "boundary_layer_solution";}
-            if (MS_type == ManufacturedSolutionEnum::s_shock_solution)        {manufactured_solution_string = "s_shock_solution";}
-            if (MS_type == ManufacturedSolutionEnum::quadratic_solution)      {manufactured_solution_string = "quadratic_solution";}
-            if (MS_type == ManufacturedSolutionEnum::navah_solution_1)        {manufactured_solution_string = "navah_solution_1";}
-            if (MS_type == ManufacturedSolutionEnum::navah_solution_2)        {manufactured_solution_string = "navah_solution_2";}
-            if (MS_type == ManufacturedSolutionEnum::navah_solution_3)        {manufactured_solution_string = "navah_solution_3";}
-            if (MS_type == ManufacturedSolutionEnum::navah_solution_4)        {manufactured_solution_string = "navah_solution_4";}
-            if (MS_type == ManufacturedSolutionEnum::navah_solution_5)        {manufactured_solution_string = "navah_solution_5";}
-
-            std::string error_filename = "convergence_table"; // base name
-            error_filename += std::string("_") + std::to_string(dim) + std::string("d");
-            error_filename += std::string("_") + pde_string;
-            error_filename += std::string("_") + conv_num_flux_string;
-            error_filename += std::string("_") + manufactured_solution_string;
-            error_filename += std::string("_") + std::string("p") + std::to_string(poly_degree);
-            std::string error_fileType = std::string("txt");
-            std::ofstream error_table_file(error_filename + std::string(".") + error_fileType);
-            convergence_table.write_text(error_table_file);
-        }
 
         convergence_table_vector.push_back(convergence_table);
 

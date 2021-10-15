@@ -65,6 +65,9 @@ public:
     /// Output the convergence tables (for each p) as txt files; currently only works for tests using grid_study.cpp
     bool output_convergence_tables;
 
+    /// Output the solution files (for each p and grid) as vtu and pvtu files; currently only works for tests using grid_study.cpp
+    bool output_solution;
+
     /// Adds the statewise solution L2 error to the convergence tables; currently only works for tests using grid_study.cpp
     bool add_statewise_solution_error_to_convergence_tables;
 

@@ -91,7 +91,11 @@ dealii::LAPACKFullMatrix<double> POD::get_full_pod_basis() {
         dealii::FullMatrix<double> snapshot_submatrix = snapshotMatrixContainer[i];
         snapshot_matrix.fill(snapshot_submatrix, 0, j_offset[i], 0, 0);
     }
-
+    /* Reference for POD basis computation: Refer to Algorithm 1 in the following reference:
+    "Efficient non-linear model reduction via a least-squares Petrov–Galerkin projection and compressive tensor approximations"
+    Kevin Carlberg, Charbel Bou-Mosleh, Charbel Farhat
+    International Journal for Numerical Methods in Engineering, 2011
+     */
     pcout << "Snapshot matrix generated." << std::endl;
     pcout << "Computing SVD." << std::endl;
     snapshot_matrix.compute_svd();

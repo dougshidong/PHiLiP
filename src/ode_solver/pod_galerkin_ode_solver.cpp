@@ -37,6 +37,11 @@ void PODGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const bool 
     duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
     this->pcout << "First section of step_in_time time: "<< duration <<'\n';
 
+    /* Reference for Galerkin projection: Refer to Equation (21) in the following reference:
+    "Efficient non-linear model reduction via a least-squares Petrov–Galerkin projection and compressive tensor approximations"
+    Kevin Carlberg, Charbel Bou-Mosleh, Charbel Farhat
+    International Journal for Numerical Methods in Engineering, 2011
+    */
     //Galerkin projection, pod_basis = V
     //V^T*J*V*p = -V^T*R
 

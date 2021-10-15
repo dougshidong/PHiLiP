@@ -128,7 +128,11 @@ int ReducedOrder<dim, nstate>::run_test() const
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver_implicit = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, dg_implicit);
 
     /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
-    /*Time-averaged relative error, E = 1/n_t * sum_{n=1}^{n_t} (||U_FOM(t^{n}) - U_ROM(t^{n})||_L2 / ||U_FOM(t^{n})||_L2 )   Carlberg 2013*/
+    /*Time-averaged relative error, E = 1/n_t * sum_{n=1}^{n_t} (||U_FOM(t^{n}) - U_ROM(t^{n})||_L2 / ||U_FOM(t^{n})||_L2 )
+     *Refer to section 6.1 in "The GNAT method for nonlinear model reduction: Effective implementation and application to computational ﬂuid dynamics and turbulent ﬂows"
+     *Authors: Kevin Carlberg, Charbel Farhat, ulien Cortial,  David Amsallem
+     *Journal of Computational Physics, 2013
+     */
 
     const unsigned int number_of_time_steps = static_cast<int>(ceil(finalTime/param.ode_solver_param.initial_time_step));
     const double constant_time_step = finalTime/number_of_time_steps;
@@ -140,7 +144,6 @@ int ReducedOrder<dim, nstate>::run_test() const
     ode_solver_galerkin->allocate_ode_system();
     ode_solver_petrov_galerkin->allocate_ode_system();
 
-    //double full_order_sum = 0;
     double galerkin_error_norm_sum = 0;
     double petrov_galerkin_error_norm_sum = 0;
 

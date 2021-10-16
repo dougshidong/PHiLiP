@@ -84,10 +84,10 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
     //(void) dt;
    
     //need to call ode_solver before calculating energy because mass matrix isn't allocated yet.
-   
+
     ode_solver->advance_solution_time(0.000001);
     double initial_energy = compute_energy(dg);
-   
+
     //currently the only way to calculate energy at each time-step is to advance solution by dt instead of finaltime
     //this causes some issues with outputs (only one file is output, which is overwritten at each time step)
     //also the ode solver output doesn't make sense (says "iteration 1 out of 1")

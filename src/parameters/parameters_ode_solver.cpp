@@ -19,9 +19,9 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           "Outputs the solution every x steps in .vtk file");
 
         prm.declare_entry("ode_solver_type", "implicit",
-                          dealii::Patterns::Selection("explicit|implicit"),
-                          "Explicit or implicit solver"
-                          "Choices are <explicit|implicit>.");
+                          dealii::Patterns::Selection("explicit|implicit|pod_galerkin|pod_petrov_galerkin"),
+                          "Explicit or implicit solver, or reduced-order POD Galerkin or POD Petrov Galerkin solver"
+                          "Choices are <explicit|implicit|pod_galerkin|pod_petrov_galerkin>.");
 
         prm.declare_entry("nonlinear_max_iterations", "500000",
                           dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
@@ -48,6 +48,9 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
                           "Output solution vector every output_solution_vector_modulo iterations of "
                           "the nonlinear solver. Set to 0 to disable.");
+        prm.declare_entry("solutions_table_filename", "solutions_table",
+                          dealii::Patterns::Anything(),
+                          "Filename to use when outputting solution vectors in a table format.");
     }
     prm.leave_subsection();
 }
@@ -65,6 +68,8 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         const std::string solver_string = prm.get("ode_solver_type");
         if (solver_string == "explicit") ode_solver_type = ODESolverEnum::explicit_solver;
         if (solver_string == "implicit") ode_solver_type = ODESolverEnum::implicit_solver;
+        if (solver_string == "pod_galerkin") ode_solver_type = ODESolverEnum::pod_galerkin_solver;
+        if (solver_string == "pod_petrov_galerkin") ode_solver_type = ODESolverEnum::pod_petrov_galerkin_solver;
 
         nonlinear_steady_residual_tolerance  = prm.get_double("nonlinear_steady_residual_tolerance");
         nonlinear_max_iterations = prm.get_integer("nonlinear_max_iterations");
@@ -74,6 +79,7 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
 
         print_iteration_modulo = prm.get_integer("print_iteration_modulo");
         output_solution_vector_modulo = prm.get_integer("output_solution_vector_modulo");
+        solutions_table_filename = prm.get("solutions_table_filename");
     }
     prm.leave_subsection();
 }

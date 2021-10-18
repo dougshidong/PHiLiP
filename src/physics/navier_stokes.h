@@ -167,6 +167,17 @@ public:
     real compute_scaled_viscosity_coefficient_derivative_wrt_temperature_via_dfad (
         std::array<real,nstate> &conservative_soln) const;
 
+    /** Nondimensionalized viscous flux (i.e. dissipative flux) computed 
+     *  via given velocities, viscous stress tensor, and heat flux. 
+     *  Reference: Masatsuka 2018 "I do like CFD", p.142, eq.(4.12.1-4.12.4)
+     */
+    template<typename real2>
+    std::array<dealii::Tensor<1,dim,real2>,nstate> 
+    dissipative_flux_given_velocities_viscous_stress_tensor_and_heat_flux_templated (
+        const dealii::Tensor<1,dim,real2> &vel,
+        const std::array<dealii::Tensor<1,dim,real2>,dim> &viscous_stress_tensor,
+        const dealii::Tensor<1,dim,real2> &heat_flux) const;
+
     /// Boundary face values
     void boundary_face_values (
         const int boundary_type,
@@ -196,7 +207,6 @@ protected:
     dissipative_flux_templated (
         const std::array<real2,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const;
-
 };
 
 } // Physics namespace

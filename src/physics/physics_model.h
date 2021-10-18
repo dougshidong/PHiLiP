@@ -1,14 +1,15 @@
-#ifndef __NAVIER_STOKES__
-#define __LARGE_EDDY_SIMULATION__
+#ifndef __PHYSICS_MODEL__
+#define __PHYSICS_MODEL__
 
+/// Files for the baseline physics
 #include "navier_stokes.h"
 
 namespace PHiLiP {
 namespace Physics {
 
-/// Large Eddy Simulation equations. Derived from Navier-Stokes for modifying the stress tensor and heat flux, which is derived from PhysicsBase. 
+/// Physics Model equations. Derived from PhysicsBase, holds a baseline physics and model terms and equations. 
 template <int dim, int nstate, typename real>
-class LargeEddySimulationBase : public NavierStokes <dim, nstate, real>
+class PhysicsModelBase : public PhysicsBase <dim, nstate, real>
 {
 public:
 	/// Constructor

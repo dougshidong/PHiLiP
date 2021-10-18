@@ -21,7 +21,8 @@ public:
 
     /// Types of baseline physics available that the physics model can be built upon.
     enum BaselinePhysicsEnum {
-        navier_stokes
+        euler
+       ,navier_stokes
     };
     /// Store the baseline physics type
     BaselinePhysicsEnum baseline_physics_type;

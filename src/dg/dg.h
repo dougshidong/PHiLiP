@@ -360,7 +360,13 @@ public:
         const real2 diameter,
         const std::vector< real2 > &soln_coeff_high,
         const dealii::FiniteElement<dim,dim> &fe_high);
-
+	
+	template <typename real2>
+    real2 discontinuity_sensor(
+        const dealii::Quadrature<dim> &volume_quadrature,
+        const std::vector< real2 > &soln_coeff_high,
+        const dealii::FiniteElement<dim,dim> &fe_high,
+        const std::vector<real2> &jac_det);
     /// Current optimization dual variables corresponding to the residual constraints also known as the adjoint
     /** This is used to evaluate the dot-product between the dual and the 2nd derivatives of the residual
      *  since storing the 2nd order partials of the residual is a very large 3rd order tensor.

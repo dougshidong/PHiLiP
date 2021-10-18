@@ -2354,6 +2354,94 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
 
 }
 
+template <int dim, typename real,typename MeshType>
+template <typename real2>
+real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
+    const dealii::Quadrature<dim> &volume_quadrature,
+    const std::vector< real2 > &soln_coeff_high,
+    const dealii::FiniteElement<dim,dim> &fe_high,
+    const std::vector<real2> &jac_det)
+{
+    const unsigned int degree = fe_high.tensor_degree();
+
+    if (degree == 0) return 0;
+
+    const unsigned int nstate = fe_high.components;
+    const unsigned int n_dofs_high = fe_high.dofs_per_cell;
+
+    // Lower degree basis.
+    const unsigned int lower_degree = degree-1;
+    const dealii::FE_DGQLegendre<dim> fe_dgq_lower(lower_degree);
+    const dealii::FESystem<dim,dim> fe_lower(fe_dgq_lower, nstate);
+
+    // Projection quadrature.
+    const dealii::QGauss<dim> projection_quadrature(degree+5);
+    std::vector< real2 > soln_coeff_lower = project_function<dim,real2>( soln_coeff_high, fe_high, fe_lower, projection_quadrature);
+
+    // Quadrature used for solution difference.
+    const std::vector<dealii::Point<dim,double>> &unit_quad_pts = volume_quadrature.get_points();
+
+    const unsigned int n_quad_pts = volume_quadrature.size();
+    const unsigned int n_dofs_lower = fe_lower.dofs_per_cell;
+
+    real2 element_volume = 0.0;
+    real2 error = 0.0;
+    real2 soln_norm = 0.0;
+    std::vector<real2> soln_high(nstate);
+    std::vector<real2> soln_lower(nstate);
+    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        for (unsigned int s=0; s<nstate; ++s) {
+            soln_high[s] = 0.0;
+            soln_lower[s] = 0.0;
+        }
+        // Interpolate solution
+        for (unsigned int idof=0; idof<n_dofs_high; ++idof) {
+              const unsigned int istate = fe_high.system_to_component_index(idof).first;
+              soln_high[istate] += soln_coeff_high[idof] * fe_high.shape_value_component(idof,unit_quad_pts[iquad],istate);
+        }
+        // Interpolate low order solution
+        for (unsigned int idof=0; idof<n_dofs_lower; ++idof) {
+              const unsigned int istate = fe_lower.system_to_component_index(idof).first;
+              soln_lower[istate] += soln_coeff_lower[idof] * fe_lower.shape_value_component(idof,unit_quad_pts[iquad],istate);
+        }
+        // Quadrature
+        const real2 JxW = jac_det[iquad] * volume_quadrature.weight(iquad);
+        element_volume += JxW;
+        // Only integrate over the first state variable.
+        // Persson and Peraire only did density.
+        for (unsigned int s=0; s<1/*nstate*/; ++s) {
+            error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * JxW;
+            soln_norm += soln_high[s] * soln_high[s] * JxW;
+        }
+    }
+
+    if (soln_norm < 1e-15) return 0;
+
+    real2 S_e, s_e;
+    S_e = sqrt(error / soln_norm);
+    s_e = log10(S_e);
+
+    const double mu_scale = all_parameters->mu_artificial_dissipation;
+    const double s_0 = -0.00 - 4.00*log10(degree);
+    const double kappa = all_parameters->kappa_artificial_dissipation;
+    const double low = s_0 - kappa;
+    const double upp = s_0 + kappa;
+
+    const real2 diameter = pow(element_volume, 1.0/dim);
+    const real2 eps_0 = mu_scale * diameter / (double)degree;
+
+    if ( s_e < low) return 0.0;
+
+    if ( s_e > upp) {
+        return eps_0;
+    }
+
+    const double PI = 4*atan(1);
+    real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
+    eps *= eps_0 * 0.5;
+    return eps;
+}
+
 template<int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::refine_residual_based()
 {
@@ -2593,4 +2681,38 @@ DGBase<PHILIP_DIM,double>::discontinuity_sensor(const FadFadType diameter, const
 template RadFadType
 DGBase<PHILIP_DIM,double>::discontinuity_sensor(const RadFadType diameter, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high);
 
+template double
+DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
+template FadType
+DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
+template RadType
+DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
+template FadFadType
+DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
+template RadFadType
+DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
+
+
+template double
+DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
+template FadType
+DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
+template RadType
+DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
+template FadFadType
+DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
+template RadFadType
+DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
+
+
+template double
+DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
+template FadType
+DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
+template RadType
+DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
+template FadFadType
+DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
+template RadFadType
+DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
 } // PHiLiP namespace

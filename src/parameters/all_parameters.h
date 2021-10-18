@@ -11,7 +11,7 @@
 
 #include "parameters/parameters_euler.h"
 #include "parameters/parameters_navier_stokes.h"
-#include "parameters/parameters_large_eddy_simulation.h"
+#include "parameters/parameters_physics_model.h"
 
 #include "parameters/parameters_reduced_order.h"
 #include "parameters/parameters_burgers.h"
@@ -48,6 +48,8 @@ public:
     BurgersParam burgers_param;
     /// Contains parameters for Large Eddy Simulation equations non-dimensionalization
     LargeEddySimulationParam large_eddy_simulation_param;
+    /// Contains parameters for Physics Model
+    PhysicsModelParam physics_model_param;
     /// Contains the parameters for grid refinement study
     GridRefinementStudyParam grid_refinement_study_param;
     /// Contains parameters for artificial dissipation

@@ -83,11 +83,11 @@ namespace PHiLiP
 		input_parameters->euler_param.mach_inf,
 		input_parameters->euler_param.angle_of_attack,
 		input_parameters->euler_param.side_slip_angle,
-		1.0,
+		3.0/4.0,
 		1.0);
 		
 		std::array<dealii::Tensor<1,dim,real2>,nstate> Flux_navier_stokes  =  NS.dissipative_flux(conservative_soln, solution_gradient);
-
+/*
 		dealii::Tensor<1,dim,real2> Pr;
 		dealii::Tensor<1,dim,real2> vel = NS.compute_velocities(conservative_soln);
 		std::array<real2,nstate> primitive_soln = NS.convert_conservative_to_primitive(conservative_soln);
@@ -118,7 +118,7 @@ namespace PHiLiP
 				Flux_navier_stokes[nstate-1][i] = Flux_navier_stokes[nstate-1][i] - heat_flux[i] + heat_flux[i]*1.0/Pr[i];
 			}
 		}
-		
+*/		
 
 		for(int i=0;i<nstate;i++)
 		{

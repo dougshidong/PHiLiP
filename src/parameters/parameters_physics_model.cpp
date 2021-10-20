@@ -19,13 +19,6 @@ void PhysicsModelParam::declare_parameters (dealii::ParameterHandler &prm)
                             " <euler | "
                             "  navier_stokes>.");
 
-        prm.declare_entry("physics_model_type", "large_eddy_simulation",
-                          dealii::Patterns::Selection(
-                            "large_eddy_simulation"),
-                            "Enum of models."
-                            "Choices are "
-                            " <large_eddy_simulation>.");
-
         prm.enter_subsection("large_eddy_simulation");
         {
             prm.declare_entry("SGS_model_type", "smagorinsky",
@@ -52,7 +45,7 @@ void PhysicsModelParam::declare_parameters (dealii::ParameterHandler &prm)
     prm.leave_subsection();
 }
 
-void PhysicsModelParam::parse_parameters (dealii::ParameterHandler &prm)
+void PhysicsModelParam::parse_parameters (dealii::ParameterHandler &prm, const std::string physics_model_string)
 {
     prm.enter_subsection("physics_model");
     {
@@ -60,10 +53,8 @@ void PhysicsModelParam::parse_parameters (dealii::ParameterHandler &prm)
         if(baseline_physics_string == "euler")         baseline_physics_type = BaselinePhysicsEnum::euler;
         if(baseline_physics_string == "navier_stokes") baseline_physics_type = BaselinePhysicsEnum::navier_stokes;
 
-        const std::string physics_model_string = prm.get("physics_model_type");
         if(physics_model_string == "large_eddy_simulation")
         {
-            physics_model_type = PhysicsModelEnum::large_eddy_simulation;
             prm.enter_subsection("large_eddy_simulation");
             {
                 const std::string SGS_model_type_string = prm.get("SGSmodel_type");

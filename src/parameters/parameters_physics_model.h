@@ -12,13 +12,6 @@ public:
     /// Constructor
     PhysicsModelParam ();
 
-    /// Types of physics models available.
-    enum PhysicsModelEnum {
-        large_eddy_simulation
-    };
-    /// Store the physics model type
-    PhysicsModelEnum physics_model_type;
-
     /// Types of baseline physics available that the physics model can be built upon.
     enum BaselinePhysicsEnum {
         euler
@@ -43,7 +36,7 @@ public:
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
     /// Parses input file and sets the variables.
-    void parse_parameters (dealii::ParameterHandler &prm);
+    void parse_parameters (dealii::ParameterHandler &prm, const std::string physics_model_string);
 };
 
 } // Parameters namespace

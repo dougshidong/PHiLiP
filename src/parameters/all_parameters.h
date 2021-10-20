@@ -151,11 +151,18 @@ public:
         euler,
         mhd,
         navier_stokes,
-        large_eddy_simulation,
-        // reynolds_averaged_navier_stokes,
+        physics_model,
     };
     /// Store the PDE type to be solved
     PartialDifferentialEquation pde_type;
+
+    /// Types of physics models available.
+    enum PhysicsModelType {
+        large_eddy_simulation,
+        //reynolds_averaged_navier_stokes,
+    };
+    /// Store the physics model type
+    PhysicsModelType physics_model_type;
 
     /// Possible boundary types, NOT IMPLEMENTED YET
     enum BoundaryType {

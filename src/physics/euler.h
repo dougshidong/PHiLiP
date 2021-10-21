@@ -287,10 +287,10 @@ public:
 
     /// For post processing purposes (update comment later)
     virtual dealii::Vector<double> post_compute_derived_quantities_vector (
-        const dealii::Vector<double>      &uh,
+        const dealii::Vector<double>              &uh,
         const std::vector<dealii::Tensor<1,dim> > &duh,
         const std::vector<dealii::Tensor<2,dim> > &dduh,
-        const dealii::Tensor<1,dim>                  &normals,
+        const dealii::Tensor<1,dim>               &normals,
         const dealii::Point<dim>                  &evaluation_points) const;
     
     /// For post processing purposes, sets the base names (with no prefix or suffix) of the computed quantities

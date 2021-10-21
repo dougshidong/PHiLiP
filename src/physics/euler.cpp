@@ -547,6 +547,7 @@ std::array<real,nstate> Euler<dim,nstate,real>
     }
     return eig;
 }
+
 template <int dim, int nstate, typename real>
 real Euler<dim,nstate,real>
 ::max_convective_eigenvalue (const std::array<real,nstate> &conservative_soln) const
@@ -561,7 +562,6 @@ real Euler<dim,nstate,real>
 
     return max_eig;
 }
-
 
 template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
@@ -1049,7 +1049,8 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Eu
 
 
 template <int dim, int nstate, typename real>
-std::vector<std::string> Euler<dim,nstate,real> ::post_get_names () const
+std::vector<std::string> Euler<dim,nstate,real>
+::post_get_names () const
 {
     std::vector<std::string> names = PhysicsBase<dim,nstate,real>::post_get_names ();
     names.push_back ("density");

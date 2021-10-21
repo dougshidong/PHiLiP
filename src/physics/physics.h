@@ -49,7 +49,7 @@ public:
 
     /// Convective Numerical Split Flux for split form
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
-            const std::array<real,nstate> &soln_const, const std::array<real,nstate> &soln_loop) const = 0;
+        const std::array<real,nstate> &soln_const, const std::array<real,nstate> &soln_loop) const = 0;
 
     /// Spectral radius of convective term Jacobian.
     /** Used for scalar dissipation
@@ -65,15 +65,6 @@ public:
     // virtual std::array<dealii::Tensor<1,dim,real>,nstate> apply_diffusion_matrix (
     //     const std::array<real,nstate> &solution,
     //     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_grad) const = 0;
-
-    /// Dissipative fluxes that will be differentiated ONCE in space.
-    /** Evaluates the dissipative flux through the linearization F = A(u)*grad(u).
-     */
-    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux_A_gradu (
-        const real scaling,
-        const std::array<real,nstate> &solution,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &diss_flux) const;
 
     /// Dissipative fluxes that will be differentiated ONCE in space.
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (

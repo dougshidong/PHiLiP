@@ -41,8 +41,62 @@ public:
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
 
-    // TO DO: add all the other member functions that have to be defined as per PhysicsBase
-    // use if constexpr(nstate==nstate_baseline_equations) for all the .cpp definitions of these 
+    /// Source term that does not require differentiation.
+    std::array<real,nstate> source_term (
+        const dealii::Point<dim,real> &pos,
+        const std::array<real,nstate> &solution) const;
+
+    //===========================================================================================
+    // All other functions required by PhysicsBase:
+    //===========================================================================================
+    /// Convective Numerical Split Flux for split form
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
+        const std::array<real,nstate> &soln_const, const std::array<real,nstate> &soln_loop) const;
+
+    /** Spectral radius of convective term Jacobian.
+     *  Used for scalar dissipation
+     */
+    std::array<real,nstate> convective_eigenvalues (
+        const std::array<real,nstate> &/*solution*/,
+        const dealii::Tensor<1,dim,real> &/*normal*/) const;
+
+    /// Maximum convective eigenvalue used in Lax-Friedrichs
+    real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
+
+    /// Evaluates boundary values and gradients on the other side of the face.
+    void boundary_face_values (
+        const int /*boundary_type*/,
+        const dealii::Point<dim, real> &/*pos*/,
+        const dealii::Tensor<1,dim,real> &/*normal*/,
+        const std::array<real,nstate> &/*soln_int*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
+        std::array<real,nstate> &/*soln_bc*/,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
+
+    /// Returns current vector solution to be used by PhysicsPostprocessor to output current solution.
+    /** The implementation in this Physics base class simply returns the stored solution.
+     */
+    dealii::Vector<double> post_compute_derived_quantities_vector (
+        const dealii::Vector<double>              &uh,
+        const std::vector<dealii::Tensor<1,dim> > &duh,
+        const std::vector<dealii::Tensor<2,dim> > &dduh,
+        const dealii::Tensor<1,dim>               &normals,
+        const dealii::Point<dim>                  &evaluation_points) const;
+    
+    /// Returns names of the solution to be used by PhysicsPostprocessor to output current solution.
+    /** The implementation in this Physics base class simply returns "state0, state1, etc.".
+     */
+    std::vector<std::string> post_get_names () const;
+    
+    /// Returns DataComponentInterpretation of the solution to be used by PhysicsPostprocessor to output current solution.
+    /** Treats every solution state as an independent scalar.
+     */
+    std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const;
+    
+    /// Returns required update flags of the solution to be used by PhysicsPostprocessor to output current solution.
+    /** Only update the solution at the output points.
+     */
+    dealii::UpdateFlags post_get_needed_update_flags () const; 
 };
 
 } // Physics namespace

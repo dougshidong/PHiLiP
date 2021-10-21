@@ -28,10 +28,9 @@ public:
     	const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const = 0;
 
     /// Model source terms additional to the baseline physics
-    virtual std::array<dealii::Tensor<1,dim,real>,nstate> 
-    model_source_term (
-        const std::array<real,nstate> &conservative_soln,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const = 0;
+    virtual std::array<real,nstate> model_source_term (
+        const dealii::Point<dim,real> &pos,
+        const std::array<real,nstate> &solution) const = 0;
 };
 
 } // PhysicsModel namespace

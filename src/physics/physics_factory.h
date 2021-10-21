@@ -16,6 +16,12 @@ public:
     /// Factory to return the correct physics given input file.
     static std::shared_ptr< PhysicsBase<dim,nstate,real> >
         create_Physics(const Parameters::AllParameters *const parameters_input);
+
+    /// Factory to return the correct physics given input file and a specified PDE type
+    static std::shared_ptr< PhysicsBase<dim,nstate,real> >
+        create_Physics(
+            const Parameters::AllParameters *const parameters_input,
+            const Parameters::AllParameters::PartialDifferentialEquation pde_type);
 };
 
 

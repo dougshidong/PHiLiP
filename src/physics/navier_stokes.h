@@ -69,14 +69,6 @@ public:
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.13)
      */
     template<typename real2>
-    dealii::Tensor<1,dim,real2> compute_navier_stokes_heat_flux (
-        const std::array<real2,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
-
-    /** Virtual function for the nondimensionalized heat flux, q*
-     *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.13)
-     */
-    virtual template<typename real2>
     dealii::Tensor<1,dim,real2> compute_heat_flux (
     	const std::array<real2,nstate> &primitive_soln,
     	const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
@@ -99,15 +91,6 @@ public:
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.12)
      */
     template<typename real2>
-    std::array<dealii::Tensor<1,dim,real2>,dim> 
-    compute_navier_stokes_stress_tensor (
-        const std::array<real2,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
-
-    /** Virtual function for the nondimensionalized viscous stress tensor, tau*
-     *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.12)
-     */
-    virtual template<typename real2>
     std::array<dealii::Tensor<1,dim,real2>,dim> 
     compute_viscous_stress_tensor (
         const std::array<real2,nstate> &primitive_soln,

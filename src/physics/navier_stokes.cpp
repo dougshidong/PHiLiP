@@ -145,7 +145,7 @@ inline real2 NavierStokes<dim,nstate,real>
 template <int dim, int nstate, typename real>
 template<typename real2>
 dealii::Tensor<1,dim,real2> NavierStokes<dim,nstate,real>
-::compute_navier_stokes_heat_flux (
+::compute_heat_flux (
     const std::array<real2,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const
 {
@@ -159,17 +159,6 @@ dealii::Tensor<1,dim,real2> NavierStokes<dim,nstate,real>
     for (int d=0; d<dim; d++) {
         heat_flux[d] = -scaled_heat_conductivity*temperature_gradient[d];
     }
-    return heat_flux;
-}
-
-template <int dim, int nstate, typename real>
-template<typename real2>
-dealii::Tensor<1,dim,real2> NavierStokes<dim,nstate,real>
-::compute_heat_flux (
-    const std::array<real2,nstate> &primitive_soln,
-    const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const
-{
-    const dealii::Tensor<1,dim,real2> heat_flux = compute_navier_stokes_heat_flux<real2>(primitive_soln, primitive_soln_gradient);  
     return heat_flux;
 }
 
@@ -208,7 +197,7 @@ std::array<dealii::Tensor<1,dim,real2>,dim> NavierStokes<dim,nstate,real>
 template <int dim, int nstate, typename real>
 template<typename real2>
 std::array<dealii::Tensor<1,dim,real2>,dim> NavierStokes<dim,nstate,real>
-::compute_navier_stokes_stress_tensor (
+::compute_viscous_stress_tensor (
     const std::array<real2,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const
 {
@@ -240,17 +229,6 @@ std::array<dealii::Tensor<1,dim,real2>,dim> NavierStokes<dim,nstate,real>
         }
         viscous_stress_tensor[d1][d1] += scaled_2nd_viscosity_coefficient*vel_divergence;
     }
-    return viscous_stress_tensor;
-}
-
-template <int dim, int nstate, typename real>
-template<typename real2>
-std::array<dealii::Tensor<1,dim,real2>,dim> NavierStokes<dim,nstate,real>
-::compute_viscous_stress_tensor (
-    const std::array<real2,nstate> &primitive_soln,
-    const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const
-{
-    const std::array<dealii::Tensor<1,dim,real2>,dim> viscous_stress_tensor = compute_navier_stokes_stress_tensor<real2>(primitive_soln, primitive_soln_gradient);
     return viscous_stress_tensor;
 }
 

@@ -16,7 +16,7 @@ public:
     PhysicsModel(
         Parameters::AllParameters::PartialDifferentialEquation       baseline_physics_type,
         const int                                                    nstate_baseline_physics,
-        std::shared_ptr< PHiLiP::PhysicsModelBase<dim,nstate,real> > physics_model_input,
+        std::unique_ptr< PHiLiP::PhysicsModelBase<dim,nstate,real> > physics_model_input,
         const dealii::Tensor<2,3,double>                             input_diffusion_tensor,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function);
 
@@ -27,7 +27,7 @@ public:
     int n_model_equations;
 
     /// Physics model object
-    std::shared_ptr< PHiLiP::PhysicsModel::PhysicsModelBase<dim,nstate,real> > physics_model;
+    std::unique_ptr< PHiLiP::PhysicsModel::PhysicsModelBase<dim,nstate,real> > physics_model;
 
     /// Baseline physics object
     std::shared_ptr< PhysicsBase<dim,nstate,real> > physics_baseline;

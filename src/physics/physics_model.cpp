@@ -15,7 +15,7 @@ template <int dim, int nstate, typename real>
 PhysicsModel<dim, nstate, real>::PhysicsModel( 
     Parameters::AllParameters::PartialDifferentialEquation       baseline_physics_type,
     const int                                                    nstate_baseline_physics,
-    std::shared_ptr< PHiLiP::PhysicsModelBase<dim,nstate,real> > physics_model_input,
+    std::unique_ptr< PHiLiP::PhysicsModelBase<dim,nstate,real> > physics_model_input,
     const dealii::Tensor<2,3,double>                             input_diffusion_tensor,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function)
     : PhysicsBase<dim,nstate,real>(input_diffusion_tensor,manufactured_solution_function)

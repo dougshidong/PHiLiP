@@ -132,7 +132,7 @@ PhysicsFactory<dim,nstate,real>
         int nstate_baseline_physics;
         
         // physics_model object for the additional terms and equations to the baseline physics  
-        std::shared_ptr< PHiLiP::PhysicsModelBase<dim,nstate,real> > physics_model;
+        std::unique_ptr< PHiLiP::PhysicsModelBase<dim,nstate,real> > physics_model;
 
         // -------------------------------------------------------------------------------
         // Large Eddy Simulation (LES)

@@ -257,7 +257,7 @@ int EulerGaussianBump<dim,nstate>
 
 		if(n_grids>=2)
 		{
-        last_slope = log(Error[n_grids-1]/Error[n_grids-2]) / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
+	        last_slope = log(Error[n_grids-1]/Error[n_grids-2]) / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
 		}
         //double before_last_slope = last_slope;
         //if ( n_grids > 2 ) {
@@ -271,7 +271,7 @@ int EulerGaussianBump<dim,nstate>
         double slope_deficit_tolerance = -std::abs(manu_grid_conv_param.slope_deficit_tolerance);
         if(poly_degree == 0) slope_deficit_tolerance *= 2; // Otherwise, grid sizes need to be much bigger for p=0
 
-        if (slope_diff < slope_deficit_tolerance) {
+        if( (slope_diff < slope_deficit_tolerance) || (n_grids==1) ) {
             pcout << std::endl
                  << "Convergence order not achieved. Average last 2 slopes of "
                  << slope_avg << " instead of expected "

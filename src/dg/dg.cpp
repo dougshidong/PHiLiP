@@ -2417,9 +2417,8 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
 
     if (soln_norm < 1e-15) return 0;
 
-    real2 S_e, s_e;
-    S_e = sqrt(error / soln_norm);
-    s_e = log10(S_e);
+    const real2 S_e = sqrt(error / soln_norm);
+    const real2 s_e = log10(S_e);
 
     const double mu_scale = all_parameters->mu_artificial_dissipation;
     const double s_0 = -0.00 - 4.00*log10(degree);

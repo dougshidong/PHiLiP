@@ -8,13 +8,13 @@
 #include "large_eddy_simulation.h"
 
 namespace PHiLiP {
-namespace PhysicsModel {
+namespace Physics {
 
 //================================================================
-// Physics Models Base Class
+// Models Base Class
 //================================================================
 template <int dim, int nstate, typename real>
-PhysicsModelBase<dim, nstate, real>::PhysicsModelBase()
+ModelBase<dim, nstate, real>::ModelBase()
 {
     // Nothing to do here so far
 }
@@ -30,5 +30,5 @@ template class PhysicsModelBase < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
 template class PhysicsModelBase < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class PhysicsModelBase < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 
-} // PhysicsModel namespace
+} // Physics namespace
 } // PHiLiP namespace

@@ -11,7 +11,7 @@
 #include "large_eddy_simulation.h"
 
 namespace PHiLiP {
-namespace PhysicsModel {
+namespace Physics {
 
 //================================================================
 // Large Eddy Simulation (LES) Base Class
@@ -20,7 +20,8 @@ template <int dim, int nstate, typename real>
 LargeEddySimulationBase<dim, nstate, real>::LargeEddySimulationBase( 
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,dim+2,real> >  navier_stokes_physics_input,
     const double                                                     turbulent_prandtl_number)
-    : navier_stokes_physics(navier_stokes_physics_input)
+    : ModelBase<dim,nstate,real>() 
+    , navier_stokes_physics(navier_stokes_physics_input)
     , turbulent_prandtl_number(turbulent_prandtl_number)
 {
     static_assert(nstate==dim+2, "PhysicsModel::LargeEddySimulationBase() should be created with nstate=dim+2");
@@ -249,5 +250,5 @@ template class LargeEddySimulation_Smagorinsky < PHILIP_DIM, PHILIP_DIM+2, RadTy
 template class LargeEddySimulation_Smagorinsky < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class LargeEddySimulation_Smagorinsky < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 
-} // PhysicsModel namespace
+} // Physics namespace
 } // PHiLiP namespace

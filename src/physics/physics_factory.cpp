@@ -36,8 +36,8 @@ PhysicsFactory<dim,nstate,real>
 ::create_Physics(const Parameters::AllParameters *const parameters_input,
                  const Parameters::AllParameters::PartialDifferentialEquation pde_type)
 {
-    using PhysicsModel_enum = Parameters::AllParameters::PhysicsModelType;
-    PhysicsModel_enum physics_model_type = parameters_input->physics_model_type;
+    using Model_enum = Parameters::AllParameters::ModelType;
+    Model_enum model_type = parameters_input->model_type;
 
     // generating the manufactured solution from the manufactured solution factory
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> >  manufactured_solution_function 
@@ -132,12 +132,12 @@ PhysicsFactory<dim,nstate,real>
         int nstate_baseline_physics;
         
         // physics_model object for the additional terms and equations to the baseline physics  
-        std::unique_ptr< PHiLiP::PhysicsModelBase<dim,nstate,real> > physics_model;
+        std::unique_ptr< ModelBase<dim,nstate,real> > model;
 
         // -------------------------------------------------------------------------------
         // Large Eddy Simulation (LES)
         // -------------------------------------------------------------------------------
-        if (physics_model_type == PhysicsModel_enum::large_eddy_simulation) {
+        if (model_type == Model_enum::large_eddy_simulation) {
             // Assign baseline physics type (and corresponding nstates) based on the physics model type
             nstate_baseline_physics = dim+2;
             if(euler_turbulence) {baseline_physics_type = PDE_enum::euler;}
@@ -154,7 +154,7 @@ PhysicsFactory<dim,nstate,real>
                 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                 // Smagorinsky model
                 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-                physics_model = std::make_shared < LargeEddySimulation_Smagorinsky<dim,nstate,real> > (
+                model = std::make_shared < LargeEddySimulation_Smagorinsky<dim,nstate,real> > (
                     navier_stokes_physics,
                     parameters_input->physics_model_param.turbulent_prandtl_number,
                     parameters_input->physics_model_param.smagorinsky_model_constant);
@@ -162,7 +162,7 @@ PhysicsFactory<dim,nstate,real>
                 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                 // WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model
                 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-                physics_model = std::make_shared < LargeEddySimulation_WALE<dim,nstate,real> > (
+                model = std::make_shared < LargeEddySimulation_WALE<dim,nstate,real> > (
                     navier_stokes_physics,
                     parameters_input->physics_model_param.turbulent_prandtl_number,
                     parameters_input->physics_model_param.WALE_model_constant);
@@ -177,7 +177,7 @@ PhysicsFactory<dim,nstate,real>
             return std::make_shared < PhysicsModel<dim,nstate,real> > (
                     baseline_physics_type,
                     nstate_baseline_physics,
-                    physics_model,
+                    model,
                     diffusion_tensor, 
                     manufactured_solution_function);   
         }

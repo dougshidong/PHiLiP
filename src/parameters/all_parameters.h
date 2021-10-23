@@ -156,13 +156,13 @@ public:
     /// Store the PDE type to be solved
     PartialDifferentialEquation pde_type;
 
-    /// Types of physics models available.
-    enum PhysicsModelType {
+    /// Types of models available.
+    enum ModelType {
         large_eddy_simulation,
         //reynolds_averaged_navier_stokes,
     };
-    /// Store the physics model type
-    PhysicsModelType physics_model_type;
+    /// Store the model type
+    ModelType model_type;
 
     /// Possible boundary types, NOT IMPLEMENTED YET
     enum BoundaryType {

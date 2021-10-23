@@ -1,39 +1,39 @@
-#ifndef __PHYSICS_MODEL__
-#define __PHYSICS_MODEL__
+#ifndef __MODEL__
+#define __MODEL__
 
 #include "physics/navier_stokes.h"
 #include "parameters/parameters_physics_model.h"
 #include "large_eddy_simulation.h"
 
 namespace PHiLiP {
-namespace PhysicsModel {
+namespace Physics {
 
 /// Physics model additional terms and equations to the baseline physics. 
 template <int dim, int nstate, typename real>
-class PhysicsModelBase
+class ModelBase
 {
 public:
 	/// Constructor
-	PhysicsModelBase();
+	ModelBase();
 
-    /// Model convective flux terms additional to the baseline physics
+    /// Convective flux terms additional to the baseline physics
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> 
-    model_convective_flux (
+    convective_flux (
         const std::array<real,nstate> &conservative_soln) const = 0;
 
-    /// Model dissipative flux terms additional to the baseline physics
+    /// Dissipative flux terms additional to the baseline physics
 	virtual std::array<dealii::Tensor<1,dim,real>,nstate> 
-	model_dissipative_flux (
+	dissipative_flux (
     	const std::array<real,nstate> &conservative_soln,
     	const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const = 0;
 
-    /// Model source terms additional to the baseline physics
-    virtual std::array<real,nstate> model_source_term (
+    /// Source terms additional to the baseline physics
+    virtual std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &solution) const = 0;
 };
 
-} // PhysicsModel namespace
+} // Physics namespace
 } // PHiLiP namespace
 
 #endif

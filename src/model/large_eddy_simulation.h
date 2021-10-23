@@ -1,32 +1,33 @@
 #ifndef __LARGE_EDDY_SIMULATION__
 #define __LARGE_EDDY_SIMULATION__
 
-#include "physics_model.h"
+#include "model.h"
 
 namespace PHiLiP {
+namespace Physics {
 
 /// Large Eddy Simulation equations. Derived from Navier-Stokes for modifying the stress tensor and heat flux, which is derived from PhysicsBase. 
 template <int dim, int nstate, typename real>
-class LargeEddySimulationBase : public PhysicsModelBase <dim, nstate, real>
+class LargeEddySimulationBase : public ModelBase <dim, nstate, real>
 {
 public:
     /// Constructor
 	LargeEddySimulationBase( 
-	    std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,dim+2,real> >  navier_stokes_physics_input,
-        const double                                                     turbulent_prandtl_number);
+	    std::shared_ptr< PhysicsBase<dim,dim+2,real> >  navier_stokes_physics_input,
+        const double                                    turbulent_prandtl_number);
 
     /// Navier-Stokes physics object
-    std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,dim+2,real> >  navier_stokes_physics;
+    std::shared_ptr< PhysicsBase<dim,dim+2,real> >  navier_stokes_physics;
 
 	/// Turbulent Prandtl number
 	const double turbulent_prandtl_number;
 
     /// Convective flux: \f$ \mathbf{F}_{conv} \f$
-    std::array<dealii::Tensor<1,dim,real>,nstate> model_convective_flux (
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
         const std::array<real,nstate> &conservative_soln) const;
 
     /// Dissipative (i.e. viscous) flux: \f$ \mathbf{F}_{diss} \f$ 
-    std::array<dealii::Tensor<1,dim,real>,nstate> model_dissipative_flux (
+    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
 
@@ -56,9 +57,9 @@ public:
      *  Reference: To be put here
      */
     LargeEddySimulation_Smagorinsky( 
-        const double                                                     model_constant,
-        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,dim+2,real> >  navier_stokes_physics_input,
-        const double                                                     turbulent_prandtl_number);
+        const double                                   model_constant,
+        std::shared_ptr< PhysicsBase<dim,dim+2,real> > navier_stokes_physics_input,
+        const double                                   turbulent_prandtl_number);
 
     /// Nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)*
     template<typename real2> 
@@ -88,9 +89,9 @@ public:
      *  Reference: Nicoud & Ducros (1999) "Subgrid-scale stress modelling based on the square of the velocity gradient tensor"
      */
     LargeEddySimulation_WALE( 
-        const double                                                     model_constant,
-        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,dim+2,real> >  navier_stokes_physics_input,
-        const double                                                     turbulent_prandtl_number);
+        const double                                    model_constant,
+        std::shared_ptr< PhysicsBase<dim,dim+2,real> >  navier_stokes_physics_input,
+        const double                                    turbulent_prandtl_number);
 
     /** Eddy viscosity for the WALE model. 
      *  Reference: Nicoud & Ducros (1999) "Subgrid-scale stress modelling based on the square of the velocity gradient tensor"
@@ -100,6 +101,7 @@ public:
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const override;
 };
 
+} // Physics namespace
 } // PHiLiP namespace
 
 #endif

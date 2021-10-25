@@ -14,7 +14,8 @@ template <int dim, int nstate, typename real>
 std::array<real,nstate> MHD<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &/*pos*/,
-    const std::array<real,nstate> &/*conservative_soln*/) const
+    const std::array<real,nstate> &/*conservative_soln*/,
+    const real /*current_time*/) const
 {
     std::array<real,nstate> source_term;
     for (int s=0; s<nstate; s++) {

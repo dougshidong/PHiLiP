@@ -185,12 +185,25 @@ DGBase<dim,real,MeshType>::create_collection_tuple(
                 face_quad = face_quad_Gauss_Lobatto;
             }
         } else {
+//#if 0
+            dealii::QGaussChebyshev<1> oned_quad_Gauss_Legendre (degree+1);
+            dealii::QGaussChebyshev<dim> vol_quad_Gauss_Legendre (degree+1);
+            if(dim == 1) {
+                dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
+            face_quad = face_quad_Gauss_Legendre;
+            } else {
+                dealii::QGaussChebyshev<dim-1> face_quad_Gauss_Legendre (degree+1);
+            face_quad = face_quad_Gauss_Legendre;
+            }
+//#endif
+#if 0
             dealii::QGauss<1> oned_quad_Gauss_Legendre (degree+1);
             dealii::QGauss<dim> vol_quad_Gauss_Legendre (degree+1);
             dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
+#endif
             oned_quad = oned_quad_Gauss_Legendre;
             volume_quad = vol_quad_Gauss_Legendre;
-            face_quad = face_quad_Gauss_Legendre;
+ //           face_quad = face_quad_Gauss_Legendre;
         }
 
         volume_quad_coll.push_back (volume_quad);
@@ -233,12 +246,25 @@ DGBase<dim,real,MeshType>::create_collection_tuple(
             }
         } else {
             const unsigned int overintegration = parameters_input->overintegration;
+//#if 0
+            dealii::QGaussChebyshev<1> oned_quad_Gauss_Legendre (degree+1+overintegration);
+            dealii::QGaussChebyshev<dim> vol_quad_Gauss_Legendre (degree+1+overintegration);
+            if(dim == 1) {
+                dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1+overintegration);
+            face_quad = face_quad_Gauss_Legendre;
+            } else {
+                dealii::QGaussChebyshev<dim-1> face_quad_Gauss_Legendre (degree+1+overintegration);
+            face_quad = face_quad_Gauss_Legendre;
+            }
+//#endif
+#if 0
             dealii::QGauss<1> oned_quad_Gauss_Legendre (degree+1+overintegration);
             dealii::QGauss<dim> vol_quad_Gauss_Legendre (degree+1+overintegration);
             dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1+overintegration);
+#endif
             oned_quad = oned_quad_Gauss_Legendre;
             volume_quad = vol_quad_Gauss_Legendre;
-            face_quad = face_quad_Gauss_Legendre;
+ //           face_quad = face_quad_Gauss_Legendre;
         }
 
         volume_quad_coll.push_back (volume_quad);
@@ -573,6 +599,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     int cell_index  = current_cell->index();
                     auto neighbor_cell = dof_handler.begin_active();
                     //int cell_index = current_cell->index();
+                    #if 0
                     if (cell_index == 0 && iface == 0)
                     {
                         fe_values_collection_face_int.reinit(current_cell, iface, i_quad, i_mapp, i_fele);
@@ -581,7 +608,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                        {
                            ++neighbor_cell;
                        }
-                    neighbor_dofs_indices.resize(n_dofs_curr_cell);
+                        neighbor_dofs_indices.resize(n_dofs_curr_cell);
                         neighbor_cell->get_dof_indices(neighbor_dofs_indices);
                          const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
                         const unsigned int quad_index_neigh_cell = fe_index_neigh_cell;
@@ -590,7 +617,9 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                         fe_values_collection_face_ext.reinit(neighbor_cell,(iface == 1) ? 0 : 1,quad_index_neigh_cell,mapping_index_neigh_cell,fe_index_neigh_cell);
 
                     }
-                    else if (cell_index == (int) triangulation->n_active_cells() - 1 && iface == 1)
+                    #endif
+                   // else if (cell_index == (int) triangulation->n_active_cells() - 1 && iface == 1)
+                    if (cell_index == (int) triangulation->n_active_cells() - 1 && iface == 1)
                     {
                      //   fe_values_collection_face_int.reinit(current_cell, iface, i_quad, i_mapp, i_fele);
                         neighbor_cell = dof_handler.begin_active();
@@ -601,9 +630,12 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                         const unsigned int mapping_index_neigh_cell = 0;
                         fe_values_collection_face_ext.reinit(neighbor_cell,(iface == 1) ? 0 : 1, quad_index_neigh_cell, mapping_index_neigh_cell, fe_index_neigh_cell); //not sure how changing the face number would work in dim!=1-dimensions.
                     }
+                    else {
+                        continue;
+                    }
 
                     //std::cout << "cell " << current_cell->index() << "'s " << iface << "th face has neighbour: " << neighbor_cell->index() << std::endl;
-                  //  const int neighbor_face_no = (iface ==1) ? 0:1;
+                    const int neighbor_face_no = (iface ==1) ? 0:1;
                     const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
 
                     const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
@@ -647,6 +679,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
               //     } else {
     const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
                     assemble_face_term_explicit (
+                        iface, neighbor_face_no, 
                         current_cell,
                         current_cell_index,
                         neighbor_cell_index,
@@ -654,6 +687,9 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                         penalty,
                         current_dofs_indices, neighbor_dofs_indices,
                         current_cell_rhs, neighbor_cell_rhs);
+                for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
+                    rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
+                }
                 //        assemble_face_term_explicit (
                 //                                   iface, neighbor_face_no, 
                 //                                   fe_values_face_int, fe_values_face_ext,
@@ -664,7 +700,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 //                                   current_cell_rhs, neighbor_cell_rhs);
                //     }
 
-                } else {
+                } else {//at boundary and not 1D periodic
 
         
             const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
@@ -688,6 +724,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     current_cell,
                     current_cell_index,
                     boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
+            }
+
             }
 
         //CASE 2: PERIODIC BOUNDARY CONDITIONS
@@ -725,7 +763,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 const real penalty = 0.5 * (penalty1 + penalty2);
 
                 const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
-                //if ( compute_dRdW || compute_dRdX || compute_d2R ) {
                     const auto metric_neighbor_cell = current_metric_cell->periodic_neighbor(iface);
                     metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
                     const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
@@ -764,6 +801,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                         compute_dRdW, compute_dRdX, compute_d2R);
                 } else {
                     assemble_face_term_explicit (
+                        iface, neighbor_iface, 
                         current_cell,
                         current_cell_index,
                         neighbor_cell_index,
@@ -830,7 +868,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             const real penalty = 0.5 * (penalty1 + penalty2);
 
             const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
-            //if ( compute_dRdW || compute_dRdX || compute_d2R ) {
                 const auto metric_neighbor_cell = current_metric_cell->neighbor(iface);
                 metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
 
@@ -872,6 +909,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     compute_dRdW, compute_dRdX, compute_d2R);
             } else {
                 assemble_face_term_explicit (
+                    iface, neighbor_iface, 
                     current_cell,
                     current_cell_index,
                     neighbor_cell_index,
@@ -916,7 +954,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             const real penalty = 0.5 * (penalty1 + penalty2);
 
             const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
-            //if ( compute_dRdW || compute_dRdX || compute_d2R ) {
                 const auto metric_neighbor_cell = current_metric_cell->neighbor_or_periodic_neighbor(iface);
                 metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
                 const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
@@ -954,6 +991,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     compute_dRdW, compute_dRdX, compute_d2R);
             } else {
                 assemble_face_term_explicit (
+                    iface, neighbor_iface, 
                     current_cell,
                     current_cell_index,
                     neighbor_cell_index,
@@ -1169,7 +1207,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         &&  !(compute_dRdX && compute_d2R)
             , dealii::ExcMessage("Can only do one at a time compute_dRdW or compute_dRdX or compute_d2R"));
 
-    pcout << "Assembling DG residual...";
+   // pcout << "Assembling DG residual...";
     if (compute_dRdW) {
         pcout << " with dRdW...";
 
@@ -2147,6 +2185,23 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
     dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.
+
+#if 0
+//build chebyshev fe collection
+
+    dealii::hp::QCollection<dim>       volume_quadrature_cheb;//volume flux nodes
+    for (unsigned int degree=0; degree<=7; ++degree) {
+        dealii::QGaussChebyshev<dim> vol_quad(degree+1);
+       // dealii::QGauss<dim> vol_quad(degree+1);
+        volume_quadrature_cheb.push_back (vol_quad);
+    }
+    dealii::hp::FEValues<dim,dim> fe_values_collection_volume_cheb (mapping_collection, fe_collection, volume_quadrature_cheb, this->volume_update_flags); ///< FEValues of volume.
+
+
+//end build chebyshev fe collection
+
+#endif
+
     for (auto cell = dof_handler.begin_active(); cell!=dof_handler.end(); ++cell) {
 
         if (!cell->is_locally_owned()) continue;
@@ -2188,6 +2243,40 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
                 }
             }
         }
+
+#if 0
+//try chebyshev mass matrix
+
+        fe_values_collection_volume_cheb.reinit (cell, quad_index, mapping_index, fe_index_curr_cell);
+        const dealii::FEValues<dim,dim> &fe_values_volume_cheb = fe_values_collection_volume_cheb.get_present_fe_values();
+
+        for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+
+            const unsigned int istate_test = fe_values_volume_cheb.get_fe().system_to_component_index(itest).first;
+
+            for (unsigned int itrial=itest; itrial<n_dofs_cell; ++itrial) {
+
+                const unsigned int istate_trial = fe_values_volume_cheb.get_fe().system_to_component_index(itrial).first;
+
+                real value = 0.0;
+                for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                    value +=
+                        fe_values_volume_cheb.shape_value_component(itest,iquad,istate_test)
+                        * fe_values_volume_cheb.shape_value_component(itrial,iquad,istate_trial)
+                        * fe_values_volume_cheb.JxW(iquad);
+                }
+                local_mass_matrix[itrial][itest] = 0.0;
+                local_mass_matrix[itest][itrial] = 0.0;
+                if(istate_test==istate_trial) {
+                    local_mass_matrix[itrial][itest] = value;
+                    local_mass_matrix[itest][itrial] = value;
+                }
+            }
+        }
+
+//end try chebyshev mass matrix
+
+#endif
 
         //For flux reconstruction
         dealii::FullMatrix<real> K_operator(n_dofs_cell);
@@ -2538,6 +2627,11 @@ void DGBase<dim,real,MeshType>::refine_residual_based()
 
 }
 
+template <int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::set_current_time(const real time)
+{
+    this->current_time = time;
+}
 // No support for anisotropic mesh refinement with parallel::distributed::Triangulation
 // template<int dim, typename real>
 // void DGBase<dim,real,MeshType>::set_anisotropic_flags()

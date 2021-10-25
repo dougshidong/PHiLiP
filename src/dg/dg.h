@@ -511,8 +511,11 @@ public:
     /// Operators base that will provide the Operators
     OPERATOR::OperatorBase<dim,real> operators;
    // std::shared_ptr<OPERATOR::OperatorBase<dim,nstate,real>> operators;
+    void set_current_time(const real current_time);//set the current time
 
 protected:
+    ///The current time for explicit solves
+    real current_time;
     /// Continuous distribution of artificial dissipation.
     const dealii::FE_Q<dim> fe_q_artificial_dissipation;
 
@@ -597,6 +600,7 @@ protected:
         dealii::Vector<real> &current_cell_rhs) = 0;
     /// Evaluate the integral over the internal cell edges
     virtual void assemble_face_term_explicit(
+        const unsigned int iface, const unsigned int neighbor_iface,
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,

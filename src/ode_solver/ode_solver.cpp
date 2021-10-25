@@ -223,7 +223,7 @@ int ODESolver<dim,real,MeshType>::advance_solution_time (double time_advance)
         << number_of_time_steps << " iterations of size dt=" << constant_time_step << " ... " << std::endl;
   //  allocate_ode_system ();
 
-   // this->current_iteration = 0;
+    this->current_iteration = 0;
    pcout<<" curr iter "<<this->current_iteration<<std::endl;
 
     // Output initial solution
@@ -233,7 +233,7 @@ pcout<<"allocating ode sys"<<std::endl;
         this->dg->output_results_vtk(this->current_iteration);
     }
 
-   // while (this->current_iteration < number_of_time_steps)
+    while (this->current_iteration < number_of_time_steps)
     {
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
             (this->current_iteration%ode_param.print_iteration_modulo) == 0 ) {
@@ -406,7 +406,7 @@ void Explicit_ODESolver<dim,real,MeshType>::step_in_time (real dt, const bool ps
 {
     // this->dg->assemble_residual (); // Not needed since it is called in the base class for time step
     this->current_time += dt;
-    const int rk_order = 3;
+    const int rk_order = 4;
     if (rk_order == 1) {
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
         this->update_norm = this->solution_update.l2_norm();
@@ -474,6 +474,50 @@ void Explicit_ODESolver<dim,real,MeshType>::step_in_time (real dt, const bool ps
         this->dg->solution = this->rk_stage[3];
         pcout<< "done." << std::endl;
     }
+    else if (rk_order == 4) {
+        // Stage 0
+        this->rk_stage[0] = this->dg->solution;
+        // Stage 1
+       // pcout<< "Stage 1... " << std::flush;
+        this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
+        this->rk_stage[1] = this->solution_update;
+        this->rk_stage[1].operator*=(dt);
+        this->dg->solution=this->rk_stage[0];
+        this->dg->solution.add(0.5, this->rk_stage[1]);
+        // Stage 2
+       // pcout<< "2... " << std::flush;
+        this->dg->set_current_time(this->current_time + dt/2.0);
+        this->dg->assemble_residual ();
+        this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
+        this->rk_stage[2] = this->solution_update;
+        this->rk_stage[2].operator*=(dt);
+        this->dg->solution=this->rk_stage[0];
+        this->dg->solution.add(0.5, this->rk_stage[2]);
+        // Stage 3
+       // pcout<< "3... " << std::flush;
+        this->dg->assemble_residual ();
+        this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
+        this->rk_stage[3] = this->solution_update;
+        this->rk_stage[3].operator*=(dt);
+        this->dg->solution=this->rk_stage[0];
+        this->dg->solution.add(1.0, this->rk_stage[3]);
+        // Stage 4
+       // pcout<< "4... " << std::flush;
+        this->dg->set_current_time(this->current_time + dt);
+        this->dg->assemble_residual ();
+        this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
+        this->rk_stage[4] = this->solution_update;
+        this->rk_stage[4].operator*=(dt);
+
+        this->dg->solution=this->rk_stage[0];
+        this->dg->solution.add(1.0/6.0, this->rk_stage[1]);
+        this->dg->solution.add(1.0/3.0, this->rk_stage[2]);
+        this->dg->solution.add(1.0/3.0, this->rk_stage[3]);
+        this->dg->solution.add(1.0/6.0, this->rk_stage[4]);
+       // pcout<< "done." << std::endl;
+        this->current_time += dt;
+
+    }
 
 }
 
@@ -485,8 +529,8 @@ void Explicit_ODESolver<dim,real,MeshType>::allocate_ode_system ()
     this->solution_update.reinit(this->dg->right_hand_side);
     this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
 
-    this->rk_stage.resize(4);
-    for (int i=0; i<4; i++) {
+    this->rk_stage.resize(5);
+    for (int i=0; i<5; i++) {
         this->rk_stage[i].reinit(this->dg->solution);
     }
 }

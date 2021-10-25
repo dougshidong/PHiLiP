@@ -49,6 +49,62 @@ double BurgersEnergyStability<dim, nstate>::compute_energy(std::shared_ptr < PHi
 #endif
 	return energy;
 }
+
+template<int dim, int nstate>
+double BurgersEnergyStability<dim, nstate>::compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg, const double poly_degree) const
+{
+	double conservation = 0.0;
+       // dealii::LinearAlgebra::distributed::Vector<double> Mu_hat(dg->solution.size());
+        dealii::LinearAlgebra::distributed::Vector<double> Mu_hat(dg->right_hand_side);
+       // printf(" size Mass %d size sol %d\n",dg->global_mass_matrix.n(),dg->solution.size());
+       // printf("  Mass %g size sol %g\n",dg->global_mass_matrix(dg->global_mass_matrix.m(),dg->global_mass_matrix.n()),dg->solution(dg->solution.size()));
+        //dg->global_mass_matrix.vmult( Mu_hat, dg->right_hand_side);
+        dg->global_mass_matrix.vmult( Mu_hat, dg->solution);
+
+        const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
+        const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
+        dealii::FullMatrix<double> Chi_operator(n_quad_pts, n_dofs_cell);
+        for(int istate=0; istate<nstate; istate++){
+            for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+                for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                    const dealii::Point<dim> qpoint  = dg->volume_quadrature_collection[poly_degree].point(iquad);
+                    Chi_operator[iquad][itest] = dg->fe_collection[poly_degree].shape_value_component(itest,qpoint,istate);
+                }
+            }
+        }
+        dealii::FullMatrix<double> Chi_inv(n_dofs_cell);
+        Chi_inv.invert(Chi_operator);
+        dealii::Vector<double> ones(n_quad_pts);
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            ones[iquad] = 1.0;
+        }
+        dealii::Vector<double> ones_hat(n_dofs_cell);
+        Chi_inv.vmult(ones_hat, ones);
+
+        dealii::LinearAlgebra::distributed::Vector<double> ones_hat_global(dg->right_hand_side);
+#if 0
+        const unsigned int number_cells = dg->right_hand_side.size() / n_dofs_cell;
+        for( unsigned int cell = 0; cell<number_cells; cell++){
+            for(unsigned int i= cell * n_dofs_cell, j=0; i< (cell+1) * n_dofs_cell && j<n_dofs_cell; i++, j++){
+                ones_hat_global[i] = ones_hat[j];
+            }
+        }
+#endif
+        std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
+        for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
+            if (!cell->is_locally_owned()) continue;
+            cell->get_dof_indices (dofs_indices);
+            for(unsigned int idof=0;idof<n_dofs_cell; idof++){
+                ones_hat_global[dofs_indices[idof]] = ones_hat[idof];
+            }
+        }
+
+        conservation = ones_hat_global * Mu_hat;
+
+	return conservation;
+}
+
+
 template<int dim, int nstate>
 void BurgersEnergyStability<dim, nstate>::initialize(PHiLiP::DGBase<dim, double>  &dg) const
 {
@@ -85,8 +141,8 @@ void BurgersEnergyStability<dim, nstate>::initialize(PHiLiP::DGBase<dim, double>
 #endif
         }
         if(dim==1){
-            //expression.push_back("sin(pi*(x)) + 0.01");
-            expression.push_back("cos(pi*(x))");
+            expression.push_back("sin(pi*(x)) + 0.01");
+           // expression.push_back("cos(pi*(x))");
 	  //  expression[0] = "sin(pi*(x)) + 0.01";
         }
 	initial_condition.initialize(variables,
@@ -111,12 +167,12 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
         PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
 	double left = 0.0;
 	double right = 2.0;
-	const unsigned int n_grids = 4;
+	const unsigned int n_grids = 5;
         std::array<double,n_grids> grid_size;
         std::array<double,n_grids> soln_error;
 	unsigned int poly_degree = 4;
         dealii::ConvergenceTable convergence_table;
-        const unsigned int igrid_start = 3;
+        const unsigned int igrid_start = 4;
         const unsigned int grid_degree = 1;
 
 //        const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids_input);
@@ -173,7 +229,7 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
     all_parameters_new.ode_solver_param.initial_time_step =  0.00005*delta_x;
    // all_parameters_new.ode_solver_param.initial_time_step =  0.05*delta_x;
     all_parameters_new.ode_solver_param.initial_time_step =  0.0001;
-//    all_parameters_new.ode_solver_param.initial_time_step =  0.00005;
+   // all_parameters_new.ode_solver_param.initial_time_step =  0.00005;
     //all_parameters_new.ode_solver_param.initial_time_step =  0.001;
     //all_parameters_new.ode_solver_param.initial_time_step =  0.00001;
   //  if(igrid ==6 )
@@ -220,6 +276,7 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 	std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
 	double finalTime = 3.0;
+//finalTime=0.1;
 
         if (all_parameters_new.use_energy == true){//for split form get energy
 	    double dt = all_parameters_new.ode_solver_param.initial_time_step;
@@ -228,12 +285,13 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 
             ode_solver->advance_solution_time(0.000001);
 	    double initial_energy = compute_energy(dg);
+	double initial_conservation = compute_conservation(dg, poly_degree);
 
 	//currently the only way to calculate energy at each time-step is to advance solution by dt instead of finaltime
 	//this causes some issues with outputs (only one file is output, which is overwritten at each time step)
 	//also the ode solver output doesn't make sense (says "iteration 1 out of 1")
 	//but it works. I'll keep it for now and need to modify the output functions later to account for this.
-	std::ofstream myfile ("energy_plot_cDG_p4_lax_split.gpl" , std::ios::trunc);
+	std::ofstream myfile ("energy_plot_cheby_4Oct.gpl" , std::ios::trunc);
 
 	for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
 	{
@@ -250,15 +308,66 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 			return 1;
 			break;
 		}
+            //Conservation
+		double current_conservation = compute_conservation(dg, poly_degree);
+                current_conservation /=initial_conservation;
+                std::cout << std::setprecision(16) << std::fixed;
+		pcout << "Normalized Conservation at time " << i * dt << " is " << current_conservation<< std::endl;
+		myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_conservation << std::endl;
+		if (current_conservation*initial_conservation - initial_conservation >= 10.00)
+		//if (current_energy - initial_energy >= 10.00)
+		{
+                    pcout << "Not conserved" << std::endl;
+			return 1;
+			break;
+		}
 	}
 	myfile.close();
+
+        //Print to a file the final solution vs x to plot
+	std::ofstream myfile2 ("solution_burgers_test_cheby_5Oct2.gpl" , std::ios::trunc);
+
+            // Overintegrate the error to make sure there is not integration error in the error estimate
+            int overintegrate = 0;
+            //dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
+            dealii::QGaussChebyshev<dim> quad_extra(poly_degree+1+overintegrate);
+            //dealii::MappingQ<dim,dim> mappingq(dg->max_degree+1);
+            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
+                    dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+            const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
+            std::array<double,nstate> soln_at_q;
+            std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
+            for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
+
+                if (!cell->is_locally_owned()) continue;
+
+                fe_values_extra.reinit (cell);
+                cell->get_dof_indices (dofs_indices);
+
+                for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+
+                    std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
+                    for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
+                        const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
+                        soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
+                    }
+                    const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
+                std::cout << std::setprecision(16) << std::fixed;
+		myfile2<< std::fixed << std::setprecision(16) << qpoint[0] << std::fixed << std::setprecision(16) <<" " << soln_at_q[0]<< std::endl;
+                }
+
+            }
+
+	myfile2.close();
+
+
         }//end of energy
         else{//do OOA
             finalTime = 1.0;
            // finalTime = 10.0*0.001;
            // finalTime =3.0;
 
-          //  finalTime = 10.0 * all_parameters_new.ode_solver_param.initial_time_step;
+            finalTime = 10.0 * all_parameters_new.ode_solver_param.initial_time_step;
 	    ode_solver->advance_solution_time(finalTime);
             const unsigned int n_global_active_cells = grid->n_global_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();

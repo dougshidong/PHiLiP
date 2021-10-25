@@ -65,7 +65,8 @@ template <int dim, int nstate, typename real>
 std::array<real,nstate> Euler<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,
-    const std::array<real,nstate> &/*conservative_soln*/) const
+    const std::array<real,nstate> &/*conservative_soln*/,
+    const real /*current_time*/) const
 {
     std::array<real,nstate> manufactured_solution;
     for (int s=0; s<nstate; s++) {

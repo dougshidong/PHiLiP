@@ -113,7 +113,6 @@ int main (int argc, char * argv[])
     double max_dif_int_parts = 0.0;
     for(unsigned int poly_degree=2; poly_degree<6; poly_degree++){
 
-
         OPERATOR::OperatorBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, poly_degree); 
 
         const unsigned int n_dofs = operators.fe_collection_basis[poly_degree].dofs_per_cell;
@@ -183,12 +182,30 @@ int main (int argc, char * argv[])
                     }
                 }
             }
+//std::cout<<" SURFACE TERM"<<std::endl;
 //            for(unsigned int itest=0; itest<n_dofs; itest++){
 //                for(unsigned int idof=0; idof<nstate * n_dofs_flux; idof++){
 //pcout<<face_int_parts[jdim][itest][idof]<<" ";
 //}
 //pcout<<std::endl;
 //}
+
+//std::cout<<" basis TERM"<<std::endl;
+//                for(unsigned int idof=0; idof<n_dofs_flux; idof++){
+//for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
+//pcout<<operators.flux_basis_at_facet_cubature[poly_degree][0][iface][iquad][idof]<<" ";
+//}
+//pcout<<std::endl;
+//}
+//std::cout<<" urf integral ERM"<<std::endl;
+//                for(unsigned int idof=0; idof<n_dofs_flux; idof++){
+//for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
+//pcout<<operators.face_integral_basis[poly_degree][iface][iquad][idof]<<" ";
+//}
+//pcout<<std::endl;
+//}
+
+
         }
 
         for(int idim=0; idim<dim; idim++){

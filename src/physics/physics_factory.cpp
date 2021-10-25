@@ -57,7 +57,8 @@ PhysicsFactory<dim,nstate,real>
             return std::make_shared < Burgers<dim,nstate,real> >(
                 true, false,
                 diffusion_tensor, 
-                manufactured_solution_function);
+                manufactured_solution_function,//);
+                parameters_input->test_type);
     } else if (pde_type == PDE_enum::euler) {
         if constexpr (nstate==dim+2) {
             return std::make_shared < Euler<dim,nstate,real> > (

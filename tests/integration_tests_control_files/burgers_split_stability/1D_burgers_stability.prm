@@ -4,7 +4,9 @@ set dimension = 1
 
 set use_weak_form = false
 
-set use_collocated_nodes = true
+set overintegration = 0
+
+set use_collocated_nodes = false
 
 set use_split_form = true
 
@@ -16,14 +18,14 @@ set use_classical_FR = false
 
 set use_periodic_bc = true
 
-set flux_reconstruction = cPlus
+set flux_reconstruction = cDG
 
 #set use_skew_sym_deriv = false
 
 set pde_type = burgers_inviscid
 
-#set conv_num_flux = lax_friedrichs
-set conv_num_flux = split_form
+set conv_num_flux = lax_friedrichs
+#set conv_num_flux = split_form
 
 subsection ODE solver
 
@@ -31,7 +33,7 @@ subsection ODE solver
   
   set nonlinear_max_iterations = 500000
 
-  set print_iteration_modulo = 100
+  set print_iteration_modulo = 1000
 
   set ode_solver_type = explicit
 

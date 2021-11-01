@@ -22,6 +22,14 @@ public:
         create_Physics(
             const Parameters::AllParameters *const parameters_input,
             const Parameters::AllParameters::PartialDifferentialEquation pde_type);
+
+private:
+    /// Factory to return the correct physics model, i.e. when PDE_type==physics_model, given input file
+    static std::shared_ptr< PhysicsBase<dim,nstate,real> >
+        create_Physics_Model(
+            const Parameters::AllParameters                           *const parameters_input,
+            const dealii::Tensor<2,3,double>                          diffusion_tensor,
+            std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
 };
 
 

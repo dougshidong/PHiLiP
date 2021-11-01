@@ -127,6 +127,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim, nstate, real>
         conv_num_split_flux = this->physics_baseline->convective_numerical_split_flux(conservative_soln1,conservative_soln2);
     } else {
         // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
+        std::abort();
     }
     return conv_num_split_flux;
 }
@@ -144,6 +145,7 @@ std::array<real,nstate> PhysicsModel<dim,nstate,real>
         eig = this->physics_baseline->convective_eigenvalues(conservative_soln, normal);
     } else {
         // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
+        std::abort();
     }
     return eig;
 }
@@ -159,6 +161,7 @@ real PhysicsModel<dim,nstate,real>
         max_eig = this->physics_baseline->max_convective_eigenvalue(conservative_soln);
     } else {
         // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
+        std::abort();
     }
     return max_eig;
 }
@@ -182,6 +185,7 @@ void PhysicsModel<dim,nstate,real>
                 soln_bc, soln_grad_bc);
     } else {
         // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
+        std::abort();
     }
 }
 
@@ -201,6 +205,7 @@ dealii::Vector<double> PhysicsModel<dim,nstate,real>::post_compute_derived_quant
                                         uh, duh, dduh, normals, evaluation_points);
     } else {
         // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
+        std::abort();
     }
     return computed_quantities;
 }
@@ -216,6 +221,7 @@ std::vector<std::string> PhysicsModel<dim,nstate,real>
         names = this->physics_baseline->post_get_names();
     } else {
         // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
+        std::abort();
     }
     return names;
 }
@@ -232,6 +238,7 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Ph
         interpretation = this->physics_baseline->post_get_data_component_interpretation();
     } else {
         // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
+        std::abort();
     }
     return interpretation;
 }

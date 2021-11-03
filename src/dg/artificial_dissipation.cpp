@@ -86,39 +86,7 @@ namespace PHiLiP
 		3.0/4.0,
 		1.0);
 		
-		std::array<dealii::Tensor<1,dim,real2>,nstate> Flux_navier_stokes  =  NS.dissipative_flux(conservative_soln, solution_gradient);
-/*
-		dealii::Tensor<1,dim,real2> Pr;
-		dealii::Tensor<1,dim,real2> vel = NS.compute_velocities(conservative_soln);
-		std::array<real2,nstate> primitive_soln = NS.convert_conservative_to_primitive(conservative_soln);
-		std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient = NS.convert_conservative_gradient_to_primitive_gradient(conservative_soln,solution_gradient);
-		std::array<dealii::Tensor<1,dim,real2>,dim> vel_gradient = NS.extract_velocities_gradient_from_primitive_solution_gradient(primitive_soln_gradient);
-		dealii::Tensor<1,dim,real2> heat_flux = NS.compute_heat_flux(primitive_soln, primitive_soln_gradient);
-		real2 mu_NS = NS.compute_scaled_viscosity_coefficient(primitive_soln);
-
-		if(artificial_viscosity>0.0)
-		{
-			for(int i=0;i<dim;i++)
-			{
-				real2 Num = 0.0;
-				real2 Den = 0.0;
-
-				for(int j=0;j<dim;j++)
-				{ 
-					 Num = Num + mu_NS*vel[j]*vel_gradient[j][i];
-				}
-
-				Den = heat_flux[i] - Flux_navier_stokes[nstate-1][i];
-
-				Pr[i] = Num/Den;
-				if(Pr[i]<1.0e-5)  // Stabilize Prandtl number
-				{
-					Pr[i] = 0.75;
-				}
-				Flux_navier_stokes[nstate-1][i] = Flux_navier_stokes[nstate-1][i] - heat_flux[i] + heat_flux[i]*1.0/Pr[i];
-			}
-		}
-*/		
+		std::array<dealii::Tensor<1,dim,real2>,nstate> Flux_navier_stokes  =  NS.dissipative_flux(conservative_soln, solution_gradient);			
 
 		for(int i=0;i<nstate;i++)
 		{

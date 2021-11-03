@@ -64,6 +64,11 @@ public:
         const std::array<real,nstate> &soln1,
         const std::array<real,nstate> &soln2) const;
 
+    /// Convective Numerical Split Flux for split form
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_surface_numerical_split_flux (
+                const std::array< dealii::Tensor<1,dim,real>, nstate > &surface_flux,
+                const std::array< dealii::Tensor<1,dim,real>, nstate > &flux_interp_to_surface) const;
+
     /// Spectral radius of convective term Jacobian is 'c'
     std::array<real,nstate> convective_eigenvalues (
         const std::array<real,nstate> &/*solution*/,

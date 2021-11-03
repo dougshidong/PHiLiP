@@ -341,6 +341,15 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim, nstate, real>
 }
 
 template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim, nstate, real>
+::convective_surface_numerical_split_flux (
+                const std::array< dealii::Tensor<1,dim,real>, nstate > &/*surface_flux*/,
+                const std::array< dealii::Tensor<1,dim,real>, nstate > &flux_interp_to_surface) const
+{
+    return flux_interp_to_surface;
+}
+
+template <int dim, int nstate, typename real>
 std::array<real,nstate> MHD<dim,nstate,real>
 ::convective_normal_flux (const std::array<real,nstate> &conservative_soln, const dealii::Tensor<1,dim,real> &normal) const
 {

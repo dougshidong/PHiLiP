@@ -490,7 +490,7 @@ int main (int argc, char * argv[])
                 metric_cell->get_dof_indices (current_metric_dofs_indices);
                 std::vector<std::vector<real>> mapping_support_points(dim);
                 for(int idim=0; idim<dim; idim++){
-                    mapping_support_points[idim].resize(n_metric_dofs);
+                    mapping_support_points[idim].resize(n_metric_dofs/dim);
                 }
                 for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
                     const real val = (dg->high_order_grid->volume_nodes[current_metric_dofs_indices[idof]]);

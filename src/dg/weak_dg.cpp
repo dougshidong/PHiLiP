@@ -552,6 +552,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     const dealii::types::global_dof_index current_cell_index,
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &/*metric_dof_indices*/,
+    const unsigned int /*poly_degree*/,
+    const unsigned int /*grid_degree*/,
     dealii::Vector<real> &local_rhs_int_cell,
     const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/)
 {
@@ -835,11 +838,14 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_explicit(
     typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
+    const unsigned int /*poly_degree*/, const unsigned int /*grid_degree*/,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
     const real penalty,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
+    const std::vector<dealii::types::global_dof_index> &/*metric_dof_indices_int*/,
+    const std::vector<dealii::types::global_dof_index> &/*metric_dof_indices_ext*/,
     dealii::Vector<real>          &local_rhs_int_cell,
     dealii::Vector<real>          &local_rhs_ext_cell)
 {

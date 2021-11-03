@@ -268,7 +268,7 @@ public:
     std::vector<std::vector<dealii::FullMatrix<real>>> basis_at_facet_cubature;
     ///Flux basis functions evaluated at facet cubature nodes.
     std::vector<std::vector<std::vector<dealii::FullMatrix<real>>>> flux_basis_at_facet_cubature;
-    ///The surface integral of test functions WITH unit reference normals.
+    ///The surface integral of test functions.
    /**\f[
    *     \mathbf{W}_f \mathbf{\chi}(\mathbf{\xi}_f^r) 
    * \f]
@@ -392,6 +392,23 @@ public:
                                     const unsigned int n_quad_pts,
                                     const std::vector<dealii::DerivativeForm<2,dim,dim>> grad_Xl_grad_Xm,
                                     std::vector<dealii::FullMatrix<real>> &metric_cofactor);
+
+    ///Computes the physical gradient operator scaled by the determinant of the metric Jacobian. By default we use the skew-symmetric form for curvilinear elements. Explicitly, using \f$\mathbf{\phi}\f$ as the flux basis collocated on the volume cubature nodes, the output of the function is \f$ D_i = \frac{1}{2} \sum_{j=1}^{d}(J\frac{\partial \xi_j}{\partial x_i})\frac{\partial \phi(\mathbf{\xi}_v^r)}{\partial \xi_j}  + \frac{\partial \phi(\mathbf{\xi}_v^r)}{\partial \xi_j}\f$ 
+    void get_Jacobian_scaled_physical_gradient(
+                                    const std::vector<std::vector<dealii::FullMatrix<real>>> &ref_gradient,
+                                    const std::vector<dealii::FullMatrix<real>> &metric_cofactor,
+                                    const unsigned int n_quad_pts,
+                                    const int nstate,
+                                    std::vector<std::vector<dealii::FullMatrix<real>>> &physical_gradient);
+
+#if 0
+    ///Given a physical flux, and the metric cofactor matrix, this function returns the reference flux.
+    void compute_reference_flux(
+                                    const std::vector< dealii::Tensor<1,dim,real>> &conv_phys_flux,
+                                    const dealii::FullMatrix<real> &metric_cofactor,
+                                    const int nstate,
+                                    std::vector< dealii::Tensor<1,dim,real>> &conv_ref_flux);
+#endif
                                 
 
 };///End operator base class.

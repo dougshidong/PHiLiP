@@ -31,6 +31,7 @@ public:
         boundary_layer_solution,
         s_shock_solution,
         quadratic_solution,
+        Alex_solution,
         };
     ManufacturedSolutionType manufactured_solution_type; ///< Selected ManufacturedSolutionType from the input file
 

@@ -486,11 +486,12 @@ int main (int argc, char * argv[])
             for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
                 if (!current_cell->is_locally_owned()) continue;
 	
+pcout<<"grid degree "<<grid_degree<<" metric dofs "<<n_metric_dofs<<std::endl;
                 std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs);
                 metric_cell->get_dof_indices (current_metric_dofs_indices);
                 std::vector<std::vector<real>> mapping_support_points(dim);
                 for(int idim=0; idim<dim; idim++){
-                    mapping_support_points[idim].resize(n_metric_dofs);
+                    mapping_support_points[idim].resize(n_metric_dofs/dim);
                 }
                 for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
                     const real val = (dg->high_order_grid->volume_nodes[current_metric_dofs_indices[idof]]);
@@ -547,9 +548,9 @@ int main (int argc, char * argv[])
                 }
 
                 for(int idim=0; idim<dim; idim++){
-                //    printf("\n GCL for derivative x_%d \n", idim);
+                   // printf("\n GCL for derivative x_%d \n", idim);
                     for(unsigned int idof=0; idof<n_quad_pts; idof++){
-                 //       printf(" %.16g \n", GCL[idim][idof]);
+                       // printf(" %.16g \n", GCL[idim][idof]);
                         if( std::abs(GCL[idim][idof]) > max_GCL){
                             max_GCL = std::abs(GCL[idim][idof]);
                         }

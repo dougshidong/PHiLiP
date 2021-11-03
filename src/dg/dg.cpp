@@ -185,7 +185,7 @@ DGBase<dim,real,MeshType>::create_collection_tuple(
                 face_quad = face_quad_Gauss_Lobatto;
             }
         } else {
-//#if 0
+#if 0
             dealii::QGaussChebyshev<1> oned_quad_Gauss_Legendre (degree+1);
             dealii::QGaussChebyshev<dim> vol_quad_Gauss_Legendre (degree+1);
             if(dim == 1) {
@@ -195,15 +195,15 @@ DGBase<dim,real,MeshType>::create_collection_tuple(
                 dealii::QGaussChebyshev<dim-1> face_quad_Gauss_Legendre (degree+1);
             face_quad = face_quad_Gauss_Legendre;
             }
-//#endif
-#if 0
+#endif
+//#if 0
             dealii::QGauss<1> oned_quad_Gauss_Legendre (degree+1);
             dealii::QGauss<dim> vol_quad_Gauss_Legendre (degree+1);
             dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
-#endif
+//#endif
             oned_quad = oned_quad_Gauss_Legendre;
             volume_quad = vol_quad_Gauss_Legendre;
- //           face_quad = face_quad_Gauss_Legendre;
+            face_quad = face_quad_Gauss_Legendre;
         }
 
         volume_quad_coll.push_back (volume_quad);
@@ -246,7 +246,7 @@ DGBase<dim,real,MeshType>::create_collection_tuple(
             }
         } else {
             const unsigned int overintegration = parameters_input->overintegration;
-//#if 0
+#if 0
             dealii::QGaussChebyshev<1> oned_quad_Gauss_Legendre (degree+1+overintegration);
             dealii::QGaussChebyshev<dim> vol_quad_Gauss_Legendre (degree+1+overintegration);
             if(dim == 1) {
@@ -256,15 +256,15 @@ DGBase<dim,real,MeshType>::create_collection_tuple(
                 dealii::QGaussChebyshev<dim-1> face_quad_Gauss_Legendre (degree+1+overintegration);
             face_quad = face_quad_Gauss_Legendre;
             }
-//#endif
-#if 0
+#endif
+//#if 0
             dealii::QGauss<1> oned_quad_Gauss_Legendre (degree+1+overintegration);
             dealii::QGauss<dim> vol_quad_Gauss_Legendre (degree+1+overintegration);
             dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1+overintegration);
-#endif
+//#endif
             oned_quad = oned_quad_Gauss_Legendre;
             volume_quad = vol_quad_Gauss_Legendre;
- //           face_quad = face_quad_Gauss_Legendre;
+            face_quad = face_quad_Gauss_Legendre;
         }
 
         volume_quad_coll.push_back (volume_quad);
@@ -541,6 +541,10 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
 
     const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
 
+    const unsigned int grid_degree = this->high_order_grid->fe_system.tensor_degree();
+    const unsigned int poly_degree = i_fele;
+  //  const unsigned int grid_degree = current_metric_cell->active_fe_index();
+
    //assemble_volume_term_explicit (
    //    current_cell,
    //    current_cell_index,
@@ -563,6 +567,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         current_cell_index,
         fe_values_volume,
         current_dofs_indices,
+        current_metric_dofs_indices,
+        poly_degree, grid_degree,
         current_cell_rhs,
         fe_values_lagrange);
     }
@@ -647,6 +653,10 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
 
                     dealii::Vector<double> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
 
+pcout<<"getting neighbour face indices metric"<<std::endl;
+                    const auto metric_neighbor_cell = high_order_grid->dof_handler_grid.begin_active();
+                    metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
+pcout<<"got neighbour face indices metric"<<std::endl;
 
                 #if 0
                     const unsigned int normal_direction1 = dealii::GeometryInfo<dim>::unit_normal_direction[iface];
@@ -683,9 +693,11 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                         current_cell,
                         current_cell_index,
                         neighbor_cell_index,
+                        poly_degree, grid_degree,
                         fe_values_face_int, fe_values_face_ext,
                         penalty,
                         current_dofs_indices, neighbor_dofs_indices,
+                        current_metric_dofs_indices, neighbor_metric_dofs_indices,
                         current_cell_rhs, neighbor_cell_rhs);
                 for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
                     rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
@@ -805,9 +817,11 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                         current_cell,
                         current_cell_index,
                         neighbor_cell_index,
+                        poly_degree, grid_degree,
                         fe_values_face_int, fe_values_face_ext,
                         penalty,
                         current_dofs_indices, neighbor_dofs_indices,
+                        current_metric_dofs_indices, neighbor_metric_dofs_indices,
                         current_cell_rhs, neighbor_cell_rhs);
                 }
 
@@ -913,9 +927,11 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     current_cell,
                     current_cell_index,
                     neighbor_cell_index,
+                    poly_degree, grid_degree,
                     fe_values_face_int, fe_values_face_ext,
                     penalty,
                     current_dofs_indices, neighbor_dofs_indices,
+                    current_metric_dofs_indices, neighbor_metric_dofs_indices,
                     current_cell_rhs, neighbor_cell_rhs);
             }
             // Add local contribution from neighbor cell to global vector
@@ -995,9 +1011,11 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     current_cell,
                     current_cell_index,
                     neighbor_cell_index,
+                    poly_degree, grid_degree,
                     fe_values_face_int, fe_values_face_ext,
                     penalty,
                     current_dofs_indices, neighbor_dofs_indices,
+                    current_metric_dofs_indices, neighbor_metric_dofs_indices,
                     current_cell_rhs, neighbor_cell_rhs);
             }
 

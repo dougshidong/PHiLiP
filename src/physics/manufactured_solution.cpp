@@ -170,6 +170,19 @@ inline real ManufacturedSolutionQuadratic<dim,real>
 }
 
 template <int dim, typename real>
+inline real ManufacturedSolutionAlex<dim,real>
+::value (const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    for (int d=0; d<dim; d++) {
+        value += exp( point[d] ) + sin(point[d] );
+        assert(isfinite(value));
+    }
+    value += this->base_values[istate];
+    return value;
+}
+
+template <int dim, typename real>
 inline dealii::Tensor<1,dim,real> ManufacturedSolutionSine<dim,real>
 ::gradient (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
@@ -415,6 +428,17 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionQuadratic<dim,real>
         // dF = <2ax, 2by, 2cz>
         const real x = point[d];
         gradient[d] = 2*alpha_diag[d]*x;
+    }
+    return gradient;
+}
+
+template <int dim, typename real>
+inline dealii::Tensor<1,dim,real> ManufacturedSolutionAlex<dim,real>
+::gradient(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
+{
+    dealii::Tensor<1,dim,real> gradient;
+    for(unsigned int d = 0; d < dim; ++d){
+        gradient[d] = exp(point[d]) + cos(point[d]);
     }
     return gradient;
 }
@@ -762,6 +786,22 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionQuadratic<dim,rea
 }
 
 template <int dim, typename real>
+inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionAlex<dim,real>
+::hessian (const dealii::Point<dim,real> &point, const unsigned int  /*istate*/) const
+{
+    dealii::SymmetricTensor<2,dim,real> hessian;
+    for(int idim=0; idim<dim; idim++){
+        for(int jdim=0; jdim<dim; jdim++){
+            if(idim == jdim)
+                hessian[idim][jdim] = exp(point[idim]) - sin(point[idim]); 
+            else
+                hessian[idim][jdim] = 0.0;
+        }
+    }
+    return hessian;
+}
+
+template <int dim, typename real>
 ManufacturedSolutionFunction<dim,real>
 ::ManufacturedSolutionFunction (const unsigned int nstate)
     :
@@ -893,6 +933,8 @@ ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(
         return std::make_shared<ManufacturedSolutionSShock<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::quadratic_solution){
         return std::make_shared<ManufacturedSolutionQuadratic<dim,real>>(nstate);
+    }else if(solution_type == ManufacturedSolutionEnum::Alex_solution){
+        return std::make_shared<ManufacturedSolutionAlex<dim,real>>(nstate);
     }else{
         std::cout << "Invalid Manufactured Solution." << std::endl;
     }

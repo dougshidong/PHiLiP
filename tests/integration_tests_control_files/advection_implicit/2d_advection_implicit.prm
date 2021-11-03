@@ -7,6 +7,8 @@ set dimension = 2
 # <advection|diffusion|convection_diffusion>.
 set pde_type  = advection
 
+set use_weak_form = true
+
 set conv_num_flux = lax_friedrichs
 
 subsection ODE solver
@@ -45,5 +47,9 @@ subsection manufactured solution convergence study
 
   # Number of grids in grid study
   set number_of_grids   = 6
+
+  # Set Manufactured Solution Type
+  set manufactured_solution_type = Alex_solution
+ # set manufactured_solution_type = sine_solution
 end
 

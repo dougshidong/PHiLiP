@@ -105,12 +105,6 @@ add_test(
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
-configure_file(2d_euler_gaussian_bump_with_artificial_dissipation.prm 2d_euler_gaussian_bump_with_artificial_dissipation.prm COPYONLY)
-add_test(
-  NAME MPI_2D_EULER_INTEGRATION_GAUSSIAN_BUMP_LONG_WITH_ARTIFICIAL_VISCOSITY
-  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_gaussian_bump_with_artificial_dissipation.prm
-  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
 ##Artificial dissipation tests
 configure_file(2d_euler_gaussian_bump_with_artificial_dissipation_laplacian.prm 2d_euler_gaussian_bump_with_artificial_dissipation_laplacian.prm COPYONLY)
 add_test(

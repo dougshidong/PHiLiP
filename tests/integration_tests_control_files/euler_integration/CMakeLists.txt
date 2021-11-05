@@ -111,7 +111,25 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_gaussian_bump_with_artificial_dissipation.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
-
+##Artificial dissipation tests
+configure_file(2d_euler_gaussian_bump_with_artificial_dissipation_laplacian.prm 2d_euler_gaussian_bump_with_artificial_dissipation_laplacian.prm COPYONLY)
+add_test(
+  NAME MPI_2D_EULER_INTEGRATION_GAUSSIAN_BUMP_LONG_WITH_ARTIFICIAL_VISCOSITY_LAPLACIAN
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_gaussian_bump_with_artificial_dissipation_laplacian.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+configure_file(2d_euler_gaussian_bump_with_artificial_dissipation_enthalpy_laplacian.prm 2d_euler_gaussian_bump_with_artificial_dissipation_enthalpy_laplacian.prm COPYONLY)
+add_test(
+  NAME MPI_2D_EULER_INTEGRATION_GAUSSIAN_BUMP_LONG_WITH_ARTIFICIAL_VISCOSITY_ENTHALPY_LAPLACIAN
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_gaussian_bump_with_artificial_dissipation_enthalpy_laplacian.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+configure_file(2d_euler_gaussian_bump_with_artificial_dissipation_physical.prm 2d_euler_gaussian_bump_with_artificial_dissipation_physical.prm COPYONLY)
+add_test(
+  NAME MPI_2D_EULER_INTEGRATION_GAUSSIAN_BUMP_LONG_WITH_ARTIFICIAL_VISCOSITY_PHYSICAL
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_gaussian_bump_with_artificial_dissipation_physical.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
 # Adjoint test cases
 
 # configure_file(2d_euler_gaussian_bump_adjoint.prm 2d_euler_gaussian_bump_adjoint.prm COPYONLY)

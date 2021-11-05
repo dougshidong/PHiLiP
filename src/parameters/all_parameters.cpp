@@ -105,6 +105,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Double(-1e20,1e20),
                       "Kappa from Persson's subcell shock capturing");
 
+    prm.declare_entry("use_enthalpy_error", "false",
+                      dealii::Patterns::Bool(),
+                      "By default we calculate the entropy error from the conservative variables. Otherwise, compute the enthalpy error. An example is in Euler Gaussian bump.");
+
     prm.declare_entry("sipg_penalty_factor", "1.0",
                       dealii::Patterns::Double(1.0,1e200),
                       "Scaling of Symmetric Interior Penalty term to ensure coercivity.");
@@ -269,6 +273,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_classical_FR = prm.get_bool("use_classical_Flux_Reconstruction");
     add_artificial_dissipation = prm.get_bool("add_artificial_dissipation");
     entropy_error_discontinuity_sensor = prm.get_bool("entropy_error_discontinuity_sensor");
+    use_enthalpy_error = prm.get_bool("use_enthalpy_error");
 
 	const std::string artificial_dissipation_string = prm.get("artificial_dissipation_type");
 	if (artificial_dissipation_string == "laplacian")

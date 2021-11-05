@@ -100,6 +100,10 @@ public:
 
 	double kappa_artificial_dissipation;
 
+    ///Flag to use an enthalpy error calcuation.
+    bool use_enthalpy_error;
+
+
     /// Scaling of Symmetric Interior Penalty term to ensure coercivity.
     /** 
      *  invisid shock, but loses all the order of accuracy for the Gaussian bump.

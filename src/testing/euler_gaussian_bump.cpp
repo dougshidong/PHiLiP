@@ -70,6 +70,7 @@ int EulerGaussianBump<dim,nstate>
         pcout << initial_conditions.farfield_conservative[s] << std::endl;
     }
 
+	std::string Error_string;
     std::vector<int> fail_conv_poly;
     std::vector<double> fail_conv_slop;
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
@@ -169,10 +170,7 @@ int EulerGaussianBump<dim,nstate>
 
             double l2error = 0;
 
-
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
-
-           // const double entropy_inf = euler_physics_double.entropy_inf;
 
             // Integrate solution error and output error
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
@@ -189,18 +187,32 @@ int EulerGaussianBump<dim,nstate>
                         soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
                     }
 
-                   // const double unumerical = euler_physics_double.compute_entropy_measure(soln_at_q);
+					double unumerical, uexact;
+					if(param.use_enthalpy_error){
+						Error_string = "L2_enthalpy_error";
+						const double pressure = euler_physics_double.compute_pressure(soln_at_q);
+				  	    unumerical = euler_physics_double.compute_specific_enthalpy(soln_at_q,pressure);
+				  	    uexact = euler_physics_double.gam*euler_physics_double.pressure_inf/euler_physics_double.density_inf*(1.0/euler_physics_double.gamm1+0.5*euler_physics_double.mach_inf_sqr);
 
-                   // const double uexact = entropy_inf;
+					} else{
+						Error_string = "L2_entropy_error";
+						const double entropy_inf = euler_physics_double.entropy_inf;
+						unumerical = euler_physics_double.compute_entropy_measure(soln_at_q);
+						uexact = entropy_inf;
+					}
 
-				   const double pressure = euler_physics_double.compute_pressure(soln_at_q);
-				   const double unumerical = euler_physics_double.compute_specific_enthalpy(soln_at_q,pressure);
-				   const double uexact = euler_physics_double.gam*euler_physics_double.pressure_inf/euler_physics_double.density_inf*(1.0/euler_physics_double.gamm1+0.5*euler_physics_double.mach_inf_sqr);
 
                     l2error += pow(unumerical - uexact, 2) * fe_values_extra.JxW(iquad);
                 }
             }
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
+
+#if 0
+		if(check_that_it_failed == true){
+			pcout<<" it failed because of this "<<some output<<std::endl
+			return 1;
+		}
+#endif
 
 
             // Convergence table
@@ -214,7 +226,7 @@ int EulerGaussianBump<dim,nstate>
             convergence_table.add_value("DoFs", n_dofs);
             convergence_table.add_value("dx", dx);
            // convergence_table.add_value("L2_Error", l2error_mpi_sum);
-            convergence_table.add_value("L2_enthalpy_error", l2error_mpi_sum);
+            convergence_table.add_value(Error_string, l2error_mpi_sum);
 			convergence_table.add_value("Residual",ode_solver->residual_norm);
 
 
@@ -231,8 +243,8 @@ int EulerGaussianBump<dim,nstate>
                      << "  dimension: " << dim
                      << "  polynomial degree p: " << poly_degree
                      << std::endl
-                     << "  Error1 " << Error[igrid-1]
-                     << "  Error2 " << Error[igrid]
+                     <<" " << Error_string << " " << 1 << Error[igrid-1]
+                     <<" " << Error_string << " " << 2 << Error[igrid]
                      << "  slope " << slope_soln_err
                      << std::endl;
             }
@@ -242,9 +254,9 @@ int EulerGaussianBump<dim,nstate>
         pcout << " ********************************************" << std::endl
              << " Convergence rates for p = " << poly_degree << std::endl
              << " ********************************************" << std::endl;
-        convergence_table.evaluate_convergence_rates("L2_enthalpy_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+        convergence_table.evaluate_convergence_rates(Error_string, "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.set_scientific("dx", true);
-        convergence_table.set_scientific("L2_enthalpy_error", true);
+        convergence_table.set_scientific(Error_string, true);
 		convergence_table.set_scientific("Residual",true);
         //convergence_table.set_scientific("L2_Error", true);
         if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());

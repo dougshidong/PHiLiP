@@ -19,7 +19,8 @@ set(TESTS_SOURCE
     optimization_inverse_manufactured/optimization_inverse_manufactured.cpp
     burgers_rewienski_snapshot.cpp
     reduced_order.cpp
-    burgers_rewienski_adjoint.cpp)
+    burgers_rewienski_adjoint.cpp
+    burgers_rewienski_ROM.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

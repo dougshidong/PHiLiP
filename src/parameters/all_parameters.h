@@ -119,6 +119,7 @@ public:
         reduced_order,
         burgers_rewienski_snapshot,
         burgers_rewienski_adjoint,
+        burgers_rewienski_ROM,
         advection_periodicity,
     };
     TestType test_type; ///< Selected TestType from the input file.

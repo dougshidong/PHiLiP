@@ -34,3 +34,10 @@ add_test(
         COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_adjoint.prm
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+
+configure_file(1d_burgers_rewienski_ROM.prm 1d_burgers_rewienski_ROM.prm COPYONLY)
+add_test(
+        NAME 1D_BURGERS_REWIENSKI_ROM
+        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_ROM.prm
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)

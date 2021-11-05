@@ -110,6 +110,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler_naca0012 | "
                       " reduced_order | "
                       " burgers_rewienski_snapshot |"
+                      " burgers_rewienski_ROM |"
                       " burgers_rewienski_adjoint |"
                       " advection_periodicity"),
                       "The type of test we want to solve. "
@@ -132,6 +133,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_naca0012 | "
                       "  reduced_order |"
                       "  burgers_rewienski_snapshot |"
+                      "  burgers_rewienski_ROM |"
                       "  burgers_rewienski_adjoint |"
                       "  advection_periodicity >.");
 
@@ -212,6 +214,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "reduced_order")                     { test_type = reduced_order; }
     else if (test_string == "burgers_rewienski_snapshot")        { test_type = burgers_rewienski_snapshot; }
     else if (test_string == "burgers_rewienski_adjoint")         { test_type = burgers_rewienski_adjoint; }
+    else if (test_string == "burgers_rewienski_ROM")             { test_type = burgers_rewienski_ROM; }
     else if (test_string == "euler_naca0012")                    { test_type = euler_naca0012; }
     else if (test_string == "optimization_inverse_manufactured") {test_type = optimization_inverse_manufactured; }
     

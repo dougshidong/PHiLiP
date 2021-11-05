@@ -1,7 +1,7 @@
 # Listing of Parameters
 # ---------------------
 
-set test_type = burgers_rewienski_snapshot
+set test_type = burgers_rewienski_ROM
 
 # Number of dimensions
 set dimension = 1
@@ -39,10 +39,10 @@ subsection ODE solver
  set output_solution_vector_modulo        = 1
 
  # Filename to use when outputting solution vectors in a table
- set solutions_table_filename = abstract_test_solutions_table
+ set solutions_table_filename = abstract_pod_galerkin_test_solutions_table
 
  # Explicit or implicit solverChoices are <explicit|implicit>.
- set ode_solver_type                         = implicit
+ set ode_solver_type                         = pod_galerkin
  end
 
 subsection manufactured solution convergence study

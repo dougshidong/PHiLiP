@@ -27,6 +27,7 @@
 #include "shock_1d.h"
 #include "euler_naca0012.hpp"
 #include "burgers_rewienski_snapshot.h"
+#include "burgers_rewienski_ROM.h"
 #include "burgers_rewienski_adjoint.h"
 #include "reduced_order.h"
 
@@ -140,6 +141,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==1 && nstate==1) return std::make_unique<BurgersRewienskiSnapshot<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::burgers_rewienski_adjoint) {
         if constexpr (dim==1 && nstate==1) return std::make_unique<BurgersRewienskiAdjoint<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::burgers_rewienski_ROM) {
+        if constexpr (dim==1 && nstate==1) return std::make_unique<BurgersRewienskiROM<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_naca0012) {
         if constexpr (dim==2 && nstate==4) return std::make_unique<EulerNACA0012<dim,nstate>>(parameters_input);
     } else{

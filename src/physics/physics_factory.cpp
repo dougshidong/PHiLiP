@@ -14,7 +14,7 @@
 #include "euler.h"
 #include "mhd.h"
 #include "navier_stokes.h"
-#include "large_eddy_simulation.h"
+#include "physics_model.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -120,9 +120,11 @@ PhysicsFactory<dim,nstate,real>
                 manufactured_solution_function);
         }
     } else if (pde_type == PDE_enum::physics_model) {
-        return create_Physics_Model(parameters_input, 
-                                    diffusion_tensor, 
-                                    manufactured_solution_function); 
+        if constexpr (nstate>=dim+2) {
+            return create_Physics_Model(parameters_input, 
+                                        diffusion_tensor, 
+                                        manufactured_solution_function);
+        }
     } else {
         // prevent warnings for dim=3,nstate=4, etc.
         (void) diffusion_tensor;
@@ -142,7 +144,7 @@ PhysicsFactory<dim,nstate,real>
                        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    
+
     using Model_enum = Parameters::AllParameters::ModelType;
     Model_enum model_type = parameters_input->model_type;
     
@@ -151,62 +153,70 @@ PhysicsFactory<dim,nstate,real>
     // ===============================================================================
     
     // Create baseline physics object
-    Parameters::AllParameters::PartialDifferentialEquation baseline_physics_type;
+    PDE_enum baseline_physics_type;
 
     // Number of states in the baseline physics
     int nstate_baseline_physics;
     
     // model object for the additional terms and equations to the baseline physics  
-    std::unique_ptr< ModelBase<dim,nstate,real> > model;
+    // TO DO: make this an input to create_Physics
+    // std::unique_ptr< ModelBase<dim,nstate,real> > model;
 
     // -------------------------------------------------------------------------------
     // Large Eddy Simulation (LES)
     // -------------------------------------------------------------------------------
     if (model_type == Model_enum::large_eddy_simulation) {
         // Assign baseline physics type (and corresponding nstates) based on the physics model type
+        // -- Assign nstates for the baseline physics
         nstate_baseline_physics = dim+2;
-        if(euler_turbulence) {baseline_physics_type = PDE_enum::euler;}
-        else                 {baseline_physics_type = PDE_enum::navier_stokes;}
-        
-        // NavierStokes object; even for euler_turbulence==true, LargeEddySimulation requires a NavierStokes object
-        std::shared_ptr< PhysicsBase<dim,dim+2,real> >  navier_stokes_physics
-            = create_Physics(parameters_input, PDE_enum::navier_stokes);
+        // -- Assign baseline physics type
+        if(parameters_input->physics_model_param.euler_turbulence) {
+            baseline_physics_type = PDE_enum::euler;
+        }
+        else {
+            baseline_physics_type = PDE_enum::navier_stokes;
+        }
 
         // Create Large Eddy Simulation (LES) model based on the SGS model type
-        using SGS_model_enum = Parameters::AllParameters::PhysicsModelParam::SubGridScaleModel;
-        SGS_model_enum sgs_model_type = parameters_input->physics_model_param.SGS_model_type;
-        if (sgs_model_type == SGS_model_enum::smagorinsky) {
-            // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-            // Smagorinsky model
-            // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-            model = std::make_shared < LargeEddySimulation_Smagorinsky<dim,nstate,real> > (
-                navier_stokes_physics,
-                parameters_input->physics_model_param.turbulent_prandtl_number,
-                parameters_input->physics_model_param.smagorinsky_model_constant);
-        } else if (sgs_model_type == SGS_model_enum::wall_adaptive_local_eddy_viscosity) {
-            // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-            // WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model
-            // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-            model = std::make_shared < LargeEddySimulation_WALE<dim,nstate,real> > (
-                navier_stokes_physics,
-                parameters_input->physics_model_param.turbulent_prandtl_number,
-                parameters_input->physics_model_param.WALE_model_constant);
-        }
+        // using SGS_enum = Parameters::PhysicsModelParam::SubGridScaleModel;
+        // SGS_enum sgs_model_type = parameters_input->physics_model_param.SGS_model_type;
+        // if (sgs_model_type == SGS_enum::smagorinsky) {
+        //     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        //     // Smagorinsky model
+        //     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        //     model = std::make_shared < LargeEddySimulation_Smagorinsky<dim,nstate,real> > (
+        //         navier_stokes_physics,
+        //         parameters_input->physics_model_param.turbulent_prandtl_number,
+        //         parameters_input->physics_model_param.smagorinsky_model_constant);
+        // } else if (sgs_model_type == SGS_enum::wall_adaptive_local_eddy_viscosity) {
+        //     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        //     // WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model
+        //     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        //     model = std::make_shared < LargeEddySimulation_WALE<dim,nstate,real> > (
+        //         navier_stokes_physics,
+        //         parameters_input->physics_model_param.turbulent_prandtl_number,
+        //         parameters_input->physics_model_param.WALE_model_constant);
+        // }
+        // model = nullptr;
 
         // Create the physics model object in physics
         if constexpr (nstate==dim+2) {
             return std::make_shared < PhysicsModel<dim,nstate,real> > (
                     baseline_physics_type,
                     nstate_baseline_physics,
-                    model,
+                    /*nullptr,*/
                     diffusion_tensor, 
                     manufactured_solution_function);   
         }
     } else {
-        std::cout << "Can't create PhysicsModel, invalid PhysicsModelType type: " << physics_model_type << std::endl;
-        assert(0==1 && "Can't create PhysicsModel, invalid PhysicsModelType type");
-        return nullptr;
-    } 
+        // prevent warnings for dim=3,nstate=4, etc.
+        (void) diffusion_tensor;
+        (void) baseline_physics_type;
+        (void) nstate_baseline_physics;
+    }    
+    std::cout << "Can't create PhysicsModel, invalid ModelType type: " << model_type << std::endl;
+    assert(0==1 && "Can't create PhysicsModel, invalid ModelType type");
+    return nullptr;
 }
 
 template class PhysicsFactory<PHILIP_DIM, 1, double>;

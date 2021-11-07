@@ -3,6 +3,7 @@
 
 /// Files for the baseline physics
 #include "navier_stokes.h"
+//#include "model/model.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -16,7 +17,7 @@ public:
     PhysicsModel(
         Parameters::AllParameters::PartialDifferentialEquation       baseline_physics_type,
         const int                                                    nstate_baseline_physics,
-        std::unique_ptr< ModelBase<dim,nstate,real> >                model_input,
+        /*std::unique_ptr< ModelBase<dim,nstate,real> >                model_input,*/
         const dealii::Tensor<2,3,double>                             input_diffusion_tensor,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function);
 
@@ -26,8 +27,8 @@ public:
     /// Number of model equations (i.e. those additional to the baseline physics)
     int n_model_equations;
 
-    /// Model object
-    std::unique_ptr< ModelBase<dim,nstate,real> > model;
+    /// Model object -- TO DO: Uncomment later
+    // std::unique_ptr< ModelBase<dim,nstate,real> > model;
 
     /// Baseline physics object
     std::shared_ptr< PhysicsBase<dim,nstate,real> > physics_baseline;

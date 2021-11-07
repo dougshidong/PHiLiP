@@ -10,7 +10,9 @@ SET(SOURCE
     mhd.cpp
     navier_stokes.cpp
     burgers_rewienski.cpp
-    physics_model.cpp)
+    physics_model.cpp
+    model.cpp
+    large_eddy_simulation.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

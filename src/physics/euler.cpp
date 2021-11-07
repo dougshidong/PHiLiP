@@ -109,7 +109,7 @@ std::array<real,nstate> Euler<dim,nstate,real>
     const dealii::Point<dim,real> &pos) const
 {
     const std::array<real,nstate> manufactured_solution = get_manufactured_solution_value(pos);
-    const std::array<dealii::Tensor<1,nstate,real>,dim> manufactured_solution_gradient = get_manufactured_solution_gradient(pos);
+    const std::array<dealii::Tensor<1,dim,real>,nstate> manufactured_solution_gradient = get_manufactured_solution_gradient(pos);
 
     dealii::Tensor<1,nstate,real> convective_flux_divergence;
     for (int d=0;d<dim;d++) {
@@ -1087,7 +1087,9 @@ template class Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >;
 template class Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 
+//==============================================================================
 // -> Templated member functions: // could be automated later on using Boost MPL
+//------------------------------------------------------------------------------
 // -- compute_pressure()
 template double     Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::compute_pressure< double     >(const std::array<double,    PHILIP_DIM+2> &conservative_soln) const;
 template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::compute_pressure< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
@@ -1165,6 +1167,7 @@ template dealii::Tensor<1,PHILIP_DIM,FadType   > Euler < PHILIP_DIM, PHILIP_DIM+
 template dealii::Tensor<1,PHILIP_DIM,FadType   > Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::compute_velocities< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
 template dealii::Tensor<1,PHILIP_DIM,FadType   > Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::compute_velocities< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
 template dealii::Tensor<1,PHILIP_DIM,FadType   > Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::compute_velocities< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
+//==============================================================================
 
 } // Physics namespace
 } // PHiLiP namespace

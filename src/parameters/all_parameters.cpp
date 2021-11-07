@@ -248,7 +248,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "dual_weighted_residual_mesh_adaptation")   { test_type = dual_weighted_residual_mesh_adaptation; }
     
     const std::string pde_string = prm.get("pde_type");
-    const std::string physics_model_string = prm.get("model_type");
+    const std::string model_string = prm.get("model_type");
     if (pde_string == "advection") {
         pde_type = advection;
         nstate = 1;
@@ -361,7 +361,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     large_eddy_simulation_param.parse_parameters (prm);
 
     pcout << "Parsing physics model subsection..." << std::endl;
-    physics_model_param.parse_parameters (prm,physics_model_string);
+    physics_model_param.parse_parameters (prm,model_string);
 
     pcout << "Parsing grid refinement study subsection..." << std::endl;
     grid_refinement_study_param.parse_parameters (prm);

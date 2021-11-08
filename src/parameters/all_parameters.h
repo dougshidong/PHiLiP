@@ -96,6 +96,9 @@ public:
 	enum ArtificialDissipationType {laplacian, physical, enthalpy_conserving_laplacian};
 	ArtificialDissipationType artificial_dissipation_type;
 
+	enum ArtificialDissipationTestType {residual_convergence,discontinuity_sensor_activation,poly_order_convergence};
+	ArtificialDissipationTestType artificial_dissipation_test_type;
+	
 	double mu_artificial_dissipation;
 
 	double kappa_artificial_dissipation;

@@ -97,7 +97,14 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 					  "enthalpy_conserving_laplacian |"),
                       "Type of artificial dissipation we want to implement. Choices are laplacian, physical and enthalpy_conserving_laplacian");
     
-    prm.declare_entry("mu_artificial_dissipation", "1.0",
+    prm.declare_entry("artificial_dissipation_test_type", "poly_order_convergence",
+                      dealii::Patterns::Selection(
+					  "residual_convergence |"
+					  "discontinuity_sensor_activation |"
+					  "poly_order_convergence |"),
+                      "Type of artificial dissipation test type we want to implement. Choices are residual_convergence, discontinuity_sensor_activation, poly_order_convergence");
+    
+	prm.declare_entry("mu_artificial_dissipation", "1.0",
                       dealii::Patterns::Double(-1e20,1e20),
                       "Mu (viscosity) from Persson's subcell shock capturing.");
 					  
@@ -282,6 +289,15 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 	{  artificial_dissipation_type = physical;
 	} else if (artificial_dissipation_string == "enthalpy_conserving_laplacian")
     {  artificial_dissipation_type = enthalpy_conserving_laplacian;
+	}
+
+	const std::string artificial_dissipation_test_string = prm.get("artificial_dissipation_test_type");
+	if (artificial_dissipation_test_string == "residual_convergence")
+	{  artificial_dissipation_test_type = residual_convergence;
+	} else if (artificial_dissipation_test_string == "discontinuity_sensor_activation")
+	{  artificial_dissipation_test_type = discontinuity_sensor_activation;
+	} else if (artificial_dissipation_test_string == "poly_order_convergence")
+    {  artificial_dissipation_test_type = poly_order_convergence;
 	}
 
     mu_artificial_dissipation = prm.get_double("mu_artificial_dissipation");

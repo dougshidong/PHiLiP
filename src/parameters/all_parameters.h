@@ -15,6 +15,7 @@
 #include "parameters/parameters_reduced_order.h"
 #include "parameters/parameters_grid_refinement_study.h"
 #include "parameters/parameters_grid_refinement.h"
+#include "parameters/parameters_artificial_dissipation.h"
 
 namespace PHiLiP {
 namespace Parameters {
@@ -40,6 +41,8 @@ public:
     ReducedOrderModelParam reduced_order_param;
     /// contains the parameters for grid refinement study
     GridRefinementStudyParam grid_refinement_study_param;
+	/// Contains parameters for artificial dissipation
+	ArtificialDissipationParam artificial_dissipation_param;
 
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;
@@ -82,34 +85,8 @@ public:
     //The default ESFR scheme is the Nonlinearly Stable FR where the volume is also reconstructed
     bool use_classical_FR;
 
-    /// Flag to add artificial dissipation from Persson's shock capturing paper.
-    /** This feature is currently not fully working. It dissipates the Burger's
-     *  invisid shock, but loses all the order of accuracy for the Gaussian bump.
-     */
-    bool add_artificial_dissipation;
-
-	bool entropy_error_discontinuity_sensor;
-
-	/// Add physical artificial dissipation
-
-	
-	enum ArtificialDissipationType {laplacian, physical, enthalpy_conserving_laplacian};
-	ArtificialDissipationType artificial_dissipation_type;
-
-	enum ArtificialDissipationTestType {residual_convergence,discontinuity_sensor_activation,poly_order_convergence};
-	ArtificialDissipationTestType artificial_dissipation_test_type;
-	
-	double mu_artificial_dissipation;
-
-	double kappa_artificial_dissipation;
-
-    ///Flag to use an enthalpy error calcuation.
-    bool use_enthalpy_error;
-
-
     /// Scaling of Symmetric Interior Penalty term to ensure coercivity.
     /** 
-     *  invisid shock, but loses all the order of accuracy for the Gaussian bump.
      */
     double sipg_penalty_factor;
 

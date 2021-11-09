@@ -589,7 +589,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         artificial_diss_coeff_at_q[iquad] = 0.0;
 
-        if ( this->all_parameters->add_artificial_dissipation ) {
+        if ( this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ) {
             const dealii::Point<dim,real> point = fe_values_vol.get_quadrature().point(iquad);
             for (unsigned int idof=0; idof<n_dofs_arti_diss; ++idof) {
                 const unsigned int index = dof_indices_artificial_dissipation[idof];
@@ -599,7 +599,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
         }
     }
 
-    const real artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
+    const real artificial_diss_coeff = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
                                        this->artificial_dissipation_coeffs[current_cell_index]
                                        : 0.0;
 
@@ -622,7 +622,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
         // Evaluate physical convective flux and source term
         conv_phys_flux_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
-        if(this->all_parameters->add_artificial_dissipation) {
+        if(this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
             const ADArrayTensor1 artificial_diss_phys_flux_at_q = DGBaseState<dim,nstate,real,MeshType>::artificial_dissipation_pointer->calc_artificial_dissipation_flux (soln_at_q[iquad], soln_grad_at_q[iquad], artificial_diss_coeff);
             for (int istate=0; istate<nstate; istate++) {
                 diss_phys_flux_at_q[iquad][istate] += artificial_diss_phys_flux_at_q[istate];
@@ -731,10 +731,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_explicit(
     }
 
     //const real cell_diameter = fe_values_boundary.get_cell()->diameter();
-    //const real artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
+    //const real artificial_diss_coeff = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
     //                                   this->discontinuity_sensor(cell_diameter, soln_coeff_int, fe_values_boundary.get_fe())
     //                                   : 0.0;
-    const real artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
+    const real artificial_diss_coeff = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
                                        this->artificial_dissipation_coeffs[current_cell_index]
                                        : 0.0;
 
@@ -748,7 +748,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_explicit(
     //for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
     //    artificial_diss_coeff_at_q[iquad] = 0.0;
 
-    //    if ( this->all_parameters->add_artificial_dissipation ) {
+    //    if ( this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ) {
     //        const dealii::Point<dim,real> point = fe_values_boundary.get_quadrature().point(iquad);
     //        for (unsigned int idof=0; idof<n_dofs_arti_diss; ++idof) {
     //            const unsigned int index = dof_indices_artificial_dissipation[idof];
@@ -794,7 +794,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_explicit(
             }
         }
         diss_flux_jump_int[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
-        if (this->all_parameters->add_artificial_dissipation) {
+        if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
             const ADArrayTensor1 artificial_diss_flux_jump_int = DGBaseState<dim,nstate,real,MeshType>::artificial_dissipation_pointer->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff);
             for (int s=0; s<nstate; s++) {
                 diss_flux_jump_int[iquad][s] += artificial_diss_flux_jump_int[s];
@@ -902,16 +902,16 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_explicit(
 
     //const real cell_diameter_int = fe_values_int.get_cell()->diameter();
     //const real cell_diameter_ext = fe_values_ext.get_cell()->diameter();
-    //const real artificial_diss_coeff_int = this->all_parameters->add_artificial_dissipation ?
+    //const real artificial_diss_coeff_int = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
     //                                       this->discontinuity_sensor(cell_diameter_int, soln_coeff_int, fe_values_int.get_fe())
     //                                       : 0.0;
-    //const real artificial_diss_coeff_ext = this->all_parameters->add_artificial_dissipation ?
+    //const real artificial_diss_coeff_ext = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
     //                                       this->discontinuity_sensor(cell_diameter_ext, soln_coeff_ext, fe_values_ext.get_fe())
     //                                       : 0.0;
-    const real artificial_diss_coeff_int = this->all_parameters->add_artificial_dissipation ?
+    const real artificial_diss_coeff_int = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
                                            this->artificial_dissipation_coeffs[current_cell_index]
                                            : 0.0;
-    const real artificial_diss_coeff_ext = this->all_parameters->add_artificial_dissipation ?
+    const real artificial_diss_coeff_ext = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
                                            this->artificial_dissipation_coeffs[neighbor_cell_index]
                                            : 0.0;
 
@@ -925,7 +925,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_explicit(
     //for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
     //    artificial_diss_coeff_at_q[iquad] = 0.0;
 
-    //    if ( this->all_parameters->add_artificial_dissipation ) {
+    //    if ( this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ) {
     //        const dealii::Point<dim,real> point = fe_values_int.get_quadrature().point(iquad);
     //        for (unsigned int idof=0; idof<n_dofs_arti_diss; ++idof) {
     //            const unsigned int index = dof_indices_artificial_dissipation[idof];
@@ -965,7 +965,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_explicit(
         diss_flux_jump_int[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
         diss_flux_jump_ext[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext);
 
-        if (this->all_parameters->add_artificial_dissipation) {
+        if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
              const doubleArrayTensor1 artificial_diss_flux_jump_int = DGBaseState<dim,nstate,real,MeshType>::artificial_dissipation_pointer->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int, artificial_diss_coeff_int);
             const doubleArrayTensor1 artificial_diss_flux_jump_ext = DGBaseState<dim,nstate,real,MeshType>::artificial_dissipation_pointer->calc_artificial_dissipation_flux(soln_ext[iquad], diss_soln_jump_ext, artificial_diss_coeff_ext);
             for (int s=0; s<nstate; s++) {
@@ -1399,10 +1399,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
     std::vector<ADArray> diss_auxi_num_flux_dot_n(n_quad_pts); // sigma*
 
     //const real2 cell_diameter = fe_values_boundary.get_cell()->diameter();
-    //const real2 artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
+    //const real2 artificial_diss_coeff = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
     //                                       this->discontinuity_sensor(cell_diameter, soln_coeff, fe_values_boundary.get_fe())
     //                                       : 0.0;
-    const real2 artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
+    const real2 artificial_diss_coeff = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
                                          this->artificial_dissipation_coeffs[current_cell_index]
                                          : 0.0;
     (void) artificial_diss_coeff;
@@ -1416,7 +1416,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
     std::vector<real> artificial_diss_coeff_at_q(n_quad_pts);
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         artificial_diss_coeff_at_q[iquad] = 0.0;
-        if ( this->all_parameters->add_artificial_dissipation ) {
+        if ( this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ) {
             const dealii::Point<dim,real> point = unit_quad_pts[iquad];
             for (unsigned int idof=0; idof<n_dofs_arti_diss; ++idof) {
                 const unsigned int index = dof_indices_artificial_dissipation[idof];
@@ -1454,7 +1454,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         }
         diss_flux_jump_int[iquad] = physics.dissipative_flux (soln_int[iquad], diss_soln_jump_int);
 
-        if (this->all_parameters->add_artificial_dissipation) {
+        if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
             const ADArrayTensor1 artificial_diss_flux_jump_int = DGBaseState<dim,nstate,real,MeshType>::artificial_dissipation_pointer->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff_at_q[iquad]);
             for (int s=0; s<nstate; s++) {
                 diss_flux_jump_int[iquad][s] += artificial_diss_flux_jump_int[s];
@@ -2101,16 +2101,16 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
 
     //const real2 cell_diameter_int = fe_values_int.get_cell()->diameter();
     //const real2 cell_diameter_ext = fe_values_ext.get_cell()->diameter();
-    //const real2 artificial_diss_coeff_int = this->all_parameters->add_artificial_dissipation ?
+    //const real2 artificial_diss_coeff_int = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
     //                                        this->discontinuity_sensor(cell_diameter_int, soln_coeff_int, fe_values_int.get_fe())
     //                                        : 0.0;
-    //const real2 artificial_diss_coeff_ext = this->all_parameters->add_artificial_dissipation ?
+    //const real2 artificial_diss_coeff_ext = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
     //                                        this->discontinuity_sensor(cell_diameter_ext, soln_coeff_ext, fe_values_ext.get_fe())
     //                                        : 0.0;
-    const real2 artificial_diss_coeff_int = this->all_parameters->add_artificial_dissipation ?
+    const real2 artificial_diss_coeff_int = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
                                             this->artificial_dissipation_coeffs[current_cell_index]
                                             : 0.0;
-    const real2 artificial_diss_coeff_ext = this->all_parameters->add_artificial_dissipation ?
+    const real2 artificial_diss_coeff_ext = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
                                             this->artificial_dissipation_coeffs[neighbor_cell_index]
                                             : 0.0;
 
@@ -2126,7 +2126,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
         artificial_diss_coeff_at_q[iquad] = 0.0;
 
-        if ( this->all_parameters->add_artificial_dissipation ) {
+        if ( this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ) {
             const dealii::Point<dim,real> point = unit_quad_pts_int[iquad];
             for (unsigned int idof=0; idof<n_dofs_arti_diss; ++idof) {
                 const unsigned int index = dof_indices_artificial_dissipation[idof];
@@ -2479,7 +2479,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
         diss_flux_jump_int = physics.dissipative_flux (soln_int[iquad], diss_soln_jump_int);
         diss_flux_jump_ext = physics.dissipative_flux (soln_ext[iquad], diss_soln_jump_ext);
 
-        if (this->all_parameters->add_artificial_dissipation) {
+        if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
             //const ADArrayTensor1 artificial_diss_flux_jump_int = physics.artificial_dissipative_flux (artificial_diss_coeff_int, soln_int[iquad], diss_soln_jump_int);
             //const ADArrayTensor1 artificial_diss_flux_jump_ext = physics.artificial_dissipative_flux (artificial_diss_coeff_ext, soln_ext[iquad], diss_soln_jump_ext);
             const ADArrayTensor1 artificial_diss_flux_jump_int =  DGBaseState<dim,nstate,real,MeshType>::artificial_dissipation_pointer->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff_at_q[iquad]);
@@ -3548,10 +3548,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
     //     cell_volume = cell_volume + JxW_iquad;
     // }
     //const real2 cell_diameter = pow(cell_volume,1.0/dim);
-    //const real2 artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
+    //const real2 artificial_diss_coeff = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
     //                                    this->discontinuity_sensor(cell_diameter, soln_coeff, fe_soln)
     //                                    : 0.0;
-    const real2 artificial_diss_coeff = this->all_parameters->add_artificial_dissipation ?
+    const real2 artificial_diss_coeff = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
                                         this->artificial_dissipation_coeffs[current_cell_index]
                                         : 0.0;
     (void) artificial_diss_coeff;
@@ -3566,7 +3566,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         artificial_diss_coeff_at_q[iquad] = 0.0;
 
-        if ( this->all_parameters->add_artificial_dissipation ) {
+        if ( this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ) {
             const dealii::Point<dim,real> point = unit_quad_pts[iquad];
             for (unsigned int idof=0; idof<n_dofs_arti_diss; ++idof) {
                 const unsigned int index = dof_indices_artificial_dissipation[idof];
@@ -3617,7 +3617,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
         conv_phys_flux_at_q[iquad] = physics.convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = physics.dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
 
-        if (this->all_parameters->add_artificial_dissipation) {
+        if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
             ArrayTensor artificial_diss_phys_flux_at_q;
             //artificial_diss_phys_flux_at_q = physics.artificial_dissipative_flux (artificial_diss_coeff, soln_at_q[iquad], soln_grad_at_q[iquad]);
             artificial_diss_phys_flux_at_q = DGBaseState<dim,nstate,real,MeshType>::artificial_dissipation_pointer->calc_artificial_dissipation_flux(soln_at_q[iquad], soln_grad_at_q[iquad],artificial_diss_coeff_at_q[iquad]);

@@ -963,7 +963,7 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
             // Only integrate over the first state variable.
             for (unsigned int s=0; s<1/*nstate*/; ++s) {
 
-				if(all_parameters->entropy_error_discontinuity_sensor)
+				if(all_parameters->artificial_dissipation_param.entropy_error_discontinuity_sensor)
 				{
 					double v_high_squared = 0.0;
 					double v_low_squared = 0.0;
@@ -1006,10 +1006,10 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
         //const double s_0 = -0.5 - 4.25*log10(degree);
         //const double kappa = 1.0;
 
-        const double mu_scale = all_parameters->mu_artificial_dissipation; //1.0
+        const double mu_scale = all_parameters->artificial_dissipation_param.mu_artificial_dissipation; //1.0
         //const double s_0 = - 4.25*log10(degree);
         const double s_0 = -0.00 - 4.00*log10(degree);
-        const double kappa = all_parameters->kappa_artificial_dissipation; //1.0
+        const double kappa = all_parameters->artificial_dissipation_param.kappa_artificial_dissipation; //1.0
         const double low = s_0 - kappa;
         const double upp = s_0 + kappa;
 
@@ -2332,9 +2332,9 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
 
     // log10(a/p^4) = log10(a) - 4*log10(p)
     //const real2 s_0 = -1.5 - 4.25*log10(degree);
-    const double mu_scale = all_parameters->mu_artificial_dissipation; //0.1
+    const double mu_scale = all_parameters->artificial_dissipation_param.mu_artificial_dissipation; //0.1
     const real2 s_0 = log10(0.1) - 4.25*log10(degree);
-    const double kappa = all_parameters->kappa_artificial_dissipation; //2.0
+    const double kappa = all_parameters->artificial_dissipation_param.kappa_artificial_dissipation; //2.0
     const real2 low = s_0 - kappa;
     const real2 upp = s_0 + kappa;
 
@@ -2417,7 +2417,7 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
         // Persson and Peraire only did density.
         for (unsigned int s=0; s<1/*nstate*/; ++s) {
 
-			if(all_parameters->entropy_error_discontinuity_sensor)
+			if(all_parameters->artificial_dissipation_param.entropy_error_discontinuity_sensor)
 			{
 				real2 v_high_squared = 0.0;
 				real2 v_low_squared = 0.0;
@@ -2447,9 +2447,9 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     const real2 S_e = sqrt(error / soln_norm);
     const real2 s_e = log10(S_e);
 
-    const double mu_scale = all_parameters->mu_artificial_dissipation;
+    const double mu_scale = all_parameters->artificial_dissipation_param.mu_artificial_dissipation;
     const double s_0 = -0.00 - 4.00*log10(degree);
-    const double kappa = all_parameters->kappa_artificial_dissipation;
+    const double kappa = all_parameters->artificial_dissipation_param.kappa_artificial_dissipation;
     const double low = s_0 - kappa;
     const double upp = s_0 + kappa;
 

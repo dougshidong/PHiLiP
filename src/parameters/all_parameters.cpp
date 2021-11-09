@@ -14,6 +14,7 @@ AllParameters::AllParameters ()
     , navier_stokes_param(NavierStokesParam())
     , reduced_order_param(ReducedOrderModelParam())
     , grid_refinement_study_param(GridRefinementStudyParam())
+	, artificial_dissipation_param(ArtificialDissipationParam())
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 { }
 void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
@@ -81,40 +82,6 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Selection("kDG | kSD | kHU | kNegative | kNegative2 | kPlus | k10Thousand"),
                       "Flux Reconstruction for Auxiliary Equation. "
                       "Choices are <kDG | kSD | kHU | kNegative | kNegative2 | kPlus | k10Thousand>.");
-
-    prm.declare_entry("add_artificial_dissipation", "false",
-                      dealii::Patterns::Bool(),
-                      "Persson's subscell shock capturing artificial dissipation.");
-    
-	prm.declare_entry("entropy_error_discontinuity_sensor", "false",
-                      dealii::Patterns::Bool(),
-                      "Discontinuity sensor governed by error in entropy, if true. If false, error in density is used");
-
-    prm.declare_entry("artificial_dissipation_type", "laplacian",
-                      dealii::Patterns::Selection(
-					  "laplacian |"
-					  "physical |"
-					  "enthalpy_conserving_laplacian |"),
-                      "Type of artificial dissipation we want to implement. Choices are laplacian, physical and enthalpy_conserving_laplacian");
-    
-    prm.declare_entry("artificial_dissipation_test_type", "poly_order_convergence",
-                      dealii::Patterns::Selection(
-					  "residual_convergence |"
-					  "discontinuity_sensor_activation |"
-					  "poly_order_convergence |"),
-                      "Type of artificial dissipation test type we want to implement. Choices are residual_convergence, discontinuity_sensor_activation, poly_order_convergence");
-    
-	prm.declare_entry("mu_artificial_dissipation", "1.0",
-                      dealii::Patterns::Double(-1e20,1e20),
-                      "Mu (viscosity) from Persson's subcell shock capturing.");
-					  
-    prm.declare_entry("kappa_artificial_dissipation", "1.0",
-                      dealii::Patterns::Double(-1e20,1e20),
-                      "Kappa from Persson's subcell shock capturing");
-
-    prm.declare_entry("use_enthalpy_error", "false",
-                      dealii::Patterns::Bool(),
-                      "By default we calculate the entropy error from the conservative variables. Otherwise, compute the enthalpy error. An example is in Euler Gaussian bump.");
 
     prm.declare_entry("sipg_penalty_factor", "1.0",
                       dealii::Patterns::Double(1.0,1e200),
@@ -278,30 +245,6 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_energy = prm.get_bool("use_energy");
     use_L2_norm = prm.get_bool("use_L2_norm");
     use_classical_FR = prm.get_bool("use_classical_Flux_Reconstruction");
-    add_artificial_dissipation = prm.get_bool("add_artificial_dissipation");
-    entropy_error_discontinuity_sensor = prm.get_bool("entropy_error_discontinuity_sensor");
-    use_enthalpy_error = prm.get_bool("use_enthalpy_error");
-
-	const std::string artificial_dissipation_string = prm.get("artificial_dissipation_type");
-	if (artificial_dissipation_string == "laplacian")
-	{  artificial_dissipation_type = laplacian;
-	} else if (artificial_dissipation_string == "physical")
-	{  artificial_dissipation_type = physical;
-	} else if (artificial_dissipation_string == "enthalpy_conserving_laplacian")
-    {  artificial_dissipation_type = enthalpy_conserving_laplacian;
-	}
-
-	const std::string artificial_dissipation_test_string = prm.get("artificial_dissipation_test_type");
-	if (artificial_dissipation_test_string == "residual_convergence")
-	{  artificial_dissipation_test_type = residual_convergence;
-	} else if (artificial_dissipation_test_string == "discontinuity_sensor_activation")
-	{  artificial_dissipation_test_type = discontinuity_sensor_activation;
-	} else if (artificial_dissipation_test_string == "poly_order_convergence")
-    {  artificial_dissipation_test_type = poly_order_convergence;
-	}
-
-    mu_artificial_dissipation = prm.get_double("mu_artificial_dissipation");
-    kappa_artificial_dissipation = prm.get_double("kappa_artificial_dissipation");
     sipg_penalty_factor = prm.get_double("sipg_penalty_factor");
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");

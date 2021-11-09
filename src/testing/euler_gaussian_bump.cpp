@@ -188,20 +188,20 @@ int EulerGaussianBump<dim,nstate>
                     }
 
 					double unumerical, uexact;
-					if(param.use_enthalpy_error){
+					if(param.artificial_dissipation_param.use_enthalpy_error)
+					{
 						Error_string = "L2_enthalpy_error";
 						const double pressure = euler_physics_double.compute_pressure(soln_at_q);
 				  	    unumerical = euler_physics_double.compute_specific_enthalpy(soln_at_q,pressure);
 				  	    uexact = euler_physics_double.gam*euler_physics_double.pressure_inf/euler_physics_double.density_inf*(1.0/euler_physics_double.gamm1+0.5*euler_physics_double.mach_inf_sqr);
-
-					} else{
+					} 
+					else
+					{
 						Error_string = "L2_entropy_error";
 						const double entropy_inf = euler_physics_double.entropy_inf;
 						unumerical = euler_physics_double.compute_entropy_measure(soln_at_q);
 						uexact = entropy_inf;
 					}
-
-
                     l2error += pow(unumerical - uexact, 2) * fe_values_extra.JxW(iquad);
                 }
             }

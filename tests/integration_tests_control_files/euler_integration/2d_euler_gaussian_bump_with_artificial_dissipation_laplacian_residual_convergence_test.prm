@@ -16,17 +16,14 @@ set conv_num_flux = roe
 
 set use_split_form = false
 
-set add_artificial_dissipation = true
-
-set entropy_error_discontinuity_sensor = false
-
-set artificial_dissipation_type = laplacian
-
-set use_enthalpy_error = true
-
-set mu_artificial_dissipation = 1.0
-
-set kappa_artificial_dissipation = 2.0
+subsection artificial dissipation
+	set add_artificial_dissipation = true
+	set entropy_error_discontinuity_sensor = false
+	set artificial_dissipation_type = laplacian
+	set use_enthalpy_error = true
+	set mu_artificial_dissipation = 1.0
+	set kappa_artificial_dissipation = 2.0
+end
 
 subsection euler
   set reference_length = 1.0

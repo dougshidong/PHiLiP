@@ -9,8 +9,8 @@
 	std::shared_ptr < ArtificialDissipationBase<dim,nstate> >
 	ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation_pointer(const Parameters::AllParameters *const parameters_input)
 	{
-		using artificial_dissipation_enum = Parameters::AllParameters::ArtificialDissipationType;
-		artificial_dissipation_enum arti_dissipation_type = parameters_input->artificial_dissipation_type;
+		using artificial_dissipation_enum = Parameters::ArtificialDissipationParam::ArtificialDissipationType;
+		artificial_dissipation_enum arti_dissipation_type = parameters_input->artificial_dissipation_param.artificial_dissipation_type;
 
 	 if (arti_dissipation_type == artificial_dissipation_enum::laplacian)
 		{

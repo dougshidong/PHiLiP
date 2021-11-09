@@ -212,7 +212,10 @@ int FlowSolver<dim,nstate>::run_test() const
     solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
     dealii::VectorTools::interpolate(dg->dof_handler, *initial_condition_function, solution_no_ghost);
     dg->solution = solution_no_ghost;
+    // Output initialization to be viewed in Paraview
     dg->output_results_vtk(9999);
+    
+
 
     return 0;
 }

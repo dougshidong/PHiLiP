@@ -660,6 +660,7 @@ private:
 
 public:
     bool freeze_artificial_dissipation;
+	bool is_discontinuity_sensor_activated;
     /// Update discontinuity sensor.
     void update_artificial_dissipation_discontinuity_sensor();
 

@@ -71,6 +71,8 @@ int EulerGaussianBump<dim,nstate>
     }
 
 	std::string Error_string;
+	bool Has_residual_converged = true;
+	bool Is_artificial_dissipation_used = false;
     std::vector<int> fail_conv_poly;
     std::vector<double> fail_conv_slop;
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
@@ -207,12 +209,6 @@ int EulerGaussianBump<dim,nstate>
             }
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
 
-#if 0
-		if(check_that_it_failed == true){
-			pcout<<" it failed because of this "<<some output<<std::endl
-			return 1;
-		}
-#endif
 
 
             // Convergence table
@@ -228,7 +224,16 @@ int EulerGaussianBump<dim,nstate>
            // convergence_table.add_value("L2_Error", l2error_mpi_sum);
             convergence_table.add_value(Error_string, l2error_mpi_sum);
 			convergence_table.add_value("Residual",ode_solver->residual_norm);
+			
+			if(ode_solver->residual_norm > 1e-10)
+			{
+				Has_residual_converged = false;
+			}
 
+			if(dg->is_discontinuity_sensor_activated)
+			{
+				Is_artificial_dissipation_used = true;
+			}
 
             pcout << " Grid size h: " << dx 
                  << " L2-Error: " << l2error_mpi_sum
@@ -304,7 +309,31 @@ int EulerGaussianBump<dim,nstate>
         if (pcout.is_active()) conv->write_text(pcout.get_stream());
         pcout << " ********************************************" << std::endl;
     }
-    int n_fail_poly = fail_conv_poly.size();
+
+//****************Test for artificial dissipation begins *******************************************************
+	using artificial_dissipation_test_enum = Parameters::ArtificialDissipationParam::ArtificialDissipationTestType;
+	artificial_dissipation_test_enum arti_dissipation_test_type = param.artificial_dissipation_param.artificial_dissipation_test_type;
+	if (arti_dissipation_test_type == artificial_dissipation_test_enum::residual_convergence)
+	{
+		if(Has_residual_converged)
+		{
+			return 0;
+		}
+		pcout<<std::endl<<"Residual has not converged. Test failed"<<std::endl;
+		return 1;
+	}
+	else if (arti_dissipation_test_type == artificial_dissipation_test_enum::discontinuity_sensor_activation) 
+	{
+		if(Is_artificial_dissipation_used)
+		{
+			pcout<<std::endl<<"Discontinuity sensor has been activated. Test failed"<<std::endl;
+			return 1;
+		}
+		return 0;
+	}
+//****************Test for artificial dissipation ends *******************************************************
+
+	int n_fail_poly = fail_conv_poly.size();
     if (n_fail_poly > 0) {
         for (int ifail=0; ifail < n_fail_poly; ++ifail) {
             const double expected_slope = fail_conv_poly[ifail]+1;

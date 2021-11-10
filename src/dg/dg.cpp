@@ -109,6 +109,7 @@ DGBase<dim,real,MeshType>::DGBase(
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
     , freeze_artificial_dissipation(false)
+	, is_discontinuity_sensor_activated(false)
 {
 
     dof_handler.initialize(*triangulation, fe_collection);
@@ -1028,6 +1029,11 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
         const double PI = 4*atan(1);
         double eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
         eps *= eps_0 * 0.5;
+	
+		if(eps > 1e-12)
+		{
+			is_discontinuity_sensor_activated = true;
+		}
 
 
         artificial_dissipation_coeffs[cell_index] += eps;
@@ -1079,6 +1085,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         &&  !(compute_dRdX && compute_d2R)
             , dealii::ExcMessage("Can only do one at a time compute_dRdW or compute_dRdX or compute_d2R"));
 
+	is_discontinuity_sensor_activated = false;
     //pcout << "Assembling DG residual...";
     if (compute_dRdW) {
         pcout << " with dRdW...";
@@ -2355,6 +2362,10 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
     eps *= eps_0 * 0.5;
 
+	if(eps > 1e-12)
+	{
+		is_discontinuity_sensor_activated = true;
+	}
 
     return eps;
 
@@ -2465,6 +2476,10 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     const double PI = 4*atan(1);
     real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
     eps *= eps_0 * 0.5;
+	if(eps > 1e-12)
+	{
+		is_discontinuity_sensor_activated = true;
+	}
     return eps;
 }
 

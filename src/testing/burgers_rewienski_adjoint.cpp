@@ -17,8 +17,8 @@
 #include "ode_solver/ode_solver_factory.h"
 
 #include "optimization/rol_to_dealii_vector.hpp"
-#include "optimization/flow_constraints.hpp"
-#include "optimization/rol_objective.hpp"
+#include "optimization/pde_constraints.h"
+#include "optimization/functional_objective.h"
 #include "optimization/constraintfromobjective_simopt.hpp"
 
 namespace PHiLiP {
@@ -32,6 +32,9 @@ BurgersRewienskiAdjoint<dim, nstate>::BurgersRewienskiAdjoint(const PHiLiP::Para
 template <int dim, int nstate>
 int BurgersRewienskiAdjoint<dim, nstate>::run_test() const
 {
+    using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
+    using VectorAdaptor = dealii::Rol::VectorAdaptor<DealiiVector>;
+
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
     pcout << "Running Burgers Rewienski with parameter a: "
@@ -94,8 +97,23 @@ int BurgersRewienskiAdjoint<dim, nstate>::run_test() const
     pcout << "Functional output ";
     pcout << functional;
 
+    auto obj  = ROL::makePtr<FunctionalObjective<dim,nstate>>(*burgers_functional);
+    auto con  = ROL::makePtr<PDEConstraints<dim>>(dg);
 
+    DealiiVector des_var_sim = dg->solution;
+    DealiiVector des_var_ctl = dg->high_order_grid->volume_nodes;
+    DealiiVector des_var_adj = dg->dual;
+    DealiiVector gradient_sim = dg->dual;
 
+    const bool has_ownership = false;
+    VectorAdaptor des_var_sim_rol(Teuchos::rcp(&des_var_sim, has_ownership));
+    VectorAdaptor des_var_ctl_rol(Teuchos::rcp(&des_var_ctl, has_ownership));
+    VectorAdaptor des_var_adj_rol(Teuchos::rcp(&des_var_adj, has_ownership));
+    VectorAdaptor gradient_sim_rol(Teuchos::rcp(&gradient_sim, has_ownership));
+
+    double empty = 0.0;
+    obj->gradient_1(gradient_sim_rol, des_var_sim_rol , des_var_ctl_rol, empty);
+    con->applyAdjointJacobian_1(des_var_adj_rol, gradient_sim_rol, des_var_sim_rol, des_var_ctl_rol, empty);
 
     return 0;
 }

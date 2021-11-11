@@ -993,9 +993,9 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
         //std::cout << " error: " << error
         //          << " soln_norm: " << soln_norm << std::endl;
         //if (error < 1e-12) continue;
-        if (soln_norm < 1e-20) 
+        if (soln_norm < 1e-12) 
 		{
-		continue;
+			continue;
 		}
 
         double S_e, s_e;
@@ -1030,7 +1030,7 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
         double eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
         eps *= eps_0 * 0.5;
 	
-		if(eps > 1e-12)
+		if(eps > 1e-10)
 		{
 			is_discontinuity_sensor_activated = true;
 		}

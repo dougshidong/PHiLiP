@@ -18,8 +18,8 @@ set use_split_form = false
 
 subsection artificial dissipation
 	set add_artificial_dissipation = true
-	set entropy_error_discontinuity_sensor = false
 	set artificial_dissipation_type = laplacian
+	set artificial_dissipation_test_type = residual_convergence
 	set use_enthalpy_error = true
 	set mu_artificial_dissipation = 1.0
 	set kappa_artificial_dissipation = 2.0
@@ -78,6 +78,6 @@ subsection manufactured solution convergence study
   set initial_grid_size = 4    #4
 
   # Number of grids in grid study
-  set number_of_grids   = 3    #3
+  set number_of_grids   = 2    #3
 end
 

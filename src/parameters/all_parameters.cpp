@@ -172,6 +172,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     Parameters::ReducedOrderModelParam::declare_parameters (prm);
     Parameters::GridRefinementStudyParam::declare_parameters (prm);
+   
+    Parameters::ArtificialDissipationParam::declare_parameters (prm);
 
     pcout << "Done declaring inputs." << std::endl;
 }
@@ -302,7 +304,10 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     pcout << "Parsing grid refinement study subsection..." << std::endl;
     grid_refinement_study_param.parse_parameters (prm);
 
-    pcout << "Done parsing." << std::endl;
+    pcout << "Parsing artificial dissipation subsection..." << std::endl;
+    artificial_dissipation_param.parse_parameters (prm);
+    
+	pcout << "Done parsing." << std::endl;
 }
 
 } // Parameters namespace

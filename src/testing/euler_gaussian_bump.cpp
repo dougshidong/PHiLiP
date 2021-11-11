@@ -230,10 +230,7 @@ int EulerGaussianBump<dim,nstate>
 				Has_residual_converged = false;
 			}
 
-			if(dg->is_discontinuity_sensor_activated)
-			{
-				Is_artificial_dissipation_used = true;
-			}
+			Is_artificial_dissipation_used = dg->is_discontinuity_sensor_activated;
 
             pcout << " Grid size h: " << dx 
                  << " L2-Error: " << l2error_mpi_sum
@@ -317,18 +314,20 @@ int EulerGaussianBump<dim,nstate>
 	{
 		if(Has_residual_converged)
 		{
+		   pcout << std::endl << "Residual has converged. Test Passed"<<std::endl;
 			return 0;
 		}
-		pcout<<std::endl<<"Residual has not converged. Test failed"<<std::endl;
+		pcout << std::endl<<"Residual has not converged. Test failed" << std::endl;
 		return 1;
 	}
 	else if (arti_dissipation_test_type == artificial_dissipation_test_enum::discontinuity_sensor_activation) 
 	{
 		if(Is_artificial_dissipation_used)
 		{
-			pcout<<std::endl<<"Discontinuity sensor has been activated. Test failed"<<std::endl;
+			pcout << std::endl << "Discontinuity sensor has been activated. Test failed"<<std::endl;
 			return 1;
 		}
+		pcout << std::endl << "Discontinuity sensor is not activated. Test passed"<<std::endl;
 		return 0;
 	}
 //****************Test for artificial dissipation ends *******************************************************

@@ -4,7 +4,7 @@ set(TESTS_SOURCE
     flow_constraints.cpp
     rol_objective.cpp
     full_space_step.cpp
-)
+    pde_constraints.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

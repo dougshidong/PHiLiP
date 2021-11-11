@@ -16,6 +16,11 @@
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_factory.h"
 
+#include "optimization/rol_to_dealii_vector.hpp"
+#include "optimization/flow_constraints.hpp"
+#include "optimization/rol_objective.hpp"
+#include "optimization/constraintfromobjective_simopt.hpp"
+
 namespace PHiLiP {
 namespace Tests {
 
@@ -88,6 +93,9 @@ int BurgersRewienskiAdjoint<dim, nstate>::run_test() const
 
     pcout << "Functional output ";
     pcout << functional;
+
+
+
 
     return 0;
 }

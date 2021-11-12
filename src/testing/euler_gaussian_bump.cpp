@@ -72,7 +72,7 @@ int EulerGaussianBump<dim,nstate>
 
 	std::string Error_string;
 	bool Has_residual_converged = true;
-	bool Is_artificial_dissipation_used = false;
+	double artificial_dissipation_max_coeff = 0.0;
     std::vector<int> fail_conv_poly;
     std::vector<double> fail_conv_slop;
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
@@ -230,7 +230,7 @@ int EulerGaussianBump<dim,nstate>
 				Has_residual_converged = false;
 			}
 
-			Is_artificial_dissipation_used = dg->is_discontinuity_sensor_activated;
+			artificial_dissipation_max_coeff = dg->max_artificial_dissipation_coeff;
 
             pcout << " Grid size h: " << dx 
                  << " L2-Error: " << l2error_mpi_sum
@@ -245,8 +245,8 @@ int EulerGaussianBump<dim,nstate>
                      << "  dimension: " << dim
                      << "  polynomial degree p: " << poly_degree
                      << std::endl
-                     <<" " << Error_string << " " << 1 << Error[igrid-1]
-                     <<" " << Error_string << " " << 2 << Error[igrid]
+                     <<" " << Error_string << 1 << "  " << Error[igrid-1]
+                     <<" " << Error_string << 2 << "  " << Error[igrid]
                      << "  slope " << slope_soln_err
                      << std::endl;
             }
@@ -322,32 +322,36 @@ int EulerGaussianBump<dim,nstate>
 	}
 	else if (arti_dissipation_test_type == artificial_dissipation_test_enum::discontinuity_sensor_activation) 
 	{
-		if(Is_artificial_dissipation_used)
+		if(artificial_dissipation_max_coeff < 1e-10)
 		{
-			pcout << std::endl << "Discontinuity sensor has been activated. Test failed"<<std::endl;
-			return 1;
+			pcout << std::endl << "Discontinuity sensor is not activated. Max dissipation coeff = " <<artificial_dissipation_max_coeff << "   Test passed"<<std::endl;
+			return 0;
 		}
-		pcout << std::endl << "Discontinuity sensor is not activated. Test passed"<<std::endl;
-		return 0;
+		pcout << std::endl << "Discontinuity sensor has been activated. Max dissipation coeff = " <<artificial_dissipation_max_coeff << "   Test failed"<<std::endl;
+		return 1;
 	}
 //****************Test for artificial dissipation ends *******************************************************
-
-	int n_fail_poly = fail_conv_poly.size();
-    if (n_fail_poly > 0) {
-        for (int ifail=0; ifail < n_fail_poly; ++ifail) {
-            const double expected_slope = fail_conv_poly[ifail]+1;
-            const double slope_deficit_tolerance = -0.1;
-            pcout << std::endl
-                 << "Convergence order not achieved for polynomial p = "
-                 << fail_conv_poly[ifail]
-                 << ". Slope of "
-                 << fail_conv_slop[ifail] << " instead of expected "
-                 << expected_slope << " within a tolerance of "
-                 << slope_deficit_tolerance
-                 << std::endl;
-        }
-    }
+	else
+	{
+		int n_fail_poly = fail_conv_poly.size();
+		if (n_fail_poly > 0) 
+		{
+			for (int ifail=0; ifail < n_fail_poly; ++ifail) 
+			{
+				const double expected_slope = fail_conv_poly[ifail]+1;
+				const double slope_deficit_tolerance = -0.1;
+				pcout << std::endl
+					 << "Convergence order not achieved for polynomial p = "
+					 << fail_conv_poly[ifail]
+					 << ". Slope of "
+                     << fail_conv_slop[ifail] << " instead of expected "
+					 << expected_slope << " within a tolerance of "
+					 << slope_deficit_tolerance
+					 << std::endl;
+			}
+		}
     return n_fail_poly;
+	}
 }
 
 

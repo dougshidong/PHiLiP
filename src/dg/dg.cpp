@@ -109,7 +109,7 @@ DGBase<dim,real,MeshType>::DGBase(
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
     , freeze_artificial_dissipation(false)
-	, is_discontinuity_sensor_activated(false)
+	, max_artificial_dissipation_coeff(0.0)
 {
 
     dof_handler.initialize(*triangulation, fe_collection);
@@ -1023,6 +1023,10 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
 
         if ( s_e > upp) {
             artificial_dissipation_coeffs[cell_index] += eps_0;
+			if(eps_0 > max_artificial_dissipation_coeff)
+			{
+				max_artificial_dissipation_coeff = eps_0;
+			}
             continue;
         }
 
@@ -1030,9 +1034,9 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
         double eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
         eps *= eps_0 * 0.5;
 	
-		if(eps > 1e-10)
+		if(eps > max_artificial_dissipation_coeff)
 		{
-			is_discontinuity_sensor_activated = true;
+			max_artificial_dissipation_coeff = eps;
 		}
 
 
@@ -1085,7 +1089,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         &&  !(compute_dRdX && compute_d2R)
             , dealii::ExcMessage("Can only do one at a time compute_dRdW or compute_dRdX or compute_d2R"));
 
-	is_discontinuity_sensor_activated = false;
+	max_artificial_dissipation_coeff = 0.0;
     //pcout << "Assembling DG residual...";
     if (compute_dRdW) {
         pcout << " with dRdW...";
@@ -2355,19 +2359,26 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
 
     if ( s_e < low) return 0.0;
 
-    if ( s_e > upp) return eps_0;
+    if ( s_e > upp)
+	{
+		/*if(eps_0 > max_artificial_dissipation_coeff)
+		{
+			max_artificial_dissipation_coeff = eps_0;
+		}*/
+		return eps_0;
+	}
 
     const double PI = 4*atan(1);
     //real2 eps = 1.0 + std::sin(PI * (s_e - Skappa) * 0.5 / m_Kappa);
     real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
     eps *= eps_0 * 0.5;
 
-	if(eps > 1e-12)
+	/*if(eps > max_artificial_dissipation_coeff)
 	{
-		is_discontinuity_sensor_activated = true;
-	}
-
-    return eps;
+		max_artificial_dissipation_coeff = eps;
+	}*/
+   
+   return eps;
 
 }
 
@@ -2469,17 +2480,22 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
 
     if ( s_e < low) return 0.0;
 
-    if ( s_e > upp) {
+    if ( s_e > upp) 
+	{
+		/*if(eps_0 > max_artificial_dissipation_coeff)
+		{
+			max_artificial_dissipation_coeff = eps_0;
+		}*/
         return eps_0;
     }
 
     const double PI = 4*atan(1);
     real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
     eps *= eps_0 * 0.5;
-	if(eps > 1e-12)
+	/*if(eps > max_artificial_dissipation_coeff)
 	{
-		is_discontinuity_sensor_activated = true;
-	}
+		max_artificial_dissipation_coeff = eps;
+	}*/
     return eps;
 }
 

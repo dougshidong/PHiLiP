@@ -113,7 +113,10 @@ int BurgersRewienskiAdjoint<dim, nstate>::run_test() const
 
     double empty = 0.0;
     obj->gradient_1(gradient_sim_rol, des_var_sim_rol , des_var_ctl_rol, empty);
-    con->applyAdjointJacobian_1(des_var_adj_rol, gradient_sim_rol, des_var_sim_rol, des_var_ctl_rol, empty);
+    con->applyInverseAdjointJacobian_1(des_var_adj_rol, gradient_sim_rol, des_var_sim_rol, des_var_ctl_rol, empty);
+
+    std::ofstream out_file("adjoint.txt");
+    des_var_adj.print(out_file);
 
     return 0;
 }

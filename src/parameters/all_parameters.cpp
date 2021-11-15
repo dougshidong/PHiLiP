@@ -95,6 +95,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " diffusion_exact_adjoint | "
                       " optimization_inverse_manufactured | "
                       " euler_gaussian_bump | "
+					  " euler_gaussian_bump_enthalpy |"
                       " euler_gaussian_bump_adjoint | "
                       " euler_cylinder | "
                       " euler_cylinder_adjoint | "
@@ -116,6 +117,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  diffusion_exact_adjoint | "
                       "  optimization_inverse_manufactured | "
                       "  euler_gaussian_bump | "
+					  "  euler_gaussian_bump_enthalpy |"
                       "  euler_gaussian_bump_adjoint | "
                       "  euler_cylinder | "
                       "  euler_cylinder_adjoint | "
@@ -196,6 +198,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "burgers_energy_stability")          { test_type = burgers_energy_stability; }
     else if (test_string == "diffusion_exact_adjoint")           { test_type = diffusion_exact_adjoint; }
     else if (test_string == "euler_gaussian_bump")               { test_type = euler_gaussian_bump; }
+    else if (test_string == "euler_gaussian_bump_enthalpy")      { test_type = euler_gaussian_bump_enthalpy; }
     else if (test_string == "euler_gaussian_bump_adjoint")       { test_type = euler_gaussian_bump_adjoint; }
     else if (test_string == "euler_cylinder")                    { test_type = euler_cylinder; }
     else if (test_string == "euler_cylinder_adjoint")            { test_type = euler_cylinder_adjoint; }

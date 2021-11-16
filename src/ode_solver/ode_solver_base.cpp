@@ -253,6 +253,80 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
     return 1;
 }
 
+template <int dim, typename real, typename MeshType>
+int ODESolverBase<dim,real,MeshType>::advance_solution_time_tgv_edit (double time_advance)
+{
+    Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
+
+    const unsigned int number_of_time_steps = static_cast<int>(ceil(time_advance/ode_param.initial_time_step));
+    const double constant_time_step = time_advance/number_of_time_steps;
+
+    try {
+        valid_initial_conditions();
+    }
+    catch( const std::invalid_argument& e ) {
+        std::abort();
+    }
+
+    pcout
+            << " Advancing solution by " << time_advance << " time units, using "
+            << number_of_time_steps << " iterations of size dt=" << constant_time_step << " ... " << std::endl;
+	if(this->current_iteration == 0){
+		allocate_ode_system ();
+	}
+
+    //this->current_iteration = 0; // <-- Must be commented for TGV -- will be improved later on
+
+    // Output initial solution
+	//add condition if curr iter mod 100 blah blah
+    // if (this->current_iteration%ode_param.print_iteration_modulo == 0) {
+        this->dg->output_results_vtk(this->current_iteration);
+	// }
+
+    while (this->current_iteration < number_of_time_steps)
+    {
+        if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
+            (this->current_iteration%ode_param.print_iteration_modulo) == 0 ) {
+            pcout << " ********************************************************** "
+                  << std::endl
+                  << " Iteration: " << this->current_iteration + 1
+                  << " out of: " << number_of_time_steps
+                  << std::endl;
+        }
+        dg->assemble_residual(false);
+
+        if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
+            (this->current_iteration%ode_param.print_iteration_modulo) == 0 ) {
+            pcout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
+        }
+
+        const bool pseudotime = false;
+        step_in_time(constant_time_step, pseudotime);
+
+
+        if (this->current_iteration%ode_param.print_iteration_modulo == 0) {
+            this->dg->output_results_vtk(this->current_iteration);
+        }
+
+        if (ode_param.output_solution_vector_modulo > 0) {
+            if (this->current_iteration % ode_param.output_solution_vector_modulo == 0) {
+                for (unsigned int i = 0; i < this->dg->solution.size(); ++i) {
+                    solutions_table.template add_value(
+                            "Time:" + std::to_string(this->current_iteration * constant_time_step),
+                            this->dg->solution[i]);
+                }
+            }
+        }
+        //++(this->current_iteration);
+    }
+
+    if (ode_param.output_solution_vector_modulo > 0) {
+        std::ofstream out_file(ode_param.solutions_table_filename + ".txt");
+        solutions_table.write_text(out_file);
+    }
+    return 1;
+}
+
 template class ODESolverBase<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
 template class ODESolverBase<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 #if PHILIP_DIM != 1

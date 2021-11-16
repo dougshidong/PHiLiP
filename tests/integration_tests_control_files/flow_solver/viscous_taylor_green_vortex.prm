@@ -4,6 +4,8 @@
 set dimension = 3
 
 set pde_type = navier_stokes
+set use_weak_form = false
+set use_collocated_nodes = true
 
 set conv_num_flux = roe
 set diss_num_flux = bassi_rebay_2

@@ -39,6 +39,9 @@ public:
     /// Displays the flow setup parameters
     void display_flow_solver_setup(const Parameters::AllParameters *const param) const;
 
+    /// Computes the kinetic energy for the TGV problem -- TO DO: Move to a seperate class?
+    double compute_kinetic_energy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const;
+
     /// Runs the test (i.e. flow solver)
     int run_test () const;
 

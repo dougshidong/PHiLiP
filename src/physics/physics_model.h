@@ -4,7 +4,7 @@
 /// Files for the baseline physics
 #include "physics.h"
 #include "navier_stokes.h"
-//#include "model/model.h"
+#include "model.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -19,7 +19,7 @@ public:
         const Parameters::AllParameters                              *const parameters_input,
         Parameters::AllParameters::PartialDifferentialEquation       baseline_physics_type,
         const int                                                    nstate_baseline_physics,
-        /*std::unique_ptr< ModelBase<dim,nstate,real> >                model_input,*/
+        std::shared_ptr< ModelBase<dim,nstate,real> >                model_input,
         const dealii::Tensor<2,3,double>                             input_diffusion_tensor,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function);
 
@@ -29,11 +29,11 @@ public:
     /// Number of model equations (i.e. those additional to the baseline physics)
     const int n_model_equations;
 
-    /// Model object -- TO DO: Uncomment later
-    // std::unique_ptr< ModelBase<dim,nstate,real> > model;
-
     /// Baseline physics object
     std::shared_ptr< PhysicsBase<dim,nstate,real> > physics_baseline;
+
+    /// Model object
+    std::shared_ptr< ModelBase<dim,nstate,real> > model;
 
     /// Convective flux: \f$ \mathbf{F}_{conv} \f$
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (

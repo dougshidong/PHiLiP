@@ -22,19 +22,21 @@ namespace Physics {
 template <int dim, int nstate, typename real>
 std::shared_ptr < PhysicsBase<dim,nstate,real> >
 PhysicsFactory<dim,nstate,real>
-::create_Physics(const Parameters::AllParameters *const parameters_input)
+::create_Physics(const Parameters::AllParameters               *const parameters_input,
+                 std::shared_ptr< ModelBase<dim,dim+2,real> > model_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     PDE_enum pde_type = parameters_input->pde_type;
 
-    return create_Physics(parameters_input, pde_type);
+    return create_Physics(parameters_input, pde_type, model_input);
 }
 
 template <int dim, int nstate, typename real>
 std::shared_ptr < PhysicsBase<dim,nstate,real> >
 PhysicsFactory<dim,nstate,real>
-::create_Physics(const Parameters::AllParameters *const parameters_input,
-                 const Parameters::AllParameters::PartialDifferentialEquation pde_type)
+::create_Physics(const Parameters::AllParameters                              *const parameters_input,
+                 const Parameters::AllParameters::PartialDifferentialEquation pde_type,
+                 std::shared_ptr< ModelBase<dim,dim+2,real> >                model_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
 
@@ -123,7 +125,8 @@ PhysicsFactory<dim,nstate,real>
         if constexpr (nstate>=dim+2) {
             return create_Physics_Model(parameters_input, 
                                         diffusion_tensor, 
-                                        manufactured_solution_function);
+                                        manufactured_solution_function,
+                                        model_input);
         }
     } else {
         // prevent warnings for dim=3,nstate=4, etc.
@@ -141,7 +144,8 @@ std::shared_ptr < PhysicsBase<dim,nstate,real> >
 PhysicsFactory<dim,nstate,real>
 ::create_Physics_Model(const Parameters::AllParameters                           *const parameters_input,
                        const dealii::Tensor<2,3,double>                          diffusion_tensor,
-                       std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function)
+                       std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+                       std::shared_ptr< ModelBase<dim,dim+2,real> >             model_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
 
@@ -205,7 +209,7 @@ PhysicsFactory<dim,nstate,real>
                 parameters_input,
                 baseline_physics_type,
                 nstate_baseline_physics,
-                /*nullptr,*/
+                model_input,
                 diffusion_tensor, 
                 manufactured_solution_function);
         }
@@ -213,7 +217,6 @@ PhysicsFactory<dim,nstate,real>
         // prevent warnings for dim=3,nstate=4, etc.
         (void) diffusion_tensor;
         (void) baseline_physics_type;
-        // (void) nstate_baseline_physics;
     }    
     std::cout << "Can't create PhysicsModel, invalid ModelType type: " << model_type << std::endl;
     assert(0==1 && "Can't create PhysicsModel, invalid ModelType type");

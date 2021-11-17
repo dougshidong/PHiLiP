@@ -3,6 +3,7 @@
 
 #include "parameters/all_parameters.h"
 #include "physics.h"
+#include "model.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -15,13 +16,15 @@ class PhysicsFactory
 public:
     /// Factory to return the correct physics given input file.
     static std::shared_ptr< PhysicsBase<dim,nstate,real> >
-        create_Physics(const Parameters::AllParameters *const parameters_input);
+        create_Physics(const Parameters::AllParameters               *const parameters_input,
+                       std::shared_ptr< ModelBase<dim,dim+2,real> > model_input = nullptr);
 
     /// Factory to return the correct physics given input file and a specified PDE type
     static std::shared_ptr< PhysicsBase<dim,nstate,real> >
         create_Physics(
-            const Parameters::AllParameters *const parameters_input,
-            const Parameters::AllParameters::PartialDifferentialEquation pde_type);
+            const Parameters::AllParameters                              *const parameters_input,
+            const Parameters::AllParameters::PartialDifferentialEquation pde_type,
+            std::shared_ptr< ModelBase<dim,dim+2,real> >                model_input = nullptr);
 
 private:
     /// Factory to return the correct physics model, i.e. when PDE_type==physics_model, given input file
@@ -29,7 +32,8 @@ private:
         create_Physics_Model(
             const Parameters::AllParameters                           *const parameters_input,
             const dealii::Tensor<2,3,double>                          diffusion_tensor,
-            std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
+            std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+            std::shared_ptr< ModelBase<dim,dim+2,real> >             model_input = nullptr);
 };
 
 

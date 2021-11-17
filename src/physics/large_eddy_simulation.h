@@ -134,10 +134,10 @@ public:
         const double                                              reynolds_number_inf,
         const double                                              turbulent_prandtl_number,
         const double                                              model_constant,
-        const double                                              grid_spacing);
+        const double                                              filter_width);
 
     const double model_constant;
-    const double grid_spacing;
+    const double filter_width;
 
     /// Nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)*
     std::array<dealii::Tensor<1,dim,real>,dim> compute_SGS_stress_tensor (
@@ -159,12 +159,12 @@ public:
         const std::array<FadType,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient) const;
 
-    /// Eddy viscosity for the Smagorinsky model
+    /// Nondimensionalized eddy viscosity for the Smagorinsky model
     virtual real compute_eddy_viscosity(
         const std::array<real,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
 
-    /// Eddy viscosity for the Smagorinsky model (Automatic Differentiation Type: FadType)
+    /// Nondimensionalized eddy viscosity for the Smagorinsky model (Automatic Differentiation Type: FadType)
     virtual FadType compute_eddy_viscosity_Fad(
         const std::array<FadType,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient) const;
@@ -181,7 +181,7 @@ protected:
         const std::array<real2,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
 
-    /// Templated eddy viscosity
+    /// Templated nondimensionalized eddy viscosity for the Smagorinsky model.
     template<typename real2> real2 compute_eddy_viscosity_templated(
         const std::array<real2,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
@@ -208,16 +208,16 @@ public:
         const double                                              reynolds_number_inf,
         const double                                              turbulent_prandtl_number,
         const double                                              model_constant,
-        const double                                              grid_spacing);
+        const double                                              filter_width);
 
-    /** Eddy viscosity for the WALE model. 
+    /** Nondimensionalized eddy viscosity for the WALE model. 
      *  Reference: Nicoud & Ducros (1999) "Subgrid-scale stress modelling based on the square of the velocity gradient tensor"
      */
     real compute_eddy_viscosity(
         const std::array<real,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const override;
 
-    /** Eddy viscosity for the WALE model. (Automatic Differentiation Type: FadType)
+    /** Nondimensionalized eddy viscosity for the WALE model. (Automatic Differentiation Type: FadType)
      *  Reference: Nicoud & Ducros (1999) "Subgrid-scale stress modelling based on the square of the velocity gradient tensor"
      */
     FadType compute_eddy_viscosity_Fad(
@@ -225,7 +225,7 @@ public:
         const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient) const override;
 
 protected:
-    /// Templated eddy viscosity
+    /// Templated nondimensionalized eddy viscosity for the WALE model.
     template<typename real2> real2 compute_eddy_viscosity_templated(
         const std::array<real2,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;

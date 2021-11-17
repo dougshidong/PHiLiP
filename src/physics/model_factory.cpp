@@ -16,7 +16,7 @@ template <int dim, int nstate, typename real>
 std::shared_ptr < ModelBase<dim,nstate,real> >
 ModelFactory<dim,nstate,real>
 ::create_Model(const Parameters::AllParameters *const parameters_input,
-               const double                    grid_spacing)
+               const double                    filter_width)
 {
     // In the future, we could create an object / class for holding/updating inputs such as grid spacing etc and just pass a pointer to the object
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
@@ -60,7 +60,7 @@ ModelFactory<dim,nstate,real>
                     parameters_input->navier_stokes_param.reynolds_number_inf,
                     parameters_input->physics_model_param.turbulent_prandtl_number,
                     parameters_input->physics_model_param.smagorinsky_model_constant,
-                    grid_spacing);
+                    filter_width);
             } else if (sgs_model_type == SGS_enum::wall_adaptive_local_eddy_viscosity) {
                 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                 // WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model
@@ -77,7 +77,7 @@ ModelFactory<dim,nstate,real>
                     parameters_input->navier_stokes_param.reynolds_number_inf,
                     parameters_input->physics_model_param.turbulent_prandtl_number,
                     parameters_input->physics_model_param.WALE_model_constant,
-                    grid_spacing);
+                    filter_width);
             }
             else {
                 std::cout << "Can't create LargeEddySimulationBase, invalid SGSModelType type: " << sgs_model_type << std::endl;

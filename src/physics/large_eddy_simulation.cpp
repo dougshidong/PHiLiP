@@ -353,7 +353,7 @@ LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorin
     const double                                              reynolds_number_inf,
     const double                                              turbulent_prandtl_number,
     const double                                              model_constant,
-    const double                                              grid_spacing)
+    const double                                              filter_width)
     : LargeEddySimulationBase<dim,nstate,real>(input_diffusion_tensor,
                                                manufactured_solution_function_input,
                                                ref_length,
@@ -365,7 +365,7 @@ LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorin
                                                reynolds_number_inf,
                                                turbulent_prandtl_number)
     , model_constant(model_constant)
-    , grid_spacing(grid_spacing)
+    , filter_width(filter_width/ref_length) // <-- Nondimensionalized filter width
 {
     // Nothing to do here so far
 }
@@ -405,7 +405,7 @@ real2 LargeEddySimulation_Smagorinsky<dim,nstate,real>
         = this->navier_stokes_physics->compute_strain_rate_tensor(vel_gradient);
     
     // Product of the model constant (Cs) and the filter width (delta)
-    const real2 CsDelta = model_constant;//*filter_width;
+    const real2 CsDelta = model_constant*(this->filter_width);
     // Get magnitude of strain_rate_tensor
     const real2 strain_rate_tensor_magnitude_sqr = this->template get_tensor_magnitude_sqr<real2>(strain_rate_tensor);
     // Compute the eddy viscosity
@@ -521,7 +521,7 @@ LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE(
     const double                                              reynolds_number_inf,
     const double                                              turbulent_prandtl_number,
     const double                                              model_constant,
-    const double                                              grid_spacing)
+    const double                                              filter_width)
     : LargeEddySimulation_Smagorinsky<dim,nstate,real>(input_diffusion_tensor,
                                                        manufactured_solution_function_input,
                                                        ref_length,
@@ -533,7 +533,7 @@ LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE(
                                                        reynolds_number_inf,
                                                        turbulent_prandtl_number,
                                                        model_constant,
-                                                       grid_spacing)
+                                                       filter_width)
 {
     // Nothing to do here so far
 }
@@ -573,7 +573,7 @@ real2 LargeEddySimulation_WALE<dim,nstate,real>
         = this->navier_stokes_physics->compute_strain_rate_tensor(vel_gradient);
     
     // Product of the model constant (Cs) and the filter width (delta)
-    const real2 CwDelta = this->model_constant;//*filter_width;
+    const real2 CwDelta = this->model_constant*(this->filter_width);
     // Get deviatoric stresss tensor
     std::array<dealii::Tensor<1,dim,real2>,dim> g_sqr; // $g_{ij}^{2}$
     for (int i=0; i<dim; ++i) {

@@ -3,6 +3,9 @@
 
 #include <deal.II/base/tensor.h>
 
+#include "parameters/parameters_manufactured_solution.h"
+#include "physics/manufactured_solution.h"
+
 namespace PHiLiP {
 namespace Physics {
 
@@ -12,10 +15,15 @@ class ModelBase
 {
 public:
 	/// Constructor
-	ModelBase();
+	ModelBase(
+        const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
 
     /// Virtual destructor required for abstract classes.
     virtual ~ModelBase() = 0;
+
+    /// Manufactured solution function
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function;
 
     /// Convective flux terms additional to the baseline physics
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> 

@@ -15,7 +15,9 @@ class LargeEddySimulationBase : public ModelBase <dim, nstate, real>
 {
 public:
     /// Constructor
-	LargeEddySimulationBase( 
+	LargeEddySimulationBase(
+        const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input,
 	    const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -78,6 +80,37 @@ protected:
     std::array<dealii::Tensor<1,dim,real2>,nstate> dissipative_flux_templated (
         const std::array<real2,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const;
+
+    /** Dissipative flux Jacobian (repeated from NavierStokes)
+     *  Note: Only used for computing the manufactured solution source term;
+     *        computed using automatic differentiation
+     */
+    dealii::Tensor<2,nstate,real> dissipative_flux_directional_jacobian (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const dealii::Tensor<1,dim,real> &normal) const;
+
+    /** Dissipative flux Jacobian wrt gradient component (repeated from NavierStokes)
+     *  Note: Only used for computing the manufactured solution source term;
+     *        computed using automatic differentiation
+     */
+    dealii::Tensor<2,nstate,real> dissipative_flux_directional_jacobian_wrt_gradient_component (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const dealii::Tensor<1,dim,real> &normal,
+        const int d_gradient) const;
+
+    /// Get manufactured solution value (repeated from Euler)
+    std::array<real,nstate> get_manufactured_solution_value (
+        const dealii::Point<dim,real> &pos) const;
+
+    /// Get manufactured solution value (repeated from Euler)
+    std::array<dealii::Tensor<1,dim,real>,nstate> get_manufactured_solution_gradient (
+        const dealii::Point<dim,real> &pos) const;
+
+    /// Dissipative flux contribution to the source term (repeated from NavierStokes)
+    std::array<real,nstate> dissipative_source_term (
+        const dealii::Point<dim,real> &pos) const;
 };
 
 /// Smagorinsky eddy viscosity model. Derived from Large Eddy Simulation.
@@ -89,7 +122,9 @@ public:
      *  More details...
      *  Reference: To be put here
      */
-    LargeEddySimulation_Smagorinsky( 
+    LargeEddySimulation_Smagorinsky(
+        const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -161,7 +196,9 @@ public:
      *  More details...
      *  Reference: Nicoud & Ducros (1999) "Subgrid-scale stress modelling based on the square of the velocity gradient tensor"
      */
-    LargeEddySimulation_WALE( 
+    LargeEddySimulation_WALE(
+        const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,

@@ -12,7 +12,10 @@ namespace Physics {
 // Models Base Class
 //================================================================
 template <int dim, int nstate, typename real>
-ModelBase<dim, nstate, real>::ModelBase()
+ModelBase<dim, nstate, real>::ModelBase(
+    const dealii::Tensor<2,3,double>                          /*input_diffusion_tensor*/,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input):
+        manufactured_solution_function(manufactured_solution_function_input)
 {
     // Nothing to do here so far
 }

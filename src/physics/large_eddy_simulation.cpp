@@ -14,7 +14,9 @@ namespace Physics {
 // Large Eddy Simulation (LES) Base Class
 //================================================================
 template <int dim, int nstate, typename real>
-LargeEddySimulationBase<dim, nstate, real>::LargeEddySimulationBase( 
+LargeEddySimulationBase<dim, nstate, real>::LargeEddySimulationBase(
+    const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -23,7 +25,7 @@ LargeEddySimulationBase<dim, nstate, real>::LargeEddySimulationBase(
     const double                                              prandtl_number,
     const double                                              reynolds_number_inf,
     const double                                              turbulent_prandtl_number)
-    : ModelBase<dim,nstate,real>() 
+    : ModelBase<dim,nstate,real>(input_diffusion_tensor, manufactured_solution_function_input) 
     , turbulent_prandtl_number(turbulent_prandtl_number)
     , navier_stokes_physics(std::make_unique < NavierStokes<dim,nstate,real> > (
             ref_length,
@@ -32,9 +34,9 @@ LargeEddySimulationBase<dim, nstate, real>::LargeEddySimulationBase(
             angle_of_attack,
             side_slip_angle,
             prandtl_number,
-            reynolds_number_inf/*,
-            diffusion_tensor, 
-            manufactured_solution_function*/))
+            reynolds_number_inf,
+            input_diffusion_tensor, 
+            manufactured_solution_function_input))
 {
     static_assert(nstate==dim+2, "PhysicsModel::LargeEddySimulationBase() should be created with nstate=dim+2");
 }
@@ -125,19 +127,214 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> LargeEddySimulationBase<dim,nstat
 template <int dim, int nstate, typename real>
 std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
 ::source_term (
-        const dealii::Point<dim,real> &/*pos*/,
+        const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &/*solution*/) const
 {
-    // TO DO: Fill in with AD here
     /* Note: Since this is only used for the manufactured solution source term, 
-             the grid spacing is fixed --> No AD wrt grid
+             the grid spacing is fixed --> No AD wrt grid --> Can do same as I did in NavierStokes
      */
-    std::array<real,nstate> source_term;
-    for (int s=0; s<nstate; s++)
-    {
-        source_term[s] = 0.0;
-    }
+    std::array<real,nstate> source_term = dissipative_source_term(pos);
     return source_term;
+}
+//----------------------------------------------------------------
+// Returns the value from a CoDiPack or Sacado variable.
+template<typename real>
+double getValue(const real &x) {
+    if constexpr(std::is_same<real,double>::value) {
+        return x;
+    }
+    else if constexpr(std::is_same<real,FadType>::value) {
+        return x.val(); // sacado
+    } 
+    else if constexpr(std::is_same<real,FadFadType>::value) {
+        return x.val().val(); // sacado
+    }
+    else if constexpr(std::is_same<real,RadType>::value) {
+      return x.value(); // CoDiPack
+    } 
+    else if(std::is_same<real,RadFadType>::value) {
+        return x.value().value(); // CoDiPack
+    }
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+dealii::Tensor<2,nstate,real> LargeEddySimulationBase<dim,nstate,real>
+::dissipative_flux_directional_jacobian (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+    const dealii::Tensor<1,dim,real> &normal) const
+{
+    using adtype = FadType;
+
+    // Initialize AD objects
+    std::array<adtype,nstate> AD_conservative_soln;
+    std::array<dealii::Tensor<1,dim,adtype>,nstate> AD_solution_gradient;
+    for (int s=0; s<nstate; s++) {
+        adtype ADvar(nstate, s, getValue<real>(conservative_soln[s])); // create AD variable
+        AD_conservative_soln[s] = ADvar;
+        for (int d=0;d<dim;d++) {
+            AD_solution_gradient[s][d] = getValue<real>(solution_gradient[s][d]);
+        }
+    }
+
+    // Compute AD dissipative flux
+    std::array<dealii::Tensor<1,dim,adtype>,nstate> AD_dissipative_flux = dissipative_flux_templated<adtype>(AD_conservative_soln, AD_solution_gradient);
+
+    // Assemble the directional Jacobian
+    dealii::Tensor<2,nstate,real> jacobian;
+    for (int sp=0; sp<nstate; sp++) {
+        // for each perturbed state (sp) variable
+        for (int s=0; s<nstate; s++) {
+            jacobian[s][sp] = 0.0;
+            for (int d=0;d<dim;d++) {
+                // Compute directional jacobian
+                jacobian[s][sp] += AD_dissipative_flux[s][d].dx(sp)*normal[d];
+            }
+        }
+    }
+    return jacobian;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+dealii::Tensor<2,nstate,real> LargeEddySimulationBase<dim,nstate,real>
+::dissipative_flux_directional_jacobian_wrt_gradient_component (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+    const dealii::Tensor<1,dim,real> &normal,
+    const int d_gradient) const
+{
+    using adtype = FadType;
+
+    // Initialize AD objects
+    std::array<adtype,nstate> AD_conservative_soln;
+    std::array<dealii::Tensor<1,dim,adtype>,nstate> AD_solution_gradient;
+    for (int s=0; s<nstate; s++) {
+        AD_conservative_soln[s] = getValue<real>(conservative_soln[s]);
+        for (int d=0;d<dim;d++) {
+            if(d == d_gradient){
+                adtype ADvar(nstate, s, getValue<real>(solution_gradient[s][d])); // create AD variable
+                AD_solution_gradient[s][d] = ADvar;
+            }
+            else {
+                AD_solution_gradient[s][d] = getValue<real>(solution_gradient[s][d]);
+            }
+        }
+    }
+
+    // Compute AD dissipative flux
+    std::array<dealii::Tensor<1,dim,adtype>,nstate> AD_dissipative_flux = dissipative_flux_templated<adtype>(AD_conservative_soln, AD_solution_gradient);
+
+    // Assemble the directional Jacobian
+    dealii::Tensor<2,nstate,real> jacobian;
+    for (int sp=0; sp<nstate; sp++) {
+        // for each perturbed state (sp) variable
+        for (int s=0; s<nstate; s++) {
+            jacobian[s][sp] = 0.0;
+            for (int d=0;d<dim;d++) {
+                // Compute directional jacobian
+                jacobian[s][sp] += AD_dissipative_flux[s][d].dx(sp)*normal[d];
+            }
+        }
+    }
+    return jacobian;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
+::get_manufactured_solution_value (
+    const dealii::Point<dim,real> &pos) const
+{
+    std::array<real,nstate> manufactured_solution;
+    for (int s=0; s<nstate; s++) {
+        manufactured_solution[s] = this->manufactured_solution_function->value (pos, s);
+        if (s==0) {
+            assert(manufactured_solution[s] > 0);
+        }
+    }
+    return manufactured_solution;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> LargeEddySimulationBase<dim,nstate,real>
+::get_manufactured_solution_gradient (
+    const dealii::Point<dim,real> &pos) const
+{
+    std::vector<dealii::Tensor<1,dim,real>> manufactured_solution_gradient_dealii(nstate);
+    this->manufactured_solution_function->vector_gradient(pos,manufactured_solution_gradient_dealii);
+    std::array<dealii::Tensor<1,dim,real>,nstate> manufactured_solution_gradient;
+    for (int d=0;d<dim;d++) {
+        for (int s=0; s<nstate; s++) {
+            manufactured_solution_gradient[s][d] = manufactured_solution_gradient_dealii[s][d];
+        }
+    }
+    return manufactured_solution_gradient;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
+::dissipative_source_term (
+    const dealii::Point<dim,real> &pos) const
+{    
+    // Get Manufactured Solution values
+    const std::array<real,nstate> manufactured_solution = get_manufactured_solution_value(pos); // from Euler
+    
+    // Get Manufactured Solution gradient
+    const std::array<dealii::Tensor<1,dim,real>,nstate> manufactured_solution_gradient = get_manufactured_solution_gradient(pos); // from Euler
+    
+    // Get Manufactured Solution hessian
+    std::array<dealii::SymmetricTensor<2,dim,real>,nstate> manufactured_solution_hessian;
+    for (int s=0; s<nstate; s++) {
+        dealii::SymmetricTensor<2,dim,real> hessian = this->manufactured_solution_function->hessian(pos,s);
+        for (int dr=0;dr<dim;dr++) {
+            for (int dc=0;dc<dim;dc++) {
+                manufactured_solution_hessian[s][dr][dc] = hessian[dr][dc];
+            }
+        }
+    }
+
+    // First term -- wrt to the conservative variables
+    // This is similar, should simply provide this function a flux_directional_jacobian() -- could restructure later
+    dealii::Tensor<1,nstate,real> dissipative_flux_divergence;
+    for (int d=0;d<dim;d++) {
+        dealii::Tensor<1,dim,real> normal;
+        normal[d] = 1.0;
+        const dealii::Tensor<2,nstate,real> jacobian = dissipative_flux_directional_jacobian(manufactured_solution, manufactured_solution_gradient, normal);
+        
+        // get the directional jacobian wrt gradient
+        std::array<dealii::Tensor<2,nstate,real>,dim> jacobian_wrt_gradient;
+        for (int d_gradient=0;d_gradient<dim;d_gradient++) {
+            
+            // get the directional jacobian wrt gradient component (x,y,z)
+            const dealii::Tensor<2,nstate,real> jacobian_wrt_gradient_component = dissipative_flux_directional_jacobian_wrt_gradient_component(manufactured_solution, manufactured_solution_gradient, normal, d_gradient);
+            
+            // store each component in jacobian_wrt_gradient -- could do this in the function used above
+            for (int sr = 0; sr < nstate; ++sr) {
+                for (int sc = 0; sc < nstate; ++sc) {
+                    jacobian_wrt_gradient[d_gradient][sr][sc] = jacobian_wrt_gradient_component[sr][sc];
+                }
+            }
+        }
+
+        //dissipative_flux_divergence += jacobian*manufactured_solution_gradient[d]; <-- needs second term! (jac wrt gradient)
+        for (int sr = 0; sr < nstate; ++sr) {
+            real jac_grad_row = 0.0;
+            for (int sc = 0; sc < nstate; ++sc) {
+                jac_grad_row += jacobian[sr][sc]*manufactured_solution_gradient[sc][d]; // Euler is the same as this
+                // Second term -- wrt to the gradient of conservative variables
+                // -- add the contribution of each gradient component (e.g. x,y,z for dim==3)
+                for (int d_gradient=0;d_gradient<dim;d_gradient++) {
+                    jac_grad_row += jacobian_wrt_gradient[d_gradient][sr][sc]*manufactured_solution_hessian[sc][d_gradient][d]; // symmetric so d indexing works both ways
+                }
+            }
+            dissipative_flux_divergence[sr] += jac_grad_row;
+        }
+    }
+    std::array<real,nstate> dissipative_source_term;
+    for (int s=0; s<nstate; s++) {
+        dissipative_source_term[s] = dissipative_flux_divergence[s];
+    }
+
+    return dissipative_source_term;
 }
 //----------------------------------------------------------------
 //================================================================
@@ -145,6 +342,8 @@ std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
 //================================================================
 template <int dim, int nstate, typename real>
 LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorinsky(
+    const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -155,7 +354,9 @@ LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorin
     const double                                              turbulent_prandtl_number,
     const double                                              model_constant,
     const double                                              grid_spacing)
-    : LargeEddySimulationBase<dim,nstate,real>(ref_length,
+    : LargeEddySimulationBase<dim,nstate,real>(input_diffusion_tensor,
+                                               manufactured_solution_function_input,
+                                               ref_length,
                                                gamma_gas,
                                                mach_inf,
                                                angle_of_attack,
@@ -294,7 +495,9 @@ std::array<dealii::Tensor<1,dim,real2>,dim> LargeEddySimulation_Smagorinsky<dim,
 // WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model
 //================================================================
 template <int dim, int nstate, typename real>
-LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE( 
+LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE(
+    const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -305,7 +508,9 @@ LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE(
     const double                                              turbulent_prandtl_number,
     const double                                              model_constant,
     const double                                              grid_spacing)
-    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(ref_length,
+    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(input_diffusion_tensor,
+                                                       manufactured_solution_function_input,
+                                                       ref_length,
                                                        gamma_gas,
                                                        mach_inf,
                                                        angle_of_attack,

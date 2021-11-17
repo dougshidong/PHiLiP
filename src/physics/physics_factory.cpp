@@ -159,13 +159,6 @@ PhysicsFactory<dim,nstate,real>
     // Create baseline physics object
     PDE_enum baseline_physics_type;
 
-    // Number of states in the baseline physics
-    // int nstate_baseline_physics;
-    
-    // model object for the additional terms and equations to the baseline physics  
-    // TO DO: make this an input to create_Physics
-    // std::unique_ptr< ModelBase<dim,nstate,real> > model;
-
     // -------------------------------------------------------------------------------
     // Large Eddy Simulation (LES)
     // -------------------------------------------------------------------------------

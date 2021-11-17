@@ -12,7 +12,8 @@ SET(SOURCE
     burgers_rewienski.cpp
     physics_model.cpp
     model.cpp
-    large_eddy_simulation.cpp)
+    large_eddy_simulation.cpp
+    model_factory.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

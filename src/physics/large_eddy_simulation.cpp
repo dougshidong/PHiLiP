@@ -73,39 +73,54 @@ std::array<dealii::Tensor<1,dim,real>,nstate> LargeEddySimulationBase<dim,nstate
 template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> LargeEddySimulationBase<dim,nstate,real>
 ::dissipative_flux (
-    const std::array<real,nstate> &/*conservative_soln*/,
-    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/) const
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const
 {   
     // TO DO: remove this and use whats commented at the end
-    std::array<dealii::Tensor<1,dim,real>,nstate> diss_flux;
-    // No additional convective terms for Large Eddy Simulation
-    for (int i=0; i<nstate; i++) {
-        diss_flux[i] = 0;
-    }
-    return diss_flux;
-    // return dissipative_flux_templated<real>(conservative_soln,solution_gradient);
+    // std::array<dealii::Tensor<1,dim,real>,nstate> diss_flux;
+    // // No additional convective terms for Large Eddy Simulation
+    // for (int i=0; i<nstate; i++) {
+    //     diss_flux[i] = 0;
+    // }
+    // return diss_flux;
+    return dissipative_flux_templated<real>(conservative_soln,solution_gradient);
 }
 //----------------------------------------------------------------
-// template <int dim, int nstate, typename real>
-// template <typename real2>
-// std::array<dealii::Tensor<1,dim,real>,nstate> LargeEddySimulationBase<dim,nstate,real>
-// ::dissipative_flux_templated (
-//     const std::array<real2,nstate> &conservative_soln,
-//     const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const
-// {
-//     // TO DO: Review how I'm using the template key word here for the navier_stokes_physics
-//     // Step 3: Viscous stress tensor, Velocities, Heat flux
-//     const std::array<real2,nstate> primitive_soln = navier_stokes_physics.convert_conservative_to_primitive(conservative_soln); // from Euler
-//     const dealii::Tensor<1,dim,real2> vel = navier_stokes_physics.extract_velocities_from_primitive(primitive_soln); // from Euler
-//     const std::array<dealii::Tensor<1,dim,real2>,dim> viscous_stress_tensor = compute_SGS_stress_tensor<real2>(primitive_soln, primitive_soln_gradient);
-//     const dealii::Tensor<1,dim,real2> heat_flux = compute_SGS_heat_flux<real2>(primitive_soln, primitive_soln_gradient);
+template <int dim, int nstate, typename real>
+template <typename real2>
+std::array<dealii::Tensor<1,dim,real2>,nstate> LargeEddySimulationBase<dim,nstate,real>
+::dissipative_flux_templated (
+    const std::array<real2,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const
+{
+    // Step 2: Primitive solution and Gradient of primitive solution
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient = this->navier_stokes_physics->convert_conservative_gradient_to_primitive_gradient(conservative_soln, solution_gradient);
+    const std::array<real2,nstate> primitive_soln = this->navier_stokes_physics->convert_conservative_to_primitive(conservative_soln); // from Euler
 
-//     // Step 4: Construct viscous flux; Note: sign corresponds to LHS
-//     std::array<dealii::Tensor<1,dim,real2>,nstate> viscous_flux
-//         = navier_stokes_physics.dissipative_flux_given_velocities_viscous_stress_tensor_and_heat_flux(vel,viscous_stress_tensor,heat_flux);
+    // Step 3: Viscous stress tensor, Velocities, Heat flux
+    const dealii::Tensor<1,dim,real2> vel = this->navier_stokes_physics->extract_velocities_from_primitive(primitive_soln); // from Euler
+    // Templated virtual member functions
+    std::array<dealii::Tensor<1,dim,real2>,dim> viscous_stress_tensor;
+    dealii::Tensor<1,dim,real2> heat_flux;
+    if constexpr(std::is_same<real2,real>::value){ 
+        viscous_stress_tensor = compute_SGS_stress_tensor(primitive_soln, primitive_soln_gradient);
+        heat_flux = compute_SGS_heat_flux(primitive_soln, primitive_soln_gradient);
+    }
+    else if constexpr(std::is_same<real2,FadType>::value){ 
+        viscous_stress_tensor = compute_SGS_stress_tensor_Fad(primitive_soln, primitive_soln_gradient);
+        heat_flux = compute_SGS_heat_flux_Fad(primitive_soln, primitive_soln_gradient);
+    }
+    else{
+        std::cout << "ERROR in physics/large_eddy_simulation.cpp --> dissipative_flux_templated(): real2 != real or FadType" << std::endl;
+        std::abort();
+    }
     
-//     return viscous_flux;
-// }
+    // Step 4: Construct viscous flux; Note: sign corresponds to LHS
+    std::array<dealii::Tensor<1,dim,real2>,nstate> viscous_flux
+        = this->navier_stokes_physics->dissipative_flux_given_velocities_viscous_stress_tensor_and_heat_flux(vel,viscous_stress_tensor,heat_flux);
+    
+    return viscous_flux;
+}
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
@@ -164,6 +179,15 @@ real LargeEddySimulation_Smagorinsky<dim,nstate,real>
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
+FadType LargeEddySimulation_Smagorinsky<dim,nstate,real>
+::compute_eddy_viscosity_Fad (
+    const std::array<FadType,nstate> &primitive_soln,
+    const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient) const
+{
+    return compute_eddy_viscosity_templated<FadType>(primitive_soln,primitive_soln_gradient);
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
 template<typename real2>
 real2 LargeEddySimulation_Smagorinsky<dim,nstate,real>
 ::compute_eddy_viscosity_templated (
@@ -199,6 +223,15 @@ dealii::Tensor<1,dim,real> LargeEddySimulation_Smagorinsky<dim,nstate,real>
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
+dealii::Tensor<1,dim,FadType> LargeEddySimulation_Smagorinsky<dim,nstate,real>
+::compute_SGS_heat_flux_Fad (
+    const std::array<FadType,nstate> &primitive_soln,
+    const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient) const
+{
+    return compute_SGS_heat_flux_templated<FadType>(primitive_soln,primitive_soln_gradient);
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
 template<typename real2>
 dealii::Tensor<1,dim,real2> LargeEddySimulation_Smagorinsky<dim,nstate,real>
 ::compute_SGS_heat_flux_templated (
@@ -219,6 +252,15 @@ std::array<dealii::Tensor<1,dim,real>,dim> LargeEddySimulation_Smagorinsky<dim,n
     const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const
 {
     return compute_SGS_stress_tensor_templated<real>(primitive_soln,primitive_soln_gradient);
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,FadType>,dim> LargeEddySimulation_Smagorinsky<dim,nstate,real>
+::compute_SGS_stress_tensor_Fad (
+    const std::array<FadType,nstate> &primitive_soln,
+    const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient) const
+{
+    return compute_SGS_stress_tensor_templated<FadType>(primitive_soln,primitive_soln_gradient);
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
@@ -251,94 +293,103 @@ std::array<dealii::Tensor<1,dim,real2>,dim> LargeEddySimulation_Smagorinsky<dim,
 //================================================================
 // WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model
 //================================================================
-// template <int dim, int nstate, typename real>
-// LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE( 
-//     const double                                              ref_length,
-//     const double                                              gamma_gas,
-//     const double                                              mach_inf,
-//     const double                                              angle_of_attack,
-//     const double                                              side_slip_angle,
-//     const double                                              prandtl_number,
-//     const double                                              reynolds_number_inf,
-//     const double                                              turbulent_prandtl_number,
-//     const double                                              model_constant,
-//     const double                                              grid_spacing)
-//     : LargeEddySimulation_Smagorinsky<dim,nstate,real>(ref_length,
-//                                                        gamma_gas,
-//                                                        mach_inf,
-//                                                        angle_of_attack,
-//                                                        side_slip_angle,
-//                                                        prandtl_number,
-//                                                        reynolds_number_inf,
-//                                                        turbulent_prandtl_number,
-//                                                        model_constant,
-//                                                        grid_spacing)
-// {
-//     // Nothing to do here so far
-// }
-// //----------------------------------------------------------------
-// template <int dim, int nstate, typename real>
-// real LargeEddySimulation_WALE<dim,nstate,real>
-// ::compute_eddy_viscosity (
-//     const std::array<real,nstate> &primitive_soln,
-//     const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const
-// {
-//     return compute_eddy_viscosity_templated<real>(primitive_soln,primitive_soln_gradient);
-// }
-// //----------------------------------------------------------------
-// template <int dim, int nstate, typename real>
-// template<typename real2>
-// real2 LargeEddySimulation_WALE<dim,nstate,real>
-// ::compute_eddy_viscosity_templated (
-//     const std::array<real2,nstate> &primitive_soln,
-//     const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const
-// {
-//     // TO DO: (1) Define filter width and update CsDelta
-//     //        (2) Figure out how to nondimensionalize the eddy_viscosity since strain_rate_tensor is nondimensional but filter_width is not
-//     //        --> Solution is to simply dimensionalize the strain_rate_tensor and do eddy_viscosity/free_stream_eddy_viscosity
-//     //        (3) Will also have to further compute the "scaled" eddy_viscosity wrt the free stream Reynolds number
-//     const std::array<dealii::Tensor<1,dim,real2>,dim> vel_gradient 
-//         = navier_stokes_physics.extract_velocities_gradient_from_primitive_solution_gradient(primitive_soln_gradient);
-//     const std::array<dealii::Tensor<1,dim,real2>,dim> strain_rate_tensor 
-//         = navier_stokes_physics.compute_strain_rate_tensor(vel_gradient);
+template <int dim, int nstate, typename real>
+LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE( 
+    const double                                              ref_length,
+    const double                                              gamma_gas,
+    const double                                              mach_inf,
+    const double                                              angle_of_attack,
+    const double                                              side_slip_angle,
+    const double                                              prandtl_number,
+    const double                                              reynolds_number_inf,
+    const double                                              turbulent_prandtl_number,
+    const double                                              model_constant,
+    const double                                              grid_spacing)
+    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(ref_length,
+                                                       gamma_gas,
+                                                       mach_inf,
+                                                       angle_of_attack,
+                                                       side_slip_angle,
+                                                       prandtl_number,
+                                                       reynolds_number_inf,
+                                                       turbulent_prandtl_number,
+                                                       model_constant,
+                                                       grid_spacing)
+{
+    // Nothing to do here so far
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+real LargeEddySimulation_WALE<dim,nstate,real>
+::compute_eddy_viscosity (
+    const std::array<real,nstate> &primitive_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const
+{
+    return compute_eddy_viscosity_templated<real>(primitive_soln,primitive_soln_gradient);
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+FadType LargeEddySimulation_WALE<dim,nstate,real>
+::compute_eddy_viscosity_Fad (
+    const std::array<FadType,nstate> &primitive_soln,
+    const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient) const
+{
+    return compute_eddy_viscosity_templated<FadType>(primitive_soln,primitive_soln_gradient);
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+template<typename real2>
+real2 LargeEddySimulation_WALE<dim,nstate,real>
+::compute_eddy_viscosity_templated (
+    const std::array<real2,nstate> &/*primitive_soln*/,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const
+{
+    // TO DO: (1) Define filter width and update CsDelta
+    //        (2) Figure out how to nondimensionalize the eddy_viscosity since strain_rate_tensor is nondimensional but filter_width is not
+    //        --> Solution is to simply dimensionalize the strain_rate_tensor and do eddy_viscosity/free_stream_eddy_viscosity
+    //        (3) Will also have to further compute the "scaled" eddy_viscosity wrt the free stream Reynolds number
+    const std::array<dealii::Tensor<1,dim,real2>,dim> vel_gradient 
+        = this->navier_stokes_physics->extract_velocities_gradient_from_primitive_solution_gradient(primitive_soln_gradient);
+    const std::array<dealii::Tensor<1,dim,real2>,dim> strain_rate_tensor 
+        = this->navier_stokes_physics->compute_strain_rate_tensor(vel_gradient);
     
-//     // Product of the model constant (Cs) and the filter width (delta)
-//     const real2 CwDelta = model_constant;//*filter_width;
-//     // Get deviatoric stresss tensor
-//     std::array<dealii::Tensor<1,dim,real2>,dim> g_sqr; // $g_{ij}^{2}$
-//     for (int i=0; i<dim; ++i) {
-//         for (int j=0; j<dim; ++j) {
+    // Product of the model constant (Cs) and the filter width (delta)
+    const real2 CwDelta = this->model_constant;//*filter_width;
+    // Get deviatoric stresss tensor
+    std::array<dealii::Tensor<1,dim,real2>,dim> g_sqr; // $g_{ij}^{2}$
+    for (int i=0; i<dim; ++i) {
+        for (int j=0; j<dim; ++j) {
             
-//             real2 val;if(std::is_same<real2,real>::value){val = 0.0;}
+            real2 val;if(std::is_same<real2,real>::value){val = 0.0;}
 
-//             for (int k=0; k<dim; ++k) {
-//                 val += vel_gradient[i][k]*vel_gradient[k][j];
-//             }
-//             g_sqr[i][j] = val;
-//         }
-//     }
-//     real2 val;if(std::is_same<real2,real>::value){val = 0.0;}
-//     for (int k=0; k<dim; ++k) {
-//         trace_g_sqr += g_sqr[k][k];
-//     }
-//     std::array<dealii::Tensor<1,dim,real2>,dim> deviatoric_strain_rate_tensor;
-//     for (int i=0; i<dim; ++i) {
-//         for (int j=0; j<dim; ++j) {
-//             deviatoric_strain_rate_tensor[i][j] = 0.5*(g_sqr[i][j]+g_sqr[j][i]);
-//         }
-//     }
-//     for (int k=0; k<dim; ++k) {
-//         deviatoric_strain_rate_tensor[k][k] += -(1.0/3.0)*trace_g_sqr;
-//     }
+            for (int k=0; k<dim; ++k) {
+                val += vel_gradient[i][k]*vel_gradient[k][j];
+            }
+            g_sqr[i][j] = val;
+        }
+    }
+    real2 trace_g_sqr;if(std::is_same<real2,real>::value){trace_g_sqr = 0.0;}
+    for (int k=0; k<dim; ++k) {
+        trace_g_sqr += g_sqr[k][k];
+    }
+    std::array<dealii::Tensor<1,dim,real2>,dim> deviatoric_strain_rate_tensor;
+    for (int i=0; i<dim; ++i) {
+        for (int j=0; j<dim; ++j) {
+            deviatoric_strain_rate_tensor[i][j] = 0.5*(g_sqr[i][j]+g_sqr[j][i]);
+        }
+    }
+    for (int k=0; k<dim; ++k) {
+        deviatoric_strain_rate_tensor[k][k] += -(1.0/3.0)*trace_g_sqr;
+    }
     
-//     // Get magnitude of strain_rate_tensor and deviatoric_strain_rate_tensor
-//     const real2 strain_rate_tensor_magnitude_sqr            = this->template get_tensor_magnitude_sqr<real2>(strain_rate_tensor);
-//     const real2 deviatoric_strain_rate_tensor_magnitude_sqr = this->template get_tensor_magnitude_sqr<real2>(deviatoric_strain_rate_tensor);
-//     // Compute the eddy viscosity
-//     const real2 eddy_viscosity = CwDelta*CwDelta*pow(deviatoric_strain_rate_tensor_magnitude_sqr,1.5)/(pow(strain_rate_tensor_magnitude_sqr,2.5) + pow(deviatoric_strain_rate_tensor_magnitude_sqr,1.25));
+    // Get magnitude of strain_rate_tensor and deviatoric_strain_rate_tensor
+    const real2 strain_rate_tensor_magnitude_sqr            = this->template get_tensor_magnitude_sqr<real2>(strain_rate_tensor);
+    const real2 deviatoric_strain_rate_tensor_magnitude_sqr = this->template get_tensor_magnitude_sqr<real2>(deviatoric_strain_rate_tensor);
+    // Compute the eddy viscosity
+    const real2 eddy_viscosity = CwDelta*CwDelta*pow(deviatoric_strain_rate_tensor_magnitude_sqr,1.5)/(pow(strain_rate_tensor_magnitude_sqr,2.5) + pow(deviatoric_strain_rate_tensor_magnitude_sqr,1.25));
 
-//     return eddy_viscosity;
-// }
+    return eddy_viscosity;
+}
 //----------------------------------------------------------------
 //----------------------------------------------------------------
 //----------------------------------------------------------------
@@ -356,11 +407,11 @@ template class LargeEddySimulation_Smagorinsky < PHILIP_DIM, PHILIP_DIM+2, RadTy
 template class LargeEddySimulation_Smagorinsky < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class LargeEddySimulation_Smagorinsky < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 // -- LargeEddySimulation_WALE
-// template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_DIM+2, double >;
-// template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
-// template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
-// template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
-// template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
+template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_DIM+2, double >;
+template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
+template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
+template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
+template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 
 //-------------------------------------------------------------------------------------
 // Templated members used by derived classes, defined in respective parent classes

@@ -576,6 +576,7 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionNavahBase<dim,real>
         }
         if(istate==4) {
             // transport of the turbulent working variable (twv)
+            const real twv = primitive_value(point,4);
             const dealii::Tensor<1,dim,real> twv_grad = primitive_gradient(point,4); // only used for RANS
             for(int d=0; d<dim; d++) {
                 gradient[d] = twv*rho_grad[d] + rho*twv_grad[d];

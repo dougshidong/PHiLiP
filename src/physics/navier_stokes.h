@@ -125,7 +125,7 @@ public:
      *        computed using automatic differentiation
 	 */
 	dealii::Tensor<2,nstate,real> dissipative_flux_directional_jacobian (
-        std::array<real,nstate> &conservative_soln,
+        const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::Tensor<1,dim,real> &normal) const;
 
@@ -134,7 +134,7 @@ public:
      *        computed using automatic differentiation
      */
     dealii::Tensor<2,nstate,real> dissipative_flux_directional_jacobian_wrt_gradient_component (
-        std::array<real,nstate> &conservative_soln,
+        const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::Tensor<1,dim,real> &normal,
         const int d_gradient) const;

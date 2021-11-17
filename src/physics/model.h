@@ -1,7 +1,7 @@
 #ifndef __MODEL__
 #define __MODEL__
 
-#include "large_eddy_simulation.h"
+#include <deal.II/base/tensor.h>
 
 namespace PHiLiP {
 namespace Physics {
@@ -13,6 +13,9 @@ class ModelBase
 public:
 	/// Constructor
 	ModelBase();
+
+    /// Virtual destructor required for abstract classes.
+    virtual ~ModelBase() = 0;
 
     /// Convective flux terms additional to the baseline physics
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> 

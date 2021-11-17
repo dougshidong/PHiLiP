@@ -8,11 +8,15 @@
 #include "euler.h"
 #include "navier_stokes.h"
 
+#include "physics_model.h"
+#include "physics_factory.h"
+
 namespace PHiLiP {
 namespace Physics {
 
 template <int dim, int nstate, typename real>
 PhysicsModel<dim, nstate, real>::PhysicsModel( 
+    const Parameters::AllParameters                              *const parameters_input,
     Parameters::AllParameters::PartialDifferentialEquation       baseline_physics_type,
     const int                                                    nstate_baseline_physics,
     /*std::unique_ptr< ModelBase<dim,nstate,real> >                physics_model_input,*/
@@ -21,10 +25,10 @@ PhysicsModel<dim, nstate, real>::PhysicsModel(
     : PhysicsBase<dim,nstate,real>(input_diffusion_tensor,manufactured_solution_function)
     , nstate_baseline_physics(nstate_baseline_physics)
     , n_model_equations(nstate-nstate_baseline_physics)
+    , physics_baseline(PhysicsFactory<dim,dim+2,real>::create_Physics(parameters_input, baseline_physics_type))
     //, model(model_input)
 {
-    // Creates the baseline physics
-    physics_baseline = PhysicsFactory<dim,real>::create_Physics(parameters_input, baseline_physics_type);
+    // nothing to do yet
 }
 
 template <int dim, int nstate, typename real>
@@ -32,13 +36,15 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real>
 ::convective_flux (const std::array<real,nstate> &conservative_soln) const
 {
     // Get baseline conservative solution with nstate_baseline_physics
-    std::array<real,nstate_baseline_physics> baseline_conservative_soln;
+    // std::array<real,nstate_baseline_physics> baseline_conservative_soln;
+    std::array<real,dim+2> baseline_conservative_soln;
     for(int s=0; s<nstate_baseline_physics; ++s){
         baseline_conservative_soln[s] = conservative_soln[s];
     }
 
     // Get baseline convective flux
-    std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_conv_flux
+    // std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_conv_flux
+    std::array<dealii::Tensor<1,dim,real>,dim+2> baseline_conv_flux
         = this->physics_baseline->convective_flux(baseline_conservative_soln);
 
     // Initialize conv_flux as the model convective flux
@@ -61,13 +67,15 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real>
     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const
 {
     // Get baseline conservative solution with nstate_baseline_physics
-    std::array<real,nstate_baseline_physics> baseline_conservative_soln;
+    // std::array<real,nstate_baseline_physics> baseline_conservative_soln;
+    std::array<real,dim+2> baseline_conservative_soln;
     for(int s=0; s<nstate_baseline_physics; ++s){
         baseline_conservative_soln[s] = conservative_soln[s];
     }
 
     // Get baseline conservative solution gradient with nstate_baseline_physics
-    std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_solution_gradient;
+    // std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_solution_gradient;
+    std::array<dealii::Tensor<1,dim,real>,dim+2> baseline_solution_gradient;
     for(int s=0; s<nstate_baseline_physics; ++s){
         for (int d=0; d<dim; ++d) {
             baseline_solution_gradient[s][d] = solution_gradient[s][d];
@@ -75,7 +83,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real>
     }
 
     // Get baseline dissipative flux
-    std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_diss_flux
+    // std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_diss_flux
+    std::array<dealii::Tensor<1,dim,real>,dim+2> baseline_diss_flux
         = this->physics_baseline->dissipative_flux(baseline_conservative_soln, baseline_solution_gradient);
 
     // Initialize diss_flux as the model dissipative flux
@@ -95,14 +104,15 @@ template <int dim, int nstate, typename real>
 std::array<real,nstate> PhysicsModel<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,
-    const std::array<real,nstate> &/*conservative_soln*/) const
+    const std::array<real,nstate> &conservative_soln) const
 {
     // Initialize source_term as the model source term
     std::array<real,nstate> source_term;// = this->model->source_term(pos);
     
     // Get the baseline physics source term
-    std::array<real,nstate_baseline_physics> baseline_source_term = this->physics_baseline->source_term(pos);
-    
+    // std::array<real,nstate_baseline_physics> baseline_source_term = this->physics_baseline->source_term(pos);
+    std::array<real,dim+2> baseline_source_term = this->physics_baseline->source_term(pos,conservative_soln);
+
     // Add the baseline_source_term terms to source_term
     for(int s=0; s<nstate_baseline_physics; ++s){
         source_term[s] += baseline_source_term[s];

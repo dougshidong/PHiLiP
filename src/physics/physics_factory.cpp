@@ -156,7 +156,7 @@ PhysicsFactory<dim,nstate,real>
     PDE_enum baseline_physics_type;
 
     // Number of states in the baseline physics
-    int nstate_baseline_physics;
+    // int nstate_baseline_physics;
     
     // model object for the additional terms and equations to the baseline physics  
     // TO DO: make this an input to create_Physics
@@ -166,9 +166,10 @@ PhysicsFactory<dim,nstate,real>
     // Large Eddy Simulation (LES)
     // -------------------------------------------------------------------------------
     if (model_type == Model_enum::large_eddy_simulation) {
+        if constexpr (nstate==dim+2) {
         // Assign baseline physics type (and corresponding nstates) based on the physics model type
         // -- Assign nstates for the baseline physics
-        nstate_baseline_physics = dim+2;
+        const int nstate_baseline_physics = dim+2;
         // -- Assign baseline physics type
         if(parameters_input->physics_model_param.euler_turbulence) {
             baseline_physics_type = PDE_enum::euler;
@@ -200,19 +201,19 @@ PhysicsFactory<dim,nstate,real>
         // model = nullptr;
 
         // Create the physics model object in physics
-        if constexpr (nstate==dim+2) {
-            return std::make_shared < PhysicsModel<dim,nstate,real> > (
-                    baseline_physics_type,
-                    nstate_baseline_physics,
-                    /*nullptr,*/
-                    diffusion_tensor, 
-                    manufactured_solution_function);   
+        return std::make_shared < PhysicsModel<dim,nstate,real> > (
+                parameters_input,
+                baseline_physics_type,
+                nstate_baseline_physics,
+                /*nullptr,*/
+                diffusion_tensor, 
+                manufactured_solution_function);
         }
     } else {
         // prevent warnings for dim=3,nstate=4, etc.
         (void) diffusion_tensor;
         (void) baseline_physics_type;
-        (void) nstate_baseline_physics;
+        // (void) nstate_baseline_physics;
     }    
     std::cout << "Can't create PhysicsModel, invalid ModelType type: " << model_type << std::endl;
     assert(0==1 && "Can't create PhysicsModel, invalid ModelType type");

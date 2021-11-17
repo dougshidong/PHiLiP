@@ -25,11 +25,14 @@ public:
         const double                                              reynolds_number_inf,
         const double                                              turbulent_prandtl_number);
 
-    /// Navier-Stokes physics object
-    NavierStokes<dim,dim+2,real>  navier_stokes_physics;
+    /// Destructor
+    ~LargeEddySimulationBase() {};
 
-	/// Turbulent Prandtl number
-	const double turbulent_prandtl_number;
+    /// Turbulent Prandtl number
+    const double turbulent_prandtl_number;
+
+    /// Pointer to Navier-Stokes physics object
+    std::unique_ptr< NavierStokes<dim,nstate,real> > navier_stokes_physics;
 
     /// Convective flux: \f$ \mathbf{F}_{conv} \f$
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
@@ -61,10 +64,10 @@ protected:
     real2 get_tensor_magnitude_sqr (const std::array<dealii::Tensor<1,dim,real2>,dim> &tensor) const;
 
     /// Templated dissipative (i.e. viscous) flux: \f$ \mathbf{F}_{diss} \f$ 
-    template<typename real2>
-    std::array<dealii::Tensor<1,dim,real2>,nstate> dissipative_flux_templated (
-        const std::array<real2,nstate> &conservative_soln,
-        const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const;
+    // template<typename real2>
+    // std::array<dealii::Tensor<1,dim,real2>,nstate> dissipative_flux_templated (
+    //     const std::array<real2,nstate> &conservative_soln,
+    //     const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const;
 };
 
 /// Smagorinsky eddy viscosity model. Derived from Large Eddy Simulation.
@@ -88,13 +91,16 @@ public:
         const double                                              model_constant,
         const double                                              grid_spacing);
 
+    const double model_constant;
+    const double grid_spacing;
+
     /// Nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)*
     std::array<dealii::Tensor<1,dim,real>,dim> compute_SGS_stress_tensor (
         const std::array<real,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
 
     /// Nondimensionalized sub-grid scale (SGS) heat flux, (q^sgs)* 
-    std::array<dealii::Tensor<1,dim,real>,dim> compute_SGS_heat_flux (
+    dealii::Tensor<1,dim,real> compute_SGS_heat_flux (
         const std::array<real,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
 
@@ -122,32 +128,32 @@ protected:
 };
 
 /// WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model. Derived from LargeEddySimulation_Smagorinsky for only modifying compute_eddy_viscosity.
-template <int dim, int nstate, typename real>
-class LargeEddySimulation_WALE : public LargeEddySimulation_Smagorinsky <dim, nstate, real>
-{
-public:
-    /** Constructor for the sub-grid scale (SGS) model: Smagorinsky
-     *  More details...
-     *  Reference: Nicoud & Ducros (1999) "Subgrid-scale stress modelling based on the square of the velocity gradient tensor"
-     */
-    LargeEddySimulation_WALE( 
-        const double                                    model_constant,
-        std::shared_ptr< PhysicsBase<dim,dim+2,real> >  navier_stokes_physics_input,
-        const double                                    turbulent_prandtl_number);
+// template <int dim, int nstate, typename real>
+// class LargeEddySimulation_WALE : public LargeEddySimulation_Smagorinsky <dim, nstate, real>
+// {
+// public:
+//     /** Constructor for the sub-grid scale (SGS) model: Smagorinsky
+//      *  More details...
+//      *  Reference: Nicoud & Ducros (1999) "Subgrid-scale stress modelling based on the square of the velocity gradient tensor"
+//      */
+//     LargeEddySimulation_WALE( 
+//         const double                                    model_constant,
+//         std::shared_ptr< PhysicsBase<dim,dim+2,real> >  navier_stokes_physics_input,
+//         const double                                    turbulent_prandtl_number);
 
-    /** Eddy viscosity for the WALE model. 
-     *  Reference: Nicoud & Ducros (1999) "Subgrid-scale stress modelling based on the square of the velocity gradient tensor"
-     */
-    real compute_eddy_viscosity(
-        const std::array<real,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const override;
+//     /** Eddy viscosity for the WALE model. 
+//      *  Reference: Nicoud & Ducros (1999) "Subgrid-scale stress modelling based on the square of the velocity gradient tensor"
+//      */
+//     real compute_eddy_viscosity(
+//         const std::array<real,nstate> &primitive_soln,
+//         const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const override;
 
-protected:
-    /// Templated eddy viscosity
-    template<typename real2> real2 compute_eddy_viscosity_templated(
-        const std::array<real2,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
-};
+// protected:
+//     /// Templated eddy viscosity
+//     template<typename real2> real2 compute_eddy_viscosity_templated(
+//         const std::array<real2,nstate> &primitive_soln,
+//         const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
+// };
 
 } // Physics namespace
 } // PHiLiP namespace

@@ -2,6 +2,7 @@
 #define __PHYSICS_MODEL__
 
 /// Files for the baseline physics
+#include "physics.h"
 #include "navier_stokes.h"
 //#include "model/model.h"
 
@@ -15,6 +16,7 @@ class PhysicsModel : public PhysicsBase <dim, nstate, real>
 public:
     /// Constructor
     PhysicsModel(
+        const Parameters::AllParameters                              *const parameters_input,
         Parameters::AllParameters::PartialDifferentialEquation       baseline_physics_type,
         const int                                                    nstate_baseline_physics,
         /*std::unique_ptr< ModelBase<dim,nstate,real> >                model_input,*/
@@ -22,10 +24,10 @@ public:
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function);
 
     /// Number of states in for the corresponding baseline physics
-    int nstate_baseline_physics;
+    const int nstate_baseline_physics;
 
     /// Number of model equations (i.e. those additional to the baseline physics)
-    int n_model_equations;
+    const int n_model_equations;
 
     /// Model object -- TO DO: Uncomment later
     // std::unique_ptr< ModelBase<dim,nstate,real> > model;
@@ -45,7 +47,7 @@ public:
     /// Source term that does not require differentiation.
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &solution) const;
+        const std::array<real,nstate> &conservative_soln) const;
 
     //===========================================================================================
     // All other functions required by PhysicsBase:

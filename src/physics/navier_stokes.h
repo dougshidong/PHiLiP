@@ -65,11 +65,13 @@ public:
     template<typename real2>
     real2 compute_scaled_viscosity_coefficient (const std::array<real2,nstate> &primitive_soln) const;
 
-    /** Scaled nondimensionalized heat conductivity, hat{kappa*}, given scaled nondimensionalized viscosity coefficient
+    /** Scaled nondimensionalized heat conductivity, hat{kappa*}, given scaled nondimensionalized viscosity coefficient and Prandtl number
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.13)
      */
     template<typename real2>
-    real2 compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient (const real2 scaled_viscosity_coefficient) const;
+    real2 compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient_and_prandtl_number (
+        const real2 scaled_viscosity_coefficient, 
+        const double prandtl_number_input) const;
 
     /** Scaled nondimensionalized heat conductivity, hat{kappa*}
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.13)

@@ -415,6 +415,19 @@ real2 LargeEddySimulation_Smagorinsky<dim,nstate,real>
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
+template<typename real2>
+real2 LargeEddySimulation_Smagorinsky<dim,nstate,real>
+::scale_eddy_viscosity_templated (
+    const std::array<real2,nstate> &primitive_soln,
+    const real2 eddy_viscosity) const
+{
+    // Scaled non-dimensional eddy viscosity; See Plata 2019, Computers and Fluids, Eq.(12)
+    const real2 scaled_eddy_viscosity = primitive_soln[0]*eddy_viscosity;
+
+    return scaled_eddy_viscosity;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
 dealii::Tensor<1,dim,real> LargeEddySimulation_Smagorinsky<dim,nstate,real>
 ::compute_SGS_heat_flux (
     const std::array<real,nstate> &primitive_soln,
@@ -438,18 +451,25 @@ dealii::Tensor<1,dim,real2> LargeEddySimulation_Smagorinsky<dim,nstate,real>
 ::compute_SGS_heat_flux_templated (
     const std::array<real2,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const
-{
-    // TO DO: call/create the appropriate function in NavierStokes
-    //        ** will have to non-dimensionalize the coefficient or dimensionalize NS then non-dimensionalize after...
-    
-    // Compute eddy viscosity (nondimensionalized)
-    const real2 eddy_viscosity = compute_eddy_viscosity_templated<real2>(primitive_soln,primitive_soln_gradient);
+{   
+    // Compute non-dimensional eddy viscosity; See Plata 2019, Computers and Fluids, Eq.(12)
+    real2 eddy_viscosity;
+    if constexpr(std::is_same<real2,real>::value){ 
+        eddy_viscosity = compute_eddy_viscosity(primitive_soln,primitive_soln_gradient);
+    }
+    else if constexpr(std::is_same<real2,FadType>::value){ 
+        eddy_viscosity = compute_eddy_viscosity_Fad(primitive_soln,primitive_soln_gradient);
+    }
+    else{
+        std::cout << "ERROR in physics/large_eddy_simulation.cpp --> compute_SGS_heat_flux_templated(): real2 != real or FadType" << std::endl;
+        std::abort();
+    }
 
-    // Scale eddy_viscosity
-    const real2 scaled_eddy_viscosity = this->navier_stokes_physics->scale_viscosity_coefficient(eddy_viscosity);
+    // Scaled non-dimensional eddy viscosity; See Plata 2019, Computers and Fluids, Eq.(12)
+    const real2 scaled_eddy_viscosity = scale_eddy_viscosity_templated<real2>(primitive_soln,eddy_viscosity);
 
     // Compute scaled heat conductivity
-    const real2 scaled_heat_conductivity = this->navier_stokes_physics->compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient(scaled_eddy_viscosity);
+    const real2 scaled_heat_conductivity = this->navier_stokes_physics->compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient_and_prandtl_number(scaled_eddy_viscosity,this->turbulent_prandtl_number);
 
     // Get temperature gradient
     const dealii::Tensor<1,dim,real2> temperature_gradient = this->navier_stokes_physics->compute_temperature_gradient(primitive_soln, primitive_soln_gradient);
@@ -485,10 +505,21 @@ std::array<dealii::Tensor<1,dim,real2>,dim> LargeEddySimulation_Smagorinsky<dim,
     const std::array<real2,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const
 {
-    // TO DO: Simplify this / reduce repition of code -- create appropriate member fxns in NavierStokes
-
-    // Compute eddy viscosity
-    const real2 eddy_viscosity = compute_eddy_viscosity_templated<real2>(primitive_soln,primitive_soln_gradient);
+    // Compute non-dimensional eddy viscosity; See Plata 2019, Computers and Fluids, Eq.(12)
+    real2 eddy_viscosity;
+    if constexpr(std::is_same<real2,real>::value){ 
+        eddy_viscosity = compute_eddy_viscosity(primitive_soln,primitive_soln_gradient);
+    }
+    else if constexpr(std::is_same<real2,FadType>::value){ 
+        eddy_viscosity = compute_eddy_viscosity_Fad(primitive_soln,primitive_soln_gradient);
+    }
+    else{
+        std::cout << "ERROR in physics/large_eddy_simulation.cpp --> compute_SGS_stress_tensor_templated(): real2 != real or FadType" << std::endl;
+        std::abort();
+    }
+    
+    // Scaled non-dimensional eddy viscosity; See Plata 2019, Computers and Fluids, Eq.(12)
+    const real2 scaled_eddy_viscosity = scale_eddy_viscosity_templated<real2>(primitive_soln,eddy_viscosity);
 
     // Get velocity gradients
     const std::array<dealii::Tensor<1,dim,real2>,dim> vel_gradient 
@@ -500,7 +531,7 @@ std::array<dealii::Tensor<1,dim,real2>,dim> LargeEddySimulation_Smagorinsky<dim,
 
     // Compute the SGS stress tensor via the eddy_viscosity and the strain rate tensor
     std::array<dealii::Tensor<1,dim,real2>,dim> SGS_stress_tensor;
-    SGS_stress_tensor = this->navier_stokes_physics->compute_viscous_stress_tensor_via_viscosity_and_strain_rate_tensor(eddy_viscosity,strain_rate_tensor);
+    SGS_stress_tensor = this->navier_stokes_physics->compute_viscous_stress_tensor_via_viscosity_and_strain_rate_tensor(scaled_eddy_viscosity,strain_rate_tensor);
 
     return SGS_stress_tensor;
 }

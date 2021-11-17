@@ -181,6 +181,12 @@ protected:
         const std::array<real2,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
 
+    /// Templated scale nondimensionalized eddy viscosity for Smagorinsky model
+    template<typename real2> real2 scale_eddy_viscosity_templated(
+        const std::array<real2,nstate> &primitive_soln,
+        const real2 eddy_viscosity) const;
+
+private:
     /// Templated nondimensionalized eddy viscosity for the Smagorinsky model.
     template<typename real2> real2 compute_eddy_viscosity_templated(
         const std::array<real2,nstate> &primitive_soln,
@@ -224,7 +230,7 @@ public:
         const std::array<FadType,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient) const override;
 
-protected:
+private:
     /// Templated nondimensionalized eddy viscosity for the WALE model.
     template<typename real2> real2 compute_eddy_viscosity_templated(
         const std::array<real2,nstate> &primitive_soln,

@@ -120,6 +120,15 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> LargeEddySimulationBase<dim,nstat
     // Step 4: Construct viscous flux; Note: sign corresponds to LHS
     std::array<dealii::Tensor<1,dim,real2>,nstate> viscous_flux
         = this->navier_stokes_physics->dissipative_flux_given_velocities_viscous_stress_tensor_and_heat_flux(vel,viscous_stress_tensor,heat_flux);
+
+    // Step 5: Correct sign to RHS (for model term)
+    for(int s=0;s<nstate;++s)
+    {
+        for(int d=0;d<dim;++d)
+        {
+            viscous_flux[s][d] = -viscous_flux[s][d]; 
+        }
+    }
     
     return viscous_flux;
 }

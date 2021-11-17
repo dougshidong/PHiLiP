@@ -436,13 +436,27 @@ template <int dim, int nstate, typename real>
 template<typename real2>
 dealii::Tensor<1,dim,real2> LargeEddySimulation_Smagorinsky<dim,nstate,real>
 ::compute_SGS_heat_flux_templated (
-    const std::array<real2,nstate> &/*primitive_soln*/,
-    const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*primitive_soln_gradient*/) const
+    const std::array<real2,nstate> &primitive_soln,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const
 {
     // TO DO: call/create the appropriate function in NavierStokes
     //        ** will have to non-dimensionalize the coefficient or dimensionalize NS then non-dimensionalize after...
-    dealii::Tensor<1,dim,real2> heat_flux_SGS;
-    // this->navier_stokes_physics->template 
+    
+    // Compute eddy viscosity (nondimensionalized)
+    const real2 eddy_viscosity = compute_eddy_viscosity_templated<real2>(primitive_soln,primitive_soln_gradient);
+
+    // Scale eddy_viscosity
+    const real2 scaled_eddy_viscosity = this->navier_stokes_physics->scale_viscosity_coefficient(eddy_viscosity);
+
+    // Compute scaled heat conductivity
+    const real2 scaled_heat_conductivity = this->navier_stokes_physics->compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient(scaled_eddy_viscosity);
+
+    // Get temperature gradient
+    const dealii::Tensor<1,dim,real2> temperature_gradient = this->navier_stokes_physics->compute_temperature_gradient(primitive_soln, primitive_soln_gradient);
+
+    // Compute the SGS stress tensor via the eddy_viscosity and the strain rate tensor
+    dealii::Tensor<1,dim,real2> heat_flux_SGS = this->navier_stokes_physics->compute_heat_flux_given_scaled_heat_conductivity_and_temperature_gradient(scaled_heat_conductivity,temperature_gradient);
+
     return heat_flux_SGS;
 }
 //----------------------------------------------------------------

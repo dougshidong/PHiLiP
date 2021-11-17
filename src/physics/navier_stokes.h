@@ -53,11 +53,23 @@ public:
     template<typename real2>
     real2 compute_viscosity_coefficient (const std::array<real2,nstate> &primitive_soln) const;
 
+    /** Scaled nondimensionalized viscosity coefficient, hat{mu*}, given nondimensionalized viscosity coefficient
+     *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.14)
+     */
+    template<typename real2>
+    real2 scale_viscosity_coefficient (const real2 viscosity_coefficient) const;
+
     /** Scaled nondimensionalized viscosity coefficient, hat{mu*} 
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.14)
      */
     template<typename real2>
     real2 compute_scaled_viscosity_coefficient (const std::array<real2,nstate> &primitive_soln) const;
+
+    /** Scaled nondimensionalized heat conductivity, hat{kappa*}, given scaled nondimensionalized viscosity coefficient
+     *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.13)
+     */
+    template<typename real2>
+    real2 compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient (const real2 scaled_viscosity_coefficient) const;
 
     /** Scaled nondimensionalized heat conductivity, hat{kappa*}
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.13)
@@ -72,6 +84,14 @@ public:
     dealii::Tensor<1,dim,real2> compute_heat_flux (
     	const std::array<real2,nstate> &primitive_soln,
     	const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
+
+    /** Nondimensionalized heat flux, q*, given the scaled heat conductivity and temperature gradient
+     *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.13)
+     */
+    template<typename real2>
+    dealii::Tensor<1,dim,real2> compute_heat_flux_given_scaled_heat_conductivity_and_temperature_gradient (
+        const real2 scaled_heat_conductivity,
+        const dealii::Tensor<1,dim,real2> &temperature_gradient) const;
 
     /** Extract gradient of velocities */
     template<typename real2>

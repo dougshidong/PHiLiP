@@ -114,17 +114,43 @@ inline real2 NavierStokes<dim,nstate,real>
 template <int dim, int nstate, typename real>
 template<typename real2>
 inline real2 NavierStokes<dim,nstate,real>
+::scale_viscosity_coefficient (const real2 viscosity_coefficient) const
+{
+    /* Scaled nondimensionalized viscosity coefficient, $\hat{\mu}^{*}$
+     * Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.14)
+     */
+    const real2 scaled_viscosity_coefficient = viscosity_coefficient/reynolds_number_inf;
+    // print the value for Re
+    // std::cout << "\n Reynolds number inside compute_scaled_viscosity_coefficient(): " << reynolds_number_inf << "\n" << std::endl;
+
+    return scaled_viscosity_coefficient;
+}
+
+template <int dim, int nstate, typename real>
+template<typename real2>
+inline real2 NavierStokes<dim,nstate,real>
 ::compute_scaled_viscosity_coefficient (const std::array<real2,nstate> &primitive_soln) const
 {
     /* Scaled nondimensionalized viscosity coefficient, $\hat{\mu}^{*}$
      * Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.14)
      */
     const real2 viscosity_coefficient = compute_viscosity_coefficient<real2>(primitive_soln);
-    const real2 scaled_viscosity_coefficient = viscosity_coefficient/reynolds_number_inf;
-    // print the value for Re
-    // std::cout << "\n Reynolds number inside compute_scaled_viscosity_coefficient(): " << reynolds_number_inf << "\n" << std::endl;
+    const real2 scaled_viscosity_coefficient = scale_viscosity_coefficient(viscosity_coefficient);
 
     return scaled_viscosity_coefficient;
+}
+
+template <int dim, int nstate, typename real>
+template<typename real2>
+inline real2 NavierStokes<dim,nstate,real>
+::compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient (const real2 scaled_viscosity_coefficient) const
+{
+    /* Scaled nondimensionalized heat conductivity, $\hat{\kappa}^{*}$
+     * Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.13)
+     */
+    const real2 scaled_heat_conductivity = scaled_viscosity_coefficient/(this->gamm1*this->mach_inf_sqr*prandtl_number);
+    
+    return scaled_heat_conductivity;
 }
 
 template <int dim, int nstate, typename real>
@@ -137,7 +163,7 @@ inline real2 NavierStokes<dim,nstate,real>
      */
     const real2 scaled_viscosity_coefficient = compute_scaled_viscosity_coefficient<real2>(primitive_soln);
 
-    const real2 scaled_heat_conductivity = scaled_viscosity_coefficient/(this->gamm1*this->mach_inf_sqr*prandtl_number);
+    const real2 scaled_heat_conductivity = compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient(scaled_viscosity_coefficient);
     
     return scaled_heat_conductivity;
 }
@@ -154,7 +180,21 @@ dealii::Tensor<1,dim,real2> NavierStokes<dim,nstate,real>
      */
     const real2 scaled_heat_conductivity = compute_scaled_heat_conductivity<real2>(primitive_soln);
     const dealii::Tensor<1,dim,real2> temperature_gradient = compute_temperature_gradient<real2>(primitive_soln, primitive_soln_gradient);
+    // Compute the heat flux
+    const dealii::Tensor<1,dim,real2> heat_flux = compute_heat_flux_given_scaled_heat_conductivity_and_temperature_gradient<real2>(scaled_heat_conductivity,temperature_gradient);
+    return heat_flux;
+}
 
+template <int dim, int nstate, typename real>
+template<typename real2>
+dealii::Tensor<1,dim,real2> NavierStokes<dim,nstate,real>
+::compute_heat_flux_given_scaled_heat_conductivity_and_temperature_gradient (
+    const real2 scaled_heat_conductivity,
+    const dealii::Tensor<1,dim,real2> &temperature_gradient) const
+{
+    /* Nondimensionalized heat flux, $\bm{q}^{*}$
+     * Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.13)
+     */
     dealii::Tensor<1,dim,real2> heat_flux;
     for (int d=0; d<dim; d++) {
         heat_flux[d] = -scaled_heat_conductivity*temperature_gradient[d];
@@ -753,6 +793,52 @@ template std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> Navier
 template std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadType   >::convert_conservative_gradient_to_primitive_gradient<FadType   >(const std::array<FadType   ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &conservative_soln_gradient) const;
 template std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadFadType>::convert_conservative_gradient_to_primitive_gradient<FadType   >(const std::array<FadType   ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &conservative_soln_gradient) const;
 template std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadFadType>::convert_conservative_gradient_to_primitive_gradient<FadType   >(const std::array<FadType   ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &conservative_soln_gradient) const;
+// -- compute_heat_flux_given_scaled_heat_conductivity_and_temperature_gradient()
+template dealii::Tensor<1,PHILIP_DIM,double    > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,double    >::compute_heat_flux_given_scaled_heat_conductivity_and_temperature_gradient<double    > (const double     scaled_heat_conductivity, const dealii::Tensor<1,PHILIP_DIM,double    > &temperature_gradient) const;
+template dealii::Tensor<1,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadType   >::compute_heat_flux_given_scaled_heat_conductivity_and_temperature_gradient<FadType   > (const FadType    scaled_heat_conductivity, const dealii::Tensor<1,PHILIP_DIM,FadType   > &temperature_gradient) const;
+template dealii::Tensor<1,PHILIP_DIM,RadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadType   >::compute_heat_flux_given_scaled_heat_conductivity_and_temperature_gradient<RadType   > (const RadType    scaled_heat_conductivity, const dealii::Tensor<1,PHILIP_DIM,RadType   > &temperature_gradient) const;
+template dealii::Tensor<1,PHILIP_DIM,FadFadType> NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadFadType>::compute_heat_flux_given_scaled_heat_conductivity_and_temperature_gradient<FadFadType> (const FadFadType scaled_heat_conductivity, const dealii::Tensor<1,PHILIP_DIM,FadFadType> &temperature_gradient) const;
+template dealii::Tensor<1,PHILIP_DIM,RadFadType> NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadFadType>::compute_heat_flux_given_scaled_heat_conductivity_and_temperature_gradient<RadFadType> (const RadFadType scaled_heat_conductivity, const dealii::Tensor<1,PHILIP_DIM,RadFadType> &temperature_gradient) const;
+// -- -- instantiate all the real types with real2 = FadType for automatic differentiation in classes derived from LargeEddySimulationBase
+template dealii::Tensor<1,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,double    >::compute_heat_flux_given_scaled_heat_conductivity_and_temperature_gradient<FadType   > (const FadType    scaled_heat_conductivity, const dealii::Tensor<1,PHILIP_DIM,FadType   > &temperature_gradient) const;
+template dealii::Tensor<1,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadType   >::compute_heat_flux_given_scaled_heat_conductivity_and_temperature_gradient<FadType   > (const FadType    scaled_heat_conductivity, const dealii::Tensor<1,PHILIP_DIM,FadType   > &temperature_gradient) const;
+template dealii::Tensor<1,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadFadType>::compute_heat_flux_given_scaled_heat_conductivity_and_temperature_gradient<FadType   > (const FadType    scaled_heat_conductivity, const dealii::Tensor<1,PHILIP_DIM,FadType   > &temperature_gradient) const;
+template dealii::Tensor<1,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadFadType>::compute_heat_flux_given_scaled_heat_conductivity_and_temperature_gradient<FadType   > (const FadType    scaled_heat_conductivity, const dealii::Tensor<1,PHILIP_DIM,FadType   > &temperature_gradient) const;
+// -- scale_viscosity_coefficient()
+template double     NavierStokes<PHILIP_DIM,PHILIP_DIM+2,double    >::scale_viscosity_coefficient<double    > (const double     viscosity_coefficient) const;
+template FadType    NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadType   >::scale_viscosity_coefficient<FadType   > (const FadType    viscosity_coefficient) const;
+template RadType    NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadType   >::scale_viscosity_coefficient<RadType   > (const RadType    viscosity_coefficient) const;
+template FadFadType NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadFadType>::scale_viscosity_coefficient<FadFadType> (const FadFadType viscosity_coefficient) const;
+template RadFadType NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadFadType>::scale_viscosity_coefficient<RadFadType> (const RadFadType viscosity_coefficient) const;
+// -- -- instantiate all the real types with real2 = FadType for automatic differentiation in classes derived from LargeEddySimulationBase
+template FadType    NavierStokes<PHILIP_DIM,PHILIP_DIM+2,double    >::scale_viscosity_coefficient<FadType   > (const FadType    viscosity_coefficient) const;
+template FadType    NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadType   >::scale_viscosity_coefficient<FadType   > (const FadType    viscosity_coefficient) const;
+template FadType    NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadFadType>::scale_viscosity_coefficient<FadType   > (const FadType    viscosity_coefficient) const;
+template FadType    NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadFadType>::scale_viscosity_coefficient<FadType   > (const FadType    viscosity_coefficient) const;
+// -- compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient()
+template double     NavierStokes<PHILIP_DIM,PHILIP_DIM+2,double    >::compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient<double    > (const double     scaled_viscosity_coefficient) const;
+template FadType    NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadType   >::compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient<FadType   > (const FadType    scaled_viscosity_coefficient) const;
+template RadType    NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadType   >::compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient<RadType   > (const RadType    scaled_viscosity_coefficient) const;
+template FadFadType NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadFadType>::compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient<FadFadType> (const FadFadType scaled_viscosity_coefficient) const;
+template RadFadType NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadFadType>::compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient<RadFadType> (const RadFadType scaled_viscosity_coefficient) const;
+// -- -- instantiate all the real types with real2 = FadType for automatic differentiation in classes derived from LargeEddySimulationBase
+template FadType    NavierStokes<PHILIP_DIM,PHILIP_DIM+2,double    >::compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient<FadType   > (const FadType    scaled_viscosity_coefficient) const;
+template FadType    NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadType   >::compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient<FadType   > (const FadType    scaled_viscosity_coefficient) const;
+template FadType    NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadFadType>::compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient<FadType   > (const FadType    scaled_viscosity_coefficient) const;
+template FadType    NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadFadType>::compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient<FadType   > (const FadType    scaled_viscosity_coefficient) const;
+// -- compute_temperature_gradient()
+template dealii::Tensor<1,PHILIP_DIM,double    > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,double    >::compute_temperature_gradient<double    >(const std::array<double    ,PHILIP_DIM+2> &primitive_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,double    >,PHILIP_DIM+2> &primitive_soln_gradient) const;
+template dealii::Tensor<1,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadType   >::compute_temperature_gradient<FadType   >(const std::array<FadType   ,PHILIP_DIM+2> &primitive_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &primitive_soln_gradient) const;
+template dealii::Tensor<1,PHILIP_DIM,RadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadType   >::compute_temperature_gradient<RadType   >(const std::array<RadType   ,PHILIP_DIM+2> &primitive_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,RadType   >,PHILIP_DIM+2> &primitive_soln_gradient) const;
+template dealii::Tensor<1,PHILIP_DIM,FadFadType> NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadFadType>::compute_temperature_gradient<FadFadType>(const std::array<FadFadType,PHILIP_DIM+2> &primitive_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadFadType>,PHILIP_DIM+2> &primitive_soln_gradient) const;
+template dealii::Tensor<1,PHILIP_DIM,RadFadType> NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadFadType>::compute_temperature_gradient<RadFadType>(const std::array<RadFadType,PHILIP_DIM+2> &primitive_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,RadFadType>,PHILIP_DIM+2> &primitive_soln_gradient) const;
+// -- -- instantiate all the real types with real2 = FadType for automatic differentiation in classes derived from LargeEddySimulationBase
+template dealii::Tensor<1,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,double    >::compute_temperature_gradient<FadType   >(const std::array<FadType   ,PHILIP_DIM+2> &primitive_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &primitive_soln_gradient) const;
+template dealii::Tensor<1,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadType   >::compute_temperature_gradient<FadType   >(const std::array<FadType   ,PHILIP_DIM+2> &primitive_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &primitive_soln_gradient) const;
+template dealii::Tensor<1,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadFadType>::compute_temperature_gradient<FadType   >(const std::array<FadType   ,PHILIP_DIM+2> &primitive_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &primitive_soln_gradient) const;
+template dealii::Tensor<1,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadFadType>::compute_temperature_gradient<FadType   >(const std::array<FadType   ,PHILIP_DIM+2> &primitive_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &primitive_soln_gradient) const;
+
+
 //==============================================================================
 >>>>>>> Debugging progress backup
 

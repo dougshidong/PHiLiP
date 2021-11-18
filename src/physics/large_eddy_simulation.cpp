@@ -109,8 +109,8 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> LargeEddySimulationBase<dim,nstat
         heat_flux = compute_SGS_heat_flux(primitive_soln, primitive_soln_gradient);
     }
     else if constexpr(std::is_same<real2,FadType>::value){ 
-        viscous_stress_tensor = compute_SGS_stress_tensor_Fad(primitive_soln, primitive_soln_gradient);
-        heat_flux = compute_SGS_heat_flux_Fad(primitive_soln, primitive_soln_gradient);
+        viscous_stress_tensor = compute_SGS_stress_tensor_fad(primitive_soln, primitive_soln_gradient);
+        heat_flux = compute_SGS_heat_flux_fad(primitive_soln, primitive_soln_gradient);
     }
     else{
         std::cout << "ERROR in physics/large_eddy_simulation.cpp --> dissipative_flux_templated(): real2 != real or FadType" << std::endl;
@@ -390,7 +390,7 @@ real LargeEddySimulation_Smagorinsky<dim,nstate,real>
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 FadType LargeEddySimulation_Smagorinsky<dim,nstate,real>
-::compute_eddy_viscosity_Fad (
+::compute_eddy_viscosity_fad (
     const std::array<FadType,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient) const
 {
@@ -447,7 +447,7 @@ dealii::Tensor<1,dim,real> LargeEddySimulation_Smagorinsky<dim,nstate,real>
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 dealii::Tensor<1,dim,FadType> LargeEddySimulation_Smagorinsky<dim,nstate,real>
-::compute_SGS_heat_flux_Fad (
+::compute_SGS_heat_flux_fad (
     const std::array<FadType,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient) const
 {
@@ -467,7 +467,7 @@ dealii::Tensor<1,dim,real2> LargeEddySimulation_Smagorinsky<dim,nstate,real>
         eddy_viscosity = compute_eddy_viscosity(primitive_soln,primitive_soln_gradient);
     }
     else if constexpr(std::is_same<real2,FadType>::value){ 
-        eddy_viscosity = compute_eddy_viscosity_Fad(primitive_soln,primitive_soln_gradient);
+        eddy_viscosity = compute_eddy_viscosity_fad(primitive_soln,primitive_soln_gradient);
     }
     else{
         std::cout << "ERROR in physics/large_eddy_simulation.cpp --> compute_SGS_heat_flux_templated(): real2 != real or FadType" << std::endl;
@@ -500,7 +500,7 @@ std::array<dealii::Tensor<1,dim,real>,dim> LargeEddySimulation_Smagorinsky<dim,n
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,FadType>,dim> LargeEddySimulation_Smagorinsky<dim,nstate,real>
-::compute_SGS_stress_tensor_Fad (
+::compute_SGS_stress_tensor_fad (
     const std::array<FadType,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient) const
 {
@@ -520,7 +520,7 @@ std::array<dealii::Tensor<1,dim,real2>,dim> LargeEddySimulation_Smagorinsky<dim,
         eddy_viscosity = compute_eddy_viscosity(primitive_soln,primitive_soln_gradient);
     }
     else if constexpr(std::is_same<real2,FadType>::value){ 
-        eddy_viscosity = compute_eddy_viscosity_Fad(primitive_soln,primitive_soln_gradient);
+        eddy_viscosity = compute_eddy_viscosity_fad(primitive_soln,primitive_soln_gradient);
     }
     else{
         std::cout << "ERROR in physics/large_eddy_simulation.cpp --> compute_SGS_stress_tensor_templated(): real2 != real or FadType" << std::endl;
@@ -589,7 +589,7 @@ real LargeEddySimulation_WALE<dim,nstate,real>
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 FadType LargeEddySimulation_WALE<dim,nstate,real>
-::compute_eddy_viscosity_Fad (
+::compute_eddy_viscosity_fad (
     const std::array<FadType,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient) const
 {

@@ -61,12 +61,12 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const = 0;
 
     /// Nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)* (Automatic Differentiation Type: FadType)
-    virtual std::array<dealii::Tensor<1,dim,FadType>,dim> compute_SGS_stress_tensor_Fad (
+    virtual std::array<dealii::Tensor<1,dim,FadType>,dim> compute_SGS_stress_tensor_fad (
         const std::array<FadType,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient) const = 0;
 
     /// Nondimensionalized sub-grid scale (SGS) heat flux, (q^sgs)* (Automatic Differentiation Type: FadType)
-    virtual dealii::Tensor<1,dim,FadType> compute_SGS_heat_flux_Fad (
+    virtual dealii::Tensor<1,dim,FadType> compute_SGS_heat_flux_fad (
         const std::array<FadType,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient) const = 0;
 
@@ -150,12 +150,12 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
 
     /// Nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)* (Automatic Differentiation Type: FadType)
-    std::array<dealii::Tensor<1,dim,FadType>,dim> compute_SGS_stress_tensor_Fad (
+    std::array<dealii::Tensor<1,dim,FadType>,dim> compute_SGS_stress_tensor_fad (
         const std::array<FadType,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient) const;
 
     /// Nondimensionalized sub-grid scale (SGS) heat flux, (q^sgs)* (Automatic Differentiation Type: FadType)
-    dealii::Tensor<1,dim,FadType> compute_SGS_heat_flux_Fad (
+    dealii::Tensor<1,dim,FadType> compute_SGS_heat_flux_fad (
         const std::array<FadType,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient) const;
 
@@ -165,7 +165,7 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
 
     /// Nondimensionalized eddy viscosity for the Smagorinsky model (Automatic Differentiation Type: FadType)
-    virtual FadType compute_eddy_viscosity_Fad(
+    virtual FadType compute_eddy_viscosity_fad(
         const std::array<FadType,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient) const;
 
@@ -226,7 +226,7 @@ public:
     /** Nondimensionalized eddy viscosity for the WALE model. (Automatic Differentiation Type: FadType)
      *  Reference: Nicoud & Ducros (1999) "Subgrid-scale stress modelling based on the square of the velocity gradient tensor"
      */
-    FadType compute_eddy_viscosity_Fad(
+    FadType compute_eddy_viscosity_fad(
         const std::array<FadType,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient) const override;
 

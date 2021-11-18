@@ -29,7 +29,7 @@ The math supporting this code can be viewed in this **very rough draft in progre
 - Code uses deal.II library as the backbone (https://www.dealii.org/)
 - Parallelized through MPI
 - Supports weak and strong (InProgress) form of discontinuous Galerkin (DG), and flux reconstruction (FR) (InProgress)
-- Supported Partial Differential Equations: Linear advection, diffusion, convection-diffusion, Burgers, Euler, TODO: Navier-Stokes.
+- Supported Partial Differential Equations: Linear advection, diffusion, convection-diffusion, Burgers, Euler, Navier-Stokes.
 - Supported convective numerical fluxes: Lax-Friedrichs, Roe (Harten's entropy fix) for Euler, InProgress: Split-Form
 - Supported diffusive numerical fluxes: Symmetric Interior Penalty, Bassi-Rebay's 2nd formulation (BR2)
 - Supported elements: LINEs, QUADs, HEXs since it uses deal.II

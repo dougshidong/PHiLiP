@@ -471,7 +471,7 @@ int main (int argc, char * argv[])
     for(unsigned int poly_degree = 2; poly_degree<6; poly_degree++){
     unsigned int grid_degree = poly_degree;
     //setup operator
-    OPERATOR::OperatorBase<dim,nstate,real> operators(&all_parameters_new, poly_degree, poly_degree, grid_degree); 
+    OPERATOR::OperatorBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, grid_degree); 
 //setup DG
    // std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, grid);
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
@@ -488,13 +488,23 @@ int main (int argc, char * argv[])
         metric_cell->get_dof_indices (current_metric_dofs_indices);
         std::vector<std::vector<real>> mapping_support_points(dim);
         for(int idim=0; idim<dim; idim++){
-            mapping_support_points[idim].resize(n_metric_dofs);
+            mapping_support_points[idim].resize(n_metric_dofs/dim);
         }
+#if 0
         for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
             const real val = (dg->high_order_grid->volume_nodes[current_metric_dofs_indices[idof]]);
             const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
             const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
             mapping_support_points[istate][ishape] = val; 
+        }
+#endif
+        dealii::QGaussLobatto<dim> vol_GLL(grid_degree +1);
+        for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
+            for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+                const real val = (dg->high_order_grid->volume_nodes[current_metric_dofs_indices[idof]]);
+                const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+                mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate); 
+            }
         }
 
 

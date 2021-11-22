@@ -10,8 +10,10 @@ foreach(dim RANGE 1 3)
 
     target_compile_definitions(${OperatorsLib} PRIVATE PHILIP_DIM=${dim})
     # Library dependency
-    string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
-    target_link_libraries(${OperatorsLib} ${DiscontinuousGalerkinLib})
+    string(CONCAT ParameterLib ParametersLibrary)
+    target_link_libraries(${PhysicsLib} ${ParameterLib})
+#    string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
+#    target_link_libraries(${OperatorsLib} ${DiscontinuousGalerkinLib})
 
     # Setup target with deal.II
     if(NOT DOC_ONLY)
@@ -19,6 +21,6 @@ foreach(dim RANGE 1 3)
     endif()
 
     unset(OperatorsLib)
-    unset(DiscontinuousGalerkinLib)
+#    unset(DiscontinuousGalerkinLib)
 
 endforeach()

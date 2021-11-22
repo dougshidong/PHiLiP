@@ -30,7 +30,8 @@ class ConvectionDiffusion : public PhysicsBase <dim, nstate, real>
 {
 protected:
     /// Linear advection velocity in x, y, and z directions.
-    double linear_advection_velocity[3] = { 1.1, -atan(1)*4.0 / exp(1), exp(1)/(atan(1)*4.0) };
+   // double linear_advection_velocity[3] = { 1.1, -atan(1)*4.0 / exp(1), exp(1)/(atan(1)*4.0) };
+    double linear_advection_velocity[3] = { 1.0, 1.0, exp(1)/(atan(1)*4.0) };
     /// Diffusion scaling coefficient in front of the diffusion tensor.
     double diffusion_scaling_coeff = 0.1*atan(1)*4.0/exp(1);
 public:
@@ -64,6 +65,11 @@ public:
         const std::array<real,nstate> &soln1,
         const std::array<real,nstate> &soln2) const;
 
+    /// Convective Numerical Split Flux for split form
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_surface_numerical_split_flux (
+                const std::array< dealii::Tensor<1,dim,real>, nstate > &surface_flux,
+                const std::array< dealii::Tensor<1,dim,real>, nstate > &flux_interp_to_surface) const;
+
     /// Spectral radius of convective term Jacobian is 'c'
     std::array<real,nstate> convective_eigenvalues (
         const std::array<real,nstate> &/*solution*/,
@@ -85,7 +91,8 @@ public:
     /// Source term is zero or depends on manufactured solution
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &solution) const;
+        const std::array<real,nstate> &solution,//) const;
+        const real /*current_time*/) const;
 
     /// If diffusion is present, assign Dirichlet boundary condition
     /** Using Neumann boundary conditions might need to modify the functional

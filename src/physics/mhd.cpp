@@ -14,7 +14,8 @@ template <int dim, int nstate, typename real>
 std::array<real,nstate> MHD<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &/*pos*/,
-    const std::array<real,nstate> &/*conservative_soln*/) const
+    const std::array<real,nstate> &/*conservative_soln*/,
+    const real /*current_time*/) const
 {
     std::array<real,nstate> source_term;
     for (int s=0; s<nstate; s++) {
@@ -337,6 +338,15 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim, nstate, real>
     }
 
     return conv_num_split_flux;
+}
+
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim, nstate, real>
+::convective_surface_numerical_split_flux (
+                const std::array< dealii::Tensor<1,dim,real>, nstate > &/*surface_flux*/,
+                const std::array< dealii::Tensor<1,dim,real>, nstate > &flux_interp_to_surface) const
+{
+    return flux_interp_to_surface;
 }
 
 template <int dim, int nstate, typename real>

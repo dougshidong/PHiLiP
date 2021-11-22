@@ -170,7 +170,20 @@ inline real ManufacturedSolutionQuadratic<dim,real>
 }
 
 template <int dim, typename real>
-real ManufacturedSolutionNavahBase<dim,real>
+inline real ManufacturedSolutionAlex<dim,real>
+::value (const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    for (int d=0; d<dim; d++) {
+        value += exp( point[d] ) + sin(point[d] );
+        assert(isfinite(value));
+    }
+    value += this->base_values[istate];
+    return value;
+}
+
+template <int dim, typename real>
+inline real ManufacturedSolutionNavahBase<dim,real>
 ::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     real value = 0.;
@@ -216,9 +229,9 @@ inline real ManufacturedSolutionNavahBase<dim,real>
         if(istate==2) value = rho*v; // y-momentum
         if(istate==3) value = p/(1.4-1.0) + 0.5*rho*(u*u + v*v); // total energy
     }
-
     return value;
 }
+
 
 template <int dim, typename real>
 inline dealii::Tensor<1,dim,real> ManufacturedSolutionSine<dim,real>
@@ -471,7 +484,18 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionQuadratic<dim,real>
 }
 
 template <int dim, typename real>
-dealii::Tensor<1,dim,real> ManufacturedSolutionNavahBase<dim,real>
+inline dealii::Tensor<1,dim,real> ManufacturedSolutionAlex<dim,real>
+::gradient(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
+{
+    dealii::Tensor<1,dim,real> gradient;
+    for(unsigned int d = 0; d < dim; ++d){
+        gradient[d] = exp(point[d]) + cos(point[d]);
+    }
+    return gradient;
+}
+
+template <int dim, typename real>
+inline dealii::Tensor<1,dim,real> ManufacturedSolutionNavahBase<dim,real>
 ::primitive_gradient (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::Tensor<1,dim,real> gradient;
@@ -547,6 +571,7 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionNavahBase<dim,real>
     }
     return gradient;
 }
+
 
 template <int dim, typename real>
 inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionSine<dim,real>
@@ -891,7 +916,23 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionQuadratic<dim,rea
 }
 
 template <int dim, typename real>
-dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionNavahBase<dim,real>
+inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionAlex<dim,real>
+::hessian (const dealii::Point<dim,real> &point, const unsigned int  /*istate*/) const
+{
+    dealii::SymmetricTensor<2,dim,real> hessian;
+    for(int idim=0; idim<dim; idim++){
+        for(int jdim=0; jdim<dim; jdim++){
+            if(idim == jdim)
+                hessian[idim][jdim] = exp(point[idim]) - sin(point[idim]); 
+            else
+                hessian[idim][jdim] = 0.0;
+        }
+    }
+    return hessian;
+}
+
+template <int dim, typename real>
+inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionNavahBase<dim,real>
 ::primitive_hessian (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::SymmetricTensor<2,dim,real> hessian;
@@ -1121,6 +1162,9 @@ ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(
         return std::make_shared<ManufacturedSolutionSShock<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::quadratic_solution){
         return std::make_shared<ManufacturedSolutionQuadratic<dim,real>>(nstate);
+    }else if(solution_type == ManufacturedSolutionEnum::Alex_solution){
+        return std::make_shared<ManufacturedSolutionAlex<dim,real>>(nstate);
+
     }else if(solution_type == ManufacturedSolutionEnum::navah_solution_1){
         if constexpr((dim==2) /*&& (nstate==dim+2)*/) {
             return std::make_shared<ManufacturedSolutionNavah_MS1<dim,real>>(nstate);

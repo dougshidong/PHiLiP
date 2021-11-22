@@ -103,6 +103,7 @@ DGBase<dim,real,MeshType>::DGBase(
     , fe_collection_lagrange(std::get<4>(collection_tuple))
     , dof_handler(*triangulation, true)
     , high_order_grid(std::make_shared<HighOrderGrid<dim,real,MeshType>>(grid_degree_input, triangulation))
+    , operators(all_parameters, nstate, max_degree, max_degree, grid_degree_input)
     , fe_q_artificial_dissipation(1)
     , dof_handler_artificial_dissipation(*triangulation, false)
     , mpi_communicator(MPI_COMM_WORLD)
@@ -184,9 +185,22 @@ DGBase<dim,real,MeshType>::create_collection_tuple(
                 face_quad = face_quad_Gauss_Lobatto;
             }
         } else {
+#if 0
+            dealii::QGaussChebyshev<1> oned_quad_Gauss_Legendre (degree+1);
+            dealii::QGaussChebyshev<dim> vol_quad_Gauss_Legendre (degree+1);
+            if(dim == 1) {
+                dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
+            face_quad = face_quad_Gauss_Legendre;
+            } else {
+                dealii::QGaussChebyshev<dim-1> face_quad_Gauss_Legendre (degree+1);
+            face_quad = face_quad_Gauss_Legendre;
+            }
+#endif
+//#if 0
             dealii::QGauss<1> oned_quad_Gauss_Legendre (degree+1);
             dealii::QGauss<dim> vol_quad_Gauss_Legendre (degree+1);
             dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1);
+//#endif
             oned_quad = oned_quad_Gauss_Legendre;
             volume_quad = vol_quad_Gauss_Legendre;
             face_quad = face_quad_Gauss_Legendre;
@@ -232,9 +246,22 @@ DGBase<dim,real,MeshType>::create_collection_tuple(
             }
         } else {
             const unsigned int overintegration = parameters_input->overintegration;
+#if 0
+            dealii::QGaussChebyshev<1> oned_quad_Gauss_Legendre (degree+1+overintegration);
+            dealii::QGaussChebyshev<dim> vol_quad_Gauss_Legendre (degree+1+overintegration);
+            if(dim == 1) {
+                dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1+overintegration);
+            face_quad = face_quad_Gauss_Legendre;
+            } else {
+                dealii::QGaussChebyshev<dim-1> face_quad_Gauss_Legendre (degree+1+overintegration);
+            face_quad = face_quad_Gauss_Legendre;
+            }
+#endif
+//#if 0
             dealii::QGauss<1> oned_quad_Gauss_Legendre (degree+1+overintegration);
             dealii::QGauss<dim> vol_quad_Gauss_Legendre (degree+1+overintegration);
             dealii::QGauss<dim-1> face_quad_Gauss_Legendre (degree+1+overintegration);
+//#endif
             oned_quad = oned_quad_Gauss_Legendre;
             volume_quad = vol_quad_Gauss_Legendre;
             face_quad = face_quad_Gauss_Legendre;
@@ -266,6 +293,7 @@ DGBaseState<dim,nstate,real,MeshType>::DGBaseState(
     pde_physics_rad_fad = Physics::PhysicsFactory<dim,nstate,RadFadType> ::create_Physics(parameters_input);
 
     reset_numerical_fluxes();
+
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -513,15 +541,19 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
 
     const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
 
-    assemble_volume_term_explicit (
-        current_cell,
-        current_cell_index,
-        fe_values_volume,
-        current_dofs_indices,
-        current_cell_rhs,
-        fe_values_lagrange);
-    current_cell_rhs*=0.0;
-    //if ( compute_dRdW || compute_dRdX || compute_d2R ) {
+    const unsigned int grid_degree = this->high_order_grid->fe_system.tensor_degree();
+    const unsigned int poly_degree = i_fele;
+  //  const unsigned int grid_degree = current_metric_cell->active_fe_index();
+
+   //assemble_volume_term_explicit (
+   //    current_cell,
+   //    current_cell_index,
+   //    fe_values_volume,
+   //    current_dofs_indices,
+   //    current_cell_rhs,
+   //    fe_values_lagrange);
+   // current_cell_rhs*=0.0;
+    if ( compute_dRdW || compute_dRdX || compute_d2R ) {
         assemble_volume_term_derivatives (
             current_cell,
             current_cell_index,
@@ -529,6 +561,18 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             current_metric_dofs_indices, current_dofs_indices,
             current_cell_rhs, fe_values_lagrange,
             compute_dRdW, compute_dRdX, compute_d2R);
+    } else {
+    assemble_volume_term_explicit (
+        current_cell,
+        current_cell_index,
+        fe_values_volume,
+        current_dofs_indices,
+        current_metric_dofs_indices,
+        poly_degree, grid_degree,
+        current_cell_rhs,
+        fe_values_lagrange);
+    }
+
     //} else {
     //    assemble_volume_term_explicit (
     //    cell,
@@ -554,13 +598,136 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         if (current_face->at_boundary() && !current_cell->has_periodic_neighbor(iface) ) {
 
             fe_values_collection_face_int.reinit(current_cell, iface, i_quad, i_mapp, i_fele);
+        //for 1D periodic
 
+                if(current_face->at_boundary() && all_parameters->use_periodic_bc == true && dim == 1) //using periodic BCs (for 1d)
+                {
+                    int cell_index  = current_cell->index();
+                    auto neighbor_cell = dof_handler.begin_active();
+                    //int cell_index = current_cell->index();
+                    #if 0
+                    if (cell_index == 0 && iface == 0)
+                    {
+                        fe_values_collection_face_int.reinit(current_cell, iface, i_quad, i_mapp, i_fele);
+                        neighbor_cell = dof_handler.begin_active();
+                       for (unsigned int i = 0 ; i < triangulation->n_active_cells() - 1; ++i)
+                       {
+                           ++neighbor_cell;
+                       }
+                        neighbor_dofs_indices.resize(n_dofs_curr_cell);
+                        neighbor_cell->get_dof_indices(neighbor_dofs_indices);
+                         const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
+                        const unsigned int quad_index_neigh_cell = fe_index_neigh_cell;
+                        const unsigned int mapping_index_neigh_cell = 0;
+
+                        fe_values_collection_face_ext.reinit(neighbor_cell,(iface == 1) ? 0 : 1,quad_index_neigh_cell,mapping_index_neigh_cell,fe_index_neigh_cell);
+
+                    }
+                    #endif
+                   // else if (cell_index == (int) triangulation->n_active_cells() - 1 && iface == 1)
+                    if (cell_index == (int) triangulation->n_active_cells() - 1 && iface == 1)
+                    {
+                     //   fe_values_collection_face_int.reinit(current_cell, iface, i_quad, i_mapp, i_fele);
+                        neighbor_cell = dof_handler.begin_active();
+                        neighbor_dofs_indices.resize(n_dofs_curr_cell);
+                        neighbor_cell->get_dof_indices(neighbor_dofs_indices);
+                        const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
+                        const unsigned int quad_index_neigh_cell = fe_index_neigh_cell;
+                        const unsigned int mapping_index_neigh_cell = 0;
+                        fe_values_collection_face_ext.reinit(neighbor_cell,(iface == 1) ? 0 : 1, quad_index_neigh_cell, mapping_index_neigh_cell, fe_index_neigh_cell); //not sure how changing the face number would work in dim!=1-dimensions.
+                    }
+                    else {
+                        continue;
+                    }
+
+                    //std::cout << "cell " << current_cell->index() << "'s " << iface << "th face has neighbour: " << neighbor_cell->index() << std::endl;
+                    const int neighbor_face_no = (iface ==1) ? 0:1;
+                    const unsigned int fe_index_neigh_cell = neighbor_cell->active_fe_index();
+
+                    //check neighbour cell face on boundary
+                    auto neigh_face_check = neighbor_cell->face(neighbor_face_no);
+                    if(neigh_face_check->at_boundary()){
+                        //do nothing
+                    }
+                    else{
+                        pcout<<"FACE NOT ON BOUNDARY LOL"<<std::endl;
+                    } 
+
+                    const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
+                    const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
+
+                    const dealii::FESystem<dim,dim> &neigh_fe_ref = fe_collection[fe_index_neigh_cell];
+                   // const unsigned int neigh_cell_degree = neigh_fe_ref.tensor_degree();
+                    const unsigned int n_dofs_neigh_cell = neigh_fe_ref.n_dofs_per_cell();
+
+                    dealii::Vector<double> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
+
+                    const auto metric_neighbor_cell = high_order_grid->dof_handler_grid.begin_active();
+                    metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
+
+                #if 0
+                    const unsigned int normal_direction1 = dealii::GeometryInfo<dim>::unit_normal_direction[iface];
+                    const unsigned int normal_direction2 = dealii::GeometryInfo<dim>::unit_normal_direction[neighbor_face_no];
+                    const unsigned int deg1sq = (curr_cell_degree == 0) ? 1 : curr_cell_degree * (curr_cell_degree+1);
+                    const unsigned int deg2sq = (neigh_cell_degree == 0) ? 1 : neigh_cell_degree * (neigh_cell_degree+1);
+
+                    //const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction1) / current_face->number_of_children();
+                    const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction1);
+                    const real vol_div_facearea2 = neighbor_cell->extent_in_direction(normal_direction2);
+
+                    const real penalty1 = deg1sq / vol_div_facearea1;
+                    const real penalty2 = deg2sq / vol_div_facearea2;
+
+                    real penalty = 0.5 * ( penalty1 + penalty2 );
+                #endif
+                    const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
+
+              //      fe_values_collection_volume_neigh.reinit (neighbor_cell, i_quad, i_mapp, fe_index_neigh_cell);
+               //     const dealii::FEValues<dim,dim> &fe_values_volume_neigh = fe_values_collection_volume_neigh.get_present_fe_values();
+
+              //      if ( compute_dRdW ) {
+              //         assemble_face_term_implicit (
+              //                                     iface, neighbor_face_no, 
+              //                                     fe_values_face_int, fe_values_face_ext,
+              //                                     fe_values_volume, fe_values_volume_neigh,
+              //                                     penalty,
+              //                                     current_dofs_indices, neighbor_dofs_indices,
+              //                                     current_cell_rhs, neighbor_cell_rhs);
+              //     } else {
+    const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
+                    assemble_face_term_explicit (
+                        iface, neighbor_face_no, 
+                        current_cell,
+                        current_cell_index,
+                        neighbor_cell_index,
+                        poly_degree, grid_degree,
+                        fe_values_face_int, fe_values_face_ext,
+                        penalty,
+                        current_dofs_indices, neighbor_dofs_indices,
+                        current_metric_dofs_indices, neighbor_metric_dofs_indices,
+                        current_cell_rhs, neighbor_cell_rhs);
+                for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
+                    rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
+                }
+                //        assemble_face_term_explicit (
+                //                                   iface, neighbor_face_no, 
+                //                                   fe_values_face_int, fe_values_face_ext,
+                //                   fe_values_face_int_soln_flux, fe_values_face_ext_soln_flux,  
+                //                                   fe_values_volume, fe_values_volume_neigh,
+                //                                   penalty,
+                //                                   current_dofs_indices, neighbor_dofs_indices,
+                //                                   current_cell_rhs, neighbor_cell_rhs);
+               //     }
+
+                } else {//at boundary and not 1D periodic
+
+        
             const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
 
             const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
 
             const unsigned int boundary_id = current_face->boundary_id();
-            //if (compute_dRdW || compute_dRdX || compute_d2R) {
+            if (compute_dRdW || compute_dRdX || compute_d2R) {
                 const dealii::Quadrature<dim-1> face_quadrature = face_quadrature_collection[i_quad];
                 assemble_boundary_term_derivatives (
                     current_cell,
@@ -570,12 +737,15 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     current_metric_dofs_indices, current_dofs_indices, current_cell_rhs,
                     compute_dRdW, compute_dRdX, compute_d2R);
 
-            //} else {
-            //    assemble_boundary_term_explicit (
-            //        current_cell,
-            //        current_cell_index,
-            //        boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
             //}
+            } else {
+                assemble_boundary_term_explicit (
+                    current_cell,
+                    current_cell_index,
+                    boundary_id, fe_values_face_int, penalty, current_dofs_indices, current_cell_rhs);
+            }
+
+            }
 
         //CASE 2: PERIODIC BOUNDARY CONDITIONS
         //note that periodicity is not adapted for hp adaptivity yet. this needs to be figured out in the future
@@ -612,9 +782,9 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 const real penalty = 0.5 * (penalty1 + penalty2);
 
                 const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
-                //if ( compute_dRdW || compute_dRdX || compute_d2R ) {
                     const auto metric_neighbor_cell = current_metric_cell->periodic_neighbor(iface);
                     metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
+
                     const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
 
                     std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
@@ -633,6 +803,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                                                   neighbor_cell->face_flip(neighbor_iface),
                                                                                                   neighbor_cell->face_rotation(neighbor_iface),
                                                                                                   used_face_quadrature.size());
+                if ( compute_dRdW || compute_dRdX || compute_d2R ) {
                     assemble_face_term_derivatives (
                         current_cell,
                         current_cell_index,
@@ -648,16 +819,19 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                         current_dofs_indices, neighbor_dofs_indices,
                         current_cell_rhs, neighbor_cell_rhs,
                         compute_dRdW, compute_dRdX, compute_d2R);
-                //} else {
-                //    assemble_face_term_explicit (
-                //        current_cell,
-                //        current_cell_index,
-                //        neighbor_cell_index,
-                //        fe_values_face_int, fe_values_face_ext,
-                //        penalty,
-                //        current_dofs_indices, neighbor_dofs_indices,
-                //        current_cell_rhs, neighbor_cell_rhs);
-                //}
+                } else {
+                    assemble_face_term_explicit (
+                        iface, neighbor_iface, 
+                        current_cell,
+                        current_cell_index,
+                        neighbor_cell_index,
+                        poly_degree, grid_degree,
+                        fe_values_face_int, fe_values_face_ext,
+                        penalty,
+                        current_dofs_indices, neighbor_dofs_indices,
+                        current_metric_dofs_indices, neighbor_metric_dofs_indices,
+                        current_cell_rhs, neighbor_cell_rhs);
+                }
 
                 // Add local contribution from neighbor cell to global vector
                 for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
@@ -716,7 +890,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             const real penalty = 0.5 * (penalty1 + penalty2);
 
             const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
-            //if ( compute_dRdW || compute_dRdX || compute_d2R ) {
                 const auto metric_neighbor_cell = current_metric_cell->neighbor(iface);
                 metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
 
@@ -740,6 +913,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                                                     neighbor_cell->face_rotation(neighbor_iface),
                                                                                                     used_face_quadrature.size(),
                                                                                                     neighbor_cell->subface_case(neighbor_iface));
+            if ( compute_dRdW || compute_dRdX || compute_d2R ) {
                 assemble_face_term_derivatives (
                     current_cell,
                     current_cell_index,
@@ -755,16 +929,19 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     current_dofs_indices, neighbor_dofs_indices,
                     current_cell_rhs, neighbor_cell_rhs,
                     compute_dRdW, compute_dRdX, compute_d2R);
-            //} else {
-            //    assemble_face_term_explicit (
-            //        current_cell,
-            //        current_cell_index,
-            //        neighbor_cell_index,
-            //        fe_values_face_int, fe_values_face_ext,
-            //        penalty,
-            //        current_dofs_indices, neighbor_dofs_indices,
-            //        current_cell_rhs, neighbor_cell_rhs);
-            //}
+            } else {
+                assemble_face_term_explicit (
+                    iface, neighbor_iface, 
+                    current_cell,
+                    current_cell_index,
+                    neighbor_cell_index,
+                    poly_degree, grid_degree,
+                    fe_values_face_int, fe_values_face_ext,
+                    penalty,
+                    current_dofs_indices, neighbor_dofs_indices,
+                    current_metric_dofs_indices, neighbor_metric_dofs_indices,
+                    current_cell_rhs, neighbor_cell_rhs);
+            }
             // Add local contribution from neighbor cell to global vector
             for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
                 rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
@@ -801,9 +978,9 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             const real penalty = 0.5 * (penalty1 + penalty2);
 
             const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
-            //if ( compute_dRdW || compute_dRdX || compute_d2R ) {
                 const auto metric_neighbor_cell = current_metric_cell->neighbor_or_periodic_neighbor(iface);
                 metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
+
                 const dealii::Quadrature<dim-1> &used_face_quadrature = face_quadrature_collection[i_quad_n]; // or i_quad
                 std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
                 std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, -1);
@@ -821,6 +998,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                                               neighbor_cell->face_flip(neighbor_iface),
                                                                                               neighbor_cell->face_rotation(neighbor_iface),
                                                                                               used_face_quadrature.size());
+            if ( compute_dRdW || compute_dRdX || compute_d2R ) {
                 assemble_face_term_derivatives (
                     current_cell,
                     current_cell_index,
@@ -836,16 +1014,19 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     current_dofs_indices, neighbor_dofs_indices,
                     current_cell_rhs, neighbor_cell_rhs,
                     compute_dRdW, compute_dRdX, compute_d2R);
-            //} else {
-            //    assemble_face_term_explicit (
-            //        current_cell,
-            //        current_cell_index,
-            //        neighbor_cell_index,
-            //        fe_values_face_int, fe_values_face_ext,
-            //        penalty,
-            //        current_dofs_indices, neighbor_dofs_indices,
-            //        current_cell_rhs, neighbor_cell_rhs);
-            //}
+            } else {
+                assemble_face_term_explicit (
+                    iface, neighbor_iface, 
+                    current_cell,
+                    current_cell_index,
+                    neighbor_cell_index,
+                    poly_degree, grid_degree,
+                    fe_values_face_int, fe_values_face_ext,
+                    penalty,
+                    current_dofs_indices, neighbor_dofs_indices,
+                    current_metric_dofs_indices, neighbor_metric_dofs_indices,
+                    current_cell_rhs, neighbor_cell_rhs);
+            }
 
             // Add local contribution from neighbor cell to global vector
             for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
@@ -1053,7 +1234,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         &&  !(compute_dRdX && compute_d2R)
             , dealii::ExcMessage("Can only do one at a time compute_dRdW or compute_dRdX or compute_d2R"));
 
-    //pcout << "Assembling DG residual...";
+   // pcout << "Assembling DG residual...";
     if (compute_dRdW) {
         pcout << " with dRdW...";
 
@@ -2001,6 +2182,9 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
     mass_sparsity_pattern.copy_from(dsp);
     if (do_inverse_mass_matrix == true) {
         global_inverse_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
+        if (this->all_parameters->use_energy == true){//for split form get energy
+            global_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
+        }
     } else {
         global_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
     }
@@ -2023,18 +2207,39 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
     //const dealii::MappingQ<dim,dim> mapping(high_order_grid->max_degree);
     // std::cout << "Grid degree: " << high_order_grid->max_degree << std::endl;
     //const dealii::MappingQGeneric<dim,dim> mapping(high_order_grid->max_degree);
+#if 0
     const auto mapping = (*(high_order_grid->mapping_fe_field));
 
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
     dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.
-    for (auto cell = dof_handler.begin_active(); cell!=dof_handler.end(); ++cell) {
+#endif
+
+#if 0
+//build chebyshev fe collection
+
+    dealii::hp::QCollection<dim>       volume_quadrature_cheb;//volume flux nodes
+    for (unsigned int degree=0; degree<=7; ++degree) {
+        dealii::QGaussChebyshev<dim> vol_quad(degree+1);
+       // dealii::QGauss<dim> vol_quad(degree+1);
+        volume_quadrature_cheb.push_back (vol_quad);
+    }
+    dealii::hp::FEValues<dim,dim> fe_values_collection_volume_cheb (mapping_collection, fe_collection, volume_quadrature_cheb, this->volume_update_flags); ///< FEValues of volume.
+
+
+//end build chebyshev fe collection
+
+#endif
+
+    auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
+    for (auto cell = dof_handler.begin_active(); cell!=dof_handler.end(); ++cell, ++metric_cell) {
+   // for (auto cell = dof_handler.begin_active(); cell!=dof_handler.end(); ++cell) {
 
         if (!cell->is_locally_owned()) continue;
 
-        const unsigned int mapping_index = 0;
+//        const unsigned int mapping_index = 0;
         const unsigned int fe_index_curr_cell = cell->active_fe_index();
-        const unsigned int quad_index = fe_index_curr_cell;
+//        const unsigned int quad_index = fe_index_curr_cell;
 
         // Current reference element related to this physical cell
         const dealii::FESystem<dim,dim> &current_fe_ref = fe_collection[fe_index_curr_cell];
@@ -2043,46 +2248,122 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
 
         dealii::FullMatrix<real> local_mass_matrix(n_dofs_cell);
 
-        fe_values_collection_volume.reinit (cell, quad_index, mapping_index, fe_index_curr_cell);
-        const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
+//        fe_values_collection_volume.reinit (cell, quad_index, mapping_index, fe_index_curr_cell);
+//        const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
 
-        for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
-
-            const unsigned int istate_test = fe_values_volume.get_fe().system_to_component_index(itest).first;
-
-            for (unsigned int itrial=itest; itrial<n_dofs_cell; ++itrial) {
-
-                const unsigned int istate_trial = fe_values_volume.get_fe().system_to_component_index(itrial).first;
-
-                real value = 0.0;
-                for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-                    value +=
-                        fe_values_volume.shape_value_component(itest,iquad,istate_test)
-                        * fe_values_volume.shape_value_component(itrial,iquad,istate_trial)
-                        * fe_values_volume.JxW(iquad);
-                }
-                local_mass_matrix[itrial][itest] = 0.0;
-                local_mass_matrix[itest][itrial] = 0.0;
-                if(istate_test==istate_trial) {
-                    local_mass_matrix[itrial][itest] = value;
-                    local_mass_matrix[itest][itrial] = value;
-                }
+        //quadrature weights
+        const std::vector<real> &quad_weights = operators.volume_quadrature_collection[fe_index_curr_cell].get_weights();
+        //setup metric cell
+        const dealii::FESystem<dim> &fe_metric = high_order_grid->fe_system;
+        const unsigned int n_metric_dofs = high_order_grid->fe_system.dofs_per_cell;
+        std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
+        metric_cell->get_dof_indices (metric_dof_indices);
+        const unsigned int grid_degree = high_order_grid->fe_system.tensor_degree();
+        //get mapping_support points
+        std::vector<std::vector<real>> mapping_support_points(dim);
+        for(int idim=0; idim<dim; idim++){
+            mapping_support_points[idim].resize(n_metric_dofs/dim);
+        }
+        dealii::QGaussLobatto<dim> vol_GLL(grid_degree +1);
+        for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
+            for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+                const real val = (high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+                const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+                mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate); 
             }
         }
 
-        dofs_indices.resize(n_dofs_cell);
-        cell->get_dof_indices (dofs_indices);
-        if (do_inverse_mass_matrix == true) {
-            dealii::FullMatrix<real> local_inverse_mass_matrix(n_dofs_cell);
-            local_inverse_mass_matrix.invert(local_mass_matrix);
-            global_inverse_mass_matrix.set (dofs_indices, local_inverse_mass_matrix);
-        } else {
-            global_mass_matrix.set (dofs_indices, local_mass_matrix);
-        }
-    }
+        //get determinant of Jacobian
+        std::vector<real> determinant_Jacobian(n_quad_pts);
+        operators.build_local_vol_determinant_Jac(grid_degree, fe_index_curr_cell, n_quad_pts, n_metric_dofs/dim, mapping_support_points, determinant_Jacobian);
+ 
+        if(this->all_parameters->use_weight_adjusted_mass == false){
+           // const std::vector<real> &JxW = fe_values_volume.get_JxW_values();
+            std::vector<real> JxW(n_quad_pts);
+         //   const std::vector<real> &JxW_dealii = fe_values_volume.get_JxW_values();
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                JxW[iquad] = quad_weights[iquad] * determinant_Jacobian[iquad];
+            }
+            operators.build_local_Mass_Matrix(JxW, n_dofs_cell, n_quad_pts, fe_index_curr_cell, local_mass_matrix);
+
+            if(this->all_parameters->flux_reconstruction_type != Parameters::AllParameters::Flux_Reconstruction::cDG){
+                //For flux reconstruction
+                dealii::FullMatrix<real> K_operator(n_dofs_cell);
+                const unsigned int curr_cell_degree = current_fe_ref.tensor_degree();
+                operators.build_local_K_operator(local_mass_matrix, n_dofs_cell, curr_cell_degree, K_operator);
+                for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+                    for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
+                        local_mass_matrix[itest][itrial] = local_mass_matrix[itest][itrial] + K_operator[itest][itrial];
+                    }
+                }
+            }
+
+            dofs_indices.resize(n_dofs_cell);
+            cell->get_dof_indices (dofs_indices);
+            if (do_inverse_mass_matrix == true) {
+                dealii::FullMatrix<real> local_inverse_mass_matrix(n_dofs_cell);
+                local_inverse_mass_matrix.invert(local_mass_matrix);
+                global_inverse_mass_matrix.set (dofs_indices, local_inverse_mass_matrix);
+            
+                if (this->all_parameters->use_energy == true){//for split form energy
+                    global_mass_matrix.set (dofs_indices, local_mass_matrix);
+                }
+            } else {
+                global_mass_matrix.set (dofs_indices, local_mass_matrix);
+            }
+        } else {//use weight adjusted Mass Matrix (it's based off the inverse)
+           // const std::vector<real> &JxW = fe_values_volume.get_JxW_values();
+            std::vector<real> W_J_inv(n_quad_pts);
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+               // W_J_inv[iquad] = quad_weights[iquad] * quad_weights[iquad] / JxW[iquad]; 
+                W_J_inv[iquad] = quad_weights[iquad] / determinant_Jacobian[iquad]; 
+            }
+            const unsigned int curr_cell_degree = current_fe_ref.tensor_degree();
+            operators.build_local_Mass_Matrix(W_J_inv, n_dofs_cell, n_quad_pts, curr_cell_degree, local_mass_matrix);
+            if(this->all_parameters->flux_reconstruction_type != Parameters::AllParameters::Flux_Reconstruction::cDG){
+                //For flux reconstruction
+                dealii::FullMatrix<real> K_operator(n_dofs_cell);
+                operators.build_local_K_operator(local_mass_matrix, n_dofs_cell, curr_cell_degree, K_operator);
+                for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+                    for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
+                        local_mass_matrix[itest][itrial] = local_mass_matrix[itest][itrial] + K_operator[itest][itrial];
+                    }
+                }
+            }
+            dofs_indices.resize(n_dofs_cell);
+            cell->get_dof_indices (dofs_indices);
+            if (do_inverse_mass_matrix == true) {
+                dealii::FullMatrix<real> temp(n_dofs_cell);
+                operators.FR_mass_inv[curr_cell_degree].mmult(temp, local_mass_matrix);
+                dealii::FullMatrix<real> local_inverse_mass_matrix(n_dofs_cell);
+                temp.mmult(local_inverse_mass_matrix, operators.FR_mass_inv[curr_cell_degree]); 
+                global_inverse_mass_matrix.set (dofs_indices, local_inverse_mass_matrix);
+            
+                if (this->all_parameters->use_energy == true){//for split form energy
+                    dealii::FullMatrix<real> inverse_of_weighted_mass_inverse(n_dofs_cell);
+                    inverse_of_weighted_mass_inverse.invert(local_inverse_mass_matrix);
+                    global_mass_matrix.set (dofs_indices, inverse_of_weighted_mass_inverse);
+                }
+            } else {
+                dealii::FullMatrix<real> inv_weighted_mass_inv(n_dofs_cell);
+                inv_weighted_mass_inv.invert(local_mass_matrix);
+                dealii::FullMatrix<real> M_K(n_dofs_cell);
+                M_K.add(1.0, operators.local_mass[curr_cell_degree], 1.0, operators.local_K_operator[curr_cell_degree]);
+                dealii::FullMatrix<real> temp(n_dofs_cell);
+                M_K.mmult(temp, inv_weighted_mass_inv);
+                dealii::FullMatrix<real> inverse_of_weighted_mass_inverse(n_dofs_cell);
+                temp.mmult(inverse_of_weighted_mass_inverse, inv_weighted_mass_inv);
+                global_mass_matrix.set (dofs_indices, inverse_of_weighted_mass_inverse);
+            }
+
+        }//end of weight-adjusted mass matrix condition
+    }//end of cell loop
 
     if (do_inverse_mass_matrix == true) {
         global_inverse_mass_matrix.compress(dealii::VectorOperation::insert);
+        if (this->all_parameters->use_energy == true){//for split form energy
+            global_mass_matrix.compress(dealii::VectorOperation::insert);
+        }
     } else {
         global_mass_matrix.compress(dealii::VectorOperation::insert);
         //std::cout << " global_mass_matrix "  << std::endl;
@@ -2399,6 +2680,11 @@ void DGBase<dim,real,MeshType>::refine_residual_based()
 
 }
 
+template <int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::set_current_time(const real time)
+{
+    this->current_time = time;
+}
 // No support for anisotropic mesh refinement with parallel::distributed::Triangulation
 // template<int dim, typename real>
 // void DGBase<dim,real,MeshType>::set_anisotropic_flags()

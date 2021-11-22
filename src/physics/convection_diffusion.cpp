@@ -70,6 +70,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,rea
     for (int i=0; i<nstate; ++i) {
         conv_flux[i] = 0.0;
         for (int d=0; d<dim; ++d) {
+//std::cout<<" vel "<<velocity_field[d]<<" dir "<<d<<std::endl;
             conv_flux[i][d] += velocity_field[d] * solution[i];
         }
     }
@@ -90,13 +91,24 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,rea
 }
 
 template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,real>
+::convective_surface_numerical_split_flux (
+                const std::array< dealii::Tensor<1,dim,real>, nstate > &/*surface_flux*/,
+                const std::array< dealii::Tensor<1,dim,real>, nstate > &flux_interp_to_surface) const
+{
+    return flux_interp_to_surface;
+}
+
+template <int dim, int nstate, typename real>
 dealii::Tensor<1,dim,real> ConvectionDiffusion<dim,nstate,real>
 ::advection_speed () const
 {
     dealii::Tensor<1,dim,real> advection_speed;
     if (hasConvection) {
-        if(dim >= 1) advection_speed[0] = linear_advection_velocity[0];
-        if(dim >= 2) advection_speed[1] = linear_advection_velocity[1];
+        //if(dim >= 1) advection_speed[0] = linear_advection_velocity[0];
+        if(dim >= 1) advection_speed[0] = 1.0;
+        //if(dim >= 2) advection_speed[1] = linear_advection_velocity[1];
+        if(dim >= 2) advection_speed[1] = 1.0;
         if(dim >= 3) advection_speed[2] = linear_advection_velocity[2];
     } else {
         const real zero = 0.0;
@@ -169,7 +181,8 @@ template <int dim, int nstate, typename real>
 std::array<real,nstate> ConvectionDiffusion<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,
-    const std::array<real,nstate> &/*solution*/) const
+    const std::array<real,nstate> &/*solution*/,
+    const real /*current_time*/) const
 {
     std::array<real,nstate> source;
     const dealii::Tensor<1,dim,real> velocity_field = this->advection_speed();

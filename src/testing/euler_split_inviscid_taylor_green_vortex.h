@@ -55,6 +55,7 @@ private:
     /** Overintegration of kinetic energy.
      */
  double compute_kinetic_energy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const;
+ double compute_MK_energy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const;
  //double compute_quadrature_kinetic_energy(std::array<double,nstate> soln_at_q) const ;
     //const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
 };

@@ -55,6 +55,14 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Use original form by defualt. Otherwise, split the fluxes.");
 
+    prm.declare_entry("use_curvilinear_split_form", "false",
+                      dealii::Patterns::Bool(),
+                      "Use original form by defualt. Otherwise, split the curvilinear fluxes.");
+
+    prm.declare_entry("use_weight_adjusted_mass", "false",
+                      dealii::Patterns::Bool(),
+                      "Use original form by defualt. Otherwise, use the weight adjusted low storage mass matrix for curvilinear.");
+
     prm.declare_entry("use_periodic_bc", "false",
                       dealii::Patterns::Bool(),
                       "Use other boundary conditions by default. Otherwise use periodic (for 1d burgers only");
@@ -67,7 +75,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Not calculate L2 norm by default (M+K). Otherwise, get L2 norm per iteration.");
 
-    prm.declare_entry("use_classical_Flux_Reconstruction", "false",
+    prm.declare_entry("use_classical_FR", "false",
                       dealii::Patterns::Bool(),
                       "Not use Classical Flux Reconstruction by default. Otherwise, use Classical Flux Reconstruction.");
 
@@ -150,9 +158,11 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  navier_stokes>.");
     
     prm.declare_entry("conv_num_flux", "lax_friedrichs",
-                      dealii::Patterns::Selection("lax_friedrichs | roe | l2roe | split_form"),
+
+                      dealii::Patterns::Selection("lax_friedrichs | roe | l2roe | split_form | central_flux"),
                       "Convective numerical flux. "
-                      "Choices are <lax_friedrichs | roe | l2roe | split_form>.");
+                      "Choices are <lax_friedrichs | roe | l2roe | split_form | central_flux>.");
+
 
     prm.declare_entry("diss_num_flux", "symm_internal_penalty",
                       dealii::Patterns::Selection("symm_internal_penalty | bassi_rebay_2"),
@@ -231,10 +241,12 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_weak_form = prm.get_bool("use_weak_form");
     use_collocated_nodes = prm.get_bool("use_collocated_nodes");
     use_split_form = prm.get_bool("use_split_form");
+    use_curvilinear_split_form = prm.get_bool("use_curvilinear_split_form");
+    use_weight_adjusted_mass = prm.get_bool("use_weight_adjusted_mass");
     use_periodic_bc = prm.get_bool("use_periodic_bc");
     use_energy = prm.get_bool("use_energy");
     use_L2_norm = prm.get_bool("use_L2_norm");
-    use_classical_FR = prm.get_bool("use_classical_Flux_Reconstruction");
+    use_classical_FR = prm.get_bool("use_classical_FR");
     add_artificial_dissipation = prm.get_bool("add_artificial_dissipation");
     sipg_penalty_factor = prm.get_double("sipg_penalty_factor");
 
@@ -242,7 +254,10 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (conv_num_flux_string == "lax_friedrichs") conv_num_flux_type = lax_friedrichs;
     if (conv_num_flux_string == "split_form")     conv_num_flux_type = split_form;
     if (conv_num_flux_string == "roe")            conv_num_flux_type = roe;
-    if (conv_num_flux_string == "l2roe")            conv_num_flux_type = l2roe;
+
+    if (conv_num_flux_string == "l2roe")   conv_num_flux_type = l2roe;
+    if (conv_num_flux_string == "central_flux")   conv_num_flux_type = central_flux;
+
 
     const std::string diss_num_flux_string = prm.get("diss_num_flux");
     if (diss_num_flux_string == "symm_internal_penalty") diss_num_flux_type = symm_internal_penalty;

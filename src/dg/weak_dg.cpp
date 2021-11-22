@@ -552,6 +552,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     const dealii::types::global_dof_index current_cell_index,
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &/*metric_dof_indices*/,
+    const unsigned int /*poly_degree*/,
+    const unsigned int /*grid_degree*/,
     dealii::Vector<real> &local_rhs_int_cell,
     const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/)
 {
@@ -630,7 +633,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
         }
         if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
             const dealii::Point<dim,real> point = fe_values_vol.quadrature_point(iquad);
-            source_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->source_term (point, soln_at_q[iquad]);
+            source_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->source_term (point, soln_at_q[iquad], DGBase<dim,real,MeshType>::current_time);
             //std::array<real,nstate> artificial_source_at_q = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->artificial_source_term (artificial_diss_coeff, point, soln_at_q[iquad]);
             //for (int s=0;s<nstate;++s) source_at_q[iquad][s] += artificial_source_at_q[s];
         }
@@ -831,14 +834,18 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_explicit(
 
 template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_explicit(
+    const unsigned int /*iface*/, const unsigned int /*neighbor_iface*/,
     typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
+    const unsigned int /*poly_degree*/, const unsigned int /*grid_degree*/,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
     const real penalty,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
+    const std::vector<dealii::types::global_dof_index> &/*metric_dof_indices_int*/,
+    const std::vector<dealii::types::global_dof_index> &/*metric_dof_indices_ext*/,
     dealii::Vector<real>          &local_rhs_int_cell,
     dealii::Vector<real>          &local_rhs_ext_cell)
 {
@@ -3612,7 +3619,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
                 const int iaxis = fe_metric.system_to_component_index(idof).first;
                 ad_point[iaxis] += coords_coeff[idof] * fe_metric.shape_value(idof,unit_quad_pts[iquad]);
             }
-            source_at_q[iquad] = physics.source_term (ad_point, soln_at_q[iquad]);
+            source_at_q[iquad] = physics.source_term (ad_point, soln_at_q[iquad], DGBase<dim,real,MeshType>::current_time);
             //Array artificial_source_at_q = physics.artificial_source_term (artificial_diss_coeff, ad_point, soln_at_q[iquad]);
             //Array artificial_source_at_q = physics.artificial_source_term (artificial_diss_coeff_at_q[iquad], ad_point, soln_at_q[iquad]);
             //for (int s=0;s<nstate;++s) source_at_q[iquad][s] += artificial_source_at_q[s];

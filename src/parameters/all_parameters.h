@@ -64,6 +64,12 @@ public:
     /// Flag to use split form.
     bool use_split_form;
 
+    /// Flag to use curvilinear metric split form.
+    bool use_curvilinear_split_form;
+
+    /// Flag to use weight-adjusted Mass Matrix for curvilinear elements.
+    bool use_weight_adjusted_mass;
+
     /// Flag to use periodic BC.
     /** Not fully tested.
      */
@@ -151,8 +157,9 @@ public:
         lax_friedrichs, 
         roe, 
         l2roe, 
-        split_form
-    };
+        split_form, 
+        central_flux};
+
 
     /// Store convective flux type
     ConvectiveNumericalFlux conv_num_flux_type;

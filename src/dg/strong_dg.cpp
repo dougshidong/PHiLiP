@@ -243,7 +243,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
             const dealii::Point<dim,real> real_quad_point = fe_values_vol.quadrature_point(iquad);
             dealii::Point<dim,FadType> ad_point;
             for (int d=0;d<dim;++d) { ad_point[d] = real_quad_point[d]; }
-            source_at_q[iquad] = this->pde_physics_fad->source_term (ad_point, soln_at_q[iquad]);
+            source_at_q[iquad] = this->pde_physics_fad->source_term (ad_point, soln_at_q[iquad], DGBase<dim,real,MeshType>::current_time);
         }
     }
 
@@ -505,6 +505,11 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
     }
 }
 
+/*******************************************************
+ *
+ *              EXPLICIT
+ *
+ *              **********************************************/
 
 template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
@@ -512,8 +517,11 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     const dealii::types::global_dof_index current_cell_index,
     const dealii::FEValues<dim,dim> &fe_values_vol,
     const std::vector<dealii::types::global_dof_index> &cell_dofs_indices,
+    const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
+    const unsigned int poly_degree,
+    const unsigned int grid_degree,
     dealii::Vector<real> &local_rhs_int_cell,
-    const dealii::FEValues<dim,dim> &fe_values_lagrange)
+    const dealii::FEValues<dim,dim> &/*fe_values_lagrange*/)
 {
     (void) current_cell_index;
     //std::cout << "assembling cell terms" << std::endl;
@@ -521,10 +529,16 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     using realArray = std::array<realtype,nstate>;
     using realArrayTensor1 = std::array< dealii::Tensor<1,dim,realtype>, nstate >;
 
-    const unsigned int n_quad_pts      = fe_values_vol.n_quadrature_points;
-    const unsigned int n_dofs_cell     = fe_values_vol.dofs_per_cell;
+//    const unsigned int n_quad_pts      = fe_values_vol.n_quadrature_points;
+//    const unsigned int n_dofs_cell     = fe_values_vol.dofs_per_cell;
+
+    const unsigned int n_quad_pts = this->operators.volume_quadrature_collection[poly_degree].size();
+    const unsigned int n_dofs_cell = this->operators.fe_collection_basis[poly_degree].dofs_per_cell;
 
     AssertDimension (n_dofs_cell, cell_dofs_indices.size());
+
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
 
     const std::vector<real> &JxW = fe_values_vol.get_JxW_values ();
 
@@ -537,6 +551,48 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     std::vector< realArrayTensor1 > conv_phys_flux_at_q(n_quad_pts);
     std::vector< realArrayTensor1 > diss_phys_flux_at_q(n_quad_pts);
     std::vector< realArray > source_at_q(n_quad_pts);
+
+
+
+    //get local cofactor matrix
+    std::vector<std::vector<real>> mapping_support_points(dim);
+    for(int idim=0; idim<dim; idim++){
+        mapping_support_points[idim].resize(n_metric_dofs/dim);
+    }
+    dealii::QGaussLobatto<dim> vol_GLL(grid_degree +1);
+    for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
+        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+            const real val = (this->high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+            const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+            mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate); 
+        }
+    }
+#if 0
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        const real val = (this->high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+        const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+        const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
+        mapping_support_points[istate][ishape] = val; 
+    }
+#endif
+    std::vector<dealii::FullMatrix<real>> metric_cofactor(n_quad_pts);
+    std::vector<real> determinant_Jacobian(n_quad_pts);
+    for(unsigned int iquad=0;iquad<n_quad_pts; iquad++){
+        metric_cofactor[iquad].reinit(dim, dim);
+    }
+    this->operators.build_local_vol_metric_cofactor_matrix_and_det_Jac(grid_degree, poly_degree, n_quad_pts, n_metric_dofs/dim, mapping_support_points, determinant_Jacobian, metric_cofactor);
+
+    //build physical gradient operator based on skew-symmetric form
+    //get physical split grdient in covariant basis
+    std::vector<std::vector<dealii::FullMatrix<real>>> physical_gradient(nstate);
+    for(unsigned int istate=0; istate<nstate; istate++){
+        physical_gradient[istate].resize(dim);
+        for(int idim=0; idim<dim; idim++){
+            physical_gradient[istate][idim].reinit(n_quad_pts, n_quad_pts);    
+        }
+    }
+    this->operators.get_Jacobian_scaled_physical_gradient(this->operators.gradient_flux_basis[poly_degree], metric_cofactor, n_quad_pts, nstate, physical_gradient); 
+
 
 
     // AD variable
@@ -554,46 +610,84 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     // Interpolate solution to face
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         for (unsigned int idof=0; idof<n_dofs_cell; ++idof) {
-              const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(idof).first;
-              soln_at_q[iquad][istate]      += soln_coeff[idof] * fe_values_vol.shape_value_component(idof, iquad, istate);
-              soln_grad_at_q[iquad][istate] += soln_coeff[idof] * fe_values_vol.shape_grad_component(idof, iquad, istate);
+             // const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(idof).first;
+              const unsigned int istate = this->operators.fe_collection_basis[poly_degree].system_to_component_index(idof).first;
+             // soln_at_q[iquad][istate]      += soln_coeff[idof] * fe_values_vol.shape_value_component(idof, iquad, istate);
+              soln_at_q[iquad][istate]      += soln_coeff[idof] * this->operators.basis_at_vol_cubature[poly_degree][iquad][idof];
+              //soln_at_q[iquad][istate]      += soln_coeff[idof] * operators.fe_collection[poly_degree].shape_value_component(idof, iquad, istate);
+
+             // soln_grad_at_q[iquad][istate] += soln_coeff[idof] * fe_values_vol.shape_grad_component(idof, iquad, istate);
+             // soln_grad_at_q[iquad][istate] += soln_coeff[idof] * operators.fe_collection[poly_degree].shape_grad_component(idof, iquad, istate);//should be auxiliary variable leave it for now
         }
         //std::cout << "Density " << soln_at_q[iquad][0] << std::endl;
         //if(nstate>1) std::cout << "Momentum " << soln_at_q[iquad][1] << std::endl;
         //std::cout << "Energy " << soln_at_q[iquad][nstate-1] << std::endl;
         // Evaluate physical convective flux and source term
-        conv_phys_flux_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->convective_flux (soln_at_q[iquad]);
-        diss_phys_flux_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
+        conv_phys_flux_at_q[iquad] = this->pde_physics_double->convective_flux (soln_at_q[iquad]);
+        diss_phys_flux_at_q[iquad] = this->pde_physics_double->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
         if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
-            source_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad]);
+            dealii::Point<dim> quad_point;
+            for(unsigned int imetric_dof=0; imetric_dof<n_metric_dofs/dim; imetric_dof++){
+                for(int idim=0; idim<dim; idim++){
+                    quad_point[idim] += this->operators.mapping_shape_functions_vol_flux_nodes[grid_degree][poly_degree][iquad][imetric_dof]
+                                                        * mapping_support_points[idim][imetric_dof];
+                }
+            }
+//if(quad_point[0] != fe_values_vol.quadrature_point(iquad)[0]){
+//pcout<<" x dir quad pt OFFF"<<std::endl;
+//}
+//if(quad_point[1] != fe_values_vol.quadrature_point(iquad)[1]){
+//pcout<<" y dir quad pt OFFF"<<std::endl;
+//}
+           // source_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad], DGBase<dim,real,MeshType>::current_time);
+            source_at_q[iquad] = this->pde_physics_double->source_term (quad_point, soln_at_q[iquad], DGBase<dim,real,MeshType>::current_time);
         }
     }
-
-    const double cell_diameter = fe_values_vol.get_cell()->diameter();
-    const unsigned int cell_index = fe_values_vol.get_cell()->active_cell_index();
-    const unsigned int cell_degree = fe_values_vol.get_fe().tensor_degree();
-    this->max_dt_cell[cell_index] = DGBaseState<dim,nstate,real,MeshType>::evaluate_CFL ( soln_at_q, 0.0, cell_diameter, cell_degree);
 
 
     // Evaluate flux divergence by interpolating the flux
     // Since we have nodal values of the flux, we use the Lagrange polynomials to obtain the gradients at the quadrature points.
     //const dealii::FEValues<dim,dim> &fe_values_lagrange = this->fe_values_collection_volume_lagrange.get_present_fe_values();
+
+   // #if 0//commented out the one from github
     std::vector<realArray> flux_divergence(n_quad_pts);
+ //   std::vector<realArray> flux_div_weight_norm(n_quad_pts);
     for (int istate = 0; istate<nstate; ++istate) {
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             flux_divergence[iquad][istate] = 0.0;
+      //      flux_div_weight_norm[iquad][istate] = 0.0;
             for ( unsigned int flux_basis = 0; flux_basis < n_quad_pts; ++flux_basis ) {
                 if (this->all_parameters->use_split_form == true)
                 {
-                    flux_divergence[iquad][istate] += 2* DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->convective_numerical_split_flux(soln_at_q[iquad],soln_at_q[flux_basis])[istate] *  fe_values_lagrange.shape_grad(flux_basis,iquad);
+                   // flux_divergence[iquad][istate] += 2* DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->convective_numerical_split_flux(soln_at_q[iquad],soln_at_q[flux_basis])[istate] *  fe_values_lagrange.shape_grad(flux_basis,iquad);
+                    for(int idim=0; idim<dim; idim++){
+                        flux_divergence[iquad][istate] += 2* DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->convective_numerical_split_flux(soln_at_q[iquad],soln_at_q[flux_basis])[istate][idim] *  physical_gradient[istate][idim][iquad][flux_basis];
+                    }
                 }
                 else
                 {
-                    flux_divergence[iquad][istate] += conv_phys_flux_at_q[flux_basis][istate] * fe_values_lagrange.shape_grad(flux_basis,iquad);
+                  //  flux_divergence[iquad][istate] += conv_phys_flux_at_q[flux_basis][istate] * fe_values_lagrange.shape_grad(flux_basis,iquad);
+                   // flux_divergence[iquad][istate] += conv_phys_flux_at_q[flux_basis][istate] * fe_values_lagrange.shape_grad(flux_basis,iquad) * determinant_Jacobian[iquad];
+                  // dealii::Tensor<1,dim,realtype> ref_flux;
+                  // this->operators.compute_physical_to_reference(conv_phys_flux_at_q[flux_basis][istate], metric_cofactor[flux_basis], ref_flux);
+
+                    for(int idim=0; idim<dim; idim++){
+                        flux_divergence[iquad][istate] += conv_phys_flux_at_q[flux_basis][istate][idim] * physical_gradient[istate][idim][iquad][flux_basis];
+
+                      // flux_divergence[iquad][istate] += 0.5*conv_phys_flux_at_q[flux_basis][istate][idim] * physical_gradient[istate][idim][iquad][flux_basis];
+                      // flux_divergence[iquad][istate] += 0.5*ref_flux[idim] * this->operators.gradient_flux_basis[poly_degree][istate][idim][iquad][flux_basis]; 
+                    }
                 }
             }
         }
     }
+   // #endif
+
+
+
+
+
+
 
     // Strong form
     // The right-hand side sends all the term to the side of the source term
@@ -606,14 +700,23 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
 
         realtype rhs = 0;
+     //   realtype split = 0;
 
-        const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(itest).first;
+       // const unsigned int istate = fe_values_vol.get_fe().system_to_component_index(itest).first;
+        const unsigned int istate = this->operators.fe_collection_basis[poly_degree].system_to_component_index(itest).first;
 
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
+
             // Convective
             // Now minus such 2 integrations by parts
-            rhs = rhs - fe_values_vol.shape_value_component(itest,iquad,istate) * flux_divergence[iquad][istate] * JxW[iquad];
+         //   rhs = rhs - fe_values_vol.shape_value_component(itest,iquad,istate) * flux_divergence[iquad][istate] * JxW[iquad];
+            rhs = rhs - this->operators.vol_integral_basis[poly_degree][iquad][itest]  * flux_divergence[iquad][istate];
+
+
+            //rhs = rhs - ESFR_filter[itest][iquad] * flux_divergence[iquad][istate] * JxW[iquad];
+           // rhs = rhs - ESFR_filter[itest][iquad] * alpha * flux_divergence[iquad][istate] * JxW[iquad];
+           // rhs = rhs -  fe_values_vol.shape_value_component(itest,iquad,istate)* alpha * flux_divergence[iquad][istate] * JxW[iquad];
 
             //// Diffusive
             //// Note that for diffusion, the negative is defined in the physics
@@ -621,7 +724,26 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
             // Source
 
             if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
-                rhs = rhs + fe_values_vol.shape_value_component(itest,iquad,istate) * source_at_q[iquad][istate] * JxW[iquad];
+#if 0
+//for the correct ESFR filt on source
+        dealii::FullMatrix<real> ESFR_filter(n_dofs_cell);
+        dealii::FullMatrix<real> Mass_matrix(n_dofs_cell);
+        const unsigned int current_fe_index = fe_values_vol.get_fe().tensor_degree();
+        this->operators.build_local_Mass_Matrix(JxW, n_dofs_cell, n_quad_pts, current_fe_index, Mass_matrix); 
+        dealii::FullMatrix<real> K_operator(n_dofs_cell);
+        this->operators.build_local_K_operator(Mass_matrix, n_dofs_cell, current_fe_index, K_operator);
+        dealii::FullMatrix<real> temp(n_dofs_cell);
+        temp.add(1.0, Mass_matrix, 1.0, K_operator);
+        dealii::FullMatrix<real> m_inv(n_dofs_cell);
+        m_inv.invert(Mass_matrix);
+        dealii::FullMatrix<real> temp2(n_dofs_cell);
+        temp.mmult(temp2, m_inv);
+        temp2.mTmult(ESFR_filter, this->operators.basis_at_vol_cubature[current_fe_index]);
+#endif
+
+               // rhs = rhs + fe_values_vol.shape_value_component(itest,iquad,istate) * source_at_q[iquad][istate] * JxW[iquad];
+                rhs = rhs + this->operators.vol_integral_basis[poly_degree][iquad][itest] * source_at_q[iquad][istate] * determinant_Jacobian[iquad];
+                //rhs = rhs + ESFR_filter[itest][iquad] * source_at_q[iquad][istate] * JxW[iquad];
             }
         }
 
@@ -768,41 +890,209 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_explicit(
 
 template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_explicit(
+    const unsigned int iface, const unsigned int neighbor_iface, 
     typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
+    const unsigned int poly_degree, const unsigned int grid_degree,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
     const real penalty,
     const std::vector<dealii::types::global_dof_index> &dof_indices_int,
     const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
+    const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
     dealii::Vector<real>          &local_rhs_int_cell,
     dealii::Vector<real>          &local_rhs_ext_cell)
 {
     (void) current_cell_index;
     (void) neighbor_cell_index;
     //std::cout << "assembling face terms" << std::endl;
-    using ADArray = std::array<FadType,nstate>;
-    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,FadType>, nstate >;
+    using ADtype = real;
+    using ADArray = std::array<ADtype,nstate>;
+    using ADArrayTensor1 = std::array< dealii::Tensor<1,dim,ADtype>, nstate >;
 
     // Use quadrature points of neighbor cell
     // Might want to use the maximum n_quad_pts1 and n_quad_pts2
-    const unsigned int n_face_quad_pts = fe_values_ext.n_quadrature_points;
+   // const unsigned int n_face_quad_pts = fe_values_ext.n_quadrature_points;
+    const unsigned int n_face_quad_pts = this->operators.face_quadrature_collection[poly_degree].size();
+    const unsigned int n_quad_pts_vol = this->operators.volume_quadrature_collection[poly_degree].size();
 
-    const unsigned int n_dofs_int = fe_values_int.dofs_per_cell;
-    const unsigned int n_dofs_ext = fe_values_ext.dofs_per_cell;
+    const unsigned int n_dofs_int = this->operators.fe_collection_basis[poly_degree].dofs_per_cell;
+    const unsigned int n_dofs_ext = this->operators.fe_collection_basis[poly_degree].dofs_per_cell;
+//    const unsigned int n_dofs_int = fe_values_int.dofs_per_cell;
+//    const unsigned int n_dofs_ext = fe_values_ext.dofs_per_cell;
 
     AssertDimension (n_dofs_int, dof_indices_int.size());
     AssertDimension (n_dofs_ext, dof_indices_ext.size());
 
+
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+
+
+
+
+
     // Jacobian and normal should always be consistent between two elements
     // even for non-conforming meshes?
     const std::vector<real> &JxW_int = fe_values_int.get_JxW_values ();
-    const std::vector<dealii::Tensor<1,dim> > &normals_int = fe_values_int.get_normal_vectors ();
+   // const std::vector<dealii::Tensor<1,dim> > &normals_int = fe_values_int.get_normal_vectors ();
+
+
+    //Compute metric terms (cofactor and normals)
+
+    //get local cofactor matrix
+    std::vector<std::vector<real>> mapping_support_points_int(dim);
+    std::vector<std::vector<real>> mapping_support_points_ext(dim);
+    for(int idim=0; idim<dim; idim++){
+        mapping_support_points_int[idim].resize(n_metric_dofs/dim);
+        mapping_support_points_ext[idim].resize(n_metric_dofs/dim);
+    }
+    dealii::QGaussLobatto<dim> vol_GLL(grid_degree + 1);
+    //get the mapping support points int and ext
+
+#if 0
+        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+            const real val_int = (this->high_order_grid->volume_nodes[metric_dof_indices_int[idof]]);
+            const unsigned int istate_int = fe_metric.system_to_component_index(idof).first; 
+            const unsigned int ishape_int = fe_metric.system_to_component_index(idof).second; 
+            mapping_support_points_int[istate_int][ishape_int] = val_int; 
+
+            const real val_ext = (this->high_order_grid->volume_nodes[metric_dof_indices_ext[idof]]);
+            const unsigned int istate_ext = fe_metric.system_to_component_index(idof).first; 
+            const unsigned int ishape_ext = fe_metric.system_to_component_index(idof).second; 
+            mapping_support_points_ext[istate_ext][ishape_ext] = val_ext; 
+        }
+#endif
+//#if 0
+    for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
+        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+            const real val_int = (this->high_order_grid->volume_nodes[metric_dof_indices_int[idof]]);
+            const unsigned int istate_int = fe_metric.system_to_component_index(idof).first; 
+            mapping_support_points_int[istate_int][igrid_node] += val_int * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate_int); 
+
+//if(igrid_node==0){
+//pcout<<" val int "<<val_int<<" for idof "<<idof<<" istate "<<istate_int<<std::endl;
+//}
+            const real val_ext = (this->high_order_grid->volume_nodes[metric_dof_indices_ext[idof]]);
+            const unsigned int istate_ext = fe_metric.system_to_component_index(idof).first; 
+            mapping_support_points_ext[istate_ext][igrid_node] += val_ext * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate_ext); 
+        }
+//for(int idim=0; idim<dim; idim++){
+//pcout<<" mapping supp "<<mapping_support_points_int[idim][igrid_node]<<" igrid node "<<igrid_node<<" idim "<<idim<<std::endl;
+//}
+    }
+//#endif
+
+    std::vector<dealii::FullMatrix<real>> metric_cofactor_int(n_quad_pts_vol);
+    std::vector<dealii::FullMatrix<real>> metric_cofactor_ext(n_quad_pts_vol);
+    std::vector<dealii::FullMatrix<real>> metric_cofactor_face(n_face_quad_pts);
+    std::vector<real> determinant_Jacobian_face(n_face_quad_pts);
+    std::vector<real> determinant_Jacobian(n_quad_pts_vol);//note we dont actually need this so use same for int and ext
+    for(unsigned int iquad=0;iquad<n_face_quad_pts; iquad++){
+        metric_cofactor_face[iquad].reinit(dim, dim);
+    }
+    //surface metric cofactor
+    this->operators.build_local_face_metric_cofactor_matrix_and_det_Jac(grid_degree, poly_degree, iface,
+                                                                        n_face_quad_pts, n_metric_dofs / dim, mapping_support_points_int, 
+                                                                        determinant_Jacobian_face, metric_cofactor_face);
+
+    //get physical normal scaled by jac
+    const dealii::Tensor<1,dim, real> unit_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+
+    std::vector<dealii::Tensor<1,dim, real> > normal_phys_int(n_face_quad_pts);
+ //   const std::vector<dealii::Tensor<1,dim> > &normals_dealii = fe_values_int.get_normal_vectors ();
+//pcout<<" quad points "<<n_face_quad_pts<<std::endl;
+    std::vector<real> face_jac(n_face_quad_pts);
+    for(unsigned int iquad=0; iquad<n_face_quad_pts; iquad++){
+        this->operators.compute_reference_to_physical(unit_normal_int, metric_cofactor_face[iquad], normal_phys_int[iquad]); 
+
+        face_jac[iquad] = normal_phys_int[iquad].norm();
+//      for(int idim=0;idim<dim; idim++){
+//if(std::abs(normal_phys_int[iquad][idim] - normals_dealii[iquad][idim]*JxW_int[iquad]/this->operators.face_quadrature_collection[poly_degree].weight(iquad))>1e-12){
+       // pcout<<"MY NORMAL "<<normal_phys_int[iquad][idim]<<"  NORMAL DEALII  "<<normals_dealii[iquad][idim]*JxW_int[iquad]/this->operators.face_quadrature_collection[poly_degree].weight(iquad)<<" FOR DIM "<<idim<<" iquad "<<iquad<<std::endl;
+//        pcout<<"MY NORMAL "<<normal_phys_int[iquad][idim]/face_jac[iquad]<<"  NORMAL DEALII  "<<normals_dealii[iquad][idim]<<" FOR DIM "<<idim<<" iquad "<<iquad<<std::endl;
+//        pcout<<" my face jac "<<face_jac[iquad]<<" dealii face jac"<<JxW_int[iquad]/this->operators.face_quadrature_collection[poly_degree].weight(iquad)<<std::endl;
+//}
+//    }
+
+    }
+
+
+    for(unsigned int iquad=0;iquad<n_quad_pts_vol; iquad++){
+        metric_cofactor_int[iquad].reinit(dim, dim);
+        metric_cofactor_ext[iquad].reinit(dim, dim);
+    }
+    //interior and exterior volume cofactors
+    this->operators.build_local_vol_metric_cofactor_matrix_and_det_Jac(grid_degree, poly_degree, n_quad_pts_vol, n_metric_dofs/dim, mapping_support_points_int, determinant_Jacobian, metric_cofactor_int);
+//    for(unsigned int iquad=0;iquad<n_quad_pts_vol; iquad++){
+//        determinant_Jacobian[iquad] = 0.0;
+//    }
+    this->operators.build_local_vol_metric_cofactor_matrix_and_det_Jac(grid_degree, poly_degree, n_quad_pts_vol, n_metric_dofs/dim, mapping_support_points_ext, determinant_Jacobian, metric_cofactor_ext);
+
+
+
+#if 0
+//check jacobian
+pcout<<"cell id "<<current_cell_index<<" iface "<<iface<<" neighbor iface "<<neighbor_iface<<std::endl;
+for(unsigned int iquad=0; iquad<n_face_quad_pts; iquad++){
+pcout<<"jacobian dealii for iquad "<<iquad<<std::endl;
+for(int idim=0; idim<dim; idim++){
+for(int jdim =0; jdim<dim; jdim++){
+printf(" %.8g ",fe_values_int.jacobian(iquad)[idim][jdim]);
+}
+printf("\n");
+}
+}
+pcout<<std::endl;
+pcout<<std::endl;
+pcout<<std::endl;
+pcout<<std::endl;
+
+#endif
+
+#if 0
+//check facet quadrature node
+for(unsigned int iquad=0; iquad<n_face_quad_pts; iquad++){
+            dealii::Point<dim> quad_point;
+            dealii::Point<dim> quad_point_ext;
+            for(unsigned int imetric_dof=0; imetric_dof<n_metric_dofs/dim; imetric_dof++){
+                for(int idim=0; idim<dim; idim++){
+                    quad_point[idim] += this->operators.mapping_shape_functions_face_flux_nodes[grid_degree][poly_degree][iface][iquad][imetric_dof]
+                                                        * mapping_support_points_int[idim][imetric_dof];
+                    quad_point_ext[idim] += this->operators.mapping_shape_functions_face_flux_nodes[grid_degree][poly_degree][neighbor_iface][iquad][imetric_dof]
+                                                        * mapping_support_points_ext[idim][imetric_dof];
+                }
+            }
+if(std::abs(quad_point[0] - fe_values_int.quadrature_point(iquad)[0])>1e-12){
+pcout<<" x dir quad pt OFFF_int for iface "<<iface<<std::endl;
+pcout<<"INT me x quad "<<quad_point[0]<<" dealii x quad "<<fe_values_int.quadrature_point(iquad)[0]<<std::endl;
+}
+if(std::abs(quad_point[1] - fe_values_int.quadrature_point(iquad)[1])>1e-12){
+pcout<<" y dir quad pt OFFF_int for iface "<<iface<<std::endl;
+pcout<<"INT me y quad "<<quad_point[1]<<" dealii y quad "<<fe_values_int.quadrature_point(iquad)[1]<<std::endl;
+}
+if(std::abs(quad_point_ext[0] - fe_values_ext.quadrature_point(iquad)[0])>1e-12){
+pcout<<" x dir quad pt OFFF_ext for iface "<<iface<<std::endl;
+pcout<<"EXT me x quad "<<quad_point_ext[0]<<" dealii x quad "<<fe_values_ext.quadrature_point(iquad)[0]<<std::endl;
+}
+if(std::abs(quad_point_ext[1] - fe_values_ext.quadrature_point(iquad)[1])>1e-12){
+pcout<<" y dir quad pt OFFF_ext for iface "<<iface<<std::endl;
+pcout<<"EXT me y quad "<<quad_point_ext[1]<<" dealii y quad "<<fe_values_ext.quadrature_point(iquad)[1]<<std::endl;
+}
+
+}
+#endif
+
+
+
 
     // AD variable
-    std::vector<FadType> soln_coeff_int_ad(n_dofs_int);
-    std::vector<FadType> soln_coeff_ext_ad(n_dofs_ext);
+   // std::vector<FadType> soln_coeff_int_ad(n_dofs_int);
+   // std::vector<FadType> soln_coeff_ext_ad(n_dofs_ext);
+    std::vector<ADtype> soln_coeff_int_ad(n_dofs_int);
+    std::vector<ADtype> soln_coeff_ext_ad(n_dofs_ext);
 
 
     // Jacobian blocks
@@ -812,8 +1102,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_explicit(
     std::vector<real> dR2_dW2(n_dofs_ext);
 
     std::vector<ADArray> conv_num_flux_dot_n(n_face_quad_pts);
-    std::vector<ADArrayTensor1> conv_phys_flux_int(n_face_quad_pts);
-    std::vector<ADArrayTensor1> conv_phys_flux_ext(n_face_quad_pts);
+    std::vector<ADArrayTensor1> conv_ref_flux_int_on_face(n_face_quad_pts);
+    std::vector<ADArrayTensor1> conv_ref_flux_ext_on_face(n_face_quad_pts);
 
     // Interpolate solution to the face quadrature points
     std::vector< ADArray > soln_int(n_face_quad_pts);
@@ -828,37 +1118,98 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_explicit(
     std::vector<ADArrayTensor1> diss_flux_jump_int(n_face_quad_pts); // u*-u_int
     std::vector<ADArrayTensor1> diss_flux_jump_ext(n_face_quad_pts); // u*-u_ext
     // AD variable
-    const unsigned int n_total_indep = n_dofs_int + n_dofs_ext;
     for (unsigned int idof = 0; idof < n_dofs_int; ++idof) {
         soln_coeff_int_ad[idof] = DGBase<dim,real,MeshType>::solution(dof_indices_int[idof]);
-        soln_coeff_int_ad[idof].diff(idof, n_total_indep);
     }
     for (unsigned int idof = 0; idof < n_dofs_ext; ++idof) {
         soln_coeff_ext_ad[idof] = DGBase<dim,real,MeshType>::solution(dof_indices_ext[idof]);
-        soln_coeff_ext_ad[idof].diff(idof+n_dofs_int, n_total_indep);
     }
+
+
+//START GET THE FLUX IN THE VOLUME AND INTERP TO THE FACET
+
+//get modal coefficients of flux to interpolate to face
+    std::vector< ADArray > soln_at_q_int(n_quad_pts_vol);
+    std::vector< ADArray > soln_at_q_ext(n_quad_pts_vol);
+    for (unsigned int iquad=0; iquad<n_quad_pts_vol; ++iquad) {
+        for (int istate=0; istate<nstate; istate++) { 
+            soln_at_q_int[iquad][istate]      = 0.0;
+            soln_at_q_ext[iquad][istate]      = 0.0;
+        }
+    }
+
+    std::vector< ADArrayTensor1 > conv_ref_flux_int(n_quad_pts_vol);
+    std::vector< ADArrayTensor1 > conv_ref_flux_ext(n_quad_pts_vol);
+    for(unsigned int iquad=0; iquad<n_quad_pts_vol; iquad++){
+        for (unsigned int idof=0; idof<n_dofs_int; ++idof) {
+            const unsigned int istate = this->operators.fe_collection_basis[poly_degree].system_to_component_index(idof).first;
+            soln_at_q_int[iquad][istate]      += soln_coeff_int_ad[idof] * this->operators.basis_at_vol_cubature[poly_degree][iquad][idof];
+        }
+        //get phys flux in vol quad
+        ADArrayTensor1 phys_flux = this->pde_physics_double->convective_flux (soln_at_q_int[iquad]);
+        //transform to a reference flux
+        for(int istate=0; istate<nstate; istate++){
+            this->operators.compute_physical_to_reference(phys_flux[istate], metric_cofactor_int[iquad], conv_ref_flux_int[iquad][istate]);
+        }
+    }
+    for(unsigned int iquad=0; iquad<n_quad_pts_vol; iquad++){
+        for (unsigned int idof=0; idof<n_dofs_ext; ++idof) {
+            const unsigned int istate = this->operators.fe_collection_basis[poly_degree].system_to_component_index(idof).first;
+            soln_at_q_ext[iquad][istate]      += soln_coeff_ext_ad[idof] * this->operators.basis_at_vol_cubature[poly_degree][iquad][idof];
+        }
+        //get phys flux in vol quad
+        ADArrayTensor1 phys_flux = this->pde_physics_double->convective_flux (soln_at_q_ext[iquad]);
+        //transform to a reference flux
+        for(int istate=0; istate<nstate; istate++){
+            this->operators.compute_physical_to_reference(phys_flux[istate], metric_cofactor_ext[iquad], conv_ref_flux_ext[iquad][istate]);
+        }
+    }
+
+    std::vector<ADArrayTensor1> conv_ref_flux_int_vol(n_face_quad_pts);
+    std::vector<ADArrayTensor1> conv_ref_flux_ext_vol(n_face_quad_pts);
+    for(int istate=0; istate<nstate; istate++){
+        for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+            conv_ref_flux_int_vol[iquad][istate]      = 0.0;
+            conv_ref_flux_ext_vol[iquad][istate]      = 0.0;
+            for (unsigned int iflux=0; iflux<n_quad_pts_vol; ++iflux) {
+                conv_ref_flux_int_vol[iquad][istate] += conv_ref_flux_int[iflux][istate] * this->operators.flux_basis_at_facet_cubature[poly_degree][istate][iface][iquad][iflux];
+                conv_ref_flux_ext_vol[iquad][istate] += conv_ref_flux_ext[iflux][istate] * this->operators.flux_basis_at_facet_cubature[poly_degree][istate][neighbor_iface][iquad][iflux];
+            }
+        }
+    }
+//END GET THE FLUX IN THE VOLUME AND INTERP TO THE FACET
+
+
+
+
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
         for (int istate=0; istate<nstate; istate++) { 
-            soln_int[iquad][istate]      = 0;
+            soln_int[iquad][istate]      = 0.0;
             soln_grad_int[iquad][istate] = 0;
-            soln_ext[iquad][istate]      = 0;
+            soln_ext[iquad][istate]      = 0.0;
             soln_grad_ext[iquad][istate] = 0;
         }
     }
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
 
-        const dealii::Tensor<1,dim,FadType> normal_int = normals_int[iquad];
-        const dealii::Tensor<1,dim,FadType> normal_ext = -normal_int;
+       // const dealii::Tensor<1,dim,FadType> normal_int = normals_int[iquad];
+       // const dealii::Tensor<1,dim,FadType> normal_int = normal_phys_int[iquad];
+       // const dealii::Tensor<1,dim,FadType> normal_ext = -normal_int;
+       // const dealii::Tensor<1,dim,ADtype> normal_int = normal_phys_int[iquad];
+        const dealii::Tensor<1,dim,ADtype> normal_int = normal_phys_int[iquad]/face_jac[iquad];
+        const dealii::Tensor<1,dim,ADtype> normal_ext = -normal_int;
 
         // Interpolate solution to face
         for (unsigned int idof=0; idof<n_dofs_int; ++idof) {
-            const unsigned int istate = fe_values_int.get_fe().system_to_component_index(idof).first;
-            soln_int[iquad][istate]      += soln_coeff_int_ad[idof] * fe_values_int.shape_value_component(idof, iquad, istate);
+            const unsigned int istate = this->operators.fe_collection_basis[poly_degree].system_to_component_index(idof).first;
+            soln_int[iquad][istate]      += soln_coeff_int_ad[idof] * this->operators.basis_at_facet_cubature[poly_degree][iface][iquad][idof];
             soln_grad_int[iquad][istate] += soln_coeff_int_ad[idof] * fe_values_int.shape_grad_component(idof, iquad, istate);
         }
         for (unsigned int idof=0; idof<n_dofs_ext; ++idof) {
-            const unsigned int istate = fe_values_ext.get_fe().system_to_component_index(idof).first;
-            soln_ext[iquad][istate]      += soln_coeff_ext_ad[idof] * fe_values_ext.shape_value_component(idof, iquad, istate);
+            const unsigned int istate = this->operators.fe_collection_basis[poly_degree].system_to_component_index(idof).first;
+           // const unsigned int istate = fe_values_ext.get_fe().system_to_component_index(idof).first;
+           // soln_ext[iquad][istate]      += soln_coeff_ext_ad[idof] * fe_values_ext.shape_value_component(idof, iquad, istate);
+            soln_ext[iquad][istate]      += soln_coeff_ext_ad[idof] * this->operators.basis_at_facet_cubature[poly_degree][neighbor_iface][iquad][idof];
             soln_grad_ext[iquad][istate] += soln_coeff_ext_ad[idof] * fe_values_ext.shape_grad_component(idof, iquad, istate);
         }
         //std::cout << "Density int" << soln_int[iquad][0] << std::endl;
@@ -871,15 +1222,45 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_explicit(
         // Evaluate physical convective flux, physical dissipative flux, and source term
 
         //std::cout <<"evaluating numerical fluxes" <<std::endl;
-        conv_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_fad->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
+       // conv_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_fad->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
+        conv_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_double->evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
 
-        conv_phys_flux_int[iquad] = this->pde_physics_fad->convective_flux (soln_int[iquad]);
-        conv_phys_flux_ext[iquad] = this->pde_physics_fad->convective_flux (soln_ext[iquad]);
+        if (this->all_parameters->use_split_form == true && this->all_parameters->use_curvilinear_split_form == false){
+            ADArrayTensor1 conv_surface_ref_flux;
+            ADArrayTensor1 phys_flux = this->pde_physics_double->convective_flux (soln_int[iquad]);
+            for(int istate=0; istate<nstate; istate++){
+                this->operators.compute_physical_to_reference(phys_flux[istate], metric_cofactor_face[iquad], conv_surface_ref_flux[istate]);
+            }
+            conv_ref_flux_int_on_face[iquad] = this->pde_physics_double->convective_surface_numerical_split_flux(conv_surface_ref_flux, conv_ref_flux_int_vol[iquad]); 
+            phys_flux = this->pde_physics_double->convective_flux (soln_ext[iquad]);
+            for(int istate=0; istate<nstate; istate++){
+                this->operators.compute_physical_to_reference(phys_flux[istate], metric_cofactor_face[iquad], conv_surface_ref_flux[istate]);
+            }
+            conv_ref_flux_ext_on_face[iquad] = this->pde_physics_double->convective_surface_numerical_split_flux(conv_surface_ref_flux, conv_ref_flux_ext_vol[iquad]); 
+        } else if(this->all_parameters->use_split_form == false && this->all_parameters->use_curvilinear_split_form == true){
+            ADArrayTensor1 conv_surface_ref_flux;
+            ADArrayTensor1 phys_flux = this->pde_physics_double->convective_flux (soln_int[iquad]);
+            for(int istate=0; istate<nstate; istate++){
+                this->operators.compute_physical_to_reference(phys_flux[istate], metric_cofactor_face[iquad], conv_surface_ref_flux[istate]);
+                conv_ref_flux_int_on_face[iquad][istate] = 0.5 * (conv_surface_ref_flux[istate] + conv_ref_flux_int_vol[iquad][istate]);
+            }
+
+            phys_flux = this->pde_physics_double->convective_flux (soln_ext[iquad]);
+            for(int istate=0; istate<nstate; istate++){
+                this->operators.compute_physical_to_reference(phys_flux[istate], metric_cofactor_face[iquad], conv_surface_ref_flux[istate]);
+                conv_ref_flux_ext_on_face[iquad][istate] = 0.5 * (conv_surface_ref_flux[istate] + conv_ref_flux_ext_vol[iquad][istate]);
+            }
+
+        } else {
+            conv_ref_flux_int_on_face[iquad] = conv_ref_flux_int_vol[iquad];
+            conv_ref_flux_ext_on_face[iquad] = conv_ref_flux_ext_vol[iquad];
+        }
 
        // std::cout <<"done evaluating numerical fluxes" <<std::endl;
 
 
-        diss_soln_num_flux[iquad] = DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_fad->evaluate_solution_flux(soln_int[iquad], soln_ext[iquad], normal_int);
+       // diss_soln_num_flux[iquad] = DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_fad->evaluate_solution_flux(soln_int[iquad], soln_ext[iquad], normal_int);
+        diss_soln_num_flux[iquad] = DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_double->evaluate_solution_flux(soln_int[iquad], soln_ext[iquad], normal_int);
 
         ADArrayTensor1 diss_soln_jump_int, diss_soln_jump_ext;
         for (int s=0; s<nstate; s++) {
@@ -888,31 +1269,48 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_explicit(
     diss_soln_jump_ext[s][d] = (diss_soln_num_flux[iquad][s] - soln_ext[iquad][s]) * normal_ext[d];
    }
         }
-        diss_flux_jump_int[iquad] = this->pde_physics_fad->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
-        diss_flux_jump_ext[iquad] = this->pde_physics_fad->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext);
+       // diss_flux_jump_int[iquad] = this->pde_physics_fad->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
+       // diss_flux_jump_ext[iquad] = this->pde_physics_fad->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext);
+        diss_flux_jump_int[iquad] = this->pde_physics_double->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
+        diss_flux_jump_ext[iquad] = this->pde_physics_double->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext);
 
-        diss_auxi_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_fad->evaluate_auxiliary_flux(
+       // diss_auxi_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_fad->evaluate_auxiliary_flux(
+        diss_auxi_num_flux_dot_n[iquad] = DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_double->evaluate_auxiliary_flux(
             0.0, 0.0,
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
             normal_int, penalty);
     }
 
+//const unsigned int poly_degree = pow(n_dofs_int,1.0/dim)-1.0;
+//const double pi = atan(1)*4.0;
     // From test functions associated with interior cell point of view
     for (unsigned int itest_int=0; itest_int<n_dofs_int; ++itest_int) {
-        FadType rhs = 0.0;
-        const unsigned int istate = fe_values_int.get_fe().system_to_component_index(itest_int).first;
+       // FadType rhs = 0.0;
+        ADtype rhs = 0.0;
+      //  const unsigned int istate = fe_values_int.get_fe().system_to_component_index(itest_int).first;
+        const unsigned int istate = this->operators.fe_collection_basis[poly_degree].system_to_component_index(itest_int).first;
 
         for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+
             // Convection
-            const FadType flux_diff = conv_num_flux_dot_n[iquad][istate] - conv_phys_flux_int[iquad][istate]*normals_int[iquad];
-            rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * flux_diff * JxW_int[iquad];
+           // const ADtype flux_diff = conv_num_flux_dot_n[iquad][istate] - conv_ref_flux_int_on_face[iquad][istate]*unit_normal_int;
+            const ADtype flux_diff = face_jac[iquad]*conv_num_flux_dot_n[iquad][istate] - conv_ref_flux_int_on_face[iquad][istate]*unit_normal_int;
+            rhs = rhs - this->operators.face_integral_basis[poly_degree][iface][iquad][itest_int] * flux_diff;
+           // rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * JxW_int[iquad]* flux_diff;
+
+
+           // rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * flux_diff * JxW_int[iquad]
+           //             *(poly_degree+1.0)*pi;
             // Diffusive
-            rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW_int[iquad];
+           // rhs = rhs - fe_values_int.shape_value_component(itest_int,iquad,istate) * diss_auxi_num_flux_dot_n[iquad][istate] * JxW_int[iquad];
+            rhs = rhs - this->operators.face_integral_basis[poly_degree][iface][iquad][itest_int] * diss_auxi_num_flux_dot_n[iquad][istate];
             rhs = rhs + fe_values_int.shape_grad_component(itest_int,iquad,istate) * diss_flux_jump_int[iquad][istate] * JxW_int[iquad];
         }
 
-        local_rhs_int_cell(itest_int) += rhs.val();
+       // local_rhs_int_cell(itest_int) += rhs.val();
+        local_rhs_int_cell(itest_int) += rhs;
+    #if 0
         if (this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::implicit_solver) {
             for (unsigned int idof = 0; idof < n_dofs_int; ++idof) {
                 dR1_dW1[idof] = rhs.fastAccessDx(idof);
@@ -923,23 +1321,34 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_explicit(
             this->system_matrix.add(dof_indices_int[itest_int], dof_indices_int, dR1_dW1);
             this->system_matrix.add(dof_indices_int[itest_int], dof_indices_ext, dR1_dW2);
         }
+    #endif
     }
 
     // From test functions associated with neighbour cell point of view
     for (unsigned int itest_ext=0; itest_ext<n_dofs_ext; ++itest_ext) {
-        FadType rhs = 0.0;
-        const unsigned int istate = fe_values_int.get_fe().system_to_component_index(itest_ext).first;
+       // FadType rhs = 0.0;
+        ADtype rhs = 0.0;
+       // const unsigned int istate = fe_values_int.get_fe().system_to_component_index(itest_ext).first;
+        const unsigned int istate = this->operators.fe_collection_basis[poly_degree].system_to_component_index(itest_ext).first;
 
         for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
             // Convection
-            const FadType flux_diff = (-conv_num_flux_dot_n[iquad][istate]) - conv_phys_flux_ext[iquad][istate]*(-normals_int[iquad]);
-            rhs = rhs - fe_values_ext.shape_value_component(itest_ext,iquad,istate) * flux_diff * JxW_int[iquad];
+           // const ADtype flux_diff = (-conv_num_flux_dot_n[iquad][istate]) - conv_ref_flux_ext_on_face[iquad][istate]*(-unit_normal_int);
+            const ADtype flux_diff = face_jac[iquad]*(-conv_num_flux_dot_n[iquad][istate]) - conv_ref_flux_ext_on_face[iquad][istate]*(-unit_normal_int);
+            rhs = rhs - this->operators.face_integral_basis[poly_degree][neighbor_iface][iquad][itest_ext] * flux_diff;
+            //rhs = rhs -  fe_values_ext.shape_value_component(itest_ext,iquad,istate) * JxW_int[iquad]* flux_diff;
+
+
+          //  rhs = rhs - fe_values_ext.shape_value_component(itest_ext,iquad,istate) * flux_diff * JxW_int[iquad]
+          //              *(poly_degree+1.0)*pi;
             // Diffusive
             rhs = rhs - fe_values_ext.shape_value_component(itest_ext,iquad,istate) * (-diss_auxi_num_flux_dot_n[iquad][istate]) * JxW_int[iquad];
             rhs = rhs + fe_values_ext.shape_grad_component(itest_ext,iquad,istate) * diss_flux_jump_ext[iquad][istate] * JxW_int[iquad];
         }
 
-        local_rhs_ext_cell(itest_ext) += rhs.val();
+       // local_rhs_ext_cell(itest_ext) += rhs.val();
+        local_rhs_ext_cell(itest_ext) += rhs;
+    #if 0
         if (this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::implicit_solver) {
             for (unsigned int idof = 0; idof < n_dofs_int; ++idof) {
                 dR2_dW1[idof] = rhs.fastAccessDx(idof);
@@ -950,6 +1359,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_explicit(
             this->system_matrix.add(dof_indices_ext[itest_ext], dof_indices_int, dR2_dW1);
             this->system_matrix.add(dof_indices_ext[itest_ext], dof_indices_ext, dR2_dW2);
         }
+    #endif
     }
 }
 

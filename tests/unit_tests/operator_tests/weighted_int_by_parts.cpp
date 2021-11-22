@@ -71,7 +71,7 @@ int main (int argc, char * argv[])
     using namespace PHiLiP;
     std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1) << std::scientific;
     const int dim = PHILIP_DIM;
-    const int nstate = 2;
+    const int nstate = 1;
     dealii::ParameterHandler parameter_handler;
     PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler);
 
@@ -83,14 +83,15 @@ int main (int argc, char * argv[])
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     all_parameters_new.flux_reconstruction_type = FR_enum::cHU;
    // all_parameters_new.use_collocated_nodes=true;
-    all_parameters_new.overintegration = 2;
+    all_parameters_new.overintegration = 0;
 
     double left = 0.0;
     double right = 1.0;
     const bool colorize = true;
-    const unsigned int igrid= 2;
+    const unsigned int igrid= 0;
 
 
+    const bool use_chebyshev = false;
 
     //Generate a standard grid
 
@@ -111,7 +112,8 @@ int main (int argc, char * argv[])
         dealii::GridGenerator::hyper_cube (*grid, left, right, colorize);
         grid->refine_global(igrid);
     double max_dif_int_parts = 0.0;
-    for(unsigned int poly_degree=2; poly_degree<6; poly_degree++){
+   // for(unsigned int poly_degree=2; poly_degree<6; poly_degree++){
+    for(unsigned int poly_degree=2; poly_degree<3; poly_degree++){
 
         OPERATOR::OperatorBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, poly_degree); 
 
@@ -120,40 +122,99 @@ int main (int argc, char * argv[])
         const unsigned int n_quad_pts = operators.volume_quadrature_collection[poly_degree].size();
         std::vector<dealii::FullMatrix<real>> vol_int_parts(dim);
         std::vector<dealii::FullMatrix<real>> face_int_parts(dim);
+
+#if 0
+        std::vector<dealii::FullMatrix<real>> deriv_basis_weights(dim);
         for(int idim=0; idim<dim; idim++){
-            vol_int_parts[idim].reinit(n_dofs, nstate * n_dofs_flux);
-            face_int_parts[idim].reinit(n_dofs, nstate * n_dofs_flux);
+            deriv_basis_weights[idim].reinit(n_quad_pts, n_dofs);
+        }
+        for(int idim=0; idim<dim; idim++){
+        for(unsigned int idof=0; idof<n_dofs; idof++){
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                deriv_basis_weights[idim][iquad][idof] = 0.0;
+                for(unsigned int iquad2=0; iquad2<n_quad_pts; iquad2++){
+                    const dealii::Point<dim> qpoint  = operators.volume_quadrature_collection[poly_degree].point(iquad2);
+                    deriv_basis_weights[idim][iquad][idof] +=         operators.gradient_flux_basis[poly_degree][0][idim][iquad][iquad2]
+                                                            *       operators.basis_at_vol_cubature[poly_degree][iquad2][idof]
+                                                           // *       (1.0/std::sqrt(qpoint[idim]*(1.0-qpoint[idim])));
+                                                            *       (1.0/(2.0*std::sqrt(qpoint[idim]*(1.0-qpoint[idim]))));
+                }
+            }
+        }
+        }
+#endif
+
+
+
+        for(int idim=0; idim<dim; idim++){
+//            vol_int_parts[idim].reinit(n_dofs, nstate * n_dofs_flux);
+            face_int_parts[idim].reinit(n_dofs, n_dofs);
         //    vol_int_parts[idim].add(1.0, operators.local_flux_basis_stiffness[poly_degree][idim]);
             //have to do weak flux basis vol integral
-//    pcout<<"VOL "<<std::endl;
+            vol_int_parts[idim].reinit(n_dofs, n_dofs);
+            vol_int_parts[idim].add(1.0, operators.local_basis_stiffness[poly_degree][idim]);
+            vol_int_parts[idim].Tadd(1.0, operators.local_basis_stiffness[poly_degree][idim]);
+//#if 0
+            if(use_chebyshev == true){
             for(unsigned int itest=0; itest<n_dofs; itest++){
                 const unsigned int istate_test = operators.fe_collection_basis[poly_degree].system_to_component_index(itest).first;
-                const unsigned int ishape_test = operators.fe_collection_basis[poly_degree].system_to_component_index(itest).second;
-                for(unsigned int idof=0; idof<n_dofs_flux; idof++){
-                    for(unsigned int istate_dof=0; istate_dof<nstate; istate_dof++){
-                       // const unsigned int istate_dof = operators.fe_collection_basis[poly_degree].system_to_component_index(idof).first;
+//                const unsigned int ishape_test = operators.fe_collection_basis[poly_degree].system_to_component_index(itest).second;
+                for(unsigned int idof=0; idof<n_dofs; idof++){
+                        const unsigned int istate_dof = operators.fe_collection_basis[poly_degree].system_to_component_index(idof).first;
                        // const unsigned int ishape_dof = operators.fe_collection_basis[poly_degree].system_to_component_index(idof).second;
                         double value= 0.0;
                         for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                            value +=        operators.vol_integral_gradient_basis[poly_degree][istate_test][idim][iquad][ishape_test] 
-                                    *       operators.flux_basis_at_vol_cubature[poly_degree][istate_dof][iquad][idof];
+                            const dealii::Point<dim> qpoint  = operators.volume_quadrature_collection[poly_degree].point(iquad);
+//#if 0
+                            value +=        operators.basis_at_vol_cubature[poly_degree][iquad][itest] 
+                                    *       operators.basis_at_vol_cubature[poly_degree][iquad][idof]
+                                    *       operators.volume_quadrature_collection[poly_degree].weight(iquad)
+                                    /       (1.0/std::sqrt(qpoint[idim]*(1.0-qpoint[idim])))
+                                    *        ((2.0*qpoint[idim]-1.0)/(pow(qpoint[idim]*(1.0-qpoint[idim]), 3.0/2.0)*2.0));
+//        pcout<<" for iquad "<<iquad<<" weight "<<operators.volume_quadrature_collection[poly_degree].weight(iquad)<<std::endl;
+//#endif
+#if 0
+                            value +=        deriv_basis_weights[idim][iquad][itest] 
+                                    *       operators.basis_at_vol_cubature[poly_degree][iquad][idof]
+                                    *       operators.volume_quadrature_collection[poly_degree].weight(iquad)
+                                   // /       (1.0/std::sqrt(qpoint[idim]*(1.0-qpoint[idim])));
+                                    /       (1.0/(2.0*std::sqrt(qpoint[idim]*(1.0-qpoint[idim]))));
+#endif
                         }
                         if(istate_test == istate_dof){
-                            unsigned int dof_index = idof + n_dofs_flux * istate_dof;
-                            vol_int_parts[idim][itest][dof_index] += value;
-                            vol_int_parts[idim][itest][dof_index] += operators.local_flux_basis_stiffness[poly_degree][istate_dof][idim][ishape_test][idof];
+                          //  unsigned int dof_index = idof + n_dofs_flux * istate_dof;
+                            vol_int_parts[idim][itest][idof] += value;
+                          //  vol_int_parts[idim][itest][dof_index] += operators.local_flux_basis_stiffness[poly_degree][istate_dof][idim][ishape_test][idof];
                         }
-                    }
                 }
             }
-//            for(unsigned int itest=0; itest<n_dofs; itest++){
-//                for(unsigned int idof=0; idof<nstate * n_dofs_flux; idof++){
-//pcout<<vol_int_parts[idim][itest][idof]<<" ";
-//}
-//pcout<<std::endl;
-//}
+            }
+//#endif
+//            vol_int_parts[idim].Tadd(1.0, operators.local_basis_stiffness[poly_degree][idim]);
+pcout<<"VOLUME TERM "<<std::endl;
+            for(unsigned int itest=0; itest<n_dofs; itest++){
+                for(unsigned int idof=0; idof<n_dofs; idof++){
+if(std::abs(vol_int_parts[idim][itest][idof])<1e-14)
+pcout<<0<<" ";
+else
+pcout<<vol_int_parts[idim][itest][idof]<<" ";
+}
+pcout<<std::endl;
+}
           //  vol_int_parts[idim].Tadd(1.0, operators.local_basis_stiffness[poly_degree][idim]);
         }
+
+double test=0.0;
+for(int idim=0; idim<dim; idim++){
+for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+    const dealii::Point<dim> qpoint  = operators.volume_quadrature_collection[poly_degree].point(iquad);
+    test +=        operators.volume_quadrature_collection[poly_degree].weight(iquad)
+           /       (1.0/std::sqrt(qpoint[idim]*(1.0-qpoint[idim])))
+           *       ((2.0*qpoint[idim]-1.0)/(pow(qpoint[idim]*(1.0-qpoint[idim]), 3.0/2.0)*2.0));
+}
+}
+pcout<<" THE TEST "<<test<<std::endl;
+
         const unsigned int n_quad_face_pts = operators.face_quadrature_collection[poly_degree].size();
         for(unsigned int iface=0; iface< dealii::GeometryInfo<dim>::faces_per_cell; iface++){
             const dealii::Tensor<1,dim,real> unit_normal = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
@@ -165,16 +226,31 @@ int main (int argc, char * argv[])
 //    pcout<<"face "<<std::endl;
             for(unsigned int itest=0; itest<n_dofs; itest++){
                 const unsigned int istate_test = operators.fe_collection_basis[poly_degree].system_to_component_index(itest).first;
-                for(unsigned int idof=0; idof<n_dofs_flux; idof++){
+                for(unsigned int idof=0; idof<n_dofs; idof++){
                     for(unsigned int istate_dof=0; istate_dof<nstate; istate_dof++){
                        // const unsigned int istate_dof = operators.fe_collection_basis[poly_degree].system_to_component_index(idof).first;
                        // const unsigned int ishape_dof = operators.fe_collection_basis[poly_degree].system_to_component_index(idof).second;
                         double value= 0.0;
                         for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
-                            value +=        operators.face_integral_basis[poly_degree][iface][iquad][itest] 
+                           const double pi = atan(1)*4.0;
+                            double temp = operators.face_integral_basis[poly_degree][iface][iquad][itest] 
                                     *       unit_normal[jdim]
-                                    *       operators.flux_basis_at_facet_cubature[poly_degree][istate_dof][iface][iquad][idof];
+                                    *       operators.basis_at_facet_cubature[poly_degree][iface][iquad][idof];
+                            if(use_chebyshev == true){
+                                temp *= pi*(poly_degree+1);
+                            }
+                            value += temp;
+                        //    value +=        operators.face_integral_basis[poly_degree][iface][iquad][itest] 
+                        //           *       unit_normal[jdim]
+                        //           *       pi*(poly_degree+1)
+                        //           *       operators.basis_at_facet_cubature[poly_degree][iface][iquad][idof];
                         }
+#if 0
+                        if(dim==1){
+                            const double pi = atan(1)*4.0;
+                            value *= pi*(poly_degree+1);
+                        }
+#endif
                         if(istate_test == istate_dof){
                             unsigned int dof_index = idof + n_dofs_flux * istate_dof;
                             face_int_parts[jdim][itest][dof_index] += value;
@@ -182,13 +258,16 @@ int main (int argc, char * argv[])
                     }
                 }
             }
-//std::cout<<" SURFACE TERM"<<std::endl;
-//            for(unsigned int itest=0; itest<n_dofs; itest++){
-//                for(unsigned int idof=0; idof<nstate * n_dofs_flux; idof++){
-//pcout<<face_int_parts[jdim][itest][idof]<<" ";
-//}
-//pcout<<std::endl;
-//}
+std::cout<<" SURFACE TERM"<<std::endl;
+            for(unsigned int itest=0; itest<n_dofs; itest++){
+                for(unsigned int idof=0; idof<n_dofs; idof++){
+if(std::abs(face_int_parts[jdim][itest][idof])<1e-14)
+pcout<<0<<" ";
+else
+pcout<<face_int_parts[jdim][itest][idof]<<" ";
+}
+pcout<<std::endl;
+}
 
 //std::cout<<" basis TERM"<<std::endl;
 //                for(unsigned int idof=0; idof<n_dofs_flux; idof++){

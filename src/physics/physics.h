@@ -51,7 +51,7 @@ public:
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
             const std::array<real,nstate> &soln_const, const std::array<real,nstate> &soln_loop) const = 0;
 
-    /// Convective Numerical Split Flux for split form
+/// Convective Numerical Split Flux for split form
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> convective_surface_numerical_split_flux (
                 const std::array< dealii::Tensor<1,dim,real>, nstate > &surface_flux,
                 const std::array< dealii::Tensor<1,dim,real>, nstate > &flux_interp_to_surface) const = 0;
@@ -95,8 +95,8 @@ public:
     /// Source term that does not require differentiation.
     virtual std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &solution,
-        const real current_time) const = 0;
+        const std::array<real,nstate> &solution,//) const;
+        const real /*current_time*/) const = 0;
 
     /// Artificial source term that does not require differentiation stemming from artificial dissipation.
     virtual std::array<real,nstate> artificial_source_term (

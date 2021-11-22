@@ -157,7 +157,7 @@ public:
     /// Source term is zero or depends on manufactured solution
     virtual std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &conservative_soln,
+        const std::array<real,nstate> &conservative_soln,//) const;
         const real /*current_time*/) const;
 
     /// Convective flux contribution to the source term

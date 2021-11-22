@@ -434,7 +434,8 @@ template <int dim, int nstate, typename real>
 std::array<real,nstate> NavierStokes<dim,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,
-    const std::array<real,nstate> &/*conservative_soln*/) const
+    const std::array<real,nstate> &/*conservative_soln*/,
+    const real /*current_time*/) const
 {
     // will probably have to change this line: -- modify so we only need to provide a jacobian
     const std::array<real,nstate> conv_source_term = this->convective_source_term(pos);

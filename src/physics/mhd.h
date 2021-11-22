@@ -130,7 +130,7 @@ public:
     /// Source term is zero or depends on manufactured solution
     std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,
-        const std::array<real,nstate> &conservative_soln,
+        const std::array<real,nstate> &conservative_soln,//) const;
         const real /*current_time*/) const;
 
     /// Given conservative variables [density, [momentum], total energy],
@@ -204,7 +204,7 @@ public:
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const;
 
-    /// Convective Numerical Split Flux for split form
+    /// Convective surface split flux
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_surface_numerical_split_flux (
                 const std::array< dealii::Tensor<1,dim,real>, nstate > &surface_flux,
                 const std::array< dealii::Tensor<1,dim,real>, nstate > &flux_interp_to_surface) const;

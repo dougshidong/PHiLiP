@@ -379,6 +379,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
     return flux_interp_to_surface;
 }
 
+
 template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>::
 compute_mean_density(const std::array<real,nstate> &conservative_soln1,
@@ -1158,5 +1159,3 @@ template dealii::Tensor<1,PHILIP_DIM,FadType   > Euler < PHILIP_DIM, PHILIP_DIM+
 
 } // Physics namespace
 } // PHiLiP namespace
-
-

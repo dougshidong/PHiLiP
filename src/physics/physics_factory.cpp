@@ -58,8 +58,19 @@ PhysicsFactory<dim,nstate,real>
             return std::make_shared < Burgers<dim,nstate,real> >(
                 true, false,
                 diffusion_tensor, 
-                manufactured_solution_function,//);
-                parameters_input->test_type);
+                manufactured_solution_function);
+#if 0
+    } else if (pde_type == PDE_enum::burgers_rewienski) {
+        if constexpr (nstate==dim)
+            return std::make_shared < BurgersRewienski<dim,nstate,real> >(
+                    parameters_input->reduced_order_param.rewienski_a,
+                    parameters_input->reduced_order_param.rewienski_b,
+                    parameters_input->reduced_order_param.rewienski_manufactured_solution,
+                    true,
+                    false,
+                    diffusion_tensor,
+                    manufactured_solution_function);
+#endif
     } else if (pde_type == PDE_enum::euler) {
         if constexpr (nstate==dim+2) {
             return std::make_shared < Euler<dim,nstate,real> > (
@@ -140,4 +151,3 @@ template class PhysicsFactory<PHILIP_DIM, 8, RadFadType >;
 
 } // Physics namespace
 } // PHiLiP namespace
-

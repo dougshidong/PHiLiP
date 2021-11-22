@@ -230,4 +230,3 @@ template class PhysicsBase < PHILIP_DIM, 8, RadFadType >;
 
 } // Physics namespace
 } // PHiLiP namespace
-

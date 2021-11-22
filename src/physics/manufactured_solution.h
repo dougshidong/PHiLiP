@@ -489,6 +489,184 @@ public:
 
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
+/// Navah and Nadarajah free flows manufactured solution base
+/// Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
+template <int dim, typename real>
+class ManufacturedSolutionNavahBase
+: public ManufacturedSolutionFunction<dim, real>
+{
+// We want the Point to be templated on the type,
+// however, dealii does not template that part of the Function.
+// Therefore, we end up overloading the functions and need to "import"
+// those non-overloaded functions to avoid the warning -Woverloaded-virtual
+// See: https://stackoverflow.com/questions/18515183/c-overloaded-virtual-function-warning-by-clang
+protected:
+    using dealii::Function<dim,real>::value;
+    using dealii::Function<dim,real>::gradient;
+    using dealii::Function<dim,real>::hessian;
+public:
+    /// Constructor
+    ManufacturedSolutionNavahBase(const unsigned int nstate = 4)
+        :   ManufacturedSolutionFunction<dim,real>(nstate)
+    {
+        // static_assert(dim==2, "ManufacturedSolutionNavahBase() should be created with dim=2");
+        // static_assert(nstate==dim+2, "ManufacturedSolutionNavahBase() should be created with nstate=dim+2");
+        
+        const double pi = atan(1)*4.0;///< pi constant
+        real L = 1.0;  ///< reference length
+        c = pi/L; ///< constant
+    }
+    /// Value of conservative variables
+    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+    /// Gradient of conservative variables
+    dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+    /// Hessian of conservative variables
+    dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+protected:
+    std::array<dealii::Tensor<1,7,double>,5> ncm; ///< Navah Coefficient Matrix (ncm); placeholder
+    real c; ///< Constant, pi/L
+    /// Value of primitive variables
+    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+    /// Gradient of primitive variables
+    dealii::Tensor<1,dim,real> primitive_gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+    /// Hessian of primitive variables
+    dealii::SymmetricTensor<2,dim,real> primitive_hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+};
+
+/// Navah and Nadarajah free flows manufactured solution: MS1
+template <int dim, typename real>
+class ManufacturedSolutionNavah_MS1
+    : public ManufacturedSolutionNavahBase<dim, real>
+{
+public:
+    /** Constructor for MS-1
+     *  Sets the Navah Coefficient Matrix for the specified navah_solution.
+     *  Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
+     *  Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
+     */
+    ManufacturedSolutionNavah_MS1(const unsigned int nstate = 4)
+        :   ManufacturedSolutionNavahBase<dim,real>(nstate)
+    {
+        std::array<dealii::Tensor<1,7,double>,5> ncm; ///< Navah Coefficient Matrix (ncm)
+        /* MS-1 */
+        ncm[0][0]= 1.0; ncm[0][1]=0.3; ncm[0][2]=-0.2; ncm[0][3]=0.3; ncm[0][4]=1.0; ncm[0][5]=1.0; ncm[0][6]=1.0;
+        ncm[1][0]= 1.0; ncm[1][1]=0.3; ncm[1][2]= 0.3; ncm[1][3]=0.3; ncm[1][4]=3.0; ncm[1][5]=1.0; ncm[1][6]=1.0;
+        ncm[2][0]= 1.0; ncm[2][1]=0.3; ncm[2][2]= 0.3; ncm[2][3]=0.3; ncm[2][4]=1.0; ncm[2][5]=1.0; ncm[2][6]=1.0;
+        ncm[3][0]=18.0; ncm[3][1]=5.0; ncm[3][2]= 5.0; ncm[3][3]=0.5; ncm[3][4]=2.0; ncm[3][5]=1.0; ncm[3][6]=1.0;
+        for(int j=0; j<7; j++) {
+            ncm[4][j] = 0.0;
+        }
+        this->ncm=ncm; // done this way to minimize the use of keyword "this->"
+    }
+};
+
+/// Navah and Nadarajah free flows manufactured solution: MS2
+template <int dim, typename real>
+class ManufacturedSolutionNavah_MS2
+    : public ManufacturedSolutionNavahBase<dim, real>
+{
+public:
+    /** Constructor for MS-2
+     *  Sets the Navah Coefficient Matrix for the specified navah_solution.
+     *  Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
+     *  Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
+     */
+    ManufacturedSolutionNavah_MS2(const unsigned int nstate = 4)
+        :   ManufacturedSolutionNavahBase<dim,real>(nstate)
+    {
+        std::array<dealii::Tensor<1,7,double>,5> ncm; ///< Navah Coefficient Matrix (ncm)
+        /* MS-2 */
+        ncm[0][0]=2.7; ncm[0][1]=0.9; ncm[0][2]=-0.9; ncm[0][3]=1.0; ncm[0][4]=1.5; ncm[0][5]=1.5; ncm[0][6]=1.5;
+        ncm[1][0]=2.0; ncm[1][1]=0.7; ncm[1][2]= 0.7; ncm[1][3]=0.4; ncm[1][4]=1.0; ncm[1][5]=1.0; ncm[1][6]=1.0;
+        ncm[2][0]=2.0; ncm[2][1]=0.4; ncm[2][2]= 0.4; ncm[2][3]=0.4; ncm[2][4]=1.0; ncm[2][5]=1.0; ncm[2][6]=1.0;
+        ncm[3][0]=2.0; ncm[3][1]=1.0; ncm[3][2]= 1.0; ncm[3][3]=0.5; ncm[3][4]=1.0; ncm[3][5]=1.0; ncm[3][6]=1.5;
+        for(int j=0; j<7; j++) {
+            ncm[4][j] = 0.0;
+        }
+        this->ncm=ncm; // done this way to minimize the use of keyword "this->"
+    }
+};
+
+/// Navah and Nadarajah free flows manufactured solution: MS3
+template <int dim, typename real>
+class ManufacturedSolutionNavah_MS3
+    : public ManufacturedSolutionNavahBase<dim, real>
+{
+public:
+    /** Constructor for MS-3
+     *  Sets the Navah Coefficient Matrix for the specified navah_solution.
+     *  Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
+     *  Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
+     */
+    ManufacturedSolutionNavah_MS3(const unsigned int nstate = 4)
+        :   ManufacturedSolutionNavahBase<dim,real>(nstate)
+    {
+        std::array<dealii::Tensor<1,7,double>,5> ncm; ///< Navah Coefficient Matrix (ncm)
+        /* MS-3 */
+        ncm[0][0]= 1.0; ncm[0][1]=0.1; ncm[0][2]=-0.2; ncm[0][3]=0.1; ncm[0][4]=1.0; ncm[0][5]=1.0; ncm[0][6]=1.0;
+        ncm[1][0]= 2.0; ncm[1][1]=0.3; ncm[1][2]= 0.3; ncm[1][3]=0.3; ncm[1][4]=3.0; ncm[1][5]=1.0; ncm[1][6]=1.0;
+        ncm[2][0]= 2.0; ncm[2][1]=0.3; ncm[2][2]= 0.3; ncm[2][3]=0.3; ncm[2][4]=1.0; ncm[2][5]=1.0; ncm[2][6]=1.0;
+        ncm[3][0]=10.0; ncm[3][1]=1.0; ncm[3][2]= 1.0; ncm[3][3]=0.5; ncm[3][4]=2.0; ncm[3][5]=1.0; ncm[3][6]=1.0;
+        for(int j=0; j<7; j++) {
+            ncm[4][j] = 0.0;
+        }
+        this->ncm=ncm; // done this way to minimize the use of keyword "this->"
+    }
+};
+
+/// Navah and Nadarajah free flows manufactured solution: MS4
+template <int dim, typename real>
+class ManufacturedSolutionNavah_MS4
+    : public ManufacturedSolutionNavahBase<dim, real>
+{
+public:
+    /** Constructor for MS-4
+     *  Sets the Navah Coefficient Matrix for the specified navah_solution.
+     *  Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
+     *  Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
+     */
+    ManufacturedSolutionNavah_MS4(const unsigned int nstate = 4)
+        :   ManufacturedSolutionNavahBase<dim,real>(nstate)
+    {
+        std::array<dealii::Tensor<1,7,double>,5> ncm; ///< Navah Coefficient Matrix (ncm)
+        /* MS-4 */
+        ncm[0][0]= 1.0; ncm[0][1]=  0.1; ncm[0][2]= -0.2; ncm[0][3]= 0.1; ncm[0][4]=1.0; ncm[0][5]=1.0; ncm[0][6]=1.0;
+        ncm[1][0]= 2.0; ncm[1][1]=  0.3; ncm[1][2]=  0.3; ncm[1][3]= 0.3; ncm[1][4]=3.0; ncm[1][5]=1.0; ncm[1][6]=1.0;
+        ncm[2][0]= 2.0; ncm[2][1]=  0.3; ncm[2][2]=  0.3; ncm[2][3]= 0.3; ncm[2][4]=1.0; ncm[2][5]=1.0; ncm[2][6]=1.0;
+        ncm[3][0]=10.0; ncm[3][1]=  1.0; ncm[3][2]=  1.0; ncm[3][3]= 0.5; ncm[3][4]=2.0; ncm[3][5]=1.0; ncm[3][6]=1.0;
+        ncm[4][0]= 0.6; ncm[4][1]=-0.03; ncm[4][2]=-0.02; ncm[4][3]=0.02; ncm[4][4]=2.0; ncm[4][5]=1.0; ncm[4][6]=3.0;
+        this->ncm=ncm; // done this way to minimize the use of keyword "this->"
+    }
+};
+
+/// Navah and Nadarajah free flows manufactured solution: MS5
+template <int dim, typename real>
+class ManufacturedSolutionNavah_MS5
+    : public ManufacturedSolutionNavahBase<dim, real>
+{
+public:
+    /** Constructor for MS-5
+     *  Sets the Navah Coefficient Matrix for the specified navah_solution.
+     *  Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
+     *  Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
+     */
+    ManufacturedSolutionNavah_MS5(const unsigned int nstate = 4)
+        :   ManufacturedSolutionNavahBase<dim,real>(nstate)
+    {
+        std::array<dealii::Tensor<1,7,double>,5> ncm; ///< Navah Coefficient Matrix (ncm)
+        /* MS-5 */
+        ncm[0][0]= 1.0; ncm[0][1]= 0.1; ncm[0][2]=-0.2; ncm[0][3]=0.1; ncm[0][4]=1.0; ncm[0][5]=1.0; ncm[0][6]=1.0;
+        ncm[1][0]= 2.0; ncm[1][1]= 0.3; ncm[1][2]= 0.3; ncm[1][3]=0.3; ncm[1][4]=3.0; ncm[1][5]=1.0; ncm[1][6]=1.0;
+        ncm[2][0]= 2.0; ncm[2][1]= 0.3; ncm[2][2]= 0.3; ncm[2][3]=0.3; ncm[2][4]=1.0; ncm[2][5]=1.0; ncm[2][6]=1.0;
+        ncm[3][0]=10.0; ncm[3][1]= 1.0; ncm[3][2]= 1.0; ncm[3][3]=0.5; ncm[3][4]=2.0; ncm[3][5]=1.0; ncm[3][6]=1.0;
+        ncm[4][0]=-6.0; ncm[4][1]=-0.3; ncm[4][2]=-0.2; ncm[4][3]=0.2; ncm[4][4]=2.0; ncm[4][5]=1.0; ncm[4][6]=3.0;
+        this->ncm=ncm; // done this way to minimize the use of keyword "this->"
+    }
+};
+
+
+
+
 /// Manufactured solution function factory
 /** Based on input from Parameters file, generates a standard form
   * of manufactured solution function with suitable value, gradient 

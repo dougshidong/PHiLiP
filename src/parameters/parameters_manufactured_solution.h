@@ -32,6 +32,11 @@ public:
         s_shock_solution,
         quadratic_solution,
         Alex_solution,
+        navah_solution_1,
+        navah_solution_2,
+        navah_solution_3,
+        navah_solution_4,
+        navah_solution_5
         };
     ManufacturedSolutionType manufactured_solution_type; ///< Selected ManufacturedSolutionType from the input file
 

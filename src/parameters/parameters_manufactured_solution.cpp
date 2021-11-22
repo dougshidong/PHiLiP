@@ -28,7 +28,12 @@ void ManufacturedSolutionParam::declare_parameters(dealii::ParameterHandler &prm
                       " boundary_layer_solution | "
                       " s_shock_solution | "
                       " quadratic_solution | "
-                      " Alex_solution"
+                      " Alex_solution | "
+                      " navah_solution_1 | "
+                      " navah_solution_2 | "
+                      " navah_solution_3 | "
+                      " navah_solution_4 | "
+                      " navah_solution_5"
                       ),
                       "The manufactured solution we want to use (if use_manufactured_source_term==true). "
                       "Choices are "
@@ -98,6 +103,11 @@ void ManufacturedSolutionParam::parse_parameters(dealii::ParameterHandler &prm)
     else if(manufactured_solution_string == "s_shock_solution")       {manufactured_solution_type = s_shock_solution;}
     else if(manufactured_solution_string == "quadratic_solution")     {manufactured_solution_type = quadratic_solution;}
     else if(manufactured_solution_string == "Alex_solution")           {manufactured_solution_type = Alex_solution;} 
+    else if(manufactured_solution_string == "navah_solution_1")         {manufactured_solution_type = navah_solution_1;}
+    else if(manufactured_solution_string == "navah_solution_2")         {manufactured_solution_type = navah_solution_2;}
+    else if(manufactured_solution_string == "navah_solution_3")         {manufactured_solution_type = navah_solution_3;}
+    else if(manufactured_solution_string == "navah_solution_4")         {manufactured_solution_type = navah_solution_4;}
+    else if(manufactured_solution_string == "navah_solution_5")         {manufactured_solution_type = navah_solution_5;}
 
     diffusion_tensor[0][0] = prm.get_double("diffusion_00");
     diffusion_tensor[0][1] = prm.get_double("diffusion_01");

@@ -148,7 +148,12 @@ public:
 
 
     /// Currently only Lax-Friedrichs, roe, and split_form can be used as an input parameter
-    enum ConvectiveNumericalFlux { lax_friedrichs, roe, split_form, central_flux};
+    enum ConvectiveNumericalFlux { 
+        lax_friedrichs, 
+        roe, 
+        l2roe, 
+        split_form, 
+        central_flux};
 
     /// Store convective flux type
     ConvectiveNumericalFlux conv_num_flux_type;

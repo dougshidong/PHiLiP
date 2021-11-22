@@ -493,12 +493,22 @@ pcout<<"grid degree "<<grid_degree<<" metric dofs "<<n_metric_dofs<<std::endl;
                 for(int idim=0; idim<dim; idim++){
                     mapping_support_points[idim].resize(n_metric_dofs/dim);
                 }
+#if 0
                 for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
                     const real val = (dg->high_order_grid->volume_nodes[current_metric_dofs_indices[idof]]);
                     const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
                     const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
                     mapping_support_points[istate][ishape] = val; 
                 }
+#endif
+        dealii::QGaussLobatto<dim> vol_GLL(grid_degree +1);
+        for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
+            for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+                const real val = (dg->high_order_grid->volume_nodes[current_metric_dofs_indices[idof]]);
+                const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+                mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate); 
+            }
+        }
                 std::vector<dealii::FullMatrix<real>> metric_cofactor(n_quad_pts);
                 std::vector<real> determinant_Jacobian(n_quad_pts);
                 for(unsigned int iquad=0;iquad<n_quad_pts; iquad++){

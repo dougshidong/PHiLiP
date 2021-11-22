@@ -223,7 +223,7 @@ int ODESolver<dim,real,MeshType>::advance_solution_time (double time_advance)
         << number_of_time_steps << " iterations of size dt=" << constant_time_step << " ... " << std::endl;
   //  allocate_ode_system ();
 
-    this->current_iteration = 0;
+   // this->current_iteration = 0;
    pcout<<" curr iter "<<this->current_iteration<<std::endl;
 
     // Output initial solution
@@ -405,7 +405,7 @@ template <int dim, typename real, typename MeshType>
 void Explicit_ODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pseudotime)
 {
     // this->dg->assemble_residual (); // Not needed since it is called in the base class for time step
-    this->current_time += dt;
+  //  this->current_time += dt;
     const int rk_order = 4;
     if (rk_order == 1) {
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);

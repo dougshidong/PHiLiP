@@ -78,6 +78,7 @@ const std::shared_ptr < Physics::Euler<dim, nstate, real> > euler_physics;
 
 };
 
+#if 0
 /// Central numerical flux. Derived from NumericalFluxConvective.
 template<int dim, int nstate, typename real>
 class CentralFlux: public NumericalFluxConvective<dim, nstate, real>
@@ -92,7 +93,7 @@ pde_physics(physics_input)
 /// Destructor
 ~CentralFlux() {};
 
-/// Returns the Lax-Friedrichs convective numerical flux at an interface.
+/// Returns the Central convective numerical flux at an interface.
 std::array<real, nstate> evaluate_flux (
     const std::array<real, nstate> &soln_int,
     const std::array<real, nstate> &soln_ext,
@@ -103,6 +104,7 @@ protected:
 const std::shared_ptr < Physics::PhysicsBase<dim, nstate, real> > pde_physics;
 
 };
+#endif
 
 } // NumericalFlux namespace
 } // PHiLiP namespace

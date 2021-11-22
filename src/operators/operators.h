@@ -214,6 +214,9 @@ public:
     ///Projection operator corresponding to basis functions onto \f$(M+K)\f$-norm.
     std::vector<dealii::FullMatrix<real>> vol_projection_operator_FR;
 
+    ///The metric independent inverse of the FR mass matrix \f$(M+K)^{-1}\f$.
+    std::vector<dealii::FullMatrix<real>> FR_mass_inv;
+
     ///Builds basis and flux functions operators and gradient operator.
     void create_vol_basis_operators ();
     ///Constructs a mass matrix on the fly for a single degree NOTE: for Jacobian dependence pass JxW to quad_weights.
@@ -333,6 +336,14 @@ public:
     void allocate_metric_operators();
     ///Creates metric shape functions operators.
     void create_metric_basis_operators ();
+
+    ///Builds just the dterminant of the volume metric Jacobian.
+    void build_local_vol_determinant_Jac(
+                                    const unsigned int grid_degree, const unsigned int poly_degree,
+                                    const unsigned int n_quad_pts, 
+                                    const unsigned int n_metric_dofs,
+                                    const std::vector<std::vector<real>> &mapping_support_points,
+                                    std::vector<real> &determinant_Jacobian);
     ///Called on the fly and returns the metric cofactor and determinant of Jacobian at VOLUME cubature nodes.
     /**
  *We compute the metric cofactor matrix \f$\mathbf{C}_m\f$ via the invariant curl form of Abe 2014 and Kopriva 2006. To ensure consistent normals, we consider
@@ -400,6 +411,17 @@ public:
                                     const unsigned int n_quad_pts,
                                     const int nstate,
                                     std::vector<std::vector<dealii::FullMatrix<real>>> &physical_gradient);
+
+    ///Given a physical tensor, return the reference tensor.
+    void compute_physical_to_reference(
+                                    const dealii::Tensor<1,dim,real> &phys,
+                                    const dealii::FullMatrix<real> &metric_cofactor,
+                                    dealii::Tensor<1,dim,real> &ref);
+    ///Given a reference tensor, return the physical tensor.
+    void compute_reference_to_physical(
+                                    const dealii::Tensor<1,dim,real> &ref,
+                                    const dealii::FullMatrix<real> &metric_cofactor,
+                                    dealii::Tensor<1,dim,real> &phys);
 
 #if 0
     ///Given a physical flux, and the metric cofactor matrix, this function returns the reference flux.

@@ -141,8 +141,8 @@ void BurgersEnergyStability<dim, nstate>::initialize(PHiLiP::DGBase<dim, double>
 #endif
         }
         if(dim==1){
-            expression.push_back("sin(pi*(x)) + 0.01");
-           // expression.push_back("cos(pi*(x))");
+           // expression.push_back("sin(pi*(x)) + 0.01");
+            expression.push_back("cos(pi*(x))");
 	  //  expression[0] = "sin(pi*(x)) + 0.01";
         }
 	initial_condition.initialize(variables,
@@ -167,12 +167,12 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
         PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
 	double left = 0.0;
 	double right = 2.0;
-	const unsigned int n_grids = 5;
+	const unsigned int n_grids = 4;
         std::array<double,n_grids> grid_size;
         std::array<double,n_grids> soln_error;
 	unsigned int poly_degree = 4;
         dealii::ConvergenceTable convergence_table;
-        const unsigned int igrid_start = 4;
+        const unsigned int igrid_start = 2;
         const unsigned int grid_degree = 1;
 
 //        const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids_input);
@@ -279,10 +279,13 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 //finalTime=0.1;
 
         if (all_parameters_new.use_energy == true){//for split form get energy
+            finalTime = 10.0 * all_parameters_new.ode_solver_param.initial_time_step;
+
 	    double dt = all_parameters_new.ode_solver_param.initial_time_step;
 
 	//need to call ode_solver before calculating energy because mass matrix isn't allocated yet.
 
+        ode_solver->current_iteration = 0;
             ode_solver->advance_solution_time(0.000001);
 	    double initial_energy = compute_energy(dg);
 	double initial_conservation = compute_conservation(dg, poly_degree);
@@ -293,6 +296,7 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 	//but it works. I'll keep it for now and need to modify the output functions later to account for this.
 	std::ofstream myfile ("energy_plot_cheby_4Oct.gpl" , std::ios::trunc);
 
+        ode_solver->current_iteration = 0;
 	for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
 	{
 		ode_solver->advance_solution_time(dt);
@@ -329,8 +333,9 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 0;
-            //dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
-            dealii::QGaussChebyshev<dim> quad_extra(poly_degree+1+overintegrate);
+           // dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
+            dealii::QGaussLobatto<dim> quad_extra(dg->max_degree+1+overintegrate);
+            //dealii::QGaussChebyshev<dim> quad_extra(poly_degree+1+overintegrate);
             //dealii::MappingQ<dim,dim> mappingq(dg->max_degree+1);
             dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
@@ -367,7 +372,11 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
            // finalTime = 10.0*0.001;
            // finalTime =3.0;
 
-            finalTime = 10.0 * all_parameters_new.ode_solver_param.initial_time_step;
+        //    finalTime = 10.0 * all_parameters_new.ode_solver_param.initial_time_step;
+         //   finalTime = all_parameters_new.ode_solver_param.initial_time_step;
+
+        ode_solver->current_iteration = 0;
+
 	    ode_solver->advance_solution_time(finalTime);
             const unsigned int n_global_active_cells = grid->n_global_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
@@ -385,6 +394,7 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
             dealii::QGauss<dim> quad_extra(poly_degree+1+overintegrate);
             //dealii::MappingQ<dim,dim> mappingq(dg->max_degree+1);
             dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
+           // dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->operators.fe_collection_basis[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;
@@ -418,6 +428,7 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
                        // uexact += sin(pi*(qpoint[idim]-finalTime));//for grid 1-3
                         uexact += cos(pi*(qpoint[idim]-finalTime));//for grid 1-3
                     }
+                     //   uexact += 0.01;
                         l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
                     }
                 }

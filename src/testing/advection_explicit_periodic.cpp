@@ -72,10 +72,10 @@ dealii::Point<dim> CurvManifold<dim>::pull_back(const dealii::Point<dim> &space_
 #endif
 //#if 0
     if(dim==2){
-      //  #if 0
+     //   #if 0
         function[0] = x_ref[0] - x_phys[0] +beta*std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1]);
         function[1] = x_ref[1] - x_phys[1] +beta*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1]);
-      //  #endif
+     //   #endif
         //nonsym J. Chan
      #if 0
         function[0] =x_ref[0] - x_phys[0] + beta* std::sin(pi*4.0 * (x_ref[0])) * std::sin(pi * (x_ref[1]+1.0));
@@ -114,13 +114,13 @@ dealii::Point<dim> CurvManifold<dim>::pull_back(const dealii::Point<dim> &space_
 #endif
 //#if 0
     if(dim==2){
-   // #if 0
+  //  #if 0
         derivative[0][0] = 1.0 - beta* pi/2.0 * std::sin(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1]);
         derivative[0][1] =  - beta*3.0 *pi/2.0 * std::cos(pi/2.0*x_ref[0])*std::sin(3.0*pi/2.0*x_ref[1]);
 
         derivative[1][0] =  beta*2.0*pi*std::cos(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1]);
         derivative[1][1] =  1.0 -beta*pi/2.0*std::sin(2.0*pi*(x_ref[0]))*std::sin(pi/2.0*x_ref[1]);  
-   // #endif
+  //  #endif
     //J. Chan nonsym
 
     #if 0
@@ -184,10 +184,10 @@ dealii::Point<dim> CurvManifold<dim>::pull_back(const dealii::Point<dim> &space_
 #endif
 //#if 0
     if(dim==2){
-   // #if 0
+  //  #if 0
         function_check[0] = x_ref[0] + beta*std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1]);
         function_check[1] = x_ref[1] + beta*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1]);
-   // #endif
+  //  #endif
     //J.Chan nonsym
     #if 0
         function_check[0] =x_ref[0] +beta* std::sin(pi*4.0 * (x_ref[0])) * std::sin(pi * (x_ref[1]+1.0));
@@ -243,10 +243,10 @@ dealii::Point<dim> CurvManifold<dim>::push_forward(const dealii::Point<dim> &cha
 //#if 0
     const double beta = 1.0/10.0;
     if(dim==2){
-   // #if 0
+ //   #if 0
         x_phys[0] = x_ref[0] + beta*std::cos(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1]);
         x_phys[1] = x_ref[1] + beta*std::sin(2.0*pi*(x_ref[0]))*std::cos(pi/2.0*x_ref[1]);
-   // #endif
+  //  #endif
     //J. Chan nonsym
     #if 0
         x_phys[0] =x_ref[0] +beta*  std::sin(pi*4.0 * (x_ref[0])) * std::sin(pi * (x_ref[1]+1.0));
@@ -302,7 +302,7 @@ dealii::DerivativeForm<1,dim,dim> CurvManifold<dim>::push_forward_gradient(const
     }
 
     if(dim==2){
-   // #if 0
+  //  #if 0
         dphys_dref[0][0] = 1.0 - beta*pi/2.0 * std::sin(pi/2.0*x_ref[0])*std::cos(3.0*pi/2.0*x_ref[1]);
         dphys_dref[0][1] =  - beta*3.0*pi/2.0 * std::cos(pi/2.0*x_ref[0])*std::sin(3.0*pi/2.0*x_ref[1]);
 
@@ -522,9 +522,9 @@ printf("starting test\n");
 #endif
 	//double left = 0.0;
 //	double right = 2.0;
-	double left = -1.0;
+	const double left = -1.0;
 //	double left = 0.0;
-	double right = 1.0;
+	const double right = 1.0;
 	//double left = -5.0;
 	//double right = 5.0;
 	//double left = -1.0;
@@ -533,12 +533,12 @@ printf("starting test\n");
 	const bool colorize = true;
 //	int n_refinements = 6;
 	unsigned int n_refinements = n_grids;
-	unsigned int poly_degree = 4;
+	unsigned int poly_degree = 3;
         unsigned int grid_degree = poly_degree;
 //	dealii::GridGenerator::hyper_cube(grid, left, right, colorize);
 
         dealii::ConvergenceTable convergence_table;
-        const unsigned int igrid_start = 4;
+        const unsigned int igrid_start = 2;
 printf("NEW GRID\n");
 fflush(stdout);
 
@@ -698,14 +698,15 @@ dealii::GridTools::transform (&warp, *grid);
          //   dealii::QGauss<dim> quad_val(poly_degree+1);
             //dealii::QGaussLobatto<dim> quad_val(poly_degree+1);
            // const dealii::Mapping<dim> &mapping = (*(dg->high_order_grid.mapping_fe_field));
-            const dealii::MappingQGeneric<dim, dim> mapping(poly_degree+1);
-           // dealii::FEValues<dim,dim> fe_values_test(*(dg->high_order_grid.mapping_fe_field), dg->fe_collection[poly_degree], dg->volume_quadrature_collection[poly_degree], 
-            dealii::FEValues<dim,dim> fe_values_test(mapping, dg->fe_collection[poly_degree], dg->volume_quadrature_collection[poly_degree], 
+           // const dealii::MappingQGeneric<dim, dim> mapping(poly_degree+1);
+            dealii::FEValues<dim,dim> fe_values_test(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], dg->volume_quadrature_collection[poly_degree], 
+           // dealii::FEValues<dim,dim> fe_values_test(mapping, dg->fe_collection[poly_degree], dg->volume_quadrature_collection[poly_degree], 
             //        dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
                                 dealii::update_values | dealii::update_JxW_values | 
                                 dealii::update_jacobians |  
                                 dealii::update_quadrature_points | dealii::update_inverse_jacobians);
            // const unsigned int n_quad_pts1 = fe_values_test.n_quadrature_points;
+           #if 0
         dealii::FullMatrix<double> Chi_operator(n_quad_pts1, n_dofs_cell1);
     for(int istate=0; istate<nstate; istate++){
     for (unsigned int itest=0; itest<n_dofs_cell1; ++itest) {
@@ -718,6 +719,7 @@ dealii::GridTools::transform (&warp, *grid);
     }
     dealii::FullMatrix<double> Chi_inv_operator(n_quad_pts1, n_dofs_cell1);
     Chi_inv_operator.invert(Chi_operator);
+#endif
             const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
             std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
             const double pi2 = atan(1)*4.0;
@@ -772,7 +774,8 @@ dealii::GridTools::transform (&warp, *grid);
                         }
                         exact += exact2+exact3+exact4;
 #endif
-                        dg->solution[current_dofs_indices[idof]] +=Chi_inv_operator[idof][iquad] *exact; 
+                       // dg->solution[current_dofs_indices[idof]] +=Chi_inv_operator[idof][iquad] *exact; 
+                        dg->solution[current_dofs_indices[idof]] +=dg->operators.vol_projection_operator[poly_degree][idof][iquad] *exact; 
                     }   
                 }
 
@@ -815,6 +818,7 @@ finalTime = 10.0;
 //finalTime = 10.0;
 //finalTime = 1.0;
 //finalTime = all_parameters_new.ode_solver_param.initial_time_step;
+//finalTime = 10.0*all_parameters_new.ode_solver_param.initial_time_step;
 
 //#if 0
 	//need to call ode_solver before calculating energy because mass matrix isn't allocated yet.
@@ -822,6 +826,9 @@ finalTime = 10.0;
         if (all_parameters_new.use_energy == true){//for split form get energy
 //	ode_solver->advance_solution_time(0.000001);
 	double dt = all_parameters_new.ode_solver_param.initial_time_step;
+
+        ode_solver->current_iteration = 0;
+
 	ode_solver->advance_solution_time(dt/10.0);
 	double initial_energy = compute_energy(dg);
 	double initial_conservation = compute_conservation(dg, poly_degree);
@@ -837,6 +844,8 @@ finalTime = 10.0;
 //	std::ofstream myfile ("energy_plot_10_seconds_central_flux_curv_grid_cPlus_2D_p3_dt05_L2_new.gpl" , std::ios::trunc);
 	//std::ofstream myfile ("energy_plot_c012D_p3_verification_2D_dt.gpl" , std::ios::trunc);
 	std::ofstream myfile ("energy_plot.gpl" , std::ios::trunc);
+
+        ode_solver->current_iteration = 0;
 
 	for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
 	{
@@ -887,8 +896,14 @@ finalTime = 10.0;
            // finalTime = 2.5;
             //finalTime = 0.5;
           //  finalTime = all_parameters_new.ode_solver_param.initial_time_step;
+          //  finalTime = 2.0*all_parameters_new.ode_solver_param.initial_time_step;
+          //  finalTime = 10.0*all_parameters_new.ode_solver_param.initial_time_step;
            // finalTime = 0.0;
+
+        ode_solver->current_iteration = 0;
+
 	    ode_solver->advance_solution_time(finalTime);
+
 //#endif
 
 	//ode_solver->advance_solution_time(finalTime);
@@ -906,17 +921,17 @@ finalTime = 10.0;
 
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;
-           // overintegrate = 8;
+           // overintegrate = 0;
             //dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
             dealii::QGauss<dim> quad_extra(poly_degree+1+overintegrate);
             //dealii::QGaussLobatto<dim> quad_extra(poly_degree+1+overintegrate);
           //  dealii::MappingQ<dim,dim> mappingq(poly_degree+1+overintegrate);
-          //  dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid.mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
-            dealii::FEValues<dim,dim> fe_values_extra(mapping, dg->fe_collection[poly_degree], quad_extra, 
-                                dealii::update_values | dealii::update_JxW_values | 
-                                dealii::update_jacobians |  
-                                dealii::update_quadrature_points | dealii::update_inverse_jacobians);
-                 //   dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+            dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
+           // dealii::FEValues<dim,dim> fe_values_extra(mapping, dg->fe_collection[poly_degree], quad_extra, 
+                 //              dealii::update_values | dealii::update_JxW_values | 
+                 //              dealii::update_jacobians |  
+                 //              dealii::update_quadrature_points | dealii::update_inverse_jacobians);
+                    dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;
 
@@ -936,7 +951,7 @@ finalTime = 10.0;
 
                 for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
-                    std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
+                    std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
                     for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
                         const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
                         soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);

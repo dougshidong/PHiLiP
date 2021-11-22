@@ -451,7 +451,7 @@ int main (int argc, char * argv[])
     all_parameters_new.parse_parameters (parameter_handler);
 
    // all_parameters_new.use_collocated_nodes=true;
-   // all_parameters_new.use_curvilinear_split_form=true;
+    all_parameters_new.use_curvilinear_split_form=true;
     const int dim_check = 1;
 
     //unsigned int poly_degree = 3;
@@ -464,8 +464,7 @@ int main (int argc, char * argv[])
     std::array<double,n_grids> grid_size;
     std::array<double,n_grids> soln_error;
     std::array<double,n_grids> soln_error_inf;
-    double max_GCL = 0.0;
-    for(unsigned int poly_degree = 2; poly_degree<3; poly_degree++){
+    for(unsigned int poly_degree = 2; poly_degree<6; poly_degree++){
         unsigned int grid_degree = poly_degree;
     for(unsigned int igrid=igrid_start; igrid<n_grids; ++igrid){
 pcout<<" Grid Index"<<igrid<<std::endl;
@@ -568,11 +567,21 @@ pcout<<"knew it"<<std::endl;
                     mapping_support_points[idim].resize(n_metric_dofs/dim);
                     phys_quad_pts[idim].resize(n_quad_pts);
                 }
+#if 0
                 for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
                     const real val = (dg->high_order_grid->volume_nodes[current_metric_dofs_indices[idof]]);
                     const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
                     const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
                     mapping_support_points[istate][ishape] = val; 
+                }
+#endif
+                dealii::QGaussLobatto<dim> vol_GLL(grid_degree +1);
+                for (unsigned int igrid_node = 0; igrid_node< n_metric_dofs/dim; ++igrid_node) {
+                    for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+                        const real val = (dg->high_order_grid->volume_nodes[current_metric_dofs_indices[idof]]);
+                        const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+                        mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate); 
+                    }
                 }
                 std::vector<dealii::FullMatrix<real>> metric_cofactor(n_quad_pts);
                 std::vector<real> determinant_Jacobian(n_quad_pts);
@@ -596,6 +605,7 @@ pcout<<"knew it"<<std::endl;
                 current_cell->get_dof_indices (current_dofs_indices);
                 for(int idim=0; idim<dim; idim++){
                     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                        phys_quad_pts[idim][iquad] = 0.0;
                         for(unsigned int jquad=0; jquad<n_metric_dofs/dim; jquad++){
                             phys_quad_pts[idim][iquad] += operators.mapping_shape_functions_vol_flux_nodes[grid_degree][poly_degree][iquad][jquad]
                                                         * mapping_support_points[idim][jquad];
@@ -646,60 +656,6 @@ pcout<<"knew it"<<std::endl;
 
 
 
-
-
-                std::vector< std::vector<dealii::FullMatrix<real>>>  Gij(dim);
-                for(int idim=0; idim<dim; idim++){
-                    Gij[idim].resize(dim);
-                    for(int idim2=0; idim2<dim; idim2++){
-                        Gij[idim][idim2].reinit(n_quad_pts, n_quad_pts);
-                    }
-                }
-
-                for(int idim=0; idim<dim;idim++){
-                    for(int idim2=0; idim2<dim; idim2++){
-//printf(" G i=%d j =%d\n",idim,idim2);
-                        for(unsigned int idof=0; idof<n_quad_pts; idof++){
-                            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                                if(idof==iquad){
-                                    Gij[idim][idim2][idof][iquad] = metric_cofactor[iquad][idim2][idim];
-//printf("%g \n",Gij[idim][idim2][idof][iquad]);
-                                }
-                            }
-                        }
-                    }
-                }
-
-
-
-                std::vector<dealii::Vector<real>> GCL(dim);
-                for(int idim=0; idim<dim; idim++){
-                    GCL[idim].reinit(n_quad_pts);
-                }
-                dealii::Vector<real> ones(n_quad_pts);
-                for(unsigned int idof=0; idof<n_quad_pts; idof++){
-                    ones[idof] = 1.0;
-                }
-
-                for(int idim=0; idim< dim; idim++){
-                    for(int idim2=0; idim2<dim;idim2++){
-                        dealii::FullMatrix<real> temp(n_quad_pts);
-                        operators.gradient_flux_basis[poly_degree][0][idim2].mmult(temp, Gij[idim2][idim]);
-                        dealii::Vector<real> temp2(n_quad_pts);
-                        temp.vmult(temp2, ones);
-                        GCL[idim].add(1, temp2);
-                    }
-                }
-
-                for(int idim=0; idim<dim; idim++){
-                //    printf("\n GCL for derivative x_%d \n", idim);
-                    for(unsigned int idof=0; idof<n_quad_pts; idof++){
-                 //       printf(" %.16g \n", GCL[idim][idof]);
-                        if( std::abs(GCL[idim][idof]) > max_GCL){
-                            max_GCL = std::abs(GCL[idim][idof]);
-                        }
-                    }
-                }
 
             }
 
@@ -795,22 +751,16 @@ pcout<<"got OOA here"<<std::endl;
     //end test error OOA
 
 
-    const double max_GCL_mpi= (dealii::Utilities::MPI::max(max_GCL, MPI_COMM_WORLD));
-
-    if( max_GCL_mpi > 1e-10){
-//        printf(" Metrics Do NOT Satisfy GCL Condition\n");
-        pcout<<" Metrics Do NOT Satisfy GCL Condition\n"<<std::endl;
-//        return 1;
-    }
-    else{
-//        printf(" Metrics Satisfy GCL Condition\n");
-        pcout<<" Metrics Satisfy GCL Condition\n"<<std::endl;
- //       return 0;
-    }
-
 
     }//end grid refinement loop
 
+    const int igrid = n_grids-1;
+    const double slope_soln_err = log(soln_error[igrid]/soln_error[igrid-1])
+                          / log(grid_size[igrid]/grid_size[igrid-1]);
+    if(std::abs(slope_soln_err-poly_degree)>0.05){
+        return 1;
+    }
+    
         pcout << " ********************************************"
              << std::endl
              << " Convergence rates for p = " << poly_degree

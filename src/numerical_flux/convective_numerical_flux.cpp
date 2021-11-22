@@ -218,6 +218,7 @@ std::array<real, nstate> Roe<dim,nstate,real>
     return numerical_flux_dot_n;
 }
 
+#if 0
 template<int dim, int nstate, typename real>
 std::array<real, nstate> CentralFlux<dim,nstate,real>
 ::evaluate_flux (
@@ -255,6 +256,7 @@ std::array<real, nstate> CentralFlux<dim,nstate,real>
     return numerical_flux_dot_n;
 }
 
+#endif
 // Instantiation
 template class NumericalFluxConvective<PHILIP_DIM, 1, double>;
 template class NumericalFluxConvective<PHILIP_DIM, 2, double>;
@@ -315,6 +317,7 @@ template class Roe<PHILIP_DIM, PHILIP_DIM+2, RadType >;
 template class Roe<PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class Roe<PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 
+#if 0
 template class CentralFlux<PHILIP_DIM, 1, double>;
 template class CentralFlux<PHILIP_DIM, 2, double>;
 template class CentralFlux<PHILIP_DIM, 3, double>;
@@ -340,6 +343,7 @@ template class CentralFlux<PHILIP_DIM, 2, RadFadType >;
 template class CentralFlux<PHILIP_DIM, 3, RadFadType >;
 template class CentralFlux<PHILIP_DIM, 4, RadFadType >;
 template class CentralFlux<PHILIP_DIM, 5, RadFadType >;
+#endif
 
 } // NumericalFlux namespace
 } // PHiLiP namespace

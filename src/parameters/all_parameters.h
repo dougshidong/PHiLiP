@@ -64,6 +64,9 @@ public:
     /// Flag to use curvilinear metric split form.
     bool use_curvilinear_split_form;
 
+    /// Flag to use weight-adjusted Mass Matrix for curvilinear elements.
+    bool use_weight_adjusted_mass;
+
     /// Flag to use periodic BC.
     /** Not fully tested.
      */

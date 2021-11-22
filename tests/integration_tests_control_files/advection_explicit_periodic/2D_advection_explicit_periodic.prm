@@ -13,9 +13,11 @@ set use_split_form = false
 
 set use_curvilinear_split_form = true
 
+set use_weight_adjusted_mass = false
+
 set use_periodic_bc = true
 
-set use_energy = true
+set use_energy = false
 
 set flux_reconstruction = cDG
 
@@ -24,8 +26,8 @@ set use_classical_FR = false
 # The PDE we want to solve
 set pde_type = advection
 
-#set conv_num_flux = lax_friedrichs
-set conv_num_flux = central_flux
+set conv_num_flux = lax_friedrichs
+#set conv_num_flux = central_flux
 
 subsection ODE solver
 
@@ -36,6 +38,7 @@ subsection ODE solver
   set nonlinear_steady_residual_tolerance = 1e-12
 
   set print_iteration_modulo = 100
+ # set print_iteration_modulo = 1
 
   set ode_solver_type = explicit
 

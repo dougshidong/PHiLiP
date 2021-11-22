@@ -91,6 +91,7 @@ int main (int argc, char * argv[])
     const unsigned int igrid= 0;
 
 
+    const bool use_chebyshev = false;
 
     //Generate a standard grid
 
@@ -154,6 +155,7 @@ int main (int argc, char * argv[])
             vol_int_parts[idim].add(1.0, operators.local_basis_stiffness[poly_degree][idim]);
             vol_int_parts[idim].Tadd(1.0, operators.local_basis_stiffness[poly_degree][idim]);
 //#if 0
+            if(use_chebyshev == true){
             for(unsigned int itest=0; itest<n_dofs; itest++){
                 const unsigned int istate_test = operators.fe_collection_basis[poly_degree].system_to_component_index(itest).first;
 //                const unsigned int ishape_test = operators.fe_collection_basis[poly_degree].system_to_component_index(itest).second;
@@ -185,6 +187,7 @@ int main (int argc, char * argv[])
                           //  vol_int_parts[idim][itest][dof_index] += operators.local_flux_basis_stiffness[poly_degree][istate_dof][idim][ishape_test][idof];
                         }
                 }
+            }
             }
 //#endif
 //            vol_int_parts[idim].Tadd(1.0, operators.local_basis_stiffness[poly_degree][idim]);
@@ -230,10 +233,17 @@ pcout<<" THE TEST "<<test<<std::endl;
                         double value= 0.0;
                         for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
                            const double pi = atan(1)*4.0;
-                            value +=        operators.face_integral_basis[poly_degree][iface][iquad][itest] 
+                            double temp = operators.face_integral_basis[poly_degree][iface][iquad][itest] 
                                     *       unit_normal[jdim]
-                                    *       pi*(poly_degree+1)
                                     *       operators.basis_at_facet_cubature[poly_degree][iface][iquad][idof];
+                            if(use_chebyshev == true){
+                                temp *= pi*(poly_degree+1);
+                            }
+                            value += temp;
+                        //    value +=        operators.face_integral_basis[poly_degree][iface][iquad][itest] 
+                        //           *       unit_normal[jdim]
+                        //           *       pi*(poly_degree+1)
+                        //           *       operators.basis_at_facet_cubature[poly_degree][iface][iquad][idof];
                         }
 #if 0
                         if(dim==1){

@@ -171,10 +171,10 @@ std::array<real,nstate> Burgers<dim,nstate,real>
             source[istate] = 0.0;
             const double pi = atan(1)*4.0;
             for(int idim=0; idim< dim; idim++){
-                //source[istate] += pi * cos(pi*(pos[idim] - current_time))
-                //                    *(-0.99 + sin(pi * (pos[idim] - current_time)));
-                source[istate] += pi * sin(pi*(pos[idim] - current_time))
-                                    *(1.0 - cos(pi * (pos[idim] - current_time)));
+               // source[istate] += pi * cos(pi*(pos[idim] - current_time))
+               //                     *(-0.99 + sin(pi * (pos[idim] - current_time)));
+               source[istate] += pi * sin(pi*(pos[idim] - current_time))
+                                   *(1.0 - cos(pi * (pos[idim] - current_time)));
             }
         }
 //std::cout<<"got currect source"<<std::endl;

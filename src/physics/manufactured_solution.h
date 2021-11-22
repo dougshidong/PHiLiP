@@ -16,7 +16,7 @@ namespace PHiLiP {
 
 
 /// Manufactured solution used for grid studies to check convergence orders.
-/** This class also provides derivatives necessary to evaluate source terms.
+/** This class also provides derivatives necessary  to evaluate source terms.
  */
 template <int dim, typename real>
 class ManufacturedSolutionFunction : public dealii::Function<dim,real>
@@ -150,13 +150,14 @@ protected:
     using dealii::Function<dim,real>::hessian;
 
 public:
+    /// Constructor
     ManufacturedSolutionSine(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate){}
-
+    /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Gradient
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Hessian
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
@@ -175,13 +176,14 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::hessian;
 public:
+    /// Constructor
     ManufacturedSolutionCosine(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate){}
-
+    /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Gradient
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Hessian
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
@@ -200,13 +202,14 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::hessian;
 public:
+    /// Constructor
     ManufacturedSolutionAdd(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate){}
-
+    /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Gradient
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Hessian
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
@@ -225,13 +228,14 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::hessian;
 public:
+    /// Constructor
     ManufacturedSolutionExp(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate){}
-
+    /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Gradient
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Hessian
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
@@ -250,13 +254,14 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::hessian;
 public:
+    /// Constructor
     ManufacturedSolutionPoly(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate){}
-
+    /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Gradient
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Hessian
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
@@ -275,13 +280,14 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::hessian;
 public:
+    /// Constructor
     ManufacturedSolutionEvenPoly(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate){}
-
+    /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Gradient
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Hessian
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
@@ -300,6 +306,7 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::hessian;
 public:
+    /// Constructor
     ManufacturedSolutionAtan(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate)
     {
@@ -326,11 +333,11 @@ public:
             // x_j[i][1] = 1/sqrt(2);
         }
     }
-
+    /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Gradient
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Hessian
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 
 private:
@@ -354,6 +361,7 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::hessian;
 public:
+    /// Constructor
     ManufacturedSolutionBoundaryLayer(const unsigned int nstate = 1)
         : ManufacturedSolutionFunction<dim,real>(nstate)
         , epsilon(nstate)
@@ -365,11 +373,11 @@ public:
             }
         }
     }
-
+    /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Gradient
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Hessian
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 
 private:
@@ -392,6 +400,7 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::hessian;
 public:
+    /// Constructor
     ManufacturedSolutionSShock(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate)
     {
@@ -417,17 +426,18 @@ public:
         e = -12.0*scale_atan;
         f =   6.0*scale_atan;
     }
-
+    /// Value
     real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Gradient
     dealii::Tensor<1,dim,real> gradient(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Hessian
     dealii::SymmetricTensor<2,dim,real> hessian(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 
 private:
+    ///@{
     /// equation constants
     real a, b, c, d, e, f; 
-
+    //@}
 };
 
 /// Quadratic function manufactured solution
@@ -445,6 +455,7 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::hessian;
 public:
+    /// Constructor
     ManufacturedSolutionQuadratic(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate)
     {
@@ -454,16 +465,17 @@ public:
             alpha_diag[d] = (d+1)*(d+1);
         }
     }
-
+    /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Gradient
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Hessian
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 
 private:
     std::array<real, dim> alpha_diag; ///< Diagonal hessian component scaling
 };
+
 
 /// Sum of Alex functions manufactured solution
 template <int dim, typename real>
@@ -489,6 +501,7 @@ public:
 
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
+
 /// Navah and Nadarajah free flows manufactured solution base
 /// Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
 template <int dim, typename real>
@@ -665,8 +678,6 @@ public:
 };
 
 
-
-
 /// Manufactured solution function factory
 /** Based on input from Parameters file, generates a standard form
   * of manufactured solution function with suitable value, gradient 
@@ -681,6 +692,7 @@ public:
 template <int dim, typename real>
 class ManufacturedSolutionFactory
 {
+    /// Enumeration of all manufactured solution types defined in the Parameters class
     using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
 public:
     /// Construct Manufactured solution object from global parameter file

@@ -46,7 +46,12 @@ void ManufacturedSolutionParam::declare_parameters(dealii::ParameterHandler &prm
                       "  atan_solution | "
                       "  boundary_layer_solution | "
                       "  s_shock_solution | "
-                      "  quadratic_solution>.");
+                      "  quadratic_solution | "
+                      "  navah_solution_1 | "
+                      "  navah_solution_2 | "
+                      "  navah_solution_3 | "
+                      "  navah_solution_4 | "
+                      "  navah_solution_5>.");
 
     // diffusion tensor, get default from function and convert entries to string
     const dealii::Tensor<2,3,double> default_diffusion_tensor = get_default_diffusion_tensor();
@@ -109,6 +114,7 @@ void ManufacturedSolutionParam::parse_parameters(dealii::ParameterHandler &prm)
     else if(manufactured_solution_string == "navah_solution_4")         {manufactured_solution_type = navah_solution_4;}
     else if(manufactured_solution_string == "navah_solution_5")         {manufactured_solution_type = navah_solution_5;}
 
+ 
     diffusion_tensor[0][0] = prm.get_double("diffusion_00");
     diffusion_tensor[0][1] = prm.get_double("diffusion_01");
     diffusion_tensor[1][0] = prm.get_double("diffusion_10");

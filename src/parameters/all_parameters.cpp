@@ -11,6 +11,7 @@ AllParameters::AllParameters ()
     , ode_solver_param(ODESolverParam())
     , linear_solver_param(LinearSolverParam())
     , euler_param(EulerParam())
+    , navier_stokes_param(NavierStokesParam())
     , grid_refinement_study_param(GridRefinementStudyParam())
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 { }
@@ -128,7 +129,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_cylinder_adjoint | "
                       "  euler_vortex | "
                       "  euler_entropy_waves | "
-					  "  euler_split_taylor_green |"
+					            "  euler_split_taylor_green |"
                       "  euler_bump_optimization | "
                       "  euler_naca_optimization | "
                       "  shock_1d | "
@@ -143,7 +144,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                           " advection_vector | "
                           " burgers_inviscid | "
                           " euler |"
-                          " mhd"),
+                          " mhd |"
+                          " navier_stokes"),
                       "The PDE we want to solve. "
                       "Choices are " 
                       " <advection | " 
@@ -152,12 +154,15 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  advection_vector | "
                       "  burgers_inviscid | "
                       "  euler | "
-                      "  mhd>.");
+                      "  mhd |"
+                      "  navier_stokes>.");
     
     prm.declare_entry("conv_num_flux", "lax_friedrichs",
+
                       dealii::Patterns::Selection("lax_friedrichs | roe | l2roe | split_form | central_flux"),
                       "Convective numerical flux. "
                       "Choices are <lax_friedrichs | roe | l2roe | split_form | central_flux>.");
+
 
     prm.declare_entry("diss_num_flux", "symm_internal_penalty",
                       dealii::Patterns::Selection("symm_internal_penalty | bassi_rebay_2"),
@@ -169,6 +174,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     Parameters::ODESolverParam::declare_parameters (prm);
 
     Parameters::EulerParam::declare_parameters (prm);
+    Parameters::NavierStokesParam::declare_parameters (prm);
 
     Parameters::GridRefinementStudyParam::declare_parameters (prm);
 
@@ -226,6 +232,10 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
         pde_type = euler;
         nstate = dimension+2;
     }
+    else if (pde_string == "navier_stokes") {
+        pde_type = navier_stokes;
+        nstate = dimension+2;
+    }
     overintegration = prm.get_integer("overintegration");
 
     use_weak_form = prm.get_bool("use_weak_form");
@@ -244,8 +254,10 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (conv_num_flux_string == "lax_friedrichs") conv_num_flux_type = lax_friedrichs;
     if (conv_num_flux_string == "split_form")     conv_num_flux_type = split_form;
     if (conv_num_flux_string == "roe")            conv_num_flux_type = roe;
+
     if (conv_num_flux_string == "l2roe")   conv_num_flux_type = l2roe;
     if (conv_num_flux_string == "central_flux")   conv_num_flux_type = central_flux;
+
 
     const std::string diss_num_flux_string = prm.get("diss_num_flux");
     if (diss_num_flux_string == "symm_internal_penalty") diss_num_flux_type = symm_internal_penalty;
@@ -286,6 +298,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     pcout << "Parsing euler subsection..." << std::endl;
     euler_param.parse_parameters (prm);
+
+    pcout << "Parsing navier stokes subsection..." << std::endl;
+    navier_stokes_param.parse_parameters (prm);
 
     pcout << "Parsing grid refinement study subsection..." << std::endl;
     grid_refinement_study_param.parse_parameters (prm);

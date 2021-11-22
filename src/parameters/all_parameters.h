@@ -10,6 +10,7 @@
 #include "parameters/parameters_manufactured_convergence_study.h"
 
 #include "parameters/parameters_euler.h"
+#include "parameters/parameters_navier_stokes.h"
 
 #include "parameters/parameters_grid_refinement_study.h"
 #include "parameters/parameters_grid_refinement.h"
@@ -32,6 +33,8 @@ public:
     LinearSolverParam linear_solver_param;
     /// Contains parameters for the Euler equations non-dimensionalization
     EulerParam euler_param;
+    /// Contains parameters for the Navier-Stokes equations non-dimensionalization
+    NavierStokesParam navier_stokes_param;
     /// contains the parameters for grid refinement study
     GridRefinementStudyParam grid_refinement_study_param;
 
@@ -117,7 +120,7 @@ public:
         shock_1d,
         euler_naca0012,
         advection_periodicity,
-        };
+    };
     TestType test_type; ///< Selected TestType from the input file.
 
     /// Currently allows to solve advection, diffusion, convection-diffusion
@@ -128,7 +131,9 @@ public:
         advection_vector,
         burgers_inviscid,
         euler,
-        mhd};
+        mhd,
+        navier_stokes,
+    };
 
     /// Possible boundary types, NOT IMPLEMENTED YET
     enum BoundaryType { 
@@ -154,6 +159,7 @@ public:
         l2roe, 
         split_form, 
         central_flux};
+
 
     /// Store convective flux type
     ConvectiveNumericalFlux conv_num_flux_type;

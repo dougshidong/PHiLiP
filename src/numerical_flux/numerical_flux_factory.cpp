@@ -19,7 +19,9 @@ NumericalFluxFactory<dim, nstate, real>
     if(conv_num_flux_type == AllParam::lax_friedrichs) {
         return std::make_unique< LaxFriedrichs<dim, nstate, real> > (physics_input);
     } else if(conv_num_flux_type == AllParam::roe) {
-        if constexpr (dim+2==nstate) return std::make_unique< Roe<dim, nstate, real> > (physics_input);
+        if constexpr (dim+2==nstate) return std::make_unique< RoePike<dim, nstate, real> > (physics_input);
+    } else if(conv_num_flux_type == AllParam::l2roe) {
+        if constexpr (dim+2==nstate) return std::make_unique< L2Roe<dim, nstate, real> > (physics_input);
     } else if (conv_num_flux_type == AllParam::split_form) {
         return std::make_unique< SplitFormNumFlux<dim, nstate, real> > (physics_input);
     } else if (conv_num_flux_type == AllParam::central_flux) {

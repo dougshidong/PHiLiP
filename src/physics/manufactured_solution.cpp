@@ -1123,8 +1123,6 @@ inline std::vector<real> ManufacturedSolutionFunction<dim,real>
     return values;
 }
 
-
-
 template <int dim, typename real>
 std::shared_ptr< ManufacturedSolutionFunction<dim,real> > 
 ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(
@@ -1133,6 +1131,7 @@ ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(
 {
     using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
     ManufacturedSolutionEnum solution_type = param->manufactured_convergence_study_param.manufactured_solution_param.manufactured_solution_type;
+    //param->manufactured_convergence_study_param.manufactured_solution_param.NavahCoefficientMatrix;
 
     return create_ManufacturedSolution(solution_type, nstate);
 }
@@ -1165,6 +1164,7 @@ ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(
         return std::make_shared<ManufacturedSolutionQuadratic<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::Alex_solution){
         return std::make_shared<ManufacturedSolutionAlex<dim,real>>(nstate);
+
     }else if(solution_type == ManufacturedSolutionEnum::navah_solution_1){
         if constexpr((dim==2) /*&& (nstate==dim+2)*/) {
             return std::make_shared<ManufacturedSolutionNavah_MS1<dim,real>>(nstate);
@@ -1266,6 +1266,38 @@ template class ManufacturedSolutionQuadratic<PHILIP_DIM,FadType>;
 template class ManufacturedSolutionQuadratic<PHILIP_DIM,RadType>;
 template class ManufacturedSolutionQuadratic<PHILIP_DIM,FadFadType>;
 template class ManufacturedSolutionQuadratic<PHILIP_DIM,RadFadType>;
+
+// Ask Doug: Instantiate for "2" directly instead of PHILIP_DIM ?? SShock is only for 2 but instantiated for PHILIP_DIM
+template class ManufacturedSolutionNavahBase<PHILIP_DIM,double>;
+template class ManufacturedSolutionNavahBase<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionNavahBase<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionNavahBase<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionNavahBase<PHILIP_DIM,RadFadType>;
+template class ManufacturedSolutionNavah_MS1<PHILIP_DIM,double>;
+template class ManufacturedSolutionNavah_MS1<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionNavah_MS1<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionNavah_MS1<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionNavah_MS1<PHILIP_DIM,RadFadType>;
+template class ManufacturedSolutionNavah_MS2<PHILIP_DIM,double>;
+template class ManufacturedSolutionNavah_MS2<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionNavah_MS2<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionNavah_MS2<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionNavah_MS2<PHILIP_DIM,RadFadType>;
+template class ManufacturedSolutionNavah_MS3<PHILIP_DIM,double>;
+template class ManufacturedSolutionNavah_MS3<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionNavah_MS3<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionNavah_MS3<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionNavah_MS3<PHILIP_DIM,RadFadType>;
+template class ManufacturedSolutionNavah_MS4<PHILIP_DIM,double>;
+template class ManufacturedSolutionNavah_MS4<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionNavah_MS4<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionNavah_MS4<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionNavah_MS4<PHILIP_DIM,RadFadType>;
+template class ManufacturedSolutionNavah_MS5<PHILIP_DIM,double>;
+template class ManufacturedSolutionNavah_MS5<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionNavah_MS5<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionNavah_MS5<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionNavah_MS5<PHILIP_DIM,RadFadType>;
 
 template class ManufacturedSolutionFactory<PHILIP_DIM,double>;
 template class ManufacturedSolutionFactory<PHILIP_DIM,FadType>;

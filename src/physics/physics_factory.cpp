@@ -12,6 +12,7 @@
 #include "burgers.h"
 #include "euler.h"
 #include "mhd.h"
+#include "navier_stokes.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -70,13 +71,25 @@ PhysicsFactory<dim,nstate,real>
                 diffusion_tensor, 
                 manufactured_solution_function);
         }
-
     } else if (pde_type == PDE_enum::mhd) {
         if constexpr (nstate == 8) 
             return std::make_shared < MHD<dim,nstate,real> > (
                 parameters_input->euler_param.gamma_gas,
                 diffusion_tensor, 
                 manufactured_solution_function);
+    } else if (pde_type == PDE_enum::navier_stokes) {
+        if constexpr (nstate==dim+2) {
+            return std::make_shared < NavierStokes<dim,nstate,real> > (
+                parameters_input->euler_param.ref_length,
+                parameters_input->euler_param.gamma_gas,
+                parameters_input->euler_param.mach_inf,
+                parameters_input->euler_param.angle_of_attack,
+                parameters_input->euler_param.side_slip_angle,
+                parameters_input->navier_stokes_param.prandtl_number,
+                parameters_input->navier_stokes_param.reynolds_number_inf,
+                diffusion_tensor, 
+                manufactured_solution_function);
+        }
     } else {
         // prevent warnings for dim=3,nstate=4, etc.
         (void) diffusion_tensor;

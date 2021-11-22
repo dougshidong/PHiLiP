@@ -41,7 +41,7 @@ The code itself is documented using Doxygen, and the latest documentation is hos
 
 Since deal.II is heavily used, their [documentation](https://www.dealii.org/developer/doxygen/deal.II/index.html) is probably the most useful.
 
-Another great ressource is the [deal.II Google Groups](https://groups.google.com/forum/#!forum/dealii), where developers are actively answering questions.
+Another great resource is the [deal.II Google Groups](https://groups.google.com/forum/#!forum/dealii), where developers are actively answering questions.
 
 Finally, I am also always available to answer questions regarding the code by e-mail at doug.shi-dong@mail.mcgill.ca
 

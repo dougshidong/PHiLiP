@@ -10,7 +10,7 @@ namespace PHiLiP {
 namespace Physics {
 
 /// Physics Model equations. Derived from PhysicsBase, holds a baseline physics and model terms and equations. 
-template <int dim, int nstate, typename real>
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
 class PhysicsModel : public PhysicsBase <dim, nstate, real>
 {
 public:
@@ -18,19 +18,15 @@ public:
     PhysicsModel(
         const Parameters::AllParameters                              *const parameters_input,
         Parameters::AllParameters::PartialDifferentialEquation       baseline_physics_type,
-        const int                                                    nstate_baseline_physics,
         std::shared_ptr< ModelBase<dim,nstate,real> >                model_input,
         const dealii::Tensor<2,3,double>                             input_diffusion_tensor,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function);
 
-    /// Number of states in for the corresponding baseline physics
-    const int nstate_baseline_physics;
-
     /// Number of model equations (i.e. those additional to the baseline physics)
     const int n_model_equations;
 
-    /// Baseline physics object
-    std::shared_ptr< PhysicsBase<dim,nstate,real> > physics_baseline;
+    /// Baseline physics object with nstate==nstate_baseline_physics
+    std::shared_ptr< PhysicsBase<dim,nstate_baseline_physics,real> > physics_baseline;
 
     /// Model object
     std::shared_ptr< ModelBase<dim,nstate,real> > model;

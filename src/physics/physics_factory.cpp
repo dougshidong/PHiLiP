@@ -164,47 +164,24 @@ PhysicsFactory<dim,nstate,real>
     // -------------------------------------------------------------------------------
     if (model_type == Model_enum::large_eddy_simulation) {
         if constexpr (nstate==dim+2) {
-        // Assign baseline physics type (and corresponding nstates) based on the physics model type
-        // -- Assign nstates for the baseline physics
-        const int nstate_baseline_physics = dim+2;
-        // -- Assign baseline physics type
-        if(parameters_input->physics_model_param.euler_turbulence) {
-            baseline_physics_type = PDE_enum::euler;
-        }
-        else {
-            baseline_physics_type = PDE_enum::navier_stokes;
-        }
+            // Assign baseline physics type (and corresponding nstates) based on the physics model type
+            // -- Assign nstates for the baseline physics (constexpr because template parameter)
+            constexpr int nstate_baseline_physics = dim+2;
+            // -- Assign baseline physics type
+            if(parameters_input->physics_model_param.euler_turbulence) {
+                baseline_physics_type = PDE_enum::euler;
+            }
+            else {
+                baseline_physics_type = PDE_enum::navier_stokes;
+            }
 
-        // Create Large Eddy Simulation (LES) model based on the SGS model type
-        // using SGS_enum = Parameters::PhysicsModelParam::SubGridScaleModel;
-        // SGS_enum sgs_model_type = parameters_input->physics_model_param.SGS_model_type;
-        // if (sgs_model_type == SGS_enum::smagorinsky) {
-        //     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        //     // Smagorinsky model
-        //     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        //     model = std::make_shared < LargeEddySimulation_Smagorinsky<dim,nstate,real> > (
-        //         navier_stokes_physics,
-        //         parameters_input->physics_model_param.turbulent_prandtl_number,
-        //         parameters_input->physics_model_param.smagorinsky_model_constant);
-        // } else if (sgs_model_type == SGS_enum::wall_adaptive_local_eddy_viscosity) {
-        //     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        //     // WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model
-        //     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        //     model = std::make_shared < LargeEddySimulation_WALE<dim,nstate,real> > (
-        //         navier_stokes_physics,
-        //         parameters_input->physics_model_param.turbulent_prandtl_number,
-        //         parameters_input->physics_model_param.WALE_model_constant);
-        // }
-        // model = nullptr;
-
-        // Create the physics model object in physics
-        return std::make_shared < PhysicsModel<dim,nstate,real> > (
-                parameters_input,
-                baseline_physics_type,
-                nstate_baseline_physics,
-                model_input,
-                diffusion_tensor, 
-                manufactured_solution_function);
+            // Create the physics model object in physics
+            return std::make_shared < PhysicsModel<dim,nstate,real,nstate_baseline_physics> > (
+                    parameters_input,
+                    baseline_physics_type,
+                    model_input,
+                    diffusion_tensor, // <-- TO DO: remove this from NS and Euler
+                    manufactured_solution_function);
         }
     } else {
         // prevent warnings for dim=3,nstate=4, etc.

@@ -15,7 +15,6 @@ namespace Physics {
 //================================================================
 template <int dim, int nstate, typename real>
 LargeEddySimulationBase<dim, nstate, real>::LargeEddySimulationBase(
-    const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
@@ -25,7 +24,7 @@ LargeEddySimulationBase<dim, nstate, real>::LargeEddySimulationBase(
     const double                                              prandtl_number,
     const double                                              reynolds_number_inf,
     const double                                              turbulent_prandtl_number)
-    : ModelBase<dim,nstate,real>(input_diffusion_tensor, manufactured_solution_function_input) 
+    : ModelBase<dim,nstate,real>(manufactured_solution_function_input) 
     , turbulent_prandtl_number(turbulent_prandtl_number)
     , navier_stokes_physics(std::make_unique < NavierStokes<dim,nstate,real> > (
             ref_length,
@@ -35,7 +34,6 @@ LargeEddySimulationBase<dim, nstate, real>::LargeEddySimulationBase(
             side_slip_angle,
             prandtl_number,
             reynolds_number_inf,
-            input_diffusion_tensor, 
             manufactured_solution_function_input))
 {
     static_assert(nstate==dim+2, "PhysicsModel::LargeEddySimulationBase() should be created with nstate=dim+2");
@@ -351,7 +349,6 @@ std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
 //================================================================
 template <int dim, int nstate, typename real>
 LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorinsky(
-    const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
@@ -363,8 +360,7 @@ LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorin
     const double                                              turbulent_prandtl_number,
     const double                                              model_constant,
     const double                                              filter_width)
-    : LargeEddySimulationBase<dim,nstate,real>(input_diffusion_tensor,
-                                               manufactured_solution_function_input,
+    : LargeEddySimulationBase<dim,nstate,real>(manufactured_solution_function_input,
                                                ref_length,
                                                gamma_gas,
                                                mach_inf,
@@ -550,7 +546,6 @@ std::array<dealii::Tensor<1,dim,real2>,dim> LargeEddySimulation_Smagorinsky<dim,
 //================================================================
 template <int dim, int nstate, typename real>
 LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE(
-    const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
@@ -562,8 +557,7 @@ LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE(
     const double                                              turbulent_prandtl_number,
     const double                                              model_constant,
     const double                                              filter_width)
-    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(input_diffusion_tensor,
-                                                       manufactured_solution_function_input,
+    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(manufactured_solution_function_input,
                                                        ref_length,
                                                        gamma_gas,
                                                        mach_inf,

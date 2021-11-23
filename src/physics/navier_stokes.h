@@ -20,7 +20,6 @@ public:
 	    const double                                              side_slip_angle,
 	    const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
-        const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
 	    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
 
 	/// Nondimensionalized viscosity coefficient at infinity.

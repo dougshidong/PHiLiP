@@ -31,7 +31,6 @@ private:
     static std::shared_ptr< PhysicsBase<dim,nstate,real> >
         create_Physics_Model(
             const Parameters::AllParameters                           *const parameters_input,
-            const dealii::Tensor<2,3,double>                          diffusion_tensor,
             std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
             std::shared_ptr< ModelBase<dim,dim+2,real> >             model_input = nullptr);
 };

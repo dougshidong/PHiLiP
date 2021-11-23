@@ -99,7 +99,6 @@ PhysicsFactory<dim,nstate,real>
                 parameters_input->euler_param.mach_inf,
                 parameters_input->euler_param.angle_of_attack,
                 parameters_input->euler_param.side_slip_angle,
-                diffusion_tensor, 
                 manufactured_solution_function);
         }
     } else if (pde_type == PDE_enum::mhd) {
@@ -118,13 +117,11 @@ PhysicsFactory<dim,nstate,real>
                 parameters_input->euler_param.side_slip_angle,
                 parameters_input->navier_stokes_param.prandtl_number,
                 parameters_input->navier_stokes_param.reynolds_number_inf,
-                diffusion_tensor, 
                 manufactured_solution_function);
         }
     } else if (pde_type == PDE_enum::physics_model) {
         if constexpr (nstate>=dim+2) {
-            return create_Physics_Model(parameters_input, 
-                                        diffusion_tensor, 
+            return create_Physics_Model(parameters_input,
                                         manufactured_solution_function,
                                         model_input);
         }
@@ -143,9 +140,8 @@ template <int dim, int nstate, typename real>
 std::shared_ptr < PhysicsBase<dim,nstate,real> >
 PhysicsFactory<dim,nstate,real>
 ::create_Physics_Model(const Parameters::AllParameters                           *const parameters_input,
-                       const dealii::Tensor<2,3,double>                          diffusion_tensor,
                        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
-                       std::shared_ptr< ModelBase<dim,dim+2,real> >             model_input)
+                       std::shared_ptr< ModelBase<dim,dim+2,real> >              model_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
 
@@ -180,12 +176,10 @@ PhysicsFactory<dim,nstate,real>
                     parameters_input,
                     baseline_physics_type,
                     model_input,
-                    diffusion_tensor, // <-- TO DO: remove this from NS and Euler
                     manufactured_solution_function);
         }
     } else {
         // prevent warnings for dim=3,nstate=4, etc.
-        (void) diffusion_tensor;
         (void) baseline_physics_type;
     }    
     std::cout << "Can't create PhysicsModel, invalid ModelType type: " << model_type << std::endl;

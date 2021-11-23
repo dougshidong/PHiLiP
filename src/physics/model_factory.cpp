@@ -20,80 +20,77 @@ ModelFactory<dim,nstate,real>
 {
     // In the future, we could create an object / class for holding/updating inputs such as grid spacing etc and just pass a pointer to the object
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+    PDE_enum pde_type = parameters_input->pde_type;
 
-    // generating the manufactured solution from the manufactured solution factory
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> >  manufactured_solution_function 
-        = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(parameters_input, nstate);
+    if(pde_type == PDE_enum::physics_model) {
+        // generating the manufactured solution from the manufactured solution factory
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> >  manufactured_solution_function 
+            = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(parameters_input, nstate);
 
-    // setting the diffusion tensor and advection vectors from parameters (if needed)
-    const dealii::Tensor<2,3,double> diffusion_tensor      = parameters_input->manufactured_convergence_study_param.manufactured_solution_param.diffusion_tensor;
-    // const dealii::Tensor<1,3,double> advection_vector      = parameters_input->manufactured_convergence_study_param.manufactured_solution_param.advection_vector;
-    // const double                     diffusion_coefficient = parameters_input->manufactured_convergence_study_param.manufactured_solution_param.diffusion_coefficient;
-
-    using Model_enum = Parameters::AllParameters::ModelType;
-    Model_enum model_type = parameters_input->model_type;
-    
-    // ===============================================================================
-    // Model
-    // ===============================================================================
-    // -------------------------------------------------------------------------------
-    // Large Eddy Simulation (LES)
-    // -------------------------------------------------------------------------------
-    if (model_type == Model_enum::large_eddy_simulation) {
-        if constexpr (nstate==dim+2) {
-            // Create Large Eddy Simulation (LES) model based on the SGS model type
-            using SGS_enum = Parameters::PhysicsModelParam::SubGridScaleModel;
-            SGS_enum sgs_model_type = parameters_input->physics_model_param.SGS_model_type;
-            if (sgs_model_type == SGS_enum::smagorinsky) {
-                // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-                // Smagorinsky model
-                // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-                return std::make_shared < LargeEddySimulation_Smagorinsky<dim,nstate,real> > (
-                    diffusion_tensor, 
-                    manufactured_solution_function,
-                    parameters_input->euler_param.ref_length,
-                    parameters_input->euler_param.gamma_gas,
-                    parameters_input->euler_param.mach_inf,
-                    parameters_input->euler_param.angle_of_attack,
-                    parameters_input->euler_param.side_slip_angle,
-                    parameters_input->navier_stokes_param.prandtl_number,
-                    parameters_input->navier_stokes_param.reynolds_number_inf,
-                    parameters_input->physics_model_param.turbulent_prandtl_number,
-                    parameters_input->physics_model_param.smagorinsky_model_constant,
-                    filter_width);
-            } else if (sgs_model_type == SGS_enum::wall_adaptive_local_eddy_viscosity) {
-                // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-                // WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model
-                // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-                return std::make_shared < LargeEddySimulation_WALE<dim,nstate,real> > (
-                    diffusion_tensor, 
-                    manufactured_solution_function,
-                    parameters_input->euler_param.ref_length,
-                    parameters_input->euler_param.gamma_gas,
-                    parameters_input->euler_param.mach_inf,
-                    parameters_input->euler_param.angle_of_attack,
-                    parameters_input->euler_param.side_slip_angle,
-                    parameters_input->navier_stokes_param.prandtl_number,
-                    parameters_input->navier_stokes_param.reynolds_number_inf,
-                    parameters_input->physics_model_param.turbulent_prandtl_number,
-                    parameters_input->physics_model_param.WALE_model_constant,
-                    filter_width);
+        using Model_enum = Parameters::AllParameters::ModelType;
+        Model_enum model_type = parameters_input->model_type;
+        
+        // ===============================================================================
+        // Model
+        // ===============================================================================
+        // -------------------------------------------------------------------------------
+        // Large Eddy Simulation (LES)
+        // -------------------------------------------------------------------------------
+        if (model_type == Model_enum::large_eddy_simulation) {
+            if constexpr (nstate==dim+2) {
+                // Create Large Eddy Simulation (LES) model based on the SGS model type
+                using SGS_enum = Parameters::PhysicsModelParam::SubGridScaleModel;
+                SGS_enum sgs_model_type = parameters_input->physics_model_param.SGS_model_type;
+                if (sgs_model_type == SGS_enum::smagorinsky) {
+                    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                    // Smagorinsky model
+                    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                    return std::make_shared < LargeEddySimulation_Smagorinsky<dim,nstate,real> > (
+                        manufactured_solution_function,
+                        parameters_input->euler_param.ref_length,
+                        parameters_input->euler_param.gamma_gas,
+                        parameters_input->euler_param.mach_inf,
+                        parameters_input->euler_param.angle_of_attack,
+                        parameters_input->euler_param.side_slip_angle,
+                        parameters_input->navier_stokes_param.prandtl_number,
+                        parameters_input->navier_stokes_param.reynolds_number_inf,
+                        parameters_input->physics_model_param.turbulent_prandtl_number,
+                        parameters_input->physics_model_param.smagorinsky_model_constant,
+                        filter_width);
+                } else if (sgs_model_type == SGS_enum::wall_adaptive_local_eddy_viscosity) {
+                    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                    // WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model
+                    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                    return std::make_shared < LargeEddySimulation_WALE<dim,nstate,real> > (
+                        manufactured_solution_function,
+                        parameters_input->euler_param.ref_length,
+                        parameters_input->euler_param.gamma_gas,
+                        parameters_input->euler_param.mach_inf,
+                        parameters_input->euler_param.angle_of_attack,
+                        parameters_input->euler_param.side_slip_angle,
+                        parameters_input->navier_stokes_param.prandtl_number,
+                        parameters_input->navier_stokes_param.reynolds_number_inf,
+                        parameters_input->physics_model_param.turbulent_prandtl_number,
+                        parameters_input->physics_model_param.WALE_model_constant,
+                        filter_width);
+                } else {
+                    std::cout << "Can't create LargeEddySimulationBase, invalid SGSModelType type: " << sgs_model_type << std::endl;
+                    assert(0==1 && "Can't create LargeEddySimulationBase, invalid SGSModelType type");
+                    return nullptr;
+                }
             }
-            else {
-                std::cout << "Can't create LargeEddySimulationBase, invalid SGSModelType type: " << sgs_model_type << std::endl;
-                assert(0==1 && "Can't create LargeEddySimulationBase, invalid SGSModelType type");
-                return nullptr;
-            }
-        }
+        } else {
+            // prevent warnings for dim=3,nstate=4, etc.
+            // to avoid "unused variable" warnings
+            manufactured_solution_function = nullptr;
+        }    
+        std::cout << "Can't create ModelBase, invalid ModelType type: " << model_type << std::endl;
+        assert(0==1 && "Can't create ModelBase, invalid ModelType type");
+        return nullptr;
     } else {
-        // prevent warnings for dim=3,nstate=4, etc.
-        (void) diffusion_tensor;
-        // to avoid "unused variable" warnings
-        manufactured_solution_function = nullptr;
-    }    
-    std::cout << "Can't create ModelBase, invalid ModelType type: " << model_type << std::endl;
-    assert(0==1 && "Can't create ModelBase, invalid ModelType type");
-    return nullptr;
+        // if pde_type != PhysicsModel
+        return nullptr;
+    }
 }
 
 //----------------------------------------------------------------

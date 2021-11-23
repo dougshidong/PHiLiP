@@ -19,7 +19,6 @@ public:
         const Parameters::AllParameters                              *const parameters_input,
         Parameters::AllParameters::PartialDifferentialEquation       baseline_physics_type,
         std::shared_ptr< ModelBase<dim,nstate,real> >                model_input,
-        const dealii::Tensor<2,3,double>                             input_diffusion_tensor,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function);
 
     /// Number of model equations (i.e. those additional to the baseline physics)

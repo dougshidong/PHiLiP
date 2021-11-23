@@ -84,7 +84,6 @@ public:
         const double                                              mach_inf,
         const double                                              angle_of_attack,
         const double                                              side_slip_angle,
-        const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
 
     /// Destructor

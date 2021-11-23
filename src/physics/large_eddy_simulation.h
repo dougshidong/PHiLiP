@@ -16,7 +16,6 @@ class LargeEddySimulationBase : public ModelBase <dim, nstate, real>
 public:
     /// Constructor
 	LargeEddySimulationBase(
-        const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input,
 	    const double                                              ref_length,
         const double                                              gamma_gas,
@@ -123,7 +122,6 @@ public:
      *  Reference: To be put here
      */
     LargeEddySimulation_Smagorinsky(
-        const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
@@ -203,7 +201,6 @@ public:
      *  Reference: Nicoud & Ducros (1999) "Subgrid-scale stress modelling based on the square of the velocity gradient tensor"
      */
     LargeEddySimulation_WALE(
-        const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input,
         const double                                              ref_length,
         const double                                              gamma_gas,

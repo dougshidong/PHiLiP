@@ -20,14 +20,12 @@ NavierStokes<dim, nstate, real>::NavierStokes(
     const double                                              side_slip_angle,
     const double                                              prandtl_number,
     const double                                              reynolds_number_inf,
-    const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function)
     : Euler<dim,nstate,real>(ref_length, 
                              gamma_gas, 
                              mach_inf, 
                              angle_of_attack, 
                              side_slip_angle, 
-                             input_diffusion_tensor, 
                              manufactured_solution_function)
     , viscosity_coefficient_inf(1.0) // Nondimensional - Free stream values
     , prandtl_number(prandtl_number)

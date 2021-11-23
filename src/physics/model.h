@@ -16,7 +16,6 @@ class ModelBase
 public:
 	/// Constructor
 	ModelBase(
-        const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
 
     /// Virtual destructor required for abstract classes.

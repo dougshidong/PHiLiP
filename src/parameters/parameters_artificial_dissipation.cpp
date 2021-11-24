@@ -30,6 +30,7 @@ void ArtificialDissipationParam::declare_parameters (dealii::ParameterHandler &p
                       dealii::Patterns::Selection(
                       "residual_convergence |"
                       "discontinuity_sensor_activation |"
+                      "enthalpy_conservation |"
                       "poly_order_convergence |"),
                       "Type of artificial dissipation test type we want to implement. Choices are residual_convergence, discontinuity_sensor_activation, poly_order_convergence");
     
@@ -80,6 +81,10 @@ void ArtificialDissipationParam::parse_parameters (dealii::ParameterHandler &prm
         else if (artificial_dissipation_test_string == "discontinuity_sensor_activation")
         {
             artificial_dissipation_test_type = discontinuity_sensor_activation;
+        } 
+        else if (artificial_dissipation_test_string == "enthalpy_conservation")
+        {
+            artificial_dissipation_test_type = enthalpy_conservation;
         } 
         else if (artificial_dissipation_test_string == "poly_order_convergence")
         {

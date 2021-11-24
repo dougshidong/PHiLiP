@@ -41,6 +41,19 @@ template<int dim, int nstate>
 int EulerGaussianBump<dim,nstate>
 ::run_test () const
 {
+    int convergence_order_achieved = 0;
+    double run_test1_output = run_test1();
+    if (abs(convergence_order_achieved-run_test1_output) > 1e-15) // If run_test1() returns 1
+    {
+        convergence_order_achieved = 1;  // test failed
+    }
+    return convergence_order_achieved;
+}
+
+template<int dim, int nstate>
+double EulerGaussianBump<dim,nstate>
+::run_test1 () const
+{
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
     using GridEnum = ManParam::GridEnum;
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
@@ -71,8 +84,9 @@ int EulerGaussianBump<dim,nstate>
     }
 
     std::string Error_string;
-    bool Has_residual_converged = true;
+    bool has_residual_converged = true;
     double artificial_dissipation_max_coeff = 0.0;
+    double last_error=10;
     std::vector<int> fail_conv_poly;
     std::vector<double> fail_conv_slop;
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
@@ -208,7 +222,7 @@ int EulerGaussianBump<dim,nstate>
                 }
             }
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
-
+            last_error = l2error_mpi_sum;
 
 
             // Convergence table
@@ -227,7 +241,7 @@ int EulerGaussianBump<dim,nstate>
             
             if(ode_solver->residual_norm > 1e-10)
             {
-                Has_residual_converged = false;
+                has_residual_converged = false;
             }
 
             artificial_dissipation_max_coeff = dg->max_artificial_dissipation_coeff;
@@ -312,7 +326,7 @@ int EulerGaussianBump<dim,nstate>
     artificial_dissipation_test_enum arti_dissipation_test_type = param.artificial_dissipation_param.artificial_dissipation_test_type;
     if (arti_dissipation_test_type == artificial_dissipation_test_enum::residual_convergence)
     {
-        if(Has_residual_converged)
+        if(has_residual_converged)
         {
            pcout << std::endl << "Residual has converged. Test Passed"<<std::endl;
             return 0;
@@ -329,6 +343,10 @@ int EulerGaussianBump<dim,nstate>
         }
         pcout << std::endl << "Discontinuity sensor has been activated. Max dissipation coeff = " <<artificial_dissipation_max_coeff << "   Test failed"<<std::endl;
         return 1;
+    }
+    else if (arti_dissipation_test_type == artificial_dissipation_test_enum::enthalpy_conservation) 
+    {
+        return last_error; // Return the error
     }
 //****************Test for artificial dissipation ends *******************************************************
     else
@@ -350,7 +368,7 @@ int EulerGaussianBump<dim,nstate>
                      << std::endl;
             }
         }
-    return n_fail_poly;
+        return n_fail_poly;
     }
 }
 

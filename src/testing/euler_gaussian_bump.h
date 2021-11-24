@@ -47,6 +47,7 @@ public:
      *  
      *  Want to see entropy go to 0.
      */
+    double run_test1 () const;
     int run_test () const;
 
 protected:

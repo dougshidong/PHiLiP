@@ -27,6 +27,7 @@ public:
     enum ArtificialDissipationTestType{
         residual_convergence,
         discontinuity_sensor_activation,
+        enthalpy_conservation,
         poly_order_convergence
     };
     ArtificialDissipationTestType artificial_dissipation_test_type;

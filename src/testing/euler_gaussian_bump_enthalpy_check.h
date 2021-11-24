@@ -10,9 +10,9 @@
  {
 
  public:
-	EulerGaussianBumpEnthalpyCheck(const Parameters::AllParameters *const parameters_input);
-	double run_euler_gaussian_bump(const Parameters::AllParameters parameters_input) const;
-	int run_test() const;
+    EulerGaussianBumpEnthalpyCheck(const Parameters::AllParameters *const parameters_input);
+    double run_euler_gaussian_bump(const Parameters::AllParameters parameters_input) const;
+    int run_test() const;
  };
 
  } // Tests namespace

@@ -70,9 +70,9 @@ int EulerGaussianBump<dim,nstate>
         pcout << initial_conditions.farfield_conservative[s] << std::endl;
     }
 
-	std::string Error_string;
-	bool Has_residual_converged = true;
-	double artificial_dissipation_max_coeff = 0.0;
+    std::string Error_string;
+    bool Has_residual_converged = true;
+    double artificial_dissipation_max_coeff = 0.0;
     std::vector<int> fail_conv_poly;
     std::vector<double> fail_conv_slop;
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
@@ -189,21 +189,21 @@ int EulerGaussianBump<dim,nstate>
                         soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
                     }
 
-					double unumerical, uexact;
-					if(param.artificial_dissipation_param.use_enthalpy_error)
-					{
-						Error_string = "L2_enthalpy_error";
-						const double pressure = euler_physics_double.compute_pressure(soln_at_q);
-				  	    unumerical = euler_physics_double.compute_specific_enthalpy(soln_at_q,pressure);
-				  	    uexact = euler_physics_double.gam*euler_physics_double.pressure_inf/euler_physics_double.density_inf*(1.0/euler_physics_double.gamm1+0.5*euler_physics_double.mach_inf_sqr);
-					} 
-					else
-					{
-						Error_string = "L2_entropy_error";
-						const double entropy_inf = euler_physics_double.entropy_inf;
-						unumerical = euler_physics_double.compute_entropy_measure(soln_at_q);
-						uexact = entropy_inf;
-					}
+                    double unumerical, uexact;
+                    if(param.artificial_dissipation_param.use_enthalpy_error)
+                    {
+                        Error_string = "L2_enthalpy_error";
+                        const double pressure = euler_physics_double.compute_pressure(soln_at_q);
+                        unumerical = euler_physics_double.compute_specific_enthalpy(soln_at_q,pressure);
+                        uexact = euler_physics_double.gam*euler_physics_double.pressure_inf/euler_physics_double.density_inf*(1.0/euler_physics_double.gamm1+0.5*euler_physics_double.mach_inf_sqr);
+                    } 
+                    else
+                    {
+                        Error_string = "L2_entropy_error";
+                        const double entropy_inf = euler_physics_double.entropy_inf;
+                        unumerical = euler_physics_double.compute_entropy_measure(soln_at_q);
+                        uexact = entropy_inf;
+                    }
                     l2error += pow(unumerical - uexact, 2) * fe_values_extra.JxW(iquad);
                 }
             }
@@ -223,14 +223,14 @@ int EulerGaussianBump<dim,nstate>
             convergence_table.add_value("dx", dx);
            // convergence_table.add_value("L2_Error", l2error_mpi_sum);
             convergence_table.add_value(Error_string, l2error_mpi_sum);
-			convergence_table.add_value("Residual",ode_solver->residual_norm);
-			
-			if(ode_solver->residual_norm > 1e-10)
-			{
-				Has_residual_converged = false;
-			}
+            convergence_table.add_value("Residual",ode_solver->residual_norm);
+            
+            if(ode_solver->residual_norm > 1e-10)
+            {
+                Has_residual_converged = false;
+            }
 
-			artificial_dissipation_max_coeff = dg->max_artificial_dissipation_coeff;
+            artificial_dissipation_max_coeff = dg->max_artificial_dissipation_coeff;
 
             pcout << " Grid size h: " << dx 
                  << " L2-Error: " << l2error_mpi_sum
@@ -259,20 +259,20 @@ int EulerGaussianBump<dim,nstate>
         convergence_table.evaluate_convergence_rates(Error_string, "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.set_scientific("dx", true);
         convergence_table.set_scientific(Error_string, true);
-		convergence_table.set_scientific("Residual",true);
+        convergence_table.set_scientific("Residual",true);
         //convergence_table.set_scientific("L2_Error", true);
         if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
 
         convergence_table_vector.push_back(convergence_table);
 
         const double expected_slope = poly_degree+1;
-	
-		double last_slope = 0.0;
+    
+        double last_slope = 0.0;
 
-		if(n_grids>=2)
-		{
-	        last_slope = log(Error[n_grids-1]/Error[n_grids-2]) / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
-		}
+        if(n_grids>=2)
+        {
+            last_slope = log(Error[n_grids-1]/Error[n_grids-2]) / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
+        }
         //double before_last_slope = last_slope;
         //if ( n_grids > 2 ) {
         //    before_last_slope = log(Error[n_grids-2]/Error[n_grids-3])
@@ -308,50 +308,50 @@ int EulerGaussianBump<dim,nstate>
     }
 
 //****************Test for artificial dissipation begins *******************************************************
-	using artificial_dissipation_test_enum = Parameters::ArtificialDissipationParam::ArtificialDissipationTestType;
-	artificial_dissipation_test_enum arti_dissipation_test_type = param.artificial_dissipation_param.artificial_dissipation_test_type;
-	if (arti_dissipation_test_type == artificial_dissipation_test_enum::residual_convergence)
-	{
-		if(Has_residual_converged)
-		{
-		   pcout << std::endl << "Residual has converged. Test Passed"<<std::endl;
-			return 0;
-		}
-		pcout << std::endl<<"Residual has not converged. Test failed" << std::endl;
-		return 1;
-	}
-	else if (arti_dissipation_test_type == artificial_dissipation_test_enum::discontinuity_sensor_activation) 
-	{
-		if(artificial_dissipation_max_coeff < 1e-10)
-		{
-			pcout << std::endl << "Discontinuity sensor is not activated. Max dissipation coeff = " <<artificial_dissipation_max_coeff << "   Test passed"<<std::endl;
-			return 0;
-		}
-		pcout << std::endl << "Discontinuity sensor has been activated. Max dissipation coeff = " <<artificial_dissipation_max_coeff << "   Test failed"<<std::endl;
-		return 1;
-	}
+    using artificial_dissipation_test_enum = Parameters::ArtificialDissipationParam::ArtificialDissipationTestType;
+    artificial_dissipation_test_enum arti_dissipation_test_type = param.artificial_dissipation_param.artificial_dissipation_test_type;
+    if (arti_dissipation_test_type == artificial_dissipation_test_enum::residual_convergence)
+    {
+        if(Has_residual_converged)
+        {
+           pcout << std::endl << "Residual has converged. Test Passed"<<std::endl;
+            return 0;
+        }
+        pcout << std::endl<<"Residual has not converged. Test failed" << std::endl;
+        return 1;
+    }
+    else if (arti_dissipation_test_type == artificial_dissipation_test_enum::discontinuity_sensor_activation) 
+    {
+        if(artificial_dissipation_max_coeff < 1e-10)
+        {
+            pcout << std::endl << "Discontinuity sensor is not activated. Max dissipation coeff = " <<artificial_dissipation_max_coeff << "   Test passed"<<std::endl;
+            return 0;
+        }
+        pcout << std::endl << "Discontinuity sensor has been activated. Max dissipation coeff = " <<artificial_dissipation_max_coeff << "   Test failed"<<std::endl;
+        return 1;
+    }
 //****************Test for artificial dissipation ends *******************************************************
-	else
-	{
-		int n_fail_poly = fail_conv_poly.size();
-		if (n_fail_poly > 0) 
-		{
-			for (int ifail=0; ifail < n_fail_poly; ++ifail) 
-			{
-				const double expected_slope = fail_conv_poly[ifail]+1;
-				const double slope_deficit_tolerance = -0.1;
-				pcout << std::endl
-					 << "Convergence order not achieved for polynomial p = "
-					 << fail_conv_poly[ifail]
-					 << ". Slope of "
+    else
+    {
+        int n_fail_poly = fail_conv_poly.size();
+        if (n_fail_poly > 0) 
+        {
+            for (int ifail=0; ifail < n_fail_poly; ++ifail) 
+            {
+                const double expected_slope = fail_conv_poly[ifail]+1;
+                const double slope_deficit_tolerance = -0.1;
+                pcout << std::endl
+                     << "Convergence order not achieved for polynomial p = "
+                     << fail_conv_poly[ifail]
+                     << ". Slope of "
                      << fail_conv_slop[ifail] << " instead of expected "
-					 << expected_slope << " within a tolerance of "
-					 << slope_deficit_tolerance
-					 << std::endl;
-			}
-		}
+                     << expected_slope << " within a tolerance of "
+                     << slope_deficit_tolerance
+                     << std::endl;
+            }
+        }
     return n_fail_poly;
-	}
+    }
 }
 
 

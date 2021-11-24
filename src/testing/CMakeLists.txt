@@ -5,7 +5,7 @@ set(TESTS_SOURCE
     burgers_stability.cpp
     diffusion_exact_adjoint.cpp
     euler_gaussian_bump.cpp
-	euler_gaussian_bump_enthalpy_check.cpp
+    euler_gaussian_bump_enthalpy_check.cpp
     euler_naca0012.cpp
     euler_bump_optimization.cpp
     euler_naca0012_optimization.cpp

@@ -360,8 +360,8 @@ public:
         const real2 diameter,
         const std::vector< real2 > &soln_coeff_high,
         const dealii::FiniteElement<dim,dim> &fe_high);
-	
-	template <typename real2>
+    
+    template <typename real2>
     real2 discontinuity_sensor(
         const dealii::Quadrature<dim> &volume_quadrature,
         const std::vector< real2 > &soln_coeff_high,
@@ -660,7 +660,7 @@ private:
 
 public:
     bool freeze_artificial_dissipation;
-	double max_artificial_dissipation_coeff;
+    double max_artificial_dissipation_coeff;
     /// Update discontinuity sensor.
     void update_artificial_dissipation_discontinuity_sensor();
 
@@ -683,7 +683,7 @@ protected:
 
 public:
     using DGBase<dim,real,MeshType>::all_parameters; ///< Parallel std::cout that only outputs on mpi_rank==0
-	///Number of states for the artificial dissipation class, differs for physics type.
+    ///Number of states for the artificial dissipation class, differs for physics type.
     /// Constructor.
     DGBaseState(
         const Parameters::AllParameters *const parameters_input,
@@ -698,7 +698,7 @@ public:
     std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, real > > conv_num_flux_double;
     /// Dissipative numerical flux with real type
     std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, real > > diss_num_flux_double;
-	/// Artificial dissipation pointer
+    /// Artificial dissipation pointer
     std::shared_ptr <ArtificialDissipationBase<dim,nstate>> artificial_dissipation_pointer;
 
     /// Contains the physics of the PDE with FadType

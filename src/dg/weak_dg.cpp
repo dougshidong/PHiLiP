@@ -387,24 +387,24 @@ std::vector <real> determinant_ArrayTensor(std::vector < std::array< dealii::Ten
 // Integer root from
 // https://rosettacode.org/wiki/Integer_roots#C.2B.2B
 unsigned int root(unsigned int base, unsigned int n) {
-	if (base < 2) return base;
-	if (n == 0) return 1;
+    if (base < 2) return base;
+    if (n == 0) return 1;
 
-	unsigned int n1 = n - 1;
-	unsigned int n2 = n;
-	unsigned int n3 = n1;
-	unsigned int c = 1;
-	auto d = (n3 + base) / n2;
-	auto e = (n3 * d + base / pow(d, n1)) / n2;
+    unsigned int n1 = n - 1;
+    unsigned int n2 = n;
+    unsigned int n3 = n1;
+    unsigned int c = 1;
+    auto d = (n3 + base) / n2;
+    auto e = (n3 * d + base / pow(d, n1)) / n2;
 
-	while (c != d && c != e) {
-		c = d;
-		d = e;
-		e = (n3*e + base / pow(e, n1)) / n2;
-	}
+    while (c != d && c != e) {
+        c = d;
+        d = e;
+        e = (n3*e + base / pow(e, n1)) / n2;
+    }
 
-	if (d < e) return d;
-	return e;
+    if (d < e) return d;
+    return e;
 }
 
 template <int dim, typename real>
@@ -1423,7 +1423,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
                 artificial_diss_coeff_at_q[iquad] += this->artificial_dissipation_c0[index] * this->fe_q_artificial_dissipation.shape_value(idof, point);
             }
         }
-		 //artificial_diss_coeff_at_q[iquad] = 0.0;
+         //artificial_diss_coeff_at_q[iquad] = 0.0;
     }
 
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
@@ -2133,8 +2133,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
                 artificial_diss_coeff_at_q[iquad] += this->artificial_dissipation_c0[index] * this->fe_q_artificial_dissipation.shape_value(idof, point);
             }
         }
-		 //artificial_diss_coeff_at_q[iquad] = 0.0;
-	}
+         //artificial_diss_coeff_at_q[iquad] = 0.0;
+    }
 
     std::vector<real2> jacobian_determinant_int(n_face_quad_pts);
     std::vector<real2> jacobian_determinant_ext(n_face_quad_pts);
@@ -3578,19 +3578,19 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
 /*
 
     std::vector<real2> artificial_diss_coeff_at_q(n_quad_pts);
-	real2 arti_diss = this->discontinuity_sensor(quadrature, soln_coeff, fe_soln, jac_det);
+    real2 arti_diss = this->discontinuity_sensor(quadrature, soln_coeff, fe_soln, jac_det);
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad)
-	{
+    {
         dealii::Point<dim,real> point = unit_quad_pts[iquad];
         // Rescale over -1,1
         for (int d=0; d<dim; ++d)
-		{
+        {
             point[d] = point[d]*2 - 1.0;
         }
         double gegenbauer_factor = 0.0;
         double gegenbauer = 1.0;
         for (int d=0; d<dim; ++d)
-		{
+        {
             gegenbauer *= std::pow(1-point[d]*point[d], gegenbauer_factor);
         }
         artificial_diss_coeff_at_q[iquad] = arti_diss * gegenbauer;

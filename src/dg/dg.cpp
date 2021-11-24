@@ -109,7 +109,7 @@ DGBase<dim,real,MeshType>::DGBase(
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
     , freeze_artificial_dissipation(false)
-	, max_artificial_dissipation_coeff(0.0)
+    , max_artificial_dissipation_coeff(0.0)
 {
 
     dof_handler.initialize(*triangulation, fe_collection);
@@ -261,14 +261,14 @@ DGBaseState<dim,nstate,real,MeshType>::DGBaseState(
     const std::shared_ptr<Triangulation> triangulation_input)
     : DGBase<dim,real,MeshType>::DGBase(nstate, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input) // Use DGBase constructor
 {
-    pde_physics_double  = Physics::PhysicsFactory<dim,nstate,real>			  ::create_Physics(parameters_input);
-    pde_physics_fad     = Physics::PhysicsFactory<dim,nstate,FadType>		  ::create_Physics(parameters_input);
-    pde_physics_rad     = Physics::PhysicsFactory<dim,nstate,RadType>		  ::create_Physics(parameters_input);
-    pde_physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType>	  ::create_Physics(parameters_input);
-    pde_physics_rad_fad = Physics::PhysicsFactory<dim,nstate,RadFadType>	  ::create_Physics(parameters_input);
-	artificial_dissipation_pointer = ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation_pointer(parameters_input);
+    pde_physics_double  = Physics::PhysicsFactory<dim,nstate,real>            ::create_Physics(parameters_input);
+    pde_physics_fad     = Physics::PhysicsFactory<dim,nstate,FadType>         ::create_Physics(parameters_input);
+    pde_physics_rad     = Physics::PhysicsFactory<dim,nstate,RadType>         ::create_Physics(parameters_input);
+    pde_physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType>      ::create_Physics(parameters_input);
+    pde_physics_rad_fad = Physics::PhysicsFactory<dim,nstate,RadFadType>      ::create_Physics(parameters_input);
+    artificial_dissipation_pointer = ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation_pointer(parameters_input);
     
-	reset_numerical_fluxes();
+    reset_numerical_fluxes();
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -964,29 +964,29 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
             // Only integrate over the first state variable.
             for (unsigned int s=0; s<1/*nstate*/; ++s) {
 
-				if(all_parameters->artificial_dissipation_param.entropy_error_discontinuity_sensor)
-				{
-					double v_high_squared = 0.0;
-					double v_low_squared = 0.0;
-					for(unsigned int i=1;i<nstate-1;i++)
-					{
-						v_high_squared+=soln_high[i]*soln_high[i]/(soln_high[0]*soln_high[0]);
-						v_low_squared+=soln_lower[i]*soln_lower[i]/(soln_lower[0]*soln_lower[0]);
-					}
-					double gamma_euler = all_parameters->euler_param.gamma_gas;
-					double p_high = (gamma_euler-1.0)*(soln_high[nstate-1] - 0.5*soln_high[0]*v_high_squared);
-					double p_low = (gamma_euler-1.0)*(soln_lower[nstate-1] - 0.5*soln_lower[0]*v_low_squared);
-					double entropy_high = p_high*pow(soln_high[0],-gamma_euler);
-					double entropy_low = p_low*pow(soln_lower[0],-gamma_euler);
-					error+= (entropy_high - entropy_low) *(entropy_high - entropy_low) * fe_values_volume.JxW(iquad);
-					soln_norm+= entropy_high * entropy_high * fe_values_volume.JxW(iquad);
-				}
-				else
-				{
-					error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * fe_values_volume.JxW(iquad);
-					soln_norm += soln_high[s] * soln_high[s] * fe_values_volume.JxW(iquad);
-				}
-			   
+                if(all_parameters->artificial_dissipation_param.entropy_error_discontinuity_sensor)
+                {
+                    double v_high_squared = 0.0;
+                    double v_low_squared = 0.0;
+                    for(unsigned int i=1;i<nstate-1;i++)
+                    {
+                        v_high_squared+=soln_high[i]*soln_high[i]/(soln_high[0]*soln_high[0]);
+                        v_low_squared+=soln_lower[i]*soln_lower[i]/(soln_lower[0]*soln_lower[0]);
+                    }
+                    double gamma_euler = all_parameters->euler_param.gamma_gas;
+                    double p_high = (gamma_euler-1.0)*(soln_high[nstate-1] - 0.5*soln_high[0]*v_high_squared);
+                    double p_low = (gamma_euler-1.0)*(soln_lower[nstate-1] - 0.5*soln_lower[0]*v_low_squared);
+                    double entropy_high = p_high*pow(soln_high[0],-gamma_euler);
+                    double entropy_low = p_low*pow(soln_lower[0],-gamma_euler);
+                    error+= (entropy_high - entropy_low) *(entropy_high - entropy_low) * fe_values_volume.JxW(iquad);
+                    soln_norm+= entropy_high * entropy_high * fe_values_volume.JxW(iquad);
+                }
+                else
+                {
+                    error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * fe_values_volume.JxW(iquad);
+                    soln_norm += soln_high[s] * soln_high[s] * fe_values_volume.JxW(iquad);
+                }
+               
             }
         }
 
@@ -994,9 +994,9 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
         //          << " soln_norm: " << soln_norm << std::endl;
         //if (error < 1e-12) continue;
         if (soln_norm < 1e-12) 
-		{
-			continue;
-		}
+        {
+            continue;
+        }
 
         double S_e, s_e;
         S_e = sqrt(error / soln_norm);
@@ -1016,28 +1016,28 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
 
         const double diameter = std::pow(element_volume, 1.0/dim);
         const double eps_0 = mu_scale * diameter / (double)degree;
-	
+    
         //std::cout << " lower < s_e < upp " << low << " < " << s_e << " < " << upp << " ? " << std::endl;
 
         if ( s_e < low) continue;
 
         if ( s_e > upp) {
             artificial_dissipation_coeffs[cell_index] += eps_0;
-			if(eps_0 > max_artificial_dissipation_coeff)
-			{
-				max_artificial_dissipation_coeff = eps_0;
-			}
+            if(eps_0 > max_artificial_dissipation_coeff)
+            {
+                max_artificial_dissipation_coeff = eps_0;
+            }
             continue;
         }
 
         const double PI = 4*atan(1);
         double eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
         eps *= eps_0 * 0.5;
-	
-		if(eps > max_artificial_dissipation_coeff)
-		{
-			max_artificial_dissipation_coeff = eps;
-		}
+    
+        if(eps > max_artificial_dissipation_coeff)
+        {
+            max_artificial_dissipation_coeff = eps;
+        }
 
 
         artificial_dissipation_coeffs[cell_index] += eps;
@@ -1089,7 +1089,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         &&  !(compute_dRdX && compute_d2R)
             , dealii::ExcMessage("Can only do one at a time compute_dRdW or compute_dRdX or compute_d2R"));
 
-	max_artificial_dissipation_coeff = 0.0;
+    max_artificial_dissipation_coeff = 0.0;
     //pcout << "Assembling DG residual...";
     if (compute_dRdW) {
         pcout << " with dRdW...";
@@ -2355,28 +2355,28 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     // const real2 low = Skappa - m_Kappa;
     // const real2 upp = Skappa + m_Kappa;
 
-	const real2 eps_0 =mu_scale* diameter / (double)degree;
+    const real2 eps_0 =mu_scale* diameter / (double)degree;
 
     if ( s_e < low) return 0.0;
 
     if ( s_e > upp)
-	{
-		/*if(eps_0 > max_artificial_dissipation_coeff)
-		{
-			max_artificial_dissipation_coeff = eps_0;
-		}*/
-		return eps_0;
-	}
+    {
+        /*if(eps_0 > max_artificial_dissipation_coeff)
+        {
+            max_artificial_dissipation_coeff = eps_0;
+        }*/
+        return eps_0;
+    }
 
     const double PI = 4*atan(1);
     //real2 eps = 1.0 + std::sin(PI * (s_e - Skappa) * 0.5 / m_Kappa);
     real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
     eps *= eps_0 * 0.5;
 
-	/*if(eps > max_artificial_dissipation_coeff)
-	{
-		max_artificial_dissipation_coeff = eps;
-	}*/
+    /*if(eps > max_artificial_dissipation_coeff)
+    {
+        max_artificial_dissipation_coeff = eps;
+    }*/
    
    return eps;
 
@@ -2439,28 +2439,28 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
         // Persson and Peraire only did density.
         for (unsigned int s=0; s<1/*nstate*/; ++s) {
 
-			if(all_parameters->artificial_dissipation_param.entropy_error_discontinuity_sensor)
-			{
-				real2 v_high_squared = 0.0;
-				real2 v_low_squared = 0.0;
-				for(unsigned int i=1;i<nstate-1;i++)
-				{
-					v_high_squared+=soln_high[i]*soln_high[i]/(soln_high[0]*soln_high[0]);
-					v_low_squared+=soln_lower[i]*soln_lower[i]/(soln_lower[0]*soln_lower[0]);
-				}
-				real2 gamma_euler = all_parameters->euler_param.gamma_gas;
-				real2 p_high = (gamma_euler-1.0)*(soln_high[nstate-1] - 0.5*soln_high[0]*v_high_squared);
-				real2 p_low = (gamma_euler-1.0)*(soln_lower[nstate-1] - 0.5*soln_lower[0]*v_low_squared);
-				real2 entropy_high = p_high*pow(soln_high[0],-gamma_euler);
-				real2 entropy_low = p_low*pow(soln_lower[0],-gamma_euler);
-				error+= (entropy_high - entropy_low) *(entropy_high - entropy_low) * JxW;
-				soln_norm+= entropy_high * entropy_high * JxW;
-			}
-			else
-			{
-				error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * JxW;
-				soln_norm += soln_high[s] * soln_high[s] * JxW;
-			}
+            if(all_parameters->artificial_dissipation_param.entropy_error_discontinuity_sensor)
+            {
+                real2 v_high_squared = 0.0;
+                real2 v_low_squared = 0.0;
+                for(unsigned int i=1;i<nstate-1;i++)
+                {
+                    v_high_squared+=soln_high[i]*soln_high[i]/(soln_high[0]*soln_high[0]);
+                    v_low_squared+=soln_lower[i]*soln_lower[i]/(soln_lower[0]*soln_lower[0]);
+                }
+                real2 gamma_euler = all_parameters->euler_param.gamma_gas;
+                real2 p_high = (gamma_euler-1.0)*(soln_high[nstate-1] - 0.5*soln_high[0]*v_high_squared);
+                real2 p_low = (gamma_euler-1.0)*(soln_lower[nstate-1] - 0.5*soln_lower[0]*v_low_squared);
+                real2 entropy_high = p_high*pow(soln_high[0],-gamma_euler);
+                real2 entropy_low = p_low*pow(soln_lower[0],-gamma_euler);
+                error+= (entropy_high - entropy_low) *(entropy_high - entropy_low) * JxW;
+                soln_norm+= entropy_high * entropy_high * JxW;
+            }
+            else
+            {
+                error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * JxW;
+                soln_norm += soln_high[s] * soln_high[s] * JxW;
+            }
         }
     }
 
@@ -2481,21 +2481,21 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     if ( s_e < low) return 0.0;
 
     if ( s_e > upp) 
-	{
-		/*if(eps_0 > max_artificial_dissipation_coeff)
-		{
-			max_artificial_dissipation_coeff = eps_0;
-		}*/
+    {
+        /*if(eps_0 > max_artificial_dissipation_coeff)
+        {
+            max_artificial_dissipation_coeff = eps_0;
+        }*/
         return eps_0;
     }
 
     const double PI = 4*atan(1);
     real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
     eps *= eps_0 * 0.5;
-	/*if(eps > max_artificial_dissipation_coeff)
-	{
-		max_artificial_dissipation_coeff = eps;
-	}*/
+    /*if(eps > max_artificial_dissipation_coeff)
+    {
+        max_artificial_dissipation_coeff = eps;
+    }*/
     return eps;
 }
 

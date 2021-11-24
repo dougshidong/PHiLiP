@@ -41,8 +41,8 @@ public:
     ReducedOrderModelParam reduced_order_param;
     /// contains the parameters for grid refinement study
     GridRefinementStudyParam grid_refinement_study_param;
-	/// Contains parameters for artificial dissipation
-	ArtificialDissipationParam artificial_dissipation_param;
+    /// Contains parameters for artificial dissipation
+    ArtificialDissipationParam artificial_dissipation_param;
 
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;
@@ -100,7 +100,7 @@ public:
         burgers_energy_stability,
         diffusion_exact_adjoint,
         euler_gaussian_bump,
-		euler_gaussian_bump_enthalpy,
+        euler_gaussian_bump_enthalpy,
         euler_gaussian_bump_adjoint,
         euler_cylinder,
         euler_cylinder_adjoint,

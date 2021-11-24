@@ -15,31 +15,31 @@ public:
      */
     bool add_artificial_dissipation;
 
-	bool entropy_error_discontinuity_sensor;
-	
-	enum ArtificialDissipationType{
-		laplacian, 
-		physical, 
-		enthalpy_conserving_laplacian
-	};
-	ArtificialDissipationType artificial_dissipation_type;
+    bool entropy_error_discontinuity_sensor;
+    
+    enum ArtificialDissipationType{
+        laplacian, 
+        physical, 
+        enthalpy_conserving_laplacian
+    };
+    ArtificialDissipationType artificial_dissipation_type;
 
-	enum ArtificialDissipationTestType{
-		residual_convergence,
-		discontinuity_sensor_activation,
-		poly_order_convergence
-	};
-	ArtificialDissipationTestType artificial_dissipation_test_type;
-	
-	double mu_artificial_dissipation;
+    enum ArtificialDissipationTestType{
+        residual_convergence,
+        discontinuity_sensor_activation,
+        poly_order_convergence
+    };
+    ArtificialDissipationTestType artificial_dissipation_test_type;
+    
+    double mu_artificial_dissipation;
 
-	double kappa_artificial_dissipation;
+    double kappa_artificial_dissipation;
 
     ///Flag to calculate enthalpy error
     bool use_enthalpy_error;
 
-	ArtificialDissipationParam(); /// Constructor
-	static void declare_parameters (dealii::ParameterHandler &prm);
+    ArtificialDissipationParam(); /// Constructor
+    static void declare_parameters (dealii::ParameterHandler &prm);
     void parse_parameters (dealii::ParameterHandler &prm);
 };
 

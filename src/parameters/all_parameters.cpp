@@ -14,7 +14,7 @@ AllParameters::AllParameters ()
     , navier_stokes_param(NavierStokesParam())
     , reduced_order_param(ReducedOrderModelParam())
     , grid_refinement_study_param(GridRefinementStudyParam())
-	, artificial_dissipation_param(ArtificialDissipationParam())
+    , artificial_dissipation_param(ArtificialDissipationParam())
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 { }
 void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
@@ -95,7 +95,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " diffusion_exact_adjoint | "
                       " optimization_inverse_manufactured | "
                       " euler_gaussian_bump | "
-					  " euler_gaussian_bump_enthalpy |"
+                      " euler_gaussian_bump_enthalpy |"
                       " euler_gaussian_bump_adjoint | "
                       " euler_cylinder | "
                       " euler_cylinder_adjoint | "
@@ -117,13 +117,13 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  diffusion_exact_adjoint | "
                       "  optimization_inverse_manufactured | "
                       "  euler_gaussian_bump | "
-					  "  euler_gaussian_bump_enthalpy |"
+                      "  euler_gaussian_bump_enthalpy |"
                       "  euler_gaussian_bump_adjoint | "
                       "  euler_cylinder | "
                       "  euler_cylinder_adjoint | "
                       "  euler_vortex | "
                       "  euler_entropy_waves | "
-					            "  euler_split_taylor_green |"
+                                "  euler_split_taylor_green |"
                       "  euler_bump_optimization | "
                       "  euler_naca_optimization | "
                       "  shock_1d | "
@@ -310,7 +310,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     pcout << "Parsing artificial dissipation subsection..." << std::endl;
     artificial_dissipation_param.parse_parameters (prm);
     
-	pcout << "Done parsing." << std::endl;
+    pcout << "Done parsing." << std::endl;
 }
 
 } // Parameters namespace

@@ -123,7 +123,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_cylinder_adjoint | "
                       "  euler_vortex | "
                       "  euler_entropy_waves | "
-                                "  euler_split_taylor_green |"
+                      "  euler_split_taylor_green |"
                       "  euler_bump_optimization | "
                       "  euler_naca_optimization | "
                       "  shock_1d | "

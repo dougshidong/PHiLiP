@@ -215,7 +215,7 @@ int EulerGaussianBump<dim,nstate>
             double dx = 1.0/pow(n_dofs,(1.0/dim));
             //dx = dealii::GridTools::maximal_cell_diameter(*grid);
             grid_size[igrid] = dx;
-           Error[igrid] = l2error_mpi_sum;
+            Error[igrid] = l2error_mpi_sum;
 
             convergence_table.add_value("p", poly_degree);
             convergence_table.add_value("cells", n_global_active_cells);

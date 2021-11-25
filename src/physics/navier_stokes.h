@@ -29,6 +29,9 @@ public:
 	/// Farfield (free stream) Reynolds number
 	const double reynolds_number_inf;
 
+    /// Destructor
+    ~NavierStokes() {};
+
     /** Obtain gradient of primitive variables from gradient of conservative variables */
     template<typename real2>
     std::array<dealii::Tensor<1,dim,real2>,nstate> 

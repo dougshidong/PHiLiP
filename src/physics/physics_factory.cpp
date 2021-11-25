@@ -23,7 +23,7 @@ template <int dim, int nstate, typename real>
 std::shared_ptr < PhysicsBase<dim,nstate,real> >
 PhysicsFactory<dim,nstate,real>
 ::create_Physics(const Parameters::AllParameters               *const parameters_input,
-                 std::shared_ptr< ModelBase<dim,dim+2,real> > model_input)
+                 std::shared_ptr< ModelBase<dim,nstate,real> > model_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     PDE_enum pde_type = parameters_input->pde_type;
@@ -36,7 +36,7 @@ std::shared_ptr < PhysicsBase<dim,nstate,real> >
 PhysicsFactory<dim,nstate,real>
 ::create_Physics(const Parameters::AllParameters                              *const parameters_input,
                  const Parameters::AllParameters::PartialDifferentialEquation pde_type,
-                 std::shared_ptr< ModelBase<dim,dim+2,real> >                model_input)
+                 std::shared_ptr< ModelBase<dim,nstate,real> >                model_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
 
@@ -141,7 +141,7 @@ std::shared_ptr < PhysicsBase<dim,nstate,real> >
 PhysicsFactory<dim,nstate,real>
 ::create_Physics_Model(const Parameters::AllParameters                           *const parameters_input,
                        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
-                       std::shared_ptr< ModelBase<dim,dim+2,real> >              model_input)
+                       std::shared_ptr< ModelBase<dim,nstate,real> >              model_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
 

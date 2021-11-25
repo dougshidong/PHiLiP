@@ -36,7 +36,7 @@ LargeEddySimulationBase<dim, nstate, real>::LargeEddySimulationBase(
             reynolds_number_inf,
             manufactured_solution_function_input))
 {
-    static_assert(nstate==dim+2, "PhysicsModel::LargeEddySimulationBase() should be created with nstate=dim+2");
+    static_assert(nstate==dim+2, "ModelBase::LargeEddySimulationBase() should be created with nstate=dim+2");
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
@@ -371,9 +371,7 @@ LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorin
                                                turbulent_prandtl_number)
     , model_constant(model_constant)
     , filter_width(filter_width/ref_length) // <-- Nondimensionalized filter width
-{
-    // Nothing to do here so far
-}
+{ }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 real LargeEddySimulation_Smagorinsky<dim,nstate,real>
@@ -568,9 +566,7 @@ LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE(
                                                        turbulent_prandtl_number,
                                                        model_constant,
                                                        filter_width)
-{
-    // Nothing to do here so far
-}
+{ }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
 real LargeEddySimulation_WALE<dim,nstate,real>

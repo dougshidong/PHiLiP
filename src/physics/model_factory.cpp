@@ -89,6 +89,7 @@ ModelFactory<dim,nstate,real>
         return nullptr;
     } else {
         // if pde_type != PhysicsModel
+        (void) filter_width;
         return nullptr;
     }
 }
@@ -97,54 +98,40 @@ ModelFactory<dim,nstate,real>
 //----------------------------------------------------------------
 //----------------------------------------------------------------
 // Instantiate explicitly
-template class ModelFactory < PHILIP_DIM, PHILIP_DIM+2, double >;
-template class ModelFactory < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
-template class ModelFactory < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
-template class ModelFactory < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
-template class ModelFactory < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
-// Instantiate for nstate = PHILIP_DIM+3 to accomodate RANS
-// template class ModelFactory < PHILIP_DIM, PHILIP_DIM+3, double >;
-// template class ModelFactory < PHILIP_DIM, PHILIP_DIM+3, FadType  >;
-// template class ModelFactory < PHILIP_DIM, PHILIP_DIM+3, RadType  >;
-// template class ModelFactory < PHILIP_DIM, PHILIP_DIM+3, FadFadType >;
-// template class ModelFactory < PHILIP_DIM, PHILIP_DIM+3, RadFadType >;
+template class ModelFactory<PHILIP_DIM, 1, double>;
+template class ModelFactory<PHILIP_DIM, 2, double>;
+template class ModelFactory<PHILIP_DIM, 3, double>;
+template class ModelFactory<PHILIP_DIM, 4, double>;
+template class ModelFactory<PHILIP_DIM, 5, double>;
+template class ModelFactory<PHILIP_DIM, 8, double>;
 
-// template class ModelFactory<PHILIP_DIM, 1, double>;
-// template class ModelFactory<PHILIP_DIM, 2, double>;
-// template class ModelFactory<PHILIP_DIM, 3, double>;
-// template class ModelFactory<PHILIP_DIM, 4, double>;
-// template class ModelFactory<PHILIP_DIM, 5, double>;
-// template class ModelFactory<PHILIP_DIM, 8, double>;
+template class ModelFactory<PHILIP_DIM, 1, FadType>;
+template class ModelFactory<PHILIP_DIM, 2, FadType>;
+template class ModelFactory<PHILIP_DIM, 3, FadType>;
+template class ModelFactory<PHILIP_DIM, 4, FadType>;
+template class ModelFactory<PHILIP_DIM, 5, FadType>;
+template class ModelFactory<PHILIP_DIM, 8, FadType>;
 
-// template class PhysicsFactory<PHILIP_DIM, 1, FadType >;
-// template class PhysicsFactory<PHILIP_DIM, 2, FadType >;
-// template class PhysicsFactory<PHILIP_DIM, 3, FadType >;
-// template class PhysicsFactory<PHILIP_DIM, 4, FadType >;
-// template class PhysicsFactory<PHILIP_DIM, 5, FadType >;
-// template class PhysicsFactory<PHILIP_DIM, 8, FadType >;
+template class ModelFactory<PHILIP_DIM, 1, RadType>;
+template class ModelFactory<PHILIP_DIM, 2, RadType>;
+template class ModelFactory<PHILIP_DIM, 3, RadType>;
+template class ModelFactory<PHILIP_DIM, 4, RadType>;
+template class ModelFactory<PHILIP_DIM, 5, RadType>;
+template class ModelFactory<PHILIP_DIM, 8, RadType>;
 
-// template class PhysicsFactory<PHILIP_DIM, 1, RadType >;
-// template class PhysicsFactory<PHILIP_DIM, 2, RadType >;
-// template class PhysicsFactory<PHILIP_DIM, 3, RadType >;
-// template class PhysicsFactory<PHILIP_DIM, 4, RadType >;
-// template class PhysicsFactory<PHILIP_DIM, 5, RadType >;
-// template class PhysicsFactory<PHILIP_DIM, 8, RadType >;
+template class ModelFactory<PHILIP_DIM, 1, FadFadType>;
+template class ModelFactory<PHILIP_DIM, 2, FadFadType>;
+template class ModelFactory<PHILIP_DIM, 3, FadFadType>;
+template class ModelFactory<PHILIP_DIM, 4, FadFadType>;
+template class ModelFactory<PHILIP_DIM, 5, FadFadType>;
+template class ModelFactory<PHILIP_DIM, 8, FadFadType>;
 
-// template class PhysicsFactory<PHILIP_DIM, 1, FadFadType >;
-// template class PhysicsFactory<PHILIP_DIM, 2, FadFadType >;
-// template class PhysicsFactory<PHILIP_DIM, 3, FadFadType >;
-// template class PhysicsFactory<PHILIP_DIM, 4, FadFadType >;
-// template class PhysicsFactory<PHILIP_DIM, 5, FadFadType >;
-// template class PhysicsFactory<PHILIP_DIM, 8, FadFadType >;
-
-// template class PhysicsFactory<PHILIP_DIM, 1, RadFadType >;
-// template class PhysicsFactory<PHILIP_DIM, 2, RadFadType >;
-// template class PhysicsFactory<PHILIP_DIM, 3, RadFadType >;
-// template class PhysicsFactory<PHILIP_DIM, 4, RadFadType >;
-// template class PhysicsFactory<PHILIP_DIM, 5, RadFadType >;
-// template class PhysicsFactory<PHILIP_DIM, 8, RadFadType >;
-
-
+template class ModelFactory<PHILIP_DIM, 1, RadFadType>;
+template class ModelFactory<PHILIP_DIM, 2, RadFadType>;
+template class ModelFactory<PHILIP_DIM, 3, RadFadType>;
+template class ModelFactory<PHILIP_DIM, 4, RadFadType>;
+template class ModelFactory<PHILIP_DIM, 5, RadFadType>;
+template class ModelFactory<PHILIP_DIM, 8, RadFadType>;
 
 } // Physics namespace
 } // PHiLiP namespace

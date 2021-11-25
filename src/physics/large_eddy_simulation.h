@@ -4,7 +4,7 @@
 #include "model.h"
 #include "navier_stokes.h"
 #include "euler.h"
-#include "physics.h"
+// #include "physics.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -137,6 +137,9 @@ public:
     const double model_constant;
     const double filter_width;
 
+    /// Destructor
+    ~LargeEddySimulation_Smagorinsky() {};
+
     /// Nondimensionalized sub-grid scale (SGS) stress tensor, (tau^sgs)*
     std::array<dealii::Tensor<1,dim,real>,dim> compute_SGS_stress_tensor (
         const std::array<real,nstate> &primitive_soln,
@@ -212,6 +215,9 @@ public:
         const double                                              turbulent_prandtl_number,
         const double                                              model_constant,
         const double                                              filter_width);
+
+    /// Destructor
+    ~LargeEddySimulation_WALE() {};
 
     /** Nondimensionalized eddy viscosity for the WALE model. 
      *  Reference: Nicoud & Ducros (1999) "Subgrid-scale stress modelling based on the square of the velocity gradient tensor"

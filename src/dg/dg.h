@@ -34,6 +34,7 @@
 
 #include "mesh/high_order_grid.h"
 #include "physics/physics.h"
+#include "physics/model.h"
 #include "numerical_flux/numerical_flux_factory.hpp"
 #include "numerical_flux/convective_numerical_flux.hpp"
 #include "numerical_flux/viscous_numerical_flux.hpp"
@@ -686,6 +687,8 @@ public:
 
     /// Contains the physics of the PDE with real type
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, real > > pde_physics_double;
+    /// Contains the model terms of the PDEType == PhysicsModel with real type
+    std::shared_ptr < Physics::ModelBase<dim, nstate, real > > pde_model_double;
     /// Convective numerical flux with real type
     std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, real > > conv_num_flux_double;
     /// Dissipative numerical flux with real type
@@ -695,6 +698,8 @@ public:
 
     /// Contains the physics of the PDE with FadType
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, FadType > > pde_physics_fad;
+    /// Contains the model terms of the PDEType == PhysicsModel with FadType
+    std::shared_ptr < Physics::ModelBase<dim, nstate, FadType > > pde_model_fad;
     /// Convective numerical flux with FadType
     std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, FadType > > conv_num_flux_fad;
     /// Dissipative numerical flux with FadType
@@ -702,6 +707,8 @@ public:
 
     /// Contains the physics of the PDE with RadType
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, RadType > > pde_physics_rad;
+    /// Contains the model terms of the PDEType == PhysicsModel with RadType
+    std::shared_ptr < Physics::ModelBase<dim, nstate, RadType > > pde_model_rad;
     /// Convective numerical flux with RadType
     std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, RadType > > conv_num_flux_rad;
     /// Dissipative numerical flux with RadType
@@ -709,6 +716,8 @@ public:
 
     /// Contains the physics of the PDE with FadFadType
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, FadFadType > > pde_physics_fad_fad;
+    /// Contains the model terms of the PDEType == PhysicsModel with FadFadType
+    std::shared_ptr < Physics::ModelBase<dim, nstate, FadFadType > > pde_model_fad_fad;
     /// Convective numerical flux with FadFadType
     std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, FadFadType > > conv_num_flux_fad_fad;
     /// Dissipative numerical flux with FadFadType
@@ -716,6 +725,8 @@ public:
 
     /// Contains the physics of the PDE with RadFadDtype
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, RadFadType > > pde_physics_rad_fad;
+    /// Contains the model terms of the PDEType == PhysicsModel with RadFadType
+    std::shared_ptr < Physics::ModelBase<dim, nstate, RadFadType > > pde_model_rad_fad;
     /// Convective numerical flux with RadFadDtype
     std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, RadFadType > > conv_num_flux_rad_fad;
     /// Dissipative numerical flux with RadFadDtype

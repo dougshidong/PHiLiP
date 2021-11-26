@@ -52,7 +52,7 @@
         pcout << "Error transonic = "<< error_transonic << std::endl;
         pcout << "Error subsonic = "<< error_subsonic << std::endl;
 
-        if(error_transonic > error_subsonic)
+        if (abs(error_transonic - error_subsonic) > 3.1e-3) 
         {
             pcout<< "Enthalpy is not conserved. Test failed" << std::endl;
             return 1;

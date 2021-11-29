@@ -35,7 +35,7 @@ public:
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
     /// Parses input file and sets the variables.
-    void parse_parameters (dealii::ParameterHandler &prm, const std::string physics_model_string);
+    void parse_parameters (dealii::ParameterHandler &prm);
 };
 
 } // Parameters namespace

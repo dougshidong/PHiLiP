@@ -23,6 +23,7 @@ AllParameters::AllParameters ()
     , functional_param(FunctionalParam())
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 { }
+
 void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 {
     const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
@@ -361,7 +362,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     large_eddy_simulation_param.parse_parameters (prm);
 
     pcout << "Parsing physics model subsection..." << std::endl;
-    physics_model_param.parse_parameters (prm,model_string);
+    physics_model_param.parse_parameters (prm);
 
     pcout << "Parsing grid refinement study subsection..." << std::endl;
     grid_refinement_study_param.parse_parameters (prm);

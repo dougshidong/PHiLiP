@@ -22,7 +22,7 @@ subsection artificial dissipation
 	set artificial_dissipation_test_type = discontinuity_sensor_activation
 	set use_enthalpy_error = true
 	set mu_artificial_dissipation = 1.0
-	set kappa_artificial_dissipation = 1.0
+	set kappa_artificial_dissipation = 0.5
 end
 
 subsection euler
@@ -65,10 +65,10 @@ end
 
 subsection manufactured solution convergence study
   # Last degree used for convergence study
-  set degree_end        = 4    #3
+  set degree_end        = 2    #3
 
   # Starting degree for convergence study
-  set degree_start      = 1   #1
+  set degree_start      = 2   #1
 
   set grid_progression  = 2
 

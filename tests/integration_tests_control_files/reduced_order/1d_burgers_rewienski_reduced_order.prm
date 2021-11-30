@@ -23,7 +23,7 @@ end
 subsection reduced order
   set rewienski_a = 4.5
   set rewienski_b = 0.04
-  set final_time = 5
+  set final_time = 0.5
 end
 
 subsection linear solver

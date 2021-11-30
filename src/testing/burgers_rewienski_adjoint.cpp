@@ -21,6 +21,8 @@
 #include "optimization/functional_objective.h"
 #include "optimization/constraintfromobjective_simopt.hpp"
 
+const double STEPSIZE = 1e-7;
+
 namespace PHiLiP {
 namespace Tests {
 
@@ -104,21 +106,36 @@ int BurgersRewienskiAdjoint<dim, nstate>::run_test() const
     DealiiVector des_var_ctl = dg->high_order_grid->volume_nodes;
     DealiiVector des_var_adj = dg->dual;
     DealiiVector gradient_sim = dg->dual;
+    DealiiVector des_var_adj_fd = dg->dual;
 
     const bool has_ownership = false;
     VectorAdaptor des_var_sim_rol(Teuchos::rcp(&des_var_sim, has_ownership));
     VectorAdaptor des_var_ctl_rol(Teuchos::rcp(&des_var_ctl, has_ownership));
     VectorAdaptor des_var_adj_rol(Teuchos::rcp(&des_var_adj, has_ownership));
+    VectorAdaptor des_var_adj_fd_rol(Teuchos::rcp(&des_var_adj_fd, has_ownership));
     VectorAdaptor gradient_sim_rol(Teuchos::rcp(&gradient_sim, has_ownership));
 
     double empty = 0.0;
     obj->gradient_1(gradient_sim_rol, des_var_sim_rol , des_var_ctl_rol, empty);
     con->applyInverseAdjointJacobian_1(des_var_adj_rol, gradient_sim_rol, des_var_sim_rol, des_var_ctl_rol, empty);
 
-    std::ofstream out_file("adjoint.txt");
-    des_var_adj.print(out_file);
+    double adjoint_l2norm = des_var_adj.l2_norm();
 
-    return 0;
+    DealiiVector gradient_sim_fd = burgers_functional->evaluate_dIdw_finiteDifferences(*dg, *dg_state->pde_physics_double, STEPSIZE);
+    VectorAdaptor gradient_sim_fd_rol(Teuchos::rcp(&gradient_sim_fd, has_ownership));
+    con->applyInverseAdjointJacobian_1(des_var_adj_fd_rol, gradient_sim_fd_rol, des_var_sim_rol, des_var_ctl_rol, empty);
+
+    double adjoint_l2norm_fd = des_var_adj_fd.l2_norm();
+
+    pcout << "Difference: " << abs(adjoint_l2norm - adjoint_l2norm_fd) << std::endl;
+
+    if (abs(adjoint_l2norm - adjoint_l2norm_fd) > 1E-04){
+        pcout << "Fail!" <<std::endl;
+        return -1;
+    }else{
+        pcout << "Pass!" << std::endl;
+        return 0;
+    }
 }
 
 

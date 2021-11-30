@@ -8,11 +8,7 @@
     + [Compile using Make](#compile-using-make)
   * [Testing](#testing)
   * [Debugging](#debugging)
-    + [Memory](#memory)
-    + [Parallel debugging](#parallel-debugging)
   * [Performance](#performance)
-    + [Computational](#computational)
-    + [Memory](#memory-1)
   * [Contributing checklist](#contributing-checklist)
 - [License](#license)
 
@@ -117,7 +113,7 @@ Please consult the [debugging quick start guide](DEBUG.md) for details concernin
 
 ## Performance
 
-Problems tend to show up in the 3D version if an algorithm has been implemented inefficiently. It is therefore highly recommended that a 3D test accompanies the implemented features. Please consult the [performance inspection quick start guide](PERFORMANCE.md) for details concerning computational bottlenecks, memory leaks, and memory usage. 
+Please consult the [performance inspection quick start guide](PERFORMANCE.md) for details concerning computational bottlenecks, memory leaks, and memory usage. 
 
 ## Contributing checklist
 

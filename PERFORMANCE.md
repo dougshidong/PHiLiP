@@ -1,6 +1,8 @@
 
 ## Performance Investigation
 
+Problems tend to show up in the 3D version if an algorithm has been implemented inefficiently. It is therefore highly recommended that a 3D test accompanies the implemented features. 
+
 ### Computational
 
 Computational bottlenecks can be inspected using Valgrind's tool `callgrind`. It is used as such:

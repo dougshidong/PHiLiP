@@ -1,4 +1,5 @@
  #include "parameters/all_parameters.h"
+ #include "parameters/parameters_artificial_dissipation.h"
  #include <deal.II/base/tensor.h>
  #include "artificial_dissipation_factory.h"
  #include "artificial_dissipation.h"
@@ -12,31 +13,40 @@
         using artificial_dissipation_enum = Parameters::ArtificialDissipationParam::ArtificialDissipationType;
         artificial_dissipation_enum arti_dissipation_type = parameters_input->artificial_dissipation_param.artificial_dissipation_type;
 
-        if (arti_dissipation_type == artificial_dissipation_enum::laplacian)
+        switch (arti_dissipation_type)
         {
+            case artificial_dissipation_enum::laplacian:
+            {
+                dealii::Tensor<2,3,double> diffusion_tensor;
+                for(int i=0; i<3; i++)
+                {
+                    diffusion_tensor[i][i] = 1.0;
+                }
+                //std::cout<<"Laplacian Artifical Dissipation pointer created"<<std::endl;
+                return std::make_shared<LaplacianArtificialDissipation<dim,nstate>>(diffusion_tensor);
+                break;
+            }
 
-            dealii::Tensor<2,3,double> diffusion_tensor;
-            diffusion_tensor[0][0]=1.0; diffusion_tensor[0][1]=0.0; diffusion_tensor[0][2]=0.0; 
-            diffusion_tensor[1][0]=0.0; diffusion_tensor[1][1]=1.0; diffusion_tensor[1][2]=0.0; 
-            diffusion_tensor[2][0]=0.0; diffusion_tensor[2][1]=0.0; diffusion_tensor[2][2]=1.0;
-            std::cout<<"Laplacian Artifical Dissipation pointer created"<<std::endl;
-            return std::make_shared<LaplacianArtificialDissipation<dim,nstate>>(diffusion_tensor);
-        } 
-        else if (arti_dissipation_type == artificial_dissipation_enum::physical)
-        {
-            if constexpr(dim+2==nstate)
+            case artificial_dissipation_enum::physical:
             {
-                std::cout<<"Physical Artifical Dissipation pointer created"<<std::endl;
-                return std::make_shared<PhysicalArtificialDissipation<dim,nstate>>(parameters_input);
+                if constexpr(dim+2==nstate)
+                {
+                    std::cout<<"Physical Artifical Dissipation pointer created"<<std::endl;
+                    return std::make_shared<PhysicalArtificialDissipation<dim,nstate>>(parameters_input);
+                }
+                break;
             }
-        }
-        else if (arti_dissipation_type == artificial_dissipation_enum::enthalpy_conserving_laplacian)
-        {
-            if constexpr(dim+2==nstate)
+    
+            case artificial_dissipation_enum::enthalpy_conserving_laplacian:
             {
-                std::cout<<"Enthalpy Conserving Laplacian Artifical Dissipation pointer created"<<std::endl;
-                return std::make_shared<EnthalpyConservingArtificialDissipation<dim,nstate>>(parameters_input);
+               if constexpr(dim+2==nstate)
+                {
+                    std::cout<<"Enthalpy Conserving Laplacian Artifical Dissipation pointer created"<<std::endl;
+                    return std::make_shared<EnthalpyConservingArtificialDissipation<dim,nstate>>(parameters_input);
+                }
+                break;
             }
+
         }
 
         assert(0==1 && "Cannot create artificial dissipation due to an invalid artificial dissipation type specified for the problem"); 

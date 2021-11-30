@@ -38,7 +38,6 @@
 #include "numerical_flux/convective_numerical_flux.hpp"
 #include "numerical_flux/viscous_numerical_flux.hpp"
 #include "parameters/all_parameters.h"
-//#include "artificial_dissipation.h"
 #include "artificial_dissipation_factory.h"
 
 // Template specialization of MappingFEField

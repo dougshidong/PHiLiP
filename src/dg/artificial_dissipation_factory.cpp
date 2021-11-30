@@ -7,12 +7,12 @@
 
     template <int dim, int nstate>
     std::shared_ptr < ArtificialDissipationBase<dim,nstate> >
-    ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation_pointer(const Parameters::AllParameters *const parameters_input)
+    ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(const Parameters::AllParameters *const parameters_input)
     {
         using artificial_dissipation_enum = Parameters::ArtificialDissipationParam::ArtificialDissipationType;
         artificial_dissipation_enum arti_dissipation_type = parameters_input->artificial_dissipation_param.artificial_dissipation_type;
 
-     if (arti_dissipation_type == artificial_dissipation_enum::laplacian)
+        if (arti_dissipation_type == artificial_dissipation_enum::laplacian)
         {
 
             dealii::Tensor<2,3,double> diffusion_tensor;

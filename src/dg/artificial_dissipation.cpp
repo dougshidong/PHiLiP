@@ -16,16 +16,16 @@ namespace PHiLiP
         const Physics::ConvectionDiffusion<dim,nstate,real2> &convection_diffusion)
     {
 
-        std::array<dealii::Tensor<1,dim,real2>,nstate> Flux_laplacian = convection_diffusion.dissipative_flux(conservative_soln, solution_gradient);
+        std::array<dealii::Tensor<1,dim,real2>,nstate> flux_laplacian = convection_diffusion.dissipative_flux(conservative_soln, solution_gradient);
 
         for(int i=0;i<nstate;i++)
         {
             for(int j=0;j<dim;j++)
             {
-                Flux_laplacian[i][j]*=artificial_viscosity;
+                flux_laplacian[i][j]*=artificial_viscosity;
             }
         }
-        return Flux_laplacian;
+        return flux_laplacian;
     }
 
     template <int dim, int nstate> // double
@@ -77,16 +77,16 @@ namespace PHiLiP
         const real2 artificial_viscosity,
         const Physics::NavierStokes<dim,nstate,real2> &navier_stokes)
     {        
-        std::array<dealii::Tensor<1,dim,real2>,nstate> Flux_navier_stokes  =  navier_stokes.dissipative_flux(conservative_soln, solution_gradient);            
+        std::array<dealii::Tensor<1,dim,real2>,nstate> flux_navier_stokes  =  navier_stokes.dissipative_flux(conservative_soln, solution_gradient);            
 
         for(int i=0;i<nstate;i++)
         {
             for(int j=0;j<dim;j++)
             {
-                Flux_navier_stokes[i][j]*=artificial_viscosity;
+                flux_navier_stokes[i][j]*=artificial_viscosity;
             }
         }
-        return Flux_navier_stokes;
+        return flux_navier_stokes;
     }
 
 
@@ -139,7 +139,7 @@ namespace PHiLiP
     {
         std::array<dealii::Tensor<1,dim,real2>,nstate> conservative_soln_gradient = solution_gradient;
         std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient = navier_stokes.convert_conservative_gradient_to_primitive_gradient(conservative_soln,conservative_soln_gradient);
-        std::array<dealii::Tensor<1,dim,real2>,nstate> diss_flux;
+        std::array<dealii::Tensor<1,dim,real2>,nstate> enthalpy_diss_flux;
     
         artificial_viscosity*= navier_stokes.max_convective_eigenvalue(conservative_soln);
 
@@ -149,15 +149,15 @@ namespace PHiLiP
             {
                  if(i==nstate-1)
                 {
-                     diss_flux[i][d] = -artificial_viscosity*(conservative_soln_gradient[i][d] + primitive_soln_gradient[i][d]);
+                     enthalpy_diss_flux[i][d] = -artificial_viscosity*(conservative_soln_gradient[i][d] + primitive_soln_gradient[i][d]);
                 }
                  else
                 {
-                    diss_flux[i][d] = -artificial_viscosity*(conservative_soln_gradient[i][d]);
+                    enthalpy_diss_flux[i][d] = -artificial_viscosity*(conservative_soln_gradient[i][d]);
                 }
              }
          }
-         return diss_flux;
+         return enthalpy_diss_flux;
     }
 
 

@@ -12,7 +12,7 @@
     class ArtificialDissipationFactory
      {
         public:
-        static std::shared_ptr<ArtificialDissipationBase<dim,nstate>> create_artificial_dissipation_pointer(const Parameters::AllParameters *const parameters_input);
+        static std::shared_ptr<ArtificialDissipationBase<dim,nstate>> create_artificial_dissipation(const Parameters::AllParameters *const parameters_input);
     };
 
  } // PHiLiP namespace

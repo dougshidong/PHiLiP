@@ -266,7 +266,7 @@ DGBaseState<dim,nstate,real,MeshType>::DGBaseState(
     pde_physics_rad     = Physics::PhysicsFactory<dim,nstate,RadType>         ::create_Physics(parameters_input);
     pde_physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType>      ::create_Physics(parameters_input);
     pde_physics_rad_fad = Physics::PhysicsFactory<dim,nstate,RadFadType>      ::create_Physics(parameters_input);
-    artificial_dissipation_pointer = ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation_pointer(parameters_input);
+    artificial_dissipation_pointer = ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(parameters_input);
     
     reset_numerical_fluxes();
 }

@@ -59,9 +59,6 @@ public:
     /// Function to advance solution to time+dt
     int advance_solution_time (double time_advance);
 
-    /// Function to advance solution to time+dt // TO DO: Remove later on
-    int advance_solution_time_tgv_edit (double time_advance);
-
     /// Virtual function to evaluate solution update
     virtual void step_in_time(real dt, const bool pseudotime) = 0;
 

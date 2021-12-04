@@ -205,9 +205,7 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
     allocate_ode_system ();
 
     this->current_iteration = 0;
-
-    // Output initial solution
-    this->dg->output_results_vtk(this->current_iteration);
+    if (ode_param.output_solution_every_x_steps >= 0) this->dg->output_results_vtk(this->current_iteration);
 
     while (this->current_iteration < number_of_time_steps)
     {
@@ -219,7 +217,6 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
                   << " out of: " << number_of_time_steps
                   << std::endl;
         }
-        dg->assemble_residual(false);
 
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
             (this->current_iteration%ode_param.print_iteration_modulo) == 0 ) {
@@ -228,10 +225,14 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
 
         const bool pseudotime = false;
         step_in_time(constant_time_step, pseudotime);
+        ++(this->current_iteration);
 
-
-        if (this->current_iteration%ode_param.print_iteration_modulo == 0) {
-            this->dg->output_results_vtk(this->current_iteration);
+        if (ode_param.output_solution_every_x_steps > 0) {
+            const bool is_output_iteration = (this->current_iteration % ode_param.output_solution_every_x_steps == 0);
+            if (is_output_iteration) {
+                const int file_number = this->current_iteration / ode_param.output_solution_every_x_steps;
+                this->dg->output_results_vtk(file_number);
+            }
         }
 
         if (ode_param.output_solution_vector_modulo > 0) {
@@ -243,7 +244,6 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
                 }
             }
         }
-        ++(this->current_iteration);
     }
 
     if (ode_param.output_solution_vector_modulo > 0) {

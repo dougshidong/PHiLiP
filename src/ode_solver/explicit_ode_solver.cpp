@@ -11,9 +11,11 @@ ExplicitODESolver<dim,real,MeshType>::ExplicitODESolver(std::shared_ptr< DGBase<
 template <int dim, typename real, typename MeshType>
 void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pseudotime)
 {
-    Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
-    // this->dg->assemble_residual (); // Not needed since it is called in the base class for time step
+    const bool compute_dRdW = false;
+    this->dg->assemble_residual(compute_dRdW);
     this->current_time += dt;
+    
+    Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
     const int rk_order = 3;
     if (rk_order == 1) {
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);

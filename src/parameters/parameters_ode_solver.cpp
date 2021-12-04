@@ -59,6 +59,7 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                               "Order for the Runge-Kutta explicit time advancement scheme."
                               "Choices are <1|3>.");
         }
+        prm.leave_subsection();
     }
     prm.leave_subsection();
 }

@@ -234,6 +234,8 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
             this->dg->output_results_vtk(this->current_iteration);
         }
 
+        ++(this->current_iteration);
+
         if (ode_param.output_solution_vector_modulo > 0) {
             if (this->current_iteration % ode_param.output_solution_vector_modulo == 0) {
                 for (unsigned int i = 0; i < this->dg->solution.size(); ++i) {
@@ -243,7 +245,6 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
                 }
             }
         }
-        ++(this->current_iteration);
     }
 
     if (ode_param.output_solution_vector_modulo > 0) {

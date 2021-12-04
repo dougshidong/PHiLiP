@@ -16,7 +16,7 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
     this->current_time += dt;
     
     Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
-    const int rk_order = 3;
+    const int rk_order = ode_param.runge_kutta_order;
     if (rk_order == 1) {
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
         this->update_norm = this->solution_update.l2_norm();

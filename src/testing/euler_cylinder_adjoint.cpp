@@ -32,7 +32,7 @@
 
 #include "dg/dg.h"
 #include "dg/dg_factory.hpp"
-#include "ode_solver/ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 
 #include "functional/functional.h"
 #include "functional/adjoint.h"
@@ -251,7 +251,7 @@ int EulerCylinderAdjoint<dim,nstate>
         dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
         // Create ODE solver and ramp up the solution from p0
-        std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
         ode_solver->initialize_steady_polynomial_ramping(poly_degree);
 
         // setting up the target functional (error reduction)

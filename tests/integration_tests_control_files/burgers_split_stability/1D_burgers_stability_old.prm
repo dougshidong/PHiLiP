@@ -1,0 +1,27 @@
+set test_type = burgers_energy_stability
+
+set dimension = 1
+
+set use_weak_form = false
+
+set use_collocated_nodes = true
+
+set use_split_form = true
+
+set pde_type = burgers_inviscid
+
+set conv_num_flux = split_form
+
+subsection ODE solver
+
+  set ode_output = verbose
+  
+  set nonlinear_max_iterations = 500
+
+  set print_iteration_modulo = 100
+
+  set ode_solver_type = explicit
+
+  set initial_time_step = 0.0001
+
+end

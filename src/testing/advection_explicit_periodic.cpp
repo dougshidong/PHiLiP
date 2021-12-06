@@ -19,7 +19,7 @@
 #include "physics/physics.h"
 #include "dg/dg.h"
 #include "dg/dg_factory.hpp"
-#include "ode_solver/ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 #include "advection_explicit_periodic.h"
 
 #include<fenv.h>

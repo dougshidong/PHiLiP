@@ -246,7 +246,7 @@ pcout<<" timestep "<<all_parameters_new.ode_solver_param.initial_time_step<<std:
  // Create ODE solver using the factory and providing the DG object
 
  std::cout << "creating ODE solver" << std::endl;
- std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+ std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
  std::cout << "ODE solver successfully created" << std::endl;
  double finalTime = 14.;
 // double dt = all_parameters->ode_solver_param.initial_time_step;

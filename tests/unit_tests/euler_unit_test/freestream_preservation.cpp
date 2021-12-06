@@ -15,7 +15,7 @@
 
 #include "physics/euler.h"
 #include "dg/dg_factory.hpp"
-#include "ode_solver/ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 
 using namespace PHiLiP;
 

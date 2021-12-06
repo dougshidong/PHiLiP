@@ -19,6 +19,7 @@
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver.h"
 #include <fstream>
+#include "ode_solver/ode_solver_factory.h"
 
 
 namespace PHiLiP {
@@ -180,6 +181,7 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
 
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
     using Triangulation = dealii::Triangulation<dim>;
+<<<<<<< HEAD
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
         typename dealii::Triangulation<dim>::MeshSmoothing(
             dealii::Triangulation<dim>::smoothing_on_refinement |
@@ -208,7 +210,6 @@ grid.set_manifold(1, m02);
 for(int idim=0; idim<dim; idim++){
 grid.set_all_manifold_ids_on_boundary(2*(idim -1),2*(idim-1));
 grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
-}
 #endif
 #if PHILIP_DIM==1
 #else

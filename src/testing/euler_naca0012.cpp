@@ -22,7 +22,7 @@
 #include "physics/euler.h"
 #include "physics/manufactured_solution.h"
 #include "dg/dg_factory.hpp"
-#include "ode_solver/ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 
 #include "mesh/grids/naca_airfoil_grid.hpp"
 #include "euler_naca0012.hpp"
@@ -109,7 +109,7 @@ int EulerNACA0012<dim,nstate>
         // dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
         // // Create ODE solver and ramp up the solution from p0
-        // std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        // std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
         // ode_solver->initialize_steady_polynomial_ramping (poly_degree);
 
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
@@ -223,7 +223,7 @@ int EulerNACA0012<dim,nstate>
                  << std::endl;
 
             // Create ODE solver and ramp up the solution from p0
-            std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+            std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
             ode_solver->initialize_steady_polynomial_ramping (poly_degree);
             //ode_solver->steady_state();
             LiftDragFunctional<dim,dim+2,double> lift_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::lift );

@@ -10,6 +10,7 @@
 #include "physics.h"
 #include "convection_diffusion.h"
 #include "burgers.h"
+#include "burgers_rewienski.h"
 #include "euler.h"
 #include "mhd.h"
 #include "navier_stokes.h"
@@ -59,7 +60,10 @@ PhysicsFactory<dim,nstate,real>
                 true, false,
                 diffusion_tensor, 
                 manufactured_solution_function);
+<<<<<<< HEAD
 #if 0
+=======
+>>>>>>> upstream/master
     } else if (pde_type == PDE_enum::burgers_rewienski) {
         if constexpr (nstate==dim)
             return std::make_shared < BurgersRewienski<dim,nstate,real> >(
@@ -70,7 +74,10 @@ PhysicsFactory<dim,nstate,real>
                     false,
                     diffusion_tensor,
                     manufactured_solution_function);
+<<<<<<< HEAD
 #endif
+=======
+>>>>>>> upstream/master
     } else if (pde_type == PDE_enum::euler) {
         if constexpr (nstate==dim+2) {
             return std::make_shared < Euler<dim,nstate,real> > (

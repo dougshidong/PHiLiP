@@ -17,7 +17,7 @@
 #include "physics/manufactured_solution.h"
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
-#include "ode_solver/ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 #include "dg/dg_factory.hpp"
 #include "functional/target_functional.h"
 

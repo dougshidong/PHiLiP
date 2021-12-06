@@ -8,7 +8,7 @@
 #include <fstream>
 
 #include "testing/tests.h"
-#include "ode_solver/ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 #include "parameters/all_parameters.h"
 
 #include "global_counter.hpp"

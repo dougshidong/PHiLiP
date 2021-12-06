@@ -10,102 +10,61 @@
 // #include "physics/physics.h"
 // #include "parameters/all_parameters.h"
 // #include "grid_refinement/gnu_out.h"
-
+// TO DO: Clean up the #includes
 // for the actual test:
 #include "flow_solver.h" // which includes all required for InitialConditionFunction
 #include "initial_condition.h"
 
 #include <deal.II/base/function.h>
 
-// whats in grid_refinement_study.cpp:
-#include <stdlib.h>     /* srand, rand */
+#include <stdlib.h>
 #include <iostream>
-// #include <chrono> // not needed?
-// #include <type_traits> // not needed?
-
-// #include <deal.II/base/convergence_table.h> // not needed?
 
 #include <deal.II/dofs/dof_tools.h>
 
-// #include <deal.II/grid/tria.h> // included in tests.h
-#include <deal.II/distributed/shared_tria.h>
-#include <deal.II/distributed/tria.h>
-
 #include <deal.II/grid/grid_generator.h>
-// #include <deal.II/grid/grid_refinement.h> // not needed?
 #include <deal.II/grid/grid_tools.h> // not needed?
-// #include <deal.II/grid/grid_out.h> // not needed?
-// #include <deal.II/grid/grid_in.h> // not needed?
 
 #include <deal.II/numerics/vector_tools.h>
 
 #include <deal.II/fe/fe_values.h>
 
-// #include <Sacado.hpp> // not needed?
-
-// #include "tests.h" // already included
-// #include "grid_refinement_study.h" // already included
-
 #include "physics/physics_factory.h"
-// #include "physics/manufactured_solution.h" // not needed?
-
 #include "dg/dg.h"
 #include "dg/dg_factory.hpp"
-
 #include "ode_solver/explicit_ode_solver.h"
 #include "ode_solver/ode_solver_factory.h"
 
 #include <fstream>
 
-// #include "functional/functional.h" // not needed?
-// #include "functional/adjoint.h" // not needed?
-// #include "grid_refinement/grid_refinement.h" // not needed?
-// #include "grid_refinement/gmsh_out.h" // not needed?
-// #include "grid_refinement/msh_out.h" // not needed?
-// #include "grid_refinement/size_field.h" // not needed?
-// #include "grid_refinement/gnu_out.h" // not needed?
+#include <deal.II/base/table_handler.h>
 
 namespace PHiLiP {
 
 namespace Tests {
 //=========================================================
 // FLOW SOLVER TEST CASE -- What runs the test
-//========================================================
+//=========================================================
 template <int dim, int nstate>
 FlowSolver<dim, nstate>::FlowSolver(const PHiLiP::Parameters::AllParameters *const parameters_input)
 : TestsBase::TestsBase(parameters_input)
+, initial_condition_function(InitialConditionFactory_FlowSolver<dim,double>::create_InitialConditionFunction_FlowSolver(parameters_input, nstate))
 {
-    // Assign initial condition function from the InitialConditionFunction
-    // initial_condition_function = InitialConditionFactory_FlowSolver<dim,double>::create_InitialConditionFunction_FlowSolver(parameters_input, nstate);
+    // Get the flow case type
+    using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
+    const FlowCaseEnum flow_type = parameters_input->flow_solver_param.flow_case_type;
+
+    // flow case identifiers
+    is_taylor_green_vortex = ((flow_type == FlowCaseEnum::inviscid_taylor_green_vortex) || (flow_type == FlowCaseEnum::viscous_taylor_green_vortex));
+
+    // Assign the domain boundaries, domain volume, and grid type for each flow case
+    if (is_taylor_green_vortex) {
+        domain_left = 0.0;
+        domain_right = 2.0 * dealii::numbers::PI;
+        domain_volume = pow(domain_right - domain_left, dim);
+        is_triply_periodic_cube = true; // grid type
+    }
 }
-
-// template <int dim, int nstate>
-// void FlowSolver<dim,nstate>::get_grid() const
-// {
-//     // -- 
-//     /** Triangulation to store the grid.
-//      *  In 1D, dealii::Triangulation<dim> is used.
-//      *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-//      */
-//     // For 2D and 3D, the MeshType == Triangulation, is
-//     using Triangulation = dealii::parallel::distributed::Triangulation<dim>; // Triangulation == MeshType
-//     // create 'grid' pointer
-//     std::shared_ptr<Triangulation> grid = MeshFactory<Triangulation>::create_MeshType(this->mpi_communicator);
-//     // Create the grid refinement study object: grs
-//     // std::shared_ptr<TestBase> grs = std::make_shared < TestBase::GridRefinementStudy<dim,nstate,Triangulation> >(param);
-//     GridRefinementStudy<dim,nstate,Triangulation> grs = GridRefinementStudy(param);
-//     // Generate the grid based on parameter file
-//     grs.get_grid(grid, grs_param);
-// }
-
-// template <int dim, int nstate>
-// void FlowSolver<dim,nstate>::initialize_solution(PHiLiP::DGBase<dim,double> &dg, const PHiLiP::Physics::PhysicsBase<dim,nstate,double> &physics) const
-// {
-//     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
-//     solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
-//     dealii::VectorTools::interpolate(dg.dof_handler, *initial_condition_function, solution_no_ghost);
-//     dg.solution = solution_no_ghost;
-// }
 
 template <int dim, int nstate>
 void FlowSolver<dim,nstate>::display_flow_solver_setup(const Parameters::AllParameters *const param) const
@@ -115,57 +74,102 @@ void FlowSolver<dim,nstate>::display_flow_solver_setup(const Parameters::AllPara
     std::string pde_string;
     if (pde_type == PDE_enum::euler)                {pde_string = "euler";}
     if (pde_type == PDE_enum::navier_stokes)        {pde_string = "navier_stokes";}
+    pcout << "- PDE Type: " << pde_string << std::endl;
 
-    using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
-    const FlowCaseEnum flow_type = param->flow_solver_param.flow_case_type;
+    // using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
+    // const FlowCaseEnum flow_type = param->flow_solver_param.flow_case_type;
     std::string flow_type_string;
-    if(flow_type == FlowCaseEnum::inviscid_taylor_green_vortex) {
+    // if((flow_type == FlowCaseEnum::inviscid_taylor_green_vortex) || flow_type == FlowCaseEnum::viscous_taylor_green_vortex) {
+    if(is_taylor_green_vortex) {
         flow_type_string = "Taylor Green Vortex";
         pcout << "- Flow Case: " << flow_type_string << std::endl;
-        pcout << "- - Freestream mach number: " << param->euler_param.mach_inf << std::endl;
         pcout << "- - Freestream Reynolds number: " << param->navier_stokes_param.reynolds_number_inf << std::endl;
+        pcout << "- - Freestream Mach number: " << param->euler_param.mach_inf << std::endl;
     }
-    pcout << "- PDE Type: " << pde_string << std::endl;
+}
+
+template <int dim, int nstate>
+void FlowSolver<dim,nstate>
+::generate_grid(std::shared_ptr<dealii::parallel::distributed::Triangulation<dim>> &grid, 
+                const int number_of_cells_per_direction) const
+{
+    // TO DO: Make this work for PHILIPDIM==1 (see comment below) -- will have to template this with MeshType I think because of the input type
+    /* Triangulation to store the grid.
+     *  In 1D, dealii::Triangulation<dim> is used.
+     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
+     */ 
+    /* UNCOMMENT LATER */
+
+    // Get number of refinements
+    const int number_of_refinements = log(number_of_cells_per_direction)/log(2);
+
+    // Definition for each type of grid
+    std::string grid_type_string;
+    if(is_triply_periodic_cube) {
+        grid_type_string = "Triply periodic cube.";
+        const bool colorize = true;
+        dealii::GridGenerator::hyper_cube(*grid, domain_left, domain_right, colorize);
+        std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
+        dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
+        dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
+        dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
+        grid->add_periodicity(matched_pairs);
+        grid->refine_global(number_of_refinements);
+    }
+    // Display the information about the grid
+    pcout << "\n- GRID INFORMATION:" << std::endl;
+    pcout << "- - Grid type: " << grid_type_string << std::endl;
+    pcout << "- - Domain dimensionality: " << dim << std::endl;
+    pcout << "- - Domain left: " << domain_left << std::endl;
+    pcout << "- - Domain right: " << domain_right << std::endl;
+    pcout << "- - Number of cells in each direction: " << number_of_cells_per_direction << std::endl;
+    pcout << "- - Equivalent number of refinements: " << number_of_refinements << std::endl;
+    pcout << "- - Domain volume: " << domain_volume << std::endl;
 }
 
 template<int dim, int nstate>
-double FlowSolver<dim, nstate>::compute_kinetic_energy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const
+double FlowSolver<dim,nstate>::integrand_kinetic_energy(const std::array<double,nstate> &soln_at_q) const
 {
+    // Description: Returns nondimensional kinetic energy
+    const double nondimensional_density = soln_at_q[0];
+    double dot_product_of_nondimensional_momentum = 0.0;
+    for (int d=0; d<dim; ++d) {
+        dot_product_of_nondimensional_momentum += soln_at_q[d+1]*soln_at_q[d+1];
+    }
+    const double nondimensional_kinetic_energy = 0.5*(dot_product_of_nondimensional_momentum)/nondimensional_density;
+    return nondimensional_kinetic_energy/domain_volume;
+}
+
+template<int dim, int nstate>
+double FlowSolver<dim,nstate>::integrand_l2_error_initial_condition(const std::array<double,nstate> &soln_at_q, const dealii::Point<dim> qpoint) const
+{
+    // Description: Returns l2 error with the initial condition function
+    // Purpose: For checking the initialization
+    double integrand_value = 0.0;
+    for (int istate=0; istate<nstate; ++istate) {
+        const double exact_soln_at_q = initial_condition_function->value(qpoint, istate);
+        integrand_value += pow(soln_at_q[istate] - exact_soln_at_q, 2.0);
+    }
+    return integrand_value;
+}
+
+template<int dim, int nstate>
+double FlowSolver<dim, nstate>::integrate_over_domain(DGBase<dim, double> &dg,const std::string integrate_what) const
+{
+    double integral_value = 0.0; 
+
     // Overintegrate the error to make sure there is not integration error in the error estimate
     int overintegrate = 10;
-    dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
-    //  dealii::FEValues<dim,dim> fe_values_extra(dealii::MappingQ<dim>(dg->max_degree+overintegrate), dg->fe_collection[poly_degree], quad_extra,
-    //  dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
-    const dealii::Mapping<dim> &mapping = (*(dg->high_order_grid->mapping_fe_field));
-    dealii::FEValues<dim,dim> fe_values_extra(mapping, dg->fe_collection[poly_degree], quad_extra, 
+    dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
+    dealii::FEValues<dim,dim> fe_values_extra(*(dg.high_order_grid->mapping_fe_field), dg.fe_collection[dg.max_degree], quad_extra, 
             dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
-    // dealii::QGauss<dim> quad_extra(dg->fe_system.tensor_degree()+overintegrate);
-    // dealii::FEValues<dim,dim> fe_values_extra(dg->mapping, dg->fe_system, quad_extra,
-    //       dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
 
-    //i comment out
     const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
     std::array<double,nstate> soln_at_q;
 
-    double total_kinetic_energy = 0;
-
-    // Integrate solution error and output error
-    // typename dealii::DoFHandler<dim>::active_cell_iterator
-    // cell = dg->dof_handler.begin_active(),
-    // endc = dg->dof_handler.end();
-
     std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
-
-    //const double gam = euler_physics_double.gam;
-    //const double mach_inf = euler_physics_double.mach_inf;
-    //const double tot_temperature_inf = 1.0;
-    //const double tot_pressure_inf = 1.0;
-    //// Assuming a tank at rest, velocity = 0, therefore, static pressure and temperature are same as total
-    //const double density_inf = gam*tot_pressure_inf/tot_temperature_inf * mach_inf * mach_inf;
-    //const double entropy_inf = tot_pressure_inf*pow(density_inf,-gam);
-    //const double entropy_inf = euler_physics_double.entropy_inf;
-
-    for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
+    for (auto cell : dg.dof_handler.active_cell_iterators()) {
+        
         if (!cell->is_locally_owned()) continue;
 
         fe_values_extra.reinit (cell);
@@ -174,204 +178,151 @@ double FlowSolver<dim, nstate>::compute_kinetic_energy(std::shared_ptr < DGBase<
 
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
-            std::fill(soln_at_q.begin(), soln_at_q.end(), 0);
+            // TO DO: get solution vector at point q (conservative solution) -- move to a separate function? "get_soln_at_q_from_dg()" ?
+            std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
             for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
                 const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
-                soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
+                soln_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
             }
+            const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
 
-            const double density = soln_at_q[0];
+            double integrand_value = 0.0;
+            if(integrate_what=="kinetic_energy") {integrand_value = integrand_kinetic_energy(soln_at_q);}
+            if(integrate_what=="l2_error_initial_condition") {integrand_value = integrand_l2_error_initial_condition(soln_at_q,qpoint);}
 
-            const double quadrature_kinetic_energy =  0.5*(soln_at_q[1]*soln_at_q[1] + soln_at_q[2]*soln_at_q[2] + soln_at_q[3]*soln_at_q[3])/density;
 
-            //const double quadrature_kinetic_energy = compute_quadrature_kinetic_energy(soln_at_q);
-
-            total_kinetic_energy += quadrature_kinetic_energy * fe_values_extra.JxW(iquad);
+            integral_value += integrand_value * fe_values_extra.JxW(iquad);
         }
     }
-    return total_kinetic_energy;
+    const double integral_value_mpi_sum = dealii::Utilities::MPI::sum(integral_value, mpi_communicator);
+    return integral_value_mpi_sum;
 }
 
 template <int dim, int nstate>
 int FlowSolver<dim,nstate>::run_test() const
 {
-    // Note: ac_ref_file == AlexanderCicchino/PHiLiP/src/testing/euler_split_taylor_green_vortex.cpp (branch: "entropy_stability_branch")
-    PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters; // From ac_ref_file
-
     pcout << "Running Flow Solver... " << std::endl;
     //----------------------------------------------------
     // Parameters
     //----------------------------------------------------
-    const Parameters::AllParameters param                = *(TestsBase::all_parameters);
-    const Parameters::GridRefinementStudyParam grs_param = param.grid_refinement_study_param;
+    const Parameters::AllParameters param = *(TestsBase::all_parameters);
+    const Parameters::FlowSolverParam flow_solver_param = param.flow_solver_param;
+    const Parameters::ODESolverParam ode_solver_param = param.ode_solver_param;
+    // Courant-Friedrich-Lewy (CFL) number
+    const double courant_friedrich_lewy_number = flow_solver_param.courant_friedrich_lewy_number;
+    // - polynomial order
+    const unsigned int poly_degree = param.grid_refinement_study_param.poly_degree;
+    // - number of cells per direction for the grid
+    const int number_of_cells_per_direction = param.grid_refinement_study_param.grid_size;
+    // - final time of solution
+    const double final_time = flow_solver_param.final_time;
     //----------------------------------------------------
-    // Display parameters
+    // Display flow solver setup
     //----------------------------------------------------
-    pcout << "Flow setup:" << std::endl;    
+    pcout << "Flow setup: " << std::endl;    
     display_flow_solver_setup(&param);
-    //----------------------------------------------------
-    // Initialization
-    //----------------------------------------------------
-    // const unsigned int poly_degree = grs_param.poly_degree;
-    // const unsigned int poly_degree_max  = grs_param.poly_degree_max;
-    // const unsigned int poly_degree_grid = grs_param.poly_degree_grid;
-    // const unsigned int num_refinements = grs_param.num_refinements;
+    pcout << "- Polynomial degree: " << poly_degree << std::endl;
+    pcout << "- Courant-Friedrich-Lewy number: " << courant_friedrich_lewy_number << std::endl;
     //----------------------------------------------------
     // Physics
     //----------------------------------------------------
-    pcout << "Creating physics object..." << std::endl;
-    // creating the physics object
+    pcout << "Creating physics object... " << std::flush;
     std::shared_ptr< Physics::PhysicsBase<dim,nstate,double> > physics_double = Physics::PhysicsFactory<dim,nstate,double>::create_Physics(&param);
+    pcout << "done." << std::endl;
     //----------------------------------------------------
-    // Grid -- (fixed grid for now)
+    // Grid
     //----------------------------------------------------
-    pcout << "Generating the grid..." << std::endl;
-    // TO DO: Move this to a member function
-    /* Triangulation to store the grid.
-     *  In 1D, dealii::Triangulation<dim> is used.
-     *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-     */ 
-    /* UNCOMMENT LATER */
-    // For 2D and 3D, the MeshType == Triangulation
-    using Triangulation = dealii::parallel::distributed::Triangulation<dim>; // Note: Triangulation == MeshType
-    pcout << "---- 3 ----" << std::endl;
-    // create 'grid' pointer
-    // std::shared_ptr<Triangulation> grid = MeshFactory<Triangulation>::create_MeshType(this->mpi_communicator);
+    pcout << "Generating the grid... " << std::flush;
+    using Triangulation = dealii::parallel::distributed::Triangulation<dim>; // Note: Triangulation == MeshType (true for 2D and 3D)
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (this->mpi_communicator);
-    pcout << "---- 4 ----" << std::endl;
-    /*
-        // Create the grid refinement study object: grs
-        GridRefinementStudy<dim,nstate,Triangulation> grs = GridRefinementStudy<dim,nstate,Triangulation>(&param);
-        pcout << "---- 5 ----" << std::endl;
-        // Generate the grid based on parameter file
-        grs.get_grid(grid, grs_param);
-        pcout << "---- 6 ----" << std::endl;
-    */
-    // // generate hyper_cube
-    // const double left = 0.0;
-    // const double right = 2 * dealii::numbers::PI;
-    // const bool colorize = true;
-    // const unsigned int n_cells = 4;
-    // dealii::GridGenerator::subdivided_hyper_cube(*grid, n_cells, left, right, colorize);
-    // std::vector< dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
-    // dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
-    // dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
-    // dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
-    // grid->add_periodicity(matched_pairs);
-    // // grid->refine_global(n_refinements);
-
-    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // From ac_ref_file:
+    generate_grid(grid,number_of_cells_per_direction);
+    pcout << "done." << std::endl;
     //----------------------------------------------------
-    double left = 0.0;
-    double right = 2 * dealii::numbers::PI;
-    const bool colorize = true;
-    int n_refinements = 1;
-    unsigned int poly_degree = 2;
-   // const unsigned int grid_degree = 1;
-    const unsigned int grid_degree = poly_degree;
-    dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
-    std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
-    dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
-    dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
-    dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
-    grid->add_periodicity(matched_pairs);
-    grid->refine_global(n_refinements);
-    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // From ac_ref_file:
+    // Spatial discretization (Discontinuous Galerkin)
     //----------------------------------------------------
-    const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
-    double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
-    double delta_x = (right-left)/pow(n_dofs_cfl,(1.0/dim));
-    all_parameters_new.ode_solver_param.initial_time_step =  0.1 * delta_x;
-    pcout<<" timestep "<<all_parameters_new.ode_solver_param.initial_time_step<<std::endl;
-    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    //====================================================
+    pcout << "Creating Discontinuous Galerkin object... " << std::flush;
+    // std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+    dg->allocate_system();
+    pcout << "done." << std::endl;
     //----------------------------------------------------
-    // Discontinuous Galerkin
+    // Time step / CFL -- constant -- TO DO: Clean up and figure out proper CFL condition and cite the reference/source in the code
     //----------------------------------------------------
-    pcout << "Creating Discontinuous Galerkin object..." << std::endl;
-    // Create DG object using the factory
-    
-    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // From ac_ref_file:
-    //----------------------------------------------------
-    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
-    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    
-    // UNCOMMENT: //std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
-    pcout << "---- 7 ----" << std::endl;
-    dg->allocate_system ();
-    pcout << "---- 8 ----" << std::endl;
+    pcout << "Setting constant time step... " << std::flush;
+    const unsigned int number_of_degrees_of_freedom = dg->dof_handler.n_dofs();
+    // const unsigned int number_of_elements = grid->n_global_active_cells();
+    // const int number_of_degrees_of_freedom = (poly_degree+1)*number_of_elements;
+    const double approximate_grid_spacing = (domain_right-domain_left)/pow(number_of_degrees_of_freedom,(1.0/dim));
+    const double constant_time_step = courant_friedrich_lewy_number * approximate_grid_spacing;
+    pcout << "done." << std::endl;
     // ----------------------------------------------------
     // Initialize the solution
     // ----------------------------------------------------
-    // Create initial condition function from InitialConditionFactory_FlowSolver
-    // TO DO: Drop the "_FlowSolver"
-    std::shared_ptr< InitialConditionFunction_FlowSolver<dim,double> > initial_condition_function 
-                = InitialConditionFactory_FlowSolver<dim,double>::create_InitialConditionFunction_FlowSolver(&param, nstate);
-    // TO DO: Move this to a member function
-    pcout << "Initializing solution with initial condition function." << std::endl;
+    pcout << "Initializing solution with initial condition function..." << std::flush;
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
     dealii::VectorTools::interpolate(dg->dof_handler, *initial_condition_function, solution_no_ghost);
     dg->solution = solution_no_ghost;
-    // Output initialization to be viewed in Paraview
-    dg->output_results_vtk(9999);
-    
-    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // From ac_ref_file:
+    pcout << "done." << std::endl;
+    // - Output initialization to be viewed in Paraview
+    dg->output_results_vtk(9999); 
+    // - Check L2 error for initialization
+    pcout << "Note: L2 error for initialization: " << integrate_over_domain(*dg,"l2_error_initial_condition") << std::endl;
     //----------------------------------------------------
-    std::cout << "creating ODE solver" << std::endl;
+    // ODE Solver
+    //----------------------------------------------------
+    pcout << "Creating ODE solver... " << std::flush;
     std::shared_ptr<ODE::ODESolverBase<dim, double, Triangulation>> ode_solver = ODE::ODESolverFactory<dim, double, Triangulation>::create_ODESolver(dg);
-    std::cout << "ODE solver successfully created" << std::endl;
-    double finalTime = 10.0;
-    double dt = all_parameters_new.ode_solver_param.initial_time_step;
-
-    std::cout<<" number dofs "<<
-    dg->dof_handler.n_dofs()<<std::endl;
-    std::cout << "preparing to advance solution in time" << std::endl;
-
-    pcout << "Energy at time " << 0 << " is " << compute_kinetic_energy(dg, poly_degree) << std::endl;
-    ode_solver->current_iteration = 0;
-    ode_solver->advance_solution_time_tgv_edit(dt/10.0);
-    double initial_energy = compute_kinetic_energy(dg, poly_degree);
-
-    pcout << "Energy at one timestep is " << initial_energy << std::endl;
-    std::ofstream myfile ("output_DG_64el_p3_cfl01.txt", std::ios::trunc);
-
-    // double previous_energy = 0.0;
-    for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
+    ode_solver->allocate_ode_system();
+    pcout << "done." << std::endl;
+    //----------------------------------------------------
+    // Computed quantities at initial time
+    //----------------------------------------------------
+    double initial_kinetic_energy = integrate_over_domain(*dg,"kinetic_energy");
+    pcout << "Energy at initial time (" << ode_solver->current_time << ") is : " << initial_kinetic_energy << std::endl;
+    //----------------------------------------------------
+    // On the fly post-processing / File writing
+    //----------------------------------------------------
+    dealii::TableHandler convergence_table;
+    std::string unsteady_data_table_filename = "tgv_kinetic_energy_vs_time_table.txt";// get_unsteady_data_baseline_filename(&param);
+    convergence_table.add_value("time", ode_solver->current_time);
+    convergence_table.add_value("kinetic_energy", initial_kinetic_energy);
+    convergence_table.set_precision("time", 16);
+    convergence_table.set_precision("kinetic_energy", 16);
+    convergence_table.set_scientific("time", true);
+    convergence_table.set_scientific("kinetic_energy", true);
+    std::ofstream unsteady_data_table_file(unsteady_data_table_filename);
+    convergence_table.write_text(unsteady_data_table_file);
+    // write_convergence_table_to_output_file(
+    //                 error_filename_baseline,
+    //                 convergence_table,
+    //                 poly_degree);
+    //----------------------------------------------------
+    // Time advancement loop
+    //----------------------------------------------------
+    pcout << "\nPreparing to advance solution in time:" << std::endl;
+    const int number_of_time_steps = std::ceil(final_time/constant_time_step);
+    for (int i = 0; i < number_of_time_steps; ++i) // change to: while(ode_solver->current_time < final_time)
     {
-        ode_solver->advance_solution_time_tgv_edit(dt);
-        //double current_energy = compute_kinetic_energy(dg,poly_degree);
-        double current_energy = compute_kinetic_energy(dg,poly_degree) / initial_energy;
-        std::cout << std::setprecision(16) << std::fixed;
-        pcout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
-        std::cout << std::setprecision(16) << std::fixed;
-        myfile << i * dt << " " << current_energy << std::endl;
-        if(i>1){
-            std::cout << std::setprecision(16) << std::fixed;
-            pcout << "Change in energy since initial time: " << (current_energy-initial_energy) << std::endl;
-        }
-        // if (current_energy - initial_energy >= 10.00)
-        // if (current_energy*initial_energy - initial_energy >= 1000.00)
-        // {
-        //     pcout << " Energy was not monotonically decreasing" << std::endl;
-        //     return 1;
-        //     break;
-        // }
-        // previous_energy = current_energy;
-        ode_solver->current_iteration++;
+        pcout << " before step in time" << std::endl;
+        ode_solver->step_in_time(constant_time_step,false); // for time adv (pseudotime==false)
+        ++(ode_solver->current_iteration); // for time adv -- why isnt this done inside step_in_time??
+
+        double current_time = ode_solver->current_time;
+        
+        pcout << " integrate_over_domain... " << std::flush;
+        double current_kinetic_energy = integrate_over_domain(*dg,"kinetic_energy");
+        pcout << "done." << std::endl;
+        
+        pcout << " Energy at time " << current_time << " is " << current_kinetic_energy << std::endl;
+        pcout << " - - writing to table file... " << std::flush; 
+        convergence_table.add_value("time", ode_solver->current_time);
+        convergence_table.add_value("kinetic_energy", current_kinetic_energy);
+        std::ofstream unsteady_data_table_file(unsteady_data_table_filename);
+        convergence_table.write_text(unsteady_data_table_file);
+        pcout << "done." << std::endl;      
     }
-
-    myfile.close();
-    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    return 0;
+    return 0; //< to be modified -- check solution somehow
 }
 
 #if PHILIP_DIM==3    

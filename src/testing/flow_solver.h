@@ -14,6 +14,10 @@
 #include "physics/physics.h"
 #include "parameters/all_parameters.h"
 
+// for generate_grid
+#include <deal.II/distributed/shared_tria.h>
+#include <deal.II/distributed/tria.h>
+
 namespace PHiLiP {
 namespace Tests {
 /// Selects which flow case to simulate.
@@ -25,22 +29,26 @@ public:
     FlowSolver(const Parameters::AllParameters *const parameters_input);
     
     /// Destructor
-    ~FlowSolver() {}; ///< Destructor.
-    
-    /// Initial condition function; Assigned in constructor
-    // std::shared_ptr< InitialConditionFunction_FlowSolver<dim,double> > initial_condition_function;
-    
-    /// Generates the grid from the parameters
-    // void get_grid() const;
+    ~FlowSolver() {};
 
-    /// Initializes the solution with the initial condition // TO DO
-    // void initialize_solution(PHiLiP::DGBase<dim,double> &dg, const PHiLiP::Physics::PhysicsBase<dim,nstate,double> &physics) const;
-
+    std::shared_ptr< InitialConditionFunction_FlowSolver<dim,double> > initial_condition_function; ///< Initial condition function
+    double domain_left; ///< Domain left-boundary value for generating the grid
+    double domain_right; ///< Domain right-boundary value for generating the grid
+    double domain_volume; ///< Domain right-boundary value for generating the grid
+    bool is_taylor_green_vortex = false; ///< Identifies if taylor green vortex case; initialized as false.
+    bool is_triply_periodic_cube = false; ///< Identifies if grid is a triply periodic cube; initialized as false.
+    
     /// Displays the flow setup parameters
     void display_flow_solver_setup(const Parameters::AllParameters *const param) const;
 
+    /// Generates the grid for the flow case from parameters
+    void generate_grid(std::shared_ptr<dealii::parallel::distributed::Triangulation<dim>> &grid, 
+                       const int number_of_cells_per_direction) const;
+
     /// Computes the kinetic energy for the TGV problem -- TO DO: Move to a seperate class?
-    double compute_kinetic_energy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const;
+    double integrate_over_domain(DGBase<dim, double> &dg,const std::string integrate_what) const;
+    double integrand_kinetic_energy(const std::array<double,nstate> &soln_at_q) const;
+    double integrand_l2_error_initial_condition(const std::array<double,nstate> &soln_at_q, const dealii::Point<dim> qpoint) const;
 
     /// Runs the test (i.e. flow solver)
     int run_test () const;

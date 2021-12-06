@@ -3,9 +3,11 @@
 set test_type = advection_periodicity
 
 # Number of dimensions
-set dimension = 2
+set dimension = 3
 
 set use_weak_form = false
+
+set overintegration = 0
 
 set use_collocated_nodes = false
 
@@ -13,13 +15,13 @@ set use_split_form = false
 
 set use_curvilinear_split_form = true
 
-set use_weight_adjusted_mass = true
+set use_weight_adjusted_mass = false
 
 set use_periodic_bc = true
 
 set use_energy = false
 
-set flux_reconstruction = cPlus
+set flux_reconstruction = cDG
 
 set use_classical_FR = false
 

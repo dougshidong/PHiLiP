@@ -8,12 +8,13 @@
 #include "parameters/parameters_manufactured_solution.h"
 #include "ADTypes.hpp"
 
- namespace PHiLiP{
+namespace PHiLiP{
 
- template <int dim, int nstate>
- class ArtificialDissipationBase
- {
+template <int dim, int nstate>
+class ArtificialDissipationBase
+{
     public:
+    dealii::Tensor<2,3,double> diffusion_tensor;
     virtual std::array<dealii::Tensor<1,dim,double>,nstate>  calc_artificial_dissipation_flux(
     const std::array<double,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,double>,nstate> &solution_gradient, double artificial_viscosity)=0;
     virtual std::array<dealii::Tensor<1,dim,FadType>,nstate>  calc_artificial_dissipation_flux(
@@ -25,15 +26,22 @@
     virtual std::array<dealii::Tensor<1,dim,RadFadType>,nstate>  calc_artificial_dissipation_flux(
     const std::array<RadFadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,RadFadType>,nstate> &solution_gradient, RadFadType artificial_viscosity)=0;
 
- };
+    ArtificialDissipationBase()
+    {
+        for(int i=0; i<3; i++)
+        {
+            diffusion_tensor[i][i] = 1.0;
+        }
+    }
+
+};
 
 
 
 
- template <int dim, int nstate>
- class LaplacianArtificialDissipation: public ArtificialDissipationBase <dim, nstate>
- {
-    //dealii::Tensor<2,3,double> diffusion_tensor_for_artificial_dissipation;
+template <int dim, int nstate>
+class LaplacianArtificialDissipation: public ArtificialDissipationBase <dim, nstate>
+{
     Physics::ConvectionDiffusion<dim,nstate,double>     convection_diffusion_double;
 	Physics::ConvectionDiffusion<dim,nstate,FadType>    convection_diffusion_FadType;
 	Physics::ConvectionDiffusion<dim,nstate,RadType>    convection_diffusion_RadType;
@@ -48,13 +56,12 @@
         const Physics::ConvectionDiffusion<dim,nstate,real2> &convection_diffusion);
  
     public:
-    LaplacianArtificialDissipation(dealii::Tensor<2,3,double> diffusion_tensor): 
-    //diffusion_tensor_for_artificial_dissipation(diffusion_tensor),
-    convection_diffusion_double(false,true,diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
-    convection_diffusion_FadType(false,true,diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
-    convection_diffusion_RadType(false,true,diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
-    convection_diffusion_FadFadType(false,true,diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
-    convection_diffusion_RadFadType(false,true,diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0)
+    LaplacianArtificialDissipation(): 
+    convection_diffusion_double(false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
+    convection_diffusion_FadType(false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
+    convection_diffusion_RadType(false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
+    convection_diffusion_FadFadType(false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
+    convection_diffusion_RadFadType(false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0)
     {}
 
  
@@ -69,15 +76,15 @@
     std::array<dealii::Tensor<1,dim,RadFadType>,nstate>  calc_artificial_dissipation_flux(
     const std::array<RadFadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,RadFadType>,nstate> &solution_gradient, RadFadType artificial_viscosity);
 
- };
+};
 
  
 
- template <int dim, int nstate>
- class PhysicalArtificialDissipation: public ArtificialDissipationBase <dim, nstate>
- {
+template <int dim, int nstate>
+class PhysicalArtificialDissipation: public ArtificialDissipationBase <dim, nstate>
+{
 
-   // const Parameters::AllParameters *const input_parameters;
+    // const Parameters::AllParameters *const input_parameters;
     
     Physics::NavierStokes<dim,nstate,double>     navier_stokes_double;
 	Physics::NavierStokes<dim,nstate,FadType>    navier_stokes_FadType;
@@ -113,13 +120,13 @@
     const std::array<RadFadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,RadFadType>,nstate> &solution_gradient, RadFadType artificial_viscosity);
 
 
- };
+};
 
 
 
- template <int dim, int nstate>
- class EnthalpyConservingArtificialDissipation: public ArtificialDissipationBase <dim, nstate>
- {
+template <int dim, int nstate>
+class EnthalpyConservingArtificialDissipation: public ArtificialDissipationBase <dim, nstate>
+{
 
     //const Parameters::AllParameters *const input_parameters;
     Physics::NavierStokes<dim,nstate,double>     navier_stokes_double;
@@ -155,8 +162,7 @@
     std::array<dealii::Tensor<1,dim,RadFadType>,nstate>  calc_artificial_dissipation_flux(
     const std::array<RadFadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,RadFadType>,nstate> &solution_gradient, RadFadType artificial_viscosity);
 
- };
-
- } // namespace PHILIP
+};
+} // namespace PHILIP
 
 #endif

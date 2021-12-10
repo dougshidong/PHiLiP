@@ -14,9 +14,7 @@ public:
      *  invisid shock, but loses all the order of accuracy for the Gaussian bump.
      */
     bool add_artificial_dissipation;
-
-    bool entropy_error_discontinuity_sensor;
-    
+  
     enum ArtificialDissipationType{
         laplacian, 
         physical, 

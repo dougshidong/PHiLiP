@@ -962,31 +962,10 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
             // Quadrature
             element_volume += fe_values_volume.JxW(iquad);
             // Only integrate over the first state variable.
-            for (unsigned int s=0; s<1/*nstate*/; ++s) {
-
-                if(all_parameters->artificial_dissipation_param.entropy_error_discontinuity_sensor)
-                {
-                    double v_high_squared = 0.0;
-                    double v_low_squared = 0.0;
-                    for(unsigned int i=1;i<nstate-1;i++)
-                    {
-                        v_high_squared+=soln_high[i]*soln_high[i]/(soln_high[0]*soln_high[0]);
-                        v_low_squared+=soln_lower[i]*soln_lower[i]/(soln_lower[0]*soln_lower[0]);
-                    }
-                    double gamma_euler = all_parameters->euler_param.gamma_gas;
-                    double p_high = (gamma_euler-1.0)*(soln_high[nstate-1] - 0.5*soln_high[0]*v_high_squared);
-                    double p_low = (gamma_euler-1.0)*(soln_lower[nstate-1] - 0.5*soln_lower[0]*v_low_squared);
-                    double entropy_high = p_high*pow(soln_high[0],-gamma_euler);
-                    double entropy_low = p_low*pow(soln_lower[0],-gamma_euler);
-                    error+= (entropy_high - entropy_low) *(entropy_high - entropy_low) * fe_values_volume.JxW(iquad);
-                    soln_norm+= entropy_high * entropy_high * fe_values_volume.JxW(iquad);
-                }
-                else
-                {
-                    error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * fe_values_volume.JxW(iquad);
-                    soln_norm += soln_high[s] * soln_high[s] * fe_values_volume.JxW(iquad);
-                }
-               
+            for (unsigned int s=0; s<1/*nstate*/; ++s) 
+            {
+                error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * fe_values_volume.JxW(iquad);
+                soln_norm += soln_high[s] * soln_high[s] * fe_values_volume.JxW(iquad);
             }
         }
 
@@ -2437,30 +2416,10 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
         element_volume += JxW;
         // Only integrate over the first state variable.
         // Persson and Peraire only did density.
-        for (unsigned int s=0; s<1/*nstate*/; ++s) {
-
-            if(all_parameters->artificial_dissipation_param.entropy_error_discontinuity_sensor)
-            {
-                real2 v_high_squared = 0.0;
-                real2 v_low_squared = 0.0;
-                for(unsigned int i=1;i<nstate-1;i++)
-                {
-                    v_high_squared+=soln_high[i]*soln_high[i]/(soln_high[0]*soln_high[0]);
-                    v_low_squared+=soln_lower[i]*soln_lower[i]/(soln_lower[0]*soln_lower[0]);
-                }
-                real2 gamma_euler = all_parameters->euler_param.gamma_gas;
-                real2 p_high = (gamma_euler-1.0)*(soln_high[nstate-1] - 0.5*soln_high[0]*v_high_squared);
-                real2 p_low = (gamma_euler-1.0)*(soln_lower[nstate-1] - 0.5*soln_lower[0]*v_low_squared);
-                real2 entropy_high = p_high*pow(soln_high[0],-gamma_euler);
-                real2 entropy_low = p_low*pow(soln_lower[0],-gamma_euler);
-                error+= (entropy_high - entropy_low) *(entropy_high - entropy_low) * JxW;
-                soln_norm+= entropy_high * entropy_high * JxW;
-            }
-            else
-            {
-                error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * JxW;
-                soln_norm += soln_high[s] * soln_high[s] * JxW;
-            }
+        for (unsigned int s=0; s<1/*nstate*/; ++s) 
+        {
+            error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * JxW;
+            soln_norm += soln_high[s] * soln_high[s] * JxW;
         }
     }
 

@@ -15,10 +15,6 @@ void ArtificialDissipationParam::declare_parameters (dealii::ParameterHandler &p
                       dealii::Patterns::Bool(),
                       "Persson's subscell shock capturing artificial dissipation.");
     
-    prm.declare_entry("entropy_error_discontinuity_sensor", "false",
-                      dealii::Patterns::Bool(),
-                      "Discontinuity sensor governed by error in entropy, if true. If false, error in density is used");
-
     prm.declare_entry("artificial_dissipation_type", "laplacian",
                       dealii::Patterns::Selection(
                       "laplacian |"
@@ -56,7 +52,6 @@ void ArtificialDissipationParam::parse_parameters (dealii::ParameterHandler &prm
     {
 
         add_artificial_dissipation = prm.get_bool("add_artificial_dissipation");
-        entropy_error_discontinuity_sensor = prm.get_bool("entropy_error_discontinuity_sensor");
         use_enthalpy_error = prm.get_bool("use_enthalpy_error");
 
         const std::string artificial_dissipation_string = prm.get("artificial_dissipation_type");

@@ -42,8 +42,8 @@ int EulerGaussianBump<dim,nstate>
 ::run_test () const
 {
     int convergence_order_achieved = 0;
-    double run_test1_output = run_test1();
-    if (abs(convergence_order_achieved-run_test1_output) > 1e-15) // If run_test1() returns 1
+    double run_test_output = run_euler_gaussian_bump(); // run_euler_gaussian_bump() can return either enthalpy or the convergence order
+    if (abs(run_test_output) > 1e-15) // If run_euler_gaussian_bump() returns non zero
     {
         convergence_order_achieved = 1;  // test failed
     }
@@ -52,7 +52,7 @@ int EulerGaussianBump<dim,nstate>
 
 template<int dim, int nstate>
 double EulerGaussianBump<dim,nstate>
-::run_test1 () const
+::run_euler_gaussian_bump() const
 {
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
     using GridEnum = ManParam::GridEnum;

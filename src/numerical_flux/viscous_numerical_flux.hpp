@@ -15,7 +15,7 @@ class NumericalFluxDissipative
 public:
 /// Constructor
 NumericalFluxDissipative(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input, std::shared_ptr<ArtificialDissipationBase<dim, nstate>> artificial_dissipation_input)
-: pde_physics(physics_input), artificial_dissipation_pointer(artificial_dissipation_input)
+: pde_physics(physics_input), artificial_dissip(artificial_dissipation_input)
 {};
 
 /// Solution flux at the interface.
@@ -37,8 +37,8 @@ virtual std::array<real, nstate> evaluate_auxiliary_flux (
     const bool on_boundary = false) const = 0;
 
 protected:
-const std::shared_ptr < Physics::PhysicsBase<dim, nstate, real> >			pde_physics; ///< Associated physics.
-const std::shared_ptr < ArtificialDissipationBase<dim, nstate> >  artificial_dissipation_pointer;
+const std::shared_ptr < Physics::PhysicsBase<dim, nstate, real> >	pde_physics;           ///< Associated physics.
+const std::shared_ptr < ArtificialDissipationBase<dim, nstate> >    artificial_dissip;     ///< Link to artificial dissipation
 };
 
 /// Symmetric interior penalty method.
@@ -46,7 +46,7 @@ template<int dim, int nstate, typename real>
 class SymmetricInternalPenalty: public NumericalFluxDissipative<dim, nstate, real>
 {
 using NumericalFluxDissipative<dim,nstate,real>::	pde_physics;
-using NumericalFluxDissipative<dim,nstate,real>::	artificial_dissipation_pointer;
+using NumericalFluxDissipative<dim,nstate,real>::	artificial_dissip;
 public:
 /// Constructor
 SymmetricInternalPenalty(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input, std::shared_ptr < ArtificialDissipationBase<dim, nstate>> artificial_dissipation_input)
@@ -85,7 +85,7 @@ template<int dim, int nstate, typename real>
 class BassiRebay2: public NumericalFluxDissipative<dim, nstate, real>
 {
 using NumericalFluxDissipative<dim,nstate,real>::pde_physics;
-using NumericalFluxDissipative<dim,nstate,real>::	artificial_dissipation_pointer;
+using NumericalFluxDissipative<dim,nstate,real>::	artificial_dissip;
 public:
 /// Constructor
 BassiRebay2(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input, std::shared_ptr<ArtificialDissipationBase<dim, nstate>> artificial_dissipation_input)

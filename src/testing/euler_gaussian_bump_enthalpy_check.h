@@ -4,13 +4,16 @@
 
 namespace PHiLiP {
 namespace Tests {
-
+/// Checks if enthalpy is conserved with enthalpy laplacian artificial dissipation.
 template <int dim, int nstate>
 class EulerGaussianBumpEnthalpyCheck: public TestsBase
 {
 
     public:
+    /// Constructor
     EulerGaussianBumpEnthalpyCheck(const Parameters::AllParameters *const parameters_input);
+    
+    /// Checks if enthalpy is conserved by comparing errors in subsonic and transonic runs.
     int run_test() const;
 };
 

@@ -353,7 +353,7 @@ public:
     /// Artificial dissipation error ratio sensor in each cell.
     dealii::Vector<double> artificial_dissipation_se;
 
-    /// Discontinuity sensor based on projecting to p-1
+    /** Discontinuity sensor based on projecting to p-1 */
     template <typename real2>
     real2 discontinuity_sensor(
         const real2 diameter,
@@ -361,11 +361,13 @@ public:
         const dealii::FiniteElement<dim,dim> &fe_high);
     
     template <typename real2>
+    /** Discontinuity sensor with 4 parameters, based on projecting to p-1. */
     real2 discontinuity_sensor(
         const dealii::Quadrature<dim> &volume_quadrature,
         const std::vector< real2 > &soln_coeff_high,
         const dealii::FiniteElement<dim,dim> &fe_high,
         const std::vector<real2> &jac_det);
+
     /// Current optimization dual variables corresponding to the residual constraints also known as the adjoint
     /** This is used to evaluate the dot-product between the dual and the 2nd derivatives of the residual
      *  since storing the 2nd order partials of the residual is a very large 3rd order tensor.
@@ -658,7 +660,9 @@ private:
     MassiveCollectionTuple create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const;
 
 public:
+    /// Flag to freeze artifiial dissipation.
     bool freeze_artificial_dissipation;
+    /// Stores maximum artificial dissipation while assembling the residual.
     double max_artificial_dissipation_coeff;
     /// Update discontinuity sensor.
     void update_artificial_dissipation_discontinuity_sensor();
@@ -697,8 +701,8 @@ public:
     std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, real > > conv_num_flux_double;
     /// Dissipative numerical flux with real type
     std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, real > > diss_num_flux_double;
-    /// Artificial dissipation pointer
-    std::shared_ptr <ArtificialDissipationBase<dim,nstate>> artificial_dissipation_pointer;
+    /// Link to Artificial dissipation class (with three dissipation types, depending on the input). 
+    std::shared_ptr <ArtificialDissipationBase<dim,nstate>> artificial_dissip;
 
     /// Contains the physics of the PDE with FadType
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, FadType > > pde_physics_fad;

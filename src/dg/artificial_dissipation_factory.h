@@ -7,11 +7,12 @@
 
 namespace PHiLiP
 {
-
+/// Creates artificial dissipation pointer
 template<int dim, int nstate>
 class ArtificialDissipationFactory
 {
     public:
+    /// Creates artificial dissipation type depending on input parameters.
     static std::shared_ptr<ArtificialDissipationBase<dim,nstate>> create_artificial_dissipation(const Parameters::AllParameters *const parameters_input);
 };
 

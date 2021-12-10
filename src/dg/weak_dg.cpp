@@ -623,7 +623,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
         conv_phys_flux_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad]);
         if(this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
-            const ADArrayTensor1 artificial_diss_phys_flux_at_q = DGBaseState<dim,nstate,real,MeshType>::artificial_dissipation_pointer->calc_artificial_dissipation_flux (soln_at_q[iquad], soln_grad_at_q[iquad], artificial_diss_coeff);
+            const ADArrayTensor1 artificial_diss_phys_flux_at_q = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux (soln_at_q[iquad], soln_grad_at_q[iquad], artificial_diss_coeff);
             for (int istate=0; istate<nstate; istate++) {
                 diss_phys_flux_at_q[iquad][istate] += artificial_diss_phys_flux_at_q[istate];
             }
@@ -795,7 +795,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_explicit(
         }
         diss_flux_jump_int[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->dissipative_flux (soln_int[iquad], diss_soln_jump_int);
         if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
-            const ADArrayTensor1 artificial_diss_flux_jump_int = DGBaseState<dim,nstate,real,MeshType>::artificial_dissipation_pointer->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff);
+            const ADArrayTensor1 artificial_diss_flux_jump_int = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff);
             for (int s=0; s<nstate; s++) {
                 diss_flux_jump_int[iquad][s] += artificial_diss_flux_jump_int[s];
             }
@@ -966,8 +966,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_explicit(
         diss_flux_jump_ext[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->dissipative_flux (soln_ext[iquad], diss_soln_jump_ext);
 
         if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
-             const doubleArrayTensor1 artificial_diss_flux_jump_int = DGBaseState<dim,nstate,real,MeshType>::artificial_dissipation_pointer->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int, artificial_diss_coeff_int);
-            const doubleArrayTensor1 artificial_diss_flux_jump_ext = DGBaseState<dim,nstate,real,MeshType>::artificial_dissipation_pointer->calc_artificial_dissipation_flux(soln_ext[iquad], diss_soln_jump_ext, artificial_diss_coeff_ext);
+             const doubleArrayTensor1 artificial_diss_flux_jump_int = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int, artificial_diss_coeff_int);
+            const doubleArrayTensor1 artificial_diss_flux_jump_ext = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_ext[iquad], diss_soln_jump_ext, artificial_diss_coeff_ext);
             for (int s=0; s<nstate; s++) {
                 diss_flux_jump_int[iquad][s] += artificial_diss_flux_jump_int[s];
                 diss_flux_jump_ext[iquad][s] += artificial_diss_flux_jump_ext[s];
@@ -1455,7 +1455,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         diss_flux_jump_int[iquad] = physics.dissipative_flux (soln_int[iquad], diss_soln_jump_int);
 
         if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
-            const ADArrayTensor1 artificial_diss_flux_jump_int = DGBaseState<dim,nstate,real,MeshType>::artificial_dissipation_pointer->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff_at_q[iquad]);
+            const ADArrayTensor1 artificial_diss_flux_jump_int = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff_at_q[iquad]);
             for (int s=0; s<nstate; s++) {
                 diss_flux_jump_int[iquad][s] += artificial_diss_flux_jump_int[s];
             }
@@ -2482,8 +2482,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
         if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
             //const ADArrayTensor1 artificial_diss_flux_jump_int = physics.artificial_dissipative_flux (artificial_diss_coeff_int, soln_int[iquad], diss_soln_jump_int);
             //const ADArrayTensor1 artificial_diss_flux_jump_ext = physics.artificial_dissipative_flux (artificial_diss_coeff_ext, soln_ext[iquad], diss_soln_jump_ext);
-            const ADArrayTensor1 artificial_diss_flux_jump_int =  DGBaseState<dim,nstate,real,MeshType>::artificial_dissipation_pointer->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff_at_q[iquad]);
-            const ADArrayTensor1 artificial_diss_flux_jump_ext =  DGBaseState<dim,nstate,real,MeshType>::artificial_dissipation_pointer->calc_artificial_dissipation_flux(soln_ext[iquad], diss_soln_jump_ext,artificial_diss_coeff_at_q[iquad]);
+            const ADArrayTensor1 artificial_diss_flux_jump_int =  DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff_at_q[iquad]);
+            const ADArrayTensor1 artificial_diss_flux_jump_ext =  DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_ext[iquad], diss_soln_jump_ext,artificial_diss_coeff_at_q[iquad]);
             for (int s=0; s<nstate; s++) {
                 diss_flux_jump_int[s] += artificial_diss_flux_jump_int[s];
                 diss_flux_jump_ext[s] += artificial_diss_flux_jump_ext[s];
@@ -3621,7 +3621,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
         if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
             ArrayTensor artificial_diss_phys_flux_at_q;
             //artificial_diss_phys_flux_at_q = physics.artificial_dissipative_flux (artificial_diss_coeff, soln_at_q[iquad], soln_grad_at_q[iquad]);
-            artificial_diss_phys_flux_at_q = DGBaseState<dim,nstate,real,MeshType>::artificial_dissipation_pointer->calc_artificial_dissipation_flux(soln_at_q[iquad], soln_grad_at_q[iquad],artificial_diss_coeff_at_q[iquad]);
+            artificial_diss_phys_flux_at_q = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_at_q[iquad], soln_grad_at_q[iquad],artificial_diss_coeff_at_q[iquad]);
             for (int s=0; s<nstate; s++) {
                 diss_phys_flux_at_q[iquad][s] += artificial_diss_phys_flux_at_q[s];
             }

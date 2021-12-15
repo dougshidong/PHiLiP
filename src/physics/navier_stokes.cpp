@@ -628,7 +628,6 @@ template dealii::Tensor<1,PHILIP_DIM,RadType> NavierStokes < PHILIP_DIM, PHILIP_
 template dealii::Tensor<1,PHILIP_DIM,FadFadType> NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadFadType>::compute_heat_flux<FadFadType>(const std::array<FadFadType,PHILIP_DIM+2> &primitive_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadFadType>,PHILIP_DIM+2> &primitive_soln_gradient) const;
 template dealii::Tensor<1,PHILIP_DIM,RadFadType> NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadFadType>::compute_heat_flux<RadFadType>(const std::array<RadFadType,PHILIP_DIM+2> &primitive_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,RadFadType>,PHILIP_DIM+2> &primitive_soln_gradient) const;
 
-
 template std::array<dealii::Tensor<1,PHILIP_DIM,double>,PHILIP_DIM> NavierStokes < PHILIP_DIM, PHILIP_DIM+2, double>::extract_velocities_gradient_from_primitive_solution_gradient<double>(const std::array<dealii::Tensor<1,PHILIP_DIM,double>,PHILIP_DIM+2> &primitive_soln_gradient) const;
 template std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM> NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadType>::extract_velocities_gradient_from_primitive_solution_gradient<FadType>(const std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+2> &primitive_soln_gradient) const;
 template std::array<dealii::Tensor<1,PHILIP_DIM,RadType>,PHILIP_DIM> NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadType>::extract_velocities_gradient_from_primitive_solution_gradient<RadType>(const std::array<dealii::Tensor<1,PHILIP_DIM,RadType>,PHILIP_DIM+2> &primitive_soln_gradient) const;

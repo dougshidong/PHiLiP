@@ -5,7 +5,7 @@ namespace PHiLiP
 
 //=====================================================
 //  LAPLACIAN DISSIPATION FUNCTIONS 
-// ====================================================
+//=====================================================
 
 template <int dim, int nstate>
 template <typename real2>
@@ -145,13 +145,13 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> EnthalpyConservingArtificialDissi
 
     for (int i=0; i<nstate; i++)
     {
-         for (int d=0; d<dim; d++)
+        for (int d=0; d<dim; d++)
         {
-             if(i==nstate-1)
+            if(i==nstate-1)
             {
                  enthalpy_diss_flux[i][d] = -artificial_viscosity*(conservative_soln_gradient[i][d] + primitive_soln_gradient[i][d]);
             }
-             else
+            else
             {
                 enthalpy_diss_flux[i][d] = -artificial_viscosity*(conservative_soln_gradient[i][d]);
             }

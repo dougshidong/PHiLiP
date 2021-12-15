@@ -37,16 +37,16 @@ virtual std::array<real, nstate> evaluate_auxiliary_flux (
     const bool on_boundary = false) const = 0;
 
 protected:
-const std::shared_ptr < Physics::PhysicsBase<dim, nstate, real> >	pde_physics;           ///< Associated physics.
-const std::shared_ptr < ArtificialDissipationBase<dim, nstate> >    artificial_dissip;     ///< Link to artificial dissipation
+const std::shared_ptr < Physics::PhysicsBase<dim, nstate, real> > pde_physics; ///< Associated physics.
+const std::shared_ptr < ArtificialDissipationBase<dim, nstate> > artificial_dissip;  ///< Link to artificial dissipation
 };
 
 /// Symmetric interior penalty method.
 template<int dim, int nstate, typename real>
 class SymmetricInternalPenalty: public NumericalFluxDissipative<dim, nstate, real>
 {
-using NumericalFluxDissipative<dim,nstate,real>::	pde_physics;
-using NumericalFluxDissipative<dim,nstate,real>::	artificial_dissip;
+using NumericalFluxDissipative<dim,nstate,real>::pde_physics;
+using NumericalFluxDissipative<dim,nstate,real>::artificial_dissip;
 public:
 /// Constructor
 SymmetricInternalPenalty(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input, std::shared_ptr < ArtificialDissipationBase<dim, nstate>> artificial_dissipation_input)
@@ -85,7 +85,7 @@ template<int dim, int nstate, typename real>
 class BassiRebay2: public NumericalFluxDissipative<dim, nstate, real>
 {
 using NumericalFluxDissipative<dim,nstate,real>::pde_physics;
-using NumericalFluxDissipative<dim,nstate,real>::	artificial_dissip;
+using NumericalFluxDissipative<dim,nstate,real>::artificial_dissip;
 public:
 /// Constructor
 BassiRebay2(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input, std::shared_ptr<ArtificialDissipationBase<dim, nstate>> artificial_dissipation_input)

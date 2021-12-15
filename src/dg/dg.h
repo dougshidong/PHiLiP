@@ -660,7 +660,7 @@ private:
     MassiveCollectionTuple create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const;
 
 public:
-    /// Flag to freeze artifiial dissipation.
+    /// Flag to freeze artificial dissipation.
     bool freeze_artificial_dissipation;
     /// Stores maximum artificial dissipation while assembling the residual.
     double max_artificial_dissipation_coeff;
@@ -673,7 +673,6 @@ public:
 /*  Contains the objects and functions that need to be templated on the number of state variables.
  */
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-//template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
 template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
@@ -686,7 +685,7 @@ protected:
 
 public:
     using DGBase<dim,real,MeshType>::all_parameters; ///< Parallel std::cout that only outputs on mpi_rank==0
-    ///Number of states for the artificial dissipation class, differs for physics type.
+    /// Number of states for the artificial dissipation class, differs for physics type.
     /// Constructor.
     DGBaseState(
         const Parameters::AllParameters *const parameters_input,

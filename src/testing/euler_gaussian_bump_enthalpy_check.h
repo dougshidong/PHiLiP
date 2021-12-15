@@ -8,7 +8,6 @@ namespace Tests {
 template <int dim, int nstate>
 class EulerGaussianBumpEnthalpyCheck: public TestsBase
 {
-
     public:
     /// Constructor
     EulerGaussianBumpEnthalpyCheck(const Parameters::AllParameters *const parameters_input);

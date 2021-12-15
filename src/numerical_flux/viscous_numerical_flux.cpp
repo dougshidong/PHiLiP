@@ -126,7 +126,7 @@ std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
 
         // {{A}}*[[u]]
         ArrayTensor1 artificial_A_jumpu_int, artificial_A_jumpu_ext;
-        artificial_A_jumpu_int = artificial_dissip->calc_artificial_dissipation_flux (soln_int, soln_jump,	artificial_diss_coeff_int);
+        artificial_A_jumpu_int = artificial_dissip->calc_artificial_dissipation_flux (soln_int, soln_jump, artificial_diss_coeff_int);
         artificial_A_jumpu_ext = artificial_dissip->calc_artificial_dissipation_flux (soln_ext, soln_jump, artificial_diss_coeff_ext);
         const ArrayTensor1 artificial_A_jumpu_avg = array_average<nstate,dim,real>(artificial_A_jumpu_int, artificial_A_jumpu_ext);
 

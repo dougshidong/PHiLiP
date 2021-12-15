@@ -86,8 +86,6 @@ public:
     bool use_classical_FR;
 
     /// Scaling of Symmetric Interior Penalty term to ensure coercivity.
-    /** 
-     */
     double sipg_penalty_factor;
 
     /// Number of state variables. Will depend on PDE
@@ -177,7 +175,6 @@ public:
 
     /// Store flux reconstruction type
     Flux_Reconstruction_Aux flux_reconstruction_aux_type;
-
 
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()

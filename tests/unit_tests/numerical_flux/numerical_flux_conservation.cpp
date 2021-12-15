@@ -46,7 +46,7 @@ int test_dissipative_numerical_flux_conservation (const PHiLiP::Parameters::AllP
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, double> > pde_physics = Physics::PhysicsFactory<dim, nstate, double>		  ::create_Physics(all_parameters);
     std::shared_ptr <ArtificialDissipationBase<dim,nstate>> artificial_dissipation_pointer = ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(all_parameters);
     
-	dealii::Tensor<1,dim,double> normal_int;
+    dealii::Tensor<1,dim,double> normal_int;
     std::array<double, nstate> soln_int, soln_ext;
     std::array<dealii::Tensor<1,dim,double>, nstate> soln_grad_int, soln_grad_ext;
     dealii::Point<dim> point_1;

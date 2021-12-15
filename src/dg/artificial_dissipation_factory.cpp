@@ -33,7 +33,7 @@ ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(const P
 
         case artificial_dissipation_enum::enthalpy_conserving_laplacian:
         {
-           if constexpr(dim+2==nstate)
+            if constexpr(dim+2==nstate)
             {
                 std::cout<<"Enthalpy Conserving Laplacian Artifical Dissipation pointer created"<<std::endl;
                 return std::make_shared<EnthalpyConservingArtificialDissipation<dim,nstate>>(parameters_input);

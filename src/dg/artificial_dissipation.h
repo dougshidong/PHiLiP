@@ -60,16 +60,16 @@ class LaplacianArtificialDissipation: public ArtificialDissipationBase <dim, nst
     Physics::ConvectionDiffusion<dim,nstate,double>     convection_diffusion_double;
     
     /// ConvectionDiffusion object of type FadType.
-	Physics::ConvectionDiffusion<dim,nstate,FadType>    convection_diffusion_FadType;
+    Physics::ConvectionDiffusion<dim,nstate,FadType> convection_diffusion_FadType;
     
     /// ConvectionDiffusion object of type RadType.
-	Physics::ConvectionDiffusion<dim,nstate,RadType>    convection_diffusion_RadType;
+    Physics::ConvectionDiffusion<dim,nstate,RadType>    convection_diffusion_RadType;
     
     /// ConvectionDiffusion object of type FadFadType.
-	Physics::ConvectionDiffusion<dim,nstate,FadFadType> convection_diffusion_FadFadType;
+    Physics::ConvectionDiffusion<dim,nstate,FadFadType> convection_diffusion_FadFadType;
     
     /// ConvectionDiffusion object of type RadFadType.
-	Physics::ConvectionDiffusion<dim,nstate,RadFadType> convection_diffusion_RadFadType;
+    Physics::ConvectionDiffusion<dim,nstate,RadFadType> convection_diffusion_RadFadType;
 
 
     template <typename real2>
@@ -123,16 +123,16 @@ class PhysicalArtificialDissipation: public ArtificialDissipationBase <dim, nsta
     Physics::NavierStokes<dim,nstate,double>     navier_stokes_double;
     
     /// NavierStokes object of type FadType.
-	Physics::NavierStokes<dim,nstate,FadType>    navier_stokes_FadType;
+    Physics::NavierStokes<dim,nstate,FadType>    navier_stokes_FadType;
     
     /// NavierStokes object of type RadType.
-	Physics::NavierStokes<dim,nstate,RadType>    navier_stokes_RadType;
+    Physics::NavierStokes<dim,nstate,RadType>    navier_stokes_RadType;
     
     /// NavierStokes object of type FadFadType.
-	Physics::NavierStokes<dim,nstate,FadFadType> navier_stokes_FadFadType;
+    Physics::NavierStokes<dim,nstate,FadFadType> navier_stokes_FadFadType;
     
     /// NavierStokes object of type RadFadType.
-	Physics::NavierStokes<dim,nstate,RadFadType> navier_stokes_RadFadType;
+    Physics::NavierStokes<dim,nstate,RadFadType> navier_stokes_RadFadType;
 
     template <typename real2>
     /// Calculates navier stokes artificial dissipation flux.
@@ -186,16 +186,16 @@ class EnthalpyConservingArtificialDissipation: public ArtificialDissipationBase 
     Physics::NavierStokes<dim,nstate,double>     navier_stokes_double;
     
     /// NavierStokes object of type FadType.
-	Physics::NavierStokes<dim,nstate,FadType>    navier_stokes_FadType;
+    Physics::NavierStokes<dim,nstate,FadType>    navier_stokes_FadType;
     
     /// NavierStokes object of type RadType.
-	Physics::NavierStokes<dim,nstate,RadType>    navier_stokes_RadType;
+    Physics::NavierStokes<dim,nstate,RadType>    navier_stokes_RadType;
     
     /// NavierStokes object of type FadFadType.
-	Physics::NavierStokes<dim,nstate,FadFadType> navier_stokes_FadFadType;
+    Physics::NavierStokes<dim,nstate,FadFadType> navier_stokes_FadFadType;
     
     /// NavierStokes object of type RadFadType.
-	Physics::NavierStokes<dim,nstate,RadFadType> navier_stokes_RadFadType;
+    Physics::NavierStokes<dim,nstate,RadFadType> navier_stokes_RadFadType;
     
     template <typename real2>
     /// Calculates enthalpy laplacian artificial dissipation flux.

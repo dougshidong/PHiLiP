@@ -20,7 +20,7 @@ subsection artificial dissipation
 	set add_artificial_dissipation = true
 	set artificial_dissipation_type = enthalpy_conserving_laplacian
 	set artificial_dissipation_test_type = enthalpy_conservation
-    set use_enthalpy_error = true
+       set use_enthalpy_error = true
 	set mu_artificial_dissipation = 1.0
 	set kappa_artificial_dissipation = 2.0
 end

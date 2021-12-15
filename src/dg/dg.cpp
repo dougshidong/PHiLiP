@@ -43,7 +43,6 @@
 #include "dg.h"
 #include "physics/physics_factory.h"
 #include "post_processor/physics_post_processor.h"
-//#include "artificial_dissipation_factory.h"
 
 #include <deal.II/numerics/derivative_approximation.h>
 #include <deal.II/grid/grid_refinement.h>

@@ -10,9 +10,9 @@ class ArtificialDissipationParam
 {
 public:
     /// Flag to add artificial dissipation from Persson's shock capturing paper.
-    /** This feature is currently not fully working. It dissipates the Burger's
-     *  invisid shock, but loses all the order of accuracy for the Gaussian bump.
-     */
+    /** This feature dissipates the Burger's invisid shock and shock over transonic euler gaussian bump.
+    *   Some dissipation types reduce enthalpy significantly. However, the (p+1) order of convergence is lost for the case of Gaussian bump with shocks.
+    */
     bool add_artificial_dissipation;
   
     /// Specified choices of artificial dissipation type.

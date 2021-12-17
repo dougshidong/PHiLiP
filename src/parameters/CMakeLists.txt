@@ -10,7 +10,8 @@ set(SOURCE
     parameters_functional.cpp
     parameters_grid_refinement.cpp
     all_parameters.cpp
-        parameters_reduced_order.cpp)
+    parameters_reduced_order.cpp
+    parameters_artificial_dissipation.cpp)
 
 # Output library
 set(ParameterLib ParametersLibrary)

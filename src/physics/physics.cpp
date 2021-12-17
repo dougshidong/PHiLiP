@@ -38,7 +38,7 @@ PhysicsBase<dim,nstate,real>::PhysicsBase(
 
 template <int dim, int nstate, typename real>
 PhysicsBase<dim,nstate,real>::~PhysicsBase() {}
-
+/*
 template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>
 ::artificial_dissipative_flux (
@@ -54,7 +54,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>
     }
     return diss_flux;
 }
-
+*/
 template <int dim, int nstate, typename real>
 std::array<real,nstate> PhysicsBase<dim,nstate,real>
 ::artificial_source_term (

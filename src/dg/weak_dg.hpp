@@ -31,6 +31,12 @@ public:
 
 private:
 
+    ///Allocates the auxiliary equations' variables and RHS.
+    void allocate_auxiliary_equation ();
+
+    ///Assembles the auxiliary equations' residuals and solves for the auxiliary variables.
+    void assemble_auxiliary_residual ();
+
     /// Main function responsible for evaluating the integral over the cell volume and the specified derivatives.
     /** This function templates the solution and metric coefficients in order to possible AD the residual.
      */

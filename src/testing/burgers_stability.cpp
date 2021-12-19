@@ -17,8 +17,9 @@
 #include "parameters/parameters.h"
 #include "dg/dg.h"
 #include "dg/dg_factory.hpp"
-#include "ode_solver/ode_solver.h"
+#include "ode_solver/ode_solver_base.h"
 #include <fstream>
+#include "ode_solver/ode_solver_factory.h"
 
 
 namespace PHiLiP {
@@ -106,7 +107,8 @@ double BurgersEnergyStability<dim, nstate>::compute_conservation(std::shared_ptr
 
 
 template<int dim, int nstate>
-void BurgersEnergyStability<dim, nstate>::initialize(PHiLiP::DGBase<dim, double>  &dg) const
+void BurgersEnergyStability<dim, nstate>::initialize(PHiLiP::DGBase<dim, double>  &dg,
+                                                    const PHiLiP::Parameters::AllParameters &all_parameters_new) const
 {
 	pcout << "Implement initial conditions" << std::endl;
 //	dealii::FunctionParser<dim> initial_condition;
@@ -141,8 +143,12 @@ void BurgersEnergyStability<dim, nstate>::initialize(PHiLiP::DGBase<dim, double>
 #endif
         }
         if(dim==1){
-           // expression.push_back("sin(pi*(x)) + 0.01");
-            expression.push_back("cos(pi*(x))");
+            //expression.push_back("sin(pi*(x)) + 0.01");
+            if (all_parameters_new.use_energy){//for split form get energy
+                expression.push_back("sin(pi*(x)) + 0.01");
+            } else {
+                expression.push_back("cos(pi*(x))");
+            }
 	  //  expression[0] = "sin(pi*(x)) + 0.01";
         }
 	initial_condition.initialize(variables,
@@ -167,12 +173,12 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
         PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
 	double left = 0.0;
 	double right = 2.0;
-	const unsigned int n_grids = 4;
-        std::array<double,n_grids> grid_size;
-        std::array<double,n_grids> soln_error;
+	const unsigned int n_grids = (all_parameters_new.use_energy) ? 4 : 5;
+        std::vector<double> grid_size(n_grids);
+        std::vector<double> soln_error(n_grids);
 	unsigned int poly_degree = 4;
         dealii::ConvergenceTable convergence_table;
-        const unsigned int igrid_start = 2;
+        const unsigned int igrid_start = (all_parameters_new.use_energy) ? 3 : 3;
         const unsigned int grid_degree = 1;
 
 //        const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids_input);
@@ -208,7 +214,6 @@ grid.set_manifold(1, m02);
 for(int idim=0; idim<dim; idim++){
 grid.set_all_manifold_ids_on_boundary(2*(idim -1),2*(idim-1));
 grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
-}
 #endif
 #if PHILIP_DIM==1
 #else
@@ -244,7 +249,8 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 	pcout << "dg created" <<std::endl;
 	dg->allocate_system ();
 
-        initialize(*(dg));
+       // initialize(*(dg));
+        initialize(*(dg), all_parameters_new);
     #if 0
 	pcout << "Implement initial conditions" << std::endl;
 	dealii::FunctionParser<dim> initial_condition;
@@ -273,13 +279,16 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 #endif
 	// Create ODE solver using the factory and providing the DG object
 //	std::shared_ptr<PHiLiP::ODE::ODESolver<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-	std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+//	std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+pcout<<"setup ode"<<std::endl;
+	std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+pcout<<"did setup ode"<<std::endl;
 
 	double finalTime = 3.0;
 //finalTime=0.1;
 
         if (all_parameters_new.use_energy == true){//for split form get energy
-            finalTime = 10.0 * all_parameters_new.ode_solver_param.initial_time_step;
+        //    finalTime = 10.0 * all_parameters_new.ode_solver_param.initial_time_step;
 
 	    double dt = all_parameters_new.ode_solver_param.initial_time_step;
 
@@ -373,7 +382,8 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
            // finalTime =3.0;
 
         //    finalTime = 10.0 * all_parameters_new.ode_solver_param.initial_time_step;
-         //   finalTime = all_parameters_new.ode_solver_param.initial_time_step;
+            finalTime = all_parameters_new.ode_solver_param.initial_time_step;
+            finalTime = 0.001;
 
         ode_solver->current_iteration = 0;
 
@@ -428,7 +438,7 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
                        // uexact += sin(pi*(qpoint[idim]-finalTime));//for grid 1-3
                         uexact += cos(pi*(qpoint[idim]-finalTime));//for grid 1-3
                     }
-                     //   uexact += 0.01;
+                        //uexact += 0.01;
                         l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
                     }
                 }
@@ -470,6 +480,11 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
                      << "  solution_error2 " << soln_error[igrid]
                      << "  slope " << slope_soln_err
                      << std::endl;
+                if(igrid == n_grids-1){
+                    if(std::abs(slope_soln_err-(poly_degree+1))>0.05){
+                        return 1;
+                    }
+                }
             }
         
 

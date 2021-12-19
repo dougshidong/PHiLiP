@@ -1531,6 +1531,7 @@ void OperatorBase<dim,real>::do_curl_loop_metric_cofactor(
 
 template <int dim, typename real>
 void OperatorBase<dim,real>::get_Jacobian_scaled_physical_gradient(
+                                    const bool use_conservative_divergence,
                                     const std::vector<std::vector<dealii::FullMatrix<real>>> &ref_gradient,
                                     const std::vector<dealii::FullMatrix<real>> &metric_cofactor,
                                     const unsigned int n_quad_pts, const int nstate,
@@ -1544,11 +1545,14 @@ void OperatorBase<dim,real>::get_Jacobian_scaled_physical_gradient(
                     physical_gradient[istate][idim][iquad][iquad2] = 0.0;
                     for(int jdim=0; jdim<dim; jdim++){
                         if(this->all_parameters->use_curvilinear_split_form == false){
-                            //physical_gradient[istate][idim][iquad][iquad2] += metric_cofactor[iquad][idim][jdim] * ref_gradient[istate][jdim][iquad][iquad2];
-                            physical_gradient[istate][idim][iquad][iquad2] += metric_cofactor[iquad2][idim][jdim] * ref_gradient[istate][jdim][iquad][iquad2];
+                            if(use_conservative_divergence){//Build gradient such that when applied computes conservative divergence operator.
+                                physical_gradient[istate][idim][iquad][iquad2] += metric_cofactor[iquad2][idim][jdim] * ref_gradient[istate][jdim][iquad][iquad2];
+                            }
+                            else{//Build gradient such that when applied computes the gradient of a scalar function.
+                                physical_gradient[istate][idim][iquad][iquad2] += metric_cofactor[iquad][idim][jdim] * ref_gradient[istate][jdim][iquad][iquad2];
+                            }
                         }
-                        else{
-                           // physical_gradient[istate][idim][iquad][iquad2] += metric_cofactor[iquad][idim][jdim] * ref_gradient[istate][jdim][iquad][iquad2];
+                        else{//Split form is half of the two forms above.
                             physical_gradient[istate][idim][iquad][iquad2] += 0.5 * ( metric_cofactor[iquad][idim][jdim] 
                                                                                    + metric_cofactor[iquad2][idim][jdim] ) 
                                                                             * ref_gradient[istate][jdim][iquad][iquad2];

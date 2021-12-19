@@ -15,7 +15,9 @@ public:
     /// Types of ODE solver
     enum ODESolverEnum {
         explicit_solver, /// RK4
-        implicit_solver  /// Backward-Euler
+        implicit_solver,  /// Backward-Euler
+        pod_galerkin_solver, ///Proper Orthogonal Decomposition with Galerkin projection
+        pod_petrov_galerkin_solver ///Proper Orthogonal Decomposition with Petrov-Galerkin projection (LSPG)
     };
 
     OutputEnum ode_output; ///< verbose or quiet.
@@ -25,6 +27,8 @@ public:
 
     unsigned int nonlinear_max_iterations; ///< Maximum number of iterations.
     unsigned int print_iteration_modulo; ///< If ode_output==verbose, print every print_iteration_modulo iterations.
+    unsigned int output_solution_vector_modulo; ///< Output solution vector every output_solution_vector_modulo iterations of the nonlinear solver
+    std::string solutions_table_filename; ///< Filename to write solutions table to
 
     double nonlinear_steady_residual_tolerance; ///< Tolerance to determine steady-state convergence.
 

@@ -35,7 +35,7 @@
 #include "dg/dg.h"
 #include "dg/dg_factory.hpp"
 
-#include "ode_solver/ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 
 #include "functional/functional.h"
 #include "functional/adjoint.h"
@@ -144,7 +144,7 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
         dg->solution = solution_no_ghost;
 
         // generate ODE solver
-        std::shared_ptr< ODE::ODESolver<dim,double,MeshType> > ode_solver
+        std::shared_ptr< ODE::ODESolverBase<dim,double,MeshType> > ode_solver
             = ODE::ODESolverFactory<dim,double,MeshType>::create_ODESolver(dg);
         // ode_solver->steady_state();
         // ode_solver->initialize_steady_polynomial_ramping(poly_degree);

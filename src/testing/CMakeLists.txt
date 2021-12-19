@@ -15,9 +15,11 @@ set(TESTS_SOURCE
     euler_vortex.cpp
     euler_entropy_waves.cpp
     advection_explicit_periodic.cpp
+    convection_diffusion_explicit_periodic.cpp
     euler_split_inviscid_taylor_green_vortex.cpp
- optimization_inverse_manufactured/optimization_inverse_manufactured.cpp
-)
+    optimization_inverse_manufactured/optimization_inverse_manufactured.cpp
+    burgers_rewienski_snapshot.cpp
+    reduced_order.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library
@@ -36,6 +38,7 @@ foreach(dim RANGE 1 3)
     string(CONCAT OptimizationLib Optimization_${dim}D)
     string(CONCAT LinearSolverLib LinearSolver)
     string(CONCAT GridRefinementLib GridRefinement_${dim}D)
+    string(CONCAT PODLib POD_${dim}D)
     target_link_libraries(${TestsLib} ${GridsLib})
     target_link_libraries(${TestsLib} ${NumericalFluxLib})
     target_link_libraries(${TestsLib} ${PhysicsLib})
@@ -45,6 +48,7 @@ foreach(dim RANGE 1 3)
     target_link_libraries(${TestsLib} ${LinearSolverLib})
     target_link_libraries(${TestsLib} ${GridRefinementLib})
     target_link_libraries(${TestsLib} ${OptimizationLib})
+    target_link_libraries(${TestsLib} ${PODLib})
     # Setup target with deal.II
     if(NOT DOC_ONLY)
         DEAL_II_SETUP_TARGET(${TestsLib})
@@ -60,5 +64,5 @@ foreach(dim RANGE 1 3)
     unset(LinearSolverLib)
     unset(GridRefinementLib)
     unset(OptimizationLib)
-
+    unset(PODLib)
 endforeach()

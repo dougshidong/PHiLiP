@@ -76,7 +76,7 @@ HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::HighOrderGrid(
 }
 
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
-void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::initialize_with_triangulation_manifold()
+void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::initialize_with_triangulation_manifold(const bool output_mesh)
 {
     allocate();
     const dealii::ComponentMask mask(dim, true);
@@ -91,7 +91,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::initialize_with
     update_surface_nodes();
     update_mapping_fe_field();
     reset_initial_nodes();
-    output_results_vtk(nth_refinement++);
+    if (output_mesh) output_results_vtk(nth_refinement++);
 
     // Used to check Jacobian validity
     const unsigned int exact_jacobian_order = (max_degree-1) * dim;

@@ -1,6 +1,10 @@
 set(ODE_SOURCE
-    ode_solver.cpp
-    )
+    ode_solver_factory.cpp
+    ode_solver_base.cpp
+    explicit_ode_solver.cpp
+    implicit_ode_solver.cpp
+    pod_galerkin_ode_solver.cpp
+    pod_petrov_galerkin_ode_solver.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

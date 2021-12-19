@@ -1,0 +1,50 @@
+set test_type = burgers_energy_stability
+
+set dimension = 1
+
+set use_weak_form = false
+
+set overintegration = 0
+
+set rk_order = 4
+
+set use_collocated_nodes = false
+
+set use_split_form = true
+
+set use_energy = false
+
+set use_L2_norm = false
+
+set use_classical_FR = false
+
+set use_periodic_bc = true
+
+set flux_reconstruction = cPlus
+
+#set use_skew_sym_deriv = false
+
+set pde_type = burgers_inviscid
+
+set conv_num_flux = lax_friedrichs
+#set conv_num_flux = central_flux
+#set conv_num_flux = split_form
+
+subsection ODE solver
+
+  set ode_output = verbose
+  
+  set nonlinear_max_iterations = 500000
+
+  set print_iteration_modulo = 1000
+
+  set ode_solver_type = explicit
+
+  set initial_time_step = 0.0001
+  #set initial_time_step = 0.00005
+
+end
+
+subsection manufactured solution convergence study
+  set use_manufactured_source_term = true
+end

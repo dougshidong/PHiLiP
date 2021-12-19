@@ -38,8 +38,6 @@
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/vector_tools.templates.h>
 
-#include <deal.II/dofs/dof_renumbering.h>
-
 #include "dg.h"
 #include "physics/physics_factory.h"
 #include "post_processor/physics_post_processor.h"
@@ -665,21 +663,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     const auto metric_neighbor_cell = high_order_grid->dof_handler_grid.begin_active();
                     metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
 
-                #if 0
-                    const unsigned int normal_direction1 = dealii::GeometryInfo<dim>::unit_normal_direction[iface];
-                    const unsigned int normal_direction2 = dealii::GeometryInfo<dim>::unit_normal_direction[neighbor_face_no];
-                    const unsigned int deg1sq = (curr_cell_degree == 0) ? 1 : curr_cell_degree * (curr_cell_degree+1);
-                    const unsigned int deg2sq = (neigh_cell_degree == 0) ? 1 : neigh_cell_degree * (neigh_cell_degree+1);
-
-                    //const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction1) / current_face->number_of_children();
-                    const real vol_div_facearea1 = current_cell->extent_in_direction(normal_direction1);
-                    const real vol_div_facearea2 = neighbor_cell->extent_in_direction(normal_direction2);
-
-                    const real penalty1 = deg1sq / vol_div_facearea1;
-                    const real penalty2 = deg2sq / vol_div_facearea2;
-
-                    real penalty = 0.5 * ( penalty1 + penalty2 );
-                #endif
                     const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
 
               //      fe_values_collection_volume_neigh.reinit (neighbor_cell, i_quad, i_mapp, fe_index_neigh_cell);
@@ -1357,6 +1340,14 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
     try {
 
         update_artificial_dissipation_discontinuity_sensor();
+        
+        //assembles and solves for auxiliary variable if necessary.
+        assemble_auxiliary_residual();
+
+//for(unsigned int i=0; i<auxiliary_solution[0].size(); i++){
+//auxiliary_solution[0].zero_out_ghosts();
+//pcout<<" aux "<<auxiliary_solution[0][i]<<std::endl;
+//}
 
         auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
         for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
@@ -2041,6 +2032,9 @@ void DGBase<dim,real,MeshType>::allocate_system ()
     right_hand_side.add(1.0); // Avoid 0 initial residual for output and logarithmic visualization.
     dual.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
 
+    //Allocate for auxiliary equation only.
+    allocate_auxiliary_equation ();
+
     // System matrix allocation
     dealii::DynamicSparsityPattern dsp(locally_relevant_dofs);
     dealii::DoFTools::make_flux_sparsity_pattern(dof_handler, dsp);
@@ -2154,6 +2148,10 @@ void DGBase<dim,real,MeshType>::allocate_dRdX ()
 template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
 {
+
+    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+    const bool use_auxiliary_eq = (all_parameters->pde_type == PDE_enum::convection_diffusion || all_parameters->pde_type == PDE_enum::diffusion) ? true : false;//bool to simplify aux check
+
     // Mass matrix sparsity pattern
     //dealii::SparsityPattern dsp(dof_handler.n_dofs(), dof_handler.n_dofs(), dof_handler.get_fe_collection().max_dofs_per_cell());
     //dealii::SparsityPattern dsp(dof_handler.n_dofs(), dof_handler.n_dofs(), dof_handler.get_fe_collection().max_dofs_per_cell());
@@ -2182,6 +2180,11 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
     mass_sparsity_pattern.copy_from(dsp);
     if (do_inverse_mass_matrix == true) {
         global_inverse_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
+        if (use_auxiliary_eq){
+            for(int idim=0; idim<dim; idim++){
+                global_inverse_mass_matrix_auxiliary[idim].reinit(locally_owned_dofs, mass_sparsity_pattern);
+            }
+        }
         if (this->all_parameters->use_energy == true){//for split form get energy
             global_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
         }
@@ -2189,57 +2192,12 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
         global_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
     }
 
-    //dealii::TrilinosWrappers::SparseMatrix
-    //    matrix_with_correct_size(locally_owned_dofs,
-    //            mpi_communicator,
-    //            dof_handler.get_fe_collection().max_dofs_per_cell());
-    //pcout << "Before compress" << std::endl;
-    //matrix_with_correct_size.compress(dealii::VectorOperation::unknown);
-    //if (do_inverse_mass_matrix == true) {
-    //    global_inverse_mass_matrix.reinit(matrix_with_correct_size);
-    //} else {
-    //    global_mass_matrix.reinit(matrix_with_correct_size);
-    //}
-    //pcout << "AFter reinit" << std::endl;
-
-    //const dealii::MappingManifold<dim,dim> mapping;
-    //const dealii::MappingQ<dim,dim> mapping(max_degree+1);
-    //const dealii::MappingQ<dim,dim> mapping(high_order_grid->max_degree);
-    // std::cout << "Grid degree: " << high_order_grid->max_degree << std::endl;
-    //const dealii::MappingQGeneric<dim,dim> mapping(high_order_grid->max_degree);
-#if 0
-    const auto mapping = (*(high_order_grid->mapping_fe_field));
-
-    dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-
-    dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.
-#endif
-
-#if 0
-//build chebyshev fe collection
-
-    dealii::hp::QCollection<dim>       volume_quadrature_cheb;//volume flux nodes
-    for (unsigned int degree=0; degree<=7; ++degree) {
-        dealii::QGaussChebyshev<dim> vol_quad(degree+1);
-       // dealii::QGauss<dim> vol_quad(degree+1);
-        volume_quadrature_cheb.push_back (vol_quad);
-    }
-    dealii::hp::FEValues<dim,dim> fe_values_collection_volume_cheb (mapping_collection, fe_collection, volume_quadrature_cheb, this->volume_update_flags); ///< FEValues of volume.
-
-
-//end build chebyshev fe collection
-
-#endif
-
     auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
     for (auto cell = dof_handler.begin_active(); cell!=dof_handler.end(); ++cell, ++metric_cell) {
-   // for (auto cell = dof_handler.begin_active(); cell!=dof_handler.end(); ++cell) {
 
         if (!cell->is_locally_owned()) continue;
 
-//        const unsigned int mapping_index = 0;
         const unsigned int fe_index_curr_cell = cell->active_fe_index();
-//        const unsigned int quad_index = fe_index_curr_cell;
 
         // Current reference element related to this physical cell
         const dealii::FESystem<dim,dim> &current_fe_ref = fe_collection[fe_index_curr_cell];
@@ -2247,9 +2205,6 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
         const unsigned int n_quad_pts = volume_quadrature_collection[fe_index_curr_cell].size();
 
         dealii::FullMatrix<real> local_mass_matrix(n_dofs_cell);
-
-//        fe_values_collection_volume.reinit (cell, quad_index, mapping_index, fe_index_curr_cell);
-//        const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
 
         //quadrature weights
         const std::vector<real> &quad_weights = operators.volume_quadrature_collection[fe_index_curr_cell].get_weights();
@@ -2286,6 +2241,14 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
             }
             operators.build_local_Mass_Matrix(JxW, n_dofs_cell, n_quad_pts, fe_index_curr_cell, local_mass_matrix);
 
+            std::vector<dealii::FullMatrix<real>> local_mass_matrix_aux(dim);
+            for(int idim=0; idim<dim; idim++){
+                local_mass_matrix_aux[idim].reinit(n_dofs_cell, n_dofs_cell);
+                if(use_auxiliary_eq){
+                    local_mass_matrix_aux[idim].add(1.0,local_mass_matrix);
+                }
+            }
+
             if(this->all_parameters->flux_reconstruction_type != Parameters::AllParameters::Flux_Reconstruction::cDG){
                 //For flux reconstruction
                 dealii::FullMatrix<real> K_operator(n_dofs_cell);
@@ -2297,6 +2260,21 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
                     }
                 }
             }
+            if(use_auxiliary_eq && this->all_parameters->flux_reconstruction_aux_type != Parameters::AllParameters::Flux_Reconstruction_Aux::kDG){
+                std::vector<dealii::FullMatrix<real>> K_operator_aux(dim);
+                for(int idim=0; idim<dim; idim++){
+                    K_operator_aux[idim].reinit(n_dofs_cell, n_dofs_cell);
+                }
+                const unsigned int curr_cell_degree = current_fe_ref.tensor_degree();
+                operators.build_local_K_operator_AUX(local_mass_matrix, n_dofs_cell, curr_cell_degree, K_operator_aux);
+                for(int idim=0; idim<dim; idim++){
+                    for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
+                        for (unsigned int itrial=0; itrial<n_dofs_cell; ++itrial) {
+                            local_mass_matrix_aux[idim][itest][itrial] = local_mass_matrix[itest][itrial] + K_operator_aux[idim][itest][itrial];
+                        }
+                    }
+                }
+            }
 
             dofs_indices.resize(n_dofs_cell);
             cell->get_dof_indices (dofs_indices);
@@ -2304,7 +2282,14 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
                 dealii::FullMatrix<real> local_inverse_mass_matrix(n_dofs_cell);
                 local_inverse_mass_matrix.invert(local_mass_matrix);
                 global_inverse_mass_matrix.set (dofs_indices, local_inverse_mass_matrix);
-            
+
+                if(use_auxiliary_eq){
+                    dealii::FullMatrix<real> local_inverse_mass_matrix_aux(n_dofs_cell);
+                    for(int idim=0; idim<dim; idim++){
+                        local_inverse_mass_matrix_aux.invert(local_mass_matrix_aux[idim]);
+                        global_inverse_mass_matrix_auxiliary[idim].set (dofs_indices, local_inverse_mass_matrix_aux);
+                    }                 
+                }
                 if (this->all_parameters->use_energy == true){//for split form energy
                     global_mass_matrix.set (dofs_indices, local_mass_matrix);
                 }
@@ -2361,6 +2346,11 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
 
     if (do_inverse_mass_matrix == true) {
         global_inverse_mass_matrix.compress(dealii::VectorOperation::insert);
+        if (use_auxiliary_eq){
+            for(int idim=0; idim<dim; idim++){
+                global_inverse_mass_matrix_auxiliary[idim].compress(dealii::VectorOperation::insert);
+            }
+        }
         if (this->all_parameters->use_energy == true){//for split form energy
             global_mass_matrix.compress(dealii::VectorOperation::insert);
         }

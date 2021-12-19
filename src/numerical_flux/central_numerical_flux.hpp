@@ -8,7 +8,7 @@
 namespace PHiLiP {
 namespace NumericalFlux {
 
-/// Lax-Friedrichs numerical flux. Derived from NumericalFluxConvective.
+/// Central numerical flux. Derived from NumericalFluxConvective.
 template<int dim, int nstate, typename real>
 class CentralNumFlux: public NumericalFluxConvective<dim, nstate, real>
 {

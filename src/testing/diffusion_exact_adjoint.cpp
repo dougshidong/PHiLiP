@@ -25,7 +25,7 @@
 #include "physics/euler.h"
 #include "physics/manufactured_solution.h"
 #include "dg/dg_factory.hpp"
-#include "ode_solver/ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 
 #include "functional/functional.h"
 #include "functional/adjoint.h"
@@ -470,8 +470,8 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             //dg_v->solution.add(1.1);
             
             // Create ODE solvers using the factory and providing the DG object
-            std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver_u = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_u);
-            std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver_v = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_v);
+            std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver_u = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_u);
+            std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver_v = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_v);
 
             // solving
             ode_solver_u->steady_state();

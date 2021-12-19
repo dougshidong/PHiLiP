@@ -3,7 +3,7 @@
 
 #include "rol_to_dealii_vector.hpp"
 
-#include "ode_solver/ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 
 #include <Epetra_RowMatrixTransposer.h>
 
@@ -145,7 +145,7 @@ void FlowConstraints<dim>
 
     dg->output_results_vtk(i_out++);
     ffd.output_ffd_vtu(i_out);
-    std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver_1 = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver_1 = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
     ode_solver_1->steady_state();
 
     dg->assemble_residual();

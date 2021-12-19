@@ -22,6 +22,8 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim>
         return std::make_unique< PhysicsPostprocessor<dim,1> >(parameters_input);
     } else if (pde_type == PDE_enum::burgers_inviscid) {
         return std::make_unique< PhysicsPostprocessor<dim,dim> >(parameters_input);
+    } else if (pde_type == PDE_enum::burgers_rewienski) {
+        return std::make_unique< PhysicsPostprocessor<dim,dim> >(parameters_input);
     } else if (pde_type == PDE_enum::euler) {
         return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);
     } else if (pde_type == PDE_enum::navier_stokes) {

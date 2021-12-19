@@ -414,33 +414,5 @@ template class L2Roe<PHILIP_DIM, PHILIP_DIM+2, RadType >;
 template class L2Roe<PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class L2Roe<PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 
-#if 0
-template class CentralFlux<PHILIP_DIM, 1, double>;
-template class CentralFlux<PHILIP_DIM, 2, double>;
-template class CentralFlux<PHILIP_DIM, 3, double>;
-template class CentralFlux<PHILIP_DIM, 4, double>;
-template class CentralFlux<PHILIP_DIM, 5, double>;
-template class CentralFlux<PHILIP_DIM, 1, FadType >;
-template class CentralFlux<PHILIP_DIM, 2, FadType >;
-template class CentralFlux<PHILIP_DIM, 3, FadType >;
-template class CentralFlux<PHILIP_DIM, 4, FadType >;
-template class CentralFlux<PHILIP_DIM, 5, FadType >;
-template class CentralFlux<PHILIP_DIM, 1, RadType >;
-template class CentralFlux<PHILIP_DIM, 2, RadType >;
-template class CentralFlux<PHILIP_DIM, 3, RadType >;
-template class CentralFlux<PHILIP_DIM, 4, RadType >;
-template class CentralFlux<PHILIP_DIM, 5, RadType >;
-template class CentralFlux<PHILIP_DIM, 1, FadFadType >;
-template class CentralFlux<PHILIP_DIM, 2, FadFadType >;
-template class CentralFlux<PHILIP_DIM, 3, FadFadType >;
-template class CentralFlux<PHILIP_DIM, 4, FadFadType >;
-template class CentralFlux<PHILIP_DIM, 5, FadFadType >;
-template class CentralFlux<PHILIP_DIM, 1, RadFadType >;
-template class CentralFlux<PHILIP_DIM, 2, RadFadType >;
-template class CentralFlux<PHILIP_DIM, 3, RadFadType >;
-template class CentralFlux<PHILIP_DIM, 4, RadFadType >;
-template class CentralFlux<PHILIP_DIM, 5, RadFadType >;
-#endif
-
 } // NumericalFlux namespace
 } // PHiLiP namespace

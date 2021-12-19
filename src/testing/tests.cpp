@@ -26,6 +26,9 @@
 #include "euler_naca0012_optimization.hpp"
 #include "shock_1d.h"
 #include "euler_naca0012.hpp"
+#include "burgers_rewienski_snapshot.h"
+#include "reduced_order.h"
+#include "convection_diffusion_explicit_periodic.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -108,8 +111,10 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
     } else if(test_type == Test_enum::diffusion_exact_adjoint) {
         if constexpr (dim>=1 && nstate==1) return std::make_unique<DiffusionExactAdjoint<dim,nstate>>(parameters_input);
     } else if (test_type == Test_enum::advection_periodicity){
-       // if constexpr (dim == 2 && nstate == 1) return std::make_unique<AdvectionPeriodic<dim,nstate>> (parameters_input);
-        if constexpr (dim == 3 && nstate == 1) return std::make_unique<AdvectionPeriodic<dim,nstate>> (parameters_input);
+        if constexpr (dim == 2 && nstate == 1) return std::make_unique<AdvectionPeriodic<dim,nstate>> (parameters_input);
+        //if constexpr (nstate == 1) return std::make_unique<AdvectionPeriodic<dim,nstate>> (parameters_input);
+    } else if (test_type == Test_enum::convection_diffusion_periodicity){
+        if constexpr (nstate == 1) return std::make_unique<ConvectionDiffusionPeriodic<dim,nstate>> (parameters_input);
     } else if(test_type == Test_enum::euler_gaussian_bump) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerGaussianBump<dim,nstate>>(parameters_input);
     // } else if(test_type == Test_enum::euler_gaussian_bump_adjoint){
@@ -132,6 +137,10 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerNACAOptimization<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::shock_1d) {
         if constexpr (dim==1 && nstate==1) return std::make_unique<Shock1D<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::reduced_order) {
+        if constexpr (dim==1 && nstate==1) return std::make_unique<ReducedOrder<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::burgers_rewienski_snapshot) {
+        if constexpr (dim==1 && nstate==1) return std::make_unique<BurgersRewienskiSnapshot<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_naca0012) {
         if constexpr (dim==2 && nstate==4) return std::make_unique<EulerNACA0012<dim,nstate>>(parameters_input);
     } else{

@@ -1,0 +1,4 @@
+set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
+
+configure_file(snapshot_generator.sh snapshot_generator.sh COPYONLY)
+configure_file(1d_burgers_rewienski_snapshot.prm 1d_burgers_rewienski_snapshot.prm COPYONLY)

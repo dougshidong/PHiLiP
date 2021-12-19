@@ -234,6 +234,10 @@ public:
     /// Global inverser mass matrix
     /** Should be block diagonal where each block contains the inverse mass matrix of each cell.  */
     dealii::TrilinosWrappers::SparseMatrix global_inverse_mass_matrix;
+
+    /// Global inverse of the auxiliary mass matrix
+    std::array<dealii::TrilinosWrappers::SparseMatrix,dim> global_inverse_mass_matrix_auxiliary;
+
     /// System matrix corresponding to the derivative of the right_hand_side with
     /// respect to the solution
     dealii::TrilinosWrappers::SparseMatrix system_matrix;
@@ -303,6 +307,12 @@ public:
      *  and has write-access to all locally_owned_dofs
      */
     dealii::LinearAlgebra::distributed::Vector<double> solution;
+
+    ///The auxiliary equations' right hand sides.
+    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> auxiliary_RHS;
+
+    ///The auxiliary equations' solution.
+    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> auxiliary_solution;
 private:
     /// Modal coefficients of the solution used to compute dRdW last
     /// Will be used to avoid recomputing dRdW.
@@ -510,8 +520,8 @@ public:
 
     /// Operators base that will provide the Operators
     OPERATOR::OperatorBase<dim,real> operators;
-   // std::shared_ptr<OPERATOR::OperatorBase<dim,nstate,real>> operators;
-    void set_current_time(const real current_time);//set the current time
+    /// Sets the current time within DG to be used for unsteady source terms.
+    void set_current_time(const real current_time);
 
 protected:
     ///The current time for explicit solves
@@ -629,6 +639,13 @@ protected:
     const dealii::UpdateFlags neighbor_face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values;
 
 
+public:
+    ///To allocate the auxiliary equation, primarily for Strong form diffusive.
+    virtual void allocate_auxiliary_equation ()=0;
+
+    ///Asembles the auxiliary equations' residuals and solves.
+    virtual void assemble_auxiliary_residual ()=0;
+ 
 
 protected:
     MPI_Comm mpi_communicator; ///< MPI communicator
@@ -646,6 +663,7 @@ private:
         const int iface,
         const dealii::hp::FECollection<dim> fe_collection) const;
 
+protected:
     /// In the case that two cells have the same coarseness, this function decides if the current cell should perform the work.
     /** In the case the neighbor is a ghost cell, we let the processor with the lower rank do the work on that face.
      *  We cannot use the cell->index() because the index is relative to the distributed triangulation.
@@ -657,6 +675,7 @@ private:
     template<typename DoFCellAccessorType1, typename DoFCellAccessorType2>
     bool current_cell_should_do_the_work (const DoFCellAccessorType1 &current_cell, const DoFCellAccessorType2 &neighbor_cell) const;
 
+private:
     /// Used in the delegated constructor
     /** The main reason we use this weird function is because all of the above objects
      *  need to be looped with the various p-orders. This function allows us to do this in a

@@ -477,7 +477,7 @@ private:
 };
 
 
-/// Sum of Alex functions manufactured solution
+/// Sum of Alex functions manufactured solution (was used in Manufactured Solution presentation).
 template <int dim, typename real>
 class ManufacturedSolutionAlex
     : public ManufacturedSolutionFunction<dim, real>
@@ -492,13 +492,14 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::hessian;
 public:
+    ///Constructor
     ManufacturedSolutionAlex(const unsigned int nstate = 1)
         :   ManufacturedSolutionFunction<dim,real>(nstate){}
-
+    /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Gradient
     dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
+    /// Hessian
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 

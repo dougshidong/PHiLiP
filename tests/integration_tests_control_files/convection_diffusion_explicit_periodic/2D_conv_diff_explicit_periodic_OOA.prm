@@ -1,0 +1,57 @@
+# -------------------
+
+set test_type = convection_diffusion_periodicity
+
+# Number of dimensions
+set dimension = 2
+
+set use_weak_form = false
+
+set overintegration = 0
+
+set rk_order = 4
+
+set use_collocated_nodes = false
+
+set use_split_form = false
+
+set use_curvilinear_split_form = false
+
+set use_weight_adjusted_mass = false
+
+set use_periodic_bc = true
+
+set use_energy = false
+
+set flux_reconstruction = cPlus
+
+set flux_reconstruction_aux = kPlus
+
+set use_classical_FR = false
+
+# The PDE we want to solve
+set pde_type = diffusion
+
+set conv_num_flux = lax_friedrichs
+#set conv_num_flux = central_flux
+
+subsection ODE solver
+
+  set ode_output = verbose
+  
+#  set nonlinear_max_iterations = 500
+  set nonlinear_max_iterations = 50000
+  set nonlinear_steady_residual_tolerance = 1e-12
+
+  set print_iteration_modulo = 100
+ # set print_iteration_modulo = 1
+
+  set ode_solver_type = explicit
+
+  set initial_time_step = 0.001
+
+end
+
+subsection manufactured solution convergence study
+  set use_manufactured_source_term = true
+end

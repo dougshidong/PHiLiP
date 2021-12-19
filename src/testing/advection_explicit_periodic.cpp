@@ -563,10 +563,10 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 printf("starting test\n");
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
 
-    const unsigned int n_grids = 4;
-    std::array<double,n_grids> grid_size;
-    std::array<double,n_grids> soln_error;
-    std::array<double,n_grids> soln_error_inf;
+    const unsigned int n_grids = (all_parameters_new.use_energy) ? 4 : 5;
+    std::vector<double> grid_size(n_grids);
+    std::vector<double> soln_error(n_grids);
+    std::vector<double> soln_error_inf(n_grids);
    // std::array<double,n_grids> output_error;
     using ADtype = double;
     using ADArray = std::array<ADtype,nstate>;
@@ -581,8 +581,8 @@ printf("starting test\n");
 #endif
 	//double left = 0.0;
 //	double right = 2.0;
-//	const double left = -1.0;
-	const double left = 0.0;
+	const double left = -1.0;
+	//const double left = 0.0;
 	const double right = 1.0;
 	//double left = -5.0;
 	//double right = 5.0;
@@ -597,7 +597,7 @@ printf("starting test\n");
 //	dealii::GridGenerator::hyper_cube(grid, left, right, colorize);
 
         dealii::ConvergenceTable convergence_table;
-        const unsigned int igrid_start = 3;
+        const unsigned int igrid_start = (all_parameters_new.use_energy) ? 3 : 3;
 printf("NEW GRID\n");
 fflush(stdout);
 
@@ -678,6 +678,7 @@ dealii::GridTools::transform (&warp, *grid);
     all_parameters_new.ode_solver_param.initial_time_step =  delta_x /(1.0*(2.0*poly_degree+1)) ;
    // all_parameters_new.ode_solver_param.initial_time_step =  0.25*delta_x;
     all_parameters_new.ode_solver_param.initial_time_step =  0.5*delta_x;
+    all_parameters_new.ode_solver_param.initial_time_step =  (all_parameters_new.use_energy) ? 0.05*delta_x : 0.5*delta_x;
   //  all_parameters_new.ode_solver_param.initial_time_step =  0.001;
    // all_parameters_new.ode_solver_param.initial_time_step =  0.8*delta_x;
    // all_parameters_new.ode_solver_param.initial_time_step =  0.25*delta_x;
@@ -865,7 +866,7 @@ dealii::GridTools::transform (&warp, *grid);
 
 
 	// Create ODE solver using the factory and providing the DG object
-	std::shared_ptr<PHiLiP::ODE::ODESolver<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+	std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
 	double finalTime = 1.5;
 finalTime = 10.0;
@@ -893,15 +894,6 @@ finalTime = 10.0;
 	double initial_conservation = compute_conservation(dg, poly_degree);
 //printf("initial energy %g\n",initial_energy);
 
-	//currently the only way to calculate energy at each time-step is to advance solution by dt instead of finaltime
-	//this causes some issues with outputs (only one file is output, which is overwritten at each time step)
-	//also the ode solver output doesn't make sense (says "iteration 1 out of 1")
-	//but it works. I'll keep it for now and need to modify the output functions later to account for this.
-	//std::ofstream myfile ("energy_plot_Cplus_p3_central_curv_adv_skew_deirv.gpl" , std::ios::trunc);
-	//std::ofstream myfile ("energy_plot_10_seconds_upwind_flux_curv_grid_cPlus_p3_curv_normal.gpl" , std::ios::trunc);
-//	std::ofstream myfile ("energy_plot_10_seconds_central_flux_curv_grid_cHU_2D_p4_dt05_L2.gpl" , std::ios::trunc);
-//	std::ofstream myfile ("energy_plot_10_seconds_central_flux_curv_grid_cPlus_2D_p3_dt05_L2_new.gpl" , std::ios::trunc);
-	//std::ofstream myfile ("energy_plot_c012D_p3_verification_2D_dt.gpl" , std::ios::trunc);
 	std::ofstream myfile ("energy_plot.gpl" , std::ios::trunc);
 
         ode_solver->current_iteration = 0;
@@ -915,7 +907,7 @@ finalTime = 10.0;
                 std::cout << std::setprecision(16) << std::fixed;
 		pcout << "Energy at time " << i * dt << " is " << current_energy<< std::endl;
 		myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_energy << std::endl;
-		if (current_energy*initial_energy - initial_energy >= 10.00)
+		if (current_energy*initial_energy - initial_energy >= 1.00)//since normalized by initial
 		//if (current_energy - initial_energy >= 10.00)
 		{
                     pcout << " Energy was not monotonically decreasing" << std::endl;
@@ -944,7 +936,8 @@ finalTime = 10.0;
         }
         else{//do OOA
             if(left==-1){
-                finalTime = 2.0;
+               // finalTime = 2.0;
+                finalTime = 0.5;
             }
             if(left==0){
                 finalTime=1.0;
@@ -957,7 +950,7 @@ finalTime = 10.0;
           //  finalTime = all_parameters_new.ode_solver_param.initial_time_step;
           //  finalTime = 2.0*all_parameters_new.ode_solver_param.initial_time_step;
           //  finalTime = 10.0*all_parameters_new.ode_solver_param.initial_time_step;
-            finalTime = 0.0;
+           // finalTime = 0.0;
 
 pcout<<" dim "<<dim<<std::endl;
         ode_solver->current_iteration = 0;
@@ -1002,6 +995,7 @@ pcout<<" dim "<<dim<<std::endl;
             const double pi = atan(1)*4.0;
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
             double linf_error = 0.0;
+            const dealii::Tensor<1,3,double> adv_speeds = Parameters::ManufacturedSolutionParam::get_default_advection_vector();
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
 
                 if (!cell->is_locally_owned()) continue;
@@ -1029,7 +1023,8 @@ pcout<<" dim "<<dim<<std::endl;
                             uexact *= sin(2.0*pi*(qpoint[idim]-finalTime));//for grid 1-3
                         }
                         if(left==-1){
-                            uexact *= sin(pi*(qpoint[idim]-finalTime));//for grid 1-3
+                           // uexact *= sin(pi*(qpoint[idim]-finalTime));//for grid 1-3
+                            uexact *= sin(pi*(qpoint[idim]- adv_speeds[idim]*finalTime));//for grid 1-3
                         }
              //           else
               //          uexact *= sin(pi*(qpoint[idim]-0.5*finalTime));//for grid 1-3
@@ -1120,12 +1115,12 @@ pcout<<" dim "<<dim<<std::endl;
                      << "  solution_error2_inf " << soln_error_inf[igrid]
                      << "  slope " << slope_soln_err_inf
                      << std::endl;
-#if 0
-                     << "  solution_integral_error1 " << output_error[igrid-1]
-                     << "  solution_integral_error2 " << output_error[igrid]
-                     << "  slope " << slope_output_err
-                     << std::endl;
-#endif
+            
+                if(igrid == n_grids-1){
+                    if(std::abs(slope_soln_err_inf-(poly_degree+1))>0.1)
+                        return 1;
+                }            
+
             }
 
     }

@@ -404,8 +404,9 @@ public:
                                     const std::vector<dealii::DerivativeForm<2,dim,dim>> grad_Xl_grad_Xm,
                                     std::vector<dealii::FullMatrix<real>> &metric_cofactor);
 
-    ///Computes the physical gradient operator scaled by the determinant of the metric Jacobian. By default we use the skew-symmetric form for curvilinear elements. Explicitly, using \f$\mathbf{\phi}\f$ as the flux basis collocated on the volume cubature nodes, the output of the function is \f$ D_i = \frac{1}{2} \sum_{j=1}^{d}(J\frac{\partial \xi_j}{\partial x_i})\frac{\partial \phi(\mathbf{\xi}_v^r)}{\partial \xi_j}  + \frac{\partial \phi(\mathbf{\xi}_v^r)}{\partial \xi_j}\f$ 
+    ///Computes the physical gradient operator scaled by the determinant of the metric Jacobian. By default we use the skew-symmetric form for curvilinear elements. Explicitly, using \f$\mathbf{\phi}\f$ as the flux basis collocated on the volume cubature nodes, the output of the function is \f$ D_i = \frac{1}{2} \sum_{j=1}^{d}(J\frac{\partial \xi_j}{\partial x_i})\frac{\partial \phi(\mathbf{\xi}_v^r)}{\partial \xi_j}  + \frac{\partial \phi(\mathbf{\xi}_v^r)}{\partial \xi_j}\f$. Pass the option of whether to compute the conservative divergence operator or the gradient operator.
     void get_Jacobian_scaled_physical_gradient(
+                                    const bool use_conservative_divergence,
                                     const std::vector<std::vector<dealii::FullMatrix<real>>> &ref_gradient,
                                     const std::vector<dealii::FullMatrix<real>> &metric_cofactor,
                                     const unsigned int n_quad_pts,

@@ -189,8 +189,10 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
 {
     Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
 
-    const unsigned int number_of_time_steps = static_cast<int>(ceil(time_advance/ode_param.initial_time_step));
-    const double constant_time_step = time_advance/number_of_time_steps;
+   // const unsigned int number_of_time_steps = static_cast<int>(ceil(time_advance/ode_param.initial_time_step));
+    const unsigned int number_of_time_steps = (!this->all_parameters->use_energy) ? static_cast<int>(ceil(time_advance/ode_param.initial_time_step)) : this->current_iteration+1;
+   // const double constant_time_step = time_advance/number_of_time_steps;
+    const double constant_time_step = time_advance/static_cast<int>(ceil(time_advance/ode_param.initial_time_step));
 
     try {
         valid_initial_conditions();
@@ -204,7 +206,8 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
             << number_of_time_steps << " iterations of size dt=" << constant_time_step << " ... " << std::endl;
     allocate_ode_system ();
 
-    this->current_iteration = 0;
+    if(!this->all_parameters->use_energy)
+        this->current_iteration = 0;
 
     // Output initial solution
     this->dg->output_results_vtk(this->current_iteration);

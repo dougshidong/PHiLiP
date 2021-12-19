@@ -1,5 +1,5 @@
-#ifndef __CENTRAL_NUM_FLUX__
-#define __CENTRAL_NUM_FLUX__
+#ifndef __ENTROPY_CONS_NUM_FLUX__
+#define __ENTROPY_CONS_NUM_FLUX__
 
 #include <deal.II/base/tensor.h>
 #include "physics/physics.h"
@@ -8,19 +8,19 @@
 namespace PHiLiP {
 namespace NumericalFlux {
 
-/// Central numerical flux. Derived from NumericalFluxConvective.
+/// Entropy Conserving Numerica Flux currently only for Burgers' split-form 1D.
 template<int dim, int nstate, typename real>
-class CentralNumFlux: public NumericalFluxConvective<dim, nstate, real>
+class EntropyConsNumFlux: public NumericalFluxConvective<dim, nstate, real>
 {
 public:
 
 /// Constructor
-CentralNumFlux(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
+EntropyConsNumFlux(std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
 :
 pde_physics(physics_input)
 {};
 /// Destructor
-~CentralNumFlux() {};
+~EntropyConsNumFlux() {};
 
 /// Returns the convective numerical flux at an interface.
 std::array<real, nstate> evaluate_flux (

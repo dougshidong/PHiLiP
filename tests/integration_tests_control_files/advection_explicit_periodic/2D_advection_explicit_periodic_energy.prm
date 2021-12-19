@@ -19,7 +19,7 @@ set use_weight_adjusted_mass = true
 
 set use_periodic_bc = true
 
-set use_energy = false
+set use_energy = true
 
 set flux_reconstruction = cPlus
 
@@ -28,8 +28,8 @@ set use_classical_FR = false
 # The PDE we want to solve
 set pde_type = advection
 
-set conv_num_flux = lax_friedrichs
-#set conv_num_flux = central_flux
+#set conv_num_flux = lax_friedrichs
+set conv_num_flux = central_flux
 
 subsection ODE solver
 

@@ -47,23 +47,22 @@ PhysicsFactory<dim,nstate,real>
             return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(
                 false, true,
                 diffusion_tensor, advection_vector, diffusion_coefficient,
-                manufactured_solution_function);
+                manufactured_solution_function,
+                parameters_input->test_type);
     } else if (pde_type == PDE_enum::convection_diffusion) {
         if constexpr (nstate==1) 
             return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(
                 true, true,
                 diffusion_tensor, advection_vector, diffusion_coefficient,
-                manufactured_solution_function);
+                manufactured_solution_function,
+                parameters_input->test_type);
     } else if (pde_type == PDE_enum::burgers_inviscid) {
         if constexpr (nstate==dim) 
             return std::make_shared < Burgers<dim,nstate,real> >(
                 true, false,
                 diffusion_tensor, 
-                manufactured_solution_function);
-<<<<<<< HEAD
-#if 0
-=======
->>>>>>> upstream/master
+                manufactured_solution_function,
+                parameters_input->test_type);
     } else if (pde_type == PDE_enum::burgers_rewienski) {
         if constexpr (nstate==dim)
             return std::make_shared < BurgersRewienski<dim,nstate,real> >(
@@ -74,10 +73,6 @@ PhysicsFactory<dim,nstate,real>
                     false,
                     diffusion_tensor,
                     manufactured_solution_function);
-<<<<<<< HEAD
-#endif
-=======
->>>>>>> upstream/master
     } else if (pde_type == PDE_enum::euler) {
         if constexpr (nstate==dim+2) {
             return std::make_shared < Euler<dim,nstate,real> > (

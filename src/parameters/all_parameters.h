@@ -103,6 +103,9 @@ public:
     /// Number of state variables. Will depend on PDE
     int nstate;
 
+    ///For explicit timestep Runge-Kutta order.
+    int rk_order;
+
     /// Currently allows to solve advection, diffusion, convection-diffusion
     enum TestType { 
         run_control,
@@ -124,6 +127,7 @@ public:
         euler_naca0012,
         reduced_order,
         burgers_rewienski_snapshot,
+        convection_diffusion_periodicity,
         advection_periodicity,
     };
     TestType test_type; ///< Selected TestType from the input file.
@@ -164,7 +168,8 @@ public:
         roe, 
         l2roe, 
         split_form, 
-        central_flux};
+        central_flux,
+        entropy_cons_flux};
 
 
     /// Store convective flux type

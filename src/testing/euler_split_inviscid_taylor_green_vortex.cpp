@@ -249,6 +249,7 @@ pcout<<" timestep "<<all_parameters_new.ode_solver_param.initial_time_step<<std:
  std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
  std::cout << "ODE solver successfully created" << std::endl;
  double finalTime = 14.;
+ finalTime = 0.1;//to speed things up locally in tests, doesn't need full 14seconds to verify.
 // double dt = all_parameters->ode_solver_param.initial_time_step;
  double dt = all_parameters_new.ode_solver_param.initial_time_step;
 
@@ -281,7 +282,7 @@ std::cout<<" number dofs "<<
     
   pcout << "Energy at one timestep is " << initial_energy << std::endl;
 //	double initial_MK_energy = compute_MK_energy(dg, poly_degree);
- std::ofstream myfile ("kinetic_energy_plot_cplus_CLASSICAL_grid2_p3_cfl01.gpl" , std::ios::trunc);
+ std::ofstream myfile ("kinetic_energy_3D_TGV.gpl" , std::ios::trunc);
 
  for (int i = 0; i < std::ceil(finalTime/dt); ++ i)
  {
@@ -292,7 +293,7 @@ std::cout<<" number dofs "<<
   pcout << "Energy at time " << i * dt << " is " << current_energy << std::endl;
   myfile << i * dt << " " << current_energy << std::endl;
  // if (current_energy - initial_energy >= 10.00)
-  if (current_energy*initial_energy - initial_energy >= 1000.00)
+  if (current_energy*initial_energy - initial_energy >= 1.00)
     {
         pcout << " Energy was not monotonically decreasing" << std::endl;
 	return 1;

@@ -98,6 +98,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Double(1.0,1e200),
                       "Scaling of Symmetric Interior Penalty term to ensure coercivity.");
 
+    prm.declare_entry("rk_order", "3",
+                      dealii::Patterns::Integer(),
+                      "Runge-Kutta order for explicit timestep.");
+
     prm.declare_entry("test_type", "run_control",
                       dealii::Patterns::Selection(
                       " run_control | "
@@ -118,6 +122,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler_naca0012 | "
                       " reduced_order | "
                       " burgers_rewienski_snapshot |"
+                      " convection_diffusion_periodicity |"
                       " advection_periodicity"),
                       "The type of test we want to solve. "
                       "Choices are (only run control has been coded up for now)" 
@@ -139,6 +144,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_naca0012 | "
                       "  reduced_order |"
                       "  burgers_rewienski_snapshot |"
+                      " convection_diffusion_periodicity |"
                       "  advection_periodicity >.");
 
     prm.declare_entry("pde_type", "advection",
@@ -166,9 +172,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     
     prm.declare_entry("conv_num_flux", "lax_friedrichs",
 
-                      dealii::Patterns::Selection("lax_friedrichs | roe | l2roe | split_form | central_flux"),
+                      dealii::Patterns::Selection("lax_friedrichs | roe | l2roe | split_form | central_flux | entropy_conserving_flux"),
                       "Convective numerical flux. "
-                      "Choices are <lax_friedrichs | roe | l2roe | split_form | central_flux>.");
+                      "Choices are <lax_friedrichs | roe | l2roe | split_form | central_flux | entropy_conserving_flux>.");
 
 
     prm.declare_entry("diss_num_flux", "symm_internal_penalty",
@@ -213,6 +219,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "euler_vortex")                      { test_type = euler_vortex; }
     else if (test_string == "euler_entropy_waves")               { test_type = euler_entropy_waves; }
     else if (test_string == "advection_periodicity")             { test_type = advection_periodicity; }
+    else if (test_string == "convection_diffusion_periodicity")  { test_type = convection_diffusion_periodicity; }
     else if (test_string == "euler_split_taylor_green")          { test_type = euler_split_taylor_green; }
     else if (test_string == "euler_bump_optimization")           { test_type = euler_bump_optimization; }
     else if (test_string == "euler_naca_optimization")           { test_type = euler_naca_optimization; }
@@ -262,6 +269,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_classical_FR = prm.get_bool("use_classical_FR");
     add_artificial_dissipation = prm.get_bool("add_artificial_dissipation");
     sipg_penalty_factor = prm.get_double("sipg_penalty_factor");
+    rk_order = prm.get_integer("rk_order");
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
     if (conv_num_flux_string == "lax_friedrichs") conv_num_flux_type = lax_friedrichs;
@@ -270,6 +278,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     if (conv_num_flux_string == "l2roe")   conv_num_flux_type = l2roe;
     if (conv_num_flux_string == "central_flux")   conv_num_flux_type = central_flux;
+    if (conv_num_flux_string == "entropy_conserving_flux")   conv_num_flux_type = entropy_cons_flux;
 
 
     const std::string diss_num_flux_string = prm.get("diss_num_flux");

@@ -30,14 +30,15 @@ class ConvectionDiffusion : public PhysicsBase <dim, nstate, real>
 {
 protected:
     /// Linear advection velocity in x, y, and z directions.
-   // double linear_advection_velocity[3] = { 1.1, -atan(1)*4.0 / exp(1), exp(1)/(atan(1)*4.0) };
-    double linear_advection_velocity[3] = { 1.0, 1.0, exp(1)/(atan(1)*4.0) };
+    double linear_advection_velocity[3] = { 1.1, -atan(1)*4.0 / exp(1), exp(1)/(atan(1)*4.0) };
     /// Diffusion scaling coefficient in front of the diffusion tensor.
     double diffusion_scaling_coeff = 0.1*atan(1)*4.0/exp(1);
 public:
     const bool hasConvection; ///< Turns ON/OFF convection term.
 
     const bool hasDiffusion; ///< Turns ON/OFF diffusion term.
+    ///Allows convection diffusion to distinguish between different unsteady test types.
+    const Parameters::AllParameters::TestType test_type; ///< Pointer to all parameters
 
     /// Constructor
     ConvectionDiffusion (
@@ -46,12 +47,14 @@ public:
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         const dealii::Tensor<1,3,double>                          input_advection_vector = Parameters::ManufacturedSolutionParam::get_default_advection_vector(),
         const double                                              input_diffusion_coefficient = Parameters::ManufacturedSolutionParam::get_default_diffusion_coefficient(),
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr) : 
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        const Parameters::AllParameters::TestType parameters_test = Parameters::AllParameters::TestType::run_control) : 
             PhysicsBase<dim,nstate,real>(input_diffusion_tensor, manufactured_solution_function), 
             linear_advection_velocity{input_advection_vector[0], input_advection_vector[1], input_advection_vector[2]},
             diffusion_scaling_coeff(input_diffusion_coefficient),
             hasConvection(convection), 
-            hasDiffusion(diffusion)
+            hasDiffusion(diffusion),
+            test_type(parameters_test)
     {
         static_assert(nstate<=2, "Physics::ConvectionDiffusion() should be created with nstate<=2");
     };

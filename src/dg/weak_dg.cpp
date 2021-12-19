@@ -4225,6 +4225,19 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
 }
 #endif
 
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::allocate_auxiliary_equation ()
+{
+    //Do Nothing.
+}
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::assemble_auxiliary_residual ()
+{
+    //Do Nothing.
+}
+
+
 // using default MeshType = Triangulation
 // 1D: dealii::Triangulation<dim>;
 // OW: dealii::parallel::distributed::Triangulation<dim>;

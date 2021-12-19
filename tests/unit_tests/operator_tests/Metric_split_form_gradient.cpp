@@ -598,7 +598,7 @@ pcout<<"knew it"<<std::endl;
                         physical_gradient[istate][idim].reinit(n_quad_pts, n_quad_pts);    
                     }
                 }
-                operators.get_Jacobian_scaled_physical_gradient(operators.gradient_flux_basis[poly_degree], metric_cofactor, n_quad_pts, nstate, physical_gradient); 
+                operators.get_Jacobian_scaled_physical_gradient(true, operators.gradient_flux_basis[poly_degree], metric_cofactor, n_quad_pts, nstate, physical_gradient); 
 
             //interpolate solution
                 current_dofs_indices.resize(n_dofs_cell);

@@ -12,7 +12,7 @@
 #include <deal.II/grid/grid_in.h>
 #include <deal.II/base/convergence_table.h>
 
-#include "burgers_stability.h"
+#include "convection_diffusion_explicit_periodic.h"
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
 #include "dg/dg.h"
@@ -26,33 +26,33 @@ namespace PHiLiP {
 namespace Tests {
 
 template <int dim, int nstate>
-BurgersEnergyStability<dim, nstate>::BurgersEnergyStability(const PHiLiP::Parameters::AllParameters *const parameters_input)
+ConvectionDiffusionPeriodic<dim, nstate>::ConvectionDiffusionPeriodic(const PHiLiP::Parameters::AllParameters *const parameters_input)
 : TestsBase::TestsBase(parameters_input)
+, mpi_communicator(MPI_COMM_WORLD)
+, pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {}
 
 template<int dim, int nstate>
-double BurgersEnergyStability<dim, nstate>::compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const
+double ConvectionDiffusionPeriodic<dim, nstate>::compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const
 {
 	double energy = 0.0;
         dealii::LinearAlgebra::distributed::Vector<double> Mu_hat(dg->right_hand_side);
         dg->global_mass_matrix.vmult( Mu_hat, dg->solution);
         energy = dg->solution * Mu_hat;
         
-#if 0
-        dealii::LinearAlgebra::distributed::Vector<double> Mu_hat(dg->solution.size());
-        dg->global_mass_matrix.vmult( Mu_hat, dg->solution);
-
-	for (unsigned int i = 0; i < dg->solution.size(); ++i)
-	{
-            //energy += dg->global_mass_matrix(i,i) * dg->solution(i) * dg->solution(i);
-            energy +=  dg->solution(i) * Mu_hat(i);
-	}
-#endif
+        const double diff_coeff = Parameters::ManufacturedSolutionParam::get_default_diffusion_coefficient();
+        for(int idim=0; idim<dim; idim++){
+            dealii::LinearAlgebra::distributed::Vector<double> Mq_hat(dg->right_hand_side);
+            dg->global_mass_matrix.vmult( Mq_hat, dg->auxiliary_solution[idim]);
+            double temp_energy = dg->auxiliary_solution[idim] * Mq_hat;
+            energy += diff_coeff * temp_energy;
+        }
+    
 	return energy;
 }
 
 template<int dim, int nstate>
-double BurgersEnergyStability<dim, nstate>::compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg, const double poly_degree) const
+double ConvectionDiffusionPeriodic<dim, nstate>::compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg, const double poly_degree) const
 {
 	double conservation = 0.0;
        // dealii::LinearAlgebra::distributed::Vector<double> Mu_hat(dg->solution.size());
@@ -64,33 +64,14 @@ double BurgersEnergyStability<dim, nstate>::compute_conservation(std::shared_ptr
 
         const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
         const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
-        dealii::FullMatrix<double> Chi_operator(n_quad_pts, n_dofs_cell);
-        for(int istate=0; istate<nstate; istate++){
-            for (unsigned int itest=0; itest<n_dofs_cell; ++itest) {
-                for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-                    const dealii::Point<dim> qpoint  = dg->volume_quadrature_collection[poly_degree].point(iquad);
-                    Chi_operator[iquad][itest] = dg->fe_collection[poly_degree].shape_value_component(itest,qpoint,istate);
-                }
-            }
-        }
-        dealii::FullMatrix<double> Chi_inv(n_dofs_cell);
-        Chi_inv.invert(Chi_operator);
         dealii::Vector<double> ones(n_quad_pts);
         for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
             ones[iquad] = 1.0;
         }
         dealii::Vector<double> ones_hat(n_dofs_cell);
-        Chi_inv.vmult(ones_hat, ones);
+        dg->operators.vol_projection_operator[poly_degree].vmult(ones_hat, ones);
 
         dealii::LinearAlgebra::distributed::Vector<double> ones_hat_global(dg->right_hand_side);
-#if 0
-        const unsigned int number_cells = dg->right_hand_side.size() / n_dofs_cell;
-        for( unsigned int cell = 0; cell<number_cells; cell++){
-            for(unsigned int i= cell * n_dofs_cell, j=0; i< (cell+1) * n_dofs_cell && j<n_dofs_cell; i++, j++){
-                ones_hat_global[i] = ones_hat[j];
-            }
-        }
-#endif
         std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
         for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
             if (!cell->is_locally_owned()) continue;
@@ -102,13 +83,21 @@ double BurgersEnergyStability<dim, nstate>::compute_conservation(std::shared_ptr
 
         conservation = ones_hat_global * Mu_hat;
 
+        const double diff_coeff = Parameters::ManufacturedSolutionParam::get_default_diffusion_coefficient();
+        for(int idim=0; idim<dim; idim++){
+            dealii::LinearAlgebra::distributed::Vector<double> Mq_hat(dg->right_hand_side);
+            dg->global_mass_matrix.vmult( Mq_hat, dg->auxiliary_solution[idim]);
+            double temp_conservation = ones_hat_global * Mq_hat;
+            conservation += diff_coeff * temp_conservation;
+        }
+
 	return conservation;
 }
 
 
 template<int dim, int nstate>
-void BurgersEnergyStability<dim, nstate>::initialize(PHiLiP::DGBase<dim, double>  &dg,
-                                                    const PHiLiP::Parameters::AllParameters &all_parameters_new) const
+void ConvectionDiffusionPeriodic<dim, nstate>::initialize(PHiLiP::DGBase<dim, double>  &dg,
+                                                    const PHiLiP::Parameters::AllParameters &/*all_parameters_new*/) const
 {
 	pcout << "Implement initial conditions" << std::endl;
 //	dealii::FunctionParser<dim> initial_condition;
@@ -120,55 +109,33 @@ void BurgersEnergyStability<dim, nstate>::initialize(PHiLiP::DGBase<dim, double>
 	    variables = "x,y";
         if (dim == 1)
 	    variables = "x";
-	//std::string variables = "x";
 	std::map<std::string,double> constants;
 	constants["pi"] = dealii::numbers::PI;
 //	std::string expression;
 	std::vector<std::string> expression;
         if (dim == 3){
-            for(int idim=0; idim<dim; idim++)
-                expression.push_back("sin(pi*(x))*sin(pi*y)*sin(pi*z) + 0.01");
-#if 0
-	    expression[0]= "sin(pi*(x))*sin(pi*y)*sin(pi*z) + 0.01";
-	    expression[1]= "sin(pi*(x))*sin(pi*y)*sin(pi*z) + 0.01";
-	    expression[2] = "sin(pi*(x))*sin(pi*y)*sin(pi*z) + 0.01";
-#endif
+            expression.push_back("sin(pi*(x))*sin(pi*y)*sin(pi*z)");
         }
         if (dim == 2){
-            for(int idim=0; idim<dim; idim++)
-                expression.push_back("sin(pi*(x))*sin(pi*y) + 0.01");
-#if 0
-	    expression[0] = "sin(pi*(x))*sin(pi*y) + 0.01";
-	    expression[1] = "sin(pi*(x))*sin(pi*y) + 0.01";
-#endif
+            expression.push_back("sin(pi*(x))*sin(pi*y)");
         }
         if(dim==1){
-            //expression.push_back("sin(pi*(x)) + 0.01");
-            if (all_parameters_new.use_energy){//for split form get energy
-                expression.push_back("sin(pi*(x)) + 0.01");
-            } else {
-                expression.push_back("cos(pi*(x))");
-            }
-	  //  expression[0] = "sin(pi*(x)) + 0.01";
+            expression.push_back("sin(pi*(x))");
         }
 	initial_condition.initialize(variables,
 	                             expression,
 	                             constants);
-//	dealii::VectorTools::interpolate(dg.dof_handler,initial_condition,dg.solution);
-//#if 0
         dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
         solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
 	dealii::VectorTools::interpolate(dg.dof_handler,initial_condition,solution_no_ghost);
         dg.solution = solution_no_ghost;
-//#endif
 
 }
 
 template <int dim, int nstate>
-int BurgersEnergyStability<dim, nstate>::run_test() const
+int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
 {
-    pcout << " Running Burgers energy stability. " << std::endl;
-//	dealii::Triangulation<dim> grid;
+    pcout << " Running Convection Diffusion Periodicity test. " << std::endl;
 
         PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;  
 	double left = 0.0;
@@ -176,12 +143,11 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
 	const unsigned int n_grids = (all_parameters_new.use_energy) ? 4 : 5;
         std::vector<double> grid_size(n_grids);
         std::vector<double> soln_error(n_grids);
-	unsigned int poly_degree = 4;
+	unsigned int poly_degree = 3;
         dealii::ConvergenceTable convergence_table;
         const unsigned int igrid_start = (all_parameters_new.use_energy) ? 3 : 3;
         const unsigned int grid_degree = 1;
 
-//        const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids_input);
         for(unsigned int igrid = igrid_start; igrid<n_grids; igrid++){
 
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
@@ -200,21 +166,6 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
 #endif
 //straight
     dealii::GridGenerator::hyper_cube(*grid, left, right, true);
-    //dealii::GridGenerator::subdivided_hyper_cube(grid,static_cast<int>(pow(2, igrid)),left, right);
-      //  dealii::GridGenerator::subdivided_hyper_cube(grid_super_fine, n_1d_cells[n_grids_input-1]);
-//curvilinear
-#if 0
-const dealii::Point<dim> center1(-1,1);
-const dealii::SphericalManifold<dim> m0(center1);
-dealii::GridGenerator::hyper_cube (grid, left, right, colorize);
-grid.set_manifold(0, m0);
-const dealii::Point<dim> center2(1,1);
-const dealii::SphericalManifold<dim> m02(center2);
-grid.set_manifold(1, m02);
-for(int idim=0; idim<dim; idim++){
-grid.set_all_manifold_ids_on_boundary(2*(idim -1),2*(idim-1));
-grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
-#endif
 #if PHILIP_DIM==1
 #else
 	std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::parallel::distributed::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
@@ -232,9 +183,12 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
     double n_dofs_cfl = pow(n_global_active_cells2,dim) * pow(poly_degree+1.0, dim);
     double delta_x = (right-left)/pow(n_dofs_cfl,(1.0/dim)); 
     all_parameters_new.ode_solver_param.initial_time_step =  0.00005*delta_x;
-   // all_parameters_new.ode_solver_param.initial_time_step =  0.05*delta_x;
-    all_parameters_new.ode_solver_param.initial_time_step =  0.0001;
-   // all_parameters_new.ode_solver_param.initial_time_step =  0.00005;
+           // const double diff_coeff2 = 0.1*atan(1)*4.0/exp(1); 
+            const double diff_coeff2 = 0.1*atan(1)*4.0/exp(1) * 20; 
+    all_parameters_new.ode_solver_param.initial_time_step =  0.5*pow(delta_x,2)/diff_coeff2;
+   // all_parameters_new.ode_solver_param.initial_time_step =  0.005*pow(delta_x,2)/diff_coeff2;
+  //  all_parameters_new.ode_solver_param.initial_time_step =  0.0001;
+   // all_parameters_new.ode_solver_param.initial_time_step =  0.00000005;
     //all_parameters_new.ode_solver_param.initial_time_step =  0.001;
     //all_parameters_new.ode_solver_param.initial_time_step =  0.00001;
   //  if(igrid ==6 )
@@ -249,46 +203,19 @@ grid.set_all_manifold_ids_on_boundary(2*(idim -1)+1,2*(idim-1)+1);
 	pcout << "dg created" <<std::endl;
 	dg->allocate_system ();
 
-       // initialize(*(dg));
         initialize(*(dg), all_parameters_new);
-    #if 0
-	pcout << "Implement initial conditions" << std::endl;
-	dealii::FunctionParser<dim> initial_condition;
-	std::string variables;
-        if (dim == 3)
-	    variables = "x,y,z";
-        if (dim == 2)
-	    variables = "x,y";
-        if (dim == 1)
-	    variables = "x";
-	//std::string variables = "x";
-	std::map<std::string,double> constants;
-	constants["pi"] = dealii::numbers::PI;
-	std::string expression;
-        if (dim == 3)
-	    expression = "sin(pi*(x))*sin(pi*y)*sin(pi*z) + 0.01";
-        if (dim == 2)
-	    expression = "sin(pi*(x))*sin(pi*y) + 0.01";
-        if(dim==1)
-	    expression = "sin(pi*(x)) + 0.01";
-	initial_condition.initialize(variables,
-	                             expression,
-	                             constants);
-//	dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
-	dealii::VectorTools::interpolate(*(dg).dof_handler,initial_condition,dg.solution);
-#endif
+
 	// Create ODE solver using the factory and providing the DG object
 //	std::shared_ptr<PHiLiP::ODE::ODESolver<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 //	std::shared_ptr<ODE::ODESolver<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-pcout<<"setup ode"<<std::endl;
 	std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-pcout<<"did setup ode"<<std::endl;
 
-	double finalTime = 3.0;
+	double finalTime = 2.0;
 //finalTime=0.1;
 
         if (all_parameters_new.use_energy == true){//for split form get energy
         //    finalTime = 10.0 * all_parameters_new.ode_solver_param.initial_time_step;
+            finalTime = 0.001;
 
 	    double dt = all_parameters_new.ode_solver_param.initial_time_step;
 
@@ -297,7 +224,7 @@ pcout<<"did setup ode"<<std::endl;
         ode_solver->current_iteration = 0;
             ode_solver->advance_solution_time(0.000001);
 	    double initial_energy = compute_energy(dg);
-	double initial_conservation = compute_conservation(dg, poly_degree);
+//	double initial_conservation = compute_conservation(dg, poly_degree);
 
 	//currently the only way to calculate energy at each time-step is to advance solution by dt instead of finaltime
 	//this causes some issues with outputs (only one file is output, which is overwritten at each time step)
@@ -322,18 +249,18 @@ pcout<<"did setup ode"<<std::endl;
 			break;
 		}
             //Conservation
-		double current_conservation = compute_conservation(dg, poly_degree);
-                current_conservation /=initial_conservation;
-                std::cout << std::setprecision(16) << std::fixed;
-		pcout << "Normalized Conservation at time " << i * dt << " is " << current_conservation<< std::endl;
-		myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_conservation << std::endl;
-		if (current_conservation*initial_conservation - initial_conservation >= 10.00)
-		//if (current_energy - initial_energy >= 10.00)
-		{
-                    pcout << "Not conserved" << std::endl;
-			return 1;
-			break;
-		}
+//		double current_conservation = compute_conservation(dg, poly_degree);
+//                current_conservation /=initial_conservation;
+//                std::cout << std::setprecision(16) << std::fixed;
+//		pcout << "Normalized Conservation at time " << i * dt << " is " << current_conservation<< std::endl;
+//		myfile << i * dt << " " << std::fixed << std::setprecision(16) << current_conservation << std::endl;
+//		if (current_conservation*initial_conservation - initial_conservation >= 10.00)
+//		//if (current_energy - initial_energy >= 10.00)
+//		{
+//                    pcout << "Not conserved" << std::endl;
+//			return 1;
+//			break;
+//		}
 	}
 	myfile.close();
 
@@ -377,13 +304,10 @@ pcout<<"did setup ode"<<std::endl;
 
         }//end of energy
         else{//do OOA
-            finalTime = 1.0;
-           // finalTime = 10.0*0.001;
-           // finalTime =3.0;
 
         //    finalTime = 10.0 * all_parameters_new.ode_solver_param.initial_time_step;
-            finalTime = all_parameters_new.ode_solver_param.initial_time_step;
-            finalTime = 0.001;
+           // finalTime = all_parameters_new.ode_solver_param.initial_time_step;
+            finalTime = 1e-3;
 
         ode_solver->current_iteration = 0;
 
@@ -400,11 +324,8 @@ pcout<<"did setup ode"<<std::endl;
 
             // Overintegrate the error to make sure there is not integration error in the error estimate
             int overintegrate = 10;
-            //dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
             dealii::QGauss<dim> quad_extra(poly_degree+1+overintegrate);
-            //dealii::MappingQ<dim,dim> mappingq(dg->max_degree+1);
             dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra, 
-           // dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->operators.fe_collection_basis[poly_degree], quad_extra, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;
@@ -414,6 +335,7 @@ pcout<<"did setup ode"<<std::endl;
             // Integrate solution error and output error
 
             const double pi = atan(1)*4.0;
+            const double diff_coeff = Parameters::ManufacturedSolutionParam::get_default_diffusion_coefficient();
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
             for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
 
@@ -432,13 +354,11 @@ pcout<<"did setup ode"<<std::endl;
 
                     for (int istate=0; istate<nstate; ++istate) {
                     const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
-                   // double uexact=0.01;
-                    double uexact=0.0;
+                    double uexact=1.0;
                     for(int idim=0; idim<dim; idim++){
-                       // uexact += sin(pi*(qpoint[idim]-finalTime));//for grid 1-3
-                        uexact += cos(pi*(qpoint[idim]-finalTime));//for grid 1-3
+                        uexact *= sin(pi*(qpoint[idim]));//for grid 1-3
                     }
-                        //uexact += 0.01;
+                        uexact *= exp(- diff_coeff * finalTime);
                         l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
                     }
                 }
@@ -517,9 +437,6 @@ pcout<<"did setup ode"<<std::endl;
 
 	return 0; //need to change
 }
-//#if PHILIP_DIM==1
-    template class BurgersEnergyStability<PHILIP_DIM,PHILIP_DIM>;
-    //template class BurgersEnergyStability<PHILIP_DIM,1>;
-//#endif
+template class ConvectionDiffusionPeriodic<PHILIP_DIM,1>;
 } // Tests namespace
 } // PHiLiP namespace

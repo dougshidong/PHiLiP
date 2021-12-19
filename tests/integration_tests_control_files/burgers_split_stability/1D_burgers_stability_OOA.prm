@@ -12,7 +12,7 @@ set use_collocated_nodes = false
 
 set use_split_form = true
 
-set use_energy = true
+set use_energy = false
 
 set use_L2_norm = false
 
@@ -26,10 +26,9 @@ set flux_reconstruction = cPlus
 
 set pde_type = burgers_inviscid
 
-#set conv_num_flux = lax_friedrichs
+set conv_num_flux = lax_friedrichs
 #set conv_num_flux = central_flux
 #set conv_num_flux = split_form
-set conv_num_flux = entropy_conserving_flux
 
 subsection ODE solver
 
@@ -46,6 +45,6 @@ subsection ODE solver
 
 end
 
-#subsection manufactured solution convergence study
-#  set use_manufactured_source_term = true
-#end
+subsection manufactured solution convergence study
+  set use_manufactured_source_term = true
+end

@@ -12,7 +12,6 @@ std::array<real, nstate> SplitFormNumFlux<dim,nstate,real>::evaluate_flux(
     const std::array<real, nstate> &soln_ext,
     const dealii::Tensor<1,dim,real> &normal_int) const
  {
- #if 0
   //std::cout << "evaluating the split form flux" <<std::endl;
   using RealArrayVector = std::array<dealii::Tensor<1,dim,real>,nstate>;
      RealArrayVector conv_phys_split_flux;
@@ -38,40 +37,6 @@ std::array<real, nstate> SplitFormNumFlux<dim,nstate,real>::evaluate_flux(
      }
     // std::cout << "about to return split num flux" <<std::endl;
      return numerical_flux_dot_n;
-#endif
-
-
-
-		//std::cout << "evaluating the split form flux" <<std::endl;
-		using RealArrayVector = std::array<dealii::Tensor<1,dim,real>,nstate>;
-    RealArrayVector conv_phys_flux_int;
-    RealArrayVector conv_phys_flux_ext;
-
-    conv_phys_flux_int = pde_physics->convective_flux (soln_int);
-    conv_phys_flux_ext = pde_physics->convective_flux (soln_ext);
-    RealArrayVector flux_avg;
-    for (int s=0; s<nstate; s++) {
-        for (int d=0; d<dim; ++d) {
-        flux_avg[s][d] = 0.5*(conv_phys_flux_int[s][d] + conv_phys_flux_ext[s][d]);
-        }
-    }
-   // RealArrayVector conv_phys_split_flux;
-
-   // conv_phys_split_flux = pde_physics->convective_numerical_split_flux (soln_int,soln_ext);
-  //  RealArrayVector flux_avg = array_average<nstate, dealii::Tensor<1,dim,real>> (conv_phys_flux_int, conv_phys_flux_ext);
-   // const real conv_max_eig = 1.0/12.0 * (soln_ext[0] - soln_int[0]);
-    // Scalar dissipation
-    std::array<real, nstate> numerical_flux_dot_n;
-    for (int s=0; s<nstate; s++) {
-        for (int d=0; d<dim; ++d) {
-            numerical_flux_dot_n[s] = flux_avg[s][d]*normal_int[d] - 1.0/12.0 * pow((soln_ext[s]-soln_int[s]),2.0);
-       // numerical_flux_dot_n[s] = conv_phys_split_flux[s]*normal_int - conv_max_eig * (soln_ext[s]-soln_int[s]);
-        }
-    }
-//#endif
-
-	    return numerical_flux_dot_n;
-
  }
 
 template class SplitFormNumFlux<PHILIP_DIM, 1, double>;

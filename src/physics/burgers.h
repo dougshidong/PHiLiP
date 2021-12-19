@@ -49,6 +49,7 @@ public:
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
        // const Parameters::AllParameters::TestType parameters_test = Parameters::AllParameters::TestType::burgers_energy_stability) : 
         const Parameters::AllParameters::TestType parameters_test = Parameters::AllParameters::TestType::run_control) : 
+        //const Parameters::AllParameters::TestType parameters_test) : 
             PhysicsBase<dim,nstate,real>(input_diffusion_tensor, manufactured_solution_function), 
             hasConvection(convection), 
             hasDiffusion(diffusion),

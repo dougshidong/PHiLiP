@@ -36,6 +36,9 @@ public:
     /// Warp grid into Gaussian bump
     static dealii::Point<dim> warp (const dealii::Point<dim> &p);
 
+    /// Returns either the order of convergence or enthalpy, depending on the test type.
+    double run_euler_gaussian_bump () const;
+
     /// Grid convergence on Euler Gaussian Bump
     /** Will run the a grid convergence test for various p
      *  on multiple grids to determine the order of convergence.
@@ -45,7 +48,7 @@ public:
      *  depending on the case (around 2p). The implementation of the boundary conditions
      *  play a large role on this adjoint consistency.
      *  
-     *  Want to see entropy go to 0.
+     *  Want to see entropy/enthalpy go to 0.
      */
     int run_test () const;
 

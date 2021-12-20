@@ -87,11 +87,11 @@ public:
 
     /// Artificial dissipative fluxes that will be differentiated ONCE in space.
     /** Stems from the Persson2006 paper on subcell shock capturing */
-    virtual std::array<dealii::Tensor<1,dim,real>,nstate> artificial_dissipative_flux (
+/*    virtual std::array<dealii::Tensor<1,dim,real>,nstate> artificial_dissipative_flux (
         const real viscosity_coefficient,
         const std::array<real,nstate> &solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
-
+*/ 
     /// Source term that does not require differentiation.
     virtual std::array<real,nstate> source_term (
         const dealii::Point<dim,real> &pos,

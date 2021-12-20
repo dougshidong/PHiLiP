@@ -2,6 +2,7 @@
 #define __PHILIP_NUMERICAL_FLUX_FACTORY__
 
 #include "physics/physics.h"
+#include "dg/artificial_dissipation.h"
 
 #include "convective_numerical_flux.hpp"
 #include "viscous_numerical_flux.hpp"
@@ -22,7 +23,7 @@ public:
     static std::unique_ptr < NumericalFluxDissipative<dim,nstate,real> >
         create_dissipative_numerical_flux
             (AllParam::DissipativeNumericalFlux diss_num_flux_type,
-            std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input);
+            std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input, std::shared_ptr<ArtificialDissipationBase<dim, nstate>>  artificial_dissipation_input);
 };
 
 

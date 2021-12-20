@@ -15,6 +15,7 @@
 #include "parameters/parameters_reduced_order.h"
 #include "parameters/parameters_grid_refinement_study.h"
 #include "parameters/parameters_grid_refinement.h"
+#include "parameters/parameters_artificial_dissipation.h"
 
 namespace PHiLiP {
 namespace Parameters {
@@ -40,6 +41,8 @@ public:
     ReducedOrderModelParam reduced_order_param;
     /// contains the parameters for grid refinement study
     GridRefinementStudyParam grid_refinement_study_param;
+    /// Contains parameters for artificial dissipation
+    ArtificialDissipationParam artificial_dissipation_param;
 
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;
@@ -88,16 +91,7 @@ public:
     //The default ESFR scheme is the Nonlinearly Stable FR where the volume is also reconstructed
     bool use_classical_FR;
 
-    /// Flag to add artificial dissipation from Persson's shock capturing paper.
-    /** This feature is currently not fully working. It dissipates the Burger's
-     *  invisid shock, but loses all the order of accuracy for the Gaussian bump.
-     */
-    bool add_artificial_dissipation;
-
     /// Scaling of Symmetric Interior Penalty term to ensure coercivity.
-    /** 
-     *  invisid shock, but loses all the order of accuracy for the Gaussian bump.
-     */
     double sipg_penalty_factor;
 
     /// Number of state variables. Will depend on PDE
@@ -113,6 +107,7 @@ public:
         burgers_energy_stability,
         diffusion_exact_adjoint,
         euler_gaussian_bump,
+        euler_gaussian_bump_enthalpy,
         euler_gaussian_bump_adjoint,
         euler_cylinder,
         euler_cylinder_adjoint,

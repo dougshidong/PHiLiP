@@ -235,6 +235,10 @@ public:
     /** Should be block diagonal where each block contains the inverse mass matrix of each cell.  */
     dealii::TrilinosWrappers::SparseMatrix global_inverse_mass_matrix;
 
+    /// Global auxiliary mass matrix. 
+    /** Note that it has a mass matrix in each dimension since theauxiliary variable is a tensor of size dim*/
+    std::array<dealii::TrilinosWrappers::SparseMatrix,dim> global_mass_matrix_auxiliary;
+
     /// Global inverse of the auxiliary mass matrix
     std::array<dealii::TrilinosWrappers::SparseMatrix,dim> global_inverse_mass_matrix_auxiliary;
 

@@ -39,6 +39,7 @@
 #include "numerical_flux/viscous_numerical_flux.hpp"
 #include "parameters/all_parameters.h"
 #include "operators/operators.h"
+#include "artificial_dissipation_factory.h"
 
 // Template specialization of MappingFEField
 //extern template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM> >;
@@ -88,6 +89,7 @@ public:
     /** This is known through the constructor parameters.
      *  DGBase cannot use nstate as a compile-time known.  */
     const unsigned int max_degree;
+
 
     /// Principal constructor that will call delegated constructor.
     /** Will initialize mapping, fe_dg, all_parameters, volume_quadrature, and face_quadrature
@@ -366,12 +368,20 @@ public:
     /// Artificial dissipation error ratio sensor in each cell.
     dealii::Vector<double> artificial_dissipation_se;
 
-    /// Discontinuity sensor based on projecting to p-1
+    /** Discontinuity sensor based on projecting to p-1 */
     template <typename real2>
     real2 discontinuity_sensor(
         const real2 diameter,
         const std::vector< real2 > &soln_coeff_high,
         const dealii::FiniteElement<dim,dim> &fe_high);
+    
+    template <typename real2>
+    /** Discontinuity sensor with 4 parameters, based on projecting to p-1. */
+    real2 discontinuity_sensor(
+        const dealii::Quadrature<dim> &volume_quadrature,
+        const std::vector< real2 > &soln_coeff_high,
+        const dealii::FiniteElement<dim,dim> &fe_high,
+        const std::vector<real2> &jac_det);
 
     /// Current optimization dual variables corresponding to the residual constraints also known as the adjoint
     /** This is used to evaluate the dot-product between the dual and the 2nd derivatives of the residual
@@ -688,7 +698,10 @@ private:
     MassiveCollectionTuple create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const;
 
 public:
+    /// Flag to freeze artificial dissipation.
     bool freeze_artificial_dissipation;
+    /// Stores maximum artificial dissipation while assembling the residual.
+    double max_artificial_dissipation_coeff;
     /// Update discontinuity sensor.
     void update_artificial_dissipation_discontinuity_sensor();
 
@@ -710,6 +723,7 @@ protected:
 
 public:
     using DGBase<dim,real,MeshType>::all_parameters; ///< Parallel std::cout that only outputs on mpi_rank==0
+    /// Number of states for the artificial dissipation class, differs for physics type.
     /// Constructor.
     DGBaseState(
         const Parameters::AllParameters *const parameters_input,
@@ -724,6 +738,8 @@ public:
     std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, real > > conv_num_flux_double;
     /// Dissipative numerical flux with real type
     std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, real > > diss_num_flux_double;
+    /// Link to Artificial dissipation class (with three dissipation types, depending on the input). 
+    std::shared_ptr <ArtificialDissipationBase<dim,nstate>> artificial_dissip;
 
     /// Contains the physics of the PDE with FadType
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, FadType > > pde_physics_fad;

@@ -2187,6 +2187,11 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
         }
         if (this->all_parameters->use_energy == true){//for split form get energy
             global_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
+            if (use_auxiliary_eq){
+                for(int idim=0; idim<dim; idim++){
+                    global_mass_matrix_auxiliary[idim].reinit(locally_owned_dofs, mass_sparsity_pattern);
+                }
+            }
         }
     } else {
         global_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
@@ -2292,6 +2297,11 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
                 }
                 if (this->all_parameters->use_energy == true){//for split form energy
                     global_mass_matrix.set (dofs_indices, local_mass_matrix);
+                    if(use_auxiliary_eq){
+                        for(int idim=0; idim<dim; idim++){
+                            global_mass_matrix_auxiliary[idim].set (dofs_indices, local_mass_matrix_aux[idim]);
+                        }                 
+                    }
                 }
             } else {
                 global_mass_matrix.set (dofs_indices, local_mass_matrix);

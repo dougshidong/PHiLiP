@@ -43,7 +43,7 @@ double ConvectionDiffusionPeriodic<dim, nstate>::compute_energy(std::shared_ptr 
         const double diff_coeff = Parameters::ManufacturedSolutionParam::get_default_diffusion_coefficient();
         for(int idim=0; idim<dim; idim++){
             dealii::LinearAlgebra::distributed::Vector<double> Mq_hat(dg->right_hand_side);
-            dg->global_mass_matrix.vmult( Mq_hat, dg->auxiliary_solution[idim]);
+            dg->global_mass_matrix_auxiliary[idim].vmult( Mq_hat, dg->auxiliary_solution[idim]);
             double temp_energy = dg->auxiliary_solution[idim] * Mq_hat;
             energy += diff_coeff * temp_energy;
         }
@@ -86,7 +86,7 @@ double ConvectionDiffusionPeriodic<dim, nstate>::compute_conservation(std::share
         const double diff_coeff = Parameters::ManufacturedSolutionParam::get_default_diffusion_coefficient();
         for(int idim=0; idim<dim; idim++){
             dealii::LinearAlgebra::distributed::Vector<double> Mq_hat(dg->right_hand_side);
-            dg->global_mass_matrix.vmult( Mq_hat, dg->auxiliary_solution[idim]);
+            dg->global_mass_matrix_auxiliary[idim].vmult( Mq_hat, dg->auxiliary_solution[idim]);
             double temp_conservation = ones_hat_global * Mq_hat;
             conservation += diff_coeff * temp_conservation;
         }

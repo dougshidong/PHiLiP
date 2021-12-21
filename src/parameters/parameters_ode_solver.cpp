@@ -90,7 +90,7 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         output_solution_vector_modulo = prm.get_integer("output_solution_vector_modulo");
         solutions_table_filename = prm.get("solutions_table_filename");
 
-        prm.enter_subsection("explict solver options");
+        prm.enter_subsection("explicit solver options");
         {
             const std::string runge_kutta_order_string = prm.get("runge_kutta_order");
             if (runge_kutta_order_string == "1") runge_kutta_order = 1;

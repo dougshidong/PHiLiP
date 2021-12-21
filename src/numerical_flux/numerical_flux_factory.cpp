@@ -39,12 +39,12 @@ std::unique_ptr< NumericalFluxDissipative<dim,nstate,real> >
 NumericalFluxFactory<dim, nstate, real>
 ::create_dissipative_numerical_flux(
     AllParam::DissipativeNumericalFlux diss_num_flux_type,
-    std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input)
+    std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input, std::shared_ptr<ArtificialDissipationBase<dim, nstate>>  artificial_dissipation_input)
 {
     if(diss_num_flux_type == AllParam::symm_internal_penalty) {
-        return std::make_unique < SymmetricInternalPenalty<dim, nstate, real> > (physics_input);
+        return std::make_unique < SymmetricInternalPenalty<dim, nstate, real> > (physics_input,artificial_dissipation_input);
     } else if(diss_num_flux_type == AllParam::bassi_rebay_2) {
-        return std::make_unique < BassiRebay2<dim, nstate, real> > (physics_input);
+        return std::make_unique < BassiRebay2<dim, nstate, real> > (physics_input,artificial_dissipation_input);
     }
 
     std::cout << "Invalid dissipative flux" << std::endl;

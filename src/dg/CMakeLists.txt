@@ -4,6 +4,8 @@ set(DG_SOURCE
     residual_sparsity_patterns.cpp
     weak_dg.cpp
     strong_dg.cpp
+    artificial_dissipation.cpp
+    artificial_dissipation_factory.cpp
     )
 
 foreach(dim RANGE 1 3)

@@ -76,10 +76,7 @@ void FlowSolver<dim,nstate>::display_flow_solver_setup(const Parameters::AllPara
     if (pde_type == PDE_enum::navier_stokes)        {pde_string = "navier_stokes";}
     pcout << "- PDE Type: " << pde_string << std::endl;
 
-    // using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
-    // const FlowCaseEnum flow_type = param->flow_solver_param.flow_case_type;
     std::string flow_type_string;
-    // if((flow_type == FlowCaseEnum::inviscid_taylor_green_vortex) || flow_type == FlowCaseEnum::viscous_taylor_green_vortex) {
     if(is_taylor_green_vortex) {
         flow_type_string = "Taylor Green Vortex";
         pcout << "- Flow Case: " << flow_type_string << std::endl;

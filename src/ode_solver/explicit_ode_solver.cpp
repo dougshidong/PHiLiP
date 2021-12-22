@@ -93,7 +93,7 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
         }
     }
     else {
-        pcout << "Invalid runge_kutta_order." << std::endl;
+        this->pcout << "Invalid runge_kutta_order." << std::endl;
         std::abort();
     }
 }

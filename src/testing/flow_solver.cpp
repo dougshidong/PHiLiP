@@ -304,23 +304,16 @@ int FlowSolver<dim,nstate>::run_test() const
     const int number_of_time_steps = std::ceil(final_time/constant_time_step);
     for (int i = 0; i < number_of_time_steps; ++i) // change to: while(ode_solver->current_time < final_time)
     {
-        pcout << " before step in time" << std::endl;
         ode_solver->step_in_time(constant_time_step,false); // for time adv (pseudotime==false)
-        ++(ode_solver->current_iteration); // for time adv -- why isnt this done inside step_in_time??
+        ++(ode_solver->current_iteration); // this should be done inside step_in_time()
 
         double current_time = ode_solver->current_time;
-        
-        pcout << " integrate_over_domain... " << std::flush;
         double current_kinetic_energy = integrate_over_domain(*dg,"kinetic_energy");
-        pcout << "done." << std::endl;
-        
         pcout << " Energy at time " << current_time << " is " << current_kinetic_energy << std::endl;
-        pcout << " - - writing to table file... " << std::flush; 
         convergence_table.add_value("time", ode_solver->current_time);
         convergence_table.add_value("kinetic_energy", current_kinetic_energy);
         std::ofstream unsteady_data_table_file(unsteady_data_table_filename);
         convergence_table.write_text(unsteady_data_table_file);
-        pcout << "done." << std::endl;      
     }
     return 0; //< to be modified -- check solution somehow
 }

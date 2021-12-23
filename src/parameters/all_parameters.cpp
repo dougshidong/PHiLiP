@@ -312,15 +312,12 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     pcout << "Parsing grid refinement study subsection..." << std::endl;
     grid_refinement_study_param.parse_parameters (prm);
 
-<<<<<<< HEAD
     pcout << "Parsing artificial dissipation subsection..." << std::endl;
     artificial_dissipation_param.parse_parameters (prm);
     
-=======
     pcout << "Parsing flow solver subsection..." << std::endl;
     flow_solver_param.parse_parameters (prm);
 
->>>>>>> Progress towards FlowSolver class and TaylorGreenVortex class -- includes InitialConditionFunction
     pcout << "Done parsing." << std::endl;
 }
 

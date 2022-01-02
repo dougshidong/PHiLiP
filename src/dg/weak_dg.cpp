@@ -2198,7 +2198,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
     //}
 #endif
 
-    check_same_coords<dim,real2>(unit_quad_pts_int, unit_quad_pts_ext, coords_coeff_int, coords_coeff_ext, fe_metric, 1e-10);
+    // Note: This should be uncommented -- currently commented since it does not consider periodic boundaries
+    //check_same_coords<dim,real2>(unit_quad_pts_int, unit_quad_pts_ext, coords_coeff_int, coords_coeff_ext, fe_metric, 1e-10);
 
     // Compute metrics
     std::vector<Tensor1D> phys_unit_normal_int(n_face_quad_pts), phys_unit_normal_ext(n_face_quad_pts);

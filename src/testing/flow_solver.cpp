@@ -311,6 +311,12 @@ int FlowSolver<dim,nstate>::run_test() const
         convergence_table.add_value("kinetic_energy", current_kinetic_energy);
         std::ofstream unsteady_data_table_file(unsteady_data_table_filename);
         convergence_table.write_text(unsteady_data_table_file);
+
+        if(std::isnan(current_kinetic_energy)) {
+            pcout << " ERROR: Kinetic energy at time " << current_time << " is nan." << std::endl;
+            pcout << "        Consider decreasing the time step / CFL number." << std::endl;
+            return 1;
+        }
     }
     return 0; //< to be modified -- check solution somehow
 }

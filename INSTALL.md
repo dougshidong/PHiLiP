@@ -74,12 +74,12 @@ The deal.II library has been setup with the following options:
 
 ## Installation of PHiLiP on Beluga cluster
 
-This section is aimed McGill's group who use Compute Canada's Beluga cluster.
+This section is aimed at McGill's group who use the Compute Canada (CC) clusters.
 
-If you are a new user on the Beluga cluster, you must configure git modules by explicitly running the following on Beluga before proceeding:
+If you are a new user on a CC cluster, you must configure git modules by explicitly running the following on the cluster before proceeding:
 ~~~~
-chmod +x configure_git_submodules_beluga.sh
-./configure_git_submodules_beluga.sh
+chmod +x configure_git_submodules_cluster.sh
+./configure_git_submodules_cluster.sh
 ~~~~
 in which the shell script runs the following commands:
 ~~~~
@@ -89,7 +89,7 @@ git config --global http.proxy ""
 git pull --recurse-submodules
 git submodule update --recursive
 ~~~~
-The deal.II library is already installed in `/project/rrg-nadaraja-ac/Libraries/dealii/install`. The required modules were installed by Bart Oldeman from Compute Canada's team through modules. Therefore, simply put the following line in your .bashrc and source it.
+For Beluga, the deal.II library is already installed in `/project/rrg-nadaraja-ac/Libraries/dealii/install`; install paths for other clusters are included in `job_compile_PHiLiP.sh`. The required modules were installed by Bart Oldeman from Compute Canada's team through modules. Therefore, simply put the following line in your .bashrc and source it.
 ~~~~
 module --force purge
 module load StdEnv/2020

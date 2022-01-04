@@ -9,6 +9,7 @@
 #SBATCH --mail-user=firstname.lastname@mail.mcgill.ca ## <-- for receiving job updates via email
 #SBATCH --mail-type=ALL                               ## <-- what kind of updates to receive by email
 
+CLUSTER_NAME="beluga" ## <-- Enter cluster name here in lowercase
 SLURM_USER="username" ## <-- Enter beluga username here
 NUM_PROCS="6"         ## WARNING: must correspond to --ntasks above
 
@@ -41,8 +42,12 @@ export METIS_DIR=$EBROOTMETIS
 export GSL_DIR=$EBROOTGSL
 export P4EST_DIR=$EBROOTP4EST
 export METIS_DIR=/cvmfs/soft.computecanada.ca/easybuild/software/2017/avx512/Compiler/intel2018.3/metis/5.1.0
-##export DEAL_II_DIR=/project/rrg-nadaraja-ac/Libraries/dealii/install
-export DEAL_II_DIR=/project/rrg-nadaraja-ac/Libraries/dealii_updated/dealii/install/install
+if [ ${CLUSTER_NAME} == "beluga" ]; then
+    ##export DEAL_II_DIR=/project/rrg-nadaraja-ac/Libraries/dealii/install
+    export DEAL_II_DIR=/project/rrg-nadaraja-ac/Libraries/dealii_updated/dealii/install/install
+elif [ ${CLUSTER_NAME} == "narval" ]; then
+    export DEAL_II_DIR=/project/def-nadaraja/Libraries/dealii_updated_reinstalled/dealii/install/install
+fi
 export GMSH_DIR=/cvmfs/soft.computecanada.ca/easybuild/software/2020/avx512/Compiler/intel2020/gmsh/4.7.0
 export OMP_NUM_THREADS=1
 

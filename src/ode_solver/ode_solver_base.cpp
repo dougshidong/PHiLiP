@@ -139,8 +139,6 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
 
         this->dg->assemble_residual ();
 
-        ++(this->current_iteration);
-
         if (ode_param.output_solution_every_x_steps > 0) {
             const bool is_output_iteration = (this->current_iteration % ode_param.output_solution_every_x_steps == 0);
             if (is_output_iteration) {
@@ -225,7 +223,6 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
 
         const bool pseudotime = false;
         step_in_time(constant_time_step, pseudotime);
-        ++(this->current_iteration);
 
         if (ode_param.output_solution_every_x_steps > 0) {
             const bool is_output_iteration = (this->current_iteration % ode_param.output_solution_every_x_steps == 0);

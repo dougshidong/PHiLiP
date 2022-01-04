@@ -96,6 +96,7 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
         this->pcout << "Invalid runge_kutta_order." << std::endl;
         std::abort();
     }
+    ++(this->current_iteration);
 }
 
 template <int dim, typename real, typename MeshType>

@@ -302,7 +302,14 @@ int FlowSolver<dim,nstate>::run_test() const
     for (int i = 0; i < number_of_time_steps; ++i) // change to: while(ode_solver->current_time < final_time)
     {
         ode_solver->step_in_time(constant_time_step,false); // for time adv (pseudotime==false)
-        ++(ode_solver->current_iteration); // this should be done inside step_in_time()
+
+        // if (ode_param.output_solution_every_x_steps > 0) {
+        //     const bool is_output_iteration = (this->current_iteration % ode_param.output_solution_every_x_steps == 0);
+        //     if (is_output_iteration) {
+        //         const int file_number = this->current_iteration / ode_param.output_solution_every_x_steps;
+        //         this->dg->output_results_vtk(file_number);
+        //     }
+        // }
 
         double current_time = ode_solver->current_time;
         double current_kinetic_energy = integrate_over_domain(*dg,"kinetic_energy");

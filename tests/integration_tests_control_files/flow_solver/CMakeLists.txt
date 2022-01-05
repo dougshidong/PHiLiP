@@ -29,20 +29,6 @@ add_test(
 # ----------------------------------------
 configure_file(viscous_taylor_green_vortex.prm viscous_taylor_green_vortex.prm COPYONLY)
 add_test(
-  NAME MPI_NP2_VISCOUS_TAYLOR_GREEN_VORTEX
-  COMMAND mpirun -np 2 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_taylor_green_vortex.prm
-  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
-# ----------------------------------------
-configure_file(viscous_taylor_green_vortex.prm viscous_taylor_green_vortex.prm COPYONLY)
-add_test(
-  NAME MPI_NP3_VISCOUS_TAYLOR_GREEN_VORTEX
-  COMMAND mpirun -np 3 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_taylor_green_vortex.prm
-  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
-# ----------------------------------------
-configure_file(viscous_taylor_green_vortex.prm viscous_taylor_green_vortex.prm COPYONLY)
-add_test(
   NAME MPI_VISCOUS_TAYLOR_GREEN_VORTEX
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_taylor_green_vortex.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}

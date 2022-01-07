@@ -193,7 +193,7 @@ int FlowSolver<dim,nstate>::run_test() const
     //----------------------------------------------------
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
     const Parameters::FlowSolverParam flow_solver_param = param.flow_solver_param;
-    const Parameters::ODESolverParam ode_solver_param = param.ode_solver_param;
+    const Parameters::ODESolverParam ode_param = param.ode_solver_param;
     // Courant-Friedrich-Lewy (CFL) number
     const double courant_friedrich_lewy_number = flow_solver_param.courant_friedrich_lewy_number;
     // - polynomial order
@@ -227,12 +227,12 @@ int FlowSolver<dim,nstate>::run_test() const
     // Spatial discretization (Discontinuous Galerkin)
     //----------------------------------------------------
     pcout << "Creating Discontinuous Galerkin object... " << std::flush;
-    // std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, poly_degree, grid_degree, grid);
+    // std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, poly_degree, grid_degree, grid);
     std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
     dg->allocate_system();
     pcout << "done." << std::endl;
     //----------------------------------------------------
-    // Time step / CFL -- constant
+    // Constant time step based on CFL number
     //----------------------------------------------------
     pcout << "Setting constant time step... " << std::flush;
     const unsigned int number_of_degrees_of_freedom = dg->dof_handler.n_dofs();
@@ -286,26 +286,31 @@ int FlowSolver<dim,nstate>::run_test() const
     {
         ode_solver->step_in_time(constant_time_step,false); // pseudotime==false
 
-        // if (ode_param.output_solution_every_x_steps > 0) {
-        //     const bool is_output_iteration = (this->current_iteration % ode_param.output_solution_every_x_steps == 0);
-        //     if (is_output_iteration) {
-        //         const int file_number = this->current_iteration / ode_param.output_solution_every_x_steps;
-        //         this->dg->output_results_vtk(file_number);
-        //     }
-        // }
-
-        double current_time = ode_solver->current_time;
-        double current_kinetic_energy = integrate_over_domain(*dg,"kinetic_energy");
+        // Compute kinetic energy at current time
+        const double current_time = ode_solver->current_time;
+        const double current_kinetic_energy = integrate_over_domain(*dg,"kinetic_energy");
         pcout << " Energy at time " << current_time << " is " << current_kinetic_energy << std::endl;
-        convergence_table.add_value("time", ode_solver->current_time);
+        convergence_table.add_value("time", current_time);
         convergence_table.add_value("kinetic_energy", current_kinetic_energy);
         std::ofstream unsteady_data_table_file(unsteady_data_table_filename);
         convergence_table.write_text(unsteady_data_table_file);
 
+        // Fail if energy is nan
         if(std::isnan(current_kinetic_energy)) {
             pcout << " ERROR: Kinetic energy at time " << current_time << " is nan." << std::endl;
             pcout << "        Consider decreasing the time step / CFL number." << std::endl;
             return 1;
+        }
+
+        // Output vtk solution files for post-processing in Paraview
+        const int current_iteration = ode_solver->current_iteration;
+        if (ode_param.output_solution_every_x_steps > 0) {
+            const bool is_output_iteration = (current_iteration % ode_param.output_solution_every_x_steps == 0);
+            if (is_output_iteration) {
+                pcout << "  ... Writing vtk solution file ..." << std::endl;
+                const int file_number = current_iteration / ode_param.output_solution_every_x_steps;
+                dg->output_results_vtk(file_number);
+            }
         }
     }
     return 0; //< to be modified -- check solution somehow

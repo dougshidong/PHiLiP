@@ -1,18 +1,8 @@
 // for the grid:
 #include "grid_refinement_study.h"
-// which includes:
-// #include "tests.h"
-// -- which includes:
-// -- // #include "parameters/all_parameters.h"
-// -- // #include <deal.II/grid/tria.h>
-// -- // #include <deal.II/base/conditional_ostream.h>
-// #include "dg/dg.h"
-// #include "physics/physics.h"
-// #include "parameters/all_parameters.h"
-// #include "grid_refinement/gnu_out.h"
-// TO DO: Clean up the #includes
+
 // for the actual test:
-#include "flow_solver.h" // which includes all required for InitialConditionFunction
+#include "flow_solver.h" // includes all required for InitialConditionFunction
 #include "initial_condition.h"
 
 #include <deal.II/base/function.h>
@@ -54,7 +44,7 @@ FlowSolver<dim, nstate>::FlowSolver(const PHiLiP::Parameters::AllParameters *con
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     const FlowCaseEnum flow_type = parameters_input->flow_solver_param.flow_case_type;
 
-    // flow case identifiers
+    // Flow case identifiers
     is_taylor_green_vortex = ((flow_type == FlowCaseEnum::inviscid_taylor_green_vortex) || (flow_type == FlowCaseEnum::viscous_taylor_green_vortex));
 
     // Assign the domain boundaries, domain volume, and grid type for each flow case
@@ -175,7 +165,6 @@ double FlowSolver<dim, nstate>::integrate_over_domain(DGBase<dim, double> &dg,co
 
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
-            // TO DO: get solution vector at point q (conservative solution) -- move to a separate function? "get_soln_at_q_from_dg()" ?
             std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
             for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
                 const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
@@ -238,17 +227,15 @@ int FlowSolver<dim,nstate>::run_test() const
     // Spatial discretization (Discontinuous Galerkin)
     //----------------------------------------------------
     pcout << "Creating Discontinuous Galerkin object... " << std::flush;
-    // std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+    // std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, poly_degree, grid_degree, grid);
     std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
     dg->allocate_system();
     pcout << "done." << std::endl;
     //----------------------------------------------------
-    // Time step / CFL -- constant -- TO DO: Clean up and figure out proper CFL condition and cite the reference/source in the code
+    // Time step / CFL -- constant
     //----------------------------------------------------
     pcout << "Setting constant time step... " << std::flush;
     const unsigned int number_of_degrees_of_freedom = dg->dof_handler.n_dofs();
-    // const unsigned int number_of_elements = grid->n_global_active_cells();
-    // const int number_of_degrees_of_freedom = (poly_degree+1)*number_of_elements;
     const double approximate_grid_spacing = (domain_right-domain_left)/pow(number_of_degrees_of_freedom,(1.0/dim));
     const double constant_time_step = courant_friedrich_lewy_number * approximate_grid_spacing;
     pcout << "done." << std::endl;
@@ -281,7 +268,7 @@ int FlowSolver<dim,nstate>::run_test() const
     // On the fly post-processing / File writing
     //----------------------------------------------------
     dealii::TableHandler convergence_table;
-    std::string unsteady_data_table_filename = "tgv_kinetic_energy_vs_time_table.txt";// get_unsteady_data_baseline_filename(&param);
+    std::string unsteady_data_table_filename = "tgv_kinetic_energy_vs_time_table.txt";
     convergence_table.add_value("time", ode_solver->current_time);
     convergence_table.add_value("kinetic_energy", initial_kinetic_energy);
     convergence_table.set_precision("time", 16);
@@ -290,18 +277,14 @@ int FlowSolver<dim,nstate>::run_test() const
     convergence_table.set_scientific("kinetic_energy", true);
     std::ofstream unsteady_data_table_file(unsteady_data_table_filename);
     convergence_table.write_text(unsteady_data_table_file);
-    // write_convergence_table_to_output_file(
-    //                 error_filename_baseline,
-    //                 convergence_table,
-    //                 poly_degree);
     //----------------------------------------------------
     // Time advancement loop
     //----------------------------------------------------
     pcout << "\nPreparing to advance solution in time:" << std::endl;
-    const int number_of_time_steps = std::ceil(final_time/constant_time_step);
-    for (int i = 0; i < number_of_time_steps; ++i) // change to: while(ode_solver->current_time < final_time)
+    // const int number_of_time_steps = std::ceil(final_time/constant_time_step);
+    while(ode_solver->current_time < final_time) //for (int i = 0; i < number_of_time_steps; ++i)
     {
-        ode_solver->step_in_time(constant_time_step,false); // for time adv (pseudotime==false)
+        ode_solver->step_in_time(constant_time_step,false); // pseudotime==false
 
         // if (ode_param.output_solution_every_x_steps > 0) {
         //     const bool is_output_iteration = (this->current_iteration % ode_param.output_solution_every_x_steps == 0);

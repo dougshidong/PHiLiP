@@ -1,8 +1,8 @@
 #ifndef __INITIAL_CONDITION_H__
 #define __INITIAL_CONDITION_H__
 
-// for the initial condition function
-#include <deal.II/lac/vector.h> // TO DO: is this needed?
+// for the initial condition function:
+#include <deal.II/lac/vector.h>
 #include <deal.II/base/function.h>
 #include "parameters/all_parameters.h"
 
@@ -18,7 +18,7 @@ protected:
     using dealii::Function<dim,real>::value;
     using dealii::Function<dim,real>::gradient;
     // using dealii::Function<dim,real>::hessian;
-    // using dealii::Function<dim,real>::vector_gradient; // TO DO: is this needed?
+    // using dealii::Function<dim,real>::vector_gradient;
 public:
     const unsigned int nstate; ///< Corresponds to n_components in the dealii::Function
     /// Constructor
@@ -35,7 +35,7 @@ public:
     /// Hessian of the initial condition
     // virtual dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const = 0;
 
-    /// See dealii::Function<dim,real>::vector_gradient [TO DO: Is this necessary?]
+    /// See dealii::Function<dim,real>::vector_gradient
     // void vector_gradient (const dealii::Point<dim,real> &p,
     //                       std::vector<dealii::Tensor<1,dim, real> > &gradients) const;
 };
@@ -81,6 +81,7 @@ protected:
     /// Converts gradient from: primitive to conservative
     dealii::Tensor<1,dim,real> convert_primitive_to_conversative_gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 };
+
 /// Initial condition function factory
 template <int dim, typename real>
 class InitialConditionFactory_FlowSolver

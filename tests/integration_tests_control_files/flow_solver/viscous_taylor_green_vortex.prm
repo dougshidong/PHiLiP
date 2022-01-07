@@ -15,7 +15,7 @@ set use_periodic_bc = true
 
 # numerical fluxes
 set conv_num_flux = roe
-set diss_num_flux = bassi_rebay_2
+set diss_num_flux = symm_internal_penalty
 
 # ODE solver
 subsection ODE solver

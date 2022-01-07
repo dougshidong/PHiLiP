@@ -1,14 +1,8 @@
 #ifndef __FLOW_SOLVER_H__
 #define __FLOW_SOLVER_H__
 
-#include "initial_condition.h"
-//#include <Sacado.hpp>
-//
-//#include "physics/physics.h"
-//#include "numerical_flux/numerical_flux.h"
-// #include "parameters/all_parameters.h"
-
 // for FlowSolver class:
+#include "initial_condition.h"
 #include "tests.h"
 #include "dg/dg.h"
 #include "physics/physics.h"
@@ -34,7 +28,7 @@ public:
     std::shared_ptr< InitialConditionFunction_FlowSolver<dim,double> > initial_condition_function; ///< Initial condition function
     double domain_left; ///< Domain left-boundary value for generating the grid
     double domain_right; ///< Domain right-boundary value for generating the grid
-    double domain_volume; ///< Domain right-boundary value for generating the grid
+    double domain_volume; ///< Domain volume
     bool is_taylor_green_vortex = false; ///< Identifies if taylor green vortex case; initialized as false.
     bool is_triply_periodic_cube = false; ///< Identifies if grid is a triply periodic cube; initialized as false.
     
@@ -52,10 +46,6 @@ public:
 
     /// Runs the test (i.e. flow solver)
     int run_test () const;
-
-protected:
-    // Not used?
-    // double integrate_entropy_over_domain(DGBase<dim,double> &dg) const;
 };
 
 } // Tests namespace

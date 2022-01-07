@@ -1,9 +1,4 @@
-// #include <CoDiPack/include/codi.hpp>
-// #include <Sacado.hpp>
 #include <deal.II/base/function.h>
-// #include <deal.II/base/function.templates.h> // Needed to instantiate dealii::Function<PHILIP_DIM,Sacado::Fad::DFad<double>>
-//#include <deal.II/base/function_time.templates.h> // Needed to instantiate dealii::Function<PHILIP_DIM,Sacado::Fad::DFad<double>>
-
 #include "initial_condition.h"
 
 namespace PHiLiP {
@@ -21,8 +16,7 @@ InitialConditionFunction_TaylorGreenVortex<dim,real>
     , mach_inf(mach_inf)
     , mach_inf_sqr(mach_inf*mach_inf)
 {
-    // casting `nstate` as `int` to avoid errors
-    // static_assert(nstate==dim+2, "Tests::InitialConditionFunction_TaylorGreenVortex() should be created with nstate=dim+2");
+    // Nothing to do here yet
 }
 
 template <int dim, typename real>
@@ -86,7 +80,7 @@ template <int dim, typename real>
 inline real InitialConditionFunction_TaylorGreenVortex<dim,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
-    real value = 0.0; // could remove this
+    real value = 0.0;
     value = convert_primitive_to_conversative_value(point,istate);
     return value;
 }
@@ -231,10 +225,8 @@ InitialConditionFactory_FlowSolver<dim,real>::create_InitialConditionFunction_Fl
     return nullptr;
 }
 
-// #if PHILIP_DIM==3
-    // InitialConditionFunction
 template class InitialConditionFunction_FlowSolver <PHILIP_DIM,double>;
 template class InitialConditionFactory_FlowSolver <PHILIP_DIM,double>;
 template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM,double>;
-// #endif
+
 } // PHiLiP namespace

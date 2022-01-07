@@ -16,7 +16,6 @@
 #include "parameters/parameters_grid_refinement_study.h"
 #include "parameters/parameters_grid_refinement.h"
 #include "parameters/parameters_artificial_dissipation.h"
-
 #include "parameters/parameters_flow_solver.h"
 
 namespace PHiLiP {

@@ -8,6 +8,9 @@ set dimension = 1
 
 set pde_type  = burgers_inviscid
 
+# Note: this was added to turn off check_same_coords -- could break test since it has a function when dim==1 but was previously set to false by default i.e. it was not declared here
+set use_periodic_bc = true
+
 set conv_num_flux = lax_friedrichs
 
 subsection artificial dissipation
@@ -15,6 +18,8 @@ subsection artificial dissipation
 end
 
 subsection ODE solver
+  set ode_output = quiet
+
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations            = 1000
 

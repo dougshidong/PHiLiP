@@ -3,13 +3,10 @@
 namespace PHiLiP {
 
 template <int dim, typename real, typename MeshType>
-MeshAdaptation<dim,real,MeshType>::MeshAdaptation()//std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
+MeshAdaptation<dim,real,MeshType>::MeshAdaptation()
     : total_refinement_cycles(15)
     , current_refinement_cycle(0)
-    //, dg(dg_input)
-    {
-//        cellwise_errors.reinit(dg->high_order_grid->triangulation->n_active_cells());
-    }
+    {}
 
 template <int dim, typename real, typename MeshType>
 int MeshAdaptation<dim,real,MeshType>::adapt_mesh(std::shared_ptr< DGBase<dim, real, MeshType> > dg)

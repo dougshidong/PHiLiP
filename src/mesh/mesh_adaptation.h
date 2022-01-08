@@ -24,7 +24,7 @@ class MeshAdaptation
 public:
 
     /// Constructor to initialize the class with a pointer to DG.
-    MeshAdaptation();//std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
+    MeshAdaptation();
 
     /// Function to adapt the mesh based on input parameters.
     int adapt_mesh(std::shared_ptr< DGBase<dim, real, MeshType> > dg);

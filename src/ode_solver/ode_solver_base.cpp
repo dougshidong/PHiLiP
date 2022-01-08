@@ -11,7 +11,7 @@ ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, rea
         , mpi_communicator(MPI_COMM_WORLD)
         , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
         {
-            meshadaptation = std::make_unique<MeshAdaptation<dim,real,MeshType>>();//dg_input);
+            meshadaptation = std::make_unique<MeshAdaptation<dim,real,MeshType>>();
         }
 
 template <int dim, typename real, typename MeshType>
@@ -152,7 +152,6 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
         if (refine && this->residual_norm < 1e-5)
         {
             meshadaptation->adapt_mesh(dg);
-            //dg->refine_residual_based();
             std::cout<<"Refined"<<std::endl;
             allocate_ode_system ();
         }

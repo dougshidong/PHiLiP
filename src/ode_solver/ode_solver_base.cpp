@@ -21,9 +21,9 @@ void ODESolverBase<dim,real,MeshType>::initialize_steady_polynomial_ramping (con
     pcout << " Initializing DG with global polynomial degree = " << global_final_poly_degree << " by ramping from degree 0 ... " << std::endl;
     pcout << " ************************************************************************ " << std::endl;
 
-    refine = false;
+    meshadaptation->refine_mesh = false;
     for (unsigned int degree = 0; degree <= global_final_poly_degree; degree++) {
-        if (degree == global_final_poly_degree) refine = true;
+        if (degree == global_final_poly_degree) meshadaptation->refine_mesh = true;
         pcout << " ************************************************************************ " << std::endl;
         pcout << " Ramping degree " << degree << " until p=" << global_final_poly_degree << std::endl;
         pcout << " ************************************************************************ " << std::endl;
@@ -149,7 +149,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
             }
         }
         
-        if (refine && this->residual_norm < 1e-5)
+        if (this->residual_norm < meshadaptation->critical_residual)
         {
             meshadaptation->adapt_mesh(dg);
             std::cout<<"Refined"<<std::endl;

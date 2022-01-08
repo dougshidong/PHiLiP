@@ -38,13 +38,19 @@ public:
     /// Performs fixed fraction refinement based on refinement and coarsening fractions.
     int fixed_fraction_isotropic_refinement_and_coarsening(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
 
+    /// Variable to flag mesh refinement.
+    bool refine_mesh;
+
+    /// Residual below which mesh adaptation begins.
+    double critical_residual;
+
 protected:
     
     /// Total/maximum refinement steps to be performed while solving a problem.
     int total_refinement_cycles;
 
     /// Stores the current refinement cycle.
-    int current_refinement_cycle = 0;
+    int current_refinement_cycle;
     
     /// Stores errors in each cell
     dealii::Vector<double> cellwise_errors;

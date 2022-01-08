@@ -68,10 +68,6 @@ public:
     unsigned int current_iteration; ///< Current iteration.
 
 protected:
-    /// Hard-coded way to play around with h-adaptivity.
-    /// Not recommended to be used.
-    bool refine;
-
     /// CFL factor for (un)successful linesearches
     /** When the linesearch succeeds on its first try, double the CFL on top of
      *  the CFL ramping. If the linesearch fails and needs to look at the other direction

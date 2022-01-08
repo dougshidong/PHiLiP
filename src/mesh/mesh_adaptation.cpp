@@ -4,19 +4,25 @@ namespace PHiLiP {
 
 template <int dim, typename real, typename MeshType>
 MeshAdaptation<dim,real,MeshType>::MeshAdaptation()
-    : total_refinement_cycles(15)
+    : critical_residual(1.0e-5)
+    , total_refinement_cycles(15)
     , current_refinement_cycle(0)
     {}
 
 template <int dim, typename real, typename MeshType>
 int MeshAdaptation<dim,real,MeshType>::adapt_mesh(std::shared_ptr< DGBase<dim, real, MeshType> > dg)
 {
+    if (!refine_mesh)
+    {
+        return 0;
+    }
+
     if (total_refinement_cycles == current_refinement_cycle)
     {
         return 0;
     }
 
-
+    cellwise_errors.reinit(0);
     cellwise_errors.reinit(dg->high_order_grid->triangulation->n_active_cells());
     compute_cellwise_errors(dg);
 

@@ -2457,6 +2457,7 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     return eps;
 }
 
+/*
 template<int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::refine_residual_based()
 {
@@ -2521,7 +2522,7 @@ void DGBase<dim,real,MeshType>::refine_residual_based()
     assemble_residual ();
 
 }
-
+*/
 // No support for anisotropic mesh refinement with parallel::distributed::Triangulation
 // template<int dim, typename real>
 // void DGBase<dim,real,MeshType>::set_anisotropic_flags()

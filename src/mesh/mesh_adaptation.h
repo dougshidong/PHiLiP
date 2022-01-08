@@ -24,7 +24,7 @@ class MeshAdaptation
 public:
 
     /// Constructor to initialize the class with a pointer to DG.
-    MeshAdaptation();
+    MeshAdaptation(double critical_res_input, int total_ref_cycle, double refine_frac, double coarsen_frac);
 
     /// Function to adapt the mesh based on input parameters.
     int adapt_mesh(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
@@ -48,6 +48,12 @@ protected:
     
     /// Total/maximum refinement steps to be performed while solving a problem.
     int total_refinement_cycles;
+    
+    /// Fraction of cells to be refined in fixed-fraction refinement
+    double refinement_fraction;
+
+    /// Fraction of cells to be coarsened in fixed-fraction refinement
+    double coarsening_fraction;
 
     /// Stores the current refinement cycle.
     int current_refinement_cycle;

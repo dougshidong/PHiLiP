@@ -16,6 +16,7 @@
 #include "parameters/parameters_grid_refinement_study.h"
 #include "parameters/parameters_grid_refinement.h"
 #include "parameters/parameters_artificial_dissipation.h"
+#include "parameters/parameters_mesh_adaptation.h"
 
 namespace PHiLiP {
 namespace Parameters {
@@ -43,6 +44,8 @@ public:
     GridRefinementStudyParam grid_refinement_study_param;
     /// Contains parameters for artificial dissipation
     ArtificialDissipationParam artificial_dissipation_param;
+    /// Constains parameters for mesh adaptation
+    MeshAdaptationParam mesh_adaptation_param;
 
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;

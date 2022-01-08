@@ -11,7 +11,8 @@ set(SOURCE
     parameters_grid_refinement.cpp
     all_parameters.cpp
     parameters_reduced_order.cpp
-    parameters_artificial_dissipation.cpp)
+    parameters_artificial_dissipation.cpp
+    parameters_mesh_adaptation.cpp)
 
 # Output library
 set(ParameterLib ParametersLibrary)

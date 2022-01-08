@@ -3,9 +3,11 @@
 namespace PHiLiP {
 
 template <int dim, typename real, typename MeshType>
-MeshAdaptation<dim,real,MeshType>::MeshAdaptation()
-    : critical_residual(1.0e-5)
-    , total_refinement_cycles(15)
+MeshAdaptation<dim,real,MeshType>::MeshAdaptation(double critical_res_input, int total_ref_cycle, double refine_frac, double coarsen_frac)
+    : critical_residual(critical_res_input)
+    , total_refinement_cycles(total_ref_cycle)
+    , refinement_fraction(refine_frac)
+    , coarsening_fraction(coarsen_frac)
     , current_refinement_cycle(0)
     {}
 
@@ -28,6 +30,7 @@ int MeshAdaptation<dim,real,MeshType>::adapt_mesh(std::shared_ptr< DGBase<dim, r
 
     fixed_fraction_isotropic_refinement_and_coarsening(dg);
     current_refinement_cycle++;
+    std::cout<<"Refined"<<std::endl;
 
     return 0;
 }
@@ -80,9 +83,6 @@ int MeshAdaptation<dim,real,MeshType>::fixed_fraction_isotropic_refinement_and_c
     solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
     dg->high_order_grid->prepare_for_coarsening_and_refinement();
 
-    double refinement_fraction = 0.05;
-    double coarsening_fraction = 0.01;
- 
     if constexpr(dim == 1 || !std::is_same<MeshType, dealii::parallel::distributed::Triangulation<dim>>::value) 
     {
         dealii::GridRefinement::refine_and_coarsen_fixed_number(*(dg->high_order_grid->triangulation),

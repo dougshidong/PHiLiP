@@ -7,6 +7,7 @@
 #include <deal.II/lac/vector.h>
 #include "parameters/all_parameters.h"
 #include "dg/dg.h"
+#include "mesh/mesh_adaptation.h"
 #include <stdexcept>
 
 namespace PHiLiP {
@@ -26,10 +27,6 @@ public:
     ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input); ///< Constructor.
 
     virtual ~ODESolverBase() {}; ///< Destructor.
-
-    /// Hard-coded way to play around with h-adaptivity.
-    /// Not recommended to be used.
-    int n_refine;
 
     /// Useful for accurate time-stepping.
     /** This variable will change when advance_solution_time() or step_in_time() is called. */
@@ -93,8 +90,13 @@ protected:
      */
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;
 
+public:
     /// Smart pointer to DGBase
     std::shared_ptr<DGBase<dim,real,MeshType>> dg;
+
+protected:
+    /// Pointer to MeshAdaptation
+    std::unique_ptr<MeshAdaptation<dim,real,MeshType>> meshadaptation;
 
     /// Input parameters.
     const Parameters::AllParameters *const all_parameters;

@@ -3,40 +3,42 @@
 namespace PHiLiP {
 
 template <int dim, typename real, typename MeshType>
-MeshAdaptation<dim,real,MeshType>::MeshAdaptation(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
-    : total_refinement_cycles(5)
-    , dg(dg_input)
+MeshAdaptation<dim,real,MeshType>::MeshAdaptation()//std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
+    : total_refinement_cycles(15)
+    , current_refinement_cycle(0)
+    //, dg(dg_input)
     {
-        cellwise_errors.reinit(dg->high_order_grid->triangulation->n_active_cells());
+//        cellwise_errors.reinit(dg->high_order_grid->triangulation->n_active_cells());
     }
 
 template <int dim, typename real, typename MeshType>
-int MeshAdaptation<dim,real,MeshType>::adapt_mesh()
+int MeshAdaptation<dim,real,MeshType>::adapt_mesh(std::shared_ptr< DGBase<dim, real, MeshType> > dg)
 {
     if (total_refinement_cycles == current_refinement_cycle)
     {
         return 0;
     }
 
+
+    cellwise_errors.reinit(dg->high_order_grid->triangulation->n_active_cells());
+    compute_cellwise_errors(dg);
+
+    fixed_fraction_isotropic_refinement_and_coarsening(dg);
     current_refinement_cycle++;
 
-    compute_cellwise_errors();
-
-    fixed_fraction_isotropic_refinement_and_coarsening();
-
     return 0;
 }
 
 template <int dim, typename real, typename MeshType>
-int MeshAdaptation<dim,real,MeshType>::compute_cellwise_errors()
+int MeshAdaptation<dim,real,MeshType>::compute_cellwise_errors(std::shared_ptr< DGBase<dim, real, MeshType> > dg)
 {
-    compute_max_cellwise_residuals(); // Future extension: Error depends on parameters input (i.e. this function computes residual or goal-oriented error).
+    compute_max_cellwise_residuals(dg); // Future extension: Error depends on parameters input (i.e. this function computes residual or goal-oriented error).
     return 0;
 }
 
 
 template <int dim, typename real, typename MeshType>
-int MeshAdaptation<dim,real,MeshType>::compute_max_cellwise_residuals()
+int MeshAdaptation<dim,real,MeshType>::compute_max_cellwise_residuals(std::shared_ptr< DGBase<dim, real, MeshType> > dg)
 {
     std::vector<dealii::types::global_dof_index> dofs_indices;
     for (const auto &cell : dg->dof_handler.active_cell_iterators()) 
@@ -68,7 +70,7 @@ int MeshAdaptation<dim,real,MeshType>::compute_max_cellwise_residuals()
 
 
 template <int dim, typename real, typename MeshType>
-int MeshAdaptation<dim,real,MeshType>::fixed_fraction_isotropic_refinement_and_coarsening()
+int MeshAdaptation<dim,real,MeshType>::fixed_fraction_isotropic_refinement_and_coarsening(std::shared_ptr< DGBase<dim, real, MeshType> > dg)
 {
     dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
     dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);

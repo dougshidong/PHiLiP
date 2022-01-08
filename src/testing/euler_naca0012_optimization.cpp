@@ -531,7 +531,7 @@ int EulerNACAOptimization<dim,nstate>
         dg_target->allocate_system ();
         dealii::VectorTools::interpolate(dg_target->dof_handler, initial_conditions, dg_target->solution);
         std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_target);
-        ode_solver->n_refine = 0;
+        //ode_solver->n_refine = 0;
         ode_solver->initialize_steady_polynomial_ramping (poly_degree);
         ode_solver->steady_state();
 
@@ -550,7 +550,7 @@ int EulerNACAOptimization<dim,nstate>
     dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
     // Create ODE solver and ramp up the solution from p0
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-    ode_solver->n_refine = 0;
+    //ode_solver->n_refine = 0;
     //param.ode_solver_param.nonlinear_steady_residual_tolerance = 1e-4;
     ode_solver->initialize_steady_polynomial_ramping (poly_degree);
     // // Solve the steady state problem

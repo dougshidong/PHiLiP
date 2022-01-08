@@ -5,13 +5,14 @@ namespace ODE{
 
 template <int dim, typename real, typename MeshType>
 ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
-        : n_refine(5)
-        , current_time(0.0)
+        : current_time(0.0)
         , dg(dg_input)
         , all_parameters(dg->all_parameters)
         , mpi_communicator(MPI_COMM_WORLD)
         , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
-        {}
+        {
+            meshadaptation = std::make_unique<MeshAdaptation<dim,real,MeshType>>();//dg_input);
+        }
 
 template <int dim, typename real, typename MeshType>
 void ODESolverBase<dim,real,MeshType>::initialize_steady_polynomial_ramping (const unsigned int global_final_poly_degree)
@@ -90,7 +91,6 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
 
     double old_residual_norm = this->residual_norm; (void) old_residual_norm;
 
-    int i_refine = 0;
     // Output initial solution
     int convergence_error = this->residual_norm > ode_param.nonlinear_steady_residual_tolerance;
 
@@ -149,9 +149,10 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
             }
         }
         
-        if ( refine && this->residual_norm < 1e-5 && i_refine < n_refine) {
-            i_refine++;
-            dg->refine_residual_based();
+        if (refine && this->residual_norm < 1e-5)
+        {
+            meshadaptation->adapt_mesh(dg);
+            //dg->refine_residual_based();
             std::cout<<"Refined"<<std::endl;
             allocate_ode_system ();
         }

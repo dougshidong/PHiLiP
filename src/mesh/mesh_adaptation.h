@@ -24,19 +24,19 @@ class MeshAdaptation
 public:
 
     /// Constructor to initialize the class with a pointer to DG.
-    MeshAdaptation(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
+    MeshAdaptation();//std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
 
     /// Function to adapt the mesh based on input parameters.
-    int adapt_mesh();
+    int adapt_mesh(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
 
     /// Computes the vector containing errors in each cell.
-    int compute_cellwise_errors();
+    int compute_cellwise_errors(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
 
     /// Computes maximum residual in each cell.
-    int compute_max_cellwise_residuals();
+    int compute_max_cellwise_residuals(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
 
     /// Performs fixed fraction refinement based on refinement and coarsening fractions.
-    int fixed_fraction_isotropic_refinement_and_coarsening();
+    int fixed_fraction_isotropic_refinement_and_coarsening(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
 
 protected:
     
@@ -46,9 +46,6 @@ protected:
     /// Stores the current refinement cycle.
     int current_refinement_cycle = 0;
     
-    /// Shared pointer to DGBase.
-    std::shared_ptr<DGBase<dim,real,MeshType>> dg;
-
     /// Stores errors in each cell
     dealii::Vector<double> cellwise_errors;
 

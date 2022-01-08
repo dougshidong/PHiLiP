@@ -157,10 +157,6 @@ double FlowSolver<dim, nstate>::integrate_over_domain(DGBase<dim, double> &dg,co
     std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
     for (auto cell : dg.dof_handler.active_cell_iterators()) {
         
-        if (!cell->is_locally_owned()) continue;
-
-        fe_values_extra.reinit (cell);
-        //std::cout << "sitting on cell " << cell->index() << std::endl;
         cell->get_dof_indices (dofs_indices);
 
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {

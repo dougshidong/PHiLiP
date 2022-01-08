@@ -5,6 +5,7 @@ set(GRID_SOURCE
     gmsh_reader.cpp
     meshmover_linear_elasticity.cpp
     free_form_deformation.cpp
+    mesh_adaptation.cpp
     )
 
 foreach(dim RANGE 1 3)

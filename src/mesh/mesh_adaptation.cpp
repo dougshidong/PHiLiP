@@ -98,11 +98,17 @@ int MeshAdaptation<dim,real,MeshType>::fixed_fraction_isotropic_refinement_and_c
     
     dg->allocate_system ();
     dg->solution.zero_out_ghosts();
-    dg->solution_transfer.interpolate(dg->solution);
+    solution_transfer.interpolate(dg->solution);
     dg->solution.update_ghost_values();
     dg->assemble_residual ();
 
 
     return 0;
 }
+
+template class MeshAdaptation<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
+template class MeshAdaptation<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+#if PHILIP_DIM != 1
+template class MeshAdaptation<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#endif
 } // namespace PHiLiP

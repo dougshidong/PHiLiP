@@ -1050,6 +1050,24 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::execute_coarsen
     //}
 }
 
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+dealii::Point<dim> HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::smallest_cell_coordinates()
+{
+    dealii::Point<dim> smallest_cell_coord;
+    double min_diameter = triangulation->begin_active()->diameter();
+    for (const auto &cell : triangulation->active_cell_iterators()) 
+    {
+        if (min_diameter > cell->diameter())
+        {
+            min_diameter = cell->diameter();
+            smallest_cell_coord = cell->vertex(0);
+        }
+    }
+
+    return smallest_cell_coord;
+
+}
+
 template <typename T>
 std::vector<T> flatten(const std::vector<std::vector<T>>& v) {
     std::size_t total_size = 0;

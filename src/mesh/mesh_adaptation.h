@@ -29,6 +29,14 @@ public:
     /// Function to adapt the mesh based on input parameters.
     int adapt_mesh(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
 
+    /// Variable to flag mesh refinement.
+    bool refine_mesh;
+
+    /// Residual below which mesh adaptation begins.
+    double critical_residual;
+
+protected:
+    
     /// Computes the vector containing errors in each cell.
     int compute_cellwise_errors(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
 
@@ -38,14 +46,6 @@ public:
     /// Performs fixed fraction refinement based on refinement and coarsening fractions.
     int fixed_fraction_isotropic_refinement_and_coarsening(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
 
-    /// Variable to flag mesh refinement.
-    bool refine_mesh;
-
-    /// Residual below which mesh adaptation begins.
-    double critical_residual;
-
-protected:
-    
     /// Total/maximum refinement steps to be performed while solving a problem.
     int total_refinement_cycles;
     

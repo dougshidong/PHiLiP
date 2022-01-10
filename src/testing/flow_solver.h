@@ -16,7 +16,7 @@ namespace PHiLiP {
 namespace Tests {
 /// Selects which flow case to simulate.
 template <int dim, int nstate>
-class FlowSolver: public TestsBase
+class FlowSolver : public TestsBase
 {
 public:
     /// Constructor.

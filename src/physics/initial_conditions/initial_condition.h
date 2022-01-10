@@ -5,8 +5,42 @@
 #include <deal.II/lac/vector.h>
 #include <deal.II/base/function.h>
 #include "parameters/all_parameters.h"
+#include "../euler.h" // for FreeStreamInitialConditions
 
 namespace PHiLiP {
+
+namespace Physics {
+/// Function used to evaluate farfield conservative solution
+template <int dim, int nstate>
+class FreeStreamInitialConditions : public dealii::Function<dim>
+{
+public:
+    /// Farfield conservative solution
+    std::array<double,nstate> farfield_conservative;
+
+    /// Constructor.
+    /** Evaluates the primary farfield solution and converts it into the store farfield_conservative solution
+     */
+    FreeStreamInitialConditions (const Physics::Euler<dim,nstate,double> euler_physics)
+    : dealii::Function<dim,double>(nstate)
+    {
+        //const double density_bc = 2.33333*euler_physics.density_inf;
+        const double density_bc = euler_physics.density_inf;
+        const double pressure_bc = 1.0/(euler_physics.gam*euler_physics.mach_inf_sqr);
+        std::array<double,nstate> primitive_boundary_values;
+        primitive_boundary_values[0] = density_bc;
+        for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = euler_physics.velocities_inf[d]; }
+        primitive_boundary_values[nstate-1] = pressure_bc;
+        farfield_conservative = euler_physics.convert_primitive_to_conservative(primitive_boundary_values);
+    }
+  
+    /// Returns the istate-th farfield conservative value
+    double value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const
+    {
+        return farfield_conservative[istate];
+    }
+};
+} // Physics namespace
 
 /// Initial condition function used to initialize a particular flow setup/case
 template <int dim, typename real>

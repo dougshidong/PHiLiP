@@ -3,7 +3,6 @@
 
 // for the actual test:
 #include "flow_solver.h" // includes all required for InitialConditionFunction
-#include "initial_condition.h"
 
 #include <deal.II/base/function.h>
 

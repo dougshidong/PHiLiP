@@ -1053,18 +1053,37 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::execute_coarsen
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
 dealii::Point<dim> HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::smallest_cell_coordinates()
 {
-    dealii::Point<dim> smallest_cell_coord;
-    double min_diameter = triangulation->begin_active()->diameter();
+    const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
+    double min_diameter_local;
+    min_diameter_local = triangulation->begin_active()->diameter();
+    dealii::Point<dim> smallest_cell_coord; 
     for (const auto &cell : triangulation->active_cell_iterators()) 
     {
-        if (min_diameter > cell->diameter())
+        if ((min_diameter_local > cell->diameter()) && (cell->is_locally_owned()))
         {
-            min_diameter = cell->diameter();
+            min_diameter_local = cell->diameter();
             smallest_cell_coord = cell->vertex(0);
         }
     }
+    
+    MPI_Barrier(mpi_communicator); // wait till all processors are done
+    dealii::Utilities::MPI::MinMaxAvg minindexstore;
+    minindexstore = dealii::Utilities::MPI::min_max_avg(min_diameter_local, mpi_communicator); 
 
-    return smallest_cell_coord;
+    int n_proc_small = minindexstore.min_index; // Processor containing smallest diameter
+    dealii::Point<dim> smallest_cell_global; // Initialized with 0
+
+    if (iproc == n_proc_small)
+    {
+        smallest_cell_global = smallest_cell_coord;         
+    }
+    
+    MPI_Barrier(mpi_communicator); // wait for all processors
+
+    for (int i=0; i<dim; i++)
+        smallest_cell_global[i] = dealii::Utilities::MPI::sum(smallest_cell_global[i],mpi_communicator); // Update values in all processors
+
+    return smallest_cell_global;
 
 }
 

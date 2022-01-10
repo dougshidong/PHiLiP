@@ -8,17 +8,13 @@
 
 namespace PHiLiP {
 
-/// Initial condition function used to initialize a particular flow setup/case.
-/** This class also provides derivatives necessary to initialize the boundary gradients.
- */
+/// Initial condition function used to initialize a particular flow setup/case
 template <int dim, typename real>
 class InitialConditionFunction_FlowSolver : public dealii::Function<dim,real>
 {
 protected:
-    using dealii::Function<dim,real>::value;
-    using dealii::Function<dim,real>::gradient;
-    // using dealii::Function<dim,real>::hessian;
-    // using dealii::Function<dim,real>::vector_gradient;
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+
 public:
     const unsigned int nstate; ///< Corresponds to n_components in the dealii::Function
     /// Constructor
@@ -28,16 +24,6 @@ public:
 
     /// Value of the initial condition
     virtual real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const = 0;
-
-    /// Gradient of the initial condition
-    virtual dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const = 0;
-
-    /// Hessian of the initial condition
-    // virtual dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const = 0;
-
-    /// See dealii::Function<dim,real>::vector_gradient
-    // void vector_gradient (const dealii::Point<dim,real> &p,
-    //                       std::vector<dealii::Tensor<1,dim, real> > &gradients) const;
 };
 
 /// Initial Condition Function: Taylor Green Vortex
@@ -46,10 +32,8 @@ class InitialConditionFunction_TaylorGreenVortex
     : public InitialConditionFunction_FlowSolver<dim,real>
 {
 protected:
-    using dealii::Function<dim,real>::value;
-    using dealii::Function<dim,real>::gradient;
-    // using dealii::Function<dim,real>::hessian;
-    // using dealii::Function<dim,real>::vector_gradient;
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+
 public:
     /// Constructor for TaylorGreenVortex_InitialCondition
     /** Calls the Function(const unsigned int n_components) constructor in deal.II
@@ -69,25 +53,23 @@ public:
         
     /// Value of initial condition expressed in terms of conservative variables
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-    /// Gradient of initial condition expressed in terms of conservative variables
-    dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+
 protected:
     /// Value of initial condition expressed in terms of primitive variables
     real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
-    /// Gradient of initial condition expressed in terms of primitive variables
-    dealii::Tensor<1,dim,real> primitive_gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+    
     /// Converts value from: primitive to conservative
     real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
-    /// Converts gradient from: primitive to conservative
-    dealii::Tensor<1,dim,real> convert_primitive_to_conversative_gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 };
 
 /// Initial condition function factory
 template <int dim, typename real>
 class InitialConditionFactory_FlowSolver
 {
+protected:    
     /// Enumeration of all flow solver initial conditions types defined in the Parameters class
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
+
 public:
     /// Construct InitialConditionFunction_FlowSolver object from global parameter file
     static std::shared_ptr< InitialConditionFunction_FlowSolver<dim,real> > 

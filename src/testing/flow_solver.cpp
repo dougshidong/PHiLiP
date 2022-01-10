@@ -75,45 +75,6 @@ void FlowSolver<dim,nstate>::display_flow_solver_setup(const Parameters::AllPara
     }
 }
 
-// template <int dim, int nstate>
-// void FlowSolver<dim,nstate>
-// ::generate_grid(std::shared_ptr<dealii::parallel::distributed::Triangulation<dim>> &grid, 
-//                 const int number_of_cells_per_direction) const
-// {
-//     // TO DO: Make this work for PHILIPDIM==1 (see comment below) -- will have to template this with MeshType I think because of the input type
-//     /* Triangulation to store the grid.
-//      *  In 1D, dealii::Triangulation<dim> is used.
-//      *  In 2D, 3D, dealii::parallel::distributed::Triangulation<dim> is used.
-//      */ 
-//     /* UNCOMMENT LATER */
-
-//     // Get number of refinements
-//     const int number_of_refinements = log(number_of_cells_per_direction)/log(2);
-
-//     // Definition for each type of grid
-//     std::string grid_type_string;
-//     if(is_triply_periodic_cube) {
-//         grid_type_string = "Triply periodic cube.";
-//         const bool colorize = true;
-//         dealii::GridGenerator::hyper_cube(*grid, domain_left, domain_right, colorize);
-//         std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<PHILIP_DIM>::cell_iterator> > matched_pairs;
-//         dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
-//         dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
-//         dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs);
-//         grid->add_periodicity(matched_pairs);
-//         grid->refine_global(number_of_refinements);
-//     }
-//     // Display the information about the grid
-//     pcout << "\n- GRID INFORMATION:" << std::endl;
-//     pcout << "- - Grid type: " << grid_type_string << std::endl;
-//     pcout << "- - Domain dimensionality: " << dim << std::endl;
-//     pcout << "- - Domain left: " << domain_left << std::endl;
-//     pcout << "- - Domain right: " << domain_right << std::endl;
-//     pcout << "- - Number of cells in each direction: " << number_of_cells_per_direction << std::endl;
-//     pcout << "- - Equivalent number of refinements: " << number_of_refinements << std::endl;
-//     pcout << "- - Domain volume: " << domain_volume << std::endl;
-// }
-
 template<int dim, int nstate>
 double FlowSolver<dim,nstate>::integrand_kinetic_energy(const std::array<double,nstate> &soln_at_q) const
 {
@@ -218,7 +179,7 @@ int FlowSolver<dim,nstate>::run_test() const
     pcout << "Generating the grid... " << std::flush;
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>; // Note: Triangulation == MeshType (true for 2D and 3D)
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (this->mpi_communicator);
-    // generate_grid(grid, domain_volume, domain_left, domain_right, number_of_cells_per_direction);
+    // TO DO: should call a grid factory instead of hard coding for periodic cube
     Grids::straight_periodic_cube<dim,Triangulation>(grid, domain_left, domain_right, number_of_cells_per_direction);
     pcout << "done." << std::endl;
     //----------------------------------------------------

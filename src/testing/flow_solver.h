@@ -34,10 +34,6 @@ public:
     /// Displays the flow setup parameters
     void display_flow_solver_setup(const Parameters::AllParameters *const param) const;
 
-    /// Generates the grid for the flow case from parameters
-    // void generate_grid(std::shared_ptr<dealii::parallel::distributed::Triangulation<dim>> &grid, 
-    //                    const int number_of_cells_per_direction) const;
-
     /// Computes the kinetic energy for the TGV problem -- TO DO: Move to a seperate class?
     double integrate_over_domain(DGBase<dim, double> &dg,const std::string integrate_what) const;
     double integrand_kinetic_energy(const std::array<double,nstate> &soln_at_q) const;

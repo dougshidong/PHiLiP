@@ -25,7 +25,7 @@ public:
     /// Destructor
     ~FlowSolver() {};
 
-    std::shared_ptr< InitialConditionFunction_FlowSolver<dim,double> > initial_condition_function; ///< Initial condition function
+    std::shared_ptr< InitialConditionFunction<dim,double> > initial_condition_function; ///< Initial condition function
     double domain_left; ///< Domain left-boundary value for generating the grid
     double domain_right; ///< Domain right-boundary value for generating the grid
     double domain_volume; ///< Domain volume

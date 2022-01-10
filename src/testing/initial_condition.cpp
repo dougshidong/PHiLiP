@@ -11,7 +11,7 @@ InitialConditionFunction_TaylorGreenVortex<dim,real>
     const unsigned int nstate,
     const double       gamma_gas,
     const double       mach_inf)
-    : InitialConditionFunction_FlowSolver<dim,real>(nstate)
+    : InitialConditionFunction<dim,real>(nstate)
     , gamma_gas(gamma_gas)
     , mach_inf(mach_inf)
     , mach_inf_sqr(mach_inf*mach_inf)
@@ -89,8 +89,8 @@ inline real InitialConditionFunction_TaylorGreenVortex<dim,real>
 // FLOW SOLVER -- Initial Condition Base Class + Factory
 //=========================================================
 template <int dim, typename real>
-InitialConditionFunction_FlowSolver<dim,real>
-::InitialConditionFunction_FlowSolver (const unsigned int nstate)
+InitialConditionFunction<dim,real>
+::InitialConditionFunction (const unsigned int nstate)
     : dealii::Function<dim,real>(nstate)//,0.0) // 0.0 denotes initial time (t=0)
     , nstate(nstate)
 { 
@@ -98,8 +98,8 @@ InitialConditionFunction_FlowSolver<dim,real>
 }
 
 template <int dim, typename real>
-std::shared_ptr< InitialConditionFunction_FlowSolver<dim,real> > 
-InitialConditionFactory_FlowSolver<dim,real>::create_InitialConditionFunction_FlowSolver(
+std::shared_ptr< InitialConditionFunction<dim,real> > 
+InitialConditionFactory<dim,real>::create_InitialConditionFunction(
     Parameters::AllParameters const *const param, 
     int                                    nstate)
 {
@@ -122,8 +122,8 @@ InitialConditionFactory_FlowSolver<dim,real>::create_InitialConditionFunction_Fl
     return nullptr;
 }
 
-template class InitialConditionFunction_FlowSolver <PHILIP_DIM,double>;
-template class InitialConditionFactory_FlowSolver <PHILIP_DIM,double>;
+template class InitialConditionFunction <PHILIP_DIM,double>;
+template class InitialConditionFactory <PHILIP_DIM,double>;
 template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM,double>;
 
 } // PHiLiP namespace

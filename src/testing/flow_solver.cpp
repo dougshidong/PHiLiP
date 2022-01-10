@@ -38,7 +38,7 @@ namespace Tests {
 template <int dim, int nstate>
 FlowSolver<dim, nstate>::FlowSolver(const PHiLiP::Parameters::AllParameters *const parameters_input)
 : TestsBase::TestsBase(parameters_input)
-, initial_condition_function(InitialConditionFactory_FlowSolver<dim,double>::create_InitialConditionFunction_FlowSolver(parameters_input, nstate))
+, initial_condition_function(InitialConditionFactory<dim,double>::create_InitialConditionFunction(parameters_input, nstate))
 {
     // Get the flow case type
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;

@@ -10,7 +10,7 @@ namespace PHiLiP {
 
 /// Initial condition function used to initialize a particular flow setup/case
 template <int dim, typename real>
-class InitialConditionFunction_FlowSolver : public dealii::Function<dim,real>
+class InitialConditionFunction : public dealii::Function<dim,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -18,9 +18,9 @@ protected:
 public:
     const unsigned int nstate; ///< Corresponds to n_components in the dealii::Function
     /// Constructor
-    InitialConditionFunction_FlowSolver(const unsigned int nstate = 5);
+    InitialConditionFunction(const unsigned int nstate = 5);
     /// Destructor
-    ~InitialConditionFunction_FlowSolver() {};
+    ~InitialConditionFunction() {};
 
     /// Value of the initial condition
     virtual real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const = 0;
@@ -29,7 +29,7 @@ public:
 /// Initial Condition Function: Taylor Green Vortex
 template <int dim, typename real>
 class InitialConditionFunction_TaylorGreenVortex
-    : public InitialConditionFunction_FlowSolver<dim,real>
+    : public InitialConditionFunction<dim,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -64,16 +64,16 @@ protected:
 
 /// Initial condition function factory
 template <int dim, typename real>
-class InitialConditionFactory_FlowSolver
+class InitialConditionFactory
 {
 protected:    
     /// Enumeration of all flow solver initial conditions types defined in the Parameters class
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
 
 public:
-    /// Construct InitialConditionFunction_FlowSolver object from global parameter file
-    static std::shared_ptr< InitialConditionFunction_FlowSolver<dim,real> > 
-    create_InitialConditionFunction_FlowSolver(
+    /// Construct InitialConditionFunction object from global parameter file
+    static std::shared_ptr< InitialConditionFunction<dim,real> > 
+    create_InitialConditionFunction(
         Parameters::AllParameters const *const param, 
         int                                    nstate);
 };

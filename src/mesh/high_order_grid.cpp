@@ -1055,13 +1055,11 @@ dealii::Point<dim> HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::s
 {
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
     const dealii::Point<dim> unit_vertex = dealii::GeometryInfo<dim>::unit_cell_vertex(0);
-    double min_diameter_local;
     double current_cell_diameter;
-    auto cell = dof_handler_grid.begin_active();
-    auto endcell = dof_handler_grid.end();
-    min_diameter_local = cell->diameter();
+    double min_diameter_local = dof_handler_grid.begin_active()->diameter();
     dealii::Point<dim> smallest_cell_coord; 
-    for (; cell!=endcell; ++cell) 
+
+    for (auto cell = dof_handler_grid.begin_active(); cell!= dof_handler_grid.end(); ++cell) 
     {
         current_cell_diameter = cell->diameter(); // For future dealii version: current_cell_diameter = cell->diameter(*(mapping_fe_field));
         if ((min_diameter_local > current_cell_diameter) && (cell->is_locally_owned()))
@@ -1083,8 +1081,6 @@ dealii::Point<dim> HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::s
             global_point[i] = smallest_cell_coord[i];
     }
     
-    MPI_Barrier(mpi_communicator); // wait for all processors
-
     MPI_Bcast(global_point, dim, MPI_DOUBLE, n_proc_small, mpi_communicator); // Update values in all processors
     
     for (int i=0; i<dim; i++)

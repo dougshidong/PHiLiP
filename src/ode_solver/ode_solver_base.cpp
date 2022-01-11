@@ -10,6 +10,7 @@ ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, rea
         , all_parameters(dg->all_parameters)
         , mpi_communicator(MPI_COMM_WORLD)
         , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
+        , refine_mesh_in_ode_solver(true)
         {
             meshadaptation = std::make_unique<MeshAdaptation<dim,real,MeshType>>(all_parameters->mesh_adaptation_param.critical_residual_val,
                                                                                  all_parameters->mesh_adaptation_param.total_refinement_steps,
@@ -24,9 +25,9 @@ void ODESolverBase<dim,real,MeshType>::initialize_steady_polynomial_ramping (con
     pcout << " Initializing DG with global polynomial degree = " << global_final_poly_degree << " by ramping from degree 0 ... " << std::endl;
     pcout << " ************************************************************************ " << std::endl;
 
-    meshadaptation->refine_mesh = false;
+    refine_mesh_in_ode_solver = false;
     for (unsigned int degree = 0; degree <= global_final_poly_degree; degree++) {
-        if (degree == global_final_poly_degree) meshadaptation->refine_mesh = true;
+        if (degree == global_final_poly_degree) refine_mesh_in_ode_solver = true;
         pcout << " ************************************************************************ " << std::endl;
         pcout << " Ramping degree " << degree << " until p=" << global_final_poly_degree << std::endl;
         pcout << " ************************************************************************ " << std::endl;
@@ -152,7 +153,9 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
             }
         }
         
-        if (this->residual_norm < meshadaptation->critical_residual)
+        if ((this->residual_norm < meshadaptation->critical_residual) 
+            && (refine_mesh_in_ode_solver) 
+            && (meshadaptation->current_refinement_cycle < meshadaptation->total_refinement_cycles))
         {
             meshadaptation->adapt_mesh(dg);
             allocate_ode_system ();

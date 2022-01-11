@@ -100,6 +100,9 @@ protected:
     const MPI_Comm mpi_communicator; ///< MPI communicator.
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
+    /// Flag to perform mesh adaptation in steady state ode solver.
+    bool refine_mesh_in_ode_solver;
+
 };
 } // ODE namespace
 } // PHiLiP namespace

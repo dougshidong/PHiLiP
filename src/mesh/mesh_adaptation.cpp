@@ -9,6 +9,7 @@ MeshAdaptation<dim,real,MeshType>::MeshAdaptation(double critical_res_input, int
     , refinement_fraction(refine_frac)
     , coarsening_fraction(coarsen_frac)
     , current_refinement_cycle(0)
+    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
     {}
 
 template <int dim, typename real, typename MeshType>
@@ -30,7 +31,7 @@ int MeshAdaptation<dim,real,MeshType>::adapt_mesh(std::shared_ptr< DGBase<dim, r
 
     fixed_fraction_isotropic_refinement_and_coarsening(dg);
     current_refinement_cycle++;
-    std::cout<<"Refined"<<std::endl;
+    pcout<<"Refined"<<std::endl;
 
     return 0;
 }

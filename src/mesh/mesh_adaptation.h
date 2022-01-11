@@ -61,6 +61,9 @@ protected:
     /// Stores errors in each cell
     dealii::Vector<double> cellwise_errors;
 
+    /// Parallel std::cout
+    dealii::ConditionalOStream pcout;
+
 };
 } // namespace PHiLiP
 

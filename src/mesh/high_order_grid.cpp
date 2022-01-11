@@ -1063,12 +1063,11 @@ dealii::Point<dim> HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::s
     dealii::Point<dim> smallest_cell_coord; 
     for (; cell!=endcell; ++cell) 
     {
-        current_cell_diameter = cell->diameter();
+        current_cell_diameter = cell->diameter(); // For future dealii version: current_cell_diameter = cell->diameter(*(mapping_fe_field));
         if ((min_diameter_local > current_cell_diameter) && (cell->is_locally_owned()))
         {
             min_diameter_local = current_cell_diameter;
             smallest_cell_coord = mapping_fe_field->transform_unit_to_real_cell(cell, unit_vertex);
-            //smallest_cell_coord = cell->center();
         }
     }
     

@@ -3,6 +3,7 @@
 
 #include "parameters/all_parameters.h"
 #include "dg/dg.h"
+#include "mesh_error_estimate.h"
 #include <deal.II/grid/grid_refinement.h>
 #include <deal.II/grid/tria.h>
 #include <deal.II/distributed/shared_tria.h>
@@ -59,12 +60,16 @@ protected:
     int current_refinement_cycle;
     
     /// Stores errors in each cell
-    dealii::Vector<double> cellwise_errors;
+    dealii::Vector<real> cellwise_errors;
 
     /// Parallel std::cout
     dealii::ConditionalOStream pcout;
 
+    /// Pointer to the error estimator class
+    std::unique_ptr<MeshErrorEstimateBase<dim, real, MeshType>> mesh_error;
+
 };
+
 } // namespace PHiLiP
 
 #endif

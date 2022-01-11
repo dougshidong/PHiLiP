@@ -10,7 +10,10 @@ MeshAdaptation<dim,real,MeshType>::MeshAdaptation(double critical_res_input, int
     , coarsening_fraction(coarsen_frac)
     , current_refinement_cycle(0)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
-    {}
+    {
+        mesh_error = std::make_unique<ResidualErrorEstimate<dim, real, MeshType>>();
+    }
+
 
 template <int dim, typename real, typename MeshType>
 void MeshAdaptation<dim,real,MeshType>::adapt_mesh(std::shared_ptr< DGBase<dim, real, MeshType> > dg)
@@ -25,51 +28,11 @@ void MeshAdaptation<dim,real,MeshType>::adapt_mesh(std::shared_ptr< DGBase<dim, 
         return;
     }
 
-    cellwise_errors.reinit(0);
-    cellwise_errors.reinit(dg->high_order_grid->triangulation->n_active_cells());
-    compute_cellwise_errors(dg);
+    cellwise_errors = mesh_error->compute_cellwise_errors(dg);
 
     fixed_fraction_isotropic_refinement_and_coarsening(dg);
     current_refinement_cycle++;
     pcout<<"Refined"<<std::endl;
-
-    return;
-}
-
-template <int dim, typename real, typename MeshType>
-void MeshAdaptation<dim,real,MeshType>::compute_cellwise_errors(std::shared_ptr< DGBase<dim, real, MeshType> > dg)
-{
-    compute_max_cellwise_residuals(dg); // Future extension: Error depends on parameters input (i.e. this function computes residual or goal-oriented error).
-    return;
-}
-
-
-template <int dim, typename real, typename MeshType>
-void MeshAdaptation<dim,real,MeshType>::compute_max_cellwise_residuals(std::shared_ptr< DGBase<dim, real, MeshType> > dg)
-{
-    std::vector<dealii::types::global_dof_index> dofs_indices;
-    for (const auto &cell : dg->dof_handler.active_cell_iterators()) 
-    {
-         if (!cell->is_locally_owned()) 
-         continue;
- 
-         const int i_fele = cell->active_fe_index();
-         const dealii::FESystem<dim,dim> &fe_ref = dg->fe_collection[i_fele];
-         const unsigned int n_dofs_cell = fe_ref.n_dofs_per_cell();
-         dofs_indices.resize(n_dofs_cell);
-         cell->get_dof_indices (dofs_indices);
-         double max_residual = 0;
-         for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) 
-         {
-            const unsigned int index = dofs_indices[idof];
-            const double res = std::abs(dg->right_hand_side[index]);
-            if (res > max_residual) 
-                max_residual = res;
-         }
-         cellwise_errors[cell->active_cell_index()] = max_residual;
-     }
-
-    return;
 }
 
 
@@ -104,9 +67,6 @@ void MeshAdaptation<dim,real,MeshType>::fixed_fraction_isotropic_refinement_and_
     solution_transfer.interpolate(dg->solution);
     dg->solution.update_ghost_values();
     dg->assemble_residual ();
-
-
-    return;
 }
 
 template class MeshAdaptation<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;

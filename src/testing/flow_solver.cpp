@@ -40,6 +40,17 @@ template <int dim, int nstate>
 FlowSolver<dim, nstate>::FlowSolver(const PHiLiP::Parameters::AllParameters *const parameters_input)
 : TestsBase::TestsBase(parameters_input)
 , initial_condition_function(InitialConditionFactory<dim,double>::create_InitialConditionFunction(parameters_input, nstate))
+, all_param(*(TestsBase::all_parameters))
+, flow_solver_param(all_param.flow_solver_param)
+, ode_param(all_param.ode_solver_param)
+, courant_friedrich_lewy_number(flow_solver_param.courant_friedrich_lewy_number)
+, poly_degree(all_param.grid_refinement_study_param.poly_degree)
+, number_of_cells_per_direction(all_param.grid_refinement_study_param.grid_size)
+, domain_left(all_param.grid_refinement_study_param.grid_left)
+, domain_right(all_param.grid_refinement_study_param.grid_right)
+, final_time(flow_solver_param.final_time)
+, domain_volume(pow(domain_right - domain_left, dim))
+, unsteady_data_table_filename("tgv_kinetic_energy_vs_time_table.txt")
 {
     // Get the flow case type
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
@@ -49,18 +60,16 @@ FlowSolver<dim, nstate>::FlowSolver(const PHiLiP::Parameters::AllParameters *con
     is_taylor_green_vortex = ((flow_type == FlowCaseEnum::inviscid_taylor_green_vortex) || (flow_type == FlowCaseEnum::viscous_taylor_green_vortex));
 
     // Assign the domain boundaries, domain volume, and grid type for each flow case
-    if (is_taylor_green_vortex) {
-        domain_left = 0.0;
-        domain_right = 2.0 * dealii::numbers::PI;
-        domain_volume = pow(domain_right - domain_left, dim);
-    }
+    // if (is_taylor_green_vortex) {
+    //     domain_volume = pow(domain_right - domain_left, dim);
+    // }
 }
 
 template <int dim, int nstate>
-void FlowSolver<dim,nstate>::display_flow_solver_setup(const Parameters::AllParameters *const param) const
+void FlowSolver<dim,nstate>::display_flow_solver_setup(const Parameters::AllParameters *const all_param) const
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    const PDE_enum pde_type = param->pde_type;
+    const PDE_enum pde_type = all_param->pde_type;
     std::string pde_string;
     if (pde_type == PDE_enum::euler)                {pde_string = "euler";}
     if (pde_type == PDE_enum::navier_stokes)        {pde_string = "navier_stokes";}
@@ -70,8 +79,8 @@ void FlowSolver<dim,nstate>::display_flow_solver_setup(const Parameters::AllPara
     if(is_taylor_green_vortex) {
         flow_type_string = "Taylor Green Vortex";
         pcout << "- Flow Case: " << flow_type_string << std::endl;
-        pcout << "- - Freestream Reynolds number: " << param->navier_stokes_param.reynolds_number_inf << std::endl;
-        pcout << "- - Freestream Mach number: " << param->euler_param.mach_inf << std::endl;
+        pcout << "- - Freestream Reynolds number: " << all_param->navier_stokes_param.reynolds_number_inf << std::endl;
+        pcout << "- - Freestream Mach number: " << all_param->euler_param.mach_inf << std::endl;
     }
 }
 
@@ -143,35 +152,52 @@ double FlowSolver<dim, nstate>::integrate_over_domain(DGBase<dim, double> &dg,co
 }
 
 template <int dim, int nstate>
+void FlowSolver<dim, nstate>::compute_unsteady_data_and_write_to_table(
+    const double current_time, 
+    const std::shared_ptr <DGBase<dim, double>> dg) const //,
+    //const std::shared_ptr <dealii::TableHandler> /*unsteady_data_table*/) const
+{
+    // time
+    // std::string time_string = "time";
+    // unsteady_data_table->add_value(time_string, current_time);
+    // unsteady_data_table->set_precision(time_string, 16);
+    // unsteady_data_table->set_scientific(time_string, true);
+    // kinetic energy
+    // std::string kinetic_energy_string = "kinetic_energy";
+    const double kinetic_energy = integrate_over_domain(*dg,"kinetic_energy");
+    // unsteady_data_table->add_value(kinetic_energy_string, kinetic_energy);
+    // unsteady_data_table->set_precision(kinetic_energy_string, 16);
+    // unsteady_data_table->set_scientific(kinetic_energy_string, true);
+    // write to file
+    // std::ofstream unsteady_data_table_file(unsteady_data_table_filename);
+    // unsteady_data_table->write_text(unsteady_data_table_file);
+    // print to console
+    pcout << " Energy at time " << current_time << " is " << kinetic_energy << std::endl;
+
+    // Fail if energy is nan
+    if(std::isnan(kinetic_energy)) {
+        pcout << " ERROR: Kinetic energy at time " << current_time << " is nan." << std::endl;
+        pcout << "        Consider decreasing the time step / CFL number." << std::endl;
+        std::abort();
+    }
+}
+
+template <int dim, int nstate>
 int FlowSolver<dim,nstate>::run_test() const
 {
     pcout << "Running Flow Solver... " << std::endl;
     //----------------------------------------------------
-    // Parameters
-    //----------------------------------------------------
-    const Parameters::AllParameters param = *(TestsBase::all_parameters);
-    const Parameters::FlowSolverParam flow_solver_param = param.flow_solver_param;
-    const Parameters::ODESolverParam ode_param = param.ode_solver_param;
-    // Courant-Friedrich-Lewy (CFL) number
-    const double courant_friedrich_lewy_number = flow_solver_param.courant_friedrich_lewy_number;
-    // - polynomial order
-    const unsigned int poly_degree = param.grid_refinement_study_param.poly_degree;
-    // - number of cells per direction for the grid
-    const int number_of_cells_per_direction = param.grid_refinement_study_param.grid_size;
-    // - final time of solution
-    const double final_time = flow_solver_param.final_time;
-    //----------------------------------------------------
     // Display flow solver setup
     //----------------------------------------------------
     pcout << "Flow setup: " << std::endl;    
-    display_flow_solver_setup(&param);
+    display_flow_solver_setup(&all_param);
     pcout << "- Polynomial degree: " << poly_degree << std::endl;
     pcout << "- Courant-Friedrich-Lewy number: " << courant_friedrich_lewy_number << std::endl;
     //----------------------------------------------------
     // Physics
     //----------------------------------------------------
     pcout << "Creating physics object... " << std::flush;
-    std::shared_ptr< Physics::PhysicsBase<dim,nstate,double> > physics_double = Physics::PhysicsFactory<dim,nstate,double>::create_Physics(&param);
+    std::shared_ptr< Physics::PhysicsBase<dim,nstate,double> > physics_double = Physics::PhysicsFactory<dim,nstate,double>::create_Physics(&all_param);
     pcout << "done." << std::endl;
     //----------------------------------------------------
     // Grid
@@ -181,13 +207,21 @@ int FlowSolver<dim,nstate>::run_test() const
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (this->mpi_communicator);
     // TO DO: should call a grid factory instead of hard coding for periodic cube
     Grids::straight_periodic_cube<dim,Triangulation>(grid, domain_left, domain_right, number_of_cells_per_direction);
+    // Display the information about the grid
+    pcout << "\n- GRID INFORMATION:" << std::endl;
+    // pcout << "- - Grid type: " << grid_type_string << std::endl;
+    pcout << "- - Domain dimensionality: " << dim << std::endl;
+    pcout << "- - Domain left: " << domain_left << std::endl;
+    pcout << "- - Domain right: " << domain_right << std::endl;
+    pcout << "- - Number of cells in each direction: " << number_of_cells_per_direction << std::endl;
+    pcout << "- - Domain volume: " << domain_volume << std::endl;
     pcout << "done." << std::endl;
     //----------------------------------------------------
     // Spatial discretization (Discontinuous Galerkin)
     //----------------------------------------------------
     pcout << "Creating Discontinuous Galerkin object... " << std::flush;
-    // std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, poly_degree, grid_degree, grid);
-    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+    // std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, poly_degree, grid_degree, grid);
+    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, grid);
     dg->allocate_system();
     pcout << "done." << std::endl;
     //----------------------------------------------------
@@ -221,45 +255,21 @@ int FlowSolver<dim,nstate>::run_test() const
     //----------------------------------------------------
     // Computed quantities at initial time
     //----------------------------------------------------
-    double initial_kinetic_energy = integrate_over_domain(*dg,"kinetic_energy");
-    pcout << "Energy at initial time (" << ode_solver->current_time << ") is : " << initial_kinetic_energy << std::endl;
+    std::shared_ptr<dealii::TableHandler> unsteady_data_table = std::make_shared<dealii::TableHandler>();//(this->mpi_communicator) ?;
+    // compute_unsteady_data_and_write_to_table(ode_solver->current_time, dg);//, unsteady_data_table);
     //----------------------------------------------------
-    // On the fly post-processing / File writing
-    //----------------------------------------------------
-    dealii::TableHandler convergence_table;
-    std::string unsteady_data_table_filename = "tgv_kinetic_energy_vs_time_table.txt";
-    convergence_table.add_value("time", ode_solver->current_time);
-    convergence_table.add_value("kinetic_energy", initial_kinetic_energy);
-    convergence_table.set_precision("time", 16);
-    convergence_table.set_precision("kinetic_energy", 16);
-    convergence_table.set_scientific("time", true);
-    convergence_table.set_scientific("kinetic_energy", true);
-    std::ofstream unsteady_data_table_file(unsteady_data_table_filename);
-    convergence_table.write_text(unsteady_data_table_file);
-    //----------------------------------------------------
-    // Time advancement loop
+    // Time advancement loop with on-the-fly post-processing
     //----------------------------------------------------
     pcout << "\nPreparing to advance solution in time:" << std::endl;
-    // const int number_of_time_steps = std::ceil(final_time/constant_time_step);
-    while(ode_solver->current_time < final_time) //for (int i = 0; i < number_of_time_steps; ++i)
+    while(ode_solver->current_time < final_time)
     {
         ode_solver->step_in_time(constant_time_step,false); // pseudotime==false
 
-        // Compute kinetic energy at current time
+        // Compute the unsteady quantities, write to the dealii table, and output to file
+        // compute_unsteady_data_and_write_to_table(ode_solver->current_time, dg);//, unsteady_data_table);
         const double current_time = ode_solver->current_time;
-        const double current_kinetic_energy = integrate_over_domain(*dg,"kinetic_energy");
-        pcout << " Energy at time " << current_time << " is " << current_kinetic_energy << std::endl;
-        convergence_table.add_value("time", current_time);
-        convergence_table.add_value("kinetic_energy", current_kinetic_energy);
-        std::ofstream unsteady_data_table_file(unsteady_data_table_filename);
-        convergence_table.write_text(unsteady_data_table_file);
-
-        // Fail if energy is nan
-        if(std::isnan(current_kinetic_energy)) {
-            pcout << " ERROR: Kinetic energy at time " << current_time << " is nan." << std::endl;
-            pcout << "        Consider decreasing the time step / CFL number." << std::endl;
-            return 1;
-        }
+        const double kinetic_energy = integrate_over_domain(*dg,"kinetic_energy");
+        pcout << " Energy at time " << current_time << " is " << kinetic_energy << std::endl;
 
         // Output vtk solution files for post-processing in Paraview
         const int current_iteration = ode_solver->current_iteration;

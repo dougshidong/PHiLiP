@@ -36,6 +36,8 @@ end
 subsection grid refinement study
   set poly_degree = 2
   set grid_size = 4
+  set grid_left = 0.0
+  set grid_right = 6.2831853072
 end
 
 subsection flow_solver

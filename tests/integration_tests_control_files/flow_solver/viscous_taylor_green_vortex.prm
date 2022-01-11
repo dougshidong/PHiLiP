@@ -21,7 +21,7 @@ set diss_num_flux = symm_internal_penalty
 subsection ODE solver
   set ode_output = quiet
   set ode_solver_type = explicit
-  set output_solution_every_x_steps = 10
+  set output_solution_every_x_steps = 30
   subsection explicit solver options
     set runge_kutta_order = 3
   end
@@ -42,10 +42,12 @@ end
 subsection grid refinement study
   set poly_degree = 2
   set grid_size = 4
+  set grid_left = 0.0
+  set grid_right = 6.2831853072
 end
 
 subsection flow_solver
   set flow_case_type = viscous_taylor_green_vortex
   set final_time = 20.0
-  set courant_friedrich_lewy_number = 0.01
+  set courant_friedrich_lewy_number = 0.005
 end

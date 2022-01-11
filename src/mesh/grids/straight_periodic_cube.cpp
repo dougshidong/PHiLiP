@@ -19,7 +19,7 @@ void straight_periodic_cube(std::shared_ptr<TriangulationType> &grid,
                             const double domain_right,
                             const int number_of_cells_per_direction)
 {
-    // Get number of refinements
+    // Get equivalent number of refinements
     const int number_of_refinements = log(number_of_cells_per_direction)/log(2);
 
     // Definition for each type of grid
@@ -39,19 +39,6 @@ void straight_periodic_cube(std::shared_ptr<TriangulationType> &grid,
     	std::cout << " ERROR: straight_periodic_cube() cannot be called for dim!=3 " << std::endl;
     	std::abort();
     }
-
-    // Domain volume
-    const double domain_volume = pow(domain_right - domain_left, dim);
-
-    // Display the information about the grid
-    std::cout << "\n- GRID INFORMATION:" << std::endl;
-    std::cout << "- - Grid type: " << grid_type_string << std::endl;
-    std::cout << "- - Domain dimensionality: " << dim << std::endl;
-    std::cout << "- - Domain left: " << domain_left << std::endl;
-    std::cout << "- - Domain right: " << domain_right << std::endl;
-    std::cout << "- - Number of cells in each direction: " << number_of_cells_per_direction << std::endl;
-    std::cout << "- - Equivalent number of refinements: " << number_of_refinements << std::endl;
-    std::cout << "- - Domain volume: " << domain_volume << std::endl;
 }
 
 template void straight_periodic_cube<3, dealii::parallel::distributed::Triangulation<3>> (std::shared_ptr<dealii::parallel::distributed::Triangulation<3>> &grid, const double domain_left, const double domain_right, const int number_of_cells_per_direction);

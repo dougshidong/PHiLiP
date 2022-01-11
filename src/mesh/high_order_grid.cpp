@@ -1071,24 +1071,26 @@ dealii::Point<dim> HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::s
         }
     }
     
-    MPI_Barrier(mpi_communicator); // wait till all processors are done
     dealii::Utilities::MPI::MinMaxAvg minindexstore;
     minindexstore = dealii::Utilities::MPI::min_max_avg(min_diameter_local, mpi_communicator); 
 
     int n_proc_small = minindexstore.min_index; // Processor containing smallest diameter
-    dealii::Point<dim> smallest_cell_global; // Initialized with 0
+    double global_point[dim];
 
     if (iproc == n_proc_small)
     {
-        smallest_cell_global = smallest_cell_coord;         
+       for (int i=0; i<dim; i++)
+            global_point[i] = smallest_cell_coord[i];
     }
     
     MPI_Barrier(mpi_communicator); // wait for all processors
 
+    MPI_Bcast(global_point, dim, MPI_DOUBLE, n_proc_small, mpi_communicator); // Update values in all processors
+    
     for (int i=0; i<dim; i++)
-        smallest_cell_global[i] = dealii::Utilities::MPI::sum(smallest_cell_global[i],mpi_communicator); // Update values in all processors
+        smallest_cell_coord[i] = global_point[i];
 
-    return smallest_cell_global;
+    return smallest_cell_coord;
 
 }
 

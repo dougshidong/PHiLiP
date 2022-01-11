@@ -61,13 +61,10 @@ int MeshAdaptation<dim,real,MeshType>::compute_max_cellwise_residuals(std::share
          double max_residual = 0;
          for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) 
          {
-             const unsigned int index = dofs_indices[idof];
-             const unsigned int istate = fe_ref.system_to_component_index(idof).first;
-             if (istate == dim+2-1) 
-             {
-                 const double res = std::abs(dg->right_hand_side[index]);
-                 if (res > max_residual) max_residual = res;
-             }
+            const unsigned int index = dofs_indices[idof];
+            const double res = std::abs(dg->right_hand_side[index]);
+            if (res > max_residual) 
+                max_residual = res;
          }
          cellwise_errors[cell->active_cell_index()] = max_residual;
      }

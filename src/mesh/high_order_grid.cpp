@@ -1054,15 +1054,21 @@ template <int dim, typename real, typename MeshType, typename VectorType, typena
 dealii::Point<dim> HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::smallest_cell_coordinates()
 {
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
+    const dealii::Point<dim> unit_vertex = dealii::GeometryInfo<dim>::unit_cell_vertex(0);
     double min_diameter_local;
-    min_diameter_local = triangulation->begin_active()->diameter();
+    double current_cell_diameter;
+    auto cell = dof_handler_grid.begin_active();
+    auto endcell = dof_handler_grid.end();
+    min_diameter_local = cell->diameter();
     dealii::Point<dim> smallest_cell_coord; 
-    for (const auto &cell : triangulation->active_cell_iterators()) 
+    for (; cell!=endcell; ++cell) 
     {
-        if ((min_diameter_local > cell->diameter()) && (cell->is_locally_owned()))
+        current_cell_diameter = cell->diameter();
+        if ((min_diameter_local > current_cell_diameter) && (cell->is_locally_owned()))
         {
-            min_diameter_local = cell->diameter();
-            smallest_cell_coord = cell->vertex(0);
+            min_diameter_local = current_cell_diameter;
+            smallest_cell_coord = mapping_fe_field->transform_unit_to_real_cell(cell, unit_vertex);
+            //smallest_cell_coord = cell->center();
         }
     }
     

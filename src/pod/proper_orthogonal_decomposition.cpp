@@ -115,15 +115,20 @@ void POD::build_reduced_pod_basis() {
     std::iota(std::begin(column_index_set), std::end(column_index_set),0);
 
     dealii::TrilinosWrappers::SparseMatrix pod_basis_tmp(svd_u->n_rows(), num_basis, num_basis);
+    dealii::TrilinosWrappers::SparseMatrix pod_basis_transpose_tmp(num_basis, svd_u->n_rows(), svd_u->n_rows());
 
     for(int i : row_index_set){
         for(int j : column_index_set){
             pod_basis_tmp.set(i, j, svd_u->operator()(i,j));
+            pod_basis_transpose_tmp.set(j, i, svd_u->operator()(i,j));
         }
     }
+
     pod_basis_tmp.compress(dealii::VectorOperation::insert);
+    pod_basis_transpose_tmp.compress(dealii::VectorOperation::insert);
 
     pod_basis.copy_from(pod_basis_tmp);
+    pod_basis_transpose.copy_from(pod_basis_transpose_tmp);
 }
 
 }

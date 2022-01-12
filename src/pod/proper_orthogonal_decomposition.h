@@ -21,6 +21,7 @@ public:
     int num_basis; ///< Number of basis functions to keep for the reduced order model
     std::unique_ptr<dealii::LAPACKFullMatrix<double>> svd_u; ///< U matrix output from SVD
     dealii::TrilinosWrappers::SparseMatrix pod_basis; ///< First num_basis columns of svd_u
+    dealii::TrilinosWrappers::SparseMatrix pod_basis_transpose; ///< Transpose of pod_basis
 
     /// Constructor
     POD(int num_basis);

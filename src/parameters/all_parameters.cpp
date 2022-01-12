@@ -14,6 +14,7 @@ AllParameters::AllParameters ()
     , navier_stokes_param(NavierStokesParam())
     , reduced_order_param(ReducedOrderModelParam())
     , grid_refinement_study_param(GridRefinementStudyParam())
+    , artificial_dissipation_param(ArtificialDissipationParam())
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 { }
 void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
@@ -82,10 +83,6 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Flux Reconstruction for Auxiliary Equation. "
                       "Choices are <kDG | kSD | kHU | kNegative | kNegative2 | kPlus | k10Thousand>.");
 
-    prm.declare_entry("add_artificial_dissipation", "false",
-                      dealii::Patterns::Bool(),
-                      "Persson's subscell shock capturing artificial dissipation.");
-
     prm.declare_entry("sipg_penalty_factor", "1.0",
                       dealii::Patterns::Double(1.0,1e200),
                       "Scaling of Symmetric Interior Penalty term to ensure coercivity.");
@@ -98,6 +95,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " diffusion_exact_adjoint | "
                       " optimization_inverse_manufactured | "
                       " euler_gaussian_bump | "
+                      " euler_gaussian_bump_enthalpy | "
                       " euler_gaussian_bump_adjoint | "
                       " euler_cylinder | "
                       " euler_cylinder_adjoint | "
@@ -121,12 +119,13 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  diffusion_exact_adjoint | "
                       "  optimization_inverse_manufactured | "
                       "  euler_gaussian_bump | "
+                      "  euler_gaussian_bump_enthalpy | "
                       "  euler_gaussian_bump_adjoint | "
                       "  euler_cylinder | "
                       "  euler_cylinder_adjoint | "
                       "  euler_vortex | "
                       "  euler_entropy_waves | "
-					            "  euler_split_taylor_green |"
+                      "  euler_split_taylor_green |"
                       "  euler_bump_optimization | "
                       "  euler_naca_optimization | "
                       "  shock_1d | "
@@ -179,6 +178,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     Parameters::ReducedOrderModelParam::declare_parameters (prm);
     Parameters::GridRefinementStudyParam::declare_parameters (prm);
+   
+    Parameters::ArtificialDissipationParam::declare_parameters (prm);
 
     pcout << "Done declaring inputs." << std::endl;
 }
@@ -201,6 +202,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "burgers_energy_stability")          { test_type = burgers_energy_stability; }
     else if (test_string == "diffusion_exact_adjoint")           { test_type = diffusion_exact_adjoint; }
     else if (test_string == "euler_gaussian_bump")               { test_type = euler_gaussian_bump; }
+    else if (test_string == "euler_gaussian_bump_enthalpy")      { test_type = euler_gaussian_bump_enthalpy; }
     else if (test_string == "euler_gaussian_bump_adjoint")       { test_type = euler_gaussian_bump_adjoint; }
     else if (test_string == "euler_cylinder")                    { test_type = euler_cylinder; }
     else if (test_string == "euler_cylinder_adjoint")            { test_type = euler_cylinder_adjoint; }
@@ -254,7 +256,6 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     use_energy = prm.get_bool("use_energy");
     use_L2_norm = prm.get_bool("use_L2_norm");
     use_classical_FR = prm.get_bool("use_classical_Flux_Reconstruction");
-    add_artificial_dissipation = prm.get_bool("add_artificial_dissipation");
     sipg_penalty_factor = prm.get_double("sipg_penalty_factor");
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
@@ -312,6 +313,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     pcout << "Parsing grid refinement study subsection..." << std::endl;
     grid_refinement_study_param.parse_parameters (prm);
 
+    pcout << "Parsing artificial dissipation subsection..." << std::endl;
+    artificial_dissipation_param.parse_parameters (prm);
+    
     pcout << "Done parsing." << std::endl;
 }
 

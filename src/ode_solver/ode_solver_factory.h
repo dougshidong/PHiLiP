@@ -3,7 +3,7 @@
 
 #include "parameters/all_parameters.h"
 #include "dg/dg.h"
-#include "pod/proper_orthogonal_decomposition.h"
+#include "reduced_order/pod_basis.h"
 #include "ode_solver_base.h"
 
 namespace PHiLiP {

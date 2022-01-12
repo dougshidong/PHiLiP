@@ -32,7 +32,14 @@ PODAdaptation<dim, nstate>::PODAdaptation(std::shared_ptr<DGBase<dim,double>> &_
     this->linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
     //this->linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::direct;
 }
-
+/*
+template <int dim, int nstate>
+void PODAdaptation<dim, nstate>::generateCoarseAndFineBasis()
+{
+    podCoarseBasis =
+    podFineBasis =
+}
+*/
 template <int dim, int nstate>
 void PODAdaptation<dim, nstate>::dualWeightedResidual()
 {

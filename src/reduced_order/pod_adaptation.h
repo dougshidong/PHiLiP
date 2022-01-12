@@ -7,7 +7,7 @@
 
 #include "functional/functional.h"
 #include "dg/dg.h"
-#include "pod/proper_orthogonal_decomposition.h"
+#include "reduced_order/pod_basis.h"
 #include "linear_solver/linear_solver.h"
 
 #include <deal.II/numerics/vector_tools.h>

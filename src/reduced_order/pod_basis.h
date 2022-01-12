@@ -1,5 +1,5 @@
-#ifndef __POD__
-#define __POD__
+#ifndef __POD_BASIS__
+#define __POD_BASIS__
 
 #include <fstream>
 #include <iostream>
@@ -19,8 +19,8 @@ class POD
 public:
 
     int num_basis; ///< Number of basis functions to keep for the reduced order model
-    std::unique_ptr<dealii::LAPACKFullMatrix<double>> svd_u; ///< U matrix output from SVD
-    dealii::TrilinosWrappers::SparseMatrix pod_basis; ///< First num_basis columns of svd_u
+    dealii::LAPACKFullMatrix<double> fullPODBasis; ///< U matrix output from SVD, full POD basis
+    dealii::TrilinosWrappers::SparseMatrix pod_basis; ///< First num_basis columns of fullPODBasis
     dealii::TrilinosWrappers::SparseMatrix pod_basis_transpose; ///< Transpose of pod_basis
 
     /// Constructor
@@ -32,10 +32,16 @@ public:
     /// Destructor
     ~POD () {};
 
-    /// Get full POD basis consisting of svd_u
-    dealii::LAPACKFullMatrix<double> get_full_pod_basis();
+    /// Get full POD basis consisting of fullPODBasis
+    void getPODBasisFromSnapshots();
 
-    /// Get reduced POD basis consisting of the first num_basis columns of svd_u
+    void getSavedPODBasis();
+
+    void saveFullPODBasisToFile();
+
+
+
+    /// Get reduced POD basis consisting of the first num_basis columns of fullPODBasis
     void build_reduced_pod_basis();
 
 protected:

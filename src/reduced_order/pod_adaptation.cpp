@@ -43,8 +43,8 @@ void PODAdaptation<dim, nstate>::generateCoarseAndFineBasis()
 template <int dim, int nstate>
 void PODAdaptation<dim, nstate>::dualWeightedResidual()
 {
-    DealiiVector reducedGradient(pod->pod_basis.n());
-    DealiiVector reducedAdjoint(pod->pod_basis.n());
+    DealiiVector reducedGradient(pod->getPODBasis()->n());
+    DealiiVector reducedAdjoint(pod->getPODBasis()->n());
 
     getReducedGradient(reducedGradient);
     applyReducedJacobianTranspose(reducedAdjoint, reducedGradient);
@@ -65,8 +65,8 @@ void PODAdaptation<dim, nstate>::applyReducedJacobianTranspose(DealiiVector &red
 
     dealii::TrilinosWrappers::SparseMatrix tmp;
     dealii::TrilinosWrappers::SparseMatrix reducedJacobianTranspose;
-    pod->pod_basis.Tmmult(tmp, dg->system_matrix_transpose); //tmp = pod_basis^T * dg->system_matrix_transpose
-    tmp.mmult(reducedJacobianTranspose, pod->pod_basis); // reducedJacobianTranspose= tmp*pod_basis
+    pod->getPODBasis()->Tmmult(tmp, dg->system_matrix_transpose); //tmp = pod_basis^T * dg->system_matrix_transpose
+    tmp.mmult(reducedJacobianTranspose, *pod->getPODBasis()); // reducedJacobianTranspose= tmp*pod_basis
 
     solve_linear (reducedJacobianTranspose, reducedGradient, reducedAdjoint, linear_solver_param);
 }
@@ -82,7 +82,7 @@ void PODAdaptation<dim, nstate>::getReducedGradient(DealiiVector &reducedGradien
     const bool compute_d2I = false;
     functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
 
-    pod->pod_basis.Tvmult(reducedGradient, functional.dIdw); // reducedGradient= (pod_basis)^T * gradient
+    pod->getPODBasis()->Tvmult(reducedGradient, functional.dIdw); // reducedGradient= (pod_basis)^T * gradient
 }
 
 template class PODAdaptation <PHILIP_DIM,1>;

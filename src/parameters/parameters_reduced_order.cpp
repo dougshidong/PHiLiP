@@ -22,6 +22,12 @@ void ReducedOrderModelParam::declare_parameters (dealii::ParameterHandler &prm)
                           dealii::Patterns::Bool(),
                           "Adds the manufactured solution source term to the PDE source term."
                           "Set as true for running a manufactured solution.");
+        prm.declare_entry("coarse_basis_dimension", "0",
+                          dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
+                          "Initial dimension of the coarse POD basis");
+        prm.declare_entry("fine_basis_dimension", "0",
+                          dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
+                          "Initial dimension of the fine POD basis");
     }
     prm.leave_subsection();
 }
@@ -34,6 +40,8 @@ void ReducedOrderModelParam::parse_parameters (dealii::ParameterHandler &prm)
         rewienski_b = prm.get_double("rewienski_b");
         final_time = prm.get_double("final_time");
         rewienski_manufactured_solution = prm.get_bool("rewienski_manufactured_solution");
+        coarse_basis_dimension = prm.get_integer("coarse_basis_dimension");
+        fine_basis_dimension = prm.get_integer("fine_basis_dimension");
     }
     prm.leave_subsection();
 }

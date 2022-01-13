@@ -33,11 +33,8 @@ int BurgersRewienskiROM<dim, nstate>::run_test() const
 
     std::shared_ptr<ProperOrthogonalDecomposition::POD> pod = std::make_shared<ProperOrthogonalDecomposition::POD>();
 
-    //Assign number of basis function to be all basis functions available for purpose of this test
-    pod->num_basis = 100;
-
-    //Get reduced basis with num_basis columns
-    pod->build_reduced_pod_basis();
+    //Get reduced basis
+    pod->buildPODBasis();
 
     pcout << "Running Burgers Rewienski with parameter a: "
           << param.reduced_order_param.rewienski_a

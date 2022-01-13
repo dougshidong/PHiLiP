@@ -1,53 +1,33 @@
 #include "pod_basis.h"
-#include <deal.II/lac/vector_operation.h>
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
-POD::POD(int num_basis)
-: num_basis(num_basis)
-, mpi_communicator(MPI_COMM_WORLD)
-, pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
-{
-    getPODBasisFromSnapshots();
-}
-
 POD::POD()
-        : num_basis(50)
+        : pod_basis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
+        , pod_basis_transpose(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
         , mpi_communicator(MPI_COMM_WORLD)
         , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {
-
-    std::string path = "."; //Search current directory for files
-
     pcout << "Searching files..." << std::endl;
-    bool file_found = false;
-    for (const auto & entry : std::filesystem::recursive_directory_iterator(path)){ //Recursive seach
-        if(std::string(entry.path().filename()).std::string::find("full_POD_basis") != std::string::npos) {
-            pcout << "Saved POD basis exists. Reading POD basis..." << std::endl;
-            getSavedPODBasis();
-            file_found = true;
-            break;
-        }else{
-            if(std::string(entry.path().filename()).std::string::find("solutions_table") != std::string::npos){
-                pcout << "Saved solution table exists. Reading solution..." << std::endl;
-                getPODBasisFromSnapshots();
-                file_found = true;
-                break;
-            }
+
+    if(getSavedPODBasis() == false){ //will search for a saved basis
+        if(getPODBasisFromSnapshots() == false){ //will search for saved snapshots
+            throw std::invalid_argument("Please ensure that there is a 'full_POD_basis.txt' or 'solutions_table.txt' file!");
         }
     }
-    if (file_found == false){
-        throw std::invalid_argument("Please ensure that there is a 'full_POD_basis.txt' or 'solutions_table.txt' file!");
-    }
+
+    buildPODBasis();
 }
 
-void POD::getPODBasisFromSnapshots() {
+bool POD::getPODBasisFromSnapshots() {
+    bool file_found = false;
     std::vector<dealii::FullMatrix<double>> snapshotMatrixContainer;
     std::string path = "."; //Search current directory for files containing "solutions_table"
     for (const auto & entry : std::filesystem::recursive_directory_iterator(path)){ //Recursive seach
         if(std::string(entry.path().filename()).std::string::find("solutions_table") != std::string::npos){
             pcout << "Processing " << entry.path() << std::endl;
+            file_found = true;
             std::ifstream myfile(entry.path());
             if(!myfile)
             {
@@ -124,29 +104,24 @@ void POD::getPODBasisFromSnapshots() {
     pcout << "Snapshot matrix generated." << std::endl;
     pcout << "Computing SVD." << std::endl;
     snapshot_matrix.compute_svd();
-
-    //fullPODBasis = std::make_unique<dealii::LAPACKFullMatrix<double>>(snapshot_matrix.get_svd_u().n_rows(), snapshot_matrix.get_svd_u().n_cols());
     fullPODBasis = snapshot_matrix.get_svd_u();
-
-    num_basis = fullPODBasis.n_cols();
-    saveFullPODBasisToFile();
+    pcout << "SVD computed" << std::endl;
+    return file_found;
 }
 
 
 void POD::saveFullPODBasisToFile() {
-    //pcout << "Saving POD basis to file" << std::endl;
     std::ofstream out_file("full_POD_basis.txt");
     fullPODBasis.print_formatted(out_file);
-    //dealii::TableHandler pod_basis;
-
-
 }
 
-void POD::getSavedPODBasis(){
+bool POD::getSavedPODBasis(){
+    bool file_found = false;
     std::string path = "."; //Search current directory for files containing "solutions_table"
     for (const auto & entry : std::filesystem::recursive_directory_iterator(path)) { //Recursive seach
         if (std::string(entry.path().filename()).std::string::find("full_POD_basis") != std::string::npos) {
-            pcout << "Processing " <<  std::endl;
+            pcout << "Processing " << entry.path() << std::endl;
+            file_found = true;
             std::ifstream myfile(entry.path());
             std::string line;
             int rows = 0;
@@ -166,15 +141,11 @@ void POD::getSavedPODBasis(){
             rows++;
             }
 
-            pcout << cols << " " << rows;
-
-
-            dealii::FullMatrix<double> pod_basis(rows, cols);
+            dealii::FullMatrix<double> pod_basis_tmp(rows, cols);
             rows = 0;
             myfile.clear();
             myfile.seekg(0); //Bring back to beginning of file
             //Second loop set to build POD basis matrix
-
             while(std::getline(myfile, line)){ //for each line
                 std::istringstream stream(line);
                 std::string field;
@@ -183,45 +154,51 @@ void POD::getSavedPODBasis(){
                     if (field.empty()) {
                         continue;
                     } else {
-                        pod_basis.set(rows, cols, std::stod(field));
+                        pod_basis_tmp.set(rows, cols, std::stod(field));
                         cols++;
                     }
                 }
                 rows++;
             }
             myfile.close();
-            pcout << "here";
-
-            fullPODBasis.copy_from(pod_basis);
+            fullPODBasis.copy_from(pod_basis_tmp);
         }
     }
-    pcout << "done" <<std::endl;
+    return file_found;
 }
 
+std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> POD::getPODBasis(){
+    return pod_basis;
+}
 
-void POD::build_reduced_pod_basis() {
+std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> POD::getPODBasisTranspose(){
+    return pod_basis_transpose;
+}
+
+void POD::buildPODBasis() {
     std::vector<int> row_index_set(fullPODBasis.n_rows());
     std::iota(std::begin(row_index_set), std::end(row_index_set),0);
 
-    std::vector<int> column_index_set(num_basis);
+    std::vector<int> column_index_set(fullPODBasis.n_cols());
     std::iota(std::begin(column_index_set), std::end(column_index_set),0);
 
-    dealii::TrilinosWrappers::SparseMatrix pod_basis_tmp(fullPODBasis.n_rows(), num_basis, num_basis);
-    dealii::TrilinosWrappers::SparseMatrix pod_basis_transpose_tmp(num_basis, fullPODBasis.n_rows(), fullPODBasis.n_rows());
+    dealii::TrilinosWrappers::SparseMatrix pod_basis_tmp(fullPODBasis.n_rows(), fullPODBasis.n_cols(), fullPODBasis.n_cols());
+    dealii::TrilinosWrappers::SparseMatrix pod_basis_transpose_tmp(fullPODBasis.n_cols(), fullPODBasis.n_rows(), fullPODBasis.n_rows());
 
     for(int i : row_index_set){
         for(int j : column_index_set){
-            pod_basis_tmp.set(i, j, fullPODBasis.operator()(i, j));
-            pod_basis_transpose_tmp.set(j, i, fullPODBasis.operator()(i, j));
+            pod_basis_tmp.set(i, j, fullPODBasis(i, j));
+            pod_basis_transpose_tmp.set(j, i, fullPODBasis(i, j));
         }
     }
 
     pod_basis_tmp.compress(dealii::VectorOperation::insert);
     pod_basis_transpose_tmp.compress(dealii::VectorOperation::insert);
 
-    pod_basis.copy_from(pod_basis_tmp);
-    pod_basis_transpose.copy_from(pod_basis_transpose_tmp);
-
+    pod_basis->reinit(pod_basis_tmp);
+    pod_basis->copy_from(pod_basis_tmp);
+    pod_basis_transpose->reinit(pod_basis_tmp);
+    pod_basis_transpose->copy_from(pod_basis_transpose_tmp);
 }
 
 }

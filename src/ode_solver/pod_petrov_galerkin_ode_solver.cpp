@@ -37,7 +37,7 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
     //Petrov-Galerkin projection, basis psi = V^T*J^T
     //V^T*J*V*p = -V^T*R
 
-    this->dg->system_matrix.mmult(this->psi, pod->pod_basis); // psi = system_matrix * pod_basis. Note, use transpose in subsequent multiplications
+    this->dg->system_matrix.mmult(this->psi, *pod->getPODBasis()); // psi = system_matrix * pod_basis. Note, use transpose in subsequent multiplications
 
     this->psi.Tvmult(this->reduced_rhs, this->dg->right_hand_side); // reduced_rhs = (psi)^T * right_hand_side
 
@@ -49,7 +49,7 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
             this->reduced_solution_update,
             this->ODESolverBase<dim,real,MeshType>::all_parameters->linear_solver_param);
 
-    pod->pod_basis.vmult(this->solution_update, this->reduced_solution_update);
+    pod->getPODBasis()->vmult(this->solution_update, this->reduced_solution_update);
 
     this->linesearch();
 
@@ -65,10 +65,10 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::allocate_ode_system ()
 
     this->solution_update.reinit(this->dg->right_hand_side);
 
-    this->reduced_solution_update.reinit(pod->pod_basis.n());
-    this->psi.reinit(dealii::SparsityPattern(pod->pod_basis.m(), pod->pod_basis.n(), pod->pod_basis.n()));
-    this->reduced_rhs.reinit(pod->pod_basis.n());
-    this->reduced_lhs.reinit(dealii::SparsityPattern(pod->pod_basis.n(), pod->pod_basis.n(), pod->pod_basis.n()));
+    this->reduced_solution_update.reinit(pod->getPODBasis()->n());
+    this->psi.reinit(dealii::SparsityPattern(pod->getPODBasis()->m(), pod->getPODBasis()->n(), pod->getPODBasis()->n()));
+    this->reduced_rhs.reinit(pod->getPODBasis()->n());
+    this->reduced_lhs.reinit(dealii::SparsityPattern(pod->getPODBasis()->n(), pod->getPODBasis()->n(), pod->getPODBasis()->n()));
 }
 
 template class PODPetrovGalerkinODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;

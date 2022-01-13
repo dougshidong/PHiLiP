@@ -18,6 +18,12 @@ public:
     /// Final solution time for PDE
     double final_time;
 
+    /// Initial dimension of the coarse basis
+    int coarse_basis_dimension;
+
+    /// Initial dimension of the fine basis
+    int fine_basis_dimension;
+
     /** Set as true for running a manufactured solution.
      *  Adds the manufactured solution source term to the PDE source term
      */

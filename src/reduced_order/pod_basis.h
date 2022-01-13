@@ -9,6 +9,8 @@
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/lac/trilinos_sparse_matrix.h>
+#include <deal.II/lac/vector_operation.h>
+#include "parameters/all_parameters.h"
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
@@ -17,32 +19,36 @@ namespace ProperOrthogonalDecomposition {
 class POD
 {
 public:
+    //const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
 
-    int num_basis; ///< Number of basis functions to keep for the reduced order model
+    //int coarseBasisDim;
+    //int fineBasisDim;
+
     dealii::LAPACKFullMatrix<double> fullPODBasis; ///< U matrix output from SVD, full POD basis
-    dealii::TrilinosWrappers::SparseMatrix pod_basis; ///< First num_basis columns of fullPODBasis
-    dealii::TrilinosWrappers::SparseMatrix pod_basis_transpose; ///< Transpose of pod_basis
 
     /// Constructor
-    POD(int num_basis);
-
-    /// Constructor not specifying number of basis functions
     POD();
 
     /// Destructor
-    ~POD () {};
+    virtual ~POD () {};
 
     /// Get full POD basis consisting of fullPODBasis
-    void getPODBasisFromSnapshots();
+    bool getPODBasisFromSnapshots();
 
-    void getSavedPODBasis();
+    bool getSavedPODBasis();
 
     void saveFullPODBasisToFile();
 
-
-
     /// Get reduced POD basis consisting of the first num_basis columns of fullPODBasis
-    void build_reduced_pod_basis();
+    void buildPODBasis();
+
+    virtual std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis();
+
+    virtual std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasisTranspose();
+
+private:
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> pod_basis; ///< First num_basis columns of fullPODBasis
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> pod_basis_transpose; ///< Transpose of pod_basis
 
 protected:
     const MPI_Comm mpi_communicator; ///< MPI communicator.

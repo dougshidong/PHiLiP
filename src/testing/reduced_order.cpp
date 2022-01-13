@@ -32,12 +32,6 @@ int ReducedOrder<dim, nstate>::run_test() const
 
     std::shared_ptr<ProperOrthogonalDecomposition::POD> pod = std::make_shared<ProperOrthogonalDecomposition::POD>();
 
-    //Assign number of basis function to be all basis functions available for purpose of this test
-    //pod->num_basis = svd_u.n_cols();
-
-    //Get reduced basis with num_basis columns
-    pod->build_reduced_pod_basis();
-
     /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
     /*SET UP GRID, PARAMETERS AND INITIAL CONDITIONS*/
 

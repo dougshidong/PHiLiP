@@ -32,8 +32,12 @@ public:
     int n_refine;
 
     /// Useful for accurate time-stepping.
-    /** This variable will change when advance_solution_time() or step_in_time() is called. */
+    /** This variable will change when step_in_time() is called. */
     double current_time;
+
+    /// Current iteration of ODE solver
+    /** This variable will change when step_in_time() is called. */
+    int current_iteration;
 
     /// Table used to output solution vector at each time step
     dealii::TableHandler solutions_table;

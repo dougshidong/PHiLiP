@@ -149,7 +149,6 @@ void ImplicitODESolver<dim,real,MeshType>::allocate_ode_system ()
     this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
 
     this->solution_update.reinit(this->dg->right_hand_side);
-    this->current_iteration = 0;
 }
 
 template class ImplicitODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;

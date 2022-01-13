@@ -35,9 +35,9 @@ public:
     /** This variable will change when step_in_time() is called. */
     double current_time;
 
-    /// Current iteration of ODE solver
+    /// Current iteration.
     /** This variable will change when step_in_time() is called. */
-    int current_iteration;
+    unsigned int current_iteration;
 
     /// Table used to output solution vector at each time step
     dealii::TableHandler solutions_table;
@@ -71,8 +71,6 @@ public:
 
     double residual_norm; ///< Current residual norm. Only makes sense for steady state
     double residual_norm_decrease; ///< Current residual norm normalized by initial residual. Only makes sense for steady state
-
-    unsigned int current_iteration; ///< Current iteration.
 
 protected:
     /// Hard-coded way to play around with h-adaptivity.

@@ -257,14 +257,16 @@ int FlowSolver<dim,nstate>::run_test() const
     ode_solver->allocate_ode_system();
     pcout << "done." << std::endl;
     //----------------------------------------------------
-    // Computed quantities at initial time
+    // dealii::TableHandler and data at initial time
     //----------------------------------------------------
     std::shared_ptr<dealii::TableHandler> unsteady_data_table = std::make_shared<dealii::TableHandler>();//(this->mpi_communicator) ?;
+    pcout << "Writing unsteady data computed at initial time... " << std::endl;
     compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
+    pcout << "done." << std::endl;
     //----------------------------------------------------
     // Time advancement loop with on-the-fly post-processing
     //----------------------------------------------------
-    pcout << "\nPreparing to advance solution in time:" << std::endl;
+    pcout << "Advancing solution in time... " << std::endl;
     while(ode_solver->current_time < final_time)
     {
         ode_solver->step_in_time(constant_time_step,false); // pseudotime==false
@@ -282,6 +284,7 @@ int FlowSolver<dim,nstate>::run_test() const
             }
         }
     }
+    pcout << "done." << std::endl;
     return 0;
 }
 

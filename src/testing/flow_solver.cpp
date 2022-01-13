@@ -154,27 +154,27 @@ double FlowSolver<dim, nstate>::integrate_over_domain(DGBase<dim, double> &dg,co
 template <int dim, int nstate>
 void FlowSolver<dim, nstate>::compute_unsteady_data_and_write_to_table(
     const double current_time, 
-    const std::shared_ptr <DGBase<dim, double>> dg) const //,
-    //const std::shared_ptr <dealii::TableHandler> /*unsteady_data_table*/) const
+    const std::shared_ptr <DGBase<dim, double>> dg,
+    const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const
 {
-    // time
-    // std::string time_string = "time";
-    // unsteady_data_table->add_value(time_string, current_time);
-    // unsteady_data_table->set_precision(time_string, 16);
-    // unsteady_data_table->set_scientific(time_string, true);
-    // kinetic energy
-    // std::string kinetic_energy_string = "kinetic_energy";
+    // Add time to table
+    std::string time_string = "time";
+    unsteady_data_table->add_value(time_string, current_time);
+    unsteady_data_table->set_precision(time_string, 16);
+    unsteady_data_table->set_scientific(time_string, true);
+    // Compute and add kinetic energy to table
+    std::string kinetic_energy_string = "kinetic_energy";
     const double kinetic_energy = integrate_over_domain(*dg,"kinetic_energy");
-    // unsteady_data_table->add_value(kinetic_energy_string, kinetic_energy);
-    // unsteady_data_table->set_precision(kinetic_energy_string, 16);
-    // unsteady_data_table->set_scientific(kinetic_energy_string, true);
-    // write to file
-    // std::ofstream unsteady_data_table_file(unsteady_data_table_filename);
-    // unsteady_data_table->write_text(unsteady_data_table_file);
-    // print to console
+    unsteady_data_table->add_value(kinetic_energy_string, kinetic_energy);
+    unsteady_data_table->set_precision(kinetic_energy_string, 16);
+    unsteady_data_table->set_scientific(kinetic_energy_string, true);
+    // Write to file
+    std::ofstream unsteady_data_table_file(unsteady_data_table_filename);
+    unsteady_data_table->write_text(unsteady_data_table_file);
+    // Print to console
     pcout << " Energy at time " << current_time << " is " << kinetic_energy << std::endl;
 
-    // Fail if energy is nan
+    // Abort if energy is nan
     if(std::isnan(kinetic_energy)) {
         pcout << " ERROR: Kinetic energy at time " << current_time << " is nan." << std::endl;
         pcout << "        Consider decreasing the time step / CFL number." << std::endl;
@@ -256,21 +256,20 @@ int FlowSolver<dim,nstate>::run_test() const
     // Computed quantities at initial time
     //----------------------------------------------------
     std::shared_ptr<dealii::TableHandler> unsteady_data_table = std::make_shared<dealii::TableHandler>();//(this->mpi_communicator) ?;
-    // compute_unsteady_data_and_write_to_table(ode_solver->current_time, dg);//, unsteady_data_table);
+    compute_unsteady_data_and_write_to_table(ode_solver->current_time, dg, unsteady_data_table);
     //----------------------------------------------------
     // Time advancement loop with on-the-fly post-processing
     //----------------------------------------------------
+    const int current_iteration = ode_solver->current_iteration;
+    pcout << "current_iteration = " << current_iteration << std::endl;
     pcout << "\nPreparing to advance solution in time:" << std::endl;
     while(ode_solver->current_time < final_time)
     {
         ode_solver->step_in_time(constant_time_step,false); // pseudotime==false
 
         // Compute the unsteady quantities, write to the dealii table, and output to file
-        // compute_unsteady_data_and_write_to_table(ode_solver->current_time, dg);//, unsteady_data_table);
-        const double current_time = ode_solver->current_time;
-        const double kinetic_energy = integrate_over_domain(*dg,"kinetic_energy");
-        pcout << " Energy at time " << current_time << " is " << kinetic_energy << std::endl;
-
+        compute_unsteady_data_and_write_to_table(ode_solver->current_time, dg, unsteady_data_table);
+        pcout << "current_iteration = " << current_iteration << std::endl;
         // Output vtk solution files for post-processing in Paraview
         const int current_iteration = ode_solver->current_iteration;
         if (ode_param.output_solution_every_x_steps > 0) {
@@ -282,7 +281,7 @@ int FlowSolver<dim,nstate>::run_test() const
             }
         }
     }
-    return 0; //< to be modified -- check solution somehow
+    return 0;
 }
 
 #if PHILIP_DIM==3    

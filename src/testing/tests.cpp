@@ -101,7 +101,7 @@ template<int dim, int nstate, typename MeshType>
 std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
 ::select_test(const AllParam *const parameters_input) {
     using Test_enum = AllParam::TestType;
-    Test_enum test_type = parameters_input->test_type;
+    const Test_enum test_type = parameters_input->test_type;
 
     if(test_type == Test_enum::run_control) {
         return std::make_unique<GridStudy<dim,nstate>>(parameters_input);
@@ -147,6 +147,7 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<FlowSolver<dim,nstate>>(parameters_input);
     } else{
         std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
+        std::abort();
     }
 
     return nullptr;

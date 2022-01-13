@@ -5,6 +5,8 @@ namespace ProperOrthogonalDecomposition {
 
 CoarsePOD::CoarsePOD(const Parameters::AllParameters *const parameters_input)
         : POD()
+        , coarseBasis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
+        , coarseBasisTranspose(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
         , all_parameters(parameters_input)
         , mpi_communicator(MPI_COMM_WORLD)
         , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
@@ -23,26 +25,28 @@ std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> CoarsePOD::getPODBasisTr
 }
 
 void CoarsePOD::buildCoarsePODBasis() {
-    std::vector<int> row_index_set(fullPODBasis.n_rows());
+    std::vector<int> row_index_set(fullPODBasisLAPACK.n_rows());
     std::iota(std::begin(row_index_set), std::end(row_index_set),0);
 
     std::vector<int> column_index_set(coarseBasisDim);
     std::iota(std::begin(column_index_set), std::end(column_index_set),0);
 
-    dealii::TrilinosWrappers::SparseMatrix coarse_basis_tmp(fullPODBasis.n_rows(), coarseBasisDim, coarseBasisDim);
-    dealii::TrilinosWrappers::SparseMatrix coarse_basis_transpose_tmp(coarseBasisDim, fullPODBasis.n_rows(), fullPODBasis.n_rows());
+    dealii::TrilinosWrappers::SparseMatrix coarse_basis_tmp(fullPODBasisLAPACK.n_rows(), coarseBasisDim, coarseBasisDim);
+    dealii::TrilinosWrappers::SparseMatrix coarse_basis_transpose_tmp(coarseBasisDim, fullPODBasisLAPACK.n_rows(), fullPODBasisLAPACK.n_rows());
 
     for(int i : row_index_set){
         for(int j : column_index_set){
-            coarse_basis_tmp.set(i, j, fullPODBasis(i, j));
-            coarse_basis_transpose_tmp.set(j, i, fullPODBasis(i, j));
+            coarse_basis_tmp.set(i, j, fullPODBasisLAPACK(i, j));
+            coarse_basis_transpose_tmp.set(j, i, fullPODBasisLAPACK(i, j));
         }
     }
 
     coarse_basis_tmp.compress(dealii::VectorOperation::insert);
     coarse_basis_transpose_tmp.compress(dealii::VectorOperation::insert);
 
+    coarseBasis->reinit(coarse_basis_tmp);
     coarseBasis->copy_from(coarse_basis_tmp);
+    coarseBasisTranspose->reinit(coarse_basis_transpose_tmp);
     coarseBasisTranspose->copy_from(coarse_basis_transpose_tmp);
 }
 

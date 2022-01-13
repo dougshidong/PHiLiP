@@ -6,12 +6,14 @@ namespace ProperOrthogonalDecomposition {
 using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
 
 template <int dim, int nstate>
-PODAdaptation<dim, nstate>::PODAdaptation(std::shared_ptr<DGBase<dim,double>> &_dg, Functional<dim,nstate,double> &_functional, std::shared_ptr<ProperOrthogonalDecomposition::POD> _pod)
-: functional(_functional)
-, dg(_dg)
-, pod(_pod)
-, mpi_communicator(MPI_COMM_WORLD)
-, pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
+PODAdaptation<dim, nstate>::PODAdaptation(std::shared_ptr<DGBase<dim,double>> &_dg, Functional<dim,nstate,double> &_functional)
+    : functional(_functional)
+    , dg(_dg)
+    , coarsePOD(std::make_shared<ProperOrthogonalDecomposition::CoarsePOD>(dg->all_parameters))
+    , finePOD(std::make_shared<ProperOrthogonalDecomposition::FinePOD>(dg->all_parameters))
+    , ode_solver(ODE::ODESolverFactory<dim, double>::create_ODESolver(dg, coarsePOD))
+    , mpi_communicator(MPI_COMM_WORLD)
+    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
 {
     flow_CFL_ = 0.0;
 
@@ -32,19 +34,12 @@ PODAdaptation<dim, nstate>::PODAdaptation(std::shared_ptr<DGBase<dim,double>> &_
     this->linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
     //this->linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::direct;
 }
-/*
-template <int dim, int nstate>
-void PODAdaptation<dim, nstate>::generateCoarseAndFineBasis()
-{
-    podCoarseBasis =
-    podFineBasis =
-}
-*/
+
 template <int dim, int nstate>
 void PODAdaptation<dim, nstate>::dualWeightedResidual()
 {
-    DealiiVector reducedGradient(pod->getPODBasis()->n());
-    DealiiVector reducedAdjoint(pod->getPODBasis()->n());
+    DealiiVector reducedGradient(finePOD->getPODBasis()->n());
+    DealiiVector reducedAdjoint(finePOD->getPODBasis()->n());
 
     getReducedGradient(reducedGradient);
     applyReducedJacobianTranspose(reducedAdjoint, reducedGradient);
@@ -53,6 +48,12 @@ void PODAdaptation<dim, nstate>::dualWeightedResidual()
     reducedAdjoint.print(out_file);
 
     //to be completed
+}
+
+template <int dim, int nstate>
+void PODAdaptation<dim, nstate>::getCoarseSolution()
+{
+    ode_solver->steady_state();
 }
 
 template <int dim, int nstate>
@@ -65,8 +66,8 @@ void PODAdaptation<dim, nstate>::applyReducedJacobianTranspose(DealiiVector &red
 
     dealii::TrilinosWrappers::SparseMatrix tmp;
     dealii::TrilinosWrappers::SparseMatrix reducedJacobianTranspose;
-    pod->getPODBasis()->Tmmult(tmp, dg->system_matrix_transpose); //tmp = pod_basis^T * dg->system_matrix_transpose
-    tmp.mmult(reducedJacobianTranspose, *pod->getPODBasis()); // reducedJacobianTranspose= tmp*pod_basis
+    finePOD->getPODBasis()->Tmmult(tmp, dg->system_matrix_transpose); //tmp = pod_basis^T * dg->system_matrix_transpose
+    tmp.mmult(reducedJacobianTranspose, *finePOD->getPODBasis()); // reducedJacobianTranspose= tmp*pod_basis
 
     solve_linear (reducedJacobianTranspose, reducedGradient, reducedAdjoint, linear_solver_param);
 }
@@ -82,7 +83,7 @@ void PODAdaptation<dim, nstate>::getReducedGradient(DealiiVector &reducedGradien
     const bool compute_d2I = false;
     functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
 
-    pod->getPODBasis()->Tvmult(reducedGradient, functional.dIdw); // reducedGradient= (pod_basis)^T * gradient
+    finePOD->getPODBasis()->Tvmult(reducedGradient, functional.dIdw); // reducedGradient= (pod_basis)^T * gradient
 }
 
 template class PODAdaptation <PHILIP_DIM,1>;

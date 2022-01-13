@@ -94,7 +94,7 @@ int BurgersRewienskiROM<dim, nstate>::run_test() const
     pcout << "Functional output ";
     pcout << functional;
 
-    std::shared_ptr<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>> pod_adapt = std::make_shared<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>>(dg, burgers_functional, pod);
+    std::shared_ptr<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>> pod_adapt = std::make_shared<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>>(dg, burgers_functional);
 
     pod_adapt->dualWeightedResidual();
     return 0; //need to change

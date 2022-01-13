@@ -28,7 +28,7 @@ public:
     /// Destructor
     ~FinePOD () {};
 
-    /// Get reduced POD basis consisting of the first num_basis columns of fullPODBasis
+    /// Get reduced POD basis consisting of the first num_basis columns of fullPODBasisLAPACK
     void buildFinePODBasis();
 
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() override;
@@ -36,7 +36,7 @@ public:
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasisTranspose() override;
 
 private:
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fineBasis; ///< First num_basis columns of fullPODBasis
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fineBasis; ///< First num_basis columns of fullPODBasisLAPACK
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fineBasisTranspose; ///< Transpose of pod_basis
     const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
 

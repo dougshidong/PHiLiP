@@ -5,6 +5,8 @@ namespace ProperOrthogonalDecomposition {
 
 FinePOD::FinePOD(const Parameters::AllParameters *const parameters_input)
         : POD()
+        , fineBasis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
+        , fineBasisTranspose(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
         , all_parameters(parameters_input)
         , mpi_communicator(MPI_COMM_WORLD)
         , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
@@ -23,26 +25,28 @@ std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> FinePOD::getPODBasisTran
 }
 
 void FinePOD::buildFinePODBasis() {
-    std::vector<int> row_index_set(fullPODBasis.n_rows());
+    std::vector<int> row_index_set(fullPODBasisLAPACK.n_rows());
     std::iota(std::begin(row_index_set), std::end(row_index_set), 0);
 
     std::vector<int> column_index_set(fineBasisDim);
     std::iota(std::begin(column_index_set), std::end(column_index_set), 0);
 
-    dealii::TrilinosWrappers::SparseMatrix fine_basis_tmp(fullPODBasis.n_rows(), fineBasisDim, fineBasisDim);
-    dealii::TrilinosWrappers::SparseMatrix fine_basis_transpose_tmp(fineBasisDim, fullPODBasis.n_rows(), fullPODBasis.n_rows());
+    dealii::TrilinosWrappers::SparseMatrix fine_basis_tmp(fullPODBasisLAPACK.n_rows(), fineBasisDim, fineBasisDim);
+    dealii::TrilinosWrappers::SparseMatrix fine_basis_transpose_tmp(fineBasisDim, fullPODBasisLAPACK.n_rows(), fullPODBasisLAPACK.n_rows());
 
     for (int i: row_index_set) {
         for (int j: column_index_set) {
-            fine_basis_tmp.set(i, j, fullPODBasis(i, j));
-            fine_basis_transpose_tmp.set(j, i, fullPODBasis(i, j));
+            fine_basis_tmp.set(i, j, fullPODBasisLAPACK(i, j));
+            fine_basis_transpose_tmp.set(j, i, fullPODBasisLAPACK(i, j));
         }
     }
 
     fine_basis_tmp.compress(dealii::VectorOperation::insert);
     fine_basis_transpose_tmp.compress(dealii::VectorOperation::insert);
 
+    fineBasis->reinit(fine_basis_tmp);
     fineBasis->copy_from(fine_basis_tmp);
+    fineBasisTranspose->reinit(fine_basis_transpose_tmp);
     fineBasisTranspose->copy_from(fine_basis_transpose_tmp);
 }
 

@@ -4,8 +4,8 @@ namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
 POD::POD()
-        : pod_basis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
-        , pod_basis_transpose(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
+        : fullPODBasis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
+        , fullPODBasisTranspose(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
         , mpi_communicator(MPI_COMM_WORLD)
         , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {
@@ -16,7 +16,7 @@ POD::POD()
             throw std::invalid_argument("Please ensure that there is a 'full_POD_basis.txt' or 'solutions_table.txt' file!");
         }
     }
-
+    saveFullPODBasisToFile();
     buildPODBasis();
 }
 
@@ -104,7 +104,7 @@ bool POD::getPODBasisFromSnapshots() {
     pcout << "Snapshot matrix generated." << std::endl;
     pcout << "Computing SVD." << std::endl;
     snapshot_matrix.compute_svd();
-    fullPODBasis = snapshot_matrix.get_svd_u();
+    fullPODBasisLAPACK = snapshot_matrix.get_svd_u();
     pcout << "SVD computed" << std::endl;
     return file_found;
 }
@@ -112,7 +112,7 @@ bool POD::getPODBasisFromSnapshots() {
 
 void POD::saveFullPODBasisToFile() {
     std::ofstream out_file("full_POD_basis.txt");
-    fullPODBasis.print_formatted(out_file);
+    fullPODBasisLAPACK.print_formatted(out_file);
 }
 
 bool POD::getSavedPODBasis(){
@@ -161,44 +161,44 @@ bool POD::getSavedPODBasis(){
                 rows++;
             }
             myfile.close();
-            fullPODBasis.copy_from(pod_basis_tmp);
+            fullPODBasisLAPACK.copy_from(pod_basis_tmp);
         }
     }
     return file_found;
 }
 
 std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> POD::getPODBasis(){
-    return pod_basis;
+    return fullPODBasis;
 }
 
 std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> POD::getPODBasisTranspose(){
-    return pod_basis_transpose;
+    return fullPODBasisTranspose;
 }
 
 void POD::buildPODBasis() {
-    std::vector<int> row_index_set(fullPODBasis.n_rows());
+    std::vector<int> row_index_set(fullPODBasisLAPACK.n_rows());
     std::iota(std::begin(row_index_set), std::end(row_index_set),0);
 
-    std::vector<int> column_index_set(fullPODBasis.n_cols());
+    std::vector<int> column_index_set(fullPODBasisLAPACK.n_cols());
     std::iota(std::begin(column_index_set), std::end(column_index_set),0);
 
-    dealii::TrilinosWrappers::SparseMatrix pod_basis_tmp(fullPODBasis.n_rows(), fullPODBasis.n_cols(), fullPODBasis.n_cols());
-    dealii::TrilinosWrappers::SparseMatrix pod_basis_transpose_tmp(fullPODBasis.n_cols(), fullPODBasis.n_rows(), fullPODBasis.n_rows());
+    dealii::TrilinosWrappers::SparseMatrix pod_basis_tmp(fullPODBasisLAPACK.n_rows(), fullPODBasisLAPACK.n_cols(), fullPODBasisLAPACK.n_cols());
+    dealii::TrilinosWrappers::SparseMatrix pod_basis_transpose_tmp(fullPODBasisLAPACK.n_cols(), fullPODBasisLAPACK.n_rows(), fullPODBasisLAPACK.n_rows());
 
     for(int i : row_index_set){
         for(int j : column_index_set){
-            pod_basis_tmp.set(i, j, fullPODBasis(i, j));
-            pod_basis_transpose_tmp.set(j, i, fullPODBasis(i, j));
+            pod_basis_tmp.set(i, j, fullPODBasisLAPACK(i, j));
+            pod_basis_transpose_tmp.set(j, i, fullPODBasisLAPACK(i, j));
         }
     }
 
     pod_basis_tmp.compress(dealii::VectorOperation::insert);
     pod_basis_transpose_tmp.compress(dealii::VectorOperation::insert);
 
-    pod_basis->reinit(pod_basis_tmp);
-    pod_basis->copy_from(pod_basis_tmp);
-    pod_basis_transpose->reinit(pod_basis_tmp);
-    pod_basis_transpose->copy_from(pod_basis_transpose_tmp);
+    fullPODBasis->reinit(pod_basis_tmp);
+    fullPODBasis->copy_from(pod_basis_tmp);
+    fullPODBasisTranspose->reinit(pod_basis_tmp);
+    fullPODBasisTranspose->copy_from(pod_basis_transpose_tmp);
 }
 
 }

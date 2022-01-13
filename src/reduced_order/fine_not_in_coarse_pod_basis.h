@@ -1,5 +1,5 @@
-#ifndef __FINE_NOT_IN_COARSE_BASIS__
-#define __FINE_NOT_IN_COARSE_BASIS__
+#ifndef __FINE_NOT_IN_COARSE_POD_BASIS__
+#define __FINE_NOT_IN_COARSE_POD_BASIS__
 
 #include <fstream>
 #include <iostream>
@@ -28,7 +28,7 @@ public:
     /// Destructor
     ~FineNotInCoarsePOD () {};
 
-    /// Get reduced POD basis consisting of the first num_basis columns of fullPODBasis
+    /// Get reduced POD basis consisting of the first num_basis columns of fullPODBasisLAPACK
     void buildFineNotInCoarsePODBasis();
 
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() override;
@@ -36,7 +36,7 @@ public:
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasisTranspose() override;
 
 private:
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fineNotInCoarseBasis; ///< First num_basis columns of fullPODBasis
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fineNotInCoarseBasis; ///< First num_basis columns of fullPODBasisLAPACK
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fineNotInCoarseBasisTranspose; ///< Transpose of pod_basis
     const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
 

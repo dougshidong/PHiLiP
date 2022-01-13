@@ -7,13 +7,15 @@
 
 #include "functional/functional.h"
 #include "dg/dg.h"
-#include "reduced_order/pod_basis.h"
+#include "reduced_order/coarse_pod_basis.h"
+#include "reduced_order/fine_pod_basis.h"
 #include "linear_solver/linear_solver.h"
 
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/lac/trilinos_sparse_matrix.h>
+#include "ode_solver/ode_solver_factory.h"
 
 #include "optimization/rol_to_dealii_vector.hpp"
 #include "optimization/pde_constraints.h"
@@ -41,7 +43,11 @@ private:
     std::shared_ptr<DGBase<dim,double>> dg;
 
     /// Smart pointer to POD
-    std::shared_ptr<ProperOrthogonalDecomposition::POD> pod;
+    std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD> coarsePOD;
+
+    std::shared_ptr<ProperOrthogonalDecomposition::FinePOD> finePOD;
+
+    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver;
 
     /// Linear solver parameters.
     Parameters::LinearSolverParam linear_solver_param;
@@ -51,7 +57,7 @@ private:
 
 public:
     /// Constructor
-    PODAdaptation(std::shared_ptr<DGBase<dim,double>> &_dg, Functional<dim,nstate,double> &_functional, std::shared_ptr<ProperOrthogonalDecomposition::POD> pod);
+    PODAdaptation(std::shared_ptr<DGBase<dim,double>> &_dg, Functional<dim,nstate,double> &_functional);
 
     /// Constructor not specifying number of basis functions
     PODAdaptation();
@@ -64,6 +70,8 @@ public:
     void applyReducedJacobianTranspose(DealiiVector &reducedAdjoint, DealiiVector &reducedGradient);
 
     void dualWeightedResidual();
+
+    void getCoarseSolution();
 
 protected:
     const MPI_Comm mpi_communicator; ///< MPI communicator.

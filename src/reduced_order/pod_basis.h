@@ -19,12 +19,7 @@ namespace ProperOrthogonalDecomposition {
 class POD
 {
 public:
-    //const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
-
-    //int coarseBasisDim;
-    //int fineBasisDim;
-
-    dealii::LAPACKFullMatrix<double> fullPODBasis; ///< U matrix output from SVD, full POD basis
+    dealii::LAPACKFullMatrix<double> fullPODBasisLAPACK; ///< U matrix output from SVD, full POD basis
 
     /// Constructor
     POD();
@@ -32,14 +27,14 @@ public:
     /// Destructor
     virtual ~POD () {};
 
-    /// Get full POD basis consisting of fullPODBasis
+    /// Get full POD basis consisting of fullPODBasisLAPACK
     bool getPODBasisFromSnapshots();
 
     bool getSavedPODBasis();
 
     void saveFullPODBasisToFile();
 
-    /// Get reduced POD basis consisting of the first num_basis columns of fullPODBasis
+    /// Get reduced POD basis consisting of the first num_basis columns of fullPODBasisLAPACK
     void buildPODBasis();
 
     virtual std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis();
@@ -47,8 +42,8 @@ public:
     virtual std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasisTranspose();
 
 private:
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> pod_basis; ///< First num_basis columns of fullPODBasis
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> pod_basis_transpose; ///< Transpose of pod_basis
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fullPODBasis; ///< First num_basis columns of fullPODBasisLAPACK
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fullPODBasisTranspose; ///< Transpose of pod_basis
 
 protected:
     const MPI_Comm mpi_communicator; ///< MPI communicator.

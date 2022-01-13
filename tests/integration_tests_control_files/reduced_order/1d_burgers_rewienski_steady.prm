@@ -24,7 +24,8 @@ subsection reduced order
   set rewienski_a = 4.5
   set rewienski_b = 0.04
   set final_time = 0.1
-  set coarse_basis_dimension = 100
+  set coarse_basis_dimension = 10
+  set fine_basis_dimension = 15
 end
 
 subsection linear solver

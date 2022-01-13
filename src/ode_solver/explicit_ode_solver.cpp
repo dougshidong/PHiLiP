@@ -111,6 +111,7 @@ void ExplicitODESolver<dim,real,MeshType>::allocate_ode_system ()
     for (int i=0; i<4; i++) {
         this->rk_stage[i].reinit(this->dg->solution);
     }
+    this->current_iteration = 0;
 }
 
 template class ExplicitODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;

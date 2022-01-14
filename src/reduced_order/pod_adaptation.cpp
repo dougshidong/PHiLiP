@@ -38,20 +38,27 @@ void PODAdaptation<dim, nstate>::simplePODAdaptation(int numBasisToAdd)
     //Compute dual weighted residual
     DealiiVector dualWeightedResidual(finePOD->getPODBasis()->n());
     for(unsigned int i = 0; i < reducedAdjoint.size(); i++){
-        dualWeightedResidual[i] = reducedAdjoint[i]*reducedResidual[i];
+        dualWeightedResidual[i] = std::abs(reducedAdjoint[i]*reducedResidual[i]);
         pcout << reducedAdjoint[i] << " " << reducedResidual[i] << " " << dualWeightedResidual[i] << std::endl;
     }
 
     //Generate vector of indices
-    std::vector<unsigned int> reducedResidualIndices(reducedResidual.size(), 0);
-    for (unsigned int i = 0 ; i < reducedResidualIndices.size() ; i++) {
-        reducedResidualIndices[i] = i;
+    std::vector<unsigned int> reducedDualWeightedResidualIndices(reducedResidual.size(), 0);
+    for (unsigned int i = 0 ; i < reducedDualWeightedResidualIndices.size() ; i++) {
+        reducedDualWeightedResidualIndices[i] = i;
     }
 
-    //Start indices based on reduced residual starting at coarsePOD->getPODBasis()->n()th index
-    std::sort (reducedResidualIndices.begin()+coarsePOD->getPODBasis()->n(), reducedResidualIndices.end(), [&](auto &a, auto &b) {return (reducedResidual[a] < reducedResidual[b]);});
-    reducedResidualIndices.resize(coarsePOD->getPODBasis()->n() + numBasisToAdd);
-    coarsePOD->updateCoarsePODBasis(reducedResidualIndices);
+    //Start indices based on reduced dual weighted residual starting at coarsePOD->getPODBasis()->n()th index
+    std::sort (reducedDualWeightedResidualIndices.begin() + coarsePOD->getPODBasis()->n(), reducedDualWeightedResidualIndices.end(), [&](auto &a, auto &b) {return (dualWeightedResidual[a] > dualWeightedResidual[b]);});
+    reducedDualWeightedResidualIndices.resize(coarsePOD->getPODBasis()->n() + numBasisToAdd);
+
+    for (unsigned int i: reducedDualWeightedResidualIndices){
+        pcout << i << ' ';
+    }
+    pcout << std::endl;
+
+
+    coarsePOD->updateCoarsePODBasis(reducedDualWeightedResidualIndices);
 
     //Re-compute POD solution with updated basis
     getCoarseSolution();

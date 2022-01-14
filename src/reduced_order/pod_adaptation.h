@@ -7,8 +7,7 @@
 
 #include "functional/functional.h"
 #include "dg/dg.h"
-#include "reduced_order/coarse_pod_basis.h"
-#include "reduced_order/fine_pod_basis.h"
+#include "reduced_order/pod_basis_types.h"
 #include "linear_solver/linear_solver.h"
 
 #include <deal.II/numerics/vector_tools.h>

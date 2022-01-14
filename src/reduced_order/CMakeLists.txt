@@ -1,9 +1,7 @@
 set(SOURCE
         pod_basis.cpp
         pod_adaptation.cpp
-        coarse_pod_basis.cpp
-        fine_pod_basis.cpp
-        fine_not_in_coarse_pod_basis.cpp)
+        pod_basis_types.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

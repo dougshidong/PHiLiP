@@ -41,7 +41,8 @@ subsection grid refinement study
 end
 
 subsection flow_solver
-  set flow_case_type = inviscid_taylor_green_vortex
+  set flow_case_type = taylor_green_vortex
   set final_time = 20.0
   set courant_friedrich_lewy_number = 0.01
+  set unsteady_data_table_filename = tgv_kinetic_energy_vs_time_table
 end

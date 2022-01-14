@@ -46,7 +46,7 @@ FlowSolver<dim, nstate>::FlowSolver(const PHiLiP::Parameters::AllParameters *con
 , courant_friedrich_lewy_number(flow_solver_param.courant_friedrich_lewy_number)
 , poly_degree(all_param.grid_refinement_study_param.poly_degree)
 , final_time(flow_solver_param.final_time)
-, unsteady_data_table_filename("tgv_kinetic_energy_vs_time_table.txt")
+, unsteady_data_table_filename_with_extension(flow_solver_param.unsteady_data_table_filename+".txt")
 {
     // nothing to do here yet
 }
@@ -176,14 +176,13 @@ PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllPar
 , domain_left(this->all_param.grid_refinement_study_param.grid_left)
 , domain_right(this->all_param.grid_refinement_study_param.grid_right)
 , domain_volume(pow(domain_right - domain_left, dim))
-// , unsteady_data_table_filename("tgv_kinetic_energy_vs_time_table.txt")
 {
     // Get the flow case type
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     const FlowCaseEnum flow_type = parameters_input->flow_solver_param.flow_case_type;
 
     // Flow case identifiers
-    is_taylor_green_vortex = ((flow_type == FlowCaseEnum::inviscid_taylor_green_vortex) || (flow_type == FlowCaseEnum::viscous_taylor_green_vortex));
+    is_taylor_green_vortex = (flow_type == FlowCaseEnum::taylor_green_vortex);
 }
 
 template <int dim, int nstate>
@@ -318,7 +317,7 @@ void PeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
     unsteady_data_table->set_precision(kinetic_energy_string, 16);
     unsteady_data_table->set_scientific(kinetic_energy_string, true);
     // Write to file
-    std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename);
+    std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
     unsteady_data_table->write_text(unsteady_data_table_file);
     // Print to console
     this->pcout << "    Iter: " << current_iteration 
@@ -350,8 +349,7 @@ FlowSolverFactory<dim,nstate>
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     const FlowCaseEnum flow_type = parameters_input->flow_solver_param.flow_case_type;
 
-    if ((flow_type == FlowCaseEnum::inviscid_taylor_green_vortex) || 
-        (flow_type == FlowCaseEnum::viscous_taylor_green_vortex)) {
+    if (flow_type == FlowCaseEnum::taylor_green_vortex) {
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<PeriodicCubeFlow<dim,nstate>>(parameters_input);
     }
     else{

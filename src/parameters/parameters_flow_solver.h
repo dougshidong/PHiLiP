@@ -16,16 +16,20 @@ public:
 
     /// Selects the flow case to be simulated
     enum FlowCaseType{
-        inviscid_taylor_green_vortex,
-        viscous_taylor_green_vortex
+        taylor_green_vortex
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 
     double final_time; ///< Final solution time
     double courant_friedrich_lewy_number; ///< Courant-Friedrich-Lewy (CFL) number for constant time step
 
+    /** Name of the output file for writing the unsteady data; 
+        will be written to file: unsteady_data_table_filename.txt */
+    std::string unsteady_data_table_filename;
+
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
+
     /// Parses input file and sets the variables.
     void parse_parameters (dealii::ParameterHandler &prm);
 };

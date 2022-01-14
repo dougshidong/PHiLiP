@@ -105,12 +105,7 @@ InitialConditionFactory<dim,real>::create_InitialConditionFunction(
 {
     const FlowCaseEnum flow_type = param->flow_solver_param.flow_case_type;
 
-    if(flow_type == FlowCaseEnum::inviscid_taylor_green_vortex && (dim==3)){
-        return std::make_shared < InitialConditionFunction_TaylorGreenVortex<dim,real> > (
-            nstate,
-            param->euler_param.gamma_gas,
-            param->euler_param.mach_inf);
-    }else if(flow_type == FlowCaseEnum::viscous_taylor_green_vortex && (dim==3)){
+    if(flow_type == FlowCaseEnum::taylor_green_vortex && (dim==3)){
         return std::make_shared < InitialConditionFunction_TaylorGreenVortex<dim,real> > (
             nstate,
             param->euler_param.gamma_gas,

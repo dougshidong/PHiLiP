@@ -33,8 +33,7 @@ public:
     const double courant_friedrich_lewy_number; ///< Courant-Friedrich-Lewy (CFL) number
     const unsigned int poly_degree; ///< Polynomial order
     const double final_time; ///< Final time of solution
-
-    const std::string unsteady_data_table_filename; ///< Filename for the unsteady data table
+    const std::string unsteady_data_table_filename_with_extension; ///< Filename (with extension) for the unsteady data table
         
     /// Displays the flow setup parameters
     virtual void display_flow_solver_setup(const Parameters::AllParameters *const all_param) const;
@@ -70,7 +69,6 @@ public:
     const double domain_left; ///< Domain left-boundary value for generating the grid
     const double domain_right; ///< Domain right-boundary value for generating the grid
     const double domain_volume; ///< Domain volume
-    // const std::string unsteady_data_table_filename; ///< Filename for the unsteady data table
     
     bool is_taylor_green_vortex = false; ///< Identifies if taylor green vortex case; initialized as false.
 

@@ -37,19 +37,19 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
     //Petrov-Galerkin projection, basis psi = V^T*J^T
     //V^T*J*V*p = -V^T*R
 
-    this->dg->system_matrix.mmult(this->psi, *pod->getPODBasis()); // psi = system_matrix * pod_basis. Note, use transpose in subsequent multiplications
+    this->dg->system_matrix.mmult(*this->psi, *pod->getPODBasis()); // psi = system_matrix * pod_basis. Note, use transpose in subsequent multiplications
 
-    this->psi.Tvmult(this->reduced_rhs, this->dg->right_hand_side); // reduced_rhs = (psi)^T * right_hand_side
+    this->psi->Tvmult(*this->reduced_rhs, this->dg->right_hand_side); // reduced_rhs = (psi)^T * right_hand_side
 
-    this->psi.Tmmult(this->reduced_lhs, this->psi); //reduced_lhs = psi^T * psi , equivalent to V^T*J^T*J*V
+    this->psi->Tmmult(*this->reduced_lhs, *this->psi); //reduced_lhs = psi^T * psi , equivalent to V^T*J^T*J*V
 
     solve_linear(
-            this->reduced_lhs,
-            this->reduced_rhs,
-            this->reduced_solution_update,
+            *this->reduced_lhs,
+            *this->reduced_rhs,
+            *this->reduced_solution_update,
             this->ODESolverBase<dim,real,MeshType>::all_parameters->linear_solver_param);
 
-    pod->getPODBasis()->vmult(this->solution_update, this->reduced_solution_update);
+    pod->getPODBasis()->vmult(this->solution_update, *this->reduced_solution_update);
 
     this->linesearch();
 
@@ -65,10 +65,10 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::allocate_ode_system ()
 
     this->solution_update.reinit(this->dg->right_hand_side);
 
-    this->reduced_solution_update.reinit(pod->getPODBasis()->n());
-    this->psi.reinit(dealii::SparsityPattern(pod->getPODBasis()->m(), pod->getPODBasis()->n(), pod->getPODBasis()->n()));
-    this->reduced_rhs.reinit(pod->getPODBasis()->n());
-    this->reduced_lhs.reinit(dealii::SparsityPattern(pod->getPODBasis()->n(), pod->getPODBasis()->n(), pod->getPODBasis()->n()));
+    reduced_solution_update = std::make_shared<dealii::LinearAlgebra::distributed::Vector<double>>(pod->getPODBasis()->n());
+    reduced_rhs = std::make_shared<dealii::LinearAlgebra::distributed::Vector<double>>(pod->getPODBasis()->n());
+    psi = std::make_shared<dealii::TrilinosWrappers::SparseMatrix>();
+    reduced_lhs = std::make_shared<dealii::TrilinosWrappers::SparseMatrix>();
 }
 
 template class PODPetrovGalerkinODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;

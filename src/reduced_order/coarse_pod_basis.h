@@ -31,6 +31,8 @@ public:
     /// Get reduced POD basis consisting of the first num_basis columns of fullPODBasisLAPACK
     void buildCoarsePODBasis();
 
+    void updateCoarsePODBasis(std::vector<unsigned int> indices);
+
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() override;
 
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasisTranspose() override;

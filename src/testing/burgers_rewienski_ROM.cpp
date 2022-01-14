@@ -31,11 +31,6 @@ int BurgersRewienskiROM<dim, nstate>::run_test() const
 {
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
-    std::shared_ptr<ProperOrthogonalDecomposition::POD> pod = std::make_shared<ProperOrthogonalDecomposition::POD>();
-
-    //Get reduced basis
-    pod->buildPODBasis();
-
     pcout << "Running Burgers Rewienski with parameter a: "
           << param.reduced_order_param.rewienski_a
           << " and parameter b: "
@@ -71,9 +66,6 @@ int BurgersRewienskiROM<dim, nstate>::run_test() const
     initial_condition.initialize(variables, expression, constants);
     dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
 
-    // Create ODE solver using the factory and providing the DG object
-    std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg, pod);
-
     pcout << "Dimension: " << dim
           << "\t Polynomial degree p: " << poly_degree
           << std::endl
@@ -81,22 +73,12 @@ int BurgersRewienskiROM<dim, nstate>::run_test() const
           << ". Number of degrees of freedom: " << dg->dof_handler.n_dofs()
           << std::endl;
 
-    //double finalTime = param.reduced_order_param.final_time;
-    //ode_solver->advance_solution_time(finalTime);
-    ode_solver->steady_state();
-
     // functional for computations
     auto burgers_functional = BurgersRewienskiFunctional2<dim,nstate,double>(dg,dg_state->pde_physics_fad_fad,true,false);
 
-    // evaluating functional
-    double functional = burgers_functional.evaluate_functional(false,false);
-
-    pcout << "Functional output ";
-    pcout << functional;
-
     std::shared_ptr<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>> pod_adapt = std::make_shared<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>>(dg, burgers_functional);
 
-    pod_adapt->dualWeightedResidual();
+    pod_adapt->simplePODAdaptation(2);
     return 0; //need to change
 }
 

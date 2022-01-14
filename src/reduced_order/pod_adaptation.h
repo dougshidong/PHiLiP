@@ -52,9 +52,6 @@ private:
     /// Linear solver parameters.
     Parameters::LinearSolverParam linear_solver_param;
 
-    /// Regularization of the constraint by adding flow_CFL_ times the mass matrix.
-    double flow_CFL_;
-
 public:
     /// Constructor
     PODAdaptation(std::shared_ptr<DGBase<dim,double>> &_dg, Functional<dim,nstate,double> &_functional);
@@ -69,7 +66,7 @@ public:
 
     void applyReducedJacobianTranspose(DealiiVector &reducedAdjoint, DealiiVector &reducedGradient);
 
-    void dualWeightedResidual();
+    void simplePODAdaptation(int numBasisToAdd);
 
     void getCoarseSolution();
 

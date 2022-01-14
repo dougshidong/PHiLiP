@@ -11,56 +11,73 @@ PODAdaptation<dim, nstate>::PODAdaptation(std::shared_ptr<DGBase<dim,double>> &_
     , dg(_dg)
     , coarsePOD(std::make_shared<ProperOrthogonalDecomposition::CoarsePOD>(dg->all_parameters))
     , finePOD(std::make_shared<ProperOrthogonalDecomposition::FinePOD>(dg->all_parameters))
-    , ode_solver(ODE::ODESolverFactory<dim, double>::create_ODESolver(dg, coarsePOD))
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
 {
-    flow_CFL_ = 0.0;
-
     dealii::ParameterHandler parameter_handler;
     Parameters::LinearSolverParam::declare_parameters (parameter_handler);
     this->linear_solver_param.parse_parameters (parameter_handler);
-    this->linear_solver_param.max_iterations = 1000;
-    this->linear_solver_param.restart_number = 200;
-    this->linear_solver_param.linear_residual = 1e-17;
-    //this->linear_solver_param.ilut_fill = 1.0;//2; 50
-    this->linear_solver_param.ilut_fill = 50;
-    this->linear_solver_param.ilut_drop = 1e-8;
-    //this->linear_solver_param.ilut_atol = 1e-3;
-    //this->linear_solver_param.ilut_rtol = 1.0+1e-2;
-    this->linear_solver_param.ilut_atol = 1e-5;
-    this->linear_solver_param.ilut_rtol = 1.0+1e-2;
-    this->linear_solver_param.linear_solver_output = Parameters::OutputEnum::verbose;
-    //this->linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
-    this->linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::direct;
 }
 
 template <int dim, int nstate>
-void PODAdaptation<dim, nstate>::dualWeightedResidual()
+void PODAdaptation<dim, nstate>::simplePODAdaptation(int numBasisToAdd)
 {
+    //Compute coarse solution
+    getCoarseSolution();
+
+    //Compute fine Adjoint
     DealiiVector reducedGradient(finePOD->getPODBasis()->n());
     DealiiVector reducedAdjoint(finePOD->getPODBasis()->n());
-
     getReducedGradient(reducedGradient);
     applyReducedJacobianTranspose(reducedAdjoint, reducedGradient);
-
-    //std::ofstream out_file("reduced_adjoint.txt");
-    //reducedAdjoint.print(out_file);
-
-    getCoarseSolution();
     DealiiVector reducedResidual(finePOD->getPODBasis()->n());
+
+    //Project Residual to fine space
     finePOD->getPODBasis()->Tvmult(reducedResidual, dg->right_hand_side);
 
+    //Compute dual weighted residual
+    DealiiVector dualWeightedResidual(finePOD->getPODBasis()->n());
     for(unsigned int i = 0; i < reducedAdjoint.size(); i++){
-        pcout << reducedAdjoint[i] << " " << reducedResidual[i] << " " << reducedAdjoint[i]*reducedResidual[i] << std::endl;
+        dualWeightedResidual[i] = reducedAdjoint[i]*reducedResidual[i];
+        pcout << reducedAdjoint[i] << " " << reducedResidual[i] << " " << dualWeightedResidual[i] << std::endl;
     }
 
-    //to be completed
+    //Generate vector of indices
+    std::vector<unsigned int> reducedResidualIndices(reducedResidual.size(), 0);
+    for (unsigned int i = 0 ; i < reducedResidualIndices.size() ; i++) {
+        reducedResidualIndices[i] = i;
+    }
+
+    //Start indices based on reduced residual starting at coarsePOD->getPODBasis()->n()th index
+    std::sort (reducedResidualIndices.begin()+coarsePOD->getPODBasis()->n(), reducedResidualIndices.end(), [&](auto &a, auto &b) {return (reducedResidual[a] < reducedResidual[b]);});
+    reducedResidualIndices.resize(coarsePOD->getPODBasis()->n() + numBasisToAdd);
+    coarsePOD->updateCoarsePODBasis(reducedResidualIndices);
+
+    //Re-compute POD solution with updated basis
+    getCoarseSolution();
+
+    //Compute fine Adjoint
+    reducedGradient.reinit(finePOD->getPODBasis()->n());
+    reducedAdjoint.reinit(finePOD->getPODBasis()->n());
+    getReducedGradient(reducedGradient);
+    applyReducedJacobianTranspose(reducedAdjoint, reducedGradient);
+    reducedResidual.reinit(finePOD->getPODBasis()->n());
+
+    //Project Residual to fine space
+    finePOD->getPODBasis()->Tvmult(reducedResidual, dg->right_hand_side);
+
+    //Compute dual weighted residual
+    dualWeightedResidual.reinit(finePOD->getPODBasis()->n());
+    for(unsigned int i = 0; i < reducedAdjoint.size(); i++){
+        dualWeightedResidual[i] = reducedAdjoint[i]*reducedResidual[i];
+        pcout << reducedAdjoint[i] << " " << reducedResidual[i] << " " << dualWeightedResidual[i] << std::endl;
+    }
 }
 
 template <int dim, int nstate>
 void PODAdaptation<dim, nstate>::getCoarseSolution()
 {
+    ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg, coarsePOD);
     ode_solver->steady_state();
 }
 
@@ -70,6 +87,7 @@ void PODAdaptation<dim, nstate>::applyReducedJacobianTranspose(DealiiVector &red
     const bool compute_dRdW=true;
     const bool compute_dRdX=false;
     const bool compute_d2R=false;
+    double flow_CFL_ = 0.0;
     dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
 
     dealii::TrilinosWrappers::SparseMatrix tmp;

@@ -21,7 +21,7 @@ end
 
 #Reduced order parameters
 subsection reduced order
-  set rewienski_a = 4.5
+  set rewienski_a = 6
   set rewienski_b = 0.04
   set final_time = 0.1
   set coarse_basis_dimension = 5
@@ -34,7 +34,7 @@ end
 
 subsection ODE solver
   # Maximum nonlinear solver iterations
-  set nonlinear_max_iterations            = 20
+  set nonlinear_max_iterations = 20
 
   set output_solution_every_x_steps = 2
 

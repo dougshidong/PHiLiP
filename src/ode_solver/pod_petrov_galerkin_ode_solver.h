@@ -35,16 +35,16 @@ public:
     void allocate_ode_system ();
 
     /// Reduced solution update given by the ODE solver
-    dealii::LinearAlgebra::distributed::Vector<double> reduced_solution_update;
+    std::shared_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_solution_update;
 
     /// Reduced rhs for linear solver
-    dealii::LinearAlgebra::distributed::Vector<double> reduced_rhs;
+    std::shared_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_rhs;
 
     /// Psi = J * V
-    dealii::TrilinosWrappers::SparseMatrix psi;
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> psi;
 
     /// Reduced lhs for linear solver
-    dealii::TrilinosWrappers::SparseMatrix reduced_lhs;
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> reduced_lhs;
 
 };
 

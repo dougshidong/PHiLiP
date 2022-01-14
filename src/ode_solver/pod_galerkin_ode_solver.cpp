@@ -37,19 +37,19 @@ void PODGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const bool 
     //Galerkin projection, pod_basis = V
     //V^T*J*V*p = -V^T*R
 
-    pod->getPODBasis()->Tvmult(this->reduced_rhs, this->dg->right_hand_side); // reduced_rhs = (pod_basis)^T * right_hand_side
+    pod->getPODBasis()->Tvmult(*this->reduced_rhs, this->dg->right_hand_side); // reduced_rhs = (pod_basis)^T * right_hand_side
 
-    pod->getPODBasis()->Tmmult(this->reduced_lhs_tmp, this->dg->system_matrix); //reduced_lhs_tmp = pod_basis^T * system_matrix
+    pod->getPODBasis()->Tmmult(*this->reduced_lhs_tmp, this->dg->system_matrix); //reduced_lhs_tmp = pod_basis^T * system_matrix
 
-    this->reduced_lhs_tmp.mmult(this->reduced_lhs, *pod->getPODBasis()); // reduced_lhs = reduced_lhs_tmp*pod_basis
+    this->reduced_lhs_tmp->mmult(*this->reduced_lhs, *pod->getPODBasis()); // reduced_lhs = reduced_lhs_tmp*pod_basis
 
     solve_linear(
-            this->reduced_lhs,
-            this->reduced_rhs,
-            this->reduced_solution_update,
+            *this->reduced_lhs,
+            *this->reduced_rhs,
+            *this->reduced_solution_update,
             this->ODESolverBase<dim,real,MeshType>::all_parameters->linear_solver_param);
 
-    pod->getPODBasis()->vmult(this->solution_update, this->reduced_solution_update);
+    pod->getPODBasis()->vmult(this->solution_update, *this->reduced_solution_update);
 
     this->linesearch();
 
@@ -65,10 +65,10 @@ void PODGalerkinODESolver<dim,real,MeshType>::allocate_ode_system ()
 
     this->solution_update.reinit(this->dg->right_hand_side);
 
-    this->reduced_solution_update.reinit(pod->getPODBasis()->n());
-    this->reduced_rhs.reinit(pod->getPODBasis()->n());
-    this->reduced_lhs_tmp.reinit(*pod->getPODBasis());
-    this->reduced_lhs.reinit(dealii::SparsityPattern(pod->getPODBasis()->n(), pod->getPODBasis()->n(), pod->getPODBasis()->n()));
+    reduced_solution_update = std::make_shared<dealii::LinearAlgebra::distributed::Vector<double>>(pod->getPODBasis()->n());
+    reduced_rhs = std::make_shared<dealii::LinearAlgebra::distributed::Vector<double>>(pod->getPODBasis()->n());
+    reduced_lhs_tmp = std::make_shared<dealii::TrilinosWrappers::SparseMatrix>();
+    reduced_lhs = std::make_shared<dealii::TrilinosWrappers::SparseMatrix>();
 }
 
 template class PODGalerkinODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;

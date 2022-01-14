@@ -31,8 +31,8 @@ PODAdaptation<dim, nstate>::PODAdaptation(std::shared_ptr<DGBase<dim,double>> &_
     this->linear_solver_param.ilut_atol = 1e-5;
     this->linear_solver_param.ilut_rtol = 1.0+1e-2;
     this->linear_solver_param.linear_solver_output = Parameters::OutputEnum::verbose;
-    this->linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
-    //this->linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::direct;
+    //this->linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
+    this->linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::direct;
 }
 
 template <int dim, int nstate>
@@ -44,8 +44,16 @@ void PODAdaptation<dim, nstate>::dualWeightedResidual()
     getReducedGradient(reducedGradient);
     applyReducedJacobianTranspose(reducedAdjoint, reducedGradient);
 
-    std::ofstream out_file("reduced_adjoint.txt");
-    reducedAdjoint.print(out_file);
+    //std::ofstream out_file("reduced_adjoint.txt");
+    //reducedAdjoint.print(out_file);
+
+    getCoarseSolution();
+    DealiiVector reducedResidual(finePOD->getPODBasis()->n());
+    finePOD->getPODBasis()->Tvmult(reducedResidual, dg->right_hand_side);
+
+    for(unsigned int i = 0; i < reducedAdjoint.size(); i++){
+        pcout << reducedAdjoint[i] << " " << reducedResidual[i] << " " << reducedAdjoint[i]*reducedResidual[i] << std::endl;
+    }
 
     //to be completed
 }

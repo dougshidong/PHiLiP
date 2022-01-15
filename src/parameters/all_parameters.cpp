@@ -15,6 +15,7 @@ AllParameters::AllParameters ()
     , reduced_order_param(ReducedOrderModelParam())
     , grid_refinement_study_param(GridRefinementStudyParam())
     , artificial_dissipation_param(ArtificialDissipationParam())
+    , mesh_adaptation_param(MeshAdaptationParam())
     , flow_solver_param(FlowSolverParam())
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 { }
@@ -314,6 +315,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     pcout << "Parsing artificial dissipation subsection..." << std::endl;
     artificial_dissipation_param.parse_parameters (prm);
+    
+    pcout << "Parsing mesh adaptation subsection..." << std::endl;
+    mesh_adaptation_param.parse_parameters (prm);
     
     pcout << "Parsing flow solver subsection..." << std::endl;
     flow_solver_param.parse_parameters (prm);

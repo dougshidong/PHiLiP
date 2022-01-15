@@ -5,8 +5,7 @@ namespace ODE{
 
 template <int dim, typename real, typename MeshType>
 ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
-        : n_refine(0)
-        , current_time(0.0)
+        : current_time(0.0)
         , current_iteration(0)
         , dg(dg_input)
         , all_parameters(dg->all_parameters)

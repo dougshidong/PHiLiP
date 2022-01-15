@@ -12,7 +12,6 @@ set(SOURCE
     parameters_flow_solver.cpp
     parameters_reduced_order.cpp
     parameters_artificial_dissipation.cpp
-    parameters_mesh_adaptation.cpp
     all_parameters.cpp)
 
 # Output library

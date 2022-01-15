@@ -16,7 +16,6 @@
 #include "parameters/parameters_grid_refinement_study.h"
 #include "parameters/parameters_grid_refinement.h"
 #include "parameters/parameters_artificial_dissipation.h"
-#include "parameters/parameters_mesh_adaptation.h"
 #include "parameters/parameters_flow_solver.h"
 
 namespace PHiLiP {
@@ -45,8 +44,6 @@ public:
     GridRefinementStudyParam grid_refinement_study_param;
     /// Contains parameters for artificial dissipation
     ArtificialDissipationParam artificial_dissipation_param;
-    /// Constains parameters for mesh adaptation
-    MeshAdaptationParam mesh_adaptation_param;
     /// Contains the parameters for simulation cases (flow solver test)
     FlowSolverParam flow_solver_param;
 

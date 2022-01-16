@@ -16,10 +16,6 @@
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include "ode_solver/ode_solver_factory.h"
 
-#include "optimization/rol_to_dealii_vector.hpp"
-#include "optimization/pde_constraints.h"
-#include "optimization/functional_objective.h"
-#include "optimization/constraintfromobjective_simopt.hpp"
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
@@ -44,7 +40,7 @@ private:
     /// Smart pointer to POD
     std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD> coarsePOD;
 
-    std::shared_ptr<ProperOrthogonalDecomposition::FinePOD> finePOD;
+    std::shared_ptr<ProperOrthogonalDecomposition::SpecificPOD> finePOD;
 
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver;
 
@@ -53,7 +49,7 @@ private:
 
 public:
     /// Constructor
-    PODAdaptation(std::shared_ptr<DGBase<dim,double>> &_dg, Functional<dim,nstate,double> &_functional);
+    PODAdaptation(std::shared_ptr<DGBase<dim,double>> &_dg, Functional<dim,nstate,double> &_functional, std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD> _coarsePOD, std::shared_ptr<ProperOrthogonalDecomposition::SpecificPOD> _finePOD);
 
     /// Constructor not specifying number of basis functions
     PODAdaptation();

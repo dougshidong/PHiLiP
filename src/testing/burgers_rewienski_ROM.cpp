@@ -76,9 +76,17 @@ int BurgersRewienskiROM<dim, nstate>::run_test() const
     // functional for computations
     auto burgers_functional = BurgersRewienskiFunctional2<dim,nstate,double>(dg,dg_state->pde_physics_fad_fad,true,false);
 
-    std::shared_ptr<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>> pod_adapt = std::make_shared<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>>(dg, burgers_functional);
+    std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD> coarsePOD_1 = std::make_shared<ProperOrthogonalDecomposition::CoarsePOD>(all_parameters);
+    std::shared_ptr<ProperOrthogonalDecomposition::FinePOD> finePOD = std::make_shared<ProperOrthogonalDecomposition::FinePOD>(all_parameters);
 
-    pod_adapt->simplePODAdaptation(2);
+    std::shared_ptr<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>> pod_adapt_fine = std::make_shared<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>>(dg, burgers_functional, coarsePOD_1, finePOD);
+    pod_adapt_fine->simplePODAdaptation(2);
+
+    std::shared_ptr<ProperOrthogonalDecomposition::FineNotInCoarsePOD> fineNotInCoarsePOD = std::make_shared<ProperOrthogonalDecomposition::FineNotInCoarsePOD>(all_parameters);
+    std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD> coarsePOD_2 = std::make_shared<ProperOrthogonalDecomposition::CoarsePOD>(all_parameters);
+    std::shared_ptr<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>> pod_adapt_fine_not_in_coarse = std::make_shared<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>>(dg, burgers_functional, coarsePOD_2, fineNotInCoarsePOD);
+    pod_adapt_fine_not_in_coarse->simplePODAdaptation(2);
+
     return 0; //need to change
 }
 

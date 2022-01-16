@@ -6,11 +6,11 @@ namespace ProperOrthogonalDecomposition {
 using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
 
 template <int dim, int nstate>
-PODAdaptation<dim, nstate>::PODAdaptation(std::shared_ptr<DGBase<dim,double>> &_dg, Functional<dim,nstate,double> &_functional)
+PODAdaptation<dim, nstate>::PODAdaptation(std::shared_ptr<DGBase<dim,double>> &_dg, Functional<dim,nstate,double> &_functional, std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD> _coarsePOD, std::shared_ptr<ProperOrthogonalDecomposition::SpecificPOD> _finePOD)
     : functional(_functional)
     , dg(_dg)
-    , coarsePOD(std::make_shared<ProperOrthogonalDecomposition::CoarsePOD>(dg->all_parameters))
-    , finePOD(std::make_shared<ProperOrthogonalDecomposition::FinePOD>(dg->all_parameters))
+    , coarsePOD(_coarsePOD)
+    , finePOD(_finePOD)
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
 {
@@ -42,23 +42,7 @@ void PODAdaptation<dim, nstate>::simplePODAdaptation(int numBasisToAdd)
         pcout << reducedAdjoint[i] << " " << reducedResidual[i] << " " << dualWeightedResidual[i] << std::endl;
     }
 
-    //Generate vector of indices
-    std::vector<unsigned int> reducedDualWeightedResidualIndices(reducedResidual.size(), 0);
-    for (unsigned int i = 0 ; i < reducedDualWeightedResidualIndices.size() ; i++) {
-        reducedDualWeightedResidualIndices[i] = i;
-    }
-
-    //Start indices based on reduced dual weighted residual starting at coarsePOD->getPODBasis()->n()th index
-    std::sort (reducedDualWeightedResidualIndices.begin() + coarsePOD->getPODBasis()->n(), reducedDualWeightedResidualIndices.end(), [&](auto &a, auto &b) {return (dualWeightedResidual[a] > dualWeightedResidual[b]);});
-    reducedDualWeightedResidualIndices.resize(coarsePOD->getPODBasis()->n() + numBasisToAdd);
-
-    for (unsigned int i: reducedDualWeightedResidualIndices){
-        pcout << i << ' ';
-    }
-    pcout << std::endl;
-
-
-    coarsePOD->updateCoarsePODBasis(reducedDualWeightedResidualIndices);
+    coarsePOD->updatePODBasis(finePOD->getHighestErrorBasis(numBasisToAdd, dualWeightedResidual));
 
     //Re-compute POD solution with updated basis
     getCoarseSolution();

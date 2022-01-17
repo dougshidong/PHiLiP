@@ -20,56 +20,89 @@ PODAdaptation<dim, nstate>::PODAdaptation(std::shared_ptr<DGBase<dim,double>> &_
 }
 
 template <int dim, int nstate>
-void PODAdaptation<dim, nstate>::simplePODAdaptation(int numBasisToAdd)
+void PODAdaptation<dim, nstate>::progressivePODAdaptation()
 {
-    //Compute coarse solution
-    getCoarseSolution();
+    double tolerance = 0.1;
+    do{
+        getDualWeightedResidual();
 
-    //Compute fine Adjoint
-    DealiiVector reducedGradient(finePOD->getPODBasis()->n());
-    DealiiVector reducedAdjoint(finePOD->getPODBasis()->n());
-    getReducedGradient(reducedGradient);
-    applyReducedJacobianTranspose(reducedAdjoint, reducedGradient);
-    DealiiVector reducedResidual(finePOD->getPODBasis()->n());
+        std::vector<unsigned int> newColumns = getPODBasisColumnsToAdd();
+        coarsePOD->addPODBasisColumns(newColumns);
+        finePOD->removePODBasisColumns(newColumns);
+    }while(abs(error) > tolerance);
+}
 
-    //Project Residual to fine space
-    finePOD->getPODBasis()->Tvmult(reducedResidual, dg->right_hand_side);
 
-    //Compute dual weighted residual
-    DealiiVector dualWeightedResidual(finePOD->getPODBasis()->n());
-    for(unsigned int i = 0; i < reducedAdjoint.size(); i++){
-        dualWeightedResidual[i] = std::abs(reducedAdjoint[i]*reducedResidual[i]);
-        pcout << reducedAdjoint[i] << " " << reducedResidual[i] << " " << dualWeightedResidual[i] << std::endl;
+template <int dim, int nstate>
+void PODAdaptation<dim, nstate>::simplePODAdaptation()
+{
+    getDualWeightedResidual();
+
+    double tolerance = 0.5;
+    if(abs(error) > tolerance){
+        std::vector<unsigned int> newColumns = getPODBasisColumnsToAdd();
+        coarsePOD->addPODBasisColumns(newColumns);
+        finePOD->removePODBasisColumns(newColumns);
+
+        getDualWeightedResidual();
+    }else{
+        pcout << "Error is smaller than desired tolerance!" << std::endl;
+    }
+}
+
+template <int dim, int nstate>
+std::vector<unsigned int> PODAdaptation<dim, nstate>::getPODBasisColumnsToAdd()
+{
+    std::vector<unsigned int> reducedDualWeightedResidualIndices(dualWeightedResidual.size());
+    std::iota(std::begin(reducedDualWeightedResidualIndices), std::end(reducedDualWeightedResidualIndices), 0);
+
+    //Sort indices based on reduced dual weighted residual
+    std::sort (reducedDualWeightedResidualIndices.begin(), reducedDualWeightedResidualIndices.end(), [&](auto &a, auto &b) {return (dualWeightedResidual[a] < dualWeightedResidual[b]);});
+
+    double tolerance = 0.5;
+    double adaptationError = abs(error);
+    std::vector<unsigned int> PODBasisColumnsToAdd;
+    while(adaptationError > tolerance){
+        adaptationError = adaptationError - dualWeightedResidual[reducedDualWeightedResidualIndices.back()];
+        PODBasisColumnsToAdd.push_back(reducedDualWeightedResidualIndices.back());
+        pcout << "Adding POD basis: " << reducedDualWeightedResidualIndices.back() << std::endl;
+        reducedDualWeightedResidualIndices.pop_back();
     }
 
-    coarsePOD->updatePODBasis(finePOD->getHighestErrorBasis(numBasisToAdd, dualWeightedResidual));
+    return PODBasisColumnsToAdd;
+}
 
-    //Re-compute POD solution with updated basis
-    getCoarseSolution();
+template <int dim, int nstate>
+void PODAdaptation<dim, nstate>::getDualWeightedResidual()
+{
+    DealiiVector reducedGradient;
+    DealiiVector reducedAdjoint;
+    DealiiVector reducedResidual;
+
+    //Compute coarse solution
+    ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg, coarsePOD);
+    ode_solver->steady_state();
 
     //Compute fine Adjoint
     reducedGradient.reinit(finePOD->getPODBasis()->n());
     reducedAdjoint.reinit(finePOD->getPODBasis()->n());
     getReducedGradient(reducedGradient);
     applyReducedJacobianTranspose(reducedAdjoint, reducedGradient);
-    reducedResidual.reinit(finePOD->getPODBasis()->n());
 
     //Project Residual to fine space
+    reducedResidual.reinit(finePOD->getPODBasis()->n());
     finePOD->getPODBasis()->Tvmult(reducedResidual, dg->right_hand_side);
 
     //Compute dual weighted residual
     dualWeightedResidual.reinit(finePOD->getPODBasis()->n());
+    error = 0;
+    pcout << std::setw(10) << std::left << "Index" << std::setw(20) << std::left << "Reduced Adjoint" << std::setw(20) << std::left << "Reduced Residual" << std::setw(20) << std::left << "Dual Weighted Residual" << std::endl;
     for(unsigned int i = 0; i < reducedAdjoint.size(); i++){
-        dualWeightedResidual[i] = reducedAdjoint[i]*reducedResidual[i];
-        pcout << reducedAdjoint[i] << " " << reducedResidual[i] << " " << dualWeightedResidual[i] << std::endl;
+        dualWeightedResidual[i] = std::abs(reducedAdjoint[i]*reducedResidual[i]);
+        error = error + reducedAdjoint[i]*reducedResidual[i];
+        pcout << std::setw(10) << std::left << finePOD->fullBasisIndices[i] << std::setw(20) << std::left << reducedAdjoint[i] << std::setw(20) << std::left << reducedResidual[i] << std::setw(20) << std::left << dualWeightedResidual[i] << std::endl;
     }
-}
-
-template <int dim, int nstate>
-void PODAdaptation<dim, nstate>::getCoarseSolution()
-{
-    ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg, coarsePOD);
-    ode_solver->steady_state();
+    pcout << std::endl << "Total error: " << error << std::endl;
 }
 
 template <int dim, int nstate>

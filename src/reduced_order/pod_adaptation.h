@@ -5,9 +5,12 @@
 #include <iostream>
 #include <filesystem>
 
+#include <typeinfo>
+
 #include "functional/functional.h"
 #include "dg/dg.h"
 #include "reduced_order/pod_basis_types.h"
+#include <deal.II/base/function_parser.h>
 #include "linear_solver/linear_solver.h"
 
 #include <deal.II/numerics/vector_tools.h>
@@ -16,6 +19,15 @@
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include "ode_solver/ode_solver_factory.h"
 
+#include <deal.II/numerics/vector_tools.h>
+#include <deal.II/numerics/solution_transfer.h>
+#include <deal.II/base/numbers.h>
+#include <deal.II/base/function_parser.h>
+#include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/grid_refinement.h>
+#include <deal.II/grid/grid_tools.h>
+#include <deal.II/grid/grid_out.h>
+#include <deal.II/grid/grid_in.h>
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
@@ -47,6 +59,10 @@ private:
     /// Linear solver parameters.
     Parameters::LinearSolverParam linear_solver_param;
 
+    DealiiVector dualWeightedResidual;
+
+    double error;
+
 public:
     /// Constructor
     PODAdaptation(std::shared_ptr<DGBase<dim,double>> &_dg, Functional<dim,nstate,double> &_functional, std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD> _coarsePOD, std::shared_ptr<ProperOrthogonalDecomposition::SpecificPOD> _finePOD);
@@ -61,9 +77,13 @@ public:
 
     void applyReducedJacobianTranspose(DealiiVector &reducedAdjoint, DealiiVector &reducedGradient);
 
-    void simplePODAdaptation(int numBasisToAdd);
+    void simplePODAdaptation();
 
-    void getCoarseSolution();
+    void progressivePODAdaptation();
+
+    void getDualWeightedResidual();
+
+    std::vector<unsigned int> getPODBasisColumnsToAdd();
 
 protected:
     const MPI_Comm mpi_communicator; ///< MPI communicator.

@@ -21,10 +21,6 @@ namespace ProperOrthogonalDecomposition {
 
 class SpecificPOD : public POD
 {
-private:
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basis; ///< First num_basis columns of fullPODBasisLAPACK
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basisTranspose; ///< Transpose of pod_basis
-
 protected:
     /// Constructor
     SpecificPOD();
@@ -32,16 +28,20 @@ protected:
     /// Destructor
     ~SpecificPOD() {}
 
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basis;
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basisTranspose; ///< Transpose of pod_basis
+
 public:
-    void updatePODBasis(std::vector<unsigned int> indices);
+    void addPODBasisColumns(const std::vector<unsigned int> addColumns);
+
+    virtual void removePODBasisColumns(const std::vector<unsigned int> removeColumns);
 
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() override;
 
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasisTranspose() override;
 
-    std::vector<unsigned int> getHighestErrorBasis(int numBasisToAdd, dealii::LinearAlgebra::distributed::Vector<double> dualWeightedResidual);
-
     std::vector<unsigned int> fullBasisIndices;
+
 };
 
 /// Class for Coarse POD basis
@@ -65,6 +65,8 @@ public:
     FineNotInCoarsePOD(const Parameters::AllParameters *parameters_input);
     /// Destructor
     ~FineNotInCoarsePOD () {};
+
+    void removePODBasisColumns(const std::vector<unsigned int> removeColumns) override;
 
 private:
     const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters

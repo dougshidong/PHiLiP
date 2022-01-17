@@ -19,10 +19,16 @@ public:
     double final_time;
 
     /// Initial dimension of the coarse basis
-    int coarse_basis_dimension;
+    unsigned int coarse_basis_dimension;
 
     /// Initial dimension of the fine basis
-    int fine_basis_dimension;
+    unsigned int fine_basis_dimension;
+
+    /// Tolerance for POD adaptation
+    double adaptation_tolerance;
+
+    /// Number of basis functions to add at each iteration of POD adaptation. Set to 0 to determine online.
+    unsigned int adapt_coarse_basis_constant;
 
     /** Set as true for running a manufactured solution.
      *  Adds the manufactured solution source term to the PDE source term

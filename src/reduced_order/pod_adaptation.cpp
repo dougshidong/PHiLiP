@@ -11,6 +11,7 @@ PODAdaptation<dim, nstate>::PODAdaptation(std::shared_ptr<DGBase<dim,double>> &_
     , dg(_dg)
     , coarsePOD(_coarsePOD)
     , finePOD(_finePOD)
+    , all_parameters(dg->all_parameters)
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
 {
@@ -22,14 +23,13 @@ PODAdaptation<dim, nstate>::PODAdaptation(std::shared_ptr<DGBase<dim,double>> &_
 template <int dim, int nstate>
 void PODAdaptation<dim, nstate>::progressivePODAdaptation()
 {
-    double tolerance = 0.1;
     do{
         getDualWeightedResidual();
 
         std::vector<unsigned int> newColumns = getPODBasisColumnsToAdd();
         coarsePOD->addPODBasisColumns(newColumns);
         finePOD->removePODBasisColumns(newColumns);
-    }while(abs(error) > tolerance);
+    }while(abs(error) > all_parameters->reduced_order_param.adaptation_tolerance);
 }
 
 
@@ -38,8 +38,7 @@ void PODAdaptation<dim, nstate>::simplePODAdaptation()
 {
     getDualWeightedResidual();
 
-    double tolerance = 0.5;
-    if(abs(error) > tolerance){
+    if(abs(error) > all_parameters->reduced_order_param.adaptation_tolerance){
         std::vector<unsigned int> newColumns = getPODBasisColumnsToAdd();
         coarsePOD->addPODBasisColumns(newColumns);
         finePOD->removePODBasisColumns(newColumns);
@@ -55,18 +54,24 @@ std::vector<unsigned int> PODAdaptation<dim, nstate>::getPODBasisColumnsToAdd()
 {
     std::vector<unsigned int> reducedDualWeightedResidualIndices(dualWeightedResidual.size());
     std::iota(std::begin(reducedDualWeightedResidualIndices), std::end(reducedDualWeightedResidualIndices), 0);
-
     //Sort indices based on reduced dual weighted residual
     std::sort (reducedDualWeightedResidualIndices.begin(), reducedDualWeightedResidualIndices.end(), [&](auto &a, auto &b) {return (dualWeightedResidual[a] < dualWeightedResidual[b]);});
 
-    double tolerance = 0.5;
-    double adaptationError = abs(error);
     std::vector<unsigned int> PODBasisColumnsToAdd;
-    while(adaptationError > tolerance){
-        adaptationError = adaptationError - dualWeightedResidual[reducedDualWeightedResidualIndices.back()];
-        PODBasisColumnsToAdd.push_back(reducedDualWeightedResidualIndices.back());
-        pcout << "Adding POD basis: " << reducedDualWeightedResidualIndices.back() << std::endl;
-        reducedDualWeightedResidualIndices.pop_back();
+    double adaptationError = abs(error);
+    if(all_parameters->reduced_order_param.adapt_coarse_basis_constant == 0){
+        while(adaptationError > all_parameters->reduced_order_param.adaptation_tolerance){
+            adaptationError = adaptationError - dualWeightedResidual[reducedDualWeightedResidualIndices.back()];
+            PODBasisColumnsToAdd.push_back(finePOD->fullBasisIndices[reducedDualWeightedResidualIndices.back()]);
+            pcout << "Adding POD basis: " << finePOD->fullBasisIndices[reducedDualWeightedResidualIndices.back()] << std::endl;
+            reducedDualWeightedResidualIndices.pop_back();
+        }
+    }else{
+        for (unsigned int i = 0; i < all_parameters->reduced_order_param.adapt_coarse_basis_constant; i++) {
+            PODBasisColumnsToAdd.push_back(finePOD->fullBasisIndices[reducedDualWeightedResidualIndices.back()]);
+            pcout << "Adding POD basis: " << finePOD->fullBasisIndices[reducedDualWeightedResidualIndices.back()] << std::endl;
+            reducedDualWeightedResidualIndices.pop_back();
+        }
     }
 
     return PODBasisColumnsToAdd;

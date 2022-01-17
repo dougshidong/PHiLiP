@@ -76,18 +76,18 @@ int BurgersRewienskiROM<dim, nstate>::run_test() const
     // functional for computations
     auto burgers_functional = BurgersRewienskiFunctional2<dim,nstate,double>(dg,dg_state->pde_physics_fad_fad,true,false);
 
-    std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD> coarsePOD_1 = std::make_shared<ProperOrthogonalDecomposition::CoarsePOD>(all_parameters);
-    std::shared_ptr<ProperOrthogonalDecomposition::FinePOD> finePOD = std::make_shared<ProperOrthogonalDecomposition::FinePOD>(all_parameters);
+    //std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD> coarsePOD_1 = std::make_shared<ProperOrthogonalDecomposition::CoarsePOD>(all_parameters);
+    //std::shared_ptr<ProperOrthogonalDecomposition::FinePOD> finePOD = std::make_shared<ProperOrthogonalDecomposition::FinePOD>(all_parameters);
 
-    std::shared_ptr<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>> pod_adapt_fine = std::make_shared<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>>(dg, burgers_functional, coarsePOD_1, finePOD);
-    pod_adapt_fine->progressivePODAdaptation();
+    //std::shared_ptr<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>> pod_adapt_fine = std::make_shared<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>>(dg, burgers_functional, coarsePOD_1, finePOD);
+    //pod_adapt_fine->simplePODAdaptation();
 
-    //std::shared_ptr<ProperOrthogonalDecomposition::FineNotInCoarsePOD> fineNotInCoarsePOD = std::make_shared<ProperOrthogonalDecomposition::FineNotInCoarsePOD>(all_parameters);
-    //std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD> coarsePOD = std::make_shared<ProperOrthogonalDecomposition::CoarsePOD>(all_parameters);
+    std::shared_ptr<ProperOrthogonalDecomposition::FineNotInCoarsePOD> fineNotInCoarsePOD = std::make_shared<ProperOrthogonalDecomposition::FineNotInCoarsePOD>(all_parameters);
+    std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD> coarsePOD = std::make_shared<ProperOrthogonalDecomposition::CoarsePOD>(all_parameters);
 
-    //dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution); //Very important to reinitialize to initial conditions if reusing the same dg and doing a second POD adaptation, otherwise the results of the previous adaptation will be used as well
-    //std::shared_ptr<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>> pod_adapt_fine_not_in_coarse = std::make_shared<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>>(dg, burgers_functional, coarsePOD, fineNotInCoarsePOD);
-    //pod_adapt_fine_not_in_coarse->simplePODAdaptation();
+    dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution); //Very important to reinitialize to initial conditions if reusing the same dg and doing a second POD adaptation, otherwise the results of the previous adaptation will be used as well
+    std::shared_ptr<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>> pod_adapt_fine_not_in_coarse = std::make_shared<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>>(dg, burgers_functional, coarsePOD, fineNotInCoarsePOD);
+    pod_adapt_fine_not_in_coarse->progressivePODAdaptation();
 
 
 

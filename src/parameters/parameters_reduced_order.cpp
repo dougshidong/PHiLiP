@@ -28,6 +28,12 @@ void ReducedOrderModelParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("fine_basis_dimension", "0",
                           dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
                           "Initial dimension of the fine POD basis");
+        prm.declare_entry("adapt_coarse_basis_constant", "0",
+                          dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
+                          "Number of basis functions to add to coarse basis at each adaptation iteration. Set to 0 to turn off.");
+        prm.declare_entry("adaptation_tolerance", "1",
+                          dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                          "Tolerance for POD adaptation");
     }
     prm.leave_subsection();
 }
@@ -42,6 +48,8 @@ void ReducedOrderModelParam::parse_parameters (dealii::ParameterHandler &prm)
         rewienski_manufactured_solution = prm.get_bool("rewienski_manufactured_solution");
         coarse_basis_dimension = prm.get_integer("coarse_basis_dimension");
         fine_basis_dimension = prm.get_integer("fine_basis_dimension");
+        adapt_coarse_basis_constant = prm.get_integer("adapt_coarse_basis_constant");
+        adaptation_tolerance = prm.get_double("adaptation_tolerance");
     }
     prm.leave_subsection();
 }

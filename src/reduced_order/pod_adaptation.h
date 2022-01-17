@@ -19,16 +19,6 @@
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include "ode_solver/ode_solver_factory.h"
 
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/numerics/solution_transfer.h>
-#include <deal.II/base/numbers.h>
-#include <deal.II/base/function_parser.h>
-#include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/grid_refinement.h>
-#include <deal.II/grid/grid_tools.h>
-#include <deal.II/grid/grid_out.h>
-#include <deal.II/grid/grid_in.h>
-
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
@@ -62,6 +52,8 @@ private:
     DealiiVector dualWeightedResidual;
 
     double error;
+
+    const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
 
 public:
     /// Constructor

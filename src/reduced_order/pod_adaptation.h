@@ -77,6 +77,8 @@ public:
 
     std::vector<unsigned int> getPODBasisColumnsToAdd();
 
+    double getCoarseFunctional();
+
 protected:
     const MPI_Comm mpi_communicator; ///< MPI communicator.
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0

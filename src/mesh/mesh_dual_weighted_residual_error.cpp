@@ -22,7 +22,7 @@
 #include "parameters/all_parameters.h"
 
 #include "dg/dg.h"
-#include "dual_weighted_residual.h"
+#include "mesh_error_estimate.h"
 #include "functional/functional.h"
 #include "physics/physics.h"
 #include "linear_solver/linear_solver.h"

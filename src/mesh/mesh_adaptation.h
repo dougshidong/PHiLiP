@@ -41,12 +41,6 @@ public:
 
 protected:
     
-    /// Computes the vector containing errors in each cell.
-    void compute_cellwise_errors(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
-
-    /// Computes maximum residual in each cell.
-    void compute_max_cellwise_residuals(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
-
     /// Performs fixed fraction refinement based on refinement and coarsening fractions.
     void fixed_fraction_isotropic_refinement_and_coarsening(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
     

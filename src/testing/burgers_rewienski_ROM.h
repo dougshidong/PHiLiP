@@ -23,14 +23,14 @@ namespace Tests {
 
 
     template <int dim, int nstate, typename real>
-    class BurgersRewienskiFunctional2 : public Functional<dim, nstate, real>
+    class BurgersRewienskiFunctional : public Functional<dim, nstate, real>
     {
     public:
         using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
         using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
     public:
         /// Constructor
-        BurgersRewienskiFunctional2(
+        BurgersRewienskiFunctional(
                 std::shared_ptr<PHiLiP::DGBase<dim,real>> dg_input,
                 std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType>> _physics_fad_fad,
                 const bool uses_solution_values = true,

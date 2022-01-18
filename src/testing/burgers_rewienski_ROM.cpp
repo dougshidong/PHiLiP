@@ -74,7 +74,7 @@ int BurgersRewienskiROM<dim, nstate>::run_test() const
           << std::endl;
 
     // functional for computations
-    auto burgers_functional = BurgersRewienskiFunctional2<dim,nstate,double>(dg,dg_state->pde_physics_fad_fad,true,false);
+    auto burgers_functional = BurgersRewienskiFunctional<dim,nstate,double>(dg,dg_state->pde_physics_fad_fad,true,false);
     /*
     std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD> coarsePOD_1 = std::make_shared<ProperOrthogonalDecomposition::CoarsePOD>(all_parameters);
     std::shared_ptr<ProperOrthogonalDecomposition::FinePOD> finePOD = std::make_shared<ProperOrthogonalDecomposition::FinePOD>(all_parameters);
@@ -101,7 +101,7 @@ int BurgersRewienskiROM<dim, nstate>::run_test() const
 
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver_fine = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_fine, finePOD);
     ode_solver_fine->steady_state();
-    auto functional_fine = BurgersRewienskiFunctional2<dim,nstate,double>(dg_fine,dg_state_fine->pde_physics_fad_fad,true,false);
+    auto functional_fine = BurgersRewienskiFunctional<dim,nstate,double>(dg_fine,dg_state_fine->pde_physics_fad_fad,true,false);
     double func = functional_fine.evaluate_functional(false,false);
     pcout << "Fine functional: "<< std::setprecision(15)  << func << std::setprecision(6) << std::endl;
     return 0;
@@ -109,7 +109,7 @@ int BurgersRewienskiROM<dim, nstate>::run_test() const
 
 template <int dim, int nstate, typename real>
 template <typename real2>
-real2 BurgersRewienskiFunctional2<dim,nstate,real>::evaluate_volume_integrand(
+real2 BurgersRewienskiFunctional<dim,nstate,real>::evaluate_volume_integrand(
     const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
     const dealii::Point<dim,real2> &/*phys_coord*/,
     const std::array<real2,nstate> &soln_at_q,
@@ -128,7 +128,7 @@ return val;
 
 #if PHILIP_DIM==1
 template class BurgersRewienskiROM<PHILIP_DIM,PHILIP_DIM>;
-template class BurgersRewienskiFunctional2<PHILIP_DIM, PHILIP_DIM, double>;
+template class BurgersRewienskiFunctional<PHILIP_DIM, PHILIP_DIM, double>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

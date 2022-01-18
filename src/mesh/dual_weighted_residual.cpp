@@ -33,12 +33,9 @@ namespace PHiLiP {
 // constructor
 template <int dim, int nstate, typename real, typename MeshType>
 DualWeightedResidualError<dim, nstate, real, MeshType>::DualWeightedResidualError(
-    std::shared_ptr< DGBase<dim,real,MeshType> > _dg, 
     std::shared_ptr< Functional<dim, nstate, real, MeshType> > _functional,
-    std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> > _physics):
-    dg(_dg),
+    std::shared_ptr< DGBase<dim, real, MeshType> > dg):
     functional(_functional),
-    physics(_physics),
     triangulation(dg->triangulation),
     solution_coarse(dg->solution),
     adjoint_state(AdjointStateEnum::coarse),
@@ -59,7 +56,7 @@ template <int dim, int nstate, typename real, typename MeshType>
 DualWeightedResidualError<dim, nstate, real, MeshType>::~DualWeightedResidualError(){}
 
 template <int dim, int nstate, typename real, typename MeshType>
-void DualWeightedResidualError<dim, nstate, real, MeshType>::reinit()
+void DualWeightedResidualError<dim, nstate, real, MeshType>::reinit(std::shared_ptr< DGBase<dim, real, MeshType> > dg)
 {
     // assuming that all pointers are still valid
     // reinitilizing all variables after triangulation in the constructor
@@ -84,7 +81,7 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::reinit()
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-void DualWeightedResidualError<dim, nstate, real, MeshType>::convert_to_state(AdjointStateEnum state)
+void DualWeightedResidualError<dim, nstate, real, MeshType>::convert_to_state(AdjointStateEnum state, std::shared_ptr< DGBase<dim, real, MeshType> > dg)
 {   
     // checks if conversion is needed
     if(adjoint_state == state) 
@@ -92,14 +89,14 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::convert_to_state(Ad
 
     // then calls corresponding function for state conversions
     if(adjoint_state == AdjointStateEnum::coarse && state == AdjointStateEnum::fine) 
-        coarse_to_fine();
+        coarse_to_fine(dg);
     
     if(adjoint_state == AdjointStateEnum::fine && state == AdjointStateEnum::coarse)
-        fine_to_coarse();
+        fine_to_coarse(dg);
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-void DualWeightedResidualError<dim, nstate, real, MeshType>::coarse_to_fine()
+void DualWeightedResidualError<dim, nstate, real, MeshType>::coarse_to_fine(std::shared_ptr< DGBase<dim, real, MeshType> > dg)
 {
     dealii::IndexSet locally_owned_dofs, locally_relevant_dofs;
     locally_owned_dofs =  dg->dof_handler.locally_owned_dofs();
@@ -142,7 +139,7 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::coarse_to_fine()
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-void DualWeightedResidualError<dim, nstate, real, MeshType>::fine_to_coarse()
+void DualWeightedResidualError<dim, nstate, real, MeshType>::fine_to_coarse(std::shared_ptr< DGBase<dim, real, MeshType> > dg)
 {
     dg->high_order_grid->prepare_for_coarsening_and_refinement();
     dg->triangulation->prepare_coarsening_and_refinement();
@@ -163,9 +160,9 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::fine_to_coarse()
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-dealii::LinearAlgebra::distributed::Vector<real> DualWeightedResidualError<dim, nstate, real, MeshType>::fine_grid_adjoint()
+dealii::LinearAlgebra::distributed::Vector<real> DualWeightedResidualError<dim, nstate, real, MeshType>::fine_grid_adjoint(std::shared_ptr< DGBase<dim, real, MeshType> > dg)
 {
-    convert_to_state(AdjointStateEnum::fine);
+    convert_to_state(AdjointStateEnum::fine, dg);
 
     // dIdw_fine.reinit(dg->solution);
     // dIdw_fine = functional.evaluate_dIdw(dg, physics);
@@ -193,9 +190,9 @@ dealii::LinearAlgebra::distributed::Vector<real> DualWeightedResidualError<dim, 
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-dealii::LinearAlgebra::distributed::Vector<real> DualWeightedResidualError<dim, nstate, real, MeshType>::coarse_grid_adjoint()
+dealii::LinearAlgebra::distributed::Vector<real> DualWeightedResidualError<dim, nstate, real, MeshType>::coarse_grid_adjoint(std::shared_ptr< DGBase<dim, real, MeshType> > dg)
 {
-    convert_to_state(AdjointStateEnum::coarse);
+    convert_to_state(AdjointStateEnum::coarse, dg);
 
     dIdw_coarse.reinit(dg->solution);
     //dIdw_coarse = functional.evaluate_dIdw(dg, physics);
@@ -222,9 +219,9 @@ dealii::LinearAlgebra::distributed::Vector<real> DualWeightedResidualError<dim, 
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-dealii::Vector<real> DualWeightedResidualError<dim, nstate, real, MeshType>::dual_weighted_residual()
+dealii::Vector<real> DualWeightedResidualError<dim, nstate, real, MeshType>::dual_weighted_residual(std::shared_ptr< DGBase<dim, real, MeshType> > dg)
 {
-    convert_to_state(AdjointStateEnum::fine);
+    convert_to_state(AdjointStateEnum::fine, dg);
 
     // allocating 
     dual_weighted_residual_fine.reinit(dg->triangulation->n_active_cells());
@@ -255,7 +252,7 @@ dealii::Vector<real> DualWeightedResidualError<dim, nstate, real, MeshType>::dua
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-void DualWeightedResidualError<dim, nstate, real, MeshType>::output_results_vtk(const unsigned int cycle)
+void DualWeightedResidualError<dim, nstate, real, MeshType>::output_results_vtk(const unsigned int cycle, std::shared_ptr< DGBase<dim, real, MeshType> > dg)
 {
     dealii::DataOut<dim, dealii::DoFHandler<dim>> data_out;
     data_out.attach_dof_handler(dg->dof_handler);

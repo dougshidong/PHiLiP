@@ -1,5 +1,6 @@
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 add_subdirectory(snapshot_generation)
+add_subdirectory(steady_state_snapshot_generation)
 
 # ----------------------------------------
 # - description

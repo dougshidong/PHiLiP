@@ -13,7 +13,7 @@ set use_collocated_nodes = false
 
 # use the grid refinement study class to generate the grid
 subsection grid refinement study
- set num_refinements = 10
+ set num_refinements = 8
  set poly_degree = 0
  set grid_left = 0.0
  set grid_right = 100.0
@@ -21,12 +21,12 @@ end
 
 #Reduced order parameters
 subsection reduced order
-  set rewienski_a = 3
-  set rewienski_b = 0.02
-  set adaptation_tolerance = 0.1
-  set adapt_coarse_basis_constant = 3
-  set coarse_basis_dimension = 50
-  set fine_basis_dimension = 100
+  set rewienski_a = 5
+  set rewienski_b = 0.06
+  set adaptation_tolerance = 0.0001
+  set adapt_coarse_basis_constant = 0
+  set coarse_basis_dimension = 8
+  set fine_basis_dimension = 64
 end
 
 subsection linear solver
@@ -35,7 +35,7 @@ end
 
 subsection ODE solver
   # Maximum nonlinear solver iterations
-  set nonlinear_max_iterations = 20
+  set nonlinear_max_iterations = 50
 
   set output_solution_every_x_steps = 2
 

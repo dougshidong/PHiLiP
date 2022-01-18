@@ -75,7 +75,7 @@ std::vector<unsigned int> PODAdaptation<dim, nstate>::getPODBasisColumnsToAdd()
         }
     }else{
         for (unsigned int i = 0; i < all_parameters->reduced_order_param.adapt_coarse_basis_constant; i++) {
-            if(abs(adaptationError) > all_parameters->reduced_order_param.adaptation_tolerance){
+            if(abs(adaptationError) < all_parameters->reduced_order_param.adaptation_tolerance){
                 break;
             }
             if(adaptationError > 0){
@@ -109,7 +109,7 @@ void PODAdaptation<dim, nstate>::getDualWeightedResidual()
     ode_solver->steady_state();
 
     //Output coarse functional
-    pcout << "Coarse functional: " << functional.evaluate_functional(false,false) << std::endl;
+    pcout << "Coarse functional: " << std::setprecision(15) << functional.evaluate_functional(false,false) << std::setprecision(6) << std::endl;
 
     //Compute coarse adjoint
     getReducedGradient(coarseGradient);

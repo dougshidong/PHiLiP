@@ -171,6 +171,16 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
         if(CFL_factor <= 1e-2) this->dg->right_hand_side.add(1.0);
     }
 
+    if (ode_param.output_solution_vector_modulo > 0) {
+        for (unsigned int i = 0; i < this->dg->solution.size(); ++i) {
+            solutions_table.add_value(
+                    "Steady-state solution:",
+                    this->dg->solution[i]);
+        }
+        std::ofstream out_file(ode_param.solutions_table_filename + ".txt");
+        solutions_table.write_text(out_file);
+    }
+
     pcout << " ********************************************************** "
           << std::endl
           << " ODESolver steady_state stopped at"

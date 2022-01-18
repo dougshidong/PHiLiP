@@ -71,8 +71,9 @@ int BurgersRewienskiSnapshot<dim, nstate>::run_test() const
           << ". Number of degrees of freedom: " << dg->dof_handler.n_dofs()
           << std::endl;
 
-    double finalTime = param.reduced_order_param.final_time;
-    ode_solver->advance_solution_time(finalTime);
+    //double finalTime = param.reduced_order_param.final_time;
+    //ode_solver->advance_solution_time(finalTime);
+    ode_solver->steady_state();
 
     return 0; //need to change
 }

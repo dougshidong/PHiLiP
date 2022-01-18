@@ -91,8 +91,7 @@ public:
      *  Also stores the current solution and distribution of polynomial orders
      *  for the mesh for converting back to coarse state after refinement.
      */
-    DualWeightedResidualError(std::shared_ptr< Functional<dim, nstate, real, MeshType> > _functional, 
-                              std::shared_ptr< DGBase<dim, real, MeshType> > dg);
+    DualWeightedResidualError(std::shared_ptr< DGBase<dim, real, MeshType> > dg, const Parameters::AllParameters *const param);
 
     ///destructor
     ~DualWeightedResidualError();

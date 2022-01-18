@@ -56,6 +56,21 @@ template <int dim, int nstate, typename real, typename MeshType>
 DualWeightedResidualError<dim, nstate, real, MeshType>::~DualWeightedResidualError(){}
 
 template <int dim, int nstate, typename real, typename MeshType>
+dealii::Vector<real> DualWeightedResidualError<dim, nstate, real, MeshType>::compute_cellwise_errors(std::shared_ptr< DGBase<dim, real, MeshType> > dg)
+{
+    reinit(dg);
+    convert_to_state(AdjointStateEnum::fine, dg);
+    fine_grid_adjoint(dg);
+    dealii::Vector<real> cellwise_errors(dg->high_order_grid->triangulation->n_active_cells());
+    cellwise_errors = dual_weighted_residual(dg);
+    convert_to_state(AdjointStateEnum::coarse, dg);
+
+    return cellwise_errors;
+
+}
+
+
+template <int dim, int nstate, typename real, typename MeshType>
 void DualWeightedResidualError<dim, nstate, real, MeshType>::reinit(std::shared_ptr< DGBase<dim, real, MeshType> > dg)
 {
     // assuming that all pointers are still valid

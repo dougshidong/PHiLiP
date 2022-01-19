@@ -16,6 +16,7 @@
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_factory.h"
 #include "reduced_order/pod_adaptation.h"
+#include "reduced_order/pod_adaptation_fine_adjoint.h"
 
 
 namespace PHiLiP {
@@ -75,20 +76,21 @@ int BurgersRewienskiROM<dim, nstate>::run_test() const
 
     // functional for computations
     auto burgers_functional = BurgersRewienskiFunctional<dim,nstate,double>(dg,dg_state->pde_physics_fad_fad,true,false);
-    /*
+
     std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD> coarsePOD_1 = std::make_shared<ProperOrthogonalDecomposition::CoarsePOD>(all_parameters);
     std::shared_ptr<ProperOrthogonalDecomposition::FinePOD> finePOD = std::make_shared<ProperOrthogonalDecomposition::FinePOD>(all_parameters);
 
-    std::shared_ptr<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>> pod_adapt_fine = std::make_shared<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>>(dg, burgers_functional, coarsePOD_1, finePOD);
+    std::shared_ptr<ProperOrthogonalDecomposition::PODAdaptationFineAdjoint<dim, nstate>> pod_adapt_fine = std::make_shared<ProperOrthogonalDecomposition::PODAdaptationFineAdjoint<dim, nstate>>(dg, burgers_functional, coarsePOD_1, finePOD);
     pod_adapt_fine->progressivePODAdaptation();
-    */
+
+    /*
     std::shared_ptr<ProperOrthogonalDecomposition::FineNotInCoarsePOD> fineNotInCoarsePOD = std::make_shared<ProperOrthogonalDecomposition::FineNotInCoarsePOD>(all_parameters);
     std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD> coarsePOD = std::make_shared<ProperOrthogonalDecomposition::CoarsePOD>(all_parameters);
 
     dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution); //Very important to reinitialize to initial conditions if reusing the same dg and doing a second POD adaptation, otherwise the results of the previous adaptation will be used as well
     std::shared_ptr<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>> pod_adapt_fine_not_in_coarse = std::make_shared<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>>(dg, burgers_functional, coarsePOD, fineNotInCoarsePOD);
     pod_adapt_fine_not_in_coarse->progressivePODAdaptation();
-
+    */
 
     //Evaluate functional on fine space to compare
 
@@ -97,7 +99,7 @@ int BurgersRewienskiROM<dim, nstate>::run_test() const
     dg_fine->allocate_system ();
     dealii::VectorTools::interpolate(dg_fine->dof_handler,initial_condition,dg_fine->solution);
     //std::shared_ptr<ProperOrthogonalDecomposition::FinePOD> finePOD = std::make_shared<ProperOrthogonalDecomposition::FinePOD>(all_parameters);
-    std::shared_ptr<ProperOrthogonalDecomposition::FinePOD> finePOD = std::make_shared<ProperOrthogonalDecomposition::FinePOD>(all_parameters);
+    //std::shared_ptr<ProperOrthogonalDecomposition::FinePOD> finePOD = std::make_shared<ProperOrthogonalDecomposition::FinePOD>(all_parameters);
 
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver_fine = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_fine, finePOD);
     ode_solver_fine->steady_state();

@@ -56,12 +56,6 @@ public:
 };
 
 
-#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
-#else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
-#endif
-
 /// DualWeightedResidualError class
 /** 
   * This class computes the discrete adjoint of the system based on a functional of interest and
@@ -76,6 +70,11 @@ template <int dim, int nstate, typename real, typename MeshType = dealii::parall
   * Includes functions for solving both the coarse and fine \f$p\f$-enriched adjoint problems. Subscripts \f$H\f$ 
   * and \f$h\f$ are used to denote coarse and fine grid variables respectively. 
   */ 
+#if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
+template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
 class DualWeightedResidualError : public MeshErrorEstimateBase <dim, real, MeshType>
 {
 public:
@@ -91,7 +90,7 @@ public:
      *  Also stores the current solution and distribution of polynomial orders
      *  for the mesh for converting back to coarse state after refinement.
      */
-    DualWeightedResidualError(std::shared_ptr< DGBase<dim, real, MeshType> > dg, const Parameters::AllParameters *const param);
+    DualWeightedResidualError(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
 
     ///destructor
     ~DualWeightedResidualError();

@@ -3,15 +3,15 @@
 namespace PHiLiP {
 
 template <int dim, typename real, typename MeshType>
-MeshAdaptation<dim,real,MeshType>::MeshAdaptation(double critical_res_input, int total_ref_cycle, double refine_frac, double coarsen_frac)
-    : critical_residual(critical_res_input)
-    , total_refinement_cycles(total_ref_cycle)
+MeshAdaptation<dim,real,MeshType>::MeshAdaptation(std::shared_ptr< DGBase<dim, real, MeshType> > dg)
+    : critical_residual(dg->all_parameters->mesh_adaptation_param.critical_residual_val)
+    , total_refinement_cycles(dg->all_parameters->mesh_adaptation_param.total_refinement_steps)
     , current_refinement_cycle(0)
-    , refinement_fraction(refine_frac)
-    , coarsening_fraction(coarsen_frac)
+    , refinement_fraction(dg->all_parameters->mesh_adaptation_param.refinement_fraction)
+    , coarsening_fraction(dg->all_parameters->mesh_adaptation_param.coarsening_fraction)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
     {
-        mesh_error = std::make_unique<ResidualErrorEstimate<dim, real, MeshType>>();
+        mesh_error = MeshErrorFactory<dim, 5, real, MeshType> :: create_mesh_error(dg);
     }
 
 

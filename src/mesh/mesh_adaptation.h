@@ -9,6 +9,7 @@
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/tria.h>
 #include <deal.II/distributed/grid_refinement.h>
+#include "mesh_error_factory.h"
 
 namespace PHiLiP {
 
@@ -25,7 +26,7 @@ class MeshAdaptation
 public:
 
     /// Constructor to initialize the class with a pointer to DG.
-    MeshAdaptation(double critical_res_input, int total_ref_cycle, double refine_frac, double coarsen_frac);
+    MeshAdaptation(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
 
     /// Function to adapt the mesh based on input parameters.
     void adapt_mesh(std::shared_ptr< DGBase<dim, real, MeshType> > dg);

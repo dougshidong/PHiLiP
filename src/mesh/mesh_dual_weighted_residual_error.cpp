@@ -32,9 +32,7 @@ namespace PHiLiP {
 
 // constructor
 template <int dim, int nstate, typename real, typename MeshType>
-DualWeightedResidualError<dim, nstate, real, MeshType>::DualWeightedResidualError(
-    std::shared_ptr< DGBase<dim, real, MeshType> > dg,
-    const Parameters::AllParameters *const param):
+DualWeightedResidualError<dim, nstate, real, MeshType>::DualWeightedResidualError(std::shared_ptr< DGBase<dim, real, MeshType> > dg):
     triangulation(dg->triangulation),
     solution_coarse(dg->solution),
     adjoint_state(AdjointStateEnum::coarse),
@@ -45,7 +43,7 @@ DualWeightedResidualError<dim, nstate, real, MeshType>::DualWeightedResidualErro
     coarse_fe_index.reinit(dg->triangulation->n_active_cells());
 
     // Create functional
-    functional = FunctionalFactory<dim,nstate,real,MeshType>::create_Functional(param, dg);
+    functional = FunctionalFactory<dim,nstate,real,MeshType>::create_Functional(dg->all_parameters, dg);
 
     // looping over the cells
     for(auto cell = dg->dof_handler.begin_active(); cell != dg->dof_handler.end(); ++cell)

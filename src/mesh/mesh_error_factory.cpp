@@ -17,7 +17,7 @@ std::unique_ptr <MeshErrorEstimateBase <dim, real, MeshType>> MeshErrorFactory<d
     if(dim == dg->all_parameters->dimension)
     {
         // This template parameters dim and nstate match the runtime parameters
-        // then create the selected test with template parameters dim and nstate
+        // then create the selected dual-weighted residual type with template parameters dim and nstate
         // Otherwise, keep decreasing nstate and dim until it matches
         if(nstate == dg->all_parameters->nstate) 
             return std::make_unique<DualWeightedResidualError<dim, nstate , real, MeshType>>(dg);

@@ -1,7 +1,7 @@
 # Listing of Parameters
 # ---------------------
 
-set test_type = burgers_rewienski_ROM
+set test_type = POD_adaptation
 
 # Number of dimensions
 set dimension = 1

@@ -5,13 +5,11 @@
 #include <deal.II/base/numbers.h>
 #include <deal.II/base/function_parser.h>
 #include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/grid_refinement.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/grid_in.h>
-#include <reduced_order/pod_basis.h>
 
-#include "burgers_rewienski_ROM.h"
+#include "POD_adaptation.h"
 #include "parameters/all_parameters.h"
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_factory.h"
@@ -23,12 +21,12 @@ namespace PHiLiP {
 namespace Tests {
 
 template <int dim, int nstate>
-BurgersRewienskiROM<dim, nstate>::BurgersRewienskiROM(const PHiLiP::Parameters::AllParameters *const parameters_input)
+PODAdaptation<dim, nstate>::PODAdaptation(const PHiLiP::Parameters::AllParameters *const parameters_input)
         : TestsBase::TestsBase(parameters_input)
 {}
 
 template <int dim, int nstate>
-int BurgersRewienskiROM<dim, nstate>::run_test() const
+int PODAdaptation<dim, nstate>::run_test() const
 {
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
@@ -77,31 +75,22 @@ int BurgersRewienskiROM<dim, nstate>::run_test() const
     // functional for computations
     auto burgers_functional = BurgersRewienskiFunctional<dim,nstate,double>(dg,dg_state->pde_physics_fad_fad,true,false);
 
-    std::shared_ptr<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>> pod_adapt_fine = std::make_shared<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>>(dg, burgers_functional);
-    pod_adapt_fine->progressivePODAdaptation();
-
-    /*
-    std::shared_ptr<ProperOrthogonalDecomposition::FineNotInCoarsePOD> fineNotInCoarsePOD = std::make_shared<ProperOrthogonalDecomposition::FineNotInCoarsePOD>(all_parameters);
-    std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD> coarsePOD = std::make_shared<ProperOrthogonalDecomposition::CoarsePOD>(all_parameters);
-
-    dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution); //Very important to reinitialize to initial conditions if reusing the same dg and doing a second POD adaptation, otherwise the results of the previous adaptation will be used as well
-    std::shared_ptr<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>> pod_adapt_fine_not_in_coarse = std::make_shared<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>>(dg, burgers_functional, coarsePOD, fineNotInCoarsePOD);
-    pod_adapt_fine_not_in_coarse->progressivePODAdaptation();
-    */
+    //POD adaptation
+    std::shared_ptr<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>> pod_adapt = std::make_shared<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>>(dg, burgers_functional);
+    pod_adapt->progressivePODAdaptation();
 
     //Evaluate functional on fine space to compare
-
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg_fine = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);
     std::shared_ptr< DGBaseState<dim,nstate,double> > dg_state_fine = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double> >(dg_fine);
     dg_fine->allocate_system ();
     dealii::VectorTools::interpolate(dg_fine->dof_handler,initial_condition,dg_fine->solution);
     std::shared_ptr<ProperOrthogonalDecomposition::FinePOD> finePOD = std::make_shared<ProperOrthogonalDecomposition::FinePOD>(all_parameters);
-
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver_fine = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_fine, finePOD);
     ode_solver_fine->steady_state();
     auto functional_fine = BurgersRewienskiFunctional<dim,nstate,double>(dg_fine,dg_state_fine->pde_physics_fad_fad,true,false);
     double func = functional_fine.evaluate_functional(false,false);
     pcout << "Fine functional: "<< std::setprecision(15)  << func << std::setprecision(6) << std::endl;
+
     return 0;
 }
 
@@ -125,7 +114,7 @@ return val;
 
 
 #if PHILIP_DIM==1
-template class BurgersRewienskiROM<PHILIP_DIM,PHILIP_DIM>;
+template class PODAdaptation<PHILIP_DIM,PHILIP_DIM>;
 template class BurgersRewienskiFunctional<PHILIP_DIM, PHILIP_DIM, double>;
 #endif
 } // Tests namespace

@@ -54,6 +54,7 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
     this->linesearch();
 
     this->update_norm = this->solution_update.l2_norm();
+    ++(this->current_iteration);
 }
 
 template <int dim, typename real, typename MeshType>

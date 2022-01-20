@@ -72,7 +72,7 @@ echo "subsection manufactured solution convergence study"                       
 echo " set use_manufactured_source_term = true"                                       >> $file
 echo "end"                                                                            >> $file
 
-/usr/bin/mpirun "-n" "1" "$HOME/Codes/PHiLiP/cmake-build-release/bin/PHiLiP_1D" "-i" "$HOME/Codes/PHiLiP/cmake-build-release/tests/integration_tests_control_files/reduced_order/steady_state_snapshot_generation/${rewienski_a[i]}_${rewienski_b[i]}/${rewienski_a[i]}_${rewienski_b[i]}_1d_burgers_rewienski_snapshot.prm"
+/usr/bin/mpirun "-n" "1" "$HOME/Codes/PHiLiP/cmake-build-release/bin/PHiLiP_1D" "-i" "$HOME/Codes/PHiLiP/cmake-build-release/tests/integration_tests_control_files/reduced_order/steady_state_snapshot_generation/${rewienski_a[i]}_${rewienski_b[i]}/${rewienski_a[i]}_${rewienski_b[i]}_1d_burgers_rewienski_snapshot_steady.prm"
 
 cd ..
 done

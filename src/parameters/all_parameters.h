@@ -119,7 +119,7 @@ public:
         euler_naca0012,
         reduced_order,
         burgers_rewienski_snapshot,
-        burgers_rewienski_ROM,
+        POD_adaptation,
         advection_periodicity,
         flow_solver,
     };

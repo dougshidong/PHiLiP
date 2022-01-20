@@ -20,7 +20,7 @@ set(TESTS_SOURCE
     optimization_inverse_manufactured/optimization_inverse_manufactured.cpp
     burgers_rewienski_snapshot.cpp
     reduced_order.cpp
-    burgers_rewienski_ROM.cpp
+        POD_adaptation.cpp
     flow_solver.cpp)
 
 foreach(dim RANGE 1 3)

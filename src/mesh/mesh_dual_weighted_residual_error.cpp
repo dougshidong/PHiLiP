@@ -56,17 +56,24 @@ template <int dim, int nstate, typename real, typename MeshType>
 DualWeightedResidualError<dim, nstate, real, MeshType>::~DualWeightedResidualError(){}
 
 template <int dim, int nstate, typename real, typename MeshType>
+real DualWeightedResidualError<dim, nstate, real, MeshType>::total_dual_weighted_residual_error(std::shared_ptr< DGBase<dim, real, MeshType> > dg)
+{
+    dealii::Vector<real> cellwise_errors = compute_cellwise_errors(dg);
+    real error_sum = cellwise_errors.l1_norm();
+    return dealii::Utilities::MPI::sum(error_sum, mpi_communicator);
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
 dealii::Vector<real> DualWeightedResidualError<dim, nstate, real, MeshType>::compute_cellwise_errors(std::shared_ptr< DGBase<dim, real, MeshType> > dg)
 {
+    dealii::Vector<real> cellwise_errors(dg->high_order_grid->triangulation->n_active_cells());
     reinit(dg);
     convert_to_state(AdjointStateEnum::fine, dg);
     fine_grid_adjoint(dg);
-    dealii::Vector<real> cellwise_errors(dg->high_order_grid->triangulation->n_active_cells());
     cellwise_errors = dual_weighted_residual(dg);
     convert_to_state(AdjointStateEnum::coarse, dg);
 
     return cellwise_errors;
-
 }
 
 

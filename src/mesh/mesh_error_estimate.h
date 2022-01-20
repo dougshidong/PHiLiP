@@ -149,9 +149,11 @@ public:
      */
     dealii::Vector<real> dual_weighted_residual(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
 
-    /// Compute dual weighted residual error in each cell. Overwrites the virtual function in MeshErrorEstimateBase.
+    /// Computes dual weighted residual error in each cell, by integrating over all quadrature points. Overwrites the virtual function in MeshErrorEstimateBase.
     dealii::Vector<real> compute_cellwise_errors (std::shared_ptr< DGBase<dim, real, MeshType> > dg);
 
+    /// Computes the sum of dual weighted residual error over all the cells in the domain.
+    real total_dual_weighted_residual_error(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
 
     /// Outputs the current solution and adjoint values
     /** Similar to DGBase::output_results_vtk() but will also include the adjoint and dIdw

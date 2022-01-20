@@ -1,17 +1,18 @@
 #!/bin/bash
-#SBATCH --time=2:00:00
+#SBATCH --time=1:00:00                                ## <-- increase if RUN_CTEST=true
 #SBATCH --account=rrg-nadaraja-ac
 #SBATCH --job-name=compile_PHiLiP
 #SBATCH --output=%x-%j.out
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=6                           ## <-- there are max 40 per node
-#SBATCH --mem=32G                           		  ## <-- total shared memory; default unit is megabytes
+#SBATCH --ntasks-per-node=40                          ## <-- refer to https://docs.computecanada.ca/wiki/Advanced_MPI_scheduling
+#SBATCH --mem=0                                       ## <-- total shared memory; --mem=0 means to reserve all the available memory on each node assigned to the job
 #SBATCH --mail-user=firstname.lastname@mail.mcgill.ca ## <-- for receiving job updates via email
 #SBATCH --mail-type=ALL                               ## <-- what kind of updates to receive by email
 
-CLUSTER_NAME="beluga" ## <-- Enter cluster name here in lowercase
-SLURM_USER="username" ## <-- Enter beluga username here
-NUM_PROCS="6"         ## WARNING: must correspond to --ntasks above
+CLUSTER_NAME="narval" ## <-- Enter cluster name here in lowercase
+SLURM_USER="username" ## <-- Enter compute canada username here
+NUM_PROCS="40"        ## WARNING: must correspond to nodes*(ntasks-per-node) above
+RUN_CTEST=false
 
 ## Below are the modules needed to compile PHiLiP
 module --force purge
@@ -58,7 +59,9 @@ mkdir build_release
 cd build_release
 cmake -DDEAL_II_DIR=$DEAL_II_DIR ../PHiLiP -DMPIMAX=${NUM_PROCS} -DCMAKE_BUILD_TYPE=Release -DGMSH_DIR=$GMSH_DIR/bin/gmsh -DGMSH_LIB=$GMSH_DIR -DCMAKE_SKIP_INSTALL_RPATH=ON 
 make -j${NUM_PROCS}
-##ctest
+if [ "${RUN_CTEST}" = true ]; then
+    ctest
+fi
 
 for((i=1;i<=3;i++)); do
 	cp ${SLURM_TMPDIR}/build_release/bin/PHiLiP_${i}D /home/${SLURM_USER}/scratch/PHiLiP_${i}D

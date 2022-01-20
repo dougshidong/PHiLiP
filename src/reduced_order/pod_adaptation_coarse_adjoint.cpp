@@ -1,4 +1,4 @@
-#include "pod_adaptation_fine_adjoint.h"
+#include "pod_adaptation_coarse_adjoint.h"
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
@@ -6,14 +6,14 @@ namespace ProperOrthogonalDecomposition {
 using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
 
 template <int dim, int nstate>
-PODAdaptationFineAdjoint<dim, nstate>::PODAdaptationFineAdjoint(std::shared_ptr<DGBase<dim,double>> &_dg, Functional<dim,nstate,double> &_functional, std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD> _coarsePOD, std::shared_ptr<ProperOrthogonalDecomposition::SpecificPOD> _finePOD)
-        : functional(_functional)
-        , dg(_dg)
-        , coarsePOD(_coarsePOD)
-        , finePOD(_finePOD)
-        , all_parameters(dg->all_parameters)
-        , mpi_communicator(MPI_COMM_WORLD)
-        , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
+PODAdaptationCoarseAdjoint<dim, nstate>::PODAdaptationCoarseAdjoint(std::shared_ptr<DGBase<dim,double>> &_dg, Functional<dim,nstate,double> &_functional, std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD> _coarsePOD, std::shared_ptr<ProperOrthogonalDecomposition::SpecificPOD> _finePOD)
+    : functional(_functional)
+    , dg(_dg)
+    , coarsePOD(_coarsePOD)
+    , finePOD(_finePOD)
+    , all_parameters(dg->all_parameters)
+    , mpi_communicator(MPI_COMM_WORLD)
+    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
 {
     dealii::ParameterHandler parameter_handler;
     Parameters::LinearSolverParam::declare_parameters (parameter_handler);
@@ -21,7 +21,7 @@ PODAdaptationFineAdjoint<dim, nstate>::PODAdaptationFineAdjoint(std::shared_ptr<
 }
 
 template <int dim, int nstate>
-void PODAdaptationFineAdjoint<dim, nstate>::progressivePODAdaptation()
+void PODAdaptationCoarseAdjoint<dim, nstate>::progressivePODAdaptation()
 {
     getDualWeightedResidual();
     while(abs(error) > all_parameters->reduced_order_param.adaptation_tolerance){
@@ -35,7 +35,7 @@ void PODAdaptationFineAdjoint<dim, nstate>::progressivePODAdaptation()
 
 
 template <int dim, int nstate>
-void PODAdaptationFineAdjoint<dim, nstate>::simplePODAdaptation()
+void PODAdaptationCoarseAdjoint<dim, nstate>::simplePODAdaptation()
 {
     getDualWeightedResidual();
     if(abs(error) > all_parameters->reduced_order_param.adaptation_tolerance){
@@ -50,56 +50,43 @@ void PODAdaptationFineAdjoint<dim, nstate>::simplePODAdaptation()
 }
 
 template <int dim, int nstate>
-std::vector<unsigned int> PODAdaptationFineAdjoint<dim, nstate>::getPODBasisColumnsToAdd()
+std::vector<unsigned int> PODAdaptationCoarseAdjoint<dim, nstate>::getPODBasisColumnsToAdd()
 {
-    bool consider_error_sign = true;
     std::map<double, unsigned int> dualWeightedResidualToIndex;
+    for(unsigned int i = 0; i < dualWeightedResidual.size(); i++){
+        dualWeightedResidualToIndex.emplace(dualWeightedResidual[i], finePOD->fullBasisIndices[i]);
+    }
+
     std::vector<unsigned int> PODBasisColumnsToAdd;
     std::map<double, unsigned int>::iterator element;
-
-    if(consider_error_sign){
-        for(unsigned int i = 0; i < dualWeightedResidual.size(); i++){
-            dualWeightedResidualToIndex.emplace(dualWeightedResidual[i], finePOD->fullBasisIndices[i]);
-        }
-        double adaptationError = error;
-        if(all_parameters->reduced_order_param.adapt_coarse_basis_constant == 0){
-            while(abs(adaptationError) > all_parameters->reduced_order_param.adaptation_tolerance){
-                if(adaptationError > 0){
-                    element = std::prev(dualWeightedResidualToIndex.end());
-                }else{
-                    element = dualWeightedResidualToIndex.begin();
-                }
-                PODBasisColumnsToAdd.push_back(element->second);
-                pcout << "Adding POD basis: " << element->second << std::endl;
-                adaptationError = adaptationError - element->first;
-                pcout << "Estimated adaptation error: " << adaptationError << std::endl;
-                dualWeightedResidualToIndex.erase(element);
+    double adaptationError = error;
+    if(all_parameters->reduced_order_param.adapt_coarse_basis_constant == 0){
+        while(abs(adaptationError) > all_parameters->reduced_order_param.adaptation_tolerance){
+            if(adaptationError > 0){
+                element = std::prev(dualWeightedResidualToIndex.end());
+            }else{
+                element = dualWeightedResidualToIndex.begin();
             }
-        }else{
-            for (unsigned int i = 0; i < all_parameters->reduced_order_param.adapt_coarse_basis_constant; i++) {
-                if(abs(adaptationError) < all_parameters->reduced_order_param.adaptation_tolerance){
-                    break;
-                }
-                if(adaptationError > 0){
-                    element = std::prev(dualWeightedResidualToIndex.end());
-                }else{
-                    element = dualWeightedResidualToIndex.begin();
-                }
-                PODBasisColumnsToAdd.push_back(element->second);
-                pcout << "Adding POD basis: " << element->second << std::endl;
-                adaptationError = adaptationError - element->first;
-                pcout << "Estimated adaptation error: " << adaptationError << std::endl;
-                dualWeightedResidualToIndex.erase(element);
-            }
-        }
-    }else{
-        for(unsigned int i = 0; i < dualWeightedResidual.size(); i++){
-            dualWeightedResidualToIndex.emplace(abs(dualWeightedResidual[i]), finePOD->fullBasisIndices[i]);
-        }
-        for (unsigned int i = 0; i < all_parameters->reduced_order_param.adapt_coarse_basis_constant; i++) {
-            element = std::prev(dualWeightedResidualToIndex.end());
             PODBasisColumnsToAdd.push_back(element->second);
             pcout << "Adding POD basis: " << element->second << std::endl;
+            adaptationError = adaptationError - element->first;
+            pcout << "Estimated adaptation error: " << adaptationError << std::endl;
+            dualWeightedResidualToIndex.erase(element);
+        }
+    }else{
+        for (unsigned int i = 0; i < all_parameters->reduced_order_param.adapt_coarse_basis_constant; i++) {
+            if(abs(adaptationError) < all_parameters->reduced_order_param.adaptation_tolerance){
+                break;
+            }
+            if(adaptationError > 0){
+                element = std::prev(dualWeightedResidualToIndex.end());
+            }else{
+                element = dualWeightedResidualToIndex.begin();
+            }
+            PODBasisColumnsToAdd.push_back(element->second);
+            pcout << "Adding POD basis: " << element->second << std::endl;
+            adaptationError = adaptationError - element->first;
+            pcout << "Estimated adaptation error: " << adaptationError << std::endl;
             dualWeightedResidualToIndex.erase(element);
         }
     }
@@ -108,9 +95,11 @@ std::vector<unsigned int> PODAdaptationFineAdjoint<dim, nstate>::getPODBasisColu
 }
 
 template <int dim, int nstate>
-void PODAdaptationFineAdjoint<dim, nstate>::getDualWeightedResidual()
+void PODAdaptationCoarseAdjoint<dim, nstate>::getDualWeightedResidual()
 {
-    DealiiVector fineGradient(finePOD->getPODBasis()->n());
+    DealiiVector coarseGradient(coarsePOD->getPODBasis()->n());
+    DealiiVector coarseAdjoint(coarsePOD->getPODBasis()->n());
+    DealiiVector fullAdjoint(coarsePOD->getPODBasis()->m());
     DealiiVector fineAdjoint(finePOD->getPODBasis()->n());
     DealiiVector fineResidual(finePOD->getPODBasis()->n());
     dualWeightedResidual.reinit(finePOD->getPODBasis()->n());
@@ -123,8 +112,12 @@ void PODAdaptationFineAdjoint<dim, nstate>::getDualWeightedResidual()
     pcout << "Coarse functional: " << std::setprecision(15) << functional.evaluate_functional(false,false) << std::setprecision(6) << std::endl;
 
     //Compute coarse adjoint
-    getReducedGradient(fineGradient);
-    applyReducedJacobianTranspose(fineAdjoint, fineGradient);
+    getReducedGradient(coarseGradient);
+    applyReducedJacobianTranspose(coarseAdjoint, coarseGradient);
+
+    //Compute fine adjoint
+    coarsePOD->getPODBasis()->vmult(fullAdjoint, coarseAdjoint);
+    finePOD->getPODBasis()->Tvmult(fineAdjoint, fullAdjoint);
 
     //Compute fine residual
     finePOD->getPODBasis()->Tvmult(fineResidual, dg->right_hand_side);
@@ -141,7 +134,7 @@ void PODAdaptationFineAdjoint<dim, nstate>::getDualWeightedResidual()
 }
 
 template <int dim, int nstate>
-void PODAdaptationFineAdjoint<dim, nstate>::applyReducedJacobianTranspose(DealiiVector &reducedAdjoint, DealiiVector &reducedGradient)
+void PODAdaptationCoarseAdjoint<dim, nstate>::applyReducedJacobianTranspose(DealiiVector &reducedAdjoint, DealiiVector &reducedGradient)
 {
     const bool compute_dRdW=true;
     const bool compute_dRdX=false;
@@ -151,14 +144,14 @@ void PODAdaptationFineAdjoint<dim, nstate>::applyReducedJacobianTranspose(Dealii
 
     dealii::TrilinosWrappers::SparseMatrix tmp;
     dealii::TrilinosWrappers::SparseMatrix reducedJacobianTranspose;
-    finePOD->getPODBasis()->Tmmult(tmp, dg->system_matrix_transpose); //tmp = pod_basis^T * dg->system_matrix_transpose
-    tmp.mmult(reducedJacobianTranspose, *finePOD->getPODBasis()); // reducedJacobianTranspose= tmp*pod_basis
+    coarsePOD->getPODBasis()->Tmmult(tmp, dg->system_matrix_transpose); //tmp = pod_basis^T * dg->system_matrix_transpose
+    tmp.mmult(reducedJacobianTranspose, *coarsePOD->getPODBasis()); // reducedJacobianTranspose= tmp*pod_basis
 
     solve_linear (reducedJacobianTranspose, reducedGradient*=-1.0, reducedAdjoint, linear_solver_param);
 }
 
 template <int dim, int nstate>
-void PODAdaptationFineAdjoint<dim, nstate>::getReducedGradient(DealiiVector &reducedGradient)
+void PODAdaptationCoarseAdjoint<dim, nstate>::getReducedGradient(DealiiVector &reducedGradient)
 {
     functional.set_state(dg->solution);
     functional.dg->high_order_grid->volume_nodes = dg->high_order_grid->volume_nodes;
@@ -168,20 +161,20 @@ void PODAdaptationFineAdjoint<dim, nstate>::getReducedGradient(DealiiVector &red
     const bool compute_d2I = false;
     functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
 
-    finePOD->getPODBasis()->Tvmult(reducedGradient, functional.dIdw); // reducedGradient= (pod_basis)^T * gradient
+    coarsePOD->getPODBasis()->Tvmult(reducedGradient, functional.dIdw); // reducedGradient= (pod_basis)^T * gradient
 }
 
 template <int dim, int nstate>
-double PODAdaptationFineAdjoint<dim, nstate>::getCoarseFunctional()
+double PODAdaptationCoarseAdjoint<dim, nstate>::getCoarseFunctional()
 {
     return functional.evaluate_functional(false,false);
 }
 
-template class PODAdaptationFineAdjoint <PHILIP_DIM,1>;
-template class PODAdaptationFineAdjoint <PHILIP_DIM,2>;
-template class PODAdaptationFineAdjoint <PHILIP_DIM,3>;
-template class PODAdaptationFineAdjoint <PHILIP_DIM,4>;
-template class PODAdaptationFineAdjoint <PHILIP_DIM,5>;
+template class PODAdaptationCoarseAdjoint <PHILIP_DIM,1>;
+template class PODAdaptationCoarseAdjoint <PHILIP_DIM,2>;
+template class PODAdaptationCoarseAdjoint <PHILIP_DIM,3>;
+template class PODAdaptationCoarseAdjoint <PHILIP_DIM,4>;
+template class PODAdaptationCoarseAdjoint <PHILIP_DIM,5>;
 
 }
 }

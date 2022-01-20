@@ -1,5 +1,5 @@
-#ifndef __POD_ADAPTATION_FINE_ADJOINT__
-#define __POD_ADAPTATION_FINE_ADJOINT__
+#ifndef __POD_ADAPTATION_COARSE_ADJOINT__
+#define __POD_ADAPTATION_COARSE_ADJOINT__
 
 #include <fstream>
 #include <iostream>
@@ -23,10 +23,10 @@ namespace ProperOrthogonalDecomposition {
 /// Class for Proper Orthogonal Decomposition reduced order modelling adaptation
 /* Refer to "Output Error Estimation for Projection-Based Reduced Models" by Gary Collins, Krzysztof J. Fidkowski
 and Carlos E. S. Cesnik, AIAA Aviation Forum 2019
-*/
+ */
 
 template <int dim, int nstate>
-class PODAdaptationFineAdjoint
+class PODAdaptationCoarseAdjoint
 {
     using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
 
@@ -55,10 +55,10 @@ private:
 
 public:
     /// Constructor
-    PODAdaptationFineAdjoint(std::shared_ptr<DGBase<dim,double>> &_dg, Functional<dim,nstate,double> &_functional, std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD> _coarsePOD, std::shared_ptr<ProperOrthogonalDecomposition::SpecificPOD> _finePOD);
+    PODAdaptationCoarseAdjoint(std::shared_ptr<DGBase<dim,double>> &_dg, Functional<dim,nstate,double> &_functional, std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD> _coarsePOD, std::shared_ptr<ProperOrthogonalDecomposition::SpecificPOD> _finePOD);
 
     /// Destructor
-    ~PODAdaptationFineAdjoint () {};
+    ~PODAdaptationCoarseAdjoint () {};
 
     void getReducedGradient(DealiiVector &reducedGradient);
 

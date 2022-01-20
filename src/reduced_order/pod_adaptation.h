@@ -23,7 +23,7 @@ namespace ProperOrthogonalDecomposition {
 /// Class for Proper Orthogonal Decomposition reduced order modelling adaptation
 /* Refer to "Output Error Estimation for Projection-Based Reduced Models" by Gary Collins, Krzysztof J. Fidkowski
 and Carlos E. S. Cesnik, AIAA Aviation Forum 2019
- */
+*/
 
 template <int dim, int nstate>
 class PODAdaptation
@@ -37,10 +37,14 @@ private:
     /// Smart pointer to DGBase
     std::shared_ptr<DGBase<dim,double>> dg;
 
+    const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
+
     /// Smart pointer to POD
     std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD> coarsePOD;
 
-    std::shared_ptr<ProperOrthogonalDecomposition::SpecificPOD> finePOD;
+    std::shared_ptr<ProperOrthogonalDecomposition::FinePOD> finePOD;
+
+    std::shared_ptr<ProperOrthogonalDecomposition::FineNotInCoarsePOD> fineNotInCoarsePOD;
 
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver;
 
@@ -51,11 +55,10 @@ private:
 
     double error;
 
-    const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
 
 public:
     /// Constructor
-    PODAdaptation(std::shared_ptr<DGBase<dim,double>> &_dg, Functional<dim,nstate,double> &_functional, std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD> _coarsePOD, std::shared_ptr<ProperOrthogonalDecomposition::SpecificPOD> _finePOD);
+    PODAdaptation(std::shared_ptr<DGBase<dim,double>> &_dg, Functional<dim,nstate,double> &_functional);
 
     /// Destructor
     ~PODAdaptation () {};

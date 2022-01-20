@@ -83,7 +83,7 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
 
     duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
     this->pcout << "Last section of step_in_time time: "<< duration <<'\n';
-
+    ++(this->current_iteration);
 }
 
 template <int dim, typename real, typename MeshType>

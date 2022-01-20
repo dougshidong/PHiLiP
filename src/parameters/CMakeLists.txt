@@ -9,10 +9,11 @@ set(SOURCE
     parameters_grid_refinement_study.cpp
     parameters_functional.cpp
     parameters_grid_refinement.cpp
-    all_parameters.cpp
     parameters_reduced_order.cpp
     parameters_artificial_dissipation.cpp
-    parameters_mesh_adaptation.cpp)
+    parameters_flow_solver.cpp
+    parameters_mesh_adaptation.cpp
+    all_parameters.cpp)
 
 # Output library
 set(ParameterLib ParametersLibrary)

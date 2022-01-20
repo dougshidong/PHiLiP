@@ -51,6 +51,15 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("solutions_table_filename", "solutions_table",
                           dealii::Patterns::Anything(),
                           "Filename to use when outputting solution vectors in a table format.");
+
+        prm.enter_subsection("explicit solver options");
+        {
+            prm.declare_entry("runge_kutta_order", "3",
+                              dealii::Patterns::Selection("1|3"),
+                              "Order for the Runge-Kutta explicit time advancement scheme."
+                              "Choices are <1|3>.");
+        }
+        prm.leave_subsection();
     }
     prm.leave_subsection();
 }
@@ -80,6 +89,14 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         print_iteration_modulo = prm.get_integer("print_iteration_modulo");
         output_solution_vector_modulo = prm.get_integer("output_solution_vector_modulo");
         solutions_table_filename = prm.get("solutions_table_filename");
+
+        prm.enter_subsection("explicit solver options");
+        {
+            const std::string runge_kutta_order_string = prm.get("runge_kutta_order");
+            if (runge_kutta_order_string == "1") runge_kutta_order = 1;
+            if (runge_kutta_order_string == "3") runge_kutta_order = 3;
+        }
+        prm.leave_subsection();
     }
     prm.leave_subsection();
 }

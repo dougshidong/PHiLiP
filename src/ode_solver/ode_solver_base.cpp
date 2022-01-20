@@ -6,6 +6,7 @@ namespace ODE{
 template <int dim, typename real, typename MeshType>
 ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
         : current_time(0.0)
+        , current_iteration(0)
         , dg(dg_input)
         , all_parameters(dg->all_parameters)
         , mpi_communicator(MPI_COMM_WORLD)
@@ -143,8 +144,6 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
 
         this->dg->assemble_residual ();
 
-        ++(this->current_iteration);
-
         if (ode_param.output_solution_every_x_steps > 0) {
             const bool is_output_iteration = (this->current_iteration % ode_param.output_solution_every_x_steps == 0);
             if (is_output_iteration) {
@@ -211,9 +210,7 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
     allocate_ode_system ();
 
     this->current_iteration = 0;
-
-    // Output initial solution
-    this->dg->output_results_vtk(this->current_iteration);
+    if (ode_param.output_solution_every_x_steps >= 0) this->dg->output_results_vtk(this->current_iteration);
 
     while (this->current_iteration < number_of_time_steps)
     {
@@ -225,7 +222,6 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
                   << " out of: " << number_of_time_steps
                   << std::endl;
         }
-        dg->assemble_residual(false);
 
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
             (this->current_iteration%ode_param.print_iteration_modulo) == 0 ) {
@@ -235,21 +231,23 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
         const bool pseudotime = false;
         step_in_time(constant_time_step, pseudotime);
 
-
-        if (this->current_iteration%ode_param.print_iteration_modulo == 0) {
-            this->dg->output_results_vtk(this->current_iteration);
+        if (ode_param.output_solution_every_x_steps > 0) {
+            const bool is_output_iteration = (this->current_iteration % ode_param.output_solution_every_x_steps == 0);
+            if (is_output_iteration) {
+                const int file_number = this->current_iteration / ode_param.output_solution_every_x_steps;
+                this->dg->output_results_vtk(file_number);
+            }
         }
 
         if (ode_param.output_solution_vector_modulo > 0) {
             if (this->current_iteration % ode_param.output_solution_vector_modulo == 0) {
                 for (unsigned int i = 0; i < this->dg->solution.size(); ++i) {
-                    solutions_table.template add_value(
+                    solutions_table.add_value(
                             "Time:" + std::to_string(this->current_iteration * constant_time_step),
                             this->dg->solution[i]);
                 }
             }
         }
-        ++(this->current_iteration);
     }
 
     if (ode_param.output_solution_vector_modulo > 0) {

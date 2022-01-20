@@ -29,8 +29,12 @@ public:
     virtual ~ODESolverBase() {}; ///< Destructor.
 
     /// Useful for accurate time-stepping.
-    /** This variable will change when advance_solution_time() or step_in_time() is called. */
+    /** This variable will change when step_in_time() is called. */
     double current_time;
+
+    /// Current iteration.
+    /** This variable will change when step_in_time() is called. */
+    unsigned int current_iteration;
 
     /// Table used to output solution vector at each time step
     dealii::TableHandler solutions_table;
@@ -64,8 +68,6 @@ public:
 
     double residual_norm; ///< Current residual norm. Only makes sense for steady state
     double residual_norm_decrease; ///< Current residual norm normalized by initial residual. Only makes sense for steady state
-
-    unsigned int current_iteration; ///< Current iteration.
 
 protected:
     /// CFL factor for (un)successful linesearches

@@ -1090,7 +1090,6 @@ ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(
 {
     using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
     ManufacturedSolutionEnum solution_type = param->manufactured_convergence_study_param.manufactured_solution_param.manufactured_solution_type;
-    //param->manufactured_convergence_study_param.manufactured_solution_param.NavahCoefficientMatrix;
 
     return create_ManufacturedSolution(solution_type, nstate);
 }

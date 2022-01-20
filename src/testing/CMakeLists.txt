@@ -20,7 +20,8 @@ set(TESTS_SOURCE
     optimization_inverse_manufactured/optimization_inverse_manufactured.cpp
     burgers_rewienski_snapshot.cpp
     reduced_order.cpp
-    burgers_rewienski_ROM.cpp)
+    burgers_rewienski_ROM.cpp
+    flow_solver.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library
@@ -40,6 +41,7 @@ foreach(dim RANGE 1 3)
     string(CONCAT LinearSolverLib LinearSolver)
     string(CONCAT GridRefinementLib GridRefinement_${dim}D)
     string(CONCAT PODLib POD_${dim}D)
+    string(CONCAT InitialConditionsLib InitialConditions_${dim}D)
     target_link_libraries(${TestsLib} ${GridsLib})
     target_link_libraries(${TestsLib} ${NumericalFluxLib})
     target_link_libraries(${TestsLib} ${PhysicsLib})
@@ -50,6 +52,7 @@ foreach(dim RANGE 1 3)
     target_link_libraries(${TestsLib} ${GridRefinementLib})
     target_link_libraries(${TestsLib} ${OptimizationLib})
     target_link_libraries(${TestsLib} ${PODLib})
+    target_link_libraries(${TestsLib} ${InitialConditionsLib})
     # Setup target with deal.II
     if(NOT DOC_ONLY)
         DEAL_II_SETUP_TARGET(${TestsLib})
@@ -66,4 +69,5 @@ foreach(dim RANGE 1 3)
     unset(GridRefinementLib)
     unset(OptimizationLib)
     unset(PODLib)
+    unset(InitialConditionsLib)
 endforeach()

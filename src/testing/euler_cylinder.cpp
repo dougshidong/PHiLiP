@@ -23,6 +23,7 @@
 
 #include "euler_cylinder.h"
 
+#include "physics/initial_conditions/initial_condition.h"
 #include "physics/euler.h"
 #include "physics/manufactured_solution.h"
 #include "dg/dg_factory.hpp"

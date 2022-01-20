@@ -15,6 +15,8 @@ AllParameters::AllParameters ()
     , reduced_order_param(ReducedOrderModelParam())
     , grid_refinement_study_param(GridRefinementStudyParam())
     , artificial_dissipation_param(ArtificialDissipationParam())
+    , flow_solver_param(FlowSolverParam())
+    , mesh_adaptation_param(MeshAdaptationParam())
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 { }
 void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
@@ -25,7 +27,6 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     prm.declare_entry("dimension", "-1",
                       dealii::Patterns::Integer(),
                       "Number of dimensions");
-
 
     prm.declare_entry("mesh_type", "default_triangulation",
                       dealii::Patterns::Selection(
@@ -109,7 +110,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " reduced_order | "
                       " burgers_rewienski_snapshot |"
                       " burgers_rewienski_ROM |"
-                      " advection_periodicity"),
+                      " advection_periodicity | "
+                      " flow_solver"),
                       "The type of test we want to solve. "
                       "Choices are (only run control has been coded up for now)" 
                       " <run_control | " 
@@ -132,7 +134,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  reduced_order |"
                       "  burgers_rewienski_snapshot |"
                       "  burgers_rewienski_ROM |"
-                      "  advection_periodicity >.");
+                      "  advection_periodicity | "
+                      "  flow_solver>.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -178,6 +181,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     Parameters::GridRefinementStudyParam::declare_parameters (prm);
    
     Parameters::ArtificialDissipationParam::declare_parameters (prm);
+    Parameters::MeshAdaptationParam::declare_parameters (prm);
+
+    Parameters::FlowSolverParam::declare_parameters (prm);
 
     pcout << "Done declaring inputs." << std::endl;
 }
@@ -189,13 +195,13 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     dimension = prm.get_integer("dimension");
 
     const std::string mesh_type_string = prm.get("mesh_type");
-    if (mesh_type_string == "default_triangulation")                   { mesh_type = default_triangulation; }
+    if      (mesh_type_string == "default_triangulation")              { mesh_type = default_triangulation; }
     else if (mesh_type_string == "triangulation")                      { mesh_type = triangulation; }
     else if (mesh_type_string == "parallel_shared_triangulation")      { mesh_type = parallel_shared_triangulation; }
     else if (mesh_type_string == "parallel_distributed_triangulation") { mesh_type = parallel_distributed_triangulation; }
 
     const std::string test_string = prm.get("test_type");
-    if (test_string == "run_control")                            { test_type = run_control; }
+    if      (test_string == "run_control")                       { test_type = run_control; }
     else if (test_string == "grid_refinement_study")             { test_type = grid_refinement_study; }
     else if (test_string == "burgers_energy_stability")          { test_type = burgers_energy_stability; }
     else if (test_string == "diffusion_exact_adjoint")           { test_type = diffusion_exact_adjoint; }
@@ -215,7 +221,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "burgers_rewienski_snapshot")        { test_type = burgers_rewienski_snapshot; }
     else if (test_string == "burgers_rewienski_ROM")             { test_type = burgers_rewienski_ROM; }
     else if (test_string == "euler_naca0012")                    { test_type = euler_naca0012; }
-    else if (test_string == "optimization_inverse_manufactured") {test_type = optimization_inverse_manufactured; }
+    else if (test_string == "optimization_inverse_manufactured") { test_type = optimization_inverse_manufactured; }
+    else if (test_string == "flow_solver")                       { test_type = flow_solver; }
     
     const std::string pde_string = prm.get("pde_type");
     if (pde_string == "advection") {
@@ -312,6 +319,12 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     pcout << "Parsing artificial dissipation subsection..." << std::endl;
     artificial_dissipation_param.parse_parameters (prm);
+    
+    pcout << "Parsing flow solver subsection..." << std::endl;
+    flow_solver_param.parse_parameters (prm);
+
+    pcout << "Parsing mesh adaptation subsection..." << std::endl;
+    mesh_adaptation_param.parse_parameters (prm);
     
     pcout << "Done parsing." << std::endl;
 }

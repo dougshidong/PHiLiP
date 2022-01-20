@@ -12,8 +12,7 @@ add_subdirectory(grid_refinement)
 add_subdirectory(euler_bump_optimization)
 add_subdirectory(euler_naca_optimization)
 add_subdirectory(navier_stokes_integration)
-
 add_subdirectory(optimization_inverse_manufactured)
-
 add_subdirectory(1d_shock)
 add_subdirectory(reduced_order)
+add_subdirectory(flow_solver)

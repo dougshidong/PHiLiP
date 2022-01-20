@@ -14,9 +14,11 @@ foreach(dim RANGE 1 3)
     target_compile_definitions(${ODESolverLib} PRIVATE PHILIP_DIM=${dim})
 
     # Library dependency
+    string(CONCAT HighOrderGridLib HighOrderGrid_${dim}D)
     string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
     string(CONCAT LinearSolverLib LinearSolver)
     target_link_libraries(${ODESolverLib} ${DiscontinuousGalerkinLib})
+    target_link_libraries(${ODESolverLib} ${HighOrderGridLib})
     target_link_libraries(${ODESolverLib} ${LinearSolverLib})
     # Setup target with deal.II
     if(NOT DOC_ONLY)
@@ -26,5 +28,6 @@ foreach(dim RANGE 1 3)
 
     unset(ODESolverLib)
     unset(DiscontinuousGalerkinLib)
+    unset(HighOrderGridLib)
 
 endforeach()

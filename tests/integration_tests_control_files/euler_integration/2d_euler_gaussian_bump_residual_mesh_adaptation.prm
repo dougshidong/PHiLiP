@@ -1,0 +1,83 @@
+# Listing of Parameters
+# ---------------------
+
+set test_type = euler_gaussian_bump
+
+# Number of dimensions
+set dimension = 2
+
+# The PDE we want to solve. Choices are
+# <advection|diffusion|convection_diffusion>.
+set pde_type  = euler
+
+set conv_num_flux = roe
+
+set use_split_form = false
+
+subsection euler
+  set reference_length = 1.0
+  set mach_infinity = 0.7
+  set angle_of_attack = 0.0
+end
+
+subsection artificial dissipation
+	set add_artificial_dissipation = true
+	set mu_artificial_dissipation = 1.0
+	set kappa_artificial_dissipation = 2.0
+end
+
+subsection mesh adaptation
+    set critical_residual_val = 1.0e-7  #1.0e-5
+    set total_refinement_steps = 2  #5
+    set refinement_fraction = 0.05
+    set coarsening_fraction = 0.025
+end
+
+subsection linear solver
+#set linear_solver_type = direct
+  subsection gmres options
+    set linear_residual_tolerance = 1e-8
+    set max_iterations = 2000
+    set restart_number = 100
+    set ilut_fill = 1
+    # set ilut_drop = 1e-4
+end 
+end
+
+subsection ODE solver
+  #set output_solution_every_x_steps = 1
+  # Maximum nonlinear solver iterations
+  set nonlinear_max_iterations            = 500
+
+  # Nonlinear solver residual tolerance
+  set nonlinear_steady_residual_tolerance = 1e-11
+
+  set initial_time_step = 50
+  set time_step_factor_residual = 25.0
+  set time_step_factor_residual_exp = 4.0
+
+  # Print every print_iteration_modulo iterations of the nonlinear solver
+  set print_iteration_modulo              = 1
+
+  # Explicit or implicit solverChoices are <explicit|implicit>.
+  set ode_solver_type  = implicit
+end
+
+subsection manufactured solution convergence study
+  # Last degree used for convergence study
+  set degree_end        = 1 #3
+
+  # Starting degree for convergence study
+  set degree_start      = 1 #1
+
+  set grid_progression  = 2
+
+  set grid_progression_add  = 0
+
+  # Initial grid of size (initial_grid_size)^dim
+  set initial_grid_size = 4 #4
+
+  # Number of grids in grid study
+  set number_of_grids   = 2 #3
+end
+

@@ -11,9 +11,12 @@ ExplicitODESolver<dim,real,MeshType>::ExplicitODESolver(std::shared_ptr< DGBase<
 template <int dim, typename real, typename MeshType>
 void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pseudotime)
 {
-    // this->dg->assemble_residual (); // Not needed since it is called in the base class for time step
+    const bool compute_dRdW = false;
+    this->dg->assemble_residual(compute_dRdW);
     this->current_time += dt;
-    const int rk_order = 3;
+    
+    Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
+    const int rk_order = ode_param.runge_kutta_order;
     if (rk_order == 1) {
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
         this->update_norm = this->solution_update.l2_norm();
@@ -29,7 +32,9 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
         this->rk_stage[0] = this->dg->solution;
 
         // Stage 1
-        this->pcout<< "Stage 1... " << std::flush;
+        if ((ode_param.ode_output) == Parameters::OutputEnum::verbose) {
+            this->pcout<< "Stage 1... " << std::flush;            
+        }
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
 
         this->rk_stage[1] = this->rk_stage[0];
@@ -43,7 +48,9 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
         }
 
         // Stage 2
-        this->pcout<< "2... " << std::flush;
+        if ((ode_param.ode_output) == Parameters::OutputEnum::verbose) {
+            this->pcout<< "2... " << std::flush;
+        }
         this->dg->solution = this->rk_stage[1];
         this->dg->assemble_residual ();
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
@@ -61,7 +68,9 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
         }
 
         // Stage 3
-        this->pcout<< "3... " << std::flush;
+        if ((ode_param.ode_output) == Parameters::OutputEnum::verbose) {
+            this->pcout<< "3... " << std::flush;
+        }
         this->dg->solution = this->rk_stage[2];
         this->dg->assemble_residual ();
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
@@ -79,9 +88,15 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
         }
 
         this->dg->solution = this->rk_stage[3];
-        this->pcout<< "done." << std::endl;
+        if ((ode_param.ode_output) == Parameters::OutputEnum::verbose) {
+            this->pcout<< "done." << std::endl;
+        }
     }
-
+    else {
+        this->pcout << "Invalid runge_kutta_order." << std::endl;
+        std::abort();
+    }
+    ++(this->current_iteration);
 }
 
 template <int dim, typename real, typename MeshType>

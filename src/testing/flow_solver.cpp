@@ -305,20 +305,24 @@ void PeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
     const std::shared_ptr <DGBase<dim, double>> dg,
     const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const
 {
-    // Add time to table
-    std::string time_string = "time";
-    unsteady_data_table->add_value(time_string, current_time);
-    unsteady_data_table->set_precision(time_string, 16);
-    unsteady_data_table->set_scientific(time_string, true);
-    // Compute and add kinetic energy to table
-    std::string kinetic_energy_string = "kinetic_energy";
+    // Compute kinetic energy
     const double kinetic_energy = integrate_over_domain(*dg,"kinetic_energy");
-    unsteady_data_table->add_value(kinetic_energy_string, kinetic_energy);
-    unsteady_data_table->set_precision(kinetic_energy_string, 16);
-    unsteady_data_table->set_scientific(kinetic_energy_string, true);
-    // Write to file
-    std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
-    unsteady_data_table->write_text(unsteady_data_table_file);
+
+    if(this->mpi_rank==0) {
+        // Add time to table
+        std::string time_string = "time";
+        unsteady_data_table->add_value(time_string, current_time);
+        unsteady_data_table->set_precision(time_string, 16);
+        unsteady_data_table->set_scientific(time_string, true);
+        // Add kinetic energy to table
+        std::string kinetic_energy_string = "kinetic_energy";
+        unsteady_data_table->add_value(kinetic_energy_string, kinetic_energy);
+        unsteady_data_table->set_precision(kinetic_energy_string, 16);
+        unsteady_data_table->set_scientific(kinetic_energy_string, true);
+        // Write to file
+        std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
+        unsteady_data_table->write_text(unsteady_data_table_file);
+    }
     // Print to console
     this->pcout << "    Iter: " << current_iteration 
                 << "    Time: " << current_time 

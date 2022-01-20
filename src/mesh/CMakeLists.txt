@@ -5,7 +5,8 @@ set(GRID_SOURCE
     gmsh_reader.cpp
     meshmover_linear_elasticity.cpp
     free_form_deformation.cpp
-    )
+    mesh_adaptation.cpp
+    mesh_error_estimate.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

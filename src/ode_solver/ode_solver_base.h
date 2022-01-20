@@ -7,6 +7,7 @@
 #include <deal.II/lac/vector.h>
 #include "parameters/all_parameters.h"
 #include "dg/dg.h"
+#include "mesh/mesh_adaptation.h"
 #include <stdexcept>
 
 namespace PHiLiP {
@@ -26,10 +27,6 @@ public:
     ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input); ///< Constructor.
 
     virtual ~ODESolverBase() {}; ///< Destructor.
-
-    /// Hard-coded way to play around with h-adaptivity.
-    /// Not recommended to be used.
-    int n_refine;
 
     /// Useful for accurate time-stepping.
     /** This variable will change when step_in_time() is called. */
@@ -73,10 +70,6 @@ public:
     double residual_norm_decrease; ///< Current residual norm normalized by initial residual. Only makes sense for steady state
 
 protected:
-    /// Hard-coded way to play around with h-adaptivity.
-    /// Not recommended to be used.
-    bool refine;
-
     /// CFL factor for (un)successful linesearches
     /** When the linesearch succeeds on its first try, double the CFL on top of
      *  the CFL ramping. If the linesearch fails and needs to look at the other direction
@@ -95,14 +88,22 @@ protected:
      */
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;
 
+public:
     /// Smart pointer to DGBase
     std::shared_ptr<DGBase<dim,real,MeshType>> dg;
+
+protected:
+    /// Pointer to MeshAdaptation
+    std::unique_ptr<MeshAdaptation<dim,real,MeshType>> meshadaptation;
 
     /// Input parameters.
     const Parameters::AllParameters *const all_parameters;
 
     const MPI_Comm mpi_communicator; ///< MPI communicator.
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
+
+    /// Flag to perform mesh adaptation in steady state ode solver.
+    bool refine_mesh_in_ode_solver;
 
 };
 } // ODE namespace

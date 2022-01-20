@@ -17,6 +17,7 @@
 #include "parameters/parameters_grid_refinement.h"
 #include "parameters/parameters_artificial_dissipation.h"
 #include "parameters/parameters_flow_solver.h"
+#include "parameters/parameters_mesh_adaptation.h"
 
 namespace PHiLiP {
 namespace Parameters {
@@ -46,6 +47,8 @@ public:
     ArtificialDissipationParam artificial_dissipation_param;
     /// Contains the parameters for simulation cases (flow solver test)
     FlowSolverParam flow_solver_param;
+    /// Constains parameters for mesh adaptation
+    MeshAdaptationParam mesh_adaptation_param;
 
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;

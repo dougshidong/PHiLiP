@@ -267,6 +267,21 @@ double EulerGaussianBump<dim,nstate>
             }
 
             //output_results (igrid);
+            if (igrid == n_grids-1)
+            {
+                if (param.mesh_adaptation_param.total_refinement_steps > 0)
+                {
+                    dealii::Point<dim> smallest_cell_coord = dg->high_order_grid->smallest_cell_coordinates();
+                    pcout<<" x = "<<smallest_cell_coord[0]<<" y = "<<smallest_cell_coord[1]<<std::endl;
+                    // Check if the mesh is refined near the shock i.e x \in (0.1,0.3) and y \in (0.03, 0.08).
+                    if ((smallest_cell_coord[0] > 0.1) && (smallest_cell_coord[0] < 0.3) && (smallest_cell_coord[1] > 0.03) && (smallest_cell_coord[1] < 0.08)) 
+                    {
+                        pcout<<"Mesh is refined near the shock. Test passed"<<std::endl;
+                        return 0; // Mesh adaptation test passed.
+                    }
+                    return 1; // Mesh adaptation failed.
+                }
+            }
         }
         pcout << " ********************************************" << std::endl
              << " Convergence rates for p = " << poly_degree << std::endl

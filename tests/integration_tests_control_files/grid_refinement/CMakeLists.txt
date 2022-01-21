@@ -171,3 +171,11 @@ add_test(
   COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_lpcvt_adj_boundarylayer_p3.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+
+# Dual Weighted Residual and Convergence Tests
+configure_file(2d_sshock_dual_weighted_residual_convergence.prm 2d_sshock_dual_weighted_residual_convergence.prm  COPYONLY)
+add_test(
+  NAME MPI_2D_DUAL_WEIGHTED_RESIDUAL_CONVERGENCE_SSHOCK
+  COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_sshock_dual_weighted_residual_convergence.prm 
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)

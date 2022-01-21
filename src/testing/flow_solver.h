@@ -33,6 +33,10 @@ public:
     /// Destructor
     ~FlowSolver() {};
 
+    /// Runs the test (i.e. flow solver)
+    int run_test () const;
+
+protected:
     std::shared_ptr< InitialConditionFunction<dim,double> > initial_condition_function; ///< Initial condition function
     const Parameters::AllParameters all_param; ///< All parameters
     const Parameters::FlowSolverParam flow_solver_param; ///< Flow solver parameters
@@ -57,9 +61,6 @@ public:
         const double current_time,
         const std::shared_ptr <DGBase<dim, double>> dg,
         const std::shared_ptr<dealii::TableHandler> unsteady_data_table) const;
-
-    /// Runs the test (i.e. flow solver)
-    int run_test () const;
 };
 
 /// Create specified flow solver as FlowSolver object 

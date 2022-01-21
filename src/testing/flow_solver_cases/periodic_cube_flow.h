@@ -33,6 +33,7 @@ public:
     /// Destructor
     ~PeriodicCubeFlow() {};
 
+protected:
     const int number_of_cells_per_direction; ///< Number of cells per direction for the grid
     const double domain_left; ///< Domain left-boundary value for generating the grid
     const double domain_right; ///< Domain right-boundary value for generating the grid
@@ -44,10 +45,10 @@ public:
     void display_flow_solver_setup() const override;
 
     /// Virtual function to generate the grid
-    void generate_grid(std::shared_ptr<Triangulation> grid) const;
+    void generate_grid(std::shared_ptr<Triangulation> grid) const override;
 
     /// Virtual function to compute the constant time step
-    double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const;
+    double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
 
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(
@@ -56,7 +57,6 @@ public:
             const std::shared_ptr <DGBase<dim, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table) const override;
 
-protected:
     /// Integrates over the entire domain
     double integrate_over_domain(DGBase<dim, double> &dg,const std::string integrate_what) const;
     /// Kinetic energy integrand used for integrating over the entire domain

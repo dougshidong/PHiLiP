@@ -117,8 +117,21 @@ InitialConditionFactory<dim,real>::create_InitialConditionFunction(
     return nullptr;
 }
 
+template<int dim, typename real>
+ZeroInitialCondition<dim, real> :: ZeroInitialCondition(const unsigned int nstate) 
+    : dealii::Function<dim,real>(nstate)
+    {}
+
+template<int dim, typename real>
+real ZeroInitialCondition<dim, real> :: value(const dealii::Point<dim> &, const unsigned int ) const 
+    {
+        return 0.0;
+    }
+
 template class InitialConditionFunction <PHILIP_DIM,double>;
 template class InitialConditionFactory <PHILIP_DIM,double>;
 template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM,double>;
+
+template class ZeroInitialCondition <PHILIP_DIM,double>;
 
 } // PHiLiP namespace

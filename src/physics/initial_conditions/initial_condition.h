@@ -112,5 +112,16 @@ public:
         int                                    nstate);
 };
 
+/// Initial condition 0.
+template <int dim, typename real>
+class ZeroInitialCondition : public dealii::Function<dim>
+{
+public:
+    /// Constructor to initialize dealii::Function
+    ZeroInitialCondition(const unsigned int nstate); 
+    /// Returns zero.
+    real value(const dealii::Point<dim> & , const unsigned int ) const override;
+};
+
 } // PHiLiP namespace
 #endif

@@ -16,7 +16,7 @@
 #include "dg/dg_factory.hpp"
 #include "ode_solver/explicit_ode_solver.h"
 #include "ode_solver/ode_solver_factory.h"
-#include "testing/flow_solver_cases/periodic_cube_flow.h"
+#include "flow_solver_cases/periodic_cube_flow.h"
 #include <deal.II/base/table_handler.h>
 
 namespace PHiLiP {
@@ -182,7 +182,6 @@ FlowSolverFactory<dim,nstate>
 
 template class FlowSolverFactory <PHILIP_DIM,PHILIP_DIM>;
 template class FlowSolverFactory <PHILIP_DIM,PHILIP_DIM+2>;
-
 
 
 } // Tests namespace

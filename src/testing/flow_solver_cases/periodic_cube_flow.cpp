@@ -50,8 +50,8 @@ void PeriodicCubeFlow<dim,nstate>::display_flow_solver_setup() const
     if(is_taylor_green_vortex) {
         flow_type_string = "Taylor Green Vortex";
         this->pcout << "- Flow Case: " << flow_type_string << std::endl;
-        this->pcout << "- - Freestream Reynolds number: " << this->all_param->navier_stokes_param.reynolds_number_inf << std::endl;
-        this->pcout << "- - Freestream Mach number: " << this->all_param->euler_param.mach_inf << std::endl;
+        this->pcout << "- - Freestream Reynolds number: " << this->all_param.navier_stokes_param.reynolds_number_inf << std::endl;
+        this->pcout << "- - Freestream Mach number: " << this->all_param.euler_param.mach_inf << std::endl;
     }
 }
 

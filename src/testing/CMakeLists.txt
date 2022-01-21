@@ -20,8 +20,9 @@ set(TESTS_SOURCE
     optimization_inverse_manufactured/optimization_inverse_manufactured.cpp
     burgers_rewienski_snapshot.cpp
     reduced_order.cpp
-        POD_adaptation.cpp
-    flow_solver.cpp)
+    POD_adaptation.cpp
+    flow_solver.cpp
+    flow_solver_cases/periodic_cube_flow.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

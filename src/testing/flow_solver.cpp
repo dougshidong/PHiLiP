@@ -17,6 +17,7 @@
 #include "ode_solver/explicit_ode_solver.h"
 #include "ode_solver/ode_solver_factory.h"
 #include "flow_solver_cases/periodic_cube_flow.h"
+#include "flow_solver_cases/1D_burgers_rewienski_snapshot.cpp"
 #include <deal.II/base/table_handler.h>
 
 namespace PHiLiP {
@@ -152,9 +153,22 @@ int FlowSolver<dim,nstate>::run_test() const
             }
         }
     }
+    //----------------------------------------------------
+    // Steady-state solution
+    //----------------------------------------------------
+
+
     pcout << "done." << std::endl;
     return 0;
 }
+
+template <int dim, int nstate>
+double FlowSolver<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,double>> /*dg*/) const
+{
+    pcout << "Using initial time step in ODE parameters." <<std::endl;
+    return ode_param.initial_time_step;
+}
+
 template class FlowSolver <PHILIP_DIM,PHILIP_DIM>;
 template class FlowSolver <PHILIP_DIM,PHILIP_DIM+2>;
 
@@ -169,9 +183,10 @@ FlowSolverFactory<dim,nstate>
     // Get the flow case type
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     const FlowCaseEnum flow_type = parameters_input->flow_solver_param.flow_case_type;
-
     if (flow_type == FlowCaseEnum::taylor_green_vortex) {
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<PeriodicCubeFlow<dim,nstate>>(parameters_input);
+    } else if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){
+        if constexpr (dim==1 && nstate==dim) return std::make_unique<BurgersRewienskiSnapshot<dim,nstate>>(parameters_input);
     }
     else{
         std::cout << "Invalid flow case. You probably forgot to add it to the list of flow cases in flow_solver.cpp" << std::endl;

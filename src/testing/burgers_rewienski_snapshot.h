@@ -10,11 +10,11 @@ namespace Tests {
 
 /// Burgers Rewienski snapshot
 template <int dim, int nstate>
-class BurgersRewienskiSnapshot: public TestsBase
+class BurgersRewienskiSnapshotOld: public TestsBase
 {
 public:
     /// Constructor.
-    BurgersRewienskiSnapshot(const Parameters::AllParameters *const parameters_input);
+    BurgersRewienskiSnapshotOld(const Parameters::AllParameters *const parameters_input);
 
     /// Run test
     int run_test () const override;

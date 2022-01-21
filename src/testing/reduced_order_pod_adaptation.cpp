@@ -9,7 +9,7 @@
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/grid_in.h>
 
-#include "POD_adaptation.h"
+#include "reduced_order_pod_adaptation.h"
 #include "parameters/all_parameters.h"
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_factory.h"
@@ -21,12 +21,12 @@ namespace PHiLiP {
 namespace Tests {
 
 template <int dim, int nstate>
-PODAdaptation<dim, nstate>::PODAdaptation(const PHiLiP::Parameters::AllParameters *const parameters_input)
+ReducedOrderPODAdaptation<dim, nstate>::ReducedOrderPODAdaptation(const PHiLiP::Parameters::AllParameters *const parameters_input)
         : TestsBase::TestsBase(parameters_input)
 {}
 
 template <int dim, int nstate>
-int PODAdaptation<dim, nstate>::run_test() const
+int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
 {
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
@@ -114,7 +114,7 @@ return val;
 
 
 #if PHILIP_DIM==1
-template class PODAdaptation<PHILIP_DIM,PHILIP_DIM>;
+template class ReducedOrderPODAdaptation<PHILIP_DIM,PHILIP_DIM>;
 template class BurgersRewienskiFunctional<PHILIP_DIM, PHILIP_DIM, double>;
 #endif
 } // Tests namespace

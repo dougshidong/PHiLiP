@@ -96,6 +96,28 @@ protected:
     real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 };
 
+/// Initial Condition Function: 1D Burgers Rewienski
+template <int dim, typename real>
+class InitialConditionFunction_BurgersRewienski
+        : public InitialConditionFunction<dim,real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+
+public:
+    /// Constructor for TaylorGreenVortex_InitialCondition
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II
+     *  This sets the public attribute n_components = nstate, which can then be accessed
+     *  by all the other functions
+     *  Reference: Gassner2016split, plata2019performance
+     *  These initial conditions are given in nondimensional form (free-stream as reference)
+     */
+    InitialConditionFunction_BurgersRewienski (const unsigned int nstate = 1);
+
+    /// Value of initial condition expressed in terms of conservative variables
+    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+};
+
 /// Initial condition function factory
 template <int dim, typename real>
 class InitialConditionFactory

@@ -11,11 +11,11 @@ namespace Tests {
 
 /// Burgers Rewienski snapshot
     template <int dim, int nstate>
-    class PODAdaptation: public TestsBase
+    class ReducedOrderPODAdaptation: public TestsBase
     {
     public:
         /// Constructor.
-        PODAdaptation(const Parameters::AllParameters *const parameters_input);
+        ReducedOrderPODAdaptation(const Parameters::AllParameters *const parameters_input);
 
         /// Run test
         int run_test () const override;

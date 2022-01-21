@@ -20,12 +20,12 @@ namespace PHiLiP {
 namespace Tests {
 
 template <int dim, int nstate>
-BurgersRewienskiSnapshot<dim, nstate>::BurgersRewienskiSnapshot(const PHiLiP::Parameters::AllParameters *const parameters_input)
+BurgersRewienskiSnapshotOld<dim, nstate>::BurgersRewienskiSnapshotOld(const PHiLiP::Parameters::AllParameters *const parameters_input)
         : TestsBase::TestsBase(parameters_input)
 {}
 
 template <int dim, int nstate>
-int BurgersRewienskiSnapshot<dim, nstate>::run_test() const
+int BurgersRewienskiSnapshotOld<dim, nstate>::run_test() const
 {
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
@@ -78,7 +78,7 @@ int BurgersRewienskiSnapshot<dim, nstate>::run_test() const
     return 0; //need to change
 }
 #if PHILIP_DIM==1
-        template class BurgersRewienskiSnapshot<PHILIP_DIM,PHILIP_DIM>;
+        template class BurgersRewienskiSnapshotOld<PHILIP_DIM,PHILIP_DIM>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

@@ -85,14 +85,18 @@ int DualWeightedResidualConvergence<dim, nstate> :: run_test () const
 
             dg->allocate_system();
             // initialize the solution
+
+            /*
             std::shared_ptr<dealii::Function<dim>> initial_conditions = std::make_shared<ZeroInitialCondition<dim,double>>(nstate);
 
             dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
             solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
+            */
+            ZeroInitialCondition<dim,double> initial_conditions(nstate);
             const auto mapping = *(dg->high_order_grid->mapping_fe_field);
-            dealii::VectorTools::interpolate(mapping, dg->dof_handler, *initial_conditions, solution_no_ghost);
-            dg->solution = solution_no_ghost;
-
+            dealii::VectorTools::interpolate(mapping, dg->dof_handler, initial_conditions, dg->solution);
+            //dg->solution = solution_no_ghost;
+            
             // generate ODE solver
             std::shared_ptr< ODE::ODESolverBase<dim,double,Triangulation> > ode_solver = ODE::ODESolverFactory<dim,double,Triangulation>::create_ODESolver(dg);
 

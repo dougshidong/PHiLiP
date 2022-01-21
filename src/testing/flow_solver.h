@@ -15,6 +15,7 @@
 
 namespace PHiLiP {
 namespace Tests {
+
 #if PHILIP_DIM==1
         using Triangulation = dealii::Triangulation<PHILIP_DIM>;
 #else

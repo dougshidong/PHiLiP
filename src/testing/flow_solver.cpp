@@ -126,38 +126,44 @@ int FlowSolver<dim,nstate>::run_test() const
     ode_solver->allocate_ode_system();
     pcout << "done." << std::endl;
     //----------------------------------------------------
-    // dealii::TableHandler and data at initial time
+    // Select unsteady or steady-state
     //----------------------------------------------------
-    std::shared_ptr<dealii::TableHandler> unsteady_data_table = std::make_shared<dealii::TableHandler>();//(this->mpi_communicator) ?;
-    pcout << "Writing unsteady data computed at initial time... " << std::endl;
-    compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
-    pcout << "done." << std::endl;
-    //----------------------------------------------------
-    // Time advancement loop with on-the-fly post-processing
-    //----------------------------------------------------
-    pcout << "Advancing solution in time... " << std::endl;
-    while(ode_solver->current_time < final_time)
-    {
-        ode_solver->step_in_time(constant_time_step,false); // pseudotime==false
-
-        // Compute the unsteady quantities, write to the dealii table, and output to file
+    if(flow_solver_param.steady_state == false){
+        //----------------------------------------------------
+        // dealii::TableHandler and data at initial time
+        //----------------------------------------------------
+        std::shared_ptr<dealii::TableHandler> unsteady_data_table = std::make_shared<dealii::TableHandler>();//(this->mpi_communicator) ?;
+        pcout << "Writing unsteady data computed at initial time... " << std::endl;
         compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
+        pcout << "done." << std::endl;
+        //----------------------------------------------------
+        // Time advancement loop with on-the-fly post-processing
+        //----------------------------------------------------
+        pcout << "Advancing solution in time... " << std::endl;
+        while(ode_solver->current_time < final_time)
+        {
+            ode_solver->step_in_time(constant_time_step,false); // pseudotime==false
 
-        // Output vtk solution files for post-processing in Paraview
-        if (ode_param.output_solution_every_x_steps > 0) {
-            const bool is_output_iteration = (ode_solver->current_iteration % ode_param.output_solution_every_x_steps == 0);
-            if (is_output_iteration) {
-                pcout << "  ... Writing vtk solution file ..." << std::endl;
-                const int file_number = ode_solver->current_iteration / ode_param.output_solution_every_x_steps;
-                dg->output_results_vtk(file_number);
+            // Compute the unsteady quantities, write to the dealii table, and output to file
+            compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
+
+            // Output vtk solution files for post-processing in Paraview
+            if (ode_param.output_solution_every_x_steps > 0) {
+                const bool is_output_iteration = (ode_solver->current_iteration % ode_param.output_solution_every_x_steps == 0);
+                if (is_output_iteration) {
+                    pcout << "  ... Writing vtk solution file ..." << std::endl;
+                    const int file_number = ode_solver->current_iteration / ode_param.output_solution_every_x_steps;
+                    dg->output_results_vtk(file_number);
+                }
             }
         }
     }
-    //----------------------------------------------------
-    // Steady-state solution
-    //----------------------------------------------------
-
-
+    else{
+        //----------------------------------------------------
+        // Steady-state solution
+        //----------------------------------------------------
+        ode_solver->steady_state();
+    }
     pcout << "done." << std::endl;
     return 0;
 }

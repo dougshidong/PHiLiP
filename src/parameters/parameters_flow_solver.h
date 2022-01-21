@@ -28,6 +28,8 @@ public:
         will be written to file: unsteady_data_table_filename.txt */
     std::string unsteady_data_table_filename;
 
+    bool steady_state; ///<Flag for solving steady state solution
+
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
 

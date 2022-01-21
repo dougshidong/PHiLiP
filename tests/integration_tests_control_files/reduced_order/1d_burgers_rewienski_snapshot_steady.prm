@@ -9,7 +9,7 @@ set use_weak_form = true
 set use_collocated_nodes = false
 
 subsection grid refinement study
- set num_refinements = 8
+ set num_refinements = 10
  set poly_degree = 0
  set grid_left = 0.0
  set grid_right = 100.0
@@ -24,16 +24,17 @@ end
 subsection flow_solver
   set flow_case_type = burgers_rewienski_snapshot
   set final_time = 0.5
-  set unsteady_data_table_filename = 3_0.02_solutions_table
+  set steady_state = true
 end
 
 subsection ODE solver
- set initial_time_step = 0.05
+ set initial_time_step = 0.1
  set nonlinear_max_iterations            = 500
  set nonlinear_steady_residual_tolerance = 1e-12
- set print_iteration_modulo              = 10000
- set output_solution_vector_modulo        = 1
- set ode_solver_type                         = implicit
+ set print_iteration_modulo              = 1
+ set output_solution_vector_modulo       = 1
+  set solutions_table_filename = 3_0.02_solutions_table_steady
+ set ode_solver_type                     = implicit
  end
 
 subsection manufactured solution convergence study

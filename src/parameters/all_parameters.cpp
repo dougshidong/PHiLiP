@@ -185,6 +185,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     Parameters::MeshAdaptationParam::declare_parameters (prm);
 
     Parameters::FlowSolverParam::declare_parameters (prm);
+    
+    Parameters::FunctionalParam::declare_parameters (prm);
 
     pcout << "Done declaring inputs." << std::endl;
 }

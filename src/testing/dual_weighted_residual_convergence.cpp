@@ -167,7 +167,7 @@ int DualWeightedResidualConvergence<dim, nstate> :: run_test () const
         const double slope_diff = last_slope - expected_slope;
 
         double slope_deficit_tolerance = -std::abs(manu_grid_conv_param.slope_deficit_tolerance);
-        if(poly_degree == 0) slope_deficit_tolerance *= 2; // Otherwise, grid sizes need to be much bigger for p=0
+        slope_deficit_tolerance *= 2; 
 
         if( (slope_diff < slope_deficit_tolerance) ) 
         {

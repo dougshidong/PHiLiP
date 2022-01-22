@@ -23,6 +23,9 @@ end
 subsection reduced order
   set rewienski_a = 3.0
   set rewienski_b = 0.02
+end
+
+subsection flow_solver
   set final_time = 0.5
 end
 

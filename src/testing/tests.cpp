@@ -27,7 +27,6 @@
 #include "euler_naca0012_optimization.hpp"
 #include "shock_1d.h"
 #include "euler_naca0012.hpp"
-#include "burgers_rewienski_snapshot.h"
 #include "reduced_order_pod_adaptation.h"
 #include "reduced_order.h"
 #include "flow_solver.h"
@@ -140,8 +139,6 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==1 && nstate==1) return std::make_unique<Shock1D<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::reduced_order) {
         if constexpr (dim==1 && nstate==1) return std::make_unique<ReducedOrder<dim,nstate>>(parameters_input);
-    } else if(test_type == Test_enum::burgers_rewienski_snapshot) {
-        if constexpr (dim==1 && nstate==1) return std::make_unique<BurgersRewienskiSnapshotOld<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::POD_adaptation) {
         if constexpr (dim==1 && nstate==1) return std::make_unique<ReducedOrderPODAdaptation<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_naca0012) {

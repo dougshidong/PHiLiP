@@ -15,9 +15,6 @@ public:
     /// Parameter b for eq.(18) in Carlberg 2011
     double rewienski_b;
 
-    /// Final solution time for PDE
-    double final_time;
-
     /// Initial dimension of the coarse basis
     unsigned int coarse_basis_dimension;
 

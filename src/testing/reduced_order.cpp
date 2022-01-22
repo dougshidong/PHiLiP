@@ -57,7 +57,7 @@ int ReducedOrder<dim, nstate>::run_test() const
     std::string expression = "1";
     initial_condition.initialize(variables, expression, constants);
 
-    double finalTime = param.reduced_order_param.final_time;
+    double finalTime = param.flow_solver_param.final_time;
 
     /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
     /*POD GALERKIN SOLUTION*/

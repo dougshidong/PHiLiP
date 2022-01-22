@@ -24,16 +24,16 @@ end
 subsection flow_solver
   set flow_case_type = burgers_rewienski_snapshot
   set final_time = 0.5
-  set steady_state = true
+  set unsteady_data_table_filename = 3_0.02_solutions_table_unsteady
+  set steady_state = false
 end
 
 subsection ODE solver
- set initial_time_step = 0.1
+ set initial_time_step = 0.05
  set nonlinear_max_iterations            = 500
  set nonlinear_steady_residual_tolerance = 1e-12
  set print_iteration_modulo              = 1
  set output_solution_vector_modulo       = 1
-  set solutions_table_filename = 3_0.02_solutions_table_steady
  set ode_solver_type                     = implicit
  end
 

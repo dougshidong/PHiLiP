@@ -118,7 +118,6 @@ public:
         shock_1d,
         euler_naca0012,
         reduced_order,
-        burgers_rewienski_snapshot,
         POD_adaptation,
         advection_periodicity,
         flow_solver,

@@ -32,6 +32,9 @@ public:
      */
     bool rewienski_manufactured_solution;
 
+    /// Path to search for snapshots or saved POD basis
+    std::string path_to_search;
+
     ReducedOrderModelParam (); ///< Constructor
 
     /// Declares the possible variables and sets the defaults.

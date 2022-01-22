@@ -27,6 +27,7 @@ subsection reduced order
   set adapt_coarse_basis_constant = 3
   set coarse_basis_dimension = 8
   set fine_basis_dimension = 64
+  set path_to_search = ./pod_basis/
 end
 
 subsection linear solver

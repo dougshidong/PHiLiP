@@ -3,9 +3,10 @@
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
-SpecificPOD::SpecificPOD()
-        : POD(), basis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>()),
-          basisTranspose(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
+SpecificPOD::SpecificPOD(const Parameters::AllParameters *const parameters_input)
+        : POD(parameters_input)
+        , basis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
+        , basisTranspose(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
           {}
 
 std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> SpecificPOD::getPODBasis() {
@@ -53,23 +54,26 @@ void SpecificPOD::removePODBasisColumns(const std::vector<unsigned int> /*remove
 }
 
 CoarsePOD::CoarsePOD(const Parameters::AllParameters *const parameters_input)
-        : SpecificPOD(), all_parameters(parameters_input) {
-    std::vector<unsigned int> initialBasisIndices(all_parameters->reduced_order_param.coarse_basis_dimension);
+        : SpecificPOD(parameters_input)
+{
+    std::vector<unsigned int> initialBasisIndices(this->all_parameters->reduced_order_param.coarse_basis_dimension);
     std::iota(std::begin(initialBasisIndices), std::end(initialBasisIndices), 0);
     addPODBasisColumns(initialBasisIndices);
 }
 
 FinePOD::FinePOD(const Parameters::AllParameters *const parameters_input)
-        : SpecificPOD(), all_parameters(parameters_input) {
-    std::vector<unsigned int> initialBasisIndices(all_parameters->reduced_order_param.fine_basis_dimension);
+        : SpecificPOD(parameters_input)
+{
+    std::vector<unsigned int> initialBasisIndices(this->all_parameters->reduced_order_param.fine_basis_dimension);
     std::iota(std::begin(initialBasisIndices), std::end(initialBasisIndices), 0);
     addPODBasisColumns(initialBasisIndices);
 }
 
 FineNotInCoarsePOD::FineNotInCoarsePOD(const Parameters::AllParameters *const parameters_input)
-        : SpecificPOD(), all_parameters(parameters_input) {
-    std::vector<unsigned int> initialBasisIndices(all_parameters->reduced_order_param.fine_basis_dimension -
-                                               all_parameters->reduced_order_param.coarse_basis_dimension);
+        : SpecificPOD(parameters_input)
+{
+    std::vector<unsigned int> initialBasisIndices(this->all_parameters->reduced_order_param.fine_basis_dimension -
+                                               this->all_parameters->reduced_order_param.coarse_basis_dimension);
     std::iota(std::begin(initialBasisIndices), std::end(initialBasisIndices),
               all_parameters->reduced_order_param.coarse_basis_dimension);
     addPODBasisColumns(initialBasisIndices);

@@ -22,7 +22,7 @@ public:
     dealii::LAPACKFullMatrix<double> fullPODBasisLAPACK; ///< U matrix output from SVD, full POD basis
 
     /// Constructor
-    POD();
+    POD(const Parameters::AllParameters *const parameters_input);
 
     /// Destructor
     virtual ~POD () {};
@@ -46,6 +46,7 @@ private:
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fullPODBasisTranspose; ///< Transpose of pod_basis
 
 protected:
+    const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
     const MPI_Comm mpi_communicator; ///< MPI communicator.
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 };

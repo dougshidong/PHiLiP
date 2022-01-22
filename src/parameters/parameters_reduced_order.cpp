@@ -31,6 +31,9 @@ void ReducedOrderModelParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("adaptation_tolerance", "1",
                           dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                           "Tolerance for POD adaptation");
+        prm.declare_entry("path_to_search", ".",
+                          dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                          "Path to search for saved snapshots or POD basis.");
     }
     prm.leave_subsection();
 }
@@ -46,6 +49,7 @@ void ReducedOrderModelParam::parse_parameters (dealii::ParameterHandler &prm)
         fine_basis_dimension = prm.get_integer("fine_basis_dimension");
         adapt_coarse_basis_constant = prm.get_integer("adapt_coarse_basis_constant");
         adaptation_tolerance = prm.get_double("adaptation_tolerance");
+        path_to_search = prm.get("path_to_search");
     }
     prm.leave_subsection();
 }

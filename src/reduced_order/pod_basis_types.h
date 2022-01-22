@@ -23,7 +23,7 @@ class SpecificPOD : public POD
 {
 protected:
     /// Constructor
-    SpecificPOD();
+    SpecificPOD(const Parameters::AllParameters *parameters_input);
 
     /// Destructor
     ~SpecificPOD() {}
@@ -54,7 +54,7 @@ public:
     ~CoarsePOD () {};
 
 private:
-    const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
+    //const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
 };
 
 /// Class for fine not in coarse POD basis
@@ -69,7 +69,7 @@ public:
     void removePODBasisColumns(const std::vector<unsigned int> removeColumns) override;
 
 private:
-    const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
+//const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
 };
 
 /// Class for fine POD basis
@@ -82,7 +82,7 @@ public:
     ~FinePOD () {};
 
 private:
-    const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
+    //const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
 };
 
 }

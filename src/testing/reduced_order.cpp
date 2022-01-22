@@ -31,7 +31,7 @@ int ReducedOrder<dim, nstate>::run_test() const
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
     //will use all basis functions
-    std::shared_ptr<ProperOrthogonalDecomposition::POD> pod = std::make_shared<ProperOrthogonalDecomposition::POD>();
+    std::shared_ptr<ProperOrthogonalDecomposition::POD> pod = std::make_shared<ProperOrthogonalDecomposition::POD>(all_parameters);
 
     /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
     /*SET UP GRID, PARAMETERS AND INITIAL CONDITIONS*/

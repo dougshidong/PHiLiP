@@ -3,9 +3,10 @@
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
-POD::POD()
+POD::POD(const Parameters::AllParameters *const parameters_input)
         : fullPODBasis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
         , fullPODBasisTranspose(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
+        , all_parameters(parameters_input)
         , mpi_communicator(MPI_COMM_WORLD)
         , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {
@@ -23,7 +24,7 @@ POD::POD()
 bool POD::getPODBasisFromSnapshots() {
     bool file_found = false;
     std::vector<dealii::FullMatrix<double>> snapshotMatrixContainer;
-    std::string path = "."; //Search current directory for files containing "solutions_table"
+    std::string path = all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
     for (const auto & entry : std::filesystem::recursive_directory_iterator(path)){ //Recursive seach
         if(std::string(entry.path().filename()).std::string::find("solutions_table") != std::string::npos){
             pcout << "Processing " << entry.path() << std::endl;
@@ -117,7 +118,7 @@ void POD::saveFullPODBasisToFile() {
 
 bool POD::getSavedPODBasis(){
     bool file_found = false;
-    std::string path = "."; //Search current directory for files containing "solutions_table"
+    std::string path = all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
     for (const auto & entry : std::filesystem::recursive_directory_iterator(path)) { //Recursive seach
         if (std::string(entry.path().filename()).std::string::find("full_POD_basis") != std::string::npos) {
             pcout << "Processing " << entry.path() << std::endl;

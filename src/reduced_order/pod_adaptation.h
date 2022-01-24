@@ -40,11 +40,11 @@ private:
     const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
 
     /// Smart pointer to POD
-    std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD> coarsePOD;
+    std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD<dim>> coarsePOD;
 
-    std::shared_ptr<ProperOrthogonalDecomposition::FinePOD> finePOD;
+    std::shared_ptr<ProperOrthogonalDecomposition::FinePOD<dim>> finePOD;
 
-    std::shared_ptr<ProperOrthogonalDecomposition::FineNotInCoarsePOD> fineNotInCoarsePOD;
+    std::shared_ptr<ProperOrthogonalDecomposition::FineNotInCoarsePOD<dim>> fineNotInCoarsePOD;
 
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver;
 

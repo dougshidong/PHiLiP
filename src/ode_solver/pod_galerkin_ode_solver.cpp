@@ -5,7 +5,7 @@ namespace PHiLiP {
 namespace ODE {
 
 template <int dim, typename real, typename MeshType>
-PODGalerkinODESolver<dim,real,MeshType>::PODGalerkinODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::POD> pod)
+PODGalerkinODESolver<dim,real,MeshType>::PODGalerkinODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::POD<dim>> pod)
     : ImplicitODESolver<dim,real,MeshType>(dg_input)
     , pod(pod)
     {}

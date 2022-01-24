@@ -30,9 +30,6 @@ int ReducedOrder<dim, nstate>::run_test() const
 {
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
-    //will use all basis functions
-    std::shared_ptr<ProperOrthogonalDecomposition::POD> pod = std::make_shared<ProperOrthogonalDecomposition::POD>(all_parameters);
-
     /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
     /*SET UP GRID, PARAMETERS AND INITIAL CONDITIONS*/
 
@@ -60,6 +57,29 @@ int ReducedOrder<dim, nstate>::run_test() const
     double finalTime = param.flow_solver_param.final_time;
 
     /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
+    /* FULL SOLUTION WITH IMPLICIT SOLVER */
+
+    pcout << "Running full-order implicit ODE solver for Burgers Rewienski with parameter a: "
+          << param.reduced_order_param.rewienski_a
+          << " and parameter b: "
+          << param.reduced_order_param.rewienski_b
+          << std::endl;
+
+    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg_implicit = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);
+    pcout << "dg implicit created" <<std::endl;
+    dg_implicit->allocate_system ();
+
+    //will use all basis functions
+    std::shared_ptr<ProperOrthogonalDecomposition::POD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::POD<dim>>(dg_implicit);
+
+    dealii::VectorTools::interpolate(dg_implicit->dof_handler,initial_condition,dg_implicit->solution);
+
+    pcout << "Create implicit solver" << std::endl;
+    // Create ODE solver using the factory and providing the DG object
+    Parameters::ODESolverParam::ODESolverEnum ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
+    std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver_implicit = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, dg_implicit);
+
+    /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
     /*POD GALERKIN SOLUTION*/
 
     pcout << "Running POD-Galerkin ODE solver for Burgers Rewienski with parameter a: "
@@ -76,7 +96,7 @@ int ReducedOrder<dim, nstate>::run_test() const
 
     pcout << "Create POD-Galerkin ODE solver" << std::endl;
     // Create ODE solver using the factory and providing the DG object
-    Parameters::ODESolverParam::ODESolverEnum ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_galerkin_solver;
+    ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_galerkin_solver;
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver_galerkin = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, dg_pod_galerkin, pod);
 
     /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
@@ -98,26 +118,6 @@ int ReducedOrder<dim, nstate>::run_test() const
     // Create ODE solver using the factory and providing the DG object
     ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver_petrov_galerkin = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, dg_pod_petrov_galerkin, pod);
-
-    /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
-    /* FULL SOLUTION WITH IMPLICIT SOLVER */
-
-    pcout << "Running full-order implicit ODE solver for Burgers Rewienski with parameter a: "
-          << param.reduced_order_param.rewienski_a
-          << " and parameter b: "
-          << param.reduced_order_param.rewienski_b
-          << std::endl;
-
-    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg_implicit = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);
-    pcout << "dg implicit created" <<std::endl;
-    dg_implicit->allocate_system ();
-
-    dealii::VectorTools::interpolate(dg_implicit->dof_handler,initial_condition,dg_implicit->solution);
-
-    pcout << "Create implicit solver" << std::endl;
-    // Create ODE solver using the factory and providing the DG object
-    ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
-    std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver_implicit = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, dg_implicit);
 
     /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
     /*Time-averaged relative error, E = 1/n_t * sum_{n=1}^{n_t} (||U_FOM(t^{n}) - U_ROM(t^{n})||_L2 / ||U_FOM(t^{n})||_L2 )

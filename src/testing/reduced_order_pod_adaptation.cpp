@@ -84,7 +84,7 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
     std::shared_ptr< DGBaseState<dim,nstate,double> > dg_state_fine = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double> >(dg_fine);
     dg_fine->allocate_system ();
     dealii::VectorTools::interpolate(dg_fine->dof_handler,initial_condition,dg_fine->solution);
-    std::shared_ptr<ProperOrthogonalDecomposition::FinePOD> finePOD = std::make_shared<ProperOrthogonalDecomposition::FinePOD>(all_parameters);
+    std::shared_ptr<ProperOrthogonalDecomposition::FinePOD<dim>> finePOD = std::make_shared<ProperOrthogonalDecomposition::FinePOD<dim>>(dg_fine);
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver_fine = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_fine, finePOD);
     ode_solver_fine->steady_state();
     auto functional_fine = BurgersRewienskiFunctional<dim,nstate,double>(dg_fine,dg_state_fine->pde_physics_fad_fad,true,false);

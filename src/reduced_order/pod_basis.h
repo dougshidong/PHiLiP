@@ -11,18 +11,20 @@
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/vector_operation.h>
 #include "parameters/all_parameters.h"
+#include "dg/dg.h"
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
 /// Class for Proper Orthogonal Decomposition reduced order modelling
+template <int dim>
 class POD
 {
 public:
     dealii::LAPACKFullMatrix<double> fullPODBasisLAPACK; ///< U matrix output from SVD, full POD basis
 
     /// Constructor
-    POD(const Parameters::AllParameters *const parameters_input);
+    POD(std::shared_ptr<DGBase<dim,double>> &_dg);
 
     /// Destructor
     virtual ~POD () {};
@@ -44,6 +46,8 @@ public:
 private:
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fullPODBasis; ///< First num_basis columns of fullPODBasisLAPACK
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fullPODBasisTranspose; ///< Transpose of pod_basis
+    /// Smart pointer to DGBase
+    std::shared_ptr<DGBase<dim,double>> dg;
 
 protected:
     const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters

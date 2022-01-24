@@ -1,12 +1,16 @@
+#include <deal.II/lac/sparse_matrix.h>
 #include "pod_basis.h"
+#include <deal.II/fe/mapping_q1_eulerian.h>
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
-POD::POD(const Parameters::AllParameters *const parameters_input)
+template <int dim>
+POD<dim>::POD(std::shared_ptr<DGBase<dim,double>> &_dg)
         : fullPODBasis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
         , fullPODBasisTranspose(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
-        , all_parameters(parameters_input)
+        , dg(_dg)
+        , all_parameters(dg->all_parameters)
         , mpi_communicator(MPI_COMM_WORLD)
         , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {
@@ -21,7 +25,8 @@ POD::POD(const Parameters::AllParameters *const parameters_input)
     buildPODBasis();
 }
 
-bool POD::getPODBasisFromSnapshots() {
+template <int dim>
+bool POD<dim>::getPODBasisFromSnapshots() {
     bool file_found = false;
     std::vector<dealii::FullMatrix<double>> snapshotMatrixContainer;
     std::string path = all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
@@ -97,26 +102,98 @@ bool POD::getPODBasisFromSnapshots() {
         dealii::FullMatrix<double> snapshot_submatrix = snapshotMatrixContainer[i];
         snapshot_matrix.fill(snapshot_submatrix, 0, j_offset[i], 0, 0);
     }
+
+    pcout << "Snapshot matrix generated." << std::endl;
+
+    const bool compute_dRdW = true;
+    this->dg->assemble_residual(compute_dRdW);
+    dealii::LAPACKFullMatrix<double> system_matrix(dg->global_mass_matrix.m(), dg->global_mass_matrix.n());
+    system_matrix.copy_from(dg->global_mass_matrix);
+
+    std::ofstream out_file("mass_matrix.txt");
+    dg->global_mass_matrix.print(out_file);
+
+    pcout << system_matrix.m() << " " << system_matrix.n() << std::endl;
+    pcout << snapshot_matrix.m() << " " << snapshot_matrix.n() << std::endl;
+
+    dealii::LAPACKFullMatrix<double> tmp(snapshot_matrix.n(), snapshot_matrix.m());
+    dealii::LAPACKFullMatrix<double> A(snapshot_matrix.n(), snapshot_matrix.n());
+    snapshot_matrix.Tmmult(tmp, system_matrix);
+    tmp.mmult(A, snapshot_matrix);
+
+
+    dealii::Vector<double> eigenvalues;
+    dealii::FullMatrix<double> eigenvectors;
+
+
+    /*
+    A.compute_eigenvalues_symmetric(std::numeric_limits<double>::lowest(), std::numeric_limits<double>::max(), 2*std::numeric_limits<double>::min(), eigenvalues, eigenvectors);
+
+
+
+    dealii::LAPACKFullMatrix<double> V(snapshot_matrix.n(), snapshot_matrix.n());
+    V = eigenvectors;
+
+
+    dealii::LAPACKFullMatrix<double> tmp2(snapshot_matrix.m(), snapshot_matrix.n());
+    snapshot_matrix.mmult(tmp2, V);
+
+
+    for(unsigned int idx = 0; idx < eigenvalues.size(); idx++){
+        pcout << eigenvalues(idx) << " ";
+        eigenvalues(idx) = 1/sqrt(eigenvalues(idx));
+        pcout << eigenvalues(idx) << std::endl;
+    }
+
+    dealii::LAPACKFullMatrix<double> tmp3(snapshot_matrix.n(), snapshot_matrix.m());
+
+    tmp2.transpose(tmp3);
+
+    tmp3.scale_rows(eigenvalues);
+
+    fullPODBasisLAPACK.reinit(snapshot_matrix.m(), snapshot_matrix.n());
+    tmp3.transpose(fullPODBasisLAPACK);
+    */
+
+    A.compute_svd();
+
+    dealii::LAPACKFullMatrix<double> V = A.get_svd_vt();
+    dealii::LAPACKFullMatrix<double> sigma(snapshot_matrix.n(), snapshot_matrix.n());
+
+    for(unsigned int idx = 0; idx < snapshot_matrix.n(); idx++){
+        pcout << A.singular_value(idx) << std::endl;
+        sigma(idx, idx) = 1/A.singular_value(idx);
+    }
+
+    dealii::LAPACKFullMatrix<double> tmp3(snapshot_matrix.n(), snapshot_matrix.n());
+    V.Tmmult(tmp3, sigma);
+
+    fullPODBasisLAPACK.reinit(snapshot_matrix.m(), snapshot_matrix.n());
+    snapshot_matrix.mmult(fullPODBasisLAPACK, tmp3);
+
     /* Reference for POD basis computation: Refer to Algorithm 1 in the following reference:
     "Efficient non-linear model reduction via a least-squares Petrov–Galerkin projection and compressive tensor approximations"
     Kevin Carlberg, Charbel Bou-Mosleh, Charbel Farhat
     International Journal for Numerical Methods in Engineering, 2011
      */
-    pcout << "Snapshot matrix generated." << std::endl;
+    /*
     pcout << "Computing SVD." << std::endl;
     snapshot_matrix.compute_svd();
     fullPODBasisLAPACK = snapshot_matrix.get_svd_u();
+    */
+
     pcout << "SVD computed" << std::endl;
     return file_found;
 }
 
-
-void POD::saveFullPODBasisToFile() {
+template <int dim>
+void POD<dim>::saveFullPODBasisToFile() {
     std::ofstream out_file("full_POD_basis.txt");
     fullPODBasisLAPACK.print_formatted(out_file);
 }
 
-bool POD::getSavedPODBasis(){
+template <int dim>
+bool POD<dim>::getSavedPODBasis(){
     bool file_found = false;
     std::string path = all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
     for (const auto & entry : std::filesystem::recursive_directory_iterator(path)) { //Recursive seach
@@ -168,15 +245,18 @@ bool POD::getSavedPODBasis(){
     return file_found;
 }
 
-std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> POD::getPODBasis(){
+template <int dim>
+std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> POD<dim>::getPODBasis(){
     return fullPODBasis;
 }
 
-std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> POD::getPODBasisTranspose(){
+template <int dim>
+std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> POD<dim>::getPODBasisTranspose(){
     return fullPODBasisTranspose;
 }
 
-void POD::buildPODBasis() {
+template <int dim>
+void POD<dim>::buildPODBasis() {
     std::vector<int> row_index_set(fullPODBasisLAPACK.n_rows());
     std::iota(std::begin(row_index_set), std::end(row_index_set),0);
 
@@ -201,6 +281,8 @@ void POD::buildPODBasis() {
     fullPODBasisTranspose->reinit(pod_basis_tmp);
     fullPODBasisTranspose->copy_from(pod_basis_transpose_tmp);
 }
+
+template class POD <PHILIP_DIM>;
 
 }
 }

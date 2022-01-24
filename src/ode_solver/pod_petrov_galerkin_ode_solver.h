@@ -20,10 +20,10 @@ class PODPetrovGalerkinODESolver: public ImplicitODESolver<dim, real, MeshType>
 {
 public:
     /// Default constructor that will set the constants.
-    PODPetrovGalerkinODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::POD> pod); ///< Constructor.
+    PODPetrovGalerkinODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::POD<dim>> pod); ///< Constructor.
 
     ///POD
-    std::shared_ptr<ProperOrthogonalDecomposition::POD> pod;
+    std::shared_ptr<ProperOrthogonalDecomposition::POD<dim>> pod;
 
     /// Destructor
     ~PODPetrovGalerkinODESolver() {};

@@ -6,7 +6,7 @@ namespace ProperOrthogonalDecomposition {
 using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
 
 template <int dim, int nstate>
-PODAdaptationCoarseAdjoint<dim, nstate>::PODAdaptationCoarseAdjoint(std::shared_ptr<DGBase<dim,double>> &_dg, Functional<dim,nstate,double> &_functional, std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD> _coarsePOD, std::shared_ptr<ProperOrthogonalDecomposition::SpecificPOD> _finePOD)
+PODAdaptationCoarseAdjoint<dim, nstate>::PODAdaptationCoarseAdjoint(std::shared_ptr<DGBase<dim,double>> &_dg, Functional<dim,nstate,double> &_functional, std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD<dim>> _coarsePOD, std::shared_ptr<ProperOrthogonalDecomposition::SpecificPOD<dim>> _finePOD)
     : functional(_functional)
     , dg(_dg)
     , coarsePOD(_coarsePOD)

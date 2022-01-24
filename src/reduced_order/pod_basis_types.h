@@ -19,11 +19,12 @@
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
-class SpecificPOD : public POD
+template <int dim>
+class SpecificPOD : public POD<dim>
 {
 protected:
     /// Constructor
-    SpecificPOD(const Parameters::AllParameters *parameters_input);
+    SpecificPOD(std::shared_ptr<DGBase<dim,double>> &_dg);
 
     /// Destructor
     ~SpecificPOD() {}
@@ -45,11 +46,12 @@ public:
 };
 
 /// Class for Coarse POD basis
-class CoarsePOD : public SpecificPOD
+template <int dim>
+class CoarsePOD : public SpecificPOD<dim>
 {
 public:
     /// Constructor
-    CoarsePOD(const Parameters::AllParameters *parameters_input);
+    CoarsePOD(std::shared_ptr<DGBase<dim,double>> &_dg);
     /// Destructor
     ~CoarsePOD () {};
 
@@ -58,11 +60,12 @@ private:
 };
 
 /// Class for fine not in coarse POD basis
-class FineNotInCoarsePOD : public SpecificPOD
+template <int dim>
+class FineNotInCoarsePOD : public SpecificPOD<dim>
 {
 public:
     /// Constructor
-    FineNotInCoarsePOD(const Parameters::AllParameters *parameters_input);
+    FineNotInCoarsePOD(std::shared_ptr<DGBase<dim,double>> &_dg);
     /// Destructor
     ~FineNotInCoarsePOD () {};
 
@@ -73,11 +76,12 @@ private:
 };
 
 /// Class for fine POD basis
-class FinePOD : public SpecificPOD
+template <int dim>
+class FinePOD : public SpecificPOD<dim>
 {
 public:
     /// Constructor
-    FinePOD(const Parameters::AllParameters *parameters_input);
+    FinePOD(std::shared_ptr<DGBase<dim,double>> &_dg);
     /// Destructor
     ~FinePOD () {};
 

@@ -30,7 +30,7 @@ bool POD<dim>::getPODBasisFromSnapshots() {
     bool file_found = false;
     std::vector<dealii::FullMatrix<double>> snapshotMatrixContainer;
     std::string path = all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
-    for (const auto & entry : std::filesystem::recursive_directory_iterator(path)){ //Recursive seach
+    for (const auto & entry : std::filesystem::directory_iterator(path)){
         if(std::string(entry.path().filename()).std::string::find("solutions_table") != std::string::npos){
             pcout << "Processing " << entry.path() << std::endl;
             file_found = true;
@@ -151,7 +151,7 @@ bool POD<dim>::getPODBasisFromSnapshots() {
 
         pcout << "Computing simple POD basis..." << std::endl;
         snapshot_matrix.compute_svd();
-        fullPODBasisLAPACK = snapshot_matrix.get_svd_u();
+        fullPODBasisLAPACK = snapshot_matrix.get_svd_u(); //Note: this is the full U_svd, not the thin SVD. Columns beyond number of basis vectors are useless.
 
         pcout << "Simple POD basis computed." << std::endl;
     }
@@ -161,14 +161,15 @@ bool POD<dim>::getPODBasisFromSnapshots() {
 template <int dim>
 void POD<dim>::saveFullPODBasisToFile() {
     std::ofstream out_file("full_POD_basis.txt");
-    fullPODBasisLAPACK.print_formatted(out_file);
+    unsigned int precision = 7;
+    fullPODBasisLAPACK.print_formatted(out_file, precision);
 }
 
 template <int dim>
 bool POD<dim>::getSavedPODBasis(){
     bool file_found = false;
     std::string path = all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
-    for (const auto & entry : std::filesystem::recursive_directory_iterator(path)) { //Recursive seach
+    for (const auto & entry : std::filesystem::directory_iterator(path)) {
         if (std::string(entry.path().filename()).std::string::find("full_POD_basis") != std::string::npos) {
             pcout << "Processing " << entry.path() << std::endl;
             file_found = true;

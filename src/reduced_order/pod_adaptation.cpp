@@ -58,18 +58,18 @@ std::vector<unsigned int> PODAdaptation<dim, nstate>::getPODBasisColumnsToAdd()
     std::vector<unsigned int> PODBasisColumnsToAdd;
     std::map<double, unsigned int>::iterator element;
 
-    if(all_parameters->reduced_order_param.consider_error_sign){
+    if(all_parameters->reduced_order_param.consider_error_sign){ //if considering sign of error
         for(unsigned int i = 0; i < dualWeightedResidual.size(); i++){
-            dualWeightedResidualToIndex.emplace(dualWeightedResidual[i], fineNotInCoarsePOD->fullBasisIndices[i]);
+            dualWeightedResidualToIndex.emplace(dualWeightedResidual[i], fineNotInCoarsePOD->fullBasisIndices[i]); //will automatically sort
         }
         double adaptationError = error;
-        if(all_parameters->reduced_order_param.adapt_coarse_basis_constant == 0){
+        if(all_parameters->reduced_order_param.adapt_coarse_basis_constant == 0){ //Automatically choose how many basis vectors to add
             while(abs(adaptationError) > all_parameters->reduced_order_param.adaptation_tolerance){
                 if(adaptationError > 0){
-                    element = std::prev(dualWeightedResidualToIndex.end());
+                    element = std::prev(dualWeightedResidualToIndex.end()); //Get largest negative value
                 }
                 else{
-                    element = dualWeightedResidualToIndex.begin();
+                    element = dualWeightedResidualToIndex.begin(); //Get largest positive value
                 }
                 PODBasisColumnsToAdd.push_back(element->second);
                 pcout << "Adding POD basis: " << element->second << std::endl;
@@ -79,15 +79,15 @@ std::vector<unsigned int> PODAdaptation<dim, nstate>::getPODBasisColumnsToAdd()
             }
         }
         else{
-            for (unsigned int i = 0; i < all_parameters->reduced_order_param.adapt_coarse_basis_constant; i++) {
+            for (unsigned int i = 0; i < all_parameters->reduced_order_param.adapt_coarse_basis_constant; i++) { //Add user-specified number of basis vectors
                 if(abs(adaptationError) < all_parameters->reduced_order_param.adaptation_tolerance){
                     break;
                 }
                 if(adaptationError > 0){
-                    element = std::prev(dualWeightedResidualToIndex.end());
+                    element = std::prev(dualWeightedResidualToIndex.end()); //Get largest negative value
                 }
                 else{
-                    element = dualWeightedResidualToIndex.begin();
+                    element = dualWeightedResidualToIndex.begin(); //Get largest positive value
                 }
                 PODBasisColumnsToAdd.push_back(element->second);
                 pcout << "Adding POD basis: " << element->second << std::endl;
@@ -97,11 +97,11 @@ std::vector<unsigned int> PODAdaptation<dim, nstate>::getPODBasisColumnsToAdd()
             }
         }
     }
-    else{
+    else{ //If consdering only the absolute value of errors
         for(unsigned int i = 0; i < dualWeightedResidual.size(); i++){
             dualWeightedResidualToIndex.emplace(abs(dualWeightedResidual[i]), fineNotInCoarsePOD->fullBasisIndices[i]);
         }
-        for (unsigned int i = 0; i < all_parameters->reduced_order_param.adapt_coarse_basis_constant; i++) {
+        for (unsigned int i = 0; i < all_parameters->reduced_order_param.adapt_coarse_basis_constant; i++) { //Add user-specified number of basis vectors
             element = std::prev(dualWeightedResidualToIndex.end());
             PODBasisColumnsToAdd.push_back(element->second);
             pcout << "Adding POD basis: " << element->second << std::endl;
@@ -115,9 +115,9 @@ std::vector<unsigned int> PODAdaptation<dim, nstate>::getPODBasisColumnsToAdd()
 template <int dim, int nstate>
 void PODAdaptation<dim, nstate>::getDualWeightedResidual()
 {
+    //Initialize
     DealiiVector fineGradient(finePOD->getPODBasis()->n());
     DealiiVector fineAdjoint(finePOD->getPODBasis()->n());
-    //DealiiVector fineNotInCoarseAdjoint(fineNotInCoarsePOD->getPODBasis()->n());
     std::vector<double> fineNotInCoarseAdjoint(fineNotInCoarsePOD->getPODBasis()->n());
     DealiiVector fineNotInCoarseResidual(fineNotInCoarsePOD->getPODBasis()->n());
     dualWeightedResidual.reinit(fineNotInCoarsePOD->getPODBasis()->n());

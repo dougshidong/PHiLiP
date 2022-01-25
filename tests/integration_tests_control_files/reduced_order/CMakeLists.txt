@@ -26,12 +26,24 @@ add_test(
 # Test POD adaptation
 # =======================================
 configure_file(1d_burgers_rewienski_pod_adaptation.prm 1d_burgers_rewienski_pod_adaptation.prm COPYONLY)
+configure_file(pod_adaptation_snapshot_generator.sh pod_adaptation_snapshot_generator.sh COPYONLY)
 add_test(
         NAME 1D_BURGERS_REWIENSKI_POD_ADAPTATION
         COMMAND bash -c
-        "mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_pod_adaptation.prm"
+        "rm *.txt ;
+        ./pod_adaptation_snapshot_generator.sh;
+        mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_pod_adaptation.prm;
+        return_val=$? ;
+        rm *.txt ;
+        if [ $return_val -ne 0 ]; then exit 1; else exit 0; fi"
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+
+#add_test(
+#        NAME 1D_BURGERS_REWIENSKI_TESTING
+#        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_pod_adaptation.prm;
+#        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+#)
 
 # =======================================
 # Default manufactured solution

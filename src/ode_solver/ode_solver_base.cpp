@@ -182,6 +182,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
                     "Steady-state solution:",
                     this->dg->solution[i]);
         }
+        solutions_table.set_precision("Steady-state solution:", 8);
         std::ofstream out_file(ode_param.solutions_table_filename + ".txt");
         solutions_table.write_text(out_file);
     }
@@ -249,8 +250,6 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
             }
         }
 
-        ++(this->current_iteration);
-
         if (ode_param.output_solution_vector_modulo > 0) {
             if (this->current_iteration % ode_param.output_solution_vector_modulo == 0) {
                 for (unsigned int i = 0; i < this->dg->solution.size(); ++i) {
@@ -258,6 +257,7 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
                             "Time:" + std::to_string(this->current_iteration * constant_time_step),
                             this->dg->solution[i]);
                 }
+                solutions_table.set_precision("Time:" + std::to_string(this->current_iteration * constant_time_step), 8);
             }
         }
     }

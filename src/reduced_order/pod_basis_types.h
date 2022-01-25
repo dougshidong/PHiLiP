@@ -20,6 +20,7 @@ namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
 template <int dim>
+/// Intermediary class that includes attributes common to all POD basis subtypes
 class SpecificPOD : public POD<dim>
 {
 protected:
@@ -29,21 +30,26 @@ protected:
     /// Destructor
     ~SpecificPOD() {}
 
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basis;
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basis; ///< pod basis
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basisTranspose; ///< Transpose of pod_basis
 
 public:
+
+    /// Function to add columns (basis functions) to POD basis. Used when building basis and refining when doing POD adaptation
     void addPODBasisColumns(const std::vector<unsigned int> addColumns);
 
+    /// Function to return basis
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() override;
 
+    /// Function to return basisTranspose
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasisTranspose() override;
 
+    /// Vector to store which indicies of the full basis are present in this basis
     std::vector<unsigned int> fullBasisIndices;
 
 };
 
-/// Class for Coarse POD basis
+/// Class for Coarse POD basis, derived from SpecificPOD
 template <int dim>
 class CoarsePOD : public SpecificPOD<dim>
 {
@@ -54,7 +60,7 @@ public:
     ~CoarsePOD () {};
 };
 
-/// Class for fine not in coarse POD basis
+/// Class for fine not in coarse POD basis, derived from SpecificPOD
 template <int dim>
 class FineNotInCoarsePOD : public SpecificPOD<dim>
 {
@@ -64,10 +70,11 @@ public:
     /// Destructor
     ~FineNotInCoarsePOD () {};
 
+    /// Removes columns of the basis, used during POD adaptation
     void removePODBasisColumns(const std::vector<unsigned int> removeColumns);
 };
 
-/// Class for fine POD basis
+/// Class for fine POD basis, derived from SpecificPOD
 template <int dim>
 class FinePOD : public SpecificPOD<dim>
 {

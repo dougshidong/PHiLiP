@@ -44,7 +44,7 @@ protected:
     /// Virtual function to generate the grid
     void generate_grid(std::shared_ptr<Triangulation> grid) const override;
 
-    /// Virtual function to compute the desired unsteady data and write it to the table
+    /// Virtual function to write unsteady snapshot data to table
     void compute_unsteady_data_and_write_to_table(
             const unsigned int current_iteration,
             const double current_time,

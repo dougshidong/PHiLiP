@@ -16,7 +16,7 @@
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
-/// Class for Proper Orthogonal Decomposition reduced order modelling
+/// Class for full Proper Orthogonal Decomposition basis
 template <int dim>
 class POD
 {
@@ -27,25 +27,28 @@ public:
     /// Destructor
     virtual ~POD () {};
 
+    ///Virtual function to get POD basis for all derived classes
     virtual std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis();
 
+    ///Virtual function to get POD basis transpose for all derived classes
     virtual std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasisTranspose();
 
 private:
     /// Get full POD basis consisting of fullPODBasisLAPACK
     bool getPODBasisFromSnapshots();
 
+    /// Get POD basis saved to text file
     bool getSavedPODBasis();
 
+    /// Save POD basis to text file
     void saveFullPODBasisToFile();
 
-    /// Get reduced POD basis consisting of the first num_basis columns of fullPODBasisLAPACK
+    /// Build POD basis consisting of the first num_basis columns of fullPODBasisLAPACK
     void buildPODBasis();
 
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fullPODBasis; ///< First num_basis columns of fullPODBasisLAPACK
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fullPODBasisTranspose; ///< Transpose of pod_basis
-    /// Smart pointer to DGBase
-    std::shared_ptr<DGBase<dim,double>> dg;
+    std::shared_ptr<DGBase<dim,double>> dg; ///< Smart pointer to DGBase
 
 protected:
     dealii::LAPACKFullMatrix<double> fullPODBasisLAPACK; ///< U matrix output from SVD, full POD basis

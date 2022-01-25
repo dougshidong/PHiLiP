@@ -4,9 +4,6 @@ rewienski_a=(2 6 10)
 rewienski_b=(0.01 0.05 0.08)
 
 for ((i = 0 ; i < ${#rewienski_a[@]} ; i++)); do
-mkdir "${rewienski_a[i]}_${rewienski_b[i]}_snapshot_unsteady"
-
-cd "${rewienski_a[i]}_${rewienski_b[i]}_snapshot_unsteady"
 
 file="${rewienski_a[i]}_${rewienski_b[i]}_1d_burgers_rewienski_snapshot_unsteady.prm"
 
@@ -56,7 +53,8 @@ echo "end"                                                                      
 
 dir=$(pwd)
 /usr/bin/mpirun "-n" "1" "$HOME/Codes/PHiLiP/cmake-build-release/bin/PHiLiP_1D" "-i" "${dir}/${file}"
-cd ..
+
+rm ${file}
 done
 
 echo Done!

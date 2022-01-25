@@ -71,7 +71,7 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
           << ". Number of degrees of freedom: " << dg->dof_handler.n_dofs()
           << std::endl;
 
-    // functional for computations
+    // Create functional
     auto burgers_functional = BurgersRewienskiFunctional<dim,nstate,double>(dg,dg_state->pde_physics_fad_fad,true,false);
 
     //POD adaptation

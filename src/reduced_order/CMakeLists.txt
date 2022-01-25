@@ -1,7 +1,7 @@
 set(SOURCE
         pod_basis.cpp
-        pod_adaptation_coarse_adjoint.cpp
-        pod_basis_types.cpp pod_adaptation.cpp pod_adaptation.h)
+        pod_basis_types.cpp
+        pod_adaptation.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

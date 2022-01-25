@@ -38,6 +38,9 @@ public:
     /// Use the method of snapshots to compute POD basis
     bool method_of_snapshots;
 
+    /// Consider the sign of the error estimate from the dual-weighted residual
+    bool consider_error_sign;
+
     ReducedOrderModelParam (); ///< Constructor
 
     /// Declares the possible variables and sets the defaults.

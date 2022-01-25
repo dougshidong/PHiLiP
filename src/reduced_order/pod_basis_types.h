@@ -35,8 +35,6 @@ protected:
 public:
     void addPODBasisColumns(const std::vector<unsigned int> addColumns);
 
-    virtual void removePODBasisColumns(const std::vector<unsigned int> removeColumns);
-
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() override;
 
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasisTranspose() override;
@@ -54,9 +52,6 @@ public:
     CoarsePOD(std::shared_ptr<DGBase<dim,double>> &_dg);
     /// Destructor
     ~CoarsePOD () {};
-
-private:
-    //const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
 };
 
 /// Class for fine not in coarse POD basis
@@ -69,10 +64,7 @@ public:
     /// Destructor
     ~FineNotInCoarsePOD () {};
 
-    void removePODBasisColumns(const std::vector<unsigned int> removeColumns) override;
-
-private:
-//const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
+    void removePODBasisColumns(const std::vector<unsigned int> removeColumns);
 };
 
 /// Class for fine POD basis
@@ -84,9 +76,6 @@ public:
     FinePOD(std::shared_ptr<DGBase<dim,double>> &_dg);
     /// Destructor
     ~FinePOD () {};
-
-private:
-    //const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
 };
 
 }

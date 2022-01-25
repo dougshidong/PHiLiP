@@ -54,11 +54,6 @@ void SpecificPOD<dim>::addPODBasisColumns(const std::vector<unsigned int> addCol
 }
 
 template <int dim>
-void SpecificPOD<dim>::removePODBasisColumns(const std::vector<unsigned int> /*removeColumns*/) {
-    this->pcout << "Keeping all basis functions in the basis!" << std::endl;
-}
-
-template <int dim>
 CoarsePOD<dim>::CoarsePOD(std::shared_ptr<DGBase<dim,double>> &_dg)
         : SpecificPOD<dim>(_dg)
 {

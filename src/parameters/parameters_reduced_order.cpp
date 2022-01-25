@@ -37,6 +37,9 @@ void ReducedOrderModelParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("method_of_snapshots", "false",
                           dealii::Patterns::Bool(),
                           "Use the method of snapshots to compute the POD basis. False by default.");
+        prm.declare_entry("consider_error_sign", "false",
+                          dealii::Patterns::Bool(),
+                          "Consider the sign of the error estimate from the dual-weighted residual. False by default.");
     }
     prm.leave_subsection();
 }
@@ -54,6 +57,7 @@ void ReducedOrderModelParam::parse_parameters (dealii::ParameterHandler &prm)
         adaptation_tolerance = prm.get_double("adaptation_tolerance");
         path_to_search = prm.get("path_to_search");
         method_of_snapshots = prm.get_bool("method_of_snapshots");
+        consider_error_sign = prm.get_bool("consider_error_sign");
     }
     prm.leave_subsection();
 }

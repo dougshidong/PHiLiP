@@ -13,7 +13,6 @@
 #include "parameters/all_parameters.h"
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_factory.h"
-#include "reduced_order/pod_adaptation_coarse_adjoint.h"
 #include "reduced_order/pod_adaptation.h"
 
 
@@ -88,10 +87,18 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver_fine = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_fine, finePOD);
     ode_solver_fine->steady_state();
     auto functional_fine = BurgersRewienskiFunctional<dim,nstate,double>(dg_fine,dg_state_fine->pde_physics_fad_fad,true,false);
-    double func = functional_fine.evaluate_functional(false,false);
-    pcout << "Fine functional: "<< std::setprecision(15)  << func << std::setprecision(6) << std::endl;
 
-    return 0;
+    pcout << "Fine functional: " << std::setprecision(15)  << functional_fine.evaluate_functional(false,false) << std::setprecision(6) << std::endl;
+    pcout << "Coarse functional: " << std::setprecision(15)  << pod_adapt->getCoarseFunctional() << std::setprecision(6) << std::endl;
+
+    if(abs(pod_adapt->getCoarseFunctional() - functional_fine.evaluate_functional(false,false)) > all_parameters->reduced_order_param.adaptation_tolerance){
+        pcout << "Adaptation tolerance not reached." << std::endl;
+        return -1;
+    }
+    else{
+        pcout << "Adaptation tolerance reached." << std::endl;
+        return 0;
+    }
 }
 
 template <int dim, int nstate, typename real>

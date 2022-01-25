@@ -21,14 +21,17 @@ template <int dim>
 class POD
 {
 public:
-    dealii::LAPACKFullMatrix<double> fullPODBasisLAPACK; ///< U matrix output from SVD, full POD basis
-
     /// Constructor
     POD(std::shared_ptr<DGBase<dim,double>> &_dg);
 
     /// Destructor
     virtual ~POD () {};
 
+    virtual std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis();
+
+    virtual std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasisTranspose();
+
+private:
     /// Get full POD basis consisting of fullPODBasisLAPACK
     bool getPODBasisFromSnapshots();
 
@@ -39,17 +42,13 @@ public:
     /// Get reduced POD basis consisting of the first num_basis columns of fullPODBasisLAPACK
     void buildPODBasis();
 
-    virtual std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis();
-
-    virtual std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasisTranspose();
-
-private:
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fullPODBasis; ///< First num_basis columns of fullPODBasisLAPACK
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fullPODBasisTranspose; ///< Transpose of pod_basis
     /// Smart pointer to DGBase
     std::shared_ptr<DGBase<dim,double>> dg;
 
 protected:
+    dealii::LAPACKFullMatrix<double> fullPODBasisLAPACK; ///< U matrix output from SVD, full POD basis
     const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
     const MPI_Comm mpi_communicator; ///< MPI communicator.
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0

@@ -54,12 +54,11 @@ void PODAdaptation<dim, nstate>::simplePODAdaptation()
 template <int dim, int nstate>
 std::vector<unsigned int> PODAdaptation<dim, nstate>::getPODBasisColumnsToAdd()
 {
-    bool consider_error_sign = true;
     std::map<double, unsigned int> dualWeightedResidualToIndex;
     std::vector<unsigned int> PODBasisColumnsToAdd;
     std::map<double, unsigned int>::iterator element;
 
-    if(consider_error_sign){
+    if(all_parameters->reduced_order_param.consider_error_sign){
         for(unsigned int i = 0; i < dualWeightedResidual.size(); i++){
             dualWeightedResidualToIndex.emplace(dualWeightedResidual[i], fineNotInCoarsePOD->fullBasisIndices[i]);
         }

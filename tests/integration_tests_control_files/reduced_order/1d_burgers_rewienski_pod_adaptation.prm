@@ -21,14 +21,15 @@ end
 
 #Reduced order parameters
 subsection reduced order
-  set rewienski_a = 5
-  set rewienski_b = 0.06
+  set rewienski_a = 4
+  set rewienski_b = 0.08
   set adaptation_tolerance = 0.000001
-  set adapt_coarse_basis_constant = 0
+  set adapt_coarse_basis_constant = 3
   set coarse_basis_dimension = 8
   set fine_basis_dimension = 64
   set path_to_search = ./snapshot_generation_steady/
   set method_of_snapshots = false
+  set consider_error_sign = false
 end
 
 subsection linear solver

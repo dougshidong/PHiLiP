@@ -34,6 +34,9 @@ void ReducedOrderModelParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("path_to_search", ".",
                           dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                           "Path to search for saved snapshots or POD basis.");
+        prm.declare_entry("method_of_snapshots", "false",
+                          dealii::Patterns::Bool(),
+                          "Use the method of snapshots to compute the POD basis. False by default.");
     }
     prm.leave_subsection();
 }
@@ -50,6 +53,7 @@ void ReducedOrderModelParam::parse_parameters (dealii::ParameterHandler &prm)
         adapt_coarse_basis_constant = prm.get_integer("adapt_coarse_basis_constant");
         adaptation_tolerance = prm.get_double("adaptation_tolerance");
         path_to_search = prm.get("path_to_search");
+        method_of_snapshots = prm.get_bool("method_of_snapshots");
     }
     prm.leave_subsection();
 }

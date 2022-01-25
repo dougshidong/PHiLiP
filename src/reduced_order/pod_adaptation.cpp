@@ -63,7 +63,6 @@ std::vector<unsigned int> PODAdaptation<dim, nstate>::getPODBasisColumnsToAdd()
         for(unsigned int i = 0; i < dualWeightedResidual.size(); i++){
             dualWeightedResidualToIndex.emplace(dualWeightedResidual[i], fineNotInCoarsePOD->fullBasisIndices[i]);
         }
-        pcout << "here" << std::endl;
         double adaptationError = error;
         if(all_parameters->reduced_order_param.adapt_coarse_basis_constant == 0){
             while(abs(adaptationError) > all_parameters->reduced_order_param.adaptation_tolerance){

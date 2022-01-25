@@ -35,12 +35,16 @@ public:
     /// Path to search for snapshots or saved POD basis
     std::string path_to_search;
 
+    /// Use the method of snapshots to compute POD basis
+    bool method_of_snapshots;
+
     ReducedOrderModelParam (); ///< Constructor
 
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
     /// Parses input file and sets the variables.
     void parse_parameters (dealii::ParameterHandler &prm);
+
 };
 
 } // Parameters namespace

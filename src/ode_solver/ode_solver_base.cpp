@@ -257,7 +257,7 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
                             "Time:" + std::to_string(this->current_time),
                             this->dg->solution[i]);
                 }
-                solutions_table.set_precision("Time:" + std::to_string(this->current_iteration * constant_time_step), 8);
+                solutions_table.set_precision("Time:" + std::to_string(this->current_time), 8);
             }
         }
     }

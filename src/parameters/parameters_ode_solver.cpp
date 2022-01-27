@@ -19,7 +19,7 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           "Outputs the solution every x steps in .vtk file");
 
         prm.declare_entry("output_solution_every_dt_time_intervals", "0.0",
-                          dealii::Patterns::Double(1e-16,dealii::Patterns::Double::max_double_value),
+                          dealii::Patterns::Double(0,dealii::Patterns::Double::max_double_value),
                           "Outputs the solution at time intervals of dt in .vtk file");
 
         prm.declare_entry("ode_solver_type", "implicit",

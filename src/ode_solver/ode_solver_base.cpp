@@ -245,8 +245,7 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
             }
         } else if(ode_param.output_solution_every_dt_time_intervals > 0.0) {
             const bool is_output_time = ((this->current_time <= this->current_desired_time_for_output_solution_every_dt_time_intervals) && 
-                                         ((this->current_time + constant_time_step) > this->current_desired_time_for_output_solution_every_dt_time_intervals)
-                                         );
+                                         ((this->current_time + constant_time_step) > this->current_desired_time_for_output_solution_every_dt_time_intervals));
             if (is_output_time) {
                 const int file_number = this->current_desired_time_for_output_solution_every_dt_time_intervals / ode_param.output_solution_every_dt_time_intervals;
                 this->dg->output_results_vtk(file_number);

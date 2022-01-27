@@ -32,7 +32,7 @@ public:
     void step_in_time(real dt, const bool pseudotime);
 
     /// Function to allocate the ODE system
-    void allocate_ode_system ();
+    void allocate_ode_system () override;
 
     /// Reduced solution update given by the ODE solver
     std::shared_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_solution_update;

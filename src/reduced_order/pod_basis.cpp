@@ -185,7 +185,7 @@ bool POD<dim>::getSavedPODBasis(){
             while (getline(stream, field,' ')){ //parse data values on each line
                 if (field.empty()){ //due to whitespace
                     continue;
-                }else{
+                } else {
                     cols++;
                 }
             }

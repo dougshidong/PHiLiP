@@ -58,7 +58,7 @@ protected:
     dealii::ConditionalOStream pcout;
 
     /// Pointer to the error estimator class
-    std::unique_ptr<MeshErrorEstimateBase<dim, real, MeshType>> mesh_error;
+    std::shared_ptr<MeshErrorEstimateBase<dim, real, MeshType>> mesh_error;
 
 };
 

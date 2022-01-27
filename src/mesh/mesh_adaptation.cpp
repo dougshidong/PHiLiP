@@ -18,7 +18,6 @@ MeshAdaptation<dim,real,MeshType>::MeshAdaptation(std::shared_ptr< DGBase<dim, r
 template <int dim, typename real, typename MeshType>
 void MeshAdaptation<dim,real,MeshType>::adapt_mesh(std::shared_ptr< DGBase<dim, real, MeshType> > dg)
 {
-    
     cellwise_errors = mesh_error->compute_cellwise_errors(dg);
 
     fixed_fraction_isotropic_refinement_and_coarsening(dg);

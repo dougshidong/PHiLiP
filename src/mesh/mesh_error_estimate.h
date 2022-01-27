@@ -165,8 +165,6 @@ public:
     /// Functional class pointer
     std::shared_ptr< Functional<dim, nstate, real, MeshType> > functional;
     
-    /// Grid
-    std::shared_ptr<MeshType> triangulation;
     /// original solution
     dealii::LinearAlgebra::distributed::Vector<real> solution_coarse;
     /// functional derivative (on the fine grid)

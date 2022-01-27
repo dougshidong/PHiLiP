@@ -33,7 +33,6 @@ namespace PHiLiP {
 // constructor
 template <int dim, int nstate, typename real, typename MeshType>
 DualWeightedResidualError<dim, nstate, real, MeshType>::DualWeightedResidualError(std::shared_ptr< DGBase<dim, real, MeshType> > dg):
-    triangulation(dg->triangulation),
     solution_coarse(dg->solution),
     adjoint_state(AdjointStateEnum::coarse),
     mpi_communicator(MPI_COMM_WORLD),
@@ -66,7 +65,7 @@ real DualWeightedResidualError<dim, nstate, real, MeshType>::total_dual_weighted
 template <int dim, int nstate, typename real, typename MeshType>
 dealii::Vector<real> DualWeightedResidualError<dim, nstate, real, MeshType>::compute_cellwise_errors(std::shared_ptr< DGBase<dim, real, MeshType> > dg)
 {
-    dealii::Vector<real> cellwise_errors(dg->high_order_grid->triangulation->n_active_cells());
+    dealii::Vector<real> cellwise_errors(dg->triangulation->n_active_cells());
     reinit(dg);
     convert_to_state(AdjointStateEnum::fine, dg);
     fine_grid_adjoint(dg);
@@ -87,7 +86,7 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::reinit(std::shared_
 
     // storing the original FE degree distribution
     coarse_fe_index.reinit(dg->triangulation->n_active_cells());
-
+    
     // looping over the cells
     for(auto cell = dg->dof_handler.begin_active(); cell != dg->dof_handler.end(); ++cell)
         if(cell->is_locally_owned())

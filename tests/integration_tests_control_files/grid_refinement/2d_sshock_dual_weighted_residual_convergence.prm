@@ -31,7 +31,7 @@ end
 
 subsection ODE solver
   #output solution
-  set output_solution_every_x_steps = 1
+  #set output_solution_every_x_steps = 1
 
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations            = 500
@@ -76,10 +76,10 @@ subsection manufactured solution convergence study
   set diffusion_coefficient = 0.0115573
   
   # Last degree used for convergence study
-  set degree_end        = 1
+  set degree_end        = 2
 
   # Starting degree for convergence study
-  set degree_start      = 1
+  set degree_start      = 2
 
   set grid_progression  = 2
 

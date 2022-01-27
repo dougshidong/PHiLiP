@@ -83,6 +83,8 @@ int DualWeightedResidualConvergence<dim, nstate> :: run_test () const
                  poly_degree,
                  grid);
 
+
+
             dg->allocate_system();
             // initialize the solution
 
@@ -96,12 +98,51 @@ int DualWeightedResidualConvergence<dim, nstate> :: run_test () const
             const auto mapping = *(dg->high_order_grid->mapping_fe_field);
             dealii::VectorTools::interpolate(mapping, dg->dof_handler, initial_conditions, dg->solution);
             //dg->solution = solution_no_ghost;
-            
+     /*           // Solution Transfer to fine grid
+     using VectorType       = typename dealii::LinearAlgebra::distributed::Vector<double>;
+     using DoFHandlerType   = typename dealii::DoFHandler<dim>;
+     using SolutionTransfer = typename MeshTypeHelper<Triangulation>::template SolutionTransfer<dim,VectorType,DoFHandlerType>;
+ 
+     SolutionTransfer solution_transfer(dg->dof_handler);
+     solution_transfer.prepare_for_coarsening_and_refinement(dg->solution);
+ 
+     dg->high_order_grid->prepare_for_coarsening_and_refinement();
+     dg->triangulation->prepare_coarsening_and_refinement();
+ 
+     for (auto cell = dg->dof_handler.begin_active(); cell != dg->dof_handler.end(); ++cell)
+         if (cell->is_locally_owned()) 
+         {
+            dealii::Point<dim> cell_coord = cell->center();
+            if(cell_coord[0] > 0.5)
+             cell->set_future_fe_index(cell->active_fe_index()+1);
+         }
+ 
+     dg->triangulation->execute_coarsening_and_refinement();
+     dg->high_order_grid->execute_coarsening_and_refinement();
+ 
+     dg->allocate_system();
+     dg->solution.zero_out_ghosts();
+     solution_transfer.interpolate(dg->solution);
+          dg->solution.update_ghost_values();
+          */
             // generate ODE solver
             std::shared_ptr< ODE::ODESolverBase<dim,double,Triangulation> > ode_solver = ODE::ODESolverFactory<dim,double,Triangulation>::create_ODESolver(dg);
 
             std::cout<<"In loop"<<std::endl;
             ode_solver->steady_state();
+            
+            if (param.mesh_adaptation_param.total_refinement_steps > 0)
+                 {
+                     dealii::Point<dim> smallest_cell_coord = dg->high_order_grid->smallest_cell_coordinates();
+                     pcout<<" x = "<<smallest_cell_coord[0]<<" y = "<<smallest_cell_coord[1]<<std::endl;
+                     // Check if the mesh is refined near the shock i.e x \in (0.1,0.3) and y \in (0.03, 0.08).
+                     if ((smallest_cell_coord[0] > 0.3) && (smallest_cell_coord[0] < 0.7) && (smallest_cell_coord[1] > 0.3) && (smallest_cell_coord[1] < 0.7))
+                     {
+                         pcout<<"Mesh is refined near the shock. Test passed"<<std::endl;
+                         return 0; // Mesh adaptation test passed.
+                     }
+                     return 1; // Mesh adaptation failed.
+                 }
 /*
             std::shared_ptr< DualWeightedResidualError<dim,nstate,double,Triangulation> > dual_weighted_residual = std::make_shared< DualWeightedResidualError<dim,nstate,double,Triangulation>>(dg);
 

@@ -44,10 +44,10 @@ private:
     std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD<dim>> coarsePOD;
 
     /// Smart pointer to fine POD basis
-    std::shared_ptr<ProperOrthogonalDecomposition::FinePOD<dim>> finePOD;
+    std::unique_ptr<ProperOrthogonalDecomposition::FinePOD<dim>> finePOD;
 
     /// Smart pointer to fine not incoarse POD basis
-    std::shared_ptr<ProperOrthogonalDecomposition::FineNotInCoarsePOD<dim>> fineNotInCoarsePOD;
+    std::unique_ptr<ProperOrthogonalDecomposition::FineNotInCoarsePOD<dim>> fineNotInCoarsePOD;
 
     /// Smart pointer to ode_solver
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver;
@@ -63,7 +63,7 @@ private:
 
 public:
     /// Constructor
-    PODAdaptation(std::shared_ptr<DGBase<dim,double>> &_dg, Functional<dim,nstate,double> &_functional);
+    PODAdaptation(std::shared_ptr<DGBase<dim,double>> &dg_input, Functional<dim,nstate,double> &functional_input);
 
     /// Destructor
     ~PODAdaptation () {};

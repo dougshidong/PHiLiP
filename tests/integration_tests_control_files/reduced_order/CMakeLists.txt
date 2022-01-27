@@ -31,7 +31,7 @@ add_test(
         NAME 1D_BURGERS_REWIENSKI_POD_ADAPTATION
         COMMAND bash -c
         "rm *.txt ;
-        ./pod_adaptation_snapshot_generator.sh;
+        ./pod_adaptation_snapshot_generator.sh ${EXECUTABLE_OUTPUT_PATH};
         mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_pod_adaptation.prm;
         return_val=$? ;
         rm *.txt ;

@@ -29,22 +29,22 @@ public:
     ~PODGalerkinODESolver() {};
 
     /// Function to evaluate solution update
-    void step_in_time(real dt, const bool pseudotime);
+    void step_in_time(real dt, const bool pseudotime) override;
 
     /// Function to allocate the ODE system
     void allocate_ode_system () override;
 
     /// Reduced solution update given by the ODE solver
-    std::shared_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_solution_update;
+    std::unique_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_solution_update;
 
     /// Reduced rhs for linear solver
-    std::shared_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_rhs;
+    std::unique_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_rhs;
 
     /// Temporary reduced lhs
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> reduced_lhs_tmp;
+    std::unique_ptr<dealii::TrilinosWrappers::SparseMatrix> reduced_lhs_tmp;
 
     /// Reduced lhs for linear solver
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> reduced_lhs;
+    std::unique_ptr<dealii::TrilinosWrappers::SparseMatrix> reduced_lhs;
 
 };
 

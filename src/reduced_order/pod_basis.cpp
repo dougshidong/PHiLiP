@@ -6,10 +6,10 @@ namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
 template <int dim>
-POD<dim>::POD(std::shared_ptr<DGBase<dim,double>> &_dg)
+POD<dim>::POD(std::shared_ptr<DGBase<dim,double>> &dg_input)
         : fullPODBasis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
         , fullPODBasisTranspose(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
-        , dg(_dg)
+        , dg(dg_input)
         , all_parameters(dg->all_parameters)
         , mpi_communicator(MPI_COMM_WORLD)
         , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)

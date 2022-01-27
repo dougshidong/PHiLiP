@@ -49,10 +49,17 @@ void FlowSolver<dim,nstate>::display_flow_solver_setup() const
     std::string pde_string;
     if (pde_type == PDE_enum::euler)                {pde_string = "euler";}
     if (pde_type == PDE_enum::navier_stokes)        {pde_string = "navier_stokes";}
+    if (pde_type == PDE_enum::burgers_rewienski)    {pde_string = "burgers_rewienski";}
     pcout << "- PDE Type: " << pde_string << std::endl;
     pcout << "- Polynomial degree: " << poly_degree << std::endl;
-    pcout << "- Courant-Friedrich-Lewy number: " << courant_friedrich_lewy_number << std::endl;
     pcout << "- Final time: " << final_time << std::endl;
+}
+
+template <int dim, int nstate>
+double FlowSolver<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,double>> /*dg*/) const
+{
+    pcout << "Using initial time step in ODE parameters." <<std::endl;
+    return ode_param.initial_time_step;
 }
 
 template <int dim, int nstate>
@@ -166,13 +173,6 @@ int FlowSolver<dim,nstate>::run_test() const
     }
     pcout << "done." << std::endl;
     return 0;
-}
-
-template <int dim, int nstate>
-double FlowSolver<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,double>> /*dg*/) const
-{
-    pcout << "Using initial time step in ODE parameters." <<std::endl;
-    return ode_param.initial_time_step;
 }
 
 template class FlowSolver <PHILIP_DIM,PHILIP_DIM>;

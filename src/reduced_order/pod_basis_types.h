@@ -25,7 +25,7 @@ class SpecificPOD : public POD<dim>
 {
 protected:
     /// Constructor
-    SpecificPOD(std::shared_ptr<DGBase<dim,double>> &_dg);
+    SpecificPOD(std::shared_ptr<DGBase<dim,double>> &dg_input);
 
     /// Destructor
     ~SpecificPOD() {}
@@ -55,7 +55,7 @@ class CoarsePOD : public SpecificPOD<dim>
 {
 public:
     /// Constructor
-    CoarsePOD(std::shared_ptr<DGBase<dim,double>> &_dg);
+    CoarsePOD(std::shared_ptr<DGBase<dim,double>> &dg_input);
     /// Destructor
     ~CoarsePOD () {};
 };
@@ -66,7 +66,7 @@ class FineNotInCoarsePOD : public SpecificPOD<dim>
 {
 public:
     /// Constructor
-    FineNotInCoarsePOD(std::shared_ptr<DGBase<dim,double>> &_dg);
+    FineNotInCoarsePOD(std::shared_ptr<DGBase<dim,double>> &dg_input);
     /// Destructor
     ~FineNotInCoarsePOD () {};
 
@@ -80,7 +80,7 @@ class FinePOD : public SpecificPOD<dim>
 {
 public:
     /// Constructor
-    FinePOD(std::shared_ptr<DGBase<dim,double>> &_dg);
+    FinePOD(std::shared_ptr<DGBase<dim,double>> &dg_input);
     /// Destructor
     ~FinePOD () {};
 };

@@ -63,7 +63,7 @@ echo "end"                                                                      
 
 
 dir=$(pwd)
-/usr/bin/mpirun "-n" "1" "$HOME/Codes/PHiLiP/cmake-build-release/bin/PHiLiP_1D" "-i" "${dir}/${file}"
+/usr/bin/mpirun "-n" "1" "$1/PHiLiP_1D" "-i" "${dir}/${file}"
 
 rm ${file}
 done

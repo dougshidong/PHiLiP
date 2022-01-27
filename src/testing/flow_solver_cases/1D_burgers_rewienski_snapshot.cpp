@@ -25,18 +25,6 @@ BurgersRewienskiSnapshot<dim, nstate>::BurgersRewienskiSnapshot(const PHiLiP::Pa
 }
 
 template <int dim, int nstate>
-void BurgersRewienskiSnapshot<dim,nstate>::display_flow_solver_setup() const
-{
-    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    const PDE_enum pde_type = this->all_param.pde_type;
-    std::string pde_string;
-    if (pde_type == PDE_enum::burgers_rewienski)    {pde_string = "burgers_rewienski";}
-    this->pcout << "- PDE Type: " << pde_string << std::endl;
-    this->pcout << "- Polynomial degree: " << this->poly_degree << std::endl;
-    this->pcout << "- Final time: " << this->final_time << std::endl;
-}
-
-template <int dim, int nstate>
 void BurgersRewienskiSnapshot<dim,nstate>
 ::generate_grid(std::shared_ptr<Triangulation> grid) const
 {
@@ -65,7 +53,7 @@ void BurgersRewienskiSnapshot<dim, nstate>::compute_unsteady_data_and_write_to_t
                         "Time:" + std::to_string(current_time),
                         dg->solution[i]);
             }
-            unsteady_data_table->set_precision("Time:" + std::to_string(current_time), 8);
+            unsteady_data_table->set_precision("Time:" + std::to_string(current_time), 16);
             // Write to file
             std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
             unsteady_data_table->write_text(unsteady_data_table_file);

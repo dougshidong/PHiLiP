@@ -4,8 +4,8 @@ namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
 template <int dim>
-SpecificPOD<dim>::SpecificPOD(std::shared_ptr<DGBase<dim,double>> &_dg)
-        : POD<dim>(_dg)
+SpecificPOD<dim>::SpecificPOD(std::shared_ptr<DGBase<dim,double>> &dg_input)
+        : POD<dim>(dg_input)
         , basis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
         , basisTranspose(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
           {}
@@ -54,8 +54,8 @@ void SpecificPOD<dim>::addPODBasisColumns(const std::vector<unsigned int> addCol
 }
 
 template <int dim>
-CoarsePOD<dim>::CoarsePOD(std::shared_ptr<DGBase<dim,double>> &_dg)
-        : SpecificPOD<dim>(_dg)
+CoarsePOD<dim>::CoarsePOD(std::shared_ptr<DGBase<dim,double>> &dg_input)
+        : SpecificPOD<dim>(dg_input)
 {
     std::vector<unsigned int> initialBasisIndices(this->all_parameters->reduced_order_param.coarse_basis_dimension);
     std::iota(std::begin(initialBasisIndices), std::end(initialBasisIndices), 0);
@@ -63,8 +63,8 @@ CoarsePOD<dim>::CoarsePOD(std::shared_ptr<DGBase<dim,double>> &_dg)
 }
 
 template <int dim>
-FinePOD<dim>::FinePOD(std::shared_ptr<DGBase<dim,double>> &_dg)
-        : SpecificPOD<dim>(_dg)
+FinePOD<dim>::FinePOD(std::shared_ptr<DGBase<dim,double>> &dg_input)
+        : SpecificPOD<dim>(dg_input)
 {
     std::vector<unsigned int> initialBasisIndices(this->all_parameters->reduced_order_param.fine_basis_dimension);
     std::iota(std::begin(initialBasisIndices), std::end(initialBasisIndices), 0);
@@ -72,8 +72,8 @@ FinePOD<dim>::FinePOD(std::shared_ptr<DGBase<dim,double>> &_dg)
 }
 
 template <int dim>
-FineNotInCoarsePOD<dim>::FineNotInCoarsePOD(std::shared_ptr<DGBase<dim,double>> &_dg)
-        : SpecificPOD<dim>(_dg)
+FineNotInCoarsePOD<dim>::FineNotInCoarsePOD(std::shared_ptr<DGBase<dim,double>> &dg_input)
+        : SpecificPOD<dim>(dg_input)
 {
     std::vector<unsigned int> initialBasisIndices(this->all_parameters->reduced_order_param.fine_basis_dimension -
                                                this->all_parameters->reduced_order_param.coarse_basis_dimension);

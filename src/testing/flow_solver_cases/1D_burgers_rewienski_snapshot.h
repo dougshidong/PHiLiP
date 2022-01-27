@@ -38,9 +38,6 @@ protected:
     const double domain_left; ///< Domain left-boundary value for generating the grid
     const double domain_right; ///< Domain right-boundary value for generating the grid
 
-    /// Displays the flow setup parameters
-    void display_flow_solver_setup() const override;
-
     /// Virtual function to generate the grid
     void generate_grid(std::shared_ptr<Triangulation> grid) const override;
 

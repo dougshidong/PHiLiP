@@ -6,13 +6,13 @@ namespace ProperOrthogonalDecomposition {
 using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
 
 template <int dim, int nstate>
-PODAdaptation<dim, nstate>::PODAdaptation(std::shared_ptr<DGBase<dim,double>> &_dg, Functional<dim,nstate,double> &_functional)
-        : functional(_functional)
-        , dg(_dg)
+PODAdaptation<dim, nstate>::PODAdaptation(std::shared_ptr<DGBase<dim,double>> &dg_input, Functional<dim,nstate,double> &functional_input)
+        : functional(functional_input)
+        , dg(dg_input)
         , all_parameters(dg->all_parameters)
         , coarsePOD(std::make_shared<ProperOrthogonalDecomposition::CoarsePOD<dim>>(dg))
-        , finePOD(std::make_shared<ProperOrthogonalDecomposition::FinePOD<dim>>(dg))
-        , fineNotInCoarsePOD(std::make_shared<ProperOrthogonalDecomposition::FineNotInCoarsePOD<dim>>(dg))
+        , finePOD(std::make_unique<ProperOrthogonalDecomposition::FinePOD<dim>>(dg))
+        , fineNotInCoarsePOD(std::make_unique<ProperOrthogonalDecomposition::FineNotInCoarsePOD<dim>>(dg))
         , mpi_communicator(MPI_COMM_WORLD)
         , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
 {
@@ -30,6 +30,11 @@ void PODAdaptation<dim, nstate>::progressivePODAdaptation()
         coarsePOD->addPODBasisColumns(newColumns);
         fineNotInCoarsePOD->removePODBasisColumns(newColumns);
         getDualWeightedResidual();
+
+        if(fineNotInCoarsePOD->fullBasisIndices.empty()){
+            pcout << "Desired tolerance was not achieved." << std::endl;
+            break;
+        }
     }
     pcout << "Error estimate is smaller than desired tolerance!" << std::endl;
 }

@@ -29,22 +29,22 @@ public:
     ~PODPetrovGalerkinODESolver() {};
 
     /// Function to evaluate solution update
-    void step_in_time(real dt, const bool pseudotime);
+    void step_in_time(real dt, const bool pseudotime) override;
 
     /// Function to allocate the ODE system
     void allocate_ode_system () override;
 
     /// Reduced solution update given by the ODE solver
-    std::shared_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_solution_update;
+    std::unique_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_solution_update;
 
     /// Reduced rhs for linear solver
-    std::shared_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_rhs;
+    std::unique_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_rhs;
 
     /// Psi = J * V
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> psi;
+    std::unique_ptr<dealii::TrilinosWrappers::SparseMatrix> petrov_galerkin_basis;
 
     /// Reduced lhs for linear solver
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> reduced_lhs;
+    std::unique_ptr<dealii::TrilinosWrappers::SparseMatrix> reduced_lhs;
 
 };
 

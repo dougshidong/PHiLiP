@@ -22,7 +22,7 @@ class POD
 {
 public:
     /// Constructor
-    POD(std::shared_ptr<DGBase<dim,double>> &_dg);
+    POD(std::shared_ptr<DGBase<dim,double>> &dg_input);
 
     /// Destructor
     virtual ~POD () {};

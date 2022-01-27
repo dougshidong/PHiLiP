@@ -66,10 +66,10 @@ void PODGalerkinODESolver<dim,real,MeshType>::allocate_ode_system ()
 
     this->solution_update.reinit(this->dg->right_hand_side);
 
-    reduced_solution_update = std::make_shared<dealii::LinearAlgebra::distributed::Vector<double>>(pod->getPODBasis()->n());
-    reduced_rhs = std::make_shared<dealii::LinearAlgebra::distributed::Vector<double>>(pod->getPODBasis()->n());
-    reduced_lhs_tmp = std::make_shared<dealii::TrilinosWrappers::SparseMatrix>();
-    reduced_lhs = std::make_shared<dealii::TrilinosWrappers::SparseMatrix>();
+    reduced_solution_update = std::make_unique<dealii::LinearAlgebra::distributed::Vector<double>>(pod->getPODBasis()->n());
+    reduced_rhs = std::make_unique<dealii::LinearAlgebra::distributed::Vector<double>>(pod->getPODBasis()->n());
+    reduced_lhs_tmp = std::make_unique<dealii::TrilinosWrappers::SparseMatrix>();
+    reduced_lhs = std::make_unique<dealii::TrilinosWrappers::SparseMatrix>();
 }
 
 template class PODGalerkinODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;

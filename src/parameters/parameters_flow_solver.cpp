@@ -16,7 +16,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         prm.declare_entry("flow_case_type","taylor_green_vortex",
                           dealii::Patterns::Selection(
                           " taylor_green_vortex | "
-                           " burgers_rewienski_snapshot"),
+                          " burgers_rewienski_snapshot"),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "

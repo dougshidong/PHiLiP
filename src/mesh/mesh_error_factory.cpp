@@ -21,7 +21,6 @@ std::unique_ptr <MeshErrorEstimateBase <dim, real, MeshType>> MeshErrorFactory<d
         // Otherwise, keep decreasing nstate and dim until it matches
         if(nstate == dg->all_parameters->nstate) 
         {
-            std::cout<<"Mesh error created"<<std::endl;
             return std::make_unique<DualWeightedResidualError<dim, nstate , real, MeshType>>(dg);
         }
         else if constexpr (nstate > 1)

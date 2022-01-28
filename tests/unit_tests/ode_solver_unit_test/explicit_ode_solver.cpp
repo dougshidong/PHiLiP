@@ -38,44 +38,57 @@ const int dim = PHILIP_DIM;
     double right = 2.0;
     const bool colorize = true;
     int n_refinements = 5;
-    dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
 
+    //generating grid
+    dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
+    //setting periodic BC 
+    //to do: change this to work with 1D
     std::vector<dealii::GridTools::PeriodicFacePair<typename Triangulation::cell_iterator> > matched_pairs;
     dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
     dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
     grid->add_periodicity(matched_pairs);
 
     grid->refine_global(n_refinements);
-
+    
+    //default parameters
     dealii::ParameterHandler parameter_handler;
     PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler); // default fills options
     PHiLiP::Parameters::AllParameters all_parameters;
     all_parameters.parse_parameters (parameter_handler); // copies stuff from parameter_handler into all_parameters
 
+    //parameters consistent with MPI_2D_ADVECTION_EXPLICIT_PERIODIC_LONG test
     all_parameters.ode_solver_param.ode_solver_type = PHiLiP::Parameters::ODESolverParam::ODESolverEnum::explicit_solver;
     all_parameters.ode_solver_param.nonlinear_max_iterations = 500;
     all_parameters.ode_solver_param.print_iteration_modulo = 100;
-    all_parameters.ode_solver_param.initial_time_step = 0.001;
+    
+    const double dt = 0.01; // later refine this 
 
-    unsigned int space_poly_degree = 2;
+    //initial_time_step is not modified by explicit ODE solver
+    all_parameters.ode_solver_param.initial_time_step = dt;
+
+    unsigned int space_poly_degree = 5;
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters, space_poly_degree, grid);
     dg->allocate_system ();
 
-
+    //initial conditions
+    //to do: make 1D ICs
+#if PHILIP_DIM == 2	
     std::cout << "Implement initial conditions" << std::endl;
     dealii::FunctionParser<2> initial_condition;
     std::string variables = "x,y";
     std::map<std::string,double> constants;
     constants["pi"] = dealii::numbers::PI;
-    std::string expression = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) ) )";//"sin(pi*x)*sin(pi*y)";
+    std::string expression = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) ) )";
     initial_condition.initialize(variables,
     expression,
     constants);
     dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
+#endif
+    
     // Create ODE solver using the factory and providing the DG object
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
-    double finalTime = 1.5;
+    double finalTime = 0.1;
 
     //double dt = all_parameters->ode_solver_param.initial_time_step;
     ode_solver->advance_solution_time(finalTime);

@@ -37,8 +37,10 @@ public:
     /// Computes the vector containing errors in each cell.
     virtual dealii::Vector<real> compute_cellwise_errors (std::shared_ptr< DGBase<dim, real, MeshType> > dg) = 0;
 
-};
+    /// Virtual Destructor
+    virtual ~MeshErrorEstimateBase() = 0;
 
+};
 
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
@@ -52,6 +54,9 @@ class ResidualErrorEstimate : public MeshErrorEstimateBase <dim, real, MeshType>
 public:
     /// Computes maximum residual error in each cell.
     dealii::Vector<real> compute_cellwise_errors (std::shared_ptr< DGBase<dim, real, MeshType> > dg);
+
+    /// Destructor
+    ~ResidualErrorEstimate() {};
 
 };
 
@@ -93,7 +98,7 @@ public:
     DualWeightedResidualError(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
 
     ///destructor
-    ~DualWeightedResidualError();
+    ~DualWeightedResidualError() {};
 
     /// Reinitialize Adjoint with the same pointers
     /** Sets adjoint_state to AdjointEnum::coarse and stores the current

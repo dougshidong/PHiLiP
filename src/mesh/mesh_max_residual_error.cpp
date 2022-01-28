@@ -3,6 +3,9 @@
 namespace PHiLiP {
 
 template <int dim, typename real, typename MeshType>
+MeshErrorEstimateBase<dim, real, MeshType> :: ~MeshErrorEstimateBase(){}
+
+template <int dim, typename real, typename MeshType>
 dealii::Vector<real> ResidualErrorEstimate<dim, real, MeshType> :: compute_cellwise_errors (std::shared_ptr< DGBase<dim, real, MeshType> > dg )
 {
     std::vector<dealii::types::global_dof_index> dofs_indices;

@@ -48,6 +48,9 @@ class ArtificialDissipationBase
         }
     }
 
+    /// Virtual destructor of ArtificialDissipationBase
+    virtual ~ArtificialDissipationBase() = 0;
+
 };
 
 
@@ -89,6 +92,9 @@ class LaplacianArtificialDissipation: public ArtificialDissipationBase <dim, nst
     convection_diffusion_FadFadType(false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
     convection_diffusion_RadFadType(false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0)
     {}
+
+    /// Destructor of LaplacianArtificialDissipation
+    ~LaplacianArtificialDissipation() {};
 
  
     /// Laplacian flux function overloaded with type double.
@@ -152,6 +158,9 @@ class PhysicalArtificialDissipation: public ArtificialDissipationBase <dim, nsta
     navier_stokes_RadFadType(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0)
     {}
 
+    /// Destructor of PhysicalArtificialDissipation
+    ~PhysicalArtificialDissipation() {};
+
     /// Physical flux function overloaded with type double.
     std::array<dealii::Tensor<1,dim,double>,nstate>  calc_artificial_dissipation_flux(
     const std::array<double,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,double>,nstate> &solution_gradient, double artificial_viscosity);
@@ -214,6 +223,9 @@ class EnthalpyConservingArtificialDissipation: public ArtificialDissipationBase 
     navier_stokes_FadFadType(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0),
     navier_stokes_RadFadType(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0)
     {}
+
+    /// Destructor of EnthalpyConservingArtificialDissipation
+    ~EnthalpyConservingArtificialDissipation() {};
 
     /// Enthalpy laplacian flux function overloaded with type double.
     std::array<dealii::Tensor<1,dim,double>,nstate>  calc_artificial_dissipation_flux(

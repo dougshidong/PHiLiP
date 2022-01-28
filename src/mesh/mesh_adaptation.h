@@ -28,6 +28,9 @@ public:
     /// Constructor to initialize the class with a pointer to DG.
     MeshAdaptation(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
 
+    /// Destructor
+    ~MeshAdaptation(){};
+
     /// Function to adapt the mesh based on input parameters.
     void adapt_mesh(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
 
@@ -58,7 +61,7 @@ protected:
     dealii::ConditionalOStream pcout;
 
     /// Pointer to the error estimator class
-    std::shared_ptr<MeshErrorEstimateBase<dim, real, MeshType>> mesh_error;
+    std::unique_ptr<MeshErrorEstimateBase<dim, real, MeshType>> mesh_error;
 
 };
 

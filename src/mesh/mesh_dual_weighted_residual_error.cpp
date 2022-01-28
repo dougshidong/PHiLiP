@@ -30,6 +30,9 @@
 
 namespace PHiLiP {
 
+template <int dim, typename real, typename MeshType>
+MeshErrorEstimateBase<dim, real, MeshType> :: ~MeshErrorEstimateBase(){}
+
 // constructor
 template <int dim, int nstate, typename real, typename MeshType>
 DualWeightedResidualError<dim, nstate, real, MeshType>::DualWeightedResidualError(std::shared_ptr< DGBase<dim, real, MeshType> > dg):
@@ -49,10 +52,6 @@ DualWeightedResidualError<dim, nstate, real, MeshType>::DualWeightedResidualErro
         if(cell->is_locally_owned())
             coarse_fe_index[cell->active_cell_index()] = cell->active_fe_index();
 }
-
-// destructor
-template <int dim, int nstate, typename real, typename MeshType>
-DualWeightedResidualError<dim, nstate, real, MeshType>::~DualWeightedResidualError(){}
 
 template <int dim, int nstate, typename real, typename MeshType>
 real DualWeightedResidualError<dim, nstate, real, MeshType>::total_dual_weighted_residual_error(std::shared_ptr< DGBase<dim, real, MeshType> > dg)

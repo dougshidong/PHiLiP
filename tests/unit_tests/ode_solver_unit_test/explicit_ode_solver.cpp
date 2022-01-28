@@ -53,9 +53,11 @@ const int dim = PHILIP_DIM;
     all_parameters.parse_parameters (parameter_handler); // copies stuff from parameter_handler into all_parameters
 
     all_parameters.ode_solver_param.ode_solver_type = PHiLiP::Parameters::ODESolverParam::ODESolverEnum::explicit_solver;
-    all_parameters.ode_solver_param.nonlinear_max_iterations = 10;
+    all_parameters.ode_solver_param.nonlinear_max_iterations = 500;
+    all_parameters.ode_solver_param.print_iteration_modulo = 100;
+    all_parameters.ode_solver_param.initial_time_step = 0.001;
 
-    unsigned int space_poly_degree = 5;
+    unsigned int space_poly_degree = 2;
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters, space_poly_degree, grid);
     dg->allocate_system ();
 
@@ -73,7 +75,7 @@ const int dim = PHILIP_DIM;
     // Create ODE solver using the factory and providing the DG object
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
-    double finalTime = 0.1;  //1.5;
+    double finalTime = 1.5;
 
     //double dt = all_parameters->ode_solver_param.initial_time_step;
     ode_solver->advance_solution_time(finalTime);

@@ -1,5 +1,5 @@
-#ifndef __DUALWEIGHTEDRESIDUALCONVERGENCE_H__ 
-#define __DUALWEIGHTEDRESIDUALCONVERGENCE_H__ 
+#ifndef __DUALWEIGHTEDRESIDUALMESHADAPTATION_H__ 
+#define __DUALWEIGHTEDRESIDUALMESHADAPTATION_H__ 
 
 #include "tests.h"
 #include "dg/dg.h"
@@ -9,13 +9,13 @@
 namespace PHiLiP {
 namespace Tests {
 
-/// Test to check the 2p+1 convergence of the dual weighted residual and goal-oriented mesh adaptation locations.
+/// Test to check the goal-oriented mesh adaptation locations for various manufactured solutions.
 template <int dim, int nstate>
-class DualWeightedResidualConvergence : public TestsBase
+class DualWeightedResidualMeshAdaptation : public TestsBase
 {
 public:
     /// Constructor of DualWeightedResidualConvergence.
-    DualWeightedResidualConvergence(const Parameters::AllParameters *const parameters_input);
+    DualWeightedResidualMeshAdaptation(const Parameters::AllParameters *const parameters_input);
 
     /// Runs the test to check 2p+1 convergence of the dual weighted residual and goal-oriented mesh adaptation locations.
     int run_test() const;

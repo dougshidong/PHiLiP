@@ -124,7 +124,7 @@ public:
         burgers_rewienski_snapshot,
         advection_periodicity,
         flow_solver,
-        dual_weighted_residual_convergence,
+        dual_weighted_residual_mesh_adaptation,
     };
     TestType test_type; ///< Selected TestType from the input file.
 

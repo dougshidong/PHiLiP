@@ -6,7 +6,7 @@ set dimension = 2
 # The PDE we want to solve. Choices are
 # <advection|diffusion|convection_diffusion>.
 set pde_type  = advection      
-set test_type = dual_weighted_residual_convergence
+set test_type = dual_weighted_residual_mesh_adaptation
 
 set sipg_penalty_factor = 20.0
 

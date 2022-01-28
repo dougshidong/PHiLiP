@@ -22,7 +22,7 @@ set(TESTS_SOURCE
     reduced_order.cpp
     flow_solver.cpp
     flow_solver_cases/periodic_cube_flow.cpp
-    dual_weighted_residual_convergence.cpp)
+    dual_weighted_residual_mesh_adaptation.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

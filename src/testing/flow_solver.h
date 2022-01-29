@@ -53,7 +53,7 @@ protected:
     virtual void generate_grid(std::shared_ptr<Triangulation> grid) const = 0;
 
     /// Pure virtual function to compute the constant time step
-    virtual double get_constant_time_step(std::shared_ptr <DGBase<dim, double>> dg) const = 0;
+    virtual double get_constant_time_step(std::shared_ptr <DGBase<dim, double>> dg) const;
 
     /// Virtual function to compute the desired unsteady data and write it to the table
     virtual void compute_unsteady_data_and_write_to_table(

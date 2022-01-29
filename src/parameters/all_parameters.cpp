@@ -108,7 +108,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " shock_1d | "
                       " euler_naca0012 | "
                       " reduced_order | "
-                      " burgers_rewienski_snapshot |"
+                      " POD_adaptation |"
                       " advection_periodicity | "
                       " flow_solver"),
                       "The type of test we want to solve. "
@@ -131,7 +131,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  shock_1d | "
                       "  euler_naca0012 | "
                       "  reduced_order |"
-                      "  burgers_rewienski_snapshot |"
+                      "  POD_adaptation |"
                       "  advection_periodicity | "
                       "  flow_solver>.");
 
@@ -216,7 +216,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "euler_naca_optimization")           { test_type = euler_naca_optimization; }
     else if (test_string == "shock_1d")                          { test_type = shock_1d; }
     else if (test_string == "reduced_order")                     { test_type = reduced_order; }
-    else if (test_string == "burgers_rewienski_snapshot")        { test_type = burgers_rewienski_snapshot; }
+    else if (test_string == "POD_adaptation")                    { test_type = POD_adaptation; }
     else if (test_string == "euler_naca0012")                    { test_type = euler_naca0012; }
     else if (test_string == "optimization_inverse_manufactured") { test_type = optimization_inverse_manufactured; }
     else if (test_string == "flow_solver")                       { test_type = flow_solver; }

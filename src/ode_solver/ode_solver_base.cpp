@@ -7,6 +7,7 @@ template <int dim, typename real, typename MeshType>
 ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
         : current_time(0.0)
         , current_iteration(0)
+        , current_desired_time_for_output_solution_every_dt_time_intervals(0.0)
         , dg(dg_input)
         , all_parameters(dg->all_parameters)
         , mpi_communicator(MPI_COMM_WORLD)
@@ -221,7 +222,12 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
     allocate_ode_system ();
 
     this->current_iteration = 0;
-    if (ode_param.output_solution_every_x_steps >= 0) this->dg->output_results_vtk(this->current_iteration);
+    if (ode_param.output_solution_every_x_steps >= 0) {
+        this->dg->output_results_vtk(this->current_iteration);  
+    } else if (ode_param.output_solution_every_dt_time_intervals > 0.0) {
+        this->dg->output_results_vtk(this->current_iteration);
+        this->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_every_dt_time_intervals;
+    }
 
     while (this->current_iteration < number_of_time_steps)
     {
@@ -247,6 +253,14 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
             if (is_output_iteration) {
                 const int file_number = this->current_iteration / ode_param.output_solution_every_x_steps;
                 this->dg->output_results_vtk(file_number);
+            }
+        } else if(ode_param.output_solution_every_dt_time_intervals > 0.0) {
+            const bool is_output_time = ((this->current_time <= this->current_desired_time_for_output_solution_every_dt_time_intervals) && 
+                                         ((this->current_time + constant_time_step) > this->current_desired_time_for_output_solution_every_dt_time_intervals));
+            if (is_output_time) {
+                const int file_number = this->current_desired_time_for_output_solution_every_dt_time_intervals / ode_param.output_solution_every_dt_time_intervals;
+                this->dg->output_results_vtk(file_number);
+                this->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_every_dt_time_intervals;
             }
         }
 

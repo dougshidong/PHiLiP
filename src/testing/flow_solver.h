@@ -61,6 +61,9 @@ protected:
         const double current_time,
         const std::shared_ptr <DGBase<dim, double>> dg,
         const std::shared_ptr<dealii::TableHandler> unsteady_data_table) const;
+
+    /// Restarts the computation from a desired outputted step
+    void restart_computation_from_outputted_step(std::shared_ptr <DGBase<dim, double>> dg) const;
 };
 
 /// Create specified flow solver as FlowSolver object 

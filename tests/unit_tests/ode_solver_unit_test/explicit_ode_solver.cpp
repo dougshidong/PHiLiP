@@ -78,9 +78,9 @@ const int dim = PHILIP_DIM;
     std::string variables = "x,y";
     std::map<std::string,double> constants;
     constants["pi"] = dealii::numbers::PI;
-    std::string expression = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) ) )";
+    std::string expression_initial = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) ) )";
     initial_condition.initialize(variables,
-    expression,
+    expression_initial,
     constants);
     dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
 #endif
@@ -92,6 +92,29 @@ const int dim = PHILIP_DIM;
 
     //double dt = all_parameters->ode_solver_param.initial_time_step;
     ode_solver->advance_solution_time(finalTime);
+    
+    //to do:
+    //add error handling
+    //	define exact solution
+    //	https://www.dealii.org/current/doxygen/deal.II/step_7.html is example for convergence error
+    //		VectorTools::integrate_difference()
+    //		VectorTools::compute_global_error()
+    //	eventually also format into table
+    //
+    //
+   const double advection_speed = 1.0;
+
+#if PHILIP_DIM == 2
+    dealii::FunctionParser<2> exact_solution;
+    constants["a"] = advection_speed;
+    constants["t"] = finalTime;
+    std::string expression_exact = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) ) )";
+    exact_solution.initialize(variables,
+		    expression_exact,
+		    constants);
+
+#endif
+
 
     return 0; //need to change
 }

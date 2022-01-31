@@ -241,7 +241,8 @@ int main (int argc, char * argv[])
         PDEType::advection_vector,
         PDEType::burgers_inviscid,
         PDEType::euler,
-        PDEType::navier_stokes
+        PDEType::navier_stokes,
+        PDEType::physics_model
     };
 
     std::vector<ConvType> conv_type {
@@ -272,8 +273,10 @@ int main (int argc, char * argv[])
         if(*pde==PDEType::burgers_inviscid)     pde_string = "burgers_inviscid";
         if(*pde==PDEType::euler)                pde_string = "euler";
         if(*pde==PDEType::navier_stokes)        pde_string = "navier_stokes";
+        if(*pde==PDEType::physics_model)        pde_string = "physics_model";
 
-        if(*pde==PDEType::navier_stokes){
+
+        if((*pde==PDEType::navier_stokes) || (*pde==PDEType::physics_model)) {
             // We want a non-zero viscous (dissipative) flux for testing Navier-Stokes
             all_parameters.navier_stokes_param.reynolds_number_inf = 1.0; // default is 10000000.0 (i.e. inviscid Navier-Stokes)
         }
@@ -301,6 +304,8 @@ int main (int argc, char * argv[])
             if(*pde==PDEType::burgers_inviscid) success = test_convective_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM> (&all_parameters);
             if(*pde==PDEType::euler) success = test_convective_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
             if(*pde==PDEType::navier_stokes) success = test_convective_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+            if(*pde==PDEType::physics_model) success = test_convective_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+
 
             if(*pde==PDEType::advection) success = test_convective_numerical_flux_consistency<PHILIP_DIM,1> (&all_parameters);
             if(*pde==PDEType::diffusion) success = test_convective_numerical_flux_consistency<PHILIP_DIM,1> (&all_parameters);
@@ -309,6 +314,7 @@ int main (int argc, char * argv[])
             if(*pde==PDEType::burgers_inviscid) success = test_convective_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM> (&all_parameters);
             if(*pde==PDEType::euler) success = test_convective_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
             if(*pde==PDEType::navier_stokes) success = test_convective_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+            if(*pde==PDEType::physics_model) success = test_convective_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
         }
         for (auto diss = diss_type.begin(); diss != diss_type.end() && success == 0; diss++) {
 
@@ -328,6 +334,8 @@ int main (int argc, char * argv[])
             if(*pde==PDEType::burgers_inviscid) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM> (&all_parameters);
             if(*pde==PDEType::euler) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
             if(*pde==PDEType::navier_stokes) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+            if(*pde==PDEType::physics_model) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+
 
             if(*pde==PDEType::advection) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,1> (&all_parameters);
             if(*pde==PDEType::diffusion) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,1> (&all_parameters);
@@ -336,6 +344,7 @@ int main (int argc, char * argv[])
             if(*pde==PDEType::burgers_inviscid) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM> (&all_parameters);
             if(*pde==PDEType::euler) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
             if(*pde==PDEType::navier_stokes) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+            if(*pde==PDEType::physics_model) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
         }
     }
     return success;

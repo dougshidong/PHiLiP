@@ -49,7 +49,11 @@ const int dim = PHILIP_DIM;
         dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs);
     }
     else if (dim == 1){
-        dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
+        dealii::GridTools::collect_periodic_faces(*grid,
+			0, //left
+			1, //right
+			0, //periodic in x-direction
+			matched_pairs);
     }
 
     grid->add_periodicity(matched_pairs);
@@ -68,23 +72,24 @@ const int dim = PHILIP_DIM;
     all_parameters.ode_solver_param.print_iteration_modulo = 100;
     
 
-    int n_time_refinements = 4;
-    double dt = 0.1;
-    const double refine_ratio = 0.1;
+    int n_time_refinements = 3;
+    double dt_init = 0.25;
+    double dt = dt_init;
+    const double refine_ratio = 0.5;
+    //double L2_error_store[3];
 
-    for (int i = 0; i < n_time_refinements; ++i){
+    for (int refinement = 0; refinement < n_time_refinements+1; ++refinement){
 
     //initial_time_step is not modified by explicit ODE solver
     all_parameters.ode_solver_param.initial_time_step = dt;
     std::cout << "Using time step = " << dt << std::endl;
-
+    std::cout << "refinement = " << refinement << std::endl;
+    
     unsigned int space_poly_degree = 5;
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters, space_poly_degree, grid);
     dg->allocate_system ();
 
     //initial conditions
-    //to do: make 1D ICs
-
     std::cout << "Implement initial conditions" << std::endl;
     dealii::FunctionParser<dim> initial_condition;
     std::string variables;
@@ -97,7 +102,7 @@ const int dim = PHILIP_DIM;
     }
     else if (dim == 1){
         variables = "x";
-        expression_initial = "exp(- 20 * (x-1) * (x-1))";	
+        expression_initial = "sin(2*pi*x/2.0)";//"exp(- 20 * (x-1) * (x-1))";	
     }
     initial_condition.initialize(variables,
 		    expression_initial,
@@ -108,21 +113,12 @@ const int dim = PHILIP_DIM;
     // Create ODE solver using the factory and providing the DG object
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
-    double finalTime = 0.0;//0.1;
+    double finalTime =1.5;
 
     //double dt = all_parameters->ode_solver_param.initial_time_step;
     ode_solver->advance_solution_time(finalTime);
     
-    //to do:
-    //add error handling
-    //	define exact solution
-    //	https://www.dealii.org/current/doxygen/deal.II/step_7.html is example for convergence error
-    //		VectorTools::integrate_difference()
-    //		VectorTools::compute_global_error()
-    //	eventually also format into table
-    //
-    
-    //THESE ADVECTION SPEEDS ARE INCORRECT
+    //THESE ADVECTION SPEEDS ARE UNVERIFIED
    const double advection_speed_x = 1.1;
    const double advection_speed_y = -atan(1)*4.0/exp(1); //from convection_diffusion in physics
 
@@ -135,7 +131,7 @@ const int dim = PHILIP_DIM;
         expression_exact = "exp( -( 20*(x-1-a_x*t)*(x-1-a_x*t) + 20*(y-1-a_y*t)*(y-1-a_y*t) ) )";
     }
     else if (dim == 1){
-        expression_exact = "exp( - 20*(x-1-a_x*t)*(x-1-a_x*t)) ";
+        expression_exact = "sin(2*pi*(x-a_x*t)/2.0)";//exp( - 20*(x-1-a_x*t)*(x-1-a_x*t)) ";
     }
     exact_solution.initialize(variables,
     		    expression_exact,
@@ -156,10 +152,23 @@ const int dim = PHILIP_DIM;
     std::cout << "Number of cells is "<< grid->n_active_cells()<<std::endl;
 
     dt *= refine_ratio;
+    //L2_error_store[refinement] = L2_error;
     }//time refinement loop
     //notes
     //	when finalTime = 0, computed error is 1.7739e-08
 
+    //printing results 
+    //should make prettier (use dealii tables)
+    /*
+    std::cout << "dt  |  L2 norm of error" << std::endl;
+    dt = dt_init;
+    int ref = 0;
+while (ref < 4){    
+    std::cout << n_time_refinements+1 << std::endl;
+	    //std::cout << dt << "   |   " << L2_error_store[0] << std::endl;
+	    dt*=refine_ratio;
+	    ++ref;
+    } */
     return 0; //need to change
 }
 

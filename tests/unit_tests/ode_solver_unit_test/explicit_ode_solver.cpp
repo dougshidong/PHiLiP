@@ -88,7 +88,7 @@ const int dim = PHILIP_DIM;
     // Create ODE solver using the factory and providing the DG object
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
-    double finalTime = 0.1;
+    double finalTime = 0.0;//1;
 
     //double dt = all_parameters->ode_solver_param.initial_time_step;
     ode_solver->advance_solution_time(finalTime);
@@ -106,15 +106,29 @@ const int dim = PHILIP_DIM;
 
 #if PHILIP_DIM == 2
     dealii::FunctionParser<2> exact_solution;
-    constants["a"] = advection_speed;
+    constants["a"] = advection_speed; //CHECK WHERE THIS IS STORED
     constants["t"] = finalTime;
-    std::string expression_exact = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) ) )";
+    std::string expression_exact = "exp( -( 20*(x-1-a*t)*(x-1-a*t) + 20*(y-1-0*t)*(y-1-0*t) ) )";
     exact_solution.initialize(variables,
-		    expression_exact,
-		    constants);
-
+    		    expression_exact,
+    		    constants);
+    
+    dealii::Vector<double> difference_per_cell(grid->n_active_cells());
+    dealii::VectorTools::integrate_difference(dg->dof_handler, 
+		    dg->solution, 
+		    exact_solution, 
+		    difference_per_cell, 
+		    dealii::QGauss<dim>(2), //check that this is correct polynomial degree
+		    dealii::VectorTools::L2_norm);
+    const double L2_error = 
+	    dealii::VectorTools::compute_global_error(*grid,
+			    difference_per_cell,
+			    dealii::VectorTools::L2_norm);
+    std::cout << "Computed error is " << L2_error << std::endl;
 #endif
 
+    //notes
+    //	when finalTime = 0, computed error is 1.7739e-08
 
     return 0; //need to change
 }

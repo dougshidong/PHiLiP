@@ -29,6 +29,7 @@ std::unique_ptr <MeshErrorEstimateBase <dim, real, MeshType>> MeshErrorFactory<d
     }
     else
     {
+        std::cout<<"Cannot create MeshErrorEstimate. Invalid input"<<std::endl;
         return nullptr;
     }
 }

@@ -7,7 +7,7 @@ std::unique_ptr <MeshErrorEstimateBase <dim, real, MeshType>> MeshErrorFactory<d
 {
     if (!(dg->all_parameters->mesh_adaptation_param.use_goal_oriented_mesh_adaptation))
     {
-        return std::make_unique<ResidualErrorEstimate<dim, real, MeshType>>();
+        return std::make_unique<ResidualErrorEstimate<dim, real, MeshType>>(dg);
     }
 
     // Recursive templating required because template parameters must be compile time constants

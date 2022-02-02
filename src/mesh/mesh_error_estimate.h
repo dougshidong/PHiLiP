@@ -35,10 +35,16 @@ class MeshErrorEstimateBase
 public:
 
     /// Computes the vector containing errors in each cell.
-    virtual dealii::Vector<real> compute_cellwise_errors (std::shared_ptr< DGBase<dim, real, MeshType> > dg) = 0;
+    virtual dealii::Vector<real> compute_cellwise_errors () = 0;
+
+    /// Constructor
+    MeshErrorEstimateBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
 
     /// Virtual Destructor
     virtual ~MeshErrorEstimateBase() = 0;
+
+    /// Pointer to DGBase
+    std::shared_ptr<DGBase<dim,real,MeshType>> dg;
 
 };
 
@@ -53,7 +59,10 @@ class ResidualErrorEstimate : public MeshErrorEstimateBase <dim, real, MeshType>
 
 public:
     /// Computes maximum residual error in each cell.
-    dealii::Vector<real> compute_cellwise_errors (std::shared_ptr< DGBase<dim, real, MeshType> > dg);
+    dealii::Vector<real> compute_cellwise_errors ();
+
+    /// Constructor
+    ResidualErrorEstimate(std::shared_ptr<DGBase<dim,real,MeshType>> dg_input);
 
     /// Destructor
     ~ResidualErrorEstimate() {};
@@ -95,7 +104,7 @@ public:
      *  Also stores the current solution and distribution of polynomial orders
      *  for the mesh for converting back to coarse state after refinement.
      */
-    DualWeightedResidualError(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
+    DualWeightedResidualError(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
 
     ///destructor
     ~DualWeightedResidualError() {};
@@ -104,26 +113,26 @@ public:
     /** Sets adjoint_state to AdjointEnum::coarse and stores the current
      *  solution and polynomial order distribution
      */
-    void reinit(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
+    void reinit();
     // to reinitialize with other pointers, just create a new class
 
     /// Converts the adjoint to specified state
     /** Calls the functions coarse_to_fine() or fine_to_coarse()
      *  if the DualWeightedResidualError::adjoint_state is different than the input \p state
      */
-    void convert_to_state(AdjointStateEnum state, std::shared_ptr< DGBase<dim, real, MeshType> > dg);
+    void convert_to_state(AdjointStateEnum state);
 
     /// Projects the problem to a p-enriched space
     /** Raises the FE_index on each cell and transfers the coarse 
      *  solution to a fine solution (stored in DGBase::solution)
      */
-    void coarse_to_fine(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
+    void coarse_to_fine();
 
     /// Return the problem to the original solution and polynomial distribution
     /** Copies the values that were stored in solution_coarse and 
      *  DualWeightedResidualError::coarse_fe_index at intilization
      */
-    void fine_to_coarse(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
+    void fine_to_coarse();
 
     /// Computes the fine grid adjoint
     /** Converts the state to a refined grid (if needed) and solves for DualWeightedResidualError::adjoint_fine from 
@@ -133,7 +142,7 @@ public:
      *  \f]
      *  where \f$\mathbf{u}_h^H\f$ is the projected solution on the fine grid.
      */ 
-    dealii::LinearAlgebra::distributed::Vector<real> fine_grid_adjoint(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
+    dealii::LinearAlgebra::distributed::Vector<real> fine_grid_adjoint();
 
     /// Computes the coarse grid adjoint
     /** Reverts the state to the coarse grid (if needed) and solves for DualWeightedResidualError::adjoint_coarse from
@@ -142,7 +151,7 @@ public:
      *      + \left(\left. \frac{\partial \mathcal{J}_H}{\partial \mathbf{u}} \right|_{\mathbf{u}_H}\right)^T=\mathbf{0}
      * \f]
      */
-    dealii::LinearAlgebra::distributed::Vector<real> coarse_grid_adjoint(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
+    dealii::LinearAlgebra::distributed::Vector<real> coarse_grid_adjoint();
 
     /// compute the Dual Weighted Residual (DWR)
     /** Computes DualWeightedResidualError::dual_weighted_resiudal_fine (\f$\eta\f$) on the fine grid. This value should be
@@ -152,20 +161,20 @@ public:
      *  \f]
      *  Uses DualWeightedResidualError::adjoint_fine and should only be called after fine_grid_adjoint().
      */
-    dealii::Vector<real> dual_weighted_residual(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
+    dealii::Vector<real> dual_weighted_residual();
 
     /// Computes dual weighted residual error in each cell, by integrating over all quadrature points. Overwrites the virtual function in MeshErrorEstimateBase.
-    dealii::Vector<real> compute_cellwise_errors (std::shared_ptr< DGBase<dim, real, MeshType> > dg);
+    dealii::Vector<real> compute_cellwise_errors ();
 
     /// Computes the sum of dual weighted residual error over all the cells in the domain.
-    real total_dual_weighted_residual_error(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
+    real total_dual_weighted_residual_error();
 
     /// Outputs the current solution and adjoint values
     /** Similar to DGBase::output_results_vtk() but will also include the adjoint and dIdw
      *  related to the current adjoint state. Will also output DualWeightedResidualError::dual_weighted_residual_fine
      *  if currenly on the fine grid.
      */
-    void output_results_vtk(const unsigned int cycle, std::shared_ptr< DGBase<dim, real, MeshType> > dg);
+    void output_results_vtk(const unsigned int cycle);
 
     /// Functional class pointer
     std::shared_ptr< Functional<dim, nstate, real, MeshType> > functional;

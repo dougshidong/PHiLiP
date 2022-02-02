@@ -59,7 +59,7 @@ class ResidualErrorEstimate : public MeshErrorEstimateBase <dim, real, MeshType>
 
 public:
     /// Computes maximum residual error in each cell.
-    dealii::Vector<real> compute_cellwise_errors ();
+    dealii::Vector<real> compute_cellwise_errors () override;
 
     /// Constructor
     ResidualErrorEstimate(std::shared_ptr<DGBase<dim,real,MeshType>> dg_input);
@@ -164,7 +164,7 @@ public:
     dealii::Vector<real> dual_weighted_residual();
 
     /// Computes dual weighted residual error in each cell, by integrating over all quadrature points. Overwrites the virtual function in MeshErrorEstimateBase.
-    dealii::Vector<real> compute_cellwise_errors ();
+    dealii::Vector<real> compute_cellwise_errors () override;
 
     /// Computes the sum of dual weighted residual error over all the cells in the domain.
     real total_dual_weighted_residual_error();

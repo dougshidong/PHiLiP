@@ -85,7 +85,6 @@ int DualWeightedResidualMeshAdaptation<dim, nstate> :: run_test () const
             // generate ODE solver
             std::shared_ptr< ODE::ODESolverBase<dim,double,Triangulation> > ode_solver = ODE::ODESolverFactory<dim,double,Triangulation>::create_ODESolver(dg);
 
-            std::cout<<"In loop"<<std::endl;
             ode_solver->steady_state();
             
             if (param.mesh_adaptation_param.total_refinement_steps > 0)

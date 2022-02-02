@@ -6,8 +6,7 @@ set(GRID_SOURCE
     meshmover_linear_elasticity.cpp
     free_form_deformation.cpp
     mesh_adaptation.cpp
-    mesh_max_residual_error.cpp
-    mesh_dual_weighted_residual_error.cpp
+    mesh_error_estimate.cpp
     mesh_error_factory.cpp)
 
 foreach(dim RANGE 1 3)

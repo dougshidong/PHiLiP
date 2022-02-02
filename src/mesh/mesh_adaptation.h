@@ -26,13 +26,19 @@ class MeshAdaptation
 public:
 
     /// Constructor to initialize the class with a pointer to DG.
-    MeshAdaptation(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
+    MeshAdaptation(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
 
     /// Destructor
     ~MeshAdaptation(){};
 
+    /// Pointer to the error estimator class
+    std::unique_ptr<MeshErrorEstimateBase<dim, real, MeshType>> mesh_error;
+
+    /// Pointer to DGBase
+    std::shared_ptr<DGBase<dim,real,MeshType>> dg;
+
     /// Function to adapt the mesh based on input parameters.
-    void adapt_mesh(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
+    void adapt_mesh();
 
     /// Residual below which mesh adaptation begins.
     double critical_residual;
@@ -46,7 +52,7 @@ public:
 protected:
     
     /// Performs fixed fraction refinement based on refinement and coarsening fractions.
-    void fixed_fraction_isotropic_refinement_and_coarsening(std::shared_ptr< DGBase<dim, real, MeshType> > dg);
+    void fixed_fraction_isotropic_refinement_and_coarsening();
     
     /// Fraction of cells to be refined in fixed-fraction refinement
     double refinement_fraction;
@@ -59,9 +65,6 @@ protected:
 
     /// Parallel std::cout
     dealii::ConditionalOStream pcout;
-
-    /// Pointer to the error estimator class
-    std::unique_ptr<MeshErrorEstimateBase<dim, real, MeshType>> mesh_error;
 
 };
 

@@ -3,8 +3,9 @@
 namespace PHiLiP {
 
 template <int dim, typename real, typename MeshType>
-MeshAdaptation<dim,real,MeshType>::MeshAdaptation(std::shared_ptr< DGBase<dim, real, MeshType> > dg)
-    : critical_residual(dg->all_parameters->mesh_adaptation_param.critical_residual_val)
+MeshAdaptation<dim,real,MeshType>::MeshAdaptation(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
+    : dg(dg_input)
+    , critical_residual(dg->all_parameters->mesh_adaptation_param.critical_residual_val)
     , total_refinement_cycles(dg->all_parameters->mesh_adaptation_param.total_refinement_steps)
     , current_refinement_cycle(0)
     , refinement_fraction(dg->all_parameters->mesh_adaptation_param.refinement_fraction)
@@ -16,18 +17,18 @@ MeshAdaptation<dim,real,MeshType>::MeshAdaptation(std::shared_ptr< DGBase<dim, r
 
 
 template <int dim, typename real, typename MeshType>
-void MeshAdaptation<dim,real,MeshType>::adapt_mesh(std::shared_ptr< DGBase<dim, real, MeshType> > dg)
+void MeshAdaptation<dim,real,MeshType>::adapt_mesh()
 {
     cellwise_errors = mesh_error->compute_cellwise_errors(dg);
 
-    fixed_fraction_isotropic_refinement_and_coarsening(dg);
+    fixed_fraction_isotropic_refinement_and_coarsening();
     current_refinement_cycle++;
     pcout<<"Refined"<<std::endl;
 }
 
 
 template <int dim, typename real, typename MeshType>
-void MeshAdaptation<dim,real,MeshType>::fixed_fraction_isotropic_refinement_and_coarsening(std::shared_ptr< DGBase<dim, real, MeshType> > dg)
+void MeshAdaptation<dim,real,MeshType>::fixed_fraction_isotropic_refinement_and_coarsening()
 {
     dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
     dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);

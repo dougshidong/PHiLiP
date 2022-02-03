@@ -104,7 +104,6 @@ int DualWeightedResidualMeshAdaptation<dim, nstate> :: run_test () const
     } // loop of poly_degree
 
     return 0; // Mesh adaptation test passed.
-    
 }
 
 #if PHILIP_DIM!=1

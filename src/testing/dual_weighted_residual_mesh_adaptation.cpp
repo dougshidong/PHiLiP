@@ -74,7 +74,6 @@ int DualWeightedResidualMeshAdaptation<dim, nstate> :: run_test () const
                  poly_degree,
                  grid);
 
-
             dg->allocate_system();
             ZeroInitialCondition<dim,double> initial_conditions(nstate);
             const auto mapping = *(dg->high_order_grid->mapping_fe_field);

@@ -36,7 +36,6 @@ DualWeightedResidualMeshAdaptation<dim, nstate> :: DualWeightedResidualMeshAdapt
     : TestsBase::TestsBase(parameters_input)
     {}
 
-
 template <int dim, int nstate>
 int DualWeightedResidualMeshAdaptation<dim, nstate> :: run_test () const
 {

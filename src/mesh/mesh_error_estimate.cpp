@@ -119,7 +119,6 @@ dealii::Vector<real> DualWeightedResidualError<dim, nstate, real, MeshType>::com
 template <int dim, int nstate, typename real, typename MeshType>
 void DualWeightedResidualError<dim, nstate, real, MeshType>::reinit()
 {
-    // assuming that all pointers are still valid
     // reinitilizing all variables after triangulation in the constructor
     solution_coarse = this->dg->solution;
     adjoint_state = AdjointStateEnum::coarse;
@@ -145,15 +144,25 @@ template <int dim, int nstate, typename real, typename MeshType>
 void DualWeightedResidualError<dim, nstate, real, MeshType>::convert_to_state(AdjointStateEnum state)
 {   
     // checks if conversion is needed
-    if(adjoint_state == state) 
+    if(adjoint_state == state)
+    {
         return;
-
-    // then calls corresponding function for state conversions
-    if(adjoint_state == AdjointStateEnum::coarse && state == AdjointStateEnum::fine) 
+    }
+    // calls corresponding function for state conversions
+    else if(adjoint_state == AdjointStateEnum::coarse && state == AdjointStateEnum::fine)
+    {
         coarse_to_fine();
+    }
     
-    if(adjoint_state == AdjointStateEnum::fine && state == AdjointStateEnum::coarse)
+    else if(adjoint_state == AdjointStateEnum::fine && state == AdjointStateEnum::coarse)
+    {
         fine_to_coarse();
+    }
+    else
+    {
+        pcout<<"Invalid state. Aborting.."<<std::endl;
+        std::abort();
+    }
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -283,13 +292,13 @@ dealii::Vector<real> DualWeightedResidualError<dim, nstate, real, MeshType>::dua
 {
     convert_to_state(AdjointStateEnum::fine);
 
-    // allocating 
+    // allocate 
     dual_weighted_residual_fine.reinit(this->dg->triangulation->n_active_cells());
 
     const unsigned int max_dofs_per_cell = this->dg->dof_handler.get_fe_collection().max_dofs_per_cell();
     std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
 
-    // computing the error indicator cell-wise by taking the dot product over the DOFs with the residual vector
+    // compute the error indicator cell-wise by taking the dot product over the DOFs with the residual vector
     for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell){
         if(!cell->is_locally_owned()) continue;
         
@@ -342,7 +351,7 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::output_results_vtk(
 
     data_out.add_data_vector(this->dg->right_hand_side, residual_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
 
-    // setting up the naming
+    // set names of data to be output in the vtu file.
     std::vector<std::string> dIdw_names;
     for(int s=0;s<nstate;++s) {
         std::string varname = "dIdw" + dealii::Utilities::int_to_string(s,1);
@@ -355,7 +364,7 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::output_results_vtk(
         adjoint_names.push_back(varname);
     }
 
-    // adding the data structures specific to this particular class, checking if currently fine or coarse
+    // add the data structures specific to this class, check if currently fine or coarse
     if(adjoint_state == AdjointStateEnum::fine){
         data_out.add_data_vector(dIdw_fine, dIdw_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
         data_out.add_data_vector(adjoint_fine, adjoint_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);

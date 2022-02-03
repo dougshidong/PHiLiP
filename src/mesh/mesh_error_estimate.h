@@ -82,7 +82,8 @@ public:
   * \f]
   * 
   * Includes functions for solving both the coarse and fine \f$p\f$-enriched adjoint problems. Subscripts \f$H\f$ 
-  * and \f$h\f$ are used to denote coarse and fine grid variables respectively. 
+  * and \f$h\f$ are used to denote coarse and fine grid variables respectively.
+  * Uses equations derived in VENDITTI AND DARMOFAL, Adjoint Error Estimation and Grid Adaptation for Functional Outputs: Application to Quasi-One-Dimensional Flow. Journal of Computational Physics 164, 1 (2000), 204–227.
   */ 
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
 template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>

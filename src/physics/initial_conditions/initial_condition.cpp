@@ -145,7 +145,7 @@ ZeroInitialCondition<dim, real> :: ZeroInitialCondition(const unsigned int nstat
     {}
 
 template<int dim, typename real>
-real ZeroInitialCondition<dim, real> :: value(const dealii::Point<dim> &, const unsigned int ) const 
+real ZeroInitialCondition<dim, real> :: value(const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const 
     {
         return 0.0;
     }

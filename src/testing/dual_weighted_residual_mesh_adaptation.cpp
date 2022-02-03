@@ -36,7 +36,6 @@ DualWeightedResidualMeshAdaptation<dim, nstate> :: DualWeightedResidualMeshAdapt
     : TestsBase::TestsBase(parameters_input)
     {}
 
-
 template <int dim, int nstate>
 int DualWeightedResidualMeshAdaptation<dim, nstate> :: run_test () const
 {
@@ -75,8 +74,6 @@ int DualWeightedResidualMeshAdaptation<dim, nstate> :: run_test () const
                  poly_degree,
                  grid);
 
-
-
             dg->allocate_system();
             ZeroInitialCondition<dim,double> initial_conditions(nstate);
             const auto mapping = *(dg->high_order_grid->mapping_fe_field);
@@ -107,7 +104,6 @@ int DualWeightedResidualMeshAdaptation<dim, nstate> :: run_test () const
     } // loop of poly_degree
 
     return 0; // Mesh adaptation test passed.
-    
 }
 
 #if PHILIP_DIM!=1

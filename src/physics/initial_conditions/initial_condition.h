@@ -137,7 +137,7 @@ public:
     /// Constructor to initialize dealii::Function
     ZeroInitialCondition(const unsigned int nstate); 
     /// Returns zero.
-    real value(const dealii::Point<dim> & , const unsigned int ) const override;
+    real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
 } // PHiLiP namespace

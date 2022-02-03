@@ -153,7 +153,7 @@ public:
      */
     dealii::LinearAlgebra::distributed::Vector<real> coarse_grid_adjoint();
 
-    /// compute the Dual Weighted Residual (DWR)
+    /// Computes the Dual Weighted Residual (DWR)
     /** Computes DualWeightedResidualError::dual_weighted_resiudal_fine (\f$\eta\f$) on the fine grid. This value should be
      *  zero on the coarse grid due to Galerkin Orthogonality. It is calculated from
      *  \f[

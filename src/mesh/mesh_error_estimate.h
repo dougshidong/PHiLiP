@@ -171,7 +171,7 @@ public:
     real total_dual_weighted_residual_error();
 
     /// Outputs the current solution and adjoint values
-    /** Similar to DGBase::output_results_vtk() but will also include the adjoint and dIdw
+    /** Similar to DGBase::output_results_vtk() but will also include the adjoint and derivative_functional_wrt_solution
      *  related to the current adjoint state. Will also output DualWeightedResidualError::dual_weighted_residual_fine
      *  if currenly on the fine grid.
      */
@@ -183,9 +183,9 @@ public:
     /// original solution
     dealii::LinearAlgebra::distributed::Vector<real> solution_coarse;
     /// functional derivative (on the fine grid)
-    dealii::LinearAlgebra::distributed::Vector<real> dIdw_fine;
+    dealii::LinearAlgebra::distributed::Vector<real> derivative_functional_wrt_solution_fine;
     /// functional derivative (on the coarse grid)
-    dealii::LinearAlgebra::distributed::Vector<real> dIdw_coarse;
+    dealii::LinearAlgebra::distributed::Vector<real> derivative_functional_wrt_solution_coarse;
     /// fine grid adjoint (\f$\psi_h\f$)
     dealii::LinearAlgebra::distributed::Vector<real> adjoint_fine;
     /// coarse grid adjoint (\f$\psi_H\f$)

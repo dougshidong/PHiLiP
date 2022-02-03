@@ -132,8 +132,8 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::reinit()
             coarse_fe_index[cell->active_cell_index()] = cell->active_fe_index();
 
     // for remaining, clearing the values
-    dIdw_fine      = dealii::LinearAlgebra::distributed::Vector<real>();
-    dIdw_coarse    = dealii::LinearAlgebra::distributed::Vector<real>();
+    derivative_functional_wrt_solution_fine      = dealii::LinearAlgebra::distributed::Vector<real>();
+    derivative_functional_wrt_solution_coarse    = dealii::LinearAlgebra::distributed::Vector<real>();
     adjoint_fine   = dealii::LinearAlgebra::distributed::Vector<real>();
     adjoint_coarse = dealii::LinearAlgebra::distributed::Vector<real>();
 
@@ -234,12 +234,12 @@ dealii::LinearAlgebra::distributed::Vector<real> DualWeightedResidualError<dim, 
 {
     convert_to_state(AdjointStateEnum::fine);
 
-    // dIdw_fine.reinit(this->dg->solution);
-    // dIdw_fine = functional.evaluate_dIdw(this->dg, physics);
+    // derivative_functional_wrt_solution_fine.reinit(this->dg->solution);
+    // derivative_functional_wrt_solution_fine = functional.evaluate_dIdw(this->dg, physics);
     const bool compute_dIdW = true, compute_dIdX = false;
     const real functional_value = functional->evaluate_functional(compute_dIdW,compute_dIdX);
     (void) functional_value;
-    dIdw_fine = functional->dIdw;
+    derivative_functional_wrt_solution_fine = functional->dIdw;
 
     adjoint_fine.reinit(this->dg->solution);
     
@@ -253,7 +253,7 @@ dealii::LinearAlgebra::distributed::Vector<real> DualWeightedResidualError<dim, 
     epmt.CreateTranspose(false, system_matrix_transpose_tril);
     system_matrix_transpose.reinit(*system_matrix_transpose_tril,true);
     delete system_matrix_transpose_tril;
-    solve_linear(system_matrix_transpose, dIdw_fine, adjoint_fine, this->dg->all_parameters->linear_solver_param);
+    solve_linear(system_matrix_transpose, derivative_functional_wrt_solution_fine, adjoint_fine, this->dg->all_parameters->linear_solver_param);
 
     return adjoint_fine;
 }
@@ -263,12 +263,12 @@ dealii::LinearAlgebra::distributed::Vector<real> DualWeightedResidualError<dim, 
 {
     convert_to_state(AdjointStateEnum::coarse);
 
-    dIdw_coarse.reinit(this->dg->solution);
-    //dIdw_coarse = functional.evaluate_dIdw(this->dg, physics);
+    derivative_functional_wrt_solution_coarse.reinit(this->dg->solution);
+    //derivative_functional_wrt_solution_coarse = functional.evaluate_dIdw(this->dg, physics);
     const bool compute_dIdW = true, compute_dIdX = false;
     const real functional_value = functional->evaluate_functional(compute_dIdW,compute_dIdX);
     (void) functional_value;
-    dIdw_coarse = functional->dIdw;
+    derivative_functional_wrt_solution_coarse = functional->dIdw;
 
     adjoint_coarse.reinit(this->dg->solution);
 
@@ -281,8 +281,8 @@ dealii::LinearAlgebra::distributed::Vector<real> DualWeightedResidualError<dim, 
     Epetra_RowMatrixTransposer epmt(const_cast<Epetra_CrsMatrix *>(&this->dg->system_matrix.trilinos_matrix()));
     epmt.CreateTranspose(false, system_matrix_transpose_tril);
     system_matrix_transpose.reinit(*system_matrix_transpose_tril);
-    solve_linear(system_matrix_transpose, dIdw_coarse, adjoint_coarse, this->dg->all_parameters->linear_solver_param);
-    // solve_linear(this->dg->system_matrix, dIdw_coarse, adjoint_coarse, this->dg->all_parameters->linear_solver_param);
+    solve_linear(system_matrix_transpose, derivative_functional_wrt_solution_coarse, adjoint_coarse, this->dg->all_parameters->linear_solver_param);
+    // solve_linear(this->dg->system_matrix, derivative_functional_wrt_solution_coarse, adjoint_coarse, this->dg->all_parameters->linear_solver_param);
 
     return adjoint_coarse;
 }
@@ -352,10 +352,10 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::output_results_vtk(
     data_out.add_data_vector(this->dg->right_hand_side, residual_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
 
     // set names of data to be output in the vtu file.
-    std::vector<std::string> dIdw_names;
+    std::vector<std::string> derivative_functional_wrt_solution_names;
     for(int s=0;s<nstate;++s) {
-        std::string varname = "dIdw" + dealii::Utilities::int_to_string(s,1);
-        dIdw_names.push_back(varname);
+        std::string varname = "derivative_functional_wrt_solution" + dealii::Utilities::int_to_string(s,1);
+        derivative_functional_wrt_solution_names.push_back(varname);
     }
 
     std::vector<std::string> adjoint_names;
@@ -366,12 +366,12 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::output_results_vtk(
 
     // add the data structures specific to this class, check if currently fine or coarse
     if(adjoint_state == AdjointStateEnum::fine){
-        data_out.add_data_vector(dIdw_fine, dIdw_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+        data_out.add_data_vector(derivative_functional_wrt_solution_fine, derivative_functional_wrt_solution_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
         data_out.add_data_vector(adjoint_fine, adjoint_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
 
         data_out.add_data_vector(dual_weighted_residual_fine, "DWR", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
     }else if(adjoint_state == AdjointStateEnum::coarse){
-        data_out.add_data_vector(dIdw_coarse, dIdw_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+        data_out.add_data_vector(derivative_functional_wrt_solution_coarse, derivative_functional_wrt_solution_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
         data_out.add_data_vector(adjoint_coarse, adjoint_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
     }
 

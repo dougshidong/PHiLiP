@@ -251,26 +251,7 @@ dealii::LinearAlgebra::distributed::Vector<real> DualWeightedResidualError<dim, 
 {
     convert_dgsolution_to_coarse_or_fine(SolutionRefinementStateEnum::fine);
 
-    // derivative_functional_wrt_solution_fine.reinit(this->dg->solution);
-    // derivative_functional_wrt_solution_fine = functional.evaluate_dIdw(this->dg, physics);
-    const bool compute_dIdW = true, compute_dIdX = false;
-    const real functional_value = functional->evaluate_functional(compute_dIdW,compute_dIdX);
-    (void) functional_value;
-    derivative_functional_wrt_solution_fine = functional->dIdw;
-
-    adjoint_fine.reinit(this->dg->solution);
-    
-    this->dg->assemble_residual(true);
-    this->dg->system_matrix *= -1.0;
-
-    dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose;
-    Epetra_CrsMatrix *system_matrix_transpose_tril;
-
-    Epetra_RowMatrixTransposer epmt(const_cast<Epetra_CrsMatrix *>(&this->dg->system_matrix.trilinos_matrix()));
-    epmt.CreateTranspose(false, system_matrix_transpose_tril);
-    system_matrix_transpose.reinit(*system_matrix_transpose_tril,true);
-    delete system_matrix_transpose_tril;
-    solve_linear(system_matrix_transpose, derivative_functional_wrt_solution_fine, adjoint_fine, this->dg->all_parameters->linear_solver_param);
+    adjoint_fine = compute_adjoint(derivative_functional_wrt_solution_fine, adjoint_fine);
 
     return adjoint_fine;
 }
@@ -280,14 +261,24 @@ dealii::LinearAlgebra::distributed::Vector<real> DualWeightedResidualError<dim, 
 {
     convert_dgsolution_to_coarse_or_fine(SolutionRefinementStateEnum::coarse);
 
-    derivative_functional_wrt_solution_coarse.reinit(this->dg->solution);
-    //derivative_functional_wrt_solution_coarse = functional.evaluate_dIdw(this->dg, physics);
-    const bool compute_dIdW = true, compute_dIdX = false;
-    const real functional_value = functional->evaluate_functional(compute_dIdW,compute_dIdX);
-    (void) functional_value;
-    derivative_functional_wrt_solution_coarse = functional->dIdw;
+    adjoint_coarse = compute_adjoint(derivative_functional_wrt_solution_coarse, adjoint_coarse);
 
-    adjoint_coarse.reinit(this->dg->solution);
+    return adjoint_coarse;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+dealii::LinearAlgebra::distributed::Vector<real> DualWeightedResidualError<dim, nstate, real, MeshType>
+::compute_adjoint(dealii::LinearAlgebra::distributed::Vector<real> &derivative_functional_wrt_solution, 
+                  dealii::LinearAlgebra::distributed::Vector<real> &adjoint_variable)
+{
+    derivative_functional_wrt_solution.reinit(this->dg->solution);
+    adjoint_variable.reinit(this->dg->solution);
+    
+    const bool compute_derivative_functional_wrt_solution = true, compute_derivative_functional_wrt_grid_dofs = false;
+    const real functional_value = functional->evaluate_functional(compute_derivative_functional_wrt_solution, compute_derivative_functional_wrt_grid_dofs);
+    (void) functional_value;
+    derivative_functional_wrt_solution = functional->dIdw;
+
 
     this->dg->assemble_residual(true);
     this->dg->system_matrix *= -1.0;
@@ -297,11 +288,10 @@ dealii::LinearAlgebra::distributed::Vector<real> DualWeightedResidualError<dim, 
 
     Epetra_RowMatrixTransposer epmt(const_cast<Epetra_CrsMatrix *>(&this->dg->system_matrix.trilinos_matrix()));
     epmt.CreateTranspose(false, system_matrix_transpose_tril);
-    system_matrix_transpose.reinit(*system_matrix_transpose_tril);
-    solve_linear(system_matrix_transpose, derivative_functional_wrt_solution_coarse, adjoint_coarse, this->dg->all_parameters->linear_solver_param);
-    // solve_linear(this->dg->system_matrix, derivative_functional_wrt_solution_coarse, adjoint_coarse, this->dg->all_parameters->linear_solver_param);
+    system_matrix_transpose.reinit(*system_matrix_transpose_tril, true);
+    solve_linear(system_matrix_transpose, derivative_functional_wrt_solution, adjoint_variable, this->dg->all_parameters->linear_solver_param);
 
-    return adjoint_coarse;
+    return adjoint_variable;
 }
 
 template <int dim, int nstate, typename real, typename MeshType>

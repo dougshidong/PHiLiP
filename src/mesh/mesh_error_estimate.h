@@ -176,6 +176,10 @@ public:
      *  if currenly on the fine grid.
      */
     void output_results_vtk(const unsigned int cycle);
+    
+    /// Solves the adjoint equation.
+    dealii::LinearAlgebra::distributed::Vector<real> compute_adjoint(dealii::LinearAlgebra::distributed::Vector<real> &derivative_functional_wrt_solution, 
+                                                                     dealii::LinearAlgebra::distributed::Vector<real> &adjoint_variable);
 
     /// Functional class pointer
     std::shared_ptr< Functional<dim, nstate, real, MeshType> > functional;

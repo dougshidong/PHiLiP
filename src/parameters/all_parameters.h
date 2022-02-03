@@ -119,6 +119,7 @@ public:
         euler_naca0012,
         reduced_order,
         POD_adaptation,
+        burgers_rewienski_fd_sensitivity,
         advection_periodicity,
         flow_solver,
     };

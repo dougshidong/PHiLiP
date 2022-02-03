@@ -30,6 +30,7 @@
 #include "reduced_order_pod_adaptation.h"
 #include "reduced_order.h"
 #include "flow_solver.h"
+#include "1d_burgers_rewienski_fd_sensitivity.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -141,6 +142,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==1 && nstate==1) return std::make_unique<ReducedOrder<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::POD_adaptation) {
         if constexpr (dim==1 && nstate==1) return std::make_unique<ReducedOrderPODAdaptation<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::burgers_rewienski_fd_sensitivity) {
+        if constexpr (dim==1 && nstate==1) return std::make_unique<BurgersRewienskiSensitivity<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_naca0012) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerNACA0012<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::flow_solver) {

@@ -22,7 +22,7 @@ public:
 
 }; 
 
-} // namespace Tests
+} // Tests namespace
 } // PHiLiP namespace
 
 #endif

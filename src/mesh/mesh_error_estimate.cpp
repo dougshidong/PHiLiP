@@ -78,7 +78,7 @@ template <int dim, int nstate, typename real, typename MeshType>
 DualWeightedResidualError<dim, nstate, real, MeshType>::DualWeightedResidualError(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
     : MeshErrorEstimateBase<dim,real,MeshType> (dg_input) 
     , solution_coarse(this->dg->solution)
-    , adjoint_state(AdjointStateEnum::coarse)
+    , solution_refinement_state(SolutionRefinementStateEnum::coarse)
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {
@@ -90,8 +90,12 @@ DualWeightedResidualError<dim, nstate, real, MeshType>::DualWeightedResidualErro
 
     // looping over the cells
     for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
+    {
         if(cell->is_locally_owned())
+        {
             coarse_fe_index[cell->active_cell_index()] = cell->active_fe_index();
+        }
+    }
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -107,10 +111,10 @@ dealii::Vector<real> DualWeightedResidualError<dim, nstate, real, MeshType>::com
 {
     dealii::Vector<real> cellwise_errors(this->dg->triangulation->n_active_cells());
     reinit();
-    convert_to_state(AdjointStateEnum::fine);
+    convert_dgsolution_to_coarse_or_fine(SolutionRefinementStateEnum::fine);
     fine_grid_adjoint();
     cellwise_errors = dual_weighted_residual();
-    convert_to_state(AdjointStateEnum::coarse);
+    convert_dgsolution_to_coarse_or_fine(SolutionRefinementStateEnum::coarse);
 
     return cellwise_errors;
 }
@@ -121,15 +125,19 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::reinit()
 {
     // reinitilizing all variables after triangulation in the constructor
     solution_coarse = this->dg->solution;
-    adjoint_state = AdjointStateEnum::coarse;
+    solution_refinement_state = SolutionRefinementStateEnum::coarse;
 
     // storing the original FE degree distribution
     coarse_fe_index.reinit(this->dg->triangulation->n_active_cells());
     
     // looping over the cells
     for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
+    {
         if(cell->is_locally_owned())
+        {
             coarse_fe_index[cell->active_cell_index()] = cell->active_fe_index();
+        }
+    }
 
     // for remaining, clearing the values
     derivative_functional_wrt_solution_fine      = dealii::LinearAlgebra::distributed::Vector<real>();
@@ -141,20 +149,20 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::reinit()
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-void DualWeightedResidualError<dim, nstate, real, MeshType>::convert_to_state(AdjointStateEnum state)
+void DualWeightedResidualError<dim, nstate, real, MeshType>::convert_dgsolution_to_coarse_or_fine(SolutionRefinementStateEnum required_refinement_state)
 {   
     // checks if conversion is needed
-    if(adjoint_state == state)
+    if(solution_refinement_state == required_refinement_state)
     {
         return;
     }
     // calls corresponding function for state conversions
-    else if(adjoint_state == AdjointStateEnum::coarse && state == AdjointStateEnum::fine)
+    else if(solution_refinement_state == SolutionRefinementStateEnum::coarse && required_refinement_state == SolutionRefinementStateEnum::fine)
     {
         coarse_to_fine();
     }
     
-    else if(adjoint_state == AdjointStateEnum::fine && state == AdjointStateEnum::coarse)
+    else if(solution_refinement_state == SolutionRefinementStateEnum::fine && required_refinement_state == SolutionRefinementStateEnum::coarse)
     {
         fine_to_coarse();
     }
@@ -168,6 +176,7 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::convert_to_state(Ad
 template <int dim, int nstate, typename real, typename MeshType>
 void DualWeightedResidualError<dim, nstate, real, MeshType>::coarse_to_fine()
 {
+    Assert(this->dg->get_max_fe_degree() < this->dg->max_degree, dealii::ExcMessage("Polynomial degree of DG will exceed the max allowable after refinement. Update max_degree in dg")); 
     dealii::IndexSet locally_owned_dofs, locally_relevant_dofs;
     locally_owned_dofs =  this->dg->dof_handler.locally_owned_dofs();
     dealii::DoFTools::extract_locally_relevant_dofs(this->dg->dof_handler, locally_relevant_dofs);
@@ -187,8 +196,12 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::coarse_to_fine()
     this->dg->triangulation->prepare_coarsening_and_refinement();
 
     for (auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
+    {
         if (cell->is_locally_owned()) 
+        {
             cell->set_future_fe_index(cell->active_fe_index()+1);
+        }
+    }
 
     this->dg->triangulation->execute_coarsening_and_refinement();
     this->dg->high_order_grid->execute_coarsening_and_refinement();
@@ -197,15 +210,15 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::coarse_to_fine()
     this->dg->solution.zero_out_ghosts();
 
     if constexpr (std::is_same_v<typename dealii::SolutionTransfer<dim,VectorType,DoFHandlerType>, 
-                                 decltype(solution_transfer)>){
+                                 decltype(solution_transfer)>) {
         solution_transfer.interpolate(solution_coarse, this->dg->solution);
-    }else{
+    } else {
         solution_transfer.interpolate(this->dg->solution);
     }
     
     this->dg->solution.update_ghost_values();
 
-    adjoint_state = AdjointStateEnum::fine;
+    solution_refinement_state = SolutionRefinementStateEnum::fine;
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -215,8 +228,12 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::fine_to_coarse()
     this->dg->triangulation->prepare_coarsening_and_refinement();
 
     for (auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
+    {
         if (cell->is_locally_owned()) 
+        {
             cell->set_future_fe_index(coarse_fe_index[cell->active_cell_index()]);
+        }
+    }
 
     this->dg->triangulation->execute_coarsening_and_refinement();
     this->dg->high_order_grid->execute_coarsening_and_refinement();
@@ -226,13 +243,13 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::fine_to_coarse()
 
     this->dg->solution = solution_coarse;
 
-    adjoint_state = AdjointStateEnum::coarse;
+    solution_refinement_state = SolutionRefinementStateEnum::coarse;
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
 dealii::LinearAlgebra::distributed::Vector<real> DualWeightedResidualError<dim, nstate, real, MeshType>::fine_grid_adjoint()
 {
-    convert_to_state(AdjointStateEnum::fine);
+    convert_dgsolution_to_coarse_or_fine(SolutionRefinementStateEnum::fine);
 
     // derivative_functional_wrt_solution_fine.reinit(this->dg->solution);
     // derivative_functional_wrt_solution_fine = functional.evaluate_dIdw(this->dg, physics);
@@ -261,7 +278,7 @@ dealii::LinearAlgebra::distributed::Vector<real> DualWeightedResidualError<dim, 
 template <int dim, int nstate, typename real, typename MeshType>
 dealii::LinearAlgebra::distributed::Vector<real> DualWeightedResidualError<dim, nstate, real, MeshType>::coarse_grid_adjoint()
 {
-    convert_to_state(AdjointStateEnum::coarse);
+    convert_dgsolution_to_coarse_or_fine(SolutionRefinementStateEnum::coarse);
 
     derivative_functional_wrt_solution_coarse.reinit(this->dg->solution);
     //derivative_functional_wrt_solution_coarse = functional.evaluate_dIdw(this->dg, physics);
@@ -290,7 +307,7 @@ dealii::LinearAlgebra::distributed::Vector<real> DualWeightedResidualError<dim, 
 template <int dim, int nstate, typename real, typename MeshType>
 dealii::Vector<real> DualWeightedResidualError<dim, nstate, real, MeshType>::dual_weighted_residual()
 {
-    convert_to_state(AdjointStateEnum::fine);
+    convert_dgsolution_to_coarse_or_fine(SolutionRefinementStateEnum::fine);
 
     // allocate 
     dual_weighted_residual_fine.reinit(this->dg->triangulation->n_active_cells());
@@ -299,8 +316,10 @@ dealii::Vector<real> DualWeightedResidualError<dim, nstate, real, MeshType>::dua
     std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
 
     // compute the error indicator cell-wise by taking the dot product over the DOFs with the residual vector
-    for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell){
-        if(!cell->is_locally_owned()) continue;
+    for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
+    {
+        if(!cell->is_locally_owned()) 
+            continue;
         
         const unsigned int fe_index_curr_cell = cell->active_fe_index();
         const dealii::FESystem<dim,dim> &current_fe_ref = this->dg->fe_collection[fe_index_curr_cell];
@@ -310,7 +329,8 @@ dealii::Vector<real> DualWeightedResidualError<dim, nstate, real, MeshType>::dua
         cell->get_dof_indices(current_dofs_indices);
 
         real dwr_cell = 0;
-        for(unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof){
+        for(unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof)
+        {
             dwr_cell += this->dg->right_hand_side[current_dofs_indices[idof]]*adjoint_fine[current_dofs_indices[idof]];
         }
 
@@ -330,7 +350,8 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::output_results_vtk(
     data_out.add_data_vector(this->dg->solution, *post_processor);
 
     dealii::Vector<float> subdomain(this->dg->triangulation->n_active_cells());
-    for (unsigned int i = 0; i < subdomain.size(); ++i) {
+    for (unsigned int i = 0; i < subdomain.size(); ++i) 
+    {
         subdomain(i) = this->dg->triangulation->locally_owned_subdomain();
     }
     data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
@@ -344,7 +365,8 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::output_results_vtk(
     data_out.add_data_vector(active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
     std::vector<std::string> residual_names;
-    for(int s=0;s<nstate;++s) {
+    for(int s=0;s<nstate;++s) 
+    {
         std::string varname = "residual" + dealii::Utilities::int_to_string(s,1);
         residual_names.push_back(varname);
     }
@@ -353,24 +375,26 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::output_results_vtk(
 
     // set names of data to be output in the vtu file.
     std::vector<std::string> derivative_functional_wrt_solution_names;
-    for(int s=0;s<nstate;++s) {
+    for(int s=0;s<nstate;++s) 
+    {
         std::string varname = "derivative_functional_wrt_solution" + dealii::Utilities::int_to_string(s,1);
         derivative_functional_wrt_solution_names.push_back(varname);
     }
 
     std::vector<std::string> adjoint_names;
-    for(int s=0;s<nstate;++s) {
+    for(int s=0;s<nstate;++s) 
+    {
         std::string varname = "psi" + dealii::Utilities::int_to_string(s,1);
         adjoint_names.push_back(varname);
     }
 
     // add the data structures specific to this class, check if currently fine or coarse
-    if(adjoint_state == AdjointStateEnum::fine){
+    if(solution_refinement_state == SolutionRefinementStateEnum::fine) {
         data_out.add_data_vector(derivative_functional_wrt_solution_fine, derivative_functional_wrt_solution_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
         data_out.add_data_vector(adjoint_fine, adjoint_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
 
         data_out.add_data_vector(dual_weighted_residual_fine, "DWR", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
-    }else if(adjoint_state == AdjointStateEnum::coarse){
+    } else if(solution_refinement_state == SolutionRefinementStateEnum::coarse) {
         data_out.add_data_vector(derivative_functional_wrt_solution_coarse, derivative_functional_wrt_solution_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
         data_out.add_data_vector(adjoint_coarse, adjoint_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
     }
@@ -381,20 +405,22 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::output_results_vtk(
     // data_out.build_patches(*(this->dg->high_order_grid.mapping_fe_field), this->dg->max_degree, dealii::DataOut<dim, dealii::DoFHandler<dim>>::CurvedCellRegion::curved_inner_cells);
     //data_out.build_patches(*(high_order_grid.mapping_fe_field), fe_collection.size(), dealii::DataOut<dim>::CurvedCellRegion::curved_inner_cells);
     std::string filename = "adjoint-" ;
-    if(adjoint_state == AdjointStateEnum::fine)
+    if(solution_refinement_state == SolutionRefinementStateEnum::fine)
     filename += dealii::Utilities::int_to_string(cycle, 4) + ".";
     filename += dealii::Utilities::int_to_string(iproc, 4);
     filename += ".vtu";
     std::ofstream output(filename);
     data_out.write_vtu(output);
 
-    if (iproc == 0) {
+    if (iproc == 0) 
+    {
         std::vector<std::string> filenames;
-        for (unsigned int iproc = 0; iproc < dealii::Utilities::MPI::n_mpi_processes(mpi_communicator); ++iproc) {
+        for (unsigned int iproc = 0; iproc < dealii::Utilities::MPI::n_mpi_processes(mpi_communicator); ++iproc) 
+        {
             std::string fn = "adjoint-";
-            if(adjoint_state == AdjointStateEnum::fine)
+            if(solution_refinement_state == SolutionRefinementStateEnum::fine)
                 fn += "fine-";
-            else if(adjoint_state == AdjointStateEnum::coarse)
+            else if(solution_refinement_state == SolutionRefinementStateEnum::coarse)
                 fn += "coarse-";
             fn += dealii::Utilities::int_to_string(dim, 1) + "D-";
             fn += dealii::Utilities::int_to_string(cycle, 4) + ".";
@@ -403,9 +429,9 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::output_results_vtk(
             filenames.push_back(fn);
         }
         std::string master_fn = "adjoint-";
-        if(adjoint_state == AdjointStateEnum::fine)
+        if(solution_refinement_state == SolutionRefinementStateEnum::fine)
             master_fn += "fine-";
-        else if(adjoint_state == AdjointStateEnum::coarse)
+        else if(solution_refinement_state == SolutionRefinementStateEnum::coarse)
             master_fn += "coarse-";
         master_fn += dealii::Utilities::int_to_string(dim, 1) +"D-";
         master_fn += dealii::Utilities::int_to_string(cycle, 4) + ".pvtu";

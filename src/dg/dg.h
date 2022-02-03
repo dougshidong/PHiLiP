@@ -350,13 +350,6 @@ public:
     /// Artificial dissipation error ratio sensor in each cell.
     dealii::Vector<double> artificial_dissipation_se;
 
-    /* Discontinuity sensor based on projecting to p-1 
-    template <typename real2>
-    real2 discontinuity_sensor(
-        const real2 diameter,
-        const std::vector< real2 > &soln_coeff_high,
-        const dealii::FiniteElement<dim,dim> &fe_high);
-   */ 
     template <typename real2>
     /** Discontinuity sensor with 4 parameters, based on projecting to p-1. */
     real2 discontinuity_sensor(

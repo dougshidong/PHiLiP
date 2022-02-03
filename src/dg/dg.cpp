@@ -2242,124 +2242,6 @@ std::vector< real > project_function(
 
 }
 
-/*
-template <int dim, typename real, typename MeshType>
-template <typename real2>
-real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
-    const real2 diameter,
-    const std::vector< real2 > &soln_coeff_high,
-    const dealii::FiniteElement<dim,dim> &fe_high)
-{
-    //return 0;
-    const unsigned int degree = fe_high.tensor_degree();
-    const unsigned int nstate = fe_high.components;
-    if (degree == 0) return 0;
-    //return 0.01;
-    const unsigned int lower_degree = degree-1;//degree-1;
-    const dealii::FE_DGQLegendre<dim> fe_dgq_lower(lower_degree);
-    const dealii::FESystem<dim,dim> fe_lower(fe_dgq_lower, nstate);
-
-    const unsigned int n_dofs_high = fe_high.dofs_per_cell;
-    const unsigned int n_dofs_lower = fe_lower.dofs_per_cell;
-    //dealii::FullMatrix<double> projection_matrix(n_dofs_lower,n_dofs_high);
-    //dealii::FETools::get_projection_matrix(fe_high, fe_lower, projection_matrix);
-
-    //std::vector< real2 > soln_coeff_lower(n_dofs_lower);
-    //for(unsigned int row=0; row<n_dofs_lower; ++row) {
-    //    soln_coeff_lower[row] = 0.0;
-    //    for(unsigned int col=0; col<n_dofs_high; ++col) {
-    //        soln_coeff_lower[row] += projection_matrix[row][col] * soln_coeff_high[col];
-    //    }
-    //}
-
-    const dealii::QGauss<dim> quadrature(degree+5);
-    const unsigned int n_quad_pts = quadrature.size();
-    const std::vector<dealii::Point<dim,double>> &unit_quad_pts = quadrature.get_points();
-
-    std::vector< real2 > soln_coeff_lower = project_function<dim,real2>( soln_coeff_high, fe_high, fe_lower, quadrature);
-
-    real2 error = 0.0;
-    real2 soln_norm = 0.0;
-    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        real2 soln_high = 0.0;
-        real2 soln_lower = 0.0;
-        for (unsigned int idof=0; idof<n_dofs_high; ++idof) {
-              soln_high += soln_coeff_high[idof] * fe_high.shape_value(idof,unit_quad_pts[iquad]);
-        }
-        for (unsigned int idof=0; idof<n_dofs_lower; ++idof) {
-              soln_lower += soln_coeff_lower[idof] * fe_lower.shape_value(idof,unit_quad_pts[iquad]);
-        }
-        // Need JxW not just W
-        // However, this happens at the cell faces, and therefore can't query the
-        // the volume Jacobians
-        //std::cout << "soln_high" << std::endl;
-        //std::cout << soln_high << std::endl;
-        //std::cout << "soln_lower" << std::endl;
-        //std::cout << soln_lower << std::endl;
-        //error += std::pow(soln_high - soln_lower, 2) * quadrature.weight(iquad);
-        //soln_norm += std::pow(soln_high, 2) * quadrature.weight(iquad);
-        error += (soln_high - soln_lower) * (soln_high - soln_lower) * quadrature.weight(iquad);
-        soln_norm += soln_high * soln_high * quadrature.weight(iquad);
-    }
-
-    if (error < 1e-12) return 0.0;
-    if (soln_norm < 1e-12) return 0.0;
-
-    real2 S_e, s_e;
-    S_e = sqrt(error / soln_norm);
-    s_e = log10(S_e);
-
-    //double S_0, s_0;
-    //S_0 = 1.0 / std::pow(degree,4);
-    //s_0 = log10(S_0);
-    //const double kappa = 0.1 * std::abs(s_0);
-
-    //const double skappa = -2.3;
-    //const double s_0 = skappa-4.25*log10(degree);
-    //const double kappa = 10.2; // 1.2
-    //const double mu_scale = 1.0;
-
-    // log10(a/p^4) = log10(a) - 4*log10(p)
-    //const real2 s_0 = -1.5 - 4.25*log10(degree);
-    const double mu_scale = all_parameters->artificial_dissipation_param.mu_artificial_dissipation; //0.1
-    const real2 s_0 = log10(0.1) - 4.25*log10(degree);
-    const double kappa = all_parameters->artificial_dissipation_param.kappa_artificial_dissipation; //2.0
-    const real2 low = s_0 - kappa;
-    const real2 upp = s_0 + kappa;
-
-    // const double m_Skappa = -2.5;
-    // const double m_Kappa = 0.50;
-    // const double Skappa = m_Skappa - 4.25 * log10((double)degree);
-    // const real2 low = Skappa - m_Kappa;
-    // const real2 upp = Skappa + m_Kappa;
-
-    const real2 eps_0 =mu_scale* diameter / (double)degree;
-
-    if ( s_e < low) return 0.0;
-
-    if ( s_e > upp)
-    {
-        if(eps_0 > max_artificial_dissipation_coeff)
-        {
-            max_artificial_dissipation_coeff = eps_0;
-        }
-        return eps_0;
-    }
-
-    const double PI = 4*atan(1);
-    //real2 eps = 1.0 + std::sin(PI * (s_e - Skappa) * 0.5 / m_Kappa);
-    real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
-    eps *= eps_0 * 0.5;
-
-    if(eps > max_artificial_dissipation_coeff)
-    {
-        max_artificial_dissipation_coeff = eps;
-    }
-   
-   return eps;
-
-}
-*/
 template <int dim, typename real,typename MeshType>
 template <typename real2>
 real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
@@ -2440,20 +2322,12 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
 
     if ( s_e > upp) 
     {
-        /*if(eps_0 > max_artificial_dissipation_coeff)
-        {
-            max_artificial_dissipation_coeff = eps_0;
-        }*/
         return eps_0;
     }
 
     const double PI = 4*atan(1);
     real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
     eps *= eps_0 * 0.5;
-    /*if(eps > max_artificial_dissipation_coeff)
-    {
-        max_artificial_dissipation_coeff = eps;
-    }*/
     return eps;
 }
 

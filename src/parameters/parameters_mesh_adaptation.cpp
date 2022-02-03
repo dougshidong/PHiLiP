@@ -19,7 +19,7 @@ void MeshAdaptationParam::declare_parameters (dealii::ParameterHandler &prm)
         
         prm.declare_entry("use_goal_oriented_mesh_adaptation","false",
                           dealii::Patterns::Bool(),
-                          "Flag to use goal oriented mesh adaptation. It is false by default.");
+                          "Flag to use goal oriented mesh adaptation. False by default.");
 
         prm.declare_entry("refinement_fraction","0.0",
                           dealii::Patterns::Double(0.0,1.0),

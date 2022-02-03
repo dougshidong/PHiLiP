@@ -17,6 +17,7 @@
 #include "ode_solver/explicit_ode_solver.h"
 #include "ode_solver/ode_solver_factory.h"
 #include "flow_solver_cases/periodic_cube_flow.h"
+#include "flow_solver_cases/1D_burgers_rewienski_snapshot.cpp"
 #include <deal.II/base/table_handler.h>
 
 namespace PHiLiP {
@@ -48,10 +49,17 @@ void FlowSolver<dim,nstate>::display_flow_solver_setup() const
     std::string pde_string;
     if (pde_type == PDE_enum::euler)                {pde_string = "euler";}
     if (pde_type == PDE_enum::navier_stokes)        {pde_string = "navier_stokes";}
+    if (pde_type == PDE_enum::burgers_rewienski)    {pde_string = "burgers_rewienski";}
     pcout << "- PDE Type: " << pde_string << std::endl;
     pcout << "- Polynomial degree: " << poly_degree << std::endl;
-    pcout << "- Courant-Friedrich-Lewy number: " << courant_friedrich_lewy_number << std::endl;
     pcout << "- Final time: " << final_time << std::endl;
+}
+
+template <int dim, int nstate>
+double FlowSolver<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,double>> /*dg*/) const
+{
+    pcout << "Using initial time step in ODE parameters." <<std::endl;
+    return ode_param.initial_time_step;
 }
 
 template <int dim, int nstate>
@@ -62,6 +70,12 @@ void FlowSolver<dim, nstate>::compute_unsteady_data_and_write_to_table(
     const std::shared_ptr <dealii::TableHandler> /*unsteady_data_table*/) const
 {
     // do nothing by default
+}
+
+template<int dim, int nstate>
+void FlowSolver<dim, nstate>::restart_computation_from_outputted_step(std::shared_ptr <DGBase<dim, double>> /*dg*/) const
+{
+    // to do
 }
 
 template <int dim, int nstate>
@@ -113,10 +127,6 @@ int FlowSolver<dim,nstate>::run_test() const
     dealii::VectorTools::interpolate(dg->dof_handler, *initial_condition_function, solution_no_ghost);
     dg->solution = solution_no_ghost;
     pcout << "done." << std::endl;
-    // - Output initialization to be viewed in Paraview
-    if (ode_param.output_solution_every_x_steps > 0) {
-        dg->output_results_vtk(9999);
-    }
     //----------------------------------------------------
     // ODE Solver
     //----------------------------------------------------
@@ -124,37 +134,63 @@ int FlowSolver<dim,nstate>::run_test() const
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
     ode_solver->allocate_ode_system();
     pcout << "done." << std::endl;
+    if (ode_param.output_solution_every_x_steps > 0) {
+        dg->output_results_vtk(ode_solver->current_iteration);
+    } else if (ode_param.output_solution_every_dt_time_intervals > 0.0) {
+        dg->output_results_vtk(ode_solver->current_iteration);
+        ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_every_dt_time_intervals;
+    }
     //----------------------------------------------------
-    // dealii::TableHandler and data at initial time
+    // Select unsteady or steady-state
     //----------------------------------------------------
-    std::shared_ptr<dealii::TableHandler> unsteady_data_table = std::make_shared<dealii::TableHandler>();//(this->mpi_communicator) ?;
-    pcout << "Writing unsteady data computed at initial time... " << std::endl;
-    compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
-    pcout << "done." << std::endl;
-    //----------------------------------------------------
-    // Time advancement loop with on-the-fly post-processing
-    //----------------------------------------------------
-    pcout << "Advancing solution in time... " << std::endl;
-    while(ode_solver->current_time < final_time)
-    {
-        ode_solver->step_in_time(constant_time_step,false); // pseudotime==false
-
-        // Compute the unsteady quantities, write to the dealii table, and output to file
+    if(flow_solver_param.steady_state == false){
+        //----------------------------------------------------
+        // dealii::TableHandler and data at initial time
+        //----------------------------------------------------
+        std::shared_ptr<dealii::TableHandler> unsteady_data_table = std::make_shared<dealii::TableHandler>();//(this->mpi_communicator) ?;
+        pcout << "Writing unsteady data computed at initial time... " << std::endl;
         compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
+        pcout << "done." << std::endl;
+        //----------------------------------------------------
+        // Time advancement loop with on-the-fly post-processing
+        //----------------------------------------------------
+        pcout << "Advancing solution in time... " << std::endl;
+        while(ode_solver->current_time < final_time)
+        {
+            ode_solver->step_in_time(constant_time_step,false); // pseudotime==false
 
-        // Output vtk solution files for post-processing in Paraview
-        if (ode_param.output_solution_every_x_steps > 0) {
-            const bool is_output_iteration = (ode_solver->current_iteration % ode_param.output_solution_every_x_steps == 0);
-            if (is_output_iteration) {
-                pcout << "  ... Writing vtk solution file ..." << std::endl;
-                const int file_number = ode_solver->current_iteration / ode_param.output_solution_every_x_steps;
-                dg->output_results_vtk(file_number);
+            // Compute the unsteady quantities, write to the dealii table, and output to file
+            compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
+
+            // Output vtk solution files for post-processing in Paraview
+            if (ode_param.output_solution_every_x_steps > 0) {
+                const bool is_output_iteration = (ode_solver->current_iteration % ode_param.output_solution_every_x_steps == 0);
+                if (is_output_iteration) {
+                    pcout << "  ... Writing vtk solution file ..." << std::endl;
+                    const int file_number = ode_solver->current_iteration / ode_param.output_solution_every_x_steps;
+                    dg->output_results_vtk(file_number);
+                }
+            } else if(ode_param.output_solution_every_dt_time_intervals > 0.0) {
+                const bool is_output_time = ((ode_solver->current_time <= ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals) && 
+                                            ((ode_solver->current_time + constant_time_step) > ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals));
+                if (is_output_time) {
+                    pcout << "  ... Writing vtk solution file ..." << std::endl;
+                    const int file_number = ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals / ode_param.output_solution_every_dt_time_intervals;
+                    dg->output_results_vtk(file_number);
+                    ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_every_dt_time_intervals;
+                }
             }
-        }
+        } // close while
+    } else {
+        //----------------------------------------------------
+        // Steady-state solution
+        //----------------------------------------------------
+        ode_solver->steady_state();
     }
     pcout << "done." << std::endl;
     return 0;
 }
+
 template class FlowSolver <PHILIP_DIM,PHILIP_DIM>;
 template class FlowSolver <PHILIP_DIM,PHILIP_DIM+2>;
 
@@ -169,11 +205,11 @@ FlowSolverFactory<dim,nstate>
     // Get the flow case type
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     const FlowCaseEnum flow_type = parameters_input->flow_solver_param.flow_case_type;
-
     if (flow_type == FlowCaseEnum::taylor_green_vortex) {
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<PeriodicCubeFlow<dim,nstate>>(parameters_input);
-    }
-    else{
+    } else if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot) {
+        if constexpr (dim==1 && nstate==dim) return std::make_unique<BurgersRewienskiSnapshot<dim,nstate>>(parameters_input);
+    } else {
         std::cout << "Invalid flow case. You probably forgot to add it to the list of flow cases in flow_solver.cpp" << std::endl;
         std::abort();
     }

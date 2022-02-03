@@ -18,6 +18,10 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           dealii::Patterns::Integer(-1,dealii::Patterns::Integer::max_int_value),
                           "Outputs the solution every x steps in .vtk file");
 
+        prm.declare_entry("output_solution_every_dt_time_intervals", "0.0",
+                          dealii::Patterns::Double(0,dealii::Patterns::Double::max_double_value),
+                          "Outputs the solution at time intervals of dt in .vtk file");
+
         prm.declare_entry("ode_solver_type", "implicit",
                           dealii::Patterns::Selection("explicit|implicit|pod_galerkin|pod_petrov_galerkin"),
                           "Explicit or implicit solver, or reduced-order POD Galerkin or POD Petrov Galerkin solver"
@@ -73,6 +77,7 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         if (output_string == "verbose") ode_output = OutputEnum::verbose;
 
         output_solution_every_x_steps = prm.get_integer("output_solution_every_x_steps");
+        output_solution_every_dt_time_intervals = prm.get_double("output_solution_every_dt_time_intervals");
 
         const std::string solver_string = prm.get("ode_solver_type");
         if (solver_string == "explicit") ode_solver_type = ODESolverEnum::explicit_solver;

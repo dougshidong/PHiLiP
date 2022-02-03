@@ -36,6 +36,11 @@ public:
     /** This variable will change when step_in_time() is called. */
     unsigned int current_iteration;
 
+    /// Current desired time for output solution every dt time intervals
+    /** This variable will change when advance_solution_time() is called
+     *  if ODE parameter "output_solution_every_dt_time_intervals" > 0. */
+    double current_desired_time_for_output_solution_every_dt_time_intervals;
+
     /// Table used to output solution vector at each time step
     dealii::TableHandler solutions_table;
 

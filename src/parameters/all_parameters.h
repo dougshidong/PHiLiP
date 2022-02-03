@@ -64,7 +64,7 @@ public:
         parallel_distributed_triangulation,
         };
     MeshType mesh_type; ///< Selected MeshType from the input file
-    
+
     /// Number of additional quadrature points to use.
     /** overintegration = 0 leads to number_quad_points = dg_solution_degree + 1
      */
@@ -101,7 +101,7 @@ public:
     int nstate;
 
     /// Currently allows to solve advection, diffusion, convection-diffusion
-    enum TestType { 
+    enum TestType {
         run_control,
         grid_refinement_study,
         burgers_energy_stability,
@@ -121,7 +121,7 @@ public:
         shock_1d,
         euler_naca0012,
         reduced_order,
-        burgers_rewienski_snapshot,
+        POD_adaptation,
         advection_periodicity,
         flow_solver,
         dual_weighted_residual_mesh_adaptation,
@@ -129,7 +129,7 @@ public:
     TestType test_type; ///< Selected TestType from the input file.
 
     /// Currently allows to solve advection, diffusion, convection-diffusion
-    enum PartialDifferentialEquation { 
+    enum PartialDifferentialEquation {
         advection,
         diffusion,
         convection_diffusion,
@@ -142,14 +142,14 @@ public:
     };
 
     /// Possible boundary types, NOT IMPLEMENTED YET
-    enum BoundaryType { 
+    enum BoundaryType {
         manufactured_dirichlet,
         manufactured_neumann,
         manufactured_inout_flow,
     };
 
     /// Possible source terms, NOT IMPLEMENTED YET
-    enum SourceTerm { 
+    enum SourceTerm {
         zero,
         manufactured,
     };
@@ -158,10 +158,10 @@ public:
     PartialDifferentialEquation pde_type;
 
     /// Currently only Lax-Friedrichs, roe, and split_form can be used as an input parameter
-    enum ConvectiveNumericalFlux { 
-        lax_friedrichs, 
-        roe, 
-        l2roe, 
+    enum ConvectiveNumericalFlux {
+        lax_friedrichs,
+        roe,
+        l2roe,
         split_form
     };
 

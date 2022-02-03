@@ -63,6 +63,12 @@ double FlowSolver<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim
 }
 
 template <int dim, int nstate>
+void FlowSolver<dim, nstate>::steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> /*dg*/) const
+{
+    // do nothing by default
+}
+
+template <int dim, int nstate>
 void FlowSolver<dim, nstate>::compute_unsteady_data_and_write_to_table(
     const unsigned int /*current_iteration*/,
     const double /*current_time*/, 
@@ -170,6 +176,7 @@ int FlowSolver<dim,nstate>::run_test() const
         // Steady-state solution
         //----------------------------------------------------
         ode_solver->steady_state();
+        steady_state_postprocessing(dg);
     }
     pcout << "done." << std::endl;
     return 0;

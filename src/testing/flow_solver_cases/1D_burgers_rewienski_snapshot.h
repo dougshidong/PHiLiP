@@ -48,6 +48,9 @@ protected:
             const std::shared_ptr <DGBase<dim, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table) const override;
 
+    /// Virtual function for postprocessing when solving for steady state
+    void steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> dg) const override;
+
 };
 
 } // Tests namespace

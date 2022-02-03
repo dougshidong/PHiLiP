@@ -52,6 +52,9 @@ protected:
     /// Pure virtual function to generate the grid
     virtual void generate_grid(std::shared_ptr<Triangulation> grid) const = 0;
 
+    /// Virtual function for postprocessing when solving for steady state
+    virtual void steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> dg) const;
+
     /// Pure virtual function to compute the constant time step
     virtual double get_constant_time_step(std::shared_ptr <DGBase<dim, double>> dg) const;
 

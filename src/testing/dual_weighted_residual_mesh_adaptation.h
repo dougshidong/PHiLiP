@@ -20,7 +20,7 @@ public:
     /// Runs the test to check 2p+1 convergence of the dual weighted residual and goal-oriented mesh adaptation locations.
     int run_test() const;
 
-}; // Tests namespace
+}; 
 
 } // namespace Tests
 } // PHiLiP namespace

@@ -70,13 +70,22 @@ const int dim = PHILIP_DIM;
     all_parameters.ode_solver_param.ode_solver_type = PHiLiP::Parameters::ODESolverParam::ODESolverEnum::explicit_solver;
     all_parameters.ode_solver_param.nonlinear_max_iterations = 500;
     all_parameters.ode_solver_param.print_iteration_modulo = 100;
+    //all_parameters.ode_solver_param.ode_output = PHiLiP::Parameters::OutputEnum::quiet;    //doesn't seem to do anything
     
 
+    double adv_speed_x = 1.0, adv_speed_y = 0.0;
+    all_parameters.manufactured_convergence_study_param.manufactured_solution_param.advection_vector[0] = adv_speed_x; //x-velocity
+    all_parameters.manufactured_convergence_study_param.manufactured_solution_param.advection_vector[1] = adv_speed_y; //y-velocity
+
     int n_time_refinements = 3;
-    double dt_init = 0.25;
+    double dt_init = 0.001;
     double dt = dt_init;
     const double refine_ratio = 0.5;
-    //double L2_error_store[3];
+    double finalTime =2.0;
+    
+    double L2_error_store[4] {};
+    double L2_error; //assigned each loop
+
 
     for (int refinement = 0; refinement < n_time_refinements+1; ++refinement){
 
@@ -85,7 +94,9 @@ const int dim = PHILIP_DIM;
     std::cout << "Using time step = " << dt << std::endl;
     std::cout << "refinement = " << refinement << std::endl;
     
-    unsigned int space_poly_degree = 5;
+    all_parameters.ode_solver_param.output_solution_every_x_steps = int(finalTime/dt/10.0); //output 10 vtk files (if dt reaches finalTime exactly)
+    
+    unsigned int space_poly_degree = 6;
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters, space_poly_degree, grid);
     dg->allocate_system ();
 
@@ -102,41 +113,38 @@ const int dim = PHILIP_DIM;
     }
     else if (dim == 1){
         variables = "x";
-        expression_initial = "sin(2*pi*x/2.0)";//"exp(- 20 * (x-1) * (x-1))";	
+        //expression_initial = "exp(- 20 * (x-1) * (x-1))";	
+        expression_initial = "sin(2*pi*x/2.0)";	
     }
     initial_condition.initialize(variables,
 		    expression_initial,
 	       	    constants);
     dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
-    
 
     // Create ODE solver using the factory and providing the DG object
     std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
-    double finalTime =1.5;
-
-    //double dt = all_parameters->ode_solver_param.initial_time_step;
+    //Solve
     ode_solver->advance_solution_time(finalTime);
     
-    //THESE ADVECTION SPEEDS ARE UNVERIFIED
-   const double advection_speed_x = 1.1;
-   const double advection_speed_y = -atan(1)*4.0/exp(1); //from convection_diffusion in physics
-
+    //Defining exact solution
     dealii::FunctionParser<dim> exact_solution;
-    constants["a_x"] = advection_speed_x; //CHECK WHERE THIS IS STORED
-    constants["a_y"] = advection_speed_y;
+    constants["a_x"] = adv_speed_x; //CHECK WHERE THIS IS STORED
+    constants["a_y"] = adv_speed_y;
     constants["t"] = finalTime;
     std::string expression_exact;
     if (dim == 2){
         expression_exact = "exp( -( 20*(x-1-a_x*t)*(x-1-a_x*t) + 20*(y-1-a_y*t)*(y-1-a_y*t) ) )";
     }
     else if (dim == 1){
-        expression_exact = "sin(2*pi*(x-a_x*t)/2.0)";//exp( - 20*(x-1-a_x*t)*(x-1-a_x*t)) ";
+        expression_exact = "sin(2*pi*(x-a_x*t)/2.0)";
+        //expression_exact = "exp( - 20*(x-1-a_x*t)*(x-1-a_x*t)) ";
     }
     exact_solution.initialize(variables,
     		    expression_exact,
     		    constants);
     
+    //Calculating L2 error
     dealii::Vector<double> difference_per_cell(grid->n_active_cells());
     dealii::VectorTools::integrate_difference(dg->dof_handler, 
 		    dg->solution, 
@@ -144,7 +152,7 @@ const int dim = PHILIP_DIM;
 		    difference_per_cell, 
 		    dealii::QGauss<dim>(space_poly_degree+1), //check that this is correct polynomial degree
 		    dealii::VectorTools::L2_norm);
-    const double L2_error = 
+    L2_error = 
 	    dealii::VectorTools::compute_global_error(*grid,
 			    difference_per_cell,
 			    dealii::VectorTools::L2_norm);
@@ -152,23 +160,18 @@ const int dim = PHILIP_DIM;
     std::cout << "Number of cells is "<< grid->n_active_cells()<<std::endl;
 
     dt *= refine_ratio;
-    //L2_error_store[refinement] = L2_error;
+    L2_error_store[refinement] = L2_error;
     }//time refinement loop
-    //notes
-    //	when finalTime = 0, computed error is 1.7739e-08
 
     //printing results 
-    //should make prettier (use dealii tables)
-    /*
+    //should make prettier (use dealii tables)    
     std::cout << "dt  |  L2 norm of error" << std::endl;
-    dt = dt_init;
-    int ref = 0;
-while (ref < 4){    
-    std::cout << n_time_refinements+1 << std::endl;
-	    //std::cout << dt << "   |   " << L2_error_store[0] << std::endl;
-	    dt*=refine_ratio;
-	    ++ref;
-    } */
+    dt = dt_init;   
+    for (int refinement = 0; refinement < n_time_refinements+1; ++refinement){
+        std::cout << dt << "   |   " << L2_error_store[refinement] << std::endl;
+	dt*=refine_ratio;
+    }
+	    
     return 0; //need to change
 }
 

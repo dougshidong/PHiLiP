@@ -176,7 +176,12 @@ void DualWeightedResidualError<dim, nstate, real, MeshType>::convert_dgsolution_
 template <int dim, int nstate, typename real, typename MeshType>
 void DualWeightedResidualError<dim, nstate, real, MeshType>::coarse_to_fine()
 {
-    Assert(this->dg->get_max_fe_degree() < this->dg->max_degree, dealii::ExcMessage("Polynomial degree of DG will exceed the max allowable after refinement. Update max_degree in dg")); 
+    if (this->dg->get_max_fe_degree() >= this->dg->max_degree) 
+    {
+        pcout<<"Polynomial degree of DG will exceed the maximum allowable after refinement. Update max_degree in dg"<<std::endl;
+        std::abort();
+    }
+
     dealii::IndexSet locally_owned_dofs, locally_relevant_dofs;
     locally_owned_dofs =  this->dg->dof_handler.locally_owned_dofs();
     dealii::DoFTools::extract_locally_relevant_dofs(this->dg->dof_handler, locally_relevant_dofs);

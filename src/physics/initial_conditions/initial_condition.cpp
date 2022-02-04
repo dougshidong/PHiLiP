@@ -146,7 +146,7 @@ template<int dim, typename real>
 InitialConditionFunction_Zero<dim, real> 
 ::InitialConditionFunction_Zero(const unsigned int nstate) 
     : dealii::Function<dim,real>(nstate)
-{
+{ }
 
 template<int dim, typename real>
 real InitialConditionFunction_Zero<dim, real> :: value(const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const 

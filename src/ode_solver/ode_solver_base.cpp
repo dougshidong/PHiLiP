@@ -230,15 +230,11 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
         step_in_time(constant_time_step, pseudotime);
 
 
-        if (ode_param.output_solution_every_x_steps > 0) {
-            const bool is_output_iteration = (this->current_iteration % ode_param.output_solution_every_x_steps == 0);
-            if (is_output_iteration) {
-                const int file_number = this->current_iteration / ode_param.output_solution_every_x_steps;
-                this->dg->output_results_vtk(file_number);
-            }
-	}
-        
-	if (ode_param.output_solution_vector_modulo > 0) {
+        if (this->current_iteration%ode_param.print_iteration_modulo == 0) {
+            this->dg->output_results_vtk(this->current_iteration);
+        }
+
+        if (ode_param.output_solution_vector_modulo > 0) {
             if (this->current_iteration % ode_param.output_solution_vector_modulo == 0) {
                 for (unsigned int i = 0; i < this->dg->solution.size(); ++i) {
                     solutions_table.template add_value(

@@ -157,7 +157,6 @@ real InitialConditionFunction_Zero<dim, real> :: value(const dealii::Point<dim,r
 template class InitialConditionFunction <PHILIP_DIM,double>;
 template class InitialConditionFactory <PHILIP_DIM,double>;
 template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM,double>;
-
 template class InitialConditionFunction_Zero <PHILIP_DIM,double>;
 
 } // PHiLiP namespace

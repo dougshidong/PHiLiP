@@ -147,7 +147,6 @@ InitialConditionFunction_Zero<dim, real>
 ::InitialConditionFunction_Zero(const unsigned int nstate) 
     : dealii::Function<dim,real>(nstate)
 {
-    // Nothing to do here yet
 }
 
 template<int dim, typename real>

@@ -15,6 +15,9 @@
 #include "parameters/parameters_reduced_order.h"
 #include "parameters/parameters_grid_refinement_study.h"
 #include "parameters/parameters_grid_refinement.h"
+#include "parameters/parameters_artificial_dissipation.h"
+#include "parameters/parameters_flow_solver.h"
+#include "parameters/parameters_mesh_adaptation.h"
 
 namespace PHiLiP {
 namespace Parameters {
@@ -38,8 +41,14 @@ public:
     NavierStokesParam navier_stokes_param;
     /// Contains parameters for the Reduced-Order model
     ReducedOrderModelParam reduced_order_param;
-    /// contains the parameters for grid refinement study
+    /// Contains the parameters for grid refinement study
     GridRefinementStudyParam grid_refinement_study_param;
+    /// Contains parameters for artificial dissipation
+    ArtificialDissipationParam artificial_dissipation_param;
+    /// Contains the parameters for simulation cases (flow solver test)
+    FlowSolverParam flow_solver_param;
+    /// Constains parameters for mesh adaptation
+    MeshAdaptationParam mesh_adaptation_param;
 
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;
@@ -52,7 +61,7 @@ public:
         parallel_distributed_triangulation,
         };
     MeshType mesh_type; ///< Selected MeshType from the input file
-    
+
     /// Number of additional quadrature points to use.
     /** overintegration = 0 leads to number_quad_points = dg_solution_degree + 1
      */
@@ -82,28 +91,20 @@ public:
     //The default ESFR scheme is the Nonlinearly Stable FR where the volume is also reconstructed
     bool use_classical_FR;
 
-    /// Flag to add artificial dissipation from Persson's shock capturing paper.
-    /** This feature is currently not fully working. It dissipates the Burger's
-     *  invisid shock, but loses all the order of accuracy for the Gaussian bump.
-     */
-    bool add_artificial_dissipation;
-
     /// Scaling of Symmetric Interior Penalty term to ensure coercivity.
-    /** 
-     *  invisid shock, but loses all the order of accuracy for the Gaussian bump.
-     */
     double sipg_penalty_factor;
 
     /// Number of state variables. Will depend on PDE
     int nstate;
 
     /// Currently allows to solve advection, diffusion, convection-diffusion
-    enum TestType { 
+    enum TestType {
         run_control,
         grid_refinement_study,
         burgers_energy_stability,
         diffusion_exact_adjoint,
         euler_gaussian_bump,
+        euler_gaussian_bump_enthalpy,
         euler_gaussian_bump_adjoint,
         euler_cylinder,
         euler_cylinder_adjoint,
@@ -117,13 +118,14 @@ public:
         shock_1d,
         euler_naca0012,
         reduced_order,
-        burgers_rewienski_snapshot,
+        POD_adaptation,
         advection_periodicity,
+        flow_solver,
     };
     TestType test_type; ///< Selected TestType from the input file.
 
     /// Currently allows to solve advection, diffusion, convection-diffusion
-    enum PartialDifferentialEquation { 
+    enum PartialDifferentialEquation {
         advection,
         diffusion,
         convection_diffusion,
@@ -136,14 +138,14 @@ public:
     };
 
     /// Possible boundary types, NOT IMPLEMENTED YET
-    enum BoundaryType { 
+    enum BoundaryType {
         manufactured_dirichlet,
         manufactured_neumann,
         manufactured_inout_flow,
     };
 
     /// Possible source terms, NOT IMPLEMENTED YET
-    enum SourceTerm { 
+    enum SourceTerm {
         zero,
         manufactured,
     };
@@ -151,12 +153,11 @@ public:
     /// Store the PDE type to be solved
     PartialDifferentialEquation pde_type;
 
-
     /// Currently only Lax-Friedrichs, roe, and split_form can be used as an input parameter
-    enum ConvectiveNumericalFlux { 
-        lax_friedrichs, 
-        roe, 
-        l2roe, 
+    enum ConvectiveNumericalFlux {
+        lax_friedrichs,
+        roe,
+        l2roe,
         split_form
     };
 
@@ -167,7 +168,6 @@ public:
     enum DissipativeNumericalFlux { symm_internal_penalty, bassi_rebay_2 };
     /// Store diffusive flux type
     DissipativeNumericalFlux diss_num_flux_type;
-
 
     /// Type of correction in Flux Reconstruction
     enum Flux_Reconstruction {cDG, cSD, cHU, cNegative, cNegative2, cPlus, cPlus1D, c10Thousand, cHULumped};

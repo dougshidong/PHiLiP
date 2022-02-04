@@ -108,6 +108,7 @@ DGBase<dim,real,MeshType>::DGBase(
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
     , freeze_artificial_dissipation(false)
+    , max_artificial_dissipation_coeff(0.0)
 {
 
     dof_handler.initialize(*triangulation, fe_collection);
@@ -259,12 +260,13 @@ DGBaseState<dim,nstate,real,MeshType>::DGBaseState(
     const std::shared_ptr<Triangulation> triangulation_input)
     : DGBase<dim,real,MeshType>::DGBase(nstate, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input) // Use DGBase constructor
 {
-    pde_physics_double = Physics::PhysicsFactory<dim,nstate,real> ::create_Physics(parameters_input);
-    pde_physics_fad = Physics::PhysicsFactory<dim,nstate,FadType> ::create_Physics(parameters_input);
-    pde_physics_rad = Physics::PhysicsFactory<dim,nstate,RadType> ::create_Physics(parameters_input);
-    pde_physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType> ::create_Physics(parameters_input);
-    pde_physics_rad_fad = Physics::PhysicsFactory<dim,nstate,RadFadType> ::create_Physics(parameters_input);
-
+    pde_physics_double  = Physics::PhysicsFactory<dim,nstate,real>            ::create_Physics(parameters_input);
+    pde_physics_fad     = Physics::PhysicsFactory<dim,nstate,FadType>         ::create_Physics(parameters_input);
+    pde_physics_rad     = Physics::PhysicsFactory<dim,nstate,RadType>         ::create_Physics(parameters_input);
+    pde_physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType>      ::create_Physics(parameters_input);
+    pde_physics_rad_fad = Physics::PhysicsFactory<dim,nstate,RadFadType>      ::create_Physics(parameters_input);
+    artificial_dissip = ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(parameters_input);
+    
     reset_numerical_fluxes();
 }
 
@@ -272,19 +274,19 @@ template <int dim, int nstate, typename real, typename MeshType>
 void DGBaseState<dim,nstate,real,MeshType>::reset_numerical_fluxes()
 {
     conv_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, pde_physics_double);
-    diss_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_double);
+    diss_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_double, artificial_dissip);
 
     conv_num_flux_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadType> ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, pde_physics_fad);
-    diss_num_flux_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadType> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_fad);
+    diss_num_flux_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadType> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_fad, artificial_dissip);
 
     conv_num_flux_rad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadType> ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, pde_physics_rad);
-    diss_num_flux_rad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadType> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_rad);
+    diss_num_flux_rad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadType> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_rad, artificial_dissip);
 
     conv_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadFadType> ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, pde_physics_fad_fad);
-    diss_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadFadType> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_fad_fad);
+    diss_num_flux_fad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadFadType> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_fad_fad, artificial_dissip);
 
     conv_num_flux_rad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadType> ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, pde_physics_rad_fad);
-    diss_num_flux_rad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadType> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_rad_fad);
+    diss_num_flux_rad_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadType> ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics_rad_fad, artificial_dissip);
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -959,8 +961,8 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
             // Quadrature
             element_volume += fe_values_volume.JxW(iquad);
             // Only integrate over the first state variable.
-            // Persson and Peraire only did density.
-            for (unsigned int s=0; s<1/*nstate*/; ++s) {
+            for (unsigned int s=0; s<1/*nstate*/; ++s) 
+            {
                 error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * fe_values_volume.JxW(iquad);
                 soln_norm += soln_high[s] * soln_high[s] * fe_values_volume.JxW(iquad);
             }
@@ -969,7 +971,10 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
         //std::cout << " error: " << error
         //          << " soln_norm: " << soln_norm << std::endl;
         //if (error < 1e-12) continue;
-        if (soln_norm < 1e-12) continue;
+        if (soln_norm < 1e-12) 
+        {
+            continue;
+        }
 
         double S_e, s_e;
         S_e = sqrt(error / soln_norm);
@@ -980,28 +985,37 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
         //const double s_0 = -0.5 - 4.25*log10(degree);
         //const double kappa = 1.0;
 
-        const double mu_scale = 1.0 * 1e-0;
+        const double mu_scale = all_parameters->artificial_dissipation_param.mu_artificial_dissipation; //1.0
         //const double s_0 = - 4.25*log10(degree);
         const double s_0 = -0.00 - 4.00*log10(degree);
-        const double kappa = 1.0;
+        const double kappa = all_parameters->artificial_dissipation_param.kappa_artificial_dissipation; //1.0
         const double low = s_0 - kappa;
         const double upp = s_0 + kappa;
 
         const double diameter = std::pow(element_volume, 1.0/dim);
         const double eps_0 = mu_scale * diameter / (double)degree;
-
+    
         //std::cout << " lower < s_e < upp " << low << " < " << s_e << " < " << upp << " ? " << std::endl;
 
         if ( s_e < low) continue;
 
         if ( s_e > upp) {
             artificial_dissipation_coeffs[cell_index] += eps_0;
+            if(eps_0 > max_artificial_dissipation_coeff)
+            {
+                max_artificial_dissipation_coeff = eps_0;
+            }
             continue;
         }
 
         const double PI = 4*atan(1);
         double eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
         eps *= eps_0 * 0.5;
+    
+        if(eps > max_artificial_dissipation_coeff)
+        {
+            max_artificial_dissipation_coeff = eps;
+        }
 
 
         artificial_dissipation_coeffs[cell_index] += eps;
@@ -1053,6 +1067,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         &&  !(compute_dRdX && compute_d2R)
             , dealii::ExcMessage("Can only do one at a time compute_dRdW or compute_dRdX or compute_d2R"));
 
+    max_artificial_dissipation_coeff = 0.0;
     //pcout << "Assembling DG residual...";
     if (compute_dRdW) {
         pcout << " with dRdW...";
@@ -2306,9 +2321,9 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
 
     // log10(a/p^4) = log10(a) - 4*log10(p)
     //const real2 s_0 = -1.5 - 4.25*log10(degree);
-    const double mu_scale = 0.1;
+    const double mu_scale = all_parameters->artificial_dissipation_param.mu_artificial_dissipation; //0.1
     const real2 s_0 = log10(0.1) - 4.25*log10(degree);
-    const double kappa = 2.0;
+    const double kappa = all_parameters->artificial_dissipation_param.kappa_artificial_dissipation; //2.0
     const real2 low = s_0 - kappa;
     const real2 upp = s_0 + kappa;
 
@@ -2318,85 +2333,128 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     // const real2 low = Skappa - m_Kappa;
     // const real2 upp = Skappa + m_Kappa;
 
-    const real2 eps_0 = mu_scale * diameter / (double)degree;
+    const real2 eps_0 =mu_scale* diameter / (double)degree;
 
     if ( s_e < low) return 0.0;
 
-    if ( s_e > upp) return eps_0;
+    if ( s_e > upp)
+    {
+        /*if(eps_0 > max_artificial_dissipation_coeff)
+        {
+            max_artificial_dissipation_coeff = eps_0;
+        }*/
+        return eps_0;
+    }
 
     const double PI = 4*atan(1);
     //real2 eps = 1.0 + std::sin(PI * (s_e - Skappa) * 0.5 / m_Kappa);
     real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
     eps *= eps_0 * 0.5;
 
-
-    return eps;
+    /*if(eps > max_artificial_dissipation_coeff)
+    {
+        max_artificial_dissipation_coeff = eps;
+    }*/
+   
+   return eps;
 
 }
 
-template<int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::refine_residual_based()
+template <int dim, typename real,typename MeshType>
+template <typename real2>
+real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
+    const dealii::Quadrature<dim> &volume_quadrature,
+    const std::vector< real2 > &soln_coeff_high,
+    const dealii::FiniteElement<dim,dim> &fe_high,
+    const std::vector<real2> &jac_det)
 {
-    dealii::Vector<float> gradient_indicator(high_order_grid->triangulation->n_active_cells());
+    const unsigned int degree = fe_high.tensor_degree();
 
-    const auto mapping = (*(high_order_grid->mapping_fe_field));
-    dealii::DerivativeApproximation::approximate_gradient(mapping,
-                                                  dof_handler,
-                                                  solution,
-                                                  gradient_indicator);
+    if (degree == 0) return 0;
 
-    for (const auto &cell : high_order_grid->triangulation->active_cell_iterators()) {
-        gradient_indicator[cell->active_cell_index()] *= std::pow(cell->diameter(), 1 + 1.0 * dim / 2);
-    }
-    std::vector<dealii::types::global_dof_index> dofs_indices;
-    for (const auto &cell : dof_handler.active_cell_iterators()) {
-        if (!cell->is_locally_owned()) continue;
+    const unsigned int nstate = fe_high.components;
+    const unsigned int n_dofs_high = fe_high.dofs_per_cell;
 
-        const int i_fele = cell->active_fe_index();
-        const dealii::FESystem<dim,dim> &fe_ref = fe_collection[i_fele];
-        const unsigned int n_dofs_cell = fe_ref.n_dofs_per_cell();
-        dofs_indices.resize(n_dofs_cell);
-        cell->get_dof_indices (dofs_indices);
-        double max_residual = 0;
-        for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-        //for (const auto &idof : dofs_indices) {
-            const unsigned int index = dofs_indices[idof];
-            const unsigned int istate = fe_ref.system_to_component_index(idof).first;
-            if (istate == dim+2-1) {
-                const double res = std::abs(right_hand_side[index]);
-                if (res > max_residual) max_residual = res;
-            }
+    // Lower degree basis.
+    const unsigned int lower_degree = degree-1;
+    const dealii::FE_DGQLegendre<dim> fe_dgq_lower(lower_degree);
+    const dealii::FESystem<dim,dim> fe_lower(fe_dgq_lower, nstate);
+
+    // Projection quadrature.
+    const dealii::QGauss<dim> projection_quadrature(degree+5);
+    std::vector< real2 > soln_coeff_lower = project_function<dim,real2>( soln_coeff_high, fe_high, fe_lower, projection_quadrature);
+
+    // Quadrature used for solution difference.
+    const std::vector<dealii::Point<dim,double>> &unit_quad_pts = volume_quadrature.get_points();
+
+    const unsigned int n_quad_pts = volume_quadrature.size();
+    const unsigned int n_dofs_lower = fe_lower.dofs_per_cell;
+
+    real2 element_volume = 0.0;
+    real2 error = 0.0;
+    real2 soln_norm = 0.0;
+    std::vector<real2> soln_high(nstate);
+    std::vector<real2> soln_lower(nstate);
+    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        for (unsigned int s=0; s<nstate; ++s) {
+            soln_high[s] = 0.0;
+            soln_lower[s] = 0.0;
         }
-        gradient_indicator[cell->active_cell_index()] = max_residual;
+        // Interpolate solution
+        for (unsigned int idof=0; idof<n_dofs_high; ++idof) {
+              const unsigned int istate = fe_high.system_to_component_index(idof).first;
+              soln_high[istate] += soln_coeff_high[idof] * fe_high.shape_value_component(idof,unit_quad_pts[iquad],istate);
+        }
+        // Interpolate low order solution
+        for (unsigned int idof=0; idof<n_dofs_lower; ++idof) {
+              const unsigned int istate = fe_lower.system_to_component_index(idof).first;
+              soln_lower[istate] += soln_coeff_lower[idof] * fe_lower.shape_value_component(idof,unit_quad_pts[iquad],istate);
+        }
+        // Quadrature
+        const real2 JxW = jac_det[iquad] * volume_quadrature.weight(iquad);
+        element_volume += JxW;
+        // Only integrate over the first state variable.
+        // Persson and Peraire only did density.
+        for (unsigned int s=0; s<1/*nstate*/; ++s) 
+        {
+            error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * JxW;
+            soln_norm += soln_high[s] * soln_high[s] * JxW;
+        }
     }
 
-    dealii::LinearAlgebra::distributed::Vector<double> old_solution(solution);
-    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dof_handler);
-    solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
-    high_order_grid->prepare_for_coarsening_and_refinement();
+    if (soln_norm < 1e-15) return 0;
 
-    //high_order_grid->triangulation->refine_global (1);
-    if constexpr(dim == 1 ||
-        !std::is_same<MeshType, dealii::parallel::distributed::Triangulation<dim>>::value) {
-        dealii::GridRefinement::refine_and_coarsen_fixed_number(*high_order_grid->triangulation,
-                                                        gradient_indicator,
-                                                        0.05,
-                                                        0.025);
-    } else {
-        dealii::parallel::distributed::GridRefinement::refine_and_coarsen_fixed_number(*(high_order_grid->triangulation),
-                                                        gradient_indicator,
-                                                        0.05,
-                                                        0.01);
+    const real2 S_e = sqrt(error / soln_norm);
+    const real2 s_e = log10(S_e);
+
+    const double mu_scale = all_parameters->artificial_dissipation_param.mu_artificial_dissipation;
+    const double s_0 = -0.00 - 4.00*log10(degree);
+    const double kappa = all_parameters->artificial_dissipation_param.kappa_artificial_dissipation;
+    const double low = s_0 - kappa;
+    const double upp = s_0 + kappa;
+
+    const real2 diameter = pow(element_volume, 1.0/dim);
+    const real2 eps_0 = mu_scale * diameter / (double)degree;
+
+    if ( s_e < low) return 0.0;
+
+    if ( s_e > upp) 
+    {
+        /*if(eps_0 > max_artificial_dissipation_coeff)
+        {
+            max_artificial_dissipation_coeff = eps_0;
+        }*/
+        return eps_0;
     }
-    high_order_grid->triangulation->execute_coarsening_and_refinement();
-    high_order_grid->execute_coarsening_and_refinement();
-    allocate_system ();
-    solution.zero_out_ghosts();
-    solution_transfer.interpolate(solution);
-    solution.update_ghost_values();
 
-    assemble_residual ();
-
+    const double PI = 4*atan(1);
+    real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
+    eps *= eps_0 * 0.5;
+    /*if(eps > max_artificial_dissipation_coeff)
+    {
+        max_artificial_dissipation_coeff = eps;
+    }*/
+    return eps;
 }
 
 // No support for anisotropic mesh refinement with parallel::distributed::Triangulation
@@ -2562,15 +2620,24 @@ template class DGBaseState <PHILIP_DIM, 4, double, dealii::parallel::distributed
 template class DGBaseState <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 
-template double
-DGBase<PHILIP_DIM,double>::discontinuity_sensor(const double diameter, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high);
-template FadType
-DGBase<PHILIP_DIM,double>::discontinuity_sensor(const FadType diameter, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high);
-template RadType
-DGBase<PHILIP_DIM,double>::discontinuity_sensor(const RadType diameter, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high);
-template FadFadType
-DGBase<PHILIP_DIM,double>::discontinuity_sensor(const FadFadType diameter, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high);
-template RadFadType
-DGBase<PHILIP_DIM,double>::discontinuity_sensor(const RadFadType diameter, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high);
+template double DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
+template FadType DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
+template RadType DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
+template FadFadType DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
+template RadFadType DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
+
+
+template double DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
+template FadType DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
+template RadType DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
+template FadFadType DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
+template RadFadType DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
+
+
+template double DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
+template FadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
+template RadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
+template FadFadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
+template RadFadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
 
 } // PHiLiP namespace

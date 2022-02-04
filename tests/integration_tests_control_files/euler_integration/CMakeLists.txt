@@ -105,6 +105,58 @@ add_test(
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
+##Artificial dissipation tests
+configure_file(2d_euler_gaussian_bump_with_artificial_dissipation_laplacian_residual_convergence_test.prm 2d_euler_gaussian_bump_with_artificial_dissipation_laplacian_residual_convergence_test.prm COPYONLY)
+add_test(
+  NAME MPI_2D_EULER_INTEGRATION_GAUSSIAN_BUMP_WITH_ARTIFICIAL_VISCOSITY_LAPLACIAN_RESIDUAL_CONVERGENCE
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_gaussian_bump_with_artificial_dissipation_laplacian_residual_convergence_test.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+configure_file(2d_euler_gaussian_bump_with_artificial_dissipation_enthalpy_laplacian_residual_convergence_test.prm 2d_euler_gaussian_bump_with_artificial_dissipation_enthalpy_laplacian_residual_convergence_test.prm COPYONLY)
+add_test(
+  NAME MPI_2D_EULER_INTEGRATION_GAUSSIAN_BUMP_WITH_ARTIFICIAL_VISCOSITY_ENTHALPY_LAPLACIAN_RESIDUAL_CONVERGENCE
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_gaussian_bump_with_artificial_dissipation_enthalpy_laplacian_residual_convergence_test.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+configure_file(2d_euler_gaussian_bump_with_artificial_dissipation_physical_residual_convergence_test.prm 2d_euler_gaussian_bump_with_artificial_dissipation_physical_residual_convergence_test.prm COPYONLY)
+add_test(
+  NAME MPI_2D_EULER_INTEGRATION_GAUSSIAN_BUMP_WITH_ARTIFICIAL_VISCOSITY_PHYSICAL_RESIDUAL_CONVERGENCE
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_gaussian_bump_with_artificial_dissipation_physical_residual_convergence_test.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
+configure_file(2d_euler_gaussian_bump_with_artificial_dissipation_laplacian_discontinuity_sensor_test.prm 2d_euler_gaussian_bump_with_artificial_dissipation_laplacian_discontinuity_sensor_test.prm COPYONLY)
+add_test(
+  NAME MPI_2D_EULER_INTEGRATION_GAUSSIAN_BUMP_WITH_ARTIFICIAL_VISCOSITY_LAPLACIAN_DISCONTINUITY_SENSOR
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_gaussian_bump_with_artificial_dissipation_laplacian_discontinuity_sensor_test.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+configure_file(2d_euler_gaussian_bump_with_artificial_dissipation_enthalpy_laplacian_discontinuity_sensor_test.prm 2d_euler_gaussian_bump_with_artificial_dissipation_enthalpy_laplacian_discontinuity_sensor_test.prm COPYONLY)
+add_test(
+  NAME MPI_2D_EULER_INTEGRATION_GAUSSIAN_BUMP_WITH_ARTIFICIAL_VISCOSITY_ENTHALPY_LAPLACIAN_DISCONTINUITY_SENSOR
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_gaussian_bump_with_artificial_dissipation_enthalpy_laplacian_discontinuity_sensor_test.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+configure_file(2d_euler_gaussian_bump_with_artificial_dissipation_physical_discontinuity_sensor_test.prm 2d_euler_gaussian_bump_with_artificial_dissipation_physical_discontinuity_sensor_test.prm COPYONLY)
+add_test(
+  NAME MPI_2D_EULER_INTEGRATION_GAUSSIAN_BUMP_WITH_ARTIFICIAL_VISCOSITY_PHYSICAL_DISCONTINUITY_SENSOR
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_gaussian_bump_with_artificial_dissipation_physical_discontinuity_sensor_test.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+configure_file(2d_euler_gaussian_bump_enthalpy_test.prm 2d_euler_gaussian_bump_enthalpy_test.prm COPYONLY)
+add_test(
+  NAME MPI_2D_EULER_INTEGRATION_GAUSSIAN_BUMP_ENTHALPY_TEST
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_gaussian_bump_enthalpy_test.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
+# Mesh Adaptation test cases
+configure_file(2d_euler_gaussian_bump_residual_mesh_adaptation.prm 2d_euler_gaussian_bump_residual_mesh_adaptation.prm COPYONLY)
+add_test(
+  NAME MPI_2D_EULER_INTEGRATION_GAUSSIAN_BUMP_RESIDUAL_MESH_ADAPTATION
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_gaussian_bump_residual_mesh_adaptation.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
 # Adjoint test cases
 
 # configure_file(2d_euler_gaussian_bump_adjoint.prm 2d_euler_gaussian_bump_adjoint.prm COPYONLY)

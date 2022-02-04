@@ -127,6 +127,7 @@ foreach(dim RANGE 2 3)
     target_link_libraries(${TEST_TARGET} ParametersLibrary)
     target_link_libraries(${TEST_TARGET} Grids_${dim}D)
     target_link_libraries(${TEST_TARGET} Physics_${dim}D)
+    target_link_libraries(${TEST_TARGET} InitialConditions_${dim}D)
     target_link_libraries(${TEST_TARGET} DiscontinuousGalerkin_${dim}D)
     target_link_libraries(${TEST_TARGET} ODESolver_${dim}D)
     # Setup target with deal.II

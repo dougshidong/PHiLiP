@@ -5,13 +5,20 @@ namespace ODE{
 
 template <int dim, typename real, typename MeshType>
 ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
-        : n_refine(0)
-        , current_time(0.0)
+        : current_time(0.0)
+        , current_iteration(0)
+        , current_desired_time_for_output_solution_every_dt_time_intervals(0.0)
         , dg(dg_input)
         , all_parameters(dg->all_parameters)
         , mpi_communicator(MPI_COMM_WORLD)
         , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
-        {}
+        , refine_mesh_in_ode_solver(true)
+        {
+            meshadaptation = std::make_unique<MeshAdaptation<dim,real,MeshType>>(all_parameters->mesh_adaptation_param.critical_residual_val,
+                                                                                 all_parameters->mesh_adaptation_param.total_refinement_steps,
+                                                                                 all_parameters->mesh_adaptation_param.refinement_fraction,
+                                                                                 all_parameters->mesh_adaptation_param.coarsening_fraction);
+        }
 
 template <int dim, typename real, typename MeshType>
 void ODESolverBase<dim,real,MeshType>::initialize_steady_polynomial_ramping (const unsigned int global_final_poly_degree)
@@ -20,9 +27,9 @@ void ODESolverBase<dim,real,MeshType>::initialize_steady_polynomial_ramping (con
     pcout << " Initializing DG with global polynomial degree = " << global_final_poly_degree << " by ramping from degree 0 ... " << std::endl;
     pcout << " ************************************************************************ " << std::endl;
 
-    refine = false;
+    refine_mesh_in_ode_solver = false;
     for (unsigned int degree = 0; degree <= global_final_poly_degree; degree++) {
-        if (degree == global_final_poly_degree) refine = true;
+        if (degree == global_final_poly_degree) refine_mesh_in_ode_solver = true;
         pcout << " ************************************************************************ " << std::endl;
         pcout << " Ramping degree " << degree << " until p=" << global_final_poly_degree << std::endl;
         pcout << " ************************************************************************ " << std::endl;
@@ -90,7 +97,6 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
 
     double old_residual_norm = this->residual_norm; (void) old_residual_norm;
 
-    int i_refine = 0;
     // Output initial solution
     int convergence_error = this->residual_norm > ode_param.nonlinear_steady_residual_tolerance;
 
@@ -139,8 +145,6 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
 
         this->dg->assemble_residual ();
 
-        ++(this->current_iteration);
-
         if (ode_param.output_solution_every_x_steps > 0) {
             const bool is_output_iteration = (this->current_iteration % ode_param.output_solution_every_x_steps == 0);
             if (is_output_iteration) {
@@ -148,10 +152,12 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
                 this->dg->output_results_vtk(file_number);
             }
         }
-
-        if ( refine && this->residual_norm < 1e-9 && i_refine < n_refine) {
-            i_refine++;
-            dg->refine_residual_based();
+        
+        if ((this->residual_norm < meshadaptation->critical_residual) 
+            && (refine_mesh_in_ode_solver) 
+            && (meshadaptation->current_refinement_cycle < meshadaptation->total_refinement_cycles))
+        {
+            meshadaptation->adapt_mesh(dg);
             allocate_ode_system ();
         }
 
@@ -169,6 +175,17 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
         this->dg->solution = initial_solution;
 
         if(CFL_factor <= 1e-2) this->dg->right_hand_side.add(1.0);
+    }
+
+    if (ode_param.output_solution_vector_modulo > 0) {
+        for (unsigned int i = 0; i < this->dg->solution.size(); ++i) {
+            solutions_table.add_value(
+                    "Steady-state solution:",
+                    this->dg->solution[i]);
+        }
+        solutions_table.set_precision("Steady-state solution:", 16);
+        std::ofstream out_file(ode_param.solutions_table_filename + ".txt");
+        solutions_table.write_text(out_file);
     }
 
     pcout << " ********************************************************** "
@@ -205,9 +222,12 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
     allocate_ode_system ();
 
     this->current_iteration = 0;
-
-    // Output initial solution
-    this->dg->output_results_vtk(this->current_iteration);
+    if (ode_param.output_solution_every_x_steps >= 0) {
+        this->dg->output_results_vtk(this->current_iteration);  
+    } else if (ode_param.output_solution_every_dt_time_intervals > 0.0) {
+        this->dg->output_results_vtk(this->current_iteration);
+        this->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_every_dt_time_intervals;
+    }
 
     while (this->current_iteration < number_of_time_steps)
     {
@@ -219,7 +239,6 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
                   << " out of: " << number_of_time_steps
                   << std::endl;
         }
-        dg->assemble_residual(false);
 
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose &&
             (this->current_iteration%ode_param.print_iteration_modulo) == 0 ) {
@@ -229,21 +248,32 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
         const bool pseudotime = false;
         step_in_time(constant_time_step, pseudotime);
 
-
-        if (this->current_iteration%ode_param.print_iteration_modulo == 0) {
-            this->dg->output_results_vtk(this->current_iteration);
+        if (ode_param.output_solution_every_x_steps > 0) {
+            const bool is_output_iteration = (this->current_iteration % ode_param.output_solution_every_x_steps == 0);
+            if (is_output_iteration) {
+                const int file_number = this->current_iteration / ode_param.output_solution_every_x_steps;
+                this->dg->output_results_vtk(file_number);
+            }
+        } else if(ode_param.output_solution_every_dt_time_intervals > 0.0) {
+            const bool is_output_time = ((this->current_time <= this->current_desired_time_for_output_solution_every_dt_time_intervals) && 
+                                         ((this->current_time + constant_time_step) > this->current_desired_time_for_output_solution_every_dt_time_intervals));
+            if (is_output_time) {
+                const int file_number = this->current_desired_time_for_output_solution_every_dt_time_intervals / ode_param.output_solution_every_dt_time_intervals;
+                this->dg->output_results_vtk(file_number);
+                this->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_every_dt_time_intervals;
+            }
         }
 
         if (ode_param.output_solution_vector_modulo > 0) {
             if (this->current_iteration % ode_param.output_solution_vector_modulo == 0) {
                 for (unsigned int i = 0; i < this->dg->solution.size(); ++i) {
-                    solutions_table.template add_value(
-                            "Time:" + std::to_string(this->current_iteration * constant_time_step),
+                    solutions_table.add_value(
+                            "Time:" + std::to_string(this->current_time),
                             this->dg->solution[i]);
                 }
+                solutions_table.set_precision("Time:" + std::to_string(this->current_time), 16);
             }
         }
-        ++(this->current_iteration);
     }
 
     if (ode_param.output_solution_vector_modulo > 0) {

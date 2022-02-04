@@ -5,7 +5,7 @@ set(TEST_SRC
 foreach(dim RANGE 1 3)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}VOLUME_OPERATORS_TEST)
+    string(CONCAT TEST_TARGET ${dim}D_VOLUME_OPERATORS)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
@@ -45,7 +45,7 @@ set(TEST_SRC
 foreach(dim RANGE 2 3)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}GCL_TEST)
+    string(CONCAT TEST_TARGET ${dim}D_GCL)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
@@ -85,7 +85,7 @@ set(TEST_SRC
 foreach(dim RANGE 1 3)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}SURFACE_OPERATORS_TEST)
+    string(CONCAT TEST_TARGET ${dim}D_SURFACE_OPERATORS)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
@@ -125,7 +125,7 @@ Surface_GCL_test.cpp
 foreach(dim RANGE 2 3)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}SURFACE_GCL_TEST)
+    string(CONCAT TEST_TARGET ${dim}D_SURFACE_GCL)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
@@ -165,7 +165,7 @@ Surface_GCL_Superparametric_test.cpp
 foreach(dim RANGE 2 3)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}SURFACE_GCL_SUPERPARAMETRIC_TEST)
+    string(CONCAT TEST_TARGET ${dim}D_SURFACE_GCL_SUPERPARAMETRIC)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
@@ -205,7 +205,7 @@ GCL_Collocated_test.cpp
 foreach(dim RANGE 2 3)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}GCL_COLLOCATED_TEST)
+    string(CONCAT TEST_TARGET ${dim}D_GCL_COLLOCATED)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
@@ -245,7 +245,7 @@ Flux_oper_test.cpp
 foreach(dim RANGE 1 3)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}FLUX_OPERATORS_TEST)
+    string(CONCAT TEST_TARGET ${dim}D_FLUX_OPERATORS)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code

@@ -8,8 +8,6 @@
 
 #include <deal.II/dofs/dof_tools.h>
 
-#include <deal.II/distributed/tria.h>
-
 #include <deal.II/grid/tria.h>
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/tria.h>

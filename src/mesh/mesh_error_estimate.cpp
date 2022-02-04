@@ -85,7 +85,7 @@ DualWeightedResidualError<dim, nstate, real, MeshType>::DualWeightedResidualErro
     // storing the original FE degree distribution
     coarse_fe_index.reinit(this->dg->triangulation->n_active_cells());
 
-    // Create functional
+    // create functional
     functional = FunctionalFactory<dim,nstate,real,MeshType>::create_Functional(this->dg->all_parameters->functional_param, this->dg);
 
     // looping over the cells

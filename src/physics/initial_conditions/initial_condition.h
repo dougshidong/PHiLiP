@@ -135,7 +135,10 @@ class InitialConditionFunction_Zero : public dealii::Function<dim>
 {
 public:
     /// Constructor to initialize dealii::Function
-    InitialConditionFunction_Zero(const unsigned int nstate); 
+    InitialConditionFunction_Zero(const unsigned int nstate) 
+    : dealii::Function<dim,real>(nstate)
+    { }
+
     /// Returns zero.
     real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };

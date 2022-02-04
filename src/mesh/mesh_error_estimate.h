@@ -83,7 +83,7 @@ public:
   * 
   * Includes functions for solving both the coarse and fine \f$p\f$-enriched adjoint problems. Subscripts \f$H\f$ 
   * and \f$h\f$ are used to denote coarse and fine grid variables respectively.
-  * Uses equations derived in VENDITTI AND DARMOFAL, Adjoint Error Estimation and Grid Adaptation for Functional Outputs: Application to Quasi-One-Dimensional Flow. Journal of Computational Physics 164, 1 (2000), 204–227.
+  * Reference: Venditti AND Darmafol, "Adjoint Error Estimation and Grid Adaptation for Functional Outputs: Application to Quasi-One-Dimensional Flow". Journal of Computational Physics 164, 1 (2000), 204–227.
   */ 
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
 template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
@@ -142,6 +142,7 @@ public:
      *      + \left(\left. \frac{\partial \mathcal{J}_h}{\partial \mathbf{u}} \right|_{\mathbf{u}_h^H}\right)^T=\mathbf{0}
      *  \f]
      *  where \f$\mathbf{u}_h^H\f$ is the projected solution on the fine grid.
+     *  Eq(7) from Venditti and Darmafol (2000), cited above.
      */ 
     dealii::LinearAlgebra::distributed::Vector<real> fine_grid_adjoint();
 
@@ -151,6 +152,7 @@ public:
      *      \left(\left. \frac{\partial \mathbf{R}_H}{\partial \mathbf{u}} \right|_{\mathbf{u}_H}\right)^T \psi_H 
      *      + \left(\left. \frac{\partial \mathcal{J}_H}{\partial \mathbf{u}} \right|_{\mathbf{u}_H}\right)^T=\mathbf{0}
      * \f]
+     * Eq(7) from Venditti and Darmafol (2000), cited above, using coarse-grid solution.
      */
     dealii::LinearAlgebra::distributed::Vector<real> coarse_grid_adjoint();
 
@@ -161,6 +163,7 @@ public:
      *      \eta = \mathbf{R}_h(\mathbf{u}_h^H)^T \psi_h
      *  \f]
      *  Uses DualWeightedResidualError::adjoint_fine and should only be called after fine_grid_adjoint().
+     *  Eq(6) from Venditti and Darmafol (2000), cited above.
      */
     dealii::Vector<real> dual_weighted_residual();
 

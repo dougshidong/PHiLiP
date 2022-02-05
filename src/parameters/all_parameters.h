@@ -18,6 +18,7 @@
 #include "parameters/parameters_artificial_dissipation.h"
 #include "parameters/parameters_flow_solver.h"
 #include "parameters/parameters_mesh_adaptation.h"
+#include "parameters/parameters_functional.h"
 
 namespace PHiLiP {
 namespace Parameters {
@@ -49,6 +50,8 @@ public:
     FlowSolverParam flow_solver_param;
     /// Constains parameters for mesh adaptation
     MeshAdaptationParam mesh_adaptation_param;
+    /// Contains parameters for functional
+    FunctionalParam functional_param;
 
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;
@@ -121,6 +124,7 @@ public:
         POD_adaptation,
         advection_periodicity,
         flow_solver,
+        dual_weighted_residual_mesh_adaptation,
     };
     TestType test_type; ///< Selected TestType from the input file.
 

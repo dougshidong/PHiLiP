@@ -22,7 +22,8 @@ set(TESTS_SOURCE
     reduced_order_pod_adaptation.cpp
     flow_solver.cpp
     flow_solver_cases/periodic_cube_flow.cpp
-    flow_solver_cases/1D_burgers_rewienski_snapshot.cpp)
+    flow_solver_cases/1D_burgers_rewienski_snapshot.cpp
+    dual_weighted_residual_mesh_adaptation.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

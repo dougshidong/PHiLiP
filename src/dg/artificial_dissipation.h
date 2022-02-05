@@ -48,6 +48,9 @@ class ArtificialDissipationBase
         }
     }
 
+    /// Virtual destructor of ArtificialDissipationBase
+    virtual ~ArtificialDissipationBase() = 0;
+
 };
 
 
@@ -90,26 +93,29 @@ class LaplacianArtificialDissipation: public ArtificialDissipationBase <dim, nst
     convection_diffusion_RadFadType(false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0)
     {}
 
+    /// Destructor of LaplacianArtificialDissipation
+    ~LaplacianArtificialDissipation() {};
+
  
     /// Laplacian flux function overloaded with type double.
     std::array<dealii::Tensor<1,dim,double>,nstate>  calc_artificial_dissipation_flux(
-    const std::array<double,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,double>,nstate> &solution_gradient, double artificial_viscosity);
+    const std::array<double,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,double>,nstate> &solution_gradient, double artificial_viscosity) override;
     
     /// Laplacian flux function overloaded with type FadType.
     std::array<dealii::Tensor<1,dim,FadType>,nstate>  calc_artificial_dissipation_flux(
-    const std::array<FadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,FadType>,nstate> &solution_gradient, FadType artificial_viscosity);
+    const std::array<FadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,FadType>,nstate> &solution_gradient, FadType artificial_viscosity) override;
     
     /// Laplacian flux function overloaded with type RadType.
     std::array<dealii::Tensor<1,dim,RadType>,nstate>  calc_artificial_dissipation_flux(
-    const std::array<RadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,RadType>,nstate> &solution_gradient, RadType artificial_viscosity);
+    const std::array<RadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,RadType>,nstate> &solution_gradient, RadType artificial_viscosity) override;
     
     /// Laplacian flux function overloaded with type FadFadType.
     std::array<dealii::Tensor<1,dim,FadFadType>,nstate>  calc_artificial_dissipation_flux(
-    const std::array<FadFadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &solution_gradient, FadFadType artificial_viscosity);
+    const std::array<FadFadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &solution_gradient, FadFadType artificial_viscosity) override;
     
     /// Laplacian flux function overloaded with type RadFadType.
     std::array<dealii::Tensor<1,dim,RadFadType>,nstate>  calc_artificial_dissipation_flux(
-    const std::array<RadFadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,RadFadType>,nstate> &solution_gradient, RadFadType artificial_viscosity);
+    const std::array<RadFadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,RadFadType>,nstate> &solution_gradient, RadFadType artificial_viscosity) override;
 
 };
 
@@ -152,25 +158,28 @@ class PhysicalArtificialDissipation: public ArtificialDissipationBase <dim, nsta
     navier_stokes_RadFadType(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0)
     {}
 
+    /// Destructor of PhysicalArtificialDissipation
+    ~PhysicalArtificialDissipation() {};
+
     /// Physical flux function overloaded with type double.
     std::array<dealii::Tensor<1,dim,double>,nstate>  calc_artificial_dissipation_flux(
-    const std::array<double,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,double>,nstate> &solution_gradient, double artificial_viscosity);
+    const std::array<double,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,double>,nstate> &solution_gradient, double artificial_viscosity) override;
     
     /// Physical flux function overloaded with type FadType.
     std::array<dealii::Tensor<1,dim,FadType>,nstate>  calc_artificial_dissipation_flux(
-    const std::array<FadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,FadType>,nstate> &solution_gradient, FadType artificial_viscosity);
+    const std::array<FadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,FadType>,nstate> &solution_gradient, FadType artificial_viscosity) override;
     
     /// Physical flux function overloaded with type RadType.
     std::array<dealii::Tensor<1,dim,RadType>,nstate>  calc_artificial_dissipation_flux(
-    const std::array<RadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,RadType>,nstate> &solution_gradient, RadType artificial_viscosity);
+    const std::array<RadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,RadType>,nstate> &solution_gradient, RadType artificial_viscosity) override;
     
     /// Physical flux function overloaded with type FadFadType.
     std::array<dealii::Tensor<1,dim,FadFadType>,nstate>  calc_artificial_dissipation_flux(
-    const std::array<FadFadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &solution_gradient, FadFadType artificial_viscosity);
+    const std::array<FadFadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &solution_gradient, FadFadType artificial_viscosity) override;
     
     /// Physical flux function overloaded with type adFadType.
     std::array<dealii::Tensor<1,dim,RadFadType>,nstate>  calc_artificial_dissipation_flux(
-    const std::array<RadFadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,RadFadType>,nstate> &solution_gradient, RadFadType artificial_viscosity);
+    const std::array<RadFadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,RadFadType>,nstate> &solution_gradient, RadFadType artificial_viscosity) override;
 
 
 };
@@ -215,25 +224,28 @@ class EnthalpyConservingArtificialDissipation: public ArtificialDissipationBase 
     navier_stokes_RadFadType(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0)
     {}
 
+    /// Destructor of EnthalpyConservingArtificialDissipation
+    ~EnthalpyConservingArtificialDissipation() {};
+
     /// Enthalpy laplacian flux function overloaded with type double.
     std::array<dealii::Tensor<1,dim,double>,nstate>  calc_artificial_dissipation_flux(
-    const std::array<double,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,double>,nstate> &solution_gradient, double artificial_viscosity);
+    const std::array<double,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,double>,nstate> &solution_gradient, double artificial_viscosity) override;
     
     /// Enthalpy laplacian flux function overloaded with type FadType.
     std::array<dealii::Tensor<1,dim,FadType>,nstate>  calc_artificial_dissipation_flux(
-    const std::array<FadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,FadType>,nstate> &solution_gradient, FadType artificial_viscosity);
+    const std::array<FadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,FadType>,nstate> &solution_gradient, FadType artificial_viscosity) override;
     
     /// Enthalpy laplacian flux function overloaded with type RadType.
     std::array<dealii::Tensor<1,dim,RadType>,nstate>  calc_artificial_dissipation_flux( 
-    const std::array<RadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,RadType>,nstate> &solution_gradient, RadType artificial_viscosity);
+    const std::array<RadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,RadType>,nstate> &solution_gradient, RadType artificial_viscosity) override;
     
     /// Enthalpy laplacian flux function overloaded with type FadFadType.
     std::array<dealii::Tensor<1,dim,FadFadType>,nstate>  calc_artificial_dissipation_flux(
-    const std::array<FadFadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &solution_gradient, FadFadType artificial_viscosity);
+    const std::array<FadFadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &solution_gradient, FadFadType artificial_viscosity) override;
     
     /// Enthalpy laplacian flux function overloaded with type RadFadType.
     std::array<dealii::Tensor<1,dim,RadFadType>,nstate>  calc_artificial_dissipation_flux(
-    const std::array<RadFadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,RadFadType>,nstate> &solution_gradient, RadFadType artificial_viscosity);
+    const std::array<RadFadType,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,RadFadType>,nstate> &solution_gradient, RadFadType artificial_viscosity) override;
 
 };
 } // namespace PHILIP

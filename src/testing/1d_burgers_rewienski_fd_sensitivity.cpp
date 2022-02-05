@@ -28,11 +28,24 @@ BurgersRewienskiSensitivity<dim, nstate>::BurgersRewienskiSensitivity(const PHiL
 template <int dim, int nstate>
 int BurgersRewienskiSensitivity<dim, nstate>::run_test() const
 {
-    Parameters::AllParameters params = reinit_params(0.01);
-    run_solution(params);
+    double h = 1E-06;
 
-    Parameters::AllParameters params2 = reinit_params(0.02);
-    run_solution(params2);
+    Parameters::AllParameters params1 = reinit_params(0.02);
+    Parameters::AllParameters params2 = reinit_params(0.02+h);
+    dealii::LinearAlgebra::distributed::Vector<double> solution1 = run_solution(params1);
+    dealii::LinearAlgebra::distributed::Vector<double> solution2 = run_solution(params2);
+    dealii::LinearAlgebra::distributed::Vector<double> sensitivity_dWdb(solution1.size());
+
+    dealii::TableHandler solutions_table;
+    for(unsigned int i = 0 ; i < solution1.size(); i++){
+        sensitivity_dWdb[i] = (solution2[i] - solution1[i])/h;
+        pcout << (solution2[i] - solution1[i])/h <<std::endl;
+        solutions_table.add_value("Sensitivity:", sensitivity_dWdb[i]);
+    }
+
+    solutions_table.set_precision("Sensitivity:", 16);
+    std::ofstream out_file("sensitivity_fd.txt");
+    solutions_table.write_text(out_file);
 
     return 0;
 }
@@ -49,33 +62,37 @@ Parameters::AllParameters BurgersRewienskiSensitivity<dim, nstate>::reinit_param
     all_parameters.grid_refinement_study_param.poly_degree = 0;
     all_parameters.grid_refinement_study_param.grid_left = 0.0;
     all_parameters.grid_refinement_study_param.grid_right = 100.0;
+    all_parameters.dimension = 1;
+    all_parameters.pde_type = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation::burgers_rewienski;
+    all_parameters.manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term = true;
+    all_parameters.ode_solver_param.initial_time_step = 0.1;
     return all_parameters;
 }
 
 template <int dim, int nstate>
 dealii::LinearAlgebra::distributed::Vector<double> BurgersRewienskiSensitivity<dim, nstate>::run_solution(Parameters::AllParameters parameters_input) const {
-    const Parameters::AllParameters param = parameters_input;
+    const Parameters::AllParameters *param = &parameters_input;
 
     pcout << "Running Burgers Rewienski with parameter a: "
-          << param.reduced_order_param.rewienski_a
+          << param->reduced_order_param.rewienski_a
           << " and parameter b: "
-          << param.reduced_order_param.rewienski_b
+          << param->reduced_order_param.rewienski_b
           << std::endl;
 
     using Triangulation = dealii::Triangulation<dim>;
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>();
 
-    double left = param.grid_refinement_study_param.grid_left;
-    double right = param.grid_refinement_study_param.grid_right;
+    double left = param->grid_refinement_study_param.grid_left;
+    double right = param->grid_refinement_study_param.grid_right;
     const bool colorize = true;
-    int n_refinements = param.grid_refinement_study_param.num_refinements;
-    unsigned int poly_degree = param.grid_refinement_study_param.poly_degree;
+    int n_refinements = param->grid_refinement_study_param.num_refinements;
+    unsigned int poly_degree = param->grid_refinement_study_param.poly_degree;
     dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
 
     grid->refine_global(n_refinements);
     pcout << "Grid generated and refined" << std::endl;
 
-    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);
+    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(param, poly_degree, grid);
     pcout << "dg created" <<std::endl;
     dg->allocate_system ();
 

@@ -67,7 +67,7 @@ template <int dim, int nstate>
 void BurgersRewienskiSnapshot<dim, nstate>::steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> dg) const
 {
     this->pcout << "Computing sensitivity to parameter" << std::endl;
-    int overintegrate = 10;
+    int overintegrate = 0;
     dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
     dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[dg->max_degree], quad_extra,
                                               dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
@@ -86,7 +86,7 @@ void BurgersRewienskiSnapshot<dim, nstate>::steady_state_postprocessing(std::sha
                 const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
                 double b = this->all_param.reduced_order_param.rewienski_b;
                 const dealii::Point<dim, double> point = fe_values_extra.quadrature_point(iquad);
-                sensitivity_dRdb[dofs_indices[idof]] += fe_values_extra.shape_value_component(idof, iquad, istate) * -0.02 * b * exp(point[0] * b) * fe_values_extra.JxW(iquad);
+                sensitivity_dRdb[dofs_indices[idof]] += fe_values_extra.shape_value_component(idof, iquad, istate) * -0.02 * point[0] * exp(point[0] * b) * fe_values_extra.JxW(iquad);
             }
         }
     }

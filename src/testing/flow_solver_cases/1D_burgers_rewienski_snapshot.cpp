@@ -81,12 +81,12 @@ void BurgersRewienskiSnapshot<dim, nstate>::steady_state_postprocessing(std::sha
         fe_values_extra.reinit(cell);
         cell->get_dof_indices(dofs_indices);
 
-        for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-            for (unsigned int idof = 0; idof < fe_values_extra.dofs_per_cell; ++idof) {
+        for (unsigned int idof = 0; idof < fe_values_extra.dofs_per_cell; ++idof) {
+            for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
                 const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
                 double b = this->all_param.reduced_order_param.rewienski_b;
                 const dealii::Point<dim, double> point = fe_values_extra.quadrature_point(iquad);
-                sensitivity_dRdb[dofs_indices[idof]] += fe_values_extra.shape_value_component(idof, iquad, istate) * -0.02 * point[0] * exp(point[0] * b) * fe_values_extra.JxW(iquad);
+                sensitivity_dRdb[dofs_indices[idof]] += fe_values_extra.shape_value_component(idof, iquad, istate) * 0.02 * point[0] * exp(point[0] * b) * fe_values_extra.JxW(iquad);
             }
         }
     }
@@ -98,6 +98,7 @@ void BurgersRewienskiSnapshot<dim, nstate>::steady_state_postprocessing(std::sha
     const bool compute_d2R=false;
     double flow_CFL_ = 0.0;
     dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
+    dg->system_matrix *= -1.0;
 
     solve_linear(dg->system_matrix, sensitivity_dRdb, sensitivity_dWdb, this->all_param.linear_solver_param);
 

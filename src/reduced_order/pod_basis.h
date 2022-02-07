@@ -52,6 +52,9 @@ private:
 
 protected:
     dealii::LAPACKFullMatrix<double> fullPODBasisLAPACK; ///< U matrix output from SVD, full POD basis
+    dealii::LAPACKFullMatrix<double> snapshot_matrix; ///< Matrix of snapshots Y
+    dealii::LAPACKFullMatrix<double> system_matrix; ///< System matrix obtained from dg
+    dealii::LAPACKFullMatrix<double> B; ///< B = Y^T M Y, where Y is the matrix of snapshots, and M is the mass matrix
     const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
     const MPI_Comm mpi_communicator; ///< MPI communicator.
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0

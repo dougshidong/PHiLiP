@@ -96,7 +96,7 @@ bool POD<dim>::getPODBasisFromSnapshots() {
     }
 
     //Convert to LAPACKFullMatrix to take the SVD
-    dealii::LAPACKFullMatrix<double> snapshot_matrix(snapshotMatrixContainer[0].n_rows(), totalCols);
+    snapshot_matrix.reinit(snapshotMatrixContainer[0].n_rows(), totalCols);
 
     for(int i = 0; i < numMat; i++){
         dealii::FullMatrix<double> snapshot_submatrix = snapshotMatrixContainer[i];
@@ -116,22 +116,22 @@ bool POD<dim>::getPODBasisFromSnapshots() {
         const bool compute_dRdW = true;
         this->dg->assemble_residual(compute_dRdW);
 
-        dealii::LAPACKFullMatrix<double> system_matrix(dg->global_mass_matrix.m(), dg->global_mass_matrix.n());
+        system_matrix.reinit(dg->global_mass_matrix.m(), dg->global_mass_matrix.n());
         system_matrix.copy_from(dg->global_mass_matrix);
 
         dealii::LAPACKFullMatrix<double> tmp1(snapshot_matrix.n(), snapshot_matrix.m());
-        dealii::LAPACKFullMatrix<double> A(snapshot_matrix.n(), snapshot_matrix.n());
+        B.reinit(snapshot_matrix.n(), snapshot_matrix.n());
         snapshot_matrix.Tmmult(tmp1, system_matrix);
-        tmp1.mmult(A, snapshot_matrix);
+        tmp1.mmult(B, snapshot_matrix);
 
-        A.compute_svd();
+        B.compute_svd();
 
-        dealii::LAPACKFullMatrix<double> V = A.get_svd_vt();
+        dealii::LAPACKFullMatrix<double> V = B.get_svd_vt();
         dealii::LAPACKFullMatrix<double> sigma(snapshot_matrix.n(), snapshot_matrix.n());
 
         //Form diagonal matrix of singular values
         for (unsigned int idx = 0; idx < snapshot_matrix.n(); idx++) {
-            sigma(idx, idx) = 1 / A.singular_value(idx);
+            sigma(idx, idx) = 1 / B.singular_value(idx);
         }
 
         dealii::LAPACKFullMatrix<double> tmp2(snapshot_matrix.n(), snapshot_matrix.n());

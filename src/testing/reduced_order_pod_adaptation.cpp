@@ -14,6 +14,7 @@
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_factory.h"
 #include "reduced_order/pod_adaptation.h"
+#include "reduced_order/pod_basis_sensitivity.h"
 
 
 namespace PHiLiP {
@@ -74,6 +75,7 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
     // Create functional
     auto burgers_functional = BurgersRewienskiFunctional<dim,nstate,double>(dg,dg_state->pde_physics_fad_fad,true,false);
 
+    /*
     //POD adaptation
     std::shared_ptr<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>> pod_adapt = std::make_shared<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>>(dg, burgers_functional);
     pod_adapt->progressivePODAdaptation();
@@ -99,6 +101,10 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
         pcout << "Adaptation tolerance reached." << std::endl;
         return 0;
     }
+     */
+    std::shared_ptr<ProperOrthogonalDecomposition::SensitivityPOD<dim>> sensitivityPOD = std::make_shared<ProperOrthogonalDecomposition::SensitivityPOD<dim>>(dg);
+
+    return 0;
 }
 
 template <int dim, int nstate, typename real>

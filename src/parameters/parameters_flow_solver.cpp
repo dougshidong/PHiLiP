@@ -37,6 +37,10 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         prm.declare_entry("steady_state", "false",
                           dealii::Patterns::Bool(),
                           "Solve steady-state solution. False by default.");
+
+        prm.declare_entry("sensitivity_table_filename", "sensitivity_table",
+                          dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                          "Filename for the sensitivity data table output file: sensitivity_table_filename.txt.");
     }
     prm.leave_subsection();
 }
@@ -53,6 +57,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         courant_friedrich_lewy_number = prm.get_double("courant_friedrich_lewy_number");
         unsteady_data_table_filename = prm.get("unsteady_data_table_filename");
         steady_state = prm.get_bool("steady_state");
+        sensitivity_table_filename = prm.get("sensitivity_table_filename");
     }
     prm.leave_subsection();
 }

@@ -44,9 +44,13 @@ public:
 
     dealii::LAPACKFullMatrix<double> B_derivative;
 
+    dealii::LAPACKFullMatrix<double> basis_sensitivity;
+
+    dealii::LAPACKFullMatrix<double> lambda_sensitivity; ///< Matrix of singular value derivatives along the diagonal
+
     dealii::LAPACKFullMatrix<double> V;
 
-    void computeModeSensitivity(int k);
+    dealii::Vector<double> computeModeSensitivity(int k);
 
     /// Function to add columns (basis functions) to POD basis. Used when building basis and refining when doing POD adaptation
     void addPODBasisColumns(const std::vector<unsigned int> addColumns);

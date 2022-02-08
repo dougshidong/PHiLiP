@@ -30,11 +30,16 @@ bool POD<dim>::getPODBasisFromSnapshots() {
     bool file_found = false;
     std::vector<dealii::FullMatrix<double>> snapshotMatrixContainer;
     std::string path = all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
-    for (const auto & entry : std::filesystem::directory_iterator(path)){
-        if(std::string(entry.path().filename()).std::string::find("solutions_table") != std::string::npos){
-            pcout << "Processing " << entry.path() << std::endl;
+
+    std::vector<std::filesystem::path> files_in_directory;
+    std::copy(std::filesystem::directory_iterator(path), std::filesystem::directory_iterator(), std::back_inserter(files_in_directory));
+    std::sort(files_in_directory.begin(), files_in_directory.end()); //Sort files so that the order is the same as for the sensitivity basis
+
+    for (const auto & entry : files_in_directory){
+        if(std::string(entry.filename()).std::string::find("solutions_table") != std::string::npos){
+            pcout << "Processing " << entry << std::endl;
             file_found = true;
-            std::ifstream myfile(entry.path());
+            std::ifstream myfile(entry);
             if(!myfile)
             {
                 pcout << "Error opening solutions_table.txt."<< std::endl;
@@ -127,15 +132,15 @@ bool POD<dim>::getPODBasisFromSnapshots() {
         B.compute_svd();
 
         dealii::LAPACKFullMatrix<double> V = B.get_svd_vt();
-        dealii::LAPACKFullMatrix<double> sigma(snapshot_matrix.n(), snapshot_matrix.n());
+        sigma_inverse.reinit(snapshot_matrix.n(), snapshot_matrix.n());
 
         //Form diagonal matrix of singular values
         for (unsigned int idx = 0; idx < snapshot_matrix.n(); idx++) {
-            sigma(idx, idx) = 1 / B.singular_value(idx);
+            sigma_inverse(idx, idx) = 1 / B.singular_value(idx);
         }
 
         dealii::LAPACKFullMatrix<double> tmp2(snapshot_matrix.n(), snapshot_matrix.n());
-        V.Tmmult(tmp2, sigma);
+        V.Tmmult(tmp2, sigma_inverse);
 
         fullPODBasisLAPACK.reinit(snapshot_matrix.m(), snapshot_matrix.n());
         snapshot_matrix.mmult(fullPODBasisLAPACK, tmp2);

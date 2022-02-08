@@ -11,15 +11,14 @@ SensitivityPOD<dim>::SensitivityPOD(std::shared_ptr<DGBase<dim,double>> &dg_inpu
 {
     getSensitivityPODBasisFromSnapshots();
     computeBasisSensitivity();
+    addPODBasisColumns();
 }
 
 template <int dim>
 bool SensitivityPOD<dim>::getSensitivityPODBasisFromSnapshots() {
     bool file_found = false;
     std::vector<dealii::FullMatrix<double>> sensitivityMatrixContainer;
-
     std::string path = this->all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "sensitivity_table"
-
     std::vector<std::filesystem::path> files_in_directory;
     std::copy(std::filesystem::directory_iterator(path), std::filesystem::directory_iterator(), std::back_inserter(files_in_directory));
     std::sort(files_in_directory.begin(), files_in_directory.end()); //Sort files so that the order is the same as for the ordinary basis
@@ -89,11 +88,11 @@ bool SensitivityPOD<dim>::getSensitivityPODBasisFromSnapshots() {
         }
     }
 
-    sensitivity_matrix.reinit(sensitivityMatrixContainer[0].n_rows(), totalCols);
+    sensitivitySnapshots.reinit(sensitivityMatrixContainer[0].n_rows(), totalCols);
 
     for(int i = 0; i < numMat; i++){
         dealii::FullMatrix<double> snapshot_submatrix = sensitivityMatrixContainer[i];
-        sensitivity_matrix.fill(snapshot_submatrix, 0, j_offset[i], 0, 0);
+        sensitivitySnapshots.fill(snapshot_submatrix, 0, j_offset[i], 0, 0);
     }
 
     this->pcout << "Sensitivity matrix generated." << std::endl;
@@ -104,104 +103,99 @@ bool SensitivityPOD<dim>::getSensitivityPODBasisFromSnapshots() {
 template <int dim>
 void SensitivityPOD<dim>::computeBasisSensitivity() {
 
-    //Construct B derivative
-    B_derivative.reinit(this->B.m(), this->B.n());
-    dealii::LAPACKFullMatrix<double> B_derivative_tmp(this->B.m(), this->B.n());
-    dealii::LAPACKFullMatrix<double> tmp(this->snapshot_matrix.n(), this->snapshot_matrix.m());
-    sensitivity_matrix.Tmmult(tmp, this->system_matrix);
-    tmp.mmult(B_derivative, this->snapshot_matrix);
-    tmp.reinit(this->snapshot_matrix.n(), this->snapshot_matrix.m());
-    this->snapshot_matrix.Tmmult(tmp, this->system_matrix);
-    tmp.mmult(B_derivative_tmp, sensitivity_matrix);
-    B_derivative.add(1, B_derivative_tmp);
+    // Compute mass weighted sensitivity snapshots:
+    /* massWeightedSensitivitySnapshots = sensitivitySnapshots^T * massMatrix * solutionSnapshots
+     *      + solutionSnapshots^T * massMatrix * sensitivitySnapshots
+    */
+    massWeightedSensitivitySnapshots.reinit(this->massWeightedSolutionSnapshots.m(), this->massWeightedSolutionSnapshots.n());
+    dealii::LAPACKFullMatrix<double> B_derivative_tmp(this->massWeightedSolutionSnapshots.m(), this->massWeightedSolutionSnapshots.n());
+    dealii::LAPACKFullMatrix<double> tmp(this->solutionSnapshots.n(), this->solutionSnapshots.m());
+    sensitivitySnapshots.Tmmult(tmp, this->massMatrix);
+    tmp.mmult(massWeightedSensitivitySnapshots, this->solutionSnapshots);
+    tmp.reinit(this->solutionSnapshots.n(), this->solutionSnapshots.m());
+    this->solutionSnapshots.Tmmult(tmp, this->massMatrix);
+    tmp.mmult(B_derivative_tmp, sensitivitySnapshots);
+    massWeightedSensitivitySnapshots.add(1, B_derivative_tmp);
 
-    //Get V
-    dealii::LAPACKFullMatrix<double> Vt = this->B.get_svd_vt();
-    V.reinit(this->B.get_svd_vt().n(), this->B.get_svd_vt().m());
-    Vt.transpose(V);
+    // Initialize eigenvalue sensitivity matrix
+    eigenvaluesSensitivity.reinit(this->eigenvectors.n(), this->eigenvectors.n());
 
-    lambda_sensitivity.reinit(V.n(), V.n());
-
-    dealii::LAPACKFullMatrix<double> V_derivative(V.m(), V.n());
-    for(unsigned int j = 0 ; j < this->V.n() ; j++){
-        this->pcout << j << std::endl;
-        dealii::Vector<double> Vk_derivative = computeModeSensitivity(j);
-        for(unsigned int i = 0 ; i < Vk_derivative.size(); i++){
-            V_derivative(i,j) = Vk_derivative(i);
+    // Compute sensitivity of each eigenvector and eigenvalue
+    dealii::LAPACKFullMatrix<double> eigenvectorsSensitivity(this->eigenvectors.m(), this->eigenvectors.n());
+    for(unsigned int j = 0 ; j < this->eigenvectors.n() ; j++){ //For each column
+        dealii::Vector<double> kEigenvectorSensitivity = computeModeSensitivity(j);
+        for(unsigned int i = 0 ; i < kEigenvectorSensitivity.size(); i++){ //For each row
+            eigenvectorsSensitivity(i, j) = kEigenvectorSensitivity(i);
         }
     }
 
-    basis_sensitivity.reinit(this->fullPODBasisLAPACK.m(), this->fullPODBasisLAPACK.n());
-    dealii::LAPACKFullMatrix<double> basis_sensitivity_tmp1(this->fullPODBasisLAPACK.m(), this->fullPODBasisLAPACK.n());
-    dealii::LAPACKFullMatrix<double> basis_sensitivity_tmp2(this->fullPODBasisLAPACK.m(), this->fullPODBasisLAPACK.n());
-
-    tmp.reinit(this->fullPODBasisLAPACK.m(), this->fullPODBasisLAPACK.n());
-
-    sensitivity_matrix.mmult(tmp, V);
-    tmp.mmult(basis_sensitivity, this->sigma_inverse);
-
-    tmp.reinit(this->fullPODBasisLAPACK.m(), this->fullPODBasisLAPACK.n());
-
-    this->snapshot_matrix.mmult(tmp, V_derivative);
-    tmp.mmult(basis_sensitivity_tmp1, this->sigma_inverse);
-
-    tmp.reinit(this->fullPODBasisLAPACK.m(), this->fullPODBasisLAPACK.n());
-
-    this->fullPODBasisLAPACK.mmult(tmp, lambda_sensitivity);
-    dealii::LAPACKFullMatrix<double> sigma_inverse_squared(this->sigma_inverse.m(), this->sigma_inverse.n());
-    this->sigma_inverse.mmult(sigma_inverse_squared, this->sigma_inverse);
-    tmp.mmult(basis_sensitivity_tmp2, sigma_inverse_squared);
-
-    basis_sensitivity.add(1, basis_sensitivity_tmp1);
-    basis_sensitivity.add(-0.5, basis_sensitivity_tmp2);
+    // Compute POD basis sensitivity
+    /* fullBasisSensitivity = (sensitivitySnapshots * eigenvectors * simgularValuesInverse)
+     *      + (solutionSnapshots * eigenvectorsSensitivity * simgularValuesInverse)
+     *          - 1/2*(fullBasis * eigenvaluesSensitivity * singularValuesInverseSquared)
+    */
+    fullBasisSensitivity.reinit(this->fullBasis.m(), this->fullBasis.n());
+    dealii::LAPACKFullMatrix<double> basis_sensitivity_tmp1(this->fullBasis.m(), this->fullBasis.n());
+    dealii::LAPACKFullMatrix<double> basis_sensitivity_tmp2(this->fullBasis.m(), this->fullBasis.n());
+    dealii::LAPACKFullMatrix<double> singularValuesInverseSquared(this->simgularValuesInverse.m(), this->simgularValuesInverse.n());
+    tmp.reinit(this->fullBasis.m(), this->fullBasis.n());
+    sensitivitySnapshots.mmult(tmp, this->eigenvectors);
+    tmp.mmult(fullBasisSensitivity, this->simgularValuesInverse);
+    tmp.reinit(this->fullBasis.m(), this->fullBasis.n());
+    this->solutionSnapshots.mmult(tmp, eigenvectorsSensitivity);
+    tmp.mmult(basis_sensitivity_tmp1, this->simgularValuesInverse);
+    tmp.reinit(this->fullBasis.m(), this->fullBasis.n());
+    this->fullBasis.mmult(tmp, eigenvaluesSensitivity);
+    this->simgularValuesInverse.mmult(singularValuesInverseSquared, this->simgularValuesInverse);
+    tmp.mmult(basis_sensitivity_tmp2, singularValuesInverseSquared);
+    fullBasisSensitivity.add(1, basis_sensitivity_tmp1);
+    fullBasisSensitivity.add(-0.5, basis_sensitivity_tmp2);
 
     std::ofstream out_file("basis_sensitivity.txt");
     unsigned int precision = 7;
-    basis_sensitivity.print_formatted(out_file, precision);
+    fullBasisSensitivity.print_formatted(out_file, precision);
 
 }
 
 template <int dim>
 dealii::Vector<double> SensitivityPOD<dim>::computeModeSensitivity(int k) {
-    dealii::FullMatrix<double> LHS(this->B.m(), this->B.n());
-    LHS = this->B;
-    LHS.diagadd(-1*pow(this->B.singular_value(k), 2));
 
-    //Get kth vector of V
-    dealii::Vector<double> Vk(V.n());
-    for(unsigned int i = 0 ; i < V.n(); i++){
-        Vk[i] = V(i,k);
+    // Assemble LHS: (massWeightedSolutionSnapshots - diag(singular_value(k)^2))
+    dealii::FullMatrix<double> LHS(this->massWeightedSolutionSnapshots.m(), this->massWeightedSolutionSnapshots.n());
+    LHS = this->massWeightedSolutionSnapshots;
+    LHS.diagadd(-1*pow(this->massWeightedSolutionSnapshots.singular_value(k), 2));
+
+    //Get kth eigenvector
+    dealii::Vector<double> kEigenvector(this->eigenvectors.n());
+    for(unsigned int i = 0 ; i < this->eigenvectors.n(); i++){
+        kEigenvector(i) = this->eigenvectors(i, k);
     }
 
-    //Get lambda derivative
-    dealii::Vector<double> lambda_tmp(V.n());
-    B_derivative.Tvmult(lambda_tmp, Vk);
-    double lambda_derivative = lambda_tmp*Vk;
+    //Get eigenvalue sensitivity: kEigenvalueSensitivity = kEigenvector^T * massWeightedSensitivitySnapshots * kEigenvector
+    dealii::Vector<double> kEigenvalueSensitivity_tmp(this->eigenvectors.n());
+    massWeightedSensitivitySnapshots.Tvmult(kEigenvalueSensitivity_tmp, kEigenvector);
+    double kEigenvalueSensitivity = kEigenvalueSensitivity_tmp * kEigenvector;
+    eigenvaluesSensitivity(k, k) = kEigenvalueSensitivity;
 
-    //Add to sigma derivative
-    lambda_sensitivity(k,k) = lambda_derivative;
-
-    dealii::FullMatrix<double> RHS_tmp(B_derivative.m(), B_derivative.n());
-    RHS_tmp = B_derivative;
-    RHS_tmp.diagadd(-1*lambda_derivative);
-    dealii::Vector<double> RHS(V.n());
-    RHS_tmp.vmult(RHS, Vk);
+    // Assemble RHS: -(massWeightedSensitivitySnapshots - diag(kEigenvalueSensitivity))*kEigenvector
+    dealii::FullMatrix<double> RHS_tmp(massWeightedSensitivitySnapshots.m(), massWeightedSensitivitySnapshots.n());
+    RHS_tmp = massWeightedSensitivitySnapshots;
+    RHS_tmp.diagadd(-1 * kEigenvalueSensitivity);
+    dealii::Vector<double> RHS(this->eigenvectors.n());
+    RHS_tmp.vmult(RHS, kEigenvector);
     RHS*=-1;
 
+    // Compute least squares solution
     dealii::Householder<double> householder (LHS);
-    dealii::Vector<double> Sk(V.n());
-    householder.least_squares(Sk, RHS);
+    dealii::Vector<double> leastSquaresSolution(this->eigenvectors.n());
+    householder.least_squares(leastSquaresSolution, RHS);
 
-    double gamma = -(Sk*Vk);
+    // Compute eigenvector sensitivity: kEigenvectorSensitivity = leastSquaresSolution - gamma*kEigenvector
+    double gamma = -(leastSquaresSolution * kEigenvector);
+    dealii::Vector<double> kEigenvectorSensitivity(this->eigenvectors.n());
+    kEigenvectorSensitivity.add(1, leastSquaresSolution, gamma*=-1, kEigenvector); //Vk_derivative += 1*leastSquaresSolution + -1*gamma*Vk.
 
-    dealii::Vector<double> Vk_derivative(V.n());
-    Vk_derivative.add(1, Sk, gamma*=-1, Vk); //Vk_derivative += 1*Sk+gamma*Vk.
-
-    std::ofstream out_file("Vk_derivative_test.txt");
-    unsigned int precision = 7;
-    Vk_derivative.print(out_file, precision);
-
-    return Vk_derivative;
+    return kEigenvectorSensitivity;
 }
 
 template <int dim>
@@ -215,8 +209,43 @@ std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> SensitivityPOD<dim>::get
 }
 
 template <int dim>
-void SensitivityPOD<dim>::addPODBasisColumns(const std::vector<unsigned int> /*addColumns*/) {
+void SensitivityPOD<dim>::addPODBasisColumns() {
+    std::vector<int> row_index_set(this->fullBasis.n_rows());
+    std::iota(std::begin(row_index_set), std::end(row_index_set),0);
 
+    std::vector<int> column_index_set(this->fullBasis.n_cols());
+    std::iota(std::begin(column_index_set), std::end(column_index_set),0);
+
+    dealii::TrilinosWrappers::SparseMatrix pod_basis_tmp(this->fullBasis.n_rows(), 2*this->fullBasis.n_cols(), 2*this->fullBasis.n_cols());
+    dealii::TrilinosWrappers::SparseMatrix pod_basis_transpose_tmp(2*this->fullBasis.n_cols(), this->fullBasis.n_rows(), this->fullBasis.n_rows());
+
+    for(int i : row_index_set){
+        for(int j : column_index_set){
+            pod_basis_tmp.set(i, j, this->fullBasis(i, j));
+            pod_basis_transpose_tmp.set(j, i, this->fullBasis(i, j));
+        }
+    }
+
+    std::vector<int> sensitivity_row_index_set(fullBasisSensitivity.n_rows());
+    std::iota(std::begin(row_index_set), std::end(row_index_set),0);
+
+    std::vector<int> sensitivity_column_index_set(fullBasisSensitivity.n_cols());
+    std::iota(std::begin(column_index_set), std::end(column_index_set),this->fullBasis.n_cols());
+
+    for(int i : row_index_set){
+        for(int j : column_index_set){
+            pod_basis_tmp.set(i, j, fullBasisSensitivity(i, j-this->fullBasis.n_cols()));
+            pod_basis_transpose_tmp.set(j, i, fullBasisSensitivity(i, j-this->fullBasis.n_cols()));
+        }
+    }
+
+    pod_basis_tmp.compress(dealii::VectorOperation::insert);
+    pod_basis_transpose_tmp.compress(dealii::VectorOperation::insert);
+
+    basis->reinit(pod_basis_tmp);
+    basis->copy_from(pod_basis_tmp);
+    basisTranspose->reinit(pod_basis_tmp);
+    basisTranspose->copy_from(pod_basis_transpose_tmp);
 }
 
 template class SensitivityPOD <PHILIP_DIM>;

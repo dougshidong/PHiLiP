@@ -21,13 +21,13 @@ end
 
 #Reduced order parameters
 subsection reduced order
-  set rewienski_a = 5.0
-  set rewienski_b = 0.04
+  set rewienski_a = 3.0
+  set rewienski_b = 0.041
   set adaptation_tolerance = 0.00001
   set adapt_coarse_basis_constant = 0
   set coarse_basis_dimension = 8
   set fine_basis_dimension = 18
-  set path_to_search = ./snapshot_generation_steady/Sensitivity_snapshots/
+  set path_to_search = ./snapshot_generation_steady/Sensitivity_snapshots2/
   set method_of_snapshots = true
   set consider_error_sign = true
 end

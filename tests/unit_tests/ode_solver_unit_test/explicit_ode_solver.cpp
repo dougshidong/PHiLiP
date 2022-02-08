@@ -6,6 +6,7 @@
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/base/function_parser.h>
 #include <deal.II/numerics/vector_tools.h>
+#include <deal.II/base/convergence_table.h>
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
 #include "numerical_flux/numerical_flux_factory.hpp"
@@ -30,6 +31,12 @@ const int dim = PHILIP_DIM;
 #if PHILIP_DIM!=1
     MPI_COMM_WORLD,
 #endif
+
+    //Advects a sine wave (1D) with peridic BCs and compares to anlytical solution
+    //refines spatial discretization 5 times and writes a convergence table to file
+    //Can be used to verify spatial order of the explicit ODE solver
+    //Note: 2D is implemented but is not included in CMakeLists.txt (untested)
+
     typename dealii::Triangulation<dim>::MeshSmoothing(
     dealii::Triangulation<dim>::smoothing_on_refinement |
     dealii::Triangulation<dim>::smoothing_on_coarsening));
@@ -42,7 +49,6 @@ const int dim = PHILIP_DIM;
     //generating grid
     dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
     //setting periodic BC 
-    //to do: change this to work with 1D
     std::vector<dealii::GridTools::PeriodicFacePair<typename Triangulation::cell_iterator> > matched_pairs;
     if (dim == 2){
         dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
@@ -57,7 +63,6 @@ const int dim = PHILIP_DIM;
     }
 
     grid->add_periodicity(matched_pairs);
-
     grid->refine_global(n_refinements);
     
     //default parameters
@@ -70,22 +75,21 @@ const int dim = PHILIP_DIM;
     all_parameters.ode_solver_param.ode_solver_type = PHiLiP::Parameters::ODESolverParam::ODESolverEnum::explicit_solver;
     all_parameters.ode_solver_param.nonlinear_max_iterations = 500;
     all_parameters.ode_solver_param.print_iteration_modulo = 100;
-    //all_parameters.ode_solver_param.ode_output = PHiLiP::Parameters::OutputEnum::quiet;    //doesn't seem to do anything
+    all_parameters.ode_solver_param.ode_output = PHiLiP::Parameters::OutputEnum::quiet; 
     
-
     double adv_speed_x = 1.0, adv_speed_y = 0.0;
     all_parameters.manufactured_convergence_study_param.manufactured_solution_param.advection_vector[0] = adv_speed_x; //x-velocity
     all_parameters.manufactured_convergence_study_param.manufactured_solution_param.advection_vector[1] = adv_speed_y; //y-velocity
 
-    int n_time_refinements = 3;
-    double dt_init = 0.001;
+    int n_time_refinements = 5;
+    double dt_init = 2.5E-3;
     double dt = dt_init;
     const double refine_ratio = 0.5;
-    double finalTime =2.0;
+    double finalTime = 0.1;
     
-    double L2_error_store[4] {};
-    double L2_error; //assigned each loop
+    dealii::ConvergenceTable convergence_table;
 
+    double L2_error_old = 0;
 
     for (int refinement = 0; refinement < n_time_refinements+1; ++refinement){
 
@@ -106,7 +110,7 @@ const int dim = PHILIP_DIM;
     std::string variables;
     std::map<std::string,double> constants;
     constants["pi"] = dealii::numbers::PI;
-    std::string expression_initial = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) ) )";
+    std::string expression_initial;
     if (dim == 2){
         variables = "x,y";
         expression_initial = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) ) )";
@@ -129,7 +133,7 @@ const int dim = PHILIP_DIM;
     
     //Defining exact solution
     dealii::FunctionParser<dim> exact_solution;
-    constants["a_x"] = adv_speed_x; //CHECK WHERE THIS IS STORED
+    constants["a_x"] = adv_speed_x;
     constants["a_y"] = adv_speed_y;
     constants["t"] = finalTime;
     std::string expression_exact;
@@ -152,26 +156,44 @@ const int dim = PHILIP_DIM;
 		    difference_per_cell, 
 		    dealii::QGauss<dim>(space_poly_degree+1), //check that this is correct polynomial degree
 		    dealii::VectorTools::L2_norm);
-    L2_error = 
+    double L2_error = 
 	    dealii::VectorTools::compute_global_error(*grid,
 			    difference_per_cell,
 			    dealii::VectorTools::L2_norm);
     std::cout << "Computed error is " << L2_error << std::endl;
-    std::cout << "Number of cells is "<< grid->n_active_cells()<<std::endl;
+
+    convergence_table.add_value("cells",grid->n_active_cells());
+    convergence_table.add_value("space_poly_deg", space_poly_degree);
+    convergence_table.add_value("refinement", refinement);
+    convergence_table.add_value("dt",dt );
+    convergence_table.add_value("L2_error",L2_error );
+    convergence_table.add_value("L2_ratio",L2_error_old/L2_error); //should be 8
 
     dt *= refine_ratio;
-    L2_error_store[refinement] = L2_error;
+    L2_error_old = L2_error;
     }//time refinement loop
 
     //printing results 
-    //should make prettier (use dealii tables)    
-    std::cout << "dt  |  L2 norm of error" << std::endl;
-    dt = dt_init;   
-    for (int refinement = 0; refinement < n_time_refinements+1; ++refinement){
-        std::cout << dt << "   |   " << L2_error_store[refinement] << std::endl;
-	dt*=refine_ratio;
+    convergence_table.set_precision("L2_error", 4);
+    convergence_table.set_scientific("L2_error", true);
+    convergence_table.set_precision("dt", 3);
+    convergence_table.set_scientific("dt", true);
+
+    std::cout << std::endl;
+    convergence_table.write_text(std::cout);
+
+    std::ofstream conv_tab_file;
+    if (dim == 1) {
+        const char fname[25] = "convergence_table_1D.txt";
+        conv_tab_file.open(fname);
     }
-	    
-    return 0; //need to change
+    else if (dim == 2){
+        const char fname[25] = "convergence_table_2D.txt";
+        conv_tab_file.open(fname);
+    }
+    convergence_table.write_text(conv_tab_file);
+    conv_tab_file.close();
+
+    return 0; //always passes
 }
 

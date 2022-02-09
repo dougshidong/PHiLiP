@@ -100,7 +100,10 @@ void BurgersRewienskiSnapshot<dim, nstate>::steady_state_postprocessing(std::sha
     dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, flow_CFL_);
     dg->system_matrix *= -1.0;
 
-    solve_linear(dg->system_matrix, sensitivity_dRdb, sensitivity_dWdb, this->all_param.linear_solver_param);
+    PHiLiP::Parameters::LinearSolverParam linear_solver_param;
+    linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::direct;
+
+    solve_linear(dg->system_matrix, sensitivity_dRdb, sensitivity_dWdb, linear_solver_param);
 
     dealii::TableHandler solutions_table;
     for (unsigned int i = 0; i < sensitivity_dWdb.size(); ++i) {
@@ -109,7 +112,7 @@ void BurgersRewienskiSnapshot<dim, nstate>::steady_state_postprocessing(std::sha
                 sensitivity_dWdb[i]);
     }
     solutions_table.set_precision("Sensitivity:", 16);
-    std::ofstream out_file("sensitivity.txt");
+    std::ofstream out_file(this->flow_solver_param.sensitivity_table_filename + ".txt");
     solutions_table.write_text(out_file);
 }
 

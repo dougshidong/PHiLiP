@@ -30,11 +30,16 @@ bool POD<dim>::getPODBasisFromSnapshots() {
     bool file_found = false;
     std::vector<dealii::FullMatrix<double>> snapshotMatrixContainer;
     std::string path = all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
-    for (const auto & entry : std::filesystem::directory_iterator(path)){
-        if(std::string(entry.path().filename()).std::string::find("solutions_table") != std::string::npos){
-            pcout << "Processing " << entry.path() << std::endl;
+
+    std::vector<std::filesystem::path> files_in_directory;
+    std::copy(std::filesystem::directory_iterator(path), std::filesystem::directory_iterator(), std::back_inserter(files_in_directory));
+    std::sort(files_in_directory.begin(), files_in_directory.end()); //Sort files so that the order is the same as for the sensitivity basis
+
+    for (const auto & entry : files_in_directory){
+        if(std::string(entry.filename()).std::string::find("solutions_table") != std::string::npos){
+            pcout << "Processing " << entry << std::endl;
             file_found = true;
-            std::ifstream myfile(entry.path());
+            std::ifstream myfile(entry);
             if(!myfile)
             {
                 pcout << "Error opening solutions_table.txt."<< std::endl;
@@ -96,11 +101,11 @@ bool POD<dim>::getPODBasisFromSnapshots() {
     }
 
     //Convert to LAPACKFullMatrix to take the SVD
-    dealii::LAPACKFullMatrix<double> snapshot_matrix(snapshotMatrixContainer[0].n_rows(), totalCols);
+    solutionSnapshots.reinit(snapshotMatrixContainer[0].n_rows(), totalCols);
 
     for(int i = 0; i < numMat; i++){
         dealii::FullMatrix<double> snapshot_submatrix = snapshotMatrixContainer[i];
-        snapshot_matrix.fill(snapshot_submatrix, 0, j_offset[i], 0, 0);
+        solutionSnapshots.fill(snapshot_submatrix, 0, j_offset[i], 0, 0);
     }
 
     pcout << "Snapshot matrix generated." << std::endl;
@@ -113,32 +118,38 @@ bool POD<dim>::getPODBasisFromSnapshots() {
         */
         pcout << "Computing POD basis using the method of snapshots..." << std::endl;
 
+        // Get mass matrix
         const bool compute_dRdW = true;
         this->dg->assemble_residual(compute_dRdW);
+        massMatrix.reinit(dg->global_mass_matrix.m(), dg->global_mass_matrix.n());
+        massMatrix.copy_from(dg->global_mass_matrix);
 
-        dealii::LAPACKFullMatrix<double> system_matrix(dg->global_mass_matrix.m(), dg->global_mass_matrix.n());
-        system_matrix.copy_from(dg->global_mass_matrix);
+        // Get mass weighted solution snapshots: massWeightedSolutionSnapshots = solutionSnapshots^T * massMatrix * solutionSnapshots
+        dealii::LAPACKFullMatrix<double> tmp(solutionSnapshots.n(), solutionSnapshots.m());
+        massWeightedSolutionSnapshots.reinit(solutionSnapshots.n(), solutionSnapshots.n());
+        solutionSnapshots.Tmmult(tmp, massMatrix);
+        tmp.mmult(massWeightedSolutionSnapshots, solutionSnapshots);
 
-        dealii::LAPACKFullMatrix<double> tmp1(snapshot_matrix.n(), snapshot_matrix.m());
-        dealii::LAPACKFullMatrix<double> A(snapshot_matrix.n(), snapshot_matrix.n());
-        snapshot_matrix.Tmmult(tmp1, system_matrix);
-        tmp1.mmult(A, snapshot_matrix);
+        // Compute SVD of mass weighted solution snapshots: massWeightedSolutionSnapshots = U * Sigma * V^T
+        massWeightedSolutionSnapshots.compute_svd();
 
-        A.compute_svd();
+        // Get eigenvalues
+        dealii::LAPACKFullMatrix<double> V = massWeightedSolutionSnapshots.get_svd_vt();
+        dealii::LAPACKFullMatrix<double> eigenvectors_T = this->massWeightedSolutionSnapshots.get_svd_vt();
+        eigenvectors.reinit(this->massWeightedSolutionSnapshots.get_svd_vt().n(), this->massWeightedSolutionSnapshots.get_svd_vt().m());
+        eigenvectors_T.transpose(eigenvectors);
 
-        dealii::LAPACKFullMatrix<double> V = A.get_svd_vt();
-        dealii::LAPACKFullMatrix<double> sigma(snapshot_matrix.n(), snapshot_matrix.n());
-
-        //Form diagonal matrix of singular values
-        for (unsigned int idx = 0; idx < snapshot_matrix.n(); idx++) {
-            sigma(idx, idx) = 1 / A.singular_value(idx);
+        //Form diagonal matrix of inverse singular values
+        simgularValuesInverse.reinit(solutionSnapshots.n(), solutionSnapshots.n());
+        for (unsigned int idx = 0; idx < solutionSnapshots.n(); idx++) {
+            simgularValuesInverse(idx, idx) = 1 / massWeightedSolutionSnapshots.singular_value(idx);
         }
 
-        dealii::LAPACKFullMatrix<double> tmp2(snapshot_matrix.n(), snapshot_matrix.n());
-        V.Tmmult(tmp2, sigma);
-
-        fullPODBasisLAPACK.reinit(snapshot_matrix.m(), snapshot_matrix.n());
-        snapshot_matrix.mmult(fullPODBasisLAPACK, tmp2);
+        //Compute POD basis: fullBasis = solutionSnapshots * eigenvectors * simgularValuesInverse
+        tmp.reinit(solutionSnapshots.n(), solutionSnapshots.n());
+        eigenvectors.mmult(tmp, simgularValuesInverse);
+        fullBasis.reinit(solutionSnapshots.m(), solutionSnapshots.n());
+        solutionSnapshots.mmult(fullBasis, tmp);
 
         pcout << "POD basis computed using the method of snapshots" << std::endl;
     }
@@ -150,8 +161,8 @@ bool POD<dim>::getPODBasisFromSnapshots() {
         */
 
         pcout << "Computing simple POD basis..." << std::endl;
-        snapshot_matrix.compute_svd();
-        fullPODBasisLAPACK = snapshot_matrix.get_svd_u(); //Note: this is the full U_svd, not the thin SVD. Columns beyond number of basis vectors are useless.
+        solutionSnapshots.compute_svd();
+        fullBasis = solutionSnapshots.get_svd_u(); //Note: this is the full U_svd, not the thin SVD. Columns beyond number of basis vectors are useless.
 
         pcout << "Simple POD basis computed." << std::endl;
     }
@@ -162,7 +173,7 @@ template <int dim>
 void POD<dim>::saveFullPODBasisToFile() {
     std::ofstream out_file("full_POD_basis.txt");
     unsigned int precision = 7;
-    fullPODBasisLAPACK.print_formatted(out_file, precision);
+    fullBasis.print_formatted(out_file, precision);
 }
 
 template <int dim>
@@ -212,7 +223,7 @@ bool POD<dim>::getSavedPODBasis(){
                 rows++;
             }
             myfile.close();
-            fullPODBasisLAPACK.copy_from(pod_basis_tmp);
+            fullBasis.copy_from(pod_basis_tmp);
         }
     }
     return file_found;
@@ -230,19 +241,19 @@ std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> POD<dim>::getPODBasisTra
 
 template <int dim>
 void POD<dim>::buildPODBasis() {
-    std::vector<int> row_index_set(fullPODBasisLAPACK.n_rows());
+    std::vector<int> row_index_set(fullBasis.n_rows());
     std::iota(std::begin(row_index_set), std::end(row_index_set),0);
 
-    std::vector<int> column_index_set(fullPODBasisLAPACK.n_cols());
+    std::vector<int> column_index_set(fullBasis.n_cols());
     std::iota(std::begin(column_index_set), std::end(column_index_set),0);
 
-    dealii::TrilinosWrappers::SparseMatrix pod_basis_tmp(fullPODBasisLAPACK.n_rows(), fullPODBasisLAPACK.n_cols(), fullPODBasisLAPACK.n_cols());
-    dealii::TrilinosWrappers::SparseMatrix pod_basis_transpose_tmp(fullPODBasisLAPACK.n_cols(), fullPODBasisLAPACK.n_rows(), fullPODBasisLAPACK.n_rows());
+    dealii::TrilinosWrappers::SparseMatrix pod_basis_tmp(fullBasis.n_rows(), fullBasis.n_cols(), fullBasis.n_cols());
+    dealii::TrilinosWrappers::SparseMatrix pod_basis_transpose_tmp(fullBasis.n_cols(), fullBasis.n_rows(), fullBasis.n_rows());
 
     for(int i : row_index_set){
         for(int j : column_index_set){
-            pod_basis_tmp.set(i, j, fullPODBasisLAPACK(i, j));
-            pod_basis_transpose_tmp.set(j, i, fullPODBasisLAPACK(i, j));
+            pod_basis_tmp.set(i, j, fullBasis(i, j));
+            pod_basis_transpose_tmp.set(j, i, fullBasis(i, j));
         }
     }
 

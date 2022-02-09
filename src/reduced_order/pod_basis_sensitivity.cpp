@@ -6,12 +6,12 @@ namespace ProperOrthogonalDecomposition {
 template <int dim>
 SensitivityPOD<dim>::SensitivityPOD(std::shared_ptr<DGBase<dim,double>> &dg_input)
         : POD<dim>(dg_input)
-        , basis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
-        , basisTranspose(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
+        , sensitivityBasis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
+        , sensitivityBasisTranspose(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
 {
     getSensitivityPODBasisFromSnapshots();
     computeBasisSensitivity();
-    addPODBasisColumns();
+    buildSensitivityPODBasis();
 }
 
 template <int dim>
@@ -24,7 +24,7 @@ bool SensitivityPOD<dim>::getSensitivityPODBasisFromSnapshots() {
     std::sort(files_in_directory.begin(), files_in_directory.end()); //Sort files so that the order is the same as for the ordinary basis
 
     for (const auto & entry : files_in_directory){
-        if(std::string(entry.filename()).std::string::find("sensitivity_table") != std::string::npos){
+        if(std::string(entry.filename()).std::string::find("sensitivity") != std::string::npos){
             this->pcout << "Processing " << entry << std::endl;
             file_found = true;
             std::ifstream myfile(entry);
@@ -103,6 +103,8 @@ bool SensitivityPOD<dim>::getSensitivityPODBasisFromSnapshots() {
 template <int dim>
 void SensitivityPOD<dim>::computeBasisSensitivity() {
 
+    this->pcout << "Computing basis sensitivities..." << std::endl;
+
     // Compute mass weighted sensitivity snapshots:
     /* massWeightedSensitivitySnapshots = sensitivitySnapshots^T * massMatrix * solutionSnapshots
      *      + solutionSnapshots^T * massMatrix * sensitivitySnapshots
@@ -155,10 +157,14 @@ void SensitivityPOD<dim>::computeBasisSensitivity() {
     unsigned int precision = 7;
     fullBasisSensitivity.print_formatted(out_file, precision);
 
+    this->pcout << "Basis sensitivities computed." << std::endl;
+
+
 }
 
 template <int dim>
 dealii::Vector<double> SensitivityPOD<dim>::computeModeSensitivity(int k) {
+    this->pcout << "Computing mode sensitivity..." << std::endl;
 
     // Assemble LHS: (massWeightedSolutionSnapshots - diag(singular_value(k)^2))
     dealii::FullMatrix<double> LHS(this->massWeightedSolutionSnapshots.m(), this->massWeightedSolutionSnapshots.n());
@@ -195,57 +201,49 @@ dealii::Vector<double> SensitivityPOD<dim>::computeModeSensitivity(int k) {
     dealii::Vector<double> kEigenvectorSensitivity(this->eigenvectors.n());
     kEigenvectorSensitivity.add(1, leastSquaresSolution, gamma*=-1, kEigenvector); //Vk_derivative += 1*leastSquaresSolution + -1*gamma*Vk.
 
+    this->pcout << "Mode sensitivity computed." << std::endl;
+
     return kEigenvectorSensitivity;
 }
 
 template <int dim>
 std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> SensitivityPOD<dim>::getPODBasis() {
-    return basis;
+    return sensitivityBasis;
 }
 
 template <int dim>
 std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> SensitivityPOD<dim>::getPODBasisTranspose() {
-    return basisTranspose;
+    return sensitivityBasisTranspose;
 }
 
 template <int dim>
-void SensitivityPOD<dim>::addPODBasisColumns() {
-    std::vector<int> row_index_set(this->fullBasis.n_rows());
+void SensitivityPOD<dim>::buildSensitivityPODBasis() {
+
+    this->pcout << "Building sensitivity POD basis matrix..." << std::endl;
+
+    std::vector<int> row_index_set(fullBasisSensitivity.n_rows());
     std::iota(std::begin(row_index_set), std::end(row_index_set),0);
 
-    std::vector<int> column_index_set(this->fullBasis.n_cols());
+    std::vector<int> column_index_set(fullBasisSensitivity.n_cols());
     std::iota(std::begin(column_index_set), std::end(column_index_set),0);
 
-    dealii::TrilinosWrappers::SparseMatrix pod_basis_tmp(this->fullBasis.n_rows(), 2*this->fullBasis.n_cols(), 2*this->fullBasis.n_cols());
-    dealii::TrilinosWrappers::SparseMatrix pod_basis_transpose_tmp(2*this->fullBasis.n_cols(), this->fullBasis.n_rows(), this->fullBasis.n_rows());
+    dealii::TrilinosWrappers::SparseMatrix pod_basis_tmp(fullBasisSensitivity.n_rows(), fullBasisSensitivity.n_cols(), fullBasisSensitivity.n_cols());
+    dealii::TrilinosWrappers::SparseMatrix pod_basis_transpose_tmp(fullBasisSensitivity.n_cols(), fullBasisSensitivity.n_rows(), fullBasisSensitivity.n_rows());
 
     for(int i : row_index_set){
         for(int j : column_index_set){
-            pod_basis_tmp.set(i, j, this->fullBasis(i, j));
-            pod_basis_transpose_tmp.set(j, i, this->fullBasis(i, j));
-        }
-    }
-
-    std::vector<int> sensitivity_row_index_set(fullBasisSensitivity.n_rows());
-    std::iota(std::begin(row_index_set), std::end(row_index_set),0);
-
-    std::vector<int> sensitivity_column_index_set(fullBasisSensitivity.n_cols());
-    std::iota(std::begin(column_index_set), std::end(column_index_set),this->fullBasis.n_cols());
-
-    for(int i : row_index_set){
-        for(int j : column_index_set){
-            pod_basis_tmp.set(i, j, fullBasisSensitivity(i, j-this->fullBasis.n_cols()));
-            pod_basis_transpose_tmp.set(j, i, fullBasisSensitivity(i, j-this->fullBasis.n_cols()));
+            pod_basis_tmp.set(i, j, fullBasisSensitivity(i, j));
+            pod_basis_transpose_tmp.set(j, i, fullBasisSensitivity(i, j));
         }
     }
 
     pod_basis_tmp.compress(dealii::VectorOperation::insert);
     pod_basis_transpose_tmp.compress(dealii::VectorOperation::insert);
 
-    basis->reinit(pod_basis_tmp);
-    basis->copy_from(pod_basis_tmp);
-    basisTranspose->reinit(pod_basis_tmp);
-    basisTranspose->copy_from(pod_basis_transpose_tmp);
+    sensitivityBasis->reinit(pod_basis_tmp);
+    sensitivityBasis->copy_from(pod_basis_tmp);
+    sensitivityBasisTranspose->reinit(pod_basis_tmp);
+    sensitivityBasisTranspose->copy_from(pod_basis_transpose_tmp);
 }
 
 template class SensitivityPOD <PHILIP_DIM>;

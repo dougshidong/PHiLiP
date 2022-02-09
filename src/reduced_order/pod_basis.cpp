@@ -36,7 +36,7 @@ bool POD<dim>::getPODBasisFromSnapshots() {
     std::sort(files_in_directory.begin(), files_in_directory.end()); //Sort files so that the order is the same as for the sensitivity basis
 
     for (const auto & entry : files_in_directory){
-        if(std::string(entry.filename()).std::string::find("solutions_table") != std::string::npos){
+        if(std::string(entry.filename()).std::string::find("solutions") != std::string::npos){
             pcout << "Processing " << entry << std::endl;
             file_found = true;
             std::ifstream myfile(entry);

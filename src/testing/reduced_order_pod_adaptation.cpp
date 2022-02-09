@@ -15,6 +15,7 @@
 #include "ode_solver/ode_solver_factory.h"
 #include "reduced_order/pod_adaptation.h"
 #include "reduced_order/pod_basis_sensitivity.h"
+#include "reduced_order/pod_basis_sensitivity_types.h"
 
 
 namespace PHiLiP {
@@ -106,8 +107,8 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
     std::shared_ptr< DGBaseState<dim,nstate,double> > dg_state1 = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double> >(dg1);
     dg1->allocate_system ();
     dealii::VectorTools::interpolate(dg1->dof_handler,initial_condition,dg1->solution);
-    std::shared_ptr<ProperOrthogonalDecomposition::SensitivityPOD<dim>> sensitivityPOD = std::make_shared<ProperOrthogonalDecomposition::SensitivityPOD<dim>>(dg1);
-    std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg1, sensitivityPOD);
+    std::shared_ptr<ProperOrthogonalDecomposition::ExpandedPOD<dim>> expandedPOD = std::make_shared<ProperOrthogonalDecomposition::ExpandedPOD<dim>>(dg1);
+    std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg1, expandedPOD);
     ode_solver->steady_state();
     dealii::LinearAlgebra::distributed::Vector<double> sensitivity_solution(dg1->solution);
 

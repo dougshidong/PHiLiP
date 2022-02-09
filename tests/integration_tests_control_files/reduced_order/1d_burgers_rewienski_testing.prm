@@ -13,7 +13,7 @@ set use_collocated_nodes = false
 
 # use the grid refinement study class to generate the grid
 subsection grid refinement study
- set num_refinements = 10
+ set num_refinements = 8
  set poly_degree = 0
  set grid_left = 0.0
  set grid_right = 100.0
@@ -25,9 +25,10 @@ subsection reduced order
   set rewienski_b = 0.041
   set adaptation_tolerance = 0.00001
   set adapt_coarse_basis_constant = 0
-  set coarse_basis_dimension = 18
+  set coarse_basis_dimension = 10
+  set expanded_basis_dimension = 10
   set fine_basis_dimension = 18
-  set path_to_search = ./snapshot_generation_steady/Sensitivity_snapshots/
+  set path_to_search = ./snapshot_generation_steady/b_0.02_a_3.00/
   set method_of_snapshots = true
   set consider_error_sign = true
 end

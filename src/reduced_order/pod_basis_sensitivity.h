@@ -33,8 +33,8 @@ public:
 
     bool getSensitivityPODBasisFromSnapshots();
 
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basis; ///< pod basis
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basisTranspose; ///< Transpose of pod_basis
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> sensitivityBasis; ///< sensitivity basis
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> sensitivityBasisTranspose; ///< Transpose of sensitivity basis
 
 public:
 
@@ -42,8 +42,8 @@ public:
 
     dealii::Vector<double> computeModeSensitivity(int k);
 
-    /// Function to add columns (basis functions) to POD basis. Used when building basis and refining when doing POD adaptation
-    void addPODBasisColumns();
+    /// Function to build sensitivity POD basis
+    void buildSensitivityPODBasis();
 
     /// Function to return basis
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() override;
@@ -54,11 +54,12 @@ public:
     /// Vector to store which indices of the full basis are present in this basis
     std::vector<unsigned int> fullBasisIndices;
 
+protected:
+    dealii::LAPACKFullMatrix<double> fullBasisSensitivity;
 private:
 
     dealii::LAPACKFullMatrix<double> sensitivitySnapshots;
     dealii::LAPACKFullMatrix<double> massWeightedSensitivitySnapshots;
-    dealii::LAPACKFullMatrix<double> fullBasisSensitivity;
     dealii::LAPACKFullMatrix<double> eigenvaluesSensitivity; ///< Matrix of singular value derivatives along the diagonal
 
 

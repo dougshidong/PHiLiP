@@ -21,6 +21,15 @@ public:
     /// Initial dimension of the fine basis
     unsigned int fine_basis_dimension;
 
+    /// Initial dimension of the expanded basis
+    unsigned int expanded_basis_dimension;
+
+    /// Initial dimension of the extrapolated basis
+    unsigned int extrapolated_basis_dimension;
+
+    /// Change in parameter from base parameter for base parameter
+    double extrapolated_parameter_delta;
+
     /// Tolerance for POD adaptation
     double adaptation_tolerance;
 

@@ -13,6 +13,7 @@ template <int dim, int nstate>
 int BurgersRewienskiSensitivity<dim, nstate>::run_test() const
 {
     dealii::TableHandler sensitivity_table;
+    dealii::TableHandler solutions_table;
     double h = 1E-06;
     Parameters::AllParameters params1 = reinit_params(this->all_parameters->reduced_order_param.rewienski_b);
     Parameters::AllParameters params2 = reinit_params(this->all_parameters->reduced_order_param.rewienski_b + h);
@@ -30,16 +31,19 @@ int BurgersRewienskiSensitivity<dim, nstate>::run_test() const
         dealii::LinearAlgebra::distributed::Vector<double> solution2 = ode_solver_2->dg->solution;
         dealii::LinearAlgebra::distributed::Vector<double> sensitivity_dWdb(solution1.size());
 
-        dealii::TableHandler solutions_table;
         for(unsigned int i = 0 ; i < solution1.size(); i++){
             sensitivity_dWdb[i] = (solution2[i] - solution1[i])/h;
             pcout << (solution2[i] - solution1[i])/h <<std::endl;
-            solutions_table.add_value("Sensitivity:", sensitivity_dWdb[i]);
+            sensitivity_table.add_value("Sensitivity:", sensitivity_dWdb[i]);
+            solutions_table.add_value("Solution:", solution1[i]);
         }
 
-        solutions_table.set_precision("Sensitivity:", 16);
-        std::ofstream out_file("steady_state_sensitivity_fd.txt");
-        solutions_table.write_text(out_file);
+        sensitivity_table.set_precision("Sensitivity:", 16);
+        sensitivity_table.set_precision("Solution:", 16);
+        std::ofstream sensitivity_out("steady_state_sensitivity_fd.txt");
+        std::ofstream solutions_out("steady_state_solution.txt");
+        sensitivity_table.write_text(sensitivity_out);
+        solutions_table.write_text(solutions_out);
     }
     else{
 
@@ -55,11 +59,15 @@ int BurgersRewienskiSensitivity<dim, nstate>::run_test() const
                 sensitivity_dWdb[i] = (solution2[i] - solution1[i])/h;
                 sensitivity_table.add_value(std::to_string(ode_solver_1->current_time), sensitivity_dWdb[i]);
                 sensitivity_table.set_precision(std::to_string(ode_solver_1->current_time), 16);
+                solutions_table.add_value(std::to_string(ode_solver_1->current_time), solution1[i]);
+                solutions_table.set_precision(std::to_string(ode_solver_1->current_time), 16);
             }
         }
 
-        std::ofstream out_file("unsteady_sensitivity_fd.txt");
-        sensitivity_table.write_text(out_file);
+        std::ofstream sensitivity_out("unsteady_sensitivity_fd.txt");
+        std::ofstream solutions_out("unsteady_solutions.txt");
+        sensitivity_table.write_text(sensitivity_out);
+        solutions_table.write_text(solutions_out);
     }
 
     return 0;

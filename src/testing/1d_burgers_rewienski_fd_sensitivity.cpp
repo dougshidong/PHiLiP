@@ -1,21 +1,5 @@
 #include "1d_burgers_rewienski_fd_sensitivity.h"
-
 #include <fstream>
-
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/numerics/solution_transfer.h>
-#include <deal.II/base/numbers.h>
-#include <deal.II/base/function_parser.h>
-#include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/grid_refinement.h>
-#include <deal.II/grid/grid_tools.h>
-#include <deal.II/grid/grid_out.h>
-#include <deal.II/grid/grid_in.h>
-
-#include "parameters/all_parameters.h"
-#include "dg/dg_factory.hpp"
-#include "ode_solver/ode_solver_factory.h"
-
 
 namespace PHiLiP {
 namespace Tests {
@@ -28,24 +12,55 @@ BurgersRewienskiSensitivity<dim, nstate>::BurgersRewienskiSensitivity(const PHiL
 template <int dim, int nstate>
 int BurgersRewienskiSensitivity<dim, nstate>::run_test() const
 {
+    dealii::TableHandler sensitivity_table;
     double h = 1E-06;
+    Parameters::AllParameters params1 = reinit_params(this->all_parameters->reduced_order_param.rewienski_b);
+    Parameters::AllParameters params2 = reinit_params(this->all_parameters->reduced_order_param.rewienski_b + h);
+    std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver_1 = initialize_ode_solver(params1);
+    std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver_2 = initialize_ode_solver(params2);
 
-    Parameters::AllParameters params1 = reinit_params(0.02);
-    Parameters::AllParameters params2 = reinit_params(0.02+h);
-    dealii::LinearAlgebra::distributed::Vector<double> solution1 = run_solution(params1);
-    dealii::LinearAlgebra::distributed::Vector<double> solution2 = run_solution(params2);
-    dealii::LinearAlgebra::distributed::Vector<double> sensitivity_dWdb(solution1.size());
+    ode_solver_1->allocate_ode_system();
+    ode_solver_2->allocate_ode_system();
 
-    dealii::TableHandler solutions_table;
-    for(unsigned int i = 0 ; i < solution1.size(); i++){
-        sensitivity_dWdb[i] = (solution2[i] - solution1[i])/h;
-        pcout << (solution2[i] - solution1[i])/h <<std::endl;
-        solutions_table.add_value("Sensitivity:", sensitivity_dWdb[i]);
+    if(this->all_parameters->flow_solver_param.steady_state == true){
+        ode_solver_1->steady_state();
+        ode_solver_2->steady_state();
+
+        dealii::LinearAlgebra::distributed::Vector<double> solution1 = ode_solver_1->dg->solution;
+        dealii::LinearAlgebra::distributed::Vector<double> solution2 = ode_solver_2->dg->solution;
+        dealii::LinearAlgebra::distributed::Vector<double> sensitivity_dWdb(solution1.size());
+
+        dealii::TableHandler solutions_table;
+        for(unsigned int i = 0 ; i < solution1.size(); i++){
+            sensitivity_dWdb[i] = (solution2[i] - solution1[i])/h;
+            pcout << (solution2[i] - solution1[i])/h <<std::endl;
+            solutions_table.add_value("Sensitivity:", sensitivity_dWdb[i]);
+        }
+
+        solutions_table.set_precision("Sensitivity:", 16);
+        std::ofstream out_file("steady_state_sensitivity_fd.txt");
+        solutions_table.write_text(out_file);
     }
+    else{
 
-    solutions_table.set_precision("Sensitivity:", 16);
-    std::ofstream out_file("sensitivity_fd.txt");
-    solutions_table.write_text(out_file);
+        while(ode_solver_1->current_time < this->all_parameters->flow_solver_param.final_time) {
+            ode_solver_1->step_in_time(this->all_parameters->ode_solver_param.initial_time_step, false);
+            ode_solver_2->step_in_time(this->all_parameters->ode_solver_param.initial_time_step, false);
+
+            dealii::LinearAlgebra::distributed::Vector<double> solution1 = ode_solver_1->dg->solution;
+            dealii::LinearAlgebra::distributed::Vector<double> solution2 = ode_solver_2->dg->solution;
+            dealii::LinearAlgebra::distributed::Vector<double> sensitivity_dWdb(solution1.size());
+
+            for(unsigned int i = 0 ; i < solution1.size(); i++){
+                sensitivity_dWdb[i] = (solution2[i] - solution1[i])/h;
+                sensitivity_table.add_value(std::to_string(ode_solver_1->current_time), sensitivity_dWdb[i]);
+                sensitivity_table.set_precision(std::to_string(ode_solver_1->current_time), 16);
+            }
+        }
+
+        std::ofstream out_file("unsteady_sensitivity_fd.txt");
+        sensitivity_table.write_text(out_file);
+    }
 
     return 0;
 }
@@ -54,23 +69,23 @@ template <int dim, int nstate>
 Parameters::AllParameters BurgersRewienskiSensitivity<dim, nstate>::reinit_params(double rewienski_b) const {
     dealii::ParameterHandler parameter_handler;
     PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler);
-    PHiLiP::Parameters::AllParameters all_parameters;
-    all_parameters.parse_parameters (parameter_handler);
-    all_parameters.reduced_order_param.rewienski_b = rewienski_b;
-    all_parameters.reduced_order_param.rewienski_a = 3.0;
-    all_parameters.grid_refinement_study_param.num_refinements = 8;
-    all_parameters.grid_refinement_study_param.poly_degree = 0;
-    all_parameters.grid_refinement_study_param.grid_left = 0.0;
-    all_parameters.grid_refinement_study_param.grid_right = 100.0;
-    all_parameters.dimension = 1;
-    all_parameters.pde_type = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation::burgers_rewienski;
-    all_parameters.manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term = true;
-    all_parameters.ode_solver_param.initial_time_step = 0.1;
-    return all_parameters;
+    PHiLiP::Parameters::AllParameters parameters;
+    parameters.parse_parameters (parameter_handler);
+    parameters.reduced_order_param.rewienski_b = rewienski_b;
+    parameters.reduced_order_param.rewienski_a = this->all_parameters->reduced_order_param.rewienski_a;
+    parameters.grid_refinement_study_param.num_refinements = this->all_parameters->grid_refinement_study_param.num_refinements;
+    parameters.grid_refinement_study_param.poly_degree = this->all_parameters->grid_refinement_study_param.poly_degree;
+    parameters.grid_refinement_study_param.grid_left = this->all_parameters->grid_refinement_study_param.grid_left;
+    parameters.grid_refinement_study_param.grid_right = this->all_parameters->grid_refinement_study_param.grid_right;
+    parameters.dimension = this->all_parameters->dimension;
+    parameters.pde_type = this->all_parameters->pde_type;
+    parameters.manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term = this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term;
+    parameters.ode_solver_param.initial_time_step = this->all_parameters->ode_solver_param.initial_time_step;
+    return parameters;
 }
 
 template <int dim, int nstate>
-dealii::LinearAlgebra::distributed::Vector<double> BurgersRewienskiSensitivity<dim, nstate>::run_solution(Parameters::AllParameters parameters_input) const {
+std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> BurgersRewienskiSensitivity<dim, nstate>::initialize_ode_solver(Parameters::AllParameters parameters_input) const {
     const Parameters::AllParameters *param = &parameters_input;
 
     pcout << "Running Burgers Rewienski with parameter a: "
@@ -115,10 +130,9 @@ dealii::LinearAlgebra::distributed::Vector<double> BurgersRewienskiSensitivity<d
           << ". Number of degrees of freedom: " << dg->dof_handler.n_dofs()
           << std::endl;
 
-    ode_solver->steady_state();
-
-    return dg->solution;
+    return ode_solver;
 }
+
 #if PHILIP_DIM==1
         template class BurgersRewienskiSensitivity<PHILIP_DIM,PHILIP_DIM>;
 #endif

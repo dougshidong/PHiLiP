@@ -47,13 +47,11 @@ void ExpandedPOD<dim>::addPODBasisColumns(const std::vector<unsigned int> addCol
 
     for (unsigned int i = 0; i < rowIndices.size(); i++) {
         for (unsigned int j = 0; j < this->fullBasisIndices.size(); j++) {
-            this->pcout << i << " " << j << std::endl;
             basis_tmp.set(i, j, this->fullBasis(rowIndices[i], this->fullBasisIndices[j]));
             basis_transpose_tmp.set(j, i, this->fullBasis(rowIndices[i], this->fullBasisIndices[j]));
         }
         int offset = this->fullBasisIndices.size();
         for (unsigned int j = offset; j < this->fullSensitivityBasisIndices.size() + offset; j++) {
-            this->pcout << i << " " << j << std::endl;
             basis_tmp.set(i, j, this->fullBasisSensitivity(rowIndices[i], this->fullBasisIndices[j-offset]));
             basis_transpose_tmp.set(j, i, this->fullBasisSensitivity(rowIndices[i], this->fullBasisIndices[j-offset]));
         }
@@ -96,8 +94,8 @@ void ExtrapolatedPOD<dim>::addPODBasisColumns(const std::vector<unsigned int> ad
     double delta = this->all_parameters->reduced_order_param.extrapolated_parameter_delta;
     for (unsigned int i = 0; i < rowIndices.size(); i++) {
         for (unsigned int j = 0; j < this->fullBasisIndices.size(); j++) {
-            basis_tmp.set(i, j, this->fullBasis(rowIndices[i], this->fullBasisIndices[j]) + delta*this->fullBasisSensitivity(rowIndices[i], this->fullBasisIndices[j]));
-            basis_transpose_tmp.set(j, i, this->fullBasis(rowIndices[i], this->fullBasisIndices[j]) + delta*this->fullBasisSensitivity(rowIndices[i], this->fullBasisIndices[j]));
+            basis_tmp.set(i, j, this->fullBasis(rowIndices[i], this->fullBasisIndices[j]) + delta*(this->fullBasisSensitivity(rowIndices[i], this->fullBasisIndices[j])));
+            basis_transpose_tmp.set(j, i, this->fullBasis(rowIndices[i], this->fullBasisIndices[j]) + delta*(this->fullBasisSensitivity(rowIndices[i], this->fullBasisIndices[j])));
         }
     }
 

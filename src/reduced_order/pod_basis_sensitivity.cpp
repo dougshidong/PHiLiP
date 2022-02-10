@@ -124,7 +124,11 @@ void SensitivityPOD<dim>::computeBasisSensitivity() {
 
     // Compute sensitivity of each eigenvector and eigenvalue
     dealii::LAPACKFullMatrix<double> eigenvectorsSensitivity(this->eigenvectors.m(), this->eigenvectors.n());
-    for(unsigned int j = 0 ; j < this->eigenvectors.n() ; j++){ //For each column
+
+    //Compute only some sensitivities
+    unsigned int numSensitivities = std::min((unsigned int)20, this->eigenvectors.n());
+
+    for(unsigned int j = 0 ; j < numSensitivities; j++){ //For each column
         dealii::Vector<double> kEigenvectorSensitivity = computeModeSensitivity(j);
         for(unsigned int i = 0 ; i < kEigenvectorSensitivity.size(); i++){ //For each row
             eigenvectorsSensitivity(i, j) = kEigenvectorSensitivity(i);

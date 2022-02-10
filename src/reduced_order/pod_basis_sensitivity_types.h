@@ -16,6 +16,7 @@
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include "ode_solver/ode_solver_factory.h"
+#include <algorithm>
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {

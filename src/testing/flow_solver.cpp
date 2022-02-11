@@ -30,7 +30,7 @@ template <int dim, int nstate>
 FlowSolver<dim, nstate>::FlowSolver(const PHiLiP::Parameters::AllParameters *const parameters_input)
 : TestsBase::TestsBase(parameters_input)
 , initial_condition_function(InitialConditionFactory<dim,double>::create_InitialConditionFunction(parameters_input, nstate))
-, all_param(*(TestsBase::all_parameters))
+, all_param(*parameters_input)
 , flow_solver_param(all_param.flow_solver_param)
 , ode_param(all_param.ode_solver_param)
 , courant_friedrich_lewy_number(flow_solver_param.courant_friedrich_lewy_number)
@@ -38,7 +38,7 @@ FlowSolver<dim, nstate>::FlowSolver(const PHiLiP::Parameters::AllParameters *con
 , final_time(flow_solver_param.final_time)
 , unsteady_data_table_filename_with_extension(flow_solver_param.unsteady_data_table_filename+".txt")
 {
-    // nothing to do here yet
+    //do nothing
 }
 
 template <int dim, int nstate>
@@ -79,13 +79,13 @@ void FlowSolver<dim, nstate>::compute_unsteady_data_and_write_to_table(
 }
 
 template <int dim, int nstate>
-int FlowSolver<dim,nstate>::run_test() const
+void FlowSolver<dim,nstate>::setup_test() const
 {
-    pcout << "Running Flow Solver... " << std::endl;
+    pcout << "Setting up Flow Solver... " << std::endl;
     //----------------------------------------------------
     // Display flow solver setup
     //----------------------------------------------------
-    pcout << "Flow solver setup: " << std::endl;    
+    pcout << "Flow solver setup: " << std::endl;
     display_flow_solver_setup();
     //----------------------------------------------------
     // Physics
@@ -99,9 +99,9 @@ int FlowSolver<dim,nstate>::run_test() const
     pcout << "Generating the grid... " << std::flush;
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (
 #if PHILIP_DIM!=1
-        this->mpi_communicator
+            this->mpi_communicator
 #endif
-        );
+    );
     generate_grid(grid);
     pcout << "done." << std::endl;
     //----------------------------------------------------
@@ -109,14 +109,8 @@ int FlowSolver<dim,nstate>::run_test() const
     //----------------------------------------------------
     pcout << "Creating Discontinuous Galerkin object... " << std::flush;
     // std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, poly_degree, grid_degree, grid);
-    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, grid);
+    dg = DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, grid);
     dg->allocate_system();
-    pcout << "done." << std::endl;
-    //----------------------------------------------------
-    // Constant time step based on CFL number
-    //----------------------------------------------------
-    pcout << "Setting constant time step... " << std::flush;
-    const double constant_time_step = get_constant_time_step(dg);
     pcout << "done." << std::endl;
     // ----------------------------------------------------
     // Initialize the solution
@@ -135,13 +129,28 @@ int FlowSolver<dim,nstate>::run_test() const
     // ODE Solver
     //----------------------------------------------------
     pcout << "Creating ODE solver... " << std::flush;
-    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
     ode_solver->allocate_ode_system();
     pcout << "done." << std::endl;
+}
+
+template <int dim, int nstate>
+int FlowSolver<dim,nstate>::run_test() const
+{
+    //----------------------------------------------------
+    // Set up test
+    //----------------------------------------------------
+    setup_test();
     //----------------------------------------------------
     // Select unsteady or steady-state
     //----------------------------------------------------
     if(flow_solver_param.steady_state == false){
+        //----------------------------------------------------
+        // Constant time step based on CFL number
+        //----------------------------------------------------
+        pcout << "Setting constant time step... " << std::flush;
+        const double constant_time_step = get_constant_time_step(dg);
+        pcout << "done." << std::endl;
         //----------------------------------------------------
         // dealii::TableHandler and data at initial time
         //----------------------------------------------------

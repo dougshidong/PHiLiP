@@ -8,6 +8,9 @@
 #include "physics/physics.h"
 #include "parameters/all_parameters.h"
 #include <deal.II/base/table_handler.h>
+#include "dg/dg_factory.hpp"
+#include "ode_solver/explicit_ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 
 // for generate_grid
 #include <deal.II/distributed/shared_tria.h>
@@ -33,8 +36,15 @@ public:
     /// Destructor
     ~FlowSolver() {};
 
+    /// Set up test
+    void setup_test() const;
+
     /// Runs the test (i.e. flow solver)
     int run_test () const;
+
+    mutable std::shared_ptr<DGBase<dim, double>> dg;
+
+    mutable std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver;
 
 protected:
     std::shared_ptr< InitialConditionFunction<dim,double> > initial_condition_function; ///< Initial condition function

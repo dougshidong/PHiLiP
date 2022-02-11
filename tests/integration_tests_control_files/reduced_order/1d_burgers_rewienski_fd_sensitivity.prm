@@ -2,7 +2,7 @@
 # ---------------------
 
 set dimension = 1
-set test_type = burgers_rewienski_fd_sensitivity
+set test_type = finite_difference_sensitivity
 set pde_type = burgers_rewienski
 
 set use_weak_form = true

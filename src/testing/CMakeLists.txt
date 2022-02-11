@@ -20,9 +20,10 @@ set(TESTS_SOURCE
     optimization_inverse_manufactured/optimization_inverse_manufactured.cpp
     reduced_order.cpp
     reduced_order_pod_adaptation.cpp
+    finite_difference_sensitivity.cpp
     flow_solver.cpp
     flow_solver_cases/periodic_cube_flow.cpp
-    flow_solver_cases/1D_burgers_rewienski_snapshot.cpp 1d_burgers_rewienski_fd_sensitivity.cpp 1d_burgers_rewienski_fd_sensitivity.h)
+    flow_solver_cases/1D_burgers_rewienski_snapshot.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

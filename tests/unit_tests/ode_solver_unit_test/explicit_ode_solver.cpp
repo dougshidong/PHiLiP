@@ -36,16 +36,19 @@ const int dim = PHILIP_DIM;
     //refines spatial discretization 5 times and writes a convergence table to file
     //Can be used to verify spatial order of the explicit ODE solver
     //Note: 2D is implemented but is not included in CMakeLists.txt (untested)
+    
 
     typename dealii::Triangulation<dim>::MeshSmoothing(
     dealii::Triangulation<dim>::smoothing_on_refinement |
     dealii::Triangulation<dim>::smoothing_on_coarsening));
 
+    int testfail = 0;
+    
     double left = 0.0;
     double right = 2.0;
     const bool colorize = true;
     int n_refinements = 5;
-
+    
     //generating grid
     dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
     //setting periodic BC 
@@ -76,12 +79,16 @@ const int dim = PHILIP_DIM;
     all_parameters.ode_solver_param.nonlinear_max_iterations = 500;
     all_parameters.ode_solver_param.print_iteration_modulo = 100;
     all_parameters.ode_solver_param.ode_output = PHiLiP::Parameters::OutputEnum::quiet; 
+    //all_parameters.ode_solver_param.runge_kutta_order = -1;a
     
+    double expected_order = -3.0;
+    double order_tolerance = 0.1; 
+
     double adv_speed_x = 1.0, adv_speed_y = 0.0;
     all_parameters.manufactured_convergence_study_param.manufactured_solution_param.advection_vector[0] = adv_speed_x; //x-velocity
     all_parameters.manufactured_convergence_study_param.manufactured_solution_param.advection_vector[1] = adv_speed_y; //y-velocity
 
-    int n_time_refinements = 5;
+    int n_time_refinements = 4;
     double dt_init = 2.5E-3;
     double dt = dt_init;
     const double refine_ratio = 0.5;
@@ -90,6 +97,7 @@ const int dim = PHILIP_DIM;
     dealii::ConvergenceTable convergence_table;
 
     double L2_error_old = 0;
+    double L2_error_conv_rate[4];
 
     for (int refinement = 0; refinement < n_time_refinements+1; ++refinement){
 
@@ -167,8 +175,9 @@ const int dim = PHILIP_DIM;
     convergence_table.add_value("refinement", refinement);
     convergence_table.add_value("dt",dt );
     convergence_table.add_value("L2_error",L2_error );
-    convergence_table.add_value("L2_ratio",L2_error_old/L2_error); //should be 8
+    //convergence_table.add_value("L2_ratio",L2_error_old/L2_error); //should be 8
 
+    if (refinement > 0) L2_error_conv_rate[refinement-1] = log(L2_error_old/L2_error)/log(refine_ratio);
     dt *= refine_ratio;
     L2_error_old = L2_error;
     }//time refinement loop
@@ -178,6 +187,7 @@ const int dim = PHILIP_DIM;
     convergence_table.set_scientific("L2_error", true);
     convergence_table.set_precision("dt", 3);
     convergence_table.set_scientific("dt", true);
+    convergence_table.evaluate_convergence_rates("L2_error", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
 
     std::cout << std::endl;
     convergence_table.write_text(std::cout);
@@ -194,6 +204,13 @@ const int dim = PHILIP_DIM;
     convergence_table.write_text(conv_tab_file);
     conv_tab_file.close();
 
-    return 0; //always passes
+    for (int i = 0; i < n_time_refinements; ++i){
+        if (abs(L2_error_conv_rate[i] - expected_order) > order_tolerance){
+	    testfail = 1;
+	    std::cout << "Expected convergence order was not reached at refinement " << i + 1 <<std::endl;
+	}
+    }
+
+    return testfail; //always passes
 }
 

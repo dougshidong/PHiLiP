@@ -178,8 +178,8 @@ void PeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
 
     // Abort if energy is nan
     if(std::isnan(kinetic_energy)) {
-        this->pcout << " ERROR: Kinetic energy at time " << current_time << " is nan." << std::endl;
-        this->pcout << "        Consider decreasing the time step / CFL number." << std::endl;
+        std::cout << " ERROR: Kinetic energy at time " << current_time << " is nan." << std::endl;
+        std::cout << "        Consider decreasing the time step / CFL number." << std::endl;
         std::abort();
     }
 }

@@ -78,6 +78,12 @@ void FlowSolver<dim, nstate>::compute_unsteady_data_and_write_to_table(
     // do nothing by default
 }
 
+template<int dim, int nstate>
+void FlowSolver<dim, nstate>::restart_computation_from_outputted_step(std::shared_ptr <DGBase<dim, double>> /*dg*/) const
+{
+    // to do
+}
+
 template <int dim, int nstate>
 void FlowSolver<dim,nstate>::setup_test() const
 {
@@ -121,10 +127,6 @@ void FlowSolver<dim,nstate>::setup_test() const
     dealii::VectorTools::interpolate(dg->dof_handler, *initial_condition_function, solution_no_ghost);
     dg->solution = solution_no_ghost;
     pcout << "done." << std::endl;
-    // - Output initialization to be viewed in Paraview
-    if (ode_param.output_solution_every_x_steps > 0) {
-        dg->output_results_vtk(9999);
-    }
     //----------------------------------------------------
     // ODE Solver
     //----------------------------------------------------
@@ -141,6 +143,14 @@ int FlowSolver<dim,nstate>::run_test() const
     // Set up test
     //----------------------------------------------------
     setup_test();
+
+    if (ode_param.output_solution_every_x_steps > 0) {
+        dg->output_results_vtk(ode_solver->current_iteration);
+    } else if (ode_param.output_solution_every_dt_time_intervals > 0.0) {
+        dg->output_results_vtk(ode_solver->current_iteration);
+        ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_every_dt_time_intervals;
+    }
+
     //----------------------------------------------------
     // Select unsteady or steady-state
     //----------------------------------------------------
@@ -177,10 +187,18 @@ int FlowSolver<dim,nstate>::run_test() const
                     const int file_number = ode_solver->current_iteration / ode_param.output_solution_every_x_steps;
                     dg->output_results_vtk(file_number);
                 }
+            } else if(ode_param.output_solution_every_dt_time_intervals > 0.0) {
+                const bool is_output_time = ((ode_solver->current_time <= ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals) && 
+                                            ((ode_solver->current_time + constant_time_step) > ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals));
+                if (is_output_time) {
+                    pcout << "  ... Writing vtk solution file ..." << std::endl;
+                    const int file_number = ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals / ode_param.output_solution_every_dt_time_intervals;
+                    dg->output_results_vtk(file_number);
+                    ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_every_dt_time_intervals;
+                }
             }
-        }
-    }
-    else{
+        } // close while
+    } else {
         //----------------------------------------------------
         // Steady-state solution
         //----------------------------------------------------
@@ -207,10 +225,9 @@ FlowSolverFactory<dim,nstate>
     const FlowCaseEnum flow_type = parameters_input->flow_solver_param.flow_case_type;
     if (flow_type == FlowCaseEnum::taylor_green_vortex) {
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<PeriodicCubeFlow<dim,nstate>>(parameters_input);
-    } else if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){
+    } else if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot) {
         if constexpr (dim==1 && nstate==dim) return std::make_unique<BurgersRewienskiSnapshot<dim,nstate>>(parameters_input);
-    }
-    else{
+    } else {
         std::cout << "Invalid flow case. You probably forgot to add it to the list of flow cases in flow_solver.cpp" << std::endl;
         std::abort();
     }

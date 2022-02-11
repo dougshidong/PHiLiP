@@ -24,6 +24,7 @@ public:
     ODESolverEnum ode_solver_type; ///< ODE solver type. Note that only implicit has been fully tested for now.
 
     int output_solution_every_x_steps; ///< Outputs the solution every x steps to .vtk file
+    double output_solution_every_dt_time_intervals; ///< Outputs the solution every dt time intervals to .vtk file
 
     unsigned int nonlinear_max_iterations; ///< Maximum number of iterations.
     unsigned int print_iteration_modulo; ///< If ode_output==verbose, print every print_iteration_modulo iterations.

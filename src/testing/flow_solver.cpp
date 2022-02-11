@@ -17,7 +17,8 @@
 #include "ode_solver/explicit_ode_solver.h"
 #include "ode_solver/ode_solver_factory.h"
 #include "flow_solver_cases/periodic_cube_flow.h"
-#include "flow_solver_cases/1D_burgers_rewienski_snapshot.cpp"
+#include "flow_solver_cases/1D_burgers_rewienski_snapshot.h"
+#include "flow_solver_cases/1d_burgers_viscous_snapshot.h"
 #include <deal.II/base/table_handler.h>
 
 namespace PHiLiP {
@@ -50,6 +51,7 @@ void FlowSolver<dim,nstate>::display_flow_solver_setup() const
     if (pde_type == PDE_enum::euler)                {pde_string = "euler";}
     if (pde_type == PDE_enum::navier_stokes)        {pde_string = "navier_stokes";}
     if (pde_type == PDE_enum::burgers_rewienski)    {pde_string = "burgers_rewienski";}
+    if (pde_type == PDE_enum::burgers_viscous)      {pde_string = "burgers_viscous";}
     pcout << "- PDE Type: " << pde_string << std::endl;
     pcout << "- Polynomial degree: " << poly_degree << std::endl;
     pcout << "- Final time: " << final_time << std::endl;
@@ -225,6 +227,8 @@ FlowSolverFactory<dim,nstate>
     const FlowCaseEnum flow_type = parameters_input->flow_solver_param.flow_case_type;
     if (flow_type == FlowCaseEnum::taylor_green_vortex) {
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<PeriodicCubeFlow<dim,nstate>>(parameters_input);
+    } else if (flow_type == FlowCaseEnum::burgers_viscous_snapshot) {
+        if constexpr (dim==1 && nstate==dim) return std::make_unique<BurgersViscousSnapshot<dim,nstate>>(parameters_input);
     } else if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot) {
         if constexpr (dim==1 && nstate==dim) return std::make_unique<BurgersRewienskiSnapshot<dim,nstate>>(parameters_input);
     } else {

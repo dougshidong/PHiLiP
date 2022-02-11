@@ -13,6 +13,7 @@ AllParameters::AllParameters ()
     , euler_param(EulerParam())
     , navier_stokes_param(NavierStokesParam())
     , reduced_order_param(ReducedOrderModelParam())
+    , burgers_param(BurgersParam())
     , grid_refinement_study_param(GridRefinementStudyParam())
     , artificial_dissipation_param(ArtificialDissipationParam())
     , flow_solver_param(FlowSolverParam())
@@ -147,6 +148,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                           " convection_diffusion | "
                           " advection_vector | "
                           " burgers_inviscid | "
+                          " burgers_viscous | "
                           " burgers_rewienski | "
                           " euler |"
                           " mhd |"
@@ -158,6 +160,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  convection_diffusion | "
                       "  advection_vector | "
                       "  burgers_inviscid | "
+                      "  burgers_viscous | "
                       "  burgers_rewienski | "
                       "  euler | "
                       "  mhd |"
@@ -181,6 +184,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     Parameters::NavierStokesParam::declare_parameters (prm);
 
     Parameters::ReducedOrderModelParam::declare_parameters (prm);
+    Parameters::BurgersParam::declare_parameters (prm);
     Parameters::GridRefinementStudyParam::declare_parameters (prm);
    
     Parameters::ArtificialDissipationParam::declare_parameters (prm);
@@ -245,6 +249,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
         nstate = 1;
     } else if (pde_string == "burgers_inviscid") {
         pde_type = burgers_inviscid;
+        nstate = dimension;
+    } else if (pde_string == "burgers_viscous") {
+        pde_type = burgers_viscous;
         nstate = dimension;
     } else if (pde_string == "burgers_rewienski") {
         pde_type = burgers_rewienski;
@@ -319,6 +326,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     pcout << "Parsing reduced order subsection..." << std::endl;
     reduced_order_param.parse_parameters (prm);
+
+    pcout << "Parsing Burgers subsection..." << std::endl;
+    burgers_param.parse_parameters (prm);
 
     pcout << "Parsing grid refinement study subsection..." << std::endl;
     grid_refinement_study_param.parse_parameters (prm);

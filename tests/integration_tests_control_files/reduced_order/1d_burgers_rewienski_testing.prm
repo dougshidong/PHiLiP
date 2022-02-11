@@ -19,10 +19,13 @@ subsection grid refinement study
  set grid_right = 100.0
 end
 
-#Reduced order parameters
-subsection reduced order
+subsection burgers
   set rewienski_a = 3.0
   set rewienski_b = 0.0206
+end
+
+#Reduced order parameters
+subsection reduced order
   #set adaptation_tolerance = 0.00001
   #set adapt_coarse_basis_constant = 0
   set coarse_basis_dimension = 20

@@ -16,10 +16,12 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         prm.declare_entry("flow_case_type","taylor_green_vortex",
                           dealii::Patterns::Selection(
                           " taylor_green_vortex | "
+                          " burgers_viscous_snapshot | "
                           " burgers_rewienski_snapshot"),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
+                          " burgers_viscous_snapshot | "
                           " burgers_rewienski_snapshot>.");
 
         prm.declare_entry("final_time", "1",
@@ -51,6 +53,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
     {
         const std::string flow_case_type_string = prm.get("flow_case_type");
         if      (flow_case_type_string == "taylor_green_vortex")  {flow_case_type = taylor_green_vortex;}
+        else if (flow_case_type_string == "burgers_viscous_snapshot")  {flow_case_type = burgers_viscous_snapshot;}
         else if (flow_case_type_string == "burgers_rewienski_snapshot")  {flow_case_type = burgers_rewienski_snapshot;}
 
         final_time = prm.get_double("final_time");

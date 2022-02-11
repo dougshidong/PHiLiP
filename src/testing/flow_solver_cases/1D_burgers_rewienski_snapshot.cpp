@@ -84,7 +84,7 @@ void BurgersRewienskiSnapshot<dim, nstate>::steady_state_postprocessing(std::sha
         for (unsigned int idof = 0; idof < fe_values_extra.dofs_per_cell; ++idof) {
             for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
                 const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
-                double b = this->all_param.reduced_order_param.rewienski_b;
+                double b = this->all_param.burgers_param.rewienski_b;
                 const dealii::Point<dim, double> point = fe_values_extra.quadrature_point(iquad);
                 sensitivity_dRdb[dofs_indices[idof]] += fe_values_extra.shape_value_component(idof, iquad, istate) * 0.02 * point[0] * exp(point[0] * b) * fe_values_extra.JxW(iquad);
             }

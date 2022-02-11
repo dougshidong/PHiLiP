@@ -57,15 +57,23 @@ PhysicsFactory<dim,nstate,real>
     } else if (pde_type == PDE_enum::burgers_inviscid) {
         if constexpr (nstate==dim) 
             return std::make_shared < Burgers<dim,nstate,real> >(
+                parameters_input->burgers_param.diffusion_coefficient,
                 true, false,
                 diffusion_tensor, 
                 manufactured_solution_function);
+    } else if (pde_type == PDE_enum::burgers_viscous) {
+        if constexpr (nstate==dim)
+            return std::make_shared < Burgers<dim,nstate,real> >(
+                    parameters_input->burgers_param.diffusion_coefficient,
+                    true, true,
+                    diffusion_tensor,
+                    manufactured_solution_function);
     } else if (pde_type == PDE_enum::burgers_rewienski) {
         if constexpr (nstate==dim)
             return std::make_shared < BurgersRewienski<dim,nstate,real> >(
-                    parameters_input->reduced_order_param.rewienski_a,
-                    parameters_input->reduced_order_param.rewienski_b,
-                    parameters_input->reduced_order_param.rewienski_manufactured_solution,
+                    parameters_input->burgers_param.rewienski_a,
+                    parameters_input->burgers_param.rewienski_b,
+                    parameters_input->burgers_param.rewienski_manufactured_solution,
                     true,
                     false,
                     diffusion_tensor,

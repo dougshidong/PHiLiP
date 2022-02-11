@@ -9,11 +9,6 @@ namespace Parameters {
 class ReducedOrderModelParam
 {
 public:
-    /// Parameter a for eq.(18) in Carlberg 2011
-    double rewienski_a;
-
-    /// Parameter b for eq.(18) in Carlberg 2011
-    double rewienski_b;
 
     /// Initial dimension of the coarse basis
     unsigned int coarse_basis_dimension;
@@ -35,11 +30,6 @@ public:
 
     /// Number of basis functions to add at each iteration of POD adaptation. Set to 0 to determine online.
     unsigned int adapt_coarse_basis_constant;
-
-    /** Set as true for running a manufactured solution.
-     *  Adds the manufactured solution source term to the PDE source term
-     */
-    bool rewienski_manufactured_solution;
 
     /// Path to search for snapshots or saved POD basis
     std::string path_to_search;

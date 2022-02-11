@@ -60,9 +60,9 @@ int ReducedOrder<dim, nstate>::run_test() const
     /* FULL SOLUTION WITH IMPLICIT SOLVER */
 
     pcout << "Running full-order implicit ODE solver for Burgers Rewienski with parameter a: "
-          << param.reduced_order_param.rewienski_a
+          << param.burgers_param.rewienski_a
           << " and parameter b: "
-          << param.reduced_order_param.rewienski_b
+          << param.burgers_param.rewienski_b
           << std::endl;
 
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg_implicit = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);
@@ -83,9 +83,9 @@ int ReducedOrder<dim, nstate>::run_test() const
     /*POD GALERKIN SOLUTION*/
 
     pcout << "Running POD-Galerkin ODE solver for Burgers Rewienski with parameter a: "
-          << param.reduced_order_param.rewienski_a
+          << param.burgers_param.rewienski_a
           << " and parameter b: "
-          << param.reduced_order_param.rewienski_b
+          << param.burgers_param.rewienski_b
           << std::endl;
 
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg_pod_galerkin = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);
@@ -103,9 +103,9 @@ int ReducedOrder<dim, nstate>::run_test() const
     /*POD PETROV-GALERKIN SOLUTION*/
 
     pcout << "Running POD-Petrov-Galerkin ODE solver for Burgers Rewienski with parameter a: "
-          << param.reduced_order_param.rewienski_a
+          << param.burgers_param.rewienski_a
           << " and parameter b: "
-          << param.reduced_order_param.rewienski_b
+          << param.burgers_param.rewienski_b
           << std::endl;
 
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg_pod_petrov_galerkin = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);

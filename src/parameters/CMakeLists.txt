@@ -13,7 +13,7 @@ set(SOURCE
     parameters_artificial_dissipation.cpp
     parameters_flow_solver.cpp
     parameters_mesh_adaptation.cpp
-    all_parameters.cpp)
+    all_parameters.cpp parameters_burgers.cpp)
 
 # Output library
 set(ParameterLib ParametersLibrary)

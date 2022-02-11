@@ -17,6 +17,7 @@ public:
     /// Selects the flow case to be simulated
     enum FlowCaseType{
         taylor_green_vortex,
+        burgers_viscous_snapshot,
         burgers_rewienski_snapshot,
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file

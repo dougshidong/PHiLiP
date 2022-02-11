@@ -104,6 +104,29 @@ inline real InitialConditionFunction_BurgersRewienski<dim,real>
     return value;
 }
 
+// ========================================================
+// 1D BURGERS VISCOUS -- Initial Condition
+// ========================================================
+template <int dim, typename real>
+InitialConditionFunction_BurgersViscous<dim,real>
+::InitialConditionFunction_BurgersViscous (const unsigned int nstate)
+        : InitialConditionFunction<dim,real>(nstate)
+{
+    // Nothing to do here yet
+}
+
+template <int dim, typename real>
+inline real InitialConditionFunction_BurgersViscous<dim,real>
+::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
+{
+    real value = 0;
+    if(point[0] >= 0 && point[0] <= 0.25){
+        value = sin(4*dealii::numbers::PI*point[0]);
+    }
+    return value;
+
+}
+
 //=========================================================
 // FLOW SOLVER -- Initial Condition Base Class + Factory
 //=========================================================
@@ -117,11 +140,12 @@ InitialConditionFunction<dim,real>
 }
 
 template <int dim, typename real>
-std::shared_ptr< InitialConditionFunction<dim,real> > 
+std::shared_ptr< InitialConditionFunction<dim,real> >
 InitialConditionFactory<dim,real>::create_InitialConditionFunction(
     Parameters::AllParameters const *const param, 
     int                                    nstate)
 {
+    /*
     const FlowCaseEnum flow_type = param->flow_solver_param.flow_case_type;
 
     if(flow_type == FlowCaseEnum::taylor_green_vortex && (dim==3)) {
@@ -133,9 +157,27 @@ InitialConditionFactory<dim,real>::create_InitialConditionFunction(
         return std::make_shared<InitialConditionFunction_BurgersRewienski<dim,real> > (
                 nstate);
     }else{
-        std::cout << "Invalid Flow Case Type." << std::endl;
+        std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition.cpp" << std::endl;
+        std::abort();
     }
-
+     */
+    // Get the flow case type
+    const FlowCaseEnum flow_type = param->flow_solver_param.flow_case_type;
+    if (flow_type == FlowCaseEnum::taylor_green_vortex) {
+        if constexpr (dim==3) return std::make_unique<InitialConditionFunction_TaylorGreenVortex<dim, real> >(
+                    nstate,
+                    param->euler_param.gamma_gas,
+                    param->euler_param.mach_inf);
+    } else if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot) {
+        if constexpr (dim==1)  return std::make_unique<InitialConditionFunction_BurgersRewienski<dim,real> > (
+                    nstate);
+    } else if (flow_type == FlowCaseEnum::burgers_viscous_snapshot) {
+        if constexpr (dim==1)  return std::make_unique<InitialConditionFunction_BurgersViscous<dim,real> > (
+                    nstate);
+    } else {
+        std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition.cpp" << std::endl;
+        std::abort();
+    }
     return nullptr;
 }
 

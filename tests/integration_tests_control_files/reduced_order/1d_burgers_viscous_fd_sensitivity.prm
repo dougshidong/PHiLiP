@@ -3,28 +3,26 @@
 
 set dimension = 1
 set test_type = flow_solver
-set pde_type = burgers_rewienski
+set pde_type = burgers_viscous
 
 set use_weak_form = true
 set use_collocated_nodes = false
 
 subsection grid refinement study
- set num_refinements = 8
+ set num_refinements = 10
  set poly_degree = 0
  set grid_left = 0.0
- set grid_right = 100.0
+ set grid_right = 1.0
 end
 
-#Burgers parameters
 subsection burgers
- set rewienski_a = 3.0
- set rewienski_b = 0.02
+  set diffusion_coefficient = 0.01
 end
 
 subsection flow_solver
-  set flow_case_type = burgers_rewienski_snapshot
-  set final_time = 0.5
-  set steady_state = true
+  set flow_case_type = burgers_viscous_snapshot
+  set final_time = 1.0
+  set steady_state = false
 end
 
 subsection ODE solver
@@ -33,7 +31,7 @@ subsection ODE solver
  set nonlinear_steady_residual_tolerance = 1e-12
  set print_iteration_modulo              = 1
  set output_solution_vector_modulo       = 1
-  set solutions_table_filename = 3_0.02_solutions_table_steady
+ set solutions_table_filename = 3_0.02_solutions_table_steady
  set ode_solver_type                     = implicit
  end
 

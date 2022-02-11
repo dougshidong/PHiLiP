@@ -92,6 +92,7 @@ Parameters::AllParameters FiniteDifferenceSensitivity<dim, nstate>::reinit_param
     parameters.euler_param = this->all_parameters->euler_param;
     parameters.navier_stokes_param = this->all_parameters->navier_stokes_param;
     parameters.reduced_order_param= this->all_parameters->reduced_order_param;
+    parameters.burgers_param = this->all_parameters->burgers_param;
     parameters.grid_refinement_study_param = this->all_parameters->grid_refinement_study_param;
     parameters.artificial_dissipation_param = this->all_parameters->artificial_dissipation_param;
     parameters.flow_solver_param = this->all_parameters->flow_solver_param;
@@ -107,7 +108,10 @@ Parameters::AllParameters FiniteDifferenceSensitivity<dim, nstate>::reinit_param
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     const FlowCaseEnum flow_type = this->all_parameters->flow_solver_param.flow_case_type;
     if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){
-        parameters.reduced_order_param.rewienski_b = parameters.reduced_order_param.rewienski_b + pertubation;
+        parameters.burgers_param.rewienski_b = parameters.burgers_param.rewienski_b + pertubation;
+    }
+    else if (flow_type == FlowCaseEnum::burgers_viscous_snapshot){
+        parameters.burgers_param.diffusion_coefficient = parameters.burgers_param.diffusion_coefficient + pertubation;
     }
     else{
         std::cout << "Invalid flow case. You probably forgot to add it to the list of flow cases in finite_difference_sensitivity.cpp" << std::endl;

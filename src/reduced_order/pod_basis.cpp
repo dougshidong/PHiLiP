@@ -108,6 +108,21 @@ bool POD<dim>::getPODBasisFromSnapshots() {
         solutionSnapshots.fill(snapshot_submatrix, 0, j_offset[i], 0, 0);
     }
 
+    //Center data
+    std::vector<double> rowSums(solutionSnapshots.n());
+    for(unsigned int row = 0 ; row < solutionSnapshots.n(); row++){
+        for(unsigned int col = 0 ; col < solutionSnapshots.m() ; col++){
+            rowSums[row] = rowSums[row] + solutionSnapshots(row, col);
+        }
+    }
+
+    for(unsigned int row = 0 ; row < solutionSnapshots.n(); row++){
+        for(unsigned int col = 0 ; col < solutionSnapshots.m() ; col++){
+            solutionSnapshots(row, col) = solutionSnapshots(row, col) - (rowSums[row]/solutionSnapshots.m());
+        }
+    }
+
+
     pcout << "Snapshot matrix generated." << std::endl;
 
     if(all_parameters->reduced_order_param.method_of_snapshots) {

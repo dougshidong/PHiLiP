@@ -126,7 +126,7 @@ void SensitivityPOD<dim>::computeBasisSensitivity() {
     dealii::LAPACKFullMatrix<double> eigenvectorsSensitivity(this->eigenvectors.m(), this->eigenvectors.n());
 
     //Compute only some sensitivities
-    unsigned int numSensitivities = std::min((unsigned int)20, this->eigenvectors.n());
+    unsigned int numSensitivities = std::min((unsigned int)6, this->eigenvectors.n());
 
     for(unsigned int j = 0 ; j < numSensitivities; j++){ //For each column
         dealii::Vector<double> kEigenvectorSensitivity = computeModeSensitivity(j);

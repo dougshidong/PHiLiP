@@ -16,6 +16,7 @@
 #include "reduced_order/pod_adaptation.h"
 #include "reduced_order/pod_basis_sensitivity.h"
 #include "reduced_order/pod_basis_sensitivity_types.h"
+#include "flow_solver.h"
 
 
 namespace PHiLiP {
@@ -136,128 +137,33 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
 
     */
 
-    const Parameters::AllParameters param = *(TestsBase::all_parameters);
+    pcout << "HERE" << std::endl;
+    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_implicit = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters);
+    flow_solver_implicit->setup_test();
+    auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
+    flow_solver_implicit->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_implicit->dg);
+    flow_solver_implicit->ode_solver->allocate_ode_system();
 
-    /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
-    /*SET UP GRID, PARAMETERS AND INITIAL CONDITIONS*/
-
-    using Triangulation = dealii::Triangulation<dim>;
-    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>();
-
-    double left = param.grid_refinement_study_param.grid_left;
-    double right = param.grid_refinement_study_param.grid_right;
-    const bool colorize = true;
-    int n_refinements = param.grid_refinement_study_param.num_refinements;
-    unsigned int poly_degree = param.grid_refinement_study_param.poly_degree;
-    dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
-
-    grid->refine_global(n_refinements);
-    pcout << "Grid generated and refined" << std::endl;
-
-    pcout << "Implement initial conditions" << std::endl;
-    dealii::FunctionParser<1> initial_condition;
-    std::string variables = "x";
-    std::map<std::string,double> constants;
-    constants["pi"] = dealii::numbers::PI;
-    std::string expression = "1";
-    initial_condition.initialize(variables, expression, constants);
-
-    double finalTime = param.flow_solver_param.final_time;
-
-    /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
-    /* FULL SOLUTION WITH IMPLICIT SOLVER */
-
-    pcout << "Running full-order implicit ODE solver for Burgers Rewienski with parameter a: "
-          << param.burgers_param.rewienski_a
-          << " and parameter b: "
-          << param.burgers_param.rewienski_b
-          << std::endl;
-
-    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg_implicit = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);
-    pcout << "dg implicit created" <<std::endl;
-    dg_implicit->allocate_system ();
-
-    //will use all basis functions
-    dealii::VectorTools::interpolate(dg_implicit->dof_handler,initial_condition,dg_implicit->solution);
-
-    pcout << "Create implicit solver" << std::endl;
-    // Create ODE solver using the factory and providing the DG object
-    Parameters::ODESolverParam::ODESolverEnum ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
-    std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver_implicit = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, dg_implicit);
-
-    /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
-    /*Standard POD SOLUTION*/
-
-    pcout << "Running POD-Galerkin ODE solver for Burgers Rewienski with parameter a: "
-          << param.burgers_param.rewienski_a
-          << " and parameter b: "
-          << param.burgers_param.rewienski_b
-          << std::endl;
-
-    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg_pod = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);
-    pcout << "dg reduced_order-galerkin created" <<std::endl;
-    dg_pod->allocate_system ();
-
-    std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD<dim>> pod_standard = std::make_shared<ProperOrthogonalDecomposition::CoarsePOD<dim>>(dg_pod);
-
-    std::ofstream out_file0("basis_coarse.txt");
-    unsigned int precision0 = 7;
-    pod_standard->getPODBasis()->print(out_file0, precision0);
-
-    dealii::VectorTools::interpolate(dg_pod->dof_handler,initial_condition,dg_pod->solution);
-
-    pcout << "Create POD-Galerkin ODE solver" << std::endl;
-    // Create ODE solver using the factory and providing the DG object
+    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_standard = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters);
+    flow_solver_standard->setup_test();
     ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_galerkin_solver;
-    std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver_standard = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, dg_pod, pod_standard);
+    std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD<dim>> pod_standard = std::make_shared<ProperOrthogonalDecomposition::CoarsePOD<dim>>(flow_solver_standard->dg);
+    flow_solver_standard->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_standard->dg, pod_standard);
+    flow_solver_standard->ode_solver->allocate_ode_system();
 
-    /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
-    /*Expanded POD SOLUTION*/
-
-    pcout << "Running POD-Galerkin ODE solver for Burgers Rewienski with parameter a: "
-          << param.burgers_param.rewienski_a
-          << " and parameter b: "
-          << param.burgers_param.rewienski_b
-          << std::endl;
-
-    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg_expanded = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);
-    pcout << "dg reduced_order-galerkin created" <<std::endl;
-    dg_expanded->allocate_system ();
-
-    std::shared_ptr<ProperOrthogonalDecomposition::ExpandedPOD<dim>> pod_expanded = std::make_shared<ProperOrthogonalDecomposition::ExpandedPOD<dim>>(dg_expanded);
-
-    dealii::VectorTools::interpolate(dg_expanded->dof_handler,initial_condition,dg_expanded->solution);
-
-    pcout << "Create POD-Galerkin ODE solver" << std::endl;
-    // Create ODE solver using the factory and providing the DG object
+    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_expanded = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters);
+    flow_solver_expanded->setup_test();
     ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_galerkin_solver;
-    std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver_expanded = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, dg_expanded, pod_expanded);
+    std::shared_ptr<ProperOrthogonalDecomposition::ExpandedPOD<dim>> pod_expanded = std::make_shared<ProperOrthogonalDecomposition::ExpandedPOD<dim>>(flow_solver_expanded->dg);
+    flow_solver_expanded->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_expanded->dg, pod_expanded);
+    flow_solver_expanded->ode_solver->allocate_ode_system();
 
-    /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
-    /*Extrapolated POD SOLUTION*/
-
-    pcout << "Running POD-Galerkin ODE solver for Burgers Rewienski with parameter a: "
-          << param.burgers_param.rewienski_a
-          << " and parameter b: "
-          << param.burgers_param.rewienski_b
-          << std::endl;
-
-    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg_extrapolated= PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);
-    pcout << "dg reduced_order-galerkin created" <<std::endl;
-    dg_extrapolated->allocate_system ();
-
-    std::shared_ptr<ProperOrthogonalDecomposition::ExtrapolatedPOD<dim>> pod_extrapolated = std::make_shared<ProperOrthogonalDecomposition::ExtrapolatedPOD<dim>>(dg_extrapolated);
-
-    std::ofstream out_file("basis_extrapolated.txt");
-    unsigned int precision = 7;
-    pod_extrapolated->getPODBasis()->print(out_file, precision);
-
-    dealii::VectorTools::interpolate(dg_extrapolated->dof_handler,initial_condition,dg_extrapolated->solution);
-
-    pcout << "Create POD-Galerkin ODE solver" << std::endl;
-    // Create ODE solver using the factory and providing the DG object
+    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_extrapolated = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters);
+    flow_solver_extrapolated->setup_test();
     ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_galerkin_solver;
-    std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver_extrapolated = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, dg_extrapolated, pod_extrapolated);
+    std::shared_ptr<ProperOrthogonalDecomposition::ExtrapolatedPOD<dim>> pod_extrapolated = std::make_shared<ProperOrthogonalDecomposition::ExtrapolatedPOD<dim>>(flow_solver_extrapolated->dg);
+    flow_solver_extrapolated->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_extrapolated->dg, pod_extrapolated);
+    flow_solver_extrapolated->ode_solver->allocate_ode_system();
 
     /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
     /*Time-averaged relative error, E = 1/n_t * sum_{n=1}^{n_t} (||U_FOM(t^{n}) - U_ROM(t^{n})||_L2 / ||U_FOM(t^{n})||_L2 )
@@ -266,16 +172,13 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
      *Journal of Computational Physics, 2013
      */
 
-    const unsigned int number_of_time_steps = static_cast<int>(ceil(finalTime/param.ode_solver_param.initial_time_step));
+    double finalTime = all_parameters->flow_solver_param.final_time;
+
+    const unsigned int number_of_time_steps = static_cast<int>(ceil(finalTime/all_parameters->ode_solver_param.initial_time_step));
     const double constant_time_step = finalTime/number_of_time_steps;
 
     pcout << " Advancing solution by " << finalTime << " time units, using "
           << number_of_time_steps << " iterations of size dt=" << constant_time_step << " ... " << std::endl;
-
-    ode_solver_implicit->allocate_ode_system();
-    ode_solver_standard->allocate_ode_system();
-    ode_solver_expanded->allocate_ode_system();
-    ode_solver_extrapolated->allocate_ode_system();
 
     double standard_error_norm_sum = 0;
     double expanded_error_norm_sum = 0;
@@ -291,21 +194,16 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
               << " out of: " << number_of_time_steps
               << std::endl;
 
-        dg_implicit->assemble_residual(false);
-        dg_pod->assemble_residual(false);
-        dg_expanded->assemble_residual(false);
-        dg_extrapolated->assemble_residual(false);
-
         const bool pseudotime = false;
-        ode_solver_implicit->step_in_time(constant_time_step, pseudotime);
-        ode_solver_standard->step_in_time(constant_time_step, pseudotime);
-        ode_solver_expanded->step_in_time(constant_time_step, pseudotime);
-        ode_solver_extrapolated->step_in_time(constant_time_step, pseudotime);
+        flow_solver_implicit->ode_solver->step_in_time(constant_time_step, pseudotime);
+        flow_solver_standard->ode_solver->step_in_time(constant_time_step, pseudotime);
+        flow_solver_expanded->ode_solver->step_in_time(constant_time_step, pseudotime);
+        flow_solver_extrapolated->ode_solver->step_in_time(constant_time_step, pseudotime);
 
-        dealii::LinearAlgebra::distributed::Vector<double> standard_solution(dg_pod->solution);
-        dealii::LinearAlgebra::distributed::Vector<double> expanded_solution(dg_expanded->solution);
-        dealii::LinearAlgebra::distributed::Vector<double> extrapolated_solution(dg_extrapolated->solution);
-        dealii::LinearAlgebra::distributed::Vector<double> implicit_solution(dg_implicit->solution);
+        dealii::LinearAlgebra::distributed::Vector<double> standard_solution(flow_solver_standard->dg->solution);
+        dealii::LinearAlgebra::distributed::Vector<double> expanded_solution(flow_solver_expanded->dg->solution);
+        dealii::LinearAlgebra::distributed::Vector<double> extrapolated_solution(flow_solver_extrapolated->dg->solution);
+        dealii::LinearAlgebra::distributed::Vector<double> implicit_solution(flow_solver_implicit->dg->solution);
 
         standard_error_norm_sum = standard_error_norm_sum + ((standard_solution-=implicit_solution).l2_norm()/implicit_solution.l2_norm());
         expanded_error_norm_sum = expanded_error_norm_sum + (((expanded_solution-=implicit_solution).l2_norm())/implicit_solution.l2_norm());

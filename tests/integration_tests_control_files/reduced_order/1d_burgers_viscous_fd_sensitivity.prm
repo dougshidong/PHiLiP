@@ -2,7 +2,7 @@
 # ---------------------
 
 set dimension = 1
-set test_type = flow_solver
+set test_type = finite_difference_sensitivity
 set pde_type = burgers_viscous
 
 set use_weak_form = true
@@ -26,15 +26,16 @@ subsection flow_solver
 end
 
 subsection ODE solver
- set initial_time_step = 0.1
+ set initial_time_step = 0.0005
  set nonlinear_max_iterations            = 500
  set nonlinear_steady_residual_tolerance = 1e-12
  set print_iteration_modulo              = 1
+ set output_solution_every_x_steps = 10
  set output_solution_vector_modulo       = 1
  set solutions_table_filename = 3_0.02_solutions_table_steady
  set ode_solver_type                     = implicit
  end
 
 subsection manufactured solution convergence study
- set use_manufactured_source_term = true
+ set use_manufactured_source_term = false
 end

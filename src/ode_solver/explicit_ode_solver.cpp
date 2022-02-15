@@ -92,44 +92,32 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
             this->pcout<< "done." << std::endl;
         }
     }
-
-
-
-
-
-
-    else if (rk_order == -1){ //placeholder
+    else if (rk_order == -1){ //placeholder   Could use (rk_order == 3) && !psuedotime to toggle ? unsure if that's a good idea
         std::cout << "General RK" << std::endl;
-	/*const int rko = 3;
+
+	//SSPRK3
+	const int rko = 3;
 	double RK_a[rko][rko] = {{0,0,0},{1.0,0,0},{0.25, 0.25, 0}};
 	double RK_b[rko] = {1.0/6.0, 1.0/6.0, 2.0/3.0};
-	*/
+
+	/* //standard RK4
 	const int rko = 4;
 	double RK_a[rko][rko] = {{0,0,0,0},{0.5,0,0,0},{0, 0.5, 0, 0}, {0, 0, 1.0, 0}};
 	double RK_b[rko] = {1.0/6.0, 1.0/3.0, 1.0/3.0, 1.0/6.0};
-	
+	*/
+
 	//calculating stages
-	//this->rk_stage[0] = this->dg->solution; //u_ni
 	this->solution_update = this->dg->solution; //u_ni
-
-        //this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
 	for (int i = 0; i < rko; ++i){
-	    
-
-            //this->dg->global_inverse_mass_matrix.vmult(this->rk_stage[i], this->dg->right_hand_side); //solution_update = IMM*RHS
-	    
-	    //this -> rk_stage[i] = this -> rk_stage[0]; //u_n
 	    this -> rk_stage[i] = this -> solution_update; //u_n
 	    for (int j = 0; j < i; ++j){
 	        if (RK_a[i][j] != 0){
 	            this->rk_stage[i].add(dt*RK_a[i][j], this->rk_stage[j]);
 		}
 	    } //u_n + dt* sum(a_ij *k_j)
-	    
             this->dg->solution = this->rk_stage[i];
-            this->dg->assemble_residual (); //updates RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j)
+            this->dg->assemble_residual (); // RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j)
             this->dg->global_inverse_mass_matrix.vmult(this->rk_stage[i], this->dg->right_hand_side); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j)
-	    //this->rk_stage[i] = this->dg->solution; //F(u_n + dt*sum(a_ij*k_j)) 
 	}
 
 	//assemble solution from stages
@@ -137,12 +125,6 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
 	    this->solution_update.add(dt* RK_b[i],this->rk_stage[i]);
 	}
 	this->dg->solution = this->solution_update; // u_np1 = u_n + dt* sum(k_i * b_i)
-
-
-
-
-
-
     }
     else {
         this->pcout << "Invalid runge_kutta_order." << std::endl;

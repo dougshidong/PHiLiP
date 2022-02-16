@@ -146,6 +146,8 @@ bool POD<dim>::getPODBasisFromSnapshots() {
         solutionSnapshots.Tmmult(tmp, massMatrix);
         tmp.mmult(massWeightedSolutionSnapshots, solutionSnapshots);
 
+        massWeightedSolutionSnapshots_bak = massWeightedSolutionSnapshots;
+
         // Compute SVD of mass weighted solution snapshots: massWeightedSolutionSnapshots = U * Sigma * V^T
         massWeightedSolutionSnapshots.compute_svd();
 

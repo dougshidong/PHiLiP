@@ -258,16 +258,24 @@ template <int dim>
 dealii::Vector<double> SensitivityPOD<dim>::computeModeSensitivity(int k) {
     this->pcout << "Computing mode sensitivity..." << std::endl;
 
-    // Assemble LHS: (massWeightedSolutionSnapshots - diag(singular_value(k)^2))
     dealii::FullMatrix<double> LHS(this->massWeightedSolutionSnapshots.m(), this->massWeightedSolutionSnapshots.n());
-    LHS = this->massWeightedSolutionSnapshots;
+    LHS = this->massWeightedSolutionSnapshots_bak;
     LHS.diagadd(-1*this->massWeightedSolutionSnapshots.singular_value(k));
+
 
     //Get kth eigenvector
     dealii::Vector<double> kEigenvector(this->eigenvectors.n());
     for(unsigned int i = 0 ; i < this->eigenvectors.n(); i++){
         kEigenvector(i) = this->eigenvectors(i, k);
         this->pcout << "Eigenvector " << " " << kEigenvector(i) << std::endl;
+    }
+
+    dealii::Vector<double> test1(this->eigenvectors.n());
+
+    LHS.vmult(test1, kEigenvector);
+
+    for(unsigned int i = 0 ; i < this->eigenvectors.n(); i++){
+        //this->pcout << "test1" << " " << test1(i) << std::endl;
     }
 
     //Get eigenvalue sensitivity: kEigenvalueSensitivity = kEigenvector^T * massWeightedSensitivitySnapshots * kEigenvector
@@ -295,9 +303,9 @@ dealii::Vector<double> SensitivityPOD<dim>::computeModeSensitivity(int k) {
     // Compute least squares solution
     dealii::Householder<double> householder (LHS);
     dealii::Vector<double> leastSquaresSolution(this->eigenvectors.n());
-    double error = householder.least_squares(leastSquaresSolution, RHS);
+    householder.least_squares(leastSquaresSolution, RHS);
 
-    this->pcout << error << std::endl;
+    //this->pcout << error << std::endl;
 
     // Compute eigenvector sensitivity by Gram Schmidt Orthogonalization: kEigenvectorSensitivity = leastSquaresSolution - gamma*kEigenvector
     double gamma = leastSquaresSolution * kEigenvector;
@@ -309,7 +317,7 @@ dealii::Vector<double> SensitivityPOD<dim>::computeModeSensitivity(int k) {
     this->pcout << "Mode sensitivity computed." << std::endl;
 
     dealii::Vector<double> test(this->eigenvectors.n());
-    LHS.vmult(test, leastSquaresSolution);
+    LHS.vmult(test, kEigenvectorSensitivity);
     for(unsigned int i = 0 ; i < kEigenvectorSensitivity.size(); i++){ //For each row
         //this->pcout << "LHS " << " " << test(i) << std::endl;
     }

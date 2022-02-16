@@ -34,17 +34,12 @@ public:
     virtual std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasisTranspose();
 
 private:
-    /// Get full POD basis consisting of fullPODBasisLAPACK
-    bool getPODBasisFromSnapshots();
 
     /// Get POD basis saved to text file
     bool getSavedPODBasis();
 
     /// Save POD basis to text file
     void saveFullPODBasisToFile();
-
-    /// Build POD basis consisting of the first num_basis columns of fullPODBasisLAPACK
-    void buildPODBasis();
 
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fullPODBasis; ///< First num_basis columns of fullPODBasisLAPACK
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fullPODBasisTranspose; ///< Transpose of pod_basis
@@ -60,6 +55,11 @@ protected:
     const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
     const MPI_Comm mpi_communicator; ///< MPI communicator.
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
+/// Get full POD basis consisting of fullPODBasisLAPACK
+    bool getPODBasisFromSnapshots();
+
+/// Build POD basis consisting of the first num_basis columns of fullPODBasisLAPACK
+void buildPODBasis();
 };
 
 }

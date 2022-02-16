@@ -28,37 +28,49 @@ int FiniteDifferenceSensitivity<dim, nstate>::run_test() const
     flow_solver_1->ode_solver->allocate_ode_system();
     flow_solver_2->ode_solver->allocate_ode_system();
 
+    dealii::LinearAlgebra::distributed::Vector<double> solution1 = flow_solver_1->dg->solution;
+    dealii::LinearAlgebra::distributed::Vector<double> solution2 = flow_solver_2->dg->solution;
+    dealii::LinearAlgebra::distributed::Vector<double> sensitivity_dWdParam(solution1.size());
+
+
     if(this->all_parameters->flow_solver_param.steady_state == true){
         flow_solver_1->ode_solver->steady_state();
         flow_solver_2->ode_solver->steady_state();
 
-        dealii::LinearAlgebra::distributed::Vector<double> solution1 = flow_solver_1->dg->solution;
-        dealii::LinearAlgebra::distributed::Vector<double> solution2 = flow_solver_2->dg->solution;
-        dealii::LinearAlgebra::distributed::Vector<double> sensitivity_dWdParam(solution1.size());
+        solution1 = flow_solver_1->dg->solution;
+        solution2 = flow_solver_2->dg->solution;
+        sensitivity_dWdParam(solution1.size());
 
         for(unsigned int i = 0 ; i < solution1.size(); i++){
             sensitivity_dWdParam[i] = (solution2[i] - solution1[i]) / h;
-            pcout << (solution2[i] - solution1[i])/h <<std::endl;
             sensitivity_table.add_value("Sensitivity:", sensitivity_dWdParam[i]);
             solutions_table.add_value("Solution:", solution1[i]);
         }
 
+        std::ofstream sensitivity_out("steady_state_sensitivity_snapshots.txt");
+        std::ofstream solutions_out("steady_state_solution_snapshots.txt");
         sensitivity_table.set_precision("Sensitivity:", 16);
         sensitivity_table.set_precision("Solution:", 16);
-        std::ofstream sensitivity_out("steady_state_sensitivity_fd.txt");
-        std::ofstream solutions_out("steady_state_solution.txt");
         sensitivity_table.write_text(sensitivity_out);
         solutions_table.write_text(solutions_out);
     }
     else{
 
+        for(unsigned int i = 0 ; i < solution1.size(); i++){
+            sensitivity_dWdParam[i] = (solution2[i] - solution1[i]) / h;
+            sensitivity_table.add_value(std::to_string(flow_solver_1->ode_solver->current_time), sensitivity_dWdParam[i]);
+            sensitivity_table.set_precision(std::to_string(flow_solver_1->ode_solver->current_time), 16);
+            solutions_table.add_value(std::to_string(flow_solver_1->ode_solver->current_time), solution1[i]);
+            solutions_table.set_precision(std::to_string(flow_solver_1->ode_solver->current_time), 16);
+        }
+
         while(flow_solver_1->ode_solver->current_time < this->all_parameters->flow_solver_param.final_time) {
             flow_solver_1->ode_solver->step_in_time(this->all_parameters->ode_solver_param.initial_time_step, false);
             flow_solver_2->ode_solver->step_in_time(this->all_parameters->ode_solver_param.initial_time_step, false);
 
-            dealii::LinearAlgebra::distributed::Vector<double> solution1 = flow_solver_1->dg->solution;
-            dealii::LinearAlgebra::distributed::Vector<double> solution2 = flow_solver_2->dg->solution;
-            dealii::LinearAlgebra::distributed::Vector<double> sensitivity_dWdParam(solution1.size());
+            solution1 = flow_solver_1->dg->solution;
+            solution2 = flow_solver_2->dg->solution;
+            sensitivity_dWdParam(solution1.size());
 
             for(unsigned int i = 0 ; i < solution1.size(); i++){
                 sensitivity_dWdParam[i] = (solution2[i] - solution1[i]) / h;
@@ -69,8 +81,8 @@ int FiniteDifferenceSensitivity<dim, nstate>::run_test() const
             }
         }
 
-        std::ofstream sensitivity_out("unsteady_sensitivity_fd.txt");
-        std::ofstream solutions_out("unsteady_solutions.txt");
+        std::ofstream sensitivity_out("unsteady_sensitivity_snapshots.txt");
+        std::ofstream solutions_out("unsteady_solution_snapshots.txt");
         sensitivity_table.write_text(sensitivity_out);
         solutions_table.write_text(solutions_out);
     }

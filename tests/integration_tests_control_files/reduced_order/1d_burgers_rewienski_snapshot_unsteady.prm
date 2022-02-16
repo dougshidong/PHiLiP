@@ -24,7 +24,7 @@ end
 subsection flow_solver
   set flow_case_type = burgers_rewienski_snapshot
   set final_time = 0.5
-  set unsteady_data_table_filename = 3_0.02_solutions_table_unsteady
+  set unsteady_data_table_filename = 3_0.02_solution_snapshots_unsteady
   set steady_state = false
 end
 

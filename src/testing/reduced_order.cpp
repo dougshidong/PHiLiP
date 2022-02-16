@@ -3,6 +3,7 @@
 #include "reduced_order.h"
 #include "parameters/all_parameters.h"
 #include "reduced_order/pod_basis.h"
+#include "reduced_order/pod_basis_types.h"
 
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/solution_transfer.h>
@@ -70,7 +71,7 @@ int ReducedOrder<dim, nstate>::run_test() const
     dg_implicit->allocate_system ();
 
     //will use all basis functions
-    std::shared_ptr<ProperOrthogonalDecomposition::POD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::POD<dim>>(dg_implicit);
+    std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::CoarsePOD<dim>>(dg_implicit);
 
     dealii::VectorTools::interpolate(dg_implicit->dof_handler,initial_condition,dg_implicit->solution);
 
@@ -162,20 +163,20 @@ int ReducedOrder<dim, nstate>::run_test() const
         dealii::LinearAlgebra::distributed::Vector<double> pod_petrov_galerkin_solution(dg_pod_petrov_galerkin->solution);
         dealii::LinearAlgebra::distributed::Vector<double> implicit_solution(dg_implicit->solution);
 
-        galerkin_error_norm_sum = galerkin_error_norm_sum + ((pod_galerkin_solution.operator-=(implicit_solution)).l2_norm()/implicit_solution.l2_norm());
-        petrov_galerkin_error_norm_sum = petrov_galerkin_error_norm_sum + (((pod_petrov_galerkin_solution.operator-=(implicit_solution)).l2_norm())/implicit_solution.l2_norm());
+        galerkin_error_norm_sum = galerkin_error_norm_sum + ((pod_galerkin_solution-=implicit_solution).l2_norm()/implicit_solution.l2_norm());
+        petrov_galerkin_error_norm_sum = petrov_galerkin_error_norm_sum + (((pod_petrov_galerkin_solution-=implicit_solution).l2_norm())/implicit_solution.l2_norm());
 
         current_iteration++;
     }
 
-    double pod_galerkin_error = (1/(double)number_of_time_steps) * galerkin_error_norm_sum;
+    double pod_galerkin_error = (1/(double)number_of_time_steps) * galerkin_error_norm_sum * 100;
 
-    double pod_petrov_galerkin_error = (1/(double)number_of_time_steps) * petrov_galerkin_error_norm_sum;
+    double pod_petrov_galerkin_error = (1/(double)number_of_time_steps) * petrov_galerkin_error_norm_sum * 100;
 
     pcout << "POD-Galerkin error: " << pod_galerkin_error << std::endl;
     pcout << "POD-Petrov-Galerkin error: " << pod_petrov_galerkin_error << std::endl;
 
-    if (pod_galerkin_error < 1E-12 && pod_petrov_galerkin_error < 1E-12){
+    if (pod_galerkin_error < 0.01 && pod_petrov_galerkin_error < 0.01){
         pcout << "Passed!";
         return 0;
     }else{

@@ -20,19 +20,19 @@ subsection grid refinement study
 end
 
 subsection burgers
-  set diffusion_coefficient = 0.01
+  set diffusion_coefficient = 0.012
 end
 
 #Reduced order parameters
 subsection reduced order
   #set adaptation_tolerance = 0.0005
   #set adapt_coarse_basis_constant = 0
-  set coarse_basis_dimension = 6
+  set coarse_basis_dimension = 12
   set expanded_basis_dimension = 6
-  set extrapolated_basis_dimension = 6
-  set extrapolated_parameter_delta = 0
+  set extrapolated_basis_dimension = 12
+  set extrapolated_parameter_delta = 0.002
   #set fine_basis_dimension = 18
-  set path_to_search = ./pod_basis/Jarvis
+  set path_to_search = ./pod_basis/Jarvis_0.02/
   set method_of_snapshots = true
   #set consider_error_sign = true
 end
@@ -47,7 +47,7 @@ subsection flow_solver
 end
 
 subsection ODE solver
-  set initial_time_step = 0.005
+  set initial_time_step = 0.02
   set nonlinear_max_iterations = 500
   set nonlinear_steady_residual_tolerance = 1e-12
   set print_iteration_modulo  = 1

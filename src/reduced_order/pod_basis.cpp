@@ -20,8 +20,8 @@ POD<dim>::POD(std::shared_ptr<DGBase<dim,double>> &dg_input)
         if(getPODBasisFromSnapshots() == false){ //will search for saved snapshots
             throw std::invalid_argument("Please ensure that there is a 'full_POD_basis.txt' or 'solutions_table.txt' file!");
         }
+        saveFullPODBasisToFile();
     }
-    saveFullPODBasisToFile();
     buildPODBasis();
 }
 
@@ -36,7 +36,7 @@ bool POD<dim>::getPODBasisFromSnapshots() {
     std::sort(files_in_directory.begin(), files_in_directory.end()); //Sort files so that the order is the same as for the sensitivity basis
 
     for (const auto & entry : files_in_directory){
-        if(std::string(entry.filename()).std::string::find("solutions") != std::string::npos){
+        if(std::string(entry.filename()).std::string::find("solution_snapshots") != std::string::npos){
             pcout << "Processing " << entry << std::endl;
             file_found = true;
             std::ifstream myfile(entry);
@@ -109,6 +109,7 @@ bool POD<dim>::getPODBasisFromSnapshots() {
     }
 
     //Center data
+    /*
     std::vector<double> rowSums(solutionSnapshots.n());
     for(unsigned int row = 0 ; row < solutionSnapshots.n(); row++){
         for(unsigned int col = 0 ; col < solutionSnapshots.m() ; col++){
@@ -121,7 +122,7 @@ bool POD<dim>::getPODBasisFromSnapshots() {
             solutionSnapshots(row, col) = solutionSnapshots(row, col) - (rowSums[row]/solutionSnapshots.m());
         }
     }
-
+    */
 
     pcout << "Snapshot matrix generated." << std::endl;
 
@@ -157,7 +158,7 @@ bool POD<dim>::getPODBasisFromSnapshots() {
         //Form diagonal matrix of inverse singular values
         simgularValuesInverse.reinit(solutionSnapshots.n(), solutionSnapshots.n());
         for (unsigned int idx = 0; idx < solutionSnapshots.n(); idx++) {
-            simgularValuesInverse(idx, idx) = 1 / massWeightedSolutionSnapshots.singular_value(idx);
+            simgularValuesInverse(idx, idx) = 1 / sqrt(massWeightedSolutionSnapshots.singular_value(idx));
         }
 
         //Compute POD basis: fullBasis = solutionSnapshots * eigenvectors * simgularValuesInverse
@@ -165,6 +166,8 @@ bool POD<dim>::getPODBasisFromSnapshots() {
         eigenvectors.mmult(tmp, simgularValuesInverse);
         fullBasis.reinit(solutionSnapshots.m(), solutionSnapshots.n());
         solutionSnapshots.mmult(fullBasis, tmp);
+
+        pcout << fullBasis.n() << std::endl;
 
         pcout << "POD basis computed using the method of snapshots" << std::endl;
     }
@@ -196,7 +199,7 @@ bool POD<dim>::getSavedPODBasis(){
     bool file_found = false;
     std::string path = all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
     for (const auto & entry : std::filesystem::directory_iterator(path)) {
-        if (std::string(entry.path().filename()).std::string::find("full_POD_basis") != std::string::npos) {
+        if (std::string(entry.path().filename()).std::string::find("pod_solution_basis") != std::string::npos) {
             pcout << "Processing " << entry.path() << std::endl;
             file_found = true;
             std::ifstream myfile(entry.path());

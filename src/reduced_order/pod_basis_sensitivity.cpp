@@ -9,9 +9,80 @@ SensitivityPOD<dim>::SensitivityPOD(std::shared_ptr<DGBase<dim,double>> &dg_inpu
         , sensitivityBasis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
         , sensitivityBasisTranspose(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
 {
-    getSensitivityPODBasisFromSnapshots();
-    computeBasisSensitivity();
-    buildSensitivityPODBasis();
+    this->pcout << "Searching files..." << std::endl;
+
+    if(getSavedSensitivityPODBasis() == false){ //will search for a saved basis
+        //If not saved basis, also need to compute POD basis from snapshots
+        this->getPODBasisFromSnapshots();
+        this->buildPODBasis();
+        if(getSensitivityPODBasisFromSnapshots() == false){ //will search for saved snapshots
+            throw std::invalid_argument("Please ensure that there is a 'full_POD_basis.txt' or 'solutions_table.txt' file!");
+        }
+        computeBasisSensitivity();
+        buildSensitivityPODBasis();
+        saveSensitivityPODBasisToFile();
+    }
+}
+
+
+template <int dim>
+void SensitivityPOD<dim>::saveSensitivityPODBasisToFile() {
+    std::ofstream out_file("POD_sens_basis.txt");
+    unsigned int precision = 7;
+    fullBasisSensitivity.print_formatted(out_file, precision);
+}
+
+template <int dim>
+bool SensitivityPOD<dim>::getSavedSensitivityPODBasis(){
+    bool file_found = false;
+    std::string path = this->all_parameters->reduced_order_param.path_to_search;
+    for (const auto & entry : std::filesystem::directory_iterator(path)) {
+        if (std::string(entry.path().filename()).std::string::find("POD_sens_basis") != std::string::npos) {
+            this->pcout << "Processing " << entry.path() << std::endl;
+            file_found = true;
+            std::ifstream myfile(entry.path());
+            std::string line;
+            int rows = 0;
+            int cols = 0;
+            //First loop set to count rows and columns
+            while(std::getline(myfile, line)){ //for each line
+                std::istringstream stream(line);
+                std::string field;
+                cols = 0;
+                while (getline(stream, field,' ')){ //parse data values on each line
+                    if (field.empty()){ //due to whitespace
+                        continue;
+                    } else {
+                        cols++;
+                    }
+                }
+                rows++;
+            }
+
+            dealii::FullMatrix<double> pod_basis_tmp(rows, cols);
+            rows = 0;
+            myfile.clear();
+            myfile.seekg(0); //Bring back to beginning of file
+            //Second loop set to build POD basis matrix
+            while(std::getline(myfile, line)){ //for each line
+                std::istringstream stream(line);
+                std::string field;
+                cols = 0;
+                while (getline(stream, field,' ')) { //parse data values on each line
+                    if (field.empty()) {
+                        continue;
+                    } else {
+                        pod_basis_tmp.set(rows, cols, std::stod(field));
+                        cols++;
+                    }
+                }
+                rows++;
+            }
+            myfile.close();
+            fullBasisSensitivity.copy_from(pod_basis_tmp);
+        }
+    }
+    return file_found;
 }
 
 template <int dim>
@@ -95,6 +166,22 @@ bool SensitivityPOD<dim>::getSensitivityPODBasisFromSnapshots() {
         sensitivitySnapshots.fill(snapshot_submatrix, 0, j_offset[i], 0, 0);
     }
 
+    //Center data
+    /*
+    std::vector<double> rowSums(sensitivitySnapshots.n());
+    for(unsigned int row = 0 ; row < sensitivitySnapshots.n(); row++){
+        for(unsigned int col = 0 ; col < sensitivitySnapshots.m() ; col++){
+            rowSums[row] = rowSums[row] + sensitivitySnapshots(row, col);
+        }
+    }
+
+    for(unsigned int row = 0 ; row < sensitivitySnapshots.n(); row++){
+        for(unsigned int col = 0 ; col < sensitivitySnapshots.m() ; col++){
+            sensitivitySnapshots(row, col) = sensitivitySnapshots(row, col) - (rowSums[row]/sensitivitySnapshots.m());
+        }
+    }
+     */
+
     this->pcout << "Sensitivity matrix generated." << std::endl;
 
     return file_found;
@@ -126,12 +213,13 @@ void SensitivityPOD<dim>::computeBasisSensitivity() {
     dealii::LAPACKFullMatrix<double> eigenvectorsSensitivity(this->eigenvectors.m(), this->eigenvectors.n());
 
     //Compute only some sensitivities
-    unsigned int numSensitivities = std::min((unsigned int)6, this->eigenvectors.n());
+    unsigned int numSensitivities = std::min((unsigned int)12, this->eigenvectors.n());
 
     for(unsigned int j = 0 ; j < numSensitivities; j++){ //For each column
         dealii::Vector<double> kEigenvectorSensitivity = computeModeSensitivity(j);
         for(unsigned int i = 0 ; i < kEigenvectorSensitivity.size(); i++){ //For each row
             eigenvectorsSensitivity(i, j) = kEigenvectorSensitivity(i);
+            this->pcout << "Eigenvector sensitivity " << j << " " << kEigenvectorSensitivity(i) << std::endl;
         }
     }
 
@@ -173,12 +261,13 @@ dealii::Vector<double> SensitivityPOD<dim>::computeModeSensitivity(int k) {
     // Assemble LHS: (massWeightedSolutionSnapshots - diag(singular_value(k)^2))
     dealii::FullMatrix<double> LHS(this->massWeightedSolutionSnapshots.m(), this->massWeightedSolutionSnapshots.n());
     LHS = this->massWeightedSolutionSnapshots;
-    LHS.diagadd(-1*pow(this->massWeightedSolutionSnapshots.singular_value(k), 2));
+    LHS.diagadd(-1*this->massWeightedSolutionSnapshots.singular_value(k));
 
     //Get kth eigenvector
     dealii::Vector<double> kEigenvector(this->eigenvectors.n());
     for(unsigned int i = 0 ; i < this->eigenvectors.n(); i++){
         kEigenvector(i) = this->eigenvectors(i, k);
+        this->pcout << "Eigenvector " << " " << kEigenvector(i) << std::endl;
     }
 
     //Get eigenvalue sensitivity: kEigenvalueSensitivity = kEigenvector^T * massWeightedSensitivitySnapshots * kEigenvector
@@ -186,6 +275,10 @@ dealii::Vector<double> SensitivityPOD<dim>::computeModeSensitivity(int k) {
     massWeightedSensitivitySnapshots.Tvmult(kEigenvalueSensitivity_tmp, kEigenvector);
     double kEigenvalueSensitivity = kEigenvalueSensitivity_tmp * kEigenvector;
     eigenvaluesSensitivity(k, k) = kEigenvalueSensitivity;
+
+    this->pcout << "Eigenvalue" << k << " " << this->massWeightedSolutionSnapshots.singular_value(k) << std::endl;
+    this->pcout << "Eigenvalue sensitivity " << k << " " << kEigenvalueSensitivity << std::endl;
+
 
     // Assemble RHS: -(massWeightedSensitivitySnapshots - diag(kEigenvalueSensitivity))*kEigenvector
     dealii::FullMatrix<double> RHS_tmp(massWeightedSensitivitySnapshots.m(), massWeightedSensitivitySnapshots.n());
@@ -195,17 +288,31 @@ dealii::Vector<double> SensitivityPOD<dim>::computeModeSensitivity(int k) {
     RHS_tmp.vmult(RHS, kEigenvector);
     RHS*=-1;
 
+    for(unsigned int i = 0 ; i < RHS.size(); i++){ //For each row
+        //this->pcout << "RHS " << " " << RHS(i) << std::endl;
+    }
+
     // Compute least squares solution
     dealii::Householder<double> householder (LHS);
     dealii::Vector<double> leastSquaresSolution(this->eigenvectors.n());
-    householder.least_squares(leastSquaresSolution, RHS);
+    double error = householder.least_squares(leastSquaresSolution, RHS);
 
-    // Compute eigenvector sensitivity: kEigenvectorSensitivity = leastSquaresSolution - gamma*kEigenvector
-    double gamma = -(leastSquaresSolution * kEigenvector);
+    this->pcout << error << std::endl;
+
+    // Compute eigenvector sensitivity by Gram Schmidt Orthogonalization: kEigenvectorSensitivity = leastSquaresSolution - gamma*kEigenvector
+    double gamma = leastSquaresSolution * kEigenvector;
     dealii::Vector<double> kEigenvectorSensitivity(this->eigenvectors.n());
-    kEigenvectorSensitivity.add(1, leastSquaresSolution, gamma*=-1, kEigenvector); //Vk_derivative += 1*leastSquaresSolution + -1*gamma*Vk.
+    kEigenvectorSensitivity = leastSquaresSolution;
+    kEigenvector *= gamma;
+    kEigenvectorSensitivity -= kEigenvector;
 
     this->pcout << "Mode sensitivity computed." << std::endl;
+
+    dealii::Vector<double> test(this->eigenvectors.n());
+    LHS.vmult(test, leastSquaresSolution);
+    for(unsigned int i = 0 ; i < kEigenvectorSensitivity.size(); i++){ //For each row
+        //this->pcout << "LHS " << " " << test(i) << std::endl;
+    }
 
     return kEigenvectorSensitivity;
 }

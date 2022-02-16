@@ -58,6 +58,12 @@ protected:
     dealii::LAPACKFullMatrix<double> fullBasisSensitivity;
 private:
 
+    /// Get POD basis saved to text file
+    bool getSavedSensitivityPODBasis();
+
+    /// Save POD basis to text file
+    void saveSensitivityPODBasisToFile();
+
     dealii::LAPACKFullMatrix<double> sensitivitySnapshots;
     dealii::LAPACKFullMatrix<double> massWeightedSensitivitySnapshots;
     dealii::LAPACKFullMatrix<double> eigenvaluesSensitivity; ///< Matrix of singular value derivatives along the diagonal

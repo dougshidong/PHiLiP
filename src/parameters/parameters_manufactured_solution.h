@@ -21,6 +21,7 @@ public:
     
     /// Selects the manufactured solution to be used if use_manufactured_source_term=true
     enum ManufacturedSolutionType{
+        zero_solution,
         sine_solution,
         cosine_solution,
         additive_solution,

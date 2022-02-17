@@ -30,9 +30,9 @@ subsection reduced order
   set coarse_basis_dimension = 12
   set expanded_basis_dimension = 6
   set extrapolated_basis_dimension = 12
-  set extrapolated_parameter_delta = 0
+  set extrapolated_parameter_delta = 0.002
   #set fine_basis_dimension = 18
-  set path_to_search = ./pod_basis/Jarvis_testing/
+  set path_to_search = ./pod_basis/Jarvis_0.02/
   set method_of_snapshots = true
   #set consider_error_sign = true
 end
@@ -55,7 +55,8 @@ subsection ODE solver
 end
 
 subsection manufactured solution convergence study
-  set use_manufactured_source_term = false
+ set use_manufactured_source_term = true
+ set manufactured_solution_type = zero_solution
 end
 
 

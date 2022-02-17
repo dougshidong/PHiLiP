@@ -30,12 +30,13 @@ subsection ODE solver
  set nonlinear_max_iterations            = 500
  set nonlinear_steady_residual_tolerance = 1e-12
  set print_iteration_modulo              = 1
- set output_solution_every_x_steps = 10
+ set output_solution_every_x_steps = 1
  set output_solution_vector_modulo       = 1
  set solutions_table_filename = 3_0.02_solutions_table_steady
  set ode_solver_type                     = implicit
  end
 
 subsection manufactured solution convergence study
- set use_manufactured_source_term = false
+ set use_manufactured_source_term = true
+ set manufactured_solution_type = zero_solution
 end

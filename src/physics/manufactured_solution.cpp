@@ -36,6 +36,14 @@ bool isfinite(Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> value)
 }
 
 template <int dim, typename real>
+inline real ManufacturedSolutionZero<dim,real>
+::value (const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const
+{
+    real value = 0;
+    return value;
+}
+
+template <int dim, typename real>
 inline real ManufacturedSolutionSine<dim,real>
 ::value (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
@@ -218,6 +226,26 @@ inline real ManufacturedSolutionNavahBase<dim,real>
     }
 
     return value;
+}
+
+template <int dim, typename real>
+inline dealii::Tensor<1,dim,real> ManufacturedSolutionZero<dim,real>
+::gradient (const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const
+{
+    dealii::Tensor<1,dim,real> gradient;
+    if (dim==1) {
+        gradient[0] = 0;
+    }
+    if (dim==2) {
+        gradient[0] = 0;
+        gradient[1] = 0;
+    }
+    if (dim==3) {
+        gradient[0] = 0;
+        gradient[1] = 0;
+        gradient[2] = 0;
+    }
+    return gradient;
 }
 
 template <int dim, typename real>
@@ -546,6 +574,37 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionNavahBase<dim,real>
         }
     }
     return gradient;
+}
+
+template <int dim, typename real>
+inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionZero<dim,real>
+::hessian (const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const
+{
+    dealii::SymmetricTensor<2,dim,real> hessian;
+    if (dim==1) {
+        hessian[0][0] = 0;
+    }
+    if (dim==2) {
+        hessian[0][0] = 0;
+        hessian[0][1] = 0;
+
+        hessian[1][0] = 0;
+        hessian[1][1] = 0;
+    }
+    if (dim==3) {
+        hessian[0][0] = 0;
+        hessian[0][1] = 0;
+        hessian[0][2] = 0;
+
+        hessian[1][0] = 0;
+        hessian[1][1] = 0;
+        hessian[1][2] = 0;
+
+        hessian[2][0] = 0;
+        hessian[2][1] = 0;
+        hessian[2][2] = 0;
+    }
+    return hessian;
 }
 
 template <int dim, typename real>
@@ -1102,6 +1161,8 @@ ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(
 {
     if(solution_type == ManufacturedSolutionEnum::sine_solution){
         return std::make_shared<ManufacturedSolutionSine<dim,real>>(nstate);
+    }else if(solution_type == ManufacturedSolutionEnum::zero_solution){
+        return std::make_shared<ManufacturedSolutionZero<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::cosine_solution){
         return std::make_shared<ManufacturedSolutionCosine<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::additive_solution){
@@ -1171,6 +1232,11 @@ template class ManufacturedSolutionFunction<PHILIP_DIM,RadType>;
 template class ManufacturedSolutionFunction<PHILIP_DIM,FadFadType>;
 template class ManufacturedSolutionFunction<PHILIP_DIM,RadFadType>;
 
+template class ManufacturedSolutionZero<PHILIP_DIM,double>;
+template class ManufacturedSolutionZero<PHILIP_DIM,FadType>;
+template class ManufacturedSolutionZero<PHILIP_DIM,RadType>;
+template class ManufacturedSolutionZero<PHILIP_DIM,FadFadType>;
+template class ManufacturedSolutionZero<PHILIP_DIM,RadFadType>;
 template class ManufacturedSolutionSine<PHILIP_DIM,double>;
 template class ManufacturedSolutionSine<PHILIP_DIM,FadType>;
 template class ManufacturedSolutionSine<PHILIP_DIM,RadType>;

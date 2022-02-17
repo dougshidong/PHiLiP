@@ -76,7 +76,12 @@ The deal.II library has been setup with the following options:
 
 This section is aimed at McGill's group who use the Compute Canada (CC) clusters.
 
-If you are a new user on a CC cluster, you must configure git modules by explicitly running the following on the cluster before proceeding:
+If you have just cloned the code onto the cluster, **you must copy the large NACA0012 mesh files** that cannot be stored on GitHub, this can be done by running the following:
+~~~~
+chmod +x get_NACA0012_mesh_files_cluster.sh
+./get_NACA0012_mesh_files_cluster.sh
+~~~~
+If you are a **new user on a CC cluster**, **you must configure git modules** by explicitly running the following on the cluster before proceeding:
 ~~~~
 chmod +x configure_git_submodules_cluster.sh
 ./configure_git_submodules_cluster.sh

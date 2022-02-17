@@ -20,7 +20,7 @@ subsection grid refinement study
 end
 
 subsection burgers
-  set diffusion_coefficient = 0.01
+  set diffusion_coefficient = 0.012
 end
 
 #Reduced order parameters
@@ -32,7 +32,7 @@ subsection reduced order
   set extrapolated_basis_dimension = 12
   set extrapolated_parameter_delta = 0
   #set fine_basis_dimension = 18
-  set path_to_search = ./pod_basis/Jarvis_0.02/
+  set path_to_search = ./pod_basis/Jarvis_testing/
   set method_of_snapshots = true
   #set consider_error_sign = true
 end

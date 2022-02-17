@@ -146,7 +146,11 @@ bool POD<dim>::getPODBasisFromSnapshots() {
         solutionSnapshots.Tmmult(tmp, massMatrix);
         tmp.mmult(massWeightedSolutionSnapshots, solutionSnapshots);
 
-        massWeightedSolutionSnapshots_bak = massWeightedSolutionSnapshots;
+        /* IMPORTANT: This copy of massWeightedSolutionSnapshots is necessary due to an apparent bug in dealii. When
+         * compute_svd() is called on the LAPACKFullMatrix, later trying to convert this LAPACKFullMatrix to a FullMatrix
+         * (necessary in SensitivityPOD) will not give the right matrix. Keep a copy and convert the copy to a FullMatrix
+        */
+        massWeightedSolutionSnapshotsCopy = massWeightedSolutionSnapshots;
 
         // Compute SVD of mass weighted solution snapshots: massWeightedSolutionSnapshots = U * Sigma * V^T
         massWeightedSolutionSnapshots.compute_svd();
@@ -158,14 +162,14 @@ bool POD<dim>::getPODBasisFromSnapshots() {
         eigenvectors_T.transpose(eigenvectors);
 
         //Form diagonal matrix of inverse singular values
-        simgularValuesInverse.reinit(solutionSnapshots.n(), solutionSnapshots.n());
+        eigenvaluesSqrtInverse.reinit(solutionSnapshots.n(), solutionSnapshots.n());
         for (unsigned int idx = 0; idx < solutionSnapshots.n(); idx++) {
-            simgularValuesInverse(idx, idx) = 1 / sqrt(massWeightedSolutionSnapshots.singular_value(idx));
+            eigenvaluesSqrtInverse(idx, idx) = 1 / sqrt(massWeightedSolutionSnapshots.singular_value(idx));
         }
 
         //Compute POD basis: fullBasis = solutionSnapshots * eigenvectors * simgularValuesInverse
         tmp.reinit(solutionSnapshots.n(), solutionSnapshots.n());
-        eigenvectors.mmult(tmp, simgularValuesInverse);
+        eigenvectors.mmult(tmp, eigenvaluesSqrtInverse);
         fullBasis.reinit(solutionSnapshots.m(), solutionSnapshots.n());
         solutionSnapshots.mmult(fullBasis, tmp);
 

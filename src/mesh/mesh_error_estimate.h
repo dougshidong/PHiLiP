@@ -94,14 +94,14 @@ class DualWeightedResidualError : public MeshErrorEstimateBase <dim, real, MeshT
 {
 public:
 
-    /// For storing the current state in the adjoint
+    /// For storing the current refinement state of the solution
     enum SolutionRefinementStateEnum{
         coarse, ///< Initial state
         fine,   ///< Refined state
     };
 
     /// Constructor
-    /** Initializes the Adjoint as being in the AdjointEnum::coarse state.
+    /** Initializes the solution as being in the SolutionRefinementStateEnum::coarse state.
      *  Also stores the current solution and distribution of polynomial orders
      *  for the mesh for converting back to coarse state after refinement.
      */
@@ -110,8 +110,8 @@ public:
     ///destructor
     ~DualWeightedResidualError() {};
 
-    /// Reinitialize Adjoint with the same pointers
-    /** Sets adjoint_state to AdjointEnum::coarse and stores the current
+    /// Reinitialize DualWeightedResidualError with the same pointers
+    /** Sets solution_refinement_state to SolutionRefinementStateEnum::coarse and stores the current
      *  solution and polynomial order distribution
      */
     void reinit();
@@ -119,7 +119,7 @@ public:
 
     /// Converts the DG solution to specified state
     /** Calls the functions coarse_to_fine() or fine_to_coarse()
-     *  if the DualWeightedResidualError::adjoint_state is different than the input \p state
+     *  if the DualWeightedResidualError::solution_refinement_state is different than the input \p state
      */
     void convert_dgsolution_to_coarse_or_fine(SolutionRefinementStateEnum refinement_state);
 

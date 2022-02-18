@@ -18,8 +18,8 @@
 
 int main (int argc, char * argv[])
 {
-dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
-const int dim = PHILIP_DIM;
+    dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
+    const int dim = PHILIP_DIM;
 
 #if PHILIP_DIM==1
     using Triangulation = dealii::Triangulation<PHILIP_DIM>;
@@ -29,26 +29,26 @@ const int dim = PHILIP_DIM;
 
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
 #if PHILIP_DIM!=1
-    MPI_COMM_WORLD,
+            MPI_COMM_WORLD,
 #endif
 
-    //Advects a sine wave (1D) with peridic BCs and compares to anlytical solution
-    //refines spatial discretization 5 times and writes a convergence table to file
-    //Can be used to verify spatial order of the explicit ODE solver
-    //Note: 2D is implemented but is not included in CMakeLists.txt (untested)
-    
+            //Advects a sine wave (1D) with peridic BCs and compares to anlytical solution
+            //refines spatial discretization 5 times and writes a convergence table to file
+            //Can be used to verify spatial order of the explicit ODE solver
+            //Note: 2D is implemented but is not included in CMakeLists.txt (untested)
 
-    typename dealii::Triangulation<dim>::MeshSmoothing(
-    dealii::Triangulation<dim>::smoothing_on_refinement |
-    dealii::Triangulation<dim>::smoothing_on_coarsening));
+
+            typename dealii::Triangulation<dim>::MeshSmoothing(
+                dealii::Triangulation<dim>::smoothing_on_refinement |
+                dealii::Triangulation<dim>::smoothing_on_coarsening));
 
     int testfail = 0;
-    
+
     double left = 0.0;
     double right = 2.0;
     const bool colorize = true;
     int n_refinements = 5;
-    
+
     //generating grid
     dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
     //setting periodic BC 
@@ -59,15 +59,15 @@ const int dim = PHILIP_DIM;
     }
     else if (dim == 1){
         dealii::GridTools::collect_periodic_faces(*grid,
-			0, //left
-			1, //right
-			0, //periodic in x-direction
-			matched_pairs);
+                0, //left
+                1, //right
+                0, //periodic in x-direction
+                matched_pairs);
     }
 
     grid->add_periodicity(matched_pairs);
     grid->refine_global(n_refinements);
-    
+
     //default parameters
     dealii::ParameterHandler parameter_handler;
     PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler); // default fills options
@@ -80,7 +80,7 @@ const int dim = PHILIP_DIM;
     all_parameters.ode_solver_param.print_iteration_modulo = 100;
     all_parameters.ode_solver_param.ode_output = PHiLiP::Parameters::OutputEnum::quiet; 
     //all_parameters.ode_solver_param.runge_kutta_order = -1;a
-    
+
     double expected_order = -3.0;
     double order_tolerance = 0.1; 
 
@@ -93,7 +93,7 @@ const int dim = PHILIP_DIM;
     double dt = dt_init;
     const double refine_ratio = 0.5;
     double finalTime = 0.1;
-    
+
     dealii::ConvergenceTable convergence_table;
 
     double L2_error_old = 0;
@@ -101,85 +101,85 @@ const int dim = PHILIP_DIM;
 
     for (int refinement = 0; refinement < n_time_refinements+1; ++refinement){
 
-    //initial_time_step is not modified by explicit ODE solver
-    all_parameters.ode_solver_param.initial_time_step = dt;
-    std::cout << "Using time step = " << dt << std::endl;
-    std::cout << "refinement = " << refinement << std::endl;
-    
-    all_parameters.ode_solver_param.output_solution_every_x_steps = int(finalTime/dt/10.0); //output 10 vtk files (if dt reaches finalTime exactly)
-    
-    unsigned int space_poly_degree = 6;
-    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters, space_poly_degree, grid);
-    dg->allocate_system ();
+        //initial_time_step is not modified by explicit ODE solver
+        all_parameters.ode_solver_param.initial_time_step = dt;
+        std::cout << "Using time step = " << dt << std::endl;
+        std::cout << "refinement = " << refinement << std::endl;
 
-    //initial conditions
-    std::cout << "Implement initial conditions" << std::endl;
-    dealii::FunctionParser<dim> initial_condition;
-    std::string variables;
-    std::map<std::string,double> constants;
-    constants["pi"] = dealii::numbers::PI;
-    std::string expression_initial;
-    if (dim == 2){
-        variables = "x,y";
-        expression_initial = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) ) )";
-    }
-    else if (dim == 1){
-        variables = "x";
-        //expression_initial = "exp(- 20 * (x-1) * (x-1))";	
-        expression_initial = "sin(2*pi*x/2.0)";	
-    }
-    initial_condition.initialize(variables,
-		    expression_initial,
-	       	    constants);
-    dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
+        all_parameters.ode_solver_param.output_solution_every_x_steps = int(finalTime/dt/10.0); //output 10 vtk files (if dt reaches finalTime exactly)
 
-    // Create ODE solver using the factory and providing the DG object
-    std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        unsigned int space_poly_degree = 6;
+        std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters, space_poly_degree, grid);
+        dg->allocate_system ();
 
-    //Solve
-    ode_solver->advance_solution_time(finalTime);
-    
-    //Defining exact solution
-    dealii::FunctionParser<dim> exact_solution;
-    constants["a_x"] = adv_speed_x;
-    constants["a_y"] = adv_speed_y;
-    constants["t"] = finalTime;
-    std::string expression_exact;
-    if (dim == 2){
-        expression_exact = "exp( -( 20*(x-1-a_x*t)*(x-1-a_x*t) + 20*(y-1-a_y*t)*(y-1-a_y*t) ) )";
-    }
-    else if (dim == 1){
-        expression_exact = "sin(2*pi*(x-a_x*t)/2.0)";
-        //expression_exact = "exp( - 20*(x-1-a_x*t)*(x-1-a_x*t)) ";
-    }
-    exact_solution.initialize(variables,
-    		    expression_exact,
-    		    constants);
-    
-    //Calculating L2 error
-    dealii::Vector<double> difference_per_cell(grid->n_active_cells());
-    dealii::VectorTools::integrate_difference(dg->dof_handler, 
-		    dg->solution, 
-		    exact_solution, 
-		    difference_per_cell, 
-		    dealii::QGauss<dim>(space_poly_degree+1), //check that this is correct polynomial degree
-		    dealii::VectorTools::L2_norm);
-    double L2_error = 
-	    dealii::VectorTools::compute_global_error(*grid,
-			    difference_per_cell,
-			    dealii::VectorTools::L2_norm);
-    std::cout << "Computed error is " << L2_error << std::endl;
+        //initial conditions
+        std::cout << "Implement initial conditions" << std::endl;
+        dealii::FunctionParser<dim> initial_condition;
+        std::string variables;
+        std::map<std::string,double> constants;
+        constants["pi"] = dealii::numbers::PI;
+        std::string expression_initial;
+        if (dim == 2){
+            variables = "x,y";
+            expression_initial = "exp( -( 20*(x-1)*(x-1) + 20*(y-1)*(y-1) ) )";
+        }
+        else if (dim == 1){
+            variables = "x";
+            //expression_initial = "exp(- 20 * (x-1) * (x-1))";	
+            expression_initial = "sin(2*pi*x/2.0)";	
+        }
+        initial_condition.initialize(variables,
+                expression_initial,
+                constants);
+        dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
 
-    convergence_table.add_value("cells",grid->n_active_cells());
-    convergence_table.add_value("space_poly_deg", space_poly_degree);
-    convergence_table.add_value("refinement", refinement);
-    convergence_table.add_value("dt",dt );
-    convergence_table.add_value("L2_error",L2_error );
-    //convergence_table.add_value("L2_ratio",L2_error_old/L2_error); //should be 8
+        // Create ODE solver using the factory and providing the DG object
+        std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
 
-    if (refinement > 0) L2_error_conv_rate[refinement-1] = log(L2_error_old/L2_error)/log(refine_ratio);
-    dt *= refine_ratio;
-    L2_error_old = L2_error;
+        //Solve
+        ode_solver->advance_solution_time(finalTime);
+
+        //Defining exact solution
+        dealii::FunctionParser<dim> exact_solution;
+        constants["a_x"] = adv_speed_x;
+        constants["a_y"] = adv_speed_y;
+        constants["t"] = finalTime;
+        std::string expression_exact;
+        if (dim == 2){
+            expression_exact = "exp( -( 20*(x-1-a_x*t)*(x-1-a_x*t) + 20*(y-1-a_y*t)*(y-1-a_y*t) ) )";
+        }
+        else if (dim == 1){
+            expression_exact = "sin(2*pi*(x-a_x*t)/2.0)";
+            //expression_exact = "exp( - 20*(x-1-a_x*t)*(x-1-a_x*t)) ";
+        }
+        exact_solution.initialize(variables,
+                expression_exact,
+                constants);
+
+        //Calculating L2 error
+        dealii::Vector<double> difference_per_cell(grid->n_active_cells());
+        dealii::VectorTools::integrate_difference(dg->dof_handler, 
+                dg->solution, 
+                exact_solution, 
+                difference_per_cell, 
+                dealii::QGauss<dim>(space_poly_degree+1), //check that this is correct polynomial degree
+                dealii::VectorTools::L2_norm);
+        double L2_error = 
+            dealii::VectorTools::compute_global_error(*grid,
+                    difference_per_cell,
+                    dealii::VectorTools::L2_norm);
+        std::cout << "Computed error is " << L2_error << std::endl;
+
+        convergence_table.add_value("cells",grid->n_active_cells());
+        convergence_table.add_value("space_poly_deg", space_poly_degree);
+        convergence_table.add_value("refinement", refinement);
+        convergence_table.add_value("dt",dt );
+        convergence_table.add_value("L2_error",L2_error );
+        //convergence_table.add_value("L2_ratio",L2_error_old/L2_error); //should be 8
+
+        if (refinement > 0) L2_error_conv_rate[refinement-1] = log(L2_error_old/L2_error)/log(refine_ratio);
+        dt *= refine_ratio;
+        L2_error_old = L2_error;
     }//time refinement loop
 
     //printing results 
@@ -206,9 +206,9 @@ const int dim = PHILIP_DIM;
 
     for (int i = 0; i < n_time_refinements; ++i){
         if (abs(L2_error_conv_rate[i] - expected_order) > order_tolerance){
-	    testfail = 1;
-	    std::cout << "Expected convergence order was not reached at refinement " << i + 1 <<std::endl;
-	}
+            testfail = 1;
+            std::cout << "Expected convergence order was not reached at refinement " << i + 1 <<std::endl;
+        }
     }
 
     return testfail; //always passes

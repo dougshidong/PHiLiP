@@ -19,8 +19,7 @@ If you are running the code **on a local machine** (i.e. not on the cluster), yo
 1. `sudo apt install python3-pip` (if `pip` is not already installed)
 2. `pip install gdown` (if `gdown` is not already installed)
 3. If you receive a warning such as:
-   `WARNING: The script gdown is installed in '/home/parallels/.local/bin' which is not on PATH.
-    Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.`
+   `WARNING: The script gdown is installed in '/home/parallels/.local/bin' which is not on PATH.`
    then simply add the path by doing the following (modify accordingly):
    `echo export PATH=/home/parallels/.local/bin:$PATH >> ~/.bashrc`
    and resource:

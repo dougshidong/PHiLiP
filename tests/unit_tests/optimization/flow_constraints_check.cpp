@@ -14,6 +14,7 @@
 #include "ROL_LineSearchStep.hpp"
 //#include "ROL_StatusTest.hpp"
 
+#include "physics/initial_conditions/initial_condition.h"
 #include "physics/euler.h"
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_factory.h"

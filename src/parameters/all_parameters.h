@@ -16,6 +16,9 @@
 #include "parameters/parameters_grid_refinement_study.h"
 #include "parameters/parameters_grid_refinement.h"
 #include "parameters/parameters_artificial_dissipation.h"
+#include "parameters/parameters_flow_solver.h"
+#include "parameters/parameters_mesh_adaptation.h"
+#include "parameters/parameters_functional.h"
 
 namespace PHiLiP {
 namespace Parameters {
@@ -39,10 +42,16 @@ public:
     NavierStokesParam navier_stokes_param;
     /// Contains parameters for the Reduced-Order model
     ReducedOrderModelParam reduced_order_param;
-    /// contains the parameters for grid refinement study
+    /// Contains the parameters for grid refinement study
     GridRefinementStudyParam grid_refinement_study_param;
     /// Contains parameters for artificial dissipation
     ArtificialDissipationParam artificial_dissipation_param;
+    /// Contains the parameters for simulation cases (flow solver test)
+    FlowSolverParam flow_solver_param;
+    /// Constains parameters for mesh adaptation
+    MeshAdaptationParam mesh_adaptation_param;
+    /// Contains parameters for functional
+    FunctionalParam functional_param;
 
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;
@@ -55,7 +64,7 @@ public:
         parallel_distributed_triangulation,
         };
     MeshType mesh_type; ///< Selected MeshType from the input file
-    
+
     /// Number of additional quadrature points to use.
     /** overintegration = 0 leads to number_quad_points = dg_solution_degree + 1
      */
@@ -101,7 +110,7 @@ public:
     int rk_order;
 
     /// Currently allows to solve advection, diffusion, convection-diffusion
-    enum TestType { 
+    enum TestType {
         run_control,
         grid_refinement_study,
         burgers_energy_stability,
@@ -123,12 +132,15 @@ public:
         reduced_order,
         burgers_rewienski_snapshot,
         convection_diffusion_periodicity,
+        POD_adaptation,
         advection_periodicity,
+        flow_solver,
+        dual_weighted_residual_mesh_adaptation,
     };
     TestType test_type; ///< Selected TestType from the input file.
 
     /// Currently allows to solve advection, diffusion, convection-diffusion
-    enum PartialDifferentialEquation { 
+    enum PartialDifferentialEquation {
         advection,
         diffusion,
         convection_diffusion,
@@ -141,21 +153,20 @@ public:
     };
 
     /// Possible boundary types, NOT IMPLEMENTED YET
-    enum BoundaryType { 
+    enum BoundaryType {
         manufactured_dirichlet,
         manufactured_neumann,
         manufactured_inout_flow,
     };
 
     /// Possible source terms, NOT IMPLEMENTED YET
-    enum SourceTerm { 
+    enum SourceTerm {
         zero,
         manufactured,
     };
 
     /// Store the PDE type to be solved
     PartialDifferentialEquation pde_type;
-
 
     /// Currently only Lax-Friedrichs, roe, and split_form can be used as an input parameter
     enum ConvectiveNumericalFlux { 
@@ -166,7 +177,6 @@ public:
         central_flux,
         entropy_cons_flux};
 
-
     /// Store convective flux type
     ConvectiveNumericalFlux conv_num_flux_type;
 
@@ -174,7 +184,6 @@ public:
     enum DissipativeNumericalFlux { symm_internal_penalty, bassi_rebay_2 };
     /// Store diffusive flux type
     DissipativeNumericalFlux diss_num_flux_type;
-
 
     /// Type of correction in Flux Reconstruction
     enum Flux_Reconstruction {cDG, cSD, cHU, cNegative, cNegative2, cPlus, cPlus1D, c10Thousand, cHULumped};

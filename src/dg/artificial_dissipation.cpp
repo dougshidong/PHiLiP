@@ -3,6 +3,8 @@
 namespace PHiLiP
 {
 
+template <int dim, int nstate>
+ArtificialDissipationBase<dim,nstate> :: ~ArtificialDissipationBase() {}
 //=====================================================
 //  LAPLACIAN DISSIPATION FUNCTIONS 
 //=====================================================
@@ -126,7 +128,7 @@ const std::array<RadFadType,nstate> &conservative_soln, const std::array<dealii:
 }
 
 //===========================================
-//      Enthalpy Conserving DISSIPATION FUNCTIONS
+//      ENTHALPY CONSERVING DISSIPATION FUNCTIONS
 //===========================================
 
 template <int dim, int nstate>

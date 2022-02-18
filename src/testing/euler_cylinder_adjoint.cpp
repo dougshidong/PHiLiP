@@ -27,6 +27,7 @@
 
 #include "physics/physics.h"
 #include "physics/physics_factory.h"
+#include "physics/initial_conditions/initial_condition.h"
 #include "physics/euler.h"
 #include "physics/manufactured_solution.h"
 

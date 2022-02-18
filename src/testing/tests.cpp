@@ -27,9 +27,11 @@
 #include "euler_naca0012_optimization.hpp"
 #include "shock_1d.h"
 #include "euler_naca0012.hpp"
-#include "burgers_rewienski_snapshot.h"
+#include "reduced_order_pod_adaptation.h"
 #include "reduced_order.h"
 #include "convection_diffusion_explicit_periodic.h"
+#include "flow_solver.h"
+#include "dual_weighted_residual_mesh_adaptation.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -101,7 +103,7 @@ template<int dim, int nstate, typename MeshType>
 std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
 ::select_test(const AllParam *const parameters_input) {
     using Test_enum = AllParam::TestType;
-    Test_enum test_type = parameters_input->test_type;
+    const Test_enum test_type = parameters_input->test_type;
 
     if(test_type == Test_enum::run_control) {
         return std::make_unique<GridStudy<dim,nstate>>(parameters_input);
@@ -133,7 +135,7 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
     } else if(test_type == Test_enum::euler_split_taylor_green) {
      if constexpr (dim==3 && nstate == dim+2) return std::make_unique<EulerTaylorGreen<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::optimization_inverse_manufactured) {
-     return std::make_unique<OptimizationInverseManufactured<dim,nstate>>(parameters_input);
+        return std::make_unique<OptimizationInverseManufactured<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_bump_optimization) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerBumpOptimization<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_naca_optimization) {
@@ -142,12 +144,17 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==1 && nstate==1) return std::make_unique<Shock1D<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::reduced_order) {
         if constexpr (dim==1 && nstate==1) return std::make_unique<ReducedOrder<dim,nstate>>(parameters_input);
-    } else if(test_type == Test_enum::burgers_rewienski_snapshot) {
-        if constexpr (dim==1 && nstate==1) return std::make_unique<BurgersRewienskiSnapshot<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::POD_adaptation) {
+        if constexpr (dim==1 && nstate==1) return std::make_unique<ReducedOrderPODAdaptation<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_naca0012) {
-        if constexpr (dim==2 && nstate==4) return std::make_unique<EulerNACA0012<dim,nstate>>(parameters_input);
-    } else{
+        if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerNACA0012<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::flow_solver) {
+        if constexpr ((dim==3 && nstate==dim+2) || (dim==1 && nstate==1)) return FlowSolverFactory<dim,nstate>::create_FlowSolver(parameters_input);
+    } else if(test_type == Test_enum::dual_weighted_residual_mesh_adaptation) {
+        if constexpr (dim > 1)  return std::make_unique<DualWeightedResidualMeshAdaptation<dim, nstate>>(parameters_input);
+    } else {
         std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
+        std::abort();
     }
 
     return nullptr;

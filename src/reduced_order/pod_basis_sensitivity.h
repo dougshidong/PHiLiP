@@ -20,7 +20,7 @@ namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
 template <int dim>
-/// Intermediary class that includes attributes common to all POD basis subtypes
+/// Sensitivity POD basis class
 class SensitivityPOD : public POD<dim>
 {
 public:
@@ -31,6 +31,7 @@ public:
     /// Destructor
     ~SensitivityPOD() {}
 
+    /// Generate Sensitivity POD basis from snapshots
     bool getSensitivityPODBasisFromSnapshots();
 
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> sensitivityBasis; ///< sensitivity basis
@@ -38,8 +39,10 @@ public:
 
 public:
 
+    /// Compute POD basis sensitivities
     void computeBasisSensitivity();
 
+    /// Compute the sensitivity k-th POD basis mode
     dealii::Vector<double> computeModeSensitivity(int k);
 
     /// Function to build sensitivity POD basis
@@ -51,21 +54,19 @@ public:
     /// Function to return basisTranspose
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasisTranspose() override;
 
-    /// Vector to store which indices of the full basis are present in this basis
-    std::vector<unsigned int> fullBasisIndices;
-
 protected:
-    dealii::LAPACKFullMatrix<double> fullBasisSensitivity;
+
+    dealii::LAPACKFullMatrix<double> fullBasisSensitivity; ///< Full sensitivity basis
 private:
 
-    /// Get POD basis saved to text file
+    /// Get Sensitivity POD basis saved to text file
     bool getSavedSensitivityPODBasis();
 
-    /// Save POD basis to text file
+    /// Save Sensitivity POD basis to text file
     void saveSensitivityPODBasisToFile();
 
-    dealii::LAPACKFullMatrix<double> sensitivitySnapshots;
-    dealii::LAPACKFullMatrix<double> massWeightedSensitivitySnapshots;
+    dealii::LAPACKFullMatrix<double> sensitivitySnapshots; ///< Matrix of sensitivity snapshots
+    dealii::LAPACKFullMatrix<double> massWeightedSensitivitySnapshots; ///< Mass matrix weighted sensitivity snapshots
     dealii::LAPACKFullMatrix<double> eigenvaluesSensitivity; ///< Matrix of singular value derivatives along the diagonal
 
 

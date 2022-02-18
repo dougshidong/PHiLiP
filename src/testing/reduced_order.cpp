@@ -169,14 +169,14 @@ int ReducedOrder<dim, nstate>::run_test() const
         current_iteration++;
     }
 
-    double pod_galerkin_error = (1/(double)number_of_time_steps) * galerkin_error_norm_sum * 100;
+    double pod_galerkin_error = (1/(double)number_of_time_steps) * galerkin_error_norm_sum;
 
-    double pod_petrov_galerkin_error = (1/(double)number_of_time_steps) * petrov_galerkin_error_norm_sum * 100;
+    double pod_petrov_galerkin_error = (1/(double)number_of_time_steps) * petrov_galerkin_error_norm_sum;
 
     pcout << "POD-Galerkin error: " << pod_galerkin_error << std::endl;
     pcout << "POD-Petrov-Galerkin error: " << pod_petrov_galerkin_error << std::endl;
 
-    if (pod_galerkin_error < 0.01 && pod_petrov_galerkin_error < 0.01){
+    if (pod_galerkin_error < 1E-12 && pod_petrov_galerkin_error < 1E-12){
         pcout << "Passed!";
         return 0;
     }else{

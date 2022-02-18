@@ -18,11 +18,10 @@ public:
     /// Parameter for diffusion coefficient
     double diffusion_coefficient;
 
-    /** Set as true for running a manufactured solution.
+    /** Set as true for running a manufactured solution for Burgers Rewienski.
     *  Adds the manufactured solution source term to the PDE source term
     */
     bool rewienski_manufactured_solution;
-
 
     BurgersParam (); ///< Constructor
 

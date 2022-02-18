@@ -166,7 +166,7 @@ bool SensitivityPOD<dim>::getSensitivityPODBasisFromSnapshots() {
         sensitivitySnapshots.fill(snapshot_submatrix, 0, j_offset[i], 0, 0);
     }
 
-    //Center data
+    //Center data, do not use for now
     /*
     std::vector<double> rowSums(sensitivitySnapshots.n());
     for(unsigned int row = 0 ; row < sensitivitySnapshots.n(); row++){
@@ -189,7 +189,11 @@ bool SensitivityPOD<dim>::getSensitivityPODBasisFromSnapshots() {
 
 template <int dim>
 void SensitivityPOD<dim>::computeBasisSensitivity() {
-
+    /* Reference for POD basis sensitivity computation:
+    "Local improvements to reduced-order models using sensitivity analysis of the proper orthogonal decomposition"
+    Alexander Hay, Jeffrey T. Borgaard, Dominique Pelletier
+    J. Fluid Mech. (2009)
+    */
     this->pcout << "Computing basis sensitivities..." << std::endl;
 
     // Compute mass weighted sensitivity snapshots:

@@ -24,7 +24,8 @@ set(TESTS_SOURCE
     flow_solver.cpp
     flow_solver_cases/periodic_cube_flow.cpp
     flow_solver_cases/1D_burgers_rewienski_snapshot.cpp
-    dual_weighted_residual_mesh_adaptation.cpp flow_solver_cases/1d_burgers_viscous_snapshot.cpp flow_solver_cases/1d_burgers_viscous_snapshot.h)
+    dual_weighted_residual_mesh_adaptation.cpp
+    flow_solver_cases/1d_burgers_viscous_snapshot.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

@@ -22,13 +22,13 @@ namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
 template<int dim>
-/// Intermediary class that includes attributes common to all POD basis subtypes
+/// Intermediary class that includes attributes common to all SensitivityPOD basis subtypes
 class SpecificSensitivityPOD : public SensitivityPOD<dim> {
 protected:
-/// Constructor
+    /// Constructor
     SpecificSensitivityPOD(std::shared_ptr<DGBase<dim, double>> &dg_input);
 
-/// Destructor
+    /// Destructor
     ~SpecificSensitivityPOD() {}
 
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basis; ///< pod basis
@@ -36,16 +36,16 @@ protected:
 
 public:
 
-/// Function to add columns (basis functions) to POD basis. Used when building basis and refining when doing POD adaptation
+    /// Function to add columns (basis functions) to POD basis. Used when building basis and refining when doing POD adaptation
     virtual void addPODBasisColumns(const std::vector<unsigned int> addColumns) = 0;
 
-/// Function to return basis
+    /// Function to return basis
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() override;
 
-/// Function to return basisTranspose
+    /// Function to return basisTranspose
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasisTranspose() override;
 
-/// Vector to store which indicies of the full basis are present in this basis
+    /// Vector to store which indicies of the full basis are present in this basis
     std::vector<unsigned int> fullBasisIndices;
 
     /// Vector to store which indicies of the sensitivity basis are present in this basis
@@ -53,27 +53,27 @@ public:
 
 };
 
-/// Class for Coarse POD basis, derived from SpecificPOD
+/// Class for Expanded POD basis, derived from SpecificSensitivityPODPOD
 template<int dim>
 class ExpandedPOD : public SpecificSensitivityPOD<dim> {
 public:
-/// Constructor
+    /// Constructor
     ExpandedPOD(std::shared_ptr<DGBase<dim, double>> &dg_input);
 
-/// Destructor
+    /// Destructor
     ~ExpandedPOD() {};
 
     void addPODBasisColumns(const std::vector<unsigned int> addColumns);
 };
 
-/// Class for fine not in coarse POD basis, derived from SpecificPOD
+/// Class for Extrapolated POD basis, derived from SpecificSensitivityPOD
 template<int dim>
 class ExtrapolatedPOD : public SpecificSensitivityPOD<dim> {
 public:
-/// Constructor
+    /// Constructor
     ExtrapolatedPOD(std::shared_ptr<DGBase<dim, double>> &dg_input);
 
-/// Destructor
+    /// Destructor
     ~ExtrapolatedPOD() {};
 
     void addPODBasisColumns(const std::vector<unsigned int> addColumns);

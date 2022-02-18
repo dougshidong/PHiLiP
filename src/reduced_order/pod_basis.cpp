@@ -108,7 +108,7 @@ bool POD<dim>::getPODBasisFromSnapshots() {
         solutionSnapshots.fill(snapshot_submatrix, 0, j_offset[i], 0, 0);
     }
 
-    //Center data
+    //Center data, do not use for now
     /*
     std::vector<double> rowSums(solutionSnapshots.n());
     for(unsigned int row = 0 ; row < solutionSnapshots.n(); row++){

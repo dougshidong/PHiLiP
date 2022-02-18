@@ -42,8 +42,10 @@ public:
     /// Runs the test (i.e. flow solver)
     int run_test () const;
 
+    /// Pointer to dg so it can be accessed externally. Mutable keyword necessary since functions are constant
     mutable std::shared_ptr<DGBase<dim, double>> dg;
 
+    /// Pointer to ode solver so it can be accessed externally. Mutable keyword necessary since functions are constant
     mutable std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver;
 
 protected:

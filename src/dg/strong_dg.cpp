@@ -311,7 +311,9 @@ template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual ()
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    if (this->all_parameters->pde_type == PDE_enum::convection_diffusion || this->all_parameters->pde_type == PDE_enum::diffusion)
+    using ODE_enum = Parameters::ODESolverParam::ODESolverEnum;
+    if ( (this->all_parameters->pde_type == PDE_enum::convection_diffusion || this->all_parameters->pde_type == PDE_enum::diffusion)
+        && this->all_parameters->ode_solver_param.ode_solver_type == ODE_enum::explicit_solver )//auxiliary only works explicit for now
     {
         //set auxiliary rhs to 0
         for(int idim=0; idim<dim; idim++){

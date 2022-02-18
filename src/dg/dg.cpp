@@ -2612,70 +2612,70 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     return eps;
 }
 
-template<int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::refine_residual_based()
-{
-    dealii::Vector<float> gradient_indicator(high_order_grid->triangulation->n_active_cells());
-
-    const auto mapping = (*(high_order_grid->mapping_fe_field));
-    dealii::DerivativeApproximation::approximate_gradient(mapping,
-                                                  dof_handler,
-                                                  solution,
-                                                  gradient_indicator);
-
-    for (const auto &cell : high_order_grid->triangulation->active_cell_iterators()) {
-        gradient_indicator[cell->active_cell_index()] *= std::pow(cell->diameter(), 1 + 1.0 * dim / 2);
-    }
-    std::vector<dealii::types::global_dof_index> dofs_indices;
-    for (const auto &cell : dof_handler.active_cell_iterators()) {
-        if (!cell->is_locally_owned()) continue;
-
-        const int i_fele = cell->active_fe_index();
-        const dealii::FESystem<dim,dim> &fe_ref = fe_collection[i_fele];
-        const unsigned int n_dofs_cell = fe_ref.n_dofs_per_cell();
-        dofs_indices.resize(n_dofs_cell);
-        cell->get_dof_indices (dofs_indices);
-        double max_residual = 0;
-        for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-        //for (const auto &idof : dofs_indices) {
-            const unsigned int index = dofs_indices[idof];
-            const unsigned int istate = fe_ref.system_to_component_index(idof).first;
-            if (istate == dim+2-1) {
-                const double res = std::abs(right_hand_side[index]);
-                if (res > max_residual) max_residual = res;
-            }
-        }
-        gradient_indicator[cell->active_cell_index()] = max_residual;
-    }
-
-    dealii::LinearAlgebra::distributed::Vector<double> old_solution(solution);
-    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dof_handler);
-    solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
-    high_order_grid->prepare_for_coarsening_and_refinement();
-
-    //high_order_grid->triangulation->refine_global (1);
-    if constexpr(dim == 1 ||
-        !std::is_same<MeshType, dealii::parallel::distributed::Triangulation<dim>>::value) {
-        dealii::GridRefinement::refine_and_coarsen_fixed_number(*high_order_grid->triangulation,
-                                                        gradient_indicator,
-                                                        0.05,
-                                                        0.025);
-    } else {
-        dealii::parallel::distributed::GridRefinement::refine_and_coarsen_fixed_number(*(high_order_grid->triangulation),
-                                                        gradient_indicator,
-                                                        0.05,
-                                                        0.01);
-    }
-    high_order_grid->triangulation->execute_coarsening_and_refinement();
-    high_order_grid->execute_coarsening_and_refinement();
-    allocate_system ();
-    solution.zero_out_ghosts();
-    solution_transfer.interpolate(solution);
-    solution.update_ghost_values();
-
-    assemble_residual ();
-
-}
+//template<int dim, typename real, typename MeshType>
+//void DGBase<dim,real,MeshType>::refine_residual_based()
+//{
+//    dealii::Vector<float> gradient_indicator(high_order_grid->triangulation->n_active_cells());
+//
+//    const auto mapping = (*(high_order_grid->mapping_fe_field));
+//    dealii::DerivativeApproximation::approximate_gradient(mapping,
+//                                                  dof_handler,
+//                                                  solution,
+//                                                  gradient_indicator);
+//
+//    for (const auto &cell : high_order_grid->triangulation->active_cell_iterators()) {
+//        gradient_indicator[cell->active_cell_index()] *= std::pow(cell->diameter(), 1 + 1.0 * dim / 2);
+//    }
+//    std::vector<dealii::types::global_dof_index> dofs_indices;
+//    for (const auto &cell : dof_handler.active_cell_iterators()) {
+//        if (!cell->is_locally_owned()) continue;
+//
+//        const int i_fele = cell->active_fe_index();
+//        const dealii::FESystem<dim,dim> &fe_ref = fe_collection[i_fele];
+//        const unsigned int n_dofs_cell = fe_ref.n_dofs_per_cell();
+//        dofs_indices.resize(n_dofs_cell);
+//        cell->get_dof_indices (dofs_indices);
+//        double max_residual = 0;
+//        for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
+//        //for (const auto &idof : dofs_indices) {
+//            const unsigned int index = dofs_indices[idof];
+//            const unsigned int istate = fe_ref.system_to_component_index(idof).first;
+//            if (istate == dim+2-1) {
+//                const double res = std::abs(right_hand_side[index]);
+//                if (res > max_residual) max_residual = res;
+//            }
+//        }
+//        gradient_indicator[cell->active_cell_index()] = max_residual;
+//    }
+//
+//    dealii::LinearAlgebra::distributed::Vector<double> old_solution(solution);
+//    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dof_handler);
+//    solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
+//    high_order_grid->prepare_for_coarsening_and_refinement();
+//
+//    //high_order_grid->triangulation->refine_global (1);
+//    if constexpr(dim == 1 ||
+//        !std::is_same<MeshType, dealii::parallel::distributed::Triangulation<dim>>::value) {
+//        dealii::GridRefinement::refine_and_coarsen_fixed_number(*high_order_grid->triangulation,
+//                                                        gradient_indicator,
+//                                                        0.05,
+//                                                        0.025);
+//    } else {
+//        dealii::parallel::distributed::GridRefinement::refine_and_coarsen_fixed_number(*(high_order_grid->triangulation),
+//                                                        gradient_indicator,
+//                                                        0.05,
+//                                                        0.01);
+//    }
+//    high_order_grid->triangulation->execute_coarsening_and_refinement();
+//    high_order_grid->execute_coarsening_and_refinement();
+//    allocate_system ();
+//    solution.zero_out_ghosts();
+//    solution_transfer.interpolate(solution);
+//    solution.update_ghost_values();
+//
+//    assemble_residual ();
+//
+//}
 
 template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::set_current_time(const real time)

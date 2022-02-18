@@ -871,7 +871,7 @@ dealii::GridTools::transform (&warp, *grid);
 	double finalTime = 1.5;
 finalTime = 10.0;
 //finalTime = 5.0;
-//finalTime = 2.0;
+finalTime = 2.0;
 //finalTime=0.25;
 //finalTime =1/8;
 //finalTime = 0.5;
@@ -911,6 +911,12 @@ finalTime = 10.0;
 		//if (current_energy - initial_energy >= 10.00)
 		{
                     pcout << " Energy was not monotonically decreasing" << std::endl;
+			return 1;
+			break;
+		}
+		if ( (current_energy*initial_energy - initial_energy >= 1.0e-12) && (all_parameters_new.conv_num_flux_type == Parameters::AllParameters::ConvectiveNumericalFlux::central_flux))
+		{
+                    pcout << " Energy was not conserved" << std::endl;
 			return 1;
 			break;
 		}

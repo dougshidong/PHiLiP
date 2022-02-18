@@ -1,4 +1,5 @@
 #include "mesh_adaptation.h"
+#include <deal.II/hp/refinement.h>
 
 namespace PHiLiP {
 
@@ -8,8 +9,10 @@ MeshAdaptation<dim,real,MeshType>::MeshAdaptation(std::shared_ptr< DGBase<dim, r
     , critical_residual(dg->all_parameters->mesh_adaptation_param.critical_residual_val)
     , total_refinement_cycles(dg->all_parameters->mesh_adaptation_param.total_refinement_steps)
     , current_refinement_cycle(0)
-    , refinement_fraction(dg->all_parameters->mesh_adaptation_param.refinement_fraction)
-    , coarsening_fraction(dg->all_parameters->mesh_adaptation_param.coarsening_fraction)
+    , h_refine_fraction(dg->all_parameters->mesh_adaptation_param.h_refine_fraction)
+    , h_coarsen_fraction(dg->all_parameters->mesh_adaptation_param.h_coarsen_fraction)
+    , p_refine_fraction(dg->all_parameters->mesh_adaptation_param.p_refine_fraction)
+    , p_coarsen_fraction(dg->all_parameters->mesh_adaptation_param.p_coarsen_fraction)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
     {
         mesh_error = MeshErrorFactory<dim, 5, real, MeshType> :: create_mesh_error(dg);
@@ -39,16 +42,27 @@ void MeshAdaptation<dim,real,MeshType>::fixed_fraction_isotropic_refinement_and_
     {
         dealii::GridRefinement::refine_and_coarsen_fixed_number(*(dg->high_order_grid->triangulation),
                                                                 cellwise_errors,
-                                                                refinement_fraction,
-                                                                coarsening_fraction);
+                                                                h_refine_fraction,
+                                                                h_coarsen_fraction);
     } 
     else 
     {
         dealii::parallel::distributed::GridRefinement::refine_and_coarsen_fixed_number(*(dg->high_order_grid->triangulation),
                                                                                         cellwise_errors,
-                                                                                        refinement_fraction,
-                                                                                        coarsening_fraction);
+                                                                                        h_refine_fraction,
+                                                                                        h_coarsen_fraction);
     }
+
+    // Currently, the indicator to flag p_adaptation is the same as h_adaptation, but it will likely change in future.
+    dealii::Vector<real> p_adaptation_error_indicator = cellwise_errors;
+
+    dealii::hp::Refinement::p_adaptivity_fixed_number(dg->dof_handler,
+                                                      p_adaptation_error_indicator,
+                                                      p_refine_fraction,
+                                                      p_coarsen_fraction);
+
+    // If a cell is flagged for both h and p adaptation, perform only p adaptation.
+    dealii::hp::Refinement::choose_p_over_h(dg->dof_handler);
 
     dg->high_order_grid->triangulation->execute_coarsening_and_refinement();
     dg->high_order_grid->execute_coarsening_and_refinement();

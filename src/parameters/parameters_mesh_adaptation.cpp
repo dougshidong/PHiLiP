@@ -21,13 +21,21 @@ void MeshAdaptationParam::declare_parameters (dealii::ParameterHandler &prm)
                           dealii::Patterns::Bool(),
                           "Flag to use goal oriented mesh adaptation. False by default.");
 
-        prm.declare_entry("refinement_fraction","0.0",
+        prm.declare_entry("h_refine_fraction","0.0",
                           dealii::Patterns::Double(0.0,1.0),
-                          "Fraction of cells to be refined.");
+                          "Fraction of cells to be h-refined.");
 
-        prm.declare_entry("coarsening_fraction","0.0",
+        prm.declare_entry("h_coarsen_fraction","0.0",
                           dealii::Patterns::Double(0.0,1.0),
-                          "Fraction of cells to be coarsened.");
+                          "Fraction of cells to be h-coarsened.");
+        
+        prm.declare_entry("p_refine_fraction","0.0",
+                          dealii::Patterns::Double(0.0,1.0),
+                          "Fraction of cells to be p-refined.");
+
+        prm.declare_entry("p_coarsen_fraction","0.0",
+                          dealii::Patterns::Double(0.0,1.0),
+                          "Fraction of cells to be p-coarsened.");
     }
     prm.leave_subsection();
 
@@ -40,8 +48,10 @@ void MeshAdaptationParam::parse_parameters (dealii::ParameterHandler &prm)
         total_refinement_steps = prm.get_integer("total_refinement_steps");
         critical_residual_val = prm.get_double("critical_residual_val");
         use_goal_oriented_mesh_adaptation = prm.get_bool("use_goal_oriented_mesh_adaptation");
-        refinement_fraction = prm.get_double("refinement_fraction");
-        coarsening_fraction = prm.get_double("coarsening_fraction");
+        h_refine_fraction = prm.get_double("h_refine_fraction");
+        h_coarsen_fraction = prm.get_double("h_coarsen_fraction");
+        p_refine_fraction = prm.get_double("p_refine_fraction");
+        p_coarsen_fraction = prm.get_double("p_coarsen_fraction");
     }
     prm.leave_subsection();
 }

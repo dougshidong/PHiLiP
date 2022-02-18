@@ -54,11 +54,17 @@ protected:
     /// Performs fixed fraction refinement based on refinement and coarsening fractions.
     void fixed_fraction_isotropic_refinement_and_coarsening();
     
-    /// Fraction of cells to be refined in fixed-fraction refinement
-    double refinement_fraction;
+    /// Fraction of cells to be h-refined in fixed-fraction refinement
+    double h_refine_fraction;
 
-    /// Fraction of cells to be coarsened in fixed-fraction refinement
-    double coarsening_fraction;
+    /// Fraction of cells to be h-coarsened in fixed-fraction refinement
+    double h_coarsen_fraction;
+    
+    /// Fraction of cells to be p-refined in fixed-fraction refinement
+    double p_refine_fraction;
+
+    /// Fraction of cells to be p-coarsened in fixed-fraction refinement
+    double p_coarsen_fraction;
     
     /// Stores errors in each cell
     dealii::Vector<real> cellwise_errors;

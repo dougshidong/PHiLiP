@@ -147,8 +147,10 @@ void ImplicitODESolver<dim,real,MeshType>::allocate_ode_system ()
     this->pcout << "Allocating ODE system and evaluating mass matrix..." << std::endl;
     const bool do_inverse_mass_matrix = false;
     this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
+std::cout<<"evaluated mass matrices"<<std::endl;
 
     this->solution_update.reinit(this->dg->right_hand_side);
+std::cout<<"did sol update"<<std::endl;
 }
 
 template class ImplicitODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;

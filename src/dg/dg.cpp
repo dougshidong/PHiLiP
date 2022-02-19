@@ -2212,6 +2212,7 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
         global_mass_matrix.reinit(locally_owned_dofs, mass_sparsity_pattern);
     }
 
+pcout<<"init mass matrices dg"<<std::endl;
     auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
     for (auto cell = dof_handler.begin_active(); cell!=dof_handler.end(); ++cell, ++metric_cell) {
 
@@ -2228,6 +2229,7 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
 
         //quadrature weights
         const std::vector<real> &quad_weights = operators.volume_quadrature_collection[fe_index_curr_cell].get_weights();
+pcout<<"got quad wieghts"<<std::endl;
         //setup metric cell
         const dealii::FESystem<dim> &fe_metric = high_order_grid->fe_system;
         const unsigned int n_metric_dofs = high_order_grid->fe_system.dofs_per_cell;
@@ -2247,10 +2249,14 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
                 mapping_support_points[istate][igrid_node] += val * fe_metric.shape_value_component(idof,vol_GLL.point(igrid_node),istate); 
             }
         }
+pcout<<"got mapp spp points"<<std::endl;
 
+pcout<<"grid degree "<<grid_degree<<std::endl;
         //get determinant of Jacobian
         std::vector<real> determinant_Jacobian(n_quad_pts);
         operators.build_local_vol_determinant_Jac(grid_degree, fe_index_curr_cell, n_quad_pts, n_metric_dofs/dim, mapping_support_points, determinant_Jacobian);
+
+pcout<<"built vol jac"<<std::endl;
  
         if(this->all_parameters->use_weight_adjusted_mass == false){
            // const std::vector<real> &JxW = fe_values_volume.get_JxW_values();
@@ -2261,6 +2267,7 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
             }
             operators.build_local_Mass_Matrix(JxW, n_dofs_cell, n_quad_pts, fe_index_curr_cell, local_mass_matrix);
 
+pcout<<"built mass matrix"<<std::endl;
             std::vector<dealii::FullMatrix<real>> local_mass_matrix_aux(dim);
             for(int idim=0; idim<dim; idim++){
                 local_mass_matrix_aux[idim].reinit(n_dofs_cell, n_dofs_cell);
@@ -2320,6 +2327,7 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
                 }
             } else {
                 global_mass_matrix.set (dofs_indices, local_mass_matrix);
+pcout<<"set mass matrix"<<std::endl;
             }
         } else {//use weight adjusted Mass Matrix (it's based off the inverse)
            // const std::vector<real> &JxW = fe_values_volume.get_JxW_values();
@@ -2368,6 +2376,7 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
 
         }//end of weight-adjusted mass matrix condition
     }//end of cell loop
+pcout<<"reated mass matrices dg"<<std::endl;
 
     if (do_inverse_mass_matrix == true) {
         global_inverse_mass_matrix.compress(dealii::VectorOperation::insert);

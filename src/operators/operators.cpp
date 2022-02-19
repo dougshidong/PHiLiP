@@ -283,7 +283,7 @@ void OperatorBase<dim,real>::allocate_volume_operators ()
         local_K_operator_aux[idegree].resize(dim);
         vol_projection_operator[idegree].reinit(n_dofs, n_quad_pts);
         vol_projection_operator_FR[idegree].reinit(n_dofs, n_quad_pts);
-        FR_mass_inv[idegree].reinit(n_dofs, n_quad_pts);
+        FR_mass_inv[idegree].reinit(n_dofs, n_dofs);
         for(int idim=0; idim<dim; idim++){
             modal_basis_differential_operator[idegree][idim].reinit(n_dofs, n_dofs);
             local_basis_stiffness[idegree][idim].reinit(n_dofs, n_dofs);
@@ -293,6 +293,9 @@ void OperatorBase<dim,real>::allocate_volume_operators ()
         }
         //flux basis allocator
         unsigned int n_dofs_flux = fe_collection_flux_basis[idegree].dofs_per_cell;
+        if(n_dofs_flux != n_quad_pts)
+            pcout<<"flux basis not collocated on quad points"<<std::endl;
+
         flux_basis_at_vol_cubature[idegree].resize(nstate);
         gradient_flux_basis[idegree].resize(nstate);
         local_flux_basis_stiffness[idegree].resize(nstate);
@@ -966,6 +969,7 @@ void OperatorBase<dim,real>::allocate_metric_operators ()
     gradient_mapping_shape_functions_grid_nodes.resize(max_grid_degree+1);
     mapping_shape_functions_vol_flux_nodes.resize(max_grid_degree+1);
     mapping_shape_functions_face_flux_nodes.resize(max_grid_degree+1);
+pcout<<"max grid DEGREE HAHAHHAHAHHA "<<max_grid_degree<<std::endl;
     gradient_mapping_shape_functions_vol_flux_nodes.resize(max_grid_degree+1);
     gradient_mapping_shape_functions_face_flux_nodes.resize(max_grid_degree+1);
     for(unsigned int idegree=0; idegree<=max_grid_degree; idegree++){
@@ -1056,7 +1060,8 @@ void OperatorBase<dim,real>::create_metric_basis_operators ()
     //degree >=1
     for(unsigned int idegree=1; idegree<=max_grid_degree; idegree++){
        dealii::QGaussLobatto<1> GLL (idegree+1);
-       dealii::FE_DGQArbitraryNodes<dim> feq(GLL);
+      // dealii::FE_DGQArbitraryNodes<dim> feq(GLL);
+       dealii::FE_DGQArbitraryNodes<dim,dim> feq(GLL);
        // dealii::FE_Q<dim> feq(idegree);
         dealii::FESystem<dim,dim> fe(feq, 1);
       //  dealii::Quadrature<dim> vol_GLL(GLL);
@@ -1126,16 +1131,22 @@ void OperatorBase<dim,real>::build_local_vol_determinant_Jac(
     //mapping support points must be passed as a vector[dim][n_metric_dofs]
     assert(pow(grid_degree+1,dim) == mapping_support_points[0].size());
     assert(pow(grid_degree+1,dim) == n_metric_dofs);
+pcout<<"passed assert in oper"<<poly_degree<<grid_degree<<std::endl;
     std::vector<dealii::FullMatrix<real>> Jacobian(n_quad_pts);
     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
         Jacobian[iquad].reinit(dim,dim);
         for(int idim=0; idim<dim; idim++){
             for(int jdim=0; jdim<dim; jdim++){
                 for(unsigned int idof=0; idof<n_metric_dofs; idof++){//assume n_dofs_cell==n_quad_points
+pcout<<"YOOOO"<<std::endl;
+pcout<<"grad mapp shape fn "<<gradient_mapping_shape_functions_vol_flux_nodes[grid_degree][poly_degree][jdim][iquad][idof]<<std::endl;
+pcout<<" mapp ssupp point "<<mapping_support_points[idim][idof]<<std::endl;
                     Jacobian[iquad][idim][jdim] += gradient_mapping_shape_functions_vol_flux_nodes[grid_degree][poly_degree][jdim][iquad][idof]//This is wrong due to FEQ indexing 
                                                 *       mapping_support_points[idim][idof];  
                 }
+pcout<<"built jac"<<std::endl;
                 determinant_Jacobian[iquad] = Jacobian[iquad].determinant();
+pcout<<"det jac"<<std::endl;
             }
         }
     }

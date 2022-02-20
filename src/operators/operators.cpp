@@ -82,6 +82,8 @@ OperatorBase<dim,real>::OperatorBase(
     create_surface_basis_operators();
     get_surface_lifting_operators ();
 
+    //set the check max grid degree to the initialized value
+
     //setup metric operators
     allocate_metric_operators();
     create_metric_basis_operators();
@@ -305,12 +307,14 @@ void OperatorBase<dim,real>::allocate_volume_operators ()
             gradient_flux_basis[idegree][istate].resize(dim);
             local_flux_basis_stiffness[idegree][istate].resize(dim);
             vol_integral_gradient_basis[idegree][istate].resize(dim);
-            int shape_degree = (all_parameters->use_collocated_nodes==true && idegree==0) ?  1 :  idegree;
-            const unsigned int n_shape_functions = pow(shape_degree+1,dim);
+        //    int shape_degree = (all_parameters->use_collocated_nodes==true && idegree==0) ?  1 :  idegree;
+         //   const unsigned int n_shape_functions = pow(shape_degree+1,dim);
             for(int idim=0; idim<dim; idim++){
                 gradient_flux_basis[idegree][istate][idim].reinit(n_quad_pts, n_dofs_flux);
-                local_flux_basis_stiffness[idegree][istate][idim].reinit(n_shape_functions, n_dofs_flux);
-                vol_integral_gradient_basis[idegree][istate][idim].reinit(n_quad_pts, n_shape_functions);
+               // local_flux_basis_stiffness[idegree][istate][idim].reinit(n_shape_functions, n_dofs_flux);
+               // vol_integral_gradient_basis[idegree][istate][idim].reinit(n_quad_pts, n_shape_functions);
+                local_flux_basis_stiffness[idegree][istate][idim].reinit(n_dofs, n_dofs_flux);
+                vol_integral_gradient_basis[idegree][istate][idim].reinit(n_quad_pts, n_dofs);
             }
         }
     }
@@ -969,7 +973,6 @@ void OperatorBase<dim,real>::allocate_metric_operators ()
     gradient_mapping_shape_functions_grid_nodes.resize(max_grid_degree+1);
     mapping_shape_functions_vol_flux_nodes.resize(max_grid_degree+1);
     mapping_shape_functions_face_flux_nodes.resize(max_grid_degree+1);
-pcout<<"max grid DEGREE HAHAHHAHAHHA "<<max_grid_degree<<std::endl;
     gradient_mapping_shape_functions_vol_flux_nodes.resize(max_grid_degree+1);
     gradient_mapping_shape_functions_face_flux_nodes.resize(max_grid_degree+1);
     for(unsigned int idegree=0; idegree<=max_grid_degree; idegree++){
@@ -1131,22 +1134,20 @@ void OperatorBase<dim,real>::build_local_vol_determinant_Jac(
     //mapping support points must be passed as a vector[dim][n_metric_dofs]
     assert(pow(grid_degree+1,dim) == mapping_support_points[0].size());
     assert(pow(grid_degree+1,dim) == n_metric_dofs);
-pcout<<"passed assert in oper"<<poly_degree<<grid_degree<<std::endl;
+    //check that the grid_degree is within the range of the metric basis
+   // is_the_grid_higher_order_than_initialized(grid_degree);
+    assert(grid_degree <= max_grid_degree);
+
     std::vector<dealii::FullMatrix<real>> Jacobian(n_quad_pts);
     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
         Jacobian[iquad].reinit(dim,dim);
         for(int idim=0; idim<dim; idim++){
             for(int jdim=0; jdim<dim; jdim++){
                 for(unsigned int idof=0; idof<n_metric_dofs; idof++){//assume n_dofs_cell==n_quad_points
-pcout<<"YOOOO"<<std::endl;
-pcout<<"grad mapp shape fn "<<gradient_mapping_shape_functions_vol_flux_nodes[grid_degree][poly_degree][jdim][iquad][idof]<<std::endl;
-pcout<<" mapp ssupp point "<<mapping_support_points[idim][idof]<<std::endl;
                     Jacobian[iquad][idim][jdim] += gradient_mapping_shape_functions_vol_flux_nodes[grid_degree][poly_degree][jdim][iquad][idof]//This is wrong due to FEQ indexing 
                                                 *       mapping_support_points[idim][idof];  
                 }
-pcout<<"built jac"<<std::endl;
                 determinant_Jacobian[iquad] = Jacobian[iquad].determinant();
-pcout<<"det jac"<<std::endl;
             }
         }
     }
@@ -1165,6 +1166,9 @@ void OperatorBase<dim,real>::build_local_vol_metric_cofactor_matrix_and_det_Jac(
     //mapping support points must be passed as a vector[dim][n_metric_dofs]
     assert(pow(grid_degree+1,dim) == mapping_support_points[0].size());
     assert(pow(grid_degree+1,dim) == n_metric_dofs);
+   // is_the_grid_higher_order_than_initialized(grid_degree);
+    assert(grid_degree <= max_grid_degree);
+
     std::vector<dealii::FullMatrix<real>> Jacobian(n_quad_pts);
     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
         Jacobian[iquad].reinit(dim,dim);
@@ -1324,6 +1328,9 @@ void OperatorBase<dim,real>::build_local_face_metric_cofactor_matrix_and_det_Jac
     //mapping support points must be passed as a vector[dim][n_metric_dofs]
     assert(pow(grid_degree+1,dim) == mapping_support_points[0].size());
     assert(pow(grid_degree+1,dim) == n_metric_dofs);
+   // is_the_grid_higher_order_than_initialized(grid_degree);
+    assert(grid_degree <= max_grid_degree);
+
     std::vector<dealii::FullMatrix<real>> Jacobian(n_quad_pts);
     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
         Jacobian[iquad].reinit(dim,dim);
@@ -1604,7 +1611,20 @@ void OperatorBase<dim,real>::compute_reference_to_physical(
     }
 
 }
-
+#if 0
+template <int dim, typename real>
+void OperatorBase<dim,real>::is_the_grid_higher_order_than_initialized(
+                                    const unsigned int grid_degree)
+{
+   // if(grid_degree > this->max_grid_degree_check){
+    if(grid_degree > this->max_grid_degree){
+        pcout<<"Updating the metric basis for grid degree "<<grid_degree<<std::endl;
+        allocate_metric_operators(grid_degree);
+        create_metric_basis_operators(grid_degree);
+    //    this->max_grid_degree_check = grid_degree; 
+    }
+}
+#endif
 #if 0
 template <int dim, typename real>
 void OperatorBase<dim,real>::compute_reference_flux(

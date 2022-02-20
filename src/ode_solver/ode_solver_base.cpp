@@ -71,7 +71,6 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
     Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
     pcout << " Performing steady state analysis... " << std::endl;
     allocate_ode_system ();
-pcout<<"allocatd ode sys correctly"<<std::endl;
 
     this->residual_norm_decrease = 1; // Always do at least 1 iteration
     update_norm = 1; // Always do at least 1 iteration

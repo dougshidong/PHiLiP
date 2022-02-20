@@ -92,6 +92,7 @@ public:
     ///Number of states.
     const int nstate;
 
+public:
 
     /// Makes for cleaner doxygen documentation.
     using MassiveCollectionTuple = std::tuple<
@@ -424,6 +425,11 @@ public:
                                     const dealii::Tensor<1,dim,real> &ref,
                                     const dealii::FullMatrix<real> &metric_cofactor,
                                     dealii::Tensor<1,dim,real> &phys);
+#if 0
+    ///Checks on the fly that the grid hasn't been updated with a higher order. If the grid has been updated, then it recreates the appropriate metric basis.
+    void is_the_grid_higher_order_than_initialized(
+                                    const unsigned int grid_degree);
+#endif
 
 #if 0
     ///Given a physical flux, and the metric cofactor matrix, this function returns the reference flux.

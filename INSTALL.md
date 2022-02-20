@@ -13,7 +13,20 @@ https://github.com/dougshidong/PHiLiP/pull/55
 
 ## NACA0012 Mesh Files
 
-If you are running the code **on a local machine** (i.e. not on the cluster), you will need to download the [NACA0012 mesh files](https://drive.google.com/drive/folders/182JusbWV6NAA8ws1-TTg7M2GLc5jt6_r?usp=sharing) that are too large to store on GitHub by clicking the link, and place them in `tests/integration_tests_control_files/euler_integration/naca0012/`. **If you are running on the cluster, please see the instructions below.**
+**If you are running on the cluster, please see the instructions below in the Compute Canada section.**
+
+If you are running the code **on a local machine** (i.e. not on the cluster), you will need to download the [NACA0012 mesh files](https://drive.google.com/drive/folders/182JusbWV6NAA8ws1-TTg7M2GLc5jt6_r?usp=sharing) that are too large to store on GitHub by clicking the link, and place them in `tests/integration_tests_control_files/euler_integration/naca0012/`. To automate this process using `gdown`, do the following:
+1. `sudo apt install python3-pip` (if `pip` is not already installed)
+2. `pip install gdown` (if `gdown` is not already installed)
+3. If you receive a warning such as:
+   `WARNING: The script gdown is installed in '/home/parallels/.local/bin' which is not on PATH.`
+   then simply add the path by doing the following (modify accordingly):
+   `echo export PATH=/home/parallels/.local/bin:$PATH >> ~/.bashrc`
+   and resource:
+   `source ~/.bashrc`
+4. Then run the following bash script inside the `PHiLiP` directory:
+   `chmod +x get_NACA0012_mesh_files_local.sh`
+   `./get_NACA0012_mesh_files_local.sh`
 
 ## deal.II
 

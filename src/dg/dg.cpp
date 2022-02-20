@@ -547,23 +547,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     const unsigned int poly_degree = i_fele;
   //  const unsigned int grid_degree = current_metric_cell->active_fe_index();
 
-   //assemble_volume_term_explicit (
-   //    current_cell,
-   //    current_cell_index,
-   //    fe_values_volume,
-   //    current_dofs_indices,
-   //    current_cell_rhs,
-   //    fe_values_lagrange);
-   // current_cell_rhs*=0.0;
-//   if ( compute_dRdW || compute_dRdX || compute_d2R ) {
-//       assemble_volume_term_derivatives (
-//           current_cell,
-//           current_cell_index,
-//           fe_values_volume, current_fe_ref, volume_quadrature_collection[i_quad],
-//           current_metric_dofs_indices, current_dofs_indices,
-//           current_cell_rhs, fe_values_lagrange,
-//           compute_dRdW, compute_dRdX, compute_d2R);
-//    } else {
     if(!this->all_parameters->use_weak_form 
        && this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::explicit_solver )//only for strong form explicit
    {
@@ -600,13 +583,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             compute_dRdW, compute_dRdX, compute_d2R);
  
    }
-
-    //} else {
-    //    assemble_volume_term_explicit (
-    //    cell,
-    //    current_cell_index,
-    //    fe_values_volume, current_dofs_indices, current_cell_rhs, fe_values_lagrange);
-    //}
 
 
                     //// Add local contribution from current cell to global vector
@@ -730,15 +706,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
                     rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
                 }
-                //        assemble_face_term_explicit (
-                //                                   iface, neighbor_face_no, 
-                //                                   fe_values_face_int, fe_values_face_ext,
-                //                   fe_values_face_int_soln_flux, fe_values_face_ext_soln_flux,  
-                //                                   fe_values_volume, fe_values_volume_neigh,
-                //                                   penalty,
-                //                                   current_dofs_indices, neighbor_dofs_indices,
-                //                                   current_cell_rhs, neighbor_cell_rhs);
-               //     }
 
                 } else {//at boundary and not 1D periodic
 
@@ -748,18 +715,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
 
             const unsigned int boundary_id = current_face->boundary_id();
-//           if (compute_dRdW || compute_dRdX || compute_d2R) {
-//               const dealii::Quadrature<dim-1> face_quadrature = face_quadrature_collection[i_quad];
-//               assemble_boundary_term_derivatives (
-//                   current_cell,
-//                   current_cell_index,
-//                   iface, boundary_id, fe_values_face_int, penalty,
-//                   current_fe_ref, face_quadrature,
-//                   current_metric_dofs_indices, current_dofs_indices, current_cell_rhs,
-//                   compute_dRdW, compute_dRdX, compute_d2R);
-//
-//           //}
-//            } else {
                 if(!this->all_parameters->use_weak_form 
                     && this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::explicit_solver )//only for strong form explicit
                 {
@@ -837,23 +792,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                                                   neighbor_cell->face_flip(neighbor_iface),
                                                                                                   neighbor_cell->face_rotation(neighbor_iface),
                                                                                                   used_face_quadrature.size());
-//                if ( compute_dRdW || compute_dRdX || compute_d2R ) {
-//                    assemble_face_term_derivatives (
-//                        current_cell,
-//                        current_cell_index,
-//                        neighbor_cell_index,
-//                        face_subface_int, face_subface_ext,
-//                        face_data_set_int,
-//                        face_data_set_ext,
-//                        fe_values_face_int, fe_values_face_ext,
-//                        penalty,
-//                        fe_collection[i_fele], fe_collection[i_fele_n],
-//                        used_face_quadrature,
-//                        current_metric_dofs_indices, neighbor_metric_dofs_indices,
-//                        current_dofs_indices, neighbor_dofs_indices,
-//                        current_cell_rhs, neighbor_cell_rhs,
-//                        compute_dRdW, compute_dRdX, compute_d2R);
-//                } else {
                 if(!this->all_parameters->use_weak_form 
                     && this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::explicit_solver )//only for strong form explicit
                 {
@@ -967,23 +905,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                                                     neighbor_cell->face_rotation(neighbor_iface),
                                                                                                     used_face_quadrature.size(),
                                                                                                     neighbor_cell->subface_case(neighbor_iface));
-//            if ( compute_dRdW || compute_dRdX || compute_d2R ) {
-//                assemble_face_term_derivatives (
-//                    current_cell,
-//                    current_cell_index,
-//                    neighbor_cell_index,
-//                    face_subface_int, face_subface_ext,
-//                    face_data_set_int,
-//                    face_data_set_ext,
-//                    fe_values_face_int, fe_values_face_ext,
-//                    penalty,
-//                    fe_collection[i_fele], fe_collection[i_fele_n],
-//                    used_face_quadrature,
-//                    current_metric_dofs_indices, neighbor_metric_dofs_indices,
-//                    current_dofs_indices, neighbor_dofs_indices,
-//                    current_cell_rhs, neighbor_cell_rhs,
-//                    compute_dRdW, compute_dRdX, compute_d2R);
-//            } else {
             if(!this->all_parameters->use_weak_form 
                 && this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::explicit_solver )//only for strong form explicit
             {
@@ -1072,23 +993,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                                               neighbor_cell->face_flip(neighbor_iface),
                                                                                               neighbor_cell->face_rotation(neighbor_iface),
                                                                                               used_face_quadrature.size());
-//            if ( compute_dRdW || compute_dRdX || compute_d2R ) {
-//               assemble_face_term_derivatives (
-//                   current_cell,
-//                   current_cell_index,
-//                   neighbor_cell_index,
-//                   face_subface_int, face_subface_ext,
-//                   face_data_set_int,
-//                   face_data_set_ext,
-//                   fe_values_face_int, fe_values_face_ext,
-//                   penalty,
-//                   fe_collection[i_fele], fe_collection[i_fele_n],
-//                   used_face_quadrature,
-//                   current_metric_dofs_indices, neighbor_metric_dofs_indices,
-//                   current_dofs_indices, neighbor_dofs_indices,
-//                   current_cell_rhs, neighbor_cell_rhs,
-//                   compute_dRdW, compute_dRdX, compute_d2R);
-//           } else {
             if(!this->all_parameters->use_weak_form 
                 && this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::explicit_solver )//only for strong form explicit
             {

@@ -1069,7 +1069,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
 
         if (this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::implicit_solver) {
             for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-                //residual_derivatives[idof] = rhs.fastAccessDx(idof);
                 residual_derivatives[idof] = rhs.fastAccessDx(idof);
             }
             this->system_matrix.add(cell_dofs_indices[itest], cell_dofs_indices, residual_derivatives);

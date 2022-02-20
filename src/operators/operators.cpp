@@ -59,6 +59,7 @@ OperatorBase<dim,real>::OperatorBase(
     , max_degree(max_degree_input)
     , max_grid_degree(grid_degree_input)
     , nstate(nstate_input)
+    , max_grid_degree_check(grid_degree_input)
     , fe_collection_basis(std::get<0>(collection_tuple))
     , volume_quadrature_collection(std::get<1>(collection_tuple))
     , face_quadrature_collection(std::get<2>(collection_tuple))
@@ -82,11 +83,11 @@ OperatorBase<dim,real>::OperatorBase(
     create_surface_basis_operators();
     get_surface_lifting_operators ();
 
-    //set the check max grid degree to the initialized value
-
     //setup metric operators
-    allocate_metric_operators();
-    create_metric_basis_operators();
+    allocate_metric_operators(max_grid_degree);
+    create_metric_basis_operators(max_grid_degree);
+    //set the check max grid degree to the initialized value
+   // max_grid_degree_check = max_grid_degree;
 
 }
 // Destructor
@@ -966,16 +967,17 @@ void OperatorBase<dim,real>::get_surface_lifting_operators ()
  *
  *              ******************************************************/
 template <int dim, typename real>
-void OperatorBase<dim,real>::allocate_metric_operators ()
+void OperatorBase<dim,real>::allocate_metric_operators (
+                                                        const unsigned int max_grid_degree_local)
 {
     unsigned int n_faces = dealii::GeometryInfo<dim>::faces_per_cell;
-    mapping_shape_functions_grid_nodes.resize(max_grid_degree+1);
-    gradient_mapping_shape_functions_grid_nodes.resize(max_grid_degree+1);
-    mapping_shape_functions_vol_flux_nodes.resize(max_grid_degree+1);
-    mapping_shape_functions_face_flux_nodes.resize(max_grid_degree+1);
-    gradient_mapping_shape_functions_vol_flux_nodes.resize(max_grid_degree+1);
-    gradient_mapping_shape_functions_face_flux_nodes.resize(max_grid_degree+1);
-    for(unsigned int idegree=0; idegree<=max_grid_degree; idegree++){
+    mapping_shape_functions_grid_nodes.resize(max_grid_degree_local+1);
+    gradient_mapping_shape_functions_grid_nodes.resize(max_grid_degree_local+1);
+    mapping_shape_functions_vol_flux_nodes.resize(max_grid_degree_local+1);
+    mapping_shape_functions_face_flux_nodes.resize(max_grid_degree_local+1);
+    gradient_mapping_shape_functions_vol_flux_nodes.resize(max_grid_degree_local+1);
+    gradient_mapping_shape_functions_face_flux_nodes.resize(max_grid_degree_local+1);
+    for(unsigned int idegree=0; idegree<=max_grid_degree_local; idegree++){
        // unsigned int n_dofs = dim * pow(idegree+1,dim);
         unsigned int n_dofs = pow(idegree+1,dim);
         mapping_shape_functions_grid_nodes[idegree].reinit(n_dofs, n_dofs);
@@ -1021,7 +1023,8 @@ void OperatorBase<dim,real>::allocate_metric_operators ()
     }
 }
 template <int dim, typename real>
-void OperatorBase<dim,real>::create_metric_basis_operators ()
+void OperatorBase<dim,real>::create_metric_basis_operators (
+                                                            const unsigned int max_grid_degree_local)
 {
 #if 0 //GRID CANNOT BE DEGREE 0
     //degree 0 GLL not exist
@@ -1061,7 +1064,7 @@ void OperatorBase<dim,real>::create_metric_basis_operators ()
     }
 #endif
     //degree >=1
-    for(unsigned int idegree=1; idegree<=max_grid_degree; idegree++){
+    for(unsigned int idegree=1; idegree<=max_grid_degree_local; idegree++){
        dealii::QGaussLobatto<1> GLL (idegree+1);
       // dealii::FE_DGQArbitraryNodes<dim> feq(GLL);
        dealii::FE_DGQArbitraryNodes<dim,dim> feq(GLL);
@@ -1135,8 +1138,7 @@ void OperatorBase<dim,real>::build_local_vol_determinant_Jac(
     assert(pow(grid_degree+1,dim) == mapping_support_points[0].size());
     assert(pow(grid_degree+1,dim) == n_metric_dofs);
     //check that the grid_degree is within the range of the metric basis
-   // is_the_grid_higher_order_than_initialized(grid_degree);
-    assert(grid_degree <= max_grid_degree);
+    is_the_grid_higher_order_than_initialized(grid_degree);
 
     std::vector<dealii::FullMatrix<real>> Jacobian(n_quad_pts);
     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
@@ -1166,8 +1168,7 @@ void OperatorBase<dim,real>::build_local_vol_metric_cofactor_matrix_and_det_Jac(
     //mapping support points must be passed as a vector[dim][n_metric_dofs]
     assert(pow(grid_degree+1,dim) == mapping_support_points[0].size());
     assert(pow(grid_degree+1,dim) == n_metric_dofs);
-   // is_the_grid_higher_order_than_initialized(grid_degree);
-    assert(grid_degree <= max_grid_degree);
+    is_the_grid_higher_order_than_initialized(grid_degree);
 
     std::vector<dealii::FullMatrix<real>> Jacobian(n_quad_pts);
     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
@@ -1328,8 +1329,7 @@ void OperatorBase<dim,real>::build_local_face_metric_cofactor_matrix_and_det_Jac
     //mapping support points must be passed as a vector[dim][n_metric_dofs]
     assert(pow(grid_degree+1,dim) == mapping_support_points[0].size());
     assert(pow(grid_degree+1,dim) == n_metric_dofs);
-   // is_the_grid_higher_order_than_initialized(grid_degree);
-    assert(grid_degree <= max_grid_degree);
+    is_the_grid_higher_order_than_initialized(grid_degree);
 
     std::vector<dealii::FullMatrix<real>> Jacobian(n_quad_pts);
     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
@@ -1611,20 +1611,17 @@ void OperatorBase<dim,real>::compute_reference_to_physical(
     }
 
 }
-#if 0
 template <int dim, typename real>
 void OperatorBase<dim,real>::is_the_grid_higher_order_than_initialized(
                                     const unsigned int grid_degree)
 {
-   // if(grid_degree > this->max_grid_degree_check){
-    if(grid_degree > this->max_grid_degree){
+    if(grid_degree > max_grid_degree_check){
         pcout<<"Updating the metric basis for grid degree "<<grid_degree<<std::endl;
         allocate_metric_operators(grid_degree);
         create_metric_basis_operators(grid_degree);
-    //    this->max_grid_degree_check = grid_degree; 
+        max_grid_degree_check = grid_degree; 
     }
 }
-#endif
 #if 0
 template <int dim, typename real>
 void OperatorBase<dim,real>::compute_reference_flux(

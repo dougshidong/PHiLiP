@@ -92,6 +92,10 @@ public:
     ///Number of states.
     const int nstate;
 
+protected:
+    ///Check to see if the metrics used are a higher order then the initialized grid.
+    unsigned int max_grid_degree_check;
+
 public:
 
     /// Makes for cleaner doxygen documentation.
@@ -334,9 +338,11 @@ public:
     std::vector<std::vector<std::vector<std::vector<dealii::FullMatrix<real>>>>> gradient_mapping_shape_functions_face_flux_nodes; 
 
     ///Allocates metric shape functions operators.
-    void allocate_metric_operators();
+    void allocate_metric_operators(     
+                                    const unsigned int max_grid_degree_local);
     ///Creates metric shape functions operators.
-    void create_metric_basis_operators ();
+    void create_metric_basis_operators(
+                                    const unsigned int max_grid_degree_local);
 
     ///Builds just the dterminant of the volume metric Jacobian.
     void build_local_vol_determinant_Jac(
@@ -425,11 +431,9 @@ public:
                                     const dealii::Tensor<1,dim,real> &ref,
                                     const dealii::FullMatrix<real> &metric_cofactor,
                                     dealii::Tensor<1,dim,real> &phys);
-#if 0
     ///Checks on the fly that the grid hasn't been updated with a higher order. If the grid has been updated, then it recreates the appropriate metric basis.
     void is_the_grid_higher_order_than_initialized(
                                     const unsigned int grid_degree);
-#endif
 
 #if 0
     ///Given a physical flux, and the metric cofactor matrix, this function returns the reference flux.

@@ -11,6 +11,9 @@ If you are on another OS, the above script still serves as a nice guideline sinc
 Note that some features and tests from a recent pull request only work with Gmsh 4.6. See
 https://github.com/dougshidong/PHiLiP/pull/55
 
+## NACA0012 Mesh Files
+
+If you are running the code **on a local machine** (i.e. not on the cluster), you will need to download the [NACA0012 mesh files](https://drive.google.com/drive/folders/182JusbWV6NAA8ws1-TTg7M2GLc5jt6_r?usp=sharing) that are too large to store on GitHub by clicking the link, and place them in `tests/integration_tests_control_files/euler_integration/naca0012/`. **If you are running on the cluster, please see the instructions below.**
 
 ## deal.II
 
@@ -72,14 +75,19 @@ The deal.II library has been setup with the following options:
   Run  $ make info  to print a help message with a list of top level targets
 ~~~~
 
-## Installation of PHiLiP on Beluga cluster
+## Installation of PHiLiP on Compute Canada clusters
 
-This section is aimed McGill's group who use Compute Canada's Beluga cluster.
+This section is aimed at McGill's group who use the Compute Canada (CC) clusters.
 
-If you are a new user on the Beluga cluster, you must configure git modules by explicitly running the following on Beluga before proceeding:
+If you have just cloned the code onto the cluster, **you must copy the large NACA0012 mesh files** that cannot be stored on GitHub, this can be done by explicitly running the following:
 ~~~~
-chmod +x configure_git_submodules_beluga.sh
-./configure_git_submodules_beluga.sh
+chmod +x get_NACA0012_mesh_files_cluster.sh
+./get_NACA0012_mesh_files_cluster.sh
+~~~~
+If you are a **new user on a CC cluster**, **you must configure git modules** by explicitly running the following on the cluster before proceeding:
+~~~~
+chmod +x configure_git_submodules_cluster.sh
+./configure_git_submodules_cluster.sh
 ~~~~
 in which the shell script runs the following commands:
 ~~~~
@@ -89,7 +97,7 @@ git config --global http.proxy ""
 git pull --recurse-submodules
 git submodule update --recursive
 ~~~~
-The deal.II library is already installed in `/project/rrg-nadaraja-ac/Libraries/dealii/install`. The required modules were installed by Bart Oldeman from Compute Canada's team through modules. Therefore, simply put the following line in your .bashrc and source it.
+For Beluga, the deal.II library is already installed in `/project/rrg-nadaraja-ac/Libraries/dealii/install`; install paths for other clusters are included in `job_compile_PHiLiP.sh`. The required modules were installed by Bart Oldeman from Compute Canada's team through modules. Therefore, simply put the following line in your .bashrc and source it.
 ~~~~
 module --force purge
 module load StdEnv/2020

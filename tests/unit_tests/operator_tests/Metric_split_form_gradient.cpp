@@ -464,7 +464,7 @@ int main (int argc, char * argv[])
     std::array<double,n_grids> grid_size;
     std::array<double,n_grids> soln_error;
     std::array<double,n_grids> soln_error_inf;
-    for(unsigned int poly_degree = 2; poly_degree<6; poly_degree++){
+    for(unsigned int poly_degree = 2; poly_degree<5; poly_degree++){
         unsigned int grid_degree = poly_degree;
     for(unsigned int igrid=igrid_start; igrid<n_grids; ++igrid){
 pcout<<" Grid Index"<<igrid<<std::endl;

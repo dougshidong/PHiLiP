@@ -367,6 +367,9 @@ public:
      *  dealii::Triangulation::execute_coarsening_and_refinement() or dealii::Triangulation::refine_global().
      */
     void execute_coarsening_and_refinement(const bool output_mesh = false);
+    
+    /// Returns the coordinates/vertex of the smallest cell.
+    dealii::Point<dim> smallest_cell_coordinates();
 
     /// Use Lagrange polynomial to represent the spatial location.
     const dealii::FE_Q<dim>     fe_q;

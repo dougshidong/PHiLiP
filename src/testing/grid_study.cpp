@@ -113,7 +113,7 @@ double GridStudy<dim,nstate>
             }
             // Integrate solution
             for (int s=0; s<nstate; s++) {
-                solution_integral += pow(soln_at_q[0], exponent) * fe_values_extra.JxW(iquad);
+                solution_integral += pow(soln_at_q[s], exponent) * fe_values_extra.JxW(iquad);
             }
         }
 

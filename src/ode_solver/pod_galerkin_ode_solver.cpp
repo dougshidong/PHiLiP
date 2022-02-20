@@ -1,23 +1,18 @@
 #include "pod_galerkin_ode_solver.h"
 #include <deal.II/lac/la_parallel_vector.h>
-#include <ctime>
 
 namespace PHiLiP {
 namespace ODE {
 
 template <int dim, typename real, typename MeshType>
-PODGalerkinODESolver<dim,real,MeshType>::PODGalerkinODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::POD> pod)
-    : ODESolverBase<dim,real,MeshType>(dg_input)
+PODGalerkinODESolver<dim,real,MeshType>::PODGalerkinODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::POD<dim>> pod)
+    : ImplicitODESolver<dim,real,MeshType>(dg_input)
     , pod(pod)
     {}
 
 template <int dim, typename real, typename MeshType>
 void PODGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const bool /*pseudotime*/)
 {
-    double duration;
-    std::clock_t start;
-    start = std::clock();
-
     const bool compute_dRdW = true;
     this->dg->assemble_residual(compute_dRdW);
     this->current_time += dt;
@@ -34,9 +29,6 @@ void PODGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const bool 
         this->pcout << " Evaluating system update... " << std::endl;
     }
 
-    duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
-    this->pcout << "First section of step_in_time time: "<< duration <<'\n';
-
     /* Reference for Galerkin projection: Refer to Equation (21) in the following reference:
     "Efficient non-linear model reduction via a least-squares Petrov–Galerkin projection and compressive tensor approximations"
     Kevin Carlberg, Charbel Bou-Mosleh, Charbel Farhat
@@ -45,45 +37,24 @@ void PODGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const bool 
     //Galerkin projection, pod_basis = V
     //V^T*J*V*p = -V^T*R
 
-    start = std::clock();
+    pod->getPODBasis()->Tvmult(*this->reduced_rhs, this->dg->right_hand_side); // reduced_rhs = (pod_basis)^T * right_hand_side
 
-    pod->pod_basis.Tvmult(this->reduced_rhs, this->dg->right_hand_side); // reduced_rhs = (pod_basis)^T * right_hand_side
+    pod->getPODBasis()->Tmmult(*this->reduced_lhs_tmp, this->dg->system_matrix); //reduced_lhs_tmp = pod_basis^T * system_matrix
 
-    pod->pod_basis.Tmmult(this->reduced_lhs_tmp, this->dg->system_matrix); //reduced_lhs_tmp = pod_basis^T * system_matrix
-
-    this->reduced_lhs_tmp.mmult(this->reduced_lhs, pod->pod_basis); // reduced_lhs = reduced_lhs_tmp*pod_basis
-
-
-    duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
-    this->pcout << "Multiplication time: "<< duration <<'\n';
-
-    start = std::clock();
+    this->reduced_lhs_tmp->mmult(*this->reduced_lhs, *pod->getPODBasis()); // reduced_lhs = reduced_lhs_tmp*pod_basis
 
     solve_linear(
-            this->reduced_lhs,
-            this->reduced_rhs,
-            this->reduced_solution_update,
+            *this->reduced_lhs,
+            *this->reduced_rhs,
+            *this->reduced_solution_update,
             this->ODESolverBase<dim,real,MeshType>::all_parameters->linear_solver_param);
 
-    pod->pod_basis.vmult(this->solution_update, this->reduced_solution_update);
+    pod->getPODBasis()->vmult(this->solution_update, *this->reduced_solution_update);
 
-    duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
-    this->pcout << "Solver time: "<< duration <<'\n';
-
-    start = std::clock();
-
-    const double initial_residual = this->dg->get_residual_l2norm();
-    double step_length = 1.0;
-    this->dg->solution.add(step_length, this->solution_update);
-    this->dg->assemble_residual();
-    double new_residual = this->dg->get_residual_l2norm();
-    this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+    this->linesearch();
 
     this->update_norm = this->solution_update.l2_norm();
-
-    duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
-    this->pcout << "Last section of step_in_time time: "<< duration <<'\n';
-
+    ++(this->current_iteration);
 }
 
 template <int dim, typename real, typename MeshType>
@@ -95,10 +66,10 @@ void PODGalerkinODESolver<dim,real,MeshType>::allocate_ode_system ()
 
     this->solution_update.reinit(this->dg->right_hand_side);
 
-    this->reduced_solution_update.reinit(pod->pod_basis.n());
-    this->reduced_rhs.reinit(pod->pod_basis.n());
-    this->reduced_lhs_tmp.reinit(pod->pod_basis);
-    this->reduced_lhs.reinit(dealii::SparsityPattern(pod->pod_basis.n(), pod->pod_basis.n(), pod->pod_basis.n()));
+    reduced_solution_update = std::make_unique<dealii::LinearAlgebra::distributed::Vector<double>>(pod->getPODBasis()->n());
+    reduced_rhs = std::make_unique<dealii::LinearAlgebra::distributed::Vector<double>>(pod->getPODBasis()->n());
+    reduced_lhs_tmp = std::make_unique<dealii::TrilinosWrappers::SparseMatrix>();
+    reduced_lhs = std::make_unique<dealii::TrilinosWrappers::SparseMatrix>();
 }
 
 template class PODGalerkinODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;

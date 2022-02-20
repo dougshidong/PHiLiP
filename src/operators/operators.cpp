@@ -59,6 +59,7 @@ OperatorBase<dim,real>::OperatorBase(
     , max_degree(max_degree_input)
     , max_grid_degree(grid_degree_input)
     , nstate(nstate_input)
+    , max_grid_degree_check(grid_degree_input)
     , fe_collection_basis(std::get<0>(collection_tuple))
     , volume_quadrature_collection(std::get<1>(collection_tuple))
     , face_quadrature_collection(std::get<2>(collection_tuple))
@@ -83,8 +84,10 @@ OperatorBase<dim,real>::OperatorBase(
     get_surface_lifting_operators ();
 
     //setup metric operators
-    allocate_metric_operators();
-    create_metric_basis_operators();
+    allocate_metric_operators(max_grid_degree);
+    create_metric_basis_operators(max_grid_degree);
+    //set the check max grid degree to the initialized value
+   // max_grid_degree_check = max_grid_degree;
 
 }
 // Destructor
@@ -283,7 +286,7 @@ void OperatorBase<dim,real>::allocate_volume_operators ()
         local_K_operator_aux[idegree].resize(dim);
         vol_projection_operator[idegree].reinit(n_dofs, n_quad_pts);
         vol_projection_operator_FR[idegree].reinit(n_dofs, n_quad_pts);
-        FR_mass_inv[idegree].reinit(n_dofs, n_quad_pts);
+        FR_mass_inv[idegree].reinit(n_dofs, n_dofs);
         for(int idim=0; idim<dim; idim++){
             modal_basis_differential_operator[idegree][idim].reinit(n_dofs, n_dofs);
             local_basis_stiffness[idegree][idim].reinit(n_dofs, n_dofs);
@@ -293,6 +296,9 @@ void OperatorBase<dim,real>::allocate_volume_operators ()
         }
         //flux basis allocator
         unsigned int n_dofs_flux = fe_collection_flux_basis[idegree].dofs_per_cell;
+        if(n_dofs_flux != n_quad_pts)
+            pcout<<"flux basis not collocated on quad points"<<std::endl;
+
         flux_basis_at_vol_cubature[idegree].resize(nstate);
         gradient_flux_basis[idegree].resize(nstate);
         local_flux_basis_stiffness[idegree].resize(nstate);
@@ -302,12 +308,14 @@ void OperatorBase<dim,real>::allocate_volume_operators ()
             gradient_flux_basis[idegree][istate].resize(dim);
             local_flux_basis_stiffness[idegree][istate].resize(dim);
             vol_integral_gradient_basis[idegree][istate].resize(dim);
-            int shape_degree = (all_parameters->use_collocated_nodes==true && idegree==0) ?  1 :  idegree;
-            const unsigned int n_shape_functions = pow(shape_degree+1,dim);
+        //    int shape_degree = (all_parameters->use_collocated_nodes==true && idegree==0) ?  1 :  idegree;
+         //   const unsigned int n_shape_functions = pow(shape_degree+1,dim);
             for(int idim=0; idim<dim; idim++){
                 gradient_flux_basis[idegree][istate][idim].reinit(n_quad_pts, n_dofs_flux);
-                local_flux_basis_stiffness[idegree][istate][idim].reinit(n_shape_functions, n_dofs_flux);
-                vol_integral_gradient_basis[idegree][istate][idim].reinit(n_quad_pts, n_shape_functions);
+               // local_flux_basis_stiffness[idegree][istate][idim].reinit(n_shape_functions, n_dofs_flux);
+               // vol_integral_gradient_basis[idegree][istate][idim].reinit(n_quad_pts, n_shape_functions);
+                local_flux_basis_stiffness[idegree][istate][idim].reinit(n_dofs, n_dofs_flux);
+                vol_integral_gradient_basis[idegree][istate][idim].reinit(n_quad_pts, n_dofs);
             }
         }
     }
@@ -959,16 +967,17 @@ void OperatorBase<dim,real>::get_surface_lifting_operators ()
  *
  *              ******************************************************/
 template <int dim, typename real>
-void OperatorBase<dim,real>::allocate_metric_operators ()
+void OperatorBase<dim,real>::allocate_metric_operators (
+                                                        const unsigned int max_grid_degree_local)
 {
     unsigned int n_faces = dealii::GeometryInfo<dim>::faces_per_cell;
-    mapping_shape_functions_grid_nodes.resize(max_grid_degree+1);
-    gradient_mapping_shape_functions_grid_nodes.resize(max_grid_degree+1);
-    mapping_shape_functions_vol_flux_nodes.resize(max_grid_degree+1);
-    mapping_shape_functions_face_flux_nodes.resize(max_grid_degree+1);
-    gradient_mapping_shape_functions_vol_flux_nodes.resize(max_grid_degree+1);
-    gradient_mapping_shape_functions_face_flux_nodes.resize(max_grid_degree+1);
-    for(unsigned int idegree=0; idegree<=max_grid_degree; idegree++){
+    mapping_shape_functions_grid_nodes.resize(max_grid_degree_local+1);
+    gradient_mapping_shape_functions_grid_nodes.resize(max_grid_degree_local+1);
+    mapping_shape_functions_vol_flux_nodes.resize(max_grid_degree_local+1);
+    mapping_shape_functions_face_flux_nodes.resize(max_grid_degree_local+1);
+    gradient_mapping_shape_functions_vol_flux_nodes.resize(max_grid_degree_local+1);
+    gradient_mapping_shape_functions_face_flux_nodes.resize(max_grid_degree_local+1);
+    for(unsigned int idegree=0; idegree<=max_grid_degree_local; idegree++){
        // unsigned int n_dofs = dim * pow(idegree+1,dim);
         unsigned int n_dofs = pow(idegree+1,dim);
         mapping_shape_functions_grid_nodes[idegree].reinit(n_dofs, n_dofs);
@@ -1014,7 +1023,8 @@ void OperatorBase<dim,real>::allocate_metric_operators ()
     }
 }
 template <int dim, typename real>
-void OperatorBase<dim,real>::create_metric_basis_operators ()
+void OperatorBase<dim,real>::create_metric_basis_operators (
+                                                            const unsigned int max_grid_degree_local)
 {
 #if 0 //GRID CANNOT BE DEGREE 0
     //degree 0 GLL not exist
@@ -1054,9 +1064,10 @@ void OperatorBase<dim,real>::create_metric_basis_operators ()
     }
 #endif
     //degree >=1
-    for(unsigned int idegree=1; idegree<=max_grid_degree; idegree++){
+    for(unsigned int idegree=1; idegree<=max_grid_degree_local; idegree++){
        dealii::QGaussLobatto<1> GLL (idegree+1);
-       dealii::FE_DGQArbitraryNodes<dim> feq(GLL);
+      // dealii::FE_DGQArbitraryNodes<dim> feq(GLL);
+       dealii::FE_DGQArbitraryNodes<dim,dim> feq(GLL);
        // dealii::FE_Q<dim> feq(idegree);
         dealii::FESystem<dim,dim> fe(feq, 1);
       //  dealii::Quadrature<dim> vol_GLL(GLL);
@@ -1126,6 +1137,9 @@ void OperatorBase<dim,real>::build_local_vol_determinant_Jac(
     //mapping support points must be passed as a vector[dim][n_metric_dofs]
     assert(pow(grid_degree+1,dim) == mapping_support_points[0].size());
     assert(pow(grid_degree+1,dim) == n_metric_dofs);
+    //check that the grid_degree is within the range of the metric basis
+    is_the_grid_higher_order_than_initialized(grid_degree);
+
     std::vector<dealii::FullMatrix<real>> Jacobian(n_quad_pts);
     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
         Jacobian[iquad].reinit(dim,dim);
@@ -1154,6 +1168,8 @@ void OperatorBase<dim,real>::build_local_vol_metric_cofactor_matrix_and_det_Jac(
     //mapping support points must be passed as a vector[dim][n_metric_dofs]
     assert(pow(grid_degree+1,dim) == mapping_support_points[0].size());
     assert(pow(grid_degree+1,dim) == n_metric_dofs);
+    is_the_grid_higher_order_than_initialized(grid_degree);
+
     std::vector<dealii::FullMatrix<real>> Jacobian(n_quad_pts);
     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
         Jacobian[iquad].reinit(dim,dim);
@@ -1313,6 +1329,8 @@ void OperatorBase<dim,real>::build_local_face_metric_cofactor_matrix_and_det_Jac
     //mapping support points must be passed as a vector[dim][n_metric_dofs]
     assert(pow(grid_degree+1,dim) == mapping_support_points[0].size());
     assert(pow(grid_degree+1,dim) == n_metric_dofs);
+    is_the_grid_higher_order_than_initialized(grid_degree);
+
     std::vector<dealii::FullMatrix<real>> Jacobian(n_quad_pts);
     for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
         Jacobian[iquad].reinit(dim,dim);
@@ -1593,7 +1611,17 @@ void OperatorBase<dim,real>::compute_reference_to_physical(
     }
 
 }
-
+template <int dim, typename real>
+void OperatorBase<dim,real>::is_the_grid_higher_order_than_initialized(
+                                    const unsigned int grid_degree)
+{
+    if(grid_degree > max_grid_degree_check){
+        pcout<<"Updating the metric basis for grid degree "<<grid_degree<<std::endl;
+        allocate_metric_operators(grid_degree);
+        create_metric_basis_operators(grid_degree);
+        max_grid_degree_check = grid_degree; 
+    }
+}
 #if 0
 template <int dim, typename real>
 void OperatorBase<dim,real>::compute_reference_flux(

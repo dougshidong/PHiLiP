@@ -13,6 +13,8 @@ set use_collocated_nodes = false
 
 set use_split_form = false
 
+set rk_order = 4
+
 set use_curvilinear_split_form = true
 
 set use_weight_adjusted_mass = true

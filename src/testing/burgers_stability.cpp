@@ -317,7 +317,14 @@ pcout<<"did setup ode"<<std::endl;
 		if (current_energy*initial_energy - initial_energy >= 1.0)
 		//if (current_energy*initial_energy - initial_energy >= 10000.0)
 		{
-                    pcout<<"Energy Fail"<<std::endl;
+                    pcout<<"Energy not monotonicaly decreasing"<<std::endl;
+			return 1;
+			break;
+		}
+		if ( (current_energy*initial_energy - initial_energy >= 1.0e-11)&&(all_parameters_new.conv_num_flux_type == Parameters::AllParameters::ConvectiveNumericalFlux::entropy_cons_flux) )
+		//if (current_energy*initial_energy - initial_energy >= 10000.0)
+		{
+                    pcout<<"Energy not conserved"<<std::endl;
 			return 1;
 			break;
 		}

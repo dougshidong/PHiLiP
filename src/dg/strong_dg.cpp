@@ -311,7 +311,9 @@ template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual ()
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    if (this->all_parameters->pde_type == PDE_enum::convection_diffusion || this->all_parameters->pde_type == PDE_enum::diffusion)
+    using ODE_enum = Parameters::ODESolverParam::ODESolverEnum;
+    if ( (this->all_parameters->pde_type == PDE_enum::convection_diffusion || this->all_parameters->pde_type == PDE_enum::diffusion)
+        && this->all_parameters->ode_solver_param.ode_solver_type == ODE_enum::explicit_solver )//auxiliary only works explicit for now
     {
         //set auxiliary rhs to 0
         for(int idim=0; idim<dim; idim++){
@@ -1067,7 +1069,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
 
         if (this->all_parameters->ode_solver_param.ode_solver_type == Parameters::ODESolverParam::ODESolverEnum::implicit_solver) {
             for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-                //residual_derivatives[idof] = rhs.fastAccessDx(idof);
                 residual_derivatives[idof] = rhs.fastAccessDx(idof);
             }
             this->system_matrix.add(cell_dofs_indices[itest], cell_dofs_indices, residual_derivatives);

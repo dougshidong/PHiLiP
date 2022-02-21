@@ -21,17 +21,9 @@ int FiniteDifferenceSensitivity<dim, nstate>::run_test() const
     dealii::TableHandler sensitivity_table;
     dealii::TableHandler solutions_table;
 
-    // Set up Flow Solver
-    flow_solver_1->setup_test();
-    flow_solver_2->setup_test();
-
-    flow_solver_1->ode_solver->allocate_ode_system();
-    flow_solver_2->ode_solver->allocate_ode_system();
-
     dealii::LinearAlgebra::distributed::Vector<double> solution1 = flow_solver_1->dg->solution;
     dealii::LinearAlgebra::distributed::Vector<double> solution2 = flow_solver_2->dg->solution;
     dealii::LinearAlgebra::distributed::Vector<double> sensitivity_dWdParam(solution1.size());
-
 
     if(this->all_parameters->flow_solver_param.steady_state == true){
         flow_solver_1->ode_solver->steady_state();

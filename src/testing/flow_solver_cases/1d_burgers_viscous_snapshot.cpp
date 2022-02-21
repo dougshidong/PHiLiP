@@ -18,7 +18,7 @@ namespace Tests {
 
 template <int dim, int nstate>
 BurgersViscousSnapshot<dim, nstate>::BurgersViscousSnapshot(const PHiLiP::Parameters::AllParameters *const parameters_input)
-        : FlowSolver<dim,nstate>(parameters_input)
+        : FlowSolverCaseBase<dim, nstate>(parameters_input)
         , number_of_refinements(this->all_param.grid_refinement_study_param.num_refinements)
         , domain_left(this->all_param.grid_refinement_study_param.grid_left)
         , domain_right(this->all_param.grid_refinement_study_param.grid_right)
@@ -26,9 +26,13 @@ BurgersViscousSnapshot<dim, nstate>::BurgersViscousSnapshot(const PHiLiP::Parame
 }
 
 template <int dim, int nstate>
-void BurgersViscousSnapshot<dim,nstate>
-::generate_grid(std::shared_ptr<Triangulation> grid) const
+std::shared_ptr<Triangulation> BurgersViscousSnapshot<dim,nstate>::generate_grid() const
 {
+    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (
+#if PHILIP_DIM!=1
+            this->mpi_communicator
+#endif
+    );
     const bool colorize = true;
     dealii::GridGenerator::hyper_cube(*grid, domain_left, domain_right, colorize);
     grid->refine_global(number_of_refinements);
@@ -38,6 +42,8 @@ void BurgersViscousSnapshot<dim,nstate>
     this->pcout << "- - Domain left: " << domain_left << std::endl;
     this->pcout << "- - Domain right: " << domain_right << std::endl;
     this->pcout << "- - Number of refinements:  " << number_of_refinements << std::endl;
+
+    return grid;
 }
 
 template <int dim, int nstate>
@@ -47,8 +53,8 @@ void BurgersViscousSnapshot<dim, nstate>::compute_unsteady_data_and_write_to_tab
         const std::shared_ptr <DGBase<dim, double>> dg,
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const
 {
-    if (this->ode_param.output_solution_vector_modulo > 0) {
-        if (current_iteration % this->ode_param.output_solution_vector_modulo == 0) {
+    if (this->all_param.ode_solver_param.output_solution_vector_modulo > 0) {
+        if (current_iteration % this->all_param.ode_solver_param.output_solution_vector_modulo == 0) {
             for (unsigned int i = 0; i < dg->solution.size(); ++i) {
                 unsteady_data_table->add_value(
                         "Time:" + std::to_string(current_time),
@@ -56,7 +62,7 @@ void BurgersViscousSnapshot<dim, nstate>::compute_unsteady_data_and_write_to_tab
             }
             unsteady_data_table->set_precision("Time:" + std::to_string(current_time), 16);
             // Write to file
-            std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
+            std::ofstream unsteady_data_table_file(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt");
             unsteady_data_table->write_text(unsteady_data_table_file);
         }
     }

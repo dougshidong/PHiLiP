@@ -3,14 +3,11 @@
 
 // for FlowSolver class:
 #include "physics/initial_conditions/initial_condition.h"
-#include "testing/tests.h"
 #include "dg/dg.h"
 #include "physics/physics.h"
 #include "parameters/all_parameters.h"
 #include <deal.II/base/table_handler.h>
-#include "testing/flow_solver.h"
-
-// for generate_grid
+#include "flow_solver_case_base.h"
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/tria.h>
 
@@ -24,7 +21,7 @@ using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
 #endif
 
 template <int dim, int nstate>
-class BurgersViscousSnapshot: public FlowSolver<dim, nstate>
+class BurgersViscousSnapshot: public FlowSolverCaseBase<dim, nstate>
 {
 public:
     /// Constructor.
@@ -39,7 +36,7 @@ protected:
     const double domain_right; ///< Domain right-boundary value for generating the grid
 
     /// Virtual function to generate the grid
-    void generate_grid(std::shared_ptr<Triangulation> grid) const override;
+    std::shared_ptr<Triangulation> generate_grid() const override;
 
     /// Virtual function to write unsteady snapshot data to table
     void compute_unsteady_data_and_write_to_table(

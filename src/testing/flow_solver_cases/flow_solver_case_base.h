@@ -27,7 +27,7 @@ public:
     FlowSolverCaseBase(const Parameters::AllParameters *const parameters_input);
 
     /// Destructor
-    virtual ~FlowSolverCaseBase() = 0;
+    virtual ~FlowSolverCaseBase() {};
 
 public:
 

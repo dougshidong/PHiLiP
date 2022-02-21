@@ -81,7 +81,7 @@ double PeriodicCubeFlow<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBa
 {
     const unsigned int number_of_degrees_of_freedom = dg->dof_handler.n_dofs();
     const double approximate_grid_spacing = (domain_right-domain_left)/pow(number_of_degrees_of_freedom,(1.0/dim));
-    const double constant_time_step = this->courant_friedrich_lewy_number * approximate_grid_spacing;
+    const double constant_time_step = this->all_param.flow_solver_param.courant_friedrich_lewy_number * approximate_grid_spacing;
     return constant_time_step;
 }
 
@@ -103,7 +103,7 @@ double PeriodicCubeFlow<dim,nstate>::integrand_l2_error_initial_condition(const 
 {
     // Description: Returns l2 error with the initial condition function
     // Purpose: For checking the initialization
-    std::shared_ptr<InitialConditionFunction<dim,double>> initial_condition_function = InitialConditionFactory<dim,double>::create_InitialConditionFunction(this->all_param, nstate);
+    std::shared_ptr<InitialConditionFunction<dim,double>> initial_condition_function = InitialConditionFactory<dim,double>::create_InitialConditionFunction(&this->all_param, nstate);
     double integrand_value = 0.0;
     for (int istate=0; istate<nstate; ++istate) {
         const double exact_soln_at_q = initial_condition_function->value(qpoint, istate);

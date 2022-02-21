@@ -41,10 +41,10 @@ protected:
     /// Displays the flow setup parameters
     void display_flow_solver_setup() const override;
 
-    /// Virtual function to generate the grid
+    /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;
 
-    /// Virtual function to compute the constant time step
+    /// Function to compute the constant time step
     double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
 
     /// Compute the desired unsteady data and write it to a table

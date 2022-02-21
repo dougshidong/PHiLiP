@@ -20,21 +20,25 @@ FlowSolver<dim, nstate>::FlowSolver(const PHiLiP::Parameters::AllParameters *con
 , dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, flow_solver_case->generate_grid()))
 , ode_solver(ODE::ODESolverFactory<dim, double>::create_ODESolver(dg))
 {
+    pcout << "Allocating dg..." << std::endl;
+    dg->allocate_system();
+    pcout << "Done." << std::endl;
     flow_solver_case->display_flow_solver_setup();
-
     pcout << "Initializing solution with initial condition function..." << std::flush;
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
     dealii::VectorTools::interpolate(dg->dof_handler, *initial_condition_function, solution_no_ghost);
     dg->solution = solution_no_ghost;
-    ode_solver->allocate_ode_system();
     pcout << "done." << std::endl;
+    pcout << "Allocating ODE system..." << std::endl;
+    ode_solver->allocate_ode_system();
+    pcout << "Done." << std::endl;
 }
 
 template <int dim, int nstate>
 int FlowSolver<dim,nstate>::run_test() const
 {
-
+    pcout << "Running Flow Solver..." << std::endl;
     if (ode_param.output_solution_every_x_steps > 0) {
         dg->output_results_vtk(ode_solver->current_iteration);
     } else if (ode_param.output_solution_every_dt_time_intervals > 0.0) {

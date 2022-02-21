@@ -51,8 +51,14 @@ void FlowSolverCaseBase<dim, nstate>::compute_unsteady_data_and_write_to_table(
     // do nothing by default
 }
 
-template class FlowSolverCaseBase<PHILIP_DIM,PHILIP_DIM>;
-template class FlowSolverCaseBase<PHILIP_DIM,PHILIP_DIM+2>;
+
+#if PHILIP_DIM==1
+        template class FlowSolverCaseBase<PHILIP_DIM,PHILIP_DIM>;
+#endif
+
+#if PHILIP_DIM==3
+        template class FlowSolverCaseBase<PHILIP_DIM,PHILIP_DIM+2>;
+#endif
 
 }
 }

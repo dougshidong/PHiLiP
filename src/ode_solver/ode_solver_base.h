@@ -89,7 +89,7 @@ protected:
     dealii::LinearAlgebra::distributed::Vector<double> solution_update;
 
     /// Stores the various RK stages.
-    /** Currently hard-coded to RK4.
+    /** Currently hard-coded to SSPRK3.
      */
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;
 

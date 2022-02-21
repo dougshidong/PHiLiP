@@ -13,10 +13,69 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
 {
     const bool compute_dRdW = false;
     this->dg->assemble_residual(compute_dRdW);
-    this->current_time += dt;
     
     Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
     const int rk_order = ode_param.runge_kutta_order;
+   
+    double RK_a[3][3] = {{0,0,0},{1.0,0,0},{0.25, 0.25, 0}};
+    double RK_b[3] = {1.0/6.0, 1.0/6.0, 2.0/3.0};
+    /*
+     *This is not working! 
+     Need to figure out a way to allocate memory dynamically to RK_a and RK_b....
+     Could use dealii vector (allows resizing)
+     Possibly also allocate in allocate_ODE_system or in parameters 
+     Or make a private function for calculating stages/assembling the next timestep (but not sure if I like that)
+     *
+    if (rk_order == 3){
+        //SSPRK3
+        RK_a = {{0,0,0},{1.0,0,0},{0.25, 0.25, 0}};
+        RK_b = {1.0/6.0, 1.0/6.0, 2.0/3.0};
+    } 
+    else if (rk_order == 4){
+	    //standard RK4
+	    RK_a = {{0,0,0,0},{0.5,0,0,0},{0, 0.5, 0, 0}, {0, 0, 1.0, 0}};
+    	RK_b = {1.0/6.0, 1.0/3.0, 1.0/3.0, 1.0/6.0};
+    }
+    else {
+        this->pcout << "Invalid runge_kutta_order." << std::endl;
+        std::abort();
+    }
+*/
+    
+	//calculating stages
+	this->solution_update = this->dg->solution; //u_ni
+	for (int i = 0; i < rk_order; ++i){
+	    this -> rk_stage[i] = this -> solution_update; //u_n
+	    for (int j = 0; j < i; ++j){
+	        if (RK_a[i][j] != 0){
+                if (pseudotime) {
+                    //implemented but not tested 
+                    std::cout << "Explicit pseudotime not tested!!" << std::endl;
+                    const double CFL = RK_a[i][j] * dt;
+                    this->dg->time_scale_solution_update(this->rk_stage[j], CFL);
+                    this->rk_stage[i].add(1.0,  this->rk_stage[j]);
+                } else {
+	                this->rk_stage[i].add(dt*RK_a[i][j], this->rk_stage[j]);
+                }
+		    }
+	    } //u_n + dt* sum(a_ij *k_j)
+            this->dg->solution = this->rk_stage[i];
+            this->dg->assemble_residual (); // RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j)
+            this->dg->global_inverse_mass_matrix.vmult(this->rk_stage[i], this->dg->right_hand_side); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j)
+	}
+
+	//assemble solution from stages
+	for (int i = 0; i < rk_order; ++i){
+	    this->solution_update.add(dt* RK_b[i],this->rk_stage[i]);
+	}
+	this->dg->solution = this->solution_update; // u_np1 = u_n + dt* sum(k_i * b_i)
+
+    ++(this->current_iteration);
+    this->current_time += dt;
+}
+
+
+    /* Old code has been kept here because new implementation of pseudotime is untested
     if (rk_order == 1) {
         this->dg->global_inverse_mass_matrix.vmult(this->solution_update, this->dg->right_hand_side);
         this->update_norm = this->solution_update.l2_norm();
@@ -27,7 +86,8 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
         } else {
             this->dg->solution.add(dt,this->solution_update);
         }
-    } else if (rk_order == 3) {
+    }
+    else if (rk_order == 3) {
         // Stage 0
         this->rk_stage[0] = this->dg->solution;
 
@@ -92,6 +152,13 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
             this->pcout<< "done." << std::endl;
         }
     }
+    */
+    
+
+
+
+
+/*
     else if (rk_order == -1){ //placeholder   Could use (rk_order == 3) && !psuedotime to toggle ? unsure if that's a good idea
         std::cout << "General RK" << std::endl;
 
@@ -100,11 +167,11 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
 	double RK_a[rko][rko] = {{0,0,0},{1.0,0,0},{0.25, 0.25, 0}};
 	double RK_b[rko] = {1.0/6.0, 1.0/6.0, 2.0/3.0};
 
-	/* //standard RK4
-	const int rko = 4;
-	double RK_a[rko][rko] = {{0,0,0,0},{0.5,0,0,0},{0, 0.5, 0, 0}, {0, 0, 1.0, 0}};
-	double RK_b[rko] = {1.0/6.0, 1.0/3.0, 1.0/3.0, 1.0/6.0};
-	*/
+	 //standard RK4
+	//const int rko = 4;
+	//double RK_a[rko][rko] = {{0,0,0,0},{0.5,0,0,0},{0, 0.5, 0, 0}, {0, 0, 1.0, 0}};
+	//double RK_b[rko] = {1.0/6.0, 1.0/3.0, 1.0/3.0, 1.0/6.0};
+	
 
 	//calculating stages
 	this->solution_update = this->dg->solution; //u_ni
@@ -112,8 +179,16 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
 	    this -> rk_stage[i] = this -> solution_update; //u_n
 	    for (int j = 0; j < i; ++j){
 	        if (RK_a[i][j] != 0){
-	            this->rk_stage[i].add(dt*RK_a[i][j], this->rk_stage[j]);
-		}
+                if (pseudotime) {
+                    //implemented but not tested 
+                    std::cout << "Explicit pseudotime not tested!!" << std::endl;
+                    const double CFL = RK_a[i][j] * dt;
+                    this->dg->time_scale_solution_update(this->rk_stage[j], CFL);
+                    this->rk_stage[i].add(1.0,  this->rk_stage[j]);
+                } else {
+	                this->rk_stage[i].add(dt*RK_a[i][j], this->rk_stage[j]);
+                }
+		    }
 	    } //u_n + dt* sum(a_ij *k_j)
             this->dg->solution = this->rk_stage[i];
             this->dg->assemble_residual (); // RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j)
@@ -134,6 +209,7 @@ void ExplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
 
     ++(this->current_iteration);
 }
+*/
 
 template <int dim, typename real, typename MeshType>
 void ExplicitODESolver<dim,real,MeshType>::allocate_ode_system ()
@@ -143,8 +219,10 @@ void ExplicitODESolver<dim,real,MeshType>::allocate_ode_system ()
     this->solution_update.reinit(this->dg->right_hand_side);
     this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
 
-    this->rk_stage.resize(4);
-    for (int i=0; i<4; i++) {
+    Parameters::ODESolverParam ode_param = ODESolverBase<dim,real,MeshType>::all_parameters->ode_solver_param;
+    const int rk_order = ode_param.runge_kutta_order;
+    this->rk_stage.resize(rk_order);
+    for (int i=0; i<rk_order; i++) {
         this->rk_stage[i].reinit(this->dg->solution);
     }
 }

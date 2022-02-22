@@ -2336,10 +2336,8 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
                 global_mass_matrix.set (dofs_indices, local_mass_matrix);
             }
         } else {//use weight adjusted Mass Matrix (it's based off the inverse)
-           // const std::vector<real> &JxW = fe_values_volume.get_JxW_values();
             std::vector<real> W_J_inv(n_quad_pts);
             for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-               // W_J_inv[iquad] = quad_weights[iquad] * quad_weights[iquad] / JxW[iquad]; 
                 W_J_inv[iquad] = quad_weights[iquad] / determinant_Jacobian[iquad]; 
             }
             const unsigned int curr_cell_degree = current_fe_ref.tensor_degree();
